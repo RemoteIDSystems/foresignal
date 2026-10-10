@@ -10,30 +10,70 @@ spec = json.load(open(sys.argv[1]))
 outdir = pathlib.Path(sys.argv[2]); outdir.mkdir(parents=True, exist_ok=True)
 
 PATH_VARS = {"sourceId": "sourceId", "externalId": "externalId", "ruleId": "ruleId", "alertId": "alertId",
-             "webhookId": "webhookId", "layer": "tileLayer", "z": "tileZ", "x": "tileX", "y": "tileY"}
+             "channelId": "channelId", "tokenId": "tokenId", "providerId": "providerId", "threadId": "threadId",
+             "actionId": "actionId", "briefingId": "briefingId", "runId": "runId", "subscriptionId": "subscriptionId",
+             "layer": "tileLayer", "z": "tileZ", "x": "tileX", "y": "tileY"}
 
 BODIES = {
   "updateSource": {"enabled": True, "interval": "60s", "params": {"feed": "all_day"}, "budget": {"perMinute": 4, "perDay": 2000}, "retention": "365d"},
   "setSourceCredentials": {"values": {"apiKey": "REPLACE_ME"}},
   "createTrigger": {"name": "Big quake", "enabled": True, "source": "usgs-earthquakes", "kind": "earthquake",
-                    "conditions": [{"path": "mag", "op": ">=", "value": 6}], "mode": "enter", "cooldown": "0s",
+                    "conditions": [{"path": "mag", "op": ">=", "value": 6}], "mode": "enter", "cooldown": "0s", "severity": "critical", "enrich": True,
                     "messageTemplate": "M{{payload.mag}} — {{payload.place}}"},
   "updateTrigger": {"name": "Vessels entering Strait of Hormuz", "enabled": True, "kind": "vessel", "mode": "enter",
                     "geofence": {"type": "Polygon", "coordinates": [[[55.8, 26.0], [57.2, 26.0], [57.2, 27.0], [55.8, 27.0], [55.8, 26.0]]]},
                     "cooldown": "1h", "messageTemplate": "{{payload.name}} ({{externalId}}) entered Hormuz"},
-  "createWebhook": {"name": "ntfy", "url": "https://ntfy.sh/REPLACE_TOPIC", "secret": "change-me", "ruleIds": None, "enabled": True},
-  "updateWebhook": {"name": "ntfy", "url": "https://ntfy.sh/REPLACE_TOPIC", "ruleIds": None, "enabled": True},
-  "updateRetention": {"default": "7d", "alerts": "90d", "usage": "30d", "sources": {"usgs-earthquakes": "3650d"}},
+  "createChannel": {"name": "ntfy phone", "type": "ntfy", "config": {"serverUrl": "https://ntfy.sh", "topic": "REPLACE_TOPIC"},
+                    "secrets": {}, "events": ["alert", "briefing", "system"], "ruleIds": None, "minSeverity": "warning", "enabled": True},
+  "updateChannel": {"name": "Slack #ops", "type": "slack", "config": {"username": "Elaro"},
+                    "secrets": {"webhookUrl": "https://hooks.slack.com/services/REPLACE"}, "events": ["alert", "briefing"], "ruleIds": None,
+                    "minSeverity": "info", "waitForEnrichmentSeconds": 20, "enabled": True},
+  "createToken": {"name": "openclaw-agent", "scope": "agent", "expiresAt": None},
+  "createCustomSource": {"id": "custom-home-sensors", "name": "Home sensors", "kinds": ["sensor-reading"], "attribution": "My bench",
+                         "recordTtl": "1h", "tileProperties": ["value", "unit"], "searchFields": ["name"], "embedFields": [], "rateLimitPerMinute": 60},
+  "updateCustomSource": {"id": "custom-home-sensors", "name": "Home sensors", "kinds": ["sensor-reading", "sensor-alarm"], "attribution": "My bench",
+                         "recordTtl": "1h", "tileProperties": ["value", "unit"], "searchFields": ["name"], "embedFields": [], "rateLimitPerMinute": 60},
+  "ingestRecords": {"type": "FeatureCollection", "features": [{"type": "Feature", "id": "garage-temp",
+                    "geometry": {"type": "Point", "coordinates": [-97.74, 30.27]},
+                    "properties": {"kind": "sensor-reading", "observedAt": "2026-10-10T12:00:00Z", "name": "Garage temperature", "value": 31.5, "unit": "C"}}]},
+  "createLlmProvider": {"id": "ollama", "type": "ollama", "baseUrl": "http://ollama:11434", "chatModel": "qwen3:14b",
+                        "embeddingModel": "nomic-embed-text", "embeddingDimensions": 768, "requestsPerMinute": 60, "tokensPerDay": 5000000, "enabled": True},
+  "updateLlmProvider": {"id": "claude", "type": "anthropic", "chatModel": "claude-opus-5-5", "apiKey": "REPLACE_ME",
+                        "options": {"effort": "medium", "maxTokens": 16000}, "requestsPerMinute": 30, "tokensPerDay": 2000000, "enabled": True},
+  "updateLlmSettings": {"chatProvider": "claude", "embeddingProvider": "ollama", "askEnabled": True, "enrichmentEnabled": True, "logContent": False},
+  "ask": {"question": "Were there any earthquakes above magnitude 5 in the last 24 hours, and where?", "threadId": None,
+          "scope": {"sources": ["usgs-earthquakes"], "since": None}, "allowActions": False},
+  "askStream": {"question": "Summarize significant seismic activity this week and suggest a watch rule for M6+ near Japan.", "allowActions": False},
+  "createBriefing": {"name": "Morning brief", "enabled": True, "schedule": "0 7 * * *", "timezone": "America/Chicago",
+                     "scope": {"sources": [], "kinds": ["earthquake"], "includeHealth": True}, "lookback": "24h", "mode": "digest",
+                     "instructions": None, "channelIds": ["{{channelId}}"], "maxItemsPerKind": 5},
+  "updateBriefing": {"name": "Morning brief (LLM)", "enabled": True, "schedule": "0 7 * * 1-5", "timezone": "America/Chicago",
+                     "scope": {"kinds": ["earthquake", "aircraft", "vessel"], "includeHealth": True}, "lookback": "24h", "mode": "llm",
+                     "instructions": "Lead with anything critical. Keep it under 250 words.", "channelIds": ["{{channelId}}"]},
+  "previewBriefing": {"name": "Preview", "schedule": "0 7 * * *", "scope": {"kinds": ["earthquake"]}, "lookback": "24h", "mode": "digest"},
+  "createPushSubscription": {"name": "Laptop browser", "subscription": {"endpoint": "https://push.example/REPLACE",
+                             "keys": {"p256dh": "REPLACE", "auth": "REPLACE"}}, "filters": {"events": ["alert"], "minSeverity": "warning"}},
+  "updateSecuritySettings": {"openReads": True},
+  "updateServerSettings": {"publicBaseUrl": "http://elaro.local:8080"},
+  "updateRetention": {"default": "7d", "alerts": "90d", "usage": "30d", "briefings": "180d", "ask": "90d", "sources": {"usgs-earthquakes": "3650d"}},
   "updateCors": {"readOrigins": ["*"], "writeOrigins": ["http://localhost:5173"]},
   "importSettings": {"sources": {"usgs-earthquakes": {"enabled": True, "interval": "60s"}},
                      "retention": {"default": "7d", "alerts": "90d", "usage": "30d", "sources": {}},
-                     "cors": {"readOrigins": ["*"], "writeOrigins": []}, "triggers": [], "webhooks": []},
+                     "cors": {"readOrigins": ["*"], "writeOrigins": []}, "triggers": [], "channels": []},
 }
 
 # test scripts: capture ids / assert status
 CAPTURE = {
   "createTrigger": "const j = pm.response.json(); pm.collectionVariables.set('ruleId', j.id);",
-  "createWebhook": "const j = pm.response.json(); pm.collectionVariables.set('webhookId', j.id);",
+  "createChannel": "const j = pm.response.json(); pm.collectionVariables.set('channelId', j.id);",
+  "createToken": "const j = pm.response.json(); pm.collectionVariables.set('tokenId', j.id); console.log('New token (shown once):', j.token);",
+  "createCustomSource": "const j = pm.response.json(); pm.collectionVariables.set('ingestKey', j.ingestKey); pm.collectionVariables.set('sourceId', j.id);",
+  "rotateIngestKey": "const j = pm.response.json(); pm.collectionVariables.set('ingestKey', j.ingestKey);",
+  "createLlmProvider": "const j = pm.response.json(); pm.collectionVariables.set('providerId', j.id);",
+  "ask": "const j = pm.response.json(); pm.collectionVariables.set('threadId', j.threadId); if (j.proposedActions && j.proposedActions.length) pm.collectionVariables.set('actionId', j.proposedActions[0].id);",
+  "createBriefing": "const j = pm.response.json(); pm.collectionVariables.set('briefingId', j.id);",
+  "runBriefing": "const j = pm.response.json(); if (j.id) pm.collectionVariables.set('runId', j.id);",
+  "createPushSubscription": "const j = pm.response.json(); pm.collectionVariables.set('subscriptionId', j.id);",
   "listAlerts": "const j = pm.response.json(); if (j.items && j.items.length) pm.collectionVariables.set('alertId', j.items[0].id);",
   "listChanges": "const j = pm.response.json(); pm.collectionVariables.set('lastSeq', j.lastSeq);",
   "listRecords": "const j = pm.response.json(); const it = (j.items || j.features || [])[0]; if (it) { const ext = it.externalId || (it.properties && it.properties.externalId); pm.collectionVariables.set('externalId', ext); }\nif (j.nextCursor) pm.collectionVariables.set('cursor', j.nextCursor);",
@@ -52,7 +92,8 @@ def example_for(schema):
 
 def req_item(path, method, op):
     opid = op["operationId"]
-    admin = bool(op.get("security"))
+    scope = op.get("x-elaro-scope", "open")
+    admin = scope in ("agent", "admin")
     pm_path = re.sub(r"\{(\w+)\}", lambda m: "{{" + PATH_VARS.get(m.group(1), m.group(1)) + "}}", path)
     raw = "{{baseUrl}}" + pm_path
     query = []
@@ -76,9 +117,13 @@ def req_item(path, method, op):
     request = {"method": method.upper(), "header": headers,
                "url": {"raw": raw + ("?" + "&".join(f"{q['key']}={q['value']}" for q in query if not q["disabled"]) if any(not q["disabled"] for q in query) else ""),
                        "host": ["{{baseUrl}}"], "path": [s for s in pm_path.strip("/").split("/")], "query": query},
-               "description": (op.get("description") or op.get("summary", "")) + ("\n\n**Requires admin token.**" if admin else "\n\nOpen (no auth).") + f"\n\noperationId: `{opid}`"}
-    if admin:
-        request["auth"] = {"type": "bearer", "bearer": [{"key": "token", "value": "{{adminToken}}", "type": "string"}]}
+               "description": (op.get("description") or op.get("summary", "")) + f"\n\noperationId: `{opid}`"}
+    if opid == "ingestRecords":
+        request["auth"] = {"type": "noauth"}
+        request["header"].append({"key": "X-Elaro-Ingest-Key", "value": "{{ingestKey}}"})
+    elif admin:
+        var = "{{agentToken}}" if scope == "agent" else "{{adminToken}}"
+        request["auth"] = {"type": "bearer", "bearer": [{"key": "token", "value": var, "type": "string"}]}
     else:
         request["auth"] = {"type": "noauth"}
     if "requestBody" in op:
@@ -134,18 +179,35 @@ quickstart = {"name": "00 Quickstart — USGS end to end",
     step(11, "listAlerts", "Alerts"),
     step(12, "getSourceUsage", "Budget / usage"),
   ]}
+quickstart2 = {"name": "01 Quickstart — Channels, briefings, Ask",
+  "description": "After the USGS quickstart: add an ntfy channel, create and run a digest briefing, register a local Ollama provider and ask a question. Edit the ntfy topic first.",
+  "item": [
+    step(1, "listChannelTypes", "Channel types"),
+    step(2, "createChannel", "Create ntfy channel"),
+    step(3, "testChannel", "Send test notification"),
+    step(4, "createBriefing", "Create morning digest"),
+    step(5, "runBriefing", "Run it now"),
+    step(6, "createLlmProvider", "Add local Ollama provider"),
+    step(7, "updateLlmSettings", "Assign roles", {"body": {"chatProvider": "ollama", "embeddingProvider": "ollama", "askEnabled": True, "enrichmentEnabled": True}}),
+    step(8, "testLlmProvider", "Test the provider"),
+    step(9, "ask", "Ask about recent quakes"),
+    step(10, "search", "Hybrid search", {"query": {"q": "earthquake", "mode": "hybrid"}}),
+  ]}
 # Streams convenience folder
 streams = {"name": "Streams (SSE — run manually)", "description": "Postman displays Server-Sent Events live. Set Last-Event-ID (header) to resume.",
-           "item": [dict(by_id["streamChanges"], name="Change stream — all"), dict(by_id["streamAlerts"], name="Alert stream")]}
+           "item": [dict(by_id["streamChanges"], name="Change stream — all"), dict(by_id["streamAlerts"], name="Alert stream"),
+                    dict(by_id["askStream"], name="Ask (streaming)")]}
 
 collection = {
   "info": {"_postman_id": str(uuid.uuid5(uuid.NAMESPACE_URL, "https://elaro.ai/postman")), "name": "Elaro API",
-           "description": f"{spec['info']['description']}\n\nGenerated from docs/OpenAPI.json (v{spec['info']['version']}). Every operation is included, grouped by tag. Admin operations use Bearer `{{{{adminToken}}}}`; open reads use no auth. Test scripts capture ids into collection variables (ruleId, webhookId, alertId, externalId, lastSeq, cursor).",
+           "description": f"{spec['info']['description']}\n\nGenerated from docs/OpenAPI.json (v{spec['info']['version']}). Every operation is included, grouped by tag. Admin operations use Bearer `{{{{adminToken}}}}`, agent operations `{{{{agentToken}}}}` (defaults to the admin token; set it to an agent-scope token to test scopes), ingest uses `X-Elaro-Ingest-Key: {{{{ingestKey}}}}`, and reads use no auth (open while openReads is on). Test scripts capture ids into collection variables (ruleId, channelId, alertId, briefingId, threadId, ingestKey, externalId, lastSeq, cursor…).",
            "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"},
-  "item": [quickstart, streams] + folders,
+  "item": [quickstart, quickstart2, streams] + folders,
   "variable": [{"key": k, "value": v} for k, v in [
-      ("baseUrl", "http://localhost:8080"), ("adminToken", ""), ("sourceId", "usgs-earthquakes"), ("externalId", ""),
-      ("ruleId", ""), ("alertId", ""), ("webhookId", ""), ("lastSeq", "0"), ("cursor", ""),
+      ("baseUrl", "http://localhost:8080"), ("adminToken", ""), ("agentToken", "{{adminToken}}"), ("ingestKey", ""),
+      ("sourceId", "usgs-earthquakes"), ("externalId", ""), ("ruleId", ""), ("alertId", ""), ("channelId", ""), ("tokenId", ""),
+      ("providerId", "ollama"), ("threadId", ""), ("actionId", ""), ("briefingId", ""), ("runId", ""), ("subscriptionId", ""),
+      ("lastSeq", "0"), ("cursor", ""),
       ("tileLayer", "earthquake"), ("tileZ", "0"), ("tileX", "0"), ("tileY", "0")]],
 }
 env = {"id": str(uuid.uuid5(uuid.NAMESPACE_URL, "https://elaro.ai/postman/env/local")), "name": "Elaro — Local",
