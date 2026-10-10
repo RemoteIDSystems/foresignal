@@ -1,12 +1,12 @@
 # Elaro — Architecture
 
-Version 1.0 · 2026-10-10 · Companion to the [Product Charter](Product-Charter.md) and [OpenAPI spec](OpenAPI.json).
+Version 1.1 · 2026-10-10 · Companion to the [Product Charter](Product-Charter.md) and [OpenAPI spec](OpenAPI.json).
 
 ---
 
 ## 1. Overview
 
-Elaro is a single Spring Boot process backed by one PostgreSQL + PostGIS database. Inside the process, five subsystems communicate through narrow interfaces:
+Elaro is a single Spring Boot process backed by one PostgreSQL database with PostGIS and pgvector. Inside the process, five core subsystems communicate through narrow interfaces (diagram below). Around them sit the operator and intelligence features: scoped tokens, inbound webhooks, notification channels, the MCP server, and an optional LLM subsystem that powers semantic search, Ask, briefings and alert enrichment (§15–§24).
 
 ```
                  ┌──────────────────────────── Elaro process ─────────────────────────────┐
@@ -16,21 +16,21 @@ Elaro is a single Spring Boot process backed by one PostgreSQL + PostGIS databas
    MQTT…)        │  │ Scheduler     ├──────────►│ Ingest      ├───────►│ Change bus    │   │
                  │  │ Adapters      │  (queue)  │ writer      │ events │  ├─ SSE hub   ├───┼──► Frontends
                  │  │ Upstream      │           │ (single     │        │  ├─ Trigger   │   │    Agents
-                 │  │ client +      │           │  thread)    │        │  │   engine ──┼───┼──► Webhooks
+                 │  │ client +      │           │  thread)    │        │  │   engine ──┼───┼──► Channels
                  │  │ budgets       │           └──────┬──────┘        └───────────────┘   │
                  │  └───────┬───────┘                  │                                  │
                  │          │ usage/health             │ versions                         │
                  │          ▼                          ▼                                  │
                  │  ┌──────────────────────── ④ Store (Postgres + PostGIS) ──────────┐    │
                  │  │ settings · credentials · usage · health · record_version ·     │    │
-                 │  │ record_head · trigger_rule · alert · webhook · app_setting     │    │
+                 │  │ record_head · trigger_rule · alert · channels · app_setting …  │    │
                  │  └───────────────────────────────▲────────────────────────────────┘    │
                  │                                  │                                     │
-                 │  ⑤ API (REST /v1, GeoJSON, MVT, SSE, OpenAPI) + admin-token filter     │
+                 │  ⑤ API (REST /v1, GeoJSON, MVT, SSE, MCP, OpenAPI) + token filter      │
                  └────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Key principle:** the *only* thing that causes an upstream request is an enabled source in `source_settings` (or an explicit operator fetch/probe). Nothing a client reads or streams ever reaches the collector.
+**Key principle:** the *only* thing that causes an upstream request is an enabled source in `source_settings` (or an explicit operator fetch/probe). Nothing a client reads or streams ever reaches the collector. The same holds for the LLM: nothing calls a model except an explicit Ask, a scheduled briefing, an enrichment-enabled rule, or the embedding worker for sources configured to embed. All of these are budgeted like sources.
 
 ## 2. Technology stack
 
@@ -41,11 +41,17 @@ Elaro is a single Spring Boot process backed by one PostgreSQL + PostGIS databas
 | JSON | Jackson 3 (Boot 4 default, `tools.jackson.*` packages) | Payloads stored as `jsonb` |
 | Persistence | Spring Data JPA, Hibernate 7, `hibernate-spatial` + JTS | `ddl-auto=update` in development; **no Flyway until production** |
 | Bulk writes | `JdbcTemplate` batch on the ingest hot path | Entities still own the schema definition |
-| Database | PostgreSQL 17 + PostGIS 3.5 | Image `postgis/postgis:17-3.5` |
+| Database | PostgreSQL 17 + PostGIS 3.5 + pgvector | Custom image built from `docker/db/Dockerfile` (`postgis/postgis:17-3.5` plus `postgresql-17-pgvector`) |
 | Rate limiting | Bucket4j (`bucket4j_jdk17-core`) | One bucket set per source |
 | HTTP client | `java.net.http.HttpClient` | Wrapped by `UpstreamClient` |
 | WebSocket client | `java.net.http.WebSocket` | For streaming adapters |
-| MQTT (later waves) | Eclipse Paho v5 | For streaming adapters |
+| MQTT | Eclipse Paho v5 | For streaming adapters |
+| Vectors | pgvector + `hibernate-vector` | Embeddings for semantic search (§20) |
+| MCP | MCP Java SDK (`io.modelcontextprotocol.sdk`) with the Spring WebMVC streamable-HTTP transport | `/mcp` (§18) |
+| LLM: Anthropic | Official Anthropic Java SDK `com.anthropic:anthropic-java` | Default model `claude-opus-5-5` (§19) |
+| LLM: others | `java.net.http` clients for OpenAI-compatible APIs and Ollama | Local or alternative providers (§19) |
+| Email | Jakarta Mail via `spring-boot-starter-mail` | Email notification channel (§17) |
+| Web Push | JDK crypto (ECDH P-256, HKDF, AES-128-GCM, ES256 VAPID) | Browser push (§24) |
 | OpenAPI | Authored `docs/OpenAPI.json` served at `/v1/openapi.json`; springdoc-openapi (Boot 4-compatible line) for Swagger UI at `/docs` and drift testing | See §10 |
 | Metrics | Micrometer + Prometheus registry | `/actuator/prometheus` |
 | Build | Gradle 9.x, Kotlin DSL, wrapper committed | Single module |
@@ -62,7 +68,7 @@ Single Gradle module, base package `ai.elaro`.
 ai.elaro
 ├── ElaroApplication
 ├── config          Jackson, CORS, virtual threads, OpenAPI metadata, clock, schema bootstrap
-├── security        AdminTokenService, AdminTokenFilter, CredentialCipher, SecretKeyStore
+├── security        Tokens and scopes, AccessPolicy, TokenFilter, CredentialCipher, SecretKeyStore
 ├── source          SourceAdapter SPI, descriptors, registry, settings, credentials
 │   └── adapters    One sub-package per upstream: adapters.usgs, adapters.adsblol, …
 ├── collect         CollectorScheduler, UpstreamClient, BudgetGovernor, UsageMeter,
@@ -72,7 +78,14 @@ ai.elaro
 │                   TileQuery
 ├── stream          ChangeBus, ChangeBatch, SseHub, StreamFilter
 ├── trigger         TriggerRule, TriggerEngine, RuleSqlBuilder, Alert, AlertService,
-│                   WebhookDispatcher
+│                   EnrichmentWorker
+├── notify          Notification channels, formatters per type, delivery worker, Web Push
+├── inbound         Custom push sources, ingest endpoint support
+├── mcp             MCP server and tool catalog
+├── llm             Provider registry, LlmClient implementations, budgets, usage
+├── search          Embedding worker, semantic and hybrid search
+├── ask             Ask Elaro: tool loop, threads, proposed actions
+├── briefing        Briefing definitions, scheduler, digest and LLM renderers
 ├── retention       RetentionSettings, RetentionJob
 ├── settings        AppSettingService (typed key/value), export/import
 ├── system          SystemInfoService
@@ -266,13 +279,31 @@ Unique (`source_id`, `external_id`, `version`); index (`ingested_at`); index (`s
 
 **`alert`**: `id` bigint identity PK · `rule_id` · `seq` · `source_id` · `external_id` · `fired_at` · `message` · `acknowledged_at` null. Index (`rule_id`, `source_id`, `external_id`, `fired_at`) for cooldown checks; index (`fired_at`).
 
-**`webhook`**: `id` uuid PK · `name` · `url` · `secret` (encrypted) · `rule_ids` jsonb null (null = all rules) · `enabled` · `created_at`
+**`notification_channel`** (§17): `id` uuid PK · `name` · `type` · `config` jsonb (non-secret settings) · `secret_ciphertext` / `secret_nonce` (secret settings, encrypted JSON) · `events` jsonb (subset of `alert`, `briefing`, `system`) · `rule_ids` jsonb null (null = all rules) · `min_severity` · `title_template` · `body_template` · `wait_for_enrichment_seconds` · `enabled` · `created_at` · `updated_at`
 
-**`webhook_delivery`**: `id` bigint PK · `webhook_id` · `alert_id` · `status` (`pending`/`delivered`/`failed`) · `attempts` · `last_error` · `next_attempt_at` · `delivered_at`
+**`notification_delivery`**: `id` bigint PK · `channel_id` · `event` · `alert_id` null · `briefing_run_id` null · `status` (`pending`/`delivered`/`failed`) · `attempts` · `last_error` · `next_attempt_at` · `delivered_at`
+
+**`api_token`** (§15): `id` uuid PK · `name` · `scope` (`read`/`agent`/`admin`) · `token_hash` · `token_prefix` (first 8 characters, for display) · `created_at` · `last_used_at` · `expires_at` null · `revoked_at` null
+
+**`custom_source`** (§16): `id` PK (`custom-…`) · `name` · `description` · `kinds` jsonb · `attribution` · `record_ttl` · `tile_properties` jsonb · `search_fields` jsonb · `embed_fields` jsonb · `ingest_key_hash` · `created_at`
+
+**`push_subscription`** (§24): `id` uuid PK · `name` · `endpoint` · `p256dh` · `auth` · `filters` jsonb · `token_id` null · `created_at` · `last_success_at`
+
+**`llm_provider`** (§19): `id` slug PK · `type` (`anthropic`/`openai-compatible`/`ollama`) · `base_url` · `chat_model` · `embedding_model` null · `embedding_dimensions` null · `options` jsonb · `secret_ciphertext` / `secret_nonce` · `requests_per_minute` · `tokens_per_day` · `enabled` · `updated_at`
+
+**`llm_usage`**: PK (`provider_id`, `minute`) · `requests` · `input_tokens` · `output_tokens` · `cached_tokens` · `errors` · `refused`
+
+**`embedding_document`** (§20): PK (`doc_type`, `doc_id`) · `source_id` null · `kind` null · `seq` null · `geom` null · `observed_at` · `text` · `text_hash` · `model` · `embedding` vector(N) · `tsv` tsvector (generated). HNSW index on `embedding` (cosine), GIN on `tsv`, GiST on `geom`.
+
+**`ask_thread`** / **`ask_message`** / **`ask_action`** (§21): threads, messages (role, content jsonb, usage) and proposed actions (`type`, `payload` jsonb, `status` `pending`/`executed`/`rejected`, `executed_at`).
+
+**`briefing`** / **`briefing_run`** (§22): definitions (`name`, `enabled`, `schedule` cron, `timezone`, `scope` jsonb, `lookback`, `mode` `digest`/`llm`, `instructions`, `channel_ids` jsonb, `next_run_at`) and runs (`status`, `period_from`, `period_to`, `content_markdown`, `citations` jsonb, `stats` jsonb, `error`, `usage` jsonb).
+
+`trigger_rule` also carries `severity` (`info`/`warning`/`critical`, default `warning`), `enrich` bool, `enrich_radius_km`, and `last_error` / `last_error_at`. `alert` also carries `severity`, `summary` null and `enriched_at` null.
 
 **`app_setting`**: `key` PK · `value` jsonb · `updated_at`. Keys include `retention`, `cors`, `trigger.cursor`, `stream.limits`.
 
-**`system_secret`**: `key` PK · `value` bytea. Holds `admin_token_hash` (SHA-256).
+**`system_secret`**: `key` PK · `value` bytea. Holds the VAPID key pair (private key encrypted). The bootstrap admin token became an `api_token` row in §15.
 
 ### 7.2 Secrets
 
@@ -283,7 +314,7 @@ Unique (`source_id`, `external_id`, `version`); index (`ingested_at`); index (`s
 
 Hibernate cannot create the PostGIS extension or GiST indexes. `SchemaBootstrap` runs in two phases:
 
-1. **Before** the JPA `EntityManagerFactory` initializes (a `DataSource`-level initializer that the EMF depends on): `CREATE EXTENSION IF NOT EXISTS postgis`.
+1. **Before** the JPA `EntityManagerFactory` initializes (a `DataSource`-level initializer that the EMF depends on): `CREATE EXTENSION IF NOT EXISTS postgis` (required), then `CREATE EXTENSION IF NOT EXISTS vector` (optional; when it is unavailable, semantic search reports itself disabled with a clear reason and everything else works).
 2. **After** Hibernate DDL (`ApplicationRunner`, highest precedence): `CREATE INDEX IF NOT EXISTS … USING GIST (geom)` on `record_version` and `record_head`, plus any partial indexes.
 
 When Flyway is introduced for production, both phases move into the baseline migration and this class is deleted.
@@ -316,16 +347,14 @@ An in-process publisher (`ApplicationEventPublisher` or a small listener registr
     - The predicate has the same shape when applied to `p`. `RuleSqlBuilder` renders it twice with a table alias parameter;
   - cooldown → `NOT EXISTS (SELECT 1 FROM alert a WHERE a.rule_id = :rule AND a.source_id = v.source_id AND a.external_id = v.external_id AND a.fired_at > now() - :cooldown)`;
   - tombstones never match.
-- Matches are inserted into `alert`; each alert is published to the alert stream and queued for webhooks.
+- Matches are inserted into `alert` with the rule's `severity`. Each alert is published on the `AlertBus`, whose listeners are the alert SSE stream, notification channels (§17) and enrichment (§23).
 - **Durable cursor:** after processing a batch, the engine stores `trigger.cursor = toSeq` in `app_setting`. On startup it catches up from the cursor to the current max `seq` in chunks before subscribing live.
 - Message templates support `{{name}}`, `{{source}}`, `{{externalId}}`, `{{kind}}`, `{{observedAt}}` and `{{payload.<path>}}`. Default: `"{{name}}: {{source}}/{{externalId}}"`.
 - `POST /v1/triggers/{id}/test` runs the same SQL over a recent window (default the last 24 h, `?since=`) and returns matches without inserting alerts.
 
-### 8.4 WebhookDispatcher
+### 8.4 Notification delivery
 
-- On a new alert, creates `webhook_delivery` rows for matching enabled webhooks.
-- A worker polls pending deliveries every 2 s and POSTs `application/json`: `{alert, rule, record}` with headers `X-Elaro-Event: alert`, `X-Elaro-Delivery: <id>`, `X-Elaro-Signature: sha256=<hex HMAC of body with webhook secret>`.
-- Retries with backoff (10 s, 1 m, 5 m, 30 m, 2 h), then `failed`. Webhook traffic is outbound to the operator's endpoints and is not counted against source budgets.
+See §17. Outbound webhooks are one channel type among many.
 
 ## 9. Query paths
 
@@ -345,7 +374,7 @@ Free-text `q` matches `ILIKE` on a generated text column of selected payload fie
 - Errors use RFC 9457 `application/problem+json` (Spring `ProblemDetail`) with a `code` extension (e.g. `CREDENTIALS_REQUIRED`, `BUDGET_EXCEEDED`, `VALIDATION_FAILED`).
 - Pagination: opaque `cursor` plus `limit` (default 500, max 5,000); responses include `nextCursor`.
 - GeoJSON via `Accept: application/geo+json` or `?format=geojson`. Features carry `id = "<source>:<externalId>"` and properties `{source, externalId, kind, version, seq, observedAt, validUntil, payload}`.
-- **Auth:** `AdminTokenFilter` requires `Authorization: Bearer elr_…` for every non-GET request under `/v1` and for GET on `/v1/settings/**`, `/v1/webhooks/**`, `/v1/system/admin-token/**`. All other GETs are open. Comparison is constant-time against the stored hash.
+- **Auth:** a token filter checks `Authorization: Bearer elr_…` against the scope that `AccessPolicy` requires for the method and path (§15). Data GETs are open by default (`security.openReads=true`). Writes and configuration reads need the scope the policy lists. Comparison is constant-time against stored hashes.
 - **CORS:** allowed origins come from `app_setting.cors` (default `*` for GET/HEAD/OPTIONS; writes require an explicit origin list).
 - **The spec is authored, not generated.** `docs/OpenAPI.json` is copied onto the classpath at build time and served verbatim at `/v1/openapi.json`; Swagger UI at `/docs` points to it. springdoc generates a spec from the code at the internal path `/v1/openapi-generated.json`, which exists only so a contract test can assert the implementation matches the authored spec (same paths, methods and operationIds). See §12.
 
@@ -355,23 +384,25 @@ Free-text `q` matches `ILIKE` on a generated text column of selected payload fie
 
 1. For each source: window = source override ?? global default (default `7d`).
 2. Delete `record_head` rows whose `observed_at < now() - window` (current but stale), then delete `record_version` rows with `ingested_at < now() - window` and `seq` not referenced by any head. Work in chunks of 10,000 rows per transaction to avoid long locks.
-3. Delete `alert` older than `alerts` retention (default `90d`), `source_usage` older than `usage` retention (default `30d`), and delivered or failed `webhook_delivery` older than 7 days.
+3. Delete `alert` older than `alerts` retention (default `90d`), `source_usage` and `llm_usage` older than `usage` retention (default `30d`), delivered or failed `notification_delivery` older than 7 days, `briefing_run` and `ask_thread` older than `briefings` / `ask` retention (default `180d` / `90d`), and `embedding_document` rows whose record no longer exists.
 
-Retention settings shape: `{"default":"7d","alerts":"90d","usage":"30d","sources":{"usgs-earthquakes":"3650d"}}`.
+Retention settings shape: `{"default":"7d","alerts":"90d","usage":"30d","briefings":"180d","ask":"90d","sources":{"usgs-earthquakes":"3650d"}}`.
 
 ## 12. Testing strategy
 
-Per the methodology, tests are **written with every prompt but executed only once the project is code-complete** (final verification prompts).
+Per the methodology, tests are **written with every prompt but executed only once the project is code-complete** (prompt 061, Full Test Run And Fix).
 
 | Layer | Tooling | Scope |
 |---|---|---|
 | Unit | JUnit 5, AssertJ, Mockito | Hashing, budget math, health derivation, rule SQL builder, duration parsing, cursor encoding, template rendering, parsers |
 | Adapter contract | Fixture files + parser tests | Each adapter's parser against a recorded upstream response |
 | Adapter integration | WireMock | Each adapter through `UpstreamClient` (budget, headers, 429 backoff) |
-| Persistence integration | Testcontainers `postgis/postgis:17-3.5` (as a compatible substitute for `postgres`) | Writer versioning, head upserts, spatial queries, MVT, retention, trigger SQL |
+| Persistence integration | Testcontainers with the Elaro DB image (PostGIS + pgvector, built from `docker/db/Dockerfile`, a compatible substitute for `postgres`) | Writer versioning, head upserts, spatial queries, MVT, retention, trigger SQL, vector search |
+| LLM | WireMock stubs for the Anthropic, OpenAI-compatible and Ollama APIs; a deterministic `FakeLlmClient` | Tool loops, budgets, fallbacks, prompt-injection containment. **No test calls a real model.** |
+| Notifications | WireMock receivers per channel type; GreenMail (or equivalent) for SMTP | Payload formats, retries, rate limits |
 | API integration | `@SpringBootTest` + MockMvc + Testcontainers | Every endpoint, auth rules, ProblemDetail errors, SSE replay and resume |
 | OpenAPI contract | Test comparing springdoc output to `docs/OpenAPI.json` paths and operations | Prevents drift |
-| End-to-end | Testcontainers + WireMock USGS | Enable source → ingest → revision → trigger → SSE alert → webhook received |
+| End-to-end | Testcontainers + WireMock USGS | Enable source → ingest → revision → trigger → SSE alert → channel delivery received |
 
 JaCoCo enforces ≥ 90% line coverage (`jacocoTestCoverageVerification`), excluding generated code and `ElaroApplication`.
 
@@ -387,28 +418,196 @@ File-based configuration is limited to bootstrap concerns, all overridable by en
 | `ELARO_DATA_DIR` | `./data` | Secret key file location |
 | `ELARO_RESET_ADMIN_TOKEN` | `false` | Regenerate admin token on start |
 
-Everything else — sources, budgets, credentials, retention, triggers, webhooks, CORS — is stored in the database and managed through the API.
+Everything else — sources, budgets, credentials, retention, triggers, channels, tokens, LLM providers, briefings, CORS — is stored in the database and managed through the API.
 
 ## 14. Deployment
 
 ```
 docker-compose.yml
-├── db     postgis/postgis:17-3.5  volume pgdata  port 5433:5432  healthcheck pg_isready
-└── elaro  build: .                 volume elaro-data:/data  port 8080  depends_on db (healthy)
-           restart: unless-stopped
+├── db      build: docker/db (PostGIS + pgvector)  volume pgdata  port 5433:5432  healthcheck pg_isready
+├── elaro   build: .   volume elaro-data:/data  port 8080  depends_on db (healthy)  restart: unless-stopped
+└── ollama  ollama/ollama  volume ollama  port 11434   profile "local-llm" (optional; `docker compose --profile local-llm up -d`)
 ```
 
 - `docker compose up -d` serves both the always-on bench server and occasional use.
-- The JAR also runs standalone (`java -jar elaro.jar`) against any Postgres 15+ with PostGIS available.
+- The JAR also runs standalone (`java -jar elaro.jar`) against any Postgres 15+ with PostGIS. pgvector is optional.
 - For internet exposure, put it behind a reverse proxy with TLS. Documentation will include a Caddy example.
 
-## 15. Production hardening (final phase)
+## 15. Access tokens and scopes
 
-1. Generate a Flyway baseline (`V1__baseline.sql`) from the Hibernate-generated schema plus `SchemaBootstrap` statements.
-2. Switch `ddl-auto` to `validate`; delete `SchemaBootstrap`.
+- **Scopes**, from least to most privileged: `read` < `agent` < `admin`.
+
+| Scope | Can |
+|---|---|
+| `read` | Every data GET (needed only when `security.openReads=false`), semantic search, MCP read tools, Ask without actions, Web Push subscription |
+| `agent` | `read` plus: create, update and delete triggers and briefings; acknowledge alerts; run briefings; Ask with actions; MCP write tools |
+| `admin` | Everything: sources, credentials, custom sources, channels, LLM providers, tokens, settings, retention, CORS, system |
+
+- **Tokens** live in `api_token`. The plaintext (`elr_` + 32 random bytes, base64url) is shown once at creation; only the SHA-256 hash is stored. Tokens can expire and be revoked, and `last_used_at` is updated at most once a minute.
+- **Bootstrap token:** the first-start admin token (§7.2) is the `api_token` row named `bootstrap` with scope `admin`. Rotation and reset keep working as described in §7.2.
+- **`AccessPolicy`** is the single table mapping (method, path pattern) to a minimum scope. The token filter enforces it, and the MCP server uses the same scopes for tools.
+- **Settings:** `app_setting['security'] = {"openReads": true}`. When false, data GETs require at least `read`.
+- **API:** `GET/POST /v1/tokens`, `DELETE /v1/tokens/{id}` (admin).
+
+## 16. Inbound webhooks and custom push sources
+
+Some data can't be polled: a local SDR, an ais-catcher instance, Home Assistant, a script, an n8n flow or an OpenClaw agent that wants to report something. These push into Elaro.
+
+- **Mode `PUSH`:** the adapter SPI's `Mode` gains `PUSH`. The scheduler never polls push sources, and budgets apply as inbound rate limits (`perMinute` requests).
+- **Custom sources** are created at runtime through `POST /v1/custom-sources` (admin), stored in `custom_source`, and registered in `SourceRegistry` as dynamic descriptors.
+  - The id must start with `custom-`.
+  - The source declares its kinds, attribution, TTL, `tileProperties`, `searchFields` and `embedFields`.
+  - It appears in `/v1/sources` with settings, health and retention like any other source.
+  - Creation returns an **ingest key** once; it can be rotated. Deleting a custom source stops ingest; its records age out through retention.
+- **Ingest endpoint:** `POST /v1/ingest/{sourceId}` accepts either a GeoJSON FeatureCollection (`id` maps to `externalId`, and properties `kind` and `observedAt` are required unless the source has exactly one kind, in which case `observedAt` defaults to now) or `{"records": [...]}` in the `NormalizedRecordPreview` shape.
+  - Auth: `X-Elaro-Ingest-Key: <key>`, or a bearer token with `admin` scope.
+  - Limits: 5 MB per request and 10,000 records.
+  - Records go through the same `IngestQueue`, so versioning, change stream, triggers, embeddings and retention all apply.
+  - Response: an `IngestOutcome` (seen, changed, rejected with reasons).
+- Built-in adapters may also declare `PUSH` mode, for example a future ais-catcher receiver.
+
+## 17. Notification channels
+
+One delivery system serves alerts, briefings and system events across many destinations.
+
+| Type | Non-secret config | Secret config | Delivery |
+|---|---|---|---|
+| `webhook` | `url`, `method` (POST/PUT), `headers`, `bodyTemplate` (optional; default Elaro JSON) | `hmacSecret`, secret header values | JSON; `X-Elaro-Event`, `X-Elaro-Delivery`, `X-Elaro-Timestamp`, `X-Elaro-Signature: sha256=HMAC("<timestamp>.<body>")` |
+| `slack` | `username`, `iconEmoji` | `webhookUrl` (incoming webhook) | Block Kit message, mrkdwn |
+| `mattermost` | `channel`, `username`, `iconUrl` | `webhookUrl` (incoming webhook) | Slack-compatible payload with Mattermost markdown and attachments |
+| `discord` | `username` | `webhookUrl` | Embeds; colour by severity |
+| `teams` | — | `workflowUrl` (Workflows/Power Automate webhook) | Adaptive Card |
+| `google-chat` | — | `webhookUrl` | Card v2 |
+| `telegram` | `chatId` | `botToken` | Bot API `sendMessage`, HTML parse mode |
+| `matrix` | `homeserverUrl`, `roomId` | `accessToken` | `m.room.message` with `formatted_body` |
+| `ntfy` | `serverUrl` (default `https://ntfy.sh`), `topic` | `accessToken` (optional) | Title, priority from severity, tags, click URL |
+| `gotify` | `serverUrl` | `appToken` | Priority from severity |
+| `pushover` | — | `appToken`, `userKey` | Priority from severity |
+| `email` | `smtpHost`, `smtpPort`, `tls` (`starttls`/`ssl`/`none`), `from`, `to[]` | `username`, `password` | Multipart text + HTML |
+| `webpush` | — (one built-in channel) | — | Browser push to subscriptions (§24) |
+
+- **Message model:** every event becomes a `NotificationMessage`: `event` (`alert`/`briefing`/`system`/`test`), `title`, `body` (markdown), `severity` (`info`/`warning`/`critical`), `url` (API link to the record, alert or run), `data` (the full alert or briefing-run JSON). A formatter per type converts markdown to the destination's format and escapes it correctly (for example Telegram HTML, Slack mrkdwn, Matrix HTML).
+- **Routing:** a channel subscribes to events, optionally limited by `rule_ids` and `min_severity`.
+  - `title_template` and `body_template` use the same placeholder syntax as trigger messages, plus `{{severity}}`, `{{summary}}` and `{{url}}`.
+  - System events: source turned `failing`, LLM budget exhausted, delivery permanently failed.
+- **Delivery:** `notification_delivery` rows are claimed with `FOR UPDATE SKIP LOCKED`.
+  - Each channel has a rate limit sized to its destination: Slack about 1/s, Discord 5 per 2 s, Telegram 20/min per chat, ntfy and Gotify 10/s, Pushover 2/s, email 30/min.
+  - `429` responses honour `Retry-After`.
+  - Retry ladder: 10 s, 1 m, 5 m, 30 m, 2 h, then `failed` (which also raises a system event, never sent back to the failing channel).
+- **Enrichment wait:** `wait_for_enrichment_seconds` (0–60) delays alert delivery so the LLM summary (§23) can be included.
+- **Security:** channels are admin-only, and secret config is encrypted with `CredentialCipher` and never returned. Private-network destinations (a LAN Gotify or ntfy) are allowed, because channels are operator-configured. Outbound traffic is not counted against source budgets.
+- **API:** CRUD under `/v1/channels`, `POST /v1/channels/{id}/test`, `GET /v1/channels/{id}/deliveries`, `GET /v1/channels/types` (the type catalogue with config field specs).
+
+## 18. MCP server
+
+- **Transport and auth:** the MCP Java SDK with the Spring WebMVC **streamable HTTP** transport at `/mcp`. Bearer tokens are used, and when `openReads` is on, read tools also work without a token.
+- **Tools** are thin wrappers over the service layer (not HTTP loopback), each declaring the scope it needs:
+
+| Group | Tools |
+|---|---|
+| Records | `query_records`, `get_record`, `get_record_history`, `get_changes`, `list_kinds` |
+| Search | `search` (semantic, text or hybrid) |
+| Sources | `list_sources`, `source_health` |
+| Alerts | `list_alerts`, `get_alert`, `acknowledge_alert` (agent) |
+| Watches | `list_watches`, `create_watch` (agent), `update_watch` (agent), `delete_watch` (agent), `test_watch` |
+| Briefings | `list_briefings`, `create_briefing` (agent), `run_briefing` (agent), `get_briefing_run` |
+| System | `system_status` |
+
+- **Output shaping:** `detail: short|long`, list caps with `*_total` and `truncated` flags, and optional geometry simplification. This keeps agent context budgets small.
+- **Resources and prompts:** resources `elaro://sources` and `elaro://kinds`, and a `situation-report` prompt.
+- **Clients:** OpenClaw (as an MCP skill), Claude Desktop and Claude Code, n8n, and any MCP-capable agent.
+
+## 19. LLM subsystem
+
+Optional. Without a configured provider, Elaro is fully functional: briefings use digest mode, search uses text matching, enrichment is skipped, and Ask returns `409 LLM_NOT_CONFIGURED`.
+
+- **Providers** live in `llm_provider` and are managed through `/v1/llm/providers`. Roles are set in `app_setting['llm'] = {chatProvider, embeddingProvider, askEnabled, enrichmentEnabled, logContent}`.
+
+| Type | Implementation | Notes |
+|---|---|---|
+| `anthropic` | Official Anthropic Java SDK (`com.anthropic:anthropic-java`; verify the current version) | Default model `claude-opus-5-5`. Adaptive thinking is always on, so control depth with `effort` (Opus 5.5's default is `medium`; Elaro sets it explicitly per use: Ask `medium`, briefings `medium`, enrichment `low`). Forced `tool_choice` is not supported, so use `auto` and instruct in the prompt. Enable server-side refusal fallback (`fallbacks: "default"`, beta `server-side-fallback-2026-07-01`) and check `stop_reason == "refusal"` before reading content. Stream long outputs. Cache the stable system prompt and tool definitions with `cache_control`. **No embeddings endpoint**, so pair it with a separate embedding provider. |
+| `openai-compatible` | `java.net.http` client for `/chat/completions` and `/embeddings` | OpenAI, OpenRouter, Groq, Mistral, vLLM, LM Studio, llama.cpp server, LocalAI |
+| `ollama` | `java.net.http` client for native `/api/chat` (with tools) and `/api/embed` | Local by default (`http://ollama:11434` with the compose profile). Typical choices: a Qwen or Llama chat model with tool support, `nomic-embed-text` (768 dims) or `mxbai-embed-large` (1024) for embeddings |
+
+- **`LlmClient` abstraction:** `chat(system, messages, tools, options)` returns text plus tool calls plus usage, and `embed(texts)` returns vectors. Tool calling is normalized across providers. A provider whose model lacks tool support runs Ask in retrieval-only mode (§21).
+- **Budgets and metering:** each provider has `requests_per_minute` (Bucket4j) and `tokens_per_day`, which is checked before a call using an estimate and recorded after from actual usage, in `llm_usage`. When a budget is exhausted the call is refused with `LLM_BUDGET_EXCEEDED` and a system notification is raised. Provider health mirrors source health.
+- **Safety:**
+  - Record content (news titles, warnings, free text) is **untrusted**. Tool results are passed as clearly delimited data, and the system prompt says instructions inside data must be ignored.
+  - Models can never change sources, credentials, channels, providers, tokens or settings. The only model-initiated writes are *proposed* actions (create or update a watch, create a briefing, acknowledge an alert). These run only after confirmation, or automatically when the caller holds `agent` scope and set `allowActions`.
+  - Every call is logged with metadata (provider, model, tokens, duration, purpose). Prompt and response content is logged only when `logContent=true`.
+- **Data egress:** with a frontier provider, the records the model reads are sent to that provider. This is the operator's choice, and the local Ollama profile keeps everything on the box. The Operator Guide states it plainly.
+
+## 20. Embeddings and semantic search
+
+- **Storage:** `embedding_document` holds one row per embedded document: a record (latest version only, replaced when the head moves), a briefing run or an enriched alert. Each row carries `geom`, `observed_at`, `source_id` and `kind`, so searches can be filtered by space, time and source.
+- **Dimensions:** the vector width is fixed by the active embedding provider. Changing the embedding model triggers a **reindex job**, which recreates the column and HNSW index with the new dimensions and backfills. The HNSW index uses `vector_cosine_ops` and is created by native DDL, because the dimension is dynamic.
+- **What is embedded:** records from sources whose descriptor declares `embedFields` (text-heavy feeds such as GDELT, NWS/MeteoAlarm alerts, GDACS, WHO outbreak notices, NGA warnings, SEC filings, advisories), plus briefing runs and enriched alerts.
+  - The `EmbeddingWorker` subscribes to the `ChangeBus` and keeps a durable cursor (`embedding.cursor`).
+  - It batches 64 texts per call, skips unchanged `text_hash`, and respects the embedding provider's budget.
+  - The operator can enable or disable embedding per source with the settings flag `embed`, which defaults to on for sources that declare `embedFields`.
+- **Search API:** `GET /v1/search?q=&mode=semantic|text|hybrid&source=&kind=&bbox=&since=&until=&limit=`.
+  - `text` uses the `tsv` column (and works without an LLM by falling back to `record_head.search_text`).
+  - `semantic` uses cosine distance.
+  - `hybrid` fuses the two with reciprocal rank fusion.
+  - Results include score, document type, record reference and a snippet.
+
+## 21. Ask Elaro
+
+- **Requests:**
+  - `POST /v1/ask` takes `{question, threadId?, scope?: {sources, kinds, bbox, since, until}, allowActions?: false}` and returns `{threadId, answer (markdown), citations: [{id, seq, title}], proposedActions: [...], usage}`.
+  - `POST /v1/ask/stream` returns the same over SSE (`progress`, `delta`, `citation`, `action`, `done`).
+  - Threads persist in `ask_thread` and `ask_message` for follow-up questions.
+- **Loop:** the chat provider runs with the read tool catalogue from §18 plus `propose_watch`, `propose_briefing` and `propose_ack`. Limits: at most 12 tool iterations, 120 s, and a per-ask token cap (setting `llm.askMaxTokens`).
+- **Citations are verified:** the answer must cite records returned by tools. The server drops citation ids that never appeared in tool output and flags uncited factual claims in `warnings`.
+- **Proposed actions** are stored in `ask_action` as `pending`. `POST /v1/ask/actions/{id}/confirm` (agent scope) executes one, and `/reject` discards it. With `allowActions=true` and `agent` scope, actions execute immediately, and are still recorded.
+- **Retrieval-only mode** (provider without tools): hybrid search over the scope (top 40) plus recent alerts, then a single completion with the same citation rules.
+- **Scope:** Ask requires `read` scope (or open reads). Actions require `agent`.
+
+## 22. Scheduled briefings
+
+- **Definitions** live in `briefing`:
+  - schedule: a standard 5-field cron plus an IANA timezone
+  - scope: sources, kinds, bbox, rule ids, `includeHealth`
+  - `lookback` (default: the time since the previous run, capped at 7 d)
+  - `mode`: `digest` or `llm`
+  - `instructions` (LLM mode)
+  - `channel_ids`
+- **`BriefingScheduler`** checks every 30 s for definitions whose `next_run_at` has passed, using Spring `CronExpression` with the timezone. Each run executes on a virtual thread and persists `next_run_at`, so missed runs after downtime run once and are not replayed.
+- **Digest mode** is deterministic markdown, no LLM:
+  - alerts in the period grouped by severity
+  - counts per kind and source with the delta against the previous period
+  - top N notable records per kind, ranked by the descriptor's optional `rankField` (e.g. `mag` for quakes, `frp` for fires) or else by recency
+  - sources that turned degraded or failing
+- **LLM mode:** the digest statistics plus retrieved records (scope-filtered hybrid search on the instructions, plus top-ranked records) go to the chat provider with the instructions. The result is narrative markdown with verified citations. If the LLM fails, the run falls back to digest and is marked `fallback`.
+- **Output:** each run is stored in `briefing_run`, embedded (§20), delivered to its channels as a `briefing` event, and available at `GET /v1/briefings/{id}/runs` and `/runs/{runId}`.
+- **API:** CRUD under `/v1/briefings`, plus `POST /v1/briefings/{id}/run` (run now) and `POST /v1/briefings/preview` (render without storing or delivering).
+
+## 23. Alert enrichment
+
+- **Rule options:** `enrich` (bool), `enrichRadiusKm` (default 100) and `enrichWindow` (default 24 h).
+- **Trigger:** when a rule with `enrich=true` fires and `llm.enrichmentEnabled` is on, the `EnrichmentWorker` (an `AlertBus` listener) gathers context:
+  - the record and its version history
+  - records of any kind within the radius and window (spatial query)
+  - semantic neighbours when embeddings are on
+  - recent alerts nearby
+- **Summary:** the chat provider (effort `low`) writes a summary of at most 120 words with citations. It is stored in `alert.summary` and `enriched_at`, emitted as an `alert.enriched` SSE event, and embedded.
+- **Channels:** delivery includes the summary when the channel's `wait_for_enrichment_seconds` allows. Otherwise the alert is sent immediately without it.
+- **Failure:** an enrichment failure never blocks or delays alert delivery beyond the channel's wait.
+
+## 24. Web Push
+
+- **Keys:** a VAPID key pair (P-256) is generated on first start. The private key is stored encrypted in `system_secret`. `GET /v1/push/vapid-public-key` is open.
+- **Subscriptions:** `POST /v1/push/subscriptions` takes `{name, subscription: {endpoint, keys: {p256dh, auth}}, filters: {events, ruleIds, minSeverity}}` and requires `read` scope (or open reads). `DELETE /v1/push/subscriptions/{id}` removes one, and `GET` lists them (admin).
+- **Delivery:** the built-in `webpush` channel encrypts payloads per RFC 8291 (`aes128gcm`) and signs a VAPID JWT (ES256, RFC 8292) using JDK crypto only. A `404` or `410` from the push service deletes the subscription.
+- **Payload:** `{title, body, severity, url, event, id}`. Frontends (a PWA or the operator console) register a service worker and subscribe.
+
+## 25. Production hardening (prompt 063)
+
+1. Generate a Flyway baseline (`V1__baseline.sql`) from the Hibernate-generated schema plus the `SchemaBootstrap` statements (PostGIS and vector extensions, GiST, HNSW and GIN indexes).
+2. Switch `ddl-auto` to `validate`; delete `SchemaBootstrap`. The reindex job (§20) keeps its own DDL for dimension changes.
 3. Consider partitioning `record_version` by month if volume demands it (decide from measured volume).
 
-## 16. Reuse policy
+## 26. Reuse policy
 
 | Repository | Licence | Use |
 |---|---|---|

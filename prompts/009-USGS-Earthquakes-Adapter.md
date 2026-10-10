@@ -12,7 +12,7 @@
 ## Read first
 
 - `docs/Architecture.md` §4.2 (adapter rules)
-- `docs/Source-Catalog.md` Wave 0 row `usgs-earthquakes`
+- `docs/Source-Catalog.md` row `usgs-earthquakes`
 - GEV reference (MIT, portable): `~/Documents/GitLab/gods-eye-view/src/layers/earthquakes/records.js` and `source.js`
 - USGS GeoJSON summary format: https://earthquake.usgs.gov/earthquakes/feed/v1.0/geojson.php
 
@@ -43,6 +43,8 @@ Implement the first real adapter end to end. It also serves as the **reference p
 | zeroResultsNormal | **true** (quiet hours happen, especially on `significant_*`) |
 | tileProperties | `mag, place, depth, tsunami, alert, sig` |
 | searchFields | `place, title` |
+| rankField | `mag` |
+| embedFields | none (quakes are found spatially, not semantically) |
 
 `fetch`:
 
@@ -81,7 +83,7 @@ A concise guide (≈ 1–2 pages) using USGS as the worked example:
 - etiquette rules (conditional GET, no concurrency unless allowed, honour Retry-After, never spoof the UA, never scrape)
 - the GEV porting rules (origin header + `THIRD_PARTY_NOTICES.md`)
 - adapter families
-- streaming-adapter specifics (link to prompt 020 when it exists)
+- streaming-adapter specifics (prompt 030 adds the first one), and PUSH-mode sources (prompt 020)
 - **"Repair procedure"** for the future maintenance agent: probe → diff against the fixture → update the parser → refresh the fixture → contract test
 
 ## Tests to write (do not run)
@@ -102,7 +104,7 @@ A concise guide (≈ 1–2 pages) using USGS as the worked example:
 
 ## Guardrails (mandatory)
 
-1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests are first run in prompt 040.
+1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests are first run in prompt 061 (Full Test Run And Fix).
 2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`). **Do not add Flyway, Liquibase or SQL migration files.**
 3. **Reuse policy.** Never copy code from ShadowBroker, Velocity or World Monitor, which are AGPL. They are reference material only. God's Eye View (MIT, `~/Documents/GitLab/gods-eye-view`) may be ported to Java if you add an origin header comment and an entry in `THIRD_PARTY_NOTICES.md`.
 4. **Stay in scope.** Implement what this prompt specifies, no more. If the docs conflict with reality (for example, a library API differs from what the docs assume), choose the approach most faithful to `docs/Architecture.md` and record it under "Deviations" in the Completion Report.

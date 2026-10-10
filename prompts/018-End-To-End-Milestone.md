@@ -17,9 +17,9 @@
 
 ## Objective
 
-Close Phase A–C with the milestone proof, written as an end-to-end test:
+Prove the core (prompts 001–017) with the milestone, written as an end-to-end test:
 
-> enable USGS through the API → quakes are ingested → a revision creates a new version → a `mag >= 6` rule fires → the alert arrives on SSE and at a webhook
+> enable USGS through the API → quakes are ingested → a revision creates a new version → a `mag >= 6` rule fires → the alert arrives on SSE and at a notification channel
 
 Then make the project usable by a human: README quickstart, operator guide and a smoke script.
 
@@ -32,7 +32,7 @@ Full application context (`@IntegrationTest`, real HTTP on a random port), PostG
 1. Read the admin token captured at startup (expose a test-only hook, or set a known hash in test config; document the approach). Request a write without the token → 401.
 2. `GET /v1/sources` → `usgs-earthquakes` is present, `enabled=false`, status `disabled`.
 3. `POST /v1/triggers` with `{name:"Big quake", source:"usgs-earthquakes", conditions:[{path:"mag",op:">=",value:6}], messageTemplate:"M{{payload.mag}} {{payload.place}}"}` → 201.
-4. `POST /v1/webhooks` pointing at a second WireMock receiver, with a secret → 201.
+4. `POST /v1/channels` with `{type:"webhook", name:"e2e", config:{url:<second WireMock receiver>}, secrets:{hmacSecret:"s3cret"}, events:["alert"]}` → 201. Also create a `slack` channel pointing at a third WireMock stub, to prove a formatted channel type.
 5. Open SSE connections: `/v1/changes/stream?source=usgs-earthquakes` and `/v1/alerts/stream`.
 6. `PUT /v1/sources/usgs-earthquakes {"enabled":true}`. Within 5 s:
    - change events arrive for every fixture feature
@@ -43,7 +43,7 @@ Full application context (`@IntegrationTest`, real HTTP on a random port), PostG
    - a version-2 change event arrives
    - `/versions` shows 2 versions
    - an `alert` SSE event arrives with the rendered message
-   - the webhook receiver gets a POST with a valid HMAC signature
+   - the webhook receiver gets a POST with a valid HMAC signature, and the Slack stub gets a Block Kit payload containing the rendered message
 8. `GET /v1/alerts` lists it. `POST /v1/alerts/{id}/ack` sets it acknowledged.
 9. `GET /v1/tiles/earthquake/0/0/0.mvt` → 200 with features.
 10. `PUT /v1/sources/usgs-earthquakes {"enabled":false}` → no further upstream requests over the next 5 s (WireMock request count is stable).
@@ -60,7 +60,7 @@ A POSIX shell script using `curl` and `jq` against a running instance (`ELARO_UR
 - creates and deletes a test trigger
 - prints a summary
 
-It exits non-zero on failure. This will be used in prompt 041.
+It exits non-zero on failure. This will be used in prompt 062.
 
 ### 3. Documentation
 
@@ -76,7 +76,7 @@ It exits non-zero on failure. This will be used in prompt 041.
   - budgets and how to read health and usage
   - retention
   - triggers (examples: magnitude threshold, geofence polygon, onlyNew)
-  - webhooks and signature verification (from prompt 015)
+  - notification channels: every type, with setup steps per destination (Slack/Mattermost incoming webhooks, Discord, Teams workflows, Telegram bot, Matrix, ntfy, Gotify, Pushover, email), plus webhook signature verification
   - streaming for frontends (SSE resume, filters)
   - tiles
   - export/import
@@ -98,7 +98,7 @@ It exits non-zero on failure. This will be used in prompt 041.
 
 ## Guardrails (mandatory)
 
-1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests are first run in prompt 040.
+1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests are first run in prompt 061 (Full Test Run And Fix).
 2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`). **Do not add Flyway, Liquibase or SQL migration files.**
 3. **Reuse policy.** Never copy code from ShadowBroker, Velocity or World Monitor, which are AGPL. They are reference material only. God's Eye View (MIT, `~/Documents/GitLab/gods-eye-view`) may be ported to Java if you add an origin header comment and an entry in `THIRD_PARTY_NOTICES.md`.
 4. **Stay in scope.** Implement what this prompt specifies, no more. If the docs conflict with reality (for example, a library API differs from what the docs assume), choose the approach most faithful to `docs/Architecture.md` and record it under "Deviations" in the Completion Report.

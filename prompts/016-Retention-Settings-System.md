@@ -35,7 +35,8 @@ Finish the operator surface so that **everything** is configurable through the A
 - **Other tables:**
   - alerts older than `alerts`
   - `source_usage` older than `usage`
-  - `webhook_delivery` in `delivered`/`failed` older than 7 days
+  - `notification_delivery` in `delivered`/`failed` older than 7 days
+- **Settings shape:** `RetentionSettings` gains `briefings` (default `180d`) and `ask` (default `90d`), accepted and stored now. Their tables arrive in prompts 022, 024 and 025, and each of those prompts extends `RetentionJob` with its own cleanup step. Design `RetentionJob` as a list of `RetentionStep` beans so later prompts just add a step.
 - **Metrics:** `elaro.retention.deleted{table}`; log a summary line per run.
 - **Concurrency:** this job deletes `record_head` rows, while the ingest writer upserts them. That is safe: a deleted stale head simply gets recreated as version N+1 if the record reappears. Document that version numbering continues from the remaining versions; if none remain, it restarts at 1 and history continuity is lost by design. Choose the simplest consistent behaviour and document it.
 
@@ -49,12 +50,12 @@ Finish the operator surface so that **everything** is configurable through the A
   - all source settings (enabled, interval, params, budget, retention; **no credentials**)
   - retention, CORS
   - trigger rules (full objects with ids)
-  - webhooks (no secrets)
+  - notification channels (no secret config)
   - `exportedAt`, `elaroVersion`
 - **`importSettings`** (PUT):
   - applies the source settings for known ids and lists unknown ids in `sourcesUnknown`
   - enabling a source that needs missing credentials is applied as `enabled=false`, with a warning
-  - upserts triggers and webhooks by id; imported webhooks without a secret keep the existing secret, if any
+  - upserts triggers and channels by id; imported channels without secret config keep the existing secrets, if any
   - applies retention and CORS if present
   - everything runs in one transaction; return `ImportReport`
   - validation errors anywhere → 400 with all errors, nothing applied
@@ -99,7 +100,7 @@ Ensure `/actuator/prometheus` exposes the custom metrics from earlier prompts, p
 
 ## Guardrails (mandatory)
 
-1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests are first run in prompt 040.
+1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests are first run in prompt 061 (Full Test Run And Fix).
 2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`). **Do not add Flyway, Liquibase or SQL migration files.**
 3. **Reuse policy.** Never copy code from ShadowBroker, Velocity or World Monitor, which are AGPL. They are reference material only. God's Eye View (MIT, `~/Documents/GitLab/gods-eye-view`) may be ported to Java if you add an origin header comment and an entry in `THIRD_PARTY_NOTICES.md`.
 4. **Stay in scope.** Implement what this prompt specifies, no more. If the docs conflict with reality (for example, a library API differs from what the docs assume), choose the approach most faithful to `docs/Architecture.md` and record it under "Deviations" in the Completion Report.

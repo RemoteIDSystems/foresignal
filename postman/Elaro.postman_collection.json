@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "899ea274-ec23-5ea9-beb2-54eb900cc7bc",
     "name": "Elaro API",
-    "description": "All configuration is done through this API. Reads of data are open on the local network; all writes and settings reads require the admin bearer token printed on first start. Errors are RFC 9457 problem+json. Timestamps are ISO-8601 UTC. `/v1` is additive-only once released.\n\nGenerated from docs/OpenAPI.json (v1.0.0). Every operation is included, grouped by tag. Admin operations use Bearer `{{adminToken}}`; open reads use no auth. Test scripts capture ids into collection variables (ruleId, webhookId, alertId, externalId, lastSeq, cursor).",
+    "description": "All configuration is done through this API. The MCP server (streamable HTTP) is at `/mcp` and is not described here; it exposes the same data as tools. Reads of data are open on the local network; all writes and settings reads require the admin bearer token printed on first start. Errors are RFC 9457 problem+json. Timestamps are ISO-8601 UTC. `/v1` is additive-only once released.\n\nGenerated from docs/OpenAPI.json (v1.0.0). Every operation is included, grouped by tag. Admin operations use Bearer `{{adminToken}}`, agent operations `{{agentToken}}` (defaults to the admin token; set it to an agent-scope token to test scopes), ingest uses `X-Elaro-Ingest-Key: {{ingestKey}}`, and reads use no auth (open while openReads is on). Test scripts capture ids into collection variables (ruleId, channelId, alertId, briefingId, threadId, ingestKey, externalId, lastSeq, cursor\u2026).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -42,7 +42,7 @@
               ],
               "query": []
             },
-            "description": "System information\n\nOpen (no auth).\n\noperationId: `getSystem`",
+            "description": "System information\n\noperationId: `getSystem`",
             "auth": {
               "type": "noauth"
             }
@@ -80,7 +80,7 @@
               ],
               "query": []
             },
-            "description": "Catalogue of every available adapter with its settings, live health status and today's budget use.\n\nOpen (no auth).\n\noperationId: `listSources`",
+            "description": "Catalogue of every available adapter with its settings, live health status and today's budget use.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `listSources`",
             "auth": {
               "type": "noauth"
             }
@@ -123,7 +123,7 @@
               ],
               "query": []
             },
-            "description": "Enable/disable (subscribe/unsubscribe), set interval, params, budget and retention. Changes apply immediately. Omitted fields are unchanged.\n\n**Requires admin token.**\n\noperationId: `updateSource`",
+            "description": "Enable/disable (subscribe/unsubscribe), set interval, params, budget and retention. Changes apply immediately. Omitted fields are unchanged.\n\n**Scope:** `admin`.\n\noperationId: `updateSource`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -184,13 +184,13 @@
               ],
               "query": []
             },
-            "description": "Create a trigger rule\n\n**Requires admin token.**\n\noperationId: `createTrigger`",
+            "description": "Create a trigger rule\n\n**Scope:** `agent` or `admin`.\n\noperationId: `createTrigger`",
             "auth": {
               "type": "bearer",
               "bearer": [
                 {
                   "key": "token",
-                  "value": "{{adminToken}}",
+                  "value": "{{agentToken}}",
                   "type": "string"
                 }
               ]
@@ -240,7 +240,7 @@
               ],
               "query": []
             },
-            "description": "Runs one fetch immediately and ingests normally. Consumes budget. Works whether or not the source is enabled (credentials permitting).\n\n**Requires admin token.**\n\noperationId: `fetchSourceNow`",
+            "description": "Runs one fetch immediately and ingests normally. Consumes budget. Works whether or not the source is enabled (credentials permitting).\n\n**Scope:** `admin`.\n\noperationId: `fetchSourceNow`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -287,7 +287,7 @@
               ],
               "query": []
             },
-            "description": "Health of one source\n\nOpen (no auth).\n\noperationId: `getSourceHealth`",
+            "description": "Health of one source\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getSourceHealth`",
             "auth": {
               "type": "noauth"
             }
@@ -390,7 +390,7 @@
                 }
               ]
             },
-            "description": "Latest version of each record. Expired (validUntil passed) and tombstoned records are excluded unless requested.\n\nOpen (no auth).\n\noperationId: `listRecords`",
+            "description": "Latest version of each record. Expired (validUntil passed) and tombstoned records are excluded unless requested.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `listRecords`",
             "auth": {
               "type": "noauth"
             }
@@ -431,7 +431,7 @@
               ],
               "query": []
             },
-            "description": "Version history of a record\n\nOpen (no auth).\n\noperationId: `listRecordVersions`",
+            "description": "Version history of a record\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `listRecordVersions`",
             "auth": {
               "type": "noauth"
             }
@@ -509,7 +509,7 @@
                 }
               ]
             },
-            "description": "Every new record version in commit order. `seq` is gap-tolerant but strictly increasing in commit order, so `after=<last seq>` never misses a change.\n\nOpen (no auth).\n\noperationId: `listChanges`",
+            "description": "Every new record version in commit order. `seq` is gap-tolerant but strictly increasing in commit order, so `after=<last seq>` never misses a change.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `listChanges`",
             "auth": {
               "type": "noauth"
             }
@@ -562,13 +562,13 @@
                 }
               ]
             },
-            "description": "Evaluates the rule over versions ingested since `since` without creating alerts or applying cooldown.\n\n**Requires admin token.**\n\noperationId: `testTrigger`",
+            "description": "Evaluates the rule over versions ingested since `since` without creating alerts or applying cooldown.\n\n**Scope:** `agent` or `admin`.\n\noperationId: `testTrigger`",
             "auth": {
               "type": "bearer",
               "bearer": [
                 {
                   "key": "token",
-                  "value": "{{adminToken}}",
+                  "value": "{{agentToken}}",
                   "type": "string"
                 }
               ]
@@ -647,7 +647,7 @@
                 }
               ]
             },
-            "description": "List alerts newest first\n\nOpen (no auth).\n\noperationId: `listAlerts`",
+            "description": "List alerts newest first\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `listAlerts`",
             "auth": {
               "type": "noauth"
             }
@@ -706,7 +706,594 @@
                 }
               ]
             },
-            "description": "Request/bytes usage over time\n\nOpen (no auth).\n\noperationId: `getSourceUsage`",
+            "description": "Request/bytes usage over time\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getSourceUsage`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "01 Quickstart \u2014 Channels, briefings, Ask",
+      "description": "After the USGS quickstart: add an ntfy channel, create and run a digest briefing, register a local Ollama provider and ask a question. Edit the ntfy topic first.",
+      "item": [
+        {
+          "name": "01 \u00b7 Channel types",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/channels/types",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "channels",
+                "types"
+              ],
+              "query": []
+            },
+            "description": "Each supported type with its config and secret field specifications.\n\n**Scope:** `admin`.\n\noperationId: `listChannelTypes`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "02 \u00b7 Create ntfy channel",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('channelId', j.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/channels",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "channels"
+              ],
+              "query": []
+            },
+            "description": "Create a notification channel\n\n**Scope:** `admin`.\n\noperationId: `createChannel`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"ntfy phone\",\n  \"type\": \"ntfy\",\n  \"config\": {\n    \"serverUrl\": \"https://ntfy.sh\",\n    \"topic\": \"REPLACE_TOPIC\"\n  },\n  \"secrets\": {},\n  \"events\": [\n    \"alert\",\n    \"briefing\",\n    \"system\"\n  ],\n  \"ruleIds\": null,\n  \"minSeverity\": \"warning\",\n  \"enabled\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "03 \u00b7 Send test notification",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/channels/{{channelId}}/test",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "channels",
+                "{{channelId}}",
+                "test"
+              ],
+              "query": []
+            },
+            "description": "Synchronous; nothing is persisted.\n\n**Scope:** `admin`.\n\noperationId: `testChannel`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "04 \u00b7 Create morning digest",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('briefingId', j.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/briefings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "briefings"
+              ],
+              "query": []
+            },
+            "description": "Create a scheduled briefing\n\n**Scope:** `agent` or `admin`.\n\noperationId: `createBriefing`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{agentToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Morning brief\",\n  \"enabled\": true,\n  \"schedule\": \"0 7 * * *\",\n  \"timezone\": \"America/Chicago\",\n  \"scope\": {\n    \"sources\": [],\n    \"kinds\": [\n      \"earthquake\"\n    ],\n    \"includeHealth\": true\n  },\n  \"lookback\": \"24h\",\n  \"mode\": \"digest\",\n  \"instructions\": null,\n  \"channelIds\": [\n    \"{{channelId}}\"\n  ],\n  \"maxItemsPerKind\": 5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "05 \u00b7 Run it now",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); if (j.id) pm.collectionVariables.set('runId', j.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/briefings/{{briefingId}}/run",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "briefings",
+                "{{briefingId}}",
+                "run"
+              ],
+              "query": []
+            },
+            "description": "Runs synchronously (up to 120 s), stores the run and delivers it to the briefing's channels.\n\n**Scope:** `agent` or `admin`.\n\noperationId: `runBriefing`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{agentToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "06 \u00b7 Add local Ollama provider",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('providerId', j.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/llm/providers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "llm",
+                "providers"
+              ],
+              "query": []
+            },
+            "description": "Add an LLM provider\n\n**Scope:** `admin`.\n\noperationId: `createLlmProvider`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"ollama\",\n  \"type\": \"ollama\",\n  \"baseUrl\": \"http://ollama:11434\",\n  \"chatModel\": \"qwen3:14b\",\n  \"embeddingModel\": \"nomic-embed-text\",\n  \"embeddingDimensions\": 768,\n  \"requestsPerMinute\": 60,\n  \"tokensPerDay\": 5000000,\n  \"enabled\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "07 \u00b7 Assign roles",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/llm/settings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "llm",
+                "settings"
+              ],
+              "query": []
+            },
+            "description": "Set LLM roles and options\n\n**Scope:** `admin`.\n\noperationId: `updateLlmSettings`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"chatProvider\": \"ollama\",\n  \"embeddingProvider\": \"ollama\",\n  \"askEnabled\": true,\n  \"enrichmentEnabled\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "08 \u00b7 Test the provider",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/llm/providers/{{providerId}}/test",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "llm",
+                "providers",
+                "{{providerId}}",
+                "test"
+              ],
+              "query": []
+            },
+            "description": "Sends a tiny chat request (and an embedding request if configured) and reports latency, model and token usage. Consumes budget.\n\n**Scope:** `admin`.\n\noperationId: `testLlmProvider`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "09 \u00b7 Ask about recent quakes",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('threadId', j.threadId); if (j.proposedActions && j.proposedActions.length) pm.collectionVariables.set('actionId', j.proposedActions[0].id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/ask",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "ask"
+              ],
+              "query": []
+            },
+            "description": "Answers from Elaro's data using the chat provider with tools. Citations are verified against tool results. Write actions are only proposed unless `allowActions` is true and the token has agent scope.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `ask`",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"Were there any earthquakes above magnitude 5 in the last 24 hours, and where?\",\n  \"threadId\": null,\n  \"scope\": {\n    \"sources\": [\n      \"usgs-earthquakes\"\n    ],\n    \"since\": null\n  },\n  \"allowActions\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "10 \u00b7 Hybrid search",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/search?q=earthquake&mode=hybrid",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "search"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "earthquake",
+                  "description": "Query text",
+                  "disabled": false
+                },
+                {
+                  "key": "mode",
+                  "value": "hybrid",
+                  "description": "Search mode",
+                  "disabled": false
+                },
+                {
+                  "key": "docType",
+                  "value": "",
+                  "description": "Document types (default all)",
+                  "disabled": true
+                },
+                {
+                  "key": "source",
+                  "value": "{{sourceId}}",
+                  "description": "Filter by source id (repeatable or comma-separated)",
+                  "disabled": true
+                },
+                {
+                  "key": "kind",
+                  "value": "",
+                  "description": "Filter by kind (repeatable or comma-separated)",
+                  "disabled": true
+                },
+                {
+                  "key": "bbox",
+                  "value": "",
+                  "description": "minLon,minLat,maxLon,maxLat (WGS84)",
+                  "disabled": true
+                },
+                {
+                  "key": "since",
+                  "value": "2026-10-10T00:00:00Z",
+                  "description": "observedAt >= since",
+                  "disabled": true
+                },
+                {
+                  "key": "until",
+                  "value": "2026-10-10T00:00:00Z",
+                  "description": "observedAt < until",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "25",
+                  "description": "Max results",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "`semantic` needs an embedding provider and pgvector; `text` always works; `hybrid` fuses both (reciprocal rank fusion).\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `search`",
             "auth": {
               "type": "noauth"
             }
@@ -778,7 +1365,7 @@
                 }
               ]
             },
-            "description": "Server-Sent Events. Event types: `change` (data = Change JSON, id = seq), `heartbeat` (every 15 s), `reset` (client buffer overflowed; resume via /v1/changes). Replays from `Last-Event-ID` / `after` before going live.\n\nOpen (no auth).\n\noperationId: `streamChanges`",
+            "description": "Server-Sent Events. Event types: `change` (data = Change JSON, id = seq), `heartbeat` (every 15 s), `reset` (client buffer overflowed; resume via /v1/changes). Replays from `Last-Event-ID` / `after` before going live.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `streamChanges`",
             "auth": {
               "type": "noauth"
             }
@@ -820,7 +1407,2246 @@
                 }
               ]
             },
-            "description": "Event types: `alert` (data = Alert JSON, id = alert id), `heartbeat`. Replays from Last-Event-ID.\n\nOpen (no auth).\n\noperationId: `streamAlerts`",
+            "description": "Event types: `alert` (data = Alert JSON, id = alert id), `heartbeat`. Replays from Last-Event-ID.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `streamAlerts`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Ask (streaming)",
+          "event": [],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "text/event-stream"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/ask/stream",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "ask",
+                "stream"
+              ],
+              "query": []
+            },
+            "description": "Server-Sent Events: `progress` (tool activity), `delta` (answer text), `citation`, `action`, `done` (final AskResponse), `error`.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `askStream`",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"Summarize significant seismic activity this week and suggest a watch rule for M6+ near Japan.\",\n  \"allowActions\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tokens",
+      "description": "Scoped API tokens (read, agent, admin)",
+      "item": [
+        {
+          "name": "List API tokens",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/tokens",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "tokens"
+              ],
+              "query": []
+            },
+            "description": "Token values are never returned; `tokenPrefix` identifies them.\n\n**Scope:** `admin`.\n\noperationId: `listTokens`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create an API token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('tokenId', j.id); console.log('New token (shown once):', j.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/tokens",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "tokens"
+              ],
+              "query": []
+            },
+            "description": "Returns the token value exactly once.\n\n**Scope:** `admin`.\n\noperationId: `createToken`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"openclaw-agent\",\n  \"scope\": \"agent\",\n  \"expiresAt\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Revoke an API token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 204', () => pm.expect([204]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/tokens/{{tokenId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "tokens",
+                "{{tokenId}}"
+              ],
+              "query": []
+            },
+            "description": "The bootstrap token cannot be revoked (rotate it instead).\n\n**Scope:** `admin`.\n\noperationId: `revokeToken`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Ingest",
+      "description": "Inbound webhooks: custom push sources and the ingest endpoint",
+      "item": [
+        {
+          "name": "List custom push sources",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/custom-sources",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "custom-sources"
+              ],
+              "query": []
+            },
+            "description": "List custom push sources\n\n**Scope:** `admin`.\n\noperationId: `listCustomSources`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create a custom push source",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('ingestKey', j.ingestKey); pm.collectionVariables.set('sourceId', j.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/custom-sources",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "custom-sources"
+              ],
+              "query": []
+            },
+            "description": "Registers a runtime source that receives data through POST /v1/ingest/{sourceId}. Returns the ingest key exactly once.\n\n**Scope:** `admin`.\n\noperationId: `createCustomSource`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"custom-home-sensors\",\n  \"name\": \"Home sensors\",\n  \"kinds\": [\n    \"sensor-reading\"\n  ],\n  \"attribution\": \"My bench\",\n  \"recordTtl\": \"1h\",\n  \"tileProperties\": [\n    \"value\",\n    \"unit\"\n  ],\n  \"searchFields\": [\n    \"name\"\n  ],\n  \"embedFields\": [],\n  \"rateLimitPerMinute\": 60\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Get a custom source",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/custom-sources/{{sourceId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "custom-sources",
+                "{{sourceId}}"
+              ],
+              "query": []
+            },
+            "description": "Get a custom source\n\n**Scope:** `admin`.\n\noperationId: `getCustomSource`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update a custom source",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/custom-sources/{{sourceId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "custom-sources",
+                "{{sourceId}}"
+              ],
+              "query": []
+            },
+            "description": "The id cannot change. Kinds may be added; removing a kind that has current records returns 409.\n\n**Scope:** `admin`.\n\noperationId: `updateCustomSource`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"custom-home-sensors\",\n  \"name\": \"Home sensors\",\n  \"kinds\": [\n    \"sensor-reading\",\n    \"sensor-alarm\"\n  ],\n  \"attribution\": \"My bench\",\n  \"recordTtl\": \"1h\",\n  \"tileProperties\": [\n    \"value\",\n    \"unit\"\n  ],\n  \"searchFields\": [\n    \"name\"\n  ],\n  \"embedFields\": [],\n  \"rateLimitPerMinute\": 60\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Delete a custom source",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 204', () => pm.expect([204]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/custom-sources/{{sourceId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "custom-sources",
+                "{{sourceId}}"
+              ],
+              "query": []
+            },
+            "description": "Stops ingest; existing records age out through retention.\n\n**Scope:** `admin`.\n\noperationId: `deleteCustomSource`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Rotate a custom source's ingest key",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('ingestKey', j.ingestKey);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/custom-sources/{{sourceId}}/ingest-key/rotate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "custom-sources",
+                "{{sourceId}}",
+                "ingest-key",
+                "rotate"
+              ],
+              "query": []
+            },
+            "description": "Returns the new key exactly once; the old key stops working immediately.\n\n**Scope:** `admin`.\n\noperationId: `rotateIngestKey`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Push records into a source (inbound webhook)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Elaro-Ingest-Key",
+                "value": "{{ingestKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/ingest/{{sourceId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "ingest",
+                "{{sourceId}}"
+              ],
+              "query": []
+            },
+            "description": "Accepts a GeoJSON FeatureCollection or `{records:[...]}`. Max 5 MB and 10,000 records per request. Records flow through the normal pipeline (versioning, change stream, triggers, embeddings, retention).\n\noperationId: `ingestRecords`",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"FeatureCollection\",\n  \"features\": [\n    {\n      \"type\": \"Feature\",\n      \"id\": \"garage-temp\",\n      \"geometry\": {\n        \"type\": \"Point\",\n        \"coordinates\": [\n          -97.74,\n          30.27\n        ]\n      },\n      \"properties\": {\n        \"kind\": \"sensor-reading\",\n        \"observedAt\": \"2026-10-10T12:00:00Z\",\n        \"name\": \"Garage temperature\",\n        \"value\": 31.5,\n        \"unit\": \"C\"\n      }\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "LLM",
+      "description": "Optional LLM providers (Anthropic, OpenAI-compatible, Ollama), roles, budgets and usage",
+      "item": [
+        {
+          "name": "List LLM providers",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/llm/providers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "llm",
+                "providers"
+              ],
+              "query": []
+            },
+            "description": "API keys are never returned.\n\n**Scope:** `admin`.\n\noperationId: `listLlmProviders`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Add an LLM provider",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('providerId', j.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/llm/providers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "llm",
+                "providers"
+              ],
+              "query": []
+            },
+            "description": "Add an LLM provider\n\n**Scope:** `admin`.\n\noperationId: `createLlmProvider`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"ollama\",\n  \"type\": \"ollama\",\n  \"baseUrl\": \"http://ollama:11434\",\n  \"chatModel\": \"qwen3:14b\",\n  \"embeddingModel\": \"nomic-embed-text\",\n  \"embeddingDimensions\": 768,\n  \"requestsPerMinute\": 60,\n  \"tokensPerDay\": 5000000,\n  \"enabled\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Get an LLM provider",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/llm/providers/{{providerId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "llm",
+                "providers",
+                "{{providerId}}"
+              ],
+              "query": []
+            },
+            "description": "Get an LLM provider\n\n**Scope:** `admin`.\n\noperationId: `getLlmProvider`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Replace an LLM provider",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/llm/providers/{{providerId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "llm",
+                "providers",
+                "{{providerId}}"
+              ],
+              "query": []
+            },
+            "description": "Omit `apiKey` to keep the stored key. Changing the embedding model or dimensions of the active embedding provider triggers a reindex.\n\n**Scope:** `admin`.\n\noperationId: `updateLlmProvider`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"claude\",\n  \"type\": \"anthropic\",\n  \"chatModel\": \"claude-opus-5-5\",\n  \"apiKey\": \"REPLACE_ME\",\n  \"options\": {\n    \"effort\": \"medium\",\n    \"maxTokens\": 16000\n  },\n  \"requestsPerMinute\": 30,\n  \"tokensPerDay\": 2000000,\n  \"enabled\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Delete an LLM provider",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 204', () => pm.expect([204]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/llm/providers/{{providerId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "llm",
+                "providers",
+                "{{providerId}}"
+              ],
+              "query": []
+            },
+            "description": "Returns 409 while it is assigned to a role.\n\n**Scope:** `admin`.\n\noperationId: `deleteLlmProvider`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Test an LLM provider",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/llm/providers/{{providerId}}/test",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "llm",
+                "providers",
+                "{{providerId}}",
+                "test"
+              ],
+              "query": []
+            },
+            "description": "Sends a tiny chat request (and an embedding request if configured) and reports latency, model and token usage. Consumes budget.\n\n**Scope:** `admin`.\n\noperationId: `testLlmProvider`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "List models available from a provider",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/llm/providers/{{providerId}}/models",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "llm",
+                "providers",
+                "{{providerId}}",
+                "models"
+              ],
+              "query": []
+            },
+            "description": "Queries the provider's model list (Anthropic Models API, OpenAI-compatible /models, Ollama /api/tags).\n\n**Scope:** `admin`.\n\noperationId: `listLlmProviderModels`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get LLM roles and options",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/llm/settings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "llm",
+                "settings"
+              ],
+              "query": []
+            },
+            "description": "Get LLM roles and options\n\n**Scope:** `admin`.\n\noperationId: `getLlmSettings`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Set LLM roles and options",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/llm/settings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "llm",
+                "settings"
+              ],
+              "query": []
+            },
+            "description": "Set LLM roles and options\n\n**Scope:** `admin`.\n\noperationId: `updateLlmSettings`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"chatProvider\": \"claude\",\n  \"embeddingProvider\": \"ollama\",\n  \"askEnabled\": true,\n  \"enrichmentEnabled\": true,\n  \"logContent\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "LLM usage over time",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/llm/usage",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "llm",
+                "usage"
+              ],
+              "query": [
+                {
+                  "key": "provider",
+                  "value": "",
+                  "description": "Provider id (default all)",
+                  "disabled": true
+                },
+                {
+                  "key": "from",
+                  "value": "2026-10-10T00:00:00Z",
+                  "description": "Start (default now-24h)",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "2026-10-10T00:00:00Z",
+                  "description": "End (default now)",
+                  "disabled": true
+                },
+                {
+                  "key": "resolution",
+                  "value": "hour",
+                  "description": "Bucket size",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "LLM usage over time\n\n**Scope:** `admin`.\n\noperationId: `getLlmUsage`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Search",
+      "description": "Semantic, text and hybrid search over records, briefings and alerts",
+      "item": [
+        {
+          "name": "Search records, briefings and alerts",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/search?q=",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "search"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "",
+                  "description": "Query text",
+                  "disabled": false
+                },
+                {
+                  "key": "mode",
+                  "value": "hybrid",
+                  "description": "Search mode",
+                  "disabled": true
+                },
+                {
+                  "key": "docType",
+                  "value": "",
+                  "description": "Document types (default all)",
+                  "disabled": true
+                },
+                {
+                  "key": "source",
+                  "value": "{{sourceId}}",
+                  "description": "Filter by source id (repeatable or comma-separated)",
+                  "disabled": true
+                },
+                {
+                  "key": "kind",
+                  "value": "",
+                  "description": "Filter by kind (repeatable or comma-separated)",
+                  "disabled": true
+                },
+                {
+                  "key": "bbox",
+                  "value": "",
+                  "description": "minLon,minLat,maxLon,maxLat (WGS84)",
+                  "disabled": true
+                },
+                {
+                  "key": "since",
+                  "value": "2026-10-10T00:00:00Z",
+                  "description": "observedAt >= since",
+                  "disabled": true
+                },
+                {
+                  "key": "until",
+                  "value": "2026-10-10T00:00:00Z",
+                  "description": "observedAt < until",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "25",
+                  "description": "Max results",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "`semantic` needs an embedding provider and pgvector; `text` always works; `hybrid` fuses both (reciprocal rank fusion).\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `search`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Semantic search status",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/search/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "search",
+                "status"
+              ],
+              "query": []
+            },
+            "description": "Semantic search status\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getSearchStatus`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Rebuild embeddings",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 202', () => pm.expect([202]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/search/reindex",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "search",
+                "reindex"
+              ],
+              "query": []
+            },
+            "description": "Re-embeds every eligible document with the active embedding model. Runs in the background.\n\n**Scope:** `admin`.\n\noperationId: `reindexSearch`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Ask",
+      "description": "Natural-language questions answered from Elaro's data with verified citations",
+      "item": [
+        {
+          "name": "Ask a question",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('threadId', j.threadId); if (j.proposedActions && j.proposedActions.length) pm.collectionVariables.set('actionId', j.proposedActions[0].id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/ask",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "ask"
+              ],
+              "query": []
+            },
+            "description": "Answers from Elaro's data using the chat provider with tools. Citations are verified against tool results. Write actions are only proposed unless `allowActions` is true and the token has agent scope.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `ask`",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"Were there any earthquakes above magnitude 5 in the last 24 hours, and where?\",\n  \"threadId\": null,\n  \"scope\": {\n    \"sources\": [\n      \"usgs-earthquakes\"\n    ],\n    \"since\": null\n  },\n  \"allowActions\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Ask a question (streaming)",
+          "event": [],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "text/event-stream"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/ask/stream",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "ask",
+                "stream"
+              ],
+              "query": []
+            },
+            "description": "Server-Sent Events: `progress` (tool activity), `delta` (answer text), `citation`, `action`, `done` (final AskResponse), `error`.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `askStream`",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"Summarize significant seismic activity this week and suggest a watch rule for M6+ near Japan.\",\n  \"allowActions\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "List Ask threads",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/ask/threads",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "ask",
+                "threads"
+              ],
+              "query": [
+                {
+                  "key": "cursor",
+                  "value": "{{cursor}}",
+                  "description": "Opaque pagination cursor from a previous response's nextCursor",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "500",
+                  "description": "Page size",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "List Ask threads\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `listAskThreads`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Get an Ask thread with messages",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/ask/threads/{{threadId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "ask",
+                "threads",
+                "{{threadId}}"
+              ],
+              "query": []
+            },
+            "description": "Get an Ask thread with messages\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getAskThread`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Delete an Ask thread",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 204', () => pm.expect([204]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/ask/threads/{{threadId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "ask",
+                "threads",
+                "{{threadId}}"
+              ],
+              "query": []
+            },
+            "description": "Delete an Ask thread\n\n**Scope:** `agent` or `admin`.\n\noperationId: `deleteAskThread`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{agentToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Execute a proposed action",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/ask/actions/{{actionId}}/confirm",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "ask",
+                "actions",
+                "{{actionId}}",
+                "confirm"
+              ],
+              "query": []
+            },
+            "description": "Execute a proposed action\n\n**Scope:** `agent` or `admin`.\n\noperationId: `confirmAskAction`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{agentToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Reject a proposed action",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/ask/actions/{{actionId}}/reject",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "ask",
+                "actions",
+                "{{actionId}}",
+                "reject"
+              ],
+              "query": []
+            },
+            "description": "Reject a proposed action\n\n**Scope:** `agent` or `admin`.\n\noperationId: `rejectAskAction`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{agentToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Briefings",
+      "description": "Scheduled digests and LLM briefings delivered to channels",
+      "item": [
+        {
+          "name": "List briefings",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/briefings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "briefings"
+              ],
+              "query": []
+            },
+            "description": "List briefings\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `listBriefings`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Create a scheduled briefing",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('briefingId', j.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/briefings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "briefings"
+              ],
+              "query": []
+            },
+            "description": "Create a scheduled briefing\n\n**Scope:** `agent` or `admin`.\n\noperationId: `createBriefing`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{agentToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Morning brief\",\n  \"enabled\": true,\n  \"schedule\": \"0 7 * * *\",\n  \"timezone\": \"America/Chicago\",\n  \"scope\": {\n    \"sources\": [],\n    \"kinds\": [\n      \"earthquake\"\n    ],\n    \"includeHealth\": true\n  },\n  \"lookback\": \"24h\",\n  \"mode\": \"digest\",\n  \"instructions\": null,\n  \"channelIds\": [\n    \"{{channelId}}\"\n  ],\n  \"maxItemsPerKind\": 5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Render a briefing without storing or delivering it",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/briefings/preview",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "briefings",
+                "preview"
+              ],
+              "query": []
+            },
+            "description": "Render a briefing without storing or delivering it\n\n**Scope:** `agent` or `admin`.\n\noperationId: `previewBriefing`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{agentToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Preview\",\n  \"schedule\": \"0 7 * * *\",\n  \"scope\": {\n    \"kinds\": [\n      \"earthquake\"\n    ]\n  },\n  \"lookback\": \"24h\",\n  \"mode\": \"digest\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Get a briefing",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/briefings/{{briefingId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "briefings",
+                "{{briefingId}}"
+              ],
+              "query": []
+            },
+            "description": "Get a briefing\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getBriefing`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Replace a briefing",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/briefings/{{briefingId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "briefings",
+                "{{briefingId}}"
+              ],
+              "query": []
+            },
+            "description": "Replace a briefing\n\n**Scope:** `agent` or `admin`.\n\noperationId: `updateBriefing`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{agentToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Morning brief (LLM)\",\n  \"enabled\": true,\n  \"schedule\": \"0 7 * * 1-5\",\n  \"timezone\": \"America/Chicago\",\n  \"scope\": {\n    \"kinds\": [\n      \"earthquake\",\n      \"aircraft\",\n      \"vessel\"\n    ],\n    \"includeHealth\": true\n  },\n  \"lookback\": \"24h\",\n  \"mode\": \"llm\",\n  \"instructions\": \"Lead with anything critical. Keep it under 250 words.\",\n  \"channelIds\": [\n    \"{{channelId}}\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Delete a briefing",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 204', () => pm.expect([204]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/briefings/{{briefingId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "briefings",
+                "{{briefingId}}"
+              ],
+              "query": []
+            },
+            "description": "Past runs are kept until retention removes them.\n\n**Scope:** `agent` or `admin`.\n\noperationId: `deleteBriefing`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{agentToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Run a briefing now",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); if (j.id) pm.collectionVariables.set('runId', j.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/briefings/{{briefingId}}/run",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "briefings",
+                "{{briefingId}}",
+                "run"
+              ],
+              "query": []
+            },
+            "description": "Runs synchronously (up to 120 s), stores the run and delivers it to the briefing's channels.\n\n**Scope:** `agent` or `admin`.\n\noperationId: `runBriefing`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{agentToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "List runs of a briefing",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/briefings/{{briefingId}}/runs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "briefings",
+                "{{briefingId}}",
+                "runs"
+              ],
+              "query": [
+                {
+                  "key": "cursor",
+                  "value": "{{cursor}}",
+                  "description": "Opaque pagination cursor from a previous response's nextCursor",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "500",
+                  "description": "Page size",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "List runs of a briefing\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `listBriefingRuns`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Get a briefing run",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/briefings/{{briefingId}}/runs/{{runId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "briefings",
+                "{{briefingId}}",
+                "runs",
+                "{{runId}}"
+              ],
+              "query": []
+            },
+            "description": "Get a briefing run\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getBriefingRun`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Push",
+      "description": "Browser Web Push subscriptions",
+      "item": [
+        {
+          "name": "VAPID public key for Web Push subscriptions",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/push/vapid-public-key",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "push",
+                "vapid-public-key"
+              ],
+              "query": []
+            },
+            "description": "VAPID public key for Web Push subscriptions\n\noperationId: `getVapidPublicKey`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "List Web Push subscriptions",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/push/subscriptions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "push",
+                "subscriptions"
+              ],
+              "query": []
+            },
+            "description": "List Web Push subscriptions\n\n**Scope:** `admin`.\n\noperationId: `listPushSubscriptions`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Register a browser push subscription",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('subscriptionId', j.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/push/subscriptions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "push",
+                "subscriptions"
+              ],
+              "query": []
+            },
+            "description": "Register a browser push subscription\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `createPushSubscription`",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Laptop browser\",\n  \"subscription\": {\n    \"endpoint\": \"https://push.example/REPLACE\",\n    \"keys\": {\n      \"p256dh\": \"REPLACE\",\n      \"auth\": \"REPLACE\"\n    }\n  },\n  \"filters\": {\n    \"events\": [\n      \"alert\"\n    ],\n    \"minSeverity\": \"warning\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Remove a push subscription",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 204', () => pm.expect([204]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/push/subscriptions/{{subscriptionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "push",
+                "subscriptions",
+                "{{subscriptionId}}"
+              ],
+              "query": []
+            },
+            "description": "Remove a push subscription\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `deletePushSubscription`",
             "auth": {
               "type": "noauth"
             }
@@ -864,7 +3690,7 @@
               ],
               "query": []
             },
-            "description": "Catalogue of every available adapter with its settings, live health status and today's budget use.\n\nOpen (no auth).\n\noperationId: `listSources`",
+            "description": "Catalogue of every available adapter with its settings, live health status and today's budget use.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `listSources`",
             "auth": {
               "type": "noauth"
             }
@@ -910,7 +3736,7 @@
                 }
               ]
             },
-            "description": "Machine-readable health for every source; intended for monitoring and the adapter-maintenance agent.\n\nOpen (no auth).\n\noperationId: `listSourceHealth`",
+            "description": "Machine-readable health for every source; intended for monitoring and the adapter-maintenance agent.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `listSourceHealth`",
             "auth": {
               "type": "noauth"
             }
@@ -949,7 +3775,7 @@
               ],
               "query": []
             },
-            "description": "Get a source\n\nOpen (no auth).\n\noperationId: `getSource`",
+            "description": "Get a source\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getSource`",
             "auth": {
               "type": "noauth"
             }
@@ -992,7 +3818,7 @@
               ],
               "query": []
             },
-            "description": "Enable/disable (subscribe/unsubscribe), set interval, params, budget and retention. Changes apply immediately. Omitted fields are unchanged.\n\n**Requires admin token.**\n\noperationId: `updateSource`",
+            "description": "Enable/disable (subscribe/unsubscribe), set interval, params, budget and retention. Changes apply immediately. Omitted fields are unchanged.\n\n**Scope:** `admin`.\n\noperationId: `updateSource`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -1048,7 +3874,7 @@
               ],
               "query": []
             },
-            "description": "Write-only. Values are encrypted at rest and never returned by any endpoint.\n\n**Requires admin token.**\n\noperationId: `setSourceCredentials`",
+            "description": "Write-only. Values are encrypted at rest and never returned by any endpoint.\n\n**Scope:** `admin`.\n\noperationId: `setSourceCredentials`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -1099,7 +3925,7 @@
               ],
               "query": []
             },
-            "description": "Also disables the source if it requires credentials.\n\n**Requires admin token.**\n\noperationId: `deleteSourceCredentials`",
+            "description": "Also disables the source if it requires credentials.\n\n**Scope:** `admin`.\n\noperationId: `deleteSourceCredentials`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -1146,7 +3972,7 @@
               ],
               "query": []
             },
-            "description": "Runs one fetch immediately and ingests normally. Consumes budget. Works whether or not the source is enabled (credentials permitting).\n\n**Requires admin token.**\n\noperationId: `fetchSourceNow`",
+            "description": "Runs one fetch immediately and ingests normally. Consumes budget. Works whether or not the source is enabled (credentials permitting).\n\n**Scope:** `admin`.\n\noperationId: `fetchSourceNow`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -1206,7 +4032,7 @@
                 }
               ]
             },
-            "description": "Fetches once and returns the raw upstream response (truncated) plus parsed records. Stores nothing. Consumes budget. Streaming sources capture for `seconds`.\n\n**Requires admin token.**\n\noperationId: `probeSource`",
+            "description": "Fetches once and returns the raw upstream response (truncated) plus parsed records. Stores nothing. Consumes budget. Streaming sources capture for `seconds`.\n\n**Scope:** `admin`.\n\noperationId: `probeSource`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -1253,7 +4079,7 @@
               ],
               "query": []
             },
-            "description": "Health of one source\n\nOpen (no auth).\n\noperationId: `getSourceHealth`",
+            "description": "Health of one source\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getSourceHealth`",
             "auth": {
               "type": "noauth"
             }
@@ -1312,7 +4138,7 @@
                 }
               ]
             },
-            "description": "Request/bytes usage over time\n\nOpen (no auth).\n\noperationId: `getSourceUsage`",
+            "description": "Request/bytes usage over time\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getSourceUsage`",
             "auth": {
               "type": "noauth"
             }
@@ -1356,7 +4182,7 @@
               ],
               "query": []
             },
-            "description": "Kinds currently present, with current-record counts and contributing sources.\n\nOpen (no auth).\n\noperationId: `listKinds`",
+            "description": "Kinds currently present, with current-record counts and contributing sources.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `listKinds`",
             "auth": {
               "type": "noauth"
             }
@@ -1459,7 +4285,7 @@
                 }
               ]
             },
-            "description": "Latest version of each record. Expired (validUntil passed) and tombstoned records are excluded unless requested.\n\nOpen (no auth).\n\noperationId: `listRecords`",
+            "description": "Latest version of each record. Expired (validUntil passed) and tombstoned records are excluded unless requested.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `listRecords`",
             "auth": {
               "type": "noauth"
             }
@@ -1506,7 +4332,7 @@
                 }
               ]
             },
-            "description": "Get current version of a record\n\nOpen (no auth).\n\noperationId: `getRecord`",
+            "description": "Get current version of a record\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getRecord`",
             "auth": {
               "type": "noauth"
             }
@@ -1547,7 +4373,7 @@
               ],
               "query": []
             },
-            "description": "Version history of a record\n\nOpen (no auth).\n\noperationId: `listRecordVersions`",
+            "description": "Version history of a record\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `listRecordVersions`",
             "auth": {
               "type": "noauth"
             }
@@ -1634,7 +4460,7 @@
                 }
               ]
             },
-            "description": "All versions in a time range (playback)\n\nOpen (no auth).\n\noperationId: `queryHistory`",
+            "description": "All versions in a time range (playback)\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `queryHistory`",
             "auth": {
               "type": "noauth"
             }
@@ -1718,7 +4544,7 @@
                 }
               ]
             },
-            "description": "Every new record version in commit order. `seq` is gap-tolerant but strictly increasing in commit order, so `after=<last seq>` never misses a change.\n\nOpen (no auth).\n\noperationId: `listChanges`",
+            "description": "Every new record version in commit order. `seq` is gap-tolerant but strictly increasing in commit order, so `after=<last seq>` never misses a change.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `listChanges`",
             "auth": {
               "type": "noauth"
             }
@@ -1784,7 +4610,7 @@
                 }
               ]
             },
-            "description": "Server-Sent Events. Event types: `change` (data = Change JSON, id = seq), `heartbeat` (every 15 s), `reset` (client buffer overflowed; resume via /v1/changes). Replays from `Last-Event-ID` / `after` before going live.\n\nOpen (no auth).\n\noperationId: `streamChanges`",
+            "description": "Server-Sent Events. Event types: `change` (data = Change JSON, id = seq), `heartbeat` (every 15 s), `reset` (client buffer overflowed; resume via /v1/changes). Replays from `Last-Event-ID` / `after` before going live.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `streamChanges`",
             "auth": {
               "type": "noauth"
             }
@@ -1832,7 +4658,7 @@
               ],
               "query": []
             },
-            "description": "Mapbox Vector Tile. `layer` is a kind (e.g. aircraft) or a source id. Feature properties: source, externalId, kind, observedAt plus the source's tileProperties.\n\nOpen (no auth).\n\noperationId: `getTile`",
+            "description": "Mapbox Vector Tile. `layer` is a kind (e.g. aircraft) or a source id. Feature properties: source, externalId, kind, observedAt plus the source's tileProperties.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getTile`",
             "auth": {
               "type": "noauth"
             }
@@ -1876,7 +4702,7 @@
               ],
               "query": []
             },
-            "description": "List trigger rules\n\nOpen (no auth).\n\noperationId: `listTriggers`",
+            "description": "List trigger rules\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `listTriggers`",
             "auth": {
               "type": "noauth"
             }
@@ -1921,20 +4747,20 @@
               ],
               "query": []
             },
-            "description": "Create a trigger rule\n\n**Requires admin token.**\n\noperationId: `createTrigger`",
+            "description": "Create a trigger rule\n\n**Scope:** `agent` or `admin`.\n\noperationId: `createTrigger`",
             "auth": {
               "type": "bearer",
               "bearer": [
                 {
                   "key": "token",
-                  "value": "{{adminToken}}",
+                  "value": "{{agentToken}}",
                   "type": "string"
                 }
               ]
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Big quake\",\n  \"enabled\": true,\n  \"source\": \"usgs-earthquakes\",\n  \"kind\": \"earthquake\",\n  \"conditions\": [\n    {\n      \"path\": \"mag\",\n      \"op\": \">=\",\n      \"value\": 6\n    }\n  ],\n  \"mode\": \"enter\",\n  \"cooldown\": \"0s\",\n  \"messageTemplate\": \"M{{payload.mag}} \\u2014 {{payload.place}}\"\n}",
+              "raw": "{\n  \"name\": \"Big quake\",\n  \"enabled\": true,\n  \"source\": \"usgs-earthquakes\",\n  \"kind\": \"earthquake\",\n  \"conditions\": [\n    {\n      \"path\": \"mag\",\n      \"op\": \">=\",\n      \"value\": 6\n    }\n  ],\n  \"mode\": \"enter\",\n  \"cooldown\": \"0s\",\n  \"severity\": \"critical\",\n  \"enrich\": true,\n  \"messageTemplate\": \"M{{payload.mag}} \\u2014 {{payload.place}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1976,7 +4802,7 @@
               ],
               "query": []
             },
-            "description": "Get a trigger rule\n\nOpen (no auth).\n\noperationId: `getTrigger`",
+            "description": "Get a trigger rule\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getTrigger`",
             "auth": {
               "type": "noauth"
             }
@@ -2019,13 +4845,13 @@
               ],
               "query": []
             },
-            "description": "Replace a trigger rule\n\n**Requires admin token.**\n\noperationId: `updateTrigger`",
+            "description": "Replace a trigger rule\n\n**Scope:** `agent` or `admin`.\n\noperationId: `updateTrigger`",
             "auth": {
               "type": "bearer",
               "bearer": [
                 {
                   "key": "token",
-                  "value": "{{adminToken}}",
+                  "value": "{{agentToken}}",
                   "type": "string"
                 }
               ]
@@ -2069,13 +4895,13 @@
               ],
               "query": []
             },
-            "description": "Existing alerts are kept.\n\n**Requires admin token.**\n\noperationId: `deleteTrigger`",
+            "description": "Existing alerts are kept.\n\n**Scope:** `agent` or `admin`.\n\noperationId: `deleteTrigger`",
             "auth": {
               "type": "bearer",
               "bearer": [
                 {
                   "key": "token",
-                  "value": "{{adminToken}}",
+                  "value": "{{agentToken}}",
                   "type": "string"
                 }
               ]
@@ -2129,13 +4955,13 @@
                 }
               ]
             },
-            "description": "Evaluates the rule over versions ingested since `since` without creating alerts or applying cooldown.\n\n**Requires admin token.**\n\noperationId: `testTrigger`",
+            "description": "Evaluates the rule over versions ingested since `since` without creating alerts or applying cooldown.\n\n**Scope:** `agent` or `admin`.\n\noperationId: `testTrigger`",
             "auth": {
               "type": "bearer",
               "bearer": [
                 {
                   "key": "token",
-                  "value": "{{adminToken}}",
+                  "value": "{{agentToken}}",
                   "type": "string"
                 }
               ]
@@ -2220,7 +5046,7 @@
                 }
               ]
             },
-            "description": "List alerts newest first\n\nOpen (no auth).\n\noperationId: `listAlerts`",
+            "description": "List alerts newest first\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `listAlerts`",
             "auth": {
               "type": "noauth"
             }
@@ -2262,7 +5088,7 @@
                 }
               ]
             },
-            "description": "Event types: `alert` (data = Alert JSON, id = alert id), `heartbeat`. Replays from Last-Event-ID.\n\nOpen (no auth).\n\noperationId: `streamAlerts`",
+            "description": "Event types: `alert` (data = Alert JSON, id = alert id), `heartbeat`. Replays from Last-Event-ID.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `streamAlerts`",
             "auth": {
               "type": "noauth"
             }
@@ -2301,7 +5127,7 @@
               ],
               "query": []
             },
-            "description": "Get an alert\n\nOpen (no auth).\n\noperationId: `getAlert`",
+            "description": "Get an alert\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getAlert`",
             "auth": {
               "type": "noauth"
             }
@@ -2341,13 +5167,13 @@
               ],
               "query": []
             },
-            "description": "Acknowledge an alert\n\n**Requires admin token.**\n\noperationId: `acknowledgeAlert`",
+            "description": "Acknowledge an alert\n\n**Scope:** `agent` or `admin`.\n\noperationId: `acknowledgeAlert`",
             "auth": {
               "type": "bearer",
               "bearer": [
                 {
                   "key": "token",
-                  "value": "{{adminToken}}",
+                  "value": "{{agentToken}}",
                   "type": "string"
                 }
               ]
@@ -2357,11 +5183,11 @@
       ]
     },
     {
-      "name": "Webhooks",
-      "description": "Outbound alert delivery to operator endpoints",
+      "name": "Channels",
+      "description": "Notification channels: webhook, Slack, Mattermost, Discord, Teams, Google Chat, Telegram, Matrix, ntfy, Gotify, Pushover, email, Web Push",
       "item": [
         {
-          "name": "List webhooks",
+          "name": "Channel type catalogue",
           "event": [
             {
               "listen": "test",
@@ -2382,17 +5208,18 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/webhooks",
+              "raw": "{{baseUrl}}/v1/channels/types",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "v1",
-                "webhooks"
+                "channels",
+                "types"
               ],
               "query": []
             },
-            "description": "Secrets are never returned.\n\n**Requires admin token.**\n\noperationId: `listWebhooks`",
+            "description": "Each supported type with its config and secret field specifications.\n\n**Scope:** `admin`.\n\noperationId: `listChannelTypes`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -2406,7 +5233,52 @@
           }
         },
         {
-          "name": "Register a webhook",
+          "name": "List notification channels",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/channels",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "channels"
+              ],
+              "query": []
+            },
+            "description": "Secrets are never returned.\n\n**Scope:** `admin`.\n\noperationId: `listChannels`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create a notification channel",
           "event": [
             {
               "listen": "test",
@@ -2415,7 +5287,7 @@
                 "exec": [
                   "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
                   "if (pm.response.code < 300) {",
-                  "const j = pm.response.json(); pm.collectionVariables.set('webhookId', j.id);",
+                  "const j = pm.response.json(); pm.collectionVariables.set('channelId', j.id);",
                   "}"
                 ]
               }
@@ -2434,17 +5306,17 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/webhooks",
+              "raw": "{{baseUrl}}/v1/channels",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "v1",
-                "webhooks"
+                "channels"
               ],
               "query": []
             },
-            "description": "Register a webhook\n\n**Requires admin token.**\n\noperationId: `createWebhook`",
+            "description": "Create a notification channel\n\n**Scope:** `admin`.\n\noperationId: `createChannel`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -2457,7 +5329,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"ntfy\",\n  \"url\": \"https://ntfy.sh/REPLACE_TOPIC\",\n  \"secret\": \"change-me\",\n  \"ruleIds\": null,\n  \"enabled\": true\n}",
+              "raw": "{\n  \"name\": \"ntfy phone\",\n  \"type\": \"ntfy\",\n  \"config\": {\n    \"serverUrl\": \"https://ntfy.sh\",\n    \"topic\": \"REPLACE_TOPIC\"\n  },\n  \"secrets\": {},\n  \"events\": [\n    \"alert\",\n    \"briefing\",\n    \"system\"\n  ],\n  \"ruleIds\": null,\n  \"minSeverity\": \"warning\",\n  \"enabled\": true\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2467,7 +5339,7 @@
           }
         },
         {
-          "name": "Get a webhook",
+          "name": "Get a channel",
           "event": [
             {
               "listen": "test",
@@ -2488,18 +5360,18 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/webhooks/{{webhookId}}",
+              "raw": "{{baseUrl}}/v1/channels/{{channelId}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "v1",
-                "webhooks",
-                "{{webhookId}}"
+                "channels",
+                "{{channelId}}"
               ],
               "query": []
             },
-            "description": "Get a webhook\n\n**Requires admin token.**\n\noperationId: `getWebhook`",
+            "description": "Get a channel\n\n**Scope:** `admin`.\n\noperationId: `getChannel`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -2513,7 +5385,7 @@
           }
         },
         {
-          "name": "Replace a webhook",
+          "name": "Replace a channel",
           "event": [
             {
               "listen": "test",
@@ -2538,18 +5410,18 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/webhooks/{{webhookId}}",
+              "raw": "{{baseUrl}}/v1/channels/{{channelId}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "v1",
-                "webhooks",
-                "{{webhookId}}"
+                "channels",
+                "{{channelId}}"
               ],
               "query": []
             },
-            "description": "Omit `secret` to keep the existing secret.\n\n**Requires admin token.**\n\noperationId: `updateWebhook`",
+            "description": "Omit `secrets` to keep existing secrets; a provided `secrets` object replaces them entirely.\n\n**Scope:** `admin`.\n\noperationId: `updateChannel`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -2562,7 +5434,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"ntfy\",\n  \"url\": \"https://ntfy.sh/REPLACE_TOPIC\",\n  \"ruleIds\": null,\n  \"enabled\": true\n}",
+              "raw": "{\n  \"name\": \"Slack #ops\",\n  \"type\": \"slack\",\n  \"config\": {\n    \"username\": \"Elaro\"\n  },\n  \"secrets\": {\n    \"webhookUrl\": \"https://hooks.slack.com/services/REPLACE\"\n  },\n  \"events\": [\n    \"alert\",\n    \"briefing\"\n  ],\n  \"ruleIds\": null,\n  \"minSeverity\": \"info\",\n  \"waitForEnrichmentSeconds\": 20,\n  \"enabled\": true\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2572,7 +5444,7 @@
           }
         },
         {
-          "name": "Delete a webhook",
+          "name": "Delete a channel",
           "event": [
             {
               "listen": "test",
@@ -2588,18 +5460,18 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/v1/webhooks/{{webhookId}}",
+              "raw": "{{baseUrl}}/v1/channels/{{channelId}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "v1",
-                "webhooks",
-                "{{webhookId}}"
+                "channels",
+                "{{channelId}}"
               ],
               "query": []
             },
-            "description": "Delete a webhook\n\n**Requires admin token.**\n\noperationId: `deleteWebhook`",
+            "description": "Pending deliveries are marked failed.\n\n**Scope:** `admin`.\n\noperationId: `deleteChannel`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -2613,7 +5485,7 @@
           }
         },
         {
-          "name": "Send a test delivery",
+          "name": "Send a test notification",
           "event": [
             {
               "listen": "test",
@@ -2634,19 +5506,19 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/webhooks/{{webhookId}}/test",
+              "raw": "{{baseUrl}}/v1/channels/{{channelId}}/test",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "v1",
-                "webhooks",
-                "{{webhookId}}",
+                "channels",
+                "{{channelId}}",
                 "test"
               ],
               "query": []
             },
-            "description": "Synchronously POSTs a synthetic alert and reports the result.\n\n**Requires admin token.**\n\noperationId: `testWebhook`",
+            "description": "Synchronous; nothing is persisted.\n\n**Scope:** `admin`.\n\noperationId: `testChannel`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -2681,14 +5553,14 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/webhooks/{{webhookId}}/deliveries",
+              "raw": "{{baseUrl}}/v1/channels/{{channelId}}/deliveries",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "v1",
-                "webhooks",
-                "{{webhookId}}",
+                "channels",
+                "{{channelId}}",
                 "deliveries"
               ],
               "query": [
@@ -2712,7 +5584,7 @@
                 }
               ]
             },
-            "description": "Recent deliveries\n\n**Requires admin token.**\n\noperationId: `listWebhookDeliveries`",
+            "description": "Recent deliveries\n\n**Scope:** `admin`.\n\noperationId: `listChannelDeliveries`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -2729,7 +5601,7 @@
     },
     {
       "name": "Settings",
-      "description": "Retention, CORS, export and import",
+      "description": "Retention, CORS, security, server URL, export and import",
       "item": [
         {
           "name": "Get retention settings",
@@ -2764,7 +5636,7 @@
               ],
               "query": []
             },
-            "description": "Get retention settings\n\n**Requires admin token.**\n\noperationId: `getRetention`",
+            "description": "Get retention settings\n\n**Scope:** `admin`.\n\noperationId: `getRetention`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -2814,7 +5686,7 @@
               ],
               "query": []
             },
-            "description": "Replaces retention settings. Takes effect on the next retention run (hourly) or immediately via /run.\n\n**Requires admin token.**\n\noperationId: `updateRetention`",
+            "description": "Replaces retention settings. Takes effect on the next retention run (hourly) or immediately via /run.\n\n**Scope:** `admin`.\n\noperationId: `updateRetention`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -2827,7 +5699,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"default\": \"7d\",\n  \"alerts\": \"90d\",\n  \"usage\": \"30d\",\n  \"sources\": {\n    \"usgs-earthquakes\": \"3650d\"\n  }\n}",
+              "raw": "{\n  \"default\": \"7d\",\n  \"alerts\": \"90d\",\n  \"usage\": \"30d\",\n  \"briefings\": \"180d\",\n  \"ask\": \"90d\",\n  \"sources\": {\n    \"usgs-earthquakes\": \"3650d\"\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2870,7 +5742,7 @@
               ],
               "query": []
             },
-            "description": "Run retention now\n\n**Requires admin token.**\n\noperationId: `runRetention`",
+            "description": "Run retention now\n\n**Scope:** `admin`.\n\noperationId: `runRetention`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -2916,7 +5788,7 @@
               ],
               "query": []
             },
-            "description": "Get CORS settings\n\n**Requires admin token.**\n\noperationId: `getCors`",
+            "description": "Get CORS settings\n\n**Scope:** `admin`.\n\noperationId: `getCors`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -2966,7 +5838,7 @@
               ],
               "query": []
             },
-            "description": "Set CORS settings\n\n**Requires admin token.**\n\noperationId: `updateCors`",
+            "description": "Set CORS settings\n\n**Scope:** `admin`.\n\noperationId: `updateCors`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -3021,7 +5893,7 @@
               ],
               "query": []
             },
-            "description": "Source settings, retention, CORS, trigger rules and webhooks (without secrets/credentials).\n\n**Requires admin token.**\n\noperationId: `exportSettings`",
+            "description": "Source settings, retention, CORS, security, server, trigger rules, channels, briefings, custom-source definitions, LLM provider settings and roles. Never includes secrets, credentials or ingest keys.\n\n**Scope:** `admin`.\n\noperationId: `exportSettings`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -3071,7 +5943,7 @@
               ],
               "query": []
             },
-            "description": "Applies a bundle produced by export. Rules and webhooks are upserted by id. Unknown source ids are reported, not fatal.\n\n**Requires admin token.**\n\noperationId: `importSettings`",
+            "description": "Applies a bundle produced by export, atomically. Rules, channels, briefings, custom sources and LLM providers are upserted by id; existing secrets are kept when the bundle omits them. Unknown source ids are reported, not fatal.\n\n**Scope:** `admin`.\n\noperationId: `importSettings`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -3084,7 +5956,217 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"sources\": {\n    \"usgs-earthquakes\": {\n      \"enabled\": true,\n      \"interval\": \"60s\"\n    }\n  },\n  \"retention\": {\n    \"default\": \"7d\",\n    \"alerts\": \"90d\",\n    \"usage\": \"30d\",\n    \"sources\": {}\n  },\n  \"cors\": {\n    \"readOrigins\": [\n      \"*\"\n    ],\n    \"writeOrigins\": []\n  },\n  \"triggers\": [],\n  \"webhooks\": []\n}",
+              "raw": "{\n  \"sources\": {\n    \"usgs-earthquakes\": {\n      \"enabled\": true,\n      \"interval\": \"60s\"\n    }\n  },\n  \"retention\": {\n    \"default\": \"7d\",\n    \"alerts\": \"90d\",\n    \"usage\": \"30d\",\n    \"sources\": {}\n  },\n  \"cors\": {\n    \"readOrigins\": [\n      \"*\"\n    ],\n    \"writeOrigins\": []\n  },\n  \"triggers\": [],\n  \"channels\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Get security settings",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/settings/security",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "settings",
+                "security"
+              ],
+              "query": []
+            },
+            "description": "Get security settings\n\n**Scope:** `admin`.\n\noperationId: `getSecuritySettings`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Set security settings",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/settings/security",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "settings",
+                "security"
+              ],
+              "query": []
+            },
+            "description": "Set security settings\n\n**Scope:** `admin`.\n\noperationId: `updateSecuritySettings`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"openReads\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Get server settings",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/settings/server",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "settings",
+                "server"
+              ],
+              "query": []
+            },
+            "description": "Get server settings\n\n**Scope:** `admin`.\n\noperationId: `getServerSettings`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Set server settings",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/settings/server",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "settings",
+                "server"
+              ],
+              "query": []
+            },
+            "description": "Set server settings\n\n**Scope:** `admin`.\n\noperationId: `updateServerSettings`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"publicBaseUrl\": \"http://elaro.local:8080\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3131,7 +6213,7 @@
               ],
               "query": []
             },
-            "description": "System information\n\nOpen (no auth).\n\noperationId: `getSystem`",
+            "description": "System information\n\noperationId: `getSystem`",
             "auth": {
               "type": "noauth"
             }
@@ -3174,7 +6256,7 @@
               ],
               "query": []
             },
-            "description": "Invalidates the current token and returns a new one exactly once.\n\n**Requires admin token.**\n\noperationId: `rotateAdminToken`",
+            "description": "Invalidates the current token and returns a new one exactly once.\n\n**Scope:** `admin`.\n\noperationId: `rotateAdminToken`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -3200,6 +6282,14 @@
       "value": ""
     },
     {
+      "key": "agentToken",
+      "value": "{{adminToken}}"
+    },
+    {
+      "key": "ingestKey",
+      "value": ""
+    },
+    {
       "key": "sourceId",
       "value": "usgs-earthquakes"
     },
@@ -3216,7 +6306,35 @@
       "value": ""
     },
     {
-      "key": "webhookId",
+      "key": "channelId",
+      "value": ""
+    },
+    {
+      "key": "tokenId",
+      "value": ""
+    },
+    {
+      "key": "providerId",
+      "value": "ollama"
+    },
+    {
+      "key": "threadId",
+      "value": ""
+    },
+    {
+      "key": "actionId",
+      "value": ""
+    },
+    {
+      "key": "briefingId",
+      "value": ""
+    },
+    {
+      "key": "runId",
+      "value": ""
+    },
+    {
+      "key": "subscriptionId",
       "value": ""
     },
     {

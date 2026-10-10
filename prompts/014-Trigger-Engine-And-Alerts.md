@@ -33,6 +33,8 @@ The alerting layer: rules evaluated against the change stream, so a subscribed-b
   - `value` is a number, string or boolean; ordering ops require a number
 - `geofence`: GeoJSON Polygon or MultiPolygon, valid (use `GeometryFixer`, reject if the result is empty), stored as MultiPolygon with SRID 4326; vertex limit 10,000.
 - `mode` ∈ `match` (default), `enter`, `exit`. Edge modes need a geofence or at least one condition; otherwise there is no predicate to transition on, so return 400.
+- `severity` ∈ `info`, `warning` (default), `critical`. It is copied to each alert and drives notification priority (prompt 015).
+- `enrich` (bool, default false), `enrichRadiusKm` (1–2000, default 100) and `enrichWindow` (duration, default 24h) are stored and returned now. The enrichment itself is prompt 026.
 - `cooldown` uses duration shorthand (default `0`); `messageTemplate` is ≤ 1000 chars.
 
 ### 2. RuleSqlBuilder
@@ -68,7 +70,8 @@ Operators come from a fixed whitelist map; values and paths are always bound par
 - For each match, in one transaction per chunk:
   - insert an `alert` with `fired_at = clock.now()` and a rendered message
   - advance the cursor in the same transaction
-- After commit, publish each `Alert` to an `AlertBus` with listeners (the alert SSE channel, and webhooks in prompt 015).
+- After commit, publish each `Alert` to an `AlertBus` with listeners: the alert SSE channel now, notification channels in prompt 015, and enrichment in prompt 026. Make `AlertBus` a small listener registry with per-listener async delivery, the same pattern as `ChangeBus`.
+- Alerts carry `severity`, plus nullable `summary` and `enrichedAt` (filled by prompt 026; include them in the DTO now).
 - Rule set: cache the enabled rules in memory and refresh on `TriggerRulesChangedEvent`.
 - Isolation: a failing rule (SQL error) is logged, marked with `last_error` (add `last_error`, `last_error_at` columns to `trigger_rule` and record this in the CR) and skipped. It must never stall the engine.
 
@@ -130,7 +133,7 @@ Operators come from a fixed whitelist map; values and paths are always bound par
 
 ## Guardrails (mandatory)
 
-1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests are first run in prompt 040.
+1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests are first run in prompt 061 (Full Test Run And Fix).
 2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`). **Do not add Flyway, Liquibase or SQL migration files.**
 3. **Reuse policy.** Never copy code from ShadowBroker, Velocity or World Monitor, which are AGPL. They are reference material only. God's Eye View (MIT, `~/Documents/GitLab/gods-eye-view`) may be ported to Java if you add an origin header comment and an entry in `THIRD_PARTY_NOTICES.md`.
 4. **Stay in scope.** Implement what this prompt specifies, no more. If the docs conflict with reality (for example, a library API differs from what the docs assume), choose the approach most faithful to `docs/Architecture.md` and record it under "Deviations" in the Completion Report.

@@ -1,71 +1,79 @@
 # Elaro — Executive Summary
 
-**Elaro** (elaro.ai) is an open-source, self-hosted **intelligence broker**: a headless service that continuously collects public telemetry from many upstream feeds, normalizes it into one versioned store, and re-serves it over a single documented API. It is the data foundation for a family of frontends (3D globe, 2D analyst map, operator console, mobile, agent/MCP clients) that will be built on top of it.
+**Elaro** (elaro.ai) is an open-source, self-hosted **intelligence broker**. It is a headless service that continuously collects public telemetry from many upstream feeds, normalizes it into one versioned store, alerts on what matters, and re-serves everything through one documented API, an MCP server for AI agents, and push notifications. An optional LLM, either a frontier model or one running locally, turns that data into answers, briefings and context. Elaro is the data foundation for a family of frontends: a 3D globe, a 2D analyst map, an operator console, mobile apps and agents.
 
 ## The problem
 
-Every existing open-source "god's-eye" project — ShadowBroker, God's Eye View, Velocity, World Monitor — fuses the same three concerns into one application:
+Every existing open-source "god's-eye" project (ShadowBroker, God's Eye View, Velocity, World Monitor) fuses three concerns into one application:
 
-1. **Subscription** — what data is collected, how often, and at what cost to upstreams.
-2. **Display** — what a particular screen shows.
-3. **Alerting** — what deserves attention.
+1. **Subscription:** what data is collected, how often, and at what cost to upstreams.
+2. **Display:** what a particular screen shows.
+3. **Alerting:** what deserves attention.
 
-Because they are fused, turning a layer off on the map stops collecting it. You cannot "watch quietly." History lives only as long as the browser tab or a narrow position cache. Each project re-implements the same 40–100 upstream integrations, inside a UI, with little or no accounting of how much load it puts on those upstreams — ShadowBroker was formally called out by the Meshtastic project for generating "1–2 orders of magnitude more traffic than typical clients."
+Because these are fused, turning a layer off stops collecting it, so you can't watch quietly. History lives only as long as a browser tab or a short position cache. Each project re-implements the same 40–100 integrations inside a UI, with little accounting of upstream load. ShadowBroker was formally called out by the Meshtastic project for generating "1–2 orders of magnitude more traffic than typical clients."
 
 ## The solution
 
-Elaro separates the three concerns:
+Elaro separates the three concerns, and adds an intelligence layer on top:
 
-- **Subscription is server-side and is the only thing that causes fetching.** Each source is enabled, scheduled and **budgeted** (requests per minute and per day) through the API. The broker always knows what it is spending per upstream and refuses to exceed it.
-- **Display is the client's business.** Frontends choose what to render via filtered queries, vector tiles and filtered live streams. Their choices never reach the collector.
-- **Alerting is a trigger engine** evaluated against the change stream. A layer that is subscribed but not displayed can still announce itself: a quake over M6, a vessel entering a geofence, a region's connectivity dropping.
+- **Subscription is server-side** and is the only thing that causes fetching. Each source is enabled, scheduled and **budgeted** through the API, so the broker always knows its spend per upstream and never exceeds it.
+- **Display is the client's business.** Frontends use filtered queries, vector tiles and filtered live streams, and their choices never reach the collector.
+- **Alerting is a trigger engine.** It runs over the change stream (threshold, geofence, enter/exit) and delivers to Slack, Mattermost, Discord, Teams, Google Chat, Telegram, Matrix, ntfy, Gotify, Pushover, email, webhooks and browser Web Push. A subscribed but hidden layer can still announce itself.
+- **Intelligence is optional and budgeted:**
+  - Ask questions in plain language and get answers with verified citations.
+  - Schedule morning briefings.
+  - Get LLM context added to alerts.
+  - Search everything semantically using pgvector in the same Postgres database.
+  - The model can be Anthropic Claude, any OpenAI-compatible API, or a local Ollama model, so data never has to leave the box.
+- **Agents are first-class:** a built-in MCP server exposes the data and watch management as tools for OpenClaw, Claude and any MCP client. Scoped tokens keep agents within limits.
+- **Anything can push in:** custom sources accept records through an inbound webhook, from local SDRs, Home Assistant, scripts or agents.
 
-Everything Elaro collects is stored as **versioned records** in Postgres + PostGIS, so every frontend gets current state, history and playback for free. **All configuration is done through the API** — sources, credentials, budgets, retention, triggers — because there is no UI in the broker.
+All records are **versioned** in PostgreSQL + PostGIS, so every client gets current state, history and playback. **All configuration happens through the API:** sources, credentials, budgets, retention, triggers, channels, tokens, LLM providers and briefings.
 
 ## Who it is for
 
 Individuals: OSINT hobbyists, analysts, researchers, makers and developers who want to own their data feed. It runs as an always-on service on a home server, or as something you `docker compose up` when you want it.
 
-## Scope at a glance
+## Scope
 
-| In scope (v1) | Out of scope (v1) |
+| In scope | Not in scope |
 |---|---|
-| Ingest, normalize, version, re-serve public telemetry | Any UI inside the broker |
-| Per-source scheduling, budgets, health | Licence/provenance enforcement (deferred) |
-| Versioned store, retention via API | Multi-tenant SaaS, horizontal scale-out |
-| Trigger engine + alert stream (SSE, webhooks) | Fine-grained auth (single admin token for now) |
-| REST + GeoJSON + vector tiles + SSE, OpenAPI-first | Basemap/imagery hosting (clients fetch tiles directly) |
-| ~10 high-value sources first, growing toward ~90 | Scraping sites that forbid it |
+| Ingest, normalize, version and re-serve public telemetry (~100 sources) | Any UI inside the broker (frontends are separate repositories) |
+| Per-source scheduling, budgets, health; inbound push sources | Scraping sites that forbid it, or headless-browser collection |
+| Trigger engine; 13 notification channel types including Web Push | Multi-user accounts with logins (scoped API tokens instead) |
+| REST, GeoJSON, vector tiles, SSE, MCP; OpenAPI-first; Postman collection | Horizontal scale-out (single instance by design) |
+| Optional LLM: Ask, briefings, enrichment, semantic search, adapter doctor | Training or fine-tuning models |
+| Derived layers, gridded weather products, licence and provenance tracking | Hosting basemaps or imagery (clients fetch tiles directly) |
 
 ## Key decisions
 
 | Decision | Choice |
 |---|---|
-| Language / framework | Java 21 (virtual threads), Spring Boot 4.1 |
-| Store | PostgreSQL + PostGIS; Hibernate-managed schema in development, Flyway introduced only for production |
-| Packaging | Single Gradle module; Docker Compose (broker + PostGIS) |
-| API | REST under `/v1`, OpenAPI-first, GeoJSON, MVT tiles, Server-Sent Events |
-| Security | Open reads on the local network; single admin bearer token for all writes |
+| Language and framework | Java 21 (virtual threads), Spring Boot 4.1 |
+| Store | PostgreSQL + PostGIS + pgvector; Hibernate-managed schema in development, Flyway for production |
+| LLM | Optional. Anthropic via the official Java SDK (default `claude-opus-5-5`), OpenAI-compatible APIs, or local Ollama; budgets on every call |
+| Agents | Built-in MCP server (streamable HTTP); scoped tokens (`read` < `agent` < `admin`) |
+| Packaging | Single Gradle module; Docker Compose (broker + database, optional local-LLM profile) |
 | Licence | MIT |
-| Reuse | God's Eye View (MIT) code may be ported with notice; ShadowBroker, Velocity, World Monitor (AGPL) are reference only — no code copied |
+| Reuse | God's Eye View (MIT) code may be ported with notice; ShadowBroker, Velocity and World Monitor (AGPL) are reference only |
 
 ## Differentiators
 
-1. **Subscription decoupled from display** — watch quietly; alert loudly.
-2. **Per-source budgets and health** — a good upstream citizen by construction, and self-diagnosing when an adapter breaks.
-3. **Versioned history you own** — every record, every revision, with retention you set.
-4. **API as the product** — one contract, many frontends.
-5. **Built for an AI maintainer** — health API, raw-fetch diagnostics and per-adapter fixture tests let a future maintenance agent detect and repair broken adapters.
+1. **Subscription decoupled from display.** Watch quietly; alert loudly, wherever you are.
+2. **Per-source budgets and health.** A good upstream citizen by design, and self-diagnosing when an adapter breaks.
+3. **Versioned history you own,** with retention you set.
+4. **API as the product.** One contract, many frontends, plus MCP for agents.
+5. **Intelligence without lock-in.** Frontier or local models, with citations checked against real records and model actions gated by scope.
+6. **Built for an AI maintainer.** Health API, raw-fetch probes, fixture tests and an LLM adapter doctor.
 
-## Roadmap shape
+## Plan
 
-1. **Foundation** — project skeleton, store, source framework, budgets, scheduler, admin token.
-2. **API** — records, changes, streams, GeoJSON, tiles, settings, health, OpenAPI.
-3. **Triggers** — rule engine, alerts, webhooks.
-4. **First source set** — USGS earthquakes end to end, then ~10 high-value adapters (aircraft, vessels, satellites, fires, conflict events, outages, weather alerts).
-5. **Adapter waves** — porting from God's Eye View and re-implementing from the reference inventories.
-6. **Verification** — full test run to 90% coverage, then production hardening (Flyway baseline).
+A single ordered list of 63 prompts in the [Roadmap](Roadmap.md), in this order:
 
-Follow-on projects: a reference globe frontend, an operator console, and an AI adapter-maintenance agent.
+1. foundation and core API
+2. channels, tokens, inbound webhooks, MCP and the LLM features
+3. about 100 sources
+4. derived layers, gridded products and provenance
+5. the first full test run, runtime verification and production hardening
 
-See the [Product Charter](Product-Charter.md), [Architecture](Architecture.md), [OpenAPI spec](OpenAPI.json) and [Roadmap](Roadmap.md).
+See the [Product Charter](Product-Charter.md), [Architecture](Architecture.md), [OpenAPI spec](OpenAPI.json) and [Source Catalog](Source-Catalog.md).
