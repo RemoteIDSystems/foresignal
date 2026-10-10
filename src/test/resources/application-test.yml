@@ -3,8 +3,14 @@
 
 spring:
   jpa:
+    # 'update', not 'create-drop'. All integration tests share one container, and
+    # Spring's test-context cache can hold several contexts against it at once;
+    # when one context closed, create-drop would drop the schema - including the
+    # GiST indexes created by SchemaBootstrap - out from under the contexts still
+    # running. Tests get a clean slate from DatabaseCleaner truncating rows
+    # instead, which leaves the schema and its indexes in place.
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: update
     open-in-view: false
 
 elaro:
