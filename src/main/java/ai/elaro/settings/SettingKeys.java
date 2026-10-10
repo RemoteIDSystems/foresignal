@@ -15,6 +15,9 @@ public final class SettingKeys {
     /** Limits applied to SSE subscribers (buffer size, replay cap). */
     public static final String STREAM_LIMITS = "stream.limits";
 
+    /** {@link SecuritySettings}: whether data reads require a token. */
+    public static final String SECURITY = "security";
+
     /** This installation's generated identifier. */
     public static final String INSTALL_ID = "install.id";
 

@@ -20,6 +20,10 @@ spring-boot-starter-validation = { module = "org.springframework.boot:spring-boo
 spring-boot-starter-actuator = { module = "org.springframework.boot:spring-boot-starter-actuator" }
 spring-boot-starter-test = { module = "org.springframework.boot:spring-boot-starter-test" }
 spring-boot-testcontainers = { module = "org.springframework.boot:spring-boot-testcontainers" }
+# MockMvc's auto-configuration. In Boot 4 the web test slice moved out of
+# spring-boot-test-autoconfigure into this module, and spring-boot-starter-test
+# does not pull it in.
+spring-boot-webmvc-test = { module = "org.springframework.boot:spring-boot-webmvc-test" }
 hibernate-spatial = { module = "org.hibernate.orm:hibernate-spatial" }
 postgresql = { module = "org.postgresql:postgresql" }
 micrometer-registry-prometheus = { module = "io.micrometer:micrometer-registry-prometheus" }

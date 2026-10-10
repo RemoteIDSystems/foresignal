@@ -30,6 +30,11 @@ spring:
     async:
       # SSE streams are long-lived; MVC must not time them out.
       request-timeout: -1
+    problemdetails:
+      # RFC 9457 error bodies (Architecture §10). GlobalExceptionHandler is what
+      # actually shapes them: declaring a ResponseEntityExceptionHandler bean makes
+      # Boot's own problem-details configuration back off.
+      enabled: true
 
 server:
   port: ${ELARO_PORT:8080}
@@ -46,7 +51,11 @@ management:
         include: health,info,prometheus
   endpoint:
     health:
-      show-details: when-authorized
+      # 'never', not 'when-authorized'. when-authorized is resolved by Spring
+      # Security, which Elaro deliberately does not use, so it would silently
+      # behave as never anyway. /actuator/health is for container health checks;
+      # detailed status belongs to GET /v1/system.
+      show-details: never
 
 springdoc:
   api-docs:
