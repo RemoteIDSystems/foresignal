@@ -1,0 +1,4441 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Elaro API",
+    "version": "1.0.0",
+    "summary": "Headless intelligence broker: ingest, version and re-serve public telemetry.",
+    "description": "All configuration is done through this API. Reads of data are open on the local network; all writes and settings reads require the admin bearer token printed on first start. Errors are RFC 9457 problem+json. Timestamps are ISO-8601 UTC. `/v1` is additive-only once released.",
+    "license": {
+      "name": "MIT",
+      "identifier": "MIT"
+    },
+    "contact": {
+      "url": "https://elaro.ai"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8080",
+      "description": "Local"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Sources",
+      "description": "Upstream feed catalogue, subscription (enable/disable), budgets, credentials, health and diagnostics"
+    },
+    {
+      "name": "Records",
+      "description": "Current state and version history of normalized records"
+    },
+    {
+      "name": "Changes",
+      "description": "Ordered change feed and live SSE change stream"
+    },
+    {
+      "name": "Tiles",
+      "description": "Mapbox Vector Tiles of current records for map clients"
+    },
+    {
+      "name": "Triggers",
+      "description": "Alert rules evaluated against the change stream"
+    },
+    {
+      "name": "Alerts",
+      "description": "Fired alerts, acknowledgement and live SSE alert stream"
+    },
+    {
+      "name": "Webhooks",
+      "description": "Outbound alert delivery to operator endpoints"
+    },
+    {
+      "name": "Settings",
+      "description": "Retention, CORS, export and import"
+    },
+    {
+      "name": "System",
+      "description": "System status and admin token management"
+    }
+  ],
+  "paths": {
+    "/v1/sources": {
+      "get": {
+        "tags": [
+          "Sources"
+        ],
+        "operationId": "listSources",
+        "summary": "List all sources",
+        "description": "Catalogue of every available adapter with its settings, live health status and today's budget use.",
+        "responses": {
+          "200": {
+            "description": "Sources",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SourceSummary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/v1/sources/health": {
+      "get": {
+        "tags": [
+          "Sources"
+        ],
+        "operationId": "listSourceHealth",
+        "summary": "Health of all sources",
+        "description": "Machine-readable health for every source; intended for monitoring and the adapter-maintenance agent.",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Filter by status",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "healthy",
+                  "degraded",
+                  "failing",
+                  "idle",
+                  "disabled"
+                ]
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Health",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SourceHealth"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/v1/sources/{sourceId}": {
+      "parameters": [
+        {
+          "name": "sourceId",
+          "in": "path",
+          "required": true,
+          "description": "Source id, e.g. usgs-earthquakes",
+          "schema": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]+$"
+          }
+        }
+      ],
+      "get": {
+        "tags": [
+          "Sources"
+        ],
+        "operationId": "getSource",
+        "summary": "Get a source",
+        "responses": {
+          "200": {
+            "description": "Source",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      },
+      "put": {
+        "tags": [
+          "Sources"
+        ],
+        "operationId": "updateSource",
+        "summary": "Update source settings",
+        "description": "Enable/disable (subscribe/unsubscribe), set interval, params, budget and retention. Changes apply immediately. Omitted fields are unchanged.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SourceSettingsUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Credentials required before enabling (code CREDENTIALS_REQUIRED)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid admin token",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "adminToken": []
+          }
+        ]
+      }
+    },
+    "/v1/sources/{sourceId}/credentials": {
+      "parameters": [
+        {
+          "name": "sourceId",
+          "in": "path",
+          "required": true,
+          "description": "Source id, e.g. usgs-earthquakes",
+          "schema": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]+$"
+          }
+        }
+      ],
+      "put": {
+        "tags": [
+          "Sources"
+        ],
+        "operationId": "setSourceCredentials",
+        "summary": "Set upstream credentials",
+        "description": "Write-only. Values are encrypted at rest and never returned by any endpoint.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CredentialsUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Stored"
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid admin token",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "adminToken": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Sources"
+        ],
+        "operationId": "deleteSourceCredentials",
+        "summary": "Remove upstream credentials",
+        "description": "Also disables the source if it requires credentials.",
+        "responses": {
+          "204": {
+            "description": "Removed"
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid admin token",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "adminToken": []
+          }
+        ]
+      }
+    },
+    "/v1/sources/{sourceId}/fetch": {
+      "parameters": [
+        {
+          "name": "sourceId",
+          "in": "path",
+          "required": true,
+          "description": "Source id, e.g. usgs-earthquakes",
+          "schema": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]+$"
+          }
+        }
+      ],
+      "post": {
+        "tags": [
+          "Sources"
+        ],
+        "operationId": "fetchSourceNow",
+        "summary": "Fetch once now",
+        "description": "Runs one fetch immediately and ingests normally. Consumes budget. Works whether or not the source is enabled (credentials permitting).",
+        "responses": {
+          "200": {
+            "description": "Fetch outcome",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FetchOutcome"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Already running, credentials missing, or in backoff",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Budget exceeded (code BUDGET_EXCEEDED)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid admin token",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "adminToken": []
+          }
+        ]
+      }
+    },
+    "/v1/sources/{sourceId}/probe": {
+      "parameters": [
+        {
+          "name": "sourceId",
+          "in": "path",
+          "required": true,
+          "description": "Source id, e.g. usgs-earthquakes",
+          "schema": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]+$"
+          }
+        }
+      ],
+      "post": {
+        "tags": [
+          "Sources"
+        ],
+        "operationId": "probeSource",
+        "summary": "Diagnostic probe",
+        "description": "Fetches once and returns the raw upstream response (truncated) plus parsed records. Stores nothing. Consumes budget. Streaming sources capture for `seconds`.",
+        "parameters": [
+          {
+            "name": "maxBytes",
+            "in": "query",
+            "required": false,
+            "description": "Truncate raw body to this many bytes",
+            "schema": {
+              "type": "integer",
+              "minimum": 1024,
+              "maximum": 10485760,
+              "default": 262144
+            }
+          },
+          {
+            "name": "seconds",
+            "in": "query",
+            "required": false,
+            "description": "Capture window for streaming sources",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 60,
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Probe result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProbeResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Budget exceeded",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid admin token",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "adminToken": []
+          }
+        ]
+      }
+    },
+    "/v1/sources/{sourceId}/health": {
+      "parameters": [
+        {
+          "name": "sourceId",
+          "in": "path",
+          "required": true,
+          "description": "Source id, e.g. usgs-earthquakes",
+          "schema": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]+$"
+          }
+        }
+      ],
+      "get": {
+        "tags": [
+          "Sources"
+        ],
+        "operationId": "getSourceHealth",
+        "summary": "Health of one source",
+        "responses": {
+          "200": {
+            "description": "Health",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceHealth"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/v1/sources/{sourceId}/usage": {
+      "parameters": [
+        {
+          "name": "sourceId",
+          "in": "path",
+          "required": true,
+          "description": "Source id, e.g. usgs-earthquakes",
+          "schema": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]+$"
+          }
+        }
+      ],
+      "get": {
+        "tags": [
+          "Sources"
+        ],
+        "operationId": "getSourceUsage",
+        "summary": "Request/bytes usage over time",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "description": "Start (default now-24h)",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "description": "End (default now)",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "resolution",
+            "in": "query",
+            "required": false,
+            "description": "Bucket size",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "minute",
+                "hour",
+                "day"
+              ],
+              "default": "hour"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Usage",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsageSeries"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/v1/kinds": {
+      "get": {
+        "tags": [
+          "Records"
+        ],
+        "operationId": "listKinds",
+        "summary": "List record kinds",
+        "description": "Kinds currently present, with current-record counts and contributing sources.",
+        "responses": {
+          "200": {
+            "description": "Kinds",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/KindSummary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/v1/records": {
+      "get": {
+        "tags": [
+          "Records"
+        ],
+        "operationId": "listRecords",
+        "summary": "Query current records",
+        "description": "Latest version of each record. Expired (validUntil passed) and tombstoned records are excluded unless requested.",
+        "parameters": [
+          {
+            "name": "source",
+            "in": "query",
+            "required": false,
+            "description": "Filter by source id (repeatable or comma-separated)",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "required": false,
+            "description": "Filter by kind (repeatable or comma-separated)",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "bbox",
+            "in": "query",
+            "required": false,
+            "description": "minLon,minLat,maxLon,maxLat (WGS84)",
+            "schema": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?,-?\\d+(\\.\\d+)?,-?\\d+(\\.\\d+)?,-?\\d+(\\.\\d+)?$"
+            }
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "required": false,
+            "description": "observedAt >= since",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "until",
+            "in": "query",
+            "required": false,
+            "description": "observedAt < until",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "description": "Case-insensitive text match on searchable fields (name, title, callsign, place)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "includeExpired",
+            "in": "query",
+            "required": false,
+            "description": "Include records past validUntil",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "description": "Response format (alternatively Accept: application/geo+json)",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "json",
+                "geojson"
+              ],
+              "default": "json"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "description": "Opaque pagination cursor from a previous response's nextCursor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Page size",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 5000,
+              "default": 500
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Records",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecordPage"
+                }
+              },
+              "application/geo+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeatureCollection"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/v1/records/{sourceId}/{externalId}": {
+      "parameters": [
+        {
+          "name": "sourceId",
+          "in": "path",
+          "required": true,
+          "description": "Source id, e.g. usgs-earthquakes",
+          "schema": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]+$"
+          }
+        },
+        {
+          "name": "externalId",
+          "in": "path",
+          "required": true,
+          "description": "Record id within the source (URL-encoded)",
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "get": {
+        "tags": [
+          "Records"
+        ],
+        "operationId": "getRecord",
+        "summary": "Get current version of a record",
+        "parameters": [
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "description": "Response format (alternatively Accept: application/geo+json)",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "json",
+                "geojson"
+              ],
+              "default": "json"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Record",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Record"
+                }
+              },
+              "application/geo+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Feature"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/v1/records/{sourceId}/{externalId}/versions": {
+      "parameters": [
+        {
+          "name": "sourceId",
+          "in": "path",
+          "required": true,
+          "description": "Source id, e.g. usgs-earthquakes",
+          "schema": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]+$"
+          }
+        },
+        {
+          "name": "externalId",
+          "in": "path",
+          "required": true,
+          "description": "Record id within the source (URL-encoded)",
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "get": {
+        "tags": [
+          "Records"
+        ],
+        "operationId": "listRecordVersions",
+        "summary": "Version history of a record",
+        "responses": {
+          "200": {
+            "description": "Versions oldest first",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Record"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/v1/history": {
+      "get": {
+        "tags": [
+          "Records"
+        ],
+        "operationId": "queryHistory",
+        "summary": "All versions in a time range (playback)",
+        "parameters": [
+          {
+            "name": "source",
+            "in": "query",
+            "required": false,
+            "description": "Filter by source id (repeatable or comma-separated)",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "required": false,
+            "description": "Filter by kind (repeatable or comma-separated)",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "bbox",
+            "in": "query",
+            "required": false,
+            "description": "minLon,minLat,maxLon,maxLat (WGS84)",
+            "schema": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?,-?\\d+(\\.\\d+)?,-?\\d+(\\.\\d+)?,-?\\d+(\\.\\d+)?$"
+            }
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "required": true,
+            "description": "Start of range",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "until",
+            "in": "query",
+            "required": false,
+            "description": "End of range (default now)",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "description": "Response format (alternatively Accept: application/geo+json)",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "json",
+                "geojson"
+              ],
+              "default": "json"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "description": "Opaque pagination cursor from a previous response's nextCursor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Page size",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50000,
+              "default": 5000
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Versions ordered by observedAt",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecordPage"
+                }
+              },
+              "application/geo+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeatureCollection"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/v1/changes": {
+      "get": {
+        "tags": [
+          "Changes"
+        ],
+        "operationId": "listChanges",
+        "summary": "Change feed after a cursor",
+        "description": "Every new record version in commit order. `seq` is gap-tolerant but strictly increasing in commit order, so `after=<last seq>` never misses a change.",
+        "parameters": [
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "description": "Return changes with seq > after",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 0,
+              "default": 0
+            }
+          },
+          {
+            "name": "source",
+            "in": "query",
+            "required": false,
+            "description": "Filter by source id (repeatable or comma-separated)",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "required": false,
+            "description": "Filter by kind (repeatable or comma-separated)",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "bbox",
+            "in": "query",
+            "required": false,
+            "description": "minLon,minLat,maxLon,maxLat (WGS84)",
+            "schema": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?,-?\\d+(\\.\\d+)?,-?\\d+(\\.\\d+)?,-?\\d+(\\.\\d+)?$"
+            }
+          },
+          {
+            "name": "payload",
+            "in": "query",
+            "required": false,
+            "description": "Include payloads",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Max changes",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000,
+              "default": 1000
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Changes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChangePage"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/v1/changes/stream": {
+      "get": {
+        "tags": [
+          "Changes"
+        ],
+        "operationId": "streamChanges",
+        "summary": "Live change stream (SSE)",
+        "description": "Server-Sent Events. Event types: `change` (data = Change JSON, id = seq), `heartbeat` (every 15 s), `reset` (client buffer overflowed; resume via /v1/changes). Replays from `Last-Event-ID` / `after` before going live.",
+        "parameters": [
+          {
+            "name": "Last-Event-ID",
+            "in": "header",
+            "required": false,
+            "description": "SSE resume: last seq (changes) or alert id (alerts) received",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "description": "Alternative to Last-Event-ID",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "source",
+            "in": "query",
+            "required": false,
+            "description": "Filter by source id (repeatable or comma-separated)",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "required": false,
+            "description": "Filter by kind (repeatable or comma-separated)",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "bbox",
+            "in": "query",
+            "required": false,
+            "description": "minLon,minLat,maxLon,maxLat (WGS84)",
+            "schema": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?,-?\\d+(\\.\\d+)?,-?\\d+(\\.\\d+)?,-?\\d+(\\.\\d+)?$"
+            }
+          },
+          {
+            "name": "payload",
+            "in": "query",
+            "required": false,
+            "description": "Include payloads",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Event stream",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/v1/tiles/{layer}/{z}/{x}/{y}.mvt": {
+      "get": {
+        "tags": [
+          "Tiles"
+        ],
+        "operationId": "getTile",
+        "summary": "Vector tile of current records",
+        "description": "Mapbox Vector Tile. `layer` is a kind (e.g. aircraft) or a source id. Feature properties: source, externalId, kind, observedAt plus the source's tileProperties.",
+        "parameters": [
+          {
+            "name": "layer",
+            "in": "path",
+            "required": true,
+            "description": "Kind or source id",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "z",
+            "in": "path",
+            "required": true,
+            "description": "Zoom",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 16
+            }
+          },
+          {
+            "name": "x",
+            "in": "path",
+            "required": true,
+            "description": "Tile column",
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "y",
+            "in": "path",
+            "required": true,
+            "description": "Tile row",
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tile (may be empty)",
+            "content": {
+              "application/vnd.mapbox-vector-tile": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown layer",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/v1/triggers": {
+      "get": {
+        "tags": [
+          "Triggers"
+        ],
+        "operationId": "listTriggers",
+        "summary": "List trigger rules",
+        "responses": {
+          "200": {
+            "description": "Rules",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TriggerRule"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      },
+      "post": {
+        "tags": [
+          "Triggers"
+        ],
+        "operationId": "createTrigger",
+        "summary": "Create a trigger rule",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TriggerRuleInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TriggerRule"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid admin token",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "adminToken": []
+          }
+        ]
+      }
+    },
+    "/v1/triggers/{ruleId}": {
+      "parameters": [
+        {
+          "name": "ruleId",
+          "in": "path",
+          "required": true,
+          "description": "Trigger rule id",
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "get": {
+        "tags": [
+          "Triggers"
+        ],
+        "operationId": "getTrigger",
+        "summary": "Get a trigger rule",
+        "responses": {
+          "200": {
+            "description": "Rule",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TriggerRule"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      },
+      "put": {
+        "tags": [
+          "Triggers"
+        ],
+        "operationId": "updateTrigger",
+        "summary": "Replace a trigger rule",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TriggerRuleInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TriggerRule"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid admin token",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "adminToken": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Triggers"
+        ],
+        "operationId": "deleteTrigger",
+        "summary": "Delete a trigger rule",
+        "description": "Existing alerts are kept.",
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid admin token",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "adminToken": []
+          }
+        ]
+      }
+    },
+    "/v1/triggers/{ruleId}/test": {
+      "parameters": [
+        {
+          "name": "ruleId",
+          "in": "path",
+          "required": true,
+          "description": "Trigger rule id",
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "post": {
+        "tags": [
+          "Triggers"
+        ],
+        "operationId": "testTrigger",
+        "summary": "Dry-run a rule against stored data",
+        "description": "Evaluates the rule over versions ingested since `since` without creating alerts or applying cooldown.",
+        "parameters": [
+          {
+            "name": "since",
+            "in": "query",
+            "required": false,
+            "description": "Default now-24h",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Max matches",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000,
+              "default": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Matches",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TriggerTestResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid admin token",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "adminToken": []
+          }
+        ]
+      }
+    },
+    "/v1/alerts": {
+      "get": {
+        "tags": [
+          "Alerts"
+        ],
+        "operationId": "listAlerts",
+        "summary": "List alerts newest first",
+        "parameters": [
+          {
+            "name": "ruleId",
+            "in": "query",
+            "required": false,
+            "description": "Filter by rule",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "source",
+            "in": "query",
+            "required": false,
+            "description": "Filter by source id (repeatable or comma-separated)",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "required": false,
+            "description": "firedAt >= since",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "acknowledged",
+            "in": "query",
+            "required": false,
+            "description": "Filter by acknowledgement",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "description": "Opaque pagination cursor from a previous response's nextCursor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Page size",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 5000,
+              "default": 500
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Alerts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertPage"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/v1/alerts/stream": {
+      "get": {
+        "tags": [
+          "Alerts"
+        ],
+        "operationId": "streamAlerts",
+        "summary": "Live alert stream (SSE)",
+        "description": "Event types: `alert` (data = Alert JSON, id = alert id), `heartbeat`. Replays from Last-Event-ID.",
+        "parameters": [
+          {
+            "name": "Last-Event-ID",
+            "in": "header",
+            "required": false,
+            "description": "SSE resume: last seq (changes) or alert id (alerts) received",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ruleId",
+            "in": "query",
+            "required": false,
+            "description": "Filter by rule",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Event stream",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/v1/alerts/{alertId}": {
+      "parameters": [
+        {
+          "name": "alertId",
+          "in": "path",
+          "required": true,
+          "description": "Alert id",
+          "schema": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      ],
+      "get": {
+        "tags": [
+          "Alerts"
+        ],
+        "operationId": "getAlert",
+        "summary": "Get an alert",
+        "responses": {
+          "200": {
+            "description": "Alert",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Alert"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/v1/alerts/{alertId}/ack": {
+      "parameters": [
+        {
+          "name": "alertId",
+          "in": "path",
+          "required": true,
+          "description": "Alert id",
+          "schema": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      ],
+      "post": {
+        "tags": [
+          "Alerts"
+        ],
+        "operationId": "acknowledgeAlert",
+        "summary": "Acknowledge an alert",
+        "responses": {
+          "200": {
+            "description": "Acknowledged",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Alert"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid admin token",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "adminToken": []
+          }
+        ]
+      }
+    },
+    "/v1/webhooks": {
+      "get": {
+        "tags": [
+          "Webhooks"
+        ],
+        "operationId": "listWebhooks",
+        "summary": "List webhooks",
+        "description": "Secrets are never returned.",
+        "responses": {
+          "200": {
+            "description": "Webhooks",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Webhook"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid admin token",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "adminToken": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Webhooks"
+        ],
+        "operationId": "createWebhook",
+        "summary": "Register a webhook",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WebhookInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Webhook"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid admin token",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "adminToken": []
+          }
+        ]
+      }
+    },
+    "/v1/webhooks/{webhookId}": {
+      "parameters": [
+        {
+          "name": "webhookId",
+          "in": "path",
+          "required": true,
+          "description": "Webhook id",
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "get": {
+        "tags": [
+          "Webhooks"
+        ],
+        "operationId": "getWebhook",
+        "summary": "Get a webhook",
+        "responses": {
+          "200": {
+            "description": "Webhook",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Webhook"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid admin token",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "adminToken": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Webhooks"
+        ],
+        "operationId": "updateWebhook",
+        "summary": "Replace a webhook",
+        "description": "Omit `secret` to keep the existing secret.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WebhookInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Webhook"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid admin token",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "adminToken": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Webhooks"
+        ],
+        "operationId": "deleteWebhook",
+        "summary": "Delete a webhook",
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid admin token",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "adminToken": []
+          }
+        ]
+      }
+    },
+    "/v1/webhooks/{webhookId}/test": {
+      "parameters": [
+        {
+          "name": "webhookId",
+          "in": "path",
+          "required": true,
+          "description": "Webhook id",
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "post": {
+        "tags": [
+          "Webhooks"
+        ],
+        "operationId": "testWebhook",
+        "summary": "Send a test delivery",
+        "description": "Synchronously POSTs a synthetic alert and reports the result.",
+        "responses": {
+          "200": {
+            "description": "Result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookTestResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid admin token",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "adminToken": []
+          }
+        ]
+      }
+    },
+    "/v1/webhooks/{webhookId}/deliveries": {
+      "parameters": [
+        {
+          "name": "webhookId",
+          "in": "path",
+          "required": true,
+          "description": "Webhook id",
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "get": {
+        "tags": [
+          "Webhooks"
+        ],
+        "operationId": "listWebhookDeliveries",
+        "summary": "Recent deliveries",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Filter",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "pending",
+                "delivered",
+                "failed"
+              ]
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "description": "Opaque pagination cursor from a previous response's nextCursor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Page size",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 5000,
+              "default": 500
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deliveries",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookDeliveryPage"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid admin token",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "adminToken": []
+          }
+        ]
+      }
+    },
+    "/v1/settings/retention": {
+      "get": {
+        "tags": [
+          "Settings"
+        ],
+        "operationId": "getRetention",
+        "summary": "Get retention settings",
+        "responses": {
+          "200": {
+            "description": "Retention",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetentionSettings"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid admin token",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "adminToken": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Settings"
+        ],
+        "operationId": "updateRetention",
+        "summary": "Set retention settings",
+        "description": "Replaces retention settings. Takes effect on the next retention run (hourly) or immediately via /run.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RetentionSettings"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetentionSettings"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid admin token",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "adminToken": []
+          }
+        ]
+      }
+    },
+    "/v1/settings/retention/run": {
+      "post": {
+        "tags": [
+          "Settings"
+        ],
+        "operationId": "runRetention",
+        "summary": "Run retention now",
+        "responses": {
+          "200": {
+            "description": "Deleted counts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetentionRunResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid admin token",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "adminToken": []
+          }
+        ]
+      }
+    },
+    "/v1/settings/cors": {
+      "get": {
+        "tags": [
+          "Settings"
+        ],
+        "operationId": "getCors",
+        "summary": "Get CORS settings",
+        "responses": {
+          "200": {
+            "description": "CORS",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CorsSettings"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid admin token",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "adminToken": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Settings"
+        ],
+        "operationId": "updateCors",
+        "summary": "Set CORS settings",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CorsSettings"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CorsSettings"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid admin token",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "adminToken": []
+          }
+        ]
+      }
+    },
+    "/v1/settings/export": {
+      "get": {
+        "tags": [
+          "Settings"
+        ],
+        "operationId": "exportSettings",
+        "summary": "Export all settings",
+        "description": "Source settings, retention, CORS, trigger rules and webhooks (without secrets/credentials).",
+        "responses": {
+          "200": {
+            "description": "Export",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettingsBundle"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid admin token",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "adminToken": []
+          }
+        ]
+      }
+    },
+    "/v1/settings/import": {
+      "put": {
+        "tags": [
+          "Settings"
+        ],
+        "operationId": "importSettings",
+        "summary": "Import settings",
+        "description": "Applies a bundle produced by export. Rules and webhooks are upserted by id. Unknown source ids are reported, not fatal.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SettingsBundle"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Import report",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportReport"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid admin token",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "adminToken": []
+          }
+        ]
+      }
+    },
+    "/v1/system": {
+      "get": {
+        "tags": [
+          "System"
+        ],
+        "operationId": "getSystem",
+        "summary": "System information",
+        "responses": {
+          "200": {
+            "description": "System",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemInfo"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/v1/system/admin-token/rotate": {
+      "post": {
+        "tags": [
+          "System"
+        ],
+        "operationId": "rotateAdminToken",
+        "summary": "Rotate the admin token",
+        "description": "Invalidates the current token and returns a new one exactly once.",
+        "responses": {
+          "200": {
+            "description": "New token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminTokenResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid admin token",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "adminToken": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Problem": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "format": "uri"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "instance": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "description": "Stable machine code",
+            "example": "CREDENTIALS_REQUIRED"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "field": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "required": [
+          "title",
+          "status"
+        ]
+      },
+      "Budget": {
+        "type": "object",
+        "properties": {
+          "perMinute": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "perDay": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "perMinute",
+          "perDay"
+        ]
+      },
+      "ParamSpec": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "string",
+              "integer",
+              "number",
+              "boolean",
+              "duration",
+              "bbox",
+              "string-list"
+            ]
+          },
+          "description": {
+            "type": "string"
+          },
+          "default": {},
+          "required": {
+            "type": "boolean"
+          },
+          "allowed": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "type"
+        ]
+      },
+      "CredentialField": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "apiKey"
+          },
+          "description": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "required"
+        ]
+      },
+      "SourceDescriptor": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "usgs-earthquakes"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "kinds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "homepage": {
+            "type": "string",
+            "format": "uri"
+          },
+          "attribution": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "polling",
+              "streaming"
+            ]
+          },
+          "credentialFields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CredentialField"
+            }
+          },
+          "params": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ParamSpec"
+            }
+          },
+          "minInterval": {
+            "type": "string",
+            "description": "ISO-8601 duration (P7D, PT15M) or shorthand (7d, 15m, 12h)",
+            "example": "7d"
+          },
+          "defaultInterval": {
+            "type": "string",
+            "description": "ISO-8601 duration (P7D, PT15M) or shorthand (7d, 15m, 12h)",
+            "example": "7d"
+          },
+          "defaultBudget": {
+            "$ref": "#/components/schemas/Budget"
+          },
+          "recordTtl": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "ISO-8601 duration (P7D, PT15M) or shorthand (7d, 15m, 12h)",
+            "example": "7d"
+          },
+          "zeroResultsNormal": {
+            "type": "boolean"
+          },
+          "tileProperties": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "searchFields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "kinds",
+          "mode",
+          "credentialFields",
+          "params",
+          "defaultBudget"
+        ]
+      },
+      "SourceSettings": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "interval": {
+            "type": "string",
+            "description": "ISO-8601 duration (P7D, PT15M) or shorthand (7d, 15m, 12h)",
+            "example": "7d"
+          },
+          "params": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "budget": {
+            "$ref": "#/components/schemas/Budget"
+          },
+          "retention": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "ISO-8601 duration (P7D, PT15M) or shorthand (7d, 15m, 12h)",
+            "example": "7d"
+          },
+          "credentialsSet": {
+            "type": "boolean",
+            "description": "True if credentials are stored (values never returned)"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "enabled",
+          "interval",
+          "params",
+          "budget",
+          "credentialsSet"
+        ]
+      },
+      "SourceSettingsUpdate": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "interval": {
+            "type": "string",
+            "description": "ISO-8601 duration (P7D, PT15M) or shorthand (7d, 15m, 12h)",
+            "example": "7d"
+          },
+          "params": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "budget": {
+            "$ref": "#/components/schemas/Budget"
+          },
+          "retention": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "ISO-8601 duration (P7D, PT15M) or shorthand (7d, 15m, 12h)",
+            "example": "7d"
+          }
+        },
+        "description": "Partial update; omitted fields unchanged. retention=null reverts to global default."
+      },
+      "CredentialsUpdate": {
+        "type": "object",
+        "properties": {
+          "values": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Keys match the descriptor's credentialFields",
+            "example": {
+              "apiKey": "\u2026"
+            }
+          }
+        },
+        "required": [
+          "values"
+        ]
+      },
+      "SourceSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "kinds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "polling",
+              "streaming"
+            ]
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "status": {
+            "$ref": "#/components/schemas/HealthStatus"
+          },
+          "credentialsRequired": {
+            "type": "boolean"
+          },
+          "credentialsSet": {
+            "type": "boolean"
+          },
+          "interval": {
+            "type": "string",
+            "description": "ISO-8601 duration (P7D, PT15M) or shorthand (7d, 15m, 12h)",
+            "example": "7d"
+          },
+          "budget": {
+            "$ref": "#/components/schemas/Budget"
+          },
+          "budgetUsedToday": {
+            "type": "integer"
+          },
+          "lastSuccessAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "kinds",
+          "mode",
+          "enabled",
+          "status"
+        ]
+      },
+      "SourceDetail": {
+        "type": "object",
+        "properties": {
+          "descriptor": {
+            "$ref": "#/components/schemas/SourceDescriptor"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/SourceSettings"
+          },
+          "health": {
+            "$ref": "#/components/schemas/SourceHealth"
+          }
+        },
+        "required": [
+          "descriptor",
+          "settings",
+          "health"
+        ]
+      },
+      "HealthStatus": {
+        "type": "string",
+        "enum": [
+          "healthy",
+          "degraded",
+          "failing",
+          "idle",
+          "disabled"
+        ]
+      },
+      "SourceHealth": {
+        "type": "object",
+        "properties": {
+          "sourceId": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/HealthStatus"
+          },
+          "statusReason": {
+            "type": "string"
+          },
+          "lastAttemptAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "lastSuccessAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "lastErrorAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "lastError": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "lastHttpStatus": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "consecutiveFailures": {
+            "type": "integer"
+          },
+          "lastRecordsSeen": {
+            "type": "integer"
+          },
+          "lastRecordsChanged": {
+            "type": "integer"
+          },
+          "errorRateLastHour": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "backoffUntil": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "budget": {
+            "$ref": "#/components/schemas/Budget"
+          },
+          "budgetUsedToday": {
+            "type": "integer"
+          },
+          "budgetRemainingToday": {
+            "type": "integer"
+          },
+          "refusedLastHour": {
+            "type": "integer"
+          },
+          "requestsLastHour": {
+            "type": "integer"
+          },
+          "bytesLastHour": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "required": [
+          "sourceId",
+          "status",
+          "consecutiveFailures"
+        ]
+      },
+      "UsagePoint": {
+        "type": "object",
+        "properties": {
+          "t": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "requests": {
+            "type": "integer"
+          },
+          "bytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "errors": {
+            "type": "integer"
+          },
+          "refused": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "t",
+          "requests",
+          "bytes",
+          "errors",
+          "refused"
+        ]
+      },
+      "UsageSeries": {
+        "type": "object",
+        "properties": {
+          "sourceId": {
+            "type": "string"
+          },
+          "resolution": {
+            "type": "string",
+            "enum": [
+              "minute",
+              "hour",
+              "day"
+            ]
+          },
+          "points": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UsagePoint"
+            }
+          },
+          "totals": {
+            "$ref": "#/components/schemas/UsagePoint"
+          }
+        },
+        "required": [
+          "sourceId",
+          "resolution",
+          "points"
+        ]
+      },
+      "FetchOutcome": {
+        "type": "object",
+        "properties": {
+          "sourceId": {
+            "type": "string"
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "durationMs": {
+            "type": "integer"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "recordsSeen": {
+            "type": "integer"
+          },
+          "recordsChanged": {
+            "type": "integer"
+          },
+          "fromSeq": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "toSeq": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "sourceId",
+          "success",
+          "recordsSeen",
+          "recordsChanged"
+        ]
+      },
+      "ProbeResult": {
+        "type": "object",
+        "properties": {
+          "sourceId": {
+            "type": "string"
+          },
+          "requests": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "method": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": "string",
+                  "description": "Credentials redacted"
+                },
+                "status": {
+                  "type": "integer"
+                },
+                "durationMs": {
+                  "type": "integer"
+                },
+                "contentType": {
+                  "type": "string"
+                },
+                "bytes": {
+                  "type": "integer",
+                  "format": "int64"
+                },
+                "truncated": {
+                  "type": "boolean"
+                },
+                "body": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "records": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NormalizedRecordPreview"
+            }
+          },
+          "parseError": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "sourceId",
+          "requests",
+          "records"
+        ]
+      },
+      "NormalizedRecordPreview": {
+        "type": "object",
+        "properties": {
+          "externalId": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "observedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "geometry": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "Point",
+                  "MultiPoint",
+                  "LineString",
+                  "MultiLineString",
+                  "Polygon",
+                  "MultiPolygon",
+                  "GeometryCollection"
+                ]
+              },
+              "coordinates": {
+                "type": "array",
+                "items": {}
+              }
+            },
+            "description": "GeoJSON geometry (RFC 7946), WGS84",
+            "required": [
+              "type"
+            ]
+          },
+          "validUntil": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "tombstone": {
+            "type": "boolean"
+          },
+          "payload": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "externalId",
+          "kind",
+          "observedAt",
+          "payload"
+        ]
+      },
+      "Geometry": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "Point",
+              "MultiPoint",
+              "LineString",
+              "MultiLineString",
+              "Polygon",
+              "MultiPolygon",
+              "GeometryCollection"
+            ]
+          },
+          "coordinates": {
+            "type": "array",
+            "items": {}
+          }
+        },
+        "description": "GeoJSON geometry (RFC 7946), WGS84",
+        "required": [
+          "type"
+        ]
+      },
+      "Record": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "<sourceId>:<externalId>"
+          },
+          "source": {
+            "type": "string"
+          },
+          "externalId": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer"
+          },
+          "seq": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "observedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "ingestedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "validUntil": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "tombstone": {
+            "type": "boolean"
+          },
+          "geometry": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Geometry"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "payload": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "attribution": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "source",
+          "externalId",
+          "kind",
+          "version",
+          "seq",
+          "observedAt",
+          "ingestedAt",
+          "payload"
+        ]
+      },
+      "RecordPage": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Record"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "Feature": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "Feature"
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "geometry": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Geometry"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "source": {
+                "type": "string"
+              },
+              "externalId": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string"
+              },
+              "version": {
+                "type": "integer"
+              },
+              "seq": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "observedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "validUntil": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time"
+              },
+              "payload": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "required": [
+          "type",
+          "geometry",
+          "properties"
+        ]
+      },
+      "FeatureCollection": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "FeatureCollection"
+            ]
+          },
+          "features": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Feature"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "attributions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "type",
+          "features"
+        ]
+      },
+      "Change": {
+        "type": "object",
+        "properties": {
+          "seq": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "source": {
+            "type": "string"
+          },
+          "externalId": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer"
+          },
+          "observedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "tombstone": {
+            "type": "boolean"
+          },
+          "geometry": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Geometry"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "payload": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "additionalProperties": true,
+            "description": "Present when payload=true"
+          }
+        },
+        "required": [
+          "seq",
+          "source",
+          "externalId",
+          "kind",
+          "version",
+          "observedAt",
+          "tombstone"
+        ]
+      },
+      "ChangePage": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Change"
+            }
+          },
+          "lastSeq": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Pass as `after` next time"
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "items",
+          "lastSeq",
+          "hasMore"
+        ]
+      },
+      "KindSummary": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "currentCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "kind",
+          "currentCount",
+          "sources"
+        ]
+      },
+      "Condition": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Dot path into payload",
+            "example": "mag"
+          },
+          "op": {
+            "type": "string",
+            "enum": [
+              ">",
+              ">=",
+              "<",
+              "<=",
+              "==",
+              "!="
+            ]
+          },
+          "value": {
+            "oneOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "boolean"
+              }
+            ]
+          }
+        },
+        "required": [
+          "path",
+          "op",
+          "value"
+        ]
+      },
+      "TriggerRuleInput": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "enabled": {
+            "type": "boolean",
+            "default": true
+          },
+          "source": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "kind": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "conditions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Condition"
+            }
+          },
+          "geofence": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Geometry"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "match",
+              "enter",
+              "exit"
+            ],
+            "default": "match",
+            "description": "match: fire on every matching version. enter: fire when a record's version satisfies the rule and its previous version did not (or it is new). exit: fire when the previous version satisfied the rule and this version does not. Edge modes evaluate geofence and conditions together."
+          },
+          "onlyNew": {
+            "type": "boolean",
+            "default": false
+          },
+          "cooldown": {
+            "type": "string",
+            "description": "ISO-8601 duration (P7D, PT15M) or shorthand (7d, 15m, 12h)",
+            "example": "7d"
+          },
+          "messageTemplate": {
+            "type": "string",
+            "example": "M{{payload.mag}} \u2014 {{payload.place}}"
+          }
+        },
+        "description": "All conditions are ANDed. geofence must be Polygon or MultiPolygon. At least one of source, kind, conditions, geofence is required.",
+        "required": [
+          "name"
+        ]
+      },
+      "TriggerRule": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/TriggerRuleInput"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "updatedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "lastFiredAt": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time"
+              },
+              "alertCount": {
+                "type": "integer",
+                "format": "int64"
+              }
+            },
+            "required": [
+              "id",
+              "createdAt",
+              "updatedAt"
+            ]
+          }
+        ]
+      },
+      "TriggerTestResult": {
+        "type": "object",
+        "properties": {
+          "ruleId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "evaluatedFrom": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "matches": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Record"
+            }
+          },
+          "truncated": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ruleId",
+          "matches"
+        ]
+      },
+      "Alert": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "ruleId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "ruleName": {
+            "type": "string"
+          },
+          "seq": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "source": {
+            "type": "string"
+          },
+          "externalId": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "firedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "message": {
+            "type": "string"
+          },
+          "acknowledgedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "record": {
+            "$ref": "#/components/schemas/Record"
+          }
+        },
+        "required": [
+          "id",
+          "ruleId",
+          "seq",
+          "source",
+          "externalId",
+          "firedAt",
+          "message"
+        ]
+      },
+      "AlertPage": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Alert"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "WebhookInput": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "secret": {
+            "type": "string",
+            "description": "HMAC secret; write-only"
+          },
+          "ruleIds": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "null = all rules"
+          },
+          "enabled": {
+            "type": "boolean",
+            "default": true
+          }
+        },
+        "required": [
+          "name",
+          "url"
+        ]
+      },
+      "Webhook": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "ruleIds": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "secretSet": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastDeliveryAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "failedLast24h": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "url",
+          "enabled",
+          "secretSet"
+        ]
+      },
+      "WebhookTestResult": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "durationMs": {
+            "type": "integer"
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "success"
+        ]
+      },
+      "WebhookDelivery": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "alertId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "delivered",
+              "failed"
+            ]
+          },
+          "attempts": {
+            "type": "integer"
+          },
+          "lastError": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "nextAttemptAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "deliveredAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "alertId",
+          "status",
+          "attempts"
+        ]
+      },
+      "WebhookDeliveryPage": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WebhookDelivery"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "RetentionSettings": {
+        "type": "object",
+        "properties": {
+          "default": {
+            "type": "string",
+            "description": "ISO-8601 duration (P7D, PT15M) or shorthand (7d, 15m, 12h)",
+            "example": "7d"
+          },
+          "alerts": {
+            "type": "string",
+            "description": "ISO-8601 duration (P7D, PT15M) or shorthand (7d, 15m, 12h)",
+            "example": "7d"
+          },
+          "usage": {
+            "type": "string",
+            "description": "ISO-8601 duration (P7D, PT15M) or shorthand (7d, 15m, 12h)",
+            "example": "7d"
+          },
+          "sources": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "description": "ISO-8601 duration (P7D, PT15M) or shorthand (7d, 15m, 12h)",
+              "example": "7d"
+            },
+            "example": {
+              "usgs-earthquakes": "3650d",
+              "adsblol-mil": "2d"
+            }
+          }
+        },
+        "example": {
+          "default": "7d",
+          "alerts": "90d",
+          "usage": "30d",
+          "sources": {
+            "usgs-earthquakes": "3650d"
+          }
+        },
+        "required": [
+          "default"
+        ]
+      },
+      "RetentionRunResult": {
+        "type": "object",
+        "properties": {
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "durationMs": {
+            "type": "integer"
+          },
+          "versionsDeleted": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "headsDeleted": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "alertsDeleted": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "usageRowsDeleted": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "required": [
+          "versionsDeleted",
+          "headsDeleted"
+        ]
+      },
+      "CorsSettings": {
+        "type": "object",
+        "properties": {
+          "readOrigins": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "example": "*"
+            }
+          },
+          "writeOrigins": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "example": "http://localhost:5173"
+            }
+          }
+        },
+        "required": [
+          "readOrigins",
+          "writeOrigins"
+        ]
+      },
+      "SettingsBundle": {
+        "type": "object",
+        "properties": {
+          "exportedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "elaroVersion": {
+            "type": "string"
+          },
+          "sources": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/SourceSettingsUpdate"
+            }
+          },
+          "retention": {
+            "$ref": "#/components/schemas/RetentionSettings"
+          },
+          "cors": {
+            "$ref": "#/components/schemas/CorsSettings"
+          },
+          "triggers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TriggerRule"
+            }
+          },
+          "webhooks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WebhookInput"
+            }
+          }
+        },
+        "required": [
+          "sources"
+        ]
+      },
+      "ImportReport": {
+        "type": "object",
+        "properties": {
+          "sourcesApplied": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "sourcesUnknown": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "triggersUpserted": {
+            "type": "integer"
+          },
+          "webhooksUpserted": {
+            "type": "integer"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "sourcesApplied",
+          "sourcesUnknown"
+        ]
+      },
+      "SystemInfo": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string"
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "uptimeSeconds": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "database": {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "string",
+                "enum": [
+                  "up",
+                  "down"
+                ]
+              },
+              "sizeBytes": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "postgisVersion": {
+                "type": "string"
+              }
+            }
+          },
+          "records": {
+            "type": "object",
+            "properties": {
+              "current": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "versions": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "lastSeq": {
+                "type": "integer",
+                "format": "int64"
+              }
+            }
+          },
+          "sources": {
+            "type": "object",
+            "properties": {
+              "total": {
+                "type": "integer"
+              },
+              "enabled": {
+                "type": "integer"
+              },
+              "healthy": {
+                "type": "integer"
+              },
+              "degraded": {
+                "type": "integer"
+              },
+              "failing": {
+                "type": "integer"
+              }
+            }
+          },
+          "scheduler": {
+            "type": "object",
+            "properties": {
+              "running": {
+                "type": "boolean"
+              },
+              "activeFetches": {
+                "type": "integer"
+              },
+              "ingestQueueDepth": {
+                "type": "integer"
+              }
+            }
+          },
+          "streams": {
+            "type": "object",
+            "properties": {
+              "changeSubscribers": {
+                "type": "integer"
+              },
+              "alertSubscribers": {
+                "type": "integer"
+              }
+            }
+          }
+        },
+        "required": [
+          "version",
+          "startedAt"
+        ]
+      },
+      "AdminTokenResponse": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "example": "elr_\u2026",
+            "description": "Shown once; store it securely"
+          }
+        },
+        "required": [
+          "token"
+        ]
+      }
+    },
+    "securitySchemes": {
+      "adminToken": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "elr_<base64url>",
+        "description": "Admin token printed once on first start; rotate via /v1/system/admin-token/rotate."
+      }
+    }
+  }
+}

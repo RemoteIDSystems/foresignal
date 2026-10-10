@@ -1,0 +1,22 @@
+# Test profile. The datasource is supplied by the shared PostGIS container via
+# @ServiceConnection, so no URL is set here.
+
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    open-in-view: false
+
+elaro:
+  # Kept off the real ./data directory so tests never touch developer state.
+  data-dir: ${java.io.tmpdir}/elaro-test-data
+  reset-admin-token: false
+  version: test
+
+logging:
+  level:
+    root: warn
+    ai.elaro: info
+    org.testcontainers: warn
+    com.github.dockerjava: warn
+    org.hibernate.SQL: warn

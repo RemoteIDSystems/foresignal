@@ -1,0 +1,71 @@
+# Elaro bootstrap configuration.
+#
+# Only bootstrap concerns live here, all overridable by environment variables
+# (Architecture §13). Sources, budgets, credentials, retention, triggers,
+# webhooks and CORS are stored in the database and managed through the API.
+
+spring:
+  application:
+    name: elaro
+  datasource:
+    url: ${ELARO_DB_URL:jdbc:postgresql://localhost:5433/elaro}
+    username: ${ELARO_DB_USER:elaro}
+    password: ${ELARO_DB_PASSWORD:elaro}
+  jpa:
+    # Hibernate owns the schema during development. Flyway is introduced only
+    # in production hardening (prompt 042).
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          batch_size: 500
+          time_zone: UTC
+        order_inserts: true
+  threads:
+    virtual:
+      enabled: true
+  mvc:
+    async:
+      # SSE streams are long-lived; MVC must not time them out.
+      request-timeout: -1
+
+server:
+  port: ${ELARO_PORT:8080}
+
+elaro:
+  data-dir: ${ELARO_DATA_DIR:./data}
+  reset-admin-token: ${ELARO_RESET_ADMIN_TOKEN:false}
+  version: ${spring.application.version:unknown}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+
+springdoc:
+  api-docs:
+    # The springdoc-generated document is served separately; it is used for
+    # drift detection against the authored contract (prompt 017).
+    path: /v1/openapi-generated.json
+  swagger-ui:
+    path: /docs
+    url: /v1/openapi.json
+
+---
+# Container runtime: structured JSON logs for log shipping. Local runs keep the
+# default human-readable console output.
+spring:
+  config:
+    activate:
+      on-profile: docker
+
+logging:
+  structured:
+    format:
+      console: ecs

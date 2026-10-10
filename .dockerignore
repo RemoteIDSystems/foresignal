@@ -1,0 +1,13 @@
+.git
+.gradle
+build
+data
+.idea
+.vscode
+*.iml
+.env
+.env.*
+.DS_Store
+*.log
+completion-reports
+prompts
