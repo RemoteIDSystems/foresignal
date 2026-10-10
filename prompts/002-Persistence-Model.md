@@ -79,12 +79,22 @@ Spring Data JPA repositories for each entity, with only obviously needed finders
 - `format(Duration)` returns the shortest shorthand that is exact (e.g. `7d`, `90m`, `45s`).
 - Provide Jackson (de)serializers so `Duration` fields in API DTOs and settings accept and emit shorthand. Register them via a Boot Jackson customizer (Jackson 3 API).
 
+### 6. Test database lifecycle (fixes an issue from the 001 report)
+
+`src/test/resources/application-test.yml` currently sets `ddl-auto: create-drop`. All integration tests share **one** static PostGIS container, and Spring's test-context cache can hold several application contexts at once. When one context closes, `create-drop` would drop the schema, including the GiST indexes from `SchemaBootstrap`, underneath the contexts still using it, causing intermittent failures in prompt 040.
+
+- Change the test profile to `ddl-auto: update`, the same as development.
+- Add `ai.elaro.test.DatabaseCleaner`: a test-scoped bean or JUnit extension that runs `TRUNCATE <every Elaro table> RESTART IDENTITY CASCADE` and `ALTER SEQUENCE record_seq RESTART WITH 1`. Discover the tables from `information_schema.tables` in the public schema, excluding PostGIS's `spatial_ref_sys`.
+- Make cleaning the default for `@IntegrationTest` classes (e.g. `@BeforeEach` via an extension registered by the annotation), so every test starts from empty tables while the schema and indexes persist.
+- Document the convention in the `IntegrationTest` Javadoc.
+
 ## Tests to write (do not run)
 
 - `DurationsTest`: table-driven parse/format, including round trips and errors.
 - `AppSettingServiceIT` (`@IntegrationTest`): put/get for records, the cache, the defaults and the change event.
 - `SchemaBootstrapIT`: the PostGIS extension exists; the GiST indexes exist (`pg_indexes`); running the bootstrap twice is a no-op.
 - `EntityMappingIT`: persist and reload each mutable entity, including jsonb, geometry (point and multipolygon round trip) and the composite keys. Insert a `record_version` row through `JdbcTemplate` (the entity is immutable) and read it back through the repository.
+- `DatabaseCleanerIT`: rows from a previous test are gone, `record_seq` restarts at 1, GiST indexes still exist after cleaning.
 - `JacksonDurationIT` (or a unit test with the configured mapper): shorthand serialization.
 
 ## Acceptance criteria

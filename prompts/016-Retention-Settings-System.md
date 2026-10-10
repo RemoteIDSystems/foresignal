@@ -62,7 +62,7 @@ Finish the operator surface so that **everything** is configurable through the A
 ### 4. System
 
 - **`getSystem`** (open), returning `SystemInfo`:
-  - version (build info), `startedAt`, `uptimeSeconds`
+  - version (from the `ElaroVersion` bean, prompt 003), `startedAt`, `uptimeSeconds`
   - database: status via `SELECT 1`, `pg_database_size(current_database())`, `postgis_lib_version()`
   - records: current count (`record_head`, non-tombstoned), versions (an estimate via `pg_class.reltuples` is acceptable; note it), `lastSeq`
   - sources: total, enabled, healthy, degraded, failing

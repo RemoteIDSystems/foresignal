@@ -58,6 +58,7 @@ Behaviour:
 
 - `app_setting['install.id']`: 8 lowercase alphanumerics, generated on first start and stable afterwards.
 - `userAgent()` returns `Elaro/<version> (+https://elaro.ai; install=<id>)`.
+- **Version source** (from the 001 report): add a small `ElaroVersion` bean that prefers `BuildProperties.getVersion()` (via `ObjectProvider<BuildProperties>`), falls back to `elaro.version`, then to `"dev"`. Every later use of the version (User-Agent, `/v1/system`, settings export) reads `ElaroVersion`, never `ElaroProperties.version` directly.
 
 ### 6. Error model (`ai.elaro.api.error`)
 
@@ -81,6 +82,10 @@ Behaviour:
 - Allowed headers: `Authorization`, `Content-Type`, `Accept`, `Last-Event-ID`. Exposed headers: `Location`. Max age 600.
 - `CorsSettingsService`: `get()` / `update(CorsSettings)` with validation (each origin is `*` or a valid `scheme://host[:port]`). The endpoints come in prompt 016.
 
+### 8. Actuator health details (from the 001 report)
+
+`management.endpoint.health.show-details: when-authorized` depends on Spring Security, which Elaro deliberately does not use, so it silently behaves as `never`. Set it explicitly to `never`. `/actuator/health` returns only `UP`/`DOWN` for container health checks; detailed status (DB, PostGIS version, scheduler) belongs to `GET /v1/system` in prompt 016. Record this in the CR.
+
 ## Tests to write (do not run)
 
 - `CredentialCipherTest`: round trip, a unique nonce per call, tampered ciphertext and nonce, map round trip.
@@ -91,6 +96,7 @@ Behaviour:
 - `GlobalExceptionHandlerTest`: each exception maps to the expected status, code, type and body.
 - `CorsFilterIT`: read preflight with `*`, a write preflight rejected by default, allowed after updating the settings.
 - `InstallIdServiceIT`: stable across calls; User-Agent format.
+- `ElaroVersionTest`: BuildProperties preferred, then the property, then `dev`.
 
 ## Acceptance criteria
 
