@@ -130,20 +130,32 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
-    @DisplayName("IllegalArgumentException from a parser passes its message through")
-    void illegalArgumentFromParser() throws Exception {
+    @DisplayName("InvalidInputException from a parser is a 400 that passes its message through")
+    void invalidInputFromParser() throws Exception {
         mvc.perform(get("/test/bad-duration"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.type").value("https://elaro.ai/problems/validation-failed"))
                 .andExpect(jsonPath("$.detail").value(containsString("shorthand")));
     }
 
     @Test
-    @DisplayName("an IllegalArgumentException with no message still yields a usable detail")
-    void illegalArgumentWithoutMessage() throws Exception {
+    @DisplayName("a bare IllegalArgumentException is a 500, not a validation failure")
+    void bareIllegalArgumentIsInternal() throws Exception {
+        // It used to be a 400, which reported internal bugs to callers as validation errors and
+        // kept them out of the logs. Parsers now throw InvalidInputException instead.
         mvc.perform(get("/test/bare-illegal-argument"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.detail").value("The request is not valid."));
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.code").value("INTERNAL_ERROR"))
+                .andExpect(jsonPath("$." + GlobalExceptionHandler.CORRELATION_ID_PROPERTY).exists());
+    }
+
+    @Test
+    @DisplayName("an IllegalArgumentException from library code does not leak its message")
+    void illegalArgumentMessageIsNotLeaked() throws Exception {
+        mvc.perform(get("/test/library-illegal-argument"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(content().string(not(containsString("internal invariant"))));
     }
 
     @Test
@@ -249,7 +261,7 @@ class GlobalExceptionHandlerTest {
 
         @GetMapping("/bad-duration")
         String badDuration() {
-            throw new IllegalArgumentException(
+            throw new InvalidInputException(
                     "Cannot parse duration 'nonsense'. Expected ISO-8601 (PT15M, P7D) or shorthand"
                             + " (30s, 15m, 12h, 7d, 1w).");
         }
@@ -257,6 +269,11 @@ class GlobalExceptionHandlerTest {
         @GetMapping("/bare-illegal-argument")
         String bareIllegalArgument() {
             throw new IllegalArgumentException();
+        }
+
+        @GetMapping("/library-illegal-argument")
+        String libraryIllegalArgument() {
+            throw new IllegalArgumentException("internal invariant violated");
         }
 
         @GetMapping("/boom")

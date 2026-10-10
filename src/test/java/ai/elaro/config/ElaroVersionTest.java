@@ -20,7 +20,7 @@ class ElaroVersionTest {
     }
 
     private static ElaroProperties elaroProperties(String version) {
-        return new ElaroProperties(Path.of("./data"), false, version);
+        return new ElaroProperties(Path.of("./data"), null, false, version);
     }
 
     @Test

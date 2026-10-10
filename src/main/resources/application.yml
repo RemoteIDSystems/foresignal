@@ -41,6 +41,9 @@ server:
 
 elaro:
   data-dir: ${ELARO_DATA_DIR:./data}
+  # Root for INBOX_PATH source parameters. Every inbox read is confined to this
+  # directory, re-checked per file, so a symlink cannot redirect a read out of it.
+  inbox-dir: ${ELARO_INBOX_DIR:${ELARO_DATA_DIR:./data}/inbox}
   reset-admin-token: ${ELARO_RESET_ADMIN_TOKEN:false}
   version: ${spring.application.version:unknown}
 

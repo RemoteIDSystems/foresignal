@@ -121,21 +121,19 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     /**
-     * {@code IllegalArgumentException} from a parser.
+     * A bare {@code IllegalArgumentException} is treated as an internal error.
      *
-     * <p>{@code Durations.parse} and the cursor codec report bad input this way, and their messages
-     * are written for an API caller, so the message is passed through.
+     * <p>This used to be a 400, on the reasoning that parsers report bad input this way. The
+     * problem is that the handler cannot tell a parser complaint from an
+     * {@code IllegalArgumentException} thrown by a library deep inside a service: the second is a
+     * bug, and reporting it as a validation failure hid it from the logs and misled the caller.
+     * Input parsers now throw {@link InvalidInputException} instead, so anything still arriving
+     * here is unexpected and is handled like any other unexpected exception.
      */
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Object> handleIllegalArgument(
             IllegalArgumentException e, WebRequest request) {
-
-        ProblemDetail problem =
-                problem(
-                        HttpStatus.BAD_REQUEST,
-                        ErrorCodes.VALIDATION_FAILED,
-                        e.getMessage() == null ? "The request is not valid." : e.getMessage());
-        return handleExceptionInternal(e, problem, new HttpHeaders(), HttpStatus.BAD_REQUEST, request);
+        return handleUnexpected(e, request);
     }
 
     // ---------- Anything unexpected ----------

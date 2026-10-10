@@ -1,5 +1,6 @@
 package ai.elaro.settings;
 
+import ai.elaro.api.error.InvalidInputException;
 import ai.elaro.store.AppSettingEntity;
 import ai.elaro.store.AppSettingRepository;
 import java.time.Clock;
@@ -128,12 +129,12 @@ public class AppSettingService {
 
     private String serialize(String key, Object value) {
         if (value == null) {
-            throw new IllegalArgumentException("Setting '" + key + "' cannot be set to null");
+            throw new InvalidInputException("Setting '" + key + "' cannot be set to null");
         }
         try {
             return jsonMapper.writeValueAsString(value);
         } catch (JacksonException e) {
-            throw new IllegalArgumentException(
+            throw new InvalidInputException(
                     "Cannot serialize setting '" + key + "': " + e.getOriginalMessage(), e);
         }
     }

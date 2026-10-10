@@ -1,5 +1,6 @@
 package ai.elaro.settings;
 
+import ai.elaro.api.error.InvalidInputException;
 import java.time.Duration;
 import tools.jackson.core.JsonGenerator;
 import tools.jackson.core.JsonParser;
@@ -47,7 +48,7 @@ public final class DurationShorthandModule extends SimpleModule {
             if (token == JsonToken.VALUE_NUMBER_INT) {
                 long seconds = parser.getLongValue();
                 if (seconds < 0) {
-                    throw new IllegalArgumentException(
+                    throw new InvalidInputException(
                             "Duration must not be negative, but was " + seconds + " seconds");
                 }
                 return Duration.ofSeconds(seconds);

@@ -1,0 +1,50 @@
+package ai.elaro.source.spi;
+
+import java.time.Clock;
+import java.time.Instant;
+import java.util.Map;
+import java.util.Optional;
+
+/**
+ * What a polling adapter is given for one fetch.
+ *
+ * <p>Everything an adapter legitimately needs, and nothing else: no repository, no scheduler, no
+ * other adapter. That is what keeps the dependency rule in Architecture §3 true, and what lets an
+ * adapter be tested against a fixture with no Spring context at all.
+ */
+public interface FetchContext {
+
+    /** The source being fetched. */
+    String sourceId();
+
+    /** The descriptor, for TTLs, limits and declared kinds. */
+    SourceDescriptor descriptor();
+
+    /**
+     * The only path to the network.
+     *
+     * @throws UnsupportedOperationException for a {@link Mode#DERIVED} source, which makes no
+     *     upstream requests
+     */
+    SourceHttp http();
+
+    /** Validated parameters with defaults applied. */
+    ValidatedParams params();
+
+    /** Decrypted credentials keyed by credential field name; empty when the source needs none. */
+    Map<String, String> credentials();
+
+    /** Inject this rather than calling {@code Instant.now()}, so tests can control time. */
+    Clock clock();
+
+    /** When this source last succeeded, or empty if it never has. */
+    Optional<Instant> lastSuccessAt();
+
+    /** Per-source scratch state that survives restarts. */
+    AdapterStateStore state();
+
+    /** Convenience for {@code clock().instant()}. */
+    default Instant now() {
+        return clock().instant();
+    }
+}

@@ -71,11 +71,40 @@ class ElaroPropertiesTest {
     @Test
     @DisplayName("applies the same defaults when constructed directly")
     void appliesDefaultsWhenConstructedDirectly() {
-        var properties = new ElaroProperties(null, false, null);
+        var properties = new ElaroProperties(null, null, false, null);
 
         assertThat(properties.dataDir()).isEqualTo(ElaroProperties.DEFAULT_DATA_DIR);
         assertThat(properties.version()).isEqualTo(ElaroProperties.UNKNOWN_VERSION);
         assertThat(properties.resetAdminToken()).isFalse();
+    }
+
+    @Test
+    @DisplayName("the inbox dir defaults to a subdirectory of the data dir")
+    void inboxDirDefaultsUnderDataDir() {
+        var source = new MapConfigurationPropertySource();
+        source.put("elaro.data-dir", "/var/lib/elaro");
+
+        assertThat(bind(source).inboxDir()).isEqualTo(Path.of("/var/lib/elaro/inbox"));
+    }
+
+    @Test
+    @DisplayName("an explicit inbox dir is kept, wherever it points")
+    void keepsExplicitInboxDir() {
+        var source = new MapConfigurationPropertySource();
+        source.put("elaro.data-dir", "/var/lib/elaro");
+        source.put("elaro.inbox-dir", "/mnt/satdump/inbox");
+
+        assertThat(bind(source).inboxDir()).isEqualTo(Path.of("/mnt/satdump/inbox"));
+    }
+
+    @Test
+    @DisplayName("the inbox dir follows the default data dir when neither is set")
+    void inboxDirFollowsDefaultDataDir() {
+        var source = new MapConfigurationPropertySource();
+        source.put("elaro.version", "1.0.0");
+
+        assertThat(bind(source).inboxDir())
+                .isEqualTo(ElaroProperties.DEFAULT_DATA_DIR.resolve(ElaroProperties.DEFAULT_INBOX_SUBDIR));
     }
 
     @Test

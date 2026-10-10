@@ -46,6 +46,18 @@ public class SourceSettingsEntity {
     @Column(name = "retention")
     private String retention;
 
+    /**
+     * Operator override for the ingest policy, as the JSON of {@code IngestPolicy}; null means the
+     * descriptor's default (Core-Data-Model §5).
+     *
+     * <p>Stored as raw JSON text in a {@code jsonb} column. Hibernate's JSON format mapper passes a
+     * {@code String} through verbatim, so the document is stored as written rather than
+     * re-encoded as a JSON string.
+     */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "ingest_policy")
+    private String ingestPolicy;
+
     @JdbcTypeCode(SqlTypes.TIMESTAMP_UTC)
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
@@ -117,6 +129,14 @@ public class SourceSettingsEntity {
 
     public void setRetention(String retention) {
         this.retention = retention;
+    }
+
+    public String getIngestPolicy() {
+        return ingestPolicy;
+    }
+
+    public void setIngestPolicy(String ingestPolicy) {
+        this.ingestPolicy = ingestPolicy;
     }
 
     public Instant getUpdatedAt() {

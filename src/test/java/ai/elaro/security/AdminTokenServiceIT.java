@@ -45,7 +45,7 @@ class AdminTokenServiceIT {
 
     /** A service bound to a fresh, empty table, as if this were a first start. */
     private AdminTokenService service(boolean reset) {
-        var properties = new ElaroProperties(Path.of("./data"), reset, "test");
+        var properties = new ElaroProperties(Path.of("./data"), null, reset, "test");
         var service = new AdminTokenService(secrets, hasher, properties);
         service.ensureToken();
         return service;

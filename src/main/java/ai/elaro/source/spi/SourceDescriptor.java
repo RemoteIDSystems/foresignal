@@ -1,0 +1,450 @@
+package ai.elaro.source.spi;
+
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+/**
+ * Everything fixed about a source: what it is, what it needs, and how it behaves.
+ *
+ * <p>Fixed means not operator-overridable. An operator chooses whether a source runs, how often and
+ * at what budget; the descriptor decides what the data <em>is</em> — its tier, its time semantics,
+ * which fields are significant. Those are properties of the upstream, and letting them be edited
+ * would let an operator make their own history incoherent.
+ *
+ * <p>Built through {@link #builder(String)}, which supplies the defaults from Core-Data-Model §3
+ * so an adapter states only what is unusual about its feed.
+ *
+ * @param id stable kebab-case identifier, at most 64 characters
+ * @param name human-readable name
+ * @param description what the feed contains
+ * @param kinds the record kinds this source emits; non-empty
+ * @param homepage where a human can read about the upstream
+ * @param attribution the credit line the upstream asks for
+ * @param licence the data licence, where known
+ * @param termsUrl the upstream's terms
+ * @param mode how data arrives
+ * @param credentialFields the credentials the upstream needs
+ * @param params adapter parameters
+ * @param minInterval floor on the operator-set poll interval
+ * @param defaultInterval the poll interval a new installation starts with
+ * @param defaultBudget the request budget a new installation starts with
+ * @param recordTtl how long a record stays current; null means it never expires
+ * @param ttlAnchor which timestamp the TTL counts from
+ * @param observedAtMode where {@code observedAt} comes from
+ * @param historyTier how much history this source's records justify
+ * @param zeroResultsNormal true when an empty response is unremarkable, which suppresses
+ *     silent-break detection
+ * @param tileProperties payload fields copied into MVT features
+ * @param searchFields payload fields concatenated into the head's search text
+ * @param embedFields payload fields whose text is embedded for semantic search
+ * @param rankField a numeric payload field used to rank notable records in briefings
+ * @param defaultIngestPolicy the policy a new installation starts with
+ * @param volatileFields top-level keys excluded from hashing
+ * @param significantFields top-level keys whose change is always worth a version; empty means every
+ *     non-volatile key
+ * @param motion where to find speed and course, for dead reckoning
+ * @param thresholds numeric change thresholds
+ * @param defaultRetention a STANDARD source's default retention window
+ * @param kindRetention per-kind retention overrides, STANDARD only
+ * @param skewTolerance how far ahead of {@code receivedAt} an {@code observedAt} may be before it is
+ *     flagged
+ * @param limits per-record caps
+ * @param allowNullIsland true when (0,0) is a real location for this feed
+ * @param fetchTimeout overall timeout for one fetch
+ * @param maxResponseBytes cap on a single response body
+ * @param products raster or field products this source publishes
+ */
+public record SourceDescriptor(
+        String id,
+        String name,
+        String description,
+        Set<String> kinds,
+        String homepage,
+        String attribution,
+        String licence,
+        String termsUrl,
+        Mode mode,
+        List<CredentialField> credentialFields,
+        List<ParamSpec> params,
+        Duration minInterval,
+        Duration defaultInterval,
+        Budget defaultBudget,
+        Duration recordTtl,
+        TtlAnchor ttlAnchor,
+        ObservedAtMode observedAtMode,
+        HistoryTier historyTier,
+        boolean zeroResultsNormal,
+        List<String> tileProperties,
+        List<String> searchFields,
+        List<String> embedFields,
+        String rankField,
+        IngestPolicy defaultIngestPolicy,
+        List<String> volatileFields,
+        List<String> significantFields,
+        MotionSpec motion,
+        List<FieldThreshold> thresholds,
+        Duration defaultRetention,
+        Map<String, Duration> kindRetention,
+        Duration skewTolerance,
+        RecordLimits limits,
+        boolean allowNullIsland,
+        Duration fetchTimeout,
+        int maxResponseBytes,
+        List<ProductSpec> products) {
+
+    /** Payload fields searched unless a source says otherwise. */
+    public static final List<String> DEFAULT_SEARCH_FIELDS =
+            List.of("name", "title", "callsign", "place");
+
+    public static final Duration DEFAULT_FETCH_TIMEOUT = Duration.ofSeconds(60);
+    public static final int DEFAULT_MAX_RESPONSE_BYTES = 32 * 1024 * 1024;
+
+    /** How far ahead of {@code receivedAt} an {@code observedAt} may drift silently. */
+    public static final Duration DEFAULT_SKEW_TOLERANCE = Duration.ofMinutes(2);
+
+    public SourceDescriptor {
+        kinds = kinds == null ? Set.of() : Set.copyOf(kinds);
+        credentialFields = credentialFields == null ? List.of() : List.copyOf(credentialFields);
+        params = params == null ? List.of() : List.copyOf(params);
+        tileProperties = tileProperties == null ? List.of() : List.copyOf(tileProperties);
+        searchFields = searchFields == null ? List.of() : List.copyOf(searchFields);
+        embedFields = embedFields == null ? List.of() : List.copyOf(embedFields);
+        volatileFields = volatileFields == null ? List.of() : List.copyOf(volatileFields);
+        significantFields = significantFields == null ? List.of() : List.copyOf(significantFields);
+        thresholds = thresholds == null ? List.of() : List.copyOf(thresholds);
+        kindRetention = kindRetention == null ? Map.of() : Map.copyOf(kindRetention);
+        products = products == null ? List.of() : List.copyOf(products);
+        historyTier = historyTier == null ? HistoryTier.STANDARD : historyTier;
+        observedAtMode = observedAtMode == null ? ObservedAtMode.UPSTREAM : observedAtMode;
+        ttlAnchor = ttlAnchor == null ? TtlAnchor.defaultFor(historyTier) : ttlAnchor;
+        limits = limits == null ? RecordLimits.defaults() : limits;
+        skewTolerance = skewTolerance == null ? DEFAULT_SKEW_TOLERANCE : skewTolerance;
+        defaultIngestPolicy = defaultIngestPolicy == null ? IngestPolicy.all() : defaultIngestPolicy;
+    }
+
+    public static Builder builder(String id) {
+        return new Builder(id);
+    }
+
+    /** The credential fields that must be set before the source can be enabled. */
+    public List<CredentialField> requiredCredentialFields() {
+        return credentialFields.stream().filter(CredentialField::required).toList();
+    }
+
+    /** True when any credential is required. */
+    public boolean requiresCredentials() {
+        return credentialFields.stream().anyMatch(CredentialField::required);
+    }
+
+    /** The named parameter's spec, or null. */
+    public ParamSpec param(String name) {
+        return params.stream().filter(p -> p.name().equals(name)).findFirst().orElse(null);
+    }
+
+    /** True when this source's history is a continuous track. */
+    public boolean isTrack() {
+        return historyTier == HistoryTier.TRACK;
+    }
+
+    /**
+     * The poll interval the keyframe constraint is checked against (§5.1).
+     *
+     * <p>Streams are treated as 2 seconds, because a stream delivers as fast as the upstream sends
+     * and has no interval of its own.
+     */
+    public Duration effectivePollInterval() {
+        return mode == Mode.POLLING ? defaultInterval : Duration.ofSeconds(2);
+    }
+
+    /**
+     * Fluent builder applying the documented defaults.
+     *
+     * <p>Mutable by design and not thread-safe; a descriptor is built once in an adapter's
+     * constructor or a static initialiser.
+     */
+    public static final class Builder {
+
+        private final String id;
+        private final Set<String> kinds = new LinkedHashSet<>();
+        private final List<CredentialField> credentialFields = new ArrayList<>();
+        private final List<ParamSpec> params = new ArrayList<>();
+        private final List<String> tileProperties = new ArrayList<>();
+        private final List<String> embedFields = new ArrayList<>();
+        private final List<String> volatileFields = new ArrayList<>();
+        private final List<String> significantFields = new ArrayList<>();
+        private final List<FieldThreshold> thresholds = new ArrayList<>();
+        private final Map<String, Duration> kindRetention = new LinkedHashMap<>();
+        private final List<ProductSpec> products = new ArrayList<>();
+
+        private String name;
+        private String description;
+        private String homepage;
+        private String attribution;
+        private String licence;
+        private String termsUrl;
+        private Mode mode = Mode.POLLING;
+        private Duration minInterval;
+        private Duration defaultInterval;
+        private Budget defaultBudget;
+        private Duration recordTtl;
+        private TtlAnchor ttlAnchor;
+        private ObservedAtMode observedAtMode = ObservedAtMode.UPSTREAM;
+        private HistoryTier historyTier = HistoryTier.STANDARD;
+        private boolean zeroResultsNormal;
+        private List<String> searchFields = DEFAULT_SEARCH_FIELDS;
+        private String rankField;
+        private IngestPolicy defaultIngestPolicy;
+        private MotionSpec motion;
+        private Duration defaultRetention;
+        private Duration skewTolerance = DEFAULT_SKEW_TOLERANCE;
+        private RecordLimits limits = RecordLimits.defaults();
+        private boolean allowNullIsland;
+        private Duration fetchTimeout = DEFAULT_FETCH_TIMEOUT;
+        private int maxResponseBytes = DEFAULT_MAX_RESPONSE_BYTES;
+
+        private Builder(String id) {
+            this.id = id;
+            this.name = id;
+        }
+
+        public Builder name(String name) {
+            this.name = name;
+            return this;
+        }
+
+        public Builder description(String description) {
+            this.description = description;
+            return this;
+        }
+
+        public Builder kind(String kind) {
+            this.kinds.add(kind);
+            return this;
+        }
+
+        public Builder kinds(String... kinds) {
+            for (String kind : kinds) {
+                this.kinds.add(kind);
+            }
+            return this;
+        }
+
+        public Builder homepage(String homepage) {
+            this.homepage = homepage;
+            return this;
+        }
+
+        public Builder attribution(String attribution) {
+            this.attribution = attribution;
+            return this;
+        }
+
+        public Builder licence(String licence) {
+            this.licence = licence;
+            return this;
+        }
+
+        public Builder termsUrl(String termsUrl) {
+            this.termsUrl = termsUrl;
+            return this;
+        }
+
+        public Builder mode(Mode mode) {
+            this.mode = mode;
+            return this;
+        }
+
+        public Builder credential(CredentialField field) {
+            this.credentialFields.add(field);
+            return this;
+        }
+
+        public Builder param(ParamSpec spec) {
+            this.params.add(spec);
+            return this;
+        }
+
+        public Builder minInterval(Duration minInterval) {
+            this.minInterval = minInterval;
+            return this;
+        }
+
+        public Builder defaultInterval(Duration defaultInterval) {
+            this.defaultInterval = defaultInterval;
+            return this;
+        }
+
+        /** Sets both the floor and the starting interval. */
+        public Builder interval(Duration minInterval, Duration defaultInterval) {
+            this.minInterval = minInterval;
+            this.defaultInterval = defaultInterval;
+            return this;
+        }
+
+        public Builder defaultBudget(Budget budget) {
+            this.defaultBudget = budget;
+            return this;
+        }
+
+        public Builder defaultBudget(int perMinute, int perDay) {
+            this.defaultBudget = new Budget(perMinute, perDay);
+            return this;
+        }
+
+        public Builder recordTtl(Duration recordTtl) {
+            this.recordTtl = recordTtl;
+            return this;
+        }
+
+        public Builder ttlAnchor(TtlAnchor ttlAnchor) {
+            this.ttlAnchor = ttlAnchor;
+            return this;
+        }
+
+        public Builder observedAtMode(ObservedAtMode observedAtMode) {
+            this.observedAtMode = observedAtMode;
+            return this;
+        }
+
+        public Builder historyTier(HistoryTier historyTier) {
+            this.historyTier = historyTier;
+            return this;
+        }
+
+        public Builder zeroResultsNormal(boolean zeroResultsNormal) {
+            this.zeroResultsNormal = zeroResultsNormal;
+            return this;
+        }
+
+        public Builder tileProperties(String... fields) {
+            this.tileProperties.addAll(List.of(fields));
+            return this;
+        }
+
+        /** Replaces the default search fields. */
+        public Builder searchFields(String... fields) {
+            this.searchFields = List.of(fields);
+            return this;
+        }
+
+        public Builder embedFields(String... fields) {
+            this.embedFields.addAll(List.of(fields));
+            return this;
+        }
+
+        public Builder rankField(String rankField) {
+            this.rankField = rankField;
+            return this;
+        }
+
+        public Builder defaultIngestPolicy(IngestPolicy policy) {
+            this.defaultIngestPolicy = policy;
+            return this;
+        }
+
+        public Builder volatileFields(String... fields) {
+            this.volatileFields.addAll(List.of(fields));
+            return this;
+        }
+
+        public Builder significantFields(String... fields) {
+            this.significantFields.addAll(List.of(fields));
+            return this;
+        }
+
+        public Builder motion(MotionSpec motion) {
+            this.motion = motion;
+            return this;
+        }
+
+        public Builder threshold(FieldThreshold threshold) {
+            this.thresholds.add(threshold);
+            return this;
+        }
+
+        public Builder defaultRetention(Duration defaultRetention) {
+            this.defaultRetention = defaultRetention;
+            return this;
+        }
+
+        public Builder kindRetention(String kind, Duration retention) {
+            this.kindRetention.put(kind, retention);
+            return this;
+        }
+
+        public Builder skewTolerance(Duration skewTolerance) {
+            this.skewTolerance = skewTolerance;
+            return this;
+        }
+
+        public Builder limits(RecordLimits limits) {
+            this.limits = limits;
+            return this;
+        }
+
+        public Builder allowNullIsland(boolean allowNullIsland) {
+            this.allowNullIsland = allowNullIsland;
+            return this;
+        }
+
+        public Builder fetchTimeout(Duration fetchTimeout) {
+            this.fetchTimeout = fetchTimeout;
+            return this;
+        }
+
+        public Builder maxResponseBytes(int maxResponseBytes) {
+            this.maxResponseBytes = maxResponseBytes;
+            return this;
+        }
+
+        public Builder product(ProductSpec product) {
+            this.products.add(product);
+            return this;
+        }
+
+        public SourceDescriptor build() {
+            return new SourceDescriptor(
+                    id,
+                    name,
+                    description,
+                    kinds,
+                    homepage,
+                    attribution,
+                    licence,
+                    termsUrl,
+                    mode,
+                    credentialFields,
+                    params,
+                    minInterval,
+                    defaultInterval,
+                    defaultBudget,
+                    recordTtl,
+                    ttlAnchor,
+                    observedAtMode,
+                    historyTier,
+                    zeroResultsNormal,
+                    tileProperties,
+                    searchFields,
+                    embedFields,
+                    rankField,
+                    defaultIngestPolicy,
+                    volatileFields,
+                    significantFields,
+                    motion,
+                    thresholds,
+                    defaultRetention,
+                    kindRetention,
+                    skewTolerance,
+                    limits,
+                    allowNullIsland,
+                    fetchTimeout,
+                    maxResponseBytes,
+                    products);
+        }
+    }
+}

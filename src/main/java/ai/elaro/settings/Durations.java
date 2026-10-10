@@ -1,5 +1,6 @@
 package ai.elaro.settings;
 
+import ai.elaro.api.error.InvalidInputException;
 import java.time.Duration;
 import java.time.format.DateTimeParseException;
 import java.util.regex.Pattern;
@@ -29,15 +30,15 @@ public final class Durations {
      * <p>Zero is allowed here because some settings legitimately mean "no delay"; use
      * {@link #parsePositive(String)} where zero makes no sense.
      *
-     * @throws IllegalArgumentException if the text is blank, negative or not a duration
+     * @throws InvalidInputException if the text is blank, negative or not a duration
      */
     public static Duration parse(String text) {
         if (text == null) {
-            throw new IllegalArgumentException("Duration is required, but was null");
+            throw new InvalidInputException("Duration is required, but was null");
         }
         String trimmed = text.trim();
         if (trimmed.isEmpty()) {
-            throw new IllegalArgumentException("Duration is required, but was blank");
+            throw new InvalidInputException("Duration is required, but was blank");
         }
 
         Duration parsed = parseShorthand(trimmed);
@@ -45,7 +46,7 @@ public final class Durations {
             parsed = parseIso(trimmed);
         }
         if (parsed.isNegative()) {
-            throw new IllegalArgumentException(
+            throw new InvalidInputException(
                     "Duration must not be negative, but was '" + trimmed + "'");
         }
         return parsed;
@@ -54,12 +55,12 @@ public final class Durations {
     /**
      * Parses a duration that must be greater than zero.
      *
-     * @throws IllegalArgumentException if the text is not a duration, or is zero or negative
+     * @throws InvalidInputException if the text is not a duration, or is zero or negative
      */
     public static Duration parsePositive(String text) {
         Duration parsed = parse(text);
         if (parsed.isZero()) {
-            throw new IllegalArgumentException(
+            throw new InvalidInputException(
                     "Duration must be greater than zero, but was '" + text.trim() + "'");
         }
         return parsed;
@@ -74,7 +75,7 @@ public final class Durations {
         try {
             amount = Long.parseLong(matcher.group(1));
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException(
+            throw new InvalidInputException(
                     "Duration '" + trimmed + "' is too large to represent", e);
         }
         String unit = matcher.group(2).toLowerCase();
@@ -86,7 +87,7 @@ public final class Durations {
                     case "d" -> multiplyExact(amount, SECONDS_PER_DAY, trimmed);
                     case "w" -> multiplyExact(amount, SECONDS_PER_WEEK, trimmed);
                     // The regex admits no other suffix.
-                    default -> throw new IllegalArgumentException(
+                    default -> throw new InvalidInputException(
                             "Unsupported duration unit '" + unit + "' in '" + trimmed + "'");
                 };
         return Duration.ofSeconds(seconds);
@@ -96,7 +97,7 @@ public final class Durations {
         try {
             return Math.multiplyExact(amount, factor);
         } catch (ArithmeticException e) {
-            throw new IllegalArgumentException(
+            throw new InvalidInputException(
                     "Duration '" + trimmed + "' is too large to represent", e);
         }
     }
@@ -105,7 +106,7 @@ public final class Durations {
         try {
             return Duration.parse(trimmed);
         } catch (DateTimeParseException e) {
-            throw new IllegalArgumentException(
+            throw new InvalidInputException(
                     "Cannot parse duration '"
                             + trimmed
                             + "'. Expected ISO-8601 (PT15M, P7D) or shorthand (30s, 15m, 12h, 7d, 1w).",
@@ -123,14 +124,14 @@ public final class Durations {
      * <p>Days are the largest unit emitted. {@code 1w} parses, but seven days formats as
      * {@code 7d}, matching the retention examples in the OpenAPI document.
      *
-     * @throws IllegalArgumentException if the duration is null or negative
+     * @throws InvalidInputException if the duration is null or negative
      */
     public static String format(Duration duration) {
         if (duration == null) {
-            throw new IllegalArgumentException("Duration is required, but was null");
+            throw new InvalidInputException("Duration is required, but was null");
         }
         if (duration.isNegative()) {
-            throw new IllegalArgumentException("Duration must not be negative, but was " + duration);
+            throw new InvalidInputException("Duration must not be negative, but was " + duration);
         }
         if (duration.getNano() != 0) {
             // No shorthand unit is finer than a second.

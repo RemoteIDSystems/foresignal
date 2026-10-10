@@ -3,6 +3,7 @@ package ai.elaro.settings;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import ai.elaro.api.error.InvalidInputException;
 import ai.elaro.store.AppSettingRepository;
 import ai.elaro.test.IntegrationTest;
 import java.time.Duration;
@@ -210,7 +211,7 @@ class AppSettingServiceIT {
     @Test
     void rejectsNullValue() {
         assertThatThrownBy(() -> service.put(SettingKeys.CORS, null))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InvalidInputException.class)
                 .hasMessageContaining(SettingKeys.CORS);
     }
 

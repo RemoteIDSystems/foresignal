@@ -3,6 +3,7 @@ package ai.elaro.settings;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import ai.elaro.api.error.InvalidInputException;
 import java.time.Duration;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
@@ -82,13 +83,13 @@ class DurationsTest {
     @DisplayName("garbage is rejected with a helpful message")
     void rejectsGarbage(String text) {
         assertThatThrownBy(() -> Durations.parse(text))
-                .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(InvalidInputException.class);
     }
 
     @Test
     void rejectsNull() {
         assertThatThrownBy(() -> Durations.parse(null))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InvalidInputException.class)
                 .hasMessageContaining("required");
     }
 
@@ -96,7 +97,7 @@ class DurationsTest {
     @DisplayName("the error message names both accepted spellings")
     void errorMessageExplainsBothSpellings() {
         assertThatThrownBy(() -> Durations.parse("nonsense"))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InvalidInputException.class)
                 .hasMessageContaining("ISO-8601")
                 .hasMessageContaining("shorthand");
     }
@@ -106,14 +107,14 @@ class DurationsTest {
     @DisplayName("negative ISO durations are rejected")
     void rejectsNegativeIso(String text) {
         assertThatThrownBy(() -> Durations.parse(text))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InvalidInputException.class)
                 .hasMessageContaining("negative");
     }
 
     @Test
     void rejectsAmountsTooLargeToRepresent() {
         assertThatThrownBy(() -> Durations.parse("9223372036854775807d"))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InvalidInputException.class)
                 .hasMessageContaining("too large");
     }
 
@@ -129,7 +130,7 @@ class DurationsTest {
     @DisplayName("parsePositive rejects zero")
     void parsePositiveRejectsZero(String text) {
         assertThatThrownBy(() -> Durations.parsePositive(text))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InvalidInputException.class)
                 .hasMessageContaining("greater than zero");
     }
 
@@ -138,7 +139,7 @@ class DurationsTest {
     void parseAndParsePositiveDifferOnZero() {
         assertThat(Durations.parse("0s")).isZero();
         assertThatThrownBy(() -> Durations.parsePositive("0s"))
-                .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(InvalidInputException.class);
     }
 
     // ---------- format ----------
@@ -184,13 +185,13 @@ class DurationsTest {
     @Test
     void formatRejectsNull() {
         assertThatThrownBy(() -> Durations.format(null))
-                .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(InvalidInputException.class);
     }
 
     @Test
     void formatRejectsNegative() {
         assertThatThrownBy(() -> Durations.format(Duration.ofSeconds(-1)))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InvalidInputException.class)
                 .hasMessageContaining("negative");
     }
 
