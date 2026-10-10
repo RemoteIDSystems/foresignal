@@ -1,0 +1,3247 @@
+{
+  "info": {
+    "_postman_id": "899ea274-ec23-5ea9-beb2-54eb900cc7bc",
+    "name": "Elaro API",
+    "description": "All configuration is done through this API. Reads of data are open on the local network; all writes and settings reads require the admin bearer token printed on first start. Errors are RFC 9457 problem+json. Timestamps are ISO-8601 UTC. `/v1` is additive-only once released.\n\nGenerated from docs/OpenAPI.json (v1.0.0). Every operation is included, grouped by tag. Admin operations use Bearer `{{adminToken}}`; open reads use no auth. Test scripts capture ids into collection variables (ruleId, webhookId, alertId, externalId, lastSeq, cursor).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "00 Quickstart \u2014 USGS end to end",
+      "description": "Run in order (Collection Runner works). Set `adminToken` first (from `docker compose logs elaro | grep -A3 \"ELARO ADMIN TOKEN\"`). Enables USGS earthquakes, creates an enter-mode M\u22654.5 rule, waits, and reads data back. SSE requests are left in the Streams folder (run them manually; Postman shows events live).",
+      "item": [
+        {
+          "name": "01 \u00b7 System status",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/system",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "system"
+              ],
+              "query": []
+            },
+            "description": "System information\n\nOpen (no auth).\n\noperationId: `getSystem`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "02 \u00b7 List sources",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/sources",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "sources"
+              ],
+              "query": []
+            },
+            "description": "Catalogue of every available adapter with its settings, live health status and today's budget use.\n\nOpen (no auth).\n\noperationId: `listSources`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "03 \u00b7 Enable USGS earthquakes",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/sources/{{sourceId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "sources",
+                "{{sourceId}}"
+              ],
+              "query": []
+            },
+            "description": "Enable/disable (subscribe/unsubscribe), set interval, params, budget and retention. Changes apply immediately. Omitted fields are unchanged.\n\n**Requires admin token.**\n\noperationId: `updateSource`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"enabled\": true,\n  \"params\": {\n    \"feed\": \"all_day\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "04 \u00b7 Create rule: M\u22654.5 (enter)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('ruleId', j.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/triggers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "triggers"
+              ],
+              "query": []
+            },
+            "description": "Create a trigger rule\n\n**Requires admin token.**\n\noperationId: `createTrigger`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"M4.5+\",\n  \"source\": \"usgs-earthquakes\",\n  \"conditions\": [\n    {\n      \"path\": \"mag\",\n      \"op\": \">=\",\n      \"value\": 4.5\n    }\n  ],\n  \"mode\": \"enter\",\n  \"messageTemplate\": \"M{{payload.mag}} \\u2014 {{payload.place}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "05 \u00b7 Fetch now",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/sources/{{sourceId}}/fetch",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "sources",
+                "{{sourceId}}",
+                "fetch"
+              ],
+              "query": []
+            },
+            "description": "Runs one fetch immediately and ingests normally. Consumes budget. Works whether or not the source is enabled (credentials permitting).\n\n**Requires admin token.**\n\noperationId: `fetchSourceNow`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "06 \u00b7 Check health",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/sources/{{sourceId}}/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "sources",
+                "{{sourceId}}",
+                "health"
+              ],
+              "query": []
+            },
+            "description": "Health of one source\n\nOpen (no auth).\n\noperationId: `getSourceHealth`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "07 \u00b7 Current quakes (GeoJSON)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); const it = (j.items || j.features || [])[0]; if (it) { const ext = it.externalId || (it.properties && it.properties.externalId); pm.collectionVariables.set('externalId', ext); }",
+                  "if (j.nextCursor) pm.collectionVariables.set('cursor', j.nextCursor);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/records?source=usgs-earthquakes&format=geojson&limit=50",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "records"
+              ],
+              "query": [
+                {
+                  "key": "source",
+                  "value": "usgs-earthquakes",
+                  "description": "Filter by source id (repeatable or comma-separated)",
+                  "disabled": false
+                },
+                {
+                  "key": "kind",
+                  "value": "",
+                  "description": "Filter by kind (repeatable or comma-separated)",
+                  "disabled": true
+                },
+                {
+                  "key": "bbox",
+                  "value": "",
+                  "description": "minLon,minLat,maxLon,maxLat (WGS84)",
+                  "disabled": true
+                },
+                {
+                  "key": "since",
+                  "value": "2026-10-10T00:00:00Z",
+                  "description": "observedAt >= since",
+                  "disabled": true
+                },
+                {
+                  "key": "until",
+                  "value": "2026-10-10T00:00:00Z",
+                  "description": "observedAt < until",
+                  "disabled": true
+                },
+                {
+                  "key": "q",
+                  "value": "",
+                  "description": "Case-insensitive text match on searchable fields (name, title, callsign, place)",
+                  "disabled": true
+                },
+                {
+                  "key": "includeExpired",
+                  "value": "false",
+                  "description": "Include records past validUntil",
+                  "disabled": true
+                },
+                {
+                  "key": "format",
+                  "value": "geojson",
+                  "description": "Response format (alternatively Accept: application/geo+json)",
+                  "disabled": false
+                },
+                {
+                  "key": "cursor",
+                  "value": "{{cursor}}",
+                  "description": "Opaque pagination cursor from a previous response's nextCursor",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "50",
+                  "description": "Page size",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "Latest version of each record. Expired (validUntil passed) and tombstoned records are excluded unless requested.\n\nOpen (no auth).\n\noperationId: `listRecords`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "08 \u00b7 Version history of first quake",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/records/{{sourceId}}/{{externalId}}/versions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "records",
+                "{{sourceId}}",
+                "{{externalId}}",
+                "versions"
+              ],
+              "query": []
+            },
+            "description": "Version history of a record\n\nOpen (no auth).\n\noperationId: `listRecordVersions`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "09 \u00b7 Change feed from 0",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('lastSeq', j.lastSeq);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/changes?after=0&limit=100",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "changes"
+              ],
+              "query": [
+                {
+                  "key": "after",
+                  "value": "0",
+                  "description": "Return changes with seq > after",
+                  "disabled": false
+                },
+                {
+                  "key": "source",
+                  "value": "{{sourceId}}",
+                  "description": "Filter by source id (repeatable or comma-separated)",
+                  "disabled": true
+                },
+                {
+                  "key": "kind",
+                  "value": "",
+                  "description": "Filter by kind (repeatable or comma-separated)",
+                  "disabled": true
+                },
+                {
+                  "key": "bbox",
+                  "value": "",
+                  "description": "minLon,minLat,maxLon,maxLat (WGS84)",
+                  "disabled": true
+                },
+                {
+                  "key": "payload",
+                  "value": "false",
+                  "description": "Include payloads",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "100",
+                  "description": "Max changes",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "Every new record version in commit order. `seq` is gap-tolerant but strictly increasing in commit order, so `after=<last seq>` never misses a change.\n\nOpen (no auth).\n\noperationId: `listChanges`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "10 \u00b7 Dry-run the rule over last 24h",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/triggers/{{ruleId}}/test",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "triggers",
+                "{{ruleId}}",
+                "test"
+              ],
+              "query": [
+                {
+                  "key": "since",
+                  "value": "2026-10-10T00:00:00Z",
+                  "description": "Default now-24h",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "100",
+                  "description": "Max matches",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Evaluates the rule over versions ingested since `since` without creating alerts or applying cooldown.\n\n**Requires admin token.**\n\noperationId: `testTrigger`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "11 \u00b7 Alerts",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); if (j.items && j.items.length) pm.collectionVariables.set('alertId', j.items[0].id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/alerts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "alerts"
+              ],
+              "query": [
+                {
+                  "key": "ruleId",
+                  "value": "{{ruleId}}",
+                  "description": "Filter by rule",
+                  "disabled": true
+                },
+                {
+                  "key": "source",
+                  "value": "{{sourceId}}",
+                  "description": "Filter by source id (repeatable or comma-separated)",
+                  "disabled": true
+                },
+                {
+                  "key": "since",
+                  "value": "2026-10-10T00:00:00Z",
+                  "description": "firedAt >= since",
+                  "disabled": true
+                },
+                {
+                  "key": "acknowledged",
+                  "value": "false",
+                  "description": "Filter by acknowledgement",
+                  "disabled": true
+                },
+                {
+                  "key": "cursor",
+                  "value": "{{cursor}}",
+                  "description": "Opaque pagination cursor from a previous response's nextCursor",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "500",
+                  "description": "Page size",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "List alerts newest first\n\nOpen (no auth).\n\noperationId: `listAlerts`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "12 \u00b7 Budget / usage",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/sources/{{sourceId}}/usage",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "sources",
+                "{{sourceId}}",
+                "usage"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "2026-10-10T00:00:00Z",
+                  "description": "Start (default now-24h)",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "2026-10-10T00:00:00Z",
+                  "description": "End (default now)",
+                  "disabled": true
+                },
+                {
+                  "key": "resolution",
+                  "value": "hour",
+                  "description": "Bucket size",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Request/bytes usage over time\n\nOpen (no auth).\n\noperationId: `getSourceUsage`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Streams (SSE \u2014 run manually)",
+      "description": "Postman displays Server-Sent Events live. Set Last-Event-ID (header) to resume.",
+      "item": [
+        {
+          "name": "Change stream \u2014 all",
+          "event": [],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Last-Event-ID",
+                "value": "{{lastSeq}}",
+                "description": "SSE resume: last seq (changes) or alert id (alerts) received",
+                "disabled": true
+              },
+              {
+                "key": "Accept",
+                "value": "text/event-stream"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/changes/stream",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "changes",
+                "stream"
+              ],
+              "query": [
+                {
+                  "key": "after",
+                  "value": "{{lastSeq}}",
+                  "description": "Alternative to Last-Event-ID",
+                  "disabled": true
+                },
+                {
+                  "key": "source",
+                  "value": "{{sourceId}}",
+                  "description": "Filter by source id (repeatable or comma-separated)",
+                  "disabled": true
+                },
+                {
+                  "key": "kind",
+                  "value": "",
+                  "description": "Filter by kind (repeatable or comma-separated)",
+                  "disabled": true
+                },
+                {
+                  "key": "bbox",
+                  "value": "",
+                  "description": "minLon,minLat,maxLon,maxLat (WGS84)",
+                  "disabled": true
+                },
+                {
+                  "key": "payload",
+                  "value": "false",
+                  "description": "Include payloads",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Server-Sent Events. Event types: `change` (data = Change JSON, id = seq), `heartbeat` (every 15 s), `reset` (client buffer overflowed; resume via /v1/changes). Replays from `Last-Event-ID` / `after` before going live.\n\nOpen (no auth).\n\noperationId: `streamChanges`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Alert stream",
+          "event": [],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Last-Event-ID",
+                "value": "{{lastSeq}}",
+                "description": "SSE resume: last seq (changes) or alert id (alerts) received",
+                "disabled": true
+              },
+              {
+                "key": "Accept",
+                "value": "text/event-stream"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/alerts/stream",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "alerts",
+                "stream"
+              ],
+              "query": [
+                {
+                  "key": "ruleId",
+                  "value": "{{ruleId}}",
+                  "description": "Filter by rule",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Event types: `alert` (data = Alert JSON, id = alert id), `heartbeat`. Replays from Last-Event-ID.\n\nOpen (no auth).\n\noperationId: `streamAlerts`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sources",
+      "description": "Upstream feed catalogue, subscription (enable/disable), budgets, credentials, health and diagnostics",
+      "item": [
+        {
+          "name": "List all sources",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/sources",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "sources"
+              ],
+              "query": []
+            },
+            "description": "Catalogue of every available adapter with its settings, live health status and today's budget use.\n\nOpen (no auth).\n\noperationId: `listSources`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Health of all sources",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/sources/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "sources",
+                "health"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "",
+                  "description": "Filter by status",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Machine-readable health for every source; intended for monitoring and the adapter-maintenance agent.\n\nOpen (no auth).\n\noperationId: `listSourceHealth`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Get a source",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/sources/{{sourceId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "sources",
+                "{{sourceId}}"
+              ],
+              "query": []
+            },
+            "description": "Get a source\n\nOpen (no auth).\n\noperationId: `getSource`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Update source settings",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/sources/{{sourceId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "sources",
+                "{{sourceId}}"
+              ],
+              "query": []
+            },
+            "description": "Enable/disable (subscribe/unsubscribe), set interval, params, budget and retention. Changes apply immediately. Omitted fields are unchanged.\n\n**Requires admin token.**\n\noperationId: `updateSource`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"enabled\": true,\n  \"interval\": \"60s\",\n  \"params\": {\n    \"feed\": \"all_day\"\n  },\n  \"budget\": {\n    \"perMinute\": 4,\n    \"perDay\": 2000\n  },\n  \"retention\": \"365d\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Set upstream credentials",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 204', () => pm.expect([204]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/sources/{{sourceId}}/credentials",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "sources",
+                "{{sourceId}}",
+                "credentials"
+              ],
+              "query": []
+            },
+            "description": "Write-only. Values are encrypted at rest and never returned by any endpoint.\n\n**Requires admin token.**\n\noperationId: `setSourceCredentials`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"values\": {\n    \"apiKey\": \"REPLACE_ME\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Remove upstream credentials",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 204', () => pm.expect([204]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/sources/{{sourceId}}/credentials",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "sources",
+                "{{sourceId}}",
+                "credentials"
+              ],
+              "query": []
+            },
+            "description": "Also disables the source if it requires credentials.\n\n**Requires admin token.**\n\noperationId: `deleteSourceCredentials`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Fetch once now",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/sources/{{sourceId}}/fetch",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "sources",
+                "{{sourceId}}",
+                "fetch"
+              ],
+              "query": []
+            },
+            "description": "Runs one fetch immediately and ingests normally. Consumes budget. Works whether or not the source is enabled (credentials permitting).\n\n**Requires admin token.**\n\noperationId: `fetchSourceNow`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Diagnostic probe",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/sources/{{sourceId}}/probe",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "sources",
+                "{{sourceId}}",
+                "probe"
+              ],
+              "query": [
+                {
+                  "key": "maxBytes",
+                  "value": "262144",
+                  "description": "Truncate raw body to this many bytes",
+                  "disabled": true
+                },
+                {
+                  "key": "seconds",
+                  "value": "10",
+                  "description": "Capture window for streaming sources",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Fetches once and returns the raw upstream response (truncated) plus parsed records. Stores nothing. Consumes budget. Streaming sources capture for `seconds`.\n\n**Requires admin token.**\n\noperationId: `probeSource`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Health of one source",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/sources/{{sourceId}}/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "sources",
+                "{{sourceId}}",
+                "health"
+              ],
+              "query": []
+            },
+            "description": "Health of one source\n\nOpen (no auth).\n\noperationId: `getSourceHealth`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Request/bytes usage over time",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/sources/{{sourceId}}/usage",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "sources",
+                "{{sourceId}}",
+                "usage"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "2026-10-10T00:00:00Z",
+                  "description": "Start (default now-24h)",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "2026-10-10T00:00:00Z",
+                  "description": "End (default now)",
+                  "disabled": true
+                },
+                {
+                  "key": "resolution",
+                  "value": "hour",
+                  "description": "Bucket size",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Request/bytes usage over time\n\nOpen (no auth).\n\noperationId: `getSourceUsage`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Records",
+      "description": "Current state and version history of normalized records",
+      "item": [
+        {
+          "name": "List record kinds",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/kinds",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "kinds"
+              ],
+              "query": []
+            },
+            "description": "Kinds currently present, with current-record counts and contributing sources.\n\nOpen (no auth).\n\noperationId: `listKinds`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Query current records",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); const it = (j.items || j.features || [])[0]; if (it) { const ext = it.externalId || (it.properties && it.properties.externalId); pm.collectionVariables.set('externalId', ext); }",
+                  "if (j.nextCursor) pm.collectionVariables.set('cursor', j.nextCursor);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/records",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "records"
+              ],
+              "query": [
+                {
+                  "key": "source",
+                  "value": "{{sourceId}}",
+                  "description": "Filter by source id (repeatable or comma-separated)",
+                  "disabled": true
+                },
+                {
+                  "key": "kind",
+                  "value": "",
+                  "description": "Filter by kind (repeatable or comma-separated)",
+                  "disabled": true
+                },
+                {
+                  "key": "bbox",
+                  "value": "",
+                  "description": "minLon,minLat,maxLon,maxLat (WGS84)",
+                  "disabled": true
+                },
+                {
+                  "key": "since",
+                  "value": "2026-10-10T00:00:00Z",
+                  "description": "observedAt >= since",
+                  "disabled": true
+                },
+                {
+                  "key": "until",
+                  "value": "2026-10-10T00:00:00Z",
+                  "description": "observedAt < until",
+                  "disabled": true
+                },
+                {
+                  "key": "q",
+                  "value": "",
+                  "description": "Case-insensitive text match on searchable fields (name, title, callsign, place)",
+                  "disabled": true
+                },
+                {
+                  "key": "includeExpired",
+                  "value": "false",
+                  "description": "Include records past validUntil",
+                  "disabled": true
+                },
+                {
+                  "key": "format",
+                  "value": "json",
+                  "description": "Response format (alternatively Accept: application/geo+json)",
+                  "disabled": true
+                },
+                {
+                  "key": "cursor",
+                  "value": "{{cursor}}",
+                  "description": "Opaque pagination cursor from a previous response's nextCursor",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "500",
+                  "description": "Page size",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Latest version of each record. Expired (validUntil passed) and tombstoned records are excluded unless requested.\n\nOpen (no auth).\n\noperationId: `listRecords`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Get current version of a record",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/records/{{sourceId}}/{{externalId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "records",
+                "{{sourceId}}",
+                "{{externalId}}"
+              ],
+              "query": [
+                {
+                  "key": "format",
+                  "value": "json",
+                  "description": "Response format (alternatively Accept: application/geo+json)",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get current version of a record\n\nOpen (no auth).\n\noperationId: `getRecord`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Version history of a record",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/records/{{sourceId}}/{{externalId}}/versions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "records",
+                "{{sourceId}}",
+                "{{externalId}}",
+                "versions"
+              ],
+              "query": []
+            },
+            "description": "Version history of a record\n\nOpen (no auth).\n\noperationId: `listRecordVersions`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "All versions in a time range (playback)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/history?since=2026-10-10T00:00:00Z",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "history"
+              ],
+              "query": [
+                {
+                  "key": "source",
+                  "value": "{{sourceId}}",
+                  "description": "Filter by source id (repeatable or comma-separated)",
+                  "disabled": true
+                },
+                {
+                  "key": "kind",
+                  "value": "",
+                  "description": "Filter by kind (repeatable or comma-separated)",
+                  "disabled": true
+                },
+                {
+                  "key": "bbox",
+                  "value": "",
+                  "description": "minLon,minLat,maxLon,maxLat (WGS84)",
+                  "disabled": true
+                },
+                {
+                  "key": "since",
+                  "value": "2026-10-10T00:00:00Z",
+                  "description": "Start of range",
+                  "disabled": false
+                },
+                {
+                  "key": "until",
+                  "value": "2026-10-10T00:00:00Z",
+                  "description": "End of range (default now)",
+                  "disabled": true
+                },
+                {
+                  "key": "format",
+                  "value": "json",
+                  "description": "Response format (alternatively Accept: application/geo+json)",
+                  "disabled": true
+                },
+                {
+                  "key": "cursor",
+                  "value": "{{cursor}}",
+                  "description": "Opaque pagination cursor from a previous response's nextCursor",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "5000",
+                  "description": "Page size",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "All versions in a time range (playback)\n\nOpen (no auth).\n\noperationId: `queryHistory`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Changes",
+      "description": "Ordered change feed and live SSE change stream",
+      "item": [
+        {
+          "name": "Change feed after a cursor",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('lastSeq', j.lastSeq);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/changes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "changes"
+              ],
+              "query": [
+                {
+                  "key": "after",
+                  "value": "{{lastSeq}}",
+                  "description": "Return changes with seq > after",
+                  "disabled": true
+                },
+                {
+                  "key": "source",
+                  "value": "{{sourceId}}",
+                  "description": "Filter by source id (repeatable or comma-separated)",
+                  "disabled": true
+                },
+                {
+                  "key": "kind",
+                  "value": "",
+                  "description": "Filter by kind (repeatable or comma-separated)",
+                  "disabled": true
+                },
+                {
+                  "key": "bbox",
+                  "value": "",
+                  "description": "minLon,minLat,maxLon,maxLat (WGS84)",
+                  "disabled": true
+                },
+                {
+                  "key": "payload",
+                  "value": "false",
+                  "description": "Include payloads",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "1000",
+                  "description": "Max changes",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Every new record version in commit order. `seq` is gap-tolerant but strictly increasing in commit order, so `after=<last seq>` never misses a change.\n\nOpen (no auth).\n\noperationId: `listChanges`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Live change stream (SSE)",
+          "event": [],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Last-Event-ID",
+                "value": "{{lastSeq}}",
+                "description": "SSE resume: last seq (changes) or alert id (alerts) received",
+                "disabled": true
+              },
+              {
+                "key": "Accept",
+                "value": "text/event-stream"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/changes/stream",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "changes",
+                "stream"
+              ],
+              "query": [
+                {
+                  "key": "after",
+                  "value": "{{lastSeq}}",
+                  "description": "Alternative to Last-Event-ID",
+                  "disabled": true
+                },
+                {
+                  "key": "source",
+                  "value": "{{sourceId}}",
+                  "description": "Filter by source id (repeatable or comma-separated)",
+                  "disabled": true
+                },
+                {
+                  "key": "kind",
+                  "value": "",
+                  "description": "Filter by kind (repeatable or comma-separated)",
+                  "disabled": true
+                },
+                {
+                  "key": "bbox",
+                  "value": "",
+                  "description": "minLon,minLat,maxLon,maxLat (WGS84)",
+                  "disabled": true
+                },
+                {
+                  "key": "payload",
+                  "value": "false",
+                  "description": "Include payloads",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Server-Sent Events. Event types: `change` (data = Change JSON, id = seq), `heartbeat` (every 15 s), `reset` (client buffer overflowed; resume via /v1/changes). Replays from `Last-Event-ID` / `after` before going live.\n\nOpen (no auth).\n\noperationId: `streamChanges`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tiles",
+      "description": "Mapbox Vector Tiles of current records for map clients",
+      "item": [
+        {
+          "name": "Vector tile of current records",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/vnd.mapbox-vector-tile"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/tiles/{{tileLayer}}/{{tileZ}}/{{tileX}}/{{tileY}}.mvt",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "tiles",
+                "{{tileLayer}}",
+                "{{tileZ}}",
+                "{{tileX}}",
+                "{{tileY}}.mvt"
+              ],
+              "query": []
+            },
+            "description": "Mapbox Vector Tile. `layer` is a kind (e.g. aircraft) or a source id. Feature properties: source, externalId, kind, observedAt plus the source's tileProperties.\n\nOpen (no auth).\n\noperationId: `getTile`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Triggers",
+      "description": "Alert rules evaluated against the change stream",
+      "item": [
+        {
+          "name": "List trigger rules",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/triggers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "triggers"
+              ],
+              "query": []
+            },
+            "description": "List trigger rules\n\nOpen (no auth).\n\noperationId: `listTriggers`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Create a trigger rule",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('ruleId', j.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/triggers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "triggers"
+              ],
+              "query": []
+            },
+            "description": "Create a trigger rule\n\n**Requires admin token.**\n\noperationId: `createTrigger`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Big quake\",\n  \"enabled\": true,\n  \"source\": \"usgs-earthquakes\",\n  \"kind\": \"earthquake\",\n  \"conditions\": [\n    {\n      \"path\": \"mag\",\n      \"op\": \">=\",\n      \"value\": 6\n    }\n  ],\n  \"mode\": \"enter\",\n  \"cooldown\": \"0s\",\n  \"messageTemplate\": \"M{{payload.mag}} \\u2014 {{payload.place}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Get a trigger rule",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/triggers/{{ruleId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "triggers",
+                "{{ruleId}}"
+              ],
+              "query": []
+            },
+            "description": "Get a trigger rule\n\nOpen (no auth).\n\noperationId: `getTrigger`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Replace a trigger rule",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/triggers/{{ruleId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "triggers",
+                "{{ruleId}}"
+              ],
+              "query": []
+            },
+            "description": "Replace a trigger rule\n\n**Requires admin token.**\n\noperationId: `updateTrigger`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Vessels entering Strait of Hormuz\",\n  \"enabled\": true,\n  \"kind\": \"vessel\",\n  \"mode\": \"enter\",\n  \"geofence\": {\n    \"type\": \"Polygon\",\n    \"coordinates\": [\n      [\n        [\n          55.8,\n          26.0\n        ],\n        [\n          57.2,\n          26.0\n        ],\n        [\n          57.2,\n          27.0\n        ],\n        [\n          55.8,\n          27.0\n        ],\n        [\n          55.8,\n          26.0\n        ]\n      ]\n    ]\n  },\n  \"cooldown\": \"1h\",\n  \"messageTemplate\": \"{{payload.name}} ({{externalId}}) entered Hormuz\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Delete a trigger rule",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 204', () => pm.expect([204]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/triggers/{{ruleId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "triggers",
+                "{{ruleId}}"
+              ],
+              "query": []
+            },
+            "description": "Existing alerts are kept.\n\n**Requires admin token.**\n\noperationId: `deleteTrigger`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Dry-run a rule against stored data",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/triggers/{{ruleId}}/test",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "triggers",
+                "{{ruleId}}",
+                "test"
+              ],
+              "query": [
+                {
+                  "key": "since",
+                  "value": "2026-10-10T00:00:00Z",
+                  "description": "Default now-24h",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "100",
+                  "description": "Max matches",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Evaluates the rule over versions ingested since `since` without creating alerts or applying cooldown.\n\n**Requires admin token.**\n\noperationId: `testTrigger`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Alerts",
+      "description": "Fired alerts, acknowledgement and live SSE alert stream",
+      "item": [
+        {
+          "name": "List alerts newest first",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); if (j.items && j.items.length) pm.collectionVariables.set('alertId', j.items[0].id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/alerts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "alerts"
+              ],
+              "query": [
+                {
+                  "key": "ruleId",
+                  "value": "{{ruleId}}",
+                  "description": "Filter by rule",
+                  "disabled": true
+                },
+                {
+                  "key": "source",
+                  "value": "{{sourceId}}",
+                  "description": "Filter by source id (repeatable or comma-separated)",
+                  "disabled": true
+                },
+                {
+                  "key": "since",
+                  "value": "2026-10-10T00:00:00Z",
+                  "description": "firedAt >= since",
+                  "disabled": true
+                },
+                {
+                  "key": "acknowledged",
+                  "value": "false",
+                  "description": "Filter by acknowledgement",
+                  "disabled": true
+                },
+                {
+                  "key": "cursor",
+                  "value": "{{cursor}}",
+                  "description": "Opaque pagination cursor from a previous response's nextCursor",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "500",
+                  "description": "Page size",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "List alerts newest first\n\nOpen (no auth).\n\noperationId: `listAlerts`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Live alert stream (SSE)",
+          "event": [],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Last-Event-ID",
+                "value": "{{lastSeq}}",
+                "description": "SSE resume: last seq (changes) or alert id (alerts) received",
+                "disabled": true
+              },
+              {
+                "key": "Accept",
+                "value": "text/event-stream"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/alerts/stream",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "alerts",
+                "stream"
+              ],
+              "query": [
+                {
+                  "key": "ruleId",
+                  "value": "{{ruleId}}",
+                  "description": "Filter by rule",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Event types: `alert` (data = Alert JSON, id = alert id), `heartbeat`. Replays from Last-Event-ID.\n\nOpen (no auth).\n\noperationId: `streamAlerts`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Get an alert",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/alerts/{{alertId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "alerts",
+                "{{alertId}}"
+              ],
+              "query": []
+            },
+            "description": "Get an alert\n\nOpen (no auth).\n\noperationId: `getAlert`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Acknowledge an alert",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/alerts/{{alertId}}/ack",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "alerts",
+                "{{alertId}}",
+                "ack"
+              ],
+              "query": []
+            },
+            "description": "Acknowledge an alert\n\n**Requires admin token.**\n\noperationId: `acknowledgeAlert`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Webhooks",
+      "description": "Outbound alert delivery to operator endpoints",
+      "item": [
+        {
+          "name": "List webhooks",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/webhooks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "webhooks"
+              ],
+              "query": []
+            },
+            "description": "Secrets are never returned.\n\n**Requires admin token.**\n\noperationId: `listWebhooks`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Register a webhook",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('webhookId', j.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/webhooks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "webhooks"
+              ],
+              "query": []
+            },
+            "description": "Register a webhook\n\n**Requires admin token.**\n\noperationId: `createWebhook`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"ntfy\",\n  \"url\": \"https://ntfy.sh/REPLACE_TOPIC\",\n  \"secret\": \"change-me\",\n  \"ruleIds\": null,\n  \"enabled\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Get a webhook",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/webhooks/{{webhookId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "webhooks",
+                "{{webhookId}}"
+              ],
+              "query": []
+            },
+            "description": "Get a webhook\n\n**Requires admin token.**\n\noperationId: `getWebhook`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Replace a webhook",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/webhooks/{{webhookId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "webhooks",
+                "{{webhookId}}"
+              ],
+              "query": []
+            },
+            "description": "Omit `secret` to keep the existing secret.\n\n**Requires admin token.**\n\noperationId: `updateWebhook`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"ntfy\",\n  \"url\": \"https://ntfy.sh/REPLACE_TOPIC\",\n  \"ruleIds\": null,\n  \"enabled\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Delete a webhook",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 204', () => pm.expect([204]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/webhooks/{{webhookId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "webhooks",
+                "{{webhookId}}"
+              ],
+              "query": []
+            },
+            "description": "Delete a webhook\n\n**Requires admin token.**\n\noperationId: `deleteWebhook`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Send a test delivery",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/webhooks/{{webhookId}}/test",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "webhooks",
+                "{{webhookId}}",
+                "test"
+              ],
+              "query": []
+            },
+            "description": "Synchronously POSTs a synthetic alert and reports the result.\n\n**Requires admin token.**\n\noperationId: `testWebhook`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Recent deliveries",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/webhooks/{{webhookId}}/deliveries",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "webhooks",
+                "{{webhookId}}",
+                "deliveries"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "pending",
+                  "description": "Filter",
+                  "disabled": true
+                },
+                {
+                  "key": "cursor",
+                  "value": "{{cursor}}",
+                  "description": "Opaque pagination cursor from a previous response's nextCursor",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "500",
+                  "description": "Page size",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Recent deliveries\n\n**Requires admin token.**\n\noperationId: `listWebhookDeliveries`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Settings",
+      "description": "Retention, CORS, export and import",
+      "item": [
+        {
+          "name": "Get retention settings",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/settings/retention",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "settings",
+                "retention"
+              ],
+              "query": []
+            },
+            "description": "Get retention settings\n\n**Requires admin token.**\n\noperationId: `getRetention`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Set retention settings",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/settings/retention",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "settings",
+                "retention"
+              ],
+              "query": []
+            },
+            "description": "Replaces retention settings. Takes effect on the next retention run (hourly) or immediately via /run.\n\n**Requires admin token.**\n\noperationId: `updateRetention`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"default\": \"7d\",\n  \"alerts\": \"90d\",\n  \"usage\": \"30d\",\n  \"sources\": {\n    \"usgs-earthquakes\": \"3650d\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Run retention now",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/settings/retention/run",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "settings",
+                "retention",
+                "run"
+              ],
+              "query": []
+            },
+            "description": "Run retention now\n\n**Requires admin token.**\n\noperationId: `runRetention`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get CORS settings",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/settings/cors",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "settings",
+                "cors"
+              ],
+              "query": []
+            },
+            "description": "Get CORS settings\n\n**Requires admin token.**\n\noperationId: `getCors`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Set CORS settings",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/settings/cors",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "settings",
+                "cors"
+              ],
+              "query": []
+            },
+            "description": "Set CORS settings\n\n**Requires admin token.**\n\noperationId: `updateCors`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"readOrigins\": [\n    \"*\"\n  ],\n  \"writeOrigins\": [\n    \"http://localhost:5173\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Export all settings",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/settings/export",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "settings",
+                "export"
+              ],
+              "query": []
+            },
+            "description": "Source settings, retention, CORS, trigger rules and webhooks (without secrets/credentials).\n\n**Requires admin token.**\n\noperationId: `exportSettings`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Import settings",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/settings/import",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "settings",
+                "import"
+              ],
+              "query": []
+            },
+            "description": "Applies a bundle produced by export. Rules and webhooks are upserted by id. Unknown source ids are reported, not fatal.\n\n**Requires admin token.**\n\noperationId: `importSettings`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sources\": {\n    \"usgs-earthquakes\": {\n      \"enabled\": true,\n      \"interval\": \"60s\"\n    }\n  },\n  \"retention\": {\n    \"default\": \"7d\",\n    \"alerts\": \"90d\",\n    \"usage\": \"30d\",\n    \"sources\": {}\n  },\n  \"cors\": {\n    \"readOrigins\": [\n      \"*\"\n    ],\n    \"writeOrigins\": []\n  },\n  \"triggers\": [],\n  \"webhooks\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "System",
+      "description": "System status and admin token management",
+      "item": [
+        {
+          "name": "System information",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/system",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "system"
+              ],
+              "query": []
+            },
+            "description": "System information\n\nOpen (no auth).\n\noperationId: `getSystem`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Rotate the admin token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('adminToken', j.token); console.log('New admin token stored in collection variable adminToken');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/system/admin-token/rotate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "system",
+                "admin-token",
+                "rotate"
+              ],
+              "query": []
+            },
+            "description": "Invalidates the current token and returns a new one exactly once.\n\n**Requires admin token.**\n\noperationId: `rotateAdminToken`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "adminToken",
+      "value": ""
+    },
+    {
+      "key": "sourceId",
+      "value": "usgs-earthquakes"
+    },
+    {
+      "key": "externalId",
+      "value": ""
+    },
+    {
+      "key": "ruleId",
+      "value": ""
+    },
+    {
+      "key": "alertId",
+      "value": ""
+    },
+    {
+      "key": "webhookId",
+      "value": ""
+    },
+    {
+      "key": "lastSeq",
+      "value": "0"
+    },
+    {
+      "key": "cursor",
+      "value": ""
+    },
+    {
+      "key": "tileLayer",
+      "value": "earthquake"
+    },
+    {
+      "key": "tileZ",
+      "value": "0"
+    },
+    {
+      "key": "tileX",
+      "value": "0"
+    },
+    {
+      "key": "tileY",
+      "value": "0"
+    }
+  ]
+}
