@@ -7,8 +7,8 @@
 
 - **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
-- **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
-- **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
+- **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text. `docs/Invariants.md` lists the invariants each prompt must keep.
+- **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–129).
 - **Previous Completion Report:** read `completion-reports/087-CR-*.md` and follow its "Notes for the next prompt".
 
 ## Read first
@@ -56,6 +56,12 @@ Add maritime safety and trade intelligence: NGA navigational warnings with geome
 - Record: kind by event type (`fishing-event`, `vessel-encounter`, `loitering-event`, `port-visit`), externalId event `id`, `eventTime = start`, `observedAt = end` (fallback `start`), startField/endField `start`/`end`, Point from `position`, payload `vesselId, mmsi` (`ssvid`), `vesselName, flag, durationH, distanceKm`, encounter partner `encounterMmsi`, `portName` for visits. Paging via `nextOffset`; stop at `total`.
 - Interval 1 h (minInterval 30 min), budget 10/min, 300/day (GFW's numeric limits are not published on the docs page we checked; stay low and honour 429 `Retry-After`). Licence **CC BY-NC 4.0** (non-commercial): put it in `licence` exactly so 109's egress policy can enforce it.
 
+### 3a. `gfw-sar-detections` (optional, POLLING)
+
+- Global Fishing Watch publishes vessel detections from Sentinel-1 SAR, including whether each detection matched an AIS-broadcasting vessel. Verify the current dataset id and access route (the v3 4Wings or detections endpoints) at fixture capture; if no stable official endpoint returns individual detections, record that in the Completion Report and the Source Catalog and do not implement it.
+- Same credential, budget style and licence (**CC BY-NC 4.0**) as `gfw-events`. Record kind `sar-vessel-detection`, externalId the detection id, point, `eventTime` = acquisition time, payload `matched` (bool), `lengthM` (if provided), `confidence`, `aoi` param (bbox list) required. Analytic class `event`. Disabled by default.
+- Used by 099's `derived-dark-vessel-match`.
+
 ### 4. USCG Local Notices to Mariners (verify first)
 
 **Verified 2026-10:** NAVCEN relaunched LNM and the Light List as a geospatial application in late 2024; it offers GeoJSON downloads by district or area, refreshed every 15 minutes, but we found no published API documentation.
@@ -90,8 +96,8 @@ Capture with an identifiable UA: one NGA active list trimmed to 30 warnings (kee
 
 ## Guardrails (mandatory)
 
-1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 126, 129, 130, 131).
-2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 131).
+1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 129, 132, 133, 134).
+2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 134).
 3. **Reuse policy.** Never copy code from ShadowBroker, Velocity or World Monitor (AGPL) or SatDump (GPL). They are reference material only. God's Eye View (MIT, `~/Documents/GitLab/gods-eye-view`) may be ported to Java if you add an origin header comment and an entry in `THIRD_PARTY_NOTICES.md`.
 4. **Stay in scope.** Implement what this prompt specifies, no more. If the docs conflict with reality (for example, a library API differs from what the docs assume), choose the approach most faithful to `docs/Architecture.md` and record it under "Deviations" in the Completion Report.
 5. **Verify versions.** When adding a dependency, confirm the version exists on Maven Central and is compatible with Spring Boot 4.1 and Java 21.

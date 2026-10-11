@@ -82,6 +82,10 @@ the database and is managed through the API.
 - [OpenAPI spec](docs/OpenAPI.json) — the API contract, served at `/v1/openapi.json`
 - [Source Catalog](docs/Source-Catalog.md) — the upstream feeds Foresignal collects
 - [Roadmap](docs/Roadmap.md) — task decomposition and build order
+- [Intelligence Design](docs/Intelligence-Design.md) — evidence, discovery, hypotheses, forecast ledger, analysis cycles
+- [Client Contract](docs/Client-Contract.md) — object references, relations, workspaces and deep links for frontends
+- [Invariants](docs/Invariants.md) — the rules every checkpoint verifies
+- [Conventions](docs/Conventions.md) — cross-cutting build rules and sources of truth
 
 ## Licence
 

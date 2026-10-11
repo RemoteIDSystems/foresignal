@@ -1,15 +1,15 @@
-# 131 — Production Hardening
+# 134 — Production Hardening
 
 > Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
-> Completion Report: `completion-reports/131-CR-Production-Hardening.md`
+> Completion Report: `completion-reports/134-CR-Production-Hardening.md`
 
 ## Context
 
 - **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
-- **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
-- **Previous Completion Report:** read `completion-reports/130-CR-*.md` and follow its "Notes for the next prompt".
+- **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–129).
+- **Previous Completion Report:** read `completion-reports/133-CR-*.md` and follow its "Notes for the next prompt".
 
 ## Read first
 
@@ -18,11 +18,11 @@
 - `docs/Weather-Imagery-Design.md` (whole, to fold in), especially §2.3 (raster, media and place tables, tile-key columns, `trigger_rule`/`alert` changes, GiST on `raster_frame.footprint`) and §10.3 ("081" Flyway contents; document updates list)
 - `docs/Gap-Analysis.md` §6 row "Capabilities" (oasdiff in CI after v1.0); §8 item D.64 (Flyway indexes for the new tables; oasdiff CI against the v1.0.0 spec)
 - `docs/Product-Charter.md` (whole), `docs/Source-Catalog.md`, `docs/Roadmap.md`, `docs/Executive-Summary.md`
-- Completion Reports 001–130, especially 002 (`SchemaBootstrap`), 007 (history schema), 019 (retention), 027 (reindex DDL), 129 and 130 (open issues)
+- Completion Reports 001–133, especially 002 (`SchemaBootstrap`), 007 (history schema), 019 (retention), 027 (reindex DDL), 132 and 133 (open issues)
 
 ## Objective
 
-Cut Foresignal over to production form and release `v1.0.0`. Fold the v1.2 design documents into the Architecture and Charter so one set of docs is authoritative. Replace Hibernate DDL and the bootstrap initializers with a Flyway baseline that contains the full tiered and partitioned schema, every extension and index, and every table added through 130; switch to `ddl-auto=validate`. Add an API-compatibility gate against the frozen v1.0.0 spec. Write release notes and tag.
+Cut Foresignal over to production form and release `v1.0.0`. Fold the v1.2 design documents into the Architecture and Charter so one set of docs is authoritative. Replace Hibernate DDL and the bootstrap initializers with a Flyway baseline that contains the full tiered and partitioned schema, every extension and index, and every table added through 133; switch to `ddl-auto=validate`. Add an API-compatibility gate against the frozen v1.0.0 spec. Write release notes and tag.
 
 ## Tasks
 
@@ -31,20 +31,20 @@ Cut Foresignal over to production form and release `v1.0.0`. Fold the v1.2 desig
 - **`docs/Architecture.md` v2.0:**
   - Integrate `docs/Core-Data-Model.md`: replace §4–§11 with its time contract, ingest input, hashing, policies, writer, streaming sinks, tables, partitioning (Flyway-owned DDL now), distribution, triggers, query paths, retention, provenance and storage sections. Translate every prompt number to v1.2 (Roadmap §5).
   - Integrate `docs/Weather-Imagery-Design.md` as a new "Weather, rasters and imagery" part: components, data model, storage layout, budgets, memory profiles, SatDump integration, API conventions, alerting integration and resource budget. Drop prompt breakdowns and review-resolution tables.
-  - Add sections for everything built after the docs were written: entities (098), derived layers (099), windowed and anomaly rules (100), incidents (101), licence and provenance (109), sinks (110), exports and archive (111), standards outputs (112), federation (113), pattern of life and trips (114), exercise and alert quality (115), the intelligence layer (116–126), adapter doctor (127), SDKs, CLI, MCP OAuth and plugins (128).
+  - Add sections for everything built after the docs were written: entities (098), derived layers (099), windowed and anomaly rules (100), incidents (101), licence and provenance (109), sinks (110), exports and archive (111), standards outputs (112), federation (113), pattern of life and trips (114), exercise and alert quality (115), the intelligence layer (116–129), adapter doctor (130), SDKs, CLI, MCP OAuth and plugins (131).
   - Update §2 stack (all dependencies actually used, with licences), §3 packages (real package tree), §12 testing, §13 configuration (all env vars), §14 deployment (all compose profiles), §25 (now describes the Flyway regime), §26 reuse policy (GEV MIT, SatDump GPL reference, Meshtastic protobuf exclusion).
   - Remove the "v1.2 note" banner.
 - **Archive the design docs:** move `Core-Data-Model.md`, `Weather-Imagery-Design.md` and `Gap-Analysis.md` to `docs/design-history/`, each with a header line "Historical design input, folded into Architecture.md v2.0 on {date}". Fix every link in `docs/`, `README.md` and the prompts that still point at them.
 - **`docs/Product-Charter.md` v2.0:**
   - Apply the amendments made along the way: FR-17 (Core-Data-Model §13), FR-25 operators/arrays/windows, FR-27 lifecycle, the 061 chat-command amendment, the 045 raster non-goal wording and FR-55, the new channel types, the private-source and licence requirements.
-  - Add FRs for the features delivered in 036–128 in the existing style (one line each, grouped).
-  - Update §10 source plan and §11 constraints (Flyway present, tests policy history). Update §14 success criteria with the 130 results (link to `docs/Runtime-Verification.md`).
+  - Add FRs for the features delivered in 036–131 in the existing style (one line each, grouped).
+  - Update §10 source plan and §11 constraints (Flyway present, tests policy history). Update §14 success criteria with the 133 results (link to `docs/Runtime-Verification.md`).
 - **`docs/Source-Catalog.md`:**
   - Renumber prompt references to v1.2.
   - Add columns **Tier** (`STANDARD | TRACK`), **Policy** (default ingest policy and keyframe), **Licence** (terms id) and **Egress** (redistribution: `ALLOWED | LOCAL_ONLY | FORBIDDEN`) to every table.
   - Mark sources that were not implemented, or were dropped, with the reason.
   - Add `SourceCatalogParityTest`: parse the markdown tables and, for every registered source, assert that tier, policy mode, licence id and redistribution match the descriptor. Rows for unregistered ids must be marked "not implemented".
-- Update `docs/Executive-Summary.md` and `README.md` (feature list, quickstart unchanged in spirit, docs index). Mark 001–131 Done in `docs/Roadmap.md`.
+- Update `docs/Executive-Summary.md` and `README.md` (feature list, quickstart unchanged in spirit, docs index). Mark 001–134 Done in `docs/Roadmap.md`.
 
 ### 2. Flyway baseline
 
@@ -81,7 +81,7 @@ Cut Foresignal over to production form and release `v1.0.0`. Fold the v1.2 desig
 
 - Set `info.version` to `1.0.0` in `docs/OpenAPI.json` and freeze a copy at `docs/api/v1.0.0/OpenAPI.json`.
 - Gradle task `checkApiCompat`: runs `oasdiff breaking docs/api/v1.0.0/OpenAPI.json docs/OpenAPI.json --fail-on ERR` via a local `oasdiff` binary or Docker image `tufin/oasdiff:<pinned version>`; skipped with a warning when neither is available. Not wired to `build`.
-- Add `.gitlab-ci.yml` (none exists yet) with stages `build` (`./gradlew compileJava compileTestJava`), `test` (`./gradlew test jacocoTestCoverageVerification` with the Docker-in-Docker service for Testcontainers), `api` (the oasdiff job plus the 130 `metric-drift.sh` against a started instance if feasible, else `allow_failure`), and `lint` (`lintOpenApi`). Document NFR-10 (additive-only `/v1`; breaking changes go to `/v2`) and the 020 API-evolution convention next to it.
+- Add `.gitlab-ci.yml` (none exists yet) with stages `build` (`./gradlew compileJava compileTestJava`), `test` (`./gradlew test jacocoTestCoverageVerification` with the Docker-in-Docker service for Testcontainers), `api` (the oasdiff job plus the 133 `metric-drift.sh` against a started instance if feasible, else `allow_failure`), and `lint` (`lintOpenApi`). Document NFR-10 (additive-only `/v1`; breaking changes go to `/v2`) and the 020 API-evolution convention next to it.
 
 ### 5. Production defaults and release
 
@@ -90,10 +90,10 @@ Cut Foresignal over to production form and release `v1.0.0`. Fold the v1.2 desig
   - the Docker image runs as non-root with a read-only root filesystem where feasible (writable `/data` and `tmp` only)
   - health-check `curl` present
   - log format and level defaults; `FORESIGNAL_BIND` and the profile docs
-  - Fix anything 129/130 listed as a production blocker.
+  - Fix anything 132/133 listed as a production blocker.
 - **Versioning:** set the Gradle `version = "1.0.0"`; `ForesignalVersion` and `/v1/system` report it; the image label `org.opencontainers.image.version`.
 - **Release notes:** `docs/Release-Notes-v1.0.0.md` and a `CHANGELOG.md` entry.
-  - Highlights by area; supported upstream sources (from the catalog); compose profiles; hardware sizing from 130.
+  - Highlights by area; supported upstream sources (from the catalog); compose profiles; hardware sizing from 133.
   - Breaking-change policy; known limitations (flush/poll resolution of triggers, asOf granularity, approximate asOf under SAMPLED, skipped verification steps); upgrade notes (the baseline-on-migrate behaviour, or recreate the volumes).
   - Licences and third-party notices.
 - **Tag:** after the implementation and report commits, create an annotated tag `v1.0.0` ("Foresignal 1.0.0") on the implementation commit and push it with `git push origin v1.0.0`. Record the tag and hash in the Completion Report.
@@ -118,7 +118,7 @@ Cut Foresignal over to production form and release `v1.0.0`. Fold the v1.2 desig
 ## Guardrails (mandatory)
 
 1. **Tests: this is a test-run prompt.** Run the test suite as the Test run section describes, and fix failures until it passes. Fix production code, and change a test only when the test itself is wrong (record each such change in the Completion Report). Don't add features.
-2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 131).
+2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 134).
 3. **Reuse policy.** Never copy code from ShadowBroker, Velocity or World Monitor (AGPL) or SatDump (GPL). They are reference material only. God's Eye View (MIT, `~/Documents/GitLab/gods-eye-view`) may be ported to Java if you add an origin header comment and an entry in `THIRD_PARTY_NOTICES.md`.
 4. **Stay in scope.** Implement what this prompt specifies, no more. If the docs conflict with reality (for example, a library API differs from what the docs assume), choose the approach most faithful to `docs/Architecture.md` and record it under "Deviations" in the Completion Report.
 5. **Verify versions.** When adding a dependency, confirm the version exists on Maven Central and is compatible with Spring Boot 4.1 and Java 21.
@@ -127,7 +127,7 @@ Cut Foresignal over to production form and release `v1.0.0`. Fold the v1.2 desig
 ## Finish: Compile → Commit → Push
 
 1. **Compile:** `./gradlew compileJava compileTestJava` must succeed. Fix every compile error. Do not run tests.
-2. **Commit** all changes with the message `131: Production Hardening`. Capture the full hash with `git rev-parse HEAD`; this is the *implementation commit*.
-3. **Write** `completion-reports/131-CR-Production-Hardening.md` using the template in `docs/Roadmap.md` §3, including the implementation commit hash.
-4. **Commit** the report with the message `131: completion report`, then run `git push origin main`.
+2. **Commit** all changes with the message `134: Production Hardening`. Capture the full hash with `git rev-parse HEAD`; this is the *implementation commit*.
+3. **Write** `completion-reports/134-CR-Production-Hardening.md` using the template in `docs/Roadmap.md` §3, including the implementation commit hash.
+4. **Commit** the report with the message `134: completion report`, then run `git push origin main`.
 5. End your reply with the line `Implementation commit: <hash>`.

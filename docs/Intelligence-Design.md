@@ -4,7 +4,7 @@ Prepared 2026-10-11, from a survey of the four reference projects' code, a web s
 
 This document is **authoritative for the intelligence layer**: situations, analytic findings, precursors, base rates and analogs, the forecast ledger, hypotheses and indicators, statistical forecasts and regional outlooks, impact projection, and the daily, weekly and monthly analysis cycles. It extends, and does not replace, prompts 098–104 (entities, derived layers, windowed rules and anomalies, intelligence events and cases, the autonomous analyst, backtesting, infrastructure mapping). Where this document and an older prompt disagree on the intelligence layer, this document wins. `docs/Core-Data-Model.md` still wins on ingest, history, triggers and retention mechanics.
 
-New prompts **116–126** implement it. The former 116–120 are renumbered **127–131** (`docs/Roadmap.md` §5 has the map).
+New prompts **116–129** implement it. The v1.2 prompts 116–120 are renumbered **130–134** (`docs/Roadmap.md` §5 has the map). §17 records how the October 2026 external reviews (ChatGPT, Gemini, Grok) were handled. The client-facing object contract (references, relations, workspaces, deep links) is specified in [Client Contract](Client-Contract.md).
 
 ---
 
@@ -24,7 +24,12 @@ New prompts **116–126** implement it. The former 116–120 are renumbered **12
 | LLM forecasts and training leakage | Retrospective evaluation of an LLM forecaster only uses questions opened **after** the model's knowledge cutoff; earlier ones are excluded as `LEAKAGE_RISK`. Live LLM forecasts are capped to [0.03, 0.97] and recalibrated (Platt) on the ledger once 50 have resolved. | Models cannot reliably pretend not to know outcomes; LLM forecasts hedge and lean toward "yes". |
 | Statistical code | Apache Commons Statistics 1.3, Commons Numbers and Commons RNG, Hipparchus 4.0.x (all Apache-2.0). CUSUM, BOCPD, ETS, PAV, CRPS and Benjamini–Hochberg are written in-house with golden tests. No GPL (Smile, Weka). Commons Math 3.6.1 is unsupported and not used. | Small, auditable, licence-clean (§12). |
 | Charter non-goal "no training models" | Unchanged for neural models and weights. **Fitting statistical models to the operator's own data** (baselines, forecasts, index weights, ensemble weights, recalibration) is in scope. | Clarification. |
-| Where in the roadmap | A new block **116–126** after 115, before the adapter doctor and SDKs (so the SDKs include the new API). Nothing earlier is renumbered. | The build takes days, so moving the block earlier gains little. **Collecting early** (§4.4) is what matters. |
+| Evidence independence | Observations link to **canonical events**; observations that trace to one originator form one **evidence group**, and only evidence groups count as independent confirmation (116). | Twelve re-reports of one claim are one piece of evidence; otherwise duplicates inflate every probability downstream. |
+| "Nothing happened" vs "nothing seen" | A time-versioned **observability model** estimates each source's detection probability per phenomenon, place and threshold (capture–recapture where independent sources exist, presence proxies or declared footprints otherwise). Absence conclusions require detectability, not just healthy sources (116). | Source health is not coverage: a working receiver may see nothing below 3,000 ft in a valley. |
+| Reproducibility | Every analytic output points to an **analysis manifest** (component version, build, configuration, registry hashes, knowledge cutoff, inputs, model and prompt); deterministic outputs replay to identical results (116). | Findings and forecasts must be auditable against the exact machinery that made them. |
+| Does the analysis work? | A **benchmark harness** with planted-truth scenarios (null periods, outages, echoes, late revisions, misleading correlations, true precursors) and a historical corpus measures false discoveries, recall, delay and calibration, and **gates** autonomous features (123). | Passing tests proves the code; only benchmarks show the analysis is useful. |
+| Shared client contract | One object-reference grammar and envelope, a time-aware relation graph, annotations with human validation, and workspaces whose context syncs live across apps (128; [Client Contract](Client-Contract.md)). | Frontends (globe, analyst workstation, sensor consoles, agents) must not each rebuild entity resolution, correlation or investigation state. |
+| Where in the roadmap | A new block **116–129** after 115, starting with the evidence foundations (116) and ending with the object contract (128) and a checkpoint (129), before the adapter doctor and SDKs (so the SDKs include the new API). Nothing earlier is renumbered. | The build takes days, so moving the block earlier gains little. **Collecting early** (§4.4) is what matters. |
 
 ---
 
@@ -65,23 +70,26 @@ Foresignal must also match what the best competitors already do. Where each live
 |---|---|
 | Briefs with server-validated citations; local-first providers | 026, 028, 029, 102 |
 | Uncited answers withheld; watch officer drafting briefs for ack | 028 verifier, 102 analyst |
-| Story clustering with lifecycle | situations (117) with embedding similarity in the linker |
-| Seasonal baselines, z-scores, term spikes | 100 anomalies; attention topics (116) |
-| Geo-convergence and incident fusion | 101 recipes; co-occurrence mining (118) adds significance testing |
+| Story clustering with lifecycle | situations (118) with embedding similarity in the linker |
+| Seasonal baselines, z-scores, term spikes | 100 anomalies; attention topics (117) |
+| Geo-convergence and incident fusion | 101 recipes; co-occurrence mining (119) adds significance testing |
 | Deception and jamming detection | 099 |
-| Country instability index | regional indices (123), decomposed, **scored against outcomes** |
-| Forecasts with resolution specs and Brier scorecard | ledger (121) |
-| Markets tied to events, "silent divergence" | event studies, `pre-event-signal` and `unexplained-move` findings (118) |
-| Self-regenerating briefs (Dataminr) | situation briefs (117) |
-| Unprompted anomalies with suggested causes (Windward) | findings (118) + red team and analyst roles (125) |
-| Challenge agents (Babel Street) | red team role (125) |
-| Published accuracy next to forecasts (ACLED CAST) | ledger scorecards on every question and outlook (121, 123) |
+| Country instability index | regional indices (125), decomposed, **scored against outcomes** |
+| Forecasts with resolution specs and Brier scorecard | ledger (122) |
+| Markets tied to events, "silent divergence" | event studies, `pre-event-signal` and `unexplained-move` findings (119) |
+| Self-regenerating briefs (Dataminr) | situation briefs (118) |
+| Unprompted anomalies with suggested causes (Windward) | findings (119) + red team and analyst roles (127) |
+| Challenge agents (Babel Street) | red team role (127) |
+| Published accuracy next to forecasts (ACLED CAST) | ledger scorecards on every question and outlook (122, 125) |
+| Synchronized operational picture with human validation of AI findings (Palantir Maven-style) | workspaces with live context sync, annotations and verdicts feeding precision metrics (128) |
+| Sensor discovery and coverage visualisation (MetaConstellation-style) | observability model and coverage tiles (116), sensor discovery (128) |
+| Edge processing and store-and-forward sync | federation and edge relay (113), MeshDTN compact messages (084, 113) |
 
 Excluded on terms or principle: prediction-market prices (Polymarket, Kalshi; 093 §8), exchange data from CME/ICE (licence), social scraping, person-level analysis.
 
 ---
 
-## 2. Principles (binding on prompts 116–126)
+## 2. Principles (binding on prompts 116–129)
 
 1. **Evidence, inference, speculation.** Every analytic object separates what was observed (cited records, pinned by `seq`), what a named detector derived, and what is possibility or narrative. Speculation is always labelled. (Extends 101 principle 5 and 102 principle 2.)
 2. **Detectors find; models explain.** Statistical detectors are pure functions of stored data, a definition and a detector version. LLM output never creates evidence, never adds members to events or situations, and never changes a deterministic score. An LLM may *propose* (hypotheses, indicators, watches, questions) and may *forecast* as a named forecaster whose record is scored.
@@ -96,34 +104,39 @@ Excluded on terms or principle: prediction-market prices (Polymarket, Kalshi; 09
 11. **Budgeted and optional.** Deterministic analysis runs without an LLM. LLM roles are budgeted per run and per day (026) and fall back to deterministic output.
 12. **Private stays private.** Anything built from a `private` source (039) is private and follows `EgressPolicy` everywhere, including LLM context.
 13. **Licensed data stays local.** Series whose terms forbid redistribution (FRED copyrighted series, EIA spot prices sourced from LSEG, ACLED) are `egress=LOCAL_ONLY`: Foresignal computes on them and serves derived signals, never the raw values, outside the operator's own tokens.
+14. **Evidence independence.** Confidence, corroboration and hypothesis updates count independent evidence groups (116), never raw records or sources.
+15. **Benchmarked before trusted.** Autonomous proposals and LLM ensemble weight depend on the latest benchmark status of the components involved (123).
 
 ---
 
 ## 3. The analytic stack
 
 ```
- L8  Analysis cycles ─ daily / weekly / monthly assessments (125)
+ L8  Analysis cycles ─ daily / weekly / monthly assessments (127)
           ▲ deterministic packet; LLM roles: analyst · red team · forecaster · proposer
- L7  Forecast ledger ─ questions · forecasts · resolution · scores · calibration (121)
-          ▲ forecasters: base rate · climatology · persistence · statistical (123) · precursor (119)
-          │              analog (120) · impact (124) · indicator-Bayes (122) · LLM (125) · operator · ensemble
- L6  Hypothesis sets ─ competing hypotheses · indicators → watch rules · ACH matrix · revisions (122)
- L5  Memory ─ situations / storylines (117) · base rates · historical analogs (120)
- L4  Discovery ─ change points · event studies · co-occurrence (118) · precursors and lead–lag (119)
-          · regional outlooks and indices (123) · impact projection (124)
+ L7  Forecast ledger ─ questions · forecasts · resolution · scores · calibration (122)
+          ▲ forecasters: base rate · climatology · persistence · statistical (125) · precursor (120)
+          │              analog (121) · impact (126) · indicator-Bayes (124) · LLM (127) · operator · ensemble
+ L6  Hypothesis sets ─ competing hypotheses · indicators → watch rules · ACH matrix · revisions (124)
+ L5  Memory ─ situations / storylines (118) · base rates · historical analogs (121)
+ L4  Discovery ─ change points · event studies · co-occurrence (119) · precursors and lead–lag (120)
+          · regional outlooks and indices (125) · impact projection (126)
  L3  Correlation ─ intelligence events · cases · exposure · dependency graph (101, 104)
  L2  Detection ─ derived layers · count / absence / anomaly rules (099, 100)
- L1  Signals ─ records and versions · rollups (038; region rollups 118) · series (093, 116)
+ L1  Signals ─ records and versions · rollups (038; region rollups 119) · series (093, 117)
+ L0.5 Evidence ─ canonical events · evidence groups · observability · analysis manifests (116)
  L0  Collection ─ budgeted sources · health · history with analytic retention (001–097)
+
+ Across all levels: object contract · relation graph · annotations · workspaces (128) · benchmark harness (123)
 ```
 
 Outputs are ordinary Foresignal objects: typed tables for structure, plus records of a DERIVED source so SSE, tiles, search, triggers, briefings and MCP work unchanged.
 
 | DERIVED source | Kinds | Created by |
 |---|---|---|
-| `foresignal-intel` (101) | `intelligence-event`, `situation` (117), `hypothesis-set` (122) | 101, 117, 122 |
-| `foresignal-analytics` (118) | `analytic-finding`, payload `findingType` ∈ `change-point`, `pre-event-signal`, `unexplained-move`, `co-occurrence`, `precursor-active`, `forecast-exceedance`, `outlook-exceedance`, `projected-impact` | 118, 119, 123, 124 |
-| `foresignal-outlook` (123) | `regional-outlook`, `regional-index` | 123 |
+| `foresignal-intel` (101) | `intelligence-event`, `situation` (118), `hypothesis-set` (124) | 101, 118, 124 |
+| `foresignal-analytics` (119) | `analytic-finding`, payload `findingType` ∈ `change-point`, `pre-event-signal`, `unexplained-move`, `co-occurrence`, `precursor-active`, `forecast-exceedance`, `outlook-exceedance`, `projected-impact` | 119, 120, 125, 126 |
+| `foresignal-outlook` (125) | `regional-outlook`, `regional-index` | 125 |
 
 Forecast questions and forecasts are **not** records: they are append-only ledger rows with their own API and SSE topic.
 
@@ -145,11 +158,11 @@ Forecast questions and forecasts are **not** records: they are append-only ledge
 | `reference` | catalogues (power plants, ports, cables) | 90 d of history; heads kept while current | n/a |
 | `intel` | Foresignal's outputs: anomalies, intel events, situations, findings, outlooks | records 1825 d; **typed tables never auto-deleted** (admin purge only) | n/a |
 
-Event-class sources are small (USGS ≈ 300 versions/day, ACLED ≈ 1–3k/day, IODA a few hundred). Five years of all `event` sources is expected in the low tens of GB; `/v1/system.history` reports the real projection and 130 measures it.
+Event-class sources are small (USGS ≈ 300 versions/day, ACLED ≈ 1–3k/day, IODA a few hundred). Five years of all `event` sources is expected in the low tens of GB; `/v1/system.history` reports the real projection and 133 measures it.
 
 ### 4.2 Region rollups
 
-038's `activity_rollup` is keyed by H3 cell (res 4): hourly rows for 35 d, daily rows for 5 years. Prompt 118 adds region resolutions to the same table:
+038's `activity_rollup` is keyed by H3 cell (res 4): hourly rows for 35 d, daily rows for 5 years. Prompt 119 adds region resolutions to the same table:
 
 | `resolution` | Bucket | Key | Retention |
 |---|---|---|---|
@@ -160,11 +173,11 @@ A nullable `region_code` text column is added; `cell` holds a stable 64-bit hash
 
 ### 4.3 Series
 
-093 defines series as `series-point` records with `GET /v1/series` and `GET /v1/series/{sourceId}/{seriesId}`. The intelligence layer reads three families through one `SeriesReader` (118):
+093 defines series as `series-point` records with `GET /v1/series` and `GET /v1/series/{sourceId}/{seriesId}`. The intelligence layer reads three families through one `SeriesReader` (119):
 
 | `SeriesRef` | Backing data | Example |
 |---|---|---|
-| `series:{sourceId}/{seriesId}` | `series-point` records (093, 116) | `series:cftc-cot/067651.disagg.mm_net` |
+| `series:{sourceId}/{seriesId}` | `series-point` records (093, 117) | `series:cftc-cot/067651.disagg.mm_net` |
 | `rollup:{res}/{sourceId}/{kind}/{region\|cell}` | `activity_rollup` rows | `rollup:day/acled/conflict-event/YE` |
 | `rule:{ruleId}/{groupKey}` | `activity_sample` (100) | `rule:01J…/YE` |
 
@@ -176,7 +189,31 @@ History cannot be backfilled from live feeds. The roadmap recommends deploying a
 
 ---
 
-## 5. Discovery (prompts 118, 119)
+### 4.5 Evidence identity and independence (prompt 116)
+
+The same earthquake can arrive from USGS, EMSC, GDACS and a news feed. Four records are not four confirmations: GDACS republishes USGS, and the news item cites one of them.
+
+- **Originators.** Every source maps to an originator (`intel/originators.json`, descriptor override): an id, a class (sensor network, agency, aggregator, media, crowd, operator, derived), an **independence group**, and the originators it **aggregates**.
+- **Canonical events.** `EvidenceResolver` links event-class observations to `canonical_event` rows using family-specific tolerances (reusing 099's corroboration rules) and upstream-id matches, with a link confidence and reason.
+- **Evidence groups.** Within a canonical event, observations sharing an originator, an independence group, an aggregation relationship or a citation form one `evidence_group`. Only evidence groups count as independent.
+- **Quality flags:** `ECHO` (many re-reports of one originator), `TIMESTAMP_CONFLICT`, `SINGLE_ORIGINATOR`, `LATE_REVISION`. These are the "adversarial evidence evaluator": they say "12 reports trace back to one unverified origin", without claiming anything is disinformation.
+- **Consumers:** 099 corroboration credibility, 101 `EventScorer` (v1.1.0), 118 corroboration roll-up, 120 precursor occurrences, 121 base rates, 124 updater and ACH rows, 125 outlook counts.
+
+### 4.6 Observability (prompt 116)
+
+A source being healthy is not the same as it being able to see something.
+
+- **Declared:** area, thresholds (e.g. magnitude 2.5 in the US, 4.5 globally) and latency per kind.
+- **Estimated**, versioned in time (`observability_estimate`): **capture–recapture** for families with independent sources (`p_detect(A) = |A ∩ B| / |B|` over canonical events, per region and magnitude band); a **presence proxy** for track kinds from hourly rollups (labelled low confidence); **receiver range** for local stations; declared footprints otherwise.
+- **Combination:** `1 − Π(1 − p)` across independence groups (max within one group).
+- **Absence rule:** "nothing happened" requires healthy sources **and** `p_detect ≥ absenceMinDetect` (0.8). Otherwise the result is `unknown` / `LOW_DETECTABILITY`, in 100 (absence and downward anomalies), 119 (downward findings), 120 (precursor misses), 122 (negative resolutions) and 124 (absent indicators, whose likelihood ratio is also scaled by `p_detect`).
+- **Coverage layer:** an API and tiles that show how well instrumented any area is for a family at a time.
+
+### 4.7 Analysis manifests (prompt 116)
+
+`analysis_manifest` records component and version, build (version and git commit), configuration and its hash, the hashes of registry files used, `asOfSeq`, inputs (explicit refs, or the query and a hash of the ordered refs), and model metadata for LLM steps. Identical manifests are stored once. Every analytic output from 100 onward stores `manifest_id`; `POST /v1/manifests/{id}/replay` re-runs deterministic components and reports `identical`, `differs` or `not-replayable`.
+
+## 5. Discovery (prompts 119, 120)
 
 ### 5.1 Analytic findings
 
@@ -209,7 +246,7 @@ Example: Bab el-Mandeb daily transits (PortWatch, 088) fall from a 60-day level 
 - **Windows** (in the series' own frequency): estimation `[−250, −11]` trading days (or as much as exists, minimum 60, else `FEW_EVENTS`); pre-event `[−5, −1]`; event `[0, +1]`. Weekly series (COT): estimation `[−52, −3]` weeks, pre-event `[−2, −1]`.
 - **Statistics:** abnormal values, cumulative abnormal value per window (CAR), cross-event average (CAAR); significance by the standardised test, the **Corrado rank test**, and a **placebo test** (the same statistic at 500 deterministic pseudo-event dates from periods without qualifying events). Overlapping events are clustered before averaging. The placebo distribution is the **coincidence baseline** shown with every live signal.
 - **Live `pre-event-signal`:** when a qualifying event arrives (default: intel events ≥ warning, situations turning active, significant change points), the configured **watch pairs** (event family × series) are checked over the pre-event window using only points known before the event. Placebo p ≤ 0.01 and |CAR| ≥ `minEffect` → finding: "WTI managed-money net long rose 2.8 SD in the 2 weeks before the event; moves this large occur before about 3% of comparable windows with no event."
-- **Live `unexplained-move`:** a daily scan of watched market and attention series. A move with |z| ≥ 3 against the estimation window and **no** qualifying event in the linked regions or themes within ±2 days becomes an `unexplained-move` finding. If a qualifying event appears within the following 7 days, the finding is linked to it and re-labelled as an observed pre-event signal; that link feeds precursor mining (119).
+- **Live `unexplained-move`:** a daily scan of watched market and attention series. A move with |z| ≥ 3 against the estimation window and **no** qualifying event in the linked regions or themes within ±2 days becomes an `unexplained-move` finding. If a qualifying event appears within the following 7 days, the finding is linked to it and re-labelled as an observed pre-event signal; that link feeds precursor mining (120).
 - **Resolution limit:** Foresignal's market data is daily or weekly. The documented 2026 oil-futures episodes were visible minute by minute in licensed exchange data; Foresignal cannot see moves like those, and every market finding carries `DAILY_RESOLUTION_ONLY`.
 - Batch studies run on the 103 job framework (`type = event-study`) with its caveats and no-look-ahead rules.
 
@@ -220,26 +257,26 @@ Example: Bab el-Mandeb daily transits (PortWatch, 088) fall from a 60-day level 
 - Daily, over region-day rollups: for every region with activity and every pair of **signal families** (`signal_family` registry: `ais-behaviour`, `aviation-military`, `conflict`, `outage`, `gnss-interference`, `nav-warning`, `attention`, `seismic`, `fire`, `weather-severe`, `cyber`, `markets`), test whether both are above their own baselines on the same day.
 - Each family's daily exceedance p-value comes from its NB baseline; the joint statistic is Fisher's combination; the expected joint exceedance rate comes from each family's historical exceedance frequency (independence baseline), and the reported lift is observed ÷ expected joint days over the trailing year.
 - Benjamini–Hochberg at `q = 0.05` across all region × pair tests of the day.
-- Survivors become `co-occurrence` findings and are offered to the situation linker (117).
+- Survivors become `co-occurrence` findings and are offered to the situation linker (118).
 
-### 5.5 Precursors and lead–lag (119)
+### 5.5 Precursors and lead–lag (120)
 
-103's "does X precede Y?" object is renamed **precursor test** in v1.3 (the word "hypothesis" is reserved for §6). Prompt 119 adds discovery and validation:
+103's "does X precede Y?" object is renamed **precursor test** in v1.3 (the word "hypothesis" is reserved for §6). Prompt 120 adds discovery and validation:
 
 1. **Event-stream candidates:** operator-registered family pairs, plus automatic pairs among the top-K event families per region (intel event types, alert rule tags, anomaly classes, change points by series family, `unexplained-move` findings, reference-import families), capped by `analysis.precursors.maxTestsPerRun` (500). Tested with 103's circular-shift tester.
 2. **Series candidates:** pairs of analysis series (e.g. attention ↔ conflict counts, positioning ↔ chokepoint transits). Pre-whiten each by its baseline residuals; statistic = max |cross-correlation| over lags `1…L` (antecedent leading only); null from circular block-shift surrogates with block length ≥ the residual autocorrelation length.
 3. **FDR:** Benjamini–Hochberg at `q = 0.10` per batch (Benjamini–Yekutieli when the batch contains overlapping series).
 4. **Validation:** survivors are re-tested on the disjoint later window (newest third). Only patterns that are again notable with lift ≥ 1.5 (event streams) or the same sign and p ≤ 0.05 (series) become `validated`.
 5. **Library:** `precursor` rows hold selectors, spatial rule or series pair, lag distribution, hit rate with Wilson interval, base rate, lift, n, both windows' statistics, FDR batch size, `status` (candidate | validated | stale | retired), `last_tested_at`. A monthly re-test retires patterns whose lift falls below 1.2 or whose interval includes the base rate.
-6. **Live watch:** when a validated precursor's antecedent occurs, record a `precursor-active` finding; 121 then opens a forecast question for the consequent with the precursor forecaster's probability (hit rate shrunk toward the base rate by sample size).
+6. **Live watch:** when a validated precursor's antecedent occurs, record a `precursor-active` finding; 122 then opens a forecast question for the consequent with the precursor forecaster's probability (hit rate shrunk toward the base rate by sample size).
 
 ### 5.6 Analysis series registry
 
-`analysis_series(ref, enabled, detectors[], frequency, origin auto|operator, watch_pairs, created_at)`. Nightly auto-registration: region-day rollups with ≥ 30 non-zero days in the last 90; every `series-point` series from 093 and 116; PortWatch chokepoints; anomaly rule groups. Caps keep runs bounded (`analysis.series.max`, default 2,000).
+`analysis_series(ref, enabled, detectors[], frequency, origin auto|operator, watch_pairs, created_at)`. Nightly auto-registration: region-day rollups with ≥ 30 non-zero days in the last 90; every `series-point` series from 093 and 117; PortWatch chokepoints; anomaly rule groups. Caps keep runs bounded (`analysis.series.max`, default 2,000).
 
 ---
 
-## 6. Memory and reasoning (prompts 117, 122)
+## 6. Memory and reasoning (prompts 118, 124)
 
 ### 6.1 Situations (storylines)
 
@@ -286,7 +323,7 @@ ICD 203 likelihood scale (one row of terms only; never mixed):
 | very likely | 80–95% |
 | almost certain | 95–99% |
 
-A probability crossing a band boundary is a **band change**, published on SSE and to channels (rate-limited per set). One `EstimativeLanguage` utility (121) maps numbers to terms and **lints** generated text: a term that disagrees with its number, a mix of term rows, or a likelihood term and a confidence level in one sentence is rejected and regenerated or downgraded.
+A probability crossing a band boundary is a **band change**, published on SSE and to channels (rate-limited per set). One `EstimativeLanguage` utility (122) maps numbers to terms and **lints** generated text: a term that disagrees with its number, a mix of term rows, or a likelihood term and a confidence level in one sentence is rejected and regenerated or downgraded.
 
 ### 6.5 Drafting
 
@@ -294,7 +331,12 @@ A probability crossing a band boundary is a **band change**, published on SSE an
 
 ---
 
-## 7. Base rates and analogs (prompt 120)
+### 6.6 Information value and collection gaps (prompt 124)
+
+- **Expected information gain** ranks pending indicators: `EIG = H(P) − Σ_o P(o) · H(P | o)` with `P(observed)` including `p_detect`. This turns the ACH matrix into an ordered watch list ("what would have to be true").
+- **Collection gaps:** indicators that would matter (high potential EIG) but cannot currently be observed (`p_detect < 0.5` or sources disabled) produce recommendations: enable a catalogued source, add a local receiver or sensor type, or "no catalogued source observes this". Recommendations never change configuration.
+
+## 7. Base rates and analogs (prompt 121)
 
 ### 7.1 Base-rate library
 
@@ -310,7 +352,7 @@ A probability crossing a band boundary is a **band change**, published on SSE an
 | ACLED history (API date ranges, operator credentials) | by region, 1997–/2018– | ACLED EULA; `LOCAL_ONLY`; never redistributed |
 | USGS ComCat (FDSN bulk) | decades | public domain |
 | GDACS archive | 2000s– | open, attribution |
-| CFTC COT history (Socrata, 116) | 1986– | public domain |
+| CFTC COT history (Socrata, 117) | 1986– | public domain |
 | IMF PortWatch history (088) | 2019– | IMF terms: reuse with attribution |
 
 ### 7.3 Historical analogs
@@ -321,7 +363,7 @@ A probability crossing a band boundary is a **band change**, published on SSE an
 
 ---
 
-## 8. Forecast ledger (prompt 121)
+## 8. Forecast ledger (prompt 122)
 
 ### 8.1 Objects
 
@@ -362,7 +404,11 @@ Machine resolvers (hourly job; early resolution when an event makes the answer c
 
 ---
 
-## 9. Regional outlooks, indices and series forecasts (prompt 123)
+### 8.7 Benchmark harness (prompt 123)
+
+Software tests prove the code; benchmarks show whether the analysis is useful. Deterministic scenarios with planted truth (`null-seasonal`, `step-change`, `spike`, `coverage-outage`, `duplicate-echo`, `late-revision`, `common-driver`, `true-precursor`, `base-rate-drift`, `pre-event-move`) and a historical corpus (operator cases plus sampled null region-weeks) measure, per component: false-discovery rate, recall, precision, detection delay, correct `unknown` under outages, duplicate inflation (must be zero), precursor false validation, and forecaster calibration and skill against naive baselines. Benchmarks run components in pure or dry-run modes and never write production analytic tables. Results are `pass | warn | fail` against documented thresholds and **gate** 127's proposer auto-execution and the LLM forecaster's ensemble weight. Analyst verdicts (128) propose new historical cases.
+
+## 9. Regional outlooks, indices and series forecasts (prompt 125)
 
 ### 9.1 Series forecaster
 
@@ -378,11 +424,11 @@ For each enabled region (country, or admin1 where data supports it) and **event 
 
 Unlike every competitor's index, weights are not left hand-set: a monthly job fits component weights by regularised Poisson or NB regression of the next-4-week target count on the components (Hipparchus, L2 penalty, rolling origin), reports out-of-sample skill against the seasonal-naive outlook, and **proposes** the new weights (applied by an operator or an agent with `allowActions`). The index page always shows its current out-of-sample skill.
 
-Optional structural covariates come from World Bank indicators (116).
+Optional structural covariates come from World Bank indicators (117).
 
 ---
 
-## 10. Impact projection (prompt 124)
+## 10. Impact projection (prompt 126)
 
 `ImpactProjector` (`impact-projection` 1.0.0) turns hazard forecasts Foresignal ingests into probabilistic, scored impact statements:
 
@@ -394,11 +440,11 @@ Optional structural covariates come from World Bank indicators (116).
 | NWPS flood forecasts (079) | forecast category at the gauge, calibrated by the gauge's historical exceedance |
 | Storm tracks (105) | extrapolation with the tracker's position error |
 
-For each hazard forecast it intersects the area with places (036), infrastructure (104 paths with weakest-edge labels) and exposure (101), and estimates `P(impact) = P(hazard at asset) × P(impact | hazard class)`, with the conditional rate taken from base rates (120). Each statement becomes a `projected-impact` finding and a binary ledger question ("Will an outage be reported in Harris County, TX, by 18:00Z tomorrow?") resolved by the matching sources (068, 092, 087). Labels: "modelled; heuristic links may be wrong; not an official warning".
+For each hazard forecast it intersects the area with places (036), infrastructure (104 paths with weakest-edge labels) and exposure (101), and estimates `P(impact) = P(hazard at asset) × P(impact | hazard class)`, with the conditional rate taken from base rates (121). Each statement becomes a `projected-impact` finding and a binary ledger question ("Will an outage be reported in Harris County, TX, by 18:00Z tomorrow?") resolved by the matching sources (068, 092, 087). Labels: "modelled; heuristic links may be wrong; not an official warning".
 
 ---
 
-## 11. Analysis cycles and assessments (prompt 125)
+## 11. Analysis cycles and assessments (prompt 127)
 
 ### 11.1 Cycles
 
@@ -421,7 +467,7 @@ For each hazard forecast it intersects the area with places (036), infrastructur
 |---|---|
 | Daily | situation and `daily` set reviews; new findings; forecasts due within 7 days |
 | Weekly | plus `weekly` sets; calibration scorecard; precursor library changes; regional outlook summary; proposals of sets for active situations without one |
-| Monthly | plus `monthly` sets; base-rate refresh (120); precursor re-test (119); ensemble weights, extremizing and Platt refits (121); index weight proposals (123); stale set archiving; 90-day outlook; retrospective evaluation of the LLM forecaster on the past month where valid |
+| Monthly | plus `monthly` sets; base-rate refresh (121); precursor re-test (120); ensemble weights, extremizing and Platt refits (122); index weight proposals (125); stale set archiving; 90-day outlook; retrospective evaluation of the LLM forecaster on the past month where valid |
 
 ### 11.4 The intel board
 
@@ -433,16 +479,19 @@ For each hazard forecast it intersects the area with places (036), infrastructur
 
 | Area | REST (new) | SSE topic | MCP (read / agent) |
 |---|---|---|---|
-| Markets and attention (116) | `/v1/attention/topics/**`; series via `/v1/series` | n/a | `list_attention_topics` |
-| Situations (117) | `/v1/situations/**` | `situations` | `list_situations`, `get_situation`, `get_situation_changes` / `create_situation`, `link_to_situation`, `merge_situations` |
-| Findings (118) | `/v1/analytics/findings/**`, `/v1/analytics/series/**`, `/v1/analytics/event-studies` | `analytics` | `list_findings`, `get_finding`, `get_series_data` / `run_event_study` |
-| Precursors (119) | `/v1/precursors/**`, `/v1/precursor-tests/**` (103) | `analytics` | `list_precursors` / `mine_precursors` |
-| Base rates, analogs (120) | `/v1/base-rates/**`, `/v1/situations/{id}/analogs`, `/v1/reference-imports/**` | n/a | `get_base_rate`, `find_analogs` |
-| Ledger (121) | `/v1/forecasts/**` | `forecasts` | `list_questions`, `get_question`, `get_scorecard` / `create_question`, `submit_forecast` |
-| Hypotheses (122) | `/v1/hypotheses/sets/**` | `hypotheses` | `list_hypothesis_sets`, `get_hypothesis_set` / `create_hypothesis_set`, `add_evidence`, `draft_hypothesis_set` |
-| Outlooks and indices (123) | `/v1/series/forecast`, `/v1/outlooks/**`, `/v1/indices/**` | `analytics` | `get_series_forecast`, `get_outlook`, `get_index` |
-| Impact (124) | `/v1/analytics/impacts/**` | `analytics` | `list_projected_impacts` |
-| Cycles (125) | `/v1/analysis/cycles/**`, `/v1/assessments/**`, `/v1/intel/board` | `assessments` | `get_assessment`, `get_intel_board` / `run_cycle` |
+| Markets and attention (117) | `/v1/attention/topics/**`; series via `/v1/series` | n/a | `list_attention_topics` |
+| Situations (118) | `/v1/situations/**` | `situations` | `list_situations`, `get_situation`, `get_situation_changes` / `create_situation`, `link_to_situation`, `merge_situations` |
+| Findings (119) | `/v1/analytics/findings/**`, `/v1/analytics/series/**`, `/v1/analytics/event-studies` | `analytics` | `list_findings`, `get_finding`, `get_series_data` / `run_event_study` |
+| Precursors (120) | `/v1/precursors/**`, `/v1/precursor-tests/**` (103) | `analytics` | `list_precursors` / `mine_precursors` |
+| Base rates, analogs (121) | `/v1/base-rates/**`, `/v1/situations/{id}/analogs`, `/v1/reference-imports/**` | n/a | `get_base_rate`, `find_analogs` |
+| Ledger (122) | `/v1/forecasts/**` | `forecasts` | `list_questions`, `get_question`, `get_scorecard` / `create_question`, `submit_forecast` |
+| Hypotheses (124) | `/v1/hypotheses/sets/**` | `hypotheses` | `list_hypothesis_sets`, `get_hypothesis_set` / `create_hypothesis_set`, `add_evidence`, `draft_hypothesis_set` |
+| Outlooks and indices (125) | `/v1/series/forecast`, `/v1/outlooks/**`, `/v1/indices/**` | `analytics` | `get_series_forecast`, `get_outlook`, `get_index` |
+| Impact (126) | `/v1/analytics/impacts/**` | `analytics` | `list_projected_impacts` |
+| Evidence and observability (116) | `/v1/evidence/**`, `/v1/observability/**`, `/v1/manifests/**` | `evidence` | `get_evidence`, `get_observability` |
+| Benchmarks (123) | `/v1/benchmarks/**` | n/a | `get_benchmark_status` / `run_benchmark` |
+| Objects and workspaces (128) | `/v1/objects/**` (incl. `/dossier`), `/v1/context/summary`, `/v1/graph/**`, `/v1/relations/**`, `/v1/annotations/**`, `/v1/analytics/precision`, `/v1/workspaces/**`, `/v1/context-links`, `/v1/sensors`, `/v1/contract` | `workspace` | `get_object`, `get_related`, `get_workspace_context` / `set_workspace_focus`, `annotate` |
+| Cycles (127) | `/v1/analysis/cycles/**`, `/v1/assessments/**`, `/v1/intel/board` | `assessments` | `get_assessment`, `get_intel_board` / `run_cycle` |
 
 All read tools join the read catalogue (025), so Ask, the analyst and the cycles can use them. Every LLM-spending path is `alwaysAuthenticated`.
 
@@ -452,18 +501,27 @@ Notification event types (018): `situation.activated`, `situation.escalated`, `h
 
 ---
 
+### 12.1 Objects, relations and workspaces (prompt 128)
+
+Foresignal is the shared intelligence foundation for several frontends (a globe, an analyst workstation, satellite and RF consoles, mobile, agents), which may ship as one application with switchable workspaces or as separate applications. Prompt 128 gives them one contract ([Client Contract](Client-Contract.md)):
+- **Object references** (`situation:01J…`, `record:adsblol-mil/ae1234@8812`) and a uniform **envelope** for every object type, resolvable singly or in batches, `asOf`-aware.
+- A **relation graph** with validity intervals, confidence and provenance, materialised from situations, intel events, canonical events, entity links, the facility graph, hypotheses, the ledger and cases; queries for neighbourhoods, subgraphs and **common dependencies** (the temporal knowledge graph, without a separate graph database).
+- **Annotations** on any object, with **verdicts** (confirmed, rejected, needs review, duplicate) that feed precision metrics and benchmark cases: human validation of AI findings.
+- **Workspaces** with a versioned shared context (selected objects, time range, viewport, active situation and hypothesis set) synchronised live over SSE, with presence, so several apps or monitors follow one investigation; plus deep links. Client layout is opaque JSON; Foresignal never interprets UI state.
+- **Sensor discovery:** what can observe an area in a window (sources by detectability, local receivers, SatDump stations, predicted satellite passes, imagery footprints). No tasking.
+
 ## 13. Worked example: positioning, strike, response
 
 The owner's scenario of 9–11 October 2026, used to illustrate the mechanics (Foresignal has not verified the events): heavy oil-futures buying on Friday 9 October, a Houthi strike on Riyadh on Saturday 10 October, and an expected Saudi or coalition response. A documented precedent exists: in March and April 2026 large oil-futures trades minutes before US–Iran announcements drew CFTC and DOJ inquiries (§14.4).
 
-1. **Signals.** ACLED/UCDP and GDELT (081, 066) mark the strike; NOTAM/TFR changes (087), AIS behaviour near Bab el-Mandeb (099, 088) and GPS-jamming cells (099) add context; EIA daily prices (093), FRED volatility (116, local only) and CFTC managed-money positions (116) give the market side; GDELT timelines and Wikipedia pageviews for the topic (116) give the attention side.
-2. **Correlation.** A 101 recipe creates an intel event; the 117 linker attaches it to the open "Red Sea / Gulf escalation" situation.
-3. **Discovery.** The 118 event study checks the watch pairs for the conflict family. Daily price and volatility can show an abnormal Friday; the positioning check completes when COT data for the week lands, flagged `LAGGED_PUBLICATION`. Any finding carries the coincidence baseline and `DAILY_RESOLUTION_ONLY` (a one-minute burst of trading would be invisible at daily resolution). If the market moved first with no event yet, Friday's `unexplained-move` finding links to the strike when it happens.
+1. **Signals.** ACLED/UCDP and GDELT (081, 066) mark the strike; NOTAM/TFR changes (087), AIS behaviour near Bab el-Mandeb (099, 088) and GPS-jamming cells (099) add context; EIA daily prices (093), FRED volatility (117, local only) and CFTC managed-money positions (117) give the market side; GDELT timelines and Wikipedia pageviews for the topic (117) give the attention side.
+2. **Correlation.** A 101 recipe creates an intel event; the 118 linker attaches it to the open "Red Sea / Gulf escalation" situation.
+3. **Discovery.** The 119 event study checks the watch pairs for the conflict family. Daily price and volatility can show an abnormal Friday; the positioning check completes when COT data for the week lands, flagged `LAGGED_PUBLICATION`. Any finding carries the coincidence baseline and `DAILY_RESOLUTION_ONLY` (a one-minute burst of trading would be invisible at daily resolution). If the market moved first with no event yet, Friday's `unexplained-move` finding links to the strike when it happens.
 4. **Hypotheses.** The weekly cycle (or the operator) opens two sets:
-   - *Outcome:* "Saudi or coalition kinetic response against Houthi targets within 7 days?" (exclusive: within 72 h, 3–7 days, none in 7 days, other). Prior from reference-import base rates for responses to comparable strikes and from analogs; indicators: military air and tanker activity (099), airspace NOTAMs (087), naval co-occurrence (099), attention spikes (116). Resolver: `event-exists` on ACLED/UCDP events of the response type.
+   - *Outcome:* "Saudi or coalition kinetic response against Houthi targets within 7 days?" (exclusive: within 72 h, 3–7 days, none in 7 days, other). Prior from reference-import base rates for responses to comparable strikes and from analogs; indicators: military air and tanker activity (099), airspace NOTAMs (087), naval co-occurrence (099), attention spikes (117). Resolver: `event-exists` on ACLED/UCDP events of the response type.
    - *Speculative link:* "The pre-strike positioning reflected advance knowledge", with alternatives "scheduled news or inventory data", "contract roll or rebalancing", "coincidence at the base rate"; bounded by the placebo baseline.
 5. **Ledger.** The outcome question gets forecasts from base-rate, analog, indicator-Bayes, LLM and red-team forecasters, and the ensemble; when ACLED reports a response (or the window passes) it resolves and every forecaster is scored.
-6. **Over months,** precursor mining (119) tests whether `unexplained-move` and `pre-event-signal` findings precede Gulf escalations at all, with FDR control and out-of-sample validation. A real pattern becomes a validated precursor and a live forecaster; a spurious one is retired, which is just as useful to know.
+6. **Over months,** precursor mining (120) tests whether `unexplained-move` and `pre-event-signal` findings precede Gulf escalations at all, with FDR control and out-of-sample validation. A real pattern becomes a validated precursor and a live forecaster; a spurious one is retired, which is just as useful to know.
 
 ---
 
@@ -497,32 +555,43 @@ CFTC COT on publicreporting.cftc.gov (Socrata; public domain; datasets: legacy `
 
 ## 15. Prompt breakdown
 
-### 15.1 New prompts 116–126
+### 15.1 New prompts 116–129
 
 | # | Prompt | Scope | Depends on |
 |---|---|---|---|
-| 116 | Market-And-Attention-Signals | `cftc-cot` (+ history backfill), `fred-series` (public-domain defaults; copyrighted series local-only), `wikimedia-pageviews`, `gdelt-timelines`, `worldbank-indicators`; `attention_topic`; optional `ice-cot` | 093, 066, 095, 073 |
-| 117 | Situations-And-Storylines | situations, members, snapshots, linker, lifecycle, themes, briefs, merge/split | 101, 098, 040, 099, 116 |
-| 118 | Change-Points-And-Event-Studies | region rollups, `SeriesReader`, series registry, findings + `foresignal-analytics`, CUSUM and BOCPD, event studies, pre-event signals, unexplained moves, co-occurrence | 038, 040, 093, 100, 103, 116, 117 |
-| 119 | Precursor-Mining-And-Library | precursor tests (renamed), event and series candidates, BH/BY, validation, library, live `precursor-active` | 103, 118 |
-| 120 | Base-Rates-And-Historical-Analogs | base-rate library, reference imports, signatures, analog search | 117, 118, 027 |
-| 121 | Forecast-Ledger-And-Scoring | questions, resolvers, forecasts, forecasters, scoring, CORP, bias monitor, ensemble, Platt, retrospective evaluation, `EstimativeLanguage` | 119, 120 |
-| 122 | Hypotheses-Indicators-And-ACH | sets, hypotheses, revisions, indicators with watch rules, updater, ACH, key assumptions, speculative links, drafting | 017, 100, 117, 119–121 |
-| 123 | Series-Forecasts-Regional-Outlooks-And-Indices | series forecaster, regional 4-week outlooks, scored indices with fitted weights | 118, 120, 121 |
-| 124 | Impact-Projection | hazards × places × infrastructure, `projected-impact`, ledger questions | 104, 105, 120, 121 |
-| 125 | Analysis-Cycles-And-Assessments | cycles, packet, LLM roles, assessments, intel board, notifications | 029, 102, 117–124 |
-| 126 | ✅ Checkpoint-Intelligence | run and fix all tests from 001–125 | all |
+| 116 | Evidence-Identity-And-Observability | originators, canonical events, evidence groups, quality flags; observability (declared, capture–recapture, presence proxy, receiver range), coverage layer; analysis manifests and replay; retrofits 099, 100, 101, 103 | 003, 006, 038, 040, 069, 098–103 |
+| 117 | Market-And-Attention-Signals | `cftc-cot` (+ history backfill), `fred-series` (local-only), `wikimedia-pageviews`, `gdelt-timelines`, `worldbank-indicators`; `attention_topic`; optional `ice-cot` | 093, 066, 095, 073 |
+| 118 | Situations-And-Storylines | situations, members, snapshots, linker, lifecycle, themes, briefs, merge/split; corroboration from evidence groups | 101, 098, 040, 099, 116, 117 |
+| 119 | Change-Points-And-Event-Studies | region rollups, `SeriesReader`, series registry, findings + `foresignal-analytics`, CUSUM and BOCPD, event studies, pre-event signals, unexplained moves, co-occurrence | 038, 040, 093, 100, 103, 116–118 |
+| 120 | Precursor-Mining-And-Library | precursor tests (renamed), event and series candidates over canonical events, BH/BY, validation, library, live `precursor-active` | 103, 116, 119 |
+| 121 | Base-Rates-And-Historical-Analogs | base-rate library, reference imports, signatures, analog search | 116, 118, 119, 027 |
+| 122 | Forecast-Ledger-And-Scoring | questions, resolvers (detectability-aware), forecasts, forecasters, scoring, CORP, bias monitor, ensemble, Platt, retrospective evaluation, `EstimativeLanguage` | 116, 120, 121 |
+| 123 | Analytic-Benchmark-Harness | planted-truth scenarios, historical corpus, metrics, thresholds, gating | 101, 116, 118–122 |
+| 124 | Hypotheses-Indicators-And-ACH | sets, hypotheses, revisions, indicators with watch rules, updater (evidence groups, detectability-scaled absence), ACH, key assumptions, speculative links, information value, collection gaps, drafting | 017, 100, 116, 118, 120–123 |
+| 125 | Series-Forecasts-Regional-Outlooks-And-Indices | series forecaster, regional 4-week outlooks, scored indices with fitted weights | 116, 119, 121, 122 |
+| 126 | Impact-Projection | hazards × places × infrastructure, `projected-impact`, ledger questions | 104, 105, 116, 121, 122 |
+| 127 | Analysis-Cycles-And-Assessments | cycles, packet, LLM roles (value-of-information priorities, per-cycle token budgets), assessments, export bundles, intel board (operator vs machine), notifications | 029, 102, 116–126 |
+| 128 | Object-Graph-Workspaces-And-Annotations | object references and envelopes, relation graph, annotations and verdicts, precision metrics, workspaces with live context sync and deep links, sensor discovery, `/v1/contract` | 036, 064, 096, 098, 101, 104, 112, 116–127 |
+| 129 | ✅ Checkpoint-Intelligence | run and fix all tests from 001–128; determinism, look-ahead, wording, egress, duplicate inflation, manifests, benchmark, invariants | all |
 
 ### 15.2 Changes to unexecuted prompts
 
 | Prompt | Change |
 |---|---|
 | 019 | Analytic retention classes come in through descriptors (Conventions); intelligence tables are outside RetentionJob |
-| 038 | Pointer: 118 adds region resolutions 2 and 3 |
-| 102 | Pointer: 125 reuses analyst profiles and the proposal pipeline |
+| 038 | Pointer: 119 adds region resolutions 2 and 3 |
+| 102 | Pointer: 127 reuses analyst profiles and the proposal pipeline |
 | 103 | `hypothesis` renamed **precursor test** (`precursor_test`, `/v1/precursor-tests`, `test_precursor`); prompt renamed `103-Backtesting-And-Precursor-Tests` |
 | Adapter prompts | Retention defaults per the class table unless the prompt names a longer window |
-| 127–131 (former 116–120) | Renumbered; test-run lists and cross-references updated |
+| 017 | `hysteresisMeters` for geofence `enter`/`exit` (no edges from boundary jitter) |
+| 022 | Performance smoke: sustained ingest at NFR-2 and 2×, SSE fan-out, partition maintenance under load |
+| 088 | Optional `gfw-sar-detections` (SAR vessel detections) |
+| 099 | New generators: `derived-cable-risk` (anchor drag near submarine cables), `derived-dark-vessel-match` (AIS gaps × SAR detections), `derived-lightning-holdover` (holdover lightning ignitions), `derived-hf-blackout` (HF propagation anomalies) |
+| 100, 101, 102, 103 | Retrofitted by 116 (detectability, evidence groups, manifests) |
+| 012, 022, 041, 057, 097, 132 | Invariants check against `docs/Invariants.md` |
+| 131 | SDKs include `ObjectRef`, the envelope and a `WorkspaceSync` helper |
+| 133 | Disk-full drill, practical capacity bounds, intelligence job costs |
+| 130–134 (v1.2 116–120) | Renumbered; test-run lists and cross-references updated |
 
 ---
 
@@ -539,3 +608,41 @@ CFTC COT on publicreporting.cftc.gov (Socrata; public domain; datasets: legacy `
 | Neural forecasting models | Charter non-goal; statistical fitting only. |
 | Acting on a probability automatically | Forecasts drive only operator-written rules on `analytic-finding` records. |
 | Federating hypotheses and forecasts across instances | After 1.0 (113 carries intel events only). |
+| Counterfactual engine (matched periods, synthetic controls) | After the base-rate, event-study and benchmark machinery is validated in production (after 1.0). |
+| Full temporal knowledge graph (graph database, reasoning) | 128's relation tables cover the need for 1.0; revisit if queries outgrow PostgreSQL. |
+| Earth-observation change detection (VIIRS night lights, Sentinel-1 flood, Sentinel-2 change) | After 1.0; needs raster differencing beyond 042–046. STAC footprints (096) and GFW SAR detections (088) cover the first uses. |
+| Public procurement (SAM.gov, USAspending) | Low signal for this product; revisit on demand. |
+| Argo floats, GCN/LIGO multi-messenger alerts | Low intelligence value; easy to add later as custom or catalogue sources. |
+| ADS-B barometric-vs-geometric altitude pressure mapping | Research-grade; out of scope for 1.0. |
+| Electricity Maps | Commercial API terms; Ember, EIA-930 and grid frequency (093) cover the need. |
+
+---
+
+## 17. External review log (2026-10-11)
+
+Three external reviews (ChatGPT, Gemini, Grok) of the v1.3 design, and what was done:
+
+| Recommendation | Source | Disposition |
+|---|---|---|
+| Canonical evidence identity; independence of evidence; adversarial evidence evaluation | ChatGPT (P0, E) | **Adopted:** 116 (canonical events, evidence groups, quality flags), consumed across the block |
+| Model what could have been observed (coverage and detection probability) | ChatGPT (P0); Grok (visible coverage layer) | **Adopted:** 116 observability model and coverage tiles; absence rules everywhere |
+| Reproducible analysis-run manifests | ChatGPT (P1) | **Adopted:** 116 manifests and replay |
+| Analytic benchmark before autonomous features | ChatGPT (P1) | **Adopted:** 123 benchmark harness with gating |
+| Run fast tests every prompt | ChatGPT (P1); Grok | **Not adopted** (owner decision): tests stay at checkpoints; checkpoints now also verify the invariants registry |
+| Machine-readable decision and invariant registry; one source of truth per concern | ChatGPT; Grok | **Adopted:** `docs/Invariants.md` (ids, owners, tests), checked at every checkpoint; source-of-truth table in Conventions |
+| Ingest, partition and SSE load benchmarks before dense feeds | ChatGPT; Gemini | **Adopted:** 022 performance smoke; 133 capacity and disk-full drill |
+| Temporal knowledge graph | ChatGPT (A) | **Adopted in light form:** 128 relation graph with validity, confidence, provenance and common-dependency queries |
+| Active information-gap detection; "what would have to be true" | ChatGPT (C); Grok | **Adopted:** 124 information value and collection gaps; 127 reports them |
+| Counterfactual engine | ChatGPT (B) | **Deferred** (§16) |
+| Operator-vs-machine scorecard as a first-class surface | Grok | **Adopted:** 127 intel board and assessments |
+| Exports of scored objects | Grok | **Adopted:** 127 assessment export bundles (JSON, GeoParquet) |
+| Budget by cycle and information value | ChatGPT | **Adopted:** 127 per-cycle token budgets and value-of-information priorities |
+| OpenAPI missing intelligence endpoints | Gemini | **Not a defect:** the spec grows with each prompt by convention (Conventions "Spec drift"); 020 tracks unbuilt operations |
+| Retention deadlock from lagging cursors | Gemini | **Already handled:** the consumer clamp releases after 2 × window and alarms (Core-Data-Model §13); the new cursors inherit it (Conventions) |
+| Geofence flapping from position jitter | Gemini | **Adopted:** 017 `hysteresisMeters` |
+| Single-writer ceiling, SSE memory | Gemini | **Measured:** 022 performance smoke (writer, SSE heap per emitter), 133 soak |
+| Submarine-cable anchor-drag guard; dark vessels × SAR; holdover lightning ignitions; HF propagation anomalies | Gemini | **Adopted:** 099 generators; 088 optional SAR detections |
+| BGP/outage × NOTAM/fire/conflict co-occurrence | Gemini | **Covered:** 119 co-occurrence mining over all signal families |
+| RIS Live, OSM infrastructure extracts | Grok | **Already planned:** 092 (optional RIS Live), 104 (operator-supplied OSM extract) |
+| Argo, GCN/LIGO, Electricity Maps, procurement, Earth-observation change detection | Grok; ChatGPT | **Deferred** (§16) |
+| Shared object contract and cross-application context sync for the frontends | ChatGPT (frontend discussion) | **Adopted:** 128 and `docs/Client-Contract.md` |

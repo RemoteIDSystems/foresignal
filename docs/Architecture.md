@@ -95,17 +95,23 @@ ai.foresignal
 ├── retention       RetentionSettings, RetentionJob
 ├── settings        AppSettingService (typed key/value), export/import
 ├── system          SystemInfoService
-├── attention       Attention topics (116)
-├── situation       Situations, linker, snapshots, briefs (117)
+├── evidence        Originators, canonical events, evidence groups (116)
+├── observability   Detection-probability estimates, coverage layer (116)
+├── manifest        Analysis manifests and replay (116)
+├── attention       Attention topics (117)
+├── situation       Situations, linker, snapshots, briefs (118)
 ├── analytics       Series reader, findings, change points, event studies, co-occurrence,
-│                   signal families, math (118)
-├── precursor       Precursor mining, validation, library, live watch (119)
-├── baserate        Base rates, reference-history imports, analogs (120)
-├── forecast        Ledger: questions, forecasts, resolvers, scoring, ensemble (121)
-├── hypothesis      Hypothesis sets, indicators, updater, ACH, assumptions (122)
-├── outlook         Series forecasts, regional outlooks, indices (123)
-├── impact          Impact projection (124)
-├── cycle           Analysis cycles, assessments, intel board (125)
+│                   signal families, math (119)
+├── precursor       Precursor mining, validation, library, live watch (120)
+├── baserate        Base rates, reference-history imports, analogs (121)
+├── forecast        Ledger: questions, forecasts, resolvers, scoring, ensemble (122)
+├── hypothesis      Hypothesis sets, indicators, updater, ACH, assumptions (124)
+├── outlook         Series forecasts, regional outlooks, indices (125)
+├── impact          Impact projection (126)
+├── benchmark       Analytic benchmark harness and gating (123)
+├── cycle           Analysis cycles, assessments, intel board (127)
+├── object          Object references, envelopes, relation graph, annotations,
+│                   workspaces and context sync, sensor discovery (128)
 └── api             Controllers, DTOs, ProblemDetail handlers, pagination cursors
 ```
 
@@ -616,7 +622,7 @@ Optional. Without a configured provider, Foresignal is fully functional: briefin
 
 - **Keys:** a VAPID key pair (P-256) is generated on first start. The private key is stored encrypted in `system_secret`. `GET /v1/push/vapid-public-key` is open.
 - **Subscriptions:** `POST /v1/push/subscriptions` takes `{name, subscription: {endpoint, keys: {p256dh, auth}}, filters: {events, ruleIds, minSeverity}}` and requires `read` scope (or open reads). `DELETE /v1/push/subscriptions/{id}` removes one, and `GET` lists them (admin).
-- **Delivery:** the built-in `webpush` channel encrypts payloads per RFC 8291 (`aes128gcm`) and signs a VAPID JWT (ES256, RFC 8292) using JDK crypto only. A `404` or `410` from the push service deletes the subscription.
+- **Delivery:** the built-in `webpush` channel encrypts payloads per RFC 8291 (`aes131gcm`) and signs a VAPID JWT (ES256, RFC 8292) using JDK crypto only. A `404` or `410` from the push service deletes the subscription.
 - **Payload:** `{title, body, severity, url, event, id}`. Frontends (a PWA or the operator console) register a service worker and subscribe.
 
 ## 25. Production hardening (prompt 063)
@@ -668,11 +674,14 @@ Prompts reference these at fixed paths under `~/Documents/GitLab/`, as siblings 
 
 Authoritative design: [Intelligence Design](Intelligence-Design.md). Summary of how it sits on the platform:
 
-- **Stack:** signals (records, rollups, series) → detection (099, 100) → correlation (101, 104) → discovery (118 change points, event studies, co-occurrence; 119 precursors; 123 outlooks and indices; 124 impact projection) → memory (117 situations, 120 base rates and analogs) → reasoning (122 rolling hypotheses) → accountability (121 forecast ledger) → rhythm (125 analysis cycles and assessments).
+- **Stack:** signals (records, rollups, series) → evidence (116: canonical events, evidence groups, observability, manifests) → detection (099, 100) → correlation (101, 104) → discovery (119 change points, event studies, co-occurrence; 120 precursors; 125 outlooks and indices; 126 impact projection) → memory (118 situations, 121 base rates and analogs) → reasoning (124 rolling hypotheses) → accountability (122 forecast ledger) → rhythm (127 analysis cycles and assessments).
 - **Outputs are platform objects:** typed tables plus records of the DERIVED sources `foresignal-intel`, `foresignal-analytics` and `foresignal-outlook`, so triggers, SSE, tiles, search, briefings and MCP work unchanged. Forecast questions and forecasts are append-only ledger rows.
 - **Determinism and versioning:** detectors, scorers, updaters and forecasters are pure, versioned components; outputs store `{name, version, params}` and `asOfSeq`. The LLM explains, challenges, proposes and forecasts (scored like any forecaster); it never creates evidence or changes deterministic scores.
 - **Time:** every series point carries `knownAt`; live detection uses only known data; replays and retrospective evaluation read through `asOf` (§9 query paths, Core-Data-Model §12).
 - **Durable cursors** (`situation.cursor`, `stats.region.cursor`, `precursor.cursor`, `impact.cursor`) join the retention consumer clamp; scheduled jobs (rollups, detectors, mining, resolution, cycles) use the 029/102 scheduler pattern and the 103 job framework.
 - **Retention:** analytic retention classes (Conventions) keep event kinds 5 years and series 10 years; intelligence tables are outside `RetentionJob`.
+- **Benchmarks** (123) measure analytic usefulness on planted-truth scenarios and a historical corpus and gate autonomous features.
+- **Clients** use one object contract, relation graph, annotations and synchronised workspaces (128, [Client Contract](Client-Contract.md)); Foresignal stores client layout only as opaque JSON.
+- **Invariants** are indexed in [Invariants](Invariants.md) and verified at every checkpoint.
 - **Wording:** probabilities are numbers; ICD 203 terms are derived and linted by one `EstimativeLanguage` utility.
 - **Libraries:** Apache Commons Statistics, Commons Numbers, Commons RNG and Hipparchus; no GPL statistics libraries.

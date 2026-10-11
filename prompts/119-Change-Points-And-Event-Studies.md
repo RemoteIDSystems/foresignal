@@ -1,21 +1,21 @@
-# 118 — Change Points And Event Studies
+# 119 — Change Points And Event Studies
 
 > Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
-> Completion Report: `completion-reports/118-CR-Change-Points-And-Event-Studies.md`
+> Completion Report: `completion-reports/119-CR-Change-Points-And-Event-Studies.md`
 
 ## Context
 
 - **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
-- **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults, analytic retention, intelligence conventions) applies to every prompt and wins over conflicting prompt text.
+- **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults, analytic retention, intelligence conventions) applies to every prompt and wins over conflicting prompt text. `docs/Invariants.md` lists the invariants each prompt must keep.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and **`docs/Intelligence-Design.md` is authoritative for the intelligence layer** (situations, findings, precursors, base rates, analogs, the forecast ledger, hypotheses, forecasts, impact projection and analysis cycles).
-- **Previous Completion Report:** read `completion-reports/117-CR-*.md` and follow its "Notes for the next prompt".
+- **Previous Completion Report:** read `completion-reports/118-CR-*.md` and follow its "Notes for the next prompt".
 
 ## Read first
 
 - `docs/Intelligence-Design.md` §2, §3 (DERIVED sources), §4.2 (region rollups), §4.3 (series), §5.1–§5.4 and §5.6 (findings, change points, event studies, co-occurrence, series registry), §12 (libraries)
 - `docs/Core-Data-Model.md` §8 (`seq_clock`, `S(T)`), §13 (consumer clamp)
-- Completion Reports of 038 (`activity_rollup`, RollupJob, stats API), 040 (region tags), 052 (DERIVED runtime), 088 (PortWatch), 093 (series), 100 (`activity_sample`, slot baseline, CoverageGate), 101 (`signal_family`, `foresignal-intel`), 103 (job framework, caveat generator, Wilson interval), 116 (series metadata, topics), 117 (situations)
+- Completion Reports of 116 (observability, `canSeeAbsence`, manifests, canonical events), 038 (`activity_rollup`, RollupJob, stats API), 040 (region tags), 052 (DERIVED runtime), 088 (PortWatch), 093 (series), 100 (`activity_sample`, slot baseline, CoverageGate), 101 (`signal_family`, `foresignal-intel`), 103 (job framework, caveat generator, Wilson interval), 117 (series metadata, topics), 118 (situations)
 
 ## Objective
 
@@ -26,7 +26,9 @@ Build the discovery layer's foundations and first three detectors. Foundations: 
 - Pure, versioned detectors; reproducible from stored data, a definition and `asOfSeq`.
 - **No look-ahead:** live detection uses only series points with `knownAt` ≤ decision time; batch studies use `asOf` replays.
 - **Every finding carries a base rate** (its detector's false-alarm rate on the same series, or the placebo distribution) and its caveats.
-- **Coverage-aware:** buckets with `coverageOk=false` are excluded; a candidate spanning a coverage gap becomes `unknown`, never a "drop".
+- **Coverage- and detectability-aware:** buckets with `coverageOk=false` are excluded; a candidate spanning a coverage gap becomes `unknown`, never a "drop". Any **downward** finding (falling counts, a co-occurrence absence) also requires 116 `canSeeAbsence` for the series' family and region, otherwise `unknown` / `LOW_DETECTABILITY`.
+- **Duplicates never count twice:** event-count series for families with canonical events (116) count canonical events, not raw records.
+- **Every finding stores a 116 `manifest_id`.**
 - **`LOCAL_ONLY` series:** findings over them carry standardised statistics (z, CAR, p) but not raw values, except for callers allowed local egress (062).
 
 ## Tasks
@@ -52,7 +54,7 @@ Build the discovery layer's foundations and first three detectors. Foundations: 
 ### 4. Analysis series registry
 
 - `analysis_series`: `ref` (PK), `enabled`, `detectors` text[] (`changepoint-cusum`, `changepoint-bocpd`, `forecast` later), `frequency` (hour | day | week), `family`, `region_code`, `watch_pairs` jsonb (event-study pairs, §7), `origin` (auto | operator), `last_run_at`, `last_error`.
-- Nightly auto-registration (02:00 UTC): region-day rollups with ≥ 30 non-zero days in the last 90; all `series-point` series from 093 and 116; PortWatch chokepoint series (088); anomaly rule groups (100) with ≥ 8 weeks of samples. Cap `analysis.series.max` (2,000), keeping the highest-volume refs. Operator rows are never removed automatically.
+- Nightly auto-registration (02:00 UTC): region-day rollups with ≥ 30 non-zero days in the last 90; all `series-point` series from 093 and 117; PortWatch chokepoint series (088); anomaly rule groups (100) with ≥ 8 weeks of samples. Cap `analysis.series.max` (2,000), keeping the highest-volume refs. Operator rows are never removed automatically.
 - API: `GET /v1/analytics/series?family&region&enabled&cursor` (read), `PUT /v1/analytics/series` (agent; upsert by ref), `DELETE /v1/analytics/series?ref=` (agent).
 
 ### 5. Statistics package (`ai.foresignal.analytics.math`)
@@ -72,7 +74,7 @@ Dependencies: Apache Commons Statistics (distributions, inference; verify the cu
 - **DERIVED source `foresignal-analytics`** (052 runtime): one `analytic-finding` record per finding (`externalId` = finding id; payload `findingType`, `severity`, `title`, `regionCodes`, `seriesRefs`, key stats, `baseRate`, `automated: true`), emitted on create and on change; tombstoned on dismiss or supersede. Analytic class `intel`.
 - Severity: `significant` when the detector's p (or placebo p) ≤ 0.001 and the effect passes its threshold; `notable` when ≤ 0.01; otherwise `info` (stored, not published as a record unless `analysis.findings.publishInfo=true`).
 - Dedup: a new finding of the same type, series and overlapping window supersedes the older one.
-- Offer `notable`+ findings to the 117 linker (the linker reads `analytic-finding` records from the ChangeBus).
+- Offer `notable`+ findings to the 118 linker (the linker reads `analytic-finding` records from the ChangeBus).
 - API: `GET /v1/analytics/findings?type&severity&region&ref&since&situationId&cursor` (read), `GET /v1/analytics/findings/{id}` (read; evidence / inference / caveats sections), `PATCH /v1/analytics/findings/{id}` (agent; dismiss with reason).
 - SSE topic `analytics`: `finding.created|updated|dismissed`. Notification event type `finding.significant` (default off).
 
@@ -85,7 +87,7 @@ Dependencies: Apache Commons Statistics (distributions, inference; verify the cu
 - Output `change-point` findings with `stats {changeAt, levelBefore, levelAfter, effect, detectionDelay, bocpdPosterior}`.
 
 **7.2 Event studies** (Intelligence-Design §5.3):
-- `EventStudyEngine` (`event-study` 1.0.0): event selector (103 selector types, plus `situationActivated`, `changePoint` by series family, explicit timestamps), target `SeriesRef`, transform by series `family` (116 metadata), windows by frequency (daily: estimation `[−250, −11]` with minimum 60 points; pre-event `[−5, −1]`; event `[0, +1]`; weekly: `[−52, −3]`, `[−2, −1]`, `[0, +1]`), CAR, CAAR with clustered overlapping events, standardised test, Corrado rank test, and placebo test (500 deterministic pseudo-events from periods without qualifying events; seed = hash of definition and range).
+- `EventStudyEngine` (`event-study` 1.0.0): event selector (103 selector types, plus `situationActivated`, `changePoint` by series family, explicit timestamps), target `SeriesRef`, transform by series `family` (117 metadata), windows by frequency (daily: estimation `[−250, −11]` with minimum 60 points; pre-event `[−5, −1]`; event `[0, +1]`; weekly: `[−52, −3]`, `[−2, −1]`, `[0, +1]`), CAR, CAAR with clustered overlapping events, standardised test, Corrado rank test, and placebo test (500 deterministic pseudo-events from periods without qualifying events; seed = hash of definition and range).
 - **Batch:** `POST /v1/analytics/event-studies` (agent) submits a 103 job with `type=event-study`; result: per-event abnormal paths, CAAR per window, test statistics, placebo distribution summary, caveats (103's plus `FEW_EVENTS`, `LAGGED_PUBLICATION`, `DAILY_RESOLUTION_ONLY` for market families).
 - **Live `pre-event-signal`:** on a qualifying event (intel event ≥ warning becoming active, situation activated, significant change point), evaluate the `watch_pairs` whose event family matches, over the pre-event window, using only points with `knownAt` ≤ the event's `observedAt`. Placebo p ≤ 0.01 and |CAR| ≥ `minEffect` (2.0 SD) → finding. When the pre-event window is not yet fully published (weekly series with a lag), schedule a re-check after `releaseLagDays` and mark `LAGGED_PUBLICATION`.
 - **Live `unexplained-move`:** daily at 04:00 UTC, for every watched series of family price, volume, open-interest, position, attention or tone: a move with |z| ≥ 3 against the estimation window and no qualifying event in the series' linked regions, themes or topic within ±2 days → `unexplained-move` finding. A qualifying event within the next 7 days links to the finding (`stats.linkedEventId`, `stats.leadDays`) and creates a `pre-event-signal` finding that references it.
@@ -126,8 +128,8 @@ Dependencies: Apache Commons Statistics (distributions, inference; verify the cu
 
 ## Guardrails (mandatory)
 
-1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 126, 129, 130, 131).
-2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 131).
+1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 129, 132, 133, 134).
+2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 134).
 3. **Reuse policy.** Never copy code from ShadowBroker, Velocity or World Monitor (AGPL) or SatDump (GPL). They are reference material only. God's Eye View (MIT, `~/Documents/GitLab/gods-eye-view`) may be ported to Java if you add an origin header comment and an entry in `THIRD_PARTY_NOTICES.md`.
 4. **Stay in scope.** Implement what this prompt specifies, no more. If the docs conflict with reality (for example, a library API differs from what the docs assume), choose the approach most faithful to `docs/Architecture.md` and `docs/Intelligence-Design.md`, and record it under "Deviations" in the Completion Report.
 5. **Verify versions.** When adding a dependency, confirm the version exists on Maven Central and is compatible with Spring Boot 4.1 and Java 21.
@@ -136,7 +138,7 @@ Dependencies: Apache Commons Statistics (distributions, inference; verify the cu
 ## Finish: Compile → Commit → Push
 
 1. **Compile:** `./gradlew compileJava compileTestJava` must succeed. Fix every compile error. Do not run tests.
-2. **Commit** all changes with the message `118: Change Points And Event Studies`. Capture the full hash with `git rev-parse HEAD`; this is the *implementation commit*.
-3. **Write** `completion-reports/118-CR-Change-Points-And-Event-Studies.md` using the template in `docs/Roadmap.md` §3, including the implementation commit hash.
-4. **Commit** the report with the message `118: completion report`, then run `git push origin main`.
+2. **Commit** all changes with the message `119: Change Points And Event Studies`. Capture the full hash with `git rev-parse HEAD`; this is the *implementation commit*.
+3. **Write** `completion-reports/119-CR-Change-Points-And-Event-Studies.md` using the template in `docs/Roadmap.md` §3, including the implementation commit hash.
+4. **Commit** the report with the message `119: completion report`, then run `git push origin main`.
 5. End your reply with the line `Implementation commit: <hash>`.

@@ -197,12 +197,12 @@ These are left out because they scrape or use headless browsers, rely on unoffic
 - **Windy webcams:** keyed and commercial.
 - **Shodan:** keyed, commercial, on-demand recon. It doesn't fit an ingest broker; agents can call it directly.
 - **CME Group data:** personal, non-commercial use only; automated access and data mining prohibited and technically enforced. (DataMine is paid.)
-- **ICE end-of-day futures data:** paid subscription with redistribution licensing. (ICE's free weekly COT for Brent and gasoil is evaluated in 116.)
+- **ICE end-of-day futures data:** paid subscription with redistribution licensing. (ICE's free weekly COT for Brent and gasoil is evaluated in 117.)
 - **Prediction-market prices (Polymarket, Kalshi):** terms forbid storing or archiving (093 §8).
 - **Metaculus community forecasts:** terms restrict AI/ML and commercial use without written permission; excluded until permission exists.
 - **UKMTO / JMIC advisories:** the site blocks automated clients and offers no official feed; NGA MSI (088) and MARAD advisories cover the same ground.
 
-## Markets, attention and structural series (prompt 116, v1.3)
+## Markets, attention and structural series (prompt 117, v1.3)
 
 All are `series-point` + `series-latest` records (093 model) with `family`, `transform`, `releaseLagDays` and `egress` metadata, analytic class `series` (3650 d).
 
@@ -213,11 +213,23 @@ All are `series-point` + `series-latest` records (093 model) with `family`, `tra
 | `wikimedia-pageviews` | Wikimedia Pageviews REST (per-article daily, top articles) | none; User-Agent with contact | daily, lag 1 d | CC0 | Articles from attention topics; `attention-top` daily top 100 |
 | `gdelt-timelines` | GDELT DOC 2.0 API (`TimelineVolRaw`, `TimelineTone`) | none | 30 min; ≤ 1 request / 5 s | open with citation | Volume, share and tone per attention topic |
 | `worldbank-indicators` | World Bank Indicators API v2 | none | weekly poll, annual data | mostly CC BY 4.0 (per indicator source) | Structural covariates for regional indices |
-| `ice-cot` (optional) | ICE Futures Europe weekly COT (Brent, gasoil) | none | weekly | verify | Implemented only if an official, stable machine-readable file exists (116 decides and records) |
+| `ice-cot` (optional) | ICE Futures Europe weekly COT (Brent, gasoil) | none | weekly | verify | Implemented only if an official, stable machine-readable file exists (117 decides and records) |
 
 `eia-petroleum` (093) spot prices are sourced from LSEG: those series are `LOCAL_ONLY`.
 
-## Reference-history datasets (prompt 120, v1.3)
+## Review additions (v1.3)
+
+| Source / layer | Prompt | Notes |
+|---|---|---|
+| `gfw-sar-detections` | 088 (optional) | Global Fishing Watch SAR vessel detections with AIS-match flag; CC BY-NC 4.0; verify the dataset id at capture |
+| `derived-cable-risk` | 099 | anchored or slow vessels near submarine cables outside ports; possible anchor drag |
+| `derived-dark-vessel-match` | 099 | AIS gaps matched to unmatched SAR detections (candidates only) |
+| `derived-lightning-holdover` | 099 | GLM flashes over dry cells, watched for later fire detections |
+| `derived-hf-blackout` | 099 | PSKReporter spot and SNR drops on sunlit paths, with concurrent SWPC X-ray class |
+
+Every catalogued source also has an originator and observability entry in `src/main/resources/intel/originators.json` and `intel/observability.json` (prompt 116).
+
+## Reference-history datasets (prompt 121, v1.3)
 
 Imported as weekly counts per family and region (`reference_history`); never served raw.
 

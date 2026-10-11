@@ -1,15 +1,15 @@
-# 116 — Market And Attention Signals
+# 117 — Market And Attention Signals
 
 > Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
-> Completion Report: `completion-reports/116-CR-Market-And-Attention-Signals.md`
+> Completion Report: `completion-reports/117-CR-Market-And-Attention-Signals.md`
 
 ## Context
 
 - **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
-- **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults, analytic retention, intelligence conventions) applies to every prompt and wins over conflicting prompt text.
+- **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults, analytic retention, intelligence conventions) applies to every prompt and wins over conflicting prompt text. `docs/Invariants.md` lists the invariants each prompt must keep.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and **`docs/Intelligence-Design.md` is authoritative for the intelligence layer** (situations, findings, precursors, base rates, analogs, the forecast ledger, hypotheses, forecasts, impact projection and analysis cycles).
-- **Previous Completion Report:** read `completion-reports/115-CR-*.md` and follow its "Notes for the next prompt".
+- **Previous Completion Report:** read `completion-reports/116-CR-*.md` and follow its "Notes for the next prompt".
 
 ## Read first
 
@@ -63,7 +63,7 @@ Add the market and attention signals the intelligence layer correlates with even
 
 ### 4. Attention topics (`ai.foresignal.attention`)
 
-- `attention_topic`: `id` (slug `^[a-z0-9-]{3,48}$`), `name`, `description`, `gdelt_query` (≤ 250 chars; validated by a dry character check and, on create, one budgeted test call when `gdelt-timelines` is enabled), `wiki_articles` (≤ 20 `{project, article}`; `project` like `en.wikipedia`), `keywords` (≤ 30, used by 117's linker), `region_codes` (040 codes), `themes`, `enabled`, `created_by`, timestamps.
+- `attention_topic`: `id` (slug `^[a-z0-9-]{3,48}$`), `name`, `description`, `gdelt_query` (≤ 250 chars; validated by a dry character check and, on create, one budgeted test call when `gdelt-timelines` is enabled), `wiki_articles` (≤ 20 `{project, article}`; `project` like `en.wikipedia`), `keywords` (≤ 30, used by 118's linker), `region_codes` (040 codes), `themes`, `enabled`, `created_by`, timestamps.
 - Adapters never read the store (Architecture §3), so `AttentionTopicService` **syncs** enabled topics into the `topics` param of `gdelt-timelines` and `wikimedia-pageviews` through `SourceService` (validated by their param schemas) whenever topics change.
 - Ship five example topics, disabled: `red-sea-shipping`, `strait-of-hormuz`, `gulf-energy-infrastructure`, `taiwan-strait`, `ukraine-front`.
 - API: `GET /v1/attention/topics` (read), `GET /v1/attention/topics/{id}` (read), `POST`, `PUT /{id}`, `DELETE /{id}` (agent). MCP: `list_attention_topics` (read). Problem codes: `UNKNOWN_TOPIC` (404), `TOPIC_INVALID` (400).
@@ -110,7 +110,7 @@ Investigate whether ICE Futures Europe publishes its weekly Commitments of Trade
 - `WikimediaPageviewsAdapterTest` (WireMock): per-article URL encoding, `agent=user`, first-run 90 days, top-articles record, UA with and without `system.contact`, 403 handling.
 - `GdeltTimelineAdapterTest` (WireMock): both modes per topic, ≥ 5 s spacing enforced (fake clock), share computed, timespan capped at 3 d.
 - `WorldBankAdapterTest`: aggregates skipped, ISO3 → ISO2, paging.
-- `SeriesMetadataTest`: `family`, `transform`, `releaseLagDays`, `egress` present in `/v1/series` for 093 and 116 series.
+- `SeriesMetadataTest`: `family`, `transform`, `releaseLagDays`, `egress` present in `/v1/series` for 093 and 117 series.
 
 ## Acceptance criteria
 
@@ -122,8 +122,8 @@ Investigate whether ICE Futures Europe publishes its weekly Commitments of Trade
 
 ## Guardrails (mandatory)
 
-1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 126, 129, 130, 131).
-2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 131).
+1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 129, 132, 133, 134).
+2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 134).
 3. **Reuse policy.** Never copy code from ShadowBroker, Velocity or World Monitor (AGPL) or SatDump (GPL). They are reference material only. God's Eye View (MIT, `~/Documents/GitLab/gods-eye-view`) may be ported to Java if you add an origin header comment and an entry in `THIRD_PARTY_NOTICES.md`.
 4. **Stay in scope.** Implement what this prompt specifies, no more. If the docs conflict with reality (for example, a library API differs from what the docs assume), choose the approach most faithful to `docs/Architecture.md` and `docs/Intelligence-Design.md`, and record it under "Deviations" in the Completion Report.
 5. **Verify versions.** When adding a dependency, confirm the version exists on Maven Central and is compatible with Spring Boot 4.1 and Java 21.
@@ -132,7 +132,7 @@ Investigate whether ICE Futures Europe publishes its weekly Commitments of Trade
 ## Finish: Compile → Commit → Push
 
 1. **Compile:** `./gradlew compileJava compileTestJava` must succeed. Fix every compile error. Do not run tests.
-2. **Commit** all changes with the message `116: Market And Attention Signals`. Capture the full hash with `git rev-parse HEAD`; this is the *implementation commit*.
-3. **Write** `completion-reports/116-CR-Market-And-Attention-Signals.md` using the template in `docs/Roadmap.md` §3, including the implementation commit hash.
-4. **Commit** the report with the message `116: completion report`, then run `git push origin main`.
+2. **Commit** all changes with the message `117: Market And Attention Signals`. Capture the full hash with `git rev-parse HEAD`; this is the *implementation commit*.
+3. **Write** `completion-reports/117-CR-Market-And-Attention-Signals.md` using the template in `docs/Roadmap.md` §3, including the implementation commit hash.
+4. **Commit** the report with the message `117: completion report`, then run `git push origin main`.
 5. End your reply with the line `Implementation commit: <hash>`.

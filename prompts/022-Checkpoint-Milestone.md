@@ -7,8 +7,8 @@
 
 - **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
-- **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
-- **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
+- **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text. `docs/Invariants.md` lists the invariants each prompt must keep.
+- **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–129).
 - **Previous Completion Report:** read `completion-reports/021-CR-*.md` and follow its "Notes for the next prompt".
 
 ## Read first
@@ -37,7 +37,9 @@ Run every test written in 001–021 and fix failures at their root cause, so the
    - **Partition maintenance (007, 019):** `ensureAhead` keeps ≥ 1.5 blocks of headroom; drops use DETACH CONCURRENTLY outside a transaction and recover with FINALIZE; concurrent ensure from two threads is safe; the writer's pre-flight never fails a batch while a covering leaf exists; `DatabaseCleaner` resets writer state after truncation, so test order does not matter.
    - **Probes and watchdog (019):** liveness never depends on the database; readiness reflects writer state and partition headroom; the catch-up group is independent of readiness.
    - **E2E (021):** `MilestoneE2EIT` passes reliably; run it three times in a row and fix any flakiness (timing, SSE reader races, WireMock state) at its cause rather than by lengthening timeouts.
-5. Look for test-isolation problems: settings caches (`AppSettingService.invalidateCache()`), the writer's in-memory state, static clocks, and leaked SSE emitters or executor threads between Spring context reuse.
+5. **Performance smoke (record numbers; fail only below the NFRs).** In a dedicated `@Tag("perf")` IT against the Testcontainers database: sustain synthetic ingest through the real writer at the NFR-2 rate (20,000 versions/min) for 10 minutes and at 2× for 2 minutes, with 20 SSE subscribers and one `asOf` reader running; meanwhile force a partition creation and a retention drop. Record sustained throughput, commit latency p50/p95/p99, change-to-SSE delay p95 (NFR-3: ≤ 2 s), heap high-water mark per SSE emitter, and any writer back-pressure. Fail if the NFR-2 rate cannot be sustained or NFR-3 is missed; otherwise report the numbers and the headroom.
+6. **Invariants.** For every `docs/Invariants.md` entry whose owner prompt is ≤ 021, confirm a test asserts it (the test named there, or add one), and list the result in the report.
+7. Look for test-isolation problems: settings caches (`AppSettingService.invalidateCache()`), the writer's in-memory state, static clocks, and leaked SSE emitters or executor threads between Spring context reuse.
 
 ## Acceptance criteria
 
@@ -50,7 +52,7 @@ Run every test written in 001–021 and fix failures at their root cause, so the
 ## Guardrails (mandatory)
 
 1. **Tests: this is a test-run prompt.** Run the test suite as the Test run section describes, and fix failures until it passes. Fix production code, and change a test only when the test itself is wrong (record each such change in the Completion Report). Don't add features.
-2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 131).
+2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 134).
 3. **Reuse policy.** Never copy code from ShadowBroker, Velocity or World Monitor (AGPL) or SatDump (GPL). They are reference material only. God's Eye View (MIT, `~/Documents/GitLab/gods-eye-view`) may be ported to Java if you add an origin header comment and an entry in `THIRD_PARTY_NOTICES.md`.
 4. **Stay in scope.** Implement what this prompt specifies, no more. If the docs conflict with reality (for example, a library API differs from what the docs assume), choose the approach most faithful to `docs/Architecture.md` and record it under "Deviations" in the Completion Report.
 5. **Verify versions.** When adding a dependency, confirm the version exists on Maven Central and is compatible with Spring Boot 4.1 and Java 21.

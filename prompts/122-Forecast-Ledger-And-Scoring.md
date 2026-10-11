@@ -1,20 +1,20 @@
-# 121 — Forecast Ledger And Scoring
+# 122 — Forecast Ledger And Scoring
 
 > Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
-> Completion Report: `completion-reports/121-CR-Forecast-Ledger-And-Scoring.md`
+> Completion Report: `completion-reports/122-CR-Forecast-Ledger-And-Scoring.md`
 
 ## Context
 
 - **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
-- **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults, analytic retention, intelligence conventions) applies to every prompt and wins over conflicting prompt text.
+- **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults, analytic retention, intelligence conventions) applies to every prompt and wins over conflicting prompt text. `docs/Invariants.md` lists the invariants each prompt must keep.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and **`docs/Intelligence-Design.md` is authoritative for the intelligence layer** (situations, findings, precursors, base rates, analogs, the forecast ledger, hypotheses, forecasts, impact projection and analysis cycles).
-- **Previous Completion Report:** read `completion-reports/120-CR-*.md` and follow its "Notes for the next prompt".
+- **Previous Completion Report:** read `completion-reports/121-CR-*.md` and follow its "Notes for the next prompt".
 
 ## Read first
 
 - `docs/Intelligence-Design.md` §0, §2 (principles 4, 5, 7), §6.4 (ICD 203 table and lint rules), §8 (the whole ledger section), §14.3–§14.4
-- Completion Reports of 014/037 (`asOf` reads), 017 (alerts), 026 (LLM providers: add `knowledgeCutoff`), 061 (chat commands), 101 (intel events), 103 (job framework), 117 (situations), 118 (findings, series reader, statistics package), 119 (`precursor-active`), 120 (base rates, analogs)
+- Completion Reports of 116 (observability, manifests), 014/037 (`asOf` reads), 017 (alerts), 026 (LLM providers: add `knowledgeCutoff`), 061 (chat commands), 101 (intel events), 103 (job framework), 118 (situations), 119 (findings, series reader, statistics package), 120 (`precursor-active`), 121 (base rates, analogs)
 
 ## Objective
 
@@ -32,7 +32,7 @@ Build the **forecast ledger**: resolvable questions, immutable timestamped forec
 ### 1. `EstimativeLanguage` (`ai.foresignal.forecast.language`)
 
 - `term(p)` → the ICD 203 term (one row only: almost no chance, very unlikely, unlikely, roughly even chance, likely, very likely, almost certain); `band(p)`; `crossesBand(p0, p1)`.
-- `lint(text, claims)`: rejects (a) a likelihood term whose band disagrees with the claim's number, (b) terms from the second ICD row (remote, highly improbable, improbable, roughly even odds, probable, highly probable, nearly certain) mixed with the first, (c) a likelihood term and a confidence level ("low/moderate/high confidence") in the same sentence. Returns violations with offsets. Used by 122, 125 and the 028/102 validators for intelligence outputs.
+- `lint(text, claims)`: rejects (a) a likelihood term whose band disagrees with the claim's number, (b) terms from the second ICD row (remote, highly improbable, improbable, roughly even odds, probable, highly probable, nearly certain) mixed with the first, (c) a likelihood term and a confidence level ("low/moderate/high confidence") in the same sentence. Returns violations with offsets. Used by 124, 127 and the 028/102 validators for intelligence outputs.
 
 ### 2. Data model (`ai.foresignal.forecast`)
 
@@ -49,8 +49,10 @@ Build the **forecast ledger**: resolvable questions, immutable timestamped forec
   - `series-value {ref, period | window, aggregate: last|mean|max|sum, op?, threshold?}` (numeric when no threshold);
   - `alert-fired {ruleId, window, area?}`;
   - `situation-status {situationId, at: resolve_by, status | minSeverity}`;
-  - `hypothesis-outcome {setId}` (resolved by the operator's confirmation in 122).
+  - `hypothesis-outcome {setId}` (resolved by the operator's confirmation in 124).
 - `ResolutionJob` hourly (and on demand): resolves due questions; resolves **early** when an `event-exists` or `alert-fired` question's event occurs before `resolve_by`; uses `asOf` = `resolve_by + lag` where `lag` is the involved sources' `releaseLagDays` (so late-published data is waited for, up to 14 days, then resolves with what exists and a caveat).
+- Detectability: a **negative** resolution ("no event", count below threshold) additionally requires 116 `canSeeAbsence` over the question's area and window; otherwise the question is `annulled` with reason `LOW_DETECTABILITY`.
+- Every forecast and resolution stores a 116 `manifest_id`.
 - Coverage: if the resolver's sources were failing or not covering for more than 20% of the window, the question becomes `annulled` with reason `COVERAGE_GAP` (not scored).
 - Manual questions: at `resolve_by`, raise a notification (`forecast.resolution_needed`) and list them at `GET /v1/forecasts/questions?status=closed&resolver=manual`; `POST /v1/forecasts/questions/{id}/resolve` (agent) resolves with evidence.
 - Every resolution writes evidence refs (pinned records or rollup rows) and emits `forecast.resolved`.
@@ -58,17 +60,17 @@ Build the **forecast ledger**: resolvable questions, immutable timestamped forec
 ### 4. Baseline forecasters
 
 All run automatically on every new open question of a compatible type and re-forecast when their inputs change (at most daily):
-- `base-rate` (binary, multiple): from 120 (`p_at_least_one` for the question's family, area and window, or conditional when a precursor or finding links one). Outputs nothing (and says why) when no base rate applies.
+- `base-rate` (binary, multiple): from 121 (`p_at_least_one` for the question's family, area and window, or conditional when a precursor or finding links one). Outputs nothing (and says why) when no base rate applies.
 - `climatology` (numeric): empirical quantiles of the same series and window over history (seasonal window ± 14 days, all years).
 - `persistence` (numeric; binary for "will the current state still hold"): the last known value or state.
 - `precursor` (binary): for questions opened from `precursor-active` findings, the finding's shrunk probability.
-- `analog` (binary): 120's analog outcome distribution when the question links a situation or region.
+- `analog` (binary): 121's analog outcome distribution when the question links a situation or region.
 - `operator`: one forecaster per token principal that submits forecasts (`operator:{principal}`).
 - `ensemble` (§6).
 
 Auto-created questions:
 - From `precursor-active` findings: "Will {consequent} occur in {region} between {from} and {to}?" (`event-exists`), origin `system`, dedup by precursor and window.
-- Other components (122 hypothesis sets, 123 outlooks and series, 124 impacts) create their own questions through `ForecastService.openQuestion(...)`.
+- Other components (124 hypothesis sets, 125 outlooks and series, 126 impacts) create their own questions through `ForecastService.openQuestion(...)`.
 
 ### 5. Scoring, calibration, bias (`ForecastScorer` 1.0.0)
 
@@ -87,13 +89,13 @@ Auto-created questions:
 - Weights `w ∝ exp(−η · relBrier)` (η = 2) using each forecaster's relative Brier against the median over the last 100 resolved questions in the category, shrunk toward equal weights by `n ÷ (n + 20)`.
 - **Platt recalibration:** per forecaster and category, once ≥ 50 resolved, fit `p' = σ(a · logit p + b)` (Hipparchus or a small Newton solver) on resolved forecasts; the ensemble uses recalibrated inputs and stores both.
 - **LLM caps:** forecasts from `llm*` forecasters are clamped to [0.03, 0.97] before recalibration (raw values kept in `inputs`).
-- **Extremizing:** `p* = σ(a · Σ wᵢ logit pᵢ)`, default `a = 1`; a monthly check (`POST /v1/forecasts/ensemble/refit`, or 125's monthly cycle) fits `a` on resolved questions and enables it only when ≥ 5 forecasters with distinct `type` are active and out-of-sample log score improves over ≥ 100 resolutions. Output capped to [0.01, 0.99].
+- **Extremizing:** `p* = σ(a · Σ wᵢ logit pᵢ)`, default `a = 1`; a monthly check (`POST /v1/forecasts/ensemble/refit`, or 127's monthly cycle) fits `a` on resolved questions and enables it only when ≥ 5 forecasters with distinct `type` are active and out-of-sample log score improves over ≥ 100 resolutions. Output capped to [0.01, 0.99].
 
 ### 7. Retrospective evaluation
 
 - `POST /v1/forecasts/evaluations {forecasterId, from, to, categories?, maxQuestions?}` (agent) → 103 job `type=forecast-evaluation`: for each **resolved** question that was open in the range, run the forecaster as of the question's `opens_at` (tools and readers forced to `asOf`), score against the actual resolution, and produce a scorecard marked `retrospective`.
 - Statistical and baseline forecasters are fully valid.
-- LLM forecasters (registered by 125): add `knowledgeCutoff` (date) to `llm_provider` model config (026); questions with `opens_at` before it are skipped and counted under `LEAKAGE_RISK`. Without a configured cutoff, LLM retrospective evaluation is refused (`409 KNOWLEDGE_CUTOFF_REQUIRED`).
+- LLM forecasters (registered by 127): add `knowledgeCutoff` (date) to `llm_provider` model config (026); questions with `opens_at` before it are skipped and counted under `LEAKAGE_RISK`. Without a configured cutoff, LLM retrospective evaluation is refused (`409 KNOWLEDGE_CUTOFF_REQUIRED`).
 
 ### 8. API, SSE, MCP, notifications
 
@@ -136,8 +138,8 @@ Auto-created questions:
 
 ## Guardrails (mandatory)
 
-1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 126, 129, 130, 131).
-2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 131).
+1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 129, 132, 133, 134).
+2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 134).
 3. **Reuse policy.** Never copy code from ShadowBroker, Velocity or World Monitor (AGPL) or SatDump (GPL). They are reference material only. God's Eye View (MIT, `~/Documents/GitLab/gods-eye-view`) may be ported to Java if you add an origin header comment and an entry in `THIRD_PARTY_NOTICES.md`.
 4. **Stay in scope.** Implement what this prompt specifies, no more. If the docs conflict with reality (for example, a library API differs from what the docs assume), choose the approach most faithful to `docs/Architecture.md` and `docs/Intelligence-Design.md`, and record it under "Deviations" in the Completion Report.
 5. **Verify versions.** When adding a dependency, confirm the version exists on Maven Central and is compatible with Spring Boot 4.1 and Java 21.
@@ -146,7 +148,7 @@ Auto-created questions:
 ## Finish: Compile → Commit → Push
 
 1. **Compile:** `./gradlew compileJava compileTestJava` must succeed. Fix every compile error. Do not run tests.
-2. **Commit** all changes with the message `121: Forecast Ledger And Scoring`. Capture the full hash with `git rev-parse HEAD`; this is the *implementation commit*.
-3. **Write** `completion-reports/121-CR-Forecast-Ledger-And-Scoring.md` using the template in `docs/Roadmap.md` §3, including the implementation commit hash.
-4. **Commit** the report with the message `121: completion report`, then run `git push origin main`.
+2. **Commit** all changes with the message `122: Forecast Ledger And Scoring`. Capture the full hash with `git rev-parse HEAD`; this is the *implementation commit*.
+3. **Write** `completion-reports/122-CR-Forecast-Ledger-And-Scoring.md` using the template in `docs/Roadmap.md` §3, including the implementation commit hash.
+4. **Commit** the report with the message `122: completion report`, then run `git push origin main`.
 5. End your reply with the line `Implementation commit: <hash>`.

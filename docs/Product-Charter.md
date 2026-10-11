@@ -106,6 +106,9 @@ Open-source situational-awareness projects (ShadowBroker, God's Eye View, Veloci
 | **Indicator** | An observable signal with likelihood ratios across hypotheses; it watches for itself through a trigger rule. |
 | **Forecast question / forecast / forecaster** | A resolvable question; an immutable, timestamped probability from a named forecaster (base rate, statistical, precursor, analog, indicator-Bayes, LLM, operator, ensemble). |
 | **Ledger** | The store of questions and forecasts, with automatic resolution, scoring and calibration. |
+| **Canonical event / evidence group** | A real-world occurrence, linked to every observation of it; observations tracing to one originator form one evidence group, and only evidence groups count as independent. |
+| **Observability** | The estimated probability that a source detects a phenomenon in a place at a time; needed before "nothing happened" can be concluded. |
+| **Object reference / workspace** | The canonical `type:id` name of any Foresignal object, and a shared investigation focus (selection, time range, viewport) that several clients follow live ([Client Contract](Client-Contract.md)). |
 | **Assessment** | The output of a daily, weekly or monthly analysis cycle: key judgments, what changed, hypotheses, indicators, forecasts and speculation, following ICD 203. |
 
 ## 8. Functional requirements
@@ -202,17 +205,20 @@ Open-source situational-awareness projects (ShadowBroker, God's Eye View, Veloci
 - **FR-57** The adapter doctor uses the LLM to diagnose a failing source: it probes the upstream, compares the result with the fixture, explains what changed and proposes a parser fix.
 
 ### 8.18 Intelligence layer (v1.3; [Intelligence Design](Intelligence-Design.md))
-- **FR-58** Market, positioning, attention and structural series (CFTC COT, FRED, Wikipedia pageviews, GDELT timelines, World Bank) are collected as series with release lags and licence-aware egress (116).
-- **FR-59** Situations group related evidence deterministically, persist with a lifecycle and daily snapshots, and answer "what changed since" without an LLM (117).
-- **FR-60** Change points, event studies (including live pre-event signals and unexplained moves) and co-occurrences are detected over registered series with stated base rates and caveats (118).
-- **FR-61** Precursor patterns are mined with false-discovery control, validated on later data, kept in a library with a lifecycle, and announced live when their antecedent occurs (119).
-- **FR-62** Base rates exist per event family and region from Foresignal's history and imported reference datasets; historical analogs of a situation are found with their outcomes (120).
-- **FR-63** A forecast ledger records questions with machine resolvers and immutable forecasts from many forecasters, resolves them automatically, scores them (Brier, log, RPS, CRPS), shows calibration and bias, combines forecasters into a recalibrated ensemble, and evaluates forecasters retrospectively without look-ahead (121).
-- **FR-64** Rolling hypothesis sets have priors from base rates, indicators that watch for themselves, deterministic revisions with rationale, an ACH matrix and key assumptions; speculative links carry alternatives and coincidence baselines (122).
-- **FR-65** Series forecasts, regional 4-week outlooks and regional indices are published with their measured accuracy; index weights are fitted to outcomes and proposed (123).
-- **FR-66** Hazard forecasts are turned into scored, probabilistic impact statements on places and infrastructure (124).
-- **FR-67** Daily, weekly and monthly analysis cycles publish assessments that build on the previous one, with optional LLM analyst, red-team, forecaster and proposer roles; an intel board summarises the layer (125).
-- **FR-68** Probabilities are stored as numbers and expressed with ICD 203 terms; likelihood and confidence are separate, and generated text is linted.
+- **FR-58** Observations of the same real-world event link to a canonical event and are grouped by originator; only independent evidence groups count as confirmation. A time-versioned observability model gates every absence conclusion, and every analytic output records a replayable manifest (116).
+- **FR-59** Market, positioning, attention and structural series (CFTC COT, FRED, Wikipedia pageviews, GDELT timelines, World Bank) are collected as series with release lags and licence-aware egress (117).
+- **FR-60** Situations group related evidence deterministically, persist with a lifecycle and daily snapshots, and answer "what changed since" without an LLM (118).
+- **FR-61** Change points, event studies (including live pre-event signals and unexplained moves) and co-occurrences are detected over registered series with stated base rates and caveats (119).
+- **FR-62** Precursor patterns are mined with false-discovery control, validated on later data, kept in a library with a lifecycle, and announced live when their antecedent occurs (120).
+- **FR-63** Base rates exist per event family and region from Foresignal's history and imported reference datasets; historical analogs of a situation are found with their outcomes (121).
+- **FR-64** A forecast ledger records questions with machine resolvers and immutable forecasts from many forecasters, resolves them automatically, scores them (Brier, log, RPS, CRPS), shows calibration and bias, combines forecasters into a recalibrated ensemble, and evaluates forecasters retrospectively without look-ahead (122).
+- **FR-65** A benchmark harness measures false discoveries, recall, delay, duplicate resistance and calibration on planted-truth scenarios and a historical corpus, and gates autonomous features (123).
+- **FR-66** Rolling hypothesis sets have priors from base rates, indicators that watch for themselves, deterministic revisions with rationale, an ACH matrix and key assumptions; speculative links carry alternatives and coincidence baselines (124).
+- **FR-67** Series forecasts, regional 4-week outlooks and regional indices are published with their measured accuracy; index weights are fitted to outcomes and proposed (125).
+- **FR-68** Hazard forecasts are turned into scored, probabilistic impact statements on places and infrastructure (126).
+- **FR-69** Daily, weekly and monthly analysis cycles publish assessments that build on the previous one, with optional LLM analyst, red-team, forecaster and proposer roles; an intel board summarises the layer (127).
+- **FR-70** Every object has a canonical reference and envelope; a time-aware relation graph, annotations with human verdicts, synchronised workspaces with deep links, and sensor discovery serve all frontends through one contract (128).
+- **FR-71** Probabilities are stored as numbers and expressed with ICD 203 terms; likelihood and confidence are separate, and generated text is linted.
 
 ## 9. Non-functional requirements
 
