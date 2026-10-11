@@ -1,0 +1,61 @@
+{
+ "type": "FeatureCollection",
+ "metadata": {
+  "generated": 1791757965000,
+  "url": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson",
+  "title": "USGS All Earthquakes, Past Day",
+  "status": 200,
+  "api": "2.7.0",
+  "count": 1
+ },
+ "features": [
+  {
+   "type": "Feature",
+   "properties": {
+    "mag": 2.5,
+    "place": "13 km ESE of Elmendorf Air Force Base, Alaska",
+    "time": 1791756350663,
+    "updated": 1791757200052,
+    "tz": null,
+    "url": "https://earthquake.usgs.gov/earthquakes/eventpage/aka2026uekklg",
+    "detail": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/aka2026uekklg.geojson",
+    "felt": null,
+    "cdi": null,
+    "mmi": null,
+    "alert": null,
+    "status": "reviewed",
+    "tsunami": 0,
+    "sig": 89,
+    "net": "ak",
+    "code": "a2026uekklg",
+    "ids": ",aka2026uekklg,",
+    "sources": ",ak,",
+    "types": ",origin,phase-data,",
+    "nst": 68,
+    "dmin": 0.4,
+    "rms": 0.8,
+    "gap": 41,
+    "magType": "ml",
+    "type": "earthquake",
+    "title": "M 2.5 - 13 km ESE of Elmendorf Air Force Base, Alaska"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -149.391,
+     61.234,
+     14.2
+    ]
+   },
+   "id": "aka2026uekklg"
+  }
+ ],
+ "bbox": [
+  -177.6638,
+  -37.4842,
+  -1.9199999570847,
+  179.9648,
+  65.339,
+  546.339
+ ]
+}

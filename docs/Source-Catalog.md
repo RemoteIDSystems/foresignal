@@ -6,11 +6,11 @@ Reference paths: GEV = `~/Documents/GitLab/gods-eye-view`, SB = `~/Documents/Git
 
 **Defaults** are starting values for the descriptor (`defaultInterval` / `defaultBudget perMinute/perDay`). Each adapter prompt confirms them against the upstream's published policy.
 
-## First source (prompt 009)
+## First source (prompt 011)
 
 | Source id | Kind | Upstream | Protocol | Auth | Default interval · budget | Reference | Notes |
 |---|---|---|---|---|---|---|---|
-| `usgs-earthquakes` | earthquake | `earthquake.usgs.gov/earthquakes/feed/v1.0/summary/{feed}.geojson`, param `feed` ∈ all_hour, all_day, 2.5_day, 4.5_week, significant_month… (default `all_day`) | REST GeoJSON | none | 60 s · 4/min, 2000/day | GEV `src/layers/earthquakes/records.js` | Revisions (mag/updated) create new versions. Public domain. |
+| `usgs-earthquakes` | earthquake | `earthquake.usgs.gov/earthquakes/feed/v1.0/summary/{feed}.geojson`, param `feed` ∈ all/1.0/2.5/4.5/significant × hour/day/week/month (20 feeds, default `all_day`) | REST GeoJSON | none | 60 s · 4/min, 2000/day | GEV `src/layers/earthquakes/records.js` (reference only; nothing ported) | Tier STANDARD, policy ALL (keyframe none), TTL none, ttlAnchor RECEIVED, observedAtMode UPSTREAM (`observedAt` = `updated`; `eventTime` = `time`). significantFields all, volatileFields `updated`: a revision (mag/status/updated) is a SIGNIFICANT version, an `updated`-only change is a touch. Retention: the `event` class default (1825 d, Conventions "Analytic retention"). License US-PD (descriptor `licence`). **Verified 2026-10:** no `ETag`, only `Last-Modified` (generation time) and `cache-control: public, max-age=60`; `If-Modified-Since` returns 304. `metadata.api` 2.7.0; `tz` always null. `depth` (`coordinates[2]`, km) is a payload field, never geometry Z. |
 
 ## Core sources (prompts 029–035)
 

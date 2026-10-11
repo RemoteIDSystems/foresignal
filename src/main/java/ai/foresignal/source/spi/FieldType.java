@@ -11,7 +11,11 @@ public enum FieldType {
     INTEGER,
     NUMBER,
     BOOLEAN,
-    /** An ISO-8601 instant carried as a string. */
+    /**
+     * An instant: an ISO-8601 string, or an integer count since the Unix epoch in the field's
+     * declared unit ({@code ms} or {@code s}), as some upstreams send it verbatim (USGS
+     * {@code time} and {@code updated} are epoch milliseconds).
+     */
     TIMESTAMP,
     OBJECT,
     ARRAY
