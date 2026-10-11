@@ -31,6 +31,10 @@ foresignal:
       enabled: false
   retention:
     scheduled: false
+  # No context polls or streams on its own: an enabled fake source would otherwise
+  # start fetching behind another test's back. CollectorSchedulerIT turns it on.
+  collector:
+    scheduled: false
 
 logging:
   level:

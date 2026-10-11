@@ -123,6 +123,18 @@ public class UsageMeter {
         }
     }
 
+    /**
+     * Records bytes received on an already open stream, without counting a request.
+     *
+     * <p>A stream's connection attempt is the request; everything that arrives afterwards is
+     * spend on that one request.
+     */
+    public void recordBytes(String sourceId, long bytes) {
+        if (bytes > 0) {
+            counters(sourceId).bytes.add(bytes);
+        }
+    }
+
     /** Records a request the budget declined to send. */
     public void recordRefused(String sourceId) {
         counters(sourceId).refused.increment();

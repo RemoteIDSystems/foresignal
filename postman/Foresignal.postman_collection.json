@@ -42002,7 +42002,7 @@
                 }
               ]
             },
-            "description": "Fetches once (or captures a stream for `seconds`) and returns the recorded exchanges, credentials redacted, plus up to 100 parsed previews with eventTime, validFrom, quality and observers. Never ingests, never writes fetch_log, never changes health; consumes budget. A parse failure fills `parseError` and still returns the exchanges.\n\n**Scope:** `admin`.\n\noperationId: `probeSource`",
+            "description": "Fetches once (or captures a stream for `seconds`) and returns the recorded exchanges, credentials redacted, plus up to 100 parsed previews with eventTime, validFrom, quality and observers. Never ingests, never writes fetch_log, never changes health; consumes budget. A parse failure fills `parseError` and still returns the exchanges. Push and derived sources return 409 NOT_SUPPORTED_FOR_MODE.\n\n**Scope:** `admin`.\n\noperationId: `probeSource`",
             "auth": {
               "type": "bearer",
               "bearer": [

@@ -20,4 +20,34 @@ public interface StreamContext extends FetchContext {
      * @param bytes bytes received since the last call; a non-positive value is ignored
      */
     void recordReceivedBytes(long bytes);
+
+    /**
+     * Reports bytes received on an open stream; the same as {@link #recordReceivedBytes}, under the
+     * name Architecture §5.5 uses.
+     *
+     * @param bytes bytes received since the last call; a non-positive value is ignored
+     */
+    default void reportBytes(long bytes) {
+        recordReceivedBytes(bytes);
+    }
+
+    /**
+     * Tells the supervisor the stream is connected and delivering.
+     *
+     * <p>Optional: the supervisor already treats a successful {@code start} as connected. An adapter
+     * whose {@code start} returns before the upstream has actually accepted the subscription calls
+     * this once it has. Idempotent.
+     */
+    void connected();
+
+    /**
+     * Tells the supervisor the stream has dropped.
+     *
+     * <p>The supervisor records it in health and schedules a reconnect on its ladder. Pass a
+     * {@link CredentialsRejectedException} when the upstream refused the credentials, which
+     * retries hourly instead of on the ladder.
+     *
+     * @param error why, or null for a clean close by the upstream
+     */
+    void disconnected(Throwable error);
 }

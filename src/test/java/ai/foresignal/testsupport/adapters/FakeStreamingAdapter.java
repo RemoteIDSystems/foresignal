@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 
 /**
  * A streaming adapter that pushes scripted records to the sink when started, and lets a test push
@@ -120,16 +121,36 @@ public class FakeStreamingAdapter implements StreamingAdapter {
         startFailure = null;
     }
 
-    /** Tracks whether it was closed, and tolerates being closed twice. */
+    /** The most recently started handle, or null. */
+    public Handle lastHandle() {
+        return handles.isEmpty() ? null : handles.get(handles.size() - 1);
+    }
+
+    /**
+     * Tracks whether it was closed, and tolerates being closed twice. {@link #drop} simulates the
+     * upstream ending the connection, which notifies the {@link #onClose} callback.
+     */
     public static final class Handle implements StreamHandle {
 
         private final AtomicBoolean running = new AtomicBoolean(true);
         private final AtomicInteger closeCount = new AtomicInteger();
+        private final List<Consumer<Throwable>> closeCallbacks = new CopyOnWriteArrayList<>();
 
         @Override
         public void close() {
             closeCount.incrementAndGet();
             running.set(false);
+        }
+
+        @Override
+        public void onClose(Consumer<Throwable> callback) {
+            closeCallbacks.add(callback);
+        }
+
+        /** Ends the stream as the upstream would; {@code error} is null for a clean close. */
+        public void drop(Throwable error) {
+            running.set(false);
+            closeCallbacks.forEach(callback -> callback.accept(error));
         }
 
         @Override

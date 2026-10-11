@@ -71,6 +71,21 @@ foresignal:
       exclusive: true
       # SET LOCAL lock_timeout for each batch transaction; a timeout is retried.
       lock-timeout: 10s
+  collector:
+    # Poll enabled sources and hold enabled streams open (Architecture §5.1).
+    # Off in tests, where cached contexts share one database.
+    scheduled: true
+    reconcile-interval: 2s
+    shutdown-wait: 30s
+    stream:
+      # PolicyAwareRecordSink (Core-Data-Model §7).
+      flush-interval: 2s
+      flush-max-entries: 2000
+      all-buffer-max: 50000
+      accept-block-timeout: 30s
+      reconnect-ladder: 5s,15s,60s,300s,900s
+      ladder-reset-after: 10m
+      credentials-retry: 1h
 
 management:
   endpoints:

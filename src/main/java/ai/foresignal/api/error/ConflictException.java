@@ -16,6 +16,7 @@ public class ConflictException extends ForesignalException {
     public static final String CREDENTIALS_REQUIRED = "CREDENTIALS_REQUIRED";
     public static final String ALREADY_RUNNING = "ALREADY_RUNNING";
     public static final String IN_BACKOFF = "IN_BACKOFF";
+    public static final String NOT_SUPPORTED_FOR_MODE = "NOT_SUPPORTED_FOR_MODE";
 
     public ConflictException(String code, String detail) {
         super(HttpStatus.CONFLICT, code, detail);

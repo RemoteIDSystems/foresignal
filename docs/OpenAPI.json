@@ -27,6 +27,11 @@
         "version": "1.3.0",
         "date": "2026-10-11",
         "note": "009: IngestOutcome byReason, live and touched descriptions state their exact meaning (description only; no schema change)."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-11",
+        "note": "010: probeSource documents 409 NOT_SUPPORTED_FOR_MODE for push and derived sources, which have no upstream to probe."
       }
     ]
   },
@@ -979,7 +984,7 @@
         ],
         "operationId": "probeSource",
         "summary": "Diagnostic probe",
-        "description": "Fetches once (or captures a stream for `seconds`) and returns the recorded exchanges, credentials redacted, plus up to 100 parsed previews with eventTime, validFrom, quality and observers. Never ingests, never writes fetch_log, never changes health; consumes budget. A parse failure fills `parseError` and still returns the exchanges.\n\n**Scope:** `admin`.",
+        "description": "Fetches once (or captures a stream for `seconds`) and returns the recorded exchanges, credentials redacted, plus up to 100 parsed previews with eventTime, validFrom, quality and observers. Never ingests, never writes fetch_log, never changes health; consumes budget. A parse failure fills `parseError` and still returns the exchanges. Push and derived sources return 409 NOT_SUPPORTED_FOR_MODE.\n\n**Scope:** `admin`.",
         "parameters": [
           {
             "name": "maxBytes",
@@ -1019,6 +1024,16 @@
           },
           "404": {
             "description": "Not found (NOT_FOUND)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict (NOT_SUPPORTED_FOR_MODE: push and derived sources have no upstream to probe)",
             "content": {
               "application/problem+json": {
                 "schema": {

@@ -4,6 +4,8 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * What a polling adapter is given for one fetch.
@@ -42,6 +44,14 @@ public interface FetchContext {
 
     /** Per-source scratch state that survives restarts. */
     AdapterStateStore state();
+
+    /**
+     * The logger for this source, named {@code foresignal.source.<id>}, so an operator can raise
+     * one source's log level without touching the rest.
+     */
+    default Logger log() {
+        return LoggerFactory.getLogger("foresignal.source." + sourceId());
+    }
 
     /** Convenience for {@code clock().instant()}. */
     default Instant now() {

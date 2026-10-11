@@ -9,5 +9,13 @@
  * <p>Nothing outside this package constructs an {@code HttpClient} for upstream use, and the SPI
  * gives adapters no way to do so: they receive a {@link ai.foresignal.source.spi.SourceHttp} already
  * bound to their source.
+ *
+ * <p>What decides <em>when</em> a request is made lives here too (prompt 010): the
+ * {@link ai.foresignal.collect.CollectorScheduler} polls enabled polling sources, the
+ * {@link ai.foresignal.collect.StreamingSupervisor} holds enabled streams open behind a
+ * {@link ai.foresignal.collect.PolicyAwareRecordSink}, and {@link ai.foresignal.collect.FetchExecutor}
+ * runs each fetch and leaves its {@code fetch_log} row. The operator's
+ * {@link ai.foresignal.collect.ManualFetchService} and {@link ai.foresignal.collect.ProbeService} are
+ * the only other paths to an upstream.
  */
 package ai.foresignal.collect;

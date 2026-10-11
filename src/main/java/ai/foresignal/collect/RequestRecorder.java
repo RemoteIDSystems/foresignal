@@ -17,6 +17,9 @@ public class RequestRecorder {
     /** Enough of a response to see its shape. */
     public static final int DEFAULT_BODY_CAP = 64 * 1024;
 
+    /** Appended to a body cut at the cap. */
+    public static final String TRUNCATION_MARKER = "… (truncated)";
+
     /** More exchanges than any single probe should make. */
     public static final int DEFAULT_MAX_EXCHANGES = 20;
 
@@ -61,6 +64,6 @@ public class RequestRecorder {
         if (body == null) {
             return null;
         }
-        return body.length() <= bodyCap ? body : body.substring(0, bodyCap) + "… (truncated)";
+        return body.length() <= bodyCap ? body : body.substring(0, bodyCap) + TRUNCATION_MARKER;
     }
 }
