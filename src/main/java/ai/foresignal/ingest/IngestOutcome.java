@@ -1,25 +1,31 @@
 package ai.foresignal.ingest;
 
+import java.util.Collections;
+import java.util.EnumMap;
+import java.util.List;
 import java.util.Map;
 
 /**
  * What the ingest writer did with one batch (Core-Data-Model §6.2, "IngestOutcome").
  *
- * <p>Defined here by prompt 006 so health can consume it; prompt 008 owns the final shape and may
- * replace {@code byReason}'s string keys with its persist-reason enum.
+ * <p>Final shape, replacing prompt 006's interim record. Health stores {@code persisted} as
+ * {@code last_records_changed}.
  *
- * @param seen observations received
- * @param persisted versions written; health reports this as {@code lastRecordsChanged}
- * @param live live-row updates without a new version
+ * @param seen records submitted
+ * @param persisted versions written
+ * @param live live-row updates without a version
  * @param touched touch rows written
- * @param touchesThrottled touches suppressed by throttling
- * @param late observations dropped for arriving out of order
- * @param skipped observations the policy chose not to persist
- * @param rejected observations refused for violating a limit
- * @param clamped observations whose time the time contract clamped
- * @param fromSeq the first sequence number allocated, or 0 when none was
- * @param toSeq the last sequence number allocated, or 0 when none was
- * @param byReason persisted versions per persist reason
+ * @param touchesThrottled touches suppressed by the throttle
+ * @param late observations dropped as older than the live state
+ * @param skipped tombstones for absent or already tombstoned entities
+ * @param rejected records the normalizer refused
+ * @param clamped observations whose future {@code observed_at} was clamped beyond the skew
+ *     tolerance (kept from prompt 006, for {@code UsageMeter})
+ * @param fromSeq the first seq allocated, or 0 when none was
+ * @param toSeq the last seq allocated, or 0 when none was
+ * @param byReason versions per persist reason; always holds all nine reasons, zeros included
+ * @param versionBytes the estimated stored size of the versions written (§6)
+ * @param rejections each refused record's index, external id and reason
  */
 public record IngestOutcome(
         int seen,
@@ -33,19 +39,36 @@ public record IngestOutcome(
         int clamped,
         long fromSeq,
         long toSeq,
-        Map<String, Integer> byReason) {
+        Map<PersistReason, Integer> byReason,
+        long versionBytes,
+        List<Rejection> rejections) {
 
     public IngestOutcome {
-        byReason = byReason == null ? Map.of() : Map.copyOf(byReason);
+        byReason = completeReasons(byReason);
+        rejections = rejections == null ? List.of() : List.copyOf(rejections);
     }
 
     /** An outcome with only the seen and persisted counts, for callers that know nothing more. */
     public static IngestOutcome of(int seen, int persisted) {
-        return new IngestOutcome(seen, persisted, 0, 0, 0, 0, 0, 0, 0, 0, 0, Map.of());
+        return new IngestOutcome(seen, persisted, 0, 0, 0, 0, 0, 0, 0, 0, 0, null, 0, List.of());
     }
 
     /** The outcome of a batch with no records. */
     public static IngestOutcome empty() {
         return of(0, 0);
+    }
+
+    /** Versions persisted for {@code reason}. */
+    public int persisted(PersistReason reason) {
+        return byReason.get(reason);
+    }
+
+    private static Map<PersistReason, Integer> completeReasons(Map<PersistReason, Integer> given) {
+        EnumMap<PersistReason, Integer> all = new EnumMap<>(PersistReason.class);
+        for (PersistReason reason : PersistReason.values()) {
+            Integer count = given == null ? null : given.get(reason);
+            all.put(reason, count == null ? 0 : count);
+        }
+        return Collections.unmodifiableMap(all);
     }
 }

@@ -1,9 +1,12 @@
 package ai.foresignal.source;
 
+import ai.foresignal.source.spi.FieldSpec;
 import ai.foresignal.source.spi.FieldThreshold;
+import ai.foresignal.source.spi.FieldType;
 import ai.foresignal.source.spi.HistoryTier;
 import ai.foresignal.source.spi.IngestPolicy;
 import ai.foresignal.source.spi.IngestPolicyValidator;
+import ai.foresignal.source.spi.KindDisplay;
 import ai.foresignal.source.spi.Mode;
 import ai.foresignal.source.spi.MotionSpec;
 import ai.foresignal.source.spi.ParamSpec;
@@ -16,6 +19,7 @@ import ai.foresignal.source.spi.TtlAnchor;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -57,6 +61,7 @@ public final class DescriptorValidator {
         checkTier(descriptor, problems);
         checkFieldSets(descriptor, problems);
         checkDefaultPolicy(descriptor, problems);
+        checkExtras(descriptor, problems);
 
         return problems;
     }
@@ -64,6 +69,14 @@ public final class DescriptorValidator {
     /** Non-fatal observations worth logging, for example fields that will never be searchable. */
     public static List<String> warnings(SourceDescriptor descriptor) {
         List<String> warnings = new ArrayList<>();
+        if (descriptor != null && descriptor.privateSource() && !descriptor.embedFields().isEmpty()) {
+            warnings.add(
+                    descriptor.id()
+                            + ": the source is private but declares embedFields "
+                            + descriptor.embedFields()
+                            + "; private records are excluded from embedding (prompt 039), so these"
+                            + " fields will not be searchable semantically");
+        }
         if (descriptor == null || descriptor.significantFields().isEmpty()) {
             // Empty significantFields means every non-volatile key is significant, so nothing to
             // warn about.
@@ -363,6 +376,165 @@ public final class DescriptorValidator {
                                 + field
                                 + "' must be a top-level payload key, not a path");
             }
+        }
+    }
+
+    /** {@code #RRGGBB}. */
+    static final Pattern COLOR_PATTERN = Pattern.compile("^#[0-9A-Fa-f]{6}$");
+
+    /** A MIL-STD-2525 SIDC: 15 (2525C) or 20 (2525D/E) characters. */
+    static final Pattern SIDC_PATTERN = Pattern.compile("^([A-Za-z0-9*-]{15}|[A-Za-z0-9*-]{20})$");
+
+    /** A UCUM code is printable ASCII with no spaces; full UCUM grammar is not checked. */
+    static final Pattern UCUM_PATTERN = Pattern.compile("^[\\x21-\\x7E]{1,32}$");
+
+    /** UCUM length units, the only units a field with a vertical datum may use. */
+    static final Set<String> LENGTH_UNITS =
+            Set.of("m", "km", "cm", "mm", "[ft_i]", "[mi_i]", "[nmi_i]", "[yd_i]", "[in_i]");
+
+    static final int MIN_PRIVATE_DECIMALS = 2;
+    static final int MAX_PRIVATE_DECIMALS = 7;
+    static final int MAX_ZOOM = 22;
+
+    /**
+     * The descriptor extras from Gap-Analysis §8.A items 1–2: title, entity keys, field specs,
+     * kind display, aggregation zoom, interval fields and the private flag.
+     */
+    private static void checkExtras(SourceDescriptor descriptor, List<String> problems) {
+        String id = descriptor.id();
+        if (descriptor.titleField() != null) {
+            checkTopLevel(descriptor, "titleField", List.of(descriptor.titleField()), problems);
+        }
+
+        for (Map.Entry<String, String> entry : descriptor.entityKeys().entrySet()) {
+            String keyType = entry.getKey();
+            if (keyType == null || !ID_PATTERN.matcher(keyType).matches()) {
+                problems.add(
+                        id
+                                + ": entityKeys type '"
+                                + keyType
+                                + "' must match ^[a-z0-9]+(-[a-z0-9]+)*$, for example icao24 or mmsi");
+            }
+            checkTopLevel(descriptor, "entityKeys." + keyType, List.of(entry.getValue()), problems);
+        }
+
+        for (Map.Entry<String, FieldSpec> entry : descriptor.fieldSpecs().entrySet()) {
+            checkFieldSpec(descriptor, entry.getKey(), entry.getValue(), problems);
+        }
+
+        for (Map.Entry<String, KindDisplay> entry : descriptor.kindDisplay().entrySet()) {
+            checkKindDisplay(descriptor, entry.getKey(), entry.getValue(), problems);
+        }
+
+        Integer zoom = descriptor.aggBelowZoom();
+        if (zoom != null && (zoom < 0 || zoom > MAX_ZOOM)) {
+            problems.add(id + ": aggBelowZoom must be between 0 and " + MAX_ZOOM + ", but was " + zoom);
+        }
+
+        boolean hasStart = descriptor.startField() != null;
+        boolean hasEnd = descriptor.endField() != null;
+        if (hasStart != hasEnd) {
+            problems.add(id + ": startField and endField must be set together, or neither");
+        }
+        if (hasStart) {
+            checkTopLevel(descriptor, "startField", List.of(descriptor.startField()), problems);
+        }
+        if (hasEnd) {
+            checkTopLevel(descriptor, "endField", List.of(descriptor.endField()), problems);
+        }
+
+        int decimals = descriptor.privatePrecisionDecimals();
+        if (decimals < MIN_PRIVATE_DECIMALS || decimals > MAX_PRIVATE_DECIMALS) {
+            problems.add(
+                    id
+                            + ": privatePrecisionDecimals must be between "
+                            + MIN_PRIVATE_DECIMALS
+                            + " and "
+                            + MAX_PRIVATE_DECIMALS
+                            + ", but was "
+                            + decimals);
+        }
+    }
+
+    private static void checkFieldSpec(
+            SourceDescriptor descriptor, String field, FieldSpec spec, List<String> problems) {
+        String id = descriptor.id();
+        checkTopLevel(descriptor, "fieldSpecs", java.util.Collections.singletonList(field), problems);
+        if (spec == null) {
+            problems.add(id + ": fieldSpecs." + field + " is null");
+            return;
+        }
+        if (spec.type() == null) {
+            problems.add(id + ": fieldSpecs." + field + ".type is required");
+        }
+        if (spec.unit() != null && !UCUM_PATTERN.matcher(spec.unit()).matches()) {
+            problems.add(
+                    id
+                            + ": fieldSpecs."
+                            + field
+                            + ".unit '"
+                            + spec.unit()
+                            + "' is not a UCUM code (printable ASCII, no spaces, for example m, km,"
+                            + " [kn_i], [ft_i], deg, s or 1)");
+        }
+        if (spec.datum() != null) {
+            boolean numeric = spec.type() == FieldType.NUMBER || spec.type() == FieldType.INTEGER;
+            boolean lengthUnit = spec.unit() == null || LENGTH_UNITS.contains(spec.unit());
+            if (spec.datum().isBlank() || !numeric || !lengthUnit) {
+                problems.add(
+                        id
+                                + ": fieldSpecs."
+                                + field
+                                + ".datum is only for vertical fields: a NUMBER or INTEGER in a length"
+                                + " unit, with a non-blank datum such as MSL, WGS84, AGL or PRESSURE");
+            }
+        }
+        for (String kind : spec.kinds()) {
+            if (!descriptor.kinds().contains(kind)) {
+                problems.add(
+                        id
+                                + ": fieldSpecs."
+                                + field
+                                + ".kinds names '"
+                                + kind
+                                + "', which is not one of the source's kinds "
+                                + descriptor.kinds());
+            }
+        }
+    }
+
+    private static void checkKindDisplay(
+            SourceDescriptor descriptor, String kind, KindDisplay display, List<String> problems) {
+        String id = descriptor.id();
+        if (!descriptor.kinds().contains(kind)) {
+            problems.add(
+                    id
+                            + ": kindDisplay key '"
+                            + kind
+                            + "' is not one of the source's kinds "
+                            + descriptor.kinds());
+        }
+        if (display == null) {
+            problems.add(id + ": kindDisplay." + kind + " is null");
+            return;
+        }
+        if (display.color() != null && !COLOR_PATTERN.matcher(display.color()).matches()) {
+            problems.add(
+                    id
+                            + ": kindDisplay."
+                            + kind
+                            + ".colour '"
+                            + display.color()
+                            + "' must be #RRGGBB");
+        }
+        if (display.sidc() != null && !SIDC_PATTERN.matcher(display.sidc()).matches()) {
+            problems.add(
+                    id
+                            + ": kindDisplay."
+                            + kind
+                            + ".sidc '"
+                            + display.sidc()
+                            + "' must be a 15- or 20-character MIL-STD-2525 code");
         }
     }
 

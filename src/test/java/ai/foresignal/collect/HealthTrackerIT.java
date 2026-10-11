@@ -144,7 +144,7 @@ class HealthTrackerIT {
         void ingestOutcome() {
             Coverage coverage = new Coverage(12, 300, 280, new Envelope(-98, -96, 30, 31));
 
-            tracker.recordSuccess(SOURCE, new IngestOutcome(300, 25, 0, 275, 0, 1, 0, 2, 3, 10, 34, Map.of()), false, coverage);
+            tracker.recordSuccess(SOURCE, new IngestOutcome(300, 25, 0, 275, 0, 1, 0, 2, 3, 10, 34, Map.of(), 0, List.of()), false, coverage);
 
             SourceHealthEntity row = row();
             assertThat(row.getLastRecordsSeen()).isEqualTo(300);

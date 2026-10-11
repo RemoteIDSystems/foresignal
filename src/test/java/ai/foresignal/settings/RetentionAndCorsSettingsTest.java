@@ -20,17 +20,19 @@ class RetentionAndCorsSettingsTest {
         assertThat(settings.alerts()).isEqualTo(Duration.ofDays(90));
         assertThat(settings.usage()).isEqualTo(Duration.ofDays(30));
         assertThat(settings.sources()).isEmpty();
+        assertThat(settings.trackWindow()).isEqualTo(RetentionSettings.DEFAULT_TRACK_WINDOW);
     }
 
     @Test
     @DisplayName("missing retention fields fall back to the defaults")
     void retentionFillsMissingFields() {
-        var settings = new RetentionSettings(null, null, null, null);
+        var settings = new RetentionSettings(null, null, null, null, null);
 
         assertThat(settings.defaultRetention()).isEqualTo(RetentionSettings.DEFAULT_RETENTION);
         assertThat(settings.alerts()).isEqualTo(RetentionSettings.DEFAULT_ALERTS);
         assertThat(settings.usage()).isEqualTo(RetentionSettings.DEFAULT_USAGE);
         assertThat(settings.sources()).isEmpty();
+        assertThat(settings.trackWindow()).isEqualTo(RetentionSettings.DEFAULT_TRACK_WINDOW);
     }
 
     @Test
@@ -40,7 +42,8 @@ class RetentionAndCorsSettingsTest {
                         Duration.ofDays(7),
                         Duration.ofDays(90),
                         Duration.ofDays(30),
-                        Map.of("adsblol-mil", Duration.ofDays(2)));
+                        Map.of("adsblol-mil", Duration.ofDays(2)),
+                        null);
 
         assertThat(settings.forSource("adsblol-mil")).isEqualTo(Duration.ofDays(2));
         assertThat(settings.forSource("usgs-earthquakes")).isEqualTo(Duration.ofDays(7));
@@ -51,7 +54,7 @@ class RetentionAndCorsSettingsTest {
     void retentionCopiesSources() {
         var mutable = new LinkedHashMap<String, Duration>();
         mutable.put("a", Duration.ofDays(1));
-        var settings = new RetentionSettings(null, null, null, mutable);
+        var settings = new RetentionSettings(null, null, null, mutable, null);
 
         mutable.put("b", Duration.ofDays(2));
 

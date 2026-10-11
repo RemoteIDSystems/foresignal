@@ -1,5 +1,6 @@
 package ai.foresignal.source.spi;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -62,6 +63,20 @@ import java.util.Set;
  *     anything but a specific format, and using it costs the accountability that the standard
  *     User-Agent provides
  * @param products raster or field products this source publishes
+ * @param titleField the top-level payload key whose value is the record title; null means the
+ *     resolver's fallbacks ({@code title}, {@code name}, {@code callsign}, {@code place})
+ * @param entityKeys entity key type (for example {@code icao24}, {@code mmsi}) to the top-level
+ *     payload field holding it, for the entity registry (prompt 098)
+ * @param fieldSpecs declared payload fields keyed by top-level name
+ * @param kindDisplay client display hints keyed by kind
+ * @param aggBelowZoom tiles aggregate below this zoom (prompt 016); null means never
+ * @param startField the top-level payload key of an interval start; set together with
+ *     {@code endField}
+ * @param endField the top-level payload key of an interval end; set together with
+ *     {@code startField}
+ * @param privateSource true for personal data (JSON {@code private}); prompt 039 enforces its
+ *     exclusion from egress paths, and the normalizer caps its coordinate precision
+ * @param privatePrecisionDecimals coordinate decimals kept for a private source, 2 to 7
  */
 public record SourceDescriptor(
         String id,
@@ -100,7 +115,19 @@ public record SourceDescriptor(
         Duration fetchTimeout,
         int maxResponseBytes,
         String userAgentOverride,
-        List<ProductSpec> products) {
+        List<ProductSpec> products,
+        String titleField,
+        Map<String, String> entityKeys,
+        Map<String, FieldSpec> fieldSpecs,
+        Map<String, KindDisplay> kindDisplay,
+        Integer aggBelowZoom,
+        String startField,
+        String endField,
+        @JsonProperty("private") boolean privateSource,
+        int privatePrecisionDecimals) {
+
+    /** Coordinate decimals kept for a private source unless it says otherwise (about 11 m). */
+    public static final int DEFAULT_PRIVATE_PRECISION_DECIMALS = 4;
 
     /** Payload fields searched unless a source says otherwise. */
     public static final List<String> DEFAULT_SEARCH_FIELDS =
@@ -130,6 +157,9 @@ public record SourceDescriptor(
         limits = limits == null ? RecordLimits.defaults() : limits;
         skewTolerance = skewTolerance == null ? DEFAULT_SKEW_TOLERANCE : skewTolerance;
         defaultIngestPolicy = defaultIngestPolicy == null ? IngestPolicy.all() : defaultIngestPolicy;
+        entityKeys = entityKeys == null ? Map.of() : Map.copyOf(entityKeys);
+        fieldSpecs = fieldSpecs == null ? Map.of() : Map.copyOf(fieldSpecs);
+        kindDisplay = kindDisplay == null ? Map.of() : Map.copyOf(kindDisplay);
     }
 
     public static Builder builder(String id) {
@@ -185,6 +215,9 @@ public record SourceDescriptor(
         private final List<FieldThreshold> thresholds = new ArrayList<>();
         private final Map<String, Duration> kindRetention = new LinkedHashMap<>();
         private final List<ProductSpec> products = new ArrayList<>();
+        private final Map<String, String> entityKeys = new LinkedHashMap<>();
+        private final Map<String, FieldSpec> fieldSpecs = new LinkedHashMap<>();
+        private final Map<String, KindDisplay> kindDisplay = new LinkedHashMap<>();
 
         private String name;
         private String description;
@@ -212,6 +245,12 @@ public record SourceDescriptor(
         private Duration fetchTimeout = DEFAULT_FETCH_TIMEOUT;
         private int maxResponseBytes = DEFAULT_MAX_RESPONSE_BYTES;
         private String userAgentOverride;
+        private String titleField;
+        private Integer aggBelowZoom;
+        private String startField;
+        private String endField;
+        private boolean privateSource;
+        private int privatePrecisionDecimals = DEFAULT_PRIVATE_PRECISION_DECIMALS;
 
         private Builder(String id) {
             this.id = id;
@@ -424,6 +463,55 @@ public record SourceDescriptor(
             return this;
         }
 
+        /** The payload key whose value is the record title. */
+        public Builder titleField(String titleField) {
+            this.titleField = titleField;
+            return this;
+        }
+
+        /** Maps an entity key type, such as {@code icao24}, to the payload field holding it. */
+        public Builder entityKey(String keyType, String field) {
+            this.entityKeys.put(keyType, field);
+            return this;
+        }
+
+        /** Declares one payload field. */
+        public Builder fieldSpec(String field, FieldSpec spec) {
+            this.fieldSpecs.put(field, spec);
+            return this;
+        }
+
+        /** Sets the display hints for one kind. */
+        public Builder kindDisplay(String kind, KindDisplay display) {
+            this.kindDisplay.put(kind, display);
+            return this;
+        }
+
+        /** Tiles aggregate below this zoom; null means never. */
+        public Builder aggBelowZoom(Integer aggBelowZoom) {
+            this.aggBelowZoom = aggBelowZoom;
+            return this;
+        }
+
+        /** The payload keys of an interval's start and end; both or neither. */
+        public Builder intervalFields(String startField, String endField) {
+            this.startField = startField;
+            this.endField = endField;
+            return this;
+        }
+
+        /** Marks the source as personal data. */
+        public Builder privateSource(boolean privateSource) {
+            this.privateSource = privateSource;
+            return this;
+        }
+
+        /** The coordinate decimals kept when the source is private. */
+        public Builder privatePrecisionDecimals(int privatePrecisionDecimals) {
+            this.privatePrecisionDecimals = privatePrecisionDecimals;
+            return this;
+        }
+
         public SourceDescriptor build() {
             return new SourceDescriptor(
                     id,
@@ -462,7 +550,16 @@ public record SourceDescriptor(
                     fetchTimeout,
                     maxResponseBytes,
                     userAgentOverride,
-                    products);
+                    products,
+                    titleField,
+                    entityKeys,
+                    fieldSpecs,
+                    kindDisplay,
+                    aggBelowZoom,
+                    startField,
+                    endField,
+                    privateSource,
+                    privatePrecisionDecimals);
         }
     }
 }

@@ -57,7 +57,8 @@ class AppSettingServiceIT {
                         Duration.ofDays(14),
                         Duration.ofDays(60),
                         Duration.ofDays(10),
-                        Map.of("usgs-earthquakes", Duration.ofDays(3650)));
+                        Map.of("usgs-earthquakes", Duration.ofDays(3650)),
+                        Duration.ofDays(3));
 
         service.put(SettingKeys.RETENTION, settings);
 
@@ -102,7 +103,7 @@ class AppSettingServiceIT {
         service.put(SettingKeys.RETENTION, RetentionSettings.defaults());
         service.put(
                 SettingKeys.RETENTION,
-                new RetentionSettings(Duration.ofDays(1), null, null, Map.of()));
+                new RetentionSettings(Duration.ofDays(1), null, null, Map.of(), null));
 
         assertThat(repository.count()).isEqualTo(1);
         assertThat(service.get(SettingKeys.RETENTION, RetentionSettings.class))

@@ -48,14 +48,15 @@ class JacksonDurationIT {
                         Duration.ofDays(7),
                         Duration.ofDays(90),
                         Duration.ofDays(30),
-                        Map.of("usgs-earthquakes", Duration.ofDays(3650)));
+                        Map.of("usgs-earthquakes", Duration.ofDays(3650)),
+                        Duration.ofDays(3));
 
         String json = jsonMapper.writeValueAsString(settings);
 
         assertThat(json)
                 .isEqualTo(
                         "{\"default\":\"7d\",\"alerts\":\"90d\",\"usage\":\"30d\","
-                                + "\"sources\":{\"usgs-earthquakes\":\"3650d\"}}");
+                                + "\"sources\":{\"usgs-earthquakes\":\"3650d\"},\"trackWindow\":\"3d\"}");
     }
 
     @Test

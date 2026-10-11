@@ -24,7 +24,6 @@ dependencies {
     implementation(libs.spring.boot.starter.validation)
     implementation(libs.spring.boot.starter.actuator)
     implementation(libs.hibernate.spatial)
-    implementation(libs.jts.io.common)
     implementation(libs.micrometer.registry.prometheus)
     implementation(libs.bucket4j.core)
     implementation(libs.springdoc.openapi.starter.webmvc.ui)

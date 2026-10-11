@@ -3,7 +3,6 @@
 # repo1.maven.org maven-metadata.xml) and to be compatible with
 # Spring Boot 4.1 and Java 21.
 [versions]
-jts = "1.19.0"
 springBoot = "4.1.1"
 springDependencyManagement = "1.1.7"
 bucket4j = "8.21.0"
@@ -26,10 +25,10 @@ spring-boot-testcontainers = { module = "org.springframework.boot:spring-boot-te
 # does not pull it in.
 spring-boot-webmvc-test = { module = "org.springframework.boot:spring-boot-webmvc-test" }
 hibernate-spatial = { module = "org.hibernate.orm:hibernate-spatial" }
-# GeoJSON reading for the adapter SPI. Pinned to the jts-core version the Boot
-# BOM resolves through hibernate-spatial, so the two JTS artifacts agree.
-# Note the groupId is org.locationtech.jts.io, not org.locationtech.jts.
-jts-io-common = { module = "org.locationtech.jts.io:jts-io-common", version.ref = "jts" }
+# GeoJSON is read by Foresignal's own Jackson 3 reader
+# (ai.foresignal.source.formats.geojson.GeoJsonReader). jts-io-common was removed
+# in prompt 008 because it pulls in the unmaintained json-simple 1.1.1.
+# jts-core arrives through hibernate-spatial.
 postgresql = { module = "org.postgresql:postgresql" }
 micrometer-registry-prometheus = { module = "io.micrometer:micrometer-registry-prometheus" }
 

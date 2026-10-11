@@ -24,6 +24,9 @@ import org.locationtech.jts.geom.Geometry;
  * @param validUntil <strong>only</strong> an upstream-asserted expiry. Not a place to pre-compute
  *     the descriptor TTL — the framework does that from {@link TtlAnchor} — and TRACK sources must
  *     leave it null (adapter rule 9)
+ * @param validFrom when the asserted validity starts, for example an alert's onset; null when
+ *     valid immediately. A record whose {@code validFrom} is after its {@code validUntil} is
+ *     rejected by the normalizer ({@code VALID_RANGE_INVERTED})
  * @param payload the complete snapshot, JSON-serialisable, slim and allowlisted (rule 8)
  * @param tombstone true when upstream says this entity is gone
  * @param quality position and value trust, never hashed
@@ -36,6 +39,7 @@ public record NormalizedRecord(
         Instant eventTime,
         Geometry geometry,
         Instant validUntil,
+        Instant validFrom,
         Map<String, Object> payload,
         boolean tombstone,
         Quality quality,
@@ -61,7 +65,8 @@ public record NormalizedRecord(
     /** A tombstone, stored with no geometry and an empty payload. */
     public static NormalizedRecord tombstone(String externalId, String kind, Instant observedAt) {
         return new NormalizedRecord(
-                externalId, kind, observedAt, null, null, null, Map.of(), true, Quality.none(), List.of());
+                externalId, kind, observedAt, null, null, null, null, Map.of(), true, Quality.none(),
+                List.of());
     }
 
     /** Fluent construction, so an adapter sets only what its upstream actually provides. */
@@ -74,6 +79,7 @@ public record NormalizedRecord(
         private Instant eventTime;
         private Geometry geometry;
         private Instant validUntil;
+        private Instant validFrom;
         private boolean tombstone;
         private Quality quality = Quality.none();
         private List<Observer> observers = List.of();
@@ -107,6 +113,12 @@ public record NormalizedRecord(
         /** An upstream-asserted expiry only; see {@link NormalizedRecord#validUntil()}. */
         public Builder validUntil(Instant validUntil) {
             this.validUntil = validUntil;
+            return this;
+        }
+
+        /** When the asserted validity starts; see {@link NormalizedRecord#validFrom()}. */
+        public Builder validFrom(Instant validFrom) {
+            this.validFrom = validFrom;
             return this;
         }
 
@@ -149,6 +161,7 @@ public record NormalizedRecord(
                     eventTime,
                     geometry,
                     validUntil,
+                    validFrom,
                     payload,
                     tombstone,
                     quality,

@@ -80,7 +80,8 @@ class DurationShorthandModuleTest {
                         Duration.ofDays(7),
                         Duration.ofDays(90),
                         Duration.ofDays(30),
-                        Map.of("usgs-earthquakes", Duration.ofDays(3650)));
+                        Map.of("usgs-earthquakes", Duration.ofDays(3650)),
+                        Duration.ofDays(3));
 
         String json = mapper.writeValueAsString(settings);
 

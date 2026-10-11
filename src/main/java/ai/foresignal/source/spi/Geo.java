@@ -6,9 +6,10 @@ import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.PrecisionModel;
-import org.locationtech.jts.io.ParseException;
-import org.locationtech.jts.io.geojson.GeoJsonReader;
+import ai.foresignal.api.error.InvalidInputException;
+import ai.foresignal.source.formats.geojson.GeoJsonReader;
 import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
@@ -25,8 +26,11 @@ public final class Geo {
 
     private static final GeometryFactory FACTORY = new GeometryFactory(new PrecisionModel(), SRID);
 
-    /** Used only to re-serialize a {@code Map} form of GeoJSON for the JTS reader. */
+    /** Used only to convert a {@code Map} form of GeoJSON into a tree for the reader. */
     private static final JsonMapper JSON = JsonMapper.builder().build();
+
+    /** Foresignal's own Jackson 3 reader; {@code jts-io-common} is not used (Conventions). */
+    private static final GeoJsonReader READER = new GeoJsonReader();
 
     private Geo() {}
 
@@ -56,32 +60,19 @@ public final class Geo {
     /**
      * Parses a GeoJSON geometry object.
      *
-     * <p>Expects the geometry itself ({@code {"type":"Point",...}}), not a Feature.
+     * <p>Expects a geometry ({@code {"type":"Point",...}}); a Feature is unwrapped to its geometry
+     * and a FeatureCollection becomes a GeometryCollection. Reads through
+     * {@link GeoJsonReader}, which enforces the Core-Data-Model §3 vertex and finiteness limits.
      *
-     * @throws UpstreamFormatException if it cannot be parsed
+     * @throws UpstreamFormatException if it cannot be parsed or has no coordinates
      */
     public static Geometry fromGeoJson(String geoJson) {
         if (geoJson == null || geoJson.isBlank()) {
             throw new UpstreamFormatException("GeoJSON geometry is empty", geoJson);
         }
         try {
-            Geometry geometry = new GeoJsonReader(FACTORY).read(geoJson);
-            if (geometry == null) {
-                throw new UpstreamFormatException("GeoJSON parsed to no geometry", geoJson);
-            }
-            if (geometry.isEmpty()) {
-                // A geometry object with no coordinates reads as POINT EMPTY rather than failing.
-                // Storing that would be worse than rejecting it: an empty geometry is a missing
-                // position, and it behaves surprisingly in spatial predicates and tiles.
-                throw new UpstreamFormatException(
-                        "GeoJSON geometry has no coordinates", geoJson);
-            }
-            geometry.setSRID(SRID);
-            return geometry;
-        } catch (ParseException | RuntimeException e) {
-            if (e instanceof UpstreamFormatException already) {
-                throw already;
-            }
+            return checked(READER.read(geoJson), geoJson);
+        } catch (InvalidInputException e) {
             throw new UpstreamFormatException(
                     "Could not parse GeoJSON geometry: " + e.getMessage(), geoJson, e);
         }
@@ -92,14 +83,31 @@ public final class Geo {
         if (geoJson == null || geoJson.isEmpty()) {
             throw new UpstreamFormatException("GeoJSON geometry is empty", String.valueOf(geoJson));
         }
+        JsonNode tree;
         try {
-            return fromGeoJson(JSON.writeValueAsString(geoJson));
+            tree = JSON.valueToTree(geoJson);
         } catch (JacksonException e) {
             throw new UpstreamFormatException(
-                    "Could not re-serialize GeoJSON geometry: " + e.getOriginalMessage(),
+                    "Could not convert GeoJSON geometry: " + e.getOriginalMessage(),
                     String.valueOf(geoJson),
                     e);
         }
+        try {
+            return checked(READER.read(tree), String.valueOf(geoJson));
+        } catch (InvalidInputException e) {
+            throw new UpstreamFormatException(
+                    "Could not parse GeoJSON geometry: " + e.getMessage(), String.valueOf(geoJson), e);
+        }
+    }
+
+    private static Geometry checked(Geometry geometry, String content) {
+        if (geometry == null || geometry.isEmpty()) {
+            // An empty geometry is a missing position, and it behaves surprisingly in spatial
+            // predicates and tiles, so it is rejected rather than stored.
+            throw new UpstreamFormatException("GeoJSON geometry has no coordinates", content);
+        }
+        geometry.setSRID(SRID);
+        return geometry;
     }
 
     /** True for an exact (0,0) point, which is almost always a missing position (§3). */
