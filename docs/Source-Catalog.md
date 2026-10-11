@@ -196,6 +196,39 @@ These are left out because they scrape or use headless browsers, rely on unoffic
 - **Article-title scraping of GDELT URLs.**
 - **Windy webcams:** keyed and commercial.
 - **Shodan:** keyed, commercial, on-demand recon. It doesn't fit an ingest broker; agents can call it directly.
+- **CME Group data:** personal, non-commercial use only; automated access and data mining prohibited and technically enforced. (DataMine is paid.)
+- **ICE end-of-day futures data:** paid subscription with redistribution licensing. (ICE's free weekly COT for Brent and gasoil is evaluated in 116.)
+- **Prediction-market prices (Polymarket, Kalshi):** terms forbid storing or archiving (093 §8).
+- **Metaculus community forecasts:** terms restrict AI/ML and commercial use without written permission; excluded until permission exists.
+- **UKMTO / JMIC advisories:** the site blocks automated clients and offers no official feed; NGA MSI (088) and MARAD advisories cover the same ground.
+
+## Markets, attention and structural series (prompt 116, v1.3)
+
+All are `series-point` + `series-latest` records (093 model) with `family`, `transform`, `releaseLagDays` and `egress` metadata, analytic class `series` (3650 d).
+
+| Source | Upstream | Auth | Cadence / lag | Licence / egress | Notes |
+|---|---|---|---|---|---|
+| `cftc-cot` | CFTC Public Reporting (Socrata): legacy `6dca-aqww`, disaggregated `72hh-3qpy`, TFF `gpe5-46if` (and F&O variants) | none (optional app token) | weekly; Tuesday positions released Friday 15:30 ET (lag 3 d) | US government, public domain | Default contracts: WTI, natural gas, RBOB, ULSD, gold, copper, wheat, corn, E-mini S&P, 10-year note, dollar index, euro FX. History backfill from 2010. |
+| `fred-series` | FRED API | free API key | daily, lag ~1 d | **`LOCAL_ONLY`**; "not endorsed or certified" notice required; series marked copyrighted (VIXCLS, OVXCLS, DCOILBRENTEU) need explicit opt-in | Defaults: DGS10, DGS2, T10Y2Y, DFF, DTWEXBGS, DCOILWTICO, DHHNGSP |
+| `wikimedia-pageviews` | Wikimedia Pageviews REST (per-article daily, top articles) | none; User-Agent with contact | daily, lag 1 d | CC0 | Articles from attention topics; `attention-top` daily top 100 |
+| `gdelt-timelines` | GDELT DOC 2.0 API (`TimelineVolRaw`, `TimelineTone`) | none | 30 min; ≤ 1 request / 5 s | open with citation | Volume, share and tone per attention topic |
+| `worldbank-indicators` | World Bank Indicators API v2 | none | weekly poll, annual data | mostly CC BY 4.0 (per indicator source) | Structural covariates for regional indices |
+| `ice-cot` (optional) | ICE Futures Europe weekly COT (Brent, gasoil) | none | weekly | verify | Implemented only if an official, stable machine-readable file exists (116 decides and records) |
+
+`eia-petroleum` (093) spot prices are sourced from LSEG: those series are `LOCAL_ONLY`.
+
+## Reference-history datasets (prompt 120, v1.3)
+
+Imported as weekly counts per family and region (`reference_history`); never served raw.
+
+| Dataset | Access | Span | Licence / egress |
+|---|---|---|---|
+| UCDP GED (annual + candidate) | operator download or UCDP API | 1989– | CC BY 4.0 |
+| ACLED history | ACLED API with the operator's credentials | by region | ACLED EULA; `LOCAL_ONLY`, never redistributed |
+| USGS ComCat | FDSN event service | decades | public domain |
+| GDACS archive | GDACS event list API | 2000s– | open, attribution |
+| CFTC COT history | via `cftc-cot` backfill | 1986– | public domain |
+| IMF PortWatch history | via 088 | 2019– | IMF terms: reuse with attribution |
 
 ## Derived layers (prompt 057)
 

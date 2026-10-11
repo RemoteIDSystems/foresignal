@@ -6,6 +6,8 @@ Every candidate was checked against `docs/Roadmap.md` (001–063), Product-Chart
 
 ---
 
+> **v1.3 (2026-10-11):** the intelligence gaps (discovery, situations, base rates, rolling hypotheses, forecast accountability, analysis cycles) are designed in [Intelligence Design](Intelligence-Design.md) and built by prompts 116–126.
+
 ## 1. Biggest gaps
 
 1. **Offline clients can't keep a correct copy of the data (must).** `/v1/changes` is a plain `seq > after` scan. Retention deletes heads without writing tombstones, records that expire via `validUntil` never produce a change, and record pages carry no snapshot watermark. Flutter mobile and desktop caches will drift without anyone noticing. Fix it in 011, 012 and 016 before they're built: add `asOfSeq`, a per-source purge horizon that returns `410 RESYNC_REQUIRED`, `validUntil` on Change, and purge or expiry tombstones.

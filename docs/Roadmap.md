@@ -7,6 +7,7 @@ One ordered list of prompts that takes Elaro from an empty repository to a produ
   - [Core Data Model](Core-Data-Model.md) is authoritative for ingest, history, live state, triggers, SSE, asOf and retention.
   - [Weather & Imagery Design](Weather-Imagery-Design.md) is authoritative for rasters, weather and SatDump.
   - [Gap Analysis](Gap-Analysis.md) covers client, output, input and platform gaps, verified.
+- **v1.3 design input:** [Intelligence Design](Intelligence-Design.md) is authoritative for the intelligence layer: situations, discovery (change points, event studies, co-occurrence, precursors), base rates and analogs, rolling hypotheses, the forecast ledger, outlooks and indices, impact projection and analysis cycles (prompts 116–126).
   - The ChatGPT, Grok and Gemini architecture reviews are folded into the items below.
 
 ## 1. Process
@@ -15,13 +16,14 @@ One ordered list of prompts that takes Elaro from an empty repository to a produ
 2. Claude Code runs them in order, either one at a time or unattended with `prompts/000-Run-Sequence.md`.
 3. Each prompt starts by reading the earlier Completion Reports and adapting to what was actually built.
 4. Each prompt ends by writing `/completion-reports/NNN-CR-<Prompt-Description>.md` with the implementation commit hash.
-5. **Checkpoint prompts** (marked ✅ below) run the test suite built so far and fix failures before the next feature work. Prompt 118 does the final full regression and enforces ≥ 90% coverage.
+5. **Checkpoint prompts** (marked ✅ below) run the test suite built so far and fix failures before the next feature work. Prompt 129 does the final full regression and enforces ≥ 90% coverage.
+6. **Collect early.** After 022 (the core milestone), deploy a collecting instance on the bench server with the event-class sources enabled and the analytic retention defaults (`docs/Conventions.md`), and upgrade it as the build continues. History cannot be backfilled from live feeds, and the intelligence block (116–126) is far more useful on weeks of real history. Reference-history imports (120) supply the long outside view.
 
 ## 2. Guardrails (in every prompt)
 
-1. **Tests:** feature prompts write unit and integration tests targeting ≥ 90% line coverage but **do not run them**. Tests run only in the checkpoint prompts (012, 022, 041, 057, 097) and the final full run (118).
+1. **Tests:** feature prompts write unit and integration tests targeting ≥ 90% line coverage but **do not run them**. Tests run only in the checkpoint prompts (012, 022, 041, 057, 097, 126) and the final full run (129).
 2. **Finish with Compile → Commit → Push.** Compile with `./gradlew compileJava compileTestJava`, commit, push to `origin main`, and put the commit hash in the Completion Report.
-3. **Hibernate only during development.** Schema changes go through Hibernate (`ddl-auto=update`) plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns (partitioned history). **No Flyway until prompt 120.**
+3. **Hibernate only during development.** Schema changes go through Hibernate (`ddl-auto=update`) plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns (partitioned history). **No Flyway until prompt 131.**
 
 ## 3. Completion Report template
 
@@ -61,8 +63,8 @@ Legend: ✅ checkpoint.
 | 001 | Project-Scaffold | Build, wrapper, app skeleton, Docker, licence, test base | Done |
 | 002 | Persistence-Model | Entities, SchemaBootstrap, settings, durations, DB cleaner | Done |
 | 003 | Security-And-Secrets | Bootstrap token, AccessPolicy (fail-closed), cipher, install id, version, ProblemDetail, CORS | Done |
-| 004 | Source-Framework | SPI with v1.2 ingest input, descriptor (tier, time base, policies), DERIVED/PUSH modes, `LAN_URL`/`INBOX_PATH`, `InvalidInputException` | Running |
-| 005 | Upstream-Client-And-Budgets | Budgeted client, FetchTrace, `getRange`/`download`/`listS3`, mbPerDay, usage ingest counters | Ready |
+| 004 | Source-Framework | SPI with v1.2 ingest input, descriptor (tier, time base, policies), DERIVED/PUSH modes, `LAN_URL`/`INBOX_PATH`, `InvalidInputException` | Done |
+| 005 | Upstream-Client-And-Budgets | Budgeted client, FetchTrace, `getRange`/`download`/`listS3`, mbPerDay, usage ingest counters | Done |
 | 006 | Health-Tracking | Status rules, coverage vs format change, storage, budget outlook, HealthRule SPI | Ready |
 | 007 | History-Schema-And-Partitions | Partitioned `record_version` (tier × seq), `record_head`/`record_live`/`fetch_log`/`seq_clock`, PartitionManager, DB flags, binds | Ready |
 | 008 | Ingest-Normalizer-And-Policy-Engine | Pure core: normalizer, time contract, hashing, policy engine, PersistGate SPI. Gap descriptor extras: `titleField`, `entityKeys`, `fieldSpecs`, `kindDisplay`, `aggBelowZoom`, `start/endField`, `validFrom`, `private` with precision cap | Ready |
@@ -175,13 +177,13 @@ Legend: ✅ checkpoint.
 | 090 | Disasters-And-Humanitarian | EONET, ReliefWeb, UNHCR, WHO DON, Copernicus EMS, HANS/GeoNet volcano levels, OpenFEMA, travel advisories | Ready |
 | 091 | Sanctions-And-Filings | OFAC SDN, UK OFSI, UN, SEC 8-K | Ready |
 | 092 | Internet-Measurement | Cloudflare Radar (outages, BGP), RIPE Atlas, gpsjam daily, status pages, optional RIS Live | Ready |
-| 093 | Energy-And-Markets-Series | EIA petroleum and EIA-930, ERCOT, GIE AGSI, Ember, grid frequency, GB carbon intensity, Kalshi | Ready |
+| 093 | Energy-And-Markets-Series | EIA petroleum and EIA-930, ERCOT, GIE AGSI, Ember, grid frequency, GB carbon intensity; prediction markets evaluated and excluded | Ready |
 | 094 | Reference-Datasets | WRI power plants, OurAirports, submarine cables, GVP volcanoes, World Port Index, NPS boundaries, PeeringDB, spaceports, nuclear facilities | Ready |
 | 095 | Citizen-Science-And-Signals | iNaturalist, eBird, CDC NWSS, Wikipedia edit surge | Ready |
 | 096 | Satellite-Scenes-STAC | Earth Search STAC footprints and links (Sentinel/Landsat) | Ready |
 | 097 | ✅ Checkpoint-Sources | Run and fix all tests from 001–096 | Ready |
 
-### Intelligence, outputs and hardening
+### Intelligence foundations, outputs and integration
 
 | # | Prompt | Scope | Status |
 |---|---|---|---|
@@ -190,7 +192,7 @@ Legend: ✅ checkpoint.
 | 100 | Windowed-Rules-And-Anomalies | Count and absence rules, coverage-aware baselines, `anomaly` rule type | Ready |
 | 101 | Incidents-Cases-And-Exposure | `intelligence_event` (evidence, confidence, alternatives, detector version), correlation recipes, case files, exposure | Ready |
 | 102 | Autonomous-Analyst | Scheduled LLM analyst over events and anomalies; proposes watches and intelligence events | Ready |
-| 103 | Backtesting-And-Hypotheses | Rule and hypothesis backtests over retained history | Ready |
+| 103 | Backtesting-And-Precursor-Tests | Rule, recipe and precursor-test backtests over retained history ("does X precede Y?"); alert quality | Ready |
 | 104 | Infrastructure-Dependency-Mapping | Facility graph (power, telecom, transport, hospitals) and affected-dependency queries | Ready |
 | 105 | Weather-Models-And-Storm-Tracking | ECMWF IFS, forecast areas, TITAN-lite tracking, correlation annotators | Ready |
 | 106 | Weather-Products-Extended | Extended product list, HRRR smoke fields, HeatRisk, UV, alternate field formats | Ready |
@@ -203,11 +205,34 @@ Legend: ✅ checkpoint.
 | 113 | Federation-And-Edge-Relay | Elaro-to-Elaro replication with provenance and loop prevention; compact intelligence messages for MeshDTN | Ready |
 | 114 | Pattern-Of-Life-And-Trip-Watch | Pattern of life, trip and commute corridor watch, kinematic CPA/ETA | Ready |
 | 115 | Exercise-Replay-And-Alert-Quality | Exercise/replay mode, alert-quality feedback tuning | Ready |
-| 116 | Adapter-Doctor | LLM-assisted diagnosis: probe, compare with fixture, explain, propose parser fix | Ready |
-| 117 | Client-SDKs-CLI-And-Extensibility | Dart/TypeScript/Python SDK generation with SSE layer, picocli CLI, MCP remote authorization (RFC 9728), plugin SPI (WASM-first), science and security formats (CZML, QuakeML, STIX), audio briefings and translation | Ready |
-| 118 | ✅ Full-Test-Run-And-Fix | Full regression, ≥ 90% coverage gate | Ready |
-| 119 | Runtime-Verification | Live soak: storage, WAL, persist ratio, storms, restore drill, Tailscale profile, metrics drift | Ready |
-| 120 | Production-Hardening | Docs consolidation into Architecture/Charter, Flyway baseline (tiered DDL, all indexes), `ddl-auto=validate`, oasdiff, release `v1.0.0` | Ready |
+
+### Intelligence: discovery, memory, hypotheses and forecasting (v1.3)
+
+Design: [Intelligence Design](Intelligence-Design.md).
+
+| # | Prompt | Scope | Status |
+|---|---|---|---|
+| 116 | Market-And-Attention-Signals | CFTC COT (with history backfill), FRED (local-only), Wikimedia pageviews, GDELT timelines, World Bank indicators; attention topics; series metadata for event studies | Ready |
+| 117 | Situations-And-Storylines | Persistent storylines: deterministic linker, lifecycle, daily snapshots and "what changed", themes, self-refreshing briefs, merge/split | Ready |
+| 118 | Change-Points-And-Event-Studies | Region rollups, `SeriesReader`, analysis-series registry, findings (`elaro-analytics`), CUSUM and BOCPD change points, event studies, pre-event signals, unexplained moves, co-occurrence mining with FDR | Ready |
+| 119 | Precursor-Mining-And-Library | Candidate generation (event streams and series lead–lag), FDR, out-of-sample validation, precursor library and lifecycle, live `precursor-active` | Ready |
+| 120 | Base-Rates-And-Historical-Analogs | Reference-history imports (UCDP, ACLED, USGS, GDACS), base-rate library with intervals, reporting density, situation signatures and analog search | Ready |
+| 121 | Forecast-Ledger-And-Scoring | Questions and machine resolvers, immutable forecasts, baseline forecasters, Brier/log/RPS/CRPS, CORP calibration, bias monitor, ensemble with Platt recalibration, leak-free retrospective evaluation, ICD 203 wording | Ready |
+| 122 | Hypotheses-Indicators-And-ACH | Rolling hypothesis sets: priors from base rates, indicators that watch for themselves, deterministic Bayesian revisions, ACH matrix, key assumptions, speculative links with coincidence baselines, drafting | Ready |
+| 123 | Series-Forecasts-Regional-Outlooks-And-Indices | Method-selected series forecasts, CAST-style regional 4-week outlooks with published accuracy, decomposed regional indices with weights fitted to outcomes | Ready |
+| 124 | Impact-Projection | Hazard forecasts × places × infrastructure → probabilistic impact statements, scored in the ledger | Ready |
+| 125 | Analysis-Cycles-And-Assessments | Daily/weekly/monthly cycles: deterministic packet, LLM analyst, red team, forecaster and proposer roles, ICD 203 assessments that build on the previous one, monthly maintenance, intel board | Ready |
+| 126 | ✅ Checkpoint-Intelligence | Run and fix all tests from 001–125; determinism, no look-ahead, wording and egress checks | Ready |
+
+### Maintenance, clients and hardening
+
+| # | Prompt | Scope | Status |
+|---|---|---|---|
+| 127 | Adapter-Doctor | LLM-assisted diagnosis: probe, compare with fixture, explain, propose parser fix | Ready |
+| 128 | Client-SDKs-CLI-And-Extensibility | Dart/TypeScript/Python SDK generation with SSE layer, picocli CLI, MCP remote authorization (RFC 9728), plugin SPI (WASM-first), science and security formats (CZML, QuakeML, STIX), audio briefings and translation | Ready |
+| 129 | ✅ Full-Test-Run-And-Fix | Full regression, ≥ 90% coverage gate | Ready |
+| 130 | Runtime-Verification | Live soak on the bench server: storage, WAL, persist ratio, storms, restore drill, Tailscale profile, metrics drift; intelligence jobs' runtime and storage | Ready |
+| 131 | Production-Hardening | Docs consolidation into Architecture/Charter, Flyway baseline (tiered DDL, all indexes), `ddl-auto=validate`, oasdiff, release `v1.0.0` | Ready |
 
 **Outside this repository:** client applications built on Elaro have their own repositories and roadmaps:
 - the web globe and operator console
@@ -221,6 +246,21 @@ They consume the API, SSE, MCP, push and SDKs above.
 ## 5. Renumbering map
 
 Some older prompt text, and the design docs, still use earlier numbers. Translate them with these tables.
+
+**Roadmap v1.2 → v1.3** (2026-10-11: intelligence block inserted as 116–126):
+
+| v1.2 | v1.3 | Note |
+|---|---|---|
+| 001–115 | unchanged | |
+| 103 Backtesting-And-Hypotheses | 103 Backtesting-And-Precursor-Tests | same number; its "hypothesis" object is now a **precursor test** |
+| — | 116–126 | new intelligence block |
+| 116 Adapter-Doctor | 127 | |
+| 117 Client-SDKs-CLI-And-Extensibility | 128 | |
+| 118 Full-Test-Run-And-Fix | 129 | |
+| 119 Runtime-Verification | 130 | |
+| 120 Production-Hardening | 131 | |
+
+Completion Reports 001–005 and the design docs written before 2026-10-11 use v1.2 numbers; where they say 116–120, read 127–131.
 
 **Roadmap v1.1 → v1.2:**
 
@@ -254,12 +294,12 @@ Some older prompt text, and the design docs, still use earlier numbers. Translat
 | 040 | 075 | 057 | 099 |
 | 041 | 076 | 058 | 042–056 (weather block) |
 | 042 | 077 | 059 | 109 |
-| 043 | 078 | 060 | 116 |
-| 044 | 080 | 061 | 118 |
-| 045 | 081 | 062 | 119 |
-| | | 063 | 120 |
+| 043 | 078 | 060 | 116 → v1.3 127 |
+| 044 | 080 | 061 | 118 → v1.3 129 |
+| 045 | 081 | 062 | 119 → v1.3 130 |
+| | | 063 | 120 → v1.3 131 |
 
-**Core-Data-Model.md labels:** 006a → 007, 007 → 008, 007b → 009, 030a → 044. Its "063" (Flyway) is now 120.
+**Core-Data-Model.md labels:** 006a → 007, 007 → 008, 007b → 009, 030a → 044. Its "063" (Flyway) is now 131.
 
 **Weather-Imagery-Design.md labels** (its §10 list) → v1.2:
 
@@ -277,7 +317,7 @@ Some older prompt text, and the design docs, still use earlier numbers. Translat
 | | | 075 | 107 |
 | | | 076 | 108 |
 
-Its "080" (runtime verification) is now 119, and its "081" (Flyway) is now 120.
+Its "080" (runtime verification) is now 130, and its "081" (Flyway) is now 131.
 
 **Gap-Analysis.md labels:**
 
@@ -293,7 +333,7 @@ Its "080" (runtime verification) is now 119, and its "081" (Flyway) is now 120.
 | 028f | 040 | 059a | 110 |
 | 028g | 058 | 059b | 111 |
 | 028h | 059 | 059c | 112 |
-| 028i | 060 | 060a | 117 |
+| 028i | 060 | 060a | 117 → v1.3 128 |
 | 028j | 061 | | |
 | 039a | 073 | | |
 

@@ -555,6 +555,7 @@ Granularity is one batch. Valid-time asOf is not offered; use `/v1/history`.
 **Windows:**
 - TRACK uses `retention.trackWindow` (default 3d).
 - STANDARD uses the source setting, else descriptor `defaultRetention`, else `retention.defaultWindow` (7d).
+- **v1.3:** adapters set `defaultRetention` / `kindRetention` by analytic class (`docs/Conventions.md` "Analytic retention": event kinds 1825 d, series 3650 d, bulk events 90 d), so the 7d global default applies only to sources without a class.
 - A per-source retention PUT on a TRACK source is rejected with `400 RETENTION_TIER_FIXED`.
 
 **Consumer clamp:** `cutoffSeq` is clamped to `min(trigger.cursor, embedding.cursor) + 1`. If a cursor is older than `now − 2 × window`, the clamp is released and `elaro.retention.consumer_lag` is alarmed.

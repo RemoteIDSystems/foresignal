@@ -20,7 +20,7 @@
    - compile (`./gradlew compileJava compileTestJava`)
    - commit the implementation as `NNN: <Title>` (for example `005: Upstream Client And Budgets`)
    - write the Completion Report `completion-reports/NNN-CR-<Name>.md` in the same format as the earlier reports, with the 40-character implementation commit hash, commit it as `NNN: completion report`, and push to `origin main`
-   - feature prompts never run tests; checkpoint prompts (012, 022, 041, 057, 097, 118) run them as instructed
+   - feature prompts never run tests; checkpoint prompts (012, 022, 041, 057, 097, 126, 129) run them as instructed
 5. **Check before moving on:**
    - `git status` is clean
    - `git log origin/main -1` matches local `HEAD`
@@ -35,7 +35,7 @@ Stop and write `completion-reports/RUN-STATUS.md`, then commit it as `Run status
 - **Compile:** compilation fails and you can't fix it within the prompt's scope after a reasonable effort.
 - **Checkpoint tests:** a checkpoint's tests still fail after you've fixed everything you can determine to be a defect. List the failures and your analysis.
 - **Docker unavailable:** a checkpoint needs Testcontainers and Docker isn't running.
-- **Needs the bench server:** Elaro's production host is the owner's Linux amd64 bench server; the development machine is a Mac. Prompt 119 (Runtime Verification) measures and soaks a real deployment, so it must run on that server. Before starting 119, check `uname -sm`; unless it prints `Linux x86_64`, stop and ask the owner to run 119 on the bench server. Every other prompt runs on either machine, and nothing may assume macOS-only tools or paths.
+- **Needs the bench server:** Elaro's production host is the owner's Linux amd64 bench server; the development machine is a Mac. Prompt 130 (Runtime Verification) measures and soaks a real deployment, so it must run on that server. Before starting 130, check `uname -sm`; unless it prints `Linux x86_64`, stop and ask the owner to run 130 on the bench server. Every other prompt runs on either machine, and nothing may assume macOS-only tools or paths.
 - **Push:** `git push` is rejected (non-fast-forward, auth). Don't force-push, ever. (In this case the status file can't be pushed; leave it committed locally.)
 - **Destructive operation needed:** the prompt would require deleting user data outside the repo, dropping a non-test database, or changing system settings.
 - **Missing access:** a required credential, API key, paid account or account approval is missing. Implement everything else, mark that part clearly as unverified, record the prompt as `Partial`, and continue with later prompts unless the missing piece blocks them.

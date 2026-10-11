@@ -1,15 +1,15 @@
-# 117 — Client SDKs CLI And Extensibility
+# 128 — Client SDKs CLI And Extensibility
 
 > Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
-> Completion Report: `completion-reports/117-CR-Client-SDKs-CLI-And-Extensibility.md`
+> Completion Report: `completion-reports/128-CR-Client-SDKs-CLI-And-Extensibility.md`
 
 ## Context
 
 - **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
-- **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.2 prompt numbers; translate them with `docs/Roadmap.md` §5.
+- **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
-- **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, and `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump.
-- **Previous Completion Report:** read `completion-reports/116-CR-*.md` and follow its "Notes for the next prompt".
+- **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
+- **Previous Completion Report:** read `completion-reports/127-CR-*.md` and follow its "Notes for the next prompt".
 
 ## Read first
 
@@ -49,7 +49,7 @@ Make Elaro easy to build on and extend, keeping every piece minimal and optional
 - **Config:** `elaro login --url --token` stores `~/.config/elaro/config.json` (POSIX 0600; warn on Windows) with named profiles. Env `ELARO_URL`/`ELARO_TOKEN` override. The token is never printed.
 - **Commands:**
   - `system`
-  - `sources list|show|enable|disable|health|fetch|probe|doctor` (116)
+  - `sources list|show|enable|disable|health|fetch|probe|doctor` (127)
   - `records query|get|history|track`
   - `changes tail [--source --kind --bbox] [--live]` (SSE with the same resume/reset semantics as task 1)
   - `alerts list|ack|resolve|tail`
@@ -132,8 +132,8 @@ Make Elaro easy to build on and extend, keeping every piece minimal and optional
 
 ## Guardrails (mandatory)
 
-1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 118, 119, 120).
-2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 120).
+1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 126, 129, 130, 131).
+2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 131).
 3. **Reuse policy.** Never copy code from ShadowBroker, Velocity or World Monitor (AGPL) or SatDump (GPL). They are reference material only. God's Eye View (MIT, `~/Documents/GitLab/gods-eye-view`) may be ported to Java if you add an origin header comment and an entry in `THIRD_PARTY_NOTICES.md`.
 4. **Stay in scope.** Implement what this prompt specifies, no more. If the docs conflict with reality (for example, a library API differs from what the docs assume), choose the approach most faithful to `docs/Architecture.md` and record it under "Deviations" in the Completion Report.
 5. **Verify versions.** When adding a dependency, confirm the version exists on Maven Central and is compatible with Spring Boot 4.1 and Java 21.
@@ -142,7 +142,7 @@ Make Elaro easy to build on and extend, keeping every piece minimal and optional
 ## Finish: Compile → Commit → Push
 
 1. **Compile:** `./gradlew compileJava compileTestJava` must succeed. Fix every compile error. Do not run tests.
-2. **Commit** all changes with the message `117: Client SDKs CLI And Extensibility`. Capture the full hash with `git rev-parse HEAD`; this is the *implementation commit*.
-3. **Write** `completion-reports/117-CR-Client-SDKs-CLI-And-Extensibility.md` using the template in `docs/Roadmap.md` §3, including the implementation commit hash.
-4. **Commit** the report with the message `117: completion report`, then run `git push origin main`.
+2. **Commit** all changes with the message `128: Client SDKs CLI And Extensibility`. Capture the full hash with `git rev-parse HEAD`; this is the *implementation commit*.
+3. **Write** `completion-reports/128-CR-Client-SDKs-CLI-And-Extensibility.md` using the template in `docs/Roadmap.md` §3, including the implementation commit hash.
+4. **Commit** the report with the message `128: completion report`, then run `git push origin main`.
 5. End your reply with the line `Implementation commit: <hash>`.

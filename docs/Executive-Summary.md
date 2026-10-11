@@ -10,7 +10,7 @@ Every existing open-source "god's-eye" project (ShadowBroker, God's Eye View, Ve
 2. **Display:** what a particular screen shows.
 3. **Alerting:** what deserves attention.
 
-Because these are fused, turning a layer off stops collecting it, so you can't watch quietly. History lives only as long as a browser tab or a short position cache. Each project re-implements the same 40–100 integrations inside a UI, with little accounting of upstream load. ShadowBroker was formally called out by the Meshtastic project for generating "1–2 orders of magnitude more traffic than typical clients."
+Because these are fused, turning a layer off stops collecting it, so you can't watch quietly. Where they use AI, it summarises the present: risk indices rest on hand-set weights, correlations are computed and discarded, briefings forget last week, and no one measures whether a forecast came true. History lives only as long as a browser tab or a short position cache. Each project re-implements the same 40–100 integrations inside a UI, with little accounting of upstream load. ShadowBroker was formally called out by the Meshtastic project for generating "1–2 orders of magnitude more traffic than typical clients."
 
 ## The solution
 
@@ -25,6 +25,12 @@ Elaro separates the three concerns, and adds an intelligence layer on top:
   - Get LLM context added to alerts.
   - Search everything semantically using pgvector in the same Postgres database.
   - The model can be Anthropic Claude, any OpenAI-compatible API, or a local Ollama model, so data never has to leave the box.
+- **Intelligence that keeps score** ([Intelligence Design](Intelligence-Design.md)):
+  - Detect unusual changes, cross-domain co-occurrences, and market or attention moves before (or without) an event, each with a stated base rate.
+  - Remember unfolding situations for weeks, with "what changed since last week" from stored snapshots.
+  - Maintain rolling hypotheses: competing explanations, indicators that watch for themselves, and revisions that explain what moved.
+  - Record every forecast in a ledger, resolve it from Elaro's own data and score it, with calibration for each forecaster, including the LLM and you.
+  - Publish daily, weekly and monthly assessments in intelligence-community style (ICD 203).
 - **Agents are first-class:** a built-in MCP server exposes the data and watch management as tools for OpenClaw, Claude and any MCP client. Scoped tokens keep agents within limits.
 - **Anything can push in:** custom sources accept records through an inbound webhook, from local SDRs, Home Assistant, scripts or agents.
 
@@ -42,7 +48,8 @@ Individuals: OSINT hobbyists, analysts, researchers, makers and developers who w
 | Per-source scheduling, budgets, health; inbound push sources | Scraping sites that forbid it, or headless-browser collection |
 | Trigger engine; 13 notification channel types including Web Push | Multi-user accounts with logins (scoped API tokens instead) |
 | REST, GeoJSON, vector tiles, SSE, MCP; OpenAPI-first; Postman collection | Horizontal scale-out (single instance by design) |
-| Optional LLM: Ask, briefings, enrichment, semantic search, adapter doctor | Training or fine-tuning models |
+| Optional LLM: Ask, briefings, enrichment, semantic search, adapter doctor | Training or fine-tuning neural models |
+| Intelligence layer: discovery, situations, base rates, rolling hypotheses, forecast ledger, assessments | Analysis of private individuals; accusations |
 | Derived layers, gridded weather products, licence and provenance tracking | Hosting basemaps or imagery (clients fetch tiles directly) |
 
 ## Key decisions
@@ -65,15 +72,17 @@ Individuals: OSINT hobbyists, analysts, researchers, makers and developers who w
 4. **API as the product.** One contract, many frontends, plus MCP for agents.
 5. **Intelligence without lock-in.** Frontier or local models, with citations checked against real records and model actions gated by scope.
 6. **Built for an AI maintainer.** Health API, raw-fetch probes, fixture tests and an LLM adapter doctor.
+7. **Analysis that measures itself.** Years of versioned history, leak-free replays, base rates on day one, rolling hypotheses and a scored forecast ledger. Every comparable open-source tool is AGPL; Elaro is MIT.
 
 ## Plan
 
-A single ordered list of 63 prompts in the [Roadmap](Roadmap.md), in this order:
+A single ordered list of 131 prompts in the [Roadmap](Roadmap.md), in this order:
 
 1. foundation and core API
 2. channels, tokens, inbound webhooks, MCP and the LLM features
 3. about 100 sources
 4. derived layers, gridded products and provenance
-5. the first full test run, runtime verification and production hardening
+5. the intelligence layer: discovery, situations, base rates, hypotheses, the forecast ledger and analysis cycles
+6. the full test run, runtime verification and production hardening
 
 See the [Product Charter](Product-Charter.md), [Architecture](Architecture.md), [OpenAPI spec](OpenAPI.json) and [Source Catalog](Source-Catalog.md).

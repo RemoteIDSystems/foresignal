@@ -7,7 +7,7 @@
 | Owner | Adam Allard |
 | Licence | MIT |
 | Repository | gitlab.com/adam.allard/elaro |
-| Status | Charter v1.1 — 2026-10-10 |
+| Status | Charter v1.3 — 2026-10-11 |
 
 ---
 
@@ -17,9 +17,11 @@ Elaro is the data foundation for a family of situational-awareness applications.
 
 Elaro has **no user interface**. Every capability, including all configuration, is reachable through the API and, for agents, the MCP server. Elaro pushes notifications to the services the operator already uses, and can optionally use an LLM (frontier or local) to answer questions, write briefings and add context to alerts. Frontends are separate repositories.
 
+On top of the collected history, Elaro runs an **intelligence layer** ([Intelligence Design](Intelligence-Design.md)): it discovers unusual changes and cross-domain patterns, remembers unfolding situations, maintains rolling hypotheses with indicators that watch for themselves, and records probabilistic forecasts in a ledger that scores them, so the operator always knows how often Elaro was right.
+
 ## 2. Vision
 
-> Own your view of the world. Subscribe once, store everything, render anywhere, and be told when something matters.
+> Own your view of the world. Subscribe once, store everything, render anywhere, be told when something matters, and know how often you were right.
 
 ## 3. Problem statement
 
@@ -30,6 +32,7 @@ Open-source situational-awareness projects (ShadowBroker, God's Eye View, Veloci
 3. **Upstream abuse by accident.** Without per-source accounting, projects over-poll; ShadowBroker was called out by Meshtastic for 1–2 orders of magnitude excess traffic.
 4. **Duplicated integration effort.** Every project re-implements the same upstreams, inside a UI codebase, and each breaks independently when upstreams change.
 5. **One client per backend.** A globe, a phone, a CLI and an agent cannot share one collector.
+6. **AI that summarises but never answers for itself.** Where AI exists it summarises the current feed. Risk indices use hand-set weights, correlations are computed and thrown away, briefings have no memory of last week, and forecasts, where they exist at all, have no demonstrated accuracy.
 
 ## 4. Goals
 
@@ -47,12 +50,15 @@ Open-source situational-awareness projects (ShadowBroker, God's Eye View, Veloci
 | G10 | Agent-native | Every data query and watch operation is available as an MCP tool, and agents are confined by token scope |
 | G11 | Optional intelligence, never required | With an LLM configured, Ask answers with verified citations, briefings are narrative and alerts carry context. Without one, every non-LLM feature works unchanged. Local models are fully supported. |
 | G12 | Open to inbound data | Any system can push records into a custom source through an inbound webhook, and those records get the same versioning, alerting and search as polled data |
+| G13 | Correlate and remember | Unusual changes, cross-domain co-occurrences and pre-event market or attention moves are detected deterministically with a stated base rate; related evidence is grouped into situations that persist for weeks; "what changed since last week" is answered from stored snapshots |
+| G14 | Forecast honestly | Every probability Elaro produces starts from a stated base rate, is recorded immutably with its knowledge cutoff, resolves automatically from Elaro's own data where possible, and is scored (Brier, log, CRPS) with calibration shown per forecaster, including the LLM and the operator |
 
 ## 5. Non-goals
 
 - A user interface of any kind inside the broker. Frontends (globe, operator console, mobile) are separate repositories.
 - Multi-user accounts with logins or a user directory. Access is by scoped API tokens (`read`, `agent`, `admin`).
-- Training or fine-tuning models, or bundling model weights. Elaro calls providers the operator configures.
+- Training or fine-tuning neural models, or bundling model weights. Elaro calls providers the operator configures. (Fitting statistical models to the operator's own data, such as baselines, forecasts, index weights and recalibration, is in scope.)
+- Analysing private individuals, or accusing anyone of wrongdoing. Market findings describe aggregate activity only.
 - Sending email or chat messages other than notifications the operator configured.
 - Horizontal scale-out or clustering (single instance by design).
 - Hosting or proxying basemaps and imagery (Esri, GIBS, Google 3D Tiles, OSM tiles are fetched by clients directly).
@@ -69,6 +75,7 @@ Open-source situational-awareness projects (ShadowBroker, God's Eye View, Veloci
 | **The Agent** | An MCP-speaking agent (OpenClaw, Claude, n8n) or HTTP client that queries data, manages watches, receives alerts or maintains adapters. | MCP tools, scoped tokens, machine-readable health, raw-fetch diagnostics, predictable schemas |
 | **The Integrator** | Connects home automation, local receivers, scripts or chat ops to Elaro. | Inbound webhooks, notification channels, a Postman collection |
 | **The Contributor** | Open-source developer adding or fixing an adapter. | One small class per adapter, fixture-based tests, clear contract |
+| **The Analyst** | The operator (or an agent) in analysis mode: follows situations, frames key questions, forecasts, and reads daily, weekly and monthly assessments. | Cited evidence, base rates, competing hypotheses, calibrated probabilities, a track record |
 
 ## 7. Core concepts
 
@@ -91,6 +98,15 @@ Open-source situational-awareness projects (ShadowBroker, God's Eye View, Veloci
 | **LLM provider** | A configured model endpoint (Anthropic, OpenAI-compatible, Ollama) assigned to the `chat` and/or `embedding` role, with its own budget. |
 | **Briefing** | A scheduled summary of a scope over a period, rendered as a digest or by the LLM and delivered to channels. |
 | **Enrichment** | An LLM-written context summary attached to an alert. |
+| **Finding** | A deterministic discovery (change point, pre-event signal, unexplained move, co-occurrence, active precursor, projected impact, exceedance) with its base rate and caveats. |
+| **Situation** | A persistent storyline grouping related intelligence events, findings, alerts and records over days to months, with daily snapshots. |
+| **Precursor** | A pattern "X tends to precede Y within T" that survived false-discovery control and validation on later data. |
+| **Base rate** | How often an event family occurs per window in a region, with an interval and its sources: the outside view. |
+| **Hypothesis set** | A key question with competing hypotheses, priors, indicators, key assumptions and a revision history; reviewed on a cadence. |
+| **Indicator** | An observable signal with likelihood ratios across hypotheses; it watches for itself through a trigger rule. |
+| **Forecast question / forecast / forecaster** | A resolvable question; an immutable, timestamped probability from a named forecaster (base rate, statistical, precursor, analog, indicator-Bayes, LLM, operator, ensemble). |
+| **Ledger** | The store of questions and forecasts, with automatic resolution, scoring and calibration. |
+| **Assessment** | The output of a daily, weekly or monthly analysis cycle: key judgments, what changed, hypotheses, indicators, forecasts and speculation, following ICD 203. |
 
 ## 8. Functional requirements
 
@@ -185,6 +201,19 @@ Open-source situational-awareness projects (ShadowBroker, God's Eye View, Veloci
 - **FR-56** Each record carries licence and provenance metadata. Clients can request licence-filtered responses, and attributions are aggregated per response.
 - **FR-57** The adapter doctor uses the LLM to diagnose a failing source: it probes the upstream, compares the result with the fixture, explains what changed and proposes a parser fix.
 
+### 8.18 Intelligence layer (v1.3; [Intelligence Design](Intelligence-Design.md))
+- **FR-58** Market, positioning, attention and structural series (CFTC COT, FRED, Wikipedia pageviews, GDELT timelines, World Bank) are collected as series with release lags and licence-aware egress (116).
+- **FR-59** Situations group related evidence deterministically, persist with a lifecycle and daily snapshots, and answer "what changed since" without an LLM (117).
+- **FR-60** Change points, event studies (including live pre-event signals and unexplained moves) and co-occurrences are detected over registered series with stated base rates and caveats (118).
+- **FR-61** Precursor patterns are mined with false-discovery control, validated on later data, kept in a library with a lifecycle, and announced live when their antecedent occurs (119).
+- **FR-62** Base rates exist per event family and region from Elaro's history and imported reference datasets; historical analogs of a situation are found with their outcomes (120).
+- **FR-63** A forecast ledger records questions with machine resolvers and immutable forecasts from many forecasters, resolves them automatically, scores them (Brier, log, RPS, CRPS), shows calibration and bias, combines forecasters into a recalibrated ensemble, and evaluates forecasters retrospectively without look-ahead (121).
+- **FR-64** Rolling hypothesis sets have priors from base rates, indicators that watch for themselves, deterministic revisions with rationale, an ACH matrix and key assumptions; speculative links carry alternatives and coincidence baselines (122).
+- **FR-65** Series forecasts, regional 4-week outlooks and regional indices are published with their measured accuracy; index weights are fitted to outcomes and proposed (123).
+- **FR-66** Hazard forecasts are turned into scored, probabilistic impact statements on places and infrastructure (124).
+- **FR-67** Daily, weekly and monthly analysis cycles publish assessments that build on the previous one, with optional LLM analyst, red-team, forecaster and proposer roles; an intel board summarises the layer (125).
+- **FR-68** Probabilities are stored as numbers and expressed with ICD 203 terms; likelihood and confidence are separate, and generated text is linted.
+
 ## 9. Non-functional requirements
 
 | ID | Category | Requirement |
@@ -255,6 +284,10 @@ The remaining sources are ported from God's Eye View (cameras, transit, bikeshar
 | Notification fatigue | Operator ignores alerts | Enter/exit modes, cooldowns, severity floors per channel, briefings instead of streams of alerts |
 | Hibernate DDL drift before Flyway | Schema surprises at production cut-over | Final roadmap step generates a Flyway baseline from the Hibernate schema |
 | Scope creep toward a UI | Delays core | UI lives only in separate frontend repositories |
+| Spurious correlations from mining many patterns | False confidence | False-discovery control, out-of-sample validation, base rates on every finding, precursor decay |
+| Overconfident or biased AI judgments | Misleading assessments | LLM forecasts are scored, capped, recalibrated and monitored for bias; deterministic detectors own the evidence |
+| Speculation read as accusation | Reputational and legal harm | No person-level analysis; speculative links carry alternatives and coincidence baselines; fixed wording rules |
+| Licensed data leaking through outputs | Terms breach | `LOCAL_ONLY` egress for FRED, LSEG-sourced prices and ACLED; derived statistics only |
 
 ## 14. Success criteria
 
@@ -266,3 +299,5 @@ The remaining sources are ported from God's Eye View (cameras, transit, bikeshar
 6. A daily briefing is delivered every morning for 7 days, in both digest and LLM modes, and with a local model.
 7. An OpenClaw agent connected over MCP with an `agent` token answers questions from Elaro's data and creates a watch, and cannot change sources or credentials.
 8. A custom source receives records from a script through the inbound webhook, and they trigger alerts.
+9. After 90 days of operation, the forecast ledger shows at least 100 resolved questions, and the ensemble's Brier skill against the base-rate forecaster is positive with its interval reported.
+10. A weekly assessment is published for 4 consecutive weeks, each explaining what changed against the previous one, with every judgment cited and every probability expressed in ICD 203 terms.

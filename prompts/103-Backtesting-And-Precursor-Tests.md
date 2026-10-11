@@ -1,14 +1,14 @@
-# 103 — Backtesting And Hypotheses
+# 103 — Backtesting And Precursor Tests
 
 > Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
-> Completion Report: `completion-reports/103-CR-Backtesting-And-Hypotheses.md`
+> Completion Report: `completion-reports/103-CR-Backtesting-And-Precursor-Tests.md`
 
 ## Context
 
 - **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
-- **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.2 prompt numbers; translate them with `docs/Roadmap.md` §5.
+- **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
-- **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, and `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump.
+- **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
 - **Previous Completion Report:** read `completion-reports/102-CR-*.md` and follow its "Notes for the next prompt".
 
 ## Read first
@@ -32,8 +32,8 @@ Let the operator ask "what would this rule or recipe have done?" and "does X ten
 ### 1. Job framework (`ai.elaro.backtest`)
 
 - `backtest_job` columns:
-  - id (ULID), `type` (rule | recipe | hypothesis | quality);
-  - `target_id` (nullable), `definition` jsonb (a snapshot of the rule, recipe or hypothesis at submit time), `definition_hash`;
+  - id (ULID), `type` (rule | recipe | precursor | quality);
+  - `target_id` (nullable), `definition` jsonb (a snapshot of the rule, recipe or precursor test at submit time), `definition_hash`;
   - `from_seq`, `to_seq`, requested time range;
   - status (queued | running | done | failed | cancelled), progress (0–1), started/finished;
   - `result` jsonb (≤ 1 MB; larger detail is truncated with `truncated: true`), `caveats` jsonb, `detector_version`, created_by.
@@ -78,16 +78,18 @@ Emit each caveat that applies, with a code, text and data:
 - Run `CorrelationEngine` in dry-run mode over the range into an in-memory event store, with dedup and lifecycle simulated on observed time.
 - Result: events (type, start/end, members with join reasons, confidence, evidence quality), counts by type, and overlap with real `intelligence_event` rows in range (matched by shared members).
 
-### 5. Hypotheses
+### 5. Precursor tests
 
-- `hypothesis` columns:
+> **Naming (v1.3):** this object was called a "hypothesis" in earlier drafts. It is a **precursor test** ("does X tend to precede Y within T?"). The word *hypothesis* is reserved for the rolling hypothesis sets of prompt 122 (`docs/Intelligence-Design.md` §6). Prompt 119 builds precursor mining and the precursor library on this tester.
+
+- `precursor_test` columns:
   - id, name, statement (text);
   - `antecedent` and `consequent` selectors, each one of: `{rule: inline filter like 017}`, `{alertRuleId}`, `{intelEventType}`, `{anomalyRuleId, classification}`;
   - `minLag` (default 0), `maxLag` (required, ≤ 30 d);
   - `spatial`: `sameEntity` | `withinKm: n` | `sameRegion: country|admin1` | `none`;
   - `dedupWindow` (antecedent occurrences closer than this merge; default = maxLag);
   - created_by, created_at.
-- **`HypothesisTester` (version `1.0.0`):**
+- **`PrecursorTester` (version `1.0.0`):**
   - Build antecedent occurrences A (deduplicated) and consequent occurrences C over the range, each with time, location or region, and entity.
   - **Hit:** the first c ∈ C with `a.t + minLag ≤ c.t ≤ a.t + maxLag` satisfying `spatial`. Record its lag.
   - **Stats:**
@@ -98,9 +100,9 @@ Emit each caveat that applies, with a code, text and data:
     - permutation `pValue` = (1 + #shifted ≥ observed) ÷ 201;
     - `reverse`: the same test with roles swapped. If the reverse is as strong, flag "co-occurrence, not precedence".
   - **Verdict labels:** `insufficient` (nAntecedent < 10 or any `COVERAGE_GAPS` covering > 30% of the range), `no-evidence-of-precedence`, `weak`, `notable`. Thresholds go in documented constants.
-  - **Multiple-testing note:** report how many hypothesis tests this instance ran in the last 30 days, and the Bonferroni-adjusted p-value.
+  - **Multiple-testing note:** report how many precursor tests this instance ran in the last 30 days, and the Bonferroni-adjusted p-value.
   - The output text says "association in stored data; not causation".
-- `POST /v1/hypotheses/{id}/test {from, to | fromSeq, toSeq}` submits a `hypothesis` job.
+- `POST /v1/precursor-tests/{id}/test {from, to | fromSeq, toSeq}` submits a `precursor` job.
 
 ### 6. Alert quality and tuning suggestions
 
@@ -118,26 +120,26 @@ Emit each caveat that applies, with a code, text and data:
 ### 7. API and MCP
 
 - **Backtests:** `POST /v1/backtests` (agent; body `{type, targetId? | definition?, from|fromSeq, to|toSeq, variants?}` → 202 with the job), `GET /v1/backtests?status&type&cursor` (agent), `GET /v1/backtests/{id}` (agent), `DELETE /v1/backtests/{id}` (agent; cancel).
-- **Hypotheses:** `GET/POST /v1/hypotheses`, `GET/PUT/DELETE /v1/hypotheses/{id}` (agent; GET read), `POST /v1/hypotheses/{id}/test` (agent).
+- **Precursor tests:** `GET/POST /v1/precursor-tests`, `GET/PUT/DELETE /v1/precursor-tests/{id}` (agent; GET read), `POST /v1/precursor-tests/{id}/test` (agent).
 - **Quality:** `GET /v1/triggers/{ruleId}/quality?since` (read), `GET /v1/triggers/{ruleId}/suggestions?since&simulate` (read; `simulate=true` needs agent and returns a job id).
-- **MCP:** `run_backtest`, `get_backtest`, `test_hypothesis` (agent); `get_rule_quality`, `get_tuning_suggestions` (read). Outputs are compact, with caveats first.
-- **Problem codes:** `UNKNOWN_BACKTEST`, `UNKNOWN_HYPOTHESIS` (404); `BACKTEST_IN_PROGRESS` (409); `BACKTEST_RANGE_INVALID` (400: empty, inverted, or wholly below retention); `HYPOTHESIS_INVALID` (400).
+- **MCP:** `run_backtest`, `get_backtest`, `test_precursor` (agent); `get_rule_quality`, `get_tuning_suggestions` (read). Outputs are compact, with caveats first.
+- **Problem codes:** `UNKNOWN_BACKTEST`, `UNKNOWN_PRECURSOR_TEST` (404); `BACKTEST_IN_PROGRESS` (409); `BACKTEST_RANGE_INVALID` (400: empty, inverted, or wholly below retention); `PRECURSOR_TEST_INVALID` (400).
 
 ### 8. Spec, Postman, docs
 
 - `docs/OpenAPI.json`:
-  - schemas `BacktestJob`, `BacktestRequest`, `BacktestCaveat`, `RuleBacktestResult`, `RecipeBacktestResult`, `Hypothesis`, `HypothesisInput`, `HypothesisResult`, `RuleQuality`, `TuningSuggestion`;
+  - schemas `BacktestJob`, `BacktestRequest`, `BacktestCaveat`, `RuleBacktestResult`, `RecipeBacktestResult`, `PrecursorTest`, `PrecursorTestInput`, `PrecursorTestResult`, `RuleQuality`, `TuningSuggestion`;
   - tag `Analysis`; `x-elaro-scope` on every operation;
-  - regenerate Postman with BODIES for `createBacktest` (rule with variants), `createHypothesis` ("GPS jamming precedes AIS gaps within 6 h within 100 km") and `testHypothesis`.
+  - regenerate Postman with BODIES for `createBacktest` (rule with variants), `createPrecursorTest` ("GPS jamming precedes AIS gaps within 6 h within 100 km") and `testPrecursorTest`.
 - AccessPolicy rows as above.
-- `docs/Operator-Guide.md` "Backtesting and hypotheses": caveat codes, no look-ahead, reading lift and p-values, multiple testing, the feedback mapping.
+- `docs/Operator-Guide.md` "Backtesting and precursor tests": caveat codes, no look-ahead, reading lift and p-values, multiple testing, the feedback mapping.
 - `docs/Agent-Guide.md`: always quote caveats when reporting results.
 
 ## Tests to write (do not run)
 
 - `CaveatGeneratorTest`: every code from synthetic retention, downsampling, `fetch_log` gap and definition-diff inputs.
 - `CooldownSimulatorTest`: `observed_at` cooldown, `cooldownScope=rule`, hourly cap, active window.
-- `HypothesisTesterTest`:
+- `PrecursorTesterTest`:
   - planted precedence (fixed seed) → notable;
   - independent processes → no-evidence;
   - symmetric co-occurrence → reverse flag;
@@ -160,8 +162,8 @@ Emit each caveat that applies, with a code, text and data:
 
 ## Guardrails (mandatory)
 
-1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 118, 119, 120).
-2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 120).
+1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 126, 129, 130, 131).
+2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 131).
 3. **Reuse policy.** Never copy code from ShadowBroker, Velocity or World Monitor (AGPL) or SatDump (GPL). They are reference material only. God's Eye View (MIT, `~/Documents/GitLab/gods-eye-view`) may be ported to Java if you add an origin header comment and an entry in `THIRD_PARTY_NOTICES.md`.
 4. **Stay in scope.** Implement what this prompt specifies, no more. If the docs conflict with reality (for example, a library API differs from what the docs assume), choose the approach most faithful to `docs/Architecture.md` and record it under "Deviations" in the Completion Report.
 5. **Verify versions.** When adding a dependency, confirm the version exists on Maven Central and is compatible with Spring Boot 4.1 and Java 21.
@@ -170,7 +172,7 @@ Emit each caveat that applies, with a code, text and data:
 ## Finish: Compile → Commit → Push
 
 1. **Compile:** `./gradlew compileJava compileTestJava` must succeed. Fix every compile error. Do not run tests.
-2. **Commit** all changes with the message `103: Backtesting And Hypotheses`. Capture the full hash with `git rev-parse HEAD`; this is the *implementation commit*.
-3. **Write** `completion-reports/103-CR-Backtesting-And-Hypotheses.md` using the template in `docs/Roadmap.md` §3, including the implementation commit hash.
+2. **Commit** all changes with the message `103: Backtesting And Precursor Tests`. Capture the full hash with `git rev-parse HEAD`; this is the *implementation commit*.
+3. **Write** `completion-reports/103-CR-Backtesting-And-Precursor-Tests.md` using the template in `docs/Roadmap.md` §3, including the implementation commit hash.
 4. **Commit** the report with the message `103: completion report`, then run `git push origin main`.
 5. End your reply with the line `Implementation commit: <hash>`.

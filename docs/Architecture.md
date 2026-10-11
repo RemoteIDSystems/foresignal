@@ -95,6 +95,17 @@ ai.elaro
 ├── retention       RetentionSettings, RetentionJob
 ├── settings        AppSettingService (typed key/value), export/import
 ├── system          SystemInfoService
+├── attention       Attention topics (116)
+├── situation       Situations, linker, snapshots, briefs (117)
+├── analytics       Series reader, findings, change points, event studies, co-occurrence,
+│                   signal families, math (118)
+├── precursor       Precursor mining, validation, library, live watch (119)
+├── baserate        Base rates, reference-history imports, analogs (120)
+├── forecast        Ledger: questions, forecasts, resolvers, scoring, ensemble (121)
+├── hypothesis      Hypothesis sets, indicators, updater, ACH, assumptions (122)
+├── outlook         Series forecasts, regional outlooks, indices (123)
+├── impact          Impact projection (124)
+├── cycle           Analysis cycles, assessments, intel board (125)
 └── api             Controllers, DTOs, ProblemDetail handlers, pagination cursors
 ```
 
@@ -541,6 +552,7 @@ Optional. Without a configured provider, Elaro is fully functional: briefings us
   - Record content (news titles, warnings, free text) is **untrusted**. Tool results are passed as clearly delimited data, and the system prompt says instructions inside data must be ignored.
   - Models can never change sources, credentials, channels, providers, tokens or settings. The only model-initiated writes are *proposed* actions (create or update a watch, create a briefing, acknowledge an alert). These run only after confirmation, or automatically when the caller holds `agent` scope and set `allowActions`.
   - Every call is logged with metadata (provider, model, tokens, duration, purpose). Prompt and response content is logged only when `logContent=true`.
+- **Knowledge cutoff:** each provider model may declare `knowledgeCutoff` (a date). The forecast ledger uses it to exclude leakage-prone questions when evaluating an LLM forecaster retrospectively (Intelligence Design §8.5).
 - **Data egress:** with a frontier provider, the records the model reads are sent to that provider. This is the operator's choice, and the local Ollama profile keeps everything on the box. The Operator Guide states it plainly.
 
 ## 20. Embeddings and semantic search
@@ -651,3 +663,16 @@ Prompts reference these at fixed paths under `~/Documents/GitLab/`, as siblings 
 | `~/Documents/GitLab/meshdtn` | https://gitlab.com/adam.allard/meshdtn.git (specifications) |
 | `~/Documents/GitLab/meshdtn-firmware` | https://gitlab.com/adam.allard/meshdtn-firmware.git |
 | `~/Documents/GitLab/meshdtn-app` | https://gitlab.com/adam.allard/meshdtn-app.git |
+
+## 27. Intelligence layer (v1.3)
+
+Authoritative design: [Intelligence Design](Intelligence-Design.md). Summary of how it sits on the platform:
+
+- **Stack:** signals (records, rollups, series) → detection (099, 100) → correlation (101, 104) → discovery (118 change points, event studies, co-occurrence; 119 precursors; 123 outlooks and indices; 124 impact projection) → memory (117 situations, 120 base rates and analogs) → reasoning (122 rolling hypotheses) → accountability (121 forecast ledger) → rhythm (125 analysis cycles and assessments).
+- **Outputs are platform objects:** typed tables plus records of the DERIVED sources `elaro-intel`, `elaro-analytics` and `elaro-outlook`, so triggers, SSE, tiles, search, briefings and MCP work unchanged. Forecast questions and forecasts are append-only ledger rows.
+- **Determinism and versioning:** detectors, scorers, updaters and forecasters are pure, versioned components; outputs store `{name, version, params}` and `asOfSeq`. The LLM explains, challenges, proposes and forecasts (scored like any forecaster); it never creates evidence or changes deterministic scores.
+- **Time:** every series point carries `knownAt`; live detection uses only known data; replays and retrospective evaluation read through `asOf` (§9 query paths, Core-Data-Model §12).
+- **Durable cursors** (`situation.cursor`, `stats.region.cursor`, `precursor.cursor`, `impact.cursor`) join the retention consumer clamp; scheduled jobs (rollups, detectors, mining, resolution, cycles) use the 029/102 scheduler pattern and the 103 job framework.
+- **Retention:** analytic retention classes (Conventions) keep event kinds 5 years and series 10 years; intelligence tables are outside `RetentionJob`.
+- **Wording:** probabilities are numbers; ICD 203 terms are derived and linted by one `EstimativeLanguage` utility.
+- **Libraries:** Apache Commons Statistics, Commons Numbers, Commons RNG and Hipparchus; no GPL statistics libraries.
