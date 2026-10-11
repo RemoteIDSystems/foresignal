@@ -32,7 +32,7 @@ Build the **forecast ledger**: resolvable questions, immutable timestamped forec
 ### 1. `EstimativeLanguage` (`ai.foresignal.forecast.language`)
 
 - `term(p)` → the ICD 203 term (one row only: almost no chance, very unlikely, unlikely, roughly even chance, likely, very likely, almost certain); `band(p)`; `crossesBand(p0, p1)`.
-- `lint(text, claims)`: rejects (a) a likelihood term whose band disagrees with the claim's number, (b) terms from the second ICD row (remote, highly improbable, improbable, roughly even odds, probable, highly probable, nearly certain) mixed with the first, (c) a likelihood term and a confidence level ("low/moderate/high confidence") in the same sentence. Returns violations with offsets. Used by 124, 127 and the 028/102 validators for intelligence outputs.
+- `lint(text, claims)`: rejects (a) a likelihood term whose band disagrees with the claim's number, (b) terms from the second ICD row (remote, highly improbable, improbable, roughly even odds, probable, highly probable, nearly certain) mixed with the first, (c) a likelihood term and a confidence level ("low/moderate/high confidence") in the same sentence. Returns violations with offsets. Used by 125, 128 and the 028/102 validators for intelligence outputs.
 
 ### 2. Data model (`ai.foresignal.forecast`)
 
@@ -49,7 +49,7 @@ Build the **forecast ledger**: resolvable questions, immutable timestamped forec
   - `series-value {ref, period | window, aggregate: last|mean|max|sum, op?, threshold?}` (numeric when no threshold);
   - `alert-fired {ruleId, window, area?}`;
   - `situation-status {situationId, at: resolve_by, status | minSeverity}`;
-  - `hypothesis-outcome {setId}` (resolved by the operator's confirmation in 124).
+  - `hypothesis-outcome {setId}` (resolved by the operator's confirmation in 125).
 - `ResolutionJob` hourly (and on demand): resolves due questions; resolves **early** when an `event-exists` or `alert-fired` question's event occurs before `resolve_by`; uses `asOf` = `resolve_by + lag` where `lag` is the involved sources' `releaseLagDays` (so late-published data is waited for, up to 14 days, then resolves with what exists and a caveat).
 - Detectability: a **negative** resolution ("no event", count below threshold) additionally requires 116 `canSeeAbsence` over the question's area and window; otherwise the question is `annulled` with reason `LOW_DETECTABILITY`.
 - Every forecast and resolution stores a 116 `manifest_id`.
@@ -70,7 +70,7 @@ All run automatically on every new open question of a compatible type and re-for
 
 Auto-created questions:
 - From `precursor-active` findings: "Will {consequent} occur in {region} between {from} and {to}?" (`event-exists`), origin `system`, dedup by precursor and window.
-- Other components (124 hypothesis sets, 125 outlooks and series, 126 impacts) create their own questions through `ForecastService.openQuestion(...)`.
+- Other components (125 hypothesis sets, 126 outlooks and series, 127 impacts) create their own questions through `ForecastService.openQuestion(...)`.
 
 ### 5. Scoring, calibration, bias (`ForecastScorer` 1.0.0)
 
@@ -89,13 +89,13 @@ Auto-created questions:
 - Weights `w ∝ exp(−η · relBrier)` (η = 2) using each forecaster's relative Brier against the median over the last 100 resolved questions in the category, shrunk toward equal weights by `n ÷ (n + 20)`.
 - **Platt recalibration:** per forecaster and category, once ≥ 50 resolved, fit `p' = σ(a · logit p + b)` (Hipparchus or a small Newton solver) on resolved forecasts; the ensemble uses recalibrated inputs and stores both.
 - **LLM caps:** forecasts from `llm*` forecasters are clamped to [0.03, 0.97] before recalibration (raw values kept in `inputs`).
-- **Extremizing:** `p* = σ(a · Σ wᵢ logit pᵢ)`, default `a = 1`; a monthly check (`POST /v1/forecasts/ensemble/refit`, or 127's monthly cycle) fits `a` on resolved questions and enables it only when ≥ 5 forecasters with distinct `type` are active and out-of-sample log score improves over ≥ 100 resolutions. Output capped to [0.01, 0.99].
+- **Extremizing:** `p* = σ(a · Σ wᵢ logit pᵢ)`, default `a = 1`; a monthly check (`POST /v1/forecasts/ensemble/refit`, or 128's monthly cycle) fits `a` on resolved questions and enables it only when ≥ 5 forecasters with distinct `type` are active and out-of-sample log score improves over ≥ 100 resolutions. Output capped to [0.01, 0.99].
 
 ### 7. Retrospective evaluation
 
 - `POST /v1/forecasts/evaluations {forecasterId, from, to, categories?, maxQuestions?}` (agent) → 103 job `type=forecast-evaluation`: for each **resolved** question that was open in the range, run the forecaster as of the question's `opens_at` (tools and readers forced to `asOf`), score against the actual resolution, and produce a scorecard marked `retrospective`.
 - Statistical and baseline forecasters are fully valid.
-- LLM forecasters (registered by 127): add `knowledgeCutoff` (date) to `llm_provider` model config (026); questions with `opens_at` before it are skipped and counted under `LEAKAGE_RISK`. Without a configured cutoff, LLM retrospective evaluation is refused (`409 KNOWLEDGE_CUTOFF_REQUIRED`).
+- LLM forecasters (registered by 128): add `knowledgeCutoff` (date) to `llm_provider` model config (026); questions with `opens_at` before it are skipped and counted under `LEAKAGE_RISK`. Without a configured cutoff, LLM retrospective evaluation is refused (`409 KNOWLEDGE_CUTOFF_REQUIRED`).
 
 ### 8. API, SSE, MCP, notifications
 
@@ -139,8 +139,8 @@ Auto-created questions:
 
 ## Guardrails (mandatory)
 
-1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 138, 141, 142, 143).
-2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 143).
+1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 124, 139, 142, 143, 144) and in the sanctioned narrow runs of 007–009.
+2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 144).
 3. **Reuse policy.** Never copy code from ShadowBroker, Velocity or World Monitor (AGPL) or SatDump (GPL). They are reference material only. God's Eye View (MIT, `~/Documents/GitLab/gods-eye-view`) may be ported to Java if you add an origin header comment and an entry in `THIRD_PARTY_NOTICES.md`.
 4. **Stay in scope.** Implement what this prompt specifies, no more. If the docs conflict with reality (for example, a library API differs from what the docs assume), choose the approach most faithful to `docs/Architecture.md` and `docs/Intelligence-Design.md`, and record it under "Deviations" in the Completion Report.
 5. **Verify versions.** When adding a dependency, confirm the version exists on Maven Central and is compatible with Spring Boot 4.1 and Java 21.

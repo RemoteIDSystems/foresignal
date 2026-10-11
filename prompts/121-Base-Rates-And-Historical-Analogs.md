@@ -48,7 +48,7 @@ Give every probability Foresignal produces an **outside view**. Build a library 
 - **Own history counts canonical events** (116), never raw records, and rates for regions where 116 detectability is below `absenceMinDetect` carry the caveat `LOW_DETECTABILITY` (the true rate may be higher). Every rate stores a `manifest_id`.
 - **Conditional rates:** `condition {family, withinDays}` gives `P(consequent within window | antecedent family occurred)`, computed over antecedent occurrences, with the unconditional rate alongside (this is the precursor-test logic of 103 applied to reference data).
 - **Reporting density:** per region, the ratio of its total weekly event count across all text-based sources to the median of countries with similar population (World Bank, 117). Stored on `region_profile(region_code, reporting_density, density_decile, computed_at)` and used for `LOW_REPORTING_DENSITY`.
-- **Auto rates:** monthly (127's monthly cycle, or `POST /v1/base-rates/refresh`), for every family × region with ≥ 52 weeks of coverage, windows P7D and P28D.
+- **Auto rates:** monthly (128's monthly cycle, or `POST /v1/base-rates/refresh`), for every family × region with ≥ 52 weeks of coverage, windows P7D and P28D.
 - API: `GET /v1/base-rates?family&region&window&cursor` (read), `GET /v1/base-rates/{id}` (read), `POST /v1/base-rates/query` (read; compute an ad-hoc definition without storing, cached 24 h), `POST /v1/base-rates` (agent; store a custom definition), `DELETE /v1/base-rates/{id}` (agent; custom only).
 - MCP: `get_base_rate` (read; takes a definition, returns the stored or computed rate with interval, n and caveats). Add to the read catalogue.
 
@@ -87,8 +87,8 @@ Give every probability Foresignal produces an **outside view**. Build a library 
 
 ## Guardrails (mandatory)
 
-1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 138, 141, 142, 143).
-2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 143).
+1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 124, 139, 142, 143, 144) and in the sanctioned narrow runs of 007–009.
+2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 144).
 3. **Reuse policy.** Never copy code from ShadowBroker, Velocity or World Monitor (AGPL) or SatDump (GPL). They are reference material only. God's Eye View (MIT, `~/Documents/GitLab/gods-eye-view`) may be ported to Java if you add an origin header comment and an entry in `THIRD_PARTY_NOTICES.md`.
 4. **Stay in scope.** Implement what this prompt specifies, no more. If the docs conflict with reality (for example, a library API differs from what the docs assume), choose the approach most faithful to `docs/Architecture.md` and `docs/Intelligence-Design.md`, and record it under "Deviations" in the Completion Report.
 5. **Verify versions.** When adding a dependency, confirm the version exists on Maven Central and is compatible with Spring Boot 4.1 and Java 21.

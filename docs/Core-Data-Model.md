@@ -8,6 +8,9 @@ Repo facts checked for this design:
 - The Javadoc in `SchemaBootstrap` / `application.yml` still says Flyway arrives in "prompt 042". It should say 063.
 - Roadmap §2 guardrail 1 forbids running tests before 061.
 
+
+> **Numbering and test policy (2026-10-11).** Prompt labels in this document are the v1.1/v1.2 planning labels (006a, 007, 007b, 030a, 042, 061, 063…). The authoritative order and numbers are in `docs/Roadmap.md`; §5 there maps them (006a → 007, 007 → 008, 007b → 009, 030a → 044, Flyway → 144). The sanctioned narrow test runs of §17 apply to prompts **007, 008 and 009** with the classes listed in those prompts; all other testing follows `docs/Conventions.md` "Test-run prompts".
+
 ---
 
 ## 0. Decisions at a glance

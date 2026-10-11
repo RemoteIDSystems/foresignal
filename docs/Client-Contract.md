@@ -1,6 +1,6 @@
 # Foresignal — Client Contract (v1)
 
-How applications built on Foresignal name, fetch, relate, annotate and share focus on the same objects. It is the reference for every frontend (3D globe, 2D map, analyst workstation, satellite and RF consoles, mobile, embedded widgets) and for agents. Prompt 128 implements it; prompt 140's SDKs ship helpers for it. `GET /v1/contract` reports the versions in force.
+How applications built on Foresignal name, fetch, relate, annotate and share focus on the same objects. It is the reference for every frontend (3D globe, 2D map, analyst workstation, satellite and RF consoles, mobile, embedded widgets) and for agents. Prompt 129 implements it; prompt 141's SDKs ship helpers for it. `GET /v1/contract` reports the versions in force.
 
 ---
 
@@ -27,20 +27,20 @@ Grammar: `{type}:{id}`. Ids are opaque to clients; compare references as strings
 | `precursor` | id | `precursor:…` | 120 |
 | `base-rate` | id | `base-rate:…` | 121 |
 | `question`, `forecast` | ULID | `question:01J…` | 122 |
-| `hypothesis-set`, `hypothesis`, `indicator` | ULID | `hypothesis-set:01J…` | 124 |
-| `assessment` | ULID | `assessment:01J…` | 127 |
+| `hypothesis-set`, `hypothesis`, `indicator` | ULID | `hypothesis-set:01J…` | 125 |
+| `assessment` | ULID | `assessment:01J…` | 128 |
 | `alert` | id | `alert:…` | 017 |
 | `investigation` | id (display id `INV-yyyy-nnnn` also accepted) | `investigation:01J…` | 101 |
 | `place`, `view`, `watchlist` | id | `place:…` | 036 |
 | `source` | source id | `source:usgs-earthquakes` | 004 |
-| `sensor` | `{kind}:{id}` (source, receiver, station, satellite) | `sensor:satellite:25544` | 128 |
-| `workspace`, `annotation` | ULID | `workspace:01J…` | 128 |
-| `principal`, `group`, `tag`, `attachment`, `evidence-item`, `saved-search` | id | `principal:jsmith` | 023, 129 |
-| `chronicle` | ULID (display id `CHR-yyyy-nnnn` also accepted) | `chronicle:01J…` | 130 |
-| `report` | ULID (display id `RPT-yyyy-nnnn`) | `report:01J…` | 131 |
-| `news-story`, `outlet` | ULID / id | `news-story:01J…` | 132 |
-| `narrative`, `claim`, `social-comparison` | ULID | `narrative:01J…` | 135, 136 |
-| `remote` | `{instanceId}/{type}:{id}`, read-only material received from another instance | `remote:fs-eu-1/report:01J…` | 131 |
+| `sensor` | `{kind}:{id}` (source, receiver, station, satellite) | `sensor:satellite:25544` | 129 |
+| `workspace`, `annotation` | ULID | `workspace:01J…` | 129 |
+| `principal`, `group`, `tag`, `attachment`, `evidence-item`, `saved-search` | id | `principal:jsmith` | 023, 130 |
+| `chronicle` | ULID (display id `CHR-yyyy-nnnn` also accepted) | `chronicle:01J…` | 131 |
+| `report` | ULID (display id `RPT-yyyy-nnnn`) | `report:01J…` | 132 |
+| `news-story`, `outlet` | ULID / id | `news-story:01J…` | 133 |
+| `narrative`, `claim`, `social-comparison` | ULID | `narrative:01J…` | 136, 137 |
+| `remote` | `{instanceId}/{type}:{id}`, read-only material received from another instance | `remote:fs-eu-1/report:01J…` | 132 |
 
 Unknown types are rejected with `400 OBJECT_REF_INVALID`. New types are added only with a contract minor version bump.
 
@@ -99,13 +99,13 @@ Time-aware edges with `valid_from`/`valid_to`, `confidence`, `label` (confirmed 
 | `located-in` | within a place or region (computed on demand) | 036, 040 |
 | `near` | within a distance at a time | computed |
 | `depends-on` | infrastructure dependency | 104 |
-| `affects` | projected or observed impact | 126 |
+| `affects` | projected or observed impact | 127 |
 | `derived-from` | a finding derived from series or records | 119 |
-| `evidence-for` / `evidence-against` | supports or contradicts an event or hypothesis | 101, 124 |
-| `about` | a question or assessment concerns an object | 122, 127 |
+| `evidence-for` / `evidence-against` | supports or contradicts an event or hypothesis | 101, 125 |
+| `about` | a question or assessment concerns an object | 122, 128 |
 | `mentions` | a text record names an object | 118 |
-| `precedes` | A tends to come before B (validated precursor) or came before it (timeline) | 120, 128 |
-| `causes` | asserted causal link; never machine-asserted; label at most `possible` until an operator confirms | operators, 124 |
+| `precedes` | A tends to come before B (validated precursor) or came before it (timeline) | 120, 129 |
+| `causes` | asserted causal link; never machine-asserted; label at most `possible` until an operator confirms | operators, 125 |
 | `related-to` | operator-asserted link | operators, agents |
 
 Queries: neighbourhood (`/v1/objects/{ref}/related`), subgraph (`POST /v1/graph`), common dependencies (`POST /v1/graph/common-dependencies`).
@@ -165,7 +165,7 @@ A context travels between applications as a deep link payload: `{"v":1,"ws":"01J
 - Share state only through Foresignal: workspaces and their synchronised context (§5), deep links (§6), investigations, chronicles and reports. A unifying shell, when it comes, coordinates layout and navigation, not data.
 - Develop against the complete target spec from day one: generate types and clients from `docs/OpenAPI.json`, run a mock server from it, and read `x-foresignal-status` (`planned` or `implemented`) and `x-foresignal-prompt` to know when each operation goes live.
 
-## 10. Collaboration (prompt 129)
+## 10. Collaboration (prompt 130)
 
 - **Who:** every request runs as a principal (person, agent or service) through its token; `GET /v1/me` returns the principal, scopes, groups and preferences.
 - **Data vs work products:** records and analytic objects are readable per scope. Work products (investigations, workspaces, chronicles, reports, saved searches, notes, attachments, evidence items) have an owner, a visibility and an access list; without access they are invisible.
@@ -173,7 +173,7 @@ A context travels between applications as a deep link payload: `{"v":1,"ws":"01J
 - **Tags** (personal or shared), **comments** (threads, `@mentions`), **attachments** and **evidence items** (Admiralty grades: source reliability A–F, information credibility 1–6) work on any object reference. Envelopes include the caller's visible tags.
 - **Shared with me** and **my items** are single lists (`/v1/shared-with-me`, `/v1/my`), so a workbench's navigation (my investigations, shared with me, recent) needs no client bookkeeping.
 
-## 11. Chronicles (prompt 130)
+## 11. Chronicles (prompt 131)
 
 A chronicle is a saved monitoring thread with its own recorded history. Clients:
 - create one from the current workspace (its layers, area and filters become chronicle layers) or accept one the analysis cycles proposed;
@@ -183,13 +183,13 @@ A chronicle is a saved monitoring thread with its own recorded history. Clients:
 - store their auto-arranged layout in the chronicle's workspace, and open a chronicle with its context;
 - offer pause, stop, archive, restore and delete with the owner's confirmation.
 
-## 12. Reports and exchange (prompt 131)
+## 12. Reports and exchange (prompt 132)
 
 - Build a report from the current selection, a tag, an investigation, a chronicle or a situation (`/v1/reports/draft`); edit blocks; publish to freeze a revision with pinned references; download Markdown, HTML or the JSON bundle.
 - Send to principals and groups here, or as a signed package to principals on other instances; received material appears under `remote:` references, read-only, with sender, authors, signature status and TLP.
 - Never render a received report as if it were local analysis; show its origin.
 
-## 13. News coverage display (prompt 132)
+## 13. News coverage display (prompt 133)
 
 - Show an outlet's lean and factuality **with the provider and date** of each rating and the consensus; when providers disagree, show the spread.
 - Show a story's coverage balance (left, center, right, unrated), state-affiliated share and blindspot flag; link to the articles (outbound links only).
@@ -200,14 +200,14 @@ A chronicle is a saved monitoring thread with its own recorded history. Clients:
 - A situation has no single probability. Where a design calls for a headline gauge, show the leading hypothesis's probability (with its ICD term) **and**, separately, the evidence quality or confidence; never label a probability as "confidence".
 - Every percentage shown must come from a ledger forecast, a hypothesis revision or a finding's statistics, with its issuer and knowledge cutoff (§3.2).
 
-## 15. Chronicle network (prompt 133)
+## 15. Chronicle network (prompt 134)
 
 - `GET /v1/chronicles/{id}/related` returns links at the disclosure level the caller is allowed: **full** (both chronicles visible: shared events and entities), or **opaque** (strength band, overlapping dimensions, time overlap; title and owner only if revealed). Render opaque links as "a related thread exists", with a request-access action; never infer or display more.
 - Owners set discoverability (`none`, `instance`, `network`) within their TLP's limits; show the effective setting on the chronicle.
 - Cluster timelines are already deduplicated by evidence; show which visible chronicles hold each item.
 - Hypotheses and reports may show `CIRCULAR_REPORTING`; display it as a caveat on the affected support.
 
-## 16. Social signals (prompts 134–136)
+## 16. Social signals (prompts 135–137)
 
 - **Keep the two worlds apart visually.** Narratives and claims are what people say; canonical events and findings are what Foresignal observed. Never draw a claim as an observed event on a map; use a distinct "reported" style, with the place precision (point, locality, admin area, country) and its confidence.
 - Show a narrative's **status** (`corroborated`, `unobserved`, `contradicted`, `mixed`, `insufficient-coverage`, `pending`, `unassessed`) with its reason: the matching physical evidence, or the detectability that made "unobserved" meaningful. `unobserved` means "no corresponding change despite adequate coverage", never "false".

@@ -167,20 +167,20 @@ These are structured feeds that rarely appear in OSINT globe projects. Reference
 | `who-don` | disease-outbreak | `www.who.int/api/emergencies/diseaseoutbreaknews` | none | 6 h. Country-level. |
 | `faa-nas-status` | airport-delay | `nasstatus.faa.gov/api/airport-status-information` | none | 5 min. Airport points. |
 | `eia-petroleum` / `gie-agsi` / `ember-electricity` | energy | EIA v2 API, `agsi.gie.eu/api`, Ember monthly CSV | keys for EIA and AGSI | Weekly or daily. These are time series with no geometry. Carried as records without geometry, `kind=series-point`, with the series id as `externalId` plus the period (prompt 055). |
-| `polymarket` / `kalshi` | prediction-market | `gamma-api.polymarket.com`, `api.elections.kalshi.com/trade-api/v2` | none | External provider ideas (EDP `observation` and `forecast` streams; 137 binds forecasts to ledger questions). |
+| `polymarket` / `kalshi` | prediction-market | `gamma-api.polymarket.com`, `api.elections.kalshi.com/trade-api/v2` | none | External provider ideas (EDP `observation` and `forecast` streams; 138 binds forecasts to ledger questions). |
 
 **Design notes worth borrowing (ideas, not code):**
 - WM's seed envelope state `OK | OK_ZERO | ERROR` is the same idea as Foresignal's zero-result health rule.
 - Its "keep last good data on failure" behaviour is already implicit in Foresignal: records persist until retention removes them.
 - Its ACLED-over-GDELT dedup on a 0.1° grid and same-day match is included in derived layers (prompt 057).
 
-**Not built into Foresignal from WM (external provider ideas, EDP):** OREF sirens, the Hormuz transit dashboard, Yahoo Finance, CNN Fear & Greed, Windy webcams, LiveUAMap and Telegram channels. The X API is a built-in social adapter (134).
+**Not built into Foresignal from WM (external provider ideas, EDP):** OREF sirens, the Hormuz transit dashboard, Yahoo Finance, CNN Fear & Greed, Windy webcams, LiveUAMap and Telegram channels. The X API is a built-in social adapter (135).
 
 ## External provider ideas (EDP)
 
 Foresignal ships none of these. Each fits the [External Data Protocol](External-Data-Protocol.md) as a separate provider project (any language, any host); the operator registers the ones they want. Providers that reuse a built-in kind (`aircraft`, `vessel`, `air-raid-alert`, `conflict-event`, `social-post`…) join that kind's layers, rules and analysis automatically.
 
-| Idea | Streams (mode, item type, kind) | Useful binding (137) | Notes for provider authors |
+| Idea | Streams (mode, item type, kind) | Useful binding (138) | Notes for provider authors |
 |---|---|---|---|
 | FlightRadar24 (official API or web feed) | layer, `feature`, `aircraft` | — (fused with other aircraft) | official API needs a subscription; web feed is unofficial |
 | MarineTraffic, VesselFinder, MyShipTracking, ShipXplorer | layer, `feature`, `vessel` | — | official APIs where offered, else web endpoints |
@@ -204,9 +204,12 @@ Foresignal ships none of these. Each fits the [External Data Protocol](External-
 | Yahoo Finance, CNN Fear & Greed | atomic, `observation` | `series` | unofficial endpoints |
 | Google Trends | atomic, `observation` | `series` | official API is a closed alpha; web endpoints are unofficial |
 | Electricity Maps | atomic, `observation` | `series` | API key, commercial terms |
-| NewsGuard, Ad Fontes ratings | — | operator CSV import into 132 | proprietary ratings; or a provider that emits the CSV |
+| NewsGuard, Ad Fontes ratings | — | operator CSV import into 133 | proprietary ratings; or a provider that emits the CSV |
 | Shodan saved queries | atomic, `observation` (counts) and layer `feature` (exposed services) | `series` | API key |
 | Windy webcams | layer, `feature` with `media` | — | API key |
+| Argo ocean floats (GDAC / ERDDAP) | atomic, `observation` (temperature and salinity profiles by region) | `series` | public data; low volume |
+| GCN and IGWN multi-messenger alerts (gravitational waves, neutrinos, GRBs) | layer, `event` | `canonical-family` | public Kafka/JSON notices; rare, high-value events |
+| Local RF occupancy and interference (operator's SDRs) | atomic, `observation` per band and site | `series`; declared coverage feeds observability | the operator's own receivers |
 
 ## Markets, attention and structural series (prompt 117, v1.3)
 
@@ -235,7 +238,7 @@ All are `series-point` + `series-latest` records (093 model) with `family`, `tra
 
 Every catalogued source also has an originator and observability entry in `src/main/resources/intel/originators.json` and `intel/observability.json` (prompt 116).
 
-## News and media ratings (prompt 132, v1.3)
+## News and media ratings (prompt 133, v1.3)
 
 Articles are stored as metadata only (no bodies, no bylines). Ratings are imported from declared providers, never generated.
 
@@ -251,7 +254,7 @@ Articles are stored as metadata only (no bodies, no bylines). Ratings are import
 
 NewsGuard and Ad Fontes Media ratings: through the operator CSV import (or an external provider that produces it); see "External provider ideas".
 
-## Social platforms (prompts 134–136, v1.3)
+## Social platforms (prompts 135–137, v1.3)
 
 Foresignal is a single-operator tool: every platform below is an adapter the operator enables with their own credentials and budget, after reading the platform's terms (summarised here; check them yourself, they change). Nothing is hard-blocked. "Collection" says what the data can be used for: **complete** and **paged** paths feed volume baselines; **sample** paths feed claims and leads only.
 
@@ -265,8 +268,8 @@ Foresignal is a single-operator tool: every platform below is an adapter the ope
 | `x` | API v2 pay-per-use: `counts/recent`, `search/recent` (optional `counts/all`, `search/all`) | $0.005 per post read; $0.005 per recent counts request; monthly cap `social.x.monthlyCapUsd` (default $25) | X Developer Agreement; remove deleted content within 24 h | off | complete counts; paged search | on |
 | `threads` | `keyword_search` with `threads_keyword_search` permission | 2,200 queries per rolling 24 h | Meta Platform Terms | off | paged (`RECENT`) | on |
 | `instagram-hashtags` | Graph API `ig_hashtag_search`, `recent_media` (business account, Public Content Access review) | 30 unique hashtags per rolling 7 days | Meta Platform Terms | off | sample | optional |
-| `xai-x-search` (cue backend, 136) | xAI API X search tool | ~$5 per 1,000 posts returned plus model tokens (per-result billing since 2026-09-21) | xAI terms | off | sample | n/a |
-| EDP providers (024, 137) | any platform as `document` items (`social-post`), bound with target `social` | n/a | provider's and operator's responsibility | n/a | as the manifest declares | provider |
+| `xai-x-search` (cue backend, 137) | xAI API X search tool | ~$5 per 1,000 posts returned plus model tokens (per-result billing since 2026-09-21) | xAI terms | off | sample | n/a |
+| EDP providers (024, 138) | any platform as `document` items (`social-post`), bound with target `social` | n/a | provider's and operator's responsibility | n/a | as the manifest declares | provider |
 
 Telegram channels, Facebook pages, TikTok and any other platform: external EDP providers (see "External provider ideas"). Meta Content Library is research-only and TikTok's Research API academic-only, so there is no official route for those.
 

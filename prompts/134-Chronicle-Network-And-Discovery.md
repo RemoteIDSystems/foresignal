@@ -1,7 +1,7 @@
-# 133 — Chronicle Network And Discovery
+# 134 — Chronicle Network And Discovery
 
 > Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
-> Completion Report: `completion-reports/133-CR-Chronicle-Network-And-Discovery.md`
+> Completion Report: `completion-reports/134-CR-Chronicle-Network-And-Discovery.md`
 
 ## Context
 
@@ -9,13 +9,13 @@
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults, analytic retention, intelligence conventions) applies to every prompt and wins over conflicting prompt text. `docs/Invariants.md` lists the invariants each prompt must keep.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and **`docs/Intelligence-Design.md` is authoritative for the intelligence layer** (situations, findings, precursors, base rates, analogs, the forecast ledger, hypotheses, forecasts, impact projection and analysis cycles).
-- **Previous Completion Report:** read `completion-reports/132-CR-*.md` and follow its "Notes for the next prompt".
+- **Previous Completion Report:** read `completion-reports/133-CR-*.md` and follow its "Notes for the next prompt".
 
 ## Read first
 
 - `docs/Intelligence-Design.md` §3.1 (three memories), §12.6 (chronicle network), §2 (principles 9, 12, 14)
 - `docs/Client-Contract.md` §11 (chronicles), §15 (chronicle network)
-- Completion Reports of 098 (entity keys), 109 (instance signing key), 113 (federation peers, provenance, loop prevention), 116 (canonical events, evidence groups, originators), 118 (situations), 129 (principals, ACL, TLP), 130 (chronicles), 131 (reports, signed packages, received material)
+- Completion Reports of 098 (entity keys), 109 (instance signing key), 113 (federation peers, provenance, loop prevention), 116 (canonical events, evidence groups, originators), 118 (situations), 130 (principals, ACL, TLP), 131 (chronicles), 132 (reports, signed packages, received material)
 
 ## Objective
 
@@ -62,13 +62,13 @@ Turn independent chronicles into a collaborative intelligence network. Foresigna
 
 ### 5. Access requests
 
-- `POST /v1/chronicle-network/links/{linkId}/request-access {message, offerShare?: chronicleId}` (read): sends the owner of the other chronicle (local principal, or through the peer channel for remote ones) a request containing only the requester's handle, the message and, if the requester chooses, an offer to share their own chronicle. The owner may grant (129 ACL on this instance; for remote requesters, a 131 package of a chronicle extract or report), decline, or ignore; the requester is notified of grant or decline only.
+- `POST /v1/chronicle-network/links/{linkId}/request-access {message, offerShare?: chronicleId}` (read): sends the owner of the other chronicle (local principal, or through the peer channel for remote ones) a request containing only the requester's handle, the message and, if the requester chooses, an offer to share their own chronicle. The owner may grant (130 ACL on this instance; for remote requesters, a 132 package of a chronicle extract or report), decline, or ignore; the requester is notified of grant or decline only.
 - Rate limits: 10 requests per principal per day; repeated requests to a declining owner are suppressed for 30 days.
 
 ### 6. Circular reporting
 
-- Analytic products that cross analysts or instances (reports, received packages, imported judgments, hypothesis evidence items citing reports) carry a **provenance chain**: the ordered list of `(instance, principal, productRef, manifestId)` from origin to now (131 packages already carry authors and forwarders).
-- `CircularReportingDetector`: when a judgment, report or evidence item used as support for a hypothesis (124) or a confidence assessment has a provenance chain that includes the consuming analyst's own instance-and-principal earlier, or two supporting items share an origin, mark them `CIRCULAR_REPORTING` and treat them as one evidence group (116 rules); the 124 updater and confidence assessor count them once, and the hypothesis shows the caveat.
+- Analytic products that cross analysts or instances (reports, received packages, imported judgments, hypothesis evidence items citing reports) carry a **provenance chain**: the ordered list of `(instance, principal, productRef, manifestId)` from origin to now (132 packages already carry authors and forwarders).
+- `CircularReportingDetector`: when a judgment, report or evidence item used as support for a hypothesis (125) or a confidence assessment has a provenance chain that includes the consuming analyst's own instance-and-principal earlier, or two supporting items share an origin, mark them `CIRCULAR_REPORTING` and treat them as one evidence group (116 rules); the 125 updater and confidence assessor count them once, and the hypothesis shows the caveat.
 
 ### 7. API, MCP, SSE, docs
 
@@ -100,8 +100,8 @@ Turn independent chronicles into a collaborative intelligence network. Foresigna
 
 ## Guardrails (mandatory)
 
-1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 138, 141, 142, 143).
-2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 143).
+1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 124, 139, 142, 143, 144) and in the sanctioned narrow runs of 007–009.
+2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 144).
 3. **Reuse policy.** Never copy code from ShadowBroker, Velocity or World Monitor (AGPL) or SatDump (GPL). They are reference material only. God's Eye View (MIT, `~/Documents/GitLab/gods-eye-view`) may be ported to Java if you add an origin header comment and an entry in `THIRD_PARTY_NOTICES.md`.
 4. **Stay in scope.** Implement what this prompt specifies, no more. If the docs conflict with reality (for example, a library API differs from what the docs assume), choose the approach most faithful to `docs/Architecture.md` and `docs/Intelligence-Design.md`, and record it under "Deviations" in the Completion Report.
 5. **Verify versions.** When adding a dependency, confirm the version exists on Maven Central and is compatible with Spring Boot 4.1 and Java 21.
@@ -110,7 +110,7 @@ Turn independent chronicles into a collaborative intelligence network. Foresigna
 ## Finish: Compile → Commit → Push
 
 1. **Compile:** `./gradlew compileJava compileTestJava` must succeed. Fix every compile error. Do not run tests.
-2. **Commit** all changes with the message `133: Chronicle Network And Discovery`. Capture the full hash with `git rev-parse HEAD`; this is the *implementation commit*.
-3. **Write** `completion-reports/133-CR-Chronicle-Network-And-Discovery.md` using the template in `docs/Roadmap.md` §3, including the implementation commit hash.
-4. **Commit** the report with the message `133: completion report`, then run `git push origin main`.
+2. **Commit** all changes with the message `134: Chronicle Network And Discovery`. Capture the full hash with `git rev-parse HEAD`; this is the *implementation commit*.
+3. **Write** `completion-reports/134-CR-Chronicle-Network-And-Discovery.md` using the template in `docs/Roadmap.md` §3, including the implementation commit hash.
+4. **Commit** the report with the message `134: completion report`, then run `git push origin main`.
 5. End your reply with the line `Implementation commit: <hash>`.

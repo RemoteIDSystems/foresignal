@@ -1,7 +1,7 @@
-# 125 — Series Forecasts Regional Outlooks And Indices
+# 126 — Series Forecasts Regional Outlooks And Indices
 
 > Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
-> Completion Report: `completion-reports/125-CR-Series-Forecasts-Regional-Outlooks-And-Indices.md`
+> Completion Report: `completion-reports/126-CR-Series-Forecasts-Regional-Outlooks-And-Indices.md`
 
 ## Context
 
@@ -9,7 +9,7 @@
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults, analytic retention, intelligence conventions) applies to every prompt and wins over conflicting prompt text. `docs/Invariants.md` lists the invariants each prompt must keep.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and **`docs/Intelligence-Design.md` is authoritative for the intelligence layer** (situations, findings, precursors, base rates, analogs, the forecast ledger, hypotheses, forecasts, impact projection and analysis cycles).
-- **Previous Completion Report:** read `completion-reports/124-CR-*.md` and follow its "Notes for the next prompt".
+- **Previous Completion Report:** read `completion-reports/125-CR-*.md` and follow its "Notes for the next prompt".
 
 ## Read first
 
@@ -57,7 +57,7 @@ Add Foresignal's own statistical forecasts and make them accountable. A **series
 - `regional_index_def`: `id`, `name`, `description`, `components` jsonb (each `{key, ref (SeriesRef template with {region}), transform: log1p|zscore|pctrank|level, window: P7D|P28D|P90D, direction: +1|−1, floor?}`), `weights` jsonb (component → weight, summing to 1), `floors` jsonb (rules such as "if `ucdp war` in last 12 months, index ≥ 70"), `target` (an outlook family the index should anticipate), `weights_version`, `weights_origin` (default | fitted | operator), `enabled`.
 - Built-in definitions (disabled until their component series exist): **`instability`** (conflict events, protests, fatalities when available, outages, travel advisory level from 090, GDELT tone for the country topic if defined, attention, sanctions changes) targeting `conflict:battles`; **`maritime-risk`** (chokepoint transit change, AIS-gap and loiter findings, nav warnings, GNSS interference) targeting chokepoint disruption change points; **`infrastructure-stress`** (outages, grid-frequency excursions, severe weather) targeting `outage`.
 - **Computation:** daily per region: each component normalised over the region-class history (percentile rank by default) into [0, 100], weighted sum, floors applied, 24 h and 7 d deltas. Output: `regional_index_value(def_id, region, day, value, components jsonb (each component's normalised value and contribution), floors_applied, asof_seq)` and an `foresignal-outlook` record (kind `regional-index`), emitted on change ≥ 1 point.
-- **Fitting:** monthly (127) or `POST /v1/indices/{id}/fit` (agent): regularised NB regression (L2, λ by rolling-origin validation) of the next-4-week target count on the lagged normalised components across all regions; non-negative weights for components with `direction` declared, renormalised to 1. Report out-of-sample skill (pinball and log score of the implied count forecast vs the seasonal-naive outlook), per component significance, and the proposed weights. Applying proposed weights is `POST /v1/indices/{id}/weights {source: fitted, version}` (agent; logged), or automatic only when the operator set `autoApplyFittedWeights=true`.
+- **Fitting:** monthly (128) or `POST /v1/indices/{id}/fit` (agent): regularised NB regression (L2, λ by rolling-origin validation) of the next-4-week target count on the lagged normalised components across all regions; non-negative weights for components with `direction` declared, renormalised to 1. Report out-of-sample skill (pinball and log score of the implied count forecast vs the seasonal-naive outlook), per component significance, and the proposed weights. Applying proposed weights is `POST /v1/indices/{id}/weights {source: fitted, version}` (agent; logged), or automatic only when the operator set `autoApplyFittedWeights=true`.
 - Every index response includes `skill` (latest out-of-sample) and `weightsOrigin`, and the decomposition.
 - API: `GET /v1/indices` (read), `GET /v1/indices/{id}?region&from&to` (read), `PUT /v1/indices/{id}` (agent; definition, enabled), `POST /v1/indices/{id}/fit` (agent, 202 job), `POST /v1/indices/{id}/weights` (agent).
 
@@ -88,8 +88,8 @@ Add Foresignal's own statistical forecasts and make them accountable. A **series
 
 ## Guardrails (mandatory)
 
-1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 138, 141, 142, 143).
-2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 143).
+1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 124, 139, 142, 143, 144) and in the sanctioned narrow runs of 007–009.
+2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 144).
 3. **Reuse policy.** Never copy code from ShadowBroker, Velocity or World Monitor (AGPL) or SatDump (GPL). They are reference material only. God's Eye View (MIT, `~/Documents/GitLab/gods-eye-view`) may be ported to Java if you add an origin header comment and an entry in `THIRD_PARTY_NOTICES.md`.
 4. **Stay in scope.** Implement what this prompt specifies, no more. If the docs conflict with reality (for example, a library API differs from what the docs assume), choose the approach most faithful to `docs/Architecture.md` and `docs/Intelligence-Design.md`, and record it under "Deviations" in the Completion Report.
 5. **Verify versions.** When adding a dependency, confirm the version exists on Maven Central and is compatible with Spring Boot 4.1 and Java 21.
@@ -98,7 +98,7 @@ Add Foresignal's own statistical forecasts and make them accountable. A **series
 ## Finish: Compile → Commit → Push
 
 1. **Compile:** `./gradlew compileJava compileTestJava` must succeed. Fix every compile error. Do not run tests.
-2. **Commit** all changes with the message `125: Series Forecasts Regional Outlooks And Indices`. Capture the full hash with `git rev-parse HEAD`; this is the *implementation commit*.
-3. **Write** `completion-reports/125-CR-Series-Forecasts-Regional-Outlooks-And-Indices.md` using the template in `docs/Roadmap.md` §3, including the implementation commit hash.
-4. **Commit** the report with the message `125: completion report`, then run `git push origin main`.
+2. **Commit** all changes with the message `126: Series Forecasts Regional Outlooks And Indices`. Capture the full hash with `git rev-parse HEAD`; this is the *implementation commit*.
+3. **Write** `completion-reports/126-CR-Series-Forecasts-Regional-Outlooks-And-Indices.md` using the template in `docs/Roadmap.md` §3, including the implementation commit hash.
+4. **Commit** the report with the message `126: completion report`, then run `git push origin main`.
 5. End your reply with the line `Implementation commit: <hash>`.

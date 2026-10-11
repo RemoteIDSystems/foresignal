@@ -3,7 +3,7 @@
   "$id": "https://foresignal.ai/protocol/edp-1.0/delete.schema.json",
   "title": "Foresignal EDP 1.0 delete",
   "type": "object",
-  "description": "Tombstone for {stream}:{id}",
+  "description": "Tombstone for {stream}:{id}; observedAt and properties are optional (kept for audit)",
   "properties": {
     "stream": {
       "type": "string",

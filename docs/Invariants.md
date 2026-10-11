@@ -4,7 +4,7 @@ Machine-checkable list of the rules the build must keep. Each invariant has a st
 
 **How it is used:**
 - Prompts cite invariant ids when they touch an owning component ("keeps ING-1, ING-2").
-- Every checkpoint (012, 022, 041, 057, 097, 138, 141) verifies that each invariant whose owner prompt is at or before it is asserted by at least one existing test. From 138 on, `InvariantRegistryTest` parses this file and checks that the named test classes exist.
+- Every checkpoint (012, 022, 041, 057, 097, 124, 139, 142) verifies that each invariant whose owner prompt is at or before it is asserted by at least one existing test. From 124 on, `InvariantRegistryTest` parses this file and checks that the named test classes exist.
 - Test names below are the expected class names. A prompt that names its test differently updates this file in the same commit.
 - Detailed definitions live in the referenced documents; this file is the index.
 
@@ -86,40 +86,43 @@ Format: `| id | invariant | owner | enforced by | tests |`
 | LED-3 | Probabilities are stored as numbers; generated text passes `EstimativeLanguage.lint` (no mismatched term, no mixed rows, no likelihood term with a confidence level in one sentence) | 122 | `EstimativeLanguage` | `EstimativeLanguageTest`, `AssessmentLintIT` |
 | BEN-1 | Benchmarks never write production analytic tables | 123 | benchmark runner | `BenchmarkIsolationIT` |
 | BEN-2 | Autonomous proposals and LLM ensemble weight degrade when a dependency's latest benchmark status is `fail` | 123 | `BenchmarkGate` | `BenchmarkRunIT` |
-| HYP-1 | Hypothesis probabilities change only through revisions with cause, actor, `asof_seq` and rationale; speculative links never exceed their cap without a logged override | 124 | `HypothesisUpdater` | `HypothesisUpdaterTest`, `HypothesisLifecycleIT` |
-| OBJ-1 | Workspace context updates are versioned; a stale `If-Match` is rejected; clients ignore their own `originClientId` | 128 | workspace service | `WorkspaceSyncIT` |
-| OBJ-2 | Projected relations mirror their source structures after reconcile; only operator relations are editable | 128 | `RelationProjector` | `RelationProjectorIT` |
+| HYP-1 | Hypothesis probabilities change only through revisions with cause, actor, `asof_seq` and rationale; speculative links never exceed their cap without a logged override | 125 | `HypothesisUpdater` | `HypothesisUpdaterTest`, `HypothesisLifecycleIT` |
+| OBJ-1 | Workspace context updates are versioned; a stale `If-Match` is rejected; clients ignore their own `originClientId` | 129 | workspace service | `WorkspaceSyncIT` |
+| OBJ-2 | Projected relations mirror their source structures after reconcile; only operator relations are editable | 129 | `RelationProjector` | `RelationProjectorIT` |
 
 ## Collaboration, chronicles, exchange, news, social and external data
 
 | Id | Invariant | Owner | Enforced by | Tests |
 |---|---|---|---|---|
-| COL-1 | Work products are invisible to principals without access; every share and ACL change is audited | 129 | `AccessResolver` | `AccessResolverTest`, `CollaborationEgressTest` |
-| COL-2 | TLP bounds every share, link, export, rendition and package; derived products inherit the strictest input label | 129 | `EgressPolicy` | `TlpPolicyTest`, `ReportTlpTest` |
-| COL-3 | Uploaded files are never executed or served as active content | 129 | attachment service | `AttachmentIT` |
-| CHR-1 | A chronicle's captured history is never removed by global retention; only its own retention or deletion removes it | 130 | chronicle storage | `ChronicleCaptureIT`, `ChronicleRetentionIndependenceIT` |
-| CHR-2 | Chronicle capture never blocks ingest; capacity limits degrade visibly to events-only, never silently | 130 | `ChronicleCaptureService` | `ChronicleCaptureIT`, `ChronicleLifecycleIT` |
-| RPT-1 | Published report revisions are immutable and cite pinned versions | 131 | report service | `ReportPublishIT` |
-| RPT-2 | Packages are signature- and hash-verified before import; imported material is read-only and never enters local evidence or the ledger unless copied deliberately | 131 | exchange service | `PackageSigningTest`, `ExchangeRoundTripIT` |
-| NEWS-1 | Media ratings come only from declared providers with licence and date; no model generates them | 132 | rating providers | `RatingProvidersTest` |
-| NEWS-2 | News reprints of one originator count as one evidence group; no author names are stored | 132 | 116 resolver, news adapters | `NewsStoryClusteringIT`, `NewsIndependenceTest` |
+| COL-1 | Work products are invisible to principals without access; every share and ACL change is audited | 130 | `AccessResolver` | `AccessResolverTest`, `CollaborationEgressTest` |
+| COL-2 | TLP bounds every share, link, export, rendition and package; derived products inherit the strictest input label | 130 | `EgressPolicy` | `TlpPolicyTest`, `ReportTlpTest` |
+| COL-3 | Uploaded files are never executed or served as active content | 130 | attachment service | `AttachmentIT` |
+| CHR-1 | A chronicle's captured history is never removed by global retention; only its own retention or deletion removes it | 131 | chronicle storage | `ChronicleCaptureIT`, `ChronicleRetentionIndependenceIT` |
+| CHR-2 | Chronicle capture never blocks ingest; capacity limits degrade visibly to events-only, never silently | 131 | `ChronicleCaptureService` | `ChronicleCaptureIT`, `ChronicleLifecycleIT` |
+| RPT-1 | Published report revisions are immutable and cite pinned versions | 132 | report service | `ReportPublishIT` |
+| RPT-2 | Packages are signature- and hash-verified before import; imported material is read-only and never enters local evidence or the ledger unless copied deliberately | 132 | exchange service | `PackageSigningTest`, `ExchangeRoundTripIT` |
+| NEWS-1 | Media ratings come only from declared providers with licence and date; no model generates them | 133 | rating providers | `RatingProvidersTest` |
+| NEWS-2 | News reprints of one originator count as one evidence group; no author names are stored | 133 | 116 resolver, news adapters | `NewsStoryClusteringIT`, `NewsIndependenceTest` |
 
-| DISC-1 | Chronicle relationships are disclosed only within visibility, discoverability and TLP; sketches never carry content, titles or owners unless revealed | 133 | `ChronicleDiscoveryJob`, disclosure rules | `DisclosureTest`, `FederatedSketchIT` |
-| DISC-2 | Shared evidence counts once across chronicles and clusters | 133 | evidence keys, cluster timeline | `ChronicleDiscoveryIT` |
-| DISC-3 | Circular reporting is counted as one evidence group in hypotheses and confidence | 133 | `CircularReportingDetector` | `CircularReportingTest` |
+| DISC-1 | Chronicle relationships are disclosed only within visibility, discoverability and TLP; sketches never carry content, titles or owners unless revealed | 134 | `ChronicleDiscoveryJob`, disclosure rules | `DisclosureTest`, `FederatedSketchIT` |
+| DISC-2 | Shared evidence counts once across chronicles and clusters | 134 | evidence keys, cluster timeline | `ChronicleDiscoveryIT` |
+| DISC-3 | Circular reporting is counted as one evidence group in hypotheses and confidence | 134 | `CircularReportingDetector` | `CircularReportingTest` |
 | MEM-1 | Observations are never edited by interpretation; chronicles copy observations and snapshot interpretation; nothing downstream mutates an upstream memory | 116 | code structure, writers | `MemorySeparationTest` |
-| SOC-1 | A social narrative or claim never counts as independent corroboration of a physical event or of itself; reposts and quotes inherit the original's originator | 135 | `NarrativeClusterer`, evidence groups, `SocialPhysicalComparator` | `SocialIndependenceTest`, `NarrativeClustererTest` |
-| SOC-2 | `unobserved` comparisons require `canSeeAbsence` ok; attention gaps require adequate social coverage; otherwise `insufficient-coverage` / no finding | 136 | `SocialPhysicalComparator`, `AttentionGapDetector` | `SocialAbsenceTest`, `AttentionGapDetectorTest` |
-| SOC-3 | Sampled and cue-found posts never feed volume baselines, and a cue never corroborates its own trigger | 136 | `SocialBaseline`, `SocialCueService` | `SocialCueLoopTest`, `SocialBaselineTest` |
-| SOC-4 | A paid social call is estimated first and refused when the monthly cap would be exceeded | 134 | `XSpend`, 005 budgets | `XSpendTest` |
-| SOC-5 | "Leads by" statements use only out-of-sample comparisons and validated precursor tests | 136 | lead-time statistics, 120 | `SocialLeadLagIT` |
+| SOC-1 | A social narrative or claim never counts as independent corroboration of a physical event or of itself; reposts and quotes inherit the original's originator | 136 | `NarrativeClusterer`, evidence groups, `SocialPhysicalComparator` | `SocialIndependenceTest`, `NarrativeClustererTest` |
+| SOC-2 | `unobserved` comparisons require `canSeeAbsence` ok; attention gaps require adequate social coverage; otherwise `insufficient-coverage` / no finding | 137 | `SocialPhysicalComparator`, `AttentionGapDetector` | `SocialAbsenceTest`, `AttentionGapDetectorTest` |
+| SOC-3 | Sampled and cue-found posts never feed volume baselines, and a cue never corroborates its own trigger | 137 | `SocialBaseline`, `SocialCueService` | `SocialCueLoopTest`, `SocialBaselineTest` |
+| SOC-4 | A paid social call is estimated first and refused when the monthly cap would be exceeded | 135 | `XSpend`, 005 budgets | `XSpendTest` |
+| SOC-5 | "Leads by" statements use only out-of-sample comparisons and validated precursor tests | 137 | lead-time statistics, 120 | `SocialLeadLagIT` |
 | EXT-1 | Nothing from a pending or suspended external source is stored; manifest changes to streams, kinds, item types, modes or schemas return the source to pending | 024 | `EdpManifestService`, push endpoint | `EdpIngestIT`, `EdpManifestServiceTest` |
-| EXT-2 | Atomic EDP items enter series, evidence, indicators or forecasts only through an enabled binding, and bound events count once per declared originator (honouring `aggregates`) | 137 | `BindingRouter`, originator registry | `BindingRouterIT`, `EdpEvidenceIndependenceTest` |
-| EXT-3 | External forecasts never carry a `made_at` before Foresignal received the item, and external forecasters join the ensemble only after 30 resolved linked questions | 137 | forecast binding, ensemble | `EdpForecastBindingTest` |
+| EXT-2 | Atomic EDP items enter series, evidence, indicators or forecasts only through an enabled binding, and bound events count once per declared originator (honouring `aggregates`) | 138 | `BindingRouter`, originator registry | `BindingRouterIT`, `EdpEvidenceIndependenceTest` |
+| EXT-3 | External forecasts never carry a `made_at` before Foresignal received the item, and external forecasters join the ensemble only after 30 resolved linked questions | 138 | forecast binding, ensemble | `EdpForecastBindingTest` |
+| EXT-4 | A provider-supplied availability time (`knownAt`, `publishedAt`, `madeAt`) never makes information available before Foresignal received it: availability is `max(provider time, receipt)` | 024 | EDP item mapper, 093/116/122 readers | `EdpTimeTest` |
+| EXT-5 | Only an explicit `delete` or absence from a final, fully received and validated snapshot of the same scope (within the window and the absent-ratio limit) removes an EDP entity | 024 | snapshot staging | `EdpSnapshotIT` |
+| EXT-6 | Provider URLs never reach private, loopback, link-local or metadata addresses (including by DNS rebinding or redirects) unless the operator allowed private networks for that source; payload schemas cannot fetch remote references or run unbounded patterns | 024 | `EdpUrlGuard`, schema limits | `EdpUrlGuardTest`, `EdpSchemaSafetyTest` |
 
 ## Process
 
 | Id | Invariant | Owner | Enforced by | Tests |
 |---|---|---|---|---|
-| PRC-1 | Every API operation is in `docs/OpenAPI.json` with `x-foresignal-scope`, in AccessPolicy and in the Postman collection; `pending-operations.txt` lists only unbuilt operations and is empty at 141 | 020 | contract tests | `OpenApiContractIT`, `PostmanCoverageTest` |
+| PRC-1 | Every API operation is in `docs/OpenAPI.json` with `x-foresignal-scope`, in AccessPolicy and in the Postman collection; `pending-operations.txt` lists only unbuilt operations and is empty at 142 | 020 | contract tests | `OpenApiContractIT`, `PostmanCoverageTest` |
 | PRC-2 | No GPL/AGPL code or dependency in the application | 001 | dependency and reuse checks | `LicenceAllowlistTest` |

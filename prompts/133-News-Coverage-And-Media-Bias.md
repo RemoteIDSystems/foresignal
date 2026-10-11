@@ -1,7 +1,7 @@
-# 132 — News Coverage And Media Bias
+# 133 — News Coverage And Media Bias
 
 > Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
-> Completion Report: `completion-reports/132-CR-News-Coverage-And-Media-Bias.md`
+> Completion Report: `completion-reports/133-CR-News-Coverage-And-Media-Bias.md`
 
 ## Context
 
@@ -9,13 +9,13 @@
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults, analytic retention, intelligence conventions) applies to every prompt and wins over conflicting prompt text. `docs/Invariants.md` lists the invariants each prompt must keep.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and **`docs/Intelligence-Design.md` is authoritative for the intelligence layer** (situations, findings, precursors, base rates, analogs, the forecast ledger, hypotheses, forecasts, impact projection and analysis cycles).
-- **Previous Completion Report:** read `completion-reports/131-CR-*.md` and follow its "Notes for the next prompt".
+- **Previous Completion Report:** read `completion-reports/132-CR-*.md` and follow its "Notes for the next prompt".
 
 ## Read first
 
 - `docs/Intelligence-Design.md` §2 (principles 9, 13, 14), §12.5 (news coverage and media bias), §14.5 (data terms)
-- `docs/Source-Catalog.md` "News and media ratings (prompt 132)"
-- Completion Reports of 027 (embeddings), 066 (GDELT), 073 (feed kits), 101 (EventScorer reliability input), 109 (reliability grades, licence policy), 116 (originators, canonical events, evidence groups), 117 (attention topics, GDELT DOC client and its pacing), 118 (situations, linker), 119 (findings, series registry, event studies), 124 (hypotheses, confidence assessor), 127 (assessments), 128 (dossier)
+- `docs/Source-Catalog.md` "News and media ratings (prompt 133)"
+- Completion Reports of 027 (embeddings), 066 (GDELT), 073 (feed kits), 101 (EventScorer reliability input), 109 (reliability grades, licence policy), 116 (originators, canonical events, evidence groups), 117 (attention topics, GDELT DOC client and its pacing), 118 (situations, linker), 119 (findings, series registry, event studies), 125 (hypotheses, confidence assessor), 128 (assessments), 129 (dossier)
 - Upstreams (verify each at fixture capture): GDELT DOC 2.0 `mode=ArtList`; Wikidata Query Service (`https://query.wikidata.org/sparql`, CC0, User-Agent policy); The Partisan Web data (`github.com/stockHuman/tpw-data`, CC BY 4.0: confirm the licence covers the data files and record the field meanings); AllSides media bias ratings (licence reported as CC BY-NC 4.0: confirm on allsides.com before enabling); Media Bias/Fact Check ratings API (paid, through the operator's own key)
 
 ## Objective
@@ -25,7 +25,7 @@ Bring Ground News-style coverage analysis into Foresignal's intelligence layer. 
 ## Principles (binding)
 
 - **Ratings are imported, never invented.** Lean and factuality come only from declared providers with their licence and date; no LLM assigns ratings. Disagreement between providers is shown, not hidden.
-- **Metadata by default.** Store title, URL, outlet, language, country, times and the feed's own summary (≤ 500 chars). Article bodies and bylines are not fetched by Foresignal; an EDP provider (024) can supply them as `article` documents that 137 binds to stories, so keep the article model extensible.
+- **Metadata by default.** Store title, URL, outlet, language, country, times and the feed's own summary (≤ 500 chars). Article bodies and bylines are not fetched by Foresignal; an EDP provider (024) can supply them as `article` documents that 138 binds to stories, so keep the article model extensible.
 - **Coverage is not truth.** Balance and blindspots describe how a story is covered; they never raise or lower the truth of a claim by themselves. Corroboration still comes from independent evidence groups and sensors (116, 118).
 - **Licences travel.** Each rating carries its provider's licence and egress (`LOCAL_ONLY` for paid or non-commercial data where the terms require).
 
@@ -61,14 +61,14 @@ Bring Ground News-style coverage analysis into Foresignal's intelligence layer. 
 - Per story: article and evidence-group counts by lean bucket (left, center, right, unrated), by country, by outlet type, by factuality band; `coverageBalance` (shares); `stateAffiliatedShare`; `blindspot` = `left` or `right` when ≥ 75% of **rated** evidence groups come from one side with n_rated ≥ 8; `corroborated` (above).
 - Per topic and per situation, daily series `rollup:news/{topicId|situationId}/{bucket}` registered in 119's analysis-series registry (so change points, event studies and precursor mining can use coverage).
 - Findings (119 table, new `findingType` values): `coverage-blindspot` (story level) and `coverage-divergence` (a topic's coverage from one bucket rises ≥ 3 SD against its baseline while the others do not).
-- Reliability mapping (setting `media.reliabilityMap`): outlet factuality consensus → 109 source reliability grade (A–F) for `news-article` evidence, used by 101's `EventScorer` and 124's confidence assessor.
+- Reliability mapping (setting `media.reliabilityMap`): outlet factuality consensus → 109 source reliability grade (A–F) for `news-article` evidence, used by 101's `EventScorer` and 125's confidence assessor.
 
 ### 5. Use in analysis
 
-- **Situations (118):** the situation response and the 128 dossier gain a `coverage` section (balance, blindspot, state-affiliated share, corroboration share of news members).
-- **Hypotheses (124):** for each hypothesis, the lean and state-affiliation balance of its supporting news evidence; caveat `SKEWED_COVERAGE` when ≥ 75% comes from one bucket or from state-affiliated outlets; the confidence assessor lowers confidence one step when supporting evidence is skewed **and** has no non-news corroboration.
-- **Assessments (127):** a "Coverage" section (how each top situation is covered, blindspots, divergences), deterministic.
-- **Reports (131):** the `coverage` block uses these statistics.
+- **Situations (118):** the situation response and the 129 dossier gain a `coverage` section (balance, blindspot, state-affiliated share, corroboration share of news members).
+- **Hypotheses (125):** for each hypothesis, the lean and state-affiliation balance of its supporting news evidence; caveat `SKEWED_COVERAGE` when ≥ 75% comes from one bucket or from state-affiliated outlets; the confidence assessor lowers confidence one step when supporting evidence is skewed **and** has no non-news corroboration.
+- **Assessments (128):** a "Coverage" section (how each top situation is covered, blindspots, divergences), deterministic.
+- **Reports (132):** the `coverage` block uses these statistics.
 
 ### 6. API, MCP, spec, docs
 
@@ -101,8 +101,8 @@ Bring Ground News-style coverage analysis into Foresignal's intelligence layer. 
 
 ## Guardrails (mandatory)
 
-1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 138, 141, 142, 143).
-2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 143).
+1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 124, 139, 142, 143, 144) and in the sanctioned narrow runs of 007–009.
+2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 144).
 3. **Reuse policy.** Never copy code from ShadowBroker, Velocity or World Monitor (AGPL) or SatDump (GPL). They are reference material only. God's Eye View (MIT, `~/Documents/GitLab/gods-eye-view`) may be ported to Java if you add an origin header comment and an entry in `THIRD_PARTY_NOTICES.md`.
 4. **Stay in scope.** Implement what this prompt specifies, no more. If the docs conflict with reality (for example, a library API differs from what the docs assume), choose the approach most faithful to `docs/Architecture.md` and `docs/Intelligence-Design.md`, and record it under "Deviations" in the Completion Report.
 5. **Verify versions.** When adding a dependency, confirm the version exists on Maven Central and is compatible with Spring Boot 4.1 and Java 21.
@@ -111,7 +111,7 @@ Bring Ground News-style coverage analysis into Foresignal's intelligence layer. 
 ## Finish: Compile → Commit → Push
 
 1. **Compile:** `./gradlew compileJava compileTestJava` must succeed. Fix every compile error. Do not run tests.
-2. **Commit** all changes with the message `132: News Coverage And Media Bias`. Capture the full hash with `git rev-parse HEAD`; this is the *implementation commit*.
-3. **Write** `completion-reports/132-CR-News-Coverage-And-Media-Bias.md` using the template in `docs/Roadmap.md` §3, including the implementation commit hash.
-4. **Commit** the report with the message `132: completion report`, then run `git push origin main`.
+2. **Commit** all changes with the message `133: News Coverage And Media Bias`. Capture the full hash with `git rev-parse HEAD`; this is the *implementation commit*.
+3. **Write** `completion-reports/133-CR-News-Coverage-And-Media-Bias.md` using the template in `docs/Roadmap.md` §3, including the implementation commit hash.
+4. **Commit** the report with the message `133: completion report`, then run `git push origin main`.
 5. End your reply with the line `Implementation commit: <hash>`.

@@ -1,15 +1,15 @@
-# 142 — Runtime Verification
+# 143 — Runtime Verification
 
 > Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
-> Completion Report: `completion-reports/142-CR-Runtime-Verification.md`
+> Completion Report: `completion-reports/143-CR-Runtime-Verification.md`
 
 ## Context
 
 - **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
-- **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–138).
-- **Previous Completion Report:** read `completion-reports/141-CR-*.md` and follow its "Notes for the next prompt".
+- **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–139).
+- **Previous Completion Report:** read `completion-reports/142-CR-*.md` and follow its "Notes for the next prompt".
 
 ## Read first
 
@@ -18,7 +18,7 @@
 - `docs/Weather-Imagery-Design.md` §2.5 (budgets), §2.6 (memory profiles), §9 (resource budget per product, Postgres growth), §10.3 ("080": re-measure §9 per profile, live MRMS/GOES/GFS/HRRR/SatDump, stormy-day soak, cache tuning from `/v1/system`), §10.4 (items to verify at implementation)
 - `docs/Gap-Analysis.md` §8 item D.63 (restore drill, Tailscale profile check, storm scenario, readiness flip during forced catch-up, metric-name drift)
 - `docs/Source-Catalog.md` notes (adsb.lol HTTP 451 to non-browser UAs: mark failing, never spoof; OpenSky credit headers; CelesTrak 403 "not updated")
-- `docs/Operator-Guide.md` (profiles, backups, remote access), `scripts/smoke.sh`, `postman/`, the 141 Completion Report
+- `docs/Operator-Guide.md` (profiles, backups, remote access), `scripts/smoke.sh`, `postman/`, the 142 Completion Report
 
 ## Objective
 
@@ -71,7 +71,7 @@ Run Foresignal for real on the bench server and prove the Charter's success crit
 - **MCP:** connect with an `agent` token from an MCP client; query data and create a watch; confirm `update_source`-type and credential operations are refused (success criterion 7).
 - **Push:** UnifiedPush delivery as above; APNs/FCM only if the owner supplies keys (else SKIPPED).
 - **Custom source:** push records from a script through the inbound webhook and trigger an alert (criterion 8).
-- **Health and doctor:** simulate a format change with the 139 test hook (point one keyless source at a local stub serving a renamed field) → `degraded` plus an automatic doctor report naming the field (criterion 5).
+- **Health and doctor:** simulate a format change with the 140 test hook (point one keyless source at a local stub serving a renamed field) → `degraded` plus an automatic doctor report naming the field (criterion 5).
 - Spot checks: OGC API Features in QGIS, CAP Atom, an iCalendar subscription, a GeoParquet export opened in DuckDB, `aircraft.json` read by tar1090 (whichever the owner can run), and a sink never emitting OpenSky/aisstream data.
 
 ### 5. Failure and recovery drills
@@ -94,7 +94,7 @@ Run Foresignal for real on the bench server and prove the Charter's success crit
 
 - **Disk-full drill:** on a dedicated small volume (or a filled test volume), drive the database volume to 95% and then 100%: confirm the readiness probe and `/v1/system` warnings fire before the volume is full, the writer stops cleanly (no partial batches, no corrupted partitions), and recovery after freeing space needs no manual SQL. Document the procedure and the observed thresholds.
 - **Practical upper bounds:** from the measured persist ratios and versions/min, state in `docs/Operator-Guide.md` the realistic limits for this hardware (sources, dense TRACK feeds, retention years) and the disk needed for 1, 3 and 5 years with the analytic retention defaults.
-- **Intelligence jobs:** run one daily, weekly and monthly cycle (127), the 123 synthetic and historical benchmark suites, precursor mining (120) and base-rate refresh (121) on live data; record wall time, peak heap, database load and token spend for each; confirm none blocks ingest (writer latency unchanged within 10%).
+- **Intelligence jobs:** run one daily, weekly and monthly cycle (128), the 123 synthetic and historical benchmark suites, precursor mining (120) and base-rate refresh (121) on live data; record wall time, peak heap, database load and token spend for each; confirm none blocks ingest (writer latency unchanged within 10%).
 
 ### 6. API conformance runs
 
@@ -104,7 +104,7 @@ Run Foresignal for real on the bench server and prove the Charter's success crit
 ### 7. Remote access and metric names
 
 - **Tailscale profile:** with `FORESIGNAL_VERIFY_TS_AUTHKEY`, start the profile. Check HTTPS via `tailscale serve`, `publicBaseUrl` https and no warning, forwarded headers honoured only from the trusted proxy, generated links (push actions, share links) using the tailnet URL, 8080 and 5433 still bound to 127.0.0.1 (`ss -ltnp`), and a phone pairing flow over the tailnet (023).
-- **Metric-name drift:** `scripts/verify/metric-drift.sh` scrapes `/actuator/prometheus` and diffs metric names against those referenced in `docs/` (Operator Guide tables, Architecture) and the Grafana dashboards from 034. Fix the docs or the code so the sets match (excluding JVM/Tomcat defaults); keep the script for CI use in 143.
+- **Metric-name drift:** `scripts/verify/metric-drift.sh` scrapes `/actuator/prometheus` and diffs metric names against those referenced in `docs/` (Operator Guide tables, Architecture) and the Grafana dashboards from 034. Fix the docs or the code so the sets match (excluding JVM/Tomcat defaults); keep the script for CI use in 144.
 
 ### 8. Report and soak checklist
 
@@ -137,7 +137,7 @@ Run Foresignal for real on the bench server and prove the Charter's success crit
 ## Guardrails (mandatory)
 
 1. **Tests: this is a test-run prompt.** Run the test suite as the Test run section describes, and fix failures until it passes. Fix production code, and change a test only when the test itself is wrong (record each such change in the Completion Report). Don't add features.
-2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 143).
+2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 144).
 3. **Reuse policy.** Never copy code from ShadowBroker, Velocity or World Monitor (AGPL) or SatDump (GPL). They are reference material only. God's Eye View (MIT, `~/Documents/GitLab/gods-eye-view`) may be ported to Java if you add an origin header comment and an entry in `THIRD_PARTY_NOTICES.md`.
 4. **Stay in scope.** Implement what this prompt specifies, no more. If the docs conflict with reality (for example, a library API differs from what the docs assume), choose the approach most faithful to `docs/Architecture.md` and record it under "Deviations" in the Completion Report.
 5. **Verify versions.** When adding a dependency, confirm the version exists on Maven Central and is compatible with Spring Boot 4.1 and Java 21.
@@ -146,7 +146,7 @@ Run Foresignal for real on the bench server and prove the Charter's success crit
 ## Finish: Compile → Commit → Push
 
 1. **Compile:** `./gradlew compileJava compileTestJava` must succeed. Fix every compile error. Do not run tests.
-2. **Commit** all changes with the message `142: Runtime Verification`. Capture the full hash with `git rev-parse HEAD`; this is the *implementation commit*.
-3. **Write** `completion-reports/142-CR-Runtime-Verification.md` using the template in `docs/Roadmap.md` §3, including the implementation commit hash.
-4. **Commit** the report with the message `142: completion report`, then run `git push origin main`.
+2. **Commit** all changes with the message `143: Runtime Verification`. Capture the full hash with `git rev-parse HEAD`; this is the *implementation commit*.
+3. **Write** `completion-reports/143-CR-Runtime-Verification.md` using the template in `docs/Roadmap.md` §3, including the implementation commit hash.
+4. **Commit** the report with the message `143: completion report`, then run `git push origin main`.
 5. End your reply with the line `Implementation commit: <hash>`.

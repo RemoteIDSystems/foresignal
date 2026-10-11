@@ -3,7 +3,7 @@
   "$id": "https://foresignal.ai/protocol/edp-1.0/status.schema.json",
   "title": "Foresignal EDP 1.0 status",
   "type": "object",
-  "description": "Provider health (no record)",
+  "description": "Provider health (no record). Without stream it is the source's health; with stream, that stream's health.",
   "properties": {
     "stream": {
       "type": "string",

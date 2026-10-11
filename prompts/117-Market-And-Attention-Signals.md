@@ -29,7 +29,7 @@ Add the market and attention signals the intelligence layer correlates with even
 
 ## Principles (binding)
 
-- **Official APIs in this prompt.** CME and ICE exchange data, prediction markets, Metaculus, UKMTO and Google Trends are external EDP providers (024, 137), not built here; keep the series and topic models general enough for their streams.
+- **Official APIs in this prompt.** CME and ICE exchange data, prediction markets, Metaculus, UKMTO and Google Trends are external EDP providers (024, 138), not built here; keep the series and topic models general enough for their streams.
 - **Licensed data stays local.** The whole `fred-series` source is `egress=LOCAL_ONLY`; FRED series whose notes mark them as copyrighted additionally need explicit opt-in.
 - **Release lags are data.** Every series states `releaseLagDays`, and the version's ingest time is its `knownAt` (Intelligence-Design §4.3). Never back-date `observedAt` to the period.
 
@@ -99,7 +99,7 @@ Investigate whether ICE Futures Europe publishes its weekly Commitments of Trade
 - `docs/OpenAPI.json`: `AttentionTopic`, `AttentionTopicInput`; the `SeriesCatalogEntry` additions; the backfill operation; tag `Attention`; `x-foresignal-scope` on every operation. Regenerate Postman (`python3 scripts/generate-postman.py docs/OpenAPI.json postman`) with BODIES for create topic and backfill.
 - AccessPolicy rows as listed.
 - `docs/Operator-Guide.md` "Markets and attention": what each source gives and its lag, the FRED key and notice, copyrighted series and `LOCAL_ONLY`, topics and how to write a GDELT query, the backfill command, and the explicit limit "daily and weekly data cannot show intraday trading".
-- Note for 134 (social signals): `attention_topic` gains a `social` block (terms per language, hashtags, accounts, channels, platforms, places, entities); keep the topic model and its API additive so 134 can extend it.
+- Note for 135 (social signals): `attention_topic` gains a `social` block (terms per language, hashtags, accounts, channels, platforms, places, entities); keep the topic model and its API additive so 135 can extend it.
 
 ## Tests to write (do not run)
 
@@ -123,8 +123,8 @@ Investigate whether ICE Futures Europe publishes its weekly Commitments of Trade
 
 ## Guardrails (mandatory)
 
-1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 138, 141, 142, 143).
-2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 143).
+1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 124, 139, 142, 143, 144) and in the sanctioned narrow runs of 007–009.
+2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 144).
 3. **Reuse policy.** Never copy code from ShadowBroker, Velocity or World Monitor (AGPL) or SatDump (GPL). They are reference material only. God's Eye View (MIT, `~/Documents/GitLab/gods-eye-view`) may be ported to Java if you add an origin header comment and an entry in `THIRD_PARTY_NOTICES.md`.
 4. **Stay in scope.** Implement what this prompt specifies, no more. If the docs conflict with reality (for example, a library API differs from what the docs assume), choose the approach most faithful to `docs/Architecture.md` and `docs/Intelligence-Design.md`, and record it under "Deviations" in the Completion Report.
 5. **Verify versions.** When adding a dependency, confirm the version exists on Maven Central and is compatible with Spring Boot 4.1 and Java 21.

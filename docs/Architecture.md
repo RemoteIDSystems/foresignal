@@ -105,22 +105,22 @@ ai.foresignal
 ├── precursor       Precursor mining, validation, library, live watch (120)
 ├── baserate        Base rates, reference-history imports, analogs (121)
 ├── forecast        Ledger: questions, forecasts, resolvers, scoring, ensemble (122)
-├── hypothesis      Hypothesis sets, indicators, updater, ACH, assumptions (124)
-├── outlook         Series forecasts, regional outlooks, indices (125)
-├── impact          Impact projection (126)
+├── hypothesis      Hypothesis sets, indicators, updater, ACH, assumptions (125)
+├── outlook         Series forecasts, regional outlooks, indices (126)
+├── impact          Impact projection (127)
 ├── benchmark       Analytic benchmark harness and gating (123)
-├── cycle           Analysis cycles, assessments, intel board (127)
+├── cycle           Analysis cycles, assessments, intel board (128)
 ├── object          Object references, envelopes, relation graph, annotations,
-│                   workspaces and context sync, sensor discovery (128)
+│                   workspaces and context sync, sensor discovery (129)
 ├── collab          Principals, groups, access lists, TLP, tags, comments, attachments,
-│                   evidence items, saved searches (129)
-├── chronicle       Chronicles: capture, partitioned history, thread, replay (130);
-│                   network: fingerprints, discovery, access requests (133)
-├── report          Reports, renditions, signed intelligence packages (131)
-├── media           News articles, stories, outlet registry, rating providers, coverage (132)
-├── social          Platform adapters, posts, term index, volume series and baselines (134);
-│                   narratives, claims, media fingerprints, propagation, coordination (135);
-│                   social–physical comparisons, attention gaps, cues, lead times (136)
+│                   evidence items, saved searches (130)
+├── chronicle       Chronicles: capture, partitioned history, thread, replay (131);
+│                   network: fingerprints, discovery, access requests (134)
+├── report          Reports, renditions, signed intelligence packages (132)
+├── media           News articles, stories, outlet registry, rating providers, coverage (133)
+├── social          Platform adapters, posts, term index, volume series and baselines (135);
+│                   narratives, claims, media fingerprints, propagation, coordination (136);
+│                   social–physical comparisons, attention gaps, cues, lead times (137)
 └── api             Controllers, DTOs, ProblemDetail handlers, pagination cursors
 ```
 
@@ -683,17 +683,17 @@ Prompts reference these at fixed paths under `~/Documents/GitLab/`, as siblings 
 
 Authoritative design: [Intelligence Design](Intelligence-Design.md). Summary of how it sits on the platform:
 
-- **Stack:** signals (records, rollups, series) → evidence (116: canonical events, evidence groups, observability, manifests) → detection (099, 100) → correlation (101, 104) → discovery (119 change points, event studies, co-occurrence; 120 precursors; 125 outlooks and indices; 126 impact projection) → memory (118 situations, 121 base rates and analogs) → reasoning (124 rolling hypotheses) → accountability (122 forecast ledger) → rhythm (127 analysis cycles and assessments).
+- **Stack:** signals (records, rollups, series) → evidence (116: canonical events, evidence groups, observability, manifests) → detection (099, 100) → correlation (101, 104) → discovery (119 change points, event studies, co-occurrence; 120 precursors; 126 outlooks and indices; 127 impact projection) → memory (118 situations, 121 base rates and analogs) → reasoning (125 rolling hypotheses) → accountability (122 forecast ledger) → rhythm (128 analysis cycles and assessments).
 - **Outputs are platform objects:** typed tables plus records of the DERIVED sources `foresignal-intel`, `foresignal-analytics` and `foresignal-outlook`, so triggers, SSE, tiles, search, briefings and MCP work unchanged. Forecast questions and forecasts are append-only ledger rows.
 - **Determinism and versioning:** detectors, scorers, updaters and forecasters are pure, versioned components; outputs store `{name, version, params}` and `asOfSeq`. The LLM explains, challenges, proposes and forecasts (scored like any forecaster); it never creates evidence or changes deterministic scores.
 - **Time:** every series point carries `knownAt`; live detection uses only known data; replays and retrospective evaluation read through `asOf` (§9 query paths, Core-Data-Model §12).
 - **Durable cursors** (`situation.cursor`, `stats.region.cursor`, `precursor.cursor`, `impact.cursor`, `social.cursor`) join the retention consumer clamp; scheduled jobs (rollups, detectors, mining, resolution, cycles) use the 029/102 scheduler pattern and the 103 job framework.
 - **Retention:** analytic retention classes (Conventions) keep event kinds 5 years and series 10 years; intelligence tables are outside `RetentionJob`.
 - **Benchmarks** (123) measure analytic usefulness on planted-truth scenarios and a historical corpus and gate autonomous features.
-- **Clients** use one object contract, relation graph, annotations and synchronised workspaces (128, [Client Contract](Client-Contract.md)); Foresignal stores client layout only as opaque JSON.
-- **Collaboration and products:** principals, groups, access lists and TLP govern work products (129); chronicles keep their own partitioned history (130); reports and signed packages carry analysis between people and instances (131); news coverage and outlet ratings inform evidence quality (132).
-- **Social signals** (134–136): platform adapters are ordinary sources (STREAMING or POLLING) with budgets in money as well as calls; posts are `social-post` records; volume series join the analysis-series registry; narratives are canonical events (116) whose evidence groups count origins; comparisons with physical evidence use the observability model, and cues reuse the source framework with per-cue caps.
-- **External data** (024, 137): third-party providers speak the [External Data Protocol](External-Data-Protocol.md); an EDP source is a custom source whose descriptor comes from the provider's manifest (`ai.foresignal.inbound.edp`), layer streams are ordinary kinds, and a binding router (`external.binding.cursor`) routes atomic streams into series, evidence, indicators, forecasts, places, situations and chronicles. Fringe adapters live outside the repository.
+- **Clients** use one object contract, relation graph, annotations and synchronised workspaces (129, [Client Contract](Client-Contract.md)); Foresignal stores client layout only as opaque JSON.
+- **Collaboration and products:** principals, groups, access lists and TLP govern work products (130); chronicles keep their own partitioned history (131); reports and signed packages carry analysis between people and instances (132); news coverage and outlet ratings inform evidence quality (133).
+- **Social signals** (135–137): platform adapters are ordinary sources (STREAMING or POLLING) with budgets in money as well as calls; posts are `social-post` records; volume series join the analysis-series registry; narratives are canonical events (116) whose evidence groups count origins; comparisons with physical evidence use the observability model, and cues reuse the source framework with per-cue caps.
+- **External data** (024, 138): third-party providers speak the [External Data Protocol](External-Data-Protocol.md); an EDP source is a custom source whose descriptor comes from the provider's manifest (`ai.foresignal.inbound.edp`), layer streams are ordinary kinds, and a binding router (`external.binding.cursor`) routes atomic streams into series, evidence, indicators, forecasts, places, situations and chronicles. Fringe adapters live outside the repository.
 - **Invariants** are indexed in [Invariants](Invariants.md) and verified at every checkpoint.
 - **Wording:** probabilities are numbers; ICD 203 terms are derived and linted by one `EstimativeLanguage` utility.
 - **Libraries:** Apache Commons Statistics, Commons Numbers, Commons RNG and Hipparchus; no GPL statistics libraries.

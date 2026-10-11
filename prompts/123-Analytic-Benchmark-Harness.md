@@ -19,7 +19,7 @@
 
 ## Objective
 
-Software tests prove the code does what it says; they do not prove the analysis is any good. Build a **benchmark harness** that measures analytic usefulness before rolling hypotheses (124) and the autonomous cycle roles (127) build on the detectors: false discoveries on null data, recall and detection delay on planted signals, behaviour under reporting outages, duplicate reports and late revisions, resistance to misleading correlations, and calibration and skill of the forecasters against simple baselines. It runs on deterministic synthetic scenarios and on a curated historical corpus, never touches production analytic tables, and publishes pass/warn/fail results that gate the autonomous features.
+Software tests prove the code does what it says; they do not prove the analysis is any good. Build a **benchmark harness** that measures analytic usefulness before rolling hypotheses (125) and the autonomous cycle roles (128) build on the detectors: false discoveries on null data, recall and detection delay on planted signals, behaviour under reporting outages, duplicate reports and late revisions, resistance to misleading correlations, and calibration and skill of the forecasters against simple baselines. It runs on deterministic synthetic scenarios and on a curated historical corpus, never touches production analytic tables, and publishes pass/warn/fail results that gate the autonomous features.
 
 ## Principles (binding)
 
@@ -67,12 +67,12 @@ Per component and scenario type:
 
 - `benchmark_threshold` defaults (in `src/main/resources/intel/benchmark-thresholds.json`, operator-overridable): change-point false-alarm rate on `null-seasonal` ≤ 1.5 × its configured rate; co-occurrence FDR ≤ q + 0.05; duplicate inflation = 0; correct `unknown` under outages ≥ 95%; precursor false validation on `common-driver` ≤ 5%; recall on `step-change` ≥ 80% for effects ≥ 2 SD; base-rate forecaster reliability within ± 0.05 per populated bin.
 - Each component's result is `pass | warn | fail`. A run's status is the worst component status.
-- **Gating:** `BenchmarkGate.status(component)` exposes the latest status. 127's proposer auto-execution and LLM-forecaster weight in the 122 ensemble require the latest benchmark status of the components they depend on to be `pass` or `warn`; on `fail` they degrade (proposals stay pending; detectors keep running, and their findings carry `BENCHMARK_FAIL` in caveats until the next passing run).
+- **Gating:** `BenchmarkGate.status(component)` exposes the latest status. 128's proposer auto-execution and LLM-forecaster weight in the 122 ensemble require the latest benchmark status of the components they depend on to be `pass` or `warn`; on `fail` they degrade (proposals stay pending; detectors keep running, and their findings carry `BENCHMARK_FAIL` in caveats until the next passing run).
 
 ### 5. Runs, API, docs
 
 - `benchmark_run`: `id`, `suite` (synthetic | historical | all), `suite_version`, `seed`, `components`, `status`, `results` jsonb (per component and scenario metrics, thresholds, status), `manifest_id` (116), `started_at`, `finished_at`. A 103 job (`type=benchmark`).
-- Schedules: the synthetic suite runs weekly (Sunday 03:00 UTC) and after any detector version change (detected at startup by comparing component versions with the last run); the historical suite runs monthly (127's monthly cycle triggers it).
+- Schedules: the synthetic suite runs weekly (Sunday 03:00 UTC) and after any detector version change (detected at startup by comparing component versions with the last run); the historical suite runs monthly (128's monthly cycle triggers it).
 - API: `POST /v1/benchmarks/runs {suite, components?, seed?}` (agent, 202), `GET /v1/benchmarks/runs?cursor` and `/runs/{id}` (read), `GET /v1/benchmarks/status` (read; latest status per component), `GET/POST/DELETE /v1/benchmarks/cases` (agent).
 - MCP: `get_benchmark_status` (read; read catalogue); `run_benchmark` (agent).
 - `docs/OpenAPI.json`: `BenchmarkRun`, `BenchmarkComponentResult`, `BenchmarkCase`, `BenchmarkStatus`; tag `Analysis`; Postman entries. AccessPolicy rows. Problem codes: `UNKNOWN_BENCHMARK_RUN` (404), `BENCHMARK_IN_PROGRESS` (409).
@@ -84,7 +84,7 @@ Per component and scenario type:
 - `ScenarioGeneratorTest`: each scenario is deterministic per seed and its truth record matches the generated data.
 - `BenchmarkScorerTest`: metrics on hand-built detector outputs (FDR, recall, delay, duplicate inflation, reliability) against reference values.
 - `BenchmarkIsolationIT`: a full synthetic run writes only `benchmark_*` rows; production analytic tables are unchanged.
-- `BenchmarkRunIT`: a synthetic run over the real 116/118–122 components produces results for every scenario; a deliberately broken detector (test double) yields `fail`; gating degrades 127 proposer auto-execution and LLM ensemble weight on `fail` (stubbed consumers).
+- `BenchmarkRunIT`: a synthetic run over the real 116/118–122 components produces results for every scenario; a deliberately broken detector (test double) yields `fail`; gating degrades 128 proposer auto-execution and LLM ensemble weight on `fail` (stubbed consumers).
 - `HistoricalCaseIT`: an operator case replays with `asOf` stepping; auto null cases sampled deterministically.
 - `BenchmarkControllersIT`: endpoints, scopes, MCP shapes.
 
@@ -98,8 +98,8 @@ Per component and scenario type:
 
 ## Guardrails (mandatory)
 
-1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 138, 141, 142, 143).
-2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 143).
+1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 124, 139, 142, 143, 144) and in the sanctioned narrow runs of 007–009.
+2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 144).
 3. **Reuse policy.** Never copy code from ShadowBroker, Velocity or World Monitor (AGPL) or SatDump (GPL). They are reference material only. God's Eye View (MIT, `~/Documents/GitLab/gods-eye-view`) may be ported to Java if you add an origin header comment and an entry in `THIRD_PARTY_NOTICES.md`.
 4. **Stay in scope.** Implement what this prompt specifies, no more. If the docs conflict with reality (for example, a library API differs from what the docs assume), choose the approach most faithful to `docs/Architecture.md` and `docs/Intelligence-Design.md`, and record it under "Deviations" in the Completion Report.
 5. **Verify versions.** When adding a dependency, confirm the version exists on Maven Central and is compatible with Spring Boot 4.1 and Java 21.

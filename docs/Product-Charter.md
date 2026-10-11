@@ -3,6 +3,7 @@
 | | |
 |---|---|
 | Product | Foresignal — headless intelligence broker |
+| Name note | Not affiliated with foresignal.com (an unrelated forex-signals site); the project's domain is foresignal.ai |
 | Domain | foresignal.ai |
 | Owner | Adam Allard |
 | Licence | MIT |
@@ -56,7 +57,7 @@ Open-source situational-awareness projects (ShadowBroker, God's Eye View, Veloci
 ## 5. Non-goals
 
 - A user interface of any kind inside the broker. Frontends (globe, operator console, mobile) are separate repositories.
-- Password logins or an identity provider inside the broker. People and agents are **named principals** holding scoped API tokens (`read`, `agent`, `admin`) and pairing codes; groups and per-object sharing exist for work products (prompt 129), but Foresignal is not a user-directory product.
+- Password logins or an identity provider inside the broker. People and agents are **named principals** holding scoped API tokens (`read`, `agent`, `admin`) and pairing codes; groups and per-object sharing exist for work products (prompt 130), but Foresignal is not a user-directory product.
 - Training or fine-tuning neural models, or bundling model weights. Foresignal calls providers the operator configures. (Fitting statistical models to the operator's own data, such as baselines, forecasts, index weights and recalibration, is in scope.)
 - Analysing private individuals, or accusing anyone of wrongdoing. Market findings describe aggregate activity only.
 - Sending email or chat messages other than notifications the operator configured.
@@ -219,22 +220,22 @@ Open-source situational-awareness projects (ShadowBroker, God's Eye View, Veloci
 - **FR-63** Base rates exist per event family and region from Foresignal's history and imported reference datasets; historical analogs of a situation are found with their outcomes (121).
 - **FR-64** A forecast ledger records questions with machine resolvers and immutable forecasts from many forecasters, resolves them automatically, scores them (Brier, log, RPS, CRPS), shows calibration and bias, combines forecasters into a recalibrated ensemble, and evaluates forecasters retrospectively without look-ahead (122).
 - **FR-65** A benchmark harness measures false discoveries, recall, delay, duplicate resistance and calibration on planted-truth scenarios and a historical corpus, and gates autonomous features (123).
-- **FR-66** Rolling hypothesis sets have priors from base rates, indicators that watch for themselves, deterministic revisions with rationale, an ACH matrix and key assumptions; speculative links carry alternatives and coincidence baselines (124).
-- **FR-67** Series forecasts, regional 4-week outlooks and regional indices are published with their measured accuracy; index weights are fitted to outcomes and proposed (125).
-- **FR-68** Hazard forecasts are turned into scored, probabilistic impact statements on places and infrastructure (126).
-- **FR-69** Daily, weekly and monthly analysis cycles publish assessments that build on the previous one, with optional LLM analyst, red-team, forecaster and proposer roles; an intel board summarises the layer (127).
-- **FR-70** Every object has a canonical reference and envelope; a time-aware relation graph, annotations with human verdicts, synchronised workspaces with deep links, and sensor discovery serve all frontends through one contract (128).
-- **FR-71** Principals, groups, access lists and TLP labels let several people share work products on one instance; tags, threaded comments with mentions, attachments, Admiralty-graded evidence items, investigations and saved searches support collaboration (129).
-- **FR-72** Chronicles bundle chosen layers into named monitoring threads that record their own history while active, replay at any past moment, and can be proposed by the analysis cycles, shared, archived and deleted (130).
-- **FR-73** Reports are drafted from tags, selections, investigations, chronicles or situations, published with pinned evidence and TLP banners, and sent to principals on the same instance or as signed packages to other instances (131).
-- **FR-74** News articles (metadata only) are clustered into stories; outlets carry lean, factuality and ownership ratings from licensed providers; coverage balance, blindspots and divergence inform situations, hypotheses and assessments (132).
-- **FR-75** Chronicles discover related chronicles (other analysts' and other instances') from privacy-preserving fingerprints, disclosed only as discoverability and TLP allow; shared evidence counts once and circular reporting is detected (133).
+- **FR-66** Rolling hypothesis sets have priors from base rates, indicators that watch for themselves, deterministic revisions with rationale, an ACH matrix and key assumptions; speculative links carry alternatives and coincidence baselines (125).
+- **FR-67** Series forecasts, regional 4-week outlooks and regional indices are published with their measured accuracy; index weights are fitted to outcomes and proposed (126).
+- **FR-68** Hazard forecasts are turned into scored, probabilistic impact statements on places and infrastructure (127).
+- **FR-69** Daily, weekly and monthly analysis cycles publish assessments that build on the previous one, with optional LLM analyst, red-team, forecaster and proposer roles; an intel board summarises the layer (128).
+- **FR-70** Every object has a canonical reference and envelope; a time-aware relation graph, annotations with human verdicts, synchronised workspaces with deep links, and sensor discovery serve all frontends through one contract (129).
+- **FR-71** Principals, groups, access lists and TLP labels let several people share work products on one instance; tags, threaded comments with mentions, attachments, Admiralty-graded evidence items, investigations and saved searches support collaboration (130).
+- **FR-72** Chronicles bundle chosen layers into named monitoring threads that record their own history while active, replay at any past moment, and can be proposed by the analysis cycles, shared, archived and deleted (131).
+- **FR-73** Reports are drafted from tags, selections, investigations, chronicles or situations, published with pinned evidence and TLP banners, and sent to principals on the same instance or as signed packages to other instances (132).
+- **FR-74** News articles (metadata only) are clustered into stories; outlets carry lean, factuality and ownership ratings from licensed providers; coverage balance, blindspots and divergence inform situations, hypotheses and assessments (133).
+- **FR-75** Chronicles discover related chronicles (other analysts' and other instances') from privacy-preserving fingerprints, disclosed only as discoverability and TLP allow; shared evidence counts once and circular reporting is detected (134).
 - **FR-76** Probabilities are stored as numbers and expressed with ICD 203 terms; likelihood and confidence are separate, and generated text is linted.
-- **FR-77** The operator can enable social platform adapters (Bluesky, Mastodon, Reddit, YouTube, X, Threads, Instagram hashtags, and any other platform through EDP providers) with their own credentials and spend caps; tracked topics, places and entities get hourly mention-volume series with coverage-aware baselines and velocity findings; retention and deletion sync are per-platform settings (134).
-- **FR-78** Social posts cluster into narratives counted by independent origin, with structured multilingual claims, image fingerprints and reuse findings, cross-platform propagation with earliest observed posts, and coordination indicators (135).
-- **FR-79** Social claims are compared with independent physical evidence (corroborated with lead times, unobserved despite adequate coverage, contradicted, insufficient coverage); attention gaps are reported where social coverage is adequate; physical findings cue budgeted social searches; the predictive value of social signals is measured out of sample (136).
+- **FR-77** The operator can enable social platform adapters (Bluesky, Mastodon, Reddit, YouTube, X, Threads, Instagram hashtags, and any other platform through EDP providers) with their own credentials and spend caps; tracked topics, places and entities get hourly mention-volume series with coverage-aware baselines and velocity findings; retention and deletion sync are per-platform settings (135).
+- **FR-78** Social posts cluster into narratives counted by independent origin, with structured multilingual claims, image fingerprints and reuse findings, cross-platform propagation with earliest observed posts, and coordination indicators (136).
+- **FR-79** Social claims are compared with independent physical evidence (corroborated with lead times, unobserved despite adequate coverage, contradicted, insufficient coverage); attention gaps are reported where social coverage is adequate; physical findings cue budgeted social searches; the predictive value of social signals is measured out of sample (137).
 - **FR-80** Third parties can add data sources without changing Foresignal through the External Data Protocol: a provider registers a self-describing manifest (by the operator or with a one-time registration token), pushes or serves items (features, events, observations, documents, forecasts, deletes, status), and its layer streams appear as map layers while the operator approves the source (024).
-- **FR-81** The operator binds atomic EDP streams to series, canonical-event families, the social and news pipelines, hypothesis evidence and indicators, forecast questions (as scored external forecasters), places, situations and chronicles; provider libraries and a validator make writing providers easy (137, 140).
+- **FR-81** The operator binds atomic EDP streams to series, canonical-event families, the social and news pipelines, hypothesis evidence and indicators, forecast questions (as scored external forecasters), places, situations and chronicles; provider libraries and a validator make writing providers easy (138, 141).
 
 ## 9. Non-functional requirements
 

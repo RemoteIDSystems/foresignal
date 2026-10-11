@@ -36,7 +36,7 @@ Implement exactly the tables in Architecture §7.1, with column names in snake_c
 | `AlertEntity` | `alert` | identity bigint PK. Index (`rule_id`,`source_id`,`external_id`,`fired_at`) and (`fired_at`). |
 | `WebhookEntity` | `webhook` | uuid PK. `secret_ciphertext`, `secret_nonce` bytea (nullable). `rule_ids` jsonb nullable. |
 | `WebhookDeliveryEntity` | `webhook_delivery` | identity PK. `status` as `@Enumerated(STRING)`. Index (`status`,`next_attempt_at`). |
-| `AppSettingEntity` | `app_setting` | PK `key` varchar(128). `value` jsonb. `updated_at`. |
+| `AppSettingEntity` | `app_setting` | PK `key` varchar(129). `value` jsonb. `updated_at`. |
 | `SystemSecretEntity` | `system_secret` | PK `key`, `value` bytea |
 
 - All timestamps are `Instant` mapped to `timestamptz`.

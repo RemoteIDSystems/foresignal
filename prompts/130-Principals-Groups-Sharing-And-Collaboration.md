@@ -1,7 +1,7 @@
-# 129 — Principals Groups Sharing And Collaboration
+# 130 — Principals Groups Sharing And Collaboration
 
 > Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
-> Completion Report: `completion-reports/129-CR-Principals-Groups-Sharing-And-Collaboration.md`
+> Completion Report: `completion-reports/130-CR-Principals-Groups-Sharing-And-Collaboration.md`
 
 ## Context
 
@@ -9,13 +9,13 @@
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults, analytic retention, intelligence conventions) applies to every prompt and wins over conflicting prompt text. `docs/Invariants.md` lists the invariants each prompt must keep.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and **`docs/Intelligence-Design.md` is authoritative for the intelligence layer** (situations, findings, precursors, base rates, analogs, the forecast ledger, hypotheses, forecasts, impact projection and analysis cycles).
-- **Previous Completion Report:** read `completion-reports/128-CR-*.md` and follow its "Notes for the next prompt".
+- **Previous Completion Report:** read `completion-reports/129-CR-*.md` and follow its "Notes for the next prompt".
 
 ## Read first
 
 - `docs/Client-Contract.md` §2–§6 and the collaboration sections (principals, sharing, TLP, tags, comments, attachments, investigations)
 - `docs/Intelligence-Design.md` §2 (principles 9, 12, 13), §12.2 (collaboration)
-- Completion Reports of 018 (channels, delivery), 023 (tokens, scopes, principals per its v1.3 note, audit log, pairing codes), 027 (embeddings), 033 (inbox, read cursors, presence), 039 (`private`), 043 (media store, ImageGuard), 101 (investigations), 109 (reliability grades, signing key), 112 (share links), 113 (federation peers), 124 (ACH evidence), 128 (object references, annotations, workspaces)
+- Completion Reports of 018 (channels, delivery), 023 (tokens, scopes, principals per its v1.3 note, audit log, pairing codes), 027 (embeddings), 033 (inbox, read cursors, presence), 039 (`private`), 043 (media store, ImageGuard), 101 (investigations), 109 (reliability grades, signing key), 112 (share links), 113 (federation peers), 125 (ACH evidence), 129 (object references, annotations, workspaces)
 
 ## Objective
 
@@ -23,8 +23,8 @@ Make Foresignal work for several people, on one shared server or across separate
 
 ## Principles (binding)
 
-- **No passwords in the broker.** Principals authenticate with scoped tokens, device pairing codes (023) or, for MCP, the 140 RFC 9728 flow. Scopes still decide which operations a token may call; access lists only narrow access to individual shareable objects.
-- **Data stays instance-wide; work products are shareable.** Records, findings, situations, forecasts and other analytic objects remain readable per scope (and `private` per 039). Access lists apply to work products: investigations, workspaces, chronicles (130), reports (131), saved searches, notes and attachments.
+- **No passwords in the broker.** Principals authenticate with scoped tokens, device pairing codes (023) or, for MCP, the 141 RFC 9728 flow. Scopes still decide which operations a token may call; access lists only narrow access to individual shareable objects.
+- **Data stays instance-wide; work products are shareable.** Records, findings, situations, forecasts and other analytic objects remain readable per scope (and `private` per 039). Access lists apply to work products: investigations, workspaces, chronicles (131), reports (132), saved searches, notes and attachments.
 - **TLP travels with the object** and bounds every share, export and exchange.
 - **Uploaded files are data, never code.** They are stored content-addressed, served as attachments with safe content types, and never executed or rendered as active content.
 
@@ -39,9 +39,9 @@ Make Foresignal work for several people, on one shared server or across separate
 
 ### 2. Ownership, access lists, visibility
 
-- Shareable object types (Client-Contract §10): `investigation`, `workspace`, `chronicle` (130), `report` (131), `saved-search`, `annotation` (notes), `attachment`, `evidence-item`, `tag` (shared tags). Each has `owner` (principal) and `visibility` (private | shared | instance).
+- Shareable object types (Client-Contract §10): `investigation`, `workspace`, `chronicle` (131), `report` (132), `saved-search`, `annotation` (notes), `attachment`, `evidence-item`, `tag` (shared tags). Each has `owner` (principal) and `visibility` (private | shared | instance).
 - `object_acl` (`object_ref`, `grantee` (`principal:{id}` | `group:{id}` | `instance`), `role` viewer | commenter | editor | owner, `granted_by`, `granted_at`, `expires_at`). Owner and editors may share; only owners may delete or transfer ownership.
-- `AccessResolver.can(principal, objectRef, action)` used by every shareable type's API, the 128 object resolver (unshared objects are invisible, not 403, to avoid leaking existence) and the `actions` list in envelopes.
+- `AccessResolver.can(principal, objectRef, action)` used by every shareable type's API, the 129 object resolver (unshared objects are invisible, not 403, to avoid leaking existence) and the `actions` list in envelopes.
 - API: `GET /v1/objects/{ref}/acl` (owner, editor), `PUT /v1/objects/{ref}/acl` (owner, editor), `POST /v1/objects/{ref}/share {grantees[], role, message?}` (notifies grantees), `GET /v1/shared-with-me?type&cursor` (read), `GET /v1/my?type&cursor` (read; owned objects).
 - Admin principals see everything; every share and ACL change is written to the 023 audit log.
 
@@ -49,7 +49,7 @@ Make Foresignal work for several people, on one shared server or across separate
 
 - `tlp` on every shareable object and on annotations and attachments: `CLEAR | GREEN | AMBER | AMBER+STRICT | RED`; instance default `collab.defaultTlp` (AMBER). Objects created from others inherit the strictest TLP of their inputs (a report built from a RED note is RED).
 - **`EgressPolicy` extension** (Conventions): TLP bounds who may receive an object outside its ACL:
-  - `RED`: only principals named in the ACL; never `instance` visibility, share links (112) or exchange to other instances except to named recipients there (131);
+  - `RED`: only principals named in the ACL; never `instance` visibility, share links (112) or exchange to other instances except to named recipients there (132);
   - `AMBER+STRICT`: principals of the same `organization` and named recipients;
   - `AMBER`: as AMBER+STRICT plus recipients' organizations on other instances;
   - `GREEN`: the instance and federated peers (113), no public links;
@@ -60,23 +60,23 @@ Make Foresignal work for several people, on one shared server or across separate
 
 - `tag` (`id`, `name`, `namespace` personal | shared, `color`, `owner`, `description`), `tag_assignment` (`tag_id`, `object_ref`, `assigned_by`, `assigned_at`). Personal tags are visible only to their owner; shared tags follow their ACL (default `instance`).
 - `POST /v1/tags/{id}/assign {refs[≤ 500]}` and `/unassign` (bulk), `GET /v1/tags/{id}/objects?type&cursor` (envelopes), `GET /v1/objects/{ref}/tags`, CRUD `/v1/tags`.
-- Envelopes (128) include the caller's visible tags. If any 128 annotations with `kind = tag` exist (the spec defines no such kind), migrate them to tag assignments and reject the kind.
+- Envelopes (129) include the caller's visible tags. If any 129 annotations with `kind = tag` exist (the spec defines no such kind), migrate them to tag assignments and reject the kind.
 
 ### 5. Comments and mentions
 
-- Extend 128 annotations: `parent_id` (threads), `mentions` (principals parsed from `@handle`), `resolved` (bool, for threads), `edited_at`. Mentions notify the mentioned principals (if they can see the target; otherwise the mention is dropped with a warning to the author).
+- Extend 129 annotations: `parent_id` (threads), `mentions` (principals parsed from `@handle`), `resolved` (bool, for threads), `edited_at`. Mentions notify the mentioned principals (if they can see the target; otherwise the mention is dropped with a warning to the author).
 - `GET /v1/objects/{ref}/annotations?thread=true` returns threads; `POST /v1/annotations/{id}/replies`; `POST /v1/annotations/{id}/resolve`.
 
 ### 6. Attachments and user-contributed evidence
 
 - `attachment` (`id`, `media_id` (043 content-addressed), `filename`, `content_type`, `size`, `sha256`, `text` (extracted: PDF via Apache PDFBox (Apache-2.0; verify the version), plain text, HTML stripped to text, ≤ 1 MB), `image_meta` (dimensions; EXIF stripped unless `collab.keepExif=true`), `uploaded_by`, `tlp`, `created_at`). Upload: `POST /v1/attachments` (multipart; read scope; limit `collab.maxUploadMb` 50; allowed types: images (through 043 ImageGuard), PDF, plain text, CSV, JSON, GeoJSON, KML, Markdown); served by `GET /v1/attachments/{id}/content` with `Content-Disposition: attachment` (inline only for images) and `X-Content-Type-Options: nosniff`.
-- `evidence_item` (object type `evidence-item`): `id`, `title`, `description`, `attachment_ids`, `url` (link evidence; stored as metadata only, never fetched), `source_description`, **source reliability** `A–F` and **information credibility** `1–6` (Admiralty / NATO grading), `geom` (optional), `event_time`, `tags`, `tlp`, `created_by`. Embedded (027) with attachment text for search. Usable as a member of investigations and situations, as 124 ACH evidence (`source=evidence-item`), and as relation endpoints (128).
+- `evidence_item` (object type `evidence-item`): `id`, `title`, `description`, `attachment_ids`, `url` (link evidence; stored as metadata only, never fetched), `source_description`, **source reliability** `A–F` and **information credibility** `1–6` (Admiralty / NATO grading), `geom` (optional), `event_time`, `tags`, `tlp`, `created_by`. Embedded (027) with attachment text for search. Usable as a member of investigations and situations, as 125 ACH evidence (`source=evidence-item`), and as relation endpoints (129).
 - Evidence items count as originator `operator:{principal}` for 116 independence unless they cite a catalogued source.
 
 ### 7. Investigations (extends 101)
 
-- Add to `investigation`: `owner`, `status` (open | active | closed | archived), `tlp`, `summary`, `workspace_id` (128), `hypothesis_set_ids`, `question_ids`, `chronicle_ids` (130), `report_ids` (131), and ACL sharing. `GET /v1/investigations?scope=mine|shared|all&status` lists what the caller can see; `display_id` lookups work in every investigation path.
-- Investigation items accept `evidence-item`, `attachment` and any 128 object reference.
+- Add to `investigation`: `owner`, `status` (open | active | closed | archived), `tlp`, `summary`, `workspace_id` (129), `hypothesis_set_ids`, `question_ids`, `chronicle_ids` (131), `report_ids` (132), and ACL sharing. `GET /v1/investigations?scope=mine|shared|all&status` lists what the caller can see; `display_id` lookups work in every investigation path.
+- Investigation items accept `evidence-item`, `attachment` and any 129 object reference.
 
 ### 8. Saved searches
 
@@ -95,7 +95,7 @@ Make Foresignal work for several people, on one shared server or across separate
 - `PrincipalMigrationIT`: existing tokens get principals; bootstrap token → `owner`; `/v1/me`.
 - `AccessResolverTest`: owner, editor, commenter, viewer, group and instance grants; expiry; invisible-not-forbidden for unshared objects; admin override.
 - `TlpPolicyTest`: every TLP level against share targets (principal, group, instance, link, other instance); inheritance of the strictest label.
-- `TagIT`: bulk assign up to 500; personal tags invisible to others; envelopes show visible tags; migration of 128 tag annotations if any exist.
+- `TagIT`: bulk assign up to 500; personal tags invisible to others; envelopes show visible tags; migration of 129 tag annotations if any exist.
 - `CommentThreadIT`: replies, mentions notify only principals who can see the target, resolve.
 - `AttachmentIT`: PDF text extraction, image EXIF stripping, size and type limits, safe serving headers, content-addressed dedup.
 - `EvidenceItemIT`: Admiralty grades, ACH use, embedding, originator for 116.
@@ -112,8 +112,8 @@ Make Foresignal work for several people, on one shared server or across separate
 
 ## Guardrails (mandatory)
 
-1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 138, 141, 142, 143).
-2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 143).
+1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 124, 139, 142, 143, 144) and in the sanctioned narrow runs of 007–009.
+2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 144).
 3. **Reuse policy.** Never copy code from ShadowBroker, Velocity or World Monitor (AGPL) or SatDump (GPL). They are reference material only. God's Eye View (MIT, `~/Documents/GitLab/gods-eye-view`) may be ported to Java if you add an origin header comment and an entry in `THIRD_PARTY_NOTICES.md`.
 4. **Stay in scope.** Implement what this prompt specifies, no more. If the docs conflict with reality (for example, a library API differs from what the docs assume), choose the approach most faithful to `docs/Architecture.md` and `docs/Intelligence-Design.md`, and record it under "Deviations" in the Completion Report.
 5. **Verify versions.** When adding a dependency, confirm the version exists on Maven Central and is compatible with Spring Boot 4.1 and Java 21.
@@ -122,7 +122,7 @@ Make Foresignal work for several people, on one shared server or across separate
 ## Finish: Compile → Commit → Push
 
 1. **Compile:** `./gradlew compileJava compileTestJava` must succeed. Fix every compile error. Do not run tests.
-2. **Commit** all changes with the message `129: Principals Groups Sharing And Collaboration`. Capture the full hash with `git rev-parse HEAD`; this is the *implementation commit*.
-3. **Write** `completion-reports/129-CR-Principals-Groups-Sharing-And-Collaboration.md` using the template in `docs/Roadmap.md` §3, including the implementation commit hash.
-4. **Commit** the report with the message `129: completion report`, then run `git push origin main`.
+2. **Commit** all changes with the message `130: Principals Groups Sharing And Collaboration`. Capture the full hash with `git rev-parse HEAD`; this is the *implementation commit*.
+3. **Write** `completion-reports/130-CR-Principals-Groups-Sharing-And-Collaboration.md` using the template in `docs/Roadmap.md` §3, including the implementation commit hash.
+4. **Commit** the report with the message `130: completion report`, then run `git push origin main`.
 5. End your reply with the line `Implementation commit: <hash>`.

@@ -1,7 +1,7 @@
-# 124 — Hypotheses Indicators And ACH
+# 125 — Hypotheses Indicators And ACH
 
 > Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
-> Completion Report: `completion-reports/124-CR-Hypotheses-Indicators-And-ACH.md`
+> Completion Report: `completion-reports/125-CR-Hypotheses-Indicators-And-ACH.md`
 
 ## Context
 
@@ -9,7 +9,7 @@
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults, analytic retention, intelligence conventions) applies to every prompt and wins over conflicting prompt text. `docs/Invariants.md` lists the invariants each prompt must keep.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and **`docs/Intelligence-Design.md` is authoritative for the intelligence layer** (situations, findings, precursors, base rates, analogs, the forecast ledger, hypotheses, forecasts, impact projection and analysis cycles).
-- **Previous Completion Report:** read `completion-reports/123-CR-*.md` and follow its "Notes for the next prompt".
+- **Previous Completion Report:** read `completion-reports/124-CR-*.md` and follow its "Notes for the next prompt".
 
 ## Read first
 
@@ -70,7 +70,7 @@ Implement **rolling hypotheses**. A hypothesis set frames one key question and i
 ### 5. Lifecycle and reviews
 
 - Creating a set: validate structure (exclusive sets have `other`; priors sum to 1 for exclusive sets; each prior has a basis); create the ledger question when `horizon` and a resolver are provided (122 `hypothesis-outcome` resolver by default, or a machine resolver such as `event-exists`); create indicator watch rules.
-- **Reviews:** `next_review_at` from `cadence`; 127's cycles perform reviews. `POST /v1/hypotheses/sets/{id}/review` (agent) records a review revision with an operator rationale (or confirms an analyst proposal); a review may change LRs, assumptions or probabilities directly, always as a revision with cause `review` or `operator`.
+- **Reviews:** `next_review_at` from `cadence`; 128's cycles perform reviews. `POST /v1/hypotheses/sets/{id}/review` (agent) records a review revision with an operator rationale (or confirms an analyst proposal); a review may change LRs, assumptions or probabilities directly, always as a revision with cause `review` or `operator`.
 - **Resolution:** when the linked question resolves, hypotheses become `confirmed`/`refuted` accordingly and the set `resolved`; sets past `horizon` without a question become `archived` after a review.
 - **Base-rate refresh:** when a prior's base rate changes by more than 20% relative, record a `base-rate-refresh` revision that shifts the log-odds by the change in prior log-odds (evidence contributions are kept).
 
@@ -82,7 +82,7 @@ Implement **rolling hypotheses**. A hypothesis set frames one key question and i
 ### 6a. Information value and collection gaps
 
 - **Expected information gain** (`InformationValue` 1.0.0): for each pending indicator, `EIG = H(P) − Σ_o P(o) · H(P | o)` over outcomes o ∈ {observed, absent}, where `P(observed) = Σ_h P(h) · q_h · p_detect`, `q_h` derived from the indicator's LR and the set's base rate of the signal, and `H` the Shannon entropy of the set's distribution. `GET /v1/hypotheses/sets/{id}/information-value` (read) ranks indicators by EIG and shows each one's `p_detect`.
-- **Collection gaps:** an indicator whose EIG would be in the set's top three if it were fully observable (`p_detect = 1`) but whose actual `p_detect < 0.5`, or whose sources are disabled, becomes a `collection_gap` row (`set_id`, `indicator_id`, `potential_eig`, `actual_eig`, `p_detect`, `recommendations` jsonb: enable a catalogued source by id, add a local receiver or sensor type (069/078/086 families), or "no catalogued source observes this"). Recommendations never change configuration; enabling a source stays an operator action. `GET /v1/collection-gaps?setId&cursor` (read). 127's cycles report them.
+- **Collection gaps:** an indicator whose EIG would be in the set's top three if it were fully observable (`p_detect = 1`) but whose actual `p_detect < 0.5`, or whose sources are disabled, becomes a `collection_gap` row (`set_id`, `indicator_id`, `potential_eig`, `actual_eig`, `p_detect`, `recommendations` jsonb: enable a catalogued source by id, add a local receiver or sensor type (069/078/086 families), or "no catalogued source observes this"). Recommendations never change configuration; enabling a source stays an operator action. `GET /v1/collection-gaps?setId&cursor` (read). 128's cycles report them.
 
 ### 7. API, SSE, MCP
 
@@ -101,7 +101,7 @@ Implement **rolling hypotheses**. A hypothesis set frames one key question and i
 - AccessPolicy rows as listed.
 - `docs/Operator-Guide.md` "Rolling hypotheses": key questions, competing hypotheses and "other", priors from base rates, indicators and LR classes, absence, damping, ACH as an audit trail, key assumptions, speculative links and why they are capped, reading revisions.
 - `docs/Agent-Guide.md`: never present a speculative link without its alternatives and baseline; keep likelihood terms and confidence levels in separate sentences.
-- Note for 135–136 (social signals): evidence items gain source `social-claim`, and indicators gain the state `reported` (a social claim) distinct from `observed` (physical evidence); keep the state and source enums extensible.
+- Note for 136–137 (social signals): evidence items gain source `social-claim`, and indicators gain the state `reported` (a social claim) distinct from `observed` (physical evidence); keep the state and source enums extensible.
 
 ## Tests to write (do not run)
 
@@ -124,8 +124,8 @@ Implement **rolling hypotheses**. A hypothesis set frames one key question and i
 
 ## Guardrails (mandatory)
 
-1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 138, 141, 142, 143).
-2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 143).
+1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 124, 139, 142, 143, 144) and in the sanctioned narrow runs of 007–009.
+2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 144).
 3. **Reuse policy.** Never copy code from ShadowBroker, Velocity or World Monitor (AGPL) or SatDump (GPL). They are reference material only. God's Eye View (MIT, `~/Documents/GitLab/gods-eye-view`) may be ported to Java if you add an origin header comment and an entry in `THIRD_PARTY_NOTICES.md`.
 4. **Stay in scope.** Implement what this prompt specifies, no more. If the docs conflict with reality (for example, a library API differs from what the docs assume), choose the approach most faithful to `docs/Architecture.md` and `docs/Intelligence-Design.md`, and record it under "Deviations" in the Completion Report.
 5. **Verify versions.** When adding a dependency, confirm the version exists on Maven Central and is compatible with Spring Boot 4.1 and Java 21.
@@ -134,7 +134,7 @@ Implement **rolling hypotheses**. A hypothesis set frames one key question and i
 ## Finish: Compile → Commit → Push
 
 1. **Compile:** `./gradlew compileJava compileTestJava` must succeed. Fix every compile error. Do not run tests.
-2. **Commit** all changes with the message `124: Hypotheses Indicators And ACH`. Capture the full hash with `git rev-parse HEAD`; this is the *implementation commit*.
-3. **Write** `completion-reports/124-CR-Hypotheses-Indicators-And-ACH.md` using the template in `docs/Roadmap.md` §3, including the implementation commit hash.
-4. **Commit** the report with the message `124: completion report`, then run `git push origin main`.
+2. **Commit** all changes with the message `125: Hypotheses Indicators And ACH`. Capture the full hash with `git rev-parse HEAD`; this is the *implementation commit*.
+3. **Write** `completion-reports/125-CR-Hypotheses-Indicators-And-ACH.md` using the template in `docs/Roadmap.md` §3, including the implementation commit hash.
+4. **Commit** the report with the message `125: completion report`, then run `git push origin main`.
 5. End your reply with the line `Implementation commit: <hash>`.

@@ -30,7 +30,7 @@ Turn 103's one-off "does X precede Y?" test into a discovery and validation loop
 
 ### 1. Naming
 
-103 calls the object a **precursor test** (`precursor_test`, `/v1/precursor-tests`, MCP `test_precursor`, job type `precursor`). If 103 was built with the older name `hypothesis`, rename table, classes, endpoints, MCP tools, OpenAPI schemas and Postman items now, keeping old paths as deprecated aliases that return `Deprecation` headers until 143. Record what was renamed in the CR.
+103 calls the object a **precursor test** (`precursor_test`, `/v1/precursor-tests`, MCP `test_precursor`, job type `precursor`). If 103 was built with the older name `hypothesis`, rename table, classes, endpoints, MCP tools, OpenAPI schemas and Postman items now, keeping old paths as deprecated aliases that return `Deprecation` headers until 144. Record what was renamed in the CR.
 
 ### 2. Candidate generation (`ai.foresignal.precursor`)
 
@@ -52,7 +52,7 @@ Turn 103's one-off "does X precede Y?" test into a discovery and validation loop
 
 - `precursor`: `id`, `kind` (event | series), `antecedent` and `consequent` (selectors or series refs), `spatial`, `lag_min`, `lag_max`, `best_lag`, `lag_distribution` (p25, median, p75), `hit_rate` and Wilson interval (event), `base_rate`, `lift`, `correlation` and sign (series), `n_antecedent`, `discovery` and `validation` stats jsonb (window, n, p, adjusted p, verdict), `batch_id` and `batch_size`, `status` (candidate | validated | stale | retired), `status_reason`, `detector_version`, `first_validated_at`, `last_tested_at`, `origin`.
 - `precursor_batch`: id, started_at, finished_at, candidates generated, tested, capped, survivors, validated, `q`, method.
-- **Lifecycle:** survivors that fail validation stay `candidate` with the reason; a monthly re-test (triggered by 127's monthly cycle, or by `POST /v1/precursors/retest`) uses the newest third of the available range: `validated` → `stale` when lift < 1.2 or the hit-rate interval includes the base rate; `stale` twice in a row → `retired`; a stale pattern that validates again returns to `validated`.
+- **Lifecycle:** survivors that fail validation stay `candidate` with the reason; a monthly re-test (triggered by 128's monthly cycle, or by `POST /v1/precursors/retest`) uses the newest third of the available range: `validated` → `stale` when lift < 1.2 or the hit-rate interval includes the base rate; `stale` twice in a row → `retired`; a stale pattern that validates again returns to `validated`.
 - Plain-language description generated deterministically: "In {regions}, {antecedent} was followed by {consequent} within {lag} in {hits}/{n} cases ({rate}, 95% interval {lo}–{hi}) vs {base} expected by chance; validated on {window}."
 
 ### 5. Live watch
@@ -87,8 +87,8 @@ Turn 103's one-off "does X precede Y?" test into a discovery and validation loop
 
 ## Guardrails (mandatory)
 
-1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 138, 141, 142, 143).
-2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 143).
+1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 124, 139, 142, 143, 144) and in the sanctioned narrow runs of 007–009.
+2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 144).
 3. **Reuse policy.** Never copy code from ShadowBroker, Velocity or World Monitor (AGPL) or SatDump (GPL). They are reference material only. God's Eye View (MIT, `~/Documents/GitLab/gods-eye-view`) may be ported to Java if you add an origin header comment and an entry in `THIRD_PARTY_NOTICES.md`.
 4. **Stay in scope.** Implement what this prompt specifies, no more. If the docs conflict with reality (for example, a library API differs from what the docs assume), choose the approach most faithful to `docs/Architecture.md` and `docs/Intelligence-Design.md`, and record it under "Deviations" in the Completion Report.
 5. **Verify versions.** When adding a dependency, confirm the version exists on Maven Central and is compatible with Spring Boot 4.1 and Java 21.

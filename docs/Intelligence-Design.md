@@ -4,7 +4,7 @@ Prepared 2026-10-11, from a survey of the four reference projects' code, a web s
 
 This document is **authoritative for the intelligence layer**: situations, analytic findings, precursors, base rates and analogs, the forecast ledger, hypotheses and indicators, statistical forecasts and regional outlooks, impact projection, and the daily, weekly and monthly analysis cycles. It extends, and does not replace, prompts 098–104 (entities, derived layers, windowed rules and anomalies, intelligence events and investigations, the autonomous analyst, backtesting, infrastructure mapping). Where this document and an older prompt disagree on the intelligence layer, this document wins. `docs/Core-Data-Model.md` still wins on ingest, history, triggers and retention mechanics.
 
-New prompts **116–138** implement it. The v1.2 prompts 116–120 are renumbered **139–143** (`docs/Roadmap.md` §5 has the map). §17 records how the October 2026 external reviews (ChatGPT, Gemini, Grok) were handled. The client-facing object contract (references, relations, workspaces, deep links) is specified in [Client Contract](Client-Contract.md).
+New prompts **116–139** implement it. The v1.2 prompts 116–120 are renumbered **140–144** (`docs/Roadmap.md` §5 has the map). §17 records how the October 2026 external reviews (ChatGPT, Gemini, Grok) were handled. The client-facing object contract (references, relations, workspaces, deep links) is specified in [Client Contract](Client-Contract.md).
 
 ---
 
@@ -28,15 +28,15 @@ New prompts **116–138** implement it. The v1.2 prompts 116–120 are renumbere
 | "Nothing happened" vs "nothing seen" | A time-versioned **observability model** estimates each source's detection probability per phenomenon, place and threshold (capture–recapture where independent sources exist, presence proxies or declared footprints otherwise). Absence conclusions require detectability, not just healthy sources (116). | Source health is not coverage: a working receiver may see nothing below 3,000 ft in a valley. |
 | Reproducibility | Every analytic output points to an **analysis manifest** (component version, build, configuration, registry hashes, knowledge cutoff, inputs, model and prompt); deterministic outputs replay to identical results (116). | Findings and forecasts must be auditable against the exact machinery that made them. |
 | Does the analysis work? | A **benchmark harness** with planted-truth scenarios (null periods, outages, echoes, late revisions, misleading correlations, true precursors) and a historical corpus measures false discoveries, recall, delay and calibration, and **gates** autonomous features (123). | Passing tests proves the code; only benchmarks show the analysis is useful. |
-| Shared client contract | One object-reference grammar and envelope, a time-aware relation graph, annotations with human validation, and workspaces whose context syncs live across apps (128; [Client Contract](Client-Contract.md)). | Frontends (globe, analyst workstation, sensor consoles, agents) must not each rebuild entity resolution, correlation or investigation state. |
-| Many people, many instances | Named **principals** (people and agents) hold scoped tokens; **groups**, per-object **access lists** and **TLP 2.0** labels govern work products (investigations, workspaces, chronicles, reports, notes, attachments). No passwords in the broker (129). | Shared servers and separate instances both need sharing without turning Foresignal into a user-directory product. |
-| Long-running monitoring of an event | **Chronicles**: named bundles of layers that record their own history while active, independent of global retention; stop, replay, share, archive; proposed by the analysis cycles (130). | "Track the war in the Middle East, then replay it months later" must not depend on 3-day track retention. |
-| Getting analysis to other people | **Reports** with pinned evidence and TLP banners, sent to principals here or as **signed packages** to other instances, imported read-only with provenance (131). | Analysis is only useful if it can be shared safely and verifiably. |
-| News coverage and bias | Articles as metadata (bodies and bylines can come from EDP providers), outlets with lean, factuality and ownership from **declared, licensed providers** (never generated), stories clustered so reprints count once, coverage balance and blindspots fed into situations and hypotheses (132). | Ground News-style insight, without inventing ratings, and as an evidence-quality input rather than a truth signal. |
-| Collaborative intelligence network | Chronicles discover related chronicles (other analysts', other instances') from **keyed fingerprints** of captured evidence, disclosed only as discoverability and TLP allow; shared evidence counts once; **circular reporting** is detected (133). | Independent monitoring threads become a network without leaking private work or double counting. |
-| Social media | **Social signals** (134–136): public posts become versioned records, mention-volume series with coverage-aware baselines, **narratives** and structured **claims** counted by independent origin, image fingerprints, propagation and coordination indicators; claims are **compared with independent physical evidence** in both directions (corroborated with lead time, unobserved despite adequate coverage, attention gaps), physical findings **cue** targeted searches, and predictive value is scored out of sample. Built-in platforms use official APIs as **operator-enabled adapters** (Bluesky's open stream on by default; X, Threads, Reddit, YouTube, Mastodon and Instagram hashtags with the operator's own credentials and budget); any other platform (Telegram channels, Facebook, TikTok, forums) arrives through external EDP providers. | What people say and what sensors see are both intelligence; their agreement, disagreement and timing are findings in their own right. Foresignal is a single-operator tool, so platform choice belongs to the operator. |
-| Fringe and specialist sources | **External providers, not built-ins.** Web maps, scrapers, browser automation, Telegram channels, prediction markets and niche feeds are separate projects that speak the [External Data Protocol](External-Data-Protocol.md) (024): a self-describing manifest, layer or atomic streams, push or pull. The operator binds atomic streams to series, evidence, indicators, forecasts, places, situations and chronicles (137). Nothing is excluded or policed. | Keeps the core small and stable, lets anyone add a source without changing Foresignal, and still aggregates everything with provenance and independence. |
-| Where in the roadmap | A new block **116–138** after 115, starting with the evidence foundations (116), then analysis, the object contract (128), collaboration, chronicles, reports and news (129–132), the chronicle network (133), social signals (134–136), external data bindings (137) and a checkpoint (138), before the adapter doctor and SDKs (so the SDKs include the new API). Nothing earlier is renumbered. | The build takes days, so moving the block earlier gains little. **Collecting early** (§4.4) is what matters. |
+| Shared client contract | One object-reference grammar and envelope, a time-aware relation graph, annotations with human validation, and workspaces whose context syncs live across apps (129; [Client Contract](Client-Contract.md)). | Frontends (globe, analyst workstation, sensor consoles, agents) must not each rebuild entity resolution, correlation or investigation state. |
+| Many people, many instances | Named **principals** (people and agents) hold scoped tokens; **groups**, per-object **access lists** and **TLP 2.0** labels govern work products (investigations, workspaces, chronicles, reports, notes, attachments). No passwords in the broker (130). | Shared servers and separate instances both need sharing without turning Foresignal into a user-directory product. |
+| Long-running monitoring of an event | **Chronicles**: named bundles of layers that record their own history while active, independent of global retention; stop, replay, share, archive; proposed by the analysis cycles (131). | "Track the war in the Middle East, then replay it months later" must not depend on 3-day track retention. |
+| Getting analysis to other people | **Reports** with pinned evidence and TLP banners, sent to principals here or as **signed packages** to other instances, imported read-only with provenance (132). | Analysis is only useful if it can be shared safely and verifiably. |
+| News coverage and bias | Articles as metadata (bodies and bylines can come from EDP providers), outlets with lean, factuality and ownership from **declared, licensed providers** (never generated), stories clustered so reprints count once, coverage balance and blindspots fed into situations and hypotheses (133). | Ground News-style insight, without inventing ratings, and as an evidence-quality input rather than a truth signal. |
+| Collaborative intelligence network | Chronicles discover related chronicles (other analysts', other instances') from **keyed fingerprints** of captured evidence, disclosed only as discoverability and TLP allow; shared evidence counts once; **circular reporting** is detected (134). | Independent monitoring threads become a network without leaking private work or double counting. |
+| Social media | **Social signals** (135–137): public posts become versioned records, mention-volume series with coverage-aware baselines, **narratives** and structured **claims** counted by independent origin, image fingerprints, propagation and coordination indicators; claims are **compared with independent physical evidence** in both directions (corroborated with lead time, unobserved despite adequate coverage, attention gaps), physical findings **cue** targeted searches, and predictive value is scored out of sample. Built-in platforms use official APIs as **operator-enabled adapters** (Bluesky's open stream on by default; X, Threads, Reddit, YouTube, Mastodon and Instagram hashtags with the operator's own credentials and budget); any other platform (Telegram channels, Facebook, TikTok, forums) arrives through external EDP providers. | What people say and what sensors see are both intelligence; their agreement, disagreement and timing are findings in their own right. Foresignal is a single-operator tool, so platform choice belongs to the operator. |
+| Fringe and specialist sources | **External providers, not built-ins.** Web maps, scrapers, browser automation, Telegram channels, prediction markets and niche feeds are separate projects that speak the [External Data Protocol](External-Data-Protocol.md) (024): a self-describing manifest, layer or atomic streams, push or pull. The operator binds atomic streams to series, evidence, indicators, forecasts, places, situations and chronicles (138). Nothing is excluded or policed. | Keeps the core small and stable, lets anyone add a source without changing Foresignal, and still aggregates everything with provenance and independence. |
+| Where in the roadmap | A new block **116–139** after 115, starting with the evidence foundations (116), then analysis, a foundations checkpoint (124), the object contract (129), collaboration, chronicles, reports and news (130–133), the chronicle network (134), social signals (135–137), external data bindings (138) and a checkpoint (139), before the adapter doctor and SDKs (so the SDKs include the new API). Nothing earlier is renumbered. | The build takes days, so moving the block earlier gains little. **Collecting early** (§4.4) is what matters. |
 
 ---
 
@@ -81,22 +81,22 @@ Foresignal must also match what the best competitors already do. Where each live
 | Seasonal baselines, z-scores, term spikes | 100 anomalies; attention topics (117) |
 | Geo-convergence and incident fusion | 101 recipes; co-occurrence mining (119) adds significance testing |
 | Deception and jamming detection | 099 |
-| Country instability index | regional indices (125), decomposed, **scored against outcomes** |
+| Country instability index | regional indices (126), decomposed, **scored against outcomes** |
 | Forecasts with resolution specs and Brier scorecard | ledger (122) |
 | Markets tied to events, "silent divergence" | event studies, `pre-event-signal` and `unexplained-move` findings (119) |
 | Self-regenerating briefs (Dataminr) | situation briefs (118) |
-| Unprompted anomalies with suggested causes (Windward) | findings (119) + red team and analyst roles (127) |
-| Challenge agents (Babel Street) | red team role (127) |
-| Published accuracy next to forecasts (ACLED CAST) | ledger scorecards on every question and outlook (122, 125) |
-| Synchronized operational picture with human validation of AI findings (Palantir Maven-style) | workspaces with live context sync, annotations and verdicts feeding precision metrics (128) |
-| Sensor discovery and coverage visualisation (MetaConstellation-style) | observability model and coverage tiles (116), sensor discovery (128) |
+| Unprompted anomalies with suggested causes (Windward) | findings (119) + red team and analyst roles (128) |
+| Challenge agents (Babel Street) | red team role (128) |
+| Published accuracy next to forecasts (ACLED CAST) | ledger scorecards on every question and outlook (122, 126) |
+| Synchronized operational picture with human validation of AI findings (Palantir Maven-style) | workspaces with live context sync, annotations and verdicts feeding precision metrics (129) |
+| Sensor discovery and coverage visualisation (MetaConstellation-style) | observability model and coverage tiles (116), sensor discovery (129) |
 | Edge processing and store-and-forward sync | federation and edge relay (113), MeshDTN compact messages (084, 113) |
 
-Fringe and specialist sources (prediction markets, exchange data, unofficial and browser-based sources, Telegram channels) are external EDP providers (024, 137); built-in social platforms use official APIs (134). Person-level profiling is not built.
+Fringe and specialist sources (prediction markets, exchange data, unofficial and browser-based sources, Telegram channels) are external EDP providers (024, 138); built-in social platforms use official APIs (135). Person-level profiling is not built.
 
 ---
 
-## 2. Principles (binding on prompts 116–138)
+## 2. Principles (binding on prompts 116–139)
 
 1. **Evidence, inference, speculation.** Every analytic object separates what was observed (cited records, pinned by `seq`), what a named detector derived, and what is possibility or narrative. Speculation is always labelled. (Extends 101 principle 5 and 102 principle 2.)
 2. **Detectors find; models explain.** Statistical detectors are pure functions of stored data, a definition and a detector version. LLM output never creates evidence, never adds members to events or situations, and never changes a deterministic score. An LLM may *propose* (hypotheses, indicators, watches, questions) and may *forecast* as a named forecaster whose record is scored.
@@ -113,29 +113,29 @@ Fringe and specialist sources (prediction markets, exchange data, unofficial and
 13. **Licensed data stays local by default.** The operator can override egress per source (109). Series whose terms forbid redistribution (FRED copyrighted series, EIA spot prices sourced from LSEG, ACLED) are `egress=LOCAL_ONLY`: Foresignal computes on them and serves derived signals, never the raw values, outside the operator's own tokens.
 14. **Evidence independence.** Confidence, corroboration and hypothesis updates count independent evidence groups (116), never raw records or sources.
 15. **Benchmarked before trusted.** Autonomous proposals and LLM ensemble weight depend on the latest benchmark status of the components involved (123).
-16. **Social is reporting, not observation.** Social posts are reports by sources (accounts are analysed like outlets, never profiled as people). A narrative never corroborates a physical event or itself; amplification never adds independent evidence; "no corresponding change" needs detectability and "too little attention" needs social coverage; leading-indicator claims come only from out-of-sample tests (134–136).
+16. **Social is reporting, not observation.** Social posts are reports by sources (accounts are analysed like outlets, never profiled as people). A narrative never corroborates a physical event or itself; amplification never adds independent evidence; "no corresponding change" needs detectability and "too little attention" needs social coverage; leading-indicator claims come only from out-of-sample tests (135–137).
 
 ---
 
 ## 3. The analytic stack
 
 ```
- L8  Analysis cycles ─ daily / weekly / monthly assessments (127)
+ L8  Analysis cycles ─ daily / weekly / monthly assessments (128)
           ▲ deterministic packet; LLM roles: analyst · red team · forecaster · proposer
  L7  Forecast ledger ─ questions · forecasts · resolution · scores · calibration (122)
-          ▲ forecasters: base rate · climatology · persistence · statistical (125) · precursor (120)
-          │              analog (121) · impact (126) · indicator-Bayes (124) · LLM (127) · operator · ensemble
- L6  Hypothesis sets ─ competing hypotheses · indicators → watch rules · ACH matrix · revisions (124)
+          ▲ forecasters: base rate · climatology · persistence · statistical (126) · precursor (120)
+          │              analog (121) · impact (127) · indicator-Bayes (125) · LLM (128) · operator · ensemble
+ L6  Hypothesis sets ─ competing hypotheses · indicators → watch rules · ACH matrix · revisions (125)
  L5  Memory ─ situations / storylines (118) · base rates · historical analogs (121)
  L4  Discovery ─ change points · event studies · co-occurrence (119) · precursors and lead–lag (120)
-          · regional outlooks and indices (125) · impact projection (126)
+          · regional outlooks and indices (126) · impact projection (127)
  L3  Correlation ─ intelligence events · investigations · exposure · dependency graph (101, 104)
  L2  Detection ─ derived layers · count / absence / anomaly rules (099, 100)
  L1  Signals ─ records and versions · rollups (038; region rollups 119) · series (093, 117)
  L0.5 Evidence ─ canonical events · evidence groups · observability · analysis manifests (116)
  L0  Collection ─ budgeted sources · health · history with analytic retention (001–097)
 
- Across all levels: object contract · relation graph · annotations · workspaces (128) · benchmark harness (123)
+ Across all levels: object contract · relation graph · annotations · workspaces (129) · benchmark harness (123)
 ```
 
 ### 3.1 Three kinds of memory
@@ -154,9 +154,9 @@ Outputs are ordinary Foresignal objects: typed tables for structure, plus record
 
 | DERIVED source | Kinds | Created by |
 |---|---|---|
-| `foresignal-intel` (101) | `intelligence-event`, `situation` (118), `hypothesis-set` (124) | 101, 118, 124 |
-| `foresignal-analytics` (119) | `analytic-finding`, payload `findingType` ∈ `change-point`, `pre-event-signal`, `unexplained-move`, `co-occurrence`, `precursor-active`, `forecast-exceedance`, `outlook-exceedance`, `projected-impact` | 119, 120, 125, 126 |
-| `foresignal-outlook` (125) | `regional-outlook`, `regional-index` | 125 |
+| `foresignal-intel` (101) | `intelligence-event`, `situation` (118), `hypothesis-set` (125) | 101, 118, 125 |
+| `foresignal-analytics` (119) | `analytic-finding`, payload `findingType` ∈ `change-point`, `pre-event-signal`, `unexplained-move`, `co-occurrence`, `precursor-active`, `forecast-exceedance`, `outlook-exceedance`, `projected-impact` | 119, 120, 126, 127 |
+| `foresignal-outlook` (126) | `regional-outlook`, `regional-index` | 126 |
 
 Forecast questions and forecasts are **not** records: they are append-only ledger rows with their own API and SSE topic.
 
@@ -178,7 +178,7 @@ Forecast questions and forecasts are **not** records: they are append-only ledge
 | `reference` | catalogues (power plants, ports, cables) | 90 d of history; heads kept while current | n/a |
 | `intel` | Foresignal's outputs: anomalies, intel events, situations, findings, outlooks | records 1825 d; **typed tables never auto-deleted** (admin purge only) | n/a |
 
-Event-class sources are small (USGS ≈ 300 versions/day, ACLED ≈ 1–3k/day, IODA a few hundred). Five years of all `event` sources is expected in the low tens of GB; `/v1/system.history` reports the real projection and 142 measures it.
+Event-class sources are small (USGS ≈ 300 versions/day, ACLED ≈ 1–3k/day, IODA a few hundred). Five years of all `event` sources is expected in the low tens of GB; `/v1/system.history` reports the real projection and 143 measures it.
 
 ### 4.2 Region rollups
 
@@ -217,7 +217,7 @@ The same earthquake can arrive from USGS, EMSC, GDACS and a news feed. Four reco
 - **Canonical events.** `EvidenceResolver` links event-class observations to `canonical_event` rows using family-specific tolerances (reusing 099's corroboration rules) and upstream-id matches, with a link confidence and reason.
 - **Evidence groups.** Within a canonical event, observations sharing an originator, an independence group, an aggregation relationship or a citation form one `evidence_group`. Only evidence groups count as independent.
 - **Quality flags:** `ECHO` (many re-reports of one originator), `TIMESTAMP_CONFLICT`, `SINGLE_ORIGINATOR`, `LATE_REVISION`. These are the "adversarial evidence evaluator": they say "12 reports trace back to one unverified origin", without claiming anything is disinformation.
-- **Consumers:** 099 corroboration credibility, 101 `EventScorer` (v1.1.0), 118 corroboration roll-up, 120 precursor occurrences, 121 base rates, 124 updater and ACH rows, 125 outlook counts.
+- **Consumers:** 099 corroboration credibility, 101 `EventScorer` (v1.1.0), 118 corroboration roll-up, 120 precursor occurrences, 121 base rates, 125 updater and ACH rows, 126 outlook counts.
 
 ### 4.6 Observability (prompt 116)
 
@@ -226,7 +226,7 @@ A source being healthy is not the same as it being able to see something.
 - **Declared:** area, thresholds (e.g. magnitude 2.5 in the US, 4.5 globally) and latency per kind.
 - **Estimated**, versioned in time (`observability_estimate`): **capture–recapture** for families with independent sources (`p_detect(A) = |A ∩ B| / |B|` over canonical events, per region and magnitude band); a **presence proxy** for track kinds from hourly rollups (labelled low confidence); **receiver range** for local stations; declared footprints otherwise.
 - **Combination:** `1 − Π(1 − p)` across independence groups (max within one group).
-- **Absence rule:** "nothing happened" requires healthy sources **and** `p_detect ≥ absenceMinDetect` (0.8). Otherwise the result is `unknown` / `LOW_DETECTABILITY`, in 100 (absence and downward anomalies), 119 (downward findings), 120 (precursor misses), 122 (negative resolutions) and 124 (absent indicators, whose likelihood ratio is also scaled by `p_detect`).
+- **Absence rule:** "nothing happened" requires healthy sources **and** `p_detect ≥ absenceMinDetect` (0.8). Otherwise the result is `unknown` / `LOW_DETECTABILITY`, in 100 (absence and downward anomalies), 119 (downward findings), 120 (precursor misses), 122 (negative resolutions) and 125 (absent indicators, whose likelihood ratio is also scaled by `p_detect`).
 - **Coverage layer:** an API and tiles that show how well instrumented any area is for a family at a time.
 
 ### 4.7 Analysis manifests (prompt 116)
@@ -296,7 +296,7 @@ Example: Bab el-Mandeb daily transits (PortWatch, 088) fall from a 60-day level 
 
 ---
 
-## 6. Memory and reasoning (prompts 118, 124)
+## 6. Memory and reasoning (prompts 118, 125)
 
 ### 6.1 Situations (storylines)
 
@@ -351,7 +351,7 @@ A probability crossing a band boundary is a **band change**, published on SSE an
 
 ---
 
-### 6.6 Information value and collection gaps (prompt 124)
+### 6.6 Information value and collection gaps (prompt 125)
 
 - **Expected information gain** ranks pending indicators: `EIG = H(P) − Σ_o P(o) · H(P | o)` with `P(observed)` including `p_detect`. This turns the ACH matrix into an ordered watch list ("what would have to be true").
 - **Collection gaps:** indicators that would matter (high potential EIG) but cannot currently be observed (`p_detect < 0.5` or sources disabled) produce recommendations: enable a catalogued source, add a local receiver or sensor type, or "no catalogued source observes this". Recommendations never change configuration.
@@ -420,15 +420,15 @@ Machine resolvers (hourly job; early resolution when an event makes the answer c
 ### 8.6 External and human forecasters
 
 - The **operator** is a forecaster (API, MCP, chat commands from 061), scored on the same scale; the weekly scorecard shows operator vs machine.
-- **External** forecasters (`type=external`): prediction markets, Metaculus, VIEWS or any other forecast source arrive as EDP `forecast` items from external providers and are bound to ledger questions (137, question links); they are recorded on material moves and at least daily, scored like every forecaster, and join the ensemble only after 30 resolved linked questions (market blending improves forecasts when its skill is earned).
+- **External** forecasters (`type=external`): prediction markets, Metaculus, VIEWS or any other forecast source arrive as EDP `forecast` items from external providers and are bound to ledger questions (138, question links); they are recorded on material moves and at least daily, scored like every forecaster, and join the ensemble only after 30 resolved linked questions (market blending improves forecasts when its skill is earned).
 
 ---
 
 ### 8.7 Benchmark harness (prompt 123)
 
-Software tests prove the code; benchmarks show whether the analysis is useful. Deterministic scenarios with planted truth (`null-seasonal`, `step-change`, `spike`, `coverage-outage`, `duplicate-echo`, `late-revision`, `common-driver`, `true-precursor`, `base-rate-drift`, `pre-event-move`) and a historical corpus (operator cases plus sampled null region-weeks) measure, per component: false-discovery rate, recall, precision, detection delay, correct `unknown` under outages, duplicate inflation (must be zero), precursor false validation, and forecaster calibration and skill against naive baselines. Benchmarks run components in pure or dry-run modes and never write production analytic tables. Results are `pass | warn | fail` against documented thresholds and **gate** 127's proposer auto-execution and the LLM forecaster's ensemble weight. Analyst verdicts (128) propose new historical cases.
+Software tests prove the code; benchmarks show whether the analysis is useful. Deterministic scenarios with planted truth (`null-seasonal`, `step-change`, `spike`, `coverage-outage`, `duplicate-echo`, `late-revision`, `common-driver`, `true-precursor`, `base-rate-drift`, `pre-event-move`) and a historical corpus (operator cases plus sampled null region-weeks) measure, per component: false-discovery rate, recall, precision, detection delay, correct `unknown` under outages, duplicate inflation (must be zero), precursor false validation, and forecaster calibration and skill against naive baselines. Benchmarks run components in pure or dry-run modes and never write production analytic tables. Results are `pass | warn | fail` against documented thresholds and **gate** 128's proposer auto-execution and the LLM forecaster's ensemble weight. Analyst verdicts (129) propose new historical cases.
 
-## 9. Regional outlooks, indices and series forecasts (prompt 125)
+## 9. Regional outlooks, indices and series forecasts (prompt 126)
 
 ### 9.1 Series forecaster
 
@@ -448,7 +448,7 @@ Optional structural covariates come from World Bank indicators (117).
 
 ---
 
-## 10. Impact projection (prompt 126)
+## 10. Impact projection (prompt 127)
 
 `ImpactProjector` (`impact-projection` 1.0.0) turns hazard forecasts Foresignal ingests into probabilistic, scored impact statements:
 
@@ -464,7 +464,7 @@ For each hazard forecast it intersects the area with places (036), infrastructur
 
 ---
 
-## 11. Analysis cycles and assessments (prompt 127)
+## 11. Analysis cycles and assessments (prompt 128)
 
 ### 11.1 Cycles
 
@@ -487,7 +487,7 @@ For each hazard forecast it intersects the area with places (036), infrastructur
 |---|---|
 | Daily | situation and `daily` set reviews; new findings; forecasts due within 7 days |
 | Weekly | plus `weekly` sets; calibration scorecard; precursor library changes; regional outlook summary; proposals of sets for active situations without one |
-| Monthly | plus `monthly` sets; base-rate refresh (121); precursor re-test (120); ensemble weights, extremizing and Platt refits (122); index weight proposals (125); stale set archiving; 90-day outlook; retrospective evaluation of the LLM forecaster on the past month where valid |
+| Monthly | plus `monthly` sets; base-rate refresh (121); precursor re-test (120); ensemble weights, extremizing and Platt refits (122); index weight proposals (126); stale set archiving; 90-day outlook; retrospective evaluation of the LLM forecaster on the past month where valid |
 
 ### 11.4 The intel board
 
@@ -505,18 +505,18 @@ For each hazard forecast it intersects the area with places (036), infrastructur
 | Precursors (120) | `/v1/precursors/**`, `/v1/precursor-tests/**` (103) | `analytics` | `list_precursors` / `mine_precursors` |
 | Base rates, analogs (121) | `/v1/base-rates/**`, `/v1/situations/{id}/analogs`, `/v1/reference-imports/**` | n/a | `get_base_rate`, `find_analogs` |
 | Ledger (122) | `/v1/forecasts/**` | `forecasts` | `list_questions`, `get_question`, `get_scorecard` / `create_question`, `submit_forecast` |
-| Hypotheses (124) | `/v1/hypotheses/sets/**` | `hypotheses` | `list_hypothesis_sets`, `get_hypothesis_set` / `create_hypothesis_set`, `add_evidence`, `draft_hypothesis_set` |
-| Outlooks and indices (125) | `/v1/analytics/series/forecast`, `/v1/outlooks/**`, `/v1/indices/**` | `analytics` | `get_series_forecast`, `get_outlook`, `get_index` |
-| Impact (126) | `/v1/analytics/impacts/**` | `analytics` | `list_projected_impacts` |
+| Hypotheses (125) | `/v1/hypotheses/sets/**` | `hypotheses` | `list_hypothesis_sets`, `get_hypothesis_set` / `create_hypothesis_set`, `add_evidence`, `draft_hypothesis_set` |
+| Outlooks and indices (126) | `/v1/analytics/series/forecast`, `/v1/outlooks/**`, `/v1/indices/**` | `analytics` | `get_series_forecast`, `get_outlook`, `get_index` |
+| Impact (127) | `/v1/analytics/impacts/**` | `analytics` | `list_projected_impacts` |
 | Evidence and observability (116) | `/v1/evidence/**`, `/v1/observability/**`, `/v1/manifests/**` | `evidence` | `get_evidence`, `get_observability` |
 | Benchmarks (123) | `/v1/benchmarks/**` | n/a | `get_benchmark_status` / `run_benchmark` |
-| Objects and workspaces (128) | `/v1/objects/**` (incl. `/dossier`), `/v1/context/summary`, `/v1/graph/**`, `/v1/relations/**`, `/v1/annotations/**`, `/v1/analytics/precision`, `/v1/workspaces/**`, `/v1/context-links`, `/v1/sensors`, `/v1/contract` | `workspace` | `get_object`, `get_related`, `get_workspace_context` / `set_workspace_focus`, `annotate` |
-| Collaboration (129) | `/v1/me`, `/v1/principals/**`, `/v1/groups/**`, `/v1/objects/{ref}/acl`, `/v1/objects/{ref}/share`, `/v1/shared-with-me`, `/v1/tags/**`, `/v1/attachments/**`, `/v1/evidence-items/**`, `/v1/saved-searches/**`, `/v1/investigations/**` | `me` | `whoami`, `list_shared_with_me`, `tag_objects`, `comment` / `share_object` |
-| Chronicles (130) | `/v1/chronicles/**` (thread, state, tiles, frames, tracks, series, summary, export) | `chronicle` | `list_chronicles`, `get_chronicle_thread`, `get_chronicle_state` / `create_chronicle`, `add_chronicle_layer` |
-| Reports and exchange (131) | `/v1/reports/**`, `/v1/exchange/**` | `me` | `list_reports`, `get_report` / `draft_report`, `send_report` |
-| News and media (132) | `/v1/news/**`, `/v1/media/**` | `analytics` | `list_news_stories`, `get_news_story`, `get_outlet` |
-| Chronicle network (133) | `/v1/chronicles/{id}/related`, `/v1/chronicles/{id}/discoverability`, `/v1/chronicle-network/**`, `/v1/federation/chronicle-sketches` | `me` | `get_related_chronicles` |
-| Cycles (127) | `/v1/analysis/cycles/**`, `/v1/assessments/**`, `/v1/intel/board` | `assessments` | `get_assessment`, `get_intel_board` / `run_cycle` |
+| Objects and workspaces (129) | `/v1/objects/**` (incl. `/dossier`), `/v1/context/summary`, `/v1/graph/**`, `/v1/relations/**`, `/v1/annotations/**`, `/v1/analytics/precision`, `/v1/workspaces/**`, `/v1/context-links`, `/v1/sensors`, `/v1/contract` | `workspace` | `get_object`, `get_related`, `get_workspace_context` / `set_workspace_focus`, `annotate` |
+| Collaboration (130) | `/v1/me`, `/v1/principals/**`, `/v1/groups/**`, `/v1/objects/{ref}/acl`, `/v1/objects/{ref}/share`, `/v1/shared-with-me`, `/v1/tags/**`, `/v1/attachments/**`, `/v1/evidence-items/**`, `/v1/saved-searches/**`, `/v1/investigations/**` | `me` | `whoami`, `list_shared_with_me`, `tag_objects`, `comment` / `share_object` |
+| Chronicles (131) | `/v1/chronicles/**` (thread, state, tiles, frames, tracks, series, summary, export) | `chronicle` | `list_chronicles`, `get_chronicle_thread`, `get_chronicle_state` / `create_chronicle`, `add_chronicle_layer` |
+| Reports and exchange (132) | `/v1/reports/**`, `/v1/exchange/**` | `me` | `list_reports`, `get_report` / `draft_report`, `send_report` |
+| News and media (133) | `/v1/news/**`, `/v1/media/**` | `analytics` | `list_news_stories`, `get_news_story`, `get_outlet` |
+| Chronicle network (134) | `/v1/chronicles/{id}/related`, `/v1/chronicles/{id}/discoverability`, `/v1/chronicle-network/**`, `/v1/federation/chronicle-sketches` | `me` | `get_related_chronicles` |
+| Cycles (128) | `/v1/analysis/cycles/**`, `/v1/assessments/**`, `/v1/intel/board` | `assessments` | `get_assessment`, `get_intel_board` / `run_cycle` |
 
 All read tools join the read catalogue (025), so Ask, the analyst and the cycles can use them. Every LLM-spending path is `alwaysAuthenticated`.
 
@@ -526,39 +526,39 @@ Notification event types (018): `situation.activated`, `situation.escalated`, `h
 
 ---
 
-### 12.1 Objects, relations and workspaces (prompt 128)
+### 12.1 Objects, relations and workspaces (prompt 129)
 
-Foresignal is the shared intelligence foundation for several frontends (a globe, an analyst workstation, satellite and RF consoles, mobile, agents), which may ship as one application with switchable workspaces or as separate applications. Prompt 128 gives them one contract ([Client Contract](Client-Contract.md)):
+Foresignal is the shared intelligence foundation for several frontends (a globe, an analyst workstation, satellite and RF consoles, mobile, agents), which may ship as one application with switchable workspaces or as separate applications. Prompt 129 gives them one contract ([Client Contract](Client-Contract.md)):
 - **Object references** (`situation:01J…`, `record:adsblol-mil/ae1234@8812`) and a uniform **envelope** for every object type, resolvable singly or in batches, `asOf`-aware.
 - A **relation graph** with validity intervals, confidence and provenance, materialised from situations, intel events, canonical events, entity links, the facility graph, hypotheses, the ledger and investigations; queries for neighbourhoods, subgraphs and **common dependencies** (the temporal knowledge graph, without a separate graph database).
 - **Annotations** on any object, with **verdicts** (confirmed, rejected, needs review, duplicate) that feed precision metrics and benchmark cases: human validation of AI findings.
 - **Workspaces** with a versioned shared context (selected objects, time range, viewport, active situation and hypothesis set) synchronised live over SSE, with presence, so several apps or monitors follow one investigation; plus deep links. Client layout is opaque JSON; Foresignal never interprets UI state.
 - **Sensor discovery:** what can observe an area in a window (sources by detectability, local receivers, SatDump stations, predicted satellite passes, imagery footprints). No tasking.
 
-### 12.2 Collaboration (prompt 129)
+### 12.2 Collaboration (prompt 130)
 
 - **Principals** (person, agent, service) own tokens; **groups** collect principals. The broker never stores passwords.
 - **Data vs work products:** records and analytic objects stay instance-wide per scope; **work products** (investigations, workspaces, chronicles, reports, saved searches, notes, attachments, evidence items) have an owner, `visibility` and an access list (viewer, commenter, editor, owner), and are invisible to principals without access.
 - **TLP 2.0** (`CLEAR`, `GREEN`, `AMBER`, `AMBER+STRICT`, `RED`) on every work product; derived products inherit the strictest input label; `EgressPolicy` enforces it on shares, links, exports and exchange.
 - **Tags** (personal and shared, bulk assignment), **threaded comments** with @mentions, **attachments** (PDF and image text extraction; EXIF stripped) and **evidence items** graded with the Admiralty system (source reliability A–F, information credibility 1–6), **saved searches** with match notifications, and **investigations** with owners, members, statuses and links to everything an analyst uses.
 
-### 12.3 Chronicles (prompt 130)
+### 12.3 Chronicles (prompt 131)
 
 A **chronicle** is a named monitoring thread: a bundle of layers (sources and kinds with conditions, saved views, watchlists, entities, situations, finding types, series, raster products, alert rules) over an area, with a capture mode per layer (full, downsampled, events-only, latest-per-interval, rollup-only, frames). While active it **copies** matching data into its own partition, so its history is independent of global retention; storage is estimated before activation and capped. It has a live **thread** of notable updates, a workspace whose layout the client arranges, replay endpoints (state at T, tiles, tracks, series, frame index), and a lifecycle: proposed → active ⇄ paused → stopped → archived (cold package, restorable) or deleted. The analysis cycles **propose** chronicles when situations emerge; people accept, edit, keep or delete them. Chronicles are shareable under TLP.
 
-### 12.4 Reports and intelligence exchange (prompt 131)
+### 12.4 Reports and intelligence exchange (prompt 132)
 
 Reports are built from a selection, a tag, an investigation, a chronicle or a situation; drafts are deterministic (templates: situation brief, investigation summary, chronicle recap, weekly assessment), with an optional labelled LLM narrative. Publishing freezes a revision with pinned refs and snapshots and renders Markdown, HTML (TLP banner) and a JSON bundle. Reports are sent to principals and groups on the instance, or packaged as **signed intelligence packages** (instance key, 109) for principals on other instances (via 113 peers or as a file). Receivers verify signatures and hashes, enforce TLP, and import read-only with `remote:` references and provenance; imported material never contaminates local evidence or the ledger unless an analyst copies it deliberately. CLEAR reports can also go out as read-only links (112).
 
-### 12.5 News coverage and media bias (prompt 132)
+### 12.5 News coverage and media bias (prompt 133)
 
-- **Articles** (metadata by default: title, URL, outlet, language, country, times, feed summary; bodies and bylines only from EDP `article` documents bound with target `news`, 137) from GDELT ArtList for attention topics and operator-added outlet feeds.
+- **Articles** (metadata by default: title, URL, outlet, language, country, times, feed summary; bodies and bylines only from EDP `article` documents bound with target `news`, 138) from GDELT ArtList for attention topics and operator-added outlet feeds.
 - **Outlet registry** with ratings from **declared providers**: Wikidata (CC0: country, owner, state media, political alignment where present), The Partisan Web (CC BY 4.0), and, opt-in with the operator's own rights, AllSides (reported CC BY-NC 4.0; confirm) and Media Bias/Fact Check (paid API); operator CSV imports. A consensus per dimension (median, disagreement, provider breakdown); **no model ever assigns a rating**.
 - **Stories** are 116 canonical events (`news-story`); wire reprints form one evidence group, so syndication never inflates support.
 - **Coverage analytics:** balance by lean, country, outlet type and factuality; state-affiliated share; **blindspots** (≥ 75% of rated coverage from one side, n ≥ 8) and **coverage divergence** findings; coverage series in the analysis-series registry.
 - **In analysis:** coverage sections in situations, dossiers and assessments; `SKEWED_COVERAGE` caveats on hypotheses, and a confidence step-down when skewed support has no non-news corroboration; outlet factuality maps to source reliability for news evidence. Coverage describes reporting, never truth.
 
-### 12.6 Chronicle network (prompt 133)
+### 12.6 Chronicle network (prompt 134)
 
 - **Fingerprints, not content:** each chronicle maintains MinHash sketches over **global evidence keys** (upstream event ids per originator, entity keys per day, H3 area-time cells, topics), hashed with a per-instance salt (local discovery) or a per-network salt shared by consenting peers (federated discovery).
 - **Discoverability** is the owner's choice (`none` by default, `instance`, `network`), capped by TLP (RED never; AMBER+STRICT within the instance at most), with optional reveal of title and owner.
@@ -566,19 +566,19 @@ Reports are built from a selection, a tag, an investigation, a chronicle or a si
 - **Counting once:** overlap and combined cluster timelines are deduplicated by global evidence key.
 - **Circular reporting:** analytic products carry provenance chains; a judgment that returns through other analysts, or two supports with a shared origin, count as one evidence group in hypotheses and confidence.
 
-### 12.7 Social signals (prompts 134–136)
+### 12.7 Social signals (prompts 135–137)
 
 What people are saying, where it starts, how it spreads, and whether it matches what Foresignal observes independently.
 
-- **Sources (134), operator-enabled, official APIs:** Bluesky Jetstream v2 (complete public stream, open, on by default; replay with the operator's API token), Bluesky search, Mastodon (hashtag streams and trends per instance), Reddit, YouTube, X (hourly counts for standing topics, billed per request; recent search for cues, billed per post; a monthly spend cap), Threads keyword search and Instagram hashtag search (30 hashtags per 7 days). Every other platform (Telegram channels, Facebook pages, TikTok, forums) arrives through external EDP providers emitting `social-post` documents, bound into the pipeline with target `social` (137); providers that declare `transport.search` take part in cues.
+- **Sources (135), operator-enabled, official APIs:** Bluesky Jetstream v2 (complete public stream, open, on by default; replay with the operator's API token), Bluesky search, Mastodon (hashtag streams and trends per instance), Reddit, YouTube, X (hourly counts for standing topics, billed per request; recent search for cues, billed per post; a monthly spend cap), Threads keyword search and Instagram hashtag search (30 hashtags per 7 days). Every other platform (Telegram channels, Facebook pages, TikTok, forums) arrives through external EDP providers emitting `social-post` documents, bound into the pipeline with target `social` (138); providers that declare `transport.search` take part in cues.
 - **Posts** are versioned `social-post` records (text, handle, links, media links, engagement, platform geo when given) with per-platform retention and deletion sync as settings. Reposts and quotes inherit the original's originator (116), so amplification is never independent evidence.
-- **Volume and baselines (134):** hourly series per topic, place and entity per platform, scaled by platform denominators (all posts seen on complete streams) so platform growth and outages do not look like attention changes; `social-velocity` findings. Each path is labelled complete, paged or sampled; only complete and paged paths feed baselines. Collection health feeds a **social-attention observability** estimate, so silence is distinguished from not looking.
-- **Narratives and claims (135):** posts cluster into narratives (reposts, quotes, text similarity, shared links or images) as 116 canonical events whose evidence groups count origins; deterministic claim extraction (multilingual event lexicons, gazetteer places, entities, times, negation and hedging) with optional budgeted LLM extraction for large narratives; claims are graded 124 evidence items (Admiralty), with source reliability earned from each account's or channel's corroboration record.
-- **Media (135):** PDQ fingerprints of shared images; reuse findings when an image was first seen earlier or elsewhere (within the fingerprint window, stated with each finding); analysts can match an image on demand.
-- **Propagation and coordination (135):** per-narrative graphs across reposts, platforms and news (132) with earliest observed post per platform (never "originator"), descent share (how much traces to the top three origins), and statistical coordination indicators against null models (no account labels).
-- **Social versus physical (136):** each significant claim is compared with non-social evidence in the same place and window: `corroborated` (with lead times over physical, news and official first observation), `unobserved` (only when `canSeeAbsence` is ok), `contradicted`, `insufficient-coverage`, `pending`. **Attention gaps**: significant physical events with far less discussion than similar past events, reported only where social coverage is adequate.
-- **Cues (136):** physical findings (situation escalation, change points in outage, vessel, flight and fire series, critical alerts) generate budgeted searches with place names and aliases, nearby facilities and event terms in the region's languages; cue results are a targeted sample that never feeds baselines or corroborates its own trigger.
-- **Predictive value (136):** social series and claim types are 120 precursor candidates (FDR, later-period validation); each comparison opens a ledger question scored for the `social-claim` forecaster (122); lead-time statistics use only out-of-sample comparisons.
+- **Volume and baselines (135):** hourly series per topic, place and entity per platform, scaled by platform denominators (all posts seen on complete streams) so platform growth and outages do not look like attention changes; `social-velocity` findings. Each path is labelled complete, paged or sampled; only complete and paged paths feed baselines. Collection health feeds a **social-attention observability** estimate, so silence is distinguished from not looking.
+- **Narratives and claims (136):** posts cluster into narratives (reposts, quotes, text similarity, shared links or images) as 116 canonical events whose evidence groups count origins; deterministic claim extraction (multilingual event lexicons, gazetteer places, entities, times, negation and hedging) with optional budgeted LLM extraction for large narratives; claims are graded 125 evidence items (Admiralty), with source reliability earned from each account's or channel's corroboration record.
+- **Media (136):** PDQ fingerprints of shared images; reuse findings when an image was first seen earlier or elsewhere (within the fingerprint window, stated with each finding); analysts can match an image on demand.
+- **Propagation and coordination (136):** per-narrative graphs across reposts, platforms and news (133) with earliest observed post per platform (never "originator"), descent share (how much traces to the top three origins), and statistical coordination indicators against null models (no account labels).
+- **Social versus physical (137):** each significant claim is compared with non-social evidence in the same place and window: `corroborated` (with lead times over physical, news and official first observation), `unobserved` (only when `canSeeAbsence` is ok), `contradicted`, `insufficient-coverage`, `pending`. **Attention gaps**: significant physical events with far less discussion than similar past events, reported only where social coverage is adequate.
+- **Cues (137):** physical findings (situation escalation, change points in outage, vessel, flight and fire series, critical alerts) generate budgeted searches with place names and aliases, nearby facilities and event terms in the region's languages; cue results are a targeted sample that never feeds baselines or corroborates its own trigger.
+- **Predictive value (137):** social series and claim types are 120 precursor candidates (FDR, later-period validation); each comparison opens a ledger question scored for the `social-claim` forecaster (122); lead-time statistics use only out-of-sample comparisons.
 - **In analysis:** situations gain a social section; indicators can be `reported` by social claims but only `observed` from physical evidence; assessments get "What people are saying versus what we observe"; chronicles keep narrative, claim and comparison history even after posts are deleted.
 
 ## 13. Worked example: positioning, strike, response
@@ -622,13 +622,13 @@ ICD 203 (archive.dni.gov/files/documents/ICD/ICD-203.pdf) [V]: nine tradecraft s
 ### 14.5 Data sources
 CFTC COT on publicreporting.cftc.gov (Socrata; public domain; datasets: legacy `6dca-aqww`, disaggregated `72hh-3qpy`, TFF `gpe5-46if`, and their futures-and-options variants) [V]. CME: personal non-commercial use only, automated access prohibited → external provider idea [S]. ICE: end-of-day data paid; ICE publishes a free weekly COT for Brent and gasoil (location to verify) [S]. FRED API: free key; must show the "not endorsed or certified" notice; series marked copyrighted (VIXCLS, OVXCLS (Cboe), DCOILBRENTEU) are personal use only → `LOCAL_ONLY` [V]. EIA API v2: public domain, but spot prices are sourced from LSEG → `LOCAL_ONLY` for those series [V]. Wikimedia Pageviews: CC0, User-Agent with contact required [V]. GDELT 2.0: open with citation; DOC API limited to one request per 5 s [V]. IMF PortWatch: ArcGIS, no key, reuse with attribution, about 7 days lag [V]. NGA MSI and State Department advisories: keyless official APIs [V]. UKMTO: blocks some automated clients → external provider idea [V]. Metaculus: terms restrict AI/ML use without permission → excluded pending permission [S]. World Bank and ECB APIs: keyless [V].
 
-Social platforms (checked 2026-10-11; prices change often, so 134 seeds them as editable settings): Bluesky Protocol Services (launched 2026-08-13) runs Jetstream v2 with an open, unauthenticated live tail and Network Replay archives that need an API token [S]. X API is pay-per-use: post reads $0.005 each (billed per post returned), recent counts $0.005 per request, full-archive counts $0.010 per request; legacy Basic/Pro tiers closed in 2026; deleted content must be removed within 24 h [S]. xAI's X search tool moved to per-result billing on 2026-09-21 (about $5 per 1,000 posts plus model tokens) [S]. Threads keyword search needs the `threads_keyword_search` permission, 2,200 queries per rolling 24 h [V]. Instagram hashtag search needs App Review for Public Content Access, 30 unique hashtags per rolling 7 days [V]. Meta Content Library is for academic and non-profit researchers and runs in Meta's secure environments [V]. Reddit's free tier is non-commercial, 100 queries per minute, with manual app approval [S]. YouTube Data API: 10,000 units per day, `search.list` 100 units [S]. Mastodon `/api/v1/trends/tags` is public with daily `uses` and `accounts` history [V]. Telegram added a scraping prohibition to its terms on 2026-02-03; TDLib is Boost-licensed with Java (JNI) and JSON interfaces [S]. TikTok's Research API is limited to non-commercial researchers [S]. Google Trends API remains an application-gated alpha [S].
+Social platforms (checked 2026-10-11; prices change often, so 135 seeds them as editable settings): Bluesky Protocol Services (launched 2026-08-13) runs Jetstream v2 with an open, unauthenticated live tail and Network Replay archives that need an API token [S]. X API is pay-per-use: post reads $0.005 each (billed per post returned), recent counts $0.005 per request, full-archive counts $0.010 per request; legacy Basic/Pro tiers closed in 2026; deleted content must be removed within 24 h [S]. xAI's X search tool moved to per-result billing on 2026-09-21 (about $5 per 1,000 posts plus model tokens) [S]. Threads keyword search needs the `threads_keyword_search` permission, 2,200 queries per rolling 24 h [V]. Instagram hashtag search needs App Review for Public Content Access, 30 unique hashtags per rolling 7 days [V]. Meta Content Library is for academic and non-profit researchers and runs in Meta's secure environments [V]. Reddit's free tier is non-commercial, 100 queries per minute, with manual app approval [S]. YouTube Data API: 10,000 units per day, `search.list` 100 units [S]. Mastodon `/api/v1/trends/tags` is public with daily `uses` and `accounts` history [V]. Telegram added a scraping prohibition to its terms on 2026-02-03; TDLib is Boost-licensed with Java (JNI) and JSON interfaces [S]. TikTok's Research API is limited to non-commercial researchers [S]. Google Trends API remains an application-gated alpha [S].
 
 ---
 
 ## 15. Prompt breakdown
 
-### 15.1 New prompts 116–138
+### 15.1 New prompts 116–139
 
 | # | Prompt | Scope | Depends on |
 |---|---|---|---|
@@ -640,21 +640,22 @@ Social platforms (checked 2026-10-11; prices change often, so 134 seeds them as 
 | 121 | Base-Rates-And-Historical-Analogs | base-rate library, reference imports, signatures, analog search | 116, 118, 119, 027 |
 | 122 | Forecast-Ledger-And-Scoring | questions, resolvers (detectability-aware), forecasts, forecasters, scoring, CORP, bias monitor, ensemble, Platt, retrospective evaluation, `EstimativeLanguage` | 116, 120, 121 |
 | 123 | Analytic-Benchmark-Harness | planted-truth scenarios, historical corpus, metrics, thresholds, gating | 101, 116, 118–122 |
-| 124 | Hypotheses-Indicators-And-ACH | sets, hypotheses, revisions, indicators with watch rules, updater (evidence groups, detectability-scaled absence), ACH, key assumptions, speculative links, information value, collection gaps, drafting | 017, 100, 116, 118, 120–123 |
-| 125 | Series-Forecasts-Regional-Outlooks-And-Indices | series forecaster, regional 4-week outlooks, scored indices with fitted weights | 116, 119, 121, 122 |
-| 126 | Impact-Projection | hazards × places × infrastructure, `projected-impact`, ledger questions | 104, 105, 116, 121, 122 |
-| 127 | Analysis-Cycles-And-Assessments | cycles, packet, LLM roles (value-of-information priorities, per-cycle token budgets), assessments, export bundles, intel board (operator vs machine), notifications | 029, 102, 116–126 |
-| 128 | Object-Graph-Workspaces-And-Annotations | object references and envelopes, relation graph, annotations and verdicts, precision metrics, workspaces with live context sync and deep links, sensor discovery, `/v1/contract` | 036, 064, 096, 098, 101, 104, 112, 116–127 |
-| 129 | Principals-Groups-Sharing-And-Collaboration | principals and groups, notification preferences, access lists, TLP 2.0, tags, threaded comments and mentions, attachments and Admiralty-graded evidence items, investigations (owners, members, links), saved searches | 018, 023, 033, 043, 101, 109, 112, 113, 128 |
-| 130 | Chronicles | layer bundles with capture modes, own partitioned history, thread, replay (state, tiles, tracks, series), lifecycle, storage estimates and caps, proposals from cycles, sharing | 014, 016, 036, 038, 042, 044, 111, 116–129 |
-| 131 | Reports-And-Intelligence-Exchange | reports from tags, selections, investigations, chronicles and situations; deterministic drafts and optional narrative; publish with pinned refs; send to principals; signed packages between instances; read-only links | 018, 029, 055, 109, 111–113, 116, 122–130 |
-| 132 | News-Coverage-And-Media-Bias | articles (metadata by default), outlet registry, licensed rating providers and consensus, story clustering via canonical events, coverage balance, blindspots and divergence, use in situations, hypotheses and assessments | 027, 066, 073, 101, 109, 116–119, 124, 127, 128 |
-| 133 | Chronicle-Network-And-Discovery | evidence keys and MinHash fingerprints, discoverability under TLP, opaque links and clusters, deduplicated cluster timelines, federated sketch exchange with network salts, access requests, circular-reporting detection | 098, 109, 113, 116, 118, 129–131 |
-| 134 | Social-Sources-And-Volume | operator-enabled platform adapters (Bluesky Jetstream on by default; Bluesky search, Mastodon, Reddit, YouTube, X with spend cap, Threads, Instagram hashtags; other platforms through EDP providers), `social-post` records, topic `social` blocks, term index, deletion sync, denominator-scaled hourly volume series and baselines, `social-velocity` findings, social-attention observability | 005, 010, 024, 036, 040, 093, 098, 109, 116, 117, 119, 130 |
-| 135 | Narratives-Claims-And-Media | narratives as canonical events counted by origin, multilingual deterministic claim extraction with optional LLM extraction, claims as graded evidence items, PDQ image fingerprints and reuse findings, propagation graphs across platforms and news, coordination indicators | 026, 027, 036, 043, 098, 116, 118, 119, 124, 128, 132, 133, 134 |
-| 136 | Social-Physical-Correlation | claim-versus-physical comparisons with detectability, lead times, attention gaps, cue-driven searches, social precursor candidates, `social-claim` ledger forecaster, lead-time statistics, situation, hypothesis, assessment and chronicle integration | 017, 018, 100, 116, 118–124, 127, 130, 132–135 |
-| 137 | External-Data-Bindings-And-Provider-Kit | bindings for atomic EDP streams (series, canonical families with declared originators and coverage, social and news pipelines, evidence, indicators, forecast questions as scored external forecasters, places, situations, chronicles), preview, suggested bindings, provider kit and provider-ideas catalogue | 024, 036, 093, 098, 116, 118, 119, 122, 124, 128, 130, 132, 134–136 |
-| 138 | ✅ Checkpoint-Intelligence | run and fix all tests from 001–137; determinism, look-ahead, wording, egress, duplicate inflation, manifests, benchmark, collaboration and TLP, chronicle independence, exchange round trip, news independence, chronicle-network disclosure, circular reporting, social independence, absence and cue loops, external data (pending sources, bindings, independence, external forecasters), invariants |
+| 124 | ✅ Checkpoint-Intelligence-Foundations | run and fix all tests from 001–123; golden statistics, determinism, look-ahead, duplicate inflation, manifests, ledger integrity, egress, durable cursors, synthetic benchmark baseline, invariants |
+| 125 | Hypotheses-Indicators-And-ACH | sets, hypotheses, revisions, indicators with watch rules, updater (evidence groups, detectability-scaled absence), ACH, key assumptions, speculative links, information value, collection gaps, drafting | 017, 100, 116, 118, 120–123 |
+| 126 | Series-Forecasts-Regional-Outlooks-And-Indices | series forecaster, regional 4-week outlooks, scored indices with fitted weights | 116, 119, 121, 122 |
+| 127 | Impact-Projection | hazards × places × infrastructure, `projected-impact`, ledger questions | 104, 105, 116, 121, 122 |
+| 128 | Analysis-Cycles-And-Assessments | cycles, packet, LLM roles (value-of-information priorities, per-cycle token budgets), assessments, export bundles, intel board (operator vs machine), notifications | 029, 102, 116–127 |
+| 129 | Object-Graph-Workspaces-And-Annotations | object references and envelopes, relation graph, annotations and verdicts, precision metrics, workspaces with live context sync and deep links, sensor discovery, `/v1/contract` | 036, 064, 096, 098, 101, 104, 112, 116–128 |
+| 130 | Principals-Groups-Sharing-And-Collaboration | principals and groups, notification preferences, access lists, TLP 2.0, tags, threaded comments and mentions, attachments and Admiralty-graded evidence items, investigations (owners, members, links), saved searches | 018, 023, 033, 043, 101, 109, 112, 113, 129 |
+| 131 | Chronicles | layer bundles with capture modes, own partitioned history, thread, replay (state, tiles, tracks, series), lifecycle, storage estimates and caps, proposals from cycles, sharing | 014, 016, 036, 038, 042, 044, 111, 116–130 |
+| 132 | Reports-And-Intelligence-Exchange | reports from tags, selections, investigations, chronicles and situations; deterministic drafts and optional narrative; publish with pinned refs; send to principals; signed packages between instances; read-only links | 018, 029, 055, 109, 111–113, 116, 122–131 |
+| 133 | News-Coverage-And-Media-Bias | articles (metadata by default), outlet registry, licensed rating providers and consensus, story clustering via canonical events, coverage balance, blindspots and divergence, use in situations, hypotheses and assessments | 027, 066, 073, 101, 109, 116–119, 125, 128, 129 |
+| 134 | Chronicle-Network-And-Discovery | evidence keys and MinHash fingerprints, discoverability under TLP, opaque links and clusters, deduplicated cluster timelines, federated sketch exchange with network salts, access requests, circular-reporting detection | 098, 109, 113, 116, 118, 130–132 |
+| 135 | Social-Sources-And-Volume | operator-enabled platform adapters (Bluesky Jetstream on by default; Bluesky search, Mastodon, Reddit, YouTube, X with spend cap, Threads, Instagram hashtags; other platforms through EDP providers), `social-post` records, topic `social` blocks, term index, deletion sync, denominator-scaled hourly volume series and baselines, `social-velocity` findings, social-attention observability | 005, 010, 024, 036, 040, 093, 098, 109, 116, 117, 119, 131 |
+| 136 | Narratives-Claims-And-Media | narratives as canonical events counted by origin, multilingual deterministic claim extraction with optional LLM extraction, claims as graded evidence items, PDQ image fingerprints and reuse findings, propagation graphs across platforms and news, coordination indicators | 026, 027, 036, 043, 098, 116, 118, 119, 125, 129, 133, 134, 135 |
+| 137 | Social-Physical-Correlation | claim-versus-physical comparisons with detectability, lead times, attention gaps, cue-driven searches, social precursor candidates, `social-claim` ledger forecaster, lead-time statistics, situation, hypothesis, assessment and chronicle integration | 017, 018, 100, 116, 118–125, 128, 131, 133–136 |
+| 138 | External-Data-Bindings-And-Provider-Kit | bindings for atomic EDP streams (series, canonical families with declared originators and coverage, social and news pipelines, evidence, indicators, forecast questions as scored external forecasters, places, situations, chronicles), preview, suggested bindings, provider kit and provider-ideas catalogue | 024, 036, 093, 098, 116, 118, 119, 122, 125, 129, 131, 133, 135–137 |
+| 139 | ✅ Checkpoint-Intelligence | run and fix all tests from 001–138; determinism, look-ahead, wording, egress, duplicate inflation, manifests, benchmark, collaboration and TLP, chronicle independence, exchange round trip, news independence, chronicle-network disclosure, circular reporting, social independence, absence and cue loops, external data (pending sources, bindings, independence, external forecasters), invariants |
 
 ### 15.2 Changes to unexecuted prompts
 
@@ -662,32 +663,32 @@ Social platforms (checked 2026-10-11; prices change often, so 134 seeds them as 
 |---|---|
 | 019 | Analytic retention classes come in through descriptors (Conventions); intelligence tables are outside RetentionJob |
 | 038 | Pointer: 119 adds region resolutions 2 and 3 |
-| 102 | Pointer: 127 reuses analyst profiles and the proposal pipeline |
+| 102 | Pointer: 128 reuses analyst profiles and the proposal pipeline |
 | 103 | `hypothesis` renamed **precursor test** (`precursor_test`, `/v1/precursor-tests`, `test_precursor`); prompt renamed `103-Backtesting-And-Precursor-Tests` |
 | Adapter prompts | Retention defaults per the class table unless the prompt names a longer window |
 | 023 | Principals introduced (people and agents own tokens) |
-| 101 | Case files renamed **investigations** (`/v1/investigations`, `display_id` INV-yyyy-nnnn); 129 extends them |
+| 101 | Case files renamed **investigations** (`/v1/investigations`, `display_id` INV-yyyy-nnnn); 130 extends them |
 | 116 | Prompt templates are versioned resources exposed at `/v1/prompt-templates/{id}` |
 | 122 | Forecast probability history for trend charts |
-| 127 | On-demand per-situation assessments |
-| 128 | Relation types `precedes` and `causes` (never machine-asserted); evidence facets; satellite capability catalogue for sensor discovery |
+| 128 | On-demand per-situation assessments |
+| 129 | Relation types `precedes` and `causes` (never machine-asserted); evidence facets; satellite capability catalogue for sensor discovery |
 | 017 | `hysteresisMeters` for geofence `enter`/`exit` (no edges from boundary jitter) |
 | 022 | Performance smoke: sustained ingest at NFR-2 and 2×, SSE fan-out, partition maintenance under load |
 | 088 | Optional `gfw-sar-detections` (SAR vessel detections) |
 | 099 | New generators: `derived-cable-risk` (anchor drag near submarine cables), `derived-dark-vessel-match` (AIS gaps × SAR detections), `derived-lightning-holdover` (holdover lightning ignitions), `derived-hf-blackout` (HF propagation anomalies) |
 | 100, 101, 102, 103 | Retrofitted by 116 (detectability, evidence groups, manifests) |
-| 012, 022, 041, 057, 097, 141 | Invariants check against `docs/Invariants.md` |
-| 140 | SDKs include `ObjectRef`, the envelope and a `WorkspaceSync` helper |
-| 142 | Disk-full drill, practical capacity bounds, intelligence job costs |
-| 139–143 (v1.2 116–120) | Renumbered; test-run lists and cross-references updated |
-| 117 | Attention topics gain a `social` block (terms per language, hashtags, accounts, channels, platforms, places, entities) used by 134 |
-| 116 | Originator class `social`; canonical families `social-narrative`; observability family `social-attention` (134–135) |
-| 124 | Evidence source `social-claim`; indicator state `reported` (social) distinct from `observed` (136) |
-| 066, 072, 075, 077, 081, 093, 117, 132 | Former exclusions reworded: these prompts build the official routes; the rest are external EDP provider ideas (`docs/Source-Catalog.md`) |
-| 024 | Builds the EDP core (manifest, registration, push and pull, validation, layer streams); 137 adds bindings |
-| 140 | EDP provider libraries (Python, TypeScript) and `foresignal edp` CLI commands |
-| 018, 130, 123 | Notification types `social.divergence`, `social.attention_gap`; chronicle layers `social-narratives`, `social-volume`; social benchmark scenarios (134–136) |
-| 134–137 | Social signals (134–136) and external data bindings (137) inserted on 2026-10-11; checkpoint 134 → 138, tail 135–139 → 139–143 |
+| 012, 022, 041, 057, 097, 124, 139, 142 | Invariants check against `docs/Invariants.md` |
+| 141 | SDKs include `ObjectRef`, the envelope and a `WorkspaceSync` helper |
+| 143 | Disk-full drill, practical capacity bounds, intelligence job costs |
+| 140–144 (v1.2 116–120) | Renumbered; test-run lists and cross-references updated |
+| 117 | Attention topics gain a `social` block (terms per language, hashtags, accounts, channels, platforms, places, entities) used by 135 |
+| 116 | Originator class `social`; canonical families `social-narrative`; observability family `social-attention` (135–136) |
+| 125 | Evidence source `social-claim`; indicator state `reported` (social) distinct from `observed` (137) |
+| 066, 072, 075, 077, 081, 093, 117, 133 | Former exclusions reworded: these prompts build the official routes; the rest are external EDP provider ideas (`docs/Source-Catalog.md`) |
+| 024 | Builds the EDP core (manifest, registration, push and pull, validation, layer streams); 138 adds bindings |
+| 141 | EDP provider libraries (Python, TypeScript) and `foresignal edp` CLI commands |
+| 018, 131, 123 | Notification types `social.divergence`, `social.attention_gap`; chronicle layers `social-narratives`, `social-volume`; social benchmark scenarios (135–137) |
+| 124–139 | Late 2026-10-11 changes: foundations checkpoint inserted as 124 (former 124–133 → 125–134); social signals (135–137) and external data bindings (138) inserted; the intelligence checkpoint moved 134 → 139 and the tail 135–139 → 140–144 |
 
 ---
 
@@ -701,10 +702,10 @@ Social platforms (checked 2026-10-11; prices change often, so 134 seeds them as 
 | Acting on a probability automatically | Forecasts drive only operator-written rules on `analytic-finding` records. |
 | Federating hypotheses and forecasts across instances | After 1.0 (113 carries intel events only). |
 | Counterfactual engine (matched periods, synthetic controls) | After the base-rate, event-study and benchmark machinery is validated in production (after 1.0). |
-| Full temporal knowledge graph (graph database, reasoning) | 128's relation tables cover the need for 1.0; revisit if queries outgrow PostgreSQL. |
+| Full temporal knowledge graph (graph database, reasoning) | 129's relation tables cover the need for 1.0; revisit if queries outgrow PostgreSQL. |
 | Earth-observation change detection (VIIRS night lights, Sentinel-1 flood, Sentinel-2 change) | After 1.0; needs raster differencing beyond 042–046. STAC footprints (096) and GFW SAR detections (088) cover the first uses. |
 | Public procurement (SAM.gov, USAspending) | Low signal for this product; revisit on demand. |
-| Argo floats, GCN/LIGO multi-messenger alerts | Low intelligence value; easy to add later as custom or catalogue sources. |
+| Argo floats, GCN/IGWN multi-messenger alerts, local RF occupancy | External EDP provider ideas (`docs/Source-Catalog.md`), not built in. |
 | ADS-B barometric-vs-geometric altitude pressure mapping | Research-grade; out of scope for 1.0. |
 | Satellite tasking and commercial imagery ordering | Out of scope for the broker; a client or operator integration can push results back through custom sources (024). |
 | Imagery change detection (building counts, disturbed area) | Requires computer-vision models; operators can run their own pipeline and push results as records through custom sources (024), where they become ordinary evidence. |
@@ -724,31 +725,42 @@ Three external reviews (ChatGPT, Gemini, Grok) of the v1.3 design, and what was 
 | Analytic benchmark before autonomous features | ChatGPT (P1) | **Adopted:** 123 benchmark harness with gating |
 | Run fast tests every prompt | ChatGPT (P1); Grok | **Not adopted** (owner decision): tests stay at checkpoints; checkpoints now also verify the invariants registry |
 | Machine-readable decision and invariant registry; one source of truth per concern | ChatGPT; Grok | **Adopted:** `docs/Invariants.md` (ids, owners, tests), checked at every checkpoint; source-of-truth table in Conventions |
-| Ingest, partition and SSE load benchmarks before dense feeds | ChatGPT; Gemini | **Adopted:** 022 performance smoke; 142 capacity and disk-full drill |
-| Temporal knowledge graph | ChatGPT (A) | **Adopted in light form:** 128 relation graph with validity, confidence, provenance and common-dependency queries |
-| Active information-gap detection; "what would have to be true" | ChatGPT (C); Grok | **Adopted:** 124 information value and collection gaps; 127 reports them |
+| Ingest, partition and SSE load benchmarks before dense feeds | ChatGPT; Gemini | **Adopted:** 022 performance smoke; 143 capacity and disk-full drill |
+| Temporal knowledge graph | ChatGPT (A) | **Adopted in light form:** 129 relation graph with validity, confidence, provenance and common-dependency queries |
+| Active information-gap detection; "what would have to be true" | ChatGPT (C); Grok | **Adopted:** 125 information value and collection gaps; 128 reports them |
 | Counterfactual engine | ChatGPT (B) | **Deferred** (§16) |
-| Operator-vs-machine scorecard as a first-class surface | Grok | **Adopted:** 127 intel board and assessments |
-| Exports of scored objects | Grok | **Adopted:** 127 assessment export bundles (JSON, GeoParquet) |
-| Budget by cycle and information value | ChatGPT | **Adopted:** 127 per-cycle token budgets and value-of-information priorities |
+| Operator-vs-machine scorecard as a first-class surface | Grok | **Adopted:** 128 intel board and assessments |
+| Exports of scored objects | Grok | **Adopted:** 128 assessment export bundles (JSON, GeoParquet) |
+| Budget by cycle and information value | ChatGPT | **Adopted:** 128 per-cycle token budgets and value-of-information priorities |
 | OpenAPI missing intelligence endpoints | Gemini | **Not a defect:** the spec grows with each prompt by convention (Conventions "Spec drift"); 020 tracks unbuilt operations |
 | Retention deadlock from lagging cursors | Gemini | **Already handled:** the consumer clamp releases after 2 × window and alarms (Core-Data-Model §13); the new cursors inherit it (Conventions) |
 | Geofence flapping from position jitter | Gemini | **Adopted:** 017 `hysteresisMeters` |
-| Single-writer ceiling, SSE memory | Gemini | **Measured:** 022 performance smoke (writer, SSE heap per emitter), 142 soak |
+| Single-writer ceiling, SSE memory | Gemini | **Measured:** 022 performance smoke (writer, SSE heap per emitter), 143 soak |
 | Submarine-cable anchor-drag guard; dark vessels × SAR; holdover lightning ignitions; HF propagation anomalies | Gemini | **Adopted:** 099 generators; 088 optional SAR detections |
 | BGP/outage × NOTAM/fire/conflict co-occurrence | Gemini | **Covered:** 119 co-occurrence mining over all signal families |
 | RIS Live, OSM infrastructure extracts | Grok | **Already planned:** 092 (optional RIS Live), 104 (operator-supplied OSM extract) |
 | Argo, GCN/LIGO, Electricity Maps, procurement, Earth-observation change detection | Grok; ChatGPT | **Deferred** (§16) |
-| Shared object contract and cross-application context sync for the frontends | ChatGPT (frontend discussion) | **Adopted:** 128 and `docs/Client-Contract.md` |
-| Selected-object dossier, context summary, permission-aware actions, forecast issuer labels | Mockup review | **Adopted:** 128 |
-| Tag many items, build a report, send it to others (same server or other instances) | Owner | **Adopted:** 129 (tags, sharing, TLP), 131 (reports, signed packages) |
-| Monitoring threads with their own history, replay, AI-proposed | Owner | **Adopted:** 130 chronicles |
-| Ground News-style source lean and coverage analysis | Owner | **Adopted:** 132, with licensed providers only |
-| Investigations, evidence graph, Admiralty grading, classification markings, multi-user notes (mockups) | Owner | **Adopted:** 101 rename, 128 relations, 129 evidence items, TLP and comments |
-| Situation "view prompt" and "re-run" | Mockup | **Adopted:** 116 prompt templates, 127 on-demand assessments |
+| Shared object contract and cross-application context sync for the frontends | ChatGPT (frontend discussion) | **Adopted:** 129 and `docs/Client-Contract.md` |
+| Selected-object dossier, context summary, permission-aware actions, forecast issuer labels | Mockup review | **Adopted:** 129 |
+| Tag many items, build a report, send it to others (same server or other instances) | Owner | **Adopted:** 130 (tags, sharing, TLP), 132 (reports, signed packages) |
+| Monitoring threads with their own history, replay, AI-proposed | Owner | **Adopted:** 131 chronicles |
+| Ground News-style source lean and coverage analysis | Owner | **Adopted:** 133, with licensed providers only |
+| Investigations, evidence graph, Admiralty grading, classification markings, multi-user notes (mockups) | Owner | **Adopted:** 101 rename, 129 relations, 130 evidence items, TLP and comments |
+| Situation "view prompt" and "re-run" | Mockup | **Adopted:** 116 prompt templates, 128 on-demand assessments |
 | Three kinds of memory (observations, interpretation, chronicles) | ChatGPT | **Adopted** as a design invariant (§3.1) |
-| Chronicles discovering related chronicles without leaking or double counting | ChatGPT | **Adopted:** 133 chronicle network |
+| Chronicles discovering related chronicles without leaking or double counting | ChatGPT | **Adopted:** 134 chronicle network |
 | Full OpenAPI before parallel client development | Owner | **Adopted:** the complete target spec is authored up front (Conventions "API-first") |
-| Social media as an intelligence signal: velocity, narratives, propagation, claim contradiction, media reuse, coordination, attention divergence, cue-driven search, measured predictive value | Owner (with an external proposal) | **Adopted:** 134–136, with corrections: Facebook and Instagram have no general public-content route (Instagram hashtag search only); X is billed per post read and per counts request, so standing topics use counts and posts are fetched on cues; model-mediated search is a sample, not a baseline; text-derived places carry confidence; reuse detection is limited to fingerprinted media; coordination is reported as indicators, never account labels; silence requires social-coverage observability |
-| A generic JSON protocol so third parties add sources without changing Foresignal; fringe inputs live outside the project | Owner | **Adopted:** External Data Protocol 1.0 ([External-Data-Protocol.md](External-Data-Protocol.md)); core in 024 (manifest, registration tokens, push and pull, validation, layer streams), bindings and provider kit in 137, provider libraries and CLI in 140; the fringe adapters drafted earlier the same day were moved out to provider ideas |
+| Social media as an intelligence signal: velocity, narratives, propagation, claim contradiction, media reuse, coordination, attention divergence, cue-driven search, measured predictive value | Owner (with an external proposal) | **Adopted:** 135–137, with corrections: Facebook and Instagram have no general public-content route (Instagram hashtag search only); X is billed per post read and per counts request, so standing topics use counts and posts are fetched on cues; model-mediated search is a sample, not a baseline; text-derived places carry confidence; reuse detection is limited to fingerprinted media; coordination is reported as indicators, never account labels; silence requires social-coverage observability |
+| A generic JSON protocol so third parties add sources without changing Foresignal; fringe inputs live outside the project | Owner | **Adopted:** External Data Protocol 1.0 ([External-Data-Protocol.md](External-Data-Protocol.md)); core in 024 (manifest, registration tokens, push and pull, validation, layer streams), bindings and provider kit in 138, provider libraries and CLI in 141; the fringe adapters drafted earlier the same day were moved out to provider ideas |
+| Final pre-build review: EDP contract gaps (version policy, `sourceId`, empty transport, forecast values, quantile order, geometry, period formats, unique streams) | ChatGPT | **Adopted:** schemas and EDP §2–§3 tightened; server-side checks in 024 |
+| Snapshot absence must never delete on partial, failed or stale data | ChatGPT | **Adopted:** EDP §3.2 snapshot pages, scopes, window and absent-ratio guard (EXT-5) |
+| Provider times must not defeat transaction time | ChatGPT | **Adopted:** availability = max(provider time, receipt) (EDP §3.5, EXT-4) |
+| Provider identity is not evidence independence | ChatGPT | **Adopted:** item-level `origin`; independence by originator only (EDP §3.4, 138) |
+| External providers are an untrusted boundary (SSRF, DNS rebinding, schema DoS, media, private and licence propagation) | ChatGPT | **Adopted:** EDP §7, `EdpUrlGuard`, schema limits (EXT-6) |
+| Full-lifecycle integration test (ingest, update, delete, reintroduce, as-of, cursor resume, retention, restart) | ChatGPT | **Adopted:** `RecordLifecycleIT` in checkpoint 022 |
+| Run targeted tests earlier; mid-intelligence checkpoint | ChatGPT; Grok | **Adopted (owner decision):** sanctioned narrow runs in 007–009; new checkpoint 124 after the benchmark harness; other feature prompts stay checkpoint-only |
+| Treat 022 and runtime verification as hard gates | Grok | **Adopted:** performance gate stop condition (000), Roadmap §2 |
+| One authoritative prompt order | ChatGPT | **Adopted:** numbering banner in Core-Data-Model; Roadmap is authoritative |
+| Argo, multi-messenger alerts, RF occupancy | Grok | **Adopted as external provider ideas** (no core change) |
+| foresignal.com name collision | Grok | **Noted** in the Charter; first-start banner and docs name foresignal.ai (144) |
 | Do not police the operator | Owner | **Adopted:** single-operator tool; official-API platforms are opt-in adapters with documented terms and costs, and everything else is an external provider the operator may connect (Conventions "Operator choice") |

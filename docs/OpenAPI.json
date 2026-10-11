@@ -16,7 +16,7 @@
       {
         "version": "1.3.0",
         "date": "2026-10-11",
-        "note": "Complete target API for prompts 006-143 authored up front (API-first), including social signals (134-136) and the External Data Protocol (024, 137)."
+        "note": "Complete target API for prompts 006-144 authored up front (API-first), including social signals (135-137) and the External Data Protocol (024, 138)."
       }
     ]
   },
@@ -89,11 +89,11 @@
     },
     {
       "name": "Chronicles",
-      "description": "Chronicles: saved monitoring threads with their own recorded history, replay and lifecycle (130), and the chronicle network (133)"
+      "description": "Chronicles: saved monitoring threads with their own recorded history, replay and lifecycle (131), and the chronicle network (134)"
     },
     {
       "name": "Collaboration",
-      "description": "Principals, groups, access lists, TLP, tags, comments, attachments, evidence items, saved searches and the personal inbox (129)"
+      "description": "Principals, groups, access lists, TLP, tags, comments, attachments, evidence items, saved searches and the personal inbox (130)"
     },
     {
       "name": "Entities",
@@ -113,7 +113,7 @@
     },
     {
       "name": "Exchange",
-      "description": "Signed intelligence packages between instances: build, deliver, receive, import, acknowledge (131)"
+      "description": "Signed intelligence packages between instances: build, deliver, receive, import, acknowledge (132)"
     },
     {
       "name": "Exercises",
@@ -125,7 +125,7 @@
     },
     {
       "name": "External",
-      "description": "External Data Protocol: third-party providers, items, bindings (024, 137; docs/External-Data-Protocol.md)"
+      "description": "External Data Protocol: third-party providers, items, bindings (024, 138; docs/External-Data-Protocol.md)"
     },
     {
       "name": "Federation",
@@ -177,7 +177,7 @@
     },
     {
       "name": "MCP",
-      "description": "Remote MCP authorization: RFC 9728 protected resource metadata (140)"
+      "description": "Remote MCP authorization: RFC 9728 protected resource metadata (141)"
     },
     {
       "name": "Map Styles",
@@ -197,7 +197,7 @@
     },
     {
       "name": "News",
-      "description": "News articles (metadata only) and stories with coverage balance, blindspots and corroboration (132)"
+      "description": "News articles (metadata only) and stories with coverage balance, blindspots and corroboration (133)"
     },
     {
       "name": "Notifications",
@@ -233,7 +233,7 @@
     },
     {
       "name": "Plugins",
-      "description": "Out-of-tree WASM parser plugins, disabled by default (140)"
+      "description": "Out-of-tree WASM parser plugins, disabled by default (141)"
     },
     {
       "name": "Products",
@@ -257,7 +257,7 @@
     },
     {
       "name": "Reports",
-      "description": "Reports: deterministic drafts, blocks, publishing, renditions, sending and read-only links (131)"
+      "description": "Reports: deterministic drafts, blocks, publishing, renditions, sending and read-only links (132)"
     },
     {
       "name": "Sampling",
@@ -289,7 +289,7 @@
     },
     {
       "name": "Social",
-      "description": "Social signals: operator-enabled platform adapters, posts, volume baselines, narratives, claims, media fingerprints, social–physical comparisons and cues (134–136)"
+      "description": "Social signals: operator-enabled platform adapters, posts, volume baselines, narratives, claims, media fingerprints, social–physical comparisons and cues (135–137)"
     },
     {
       "name": "Sources",
@@ -301,7 +301,7 @@
     },
     {
       "name": "Standards",
-      "description": "Standards outputs: FDSN event / QuakeML, STIX 2.1 and TAXII 2.1 (140)"
+      "description": "Standards outputs: FDSN event / QuakeML, STIX 2.1 and TAXII 2.1 (141)"
     },
     {
       "name": "Stats",
@@ -2821,7 +2821,7 @@
         "x-foresignal-extended-by": [
           "035, 036, 039, 038",
           "109",
-          "140"
+          "141"
         ],
         "x-foresignal-status": "planned"
       }
@@ -5178,7 +5178,7 @@
         ],
         "x-foresignal-prompt": "019",
         "x-foresignal-extended-by": [
-          "134"
+          "135"
         ],
         "x-foresignal-status": "planned"
       },
@@ -5249,7 +5249,7 @@
         ],
         "x-foresignal-prompt": "019",
         "x-foresignal-extended-by": [
-          "134"
+          "135"
         ],
         "x-foresignal-status": "planned"
       }
@@ -5780,7 +5780,7 @@
         ],
         "x-foresignal-prompt": "023",
         "x-foresignal-extended-by": [
-          "129"
+          "130"
         ],
         "x-foresignal-status": "planned"
       }
@@ -11034,7 +11034,7 @@
             },
             "id": true,
             "topic": "me",
-            "prompt": "129"
+            "prompt": "130"
           },
           "mention": {
             "schema": {
@@ -11042,7 +11042,7 @@
             },
             "id": true,
             "topic": "me",
-            "prompt": "129"
+            "prompt": "130"
           },
           "comment.reply": {
             "schema": {
@@ -11050,7 +11050,7 @@
             },
             "id": true,
             "topic": "me",
-            "prompt": "129"
+            "prompt": "130"
           },
           "saved-search.matches": {
             "schema": {
@@ -11058,7 +11058,7 @@
             },
             "id": true,
             "topic": "me",
-            "prompt": "129"
+            "prompt": "130"
           },
           "report.received": {
             "schema": {
@@ -11066,7 +11066,7 @@
             },
             "id": true,
             "topic": "me",
-            "prompt": "131"
+            "prompt": "132"
           },
           "package.received": {
             "schema": {
@@ -11074,7 +11074,7 @@
             },
             "id": true,
             "topic": "me",
-            "prompt": "131"
+            "prompt": "132"
           },
           "report.retracted": {
             "schema": {
@@ -11082,7 +11082,7 @@
             },
             "id": true,
             "topic": "me",
-            "prompt": "131"
+            "prompt": "132"
           },
           "chronicle.link.found": {
             "schema": {
@@ -11090,7 +11090,7 @@
             },
             "id": true,
             "topic": "me",
-            "prompt": "133"
+            "prompt": "134"
           },
           "chronicle.access.requested": {
             "schema": {
@@ -11098,7 +11098,7 @@
             },
             "id": true,
             "topic": "me",
-            "prompt": "133"
+            "prompt": "134"
           },
           "chronicle.access.granted": {
             "schema": {
@@ -11106,7 +11106,7 @@
             },
             "id": true,
             "topic": "me",
-            "prompt": "133"
+            "prompt": "134"
           },
           "chronicle.access.declined": {
             "schema": {
@@ -11114,7 +11114,7 @@
             },
             "id": true,
             "topic": "me",
-            "prompt": "133"
+            "prompt": "134"
           },
           "chronicle.item": {
             "schema": {
@@ -11122,7 +11122,7 @@
             },
             "id": true,
             "topic": "chronicle",
-            "prompt": "130"
+            "prompt": "131"
           },
           "chronicle.status": {
             "schema": {
@@ -11130,7 +11130,7 @@
             },
             "id": true,
             "topic": "chronicle",
-            "prompt": "130"
+            "prompt": "131"
           },
           "social.velocity": {
             "schema": {
@@ -11138,7 +11138,7 @@
             },
             "id": true,
             "topic": "social",
-            "prompt": "134"
+            "prompt": "135"
           },
           "social.platform.state": {
             "schema": {
@@ -11146,7 +11146,7 @@
             },
             "id": false,
             "topic": "social",
-            "prompt": "134"
+            "prompt": "135"
           },
           "narrative.emerged": {
             "schema": {
@@ -11154,7 +11154,7 @@
             },
             "id": true,
             "topic": "social",
-            "prompt": "135"
+            "prompt": "136"
           },
           "narrative.updated": {
             "schema": {
@@ -11162,7 +11162,7 @@
             },
             "id": true,
             "topic": "social",
-            "prompt": "135"
+            "prompt": "136"
           },
           "claim.extracted": {
             "schema": {
@@ -11170,7 +11170,7 @@
             },
             "id": true,
             "topic": "social",
-            "prompt": "135"
+            "prompt": "136"
           },
           "media.reuse": {
             "schema": {
@@ -11178,7 +11178,7 @@
             },
             "id": true,
             "topic": "social",
-            "prompt": "135"
+            "prompt": "136"
           },
           "coordination.detected": {
             "schema": {
@@ -11186,7 +11186,7 @@
             },
             "id": true,
             "topic": "social",
-            "prompt": "135"
+            "prompt": "136"
           },
           "comparison.updated": {
             "schema": {
@@ -11194,7 +11194,7 @@
             },
             "id": true,
             "topic": "social",
-            "prompt": "136"
+            "prompt": "137"
           },
           "cue.completed": {
             "schema": {
@@ -11202,7 +11202,7 @@
             },
             "id": true,
             "topic": "social",
-            "prompt": "136"
+            "prompt": "137"
           },
           "attention.gap": {
             "schema": {
@@ -11210,7 +11210,7 @@
             },
             "id": true,
             "topic": "social",
-            "prompt": "136"
+            "prompt": "137"
           },
           "external.source.state": {
             "schema": {
@@ -11226,7 +11226,7 @@
             },
             "id": false,
             "topic": "external",
-            "prompt": "137"
+            "prompt": "138"
           },
           "alert.enriched": {
             "schema": {
@@ -11415,112 +11415,112 @@
               "$ref": "#/components/schemas/HypothesisSetEvent"
             },
             "topic": "hypotheses",
-            "prompt": "124"
+            "prompt": "125"
           },
           "set.revised": {
             "schema": {
               "$ref": "#/components/schemas/HypothesisSetEvent"
             },
             "topic": "hypotheses",
-            "prompt": "124"
+            "prompt": "125"
           },
           "set.band_changed": {
             "schema": {
               "$ref": "#/components/schemas/HypothesisSetEvent"
             },
             "topic": "hypotheses",
-            "prompt": "124"
+            "prompt": "125"
           },
           "set.resolved": {
             "schema": {
               "$ref": "#/components/schemas/HypothesisSetEvent"
             },
             "topic": "hypotheses",
-            "prompt": "124"
+            "prompt": "125"
           },
           "indicator.observed": {
             "schema": {
               "$ref": "#/components/schemas/IndicatorEvent"
             },
             "topic": "hypotheses",
-            "prompt": "124"
+            "prompt": "125"
           },
           "indicator.absent": {
             "schema": {
               "$ref": "#/components/schemas/IndicatorEvent"
             },
             "topic": "hypotheses",
-            "prompt": "124"
+            "prompt": "125"
           },
           "assumption.broken": {
             "schema": {
               "$ref": "#/components/schemas/KeyAssumptionEvent"
             },
             "topic": "hypotheses",
-            "prompt": "124"
+            "prompt": "125"
           },
           "outlook.published": {
             "schema": {
               "$ref": "#/components/schemas/OutlookPublishedEvent"
             },
             "topic": "analytics",
-            "prompt": "125"
+            "prompt": "126"
           },
           "index.changed": {
             "schema": {
               "$ref": "#/components/schemas/IndexChangedEvent"
             },
             "topic": "analytics",
-            "prompt": "125"
+            "prompt": "126"
           },
           "index.weights_proposed": {
             "schema": {
               "$ref": "#/components/schemas/IndexWeightsProposedEvent"
             },
             "topic": "analytics",
-            "prompt": "125"
+            "prompt": "126"
           },
           "impact.projected": {
             "schema": {
               "$ref": "#/components/schemas/ImpactProjectionEvent"
             },
             "topic": "analytics",
-            "prompt": "126"
+            "prompt": "127"
           },
           "impact.superseded": {
             "schema": {
               "$ref": "#/components/schemas/ImpactProjectionEvent"
             },
             "topic": "analytics",
-            "prompt": "126"
+            "prompt": "127"
           },
           "assessment.published": {
             "schema": {
               "$ref": "#/components/schemas/AssessmentPublishedEvent"
             },
             "topic": "assessments",
-            "prompt": "127"
+            "prompt": "128"
           },
           "cycle.run_failed": {
             "schema": {
               "$ref": "#/components/schemas/CycleRunFailedEvent"
             },
             "topic": "assessments",
-            "prompt": "127"
+            "prompt": "128"
           },
           "workspace.context": {
             "schema": {
               "$ref": "#/components/schemas/ContextPatchEvent"
             },
             "topic": "workspace",
-            "prompt": "128"
+            "prompt": "129"
           },
           "workspace.presence": {
             "schema": {
               "$ref": "#/components/schemas/PresenceEvent"
             },
             "topic": "workspace",
-            "prompt": "128"
+            "prompt": "129"
           }
         },
         "security": [
@@ -11533,15 +11533,15 @@
           "023, 036",
           "115",
           "118",
-          "128",
           "129",
-          "134"
+          "130",
+          "135"
         ],
         "x-foresignal-sse-topics": {
           "situations": "118",
           "analytics": "119",
           "forecasts": "122",
-          "social": "134",
+          "social": "135",
           "external": "024"
         }
       }
@@ -21574,7 +21574,7 @@
           }
         ],
         "x-foresignal-extended-by": [
-          "140"
+          "141"
         ]
       }
     },
@@ -35132,7 +35132,7 @@
         ],
         "operationId": "listInvestigations",
         "summary": "List investigations",
-        "description": "Investigations visible to the caller (129 adds `scope=mine|shared|all` and access lists).\n\n**Scope:** `read` (token required; not covered by `security.openReads`).",
+        "description": "Investigations visible to the caller (130 adds `scope=mine|shared|all` and access lists).\n\n**Scope:** `read` (token required; not covered by `security.openReads`).",
         "parameters": [
           {
             "name": "status",
@@ -35225,7 +35225,7 @@
           }
         ],
         "x-foresignal-extended-by": [
-          "129"
+          "130"
         ]
       },
       "post": {
@@ -35310,7 +35310,7 @@
             "name": "investigationId",
             "in": "path",
             "required": true,
-            "description": "Investigation id (ULID; the display id INV-yyyy-nnnn is accepted from 129)",
+            "description": "Investigation id (ULID; the display id INV-yyyy-nnnn is accepted from 130)",
             "schema": {
               "type": "string"
             }
@@ -35379,7 +35379,7 @@
             "name": "investigationId",
             "in": "path",
             "required": true,
-            "description": "Investigation id (ULID; the display id INV-yyyy-nnnn is accepted from 129)",
+            "description": "Investigation id (ULID; the display id INV-yyyy-nnnn is accepted from 130)",
             "schema": {
               "type": "string"
             }
@@ -35468,7 +35468,7 @@
             "name": "investigationId",
             "in": "path",
             "required": true,
-            "description": "Investigation id (ULID; the display id INV-yyyy-nnnn is accepted from 129)",
+            "description": "Investigation id (ULID; the display id INV-yyyy-nnnn is accepted from 130)",
             "schema": {
               "type": "string"
             }
@@ -35532,7 +35532,7 @@
             "name": "investigationId",
             "in": "path",
             "required": true,
-            "description": "Investigation id (ULID; the display id INV-yyyy-nnnn is accepted from 129)",
+            "description": "Investigation id (ULID; the display id INV-yyyy-nnnn is accepted from 130)",
             "schema": {
               "type": "string"
             }
@@ -35609,7 +35609,7 @@
           }
         ],
         "x-foresignal-extended-by": [
-          "129"
+          "130"
         ]
       }
     },
@@ -35626,7 +35626,7 @@
             "name": "investigationId",
             "in": "path",
             "required": true,
-            "description": "Investigation id (ULID; the display id INV-yyyy-nnnn is accepted from 129)",
+            "description": "Investigation id (ULID; the display id INV-yyyy-nnnn is accepted from 130)",
             "schema": {
               "type": "string"
             }
@@ -35699,7 +35699,7 @@
             "name": "investigationId",
             "in": "path",
             "required": true,
-            "description": "Investigation id (ULID; the display id INV-yyyy-nnnn is accepted from 129)",
+            "description": "Investigation id (ULID; the display id INV-yyyy-nnnn is accepted from 130)",
             "schema": {
               "type": "string"
             }
@@ -50445,7 +50445,7 @@
           }
         ],
         "x-foresignal-extended-by": [
-          "134"
+          "135"
         ]
       }
     },
@@ -50940,7 +50940,7 @@
           }
         ],
         "x-foresignal-extended-by": [
-          "134"
+          "135"
         ]
       }
     },
@@ -51096,7 +51096,7 @@
           }
         ],
         "x-foresignal-extended-by": [
-          "134"
+          "135"
         ]
       },
       "delete": {
@@ -51514,7 +51514,7 @@
           }
         ],
         "x-foresignal-extended-by": [
-          "136"
+          "137"
         ]
       },
       "patch": {
@@ -53047,7 +53047,7 @@
           }
         ],
         "x-foresignal-extended-by": [
-          "134"
+          "135"
         ]
       }
     },
@@ -56764,7 +56764,7 @@
         ],
         "operationId": "getBenchmarkStatus",
         "summary": "Latest benchmark status per component",
-        "description": "The latest `pass | warn | fail` per component, as used by `BenchmarkGate` to gate 127 proposer auto-execution and LLM ensemble weight.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "The latest `pass | warn | fail` per component, as used by `BenchmarkGate` to gate 128 proposer auto-execution and LLM ensemble weight.\n\n**Scope:** `read` (open while `security.openReads` is on).",
         "responses": {
           "200": {
             "description": "Status",
@@ -57137,7 +57137,7 @@
           }
         },
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "124",
+        "x-foresignal-prompt": "125",
         "x-foresignal-status": "planned",
         "security": [
           {},
@@ -57206,7 +57206,7 @@
           }
         },
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "124",
+        "x-foresignal-prompt": "125",
         "x-foresignal-status": "planned",
         "security": [
           {
@@ -57296,7 +57296,7 @@
           }
         },
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "124",
+        "x-foresignal-prompt": "125",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true,
         "security": [
@@ -57366,7 +57366,7 @@
           }
         },
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "124",
+        "x-foresignal-prompt": "125",
         "x-foresignal-status": "planned",
         "security": [
           {},
@@ -57476,7 +57476,7 @@
           }
         },
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "124",
+        "x-foresignal-prompt": "125",
         "x-foresignal-status": "planned",
         "security": [
           {
@@ -57568,7 +57568,7 @@
           }
         },
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "124",
+        "x-foresignal-prompt": "125",
         "x-foresignal-status": "planned",
         "security": [
           {},
@@ -57630,7 +57630,7 @@
           }
         },
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "124",
+        "x-foresignal-prompt": "125",
         "x-foresignal-status": "planned",
         "security": [
           {},
@@ -57732,7 +57732,7 @@
           }
         },
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "124",
+        "x-foresignal-prompt": "125",
         "x-foresignal-status": "planned",
         "security": [
           {
@@ -57833,7 +57833,7 @@
           }
         },
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "124",
+        "x-foresignal-prompt": "125",
         "x-foresignal-status": "planned",
         "security": [
           {
@@ -57944,7 +57944,7 @@
           }
         },
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "124",
+        "x-foresignal-prompt": "125",
         "x-foresignal-status": "planned",
         "security": [
           {
@@ -58045,7 +58045,7 @@
           }
         },
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "124",
+        "x-foresignal-prompt": "125",
         "x-foresignal-status": "planned",
         "security": [
           {
@@ -58145,7 +58145,7 @@
           }
         },
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "124",
+        "x-foresignal-prompt": "125",
         "x-foresignal-status": "planned",
         "security": [
           {},
@@ -58154,7 +58154,7 @@
           }
         ],
         "x-foresignal-extended-by": [
-          "136"
+          "137"
         ]
       }
     },
@@ -58260,7 +58260,7 @@
           }
         },
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "124",
+        "x-foresignal-prompt": "125",
         "x-foresignal-status": "planned",
         "security": [
           {
@@ -58329,7 +58329,7 @@
           }
         },
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "124",
+        "x-foresignal-prompt": "125",
         "x-foresignal-status": "planned",
         "security": [
           {
@@ -58430,7 +58430,7 @@
           }
         },
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "124",
+        "x-foresignal-prompt": "125",
         "x-foresignal-status": "planned",
         "security": [
           {
@@ -58438,7 +58438,7 @@
           }
         ],
         "x-foresignal-extended-by": [
-          "135"
+          "136"
         ]
       }
     },
@@ -58516,7 +58516,7 @@
           }
         },
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "124",
+        "x-foresignal-prompt": "125",
         "x-foresignal-status": "planned",
         "security": [
           {
@@ -58607,7 +58607,7 @@
           }
         },
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "124",
+        "x-foresignal-prompt": "125",
         "x-foresignal-status": "planned",
         "security": [
           {
@@ -58717,7 +58717,7 @@
           }
         },
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "124",
+        "x-foresignal-prompt": "125",
         "x-foresignal-status": "planned",
         "security": [
           {
@@ -58778,7 +58778,7 @@
           }
         },
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "124",
+        "x-foresignal-prompt": "125",
         "x-foresignal-status": "planned",
         "security": [
           {},
@@ -58861,7 +58861,7 @@
           }
         },
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "124",
+        "x-foresignal-prompt": "125",
         "x-foresignal-status": "planned",
         "security": [
           {},
@@ -58953,7 +58953,7 @@
           }
         },
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "125",
+        "x-foresignal-prompt": "126",
         "x-foresignal-status": "planned",
         "security": [
           {},
@@ -59025,7 +59025,7 @@
           }
         },
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "125",
+        "x-foresignal-prompt": "126",
         "x-foresignal-status": "planned",
         "security": [
           {},
@@ -59099,7 +59099,7 @@
           }
         },
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "125",
+        "x-foresignal-prompt": "126",
         "x-foresignal-status": "planned",
         "security": [
           {},
@@ -59201,7 +59201,7 @@
           }
         },
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "125",
+        "x-foresignal-prompt": "126",
         "x-foresignal-status": "planned",
         "security": [
           {},
@@ -59292,7 +59292,7 @@
           }
         },
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "125",
+        "x-foresignal-prompt": "126",
         "x-foresignal-status": "planned",
         "security": [
           {
@@ -59374,7 +59374,7 @@
           }
         },
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "125",
+        "x-foresignal-prompt": "126",
         "x-foresignal-status": "planned",
         "security": [
           {
@@ -59466,7 +59466,7 @@
           }
         },
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "125",
+        "x-foresignal-prompt": "126",
         "x-foresignal-status": "planned",
         "security": [
           {
@@ -59591,7 +59591,7 @@
           }
         },
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "126",
+        "x-foresignal-prompt": "127",
         "x-foresignal-status": "planned",
         "security": [
           {},
@@ -59653,7 +59653,7 @@
           }
         },
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "126",
+        "x-foresignal-prompt": "127",
         "x-foresignal-status": "planned",
         "security": [
           {},
@@ -59754,7 +59754,7 @@
           }
         },
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "126",
+        "x-foresignal-prompt": "127",
         "x-foresignal-status": "planned",
         "security": [
           {},
@@ -59828,7 +59828,7 @@
           }
         },
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "127",
+        "x-foresignal-prompt": "128",
         "x-foresignal-status": "planned",
         "security": [
           {},
@@ -59907,7 +59907,7 @@
           }
         },
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "127",
+        "x-foresignal-prompt": "128",
         "x-foresignal-status": "planned",
         "security": [
           {
@@ -59968,7 +59968,7 @@
           }
         },
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "127",
+        "x-foresignal-prompt": "128",
         "x-foresignal-status": "planned",
         "security": [
           {},
@@ -60058,7 +60058,7 @@
           }
         },
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "127",
+        "x-foresignal-prompt": "128",
         "x-foresignal-status": "planned",
         "security": [
           {
@@ -60130,7 +60130,7 @@
           }
         },
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "127",
+        "x-foresignal-prompt": "128",
         "x-foresignal-status": "planned",
         "security": [
           {
@@ -60211,7 +60211,7 @@
           }
         },
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "127",
+        "x-foresignal-prompt": "128",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true,
         "security": [
@@ -60314,7 +60314,7 @@
           }
         },
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "127",
+        "x-foresignal-prompt": "128",
         "x-foresignal-status": "planned",
         "security": [
           {
@@ -60385,7 +60385,7 @@
           }
         },
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "127",
+        "x-foresignal-prompt": "128",
         "x-foresignal-status": "planned",
         "security": [
           {
@@ -60445,7 +60445,7 @@
           }
         },
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "127",
+        "x-foresignal-prompt": "128",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true,
         "security": [
@@ -60544,7 +60544,7 @@
           }
         },
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "127",
+        "x-foresignal-prompt": "128",
         "x-foresignal-status": "planned",
         "security": [
           {},
@@ -60612,7 +60612,7 @@
           }
         },
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "127",
+        "x-foresignal-prompt": "128",
         "x-foresignal-status": "planned",
         "security": [
           {},
@@ -60698,7 +60698,7 @@
           }
         },
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "127",
+        "x-foresignal-prompt": "128",
         "x-foresignal-status": "planned",
         "security": [
           {},
@@ -60707,7 +60707,7 @@
           }
         ],
         "x-foresignal-extended-by": [
-          "136"
+          "137"
         ]
       }
     },
@@ -60782,7 +60782,7 @@
           }
         },
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "127",
+        "x-foresignal-prompt": "128",
         "x-foresignal-status": "planned",
         "security": [
           {},
@@ -60874,7 +60874,7 @@
           }
         },
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "127",
+        "x-foresignal-prompt": "128",
         "x-foresignal-status": "planned",
         "security": [
           {
@@ -60985,7 +60985,7 @@
           }
         },
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "127",
+        "x-foresignal-prompt": "128",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true,
         "security": [
@@ -61078,7 +61078,7 @@
           }
         },
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "127",
+        "x-foresignal-prompt": "128",
         "x-foresignal-status": "planned",
         "security": [
           {},
@@ -61147,7 +61147,7 @@
           }
         },
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "127",
+        "x-foresignal-prompt": "128",
         "x-foresignal-status": "planned",
         "security": [
           {},
@@ -61188,7 +61188,7 @@
           }
         },
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "128",
+        "x-foresignal-prompt": "129",
         "x-foresignal-status": "planned",
         "security": [
           {},
@@ -61278,7 +61278,7 @@
           }
         },
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "128",
+        "x-foresignal-prompt": "129",
         "x-foresignal-status": "planned",
         "security": [
           {},
@@ -61339,7 +61339,7 @@
           }
         },
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "128",
+        "x-foresignal-prompt": "129",
         "x-foresignal-status": "planned",
         "security": [
           {},
@@ -61474,7 +61474,7 @@
           }
         },
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "128",
+        "x-foresignal-prompt": "129",
         "x-foresignal-status": "planned",
         "security": [
           {},
@@ -61483,7 +61483,7 @@
           }
         ],
         "x-foresignal-extended-by": [
-          "132"
+          "133"
         ]
       }
     },
@@ -61628,7 +61628,7 @@
           }
         },
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "128",
+        "x-foresignal-prompt": "129",
         "x-foresignal-status": "planned",
         "security": [
           {},
@@ -61689,7 +61689,7 @@
           }
         },
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "128",
+        "x-foresignal-prompt": "129",
         "x-foresignal-status": "planned",
         "security": [
           {},
@@ -61750,7 +61750,7 @@
           }
         },
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "128",
+        "x-foresignal-prompt": "129",
         "x-foresignal-status": "planned",
         "security": [
           {},
@@ -61811,7 +61811,7 @@
           }
         },
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "128",
+        "x-foresignal-prompt": "129",
         "x-foresignal-status": "planned",
         "security": [
           {},
@@ -61892,7 +61892,7 @@
           }
         },
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "128",
+        "x-foresignal-prompt": "129",
         "x-foresignal-status": "planned",
         "security": [
           {
@@ -61966,7 +61966,7 @@
           }
         },
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "128",
+        "x-foresignal-prompt": "129",
         "x-foresignal-status": "planned",
         "security": [
           {
@@ -62091,7 +62091,7 @@
           }
         },
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "128",
+        "x-foresignal-prompt": "129",
         "x-foresignal-status": "planned",
         "security": [
           {
@@ -62099,7 +62099,7 @@
           }
         ],
         "x-foresignal-extended-by": [
-          "129"
+          "130"
         ]
       },
       "post": {
@@ -62183,7 +62183,7 @@
           }
         },
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "128",
+        "x-foresignal-prompt": "129",
         "x-foresignal-status": "planned",
         "security": [
           {
@@ -62191,7 +62191,7 @@
           }
         ],
         "x-foresignal-extended-by": [
-          "129"
+          "130"
         ]
       }
     },
@@ -62287,7 +62287,7 @@
           }
         },
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "128",
+        "x-foresignal-prompt": "129",
         "x-foresignal-status": "planned",
         "security": [
           {
@@ -62349,7 +62349,7 @@
           }
         },
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "128",
+        "x-foresignal-prompt": "129",
         "x-foresignal-status": "planned",
         "security": [
           {
@@ -62426,7 +62426,7 @@
           }
         },
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "128",
+        "x-foresignal-prompt": "129",
         "x-foresignal-status": "planned",
         "security": [
           {},
@@ -62561,7 +62561,7 @@
           }
         },
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "128",
+        "x-foresignal-prompt": "129",
         "x-foresignal-status": "planned",
         "security": [
           {},
@@ -62645,7 +62645,7 @@
           }
         },
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "128",
+        "x-foresignal-prompt": "129",
         "x-foresignal-status": "planned",
         "security": [
           {
@@ -62731,7 +62731,7 @@
           }
         },
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "128",
+        "x-foresignal-prompt": "129",
         "x-foresignal-status": "planned",
         "security": [
           {
@@ -62810,7 +62810,7 @@
           }
         },
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "128",
+        "x-foresignal-prompt": "129",
         "x-foresignal-status": "planned",
         "security": [
           {
@@ -62909,7 +62909,7 @@
           }
         },
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "128",
+        "x-foresignal-prompt": "129",
         "x-foresignal-status": "planned",
         "security": [
           {
@@ -62971,7 +62971,7 @@
           }
         },
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "128",
+        "x-foresignal-prompt": "129",
         "x-foresignal-status": "planned",
         "security": [
           {
@@ -63073,7 +63073,7 @@
           }
         },
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "128",
+        "x-foresignal-prompt": "129",
         "x-foresignal-status": "planned",
         "security": [
           {
@@ -63212,7 +63212,7 @@
           }
         },
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "128",
+        "x-foresignal-prompt": "129",
         "x-foresignal-status": "planned",
         "security": [
           {
@@ -63293,7 +63293,7 @@
           }
         },
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "128",
+        "x-foresignal-prompt": "129",
         "x-foresignal-status": "planned",
         "security": [
           {
@@ -63374,7 +63374,7 @@
           }
         },
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "128",
+        "x-foresignal-prompt": "129",
         "x-foresignal-status": "planned",
         "security": [
           {
@@ -63444,7 +63444,7 @@
           }
         },
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "128",
+        "x-foresignal-prompt": "129",
         "x-foresignal-status": "planned",
         "security": [
           {},
@@ -63526,7 +63526,7 @@
           }
         },
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "128",
+        "x-foresignal-prompt": "129",
         "x-foresignal-status": "planned",
         "security": [
           {
@@ -63571,7 +63571,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "129",
+        "x-foresignal-prompt": "130",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       }
@@ -63615,7 +63615,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "129",
+        "x-foresignal-prompt": "130",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       },
@@ -63677,7 +63677,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "129",
+        "x-foresignal-prompt": "130",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       }
@@ -63780,7 +63780,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "129",
+        "x-foresignal-prompt": "130",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       }
@@ -63867,7 +63867,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "129",
+        "x-foresignal-prompt": "130",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       },
@@ -63946,7 +63946,7 @@
           }
         ],
         "x-foresignal-scope": "admin",
-        "x-foresignal-prompt": "129",
+        "x-foresignal-prompt": "130",
         "x-foresignal-status": "planned"
       }
     },
@@ -64014,7 +64014,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "129",
+        "x-foresignal-prompt": "130",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       },
@@ -64104,7 +64104,7 @@
           }
         ],
         "x-foresignal-scope": "admin",
-        "x-foresignal-prompt": "129",
+        "x-foresignal-prompt": "130",
         "x-foresignal-status": "planned"
       }
     },
@@ -64195,7 +64195,7 @@
           }
         ],
         "x-foresignal-scope": "admin",
-        "x-foresignal-prompt": "129",
+        "x-foresignal-prompt": "130",
         "x-foresignal-status": "planned"
       }
     },
@@ -64276,7 +64276,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "129",
+        "x-foresignal-prompt": "130",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       },
@@ -64355,7 +64355,7 @@
           }
         ],
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "129",
+        "x-foresignal-prompt": "130",
         "x-foresignal-status": "planned"
       }
     },
@@ -64416,7 +64416,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "129",
+        "x-foresignal-prompt": "130",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       },
@@ -64506,7 +64506,7 @@
           }
         ],
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "129",
+        "x-foresignal-prompt": "130",
         "x-foresignal-status": "planned"
       },
       "delete": {
@@ -64568,7 +64568,7 @@
           }
         ],
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "129",
+        "x-foresignal-prompt": "130",
         "x-foresignal-status": "planned"
       }
     },
@@ -64659,7 +64659,7 @@
           }
         ],
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "129",
+        "x-foresignal-prompt": "130",
         "x-foresignal-status": "planned"
       },
       "delete": {
@@ -64740,7 +64740,7 @@
           }
         ],
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "129",
+        "x-foresignal-prompt": "130",
         "x-foresignal-status": "planned"
       }
     },
@@ -64811,7 +64811,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "129",
+        "x-foresignal-prompt": "130",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       },
@@ -64901,7 +64901,7 @@
           }
         ],
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "129",
+        "x-foresignal-prompt": "130",
         "x-foresignal-status": "planned"
       }
     },
@@ -64992,7 +64992,7 @@
           }
         ],
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "129",
+        "x-foresignal-prompt": "130",
         "x-foresignal-status": "planned"
       }
     },
@@ -65064,7 +65064,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "129",
+        "x-foresignal-prompt": "130",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       }
@@ -65137,7 +65137,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "129",
+        "x-foresignal-prompt": "130",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       }
@@ -65223,7 +65223,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "129",
+        "x-foresignal-prompt": "130",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       },
@@ -65292,7 +65292,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "129",
+        "x-foresignal-prompt": "130",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       }
@@ -65354,7 +65354,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "129",
+        "x-foresignal-prompt": "130",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       },
@@ -65444,7 +65444,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "129",
+        "x-foresignal-prompt": "130",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       },
@@ -65497,7 +65497,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "129",
+        "x-foresignal-prompt": "130",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       }
@@ -65579,7 +65579,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "129",
+        "x-foresignal-prompt": "130",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       }
@@ -65661,7 +65661,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "129",
+        "x-foresignal-prompt": "130",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       }
@@ -65753,7 +65753,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "129",
+        "x-foresignal-prompt": "130",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       }
@@ -65828,7 +65828,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "129",
+        "x-foresignal-prompt": "130",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       }
@@ -65910,7 +65910,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "129",
+        "x-foresignal-prompt": "130",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       }
@@ -65982,7 +65982,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "129",
+        "x-foresignal-prompt": "130",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       }
@@ -66080,7 +66080,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "129",
+        "x-foresignal-prompt": "130",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       }
@@ -66142,7 +66142,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "129",
+        "x-foresignal-prompt": "130",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       },
@@ -66205,7 +66205,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "129",
+        "x-foresignal-prompt": "130",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       }
@@ -66356,7 +66356,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "129",
+        "x-foresignal-prompt": "130",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       }
@@ -66465,7 +66465,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "129",
+        "x-foresignal-prompt": "130",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       },
@@ -66534,7 +66534,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "129",
+        "x-foresignal-prompt": "130",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       }
@@ -66596,7 +66596,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "129",
+        "x-foresignal-prompt": "130",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       },
@@ -66686,7 +66686,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "129",
+        "x-foresignal-prompt": "130",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       },
@@ -66739,7 +66739,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "129",
+        "x-foresignal-prompt": "130",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       }
@@ -66803,7 +66803,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "129",
+        "x-foresignal-prompt": "130",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       },
@@ -66862,7 +66862,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "129",
+        "x-foresignal-prompt": "130",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       }
@@ -66924,7 +66924,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "129",
+        "x-foresignal-prompt": "130",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       },
@@ -67004,7 +67004,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "129",
+        "x-foresignal-prompt": "130",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       },
@@ -67057,7 +67057,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "129",
+        "x-foresignal-prompt": "130",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       }
@@ -67140,7 +67140,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "129",
+        "x-foresignal-prompt": "130",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       }
@@ -67152,7 +67152,7 @@
         ],
         "operationId": "listChronicles",
         "summary": "List chronicles",
-        "description": "Chronicles the caller owns or that are shared with them (access lists and TLP, 129).\n\n**Scope:** `read`.",
+        "description": "Chronicles the caller owns or that are shared with them (access lists and TLP, 130).\n\n**Scope:** `read`.",
         "parameters": [
           {
             "name": "status",
@@ -67253,7 +67253,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "130",
+        "x-foresignal-prompt": "131",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       },
@@ -67263,7 +67263,7 @@
         ],
         "operationId": "createChronicle",
         "summary": "Create a chronicle",
-        "description": "Creates a chronicle owned by the caller, with its 128 workspace. From a workspace (`fromWorkspaceId`), its layers, area and filters become chronicle layers. Capture starts only on activation (or with `activate=true`). Inherits the strictest TLP of linked inputs.\n\n**Scope:** `agent`.",
+        "description": "Creates a chronicle owned by the caller, with its 129 workspace. From a workspace (`fromWorkspaceId`), its layers, area and filters become chronicle layers. Capture starts only on activation (or with `activate=true`). Inherits the strictest TLP of linked inputs.\n\n**Scope:** `agent`.",
         "requestBody": {
           "required": true,
           "content": {
@@ -67342,7 +67342,7 @@
           }
         ],
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "130",
+        "x-foresignal-prompt": "131",
         "x-foresignal-status": "planned"
       }
     },
@@ -67422,7 +67422,7 @@
           }
         ],
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "130",
+        "x-foresignal-prompt": "131",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       }
@@ -67493,7 +67493,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "130",
+        "x-foresignal-prompt": "131",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       },
@@ -67503,7 +67503,7 @@
         ],
         "operationId": "updateChronicle",
         "summary": "Update a chronicle",
-        "description": "JSON merge patch (owner or editor). A stricter TLP lowers discoverability automatically (133).\n\n**Scope:** `agent`.",
+        "description": "JSON merge patch (owner or editor). A stricter TLP lowers discoverability automatically (134).\n\n**Scope:** `agent`.",
         "parameters": [
           {
             "name": "chronicleId",
@@ -67613,7 +67613,7 @@
           }
         ],
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "130",
+        "x-foresignal-prompt": "131",
         "x-foresignal-status": "planned"
       },
       "delete": {
@@ -67695,7 +67695,7 @@
           }
         ],
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "130",
+        "x-foresignal-prompt": "131",
         "x-foresignal-status": "planned"
       }
     },
@@ -67787,10 +67787,10 @@
           }
         ],
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "130",
+        "x-foresignal-prompt": "131",
         "x-foresignal-status": "planned",
         "x-foresignal-extended-by": [
-          "136"
+          "137"
         ]
       }
     },
@@ -67891,10 +67891,10 @@
           }
         ],
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "130",
+        "x-foresignal-prompt": "131",
         "x-foresignal-status": "planned",
         "x-foresignal-extended-by": [
-          "136"
+          "137"
         ]
       },
       "delete": {
@@ -67976,7 +67976,7 @@
           }
         ],
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "130",
+        "x-foresignal-prompt": "131",
         "x-foresignal-status": "planned"
       }
     },
@@ -68068,7 +68068,7 @@
           }
         ],
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "130",
+        "x-foresignal-prompt": "131",
         "x-foresignal-status": "planned"
       }
     },
@@ -68150,7 +68150,7 @@
           }
         ],
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "130",
+        "x-foresignal-prompt": "131",
         "x-foresignal-status": "planned"
       }
     },
@@ -68232,7 +68232,7 @@
           }
         ],
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "130",
+        "x-foresignal-prompt": "131",
         "x-foresignal-status": "planned"
       }
     },
@@ -68314,7 +68314,7 @@
           }
         ],
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "130",
+        "x-foresignal-prompt": "131",
         "x-foresignal-status": "planned"
       }
     },
@@ -68396,7 +68396,7 @@
           }
         ],
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "130",
+        "x-foresignal-prompt": "131",
         "x-foresignal-status": "planned"
       }
     },
@@ -68478,7 +68478,7 @@
           }
         ],
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "130",
+        "x-foresignal-prompt": "131",
         "x-foresignal-status": "planned"
       }
     },
@@ -68540,7 +68540,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "130",
+        "x-foresignal-prompt": "131",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       }
@@ -68633,7 +68633,7 @@
           }
         ],
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "130",
+        "x-foresignal-prompt": "131",
         "x-foresignal-status": "planned"
       }
     },
@@ -68754,11 +68754,11 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "130",
+        "x-foresignal-prompt": "131",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true,
         "x-foresignal-extended-by": [
-          "136"
+          "137"
         ]
       }
     },
@@ -68823,7 +68823,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "130",
+        "x-foresignal-prompt": "131",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       }
@@ -68945,7 +68945,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "130",
+        "x-foresignal-prompt": "131",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       }
@@ -69072,7 +69072,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "130",
+        "x-foresignal-prompt": "131",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       }
@@ -69187,7 +69187,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "130",
+        "x-foresignal-prompt": "131",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       }
@@ -69310,7 +69310,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "130",
+        "x-foresignal-prompt": "131",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       }
@@ -69412,7 +69412,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "130",
+        "x-foresignal-prompt": "131",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       }
@@ -69475,7 +69475,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "130",
+        "x-foresignal-prompt": "131",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       }
@@ -69584,7 +69584,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "133",
+        "x-foresignal-prompt": "134",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       }
@@ -69677,7 +69677,7 @@
           }
         ],
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "133",
+        "x-foresignal-prompt": "134",
         "x-foresignal-status": "planned"
       }
     },
@@ -69731,7 +69731,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "133",
+        "x-foresignal-prompt": "134",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       }
@@ -69813,7 +69813,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "133",
+        "x-foresignal-prompt": "134",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       }
@@ -69877,7 +69877,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "133",
+        "x-foresignal-prompt": "134",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       }
@@ -69939,7 +69939,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "133",
+        "x-foresignal-prompt": "134",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       }
@@ -70042,7 +70042,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "133",
+        "x-foresignal-prompt": "134",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       }
@@ -70133,7 +70133,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "133",
+        "x-foresignal-prompt": "134",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       }
@@ -70145,7 +70145,7 @@
         ],
         "operationId": "grantChronicleAccessRequest",
         "summary": "Grant an access request",
-        "description": "Owner grants access: a 129 ACL grant on this instance, or for remote requesters a 131 package (chronicle extract or report). TLP applies.\n\n**Scope:** `agent`.",
+        "description": "Owner grants access: a 130 ACL grant on this instance, or for remote requesters a 132 package (chronicle extract or report). TLP applies.\n\n**Scope:** `agent`.",
         "parameters": [
           {
             "name": "requestId",
@@ -70225,7 +70225,7 @@
           }
         ],
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "133",
+        "x-foresignal-prompt": "134",
         "x-foresignal-status": "planned"
       }
     },
@@ -70306,7 +70306,7 @@
           }
         ],
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "133",
+        "x-foresignal-prompt": "134",
         "x-foresignal-status": "planned"
       }
     },
@@ -70386,7 +70386,7 @@
           }
         ],
         "x-foresignal-scope": "admin",
-        "x-foresignal-prompt": "133",
+        "x-foresignal-prompt": "134",
         "x-foresignal-status": "planned"
       }
     },
@@ -70467,7 +70467,7 @@
           }
         ],
         "x-foresignal-scope": "peer",
-        "x-foresignal-prompt": "133",
+        "x-foresignal-prompt": "134",
         "x-foresignal-status": "planned"
       }
     },
@@ -70569,7 +70569,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "131",
+        "x-foresignal-prompt": "132",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       },
@@ -70628,7 +70628,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "131",
+        "x-foresignal-prompt": "132",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       }
@@ -70719,7 +70719,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "131",
+        "x-foresignal-prompt": "132",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       }
@@ -70790,7 +70790,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "131",
+        "x-foresignal-prompt": "132",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       },
@@ -70900,7 +70900,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "131",
+        "x-foresignal-prompt": "132",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       },
@@ -70954,7 +70954,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "131",
+        "x-foresignal-prompt": "132",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       }
@@ -71056,7 +71056,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "131",
+        "x-foresignal-prompt": "132",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       }
@@ -71161,7 +71161,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "131",
+        "x-foresignal-prompt": "132",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       },
@@ -71235,7 +71235,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "131",
+        "x-foresignal-prompt": "132",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       }
@@ -71308,7 +71308,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "131",
+        "x-foresignal-prompt": "132",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       }
@@ -71391,7 +71391,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "131",
+        "x-foresignal-prompt": "132",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       }
@@ -71475,7 +71475,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "131",
+        "x-foresignal-prompt": "132",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       }
@@ -71592,7 +71592,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "131",
+        "x-foresignal-prompt": "132",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       }
@@ -71604,7 +71604,7 @@
         ],
         "operationId": "sendReport",
         "summary": "Send a report on this instance",
-        "description": "Grants viewer access to principals and groups, notifies them (129 preferences; inbox item; optional HTML or link via their channels) and records the send. TLP is checked per recipient.\n\n**Scope:** `agent`.",
+        "description": "Grants viewer access to principals and groups, notifies them (130 preferences; inbox item; optional HTML or link via their channels) and records the send. TLP is checked per recipient.\n\n**Scope:** `agent`.",
         "parameters": [
           {
             "name": "reportId",
@@ -71695,7 +71695,7 @@
           }
         ],
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "131",
+        "x-foresignal-prompt": "132",
         "x-foresignal-status": "planned"
       }
     },
@@ -71787,7 +71787,7 @@
           }
         ],
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "131",
+        "x-foresignal-prompt": "132",
         "x-foresignal-status": "planned"
       }
     },
@@ -71867,7 +71867,7 @@
           {}
         ],
         "x-foresignal-scope": "open",
-        "x-foresignal-prompt": "131",
+        "x-foresignal-prompt": "132",
         "x-foresignal-status": "planned"
       }
     },
@@ -71957,7 +71957,7 @@
           }
         ],
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "131",
+        "x-foresignal-prompt": "132",
         "x-foresignal-status": "planned"
       }
     },
@@ -72028,7 +72028,7 @@
           }
         ],
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "131",
+        "x-foresignal-prompt": "132",
         "x-foresignal-status": "planned"
       }
     },
@@ -72117,7 +72117,7 @@
           }
         ],
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "131",
+        "x-foresignal-prompt": "132",
         "x-foresignal-status": "planned"
       }
     },
@@ -72198,7 +72198,7 @@
           }
         ],
         "x-foresignal-scope": "peer",
-        "x-foresignal-prompt": "131",
+        "x-foresignal-prompt": "132",
         "x-foresignal-status": "planned"
       }
     },
@@ -72251,7 +72251,7 @@
           }
         ],
         "x-foresignal-scope": "peer",
-        "x-foresignal-prompt": "131",
+        "x-foresignal-prompt": "132",
         "x-foresignal-status": "planned"
       }
     },
@@ -72369,7 +72369,7 @@
           }
         ],
         "x-foresignal-scope": "admin",
-        "x-foresignal-prompt": "131",
+        "x-foresignal-prompt": "132",
         "x-foresignal-status": "planned"
       }
     },
@@ -72465,7 +72465,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "131",
+        "x-foresignal-prompt": "132",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       }
@@ -72527,7 +72527,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "131",
+        "x-foresignal-prompt": "132",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       }
@@ -72613,7 +72613,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "131",
+        "x-foresignal-prompt": "132",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       }
@@ -72675,7 +72675,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "131",
+        "x-foresignal-prompt": "132",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       }
@@ -72765,7 +72765,7 @@
           }
         ],
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "131",
+        "x-foresignal-prompt": "132",
         "x-foresignal-status": "planned"
       }
     },
@@ -72890,7 +72890,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "132",
+        "x-foresignal-prompt": "133",
         "x-foresignal-status": "planned"
       }
     },
@@ -72952,7 +72952,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "132",
+        "x-foresignal-prompt": "133",
         "x-foresignal-status": "planned"
       }
     },
@@ -73054,7 +73054,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "132",
+        "x-foresignal-prompt": "133",
         "x-foresignal-status": "planned"
       }
     },
@@ -73172,7 +73172,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "132",
+        "x-foresignal-prompt": "133",
         "x-foresignal-status": "planned"
       }
     },
@@ -73234,7 +73234,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "132",
+        "x-foresignal-prompt": "133",
         "x-foresignal-status": "planned"
       },
       "patch": {
@@ -73323,7 +73323,7 @@
           }
         ],
         "x-foresignal-scope": "admin",
-        "x-foresignal-prompt": "132",
+        "x-foresignal-prompt": "133",
         "x-foresignal-status": "planned"
       }
     },
@@ -73376,7 +73376,7 @@
           }
         ],
         "x-foresignal-scope": "admin",
-        "x-foresignal-prompt": "132",
+        "x-foresignal-prompt": "133",
         "x-foresignal-status": "planned"
       }
     },
@@ -73454,7 +73454,7 @@
           }
         ],
         "x-foresignal-scope": "admin",
-        "x-foresignal-prompt": "132",
+        "x-foresignal-prompt": "133",
         "x-foresignal-status": "planned"
       },
       "put": {
@@ -73560,7 +73560,7 @@
           }
         ],
         "x-foresignal-scope": "admin",
-        "x-foresignal-prompt": "132",
+        "x-foresignal-prompt": "133",
         "x-foresignal-status": "planned"
       }
     },
@@ -73738,7 +73738,7 @@
           }
         ],
         "x-foresignal-scope": "admin",
-        "x-foresignal-prompt": "132",
+        "x-foresignal-prompt": "133",
         "x-foresignal-status": "planned"
       }
     },
@@ -73847,7 +73847,7 @@
           }
         ],
         "x-foresignal-scope": "admin",
-        "x-foresignal-prompt": "139",
+        "x-foresignal-prompt": "140",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       }
@@ -73940,7 +73940,7 @@
           }
         ],
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "139",
+        "x-foresignal-prompt": "140",
         "x-foresignal-status": "planned"
       }
     },
@@ -74011,7 +74011,7 @@
           }
         ],
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "139",
+        "x-foresignal-prompt": "140",
         "x-foresignal-status": "planned"
       }
     },
@@ -74049,7 +74049,7 @@
           {}
         ],
         "x-foresignal-scope": "open",
-        "x-foresignal-prompt": "140",
+        "x-foresignal-prompt": "141",
         "x-foresignal-status": "planned"
       }
     },
@@ -74087,7 +74087,7 @@
           {}
         ],
         "x-foresignal-scope": "open",
-        "x-foresignal-prompt": "140",
+        "x-foresignal-prompt": "141",
         "x-foresignal-status": "planned"
       }
     },
@@ -74137,7 +74137,7 @@
           }
         ],
         "x-foresignal-scope": "admin",
-        "x-foresignal-prompt": "140",
+        "x-foresignal-prompt": "141",
         "x-foresignal-status": "planned"
       },
       "put": {
@@ -74205,7 +74205,7 @@
           }
         ],
         "x-foresignal-scope": "admin",
-        "x-foresignal-prompt": "140",
+        "x-foresignal-prompt": "141",
         "x-foresignal-status": "planned"
       }
     },
@@ -74255,7 +74255,7 @@
           }
         ],
         "x-foresignal-scope": "admin",
-        "x-foresignal-prompt": "140",
+        "x-foresignal-prompt": "141",
         "x-foresignal-status": "planned"
       },
       "put": {
@@ -74313,7 +74313,7 @@
           }
         ],
         "x-foresignal-scope": "admin",
-        "x-foresignal-prompt": "140",
+        "x-foresignal-prompt": "141",
         "x-foresignal-status": "planned"
       }
     },
@@ -74385,7 +74385,7 @@
           }
         ],
         "x-foresignal-scope": "admin",
-        "x-foresignal-prompt": "140",
+        "x-foresignal-prompt": "141",
         "x-foresignal-status": "planned"
       },
       "put": {
@@ -74485,7 +74485,7 @@
           }
         ],
         "x-foresignal-scope": "admin",
-        "x-foresignal-prompt": "140",
+        "x-foresignal-prompt": "141",
         "x-foresignal-status": "planned"
       }
     },
@@ -74713,7 +74713,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "140",
+        "x-foresignal-prompt": "141",
         "x-foresignal-status": "planned"
       }
     },
@@ -74755,7 +74755,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "140",
+        "x-foresignal-prompt": "141",
         "x-foresignal-status": "planned"
       }
     },
@@ -74796,7 +74796,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "140",
+        "x-foresignal-prompt": "141",
         "x-foresignal-status": "planned"
       }
     },
@@ -74885,7 +74885,7 @@
           }
         ],
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "140",
+        "x-foresignal-prompt": "141",
         "x-foresignal-status": "planned"
       }
     },
@@ -74935,7 +74935,7 @@
           }
         ],
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "140",
+        "x-foresignal-prompt": "141",
         "x-foresignal-status": "planned"
       }
     },
@@ -74985,7 +74985,7 @@
           }
         ],
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "140",
+        "x-foresignal-prompt": "141",
         "x-foresignal-status": "planned"
       }
     },
@@ -75035,7 +75035,7 @@
           }
         ],
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "140",
+        "x-foresignal-prompt": "141",
         "x-foresignal-status": "planned"
       }
     },
@@ -75106,7 +75106,7 @@
           }
         ],
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "140",
+        "x-foresignal-prompt": "141",
         "x-foresignal-status": "planned"
       }
     },
@@ -75221,7 +75221,7 @@
           }
         ],
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "140",
+        "x-foresignal-prompt": "141",
         "x-foresignal-status": "planned"
       }
     },
@@ -75287,7 +75287,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "140",
+        "x-foresignal-prompt": "141",
         "x-foresignal-status": "planned"
       }
     },
@@ -75331,7 +75331,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "134",
+        "x-foresignal-prompt": "135",
         "x-foresignal-status": "planned"
       }
     },
@@ -75393,7 +75393,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "134",
+        "x-foresignal-prompt": "135",
         "x-foresignal-status": "planned"
       },
       "put": {
@@ -75482,7 +75482,7 @@
           }
         ],
         "x-foresignal-scope": "admin",
-        "x-foresignal-prompt": "134",
+        "x-foresignal-prompt": "135",
         "x-foresignal-status": "planned"
       }
     },
@@ -75503,7 +75503,7 @@
             "schema": {
               "type": "string",
               "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
-              "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 137) declares",
+              "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 138) declares",
               "example": "bluesky"
             }
           },
@@ -75610,7 +75610,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "134",
+        "x-foresignal-prompt": "135",
         "x-foresignal-status": "planned"
       }
     },
@@ -75658,7 +75658,7 @@
             "schema": {
               "type": "string",
               "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
-              "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 137) declares",
+              "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 138) declares",
               "example": "bluesky"
             }
           },
@@ -75772,7 +75772,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "134",
+        "x-foresignal-prompt": "135",
         "x-foresignal-status": "planned"
       }
     },
@@ -75802,7 +75802,7 @@
             "schema": {
               "type": "string",
               "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
-              "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 137) declares",
+              "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 138) declares",
               "example": "bluesky"
             }
           },
@@ -75820,7 +75820,7 @@
             "name": "cueId",
             "in": "query",
             "required": false,
-            "description": "Posts found by a 136 cue",
+            "description": "Posts found by a 137 cue",
             "schema": {
               "$ref": "#/components/schemas/Ulid"
             }
@@ -75916,7 +75916,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "134",
+        "x-foresignal-prompt": "135",
         "x-foresignal-status": "planned"
       }
     },
@@ -75937,7 +75937,7 @@
             "schema": {
               "type": "string",
               "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
-              "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 137) declares",
+              "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 138) declares",
               "example": "bluesky"
             }
           },
@@ -75991,7 +75991,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "134",
+        "x-foresignal-prompt": "135",
         "x-foresignal-status": "planned"
       }
     },
@@ -76082,7 +76082,7 @@
             "schema": {
               "type": "string",
               "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
-              "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 137) declares",
+              "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 138) declares",
               "example": "bluesky"
             }
           },
@@ -76157,7 +76157,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "135",
+        "x-foresignal-prompt": "136",
         "x-foresignal-status": "planned"
       }
     },
@@ -76219,7 +76219,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "135",
+        "x-foresignal-prompt": "136",
         "x-foresignal-status": "planned"
       }
     },
@@ -76249,7 +76249,7 @@
             "schema": {
               "type": "string",
               "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
-              "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 137) declares",
+              "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 138) declares",
               "example": "bluesky"
             }
           },
@@ -76333,7 +76333,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "135",
+        "x-foresignal-prompt": "136",
         "x-foresignal-status": "planned"
       }
     },
@@ -76395,7 +76395,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "135",
+        "x-foresignal-prompt": "136",
         "x-foresignal-status": "planned"
       }
     },
@@ -76483,7 +76483,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "135",
+        "x-foresignal-prompt": "136",
         "x-foresignal-status": "planned"
       }
     },
@@ -76574,7 +76574,7 @@
           }
         ],
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "135",
+        "x-foresignal-prompt": "136",
         "x-foresignal-status": "planned"
       }
     },
@@ -76665,7 +76665,7 @@
           }
         ],
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "135",
+        "x-foresignal-prompt": "136",
         "x-foresignal-status": "planned"
       }
     },
@@ -76676,7 +76676,7 @@
         ],
         "operationId": "listClaims",
         "summary": "List claims",
-        "description": "Structured claims (what, where, when, who) with extraction provenance, Admiralty grade and 136 status. Claims are reports: draw them in a distinct \"reported\" style, never as observed events.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "Structured claims (what, where, when, who) with extraction provenance, Admiralty grade and 137 status. Claims are reports: draw them in a distinct \"reported\" style, never as observed events.\n\n**Scope:** `read` (open while `security.openReads` is on).",
         "parameters": [
           {
             "name": "narrativeId",
@@ -76808,7 +76808,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "135",
+        "x-foresignal-prompt": "136",
         "x-foresignal-status": "planned"
       }
     },
@@ -76870,7 +76870,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "135",
+        "x-foresignal-prompt": "136",
         "x-foresignal-status": "planned"
       }
     },
@@ -76932,7 +76932,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "135",
+        "x-foresignal-prompt": "136",
         "x-foresignal-status": "planned"
       }
     },
@@ -77032,7 +77032,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "135",
+        "x-foresignal-prompt": "136",
         "x-foresignal-status": "planned"
       }
     },
@@ -77185,7 +77185,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "136",
+        "x-foresignal-prompt": "137",
         "x-foresignal-status": "planned"
       }
     },
@@ -77247,7 +77247,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "136",
+        "x-foresignal-prompt": "137",
         "x-foresignal-status": "planned"
       }
     },
@@ -77352,7 +77352,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "136",
+        "x-foresignal-prompt": "137",
         "x-foresignal-status": "planned"
       },
       "post": {
@@ -77459,7 +77459,7 @@
           }
         ],
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "136",
+        "x-foresignal-prompt": "137",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       }
@@ -77522,7 +77522,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "136",
+        "x-foresignal-prompt": "137",
         "x-foresignal-status": "planned"
       }
     },
@@ -77552,7 +77552,7 @@
             "schema": {
               "type": "string",
               "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
-              "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 137) declares",
+              "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 138) declares",
               "example": "bluesky"
             }
           },
@@ -77631,7 +77631,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "136",
+        "x-foresignal-prompt": "137",
         "x-foresignal-status": "planned"
       }
     },
@@ -77681,7 +77681,7 @@
           }
         ],
         "x-foresignal-scope": "admin",
-        "x-foresignal-prompt": "136",
+        "x-foresignal-prompt": "137",
         "x-foresignal-status": "planned"
       },
       "put": {
@@ -77749,7 +77749,7 @@
           }
         ],
         "x-foresignal-scope": "admin",
-        "x-foresignal-prompt": "136",
+        "x-foresignal-prompt": "137",
         "x-foresignal-status": "planned"
       }
     },
@@ -77957,7 +77957,7 @@
             }
           },
           "400": {
-            "description": "Manifest invalid (MANIFEST_INVALID, with errors)",
+            "description": "Manifest invalid (MANIFEST_INVALID with errors; PROTOCOL_UNSUPPORTED when the minor version is above maxMinor)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -78409,7 +78409,7 @@
             }
           },
           "400": {
-            "description": "Batch invalid",
+            "description": "Batch invalid (SOURCE_MISMATCH, PROTOCOL_UNSUPPORTED, depth or size limits)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -78693,7 +78693,7 @@
             }
           },
           "400": {
-            "description": "Manifest invalid (MANIFEST_INVALID)",
+            "description": "Manifest invalid (MANIFEST_INVALID; PROTOCOL_UNSUPPORTED)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -78858,7 +78858,7 @@
           }
         },
         "x-foresignal-scope": "admin",
-        "x-foresignal-prompt": "137",
+        "x-foresignal-prompt": "138",
         "x-foresignal-status": "planned",
         "security": [
           {
@@ -78936,7 +78936,7 @@
           }
         },
         "x-foresignal-scope": "admin",
-        "x-foresignal-prompt": "137",
+        "x-foresignal-prompt": "138",
         "x-foresignal-status": "planned",
         "security": [
           {
@@ -79010,7 +79010,7 @@
           }
         },
         "x-foresignal-scope": "admin",
-        "x-foresignal-prompt": "137",
+        "x-foresignal-prompt": "138",
         "x-foresignal-status": "planned",
         "security": [
           {
@@ -79080,7 +79080,7 @@
           }
         },
         "x-foresignal-scope": "admin",
-        "x-foresignal-prompt": "137",
+        "x-foresignal-prompt": "138",
         "x-foresignal-status": "planned",
         "security": [
           {
@@ -79158,7 +79158,7 @@
           }
         },
         "x-foresignal-scope": "admin",
-        "x-foresignal-prompt": "137",
+        "x-foresignal-prompt": "138",
         "x-foresignal-status": "planned",
         "security": [
           {
@@ -79209,7 +79209,7 @@
           }
         },
         "x-foresignal-scope": "admin",
-        "x-foresignal-prompt": "137",
+        "x-foresignal-prompt": "138",
         "x-foresignal-status": "planned",
         "security": [
           {
@@ -79279,7 +79279,7 @@
           }
         },
         "x-foresignal-scope": "admin",
-        "x-foresignal-prompt": "137",
+        "x-foresignal-prompt": "138",
         "x-foresignal-status": "planned",
         "security": [
           {
@@ -79343,7 +79343,7 @@
           }
         },
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "137",
+        "x-foresignal-prompt": "138",
         "x-foresignal-status": "planned",
         "security": [
           {},
@@ -79422,7 +79422,7 @@
           }
         },
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "137",
+        "x-foresignal-prompt": "138",
         "x-foresignal-status": "planned",
         "security": [
           {
@@ -79485,7 +79485,7 @@
           }
         },
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "137",
+        "x-foresignal-prompt": "138",
         "x-foresignal-status": "planned",
         "security": [
           {
@@ -79580,7 +79580,7 @@
           }
         },
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "125",
+        "x-foresignal-prompt": "126",
         "x-foresignal-status": "planned",
         "security": [
           {},
@@ -79662,7 +79662,7 @@
           }
         },
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "125",
+        "x-foresignal-prompt": "126",
         "x-foresignal-status": "planned",
         "security": [
           {},
@@ -79984,7 +79984,7 @@
         ],
         "x-foresignal-extended-by": [
           "013",
-          "134"
+          "135"
         ],
         "x-foresignal-error-codes": [
           {
@@ -80116,7 +80116,7 @@
               "null"
             ],
             "minimum": 0,
-            "description": "Money cap per calendar month for paid adapters (134; X default 25); refused with BUDGET_EXCEEDED"
+            "description": "Money cap per calendar month for paid adapters (135; X default 25); refused with BUDGET_EXCEEDED"
           }
         },
         "required": [
@@ -80124,7 +80124,7 @@
           "perDay"
         ],
         "x-foresignal-extended-by": [
-          "134"
+          "135"
         ]
       },
       "ParamSpec": {
@@ -81117,7 +81117,7 @@
               "null"
             ],
             "minimum": 0,
-            "description": "Paid adapters: money spent this calendar month (134)"
+            "description": "Paid adapters: money spent this calendar month (135)"
           }
         },
         "required": [
@@ -81128,8 +81128,8 @@
         "x-foresignal-extended-by": [
           "013",
           "063",
-          "139",
-          "134"
+          "140",
+          "135"
         ]
       },
       "UsagePoint": {
@@ -85838,7 +85838,7 @@
           },
           "social": {
             "type": "object",
-            "description": "Analytic class `social` (134): `social-post` retention per platform (view over `social.postRetention`); narratives, claims, comparisons and volume series are kept as intel and series",
+            "description": "Analytic class `social` (135): `social-post` retention per platform (view over `social.postRetention`); narratives, claims, comparisons and volume series are kept as intel and series",
             "properties": {
               "posts": {
                 "allOf": [
@@ -85883,7 +85883,7 @@
           "023",
           "044",
           "119",
-          "134"
+          "135"
         ],
         "x-foresignal-property-prompts": {
           "notifications": "033",
@@ -86905,7 +86905,7 @@
         "x-foresignal-extended-by": [
           "023",
           "109",
-          "129"
+          "130"
         ],
         "x-foresignal-property-prompts": {
           "privateAccess": "039"
@@ -87025,7 +87025,7 @@
         "x-foresignal-extended-by": [
           "023",
           "109",
-          "129"
+          "130"
         ],
         "x-foresignal-property-prompts": {
           "privateAccess": "039",
@@ -87829,8 +87829,8 @@
           "055",
           "060",
           "115",
-          "140",
-          "136"
+          "141",
+          "137"
         ],
         "x-foresignal-property-prompts": {
           "config.privatePayload": "039"
@@ -88108,7 +88108,7 @@
                 "type": "null"
               }
             ],
-            "description": "Set for principal-owned channels created through notification preferences (129)"
+            "description": "Set for principal-owned channels created through notification preferences (130)"
           }
         },
         "required": [
@@ -88124,8 +88124,8 @@
           "055",
           "060",
           "115",
-          "140",
-          "136"
+          "141",
+          "137"
         ]
       },
       "ChannelTestResult": {
@@ -88324,7 +88324,7 @@
           "033",
           "055",
           "084",
-          "136"
+          "137"
         ]
       },
       "NotificationDeliveryPage": {
@@ -88596,7 +88596,7 @@
         "x-foresignal-extended-by": [
           "026",
           "122",
-          "140"
+          "141"
         ]
       },
       "LlmSettings": {
@@ -89629,7 +89629,7 @@
           "schedule"
         ],
         "x-foresignal-extended-by": [
-          "140"
+          "141"
         ]
       },
       "Briefing": {
@@ -89860,7 +89860,7 @@
         "x-foresignal-extended-by": [
           "029",
           "109",
-          "140"
+          "141"
         ]
       },
       "BriefingRunPage": {
@@ -91584,7 +91584,7 @@
         "properties": {
           "streamId": {
             "type": "string",
-            "description": "128 random bits, base64url; bound to the caller's principal",
+            "description": "129 random bits, base64url; bound to the caller's principal",
             "pattern": "^[A-Za-z0-9_-]{22}$"
           },
           "topics": {
@@ -91781,7 +91781,7 @@
           },
           "workspace": {
             "type": "object",
-            "description": "Filter block for the `workspace` topic (128)",
+            "description": "Filter block for the `workspace` topic (129)",
             "properties": {
               "workspaceId": {
                 "$ref": "#/components/schemas/Ulid"
@@ -96501,7 +96501,7 @@
                   "object",
                   "null"
                 ],
-                "description": "Latest values or documents of external streams bound to this place (137)",
+                "description": "Latest values or documents of external streams bound to this place (138)",
                 "additionalProperties": true
               }
             },
@@ -107055,7 +107055,7 @@
                 "propose_chronicle"
               ]
             },
-            "description": "Extensible (127 adds proposal types)"
+            "description": "Extensible (128 adds proposal types)"
           },
           "maxAutoActionsPerDay": {
             "type": "integer",
@@ -107285,7 +107285,7 @@
                 "propose_chronicle"
               ]
             },
-            "description": "Extensible (127 adds proposal types)"
+            "description": "Extensible (128 adds proposal types)"
           },
           "maxAutoActionsPerDay": {
             "type": "integer",
@@ -107339,7 +107339,7 @@
               "propose_question",
               "propose_situation_merge"
             ],
-            "description": "Extensible enum (127 adds types)"
+            "description": "Extensible enum (128 adds types)"
           },
           "payload": {
             "type": "object",
@@ -112294,7 +112294,7 @@
       },
       "Investigation": {
         "type": "object",
-        "description": "An operator case file (renamed from 'case'); 129 adds owners, access lists, TLP and links",
+        "description": "An operator case file (renamed from 'case'); 130 adds owners, access lists, TLP and links",
         "properties": {
           "id": {
             "$ref": "#/components/schemas/Ulid"
@@ -112488,7 +112488,7 @@
           },
           "ref": {
             "type": "string",
-            "description": "Item reference: event id, alert id, `{sourceId}/{externalId}`, anomaly id, place id, briefing run id; 128 ObjectRef grammar accepted from 128 on",
+            "description": "Item reference: event id, alert id, `{sourceId}/{externalId}`, anomaly id, place id, briefing run id; 129 ObjectRef grammar accepted from 129 on",
             "example": "usgs-earthquakes/us7000abcd"
           },
           "seq": {
@@ -112522,7 +112522,7 @@
           },
           "objectRef": {
             "$ref": "#/components/schemas/ObjectRef",
-            "description": "Any 128 object reference, `evidence-item:{id}`, `attachment:{id}` or `remote:…` (an explicit copy of received material keeps provenance)"
+            "description": "Any 129 object reference, `evidence-item:{id}`, `attachment:{id}` or `remote:…` (an explicit copy of received material keeps provenance)"
           }
         },
         "required": [
@@ -122057,7 +122057,7 @@
                 "type": "null"
               }
             ],
-            "description": "Social tracking block (134): terms, hashtags, accounts, channels, excludes, platforms, places, regions, entities, mode"
+            "description": "Social tracking block (135): terms, hashtags, accounts, channels, excludes, platforms, places, regions, entities, mode"
           }
         },
         "required": [
@@ -123309,7 +123309,7 @@
                 "type": "null"
               }
             ],
-            "description": "136: top narratives with status, velocity, origin concentration and lead times, social evidence groups (separate from physical corroboration) and attention gap"
+            "description": "137: top narratives with status, velocity, origin concentration and lead times, social evidence groups (separate from physical corroboration) and attention gap"
           }
         },
         "required": [
@@ -127077,7 +127077,7 @@
           },
           "setId": {
             "$ref": "#/components/schemas/Ulid",
-            "description": "hypothesis-outcome: 124 hypothesis set"
+            "description": "hypothesis-outcome: 125 hypothesis set"
           },
           "version": {
             "type": "string",
@@ -131423,7 +131423,7 @@
             "items": {
               "$ref": "#/components/schemas/ProvenanceChainEntry"
             },
-            "description": "133: chain used by CircularReportingDetector; circular support carries caveat CIRCULAR_REPORTING and counts as one evidence group"
+            "description": "134: chain used by CircularReportingDetector; circular support carries caveat CIRCULAR_REPORTING and counts as one evidence group"
           }
         },
         "required": [
@@ -135717,7 +135717,7 @@
                 "type": "null"
               }
             ],
-            "description": "Narratives by status, attention gaps, out-of-sample lead times, media reuse and coordination findings (136)"
+            "description": "Narratives by status, attention gaps, out-of-sample lead times, media reuse and coordination findings (137)"
           }
         },
         "required": [
@@ -136667,7 +136667,7 @@
                 "type": "null"
               }
             ],
-            "description": "\"What people are saying versus what we observe\" (136)"
+            "description": "\"What people are saying versus what we observe\" (137)"
           }
         },
         "required": [
@@ -139138,7 +139138,7 @@
               },
               "impacts": {
                 "type": "object",
-                "description": "126 projected impacts for the object",
+                "description": "127 projected impacts for the object",
                 "properties": {
                   "status": {
                     "type": "string",
@@ -140511,7 +140511,7 @@
                   "string",
                   "null"
                 ],
-                "description": "BCP 47 language for translated notifications (140)"
+                "description": "BCP 47 language for translated notifications (141)"
               }
             },
             "required": [
@@ -140615,7 +140615,7 @@
                   "string",
                   "null"
                 ],
-                "description": "BCP 47 (140)"
+                "description": "BCP 47 (141)"
               }
             },
             "required": [
@@ -141392,7 +141392,7 @@
       },
       "AnnotationThread": {
         "type": "object",
-        "description": "A comment thread: a root annotation with its replies (128 annotations extended by 129)",
+        "description": "A comment thread: a root annotation with its replies (129 annotations extended by 130)",
         "properties": {
           "root": {
             "$ref": "#/components/schemas/Annotation"
@@ -141555,7 +141555,7 @@
       },
       "ProvenanceChainEntry": {
         "type": "object",
-        "description": "One hop of an analytic product's provenance chain, from origin to now (133)",
+        "description": "One hop of an analytic product's provenance chain, from origin to now (134)",
         "properties": {
           "instanceId": {
             "type": "string"
@@ -141602,7 +141602,7 @@
       },
       "EvidenceItem": {
         "type": "object",
-        "description": "User-contributed evidence graded with the Admiralty system; usable in investigations, situations, ACH (124) and relations (128)",
+        "description": "User-contributed evidence graded with the Admiralty system; usable in investigations, situations, ACH (125) and relations (129)",
         "properties": {
           "id": {
             "$ref": "#/components/schemas/Ulid"
@@ -143134,15 +143134,15 @@
               "instance",
               "network"
             ],
-            "description": "Owner's discovery setting, capped by TLP (133)"
+            "description": "Owner's discovery setting, capped by TLP (134)"
           },
           "revealTitle": {
             "type": "boolean",
-            "description": "Show the title in opaque links (133)"
+            "description": "Show the title in opaque links (134)"
           },
           "revealOwner": {
             "type": "boolean",
-            "description": "Show the owner handle in opaque links (133)"
+            "description": "Show the owner handle in opaque links (134)"
           },
           "unreadCount": {
             "type": "integer",
@@ -143925,7 +143925,7 @@
       },
       "ChronicleSummary": {
         "type": "object",
-        "description": "Summary of a chronicle's capture (reused by 131 reports)",
+        "description": "Summary of a chronicle's capture (reused by 132 reports)",
         "properties": {
           "chronicleId": {
             "$ref": "#/components/schemas/Ulid"
@@ -144263,7 +144263,7 @@
       },
       "Discoverability": {
         "type": "object",
-        "description": "A chronicle's discoverability setting (133); TLP caps it (RED → none; AMBER+STRICT → none | instance)",
+        "description": "A chronicle's discoverability setting (134); TLP caps it (RED → none; AMBER+STRICT → none | instance)",
         "properties": {
           "discoverability": {
             "type": "string",
@@ -145004,7 +145004,7 @@
               "chronicle-extract"
             ],
             "default": "chronicle-extract",
-            "description": "For remote requesters: a 131 package"
+            "description": "For remote requesters: a 132 package"
           },
           "message": {
             "type": [
@@ -145063,7 +145063,7 @@
       },
       "ChronicleSketchPackage": {
         "type": "object",
-        "description": "A privacy-preserving fingerprint of a `network`-discoverable chronicle exchanged between peers (133)",
+        "description": "A privacy-preserving fingerprint of a `network`-discoverable chronicle exchanged between peers (134)",
         "properties": {
           "sketchId": {
             "type": "string",
@@ -145093,7 +145093,7 @@
               "type": "string",
               "contentEncoding": "base64"
             },
-            "description": "Key type → 128 MinHash values (base64)"
+            "description": "Key type → 129 MinHash values (base64)"
           },
           "sizeBand": {
             "type": "object",
@@ -145829,7 +145829,7 @@
             ]
           },
           {
-            "description": "Observability (116) and media-coverage (132) caveats",
+            "description": "Observability (116) and media-coverage (133) caveats",
             "allOf": [
               {
                 "$ref": "#/components/schemas/ReportBlockBase"
@@ -146067,7 +146067,7 @@
             "items": {
               "$ref": "#/components/schemas/ProvenanceChainEntry"
             },
-            "description": "133 circular-reporting chain"
+            "description": "134 circular-reporting chain"
           },
           "tags": {
             "type": "array",
@@ -146550,7 +146550,7 @@
             "items": {
               "type": "string"
             },
-            "description": "Recipients' own channel ids (129 preferences) for HTML or link delivery"
+            "description": "Recipients' own channel ids (130 preferences) for HTML or link delivery"
           },
           "message": {
             "type": [
@@ -149516,7 +149516,7 @@
           "threads",
           "instagram-hashtags"
         ],
-        "description": "Social platform adapter (a 004 source with descriptor, budget, health and credentials). Only `bluesky-jetstream` is on by default (134)"
+        "description": "Social platform adapter (a 004 source with descriptor, budget, health and credentials). Only `bluesky-jetstream` is on by default (135)"
       },
       "SocialCollectionType": {
         "type": "string",
@@ -149525,11 +149525,11 @@
           "paged",
           "sampled"
         ],
-        "description": "Measured versus sampled (134): `complete` stream for its filter (Jetstream, Mastodon hashtag stream, X counts), `paged` search (complete within the API's window and limits), `sampled` ranked or targeted sample (top-post search, model-mediated search, cues). Only complete and paged paths feed baselines and velocity"
+        "description": "Measured versus sampled (135): `complete` stream for its filter (Jetstream, Mastodon hashtag stream, X counts), `paged` search (complete within the API's window and limits), `sampled` ranked or targeted sample (top-post search, model-mediated search, cues). Only complete and paged paths feed baselines and velocity"
       },
       "SocialAuthor": {
         "type": "object",
-        "description": "Post author as the platform returns it; accounts are reporting sources, never profiled (134)",
+        "description": "Post author as the platform returns it; accounts are reporting sources, never profiled (135)",
         "properties": {
           "handle": {
             "type": "string"
@@ -149572,7 +149572,7 @@
       },
       "SocialPostMedia": {
         "type": "object",
-        "description": "A media link on a post (links only; 135 fingerprints images)",
+        "description": "A media link on a post (links only; 136 fingerprints images)",
         "properties": {
           "type": {
             "type": "string",
@@ -149611,8 +149611,8 @@
                 "type": "null"
               }
             ],
-            "description": "135 media fingerprint, once computed",
-            "x-foresignal-prompt": "135"
+            "description": "136 media fingerprint, once computed",
+            "x-foresignal-prompt": "136"
           }
         },
         "required": [
@@ -149663,7 +149663,7 @@
       },
       "SocialPostGeo": {
         "type": "object",
-        "description": "Platform-supplied location only (text-derived places come from 135 claims and never become `geom`)",
+        "description": "Platform-supplied location only (text-derived places come from 136 claims and never become `geom`)",
         "properties": {
           "geometry": {
             "oneOf": [
@@ -149697,7 +149697,7 @@
           "platform": {
             "type": "string",
             "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
-            "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 137) declares",
+            "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 138) declares",
             "example": "bluesky"
           },
           "postId": {
@@ -149729,12 +149729,12 @@
       },
       "SocialPostPayload": {
         "type": "object",
-        "description": "Payload of a `social-post` record (`externalId` = `{platform}:{postId}`, analytic class `social`, 30 d default retention per platform) (134)",
+        "description": "Payload of a `social-post` record (`externalId` = `{platform}:{postId}`, analytic class `social`, 30 d default retention per platform) (135)",
         "properties": {
           "platform": {
             "type": "string",
             "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
-            "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 137) declares",
+            "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 138) declares",
             "example": "bluesky"
           },
           "postId": {
@@ -149875,7 +149875,7 @@
               "cue",
               "import"
             ],
-            "description": "How the post was collected; `cue` posts (136) are a targeted sample and never feed baselines"
+            "description": "How the post was collected; `cue` posts (137) are a targeted sample and never feed baselines"
           },
           "topicIds": {
             "type": "array",
@@ -149893,7 +149893,7 @@
                 "type": "null"
               }
             ],
-            "description": "136 cue that found the post (`collection = cue`)"
+            "description": "137 cue that found the post (`collection = cue`)"
           },
           "deleted": {
             "type": "boolean",
@@ -149912,7 +149912,7 @@
         ]
       },
       "SocialPost": {
-        "description": "A stored social post: record identity plus the `social-post` payload; edits are new versions (134)",
+        "description": "A stored social post: record identity plus the `social-post` payload; edits are new versions (135)",
         "allOf": [
           {
             "$ref": "#/components/schemas/SocialPostPayload"
@@ -149953,8 +149953,8 @@
                 "items": {
                   "$ref": "#/components/schemas/Ulid"
                 },
-                "description": "135 narratives the post belongs to",
-                "x-foresignal-prompt": "135"
+                "description": "136 narratives the post belongs to",
+                "x-foresignal-prompt": "136"
               }
             },
             "required": [
@@ -149996,7 +149996,7 @@
           "platform": {
             "type": "string",
             "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
-            "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 137) declares",
+            "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 138) declares",
             "example": "bluesky"
           },
           "type": {
@@ -150021,7 +150021,7 @@
       },
       "AttentionTopicSocial": {
         "type": "object",
-        "description": "Social tracking block of an attention topic (134). A post matches when it matches a term, hashtag, account or channel and no exclude term (case- and diacritic-folded, word-boundary aware)",
+        "description": "Social tracking block of an attention topic (135). A post matches when it matches a term, hashtag, account or channel and no exclude term (case- and diacritic-folded, word-boundary aware)",
         "properties": {
           "terms": {
             "type": "object",
@@ -150058,7 +150058,7 @@
                 "platform": {
                   "type": "string",
                   "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
-                  "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 137) declares",
+                  "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 138) declares",
                   "example": "bluesky"
                 },
                 "handle": {
@@ -150091,7 +150091,7 @@
             "items": {
               "type": "string",
               "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
-              "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 137) declares",
+              "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 138) declares",
               "example": "bluesky"
             },
             "description": "Subset of networks; empty = all enabled"
@@ -150126,7 +150126,7 @@
               "standing",
               "cue-only"
             ],
-            "description": "`standing` collects continuously; `cue-only` only on cues (136)",
+            "description": "`standing` collects continuously; `cue-only` only on cues (137)",
             "default": "standing"
           }
         }
@@ -150310,7 +150310,7 @@
       },
       "SocialPlatformSettings": {
         "type": "object",
-        "description": "Operator settings of one social platform adapter; replace semantics (134). Credentials use the existing source credential endpoints (013)",
+        "description": "Operator settings of one social platform adapter; replace semantics (135). Credentials use the existing source credential endpoints (013)",
         "properties": {
           "enabled": {
             "type": "boolean"
@@ -150414,7 +150414,7 @@
       },
       "SocialPlatform": {
         "type": "object",
-        "description": "A social platform adapter with state, collection paths, health, quota and spend (134)",
+        "description": "A social platform adapter with state, collection paths, health, quota and spend (135)",
         "properties": {
           "id": {
             "$ref": "#/components/schemas/SocialPlatformId"
@@ -150422,7 +150422,7 @@
           "network": {
             "type": "string",
             "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
-            "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 137) declares",
+            "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 138) declares",
             "example": "bluesky"
           },
           "name": {
@@ -150656,7 +150656,7 @@
           "postsSeen": {
             "type": "integer",
             "minimum": 0,
-            "description": "Posts attributed to the region (platform geo, 135 text-derived places)"
+            "description": "Posts attributed to the region (platform geo, 136 text-derived places)"
           },
           "denominator": {
             "type": [
@@ -150679,12 +150679,12 @@
       },
       "SocialCoverage": {
         "type": "object",
-        "description": "Hourly collection coverage of one platform in one region (`social_coverage`, 134)",
+        "description": "Hourly collection coverage of one platform in one region (`social_coverage`, 135)",
         "properties": {
           "platform": {
             "type": "string",
             "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
-            "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 137) declares",
+            "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 138) declares",
             "example": "bluesky"
           },
           "regionCode": {
@@ -150820,7 +150820,7 @@
           "platform": {
             "type": "string",
             "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
-            "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 137) declares",
+            "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 138) declares",
             "example": "bluesky"
           },
           "language": {
@@ -150940,7 +150940,7 @@
           "platform": {
             "type": "string",
             "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
-            "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 137) declares",
+            "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 138) declares",
             "example": "bluesky"
           },
           "posts": {
@@ -150969,7 +150969,7 @@
       },
       "NarrativeSummary": {
         "type": "object",
-        "description": "A narrative: posts that say the same thing, a 116 canonical event (family `social-narrative`) whose evidence groups count independent origins (135)",
+        "description": "A narrative: posts that say the same thing, a 116 canonical event (family `social-narrative`) whose evidence groups count independent origins (136)",
         "properties": {
           "id": {
             "$ref": "#/components/schemas/Ulid"
@@ -151066,7 +151066,7 @@
               "number",
               "null"
             ],
-            "description": "Current hourly velocity ratio from 134 baselines"
+            "description": "Current hourly velocity ratio from 135 baselines"
           },
           "mediaFingerprints": {
             "type": "array",
@@ -151080,7 +151080,7 @@
             "items": {
               "$ref": "#/components/schemas/Ulid"
             },
-            "description": "132 stories linked by URL or text"
+            "description": "133 stories linked by URL or text"
           },
           "situationIds": {
             "type": "array",
@@ -151099,7 +151099,7 @@
               "mixed",
               "insufficient-coverage"
             ],
-            "description": "Set from 136 comparisons; describes the relationship to independent evidence, never truth"
+            "description": "Set from 137 comparisons; describes the relationship to independent evidence, never truth"
           },
           "state": {
             "type": "string",
@@ -151203,7 +151203,7 @@
         ]
       },
       "Narrative": {
-        "description": "Narrative detail: summary fields plus envelope, claims, media, coordination, linked stories and situations, and history (135)",
+        "description": "Narrative detail: summary fields plus envelope, claims, media, coordination, linked stories and situations, and history (136)",
         "allOf": [
           {
             "$ref": "#/components/schemas/NarrativeSummary"
@@ -151242,7 +151242,7 @@
                 "items": {
                   "$ref": "#/components/schemas/ObjectEnvelope"
                 },
-                "description": "Linked 132 stories"
+                "description": "Linked 133 stories"
               },
               "situations": {
                 "type": "array",
@@ -151256,8 +151256,8 @@
                 "items": {
                   "$ref": "#/components/schemas/Ulid"
                 },
-                "description": "136 comparisons of the narrative's claims",
-                "x-foresignal-prompt": "136"
+                "description": "137 comparisons of the narrative's claims",
+                "x-foresignal-prompt": "137"
               },
               "history": {
                 "type": "array",
@@ -151401,7 +151401,7 @@
                 "platform": {
                   "type": "string",
                   "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
-                  "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 137) declares",
+                  "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 138) declares",
                   "example": "bluesky"
                 },
                 "points": {
@@ -151546,7 +151546,7 @@
       },
       "Claim": {
         "type": "object",
-        "description": "A structured claim extracted from a narrative: what, where, when, who. A report, not a fact; usable as a graded 124 evidence item (`source = social-claim`) (135)",
+        "description": "A structured claim extracted from a narrative: what, where, when, who. A report, not a fact; usable as a graded 125 evidence item (`source = social-claim`) (136)",
         "properties": {
           "id": {
             "$ref": "#/components/schemas/Ulid"
@@ -151679,7 +151679,7 @@
               "contradicted",
               "insufficient-coverage"
             ],
-            "description": "Set by 136 comparisons"
+            "description": "Set by 137 comparisons"
           },
           "comparisonId": {
             "oneOf": [
@@ -151690,8 +151690,8 @@
                 "type": "null"
               }
             ],
-            "description": "136 comparison",
-            "x-foresignal-prompt": "136"
+            "description": "137 comparison",
+            "x-foresignal-prompt": "137"
           },
           "sourceReliability": {
             "type": "string",
@@ -151703,13 +151703,13 @@
               "E",
               "F"
             ],
-            "description": "Admiralty: F by default, E/D from the account's or channel's 136 track record, or an operator override"
+            "description": "Admiralty: F by default, E/D from the account's or channel's 137 track record, or an operator override"
           },
           "informationCredibility": {
             "type": "integer",
             "minimum": 1,
             "maximum": 6,
-            "description": "From 136 status: 6 unassessed, 2 corroborated, 5 unobserved, 4 contradicted"
+            "description": "From 137 status: 6 unassessed, 2 corroborated, 5 unobserved, 4 contradicted"
           },
           "grade": {
             "type": "string",
@@ -151769,7 +151769,7 @@
       },
       "MediaFingerprint": {
         "type": "object",
-        "description": "A PDQ fingerprint of an image or video thumbnail seen in posts (`MediaFingerprinter` 1.0.0); the image itself is discarded unless `social.keepMedia` (135)",
+        "description": "A PDQ fingerprint of an image or video thumbnail seen in posts (`MediaFingerprinter` 1.0.0); the image itself is discarded unless `social.keepMedia` (136)",
         "properties": {
           "id": {
             "$ref": "#/components/schemas/Ulid"
@@ -151804,7 +151804,7 @@
             "items": {
               "type": "string",
               "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
-              "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 137) declares",
+              "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 138) declares",
               "example": "bluesky"
             }
           },
@@ -151848,7 +151848,7 @@
                 "platform": {
                   "type": "string",
                   "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
-                  "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 137) declares",
+                  "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 138) declares",
                   "example": "bluesky"
                 }
               },
@@ -152155,7 +152155,7 @@
                 "platform": {
                   "type": "string",
                   "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
-                  "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 137) declares",
+                  "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 138) declares",
                   "example": "bluesky"
                 },
                 "postRef": {
@@ -152177,7 +152177,7 @@
             "oneOf": [
               {
                 "type": "object",
-                "description": "First 132 story linked by URL or text",
+                "description": "First 133 story linked by URL or text",
                 "properties": {
                   "storyId": {
                     "$ref": "#/components/schemas/Ulid"
@@ -152229,7 +152229,7 @@
                 "platform": {
                   "type": "string",
                   "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
-                  "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 137) declares",
+                  "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 138) declares",
                   "example": "bluesky"
                 },
                 "firstObservedAt": {
@@ -152254,7 +152254,7 @@
             "items": {
               "$ref": "#/components/schemas/ProvenanceChainEntry"
             },
-            "description": "133 chain so circular reporting is recognised"
+            "description": "134 chain so circular reporting is recognised"
           },
           "tracer": {
             "$ref": "#/components/schemas/DetectorRef"
@@ -152542,7 +152542,7 @@
       },
       "SocialComparison": {
         "type": "object",
-        "description": "A claim tested against independent physical evidence in the same place and window, respecting detectability (`SocialPhysicalComparator` 1.0.0, 136)",
+        "description": "A claim tested against independent physical evidence in the same place and window, respecting detectability (`SocialPhysicalComparator` 1.0.0, 137)",
         "properties": {
           "id": {
             "$ref": "#/components/schemas/Ulid"
@@ -152905,7 +152905,7 @@
       },
       "SocialCue": {
         "type": "object",
-        "description": "A cue-driven social search; results are a targeted sample that never feeds baselines and never corroborates its own trigger (`SocialCueService`, 136)",
+        "description": "A cue-driven social search; results are a targeted sample that never feeds baselines and never corroborates its own trigger (`SocialCueService`, 137)",
         "properties": {
           "id": {
             "$ref": "#/components/schemas/Ulid"
@@ -153133,7 +153133,7 @@
       },
       "LeadTimeStats": {
         "type": "object",
-        "description": "Lead of social first observation over physical, news and official first observation, aggregated over corroborated comparisons; only out-of-sample comparisons support 'leads by' statements (136)",
+        "description": "Lead of social first observation over physical, news and official first observation, aggregated over corroborated comparisons; only out-of-sample comparisons support 'leads by' statements (137)",
         "properties": {
           "generatedAt": {
             "type": "string",
@@ -153198,7 +153198,7 @@
                 "platform": {
                   "type": "string",
                   "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
-                  "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 137) declares",
+                  "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 138) declares",
                   "example": "bluesky"
                 },
                 "regionCode": {
@@ -153262,7 +153262,7 @@
       },
       "SocialSettings": {
         "type": "object",
-        "description": "Instance social settings (`social.*`): languages, coverage, velocity, claim extraction, track-record grading, media, comparisons, attention gaps and cues (134–136). Platform settings live on `/v1/social/platforms/{platformId}`",
+        "description": "Instance social settings (`social.*`): languages, coverage, velocity, claim extraction, track-record grading, media, comparisons, attention gaps and cues (135–137). Platform settings live on `/v1/social/platforms/{platformId}`",
         "properties": {
           "languages": {
             "type": "array",
@@ -153356,7 +153356,7 @@
                     "platform": {
                       "type": "string",
                       "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
-                      "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 137) declares",
+                      "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 138) declares",
                       "example": "bluesky"
                     },
                     "account": {
@@ -153582,7 +153582,7 @@
       },
       "SituationSocialSection": {
         "type": "object",
-        "description": "What people are saying about a situation, kept apart from physical corroboration (136)",
+        "description": "What people are saying about a situation, kept apart from physical corroboration (137)",
         "properties": {
           "narratives": {
             "type": "array",
@@ -153670,7 +153670,7 @@
                     "items": {
                       "type": "string",
                       "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
-                      "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 137) declares",
+                      "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 138) declares",
                       "example": "bluesky"
                     }
                   }
@@ -153688,7 +153688,7 @@
           },
           "socialCoverageOk": {
             "type": "boolean",
-            "description": "134 social observability for the situation's regions"
+            "description": "135 social observability for the situation's regions"
           },
           "updatedAt": {
             "type": "string",
@@ -153703,7 +153703,7 @@
       },
       "SocialVersusObserved": {
         "type": "object",
-        "description": "Packet and assessment section \"What people are saying versus what we observe\" (136; ICD 203 wording rules apply)",
+        "description": "Packet and assessment section \"What people are saying versus what we observe\" (137; ICD 203 wording rules apply)",
         "properties": {
           "narrativesByStatus": {
             "type": "object",
@@ -153772,7 +153772,7 @@
                 "platform": {
                   "type": "string",
                   "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
-                  "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 137) declares",
+                  "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 138) declares",
                   "example": "bluesky"
                 },
                 "regionCode": {
@@ -153819,7 +153819,7 @@
       },
       "ChronicleSocialNarrativesSelector": {
         "type": "object",
-        "description": "Chronicle layer `social-narratives` (136): narratives, claims and comparisons matching topics, places or situations; history kept after posts expire",
+        "description": "Chronicle layer `social-narratives` (137): narratives, claims and comparisons matching topics, places or situations; history kept after posts expire",
         "properties": {
           "type": {
             "type": "string",
@@ -153879,7 +153879,7 @@
       },
       "ChronicleSocialVolumeSelector": {
         "type": "object",
-        "description": "Chronicle layer `social-volume` (136): social volume series by topic, place or entity",
+        "description": "Chronicle layer `social-volume` (137): social volume series by topic, place or entity",
         "properties": {
           "type": {
             "type": "string",
@@ -153915,7 +153915,7 @@
             "items": {
               "type": "string",
               "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
-              "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 137) declares",
+              "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 138) declares",
               "example": "bluesky"
             }
           },
@@ -153939,7 +153939,7 @@
       },
       "SocialVelocityEvent": {
         "type": "object",
-        "description": "SSE `social.velocity` (topic `social`): a `social-velocity` finding was created (134)",
+        "description": "SSE `social.velocity` (topic `social`): a `social-velocity` finding was created (135)",
         "properties": {
           "event": {
             "type": "string",
@@ -153972,7 +153972,7 @@
           "platform": {
             "type": "string",
             "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
-            "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 137) declares",
+            "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 138) declares",
             "example": "bluesky"
           },
           "language": {
@@ -154014,7 +154014,7 @@
       },
       "SocialPlatformStateEvent": {
         "type": "object",
-        "description": "SSE `social.platform.state` (topic `social`): an adapter became enabled, disabled, degraded, budget-exhausted, credentials-required or unavailable (134)",
+        "description": "SSE `social.platform.state` (topic `social`): an adapter became enabled, disabled, degraded, budget-exhausted, credentials-required or unavailable (135)",
         "properties": {
           "event": {
             "type": "string",
@@ -154062,7 +154062,7 @@
       },
       "NarrativeEvent": {
         "type": "object",
-        "description": "SSE `narrative.emerged` | `narrative.updated` (topic `social`); updates fire when state or counts cross a band (135)",
+        "description": "SSE `narrative.emerged` | `narrative.updated` (topic `social`); updates fire when state or counts cross a band (136)",
         "properties": {
           "event": {
             "type": "string",
@@ -154103,7 +154103,7 @@
       },
       "ClaimExtractedEvent": {
         "type": "object",
-        "description": "SSE `claim.extracted` (topic `social`) (135)",
+        "description": "SSE `claim.extracted` (topic `social`) (136)",
         "properties": {
           "event": {
             "type": "string",
@@ -154125,7 +154125,7 @@
       },
       "MediaReuseEvent": {
         "type": "object",
-        "description": "SSE `media.reuse` (topic `social`): a `media-reuse` finding (135)",
+        "description": "SSE `media.reuse` (topic `social`): a `media-reuse` finding (136)",
         "properties": {
           "event": {
             "type": "string",
@@ -154179,7 +154179,7 @@
       },
       "CoordinationDetectedEvent": {
         "type": "object",
-        "description": "SSE `coordination.detected` (topic `social`): a `social-coordination` finding (135)",
+        "description": "SSE `coordination.detected` (topic `social`): a `social-coordination` finding (136)",
         "properties": {
           "event": {
             "type": "string",
@@ -154218,7 +154218,7 @@
       },
       "SocialComparisonEvent": {
         "type": "object",
-        "description": "SSE `comparison.updated` (topic `social`): a comparison was created or revised (136)",
+        "description": "SSE `comparison.updated` (topic `social`): a comparison was created or revised (137)",
         "properties": {
           "event": {
             "type": "string",
@@ -154277,7 +154277,7 @@
       },
       "SocialCueEvent": {
         "type": "object",
-        "description": "SSE `cue.completed` (topic `social`): a cue finished, failed or was refused by budget (136)",
+        "description": "SSE `cue.completed` (topic `social`): a cue finished, failed or was refused by budget (137)",
         "properties": {
           "event": {
             "type": "string",
@@ -154294,7 +154294,7 @@
       },
       "AttentionGapEvent": {
         "type": "object",
-        "description": "SSE `attention.gap` (topic `social`): an `attention-gap` finding (136)",
+        "description": "SSE `attention.gap` (topic `social`): an `attention-gap` finding (137)",
         "properties": {
           "event": {
             "type": "string",
@@ -154332,7 +154332,7 @@
             "items": {
               "type": "string",
               "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
-              "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 137) declares",
+              "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 138) declares",
               "example": "bluesky"
             }
           },
@@ -154392,6 +154392,10 @@
           },
           "documentation": {
             "type": "string"
+          },
+          "maxMinor": {
+            "type": "integer",
+            "description": "Highest 1.x minor version accepted"
           }
         },
         "required": [
@@ -154402,11 +154406,12 @@
       },
       "EdpManifest": {
         "type": "object",
-        "description": "Self-description of an EDP provider (docs/External-Data-Protocol.md §2)",
+        "description": "Self-description of an EDP provider (docs/External-Data-Protocol.md §2). Stream ids must be unique and each layer stream must carry feature or event items (checked at registration). Unknown fields are ignored at every level (forward compatibility within 1.x).",
         "properties": {
           "protocol": {
             "type": "string",
-            "pattern": "^foresignal-edp/1\\.[0-9]+$"
+            "pattern": "^foresignal-edp/1\\.(0|[1-9][0-9]*)$",
+            "description": "foresignal-edp/1.N; N must not exceed the highest minor the instance supports (GET /v1/external/protocol), else PROTOCOL_UNSUPPORTED"
           },
           "source": {
             "$ref": "#/components/schemas/EdpSourceInfo"
@@ -154607,11 +154612,11 @@
       },
       "EdpTransport": {
         "type": "object",
-        "description": "How items reach Foresignal",
+        "description": "How items reach Foresignal: at least one of push: true or a pull endpoint",
         "properties": {
           "push": {
             "type": "boolean",
-            "default": true
+            "description": "The provider pushes to POST /v1/external/sources/{id}/items"
           },
           "pull": {
             "oneOf": [
@@ -154633,7 +154638,29 @@
               }
             ]
           }
-        }
+        },
+        "anyOf": [
+          {
+            "required": [
+              "push"
+            ],
+            "properties": {
+              "push": {
+                "const": true
+              }
+            }
+          },
+          {
+            "required": [
+              "pull"
+            ],
+            "properties": {
+              "pull": {
+                "$ref": "#/components/schemas/EdpPull"
+              }
+            }
+          }
+        ]
       },
       "EdpPull": {
         "type": "object",
@@ -154795,6 +154822,13 @@
             "items": {
               "$ref": "#/components/schemas/EdpSuggestedBinding"
             }
+          },
+          "snapshotScope": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "For update: snapshot. Null = the whole stream is one scope; otherwise the item property whose value names the scope (e.g. a region code), so a snapshot only removes items of its own scope."
           }
         },
         "required": [
@@ -154802,6 +154836,35 @@
           "mode",
           "itemType",
           "kind"
+        ],
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "mode": {
+                  "const": "layer"
+                }
+              },
+              "required": [
+                "mode"
+              ]
+            },
+            "then": {
+              "properties": {
+                "itemType": {
+                  "enum": [
+                    "feature",
+                    "event"
+                  ]
+                },
+                "geometry": {
+                  "not": {
+                    "const": "none"
+                  }
+                }
+              }
+            }
+          }
         ]
       },
       "EdpStreamFields": {
@@ -154886,9 +154949,7 @@
           "area": {
             "oneOf": [
               {
-                "type": "object",
-                "additionalProperties": true,
-                "description": "GeoJSON geometry (WGS84, lon/lat)"
+                "$ref": "#/components/schemas/EdpGeometry"
               },
               {
                 "type": "null"
@@ -154944,20 +155005,17 @@
         "description": "A batch of EDP items (push body or pull response)",
         "properties": {
           "protocol": {
-            "type": "string"
+            "type": "string",
+            "pattern": "^foresignal-edp/1\\.(0|[1-9][0-9]*)$",
+            "description": "foresignal-edp/1.N; N must not exceed the highest minor the instance supports (GET /v1/external/protocol), else PROTOCOL_UNSUPPORTED"
           },
           "sourceId": {
             "type": "string",
-            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
-            "maxLength": 48
+            "description": "Optional. The source is identified by the push URL and key (or the pull registration); when present this must equal the registered source id (400 SOURCE_MISMATCH)."
           },
           "sentAt": {
             "type": "string",
             "format": "date-time"
-          },
-          "complete": {
-            "type": "boolean",
-            "default": false
           },
           "items": {
             "type": "array",
@@ -154970,6 +155028,16 @@
             "type": [
               "string",
               "null"
+            ]
+          },
+          "snapshot": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EdpSnapshot"
+              },
+              {
+                "type": "null"
+              }
             ]
           }
         },
@@ -155046,9 +155114,7 @@
           "geometry": {
             "oneOf": [
               {
-                "type": "object",
-                "additionalProperties": true,
-                "description": "GeoJSON geometry (WGS84, lon/lat)"
+                "$ref": "#/components/schemas/EdpGeometry"
               },
               {
                 "type": "null"
@@ -155068,6 +155134,16 @@
               "null"
             ],
             "format": "date-time"
+          },
+          "origin": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EdpOrigin"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -155111,9 +155187,7 @@
           "geometry": {
             "oneOf": [
               {
-                "type": "object",
-                "additionalProperties": true,
-                "description": "GeoJSON geometry (WGS84, lon/lat)"
+                "$ref": "#/components/schemas/EdpGeometry"
               },
               {
                 "type": "null"
@@ -155124,6 +155198,16 @@
             "type": [
               "string",
               "null"
+            ]
+          },
+          "origin": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EdpOrigin"
+              },
+              {
+                "type": "null"
+              }
             ]
           }
         },
@@ -155168,7 +155252,8 @@
           },
           "t": {
             "type": "string",
-            "description": "Time or period: 2026-10-10, 2026-W41, 2026-10, or a timestamp"
+            "description": "Period or instant: YYYY, YYYY-Qn, YYYY-MM, YYYY-Www (ISO week), YYYY-MM-DD, or an RFC 3339 timestamp with offset. Periods are UTC intervals [start, end); one series uses one granularity.",
+            "pattern": "^([0-9]{4}|[0-9]{4}-Q[1-4]|[0-9]{4}-(0[1-9]|1[0-2])|[0-9]{4}-W(0[1-9]|[1-4][0-9]|5[0-3])|[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])|[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}(:[0-9]{2}(\\.[0-9]+)?)?(Z|[+-][0-9]{2}:[0-9]{2}))$"
           },
           "value": {
             "type": [
@@ -155181,12 +155266,23 @@
               "string",
               "null"
             ],
-            "format": "date-time"
+            "format": "date-time",
+            "description": "Provider-claimed availability time; stored as given. Foresignal uses max(knownAt, its own receipt time) for as-of and look-ahead rules."
           },
           "unit": {
             "type": [
               "string",
               "null"
+            ]
+          },
+          "origin": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EdpOrigin"
+              },
+              {
+                "type": "null"
+              }
             ]
           }
         },
@@ -155325,9 +155421,7 @@
           "geometry": {
             "oneOf": [
               {
-                "type": "object",
-                "additionalProperties": true,
-                "description": "GeoJSON geometry (WGS84, lon/lat)"
+                "$ref": "#/components/schemas/EdpGeometry"
               },
               {
                 "type": "null"
@@ -155345,6 +155439,16 @@
                 "null"
               ]
             }
+          },
+          "origin": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EdpOrigin"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -155358,7 +155462,7 @@
       },
       "EdpForecastItem": {
         "type": "object",
-        "description": "A probability (or quantiles) for a question",
+        "description": "A probability or quantiles (monotonic: p05 ≤ p10 ≤ p25 ≤ p50 ≤ p75 ≤ p90 ≤ p95, checked by the server) for a question",
         "properties": {
           "stream": {
             "type": "string",
@@ -155440,7 +155544,18 @@
           },
           "madeAt": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "Provider-claimed time; the recorded made_at is max(madeAt, receipt time)"
+          },
+          "origin": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EdpOrigin"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -155449,11 +155564,63 @@
           "id",
           "madeAt"
         ],
-        "additionalProperties": true
+        "additionalProperties": true,
+        "allOf": [
+          {
+            "anyOf": [
+              {
+                "required": [
+                  "probability"
+                ],
+                "properties": {
+                  "probability": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1
+                  }
+                }
+              },
+              {
+                "required": [
+                  "quantiles"
+                ],
+                "properties": {
+                  "quantiles": {
+                    "$ref": "#/components/schemas/Quantiles"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "anyOf": [
+              {
+                "required": [
+                  "question"
+                ],
+                "properties": {
+                  "question": {
+                    "type": "object"
+                  }
+                }
+              },
+              {
+                "required": [
+                  "questionRef"
+                ],
+                "properties": {
+                  "questionRef": {
+                    "type": "string"
+                  }
+                }
+              }
+            ]
+          }
+        ]
       },
       "EdpDeleteItem": {
         "type": "object",
-        "description": "Tombstone for {stream}:{id}",
+        "description": "Tombstone for {stream}:{id}; observedAt and properties are optional (kept for audit)",
         "properties": {
           "stream": {
             "type": "string",
@@ -155488,7 +155655,7 @@
       },
       "EdpStatusItem": {
         "type": "object",
-        "description": "Provider health (no record)",
+        "description": "Provider health (no record). Without stream it is the source's health; with stream, that stream's health.",
         "properties": {
           "stream": {
             "type": "string",
@@ -155963,7 +156130,7 @@
       },
       "ExternalBindingInput": {
         "type": "object",
-        "description": "Bind an atomic stream to a target (137)",
+        "description": "Bind an atomic stream to a target (138)",
         "properties": {
           "streamId": {
             "type": "string"
@@ -156015,7 +156182,7 @@
       },
       "ExternalBinding": {
         "type": "object",
-        "description": "A binding with its state (137)",
+        "description": "A binding with its state (138)",
         "allOf": [
           {
             "$ref": "#/components/schemas/ExternalBindingInput"
@@ -156113,7 +156280,7 @@
       },
       "ExternalQuestionLinkInput": {
         "type": "object",
-        "description": "Map a provider question id to a ledger question (137)",
+        "description": "Map a provider question id to a ledger question (138)",
         "properties": {
           "streamId": {
             "type": "string"
@@ -156221,7 +156388,7 @@
       },
       "ChronicleExternalStreamSelector": {
         "type": "object",
-        "description": "Chronicle layer capturing an external stream (137)",
+        "description": "Chronicle layer capturing an external stream (138)",
         "properties": {
           "type": {
             "type": "string",
@@ -156308,7 +156475,7 @@
       },
       "EdpSearch": {
         "type": "object",
-        "description": "Optional provider search endpoint used by cues (136)",
+        "description": "Optional provider search endpoint used by cues (137)",
         "properties": {
           "url": {
             "type": "string",
@@ -156333,6 +156500,108 @@
         },
         "required": [
           "url"
+        ]
+      },
+      "EdpGeometry": {
+        "type": "object",
+        "description": "GeoJSON geometry (RFC 7946, WGS84 lon/lat, optional altitude in metres). GeometryCollection is not accepted. The server also checks bounds, ring closure, vertex count (≤ 10,000) and that the type matches the stream's declared geometry.",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "Point",
+              "MultiPoint",
+              "LineString",
+              "MultiLineString",
+              "Polygon",
+              "MultiPolygon"
+            ]
+          },
+          "coordinates": {
+            "type": "array",
+            "minItems": 1
+          }
+        },
+        "required": [
+          "type",
+          "coordinates"
+        ]
+      },
+      "EdpOrigin": {
+        "type": "object",
+        "description": "Item-level provenance: who originally observed or published this item, when it differs from the manifest originator (for evidence independence)",
+        "properties": {
+          "originator": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+          },
+          "class": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "sensor-network",
+              "agency",
+              "aggregator",
+              "media",
+              "crowd",
+              "social",
+              "operator",
+              "derived",
+              null
+            ]
+          },
+          "upstreamId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The original publisher's id for the observation or report"
+          },
+          "derivedFrom": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Other items (stream:id) or upstream ids this item was derived from"
+          }
+        },
+        "required": [
+          "originator"
+        ]
+      },
+      "EdpSnapshot": {
+        "type": "object",
+        "description": "Marks the batch as a page of a full snapshot of one scope of a snapshot stream. Absent ids are tombstoned only when the final page arrives, every page validated, within the snapshot window, and the absent share is within the safety limit.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 128
+          },
+          "stream": {
+            "type": "string"
+          },
+          "scope": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Value of the stream's snapshotScope property this snapshot covers; null = the whole stream"
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "final": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "stream",
+          "page",
+          "final"
         ]
       },
       "WeatherSettings": {

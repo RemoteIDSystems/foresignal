@@ -3996,7 +3996,7 @@
               ],
               "query": []
             },
-            "description": "The latest `pass | warn | fail` per component, as used by `BenchmarkGate` to gate 127 proposer auto-execution and LLM ensemble weight.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getBenchmarkStatus`",
+            "description": "The latest `pass | warn | fail` per component, as used by `BenchmarkGate` to gate 128 proposer auto-execution and LLM ensemble weight.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getBenchmarkStatus`",
             "auth": {
               "type": "noauth"
             }
@@ -10177,7 +10177,7 @@
     },
     {
       "name": "Chronicles",
-      "description": "Chronicles: saved monitoring threads with their own recorded history, replay and lifecycle (130), and the chronicle network (133)",
+      "description": "Chronicles: saved monitoring threads with their own recorded history, replay and lifecycle (131), and the chronicle network (134)",
       "item": [
         {
           "name": "List chronicles",
@@ -10248,7 +10248,7 @@
                 }
               ]
             },
-            "description": "Chronicles the caller owns or that are shared with them (access lists and TLP, 129).\n\n**Scope:** `read`.\n\noperationId: `listChronicles`",
+            "description": "Chronicles the caller owns or that are shared with them (access lists and TLP, 130).\n\n**Scope:** `read`.\n\noperationId: `listChronicles`",
             "auth": {
               "type": "noauth"
             }
@@ -10290,7 +10290,7 @@
               ],
               "query": []
             },
-            "description": "Creates a chronicle owned by the caller, with its 128 workspace. From a workspace (`fromWorkspaceId`), its layers, area and filters become chronicle layers. Capture starts only on activation (or with `activate=true`). Inherits the strictest TLP of linked inputs.\n\n**Scope:** `agent`.\n\noperationId: `createChronicle`",
+            "description": "Creates a chronicle owned by the caller, with its 129 workspace. From a workspace (`fromWorkspaceId`), its layers, area and filters become chronicle layers. Capture starts only on activation (or with `activate=true`). Inherits the strictest TLP of linked inputs.\n\n**Scope:** `agent`.\n\noperationId: `createChronicle`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -10453,7 +10453,7 @@
               ],
               "query": []
             },
-            "description": "JSON merge patch (owner or editor). A stricter TLP lowers discoverability automatically (133).\n\n**Scope:** `agent`.\n\noperationId: `updateChronicle`",
+            "description": "JSON merge patch (owner or editor). A stricter TLP lowers discoverability automatically (134).\n\n**Scope:** `agent`.\n\noperationId: `updateChronicle`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -12032,7 +12032,7 @@
               ],
               "query": []
             },
-            "description": "Owner grants access: a 129 ACL grant on this instance, or for remote requesters a 131 package (chronicle extract or report). TLP applies.\n\n**Scope:** `agent`.\n\noperationId: `grantChronicleAccessRequest`",
+            "description": "Owner grants access: a 130 ACL grant on this instance, or for remote requesters a 132 package (chronicle extract or report). TLP applies.\n\n**Scope:** `agent`.\n\noperationId: `grantChronicleAccessRequest`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -12223,7 +12223,7 @@
     },
     {
       "name": "Collaboration",
-      "description": "Principals, groups, access lists, TLP, tags, comments, attachments, evidence items, saved searches and the personal inbox (129)",
+      "description": "Principals, groups, access lists, TLP, tags, comments, attachments, evidence items, saved searches and the personal inbox (130)",
       "item": [
         {
           "name": "The calling principal",
@@ -15818,7 +15818,7 @@
     },
     {
       "name": "Exchange",
-      "description": "Signed intelligence packages between instances: build, deliver, receive, import, acknowledge (131)",
+      "description": "Signed intelligence packages between instances: build, deliver, receive, import, acknowledge (132)",
       "item": [
         {
           "name": "Build a signed intelligence package",
@@ -17281,7 +17281,7 @@
     },
     {
       "name": "External",
-      "description": "External Data Protocol: third-party providers, items, bindings (024, 137; docs/External-Data-Protocol.md)",
+      "description": "External Data Protocol: third-party providers, items, bindings (024, 138; docs/External-Data-Protocol.md)",
       "item": [
         {
           "name": "Get the EDP protocol description",
@@ -24607,7 +24607,7 @@
                 }
               ]
             },
-            "description": "Investigations visible to the caller (129 adds `scope=mine|shared|all` and access lists).\n\n**Scope:** `read` (token required; not covered by `security.openReads`).\n\noperationId: `listInvestigations`",
+            "description": "Investigations visible to the caller (130 adds `scope=mine|shared|all` and access lists).\n\n**Scope:** `read` (token required; not covered by `security.openReads`).\n\noperationId: `listInvestigations`",
             "auth": {
               "type": "noauth"
             }
@@ -26080,7 +26080,7 @@
     },
     {
       "name": "MCP",
-      "description": "Remote MCP authorization: RFC 9728 protected resource metadata (140)",
+      "description": "Remote MCP authorization: RFC 9728 protected resource metadata (141)",
       "item": [
         {
           "name": "Protected resource metadata",
@@ -26745,7 +26745,7 @@
     },
     {
       "name": "News",
-      "description": "News articles (metadata only) and stories with coverage balance, blindspots and corroboration (132)",
+      "description": "News articles (metadata only) and stories with coverage balance, blindspots and corroboration (133)",
       "item": [
         {
           "name": "List news stories",
@@ -31493,7 +31493,7 @@
     },
     {
       "name": "Plugins",
-      "description": "Out-of-tree WASM parser plugins, disabled by default (140)",
+      "description": "Out-of-tree WASM parser plugins, disabled by default (141)",
       "item": [
         {
           "name": "List plugins",
@@ -35492,7 +35492,7 @@
     },
     {
       "name": "Reports",
-      "description": "Reports: deterministic drafts, blocks, publishing, renditions, sending and read-only links (131)",
+      "description": "Reports: deterministic drafts, blocks, publishing, renditions, sending and read-only links (132)",
       "item": [
         {
           "name": "List reports",
@@ -36190,7 +36190,7 @@
               ],
               "query": []
             },
-            "description": "Grants viewer access to principals and groups, notifies them (129 preferences; inbox item; optional HTML or link via their channels) and records the send. TLP is checked per recipient.\n\n**Scope:** `agent`.\n\noperationId: `sendReport`",
+            "description": "Grants viewer access to principals and groups, notifies them (130 preferences; inbox item; optional HTML or link via their channels) and records the send. TLP is checked per recipient.\n\n**Scope:** `agent`.\n\noperationId: `sendReport`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -40071,7 +40071,7 @@
     },
     {
       "name": "Social",
-      "description": "Social signals: operator-enabled platform adapters, posts, volume baselines, narratives, claims, media fingerprints, social\u2013physical comparisons and cues (134\u2013136)",
+      "description": "Social signals: operator-enabled platform adapters, posts, volume baselines, narratives, claims, media fingerprints, social\u2013physical comparisons and cues (135\u2013137)",
       "item": [
         {
           "name": "List social platform adapters",
@@ -40435,7 +40435,7 @@
                 {
                   "key": "cueId",
                   "value": "",
-                  "description": "Posts found by a 136 cue",
+                  "description": "Posts found by a 137 cue",
                   "disabled": true
                 },
                 {
@@ -41004,7 +41004,7 @@
                 }
               ]
             },
-            "description": "Structured claims (what, where, when, who) with extraction provenance, Admiralty grade and 136 status. Claims are reports: draw them in a distinct \"reported\" style, never as observed events.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `listClaims`",
+            "description": "Structured claims (what, where, when, who) with extraction provenance, Admiralty grade and 137 status. Claims are reports: draw them in a distinct \"reported\" style, never as observed events.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `listClaims`",
             "auth": {
               "type": "noauth"
             }
@@ -42631,7 +42631,7 @@
     },
     {
       "name": "Standards",
-      "description": "Standards outputs: FDSN event / QuakeML, STIX 2.1 and TAXII 2.1 (140)",
+      "description": "Standards outputs: FDSN event / QuakeML, STIX 2.1 and TAXII 2.1 (141)",
       "item": [
         {
           "name": "FDSN event query",

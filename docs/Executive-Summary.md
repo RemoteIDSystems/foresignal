@@ -82,7 +82,7 @@ Individuals: OSINT hobbyists, analysts, researchers, makers and developers who w
 
 ## Plan
 
-A single ordered list of 143 prompts in the [Roadmap](Roadmap.md), in this order:
+A single ordered list of 144 prompts in the [Roadmap](Roadmap.md), in this order:
 
 1. foundation and core API
 2. channels, tokens, inbound webhooks, MCP and the LLM features

@@ -6,20 +6,17 @@
   "description": "A batch of EDP items (push body or pull response)",
   "properties": {
     "protocol": {
-      "type": "string"
+      "type": "string",
+      "pattern": "^foresignal-edp/1\\.(0|[1-9][0-9]*)$",
+      "description": "foresignal-edp/1.N; N must not exceed the highest minor the instance supports (GET /v1/external/protocol), else PROTOCOL_UNSUPPORTED"
     },
     "sourceId": {
       "type": "string",
-      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
-      "maxLength": 48
+      "description": "Optional. The source is identified by the push URL and key (or the pull registration); when present this must equal the registered source id (400 SOURCE_MISMATCH)."
     },
     "sentAt": {
       "type": "string",
       "format": "date-time"
-    },
-    "complete": {
-      "type": "boolean",
-      "default": false
     },
     "items": {
       "type": "array",
@@ -33,6 +30,16 @@
         "string",
         "null"
       ]
+    },
+    "snapshot": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/EdpSnapshot"
+        },
+        {
+          "type": "null"
+        }
+      ]
     }
   },
   "required": [
@@ -42,7 +49,7 @@
   "$defs": {
     "EdpDeleteItem": {
       "type": "object",
-      "description": "Tombstone for {stream}:{id}",
+      "description": "Tombstone for {stream}:{id}; observedAt and properties are optional (kept for audit)",
       "properties": {
         "stream": {
           "type": "string",
@@ -200,9 +207,7 @@
         "geometry": {
           "oneOf": [
             {
-              "type": "object",
-              "additionalProperties": true,
-              "description": "GeoJSON geometry (WGS84, lon/lat)"
+              "$ref": "#/$defs/EdpGeometry"
             },
             {
               "type": "null"
@@ -220,6 +225,16 @@
               "null"
             ]
           }
+        },
+        "origin": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/EdpOrigin"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "required": [
@@ -265,9 +280,7 @@
         "geometry": {
           "oneOf": [
             {
-              "type": "object",
-              "additionalProperties": true,
-              "description": "GeoJSON geometry (WGS84, lon/lat)"
+              "$ref": "#/$defs/EdpGeometry"
             },
             {
               "type": "null"
@@ -278,6 +291,16 @@
           "type": [
             "string",
             "null"
+          ]
+        },
+        "origin": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/EdpOrigin"
+            },
+            {
+              "type": "null"
+            }
           ]
         }
       },
@@ -319,9 +342,7 @@
         "geometry": {
           "oneOf": [
             {
-              "type": "object",
-              "additionalProperties": true,
-              "description": "GeoJSON geometry (WGS84, lon/lat)"
+              "$ref": "#/$defs/EdpGeometry"
             },
             {
               "type": "null"
@@ -341,6 +362,16 @@
             "null"
           ],
           "format": "date-time"
+        },
+        "origin": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/EdpOrigin"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "required": [
@@ -352,7 +383,7 @@
     },
     "EdpForecastItem": {
       "type": "object",
-      "description": "A probability (or quantiles) for a question",
+      "description": "A probability or quantiles (monotonic: p05 ≤ p10 ≤ p25 ≤ p50 ≤ p75 ≤ p90 ≤ p95, checked by the server) for a question",
       "properties": {
         "stream": {
           "type": "string",
@@ -434,7 +465,18 @@
         },
         "madeAt": {
           "type": "string",
-          "format": "date-time"
+          "format": "date-time",
+          "description": "Provider-claimed time; the recorded made_at is max(madeAt, receipt time)"
+        },
+        "origin": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/EdpOrigin"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "required": [
@@ -443,7 +485,84 @@
         "id",
         "madeAt"
       ],
-      "additionalProperties": true
+      "additionalProperties": true,
+      "allOf": [
+        {
+          "anyOf": [
+            {
+              "required": [
+                "probability"
+              ],
+              "properties": {
+                "probability": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                }
+              }
+            },
+            {
+              "required": [
+                "quantiles"
+              ],
+              "properties": {
+                "quantiles": {
+                  "$ref": "#/$defs/Quantiles"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "anyOf": [
+            {
+              "required": [
+                "question"
+              ],
+              "properties": {
+                "question": {
+                  "type": "object"
+                }
+              }
+            },
+            {
+              "required": [
+                "questionRef"
+              ],
+              "properties": {
+                "questionRef": {
+                  "type": "string"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "EdpGeometry": {
+      "type": "object",
+      "description": "GeoJSON geometry (RFC 7946, WGS84 lon/lat, optional altitude in metres). GeometryCollection is not accepted. The server also checks bounds, ring closure, vertex count (≤ 10,000) and that the type matches the stream's declared geometry.",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "Point",
+            "MultiPoint",
+            "LineString",
+            "MultiLineString",
+            "Polygon",
+            "MultiPolygon"
+          ]
+        },
+        "coordinates": {
+          "type": "array",
+          "minItems": 1
+        }
+      },
+      "required": [
+        "type",
+        "coordinates"
+      ]
     },
     "EdpItem": {
       "description": "One EDP item (one variant per type)",
@@ -504,7 +623,8 @@
         },
         "t": {
           "type": "string",
-          "description": "Time or period: 2026-10-10, 2026-W41, 2026-10, or a timestamp"
+          "description": "Period or instant: YYYY, YYYY-Qn, YYYY-MM, YYYY-Www (ISO week), YYYY-MM-DD, or an RFC 3339 timestamp with offset. Periods are UTC intervals [start, end); one series uses one granularity.",
+          "pattern": "^([0-9]{4}|[0-9]{4}-Q[1-4]|[0-9]{4}-(0[1-9]|1[0-2])|[0-9]{4}-W(0[1-9]|[1-4][0-9]|5[0-3])|[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])|[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}(:[0-9]{2}(\\.[0-9]+)?)?(Z|[+-][0-9]{2}:[0-9]{2}))$"
         },
         "value": {
           "type": [
@@ -517,12 +637,23 @@
             "string",
             "null"
           ],
-          "format": "date-time"
+          "format": "date-time",
+          "description": "Provider-claimed availability time; stored as given. Foresignal uses max(knownAt, its own receipt time) for as-of and look-ahead rules."
         },
         "unit": {
           "type": [
             "string",
             "null"
+          ]
+        },
+        "origin": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/EdpOrigin"
+            },
+            {
+              "type": "null"
+            }
           ]
         }
       },
@@ -536,9 +667,86 @@
       ],
       "additionalProperties": true
     },
+    "EdpOrigin": {
+      "type": "object",
+      "description": "Item-level provenance: who originally observed or published this item, when it differs from the manifest originator (for evidence independence)",
+      "properties": {
+        "originator": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+        },
+        "class": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "sensor-network",
+            "agency",
+            "aggregator",
+            "media",
+            "crowd",
+            "social",
+            "operator",
+            "derived",
+            null
+          ]
+        },
+        "upstreamId": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The original publisher's id for the observation or report"
+        },
+        "derivedFrom": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Other items (stream:id) or upstream ids this item was derived from"
+        }
+      },
+      "required": [
+        "originator"
+      ]
+    },
+    "EdpSnapshot": {
+      "type": "object",
+      "description": "Marks the batch as a page of a full snapshot of one scope of a snapshot stream. Absent ids are tombstoned only when the final page arrives, every page validated, within the snapshot window, and the absent share is within the safety limit.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "stream": {
+          "type": "string"
+        },
+        "scope": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Value of the stream's snapshotScope property this snapshot covers; null = the whole stream"
+        },
+        "page": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "final": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "stream",
+        "page",
+        "final"
+      ]
+    },
     "EdpStatusItem": {
       "type": "object",
-      "description": "Provider health (no record)",
+      "description": "Provider health (no record). Without stream it is the source's health; with stream, that stream's health.",
       "properties": {
         "stream": {
           "type": "string",
