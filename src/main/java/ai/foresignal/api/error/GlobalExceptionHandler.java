@@ -7,12 +7,14 @@ import java.util.Map;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -170,6 +172,12 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             HttpStatusCode status,
             WebRequest request) {
 
+        // Spring's own handlers (wrong method, unsupported media type, ...) pass a null body and
+        // leave the superclass to fill it from the exception. Filling it here instead is what lets
+        // those problems carry Foresignal's code and type too.
+        if (body == null && e instanceof ErrorResponse errorResponse) {
+            body = errorResponse.updateAndGetBody(getMessageSource(), LocaleContextHolder.getLocale());
+        }
         if (body instanceof ProblemDetail problem) {
             Map<String, Object> properties = problem.getProperties();
             boolean alreadyShaped = properties != null && properties.containsKey("code");

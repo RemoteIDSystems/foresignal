@@ -291,7 +291,7 @@ class WebSocketBudgetIT {
     private static final class HandshakeServer implements AutoCloseable {
 
         /** RFC 6455 §4.2.2: the GUID the key is concatenated with before hashing. */
-        private static final String MAGIC = "258EAFA5-E914-47DA-95CA-5AB0DC85B11F";
+        private static final String MAGIC = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 
         private final ServerSocket socket;
         private final Thread acceptor;

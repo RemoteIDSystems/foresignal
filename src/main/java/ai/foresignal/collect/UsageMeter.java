@@ -14,6 +14,7 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.LongAdder;
+import java.util.function.Consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -41,7 +42,8 @@ public class UsageMeter {
     /**
      * Accumulates both request and ingest counters for one (source, minute).
      *
-     * <p>Every field is a {@link LongAdder} so a flush can drain them without blocking recorders.
+     * <p>Every field is a {@link LongAdder}, so readers can sum the live counters while recorders
+     * add to them.
      */
     static final class Counters {
 
@@ -93,9 +95,12 @@ public class UsageMeter {
     /**
      * Live counters.
      *
-     * <p>A flush removes each key it drains rather than clearing the map, so an increment arriving
-     * during a flush either lands in the snapshot or in a freshly created entry — never in a bucket
-     * that is about to be discarded.
+     * <p>Every increment runs inside {@link ConcurrentHashMap#compute}, and a flush drains a key with
+     * {@link ConcurrentHashMap#remove}. Both hold the key's bin lock, so an increment lands either
+     * before the removal (and is in the drained snapshot) or after it (in a fresh entry for the next
+     * flush). Incrementing a {@code Counters} obtained earlier from {@code computeIfAbsent} was not
+     * safe: a recorder could add to an entry a flush had already removed and summed, and the count was
+     * lost (checkpoint 012, {@code UsageMeterIT}).
      */
     private final ConcurrentHashMap<UsageKey, Counters> live = new ConcurrentHashMap<>();
 
@@ -115,12 +120,13 @@ public class UsageMeter {
 
     /** Records one request that was sent. */
     public void record(String sourceId, long bytes, boolean success) {
-        Counters counters = counters(sourceId);
-        counters.requests.increment();
-        counters.bytes.add(Math.max(0, bytes));
-        if (!success) {
-            counters.errors.increment();
-        }
+        update(sourceId, counters -> {
+            counters.requests.increment();
+            counters.bytes.add(Math.max(0, bytes));
+            if (!success) {
+                counters.errors.increment();
+            }
+        });
     }
 
     /**
@@ -131,13 +137,13 @@ public class UsageMeter {
      */
     public void recordBytes(String sourceId, long bytes) {
         if (bytes > 0) {
-            counters(sourceId).bytes.add(bytes);
+            update(sourceId, counters -> counters.bytes.add(bytes));
         }
     }
 
     /** Records a request the budget declined to send. */
     public void recordRefused(String sourceId) {
-        counters(sourceId).refused.increment();
+        update(sourceId, counters -> counters.refused.increment());
     }
 
     /** Records what an ingest batch did. */
@@ -145,22 +151,32 @@ public class UsageMeter {
         if (counts == null || counts.isZero()) {
             return;
         }
-        Counters counters = counters(sourceId);
-        counters.recordsSeen.add(counts.recordsSeen());
-        counters.versions.add(counts.versions());
-        counters.liveUpdates.add(counts.liveUpdates());
-        counters.touches.add(counts.touches());
-        counters.late.add(counts.late());
-        counters.skipped.add(counts.skipped());
-        counters.rejected.add(counts.rejected());
-        counters.versionBytes.add(counts.versionBytes());
-        counters.clamped.add(counts.clamped());
-        counters.triggerEdges.add(counts.triggerEdges());
+        update(sourceId, counters -> {
+            counters.recordsSeen.add(counts.recordsSeen());
+            counters.versions.add(counts.versions());
+            counters.liveUpdates.add(counts.liveUpdates());
+            counters.touches.add(counts.touches());
+            counters.late.add(counts.late());
+            counters.skipped.add(counts.skipped());
+            counters.rejected.add(counts.rejected());
+            counters.versionBytes.add(counts.versionBytes());
+            counters.clamped.add(counts.clamped());
+            counters.triggerEdges.add(counts.triggerEdges());
+        });
     }
 
-    private Counters counters(String sourceId) {
-        return live.computeIfAbsent(
-                new UsageKey(sourceId, currentMinute()), key -> new Counters());
+    /**
+     * Applies {@code change} to this minute's counters for {@code sourceId}, atomically with respect
+     * to a flush removing them (see {@link #live}).
+     */
+    private void update(String sourceId, Consumer<Counters> change) {
+        live.compute(
+                new UsageKey(sourceId, currentMinute()),
+                (key, counters) -> {
+                    Counters target = counters == null ? new Counters() : counters;
+                    change.accept(target);
+                    return target;
+                });
     }
 
     private Instant currentMinute() {
@@ -174,8 +190,9 @@ public class UsageMeter {
     public void flush() {
         List<Object[]> batch = new ArrayList<>();
 
-        // Drain by removing each key: a concurrent increment then creates a new Counters for the
-        // same key and is picked up by the next flush, rather than being lost.
+        // Drain by removing each key: removal and increments are serialized on the key (see live),
+        // so a concurrent increment either made it into this snapshot or creates a new Counters for
+        // the same key that the next flush picks up.
         for (UsageKey key : List.copyOf(live.keySet())) {
             Counters counters = live.remove(key);
             if (counters == null) {
@@ -333,7 +350,7 @@ public class UsageMeter {
         Map<Instant, UsageTotalsWindow> buckets = new LinkedHashMap<>();
         String sql =
                 """
-                select date_trunc(?, minute) as bucket,
+                select date_trunc(?, minute, 'UTC') as bucket,
                        sum(requests), sum(bytes), sum(errors), sum(refused),
                        sum(records_seen), sum(versions), sum(live_updates), sum(touches),
                        sum(late), sum(skipped), sum(rejected), sum(version_bytes),

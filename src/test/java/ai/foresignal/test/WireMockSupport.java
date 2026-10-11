@@ -11,12 +11,18 @@ import org.junit.jupiter.api.extension.RegisterExtension;
  * <p>WireMock listens on a dynamic port so test classes never collide, and stubs are reset between
  * tests. Unmatched requests fail the test, which keeps an adapter from silently calling an endpoint
  * the test did not expect.
+ *
+ * <p>WireMock's own response compression is off. With it on, Jetty gzips any response to a request
+ * that accepts gzip (which {@code UpstreamClient} always does) and rewrites the stub's {@code ETag}
+ * from {@code "v1"} to {@code "v1--gzip"}, so a test could not assert that a validator is stored
+ * exactly as the upstream sent it. A test that needs a compressed body stubs one explicitly, with
+ * {@code Content-Encoding: gzip}.
  */
 public abstract class WireMockSupport {
 
     @RegisterExtension
     protected static final WireMockExtension WIREMOCK = WireMockExtension.newInstance()
-            .options(wireMockConfig().dynamicPort())
+            .options(wireMockConfig().dynamicPort().gzipDisabled(true))
             .configureStaticDsl(true)
             .failOnUnmatchedRequests(true)
             .resetOnEachTest(true)

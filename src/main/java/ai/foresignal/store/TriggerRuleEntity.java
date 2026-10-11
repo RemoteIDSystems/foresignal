@@ -9,6 +9,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 import org.locationtech.jts.geom.MultiPolygon;
@@ -49,8 +50,13 @@ public class TriggerRuleEntity {
     @Column(name = "geofence", columnDefinition = "geometry(MultiPolygon,4326)")
     private MultiPolygon geofence;
 
+    // The default is declared with @ColumnDefault rather than inside columnDefinition. With
+    // "varchar(8) default 'match'" as the definition, Hibernate's schema update saw a type mismatch
+    // on every start and issued "alter column mode set data type varchar(8) default 'match'", which
+    // PostgreSQL rejects as a syntax error (checkpoint 012).
     @Convert(converter = TriggerModeConverter.class)
-    @Column(name = "mode", nullable = false, columnDefinition = "varchar(8) default 'match'")
+    @Column(name = "mode", nullable = false, length = 8)
+    @ColumnDefault("'match'")
     private TriggerMode mode = TriggerMode.MATCH;
 
     /** Fire only for a record's first version, ignoring later revisions. */

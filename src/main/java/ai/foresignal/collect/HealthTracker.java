@@ -332,7 +332,8 @@ public class HealthTracker {
                                         ? new Rings(
                                                 parse(rs.getString(1), COUNTS_TYPE),
                                                 parse(rs.getString(2), COVERAGE_TYPE))
-                                        : new Rings(new ArrayList<>(), new ArrayList<>()));
+                                        : new Rings(new ArrayList<>(), new ArrayList<>()),
+                        sourceId);
         return rings == null ? new Rings(new ArrayList<>(), new ArrayList<>()) : rings;
     }
 

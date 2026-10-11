@@ -99,9 +99,17 @@ public class AppSettingService {
         publishAfterCommit(key);
     }
 
-    /** Forgets every cached value. Used by configuration import and by tests. */
+    /**
+     * Forgets every cached value. Used by configuration import and by tests.
+     *
+     * <p>Also announces an {@link AppSettingChangedEvent} for every key in {@link SettingKeys#ALL}.
+     * Components such as the CORS and token filters keep their own copy of a setting and drop it
+     * only on that event; clearing this cache alone left them serving the old value (checkpoint 012,
+     * {@code CorsFilterIT}).
+     */
     public void invalidateCache() {
         cache.clear();
+        SettingKeys.ALL.forEach(key -> events.publishEvent(new AppSettingChangedEvent(key)));
     }
 
     private void publishAfterCommit(String key) {

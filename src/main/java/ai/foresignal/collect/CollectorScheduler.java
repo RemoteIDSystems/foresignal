@@ -92,6 +92,9 @@ public class CollectorScheduler implements SmartLifecycle {
     private final AtomicInteger inFlight = new AtomicInteger();
 
     private volatile boolean running;
+
+    /** True once {@link #start()} has run; see {@link #isAutoStartup()}. */
+    private volatile boolean startedOnce;
     private ScheduledExecutorService timer;
     private ExecutorService fetchers;
     private ScheduledFuture<?> reconcileTask;
@@ -154,6 +157,7 @@ public class CollectorScheduler implements SmartLifecycle {
         });
         fetchers = Executors.newThreadPerTaskExecutor(Thread.ofVirtual().name("foresignal-scheduled-", 0).factory());
         running = true;
+        startedOnce = true;
         long period = Math.max(1, properties.reconcileInterval().toMillis());
         reconcileTask = timer.scheduleWithFixedDelay(this::reconcileSafely, 0, period, TimeUnit.MILLISECONDS);
         log.info("Collector scheduler started (reconcile every {})", properties.reconcileInterval());
@@ -208,10 +212,19 @@ public class CollectorScheduler implements SmartLifecycle {
         return running;
     }
 
-    /** Started by the ready event rather than by the context refresh. */
+    /**
+     * False until the ready event has started the scheduler, true afterwards.
+     *
+     * <p>False at first, so the context refresh does not start the scheduler ahead of the
+     * {@link StartupOrder} sequence; the ready event does. True afterwards, because a context that
+     * is paused and restarted ({@code ConfigurableApplicationContext.pause()}/{@code restart()}, as
+     * Spring's test context cache does on every context switch, or a checkpoint/restore) stops every
+     * lifecycle bean but restarts only auto-startup ones. With a constant {@code false} the
+     * scheduler stayed stopped after a restart (checkpoint 012, {@code NoClientTriggeredFetchIT}).
+     */
     @Override
     public boolean isAutoStartup() {
-        return false;
+        return startedOnce;
     }
 
     /** The collector's state, for {@code /v1/system}. */

@@ -1,5 +1,7 @@
 package ai.foresignal.settings;
 
+import java.util.List;
+
 /** Keys under which Foresignal stores its settings in {@code app_setting} (Architecture §7.1). */
 public final class SettingKeys {
 
@@ -20,6 +22,13 @@ public final class SettingKeys {
 
     /** This installation's generated identifier. */
     public static final String INSTALL_ID = "install.id";
+
+    /**
+     * Every key above. {@link AppSettingService#invalidateCache()} announces each of them, so a
+     * component holding its own copy of a setting drops it too. A new key belongs in this list.
+     */
+    public static final List<String> ALL =
+            List.of(RETENTION, CORS, TRIGGER_CURSOR, STREAM_LIMITS, SECURITY, INSTALL_ID);
 
     private SettingKeys() {}
 }

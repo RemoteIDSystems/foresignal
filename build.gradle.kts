@@ -50,6 +50,12 @@ springBoot {
 
 tasks.test {
     useJUnitPlatform()
+    // LicenseAllowlistTest (invariant PRC-2) inspects what ships: the runtime classpath, not the
+    // test classpath, which also carries WireMock and Testcontainers.
+    val runtimeClasspath = configurations.runtimeClasspath
+    jvmArgumentProviders.add(CommandLineArgumentProvider {
+        listOf("-Dforesignal.test.runtime-classpath=" + runtimeClasspath.get().asPath)
+    })
 }
 
 // The authored OpenAPI document is the contract. Serving it from the classpath

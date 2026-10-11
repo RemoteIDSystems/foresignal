@@ -184,6 +184,14 @@ class AppSettingServiceIT {
     }
 
     @Test
+    @DisplayName("invalidateCache announces every key, so components holding their own copy drop it")
+    void invalidateCacheAnnouncesEveryKey() {
+        service.invalidateCache();
+
+        assertThat(recorder.keys()).containsExactlyElementsOf(SettingKeys.ALL);
+    }
+
+    @Test
     @DisplayName("put publishes AppSettingChangedEvent once the write has committed")
     void publishesChangeEvent() {
         service.put(SettingKeys.RETENTION, RetentionSettings.defaults());

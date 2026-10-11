@@ -7,6 +7,7 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 /** Verifies the schema Hibernate cannot create for itself (Core-Data-Model §9). */
@@ -18,6 +19,18 @@ class SchemaBootstrapIT {
 
     @Autowired
     private SpatialIndexInitializer spatialIndexInitializer;
+
+    @Autowired
+    private ConfigurableListableBeanFactory beanFactory;
+
+    @Test
+    @DisplayName("the EntityManagerFactory depends on the PostGIS and history-schema initializers, so they run first")
+    void entityManagerFactoryWaitsForTheInitializers() {
+        String[] dependsOn = beanFactory.getBeanDefinition("entityManagerFactory").getDependsOn();
+
+        assertThat(dependsOn)
+                .contains(SchemaBootstrap.POSTGIS_INITIALIZER_BEAN, SchemaBootstrap.HISTORY_INITIALIZER_BEAN);
+    }
 
     @Test
     @DisplayName("the PostGIS extension is installed")
