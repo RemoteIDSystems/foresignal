@@ -8,7 +8,7 @@
 
 1. **Pull:** `git pull --ff-only origin main`.
    - **Owner stop still in place:** if `completion-reports/RUN-STATUS.md` exists, stop without changing anything. The owner deletes it to allow a resume.
-   - **Planner changes first:** if `git status` shows uncommitted changes **only** under `docs/`, `prompts/`, `postman/`, `scripts/generate-postman.py` or `scripts/run-sequence.sh` (including deletions of renumbered prompt files), they are planner updates. Stage them with `git add -A docs prompts postman scripts/generate-postman.py scripts/run-sequence.sh`, commit with the message `Planner: update roadmap and prompts`, and push.
+   - **Planner changes first:** if `git status` shows uncommitted changes **only** under `docs/`, `prompts/`, `postman/`, `client screen ideas/`, `scripts/generate-postman.py`, `scripts/export-edp-schemas.py` or `scripts/run-sequence.sh` (including deletions of renumbered prompt files), they are planner updates. Stage them with `git add -A docs prompts postman "client screen ideas" scripts/generate-postman.py scripts/export-edp-schemas.py scripts/run-sequence.sh`, commit with the message `Planner: update roadmap and prompts`, and push.
    - If there are uncommitted changes anywhere else, stop and write `RUN-STATUS.md`, because a previous run was interrupted mid-prompt.
    - If local `main` is ahead of `origin/main` with a clean tree, push before continuing.
 2. **Find the next prompt.** List `prompts/NNN-*.md` (skip `000`). The next prompt is the lowest-numbered one with **no** matching `completion-reports/NNN-CR-*.md`. Prompts already reported as `Partial` are not retried; the owner reviews them.
@@ -20,7 +20,7 @@
    - compile (`./gradlew compileJava compileTestJava`)
    - commit the implementation as `NNN: <Title>` (for example `005: Upstream Client And Budgets`)
    - write the Completion Report `completion-reports/NNN-CR-<Name>.md` in the same format as the earlier reports, with the 40-character implementation commit hash, commit it as `NNN: completion report`, and push to `origin main`
-   - feature prompts never run tests; checkpoint prompts (012, 022, 041, 057, 097, 124, 139, 142) run them as instructed, and 007–009 each run their own sanctioned test classes once
+   - feature prompts never run tests; checkpoint prompts (012, 022, 041, 057, 097, 124, 139, 142) and the final prompts 143–144 run them as instructed, and 007–009 each run their own sanctioned test classes once
 5. **Check before moving on:**
    - `git status` is clean
    - `git log origin/main -1` matches local `HEAD`
@@ -34,7 +34,7 @@
 Stop and write `completion-reports/RUN-STATUS.md`, then commit it as `Run status: <short reason>` and push, if any of these happen:
 - **Compile:** compilation fails and you can't fix it within the prompt's scope after a reasonable effort.
 - **Checkpoint tests:** a checkpoint's tests still fail after you've fixed everything you can determine to be a defect. List the failures and your analysis.
-- **Docker unavailable:** a checkpoint needs Testcontainers and Docker isn't running.
+- **Docker unavailable:** a checkpoint or a sanctioned test run (007–009) needs Testcontainers and Docker isn't running.
 - **Performance gate:** 022's performance smoke misses NFR-2 throughput or the SSE memory budget, or 143's capacity and soak results exceed the storage projection or memory limits, after the fixes you can make. Record the numbers and stop; the owner decides whether to continue.
 - **Needs the bench server:** Foresignal's production host is the owner's Linux amd64 bench server; the development machine is a Mac. Prompt 143 (Runtime Verification) measures and soaks a real deployment, so it must run on that server. Before starting 143, check `uname -sm`; unless it prints `Linux x86_64`, stop and ask the owner to run 143 on the bench server. Every other prompt runs on either machine, and nothing may assume macOS-only tools or paths.
 - **Push:** `git push` is rejected and can't be resolved as below (auth failure, or incoming changes outside planner paths). Don't force-push, ever. (In this case the status file can't be pushed; leave it committed locally.)

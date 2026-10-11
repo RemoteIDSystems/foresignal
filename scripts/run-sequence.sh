@@ -47,7 +47,7 @@ next_prompt() {
 log() { printf '[%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*"; }
 
 if ! docker info >/dev/null 2>&1; then
-  log "Warning: Docker is not responding. Checkpoint prompts (012, 022, ...) need it for Testcontainers."
+  log "Warning: Docker is not responding. Prompts 007-009 and the checkpoints (012, 022, ...) need it for Testcontainers."
 fi
 
 sessions=0
