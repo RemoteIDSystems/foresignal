@@ -4,7 +4,7 @@ Machine-checkable list of the rules the build must keep. Each invariant has a st
 
 **How it is used:**
 - Prompts cite invariant ids when they touch an owning component ("keeps ING-1, ING-2").
-- Every checkpoint (012, 022, 041, 057, 097, 134, 137) verifies that each invariant whose owner prompt is at or before it is asserted by at least one existing test. From 134 on, `InvariantRegistryTest` parses this file and checks that the named test classes exist.
+- Every checkpoint (012, 022, 041, 057, 097, 139, 142) verifies that each invariant whose owner prompt is at or before it is asserted by at least one existing test. From 139 on, `InvariantRegistryTest` parses this file and checks that the named test classes exist.
 - Test names below are the expected class names. A prompt that names its test differently updates this file in the same commit.
 - Detailed definitions live in the referenced documents; this file is the index.
 
@@ -90,7 +90,7 @@ Format: `| id | invariant | owner | enforced by | tests |`
 | OBJ-1 | Workspace context updates are versioned; a stale `If-Match` is rejected; clients ignore their own `originClientId` | 128 | workspace service | `WorkspaceSyncIT` |
 | OBJ-2 | Projected relations mirror their source structures after reconcile; only operator relations are editable | 128 | `RelationProjector` | `RelationProjectorIT` |
 
-## Collaboration, chronicles, exchange and news
+## Collaboration, chronicles, exchange, news, social and restricted sources
 
 | Id | Invariant | Owner | Enforced by | Tests |
 |---|---|---|---|---|
@@ -108,10 +108,17 @@ Format: `| id | invariant | owner | enforced by | tests |`
 | DISC-2 | Shared evidence counts once across chronicles and clusters | 133 | evidence keys, cluster timeline | `ChronicleDiscoveryIT` |
 | DISC-3 | Circular reporting is counted as one evidence group in hypotheses and confidence | 133 | `CircularReportingDetector` | `CircularReportingTest` |
 | MEM-1 | Observations are never edited by interpretation; chronicles copy observations and snapshot interpretation; nothing downstream mutates an upstream memory | 116 | code structure, writers | `MemorySeparationTest` |
+| SOC-1 | A social narrative or claim never counts as independent corroboration of a physical event or of itself; reposts and quotes inherit the original's originator | 135 | `NarrativeClusterer`, evidence groups, `SocialPhysicalComparator` | `SocialIndependenceTest`, `NarrativeClustererTest` |
+| SOC-2 | `unobserved` comparisons require `canSeeAbsence` ok; attention gaps require adequate social coverage; otherwise `insufficient-coverage` / no finding | 136 | `SocialPhysicalComparator`, `AttentionGapDetector` | `SocialAbsenceTest`, `AttentionGapDetectorTest` |
+| SOC-3 | Sampled and cue-found posts never feed volume baselines, and a cue never corroborates its own trigger | 136 | `SocialBaseline`, `SocialCueService` | `SocialCueLoopTest`, `SocialBaselineTest` |
+| SOC-4 | A paid social call is estimated first and refused when the monthly cap would be exceeded | 134 | `XSpend`, 005 budgets | `XSpendTest` |
+| SOC-5 | "Leads by" statements use only out-of-sample comparisons and validated precursor tests | 136 | lead-time statistics, 120 | `SocialLeadLagIT` |
+| RST-1 | Every adapter whose `access.route` is not `official` (and every paid adapter) is disabled by default and reports `BLOCKED`, `LAYOUT_CHANGED` or `GEO_RESTRICTED` instead of returning empty data | 137 | descriptors, health | `RestrictedDefaultsTest`, `RestrictedAdaptersTest` |
+| RST-2 | External forecasts never carry a `made_at` earlier than Foresignal saw the upstream price, and external forecasters join the ensemble only after 30 resolved linked questions | 138 | `ExternalForecaster`, ensemble | `ExternalForecasterTest` |
 
 ## Process
 
 | Id | Invariant | Owner | Enforced by | Tests |
 |---|---|---|---|---|
-| PRC-1 | Every API operation is in `docs/OpenAPI.json` with `x-foresignal-scope`, in AccessPolicy and in the Postman collection; `pending-operations.txt` lists only unbuilt operations and is empty at 137 | 020 | contract tests | `OpenApiContractIT`, `PostmanCoverageTest` |
+| PRC-1 | Every API operation is in `docs/OpenAPI.json` with `x-foresignal-scope`, in AccessPolicy and in the Postman collection; `pending-operations.txt` lists only unbuilt operations and is empty at 142 | 020 | contract tests | `OpenApiContractIT`, `PostmanCoverageTest` |
 | PRC-2 | No GPL/AGPL code or dependency in the application | 001 | dependency and reuse checks | `LicenceAllowlistTest` |

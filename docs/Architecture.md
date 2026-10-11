@@ -118,6 +118,10 @@ ai.foresignal
 │                   network: fingerprints, discovery, access requests (133)
 ├── report          Reports, renditions, signed intelligence packages (131)
 ├── media           News articles, stories, outlet registry, rating providers, coverage (132)
+├── markets         Prediction markets, forecast platforms and market links to the ledger (138)
+├── social          Platform adapters, posts, term index, volume series and baselines (134);
+│                   narratives, claims, media fingerprints, propagation, coordination (135);
+│                   social–physical comparisons, attention gaps, cues, lead times (136)
 └── api             Controllers, DTOs, ProblemDetail handlers, pagination cursors
 ```
 
@@ -628,7 +632,7 @@ Optional. Without a configured provider, Foresignal is fully functional: briefin
 
 - **Keys:** a VAPID key pair (P-256) is generated on first start. The private key is stored encrypted in `system_secret`. `GET /v1/push/vapid-public-key` is open.
 - **Subscriptions:** `POST /v1/push/subscriptions` takes `{name, subscription: {endpoint, keys: {p256dh, auth}}, filters: {events, ruleIds, minSeverity}}` and requires `read` scope (or open reads). `DELETE /v1/push/subscriptions/{id}` removes one, and `GET` lists them (admin).
-- **Delivery:** the built-in `webpush` channel encrypts payloads per RFC 8291 (`aes136gcm`) and signs a VAPID JWT (ES256, RFC 8292) using JDK crypto only. A `404` or `410` from the push service deletes the subscription.
+- **Delivery:** the built-in `webpush` channel encrypts payloads per RFC 8291 (`aes128gcm`) and signs a VAPID JWT (ES256, RFC 8292) using JDK crypto only. A `404` or `410` from the push service deletes the subscription.
 - **Payload:** `{title, body, severity, url, event, id}`. Frontends (a PWA or the operator console) register a service worker and subscribe.
 
 ## 25. Production hardening (prompt 063)
@@ -684,11 +688,13 @@ Authoritative design: [Intelligence Design](Intelligence-Design.md). Summary of 
 - **Outputs are platform objects:** typed tables plus records of the DERIVED sources `foresignal-intel`, `foresignal-analytics` and `foresignal-outlook`, so triggers, SSE, tiles, search, briefings and MCP work unchanged. Forecast questions and forecasts are append-only ledger rows.
 - **Determinism and versioning:** detectors, scorers, updaters and forecasters are pure, versioned components; outputs store `{name, version, params}` and `asOfSeq`. The LLM explains, challenges, proposes and forecasts (scored like any forecaster); it never creates evidence or changes deterministic scores.
 - **Time:** every series point carries `knownAt`; live detection uses only known data; replays and retrospective evaluation read through `asOf` (§9 query paths, Core-Data-Model §12).
-- **Durable cursors** (`situation.cursor`, `stats.region.cursor`, `precursor.cursor`, `impact.cursor`) join the retention consumer clamp; scheduled jobs (rollups, detectors, mining, resolution, cycles) use the 029/102 scheduler pattern and the 103 job framework.
+- **Durable cursors** (`situation.cursor`, `stats.region.cursor`, `precursor.cursor`, `impact.cursor`, `social.cursor`) join the retention consumer clamp; scheduled jobs (rollups, detectors, mining, resolution, cycles) use the 029/102 scheduler pattern and the 103 job framework.
 - **Retention:** analytic retention classes (Conventions) keep event kinds 5 years and series 10 years; intelligence tables are outside `RetentionJob`.
 - **Benchmarks** (123) measure analytic usefulness on planted-truth scenarios and a historical corpus and gate autonomous features.
 - **Clients** use one object contract, relation graph, annotations and synchronised workspaces (128, [Client Contract](Client-Contract.md)); Foresignal stores client layout only as opaque JSON.
 - **Collaboration and products:** principals, groups, access lists and TLP govern work products (129); chronicles keep their own partitioned history (130); reports and signed packages carry analysis between people and instances (131); news coverage and outlet ratings inform evidence quality (132).
+- **Social signals** (134–136): platform adapters are ordinary sources (STREAMING or POLLING) with budgets in money as well as calls; posts are `social-post` records; volume series join the analysis-series registry; narratives are canonical events (116) whose evidence groups count origins; comparisons with physical evidence use the observability model, and cues reuse the source framework with per-cue caps.
+- **Opt-in restricted sources** (137–138): `collect` gains a `browser` fetch mode (Playwright, optional runtime), per-source proxies and imported sessions; descriptors carry an `access` block (route, terms summary, fragility, requirements); adapters for unofficial, scraped and paid sources ship disabled.
 - **Invariants** are indexed in [Invariants](Invariants.md) and verified at every checkpoint.
 - **Wording:** probabilities are numbers; ICD 203 terms are derived and linted by one `EstimativeLanguage` utility.
 - **Libraries:** Apache Commons Statistics, Commons Numbers, Commons RNG and Hipparchus; no GPL statistics libraries.

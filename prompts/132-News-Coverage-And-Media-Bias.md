@@ -14,7 +14,7 @@
 ## Read first
 
 - `docs/Intelligence-Design.md` §2 (principles 9, 13, 14), §12.5 (news coverage and media bias), §14.5 (data terms)
-- `docs/Source-Catalog.md` "News and media ratings (prompt 132)" and the excluded list
+- `docs/Source-Catalog.md` "News and media ratings (prompt 132)" and the opt-in providers (138)
 - Completion Reports of 027 (embeddings), 066 (GDELT), 073 (feed kits), 101 (EventScorer reliability input), 109 (reliability grades, licence policy), 116 (originators, canonical events, evidence groups), 117 (attention topics, GDELT DOC client and its pacing), 118 (situations, linker), 119 (findings, series registry, event studies), 124 (hypotheses, confidence assessor), 127 (assessments), 128 (dossier)
 - Upstreams (verify each at fixture capture): GDELT DOC 2.0 `mode=ArtList`; Wikidata Query Service (`https://query.wikidata.org/sparql`, CC0, User-Agent policy); The Partisan Web data (`github.com/stockHuman/tpw-data`, CC BY 4.0: confirm the licence covers the data files and record the field meanings); AllSides media bias ratings (licence reported as CC BY-NC 4.0: confirm on allsides.com before enabling); Media Bias/Fact Check ratings API (paid, through the operator's own key)
 
@@ -25,7 +25,7 @@ Bring Ground News-style coverage analysis into Foresignal's intelligence layer. 
 ## Principles (binding)
 
 - **Ratings are imported, never invented.** Lean and factuality come only from declared providers with their licence and date; no LLM assigns ratings. Disagreement between providers is shown, not hidden.
-- **Metadata only.** Store title, URL, outlet, language, country, times and the feed's own summary (≤ 500 chars). Never fetch or scrape article bodies; never store bylines or author names.
+- **Metadata by default.** Store title, URL, outlet, language, country, times and the feed's own summary (≤ 500 chars). Article bodies and bylines are not fetched by this prompt; 137 adds opt-in settings for them, so keep the article model extensible.
 - **Coverage is not truth.** Balance and blindspots describe how a story is covered; they never raise or lower the truth of a claim by themselves. Corroboration still comes from independent evidence groups and sensors (116, 118).
 - **Licences travel.** Each rating carries its provider's licence and egress (`LOCAL_ONLY` for paid or non-commercial data where the terms require).
 
@@ -90,7 +90,7 @@ Bring Ground News-style coverage analysis into Foresignal's intelligence layer. 
 - `NewsStoryClusteringIT`: articles cluster by embedding and by token fallback; 30 reprints of a wire story form one evidence group with `syndicated` members; a story links to a situation and is `corroborated` by a sensor-based canonical event.
 - `CoverageAnalyzerTest`: balance, blindspot threshold and minimum n, state-affiliated share, divergence finding on a planted spike.
 - `CoverageInAnalysisIT`: situation coverage section; hypothesis `SKEWED_COVERAGE` caveat and the confidence step-down only without non-news corroboration.
-- `NewsControllersIT`: endpoints, scopes, MCP shapes; no author names anywhere in responses.
+- `NewsControllersIT`: endpoints, scopes, MCP shapes; no author names in responses (bylines arrive only with 137's opt-in setting).
 
 ## Acceptance criteria
 
@@ -101,8 +101,8 @@ Bring Ground News-style coverage analysis into Foresignal's intelligence layer. 
 
 ## Guardrails (mandatory)
 
-1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 134, 137, 138, 139).
-2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 139).
+1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 139, 142, 143, 144).
+2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 144).
 3. **Reuse policy.** Never copy code from ShadowBroker, Velocity or World Monitor (AGPL) or SatDump (GPL). They are reference material only. God's Eye View (MIT, `~/Documents/GitLab/gods-eye-view`) may be ported to Java if you add an origin header comment and an entry in `THIRD_PARTY_NOTICES.md`.
 4. **Stay in scope.** Implement what this prompt specifies, no more. If the docs conflict with reality (for example, a library API differs from what the docs assume), choose the approach most faithful to `docs/Architecture.md` and `docs/Intelligence-Design.md`, and record it under "Deviations" in the Completion Report.
 5. **Verify versions.** When adding a dependency, confirm the version exists on Maven Central and is compatible with Spring Boot 4.1 and Java 21.

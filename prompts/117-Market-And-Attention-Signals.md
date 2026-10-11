@@ -14,7 +14,7 @@
 ## Read first
 
 - `docs/Intelligence-Design.md` §0, §2 (principles 9 and 13), §4.1 (retention classes), §4.3 (series and `knownAt`), §5.3 (event studies), §14.5 (data sources and their terms)
-- `docs/Source-Catalog.md` (series conventions and the excluded list); `docs/Conventions.md` "Analytic retention" and "No credentials during construction"
+- `docs/Source-Catalog.md` (series conventions and the opt-in restricted sources); `docs/Conventions.md` "Analytic retention" and "No credentials during construction"
 - Completion Reports of 004/008 (descriptor fields, `egress`), 005 (budgets), 024 (custom sources), 062 (`egress=LOCAL_ONLY` semantics in `EgressPolicy`), 066 (GDELT), 073 (feed kits), 093 (series model: `series-point`, `series-latest`, `/v1/series`), 095 (Wikipedia edit surge)
 - Upstreams (verify each endpoint and field name against a captured response before writing the parser):
   - CFTC Public Reporting (Socrata): `https://publicreporting.cftc.gov/resource/{datasetId}.json`, datasets legacy futures `6dca-aqww`, disaggregated futures `72hh-3qpy`, TFF futures `gpe5-46if` (futures-and-options variants `jun7-fc8e`, `kh3c-gbw2`, `yw9f-hn96`); optional Socrata app token header `X-App-Token`
@@ -29,7 +29,7 @@ Add the market and attention signals the intelligence layer correlates with even
 
 ## Principles (binding)
 
-- **Official APIs and their terms only.** CME and ICE exchange data, prediction markets, Metaculus and UKMTO are excluded (Intelligence-Design §16). No scraping.
+- **Official APIs in this prompt.** CME and ICE exchange data, prediction markets, Metaculus, UKMTO and Google Trends come later as opt-in adapters (137, 138); keep the series and topic models general enough for them.
 - **Licensed data stays local.** The whole `fred-series` source is `egress=LOCAL_ONLY`; FRED series whose notes mark them as copyrighted additionally need explicit opt-in.
 - **Release lags are data.** Every series states `releaseLagDays`, and the version's ingest time is its `knownAt` (Intelligence-Design §4.3). Never back-date `observedAt` to the period.
 
@@ -90,15 +90,16 @@ Add the market and attention signals the intelligence layer correlates with even
 
 ### 8. Optional `ice-cot`
 
-Investigate whether ICE Futures Europe publishes its weekly Commitments of Traders (Brent, Gasoil) as a stable, official, machine-readable file whose terms allow personal use. If yes, implement it like `cftc-cot` (`seriesId = icecot.{contract}.{measure}`). If not, do not implement it; record the finding in the CR and in `docs/Source-Catalog.md`'s excluded list. This is not a reason for `Partial`.
+Investigate whether ICE Futures Europe publishes its weekly Commitments of Traders (Brent, Gasoil) as a stable, official, machine-readable file whose terms allow personal use. If yes, implement it like `cftc-cot` (`seriesId = icecot.{contract}.{measure}`). If not, do not implement it here; record the finding in the CR, and 138's opt-in `ice-eod` covers ICE data through the operator's subscription. This is not a reason for `Partial`.
 
 ### 9. Descriptors, retention, docs
 
 - All series sources: analytic class `series` (Conventions), STANDARD tier, `embedFields` none, `kindDisplay` for `series-point` reused from 093.
-- `docs/Source-Catalog.md`: rows for `cftc-cot`, `fred-series`, `wikimedia-pageviews`, `gdelt-timelines`, `worldbank-indicators` (and `ice-cot` or its exclusion), with licence, egress, cadence and release lag; add CME, ICE end-of-day, UKMTO and Metaculus to the excluded list with reasons.
+- `docs/Source-Catalog.md`: rows for `cftc-cot`, `fred-series`, `wikimedia-pageviews`, `gdelt-timelines`, `worldbank-indicators` (and `ice-cot`, or the note that it waits for 138), with licence, egress, cadence and release lag; add CME, ICE end-of-day, UKMTO and Metaculus to the excluded list with reasons.
 - `docs/OpenAPI.json`: `AttentionTopic`, `AttentionTopicInput`; the `SeriesCatalogEntry` additions; the backfill operation; tag `Attention`; `x-foresignal-scope` on every operation. Regenerate Postman (`python3 scripts/generate-postman.py docs/OpenAPI.json postman`) with BODIES for create topic and backfill.
 - AccessPolicy rows as listed.
 - `docs/Operator-Guide.md` "Markets and attention": what each source gives and its lag, the FRED key and notice, copyrighted series and `LOCAL_ONLY`, topics and how to write a GDELT query, the backfill command, and the explicit limit "daily and weekly data cannot show intraday trading".
+- Note for 134 (social signals): `attention_topic` gains a `social` block (terms per language, hashtags, accounts, channels, platforms, places, entities); keep the topic model and its API additive so 134 can extend it.
 
 ## Tests to write (do not run)
 
@@ -122,8 +123,8 @@ Investigate whether ICE Futures Europe publishes its weekly Commitments of Trade
 
 ## Guardrails (mandatory)
 
-1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 134, 137, 138, 139).
-2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 139).
+1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 139, 142, 143, 144).
+2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 144).
 3. **Reuse policy.** Never copy code from ShadowBroker, Velocity or World Monitor (AGPL) or SatDump (GPL). They are reference material only. God's Eye View (MIT, `~/Documents/GitLab/gods-eye-view`) may be ported to Java if you add an origin header comment and an entry in `THIRD_PARTY_NOTICES.md`.
 4. **Stay in scope.** Implement what this prompt specifies, no more. If the docs conflict with reality (for example, a library API differs from what the docs assume), choose the approach most faithful to `docs/Architecture.md` and `docs/Intelligence-Design.md`, and record it under "Deviations" in the Completion Report.
 5. **Verify versions.** When adding a dependency, confirm the version exists on Maven Central and is compatible with Spring Boot 4.1 and Java 21.

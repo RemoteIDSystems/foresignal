@@ -17280,6 +17280,279 @@
       ]
     },
     {
+      "name": "Exposure",
+      "description": "Opt-in internet-exposure monitoring (Shodan saved queries, 138)",
+      "item": [
+        {
+          "name": "List Shodan saved queries",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/shodan/queries",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "shodan",
+                "queries"
+              ],
+              "query": [
+                {
+                  "key": "cursor",
+                  "value": "{{cursor}}",
+                  "description": "Opaque page cursor",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "100",
+                  "description": "Page size",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Saved queries of the opt-in `shodan` adapter with their latest counts.\n\n**Scope:** `admin`.\n\noperationId: `listShodanQueries`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create a Shodan saved query",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/shodan/queries",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "shodan",
+                "queries"
+              ],
+              "query": []
+            },
+            "description": "Daily count series and, for monitored networks, `exposed-service` records.\n\n**Scope:** `admin`.\n\noperationId: `createShodanQuery`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Get a Shodan saved query",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/shodan/queries/{{queryId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "shodan",
+                "queries",
+                "{{queryId}}"
+              ],
+              "query": []
+            },
+            "description": "Query, cadence, latest count and series ref.\n\n**Scope:** `admin`.\n\noperationId: `getShodanQuery`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Replace a Shodan saved query",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/shodan/queries/{{queryId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "shodan",
+                "queries",
+                "{{queryId}}"
+              ],
+              "query": []
+            },
+            "description": "Replaces the query definition.\n\n**Scope:** `admin`.\n\noperationId: `updateShodanQuery`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Delete a Shodan saved query",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 204', () => pm.expect([204]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/shodan/queries/{{queryId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "shodan",
+                "queries",
+                "{{queryId}}"
+              ],
+              "query": []
+            },
+            "description": "Stops the query; its series is kept.\n\n**Scope:** `admin`.\n\noperationId: `deleteShodanQuery`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "Federation",
       "description": "Instance identity, the federation feed for peers, edge ingest and compact message bundles",
       "item": [
@@ -18927,6 +19200,152 @@
               "query": []
             },
             "description": "Runs the monthly check now: ensemble weights, Platt fits (\u2265 50 resolved per forecaster and category) and the extremizing factor, enabled only with \u2265 5 distinct forecaster types and an out-of-sample log-score gain over \u2265 100 resolutions.\n\n**Scope:** `agent` or `admin`.\n\noperationId: `refitForecastEnsemble`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{agentToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "List market links of a question",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/forecasts/questions/{{questionId}}/market-links",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "forecasts",
+                "questions",
+                "{{questionId}}",
+                "market-links"
+              ],
+              "query": []
+            },
+            "description": "Markets and forecast platforms linked to this ledger question as external forecasters.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `listQuestionMarketLinks`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Link a market to a question",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/forecasts/questions/{{questionId}}/market-links",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "forecasts",
+                "questions",
+                "{{questionId}}",
+                "market-links"
+              ],
+              "query": []
+            },
+            "description": "The linked market or platform question becomes an external forecaster for this question (submits on moves \u2265 0.02 and at least daily; joins the ensemble after 30 resolved links).\n\n**Scope:** `agent`.\n\noperationId: `createQuestionMarketLink`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{agentToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Unlink a market from a question",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 204', () => pm.expect([204]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/forecasts/questions/{{questionId}}/market-links/{{linkId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "forecasts",
+                "questions",
+                "{{questionId}}",
+                "market-links",
+                "{{linkId}}"
+              ],
+              "query": []
+            },
+            "description": "Stops further external forecasts from this link; past forecasts stay in the ledger.\n\n**Scope:** `agent`.\n\noperationId: `deleteQuestionMarketLink`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -21277,7 +21696,7 @@
               ],
               "query": []
             },
-            "description": "Parses the body with the named `IngestFormat` and submits one batch to the single writer (same versioning, policies, live/touch semantics, change stream, triggers and retention as polled data). Credentials: `X-Foresignal-Ingest-Key`, `Authorization: Bearer eik_\u2026`, Basic with the key as password, a device key (039, bound to one entity), or an `admin` token; a configured signature verifier must also pass unless `keyOptional`. 200 when the request is valid even with per-record rejections (MISSING_OBSERVED_AT, LOW_ACCURACY, \u2026). OwnTracks, Overland, OsmAnd and GPSLogger get their native reply shapes.\n\n**Scope:** ingest key (or an `admin` token).\n\noperationId: `ingestRecordsFormat`",
+            "description": "Parses the body with the named `IngestFormat` and submits one batch to the single writer (same versioning, policies, live/touch semantics, change stream, triggers and retention as polled data). Credentials: `X-Foresignal-Ingest-Key`, `Authorization: Bearer eik_\u2026`, Basic with the key as password, a device key (039, bound to one entity), or an `admin` token; a configured signature verifier must also pass unless `keyOptional`. 200 when the request is valid even with per-record rejections (MISSING_OBSERVED_AT, LOW_ACCURACY, \u2026). OwnTracks, Overland, OsmAnd and GPSLogger get their native reply shapes. Format `social-post` (134) takes a JSON array of `SocialPostIngestItem` and stores `social-post` records with `collection = import`.\n\n**Scope:** ingest key (or an `admin` token).\n\noperationId: `ingestRecordsFormat`",
             "auth": {
               "type": "noauth"
             },
@@ -24806,7 +25225,7 @@
     },
     {
       "name": "MCP",
-      "description": "Remote MCP authorization: RFC 9728 protected resource metadata (136)",
+      "description": "Remote MCP authorization: RFC 9728 protected resource metadata (141)",
       "item": [
         {
           "name": "Protected resource metadata",
@@ -25318,6 +25737,121 @@
               ]
             },
             "description": "Basemap-free server-rendered PNG: Natural Earth land, water and boundaries, product frames, alert geometry, place marker and range rings, scale bar, frame valid times, legend, attribution and an \"Automated \u2014 not an official warning\" footer. Missing or stale frames are drawn as a labelled note, never omitted; nothing fetches third-party tiles. Immutable only when every frame is content-addressed and pinned; otherwise a short max-age with an ETag.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getStaticMap`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Markets",
+      "description": "Prediction markets and forecast platforms as opt-in sources and external forecasters (138)",
+      "item": [
+        {
+          "name": "List prediction markets",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/markets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "markets"
+              ],
+              "query": [
+                {
+                  "key": "platform",
+                  "value": "kalshi",
+                  "description": "Platform",
+                  "disabled": true
+                },
+                {
+                  "key": "q",
+                  "value": "",
+                  "description": "Text search in titles and rules",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "open",
+                  "description": "Status",
+                  "disabled": true
+                },
+                {
+                  "key": "cursor",
+                  "value": "{{cursor}}",
+                  "description": "Opaque page cursor",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "100",
+                  "description": "Page size",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Markets known to the enabled prediction-market adapters (138), for search and linking to ledger questions.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `listMarkets`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Get a prediction market",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/markets/{{platform}}/{{marketId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "markets",
+                "{{platform}}",
+                "{{marketId}}"
+              ],
+              "query": []
+            },
+            "description": "Latest prices or community prediction, status and the series refs of its history.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getMarket`",
             "auth": {
               "type": "noauth"
             }
@@ -28494,7 +29028,7 @@
                 }
               ]
             },
-            "description": "Combined p_detect with interval and methods per region (`region`) or H3 res-4 cell (`bbox`), using estimates valid at `at` (never today's for past times). `absenceOk` is false (reason LOW_DETECTABILITY) below absenceMinDetect.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getObservability`",
+            "description": "Combined p_detect with interval and methods per region (`region`) or H3 res-4 cell (`bbox`), using estimates valid at `at` (never today's for past times). `absenceOk` is false (reason LOW_DETECTABILITY) below absenceMinDetect. Family `social-attention` (134, method `platform-volume`) is the expected post volume per platform from the trailing 8-week baseline; it is ok only when a complete-stream platform was healthy and the regional baseline is \u2265 `social.minRegionBaseline` (else LOW_SOCIAL_COVERAGE).\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getObservability`",
             "auth": {
               "type": "noauth"
             }
@@ -30219,7 +30753,7 @@
     },
     {
       "name": "Plugins",
-      "description": "Out-of-tree WASM parser plugins, disabled by default (136)",
+      "description": "Out-of-tree WASM parser plugins, disabled by default (141)",
       "item": [
         {
           "name": "List plugins",
@@ -37127,6 +37661,158 @@
           }
         },
         {
+          "name": "Get headless-browser settings",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/settings/browser",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "settings",
+                "browser"
+              ],
+              "query": []
+            },
+            "description": "The optional headless-browser runtime used by sources in `browser` fetch mode: enabled flag, executable, installed version and limits.\n\n**Scope:** `admin`.\n\noperationId: `getBrowserSettings`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Set headless-browser settings",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/settings/browser",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "settings",
+                "browser"
+              ],
+              "query": []
+            },
+            "description": "Replaces the settings. Enabling without an installed or configured browser leaves browser-mode sources in `BROWSER_UNAVAILABLE` until one is installed.\n\n**Scope:** `admin`.\n\noperationId: `updateBrowserSettings`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Install the headless browser",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 202', () => pm.expect([202]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/settings/browser/install",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "settings",
+                "browser",
+                "install"
+              ],
+              "query": []
+            },
+            "description": "Downloads the Playwright-managed Chromium once; poll `GET /v1/settings/browser` for progress.\n\n**Scope:** `admin`.\n\noperationId: `installBrowser`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
           "name": "Get weather settings",
           "event": [
             {
@@ -38796,6 +39482,1717 @@
       ]
     },
     {
+      "name": "Social",
+      "description": "Social signals: operator-enabled platform adapters, posts, volume baselines, narratives, claims, media fingerprints, social\u2013physical comparisons and cues (134\u2013136)",
+      "item": [
+        {
+          "name": "List social platform adapters",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/social/platforms",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "social",
+                "platforms"
+              ],
+              "query": []
+            },
+            "description": "Every social platform adapter with its state, mode, collection paths (complete, paged or sampled), health, quotas, spend this month and estimates, and a terms and cost summary. All but `bluesky-jetstream` ship disabled; the operator enables them with their own credentials and budget.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `listSocialPlatforms`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Get a social platform adapter",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/social/platforms/{{platformId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "social",
+                "platforms",
+                "{{platformId}}"
+              ],
+              "query": []
+            },
+            "description": "One adapter with health, quotas, spend and settings; Telegram includes its account session state.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getSocialPlatform`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Set social platform settings",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/social/platforms/{{platformId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "social",
+                "platforms",
+                "{{platformId}}"
+              ],
+              "query": []
+            },
+            "description": "Replaces the adapter's settings: enabled, mode, channels, deletion sync, post retention, call budget, monthly money cap and prices. Enabling a keyed platform without credentials leaves it `credentials-required` (set them with `PUT /v1/sources/{sourceId}/credentials`); emits `social.platform.state` on a state change.\n\n**Scope:** `admin`.\n\noperationId: `updateSocialPlatform`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Get social collection coverage",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/social/coverage",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "social",
+                "coverage"
+              ],
+              "query": [
+                {
+                  "key": "platform",
+                  "value": "",
+                  "description": "Network (default all)",
+                  "disabled": true
+                },
+                {
+                  "key": "region",
+                  "value": "",
+                  "description": "040 region code",
+                  "disabled": true
+                },
+                {
+                  "key": "since",
+                  "value": "2026-10-10T00:00:00Z",
+                  "description": "Window start (default 24 h ago)",
+                  "disabled": true
+                },
+                {
+                  "key": "until",
+                  "value": "2026-10-10T00:00:00Z",
+                  "description": "Upper time bound (exclusive); default now",
+                  "disabled": true
+                },
+                {
+                  "key": "cursor",
+                  "value": "{{cursor}}",
+                  "description": "Opaque pagination cursor from a previous response's nextCursor",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "100",
+                  "description": "Page size",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Hourly posts seen, platform denominators and the `complete` flag per platform \u00d7 region (`social_coverage`), with the social-attention `absenceOk` verdict for the window. Without `region`, one series per region with coverage.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getSocialCoverage`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Get social mention volume",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/social/volume",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "social",
+                "volume"
+              ],
+              "query": [
+                {
+                  "key": "topic",
+                  "value": "",
+                  "description": "117 attention topic id",
+                  "disabled": true
+                },
+                {
+                  "key": "place",
+                  "value": "",
+                  "description": "036 place id",
+                  "disabled": true
+                },
+                {
+                  "key": "entity",
+                  "value": "",
+                  "description": "098 entity id",
+                  "disabled": true
+                },
+                {
+                  "key": "platform",
+                  "value": "",
+                  "description": "Network (default all with series)",
+                  "disabled": true
+                },
+                {
+                  "key": "language",
+                  "value": "",
+                  "description": "BCP 47 language (default all, summed)",
+                  "disabled": true
+                },
+                {
+                  "key": "metric",
+                  "value": "posts",
+                  "description": "Metric",
+                  "disabled": true
+                },
+                {
+                  "key": "interval",
+                  "value": "PT1H",
+                  "description": "Bucket size",
+                  "disabled": true
+                },
+                {
+                  "key": "since",
+                  "value": "2026-10-10T00:00:00Z",
+                  "description": "Window start (default 7 days ago)",
+                  "disabled": true
+                },
+                {
+                  "key": "until",
+                  "value": "2026-10-10T00:00:00Z",
+                  "description": "Upper time bound (exclusive); default now",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Hourly or daily volume of exactly one topic, place or entity per platform (and language) with the seasonal, denominator-scaled baseline, velocity ratio, robust z and complete flag. Series from sampled paths carry no baseline. 400 VALIDATION_FAILED unless exactly one of `topic`, `place`, `entity` is given.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getSocialVolume`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Search social posts",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/social/posts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "social",
+                "posts"
+              ],
+              "query": [
+                {
+                  "key": "topic",
+                  "value": "",
+                  "description": "117 attention topic id",
+                  "disabled": true
+                },
+                {
+                  "key": "platform",
+                  "value": "",
+                  "description": "Network",
+                  "disabled": true
+                },
+                {
+                  "key": "q",
+                  "value": "",
+                  "description": "Full-text query over post text",
+                  "disabled": true
+                },
+                {
+                  "key": "cueId",
+                  "value": "",
+                  "description": "Posts found by a 136 cue",
+                  "disabled": true
+                },
+                {
+                  "key": "since",
+                  "value": "2026-10-10T00:00:00Z",
+                  "description": "createdAt \u2265 since",
+                  "disabled": true
+                },
+                {
+                  "key": "until",
+                  "value": "2026-10-10T00:00:00Z",
+                  "description": "createdAt < until",
+                  "disabled": true
+                },
+                {
+                  "key": "cursor",
+                  "value": "{{cursor}}",
+                  "description": "Opaque pagination cursor from a previous response's nextCursor",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "100",
+                  "description": "Page size",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Stored `social-post` records newest first, filtered by topic, platform, text and time. Deleted posts appear as tombstones without text or media links; posts beyond their platform's retention are gone.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `listSocialPosts`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Get a social post",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/social/posts/{{platform}}/{{postId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "social",
+                "posts",
+                "{{platform}}",
+                "{{postId}}"
+              ],
+              "query": []
+            },
+            "description": "The latest version of one post by network and platform post id (percent-encode ids that contain `/`).\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getSocialPost`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Start Telegram account login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/social/telegram/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "social",
+                "telegram",
+                "login"
+              ],
+              "query": []
+            },
+            "description": "Starts a TDLib login for the operator's own Telegram account (`telegram` adapter in `account` mode); Telegram sends a code. Continue with `/v1/social/telegram/login/confirm`.\n\n**Scope:** `admin`.\n\noperationId: `startTelegramLogin`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Confirm Telegram account login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/social/telegram/login/confirm",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "social",
+                "telegram",
+                "login",
+                "confirm"
+              ],
+              "query": []
+            },
+            "description": "Submits the code (and the two-step verification password when required). Returns `password-required` when Telegram asks for the password, `ready` when the session is established; the session database is encrypted with the 003 secret key.\n\n**Scope:** `admin`.\n\noperationId: `confirmTelegramLogin`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Log out the Telegram session",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 204', () => pm.expect([204]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/social/telegram/session",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "social",
+                "telegram",
+                "session"
+              ],
+              "query": []
+            },
+            "description": "Logs the operator's Telegram account out and deletes the local TDLib database; idempotent. The adapter falls back to `credentials-required` in account mode.\n\n**Scope:** `admin`.\n\noperationId: `deleteTelegramSession`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "List narratives",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/social/narratives",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "social",
+                "narratives"
+              ],
+              "query": [
+                {
+                  "key": "topic",
+                  "value": "",
+                  "description": "117 attention topic id",
+                  "disabled": true
+                },
+                {
+                  "key": "situationId",
+                  "value": "",
+                  "description": "Linked situation",
+                  "disabled": true
+                },
+                {
+                  "key": "place",
+                  "value": "",
+                  "description": "036 place id or 040 region code",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "description": "Status (comma-separated)",
+                  "disabled": true
+                },
+                {
+                  "key": "state",
+                  "value": "",
+                  "description": "State (comma-separated)",
+                  "disabled": true
+                },
+                {
+                  "key": "platform",
+                  "value": "",
+                  "description": "Network",
+                  "disabled": true
+                },
+                {
+                  "key": "since",
+                  "value": "2026-10-10T00:00:00Z",
+                  "description": "lastActivityAt \u2265 since",
+                  "disabled": true
+                },
+                {
+                  "key": "cursor",
+                  "value": "{{cursor}}",
+                  "description": "Opaque pagination cursor from a previous response's nextCursor",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "100",
+                  "description": "Page size",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Narratives newest activity first with platforms, origin counts (evidence groups), origin concentration, velocity, status and state. Earliest posts are earliest observed, never originators.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `listNarratives`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Get a narrative",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/social/narratives/{{narrativeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "social",
+                "narratives",
+                "{{narrativeId}}"
+              ],
+              "query": []
+            },
+            "description": "The narrative with its envelope, claims, platforms, media fingerprints, coordination indicators, linked news stories and situations, and merge/split history.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getNarrative`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "List a narrative's posts",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/social/narratives/{{narrativeId}}/posts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "social",
+                "narratives",
+                "{{narrativeId}}",
+                "posts"
+              ],
+              "query": [
+                {
+                  "key": "platform",
+                  "value": "",
+                  "description": "Network",
+                  "disabled": true
+                },
+                {
+                  "key": "evidenceGroup",
+                  "value": "",
+                  "description": "Evidence group id",
+                  "disabled": true
+                },
+                {
+                  "key": "cursor",
+                  "value": "{{cursor}}",
+                  "description": "Opaque pagination cursor from a previous response's nextCursor",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "100",
+                  "description": "Page size",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Member posts with their link reason (`seed`, `repost`, `quote`, `text`, `link`, `media`) and evidence group, newest first.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `listNarrativePosts`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Get a narrative's propagation graph",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/social/narratives/{{narrativeId}}/propagation",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "social",
+                "narratives",
+                "{{narrativeId}}",
+                "propagation"
+              ],
+              "query": []
+            },
+            "description": "Propagation across reposts, quotes, replies, links, text and media matches, platforms and news, summarised to \u2264 500 nodes, with earliest observed post per platform, first news pickup, descent share, cross-platform order and median repost delay.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getNarrativePropagation`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Get a narrative's timeline",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/social/narratives/{{narrativeId}}/timeline",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "social",
+                "narratives",
+                "{{narrativeId}}",
+                "timeline"
+              ],
+              "query": [
+                {
+                  "key": "interval",
+                  "value": "PT1H",
+                  "description": "Bucket size",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Posts and unique authors per platform per interval over the narrative's life.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getNarrativeTimeline`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Merge narratives",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/social/narratives/{{narrativeId}}/merge",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "social",
+                "narratives",
+                "{{narrativeId}}",
+                "merge"
+              ],
+              "query": []
+            },
+            "description": "Merges the listed narratives into this one following 118's merge rules: members, evidence groups and claims move, the others get `mergedInto`, history records the merge and `narrative.updated` is emitted. Returns the surviving narrative.\n\n**Scope:** `agent`.\n\noperationId: `mergeNarratives`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{agentToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Split posts into a new narrative",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/social/narratives/{{narrativeId}}/split",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "social",
+                "narratives",
+                "{{narrativeId}}",
+                "split"
+              ],
+              "query": []
+            },
+            "description": "Moves the chosen member posts (with reposts and quotes in their evidence groups) into a new narrative; both re-derive title, counts, claims and status, and both histories record the split.\n\n**Scope:** `agent`.\n\noperationId: `splitNarrative`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{agentToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "List claims",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/social/claims",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "social",
+                "claims"
+              ],
+              "query": [
+                {
+                  "key": "narrativeId",
+                  "value": "",
+                  "description": "Narrative",
+                  "disabled": true
+                },
+                {
+                  "key": "situationId",
+                  "value": "",
+                  "description": "Situations linked to the claim's narrative",
+                  "disabled": true
+                },
+                {
+                  "key": "type",
+                  "value": "",
+                  "description": "Lexicon claim type",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "description": "Status (comma-separated)",
+                  "disabled": true
+                },
+                {
+                  "key": "bbox",
+                  "value": "",
+                  "description": "minLon,minLat,maxLon,maxLat (WGS84); claims with resolved geometry",
+                  "disabled": true
+                },
+                {
+                  "key": "since",
+                  "value": "2026-10-10T00:00:00Z",
+                  "description": "firstObservedAt \u2265 since",
+                  "disabled": true
+                },
+                {
+                  "key": "cursor",
+                  "value": "{{cursor}}",
+                  "description": "Opaque pagination cursor from a previous response's nextCursor",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "100",
+                  "description": "Page size",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Structured claims (what, where, when, who) with extraction provenance, Admiralty grade and 136 status. Claims are reports: draw them in a distinct \"reported\" style, never as observed events.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `listClaims`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Get a claim",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/social/claims/{{claimId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "social",
+                "claims",
+                "{{claimId}}"
+              ],
+              "query": []
+            },
+            "description": "One claim with place, entities, event time, support and evidence-group counts, extraction method and manifest.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getClaim`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Get a media fingerprint",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/social/media/{{fingerprintId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "social",
+                "media",
+                "{{fingerprintId}}"
+              ],
+              "query": []
+            },
+            "description": "A PDQ fingerprint with first-seen date and post, uses, platforms, narratives and reuse findings.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getMediaFingerprint`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Match an image against fingerprints",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/social/media/match",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "social",
+                "media",
+                "match"
+              ],
+              "query": []
+            },
+            "description": "Upload an image (multipart, through 043 ImageGuard) or submit a PDQ hex string; returns fingerprints within Hamming distance 31 (default) with first-seen dates and narratives, and the REFERENCE_WINDOW caveat stating the fingerprint store's start date. The uploaded image is not stored.\n\n**Scope:** `read` (token required).\n\noperationId: `matchMedia`",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "List social\u2013physical comparisons",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/social/comparisons",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "social",
+                "comparisons"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "",
+                  "description": "Status (comma-separated)",
+                  "disabled": true
+                },
+                {
+                  "key": "situationId",
+                  "value": "",
+                  "description": "Situation",
+                  "disabled": true
+                },
+                {
+                  "key": "narrativeId",
+                  "value": "",
+                  "description": "Narrative",
+                  "disabled": true
+                },
+                {
+                  "key": "claimId",
+                  "value": "",
+                  "description": "Claim",
+                  "disabled": true
+                },
+                {
+                  "key": "family",
+                  "value": "",
+                  "description": "Signal family",
+                  "disabled": true
+                },
+                {
+                  "key": "region",
+                  "value": "",
+                  "description": "040 region code",
+                  "disabled": true
+                },
+                {
+                  "key": "since",
+                  "value": "2026-10-10T00:00:00Z",
+                  "description": "evaluatedAt \u2265 since",
+                  "disabled": true
+                },
+                {
+                  "key": "cursor",
+                  "value": "{{cursor}}",
+                  "description": "Opaque pagination cursor from a previous response's nextCursor",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "100",
+                  "description": "Page size",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Claims compared with independent physical evidence: `corroborated` (with lead times), `unobserved` (only when `canSeeAbsence` is ok), `contradicted`, `insufficient-coverage` or `pending`. `unobserved` means no corresponding change despite adequate coverage, never \"false\".\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `listSocialComparisons`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Get a social\u2013physical comparison",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/social/comparisons/{{comparisonId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "social",
+                "comparisons",
+                "{{comparisonId}}"
+              ],
+              "query": []
+            },
+            "description": "One comparison with matching physical evidence, detectability, lead times and every revision.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getSocialComparison`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "List social cues",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/social/cues",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "social",
+                "cues"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "",
+                  "description": "Status (comma-separated)",
+                  "disabled": true
+                },
+                {
+                  "key": "since",
+                  "value": "2026-10-10T00:00:00Z",
+                  "description": "createdAt \u2265 since",
+                  "disabled": true
+                },
+                {
+                  "key": "cursor",
+                  "value": "{{cursor}}",
+                  "description": "Opaque pagination cursor from a previous response's nextCursor",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "100",
+                  "description": "Page size",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Automatic and manual cues newest first with their exact queries, platforms, status, results and cost.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `listSocialCues`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Run a manual social cue",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 202', () => pm.expect([202]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/social/cues",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "social",
+                "cues"
+              ],
+              "query": []
+            },
+            "description": "Queues a targeted search built from the place, area, entity or situation (names and multilingual aliases, nearby facilities, family lexicon terms in the region's languages) and extra terms, on enabled search-capable platforms within the cost cap. Results are stored as posts with `collection = cue`, joined into narratives and compared; they never feed baselines. Emits `cue.completed`.\n\n**Scope:** `agent`.\n\noperationId: `createSocialCue`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{agentToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Get a social cue",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/social/cues/{{cueId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "social",
+                "cues",
+                "{{cueId}}"
+              ],
+              "query": []
+            },
+            "description": "One cue with its trigger, exact queries per platform, status, results, narratives and cost.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getSocialCue`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Get social lead-time statistics",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/social/lead-times",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "social",
+                "lead-times"
+              ],
+              "query": [
+                {
+                  "key": "claimType",
+                  "value": "",
+                  "description": "Lexicon claim type",
+                  "disabled": true
+                },
+                {
+                  "key": "platform",
+                  "value": "",
+                  "description": "Network",
+                  "disabled": true
+                },
+                {
+                  "key": "region",
+                  "value": "",
+                  "description": "040 region code",
+                  "disabled": true
+                },
+                {
+                  "key": "foundBy",
+                  "value": "organic",
+                  "description": "Organic or cue-found narratives",
+                  "disabled": true
+                },
+                {
+                  "key": "since",
+                  "value": "2026-10-10T00:00:00Z",
+                  "description": "evaluatedAt \u2265 since",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Median and interquartile lead of social first observation over physical, news and official first observation for corroborated comparisons, by claim type, platform, region and `foundBy`, with counts. Only comparisons evaluated after the training cut-off support \"leads by\" statements; a single case is an observed lead time.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getSocialLeadTimes`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Get social settings",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/settings/social",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "settings",
+                "social"
+              ],
+              "query": []
+            },
+            "description": "Detection languages, minimum regional baseline, velocity thresholds, claim extraction thresholds, track-record grading and overrides, `keepMedia`, comparison windows, attention-gap thresholds and cue triggers and caps.\n\n**Scope:** `admin`.\n\noperationId: `getSocialSettings`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Set social settings",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/settings/social",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "settings",
+                "social"
+              ],
+              "query": []
+            },
+            "description": "Replaces the social settings; changes apply to the next evaluation (comparisons already final keep their status).\n\n**Scope:** `admin`.\n\noperationId: `updateSocialSettings`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "Sources",
       "description": "Upstream feed catalogue, subscription (enable/disable), budgets, credentials, health and diagnostics",
       "item": [
@@ -39591,6 +41988,155 @@
               ]
             }
           }
+        },
+        {
+          "name": "Get a source browser session",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/sources/{{sourceId}}/browser-session",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "sources",
+                "{{sourceId}}",
+                "browser-session"
+              ],
+              "query": []
+            },
+            "description": "Metadata of the imported browser session (domains, earliest cookie expiry, import time); never the cookies.\n\n**Scope:** `admin`.\n\noperationId: `getSourceBrowserSession`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Import a source browser session",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/sources/{{sourceId}}/browser-session",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "sources",
+                "{{sourceId}}",
+                "browser-session"
+              ],
+              "query": []
+            },
+            "description": "Stores a Playwright storage-state JSON exported by the operator after logging in themselves; encrypted at rest and used only by this source.\n\n**Scope:** `admin`.\n\noperationId: `putSourceBrowserSession`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Remove a source browser session",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 204', () => pm.expect([204]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/sources/{{sourceId}}/browser-session",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "sources",
+                "{{sourceId}}",
+                "browser-session"
+              ],
+              "query": []
+            },
+            "description": "Deletes the stored session.\n\n**Scope:** `admin`.\n\noperationId: `deleteSourceBrowserSession`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
         }
       ]
     },
@@ -39809,7 +42355,7 @@
     },
     {
       "name": "Standards",
-      "description": "Standards outputs: FDSN event / QuakeML, STIX 2.1 and TAXII 2.1 (136)",
+      "description": "Standards outputs: FDSN event / QuakeML, STIX 2.1 and TAXII 2.1 (141)",
       "item": [
         {
           "name": "FDSN event query",

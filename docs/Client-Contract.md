@@ -1,6 +1,6 @@
 # Foresignal — Client Contract (v1)
 
-How applications built on Foresignal name, fetch, relate, annotate and share focus on the same objects. It is the reference for every frontend (3D globe, 2D map, analyst workstation, satellite and RF consoles, mobile, embedded widgets) and for agents. Prompt 128 implements it; prompt 136's SDKs ship helpers for it. `GET /v1/contract` reports the versions in force.
+How applications built on Foresignal name, fetch, relate, annotate and share focus on the same objects. It is the reference for every frontend (3D globe, 2D map, analyst workstation, satellite and RF consoles, mobile, embedded widgets) and for agents. Prompt 128 implements it; prompt 141's SDKs ship helpers for it. `GET /v1/contract` reports the versions in force.
 
 ---
 
@@ -39,6 +39,7 @@ Grammar: `{type}:{id}`. Ids are opaque to clients; compare references as strings
 | `chronicle` | ULID (display id `CHR-yyyy-nnnn` also accepted) | `chronicle:01J…` | 130 |
 | `report` | ULID (display id `RPT-yyyy-nnnn`) | `report:01J…` | 131 |
 | `news-story`, `outlet` | ULID / id | `news-story:01J…` | 132 |
+| `narrative`, `claim`, `social-comparison` | ULID | `narrative:01J…` | 135, 136 |
 | `remote` | `{instanceId}/{type}:{id}`, read-only material received from another instance | `remote:fs-eu-1/report:01J…` | 131 |
 
 Unknown types are rejected with `400 OBJECT_REF_INVALID`. New types are added only with a contract minor version bump.
@@ -206,7 +207,16 @@ A chronicle is a saved monitoring thread with its own recorded history. Clients:
 - Cluster timelines are already deduplicated by evidence; show which visible chronicles hold each item.
 - Hypotheses and reports may show `CIRCULAR_REPORTING`; display it as a caveat on the affected support.
 
-## 16. Versioning
+## 16. Social signals (prompts 134–136)
+
+- **Keep the two worlds apart visually.** Narratives and claims are what people say; canonical events and findings are what Foresignal observed. Never draw a claim as an observed event on a map; use a distinct "reported" style, with the place precision (point, locality, admin area, country) and its confidence.
+- Show a narrative's **status** (`corroborated`, `unobserved`, `contradicted`, `mixed`, `insufficient-coverage`, `pending`, `unassessed`) with its reason: the matching physical evidence, or the detectability that made "unobserved" meaningful. `unobserved` means "no corresponding change despite adequate coverage", never "false".
+- Show volume as **velocity against baseline** with the platforms covered and whether the path is complete or sampled; show origin counts (evidence groups) and descent share next to post counts, so 50,000 posts from three origins read as three.
+- Label the earliest post as **earliest observed**, never as the originator. Show coordination as indicators with their null comparison, never as labels on accounts.
+- Lead times shown in assessments are out-of-sample statistics; a single case is "observed lead time".
+- Live updates: SSE topic `social` (`narrative.*`, `claim.extracted`, `comparison.updated`, `cue.completed`, `attention.gap`, `media.reuse`, `coordination.detected`, `social.velocity`).
+
+## 17. Versioning
 
 - `GET /v1/contract` → `{contractVersion, objectTypes, relationTypes, contextSchemaVersion, deepLinkVersion}`.
 - Within `/v1`, changes are additive (new types, relation types, optional context fields). Removing or renaming anything requires a new major contract version and a deprecation period announced through `Deprecation` headers.

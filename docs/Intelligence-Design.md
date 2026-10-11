@@ -4,7 +4,7 @@ Prepared 2026-10-11, from a survey of the four reference projects' code, a web s
 
 This document is **authoritative for the intelligence layer**: situations, analytic findings, precursors, base rates and analogs, the forecast ledger, hypotheses and indicators, statistical forecasts and regional outlooks, impact projection, and the daily, weekly and monthly analysis cycles. It extends, and does not replace, prompts 098–104 (entities, derived layers, windowed rules and anomalies, intelligence events and investigations, the autonomous analyst, backtesting, infrastructure mapping). Where this document and an older prompt disagree on the intelligence layer, this document wins. `docs/Core-Data-Model.md` still wins on ingest, history, triggers and retention mechanics.
 
-New prompts **116–134** implement it. The v1.2 prompts 116–120 are renumbered **135–139** (`docs/Roadmap.md` §5 has the map). §17 records how the October 2026 external reviews (ChatGPT, Gemini, Grok) were handled. The client-facing object contract (references, relations, workspaces, deep links) is specified in [Client Contract](Client-Contract.md).
+New prompts **116–139** implement it. The v1.2 prompts 116–120 are renumbered **140–144** (`docs/Roadmap.md` §5 has the map). §17 records how the October 2026 external reviews (ChatGPT, Gemini, Grok) were handled. The client-facing object contract (references, relations, workspaces, deep links) is specified in [Client Contract](Client-Contract.md).
 
 ---
 
@@ -32,9 +32,11 @@ New prompts **116–134** implement it. The v1.2 prompts 116–120 are renumbere
 | Many people, many instances | Named **principals** (people and agents) hold scoped tokens; **groups**, per-object **access lists** and **TLP 2.0** labels govern work products (investigations, workspaces, chronicles, reports, notes, attachments). No passwords in the broker (129). | Shared servers and separate instances both need sharing without turning Foresignal into a user-directory product. |
 | Long-running monitoring of an event | **Chronicles**: named bundles of layers that record their own history while active, independent of global retention; stop, replay, share, archive; proposed by the analysis cycles (130). | "Track the war in the Middle East, then replay it months later" must not depend on 3-day track retention. |
 | Getting analysis to other people | **Reports** with pinned evidence and TLP banners, sent to principals here or as **signed packages** to other instances, imported read-only with provenance (131). | Analysis is only useful if it can be shared safely and verifiably. |
-| News coverage and bias | Articles as metadata only, outlets with lean, factuality and ownership from **declared, licensed providers** (never generated), stories clustered so reprints count once, coverage balance and blindspots fed into situations and hypotheses (132). | Ground News-style insight, without scraping or inventing ratings, and as an evidence-quality input rather than a truth signal. |
+| News coverage and bias | Articles as metadata (bodies and bylines opt-in, 137), outlets with lean, factuality and ownership from **declared, licensed providers** (never generated), stories clustered so reprints count once, coverage balance and blindspots fed into situations and hypotheses (132). | Ground News-style insight, without inventing ratings, and as an evidence-quality input rather than a truth signal. |
 | Collaborative intelligence network | Chronicles discover related chronicles (other analysts', other instances') from **keyed fingerprints** of captured evidence, disclosed only as discoverability and TLP allow; shared evidence counts once; **circular reporting** is detected (133). | Independent monitoring threads become a network without leaking private work or double counting. |
-| Where in the roadmap | A new block **116–134** after 115, starting with the evidence foundations (116), then analysis, the object contract (128), collaboration, chronicles, reports and news (129–132), and a checkpoint (134), before the adapter doctor and SDKs (so the SDKs include the new API). Nothing earlier is renumbered. | The build takes days, so moving the block earlier gains little. **Collecting early** (§4.4) is what matters. |
+| Social media | **Social signals** (134–136): public posts become versioned records, mention-volume series with coverage-aware baselines, **narratives** and structured **claims** counted by independent origin, image fingerprints, propagation and coordination indicators; claims are **compared with independent physical evidence** in both directions (corroborated with lead time, unobserved despite adequate coverage, attention gaps), physical findings **cue** targeted searches, and predictive value is scored out of sample. Every platform is an **operator-enabled adapter** (Bluesky's open stream on by default; X, Threads, Reddit, YouTube, Mastodon, Instagram hashtags and Telegram with the operator's own credentials and budget). | What people say and what sensors see are both intelligence; their agreement, disagreement and timing are findings in their own right. Foresignal is a single-operator tool, so platform choice belongs to the operator. |
+| Sources excluded on terms | **None.** Sources with unofficial endpoints, scraping, headless browsers, paid access or restrictive terms are **opt-in adapters**, off by default, with route, terms summary and fragility shown before enabling (137–138); prediction markets, Metaculus and VIEWS become scored external forecasters. | Foresignal is a single-operator, self-hosted tool; what to collect is the operator's decision. |
+| Where in the roadmap | A new block **116–139** after 115, starting with the evidence foundations (116), then analysis, the object contract (128), collaboration, chronicles, reports and news (129–132), the chronicle network (133), social signals (134–136) and a checkpoint (139), before the adapter doctor and SDKs (so the SDKs include the new API). Nothing earlier is renumbered. | The build takes days, so moving the block earlier gains little. **Collecting early** (§4.4) is what matters. |
 
 ---
 
@@ -90,11 +92,11 @@ Foresignal must also match what the best competitors already do. Where each live
 | Sensor discovery and coverage visualisation (MetaConstellation-style) | observability model and coverage tiles (116), sensor discovery (128) |
 | Edge processing and store-and-forward sync | federation and edge relay (113), MeshDTN compact messages (084, 113) |
 
-Excluded on terms or principle: prediction-market prices (Polymarket, Kalshi; 093 §8), exchange data from CME/ICE (licence), social scraping, person-level analysis.
+Sources once excluded on terms (prediction markets, exchange data, unofficial and browser-based sources) are opt-in adapters (137–138); social platforms are operator-enabled adapters (134). Person-level profiling is not built.
 
 ---
 
-## 2. Principles (binding on prompts 116–134)
+## 2. Principles (binding on prompts 116–139)
 
 1. **Evidence, inference, speculation.** Every analytic object separates what was observed (cited records, pinned by `seq`), what a named detector derived, and what is possibility or narrative. Speculation is always labelled. (Extends 101 principle 5 and 102 principle 2.)
 2. **Detectors find; models explain.** Statistical detectors are pure functions of stored data, a definition and a detector version. LLM output never creates evidence, never adds members to events or situations, and never changes a deterministic score. An LLM may *propose* (hypotheses, indicators, watches, questions) and may *forecast* as a named forecaster whose record is scored.
@@ -108,9 +110,10 @@ Excluded on terms or principle: prediction-market prices (Polymarket, Kalshi; 09
 10. **Reproducible and versioned.** Every detector, scorer, updater and forecaster has a name and semantic version stored with its outputs.
 11. **Budgeted and optional.** Deterministic analysis runs without an LLM. LLM roles are budgeted per run and per day (026) and fall back to deterministic output.
 12. **Private stays private.** Anything built from a `private` source (039) is private and follows `EgressPolicy` everywhere, including LLM context.
-13. **Licensed data stays local.** Series whose terms forbid redistribution (FRED copyrighted series, EIA spot prices sourced from LSEG, ACLED) are `egress=LOCAL_ONLY`: Foresignal computes on them and serves derived signals, never the raw values, outside the operator's own tokens.
+13. **Licensed data stays local by default.** The operator can override egress per source (109). Series whose terms forbid redistribution (FRED copyrighted series, EIA spot prices sourced from LSEG, ACLED) are `egress=LOCAL_ONLY`: Foresignal computes on them and serves derived signals, never the raw values, outside the operator's own tokens.
 14. **Evidence independence.** Confidence, corroboration and hypothesis updates count independent evidence groups (116), never raw records or sources.
 15. **Benchmarked before trusted.** Autonomous proposals and LLM ensemble weight depend on the latest benchmark status of the components involved (123).
+16. **Social is reporting, not observation.** Social posts are reports by sources (accounts are analysed like outlets, never profiled as people). A narrative never corroborates a physical event or itself; amplification never adds independent evidence; "no corresponding change" needs detectability and "too little attention" needs social coverage; leading-indicator claims come only from out-of-sample tests (134–136).
 
 ---
 
@@ -175,7 +178,7 @@ Forecast questions and forecasts are **not** records: they are append-only ledge
 | `reference` | catalogues (power plants, ports, cables) | 90 d of history; heads kept while current | n/a |
 | `intel` | Foresignal's outputs: anomalies, intel events, situations, findings, outlooks | records 1825 d; **typed tables never auto-deleted** (admin purge only) | n/a |
 
-Event-class sources are small (USGS ≈ 300 versions/day, ACLED ≈ 1–3k/day, IODA a few hundred). Five years of all `event` sources is expected in the low tens of GB; `/v1/system.history` reports the real projection and 138 measures it.
+Event-class sources are small (USGS ≈ 300 versions/day, ACLED ≈ 1–3k/day, IODA a few hundred). Five years of all `event` sources is expected in the low tens of GB; `/v1/system.history` reports the real projection and 143 measures it.
 
 ### 4.2 Region rollups
 
@@ -417,7 +420,7 @@ Machine resolvers (hourly job; early resolution when an event makes the answer c
 ### 8.6 External and human forecasters
 
 - The **operator** is a forecaster (API, MCP, chat commands from 061), scored on the same scale; the weekly scorecard shows operator vs machine.
-- **External** forecasters (`type=external`) are allowed only from sources whose terms permit storage. Metaculus and prediction markets are excluded until written permission exists; VIEWS forecasts are a candidate once their data licence is confirmed (§16).
+- **External** forecasters (`type=external`): prediction markets (Kalshi, Polymarket), Metaculus and VIEWS are opt-in adapters (138) linked to ledger questions; they submit forecasts on material moves and at least daily, are scored like every forecaster, and join the ensemble only after 30 resolved linked questions (market blending improves forecasts when its skill is earned).
 
 ---
 
@@ -549,7 +552,7 @@ Reports are built from a selection, a tag, an investigation, a chronicle or a si
 
 ### 12.5 News coverage and media bias (prompt 132)
 
-- **Articles** (metadata only: title, URL, outlet, language, country, times, feed summary; no bodies, no bylines) from GDELT ArtList for attention topics and operator-added outlet feeds.
+- **Articles** (metadata by default: title, URL, outlet, language, country, times, feed summary; bodies and bylines are opt-in settings, 137) from GDELT ArtList for attention topics and operator-added outlet feeds.
 - **Outlet registry** with ratings from **declared providers**: Wikidata (CC0: country, owner, state media, political alignment where present), The Partisan Web (CC BY 4.0), and, opt-in with the operator's own rights, AllSides (reported CC BY-NC 4.0; confirm) and Media Bias/Fact Check (paid API); operator CSV imports. A consensus per dimension (median, disagreement, provider breakdown); **no model ever assigns a rating**.
 - **Stories** are 116 canonical events (`news-story`); wire reprints form one evidence group, so syndication never inflates support.
 - **Coverage analytics:** balance by lean, country, outlet type and factuality; state-affiliated share; **blindspots** (≥ 75% of rated coverage from one side, n ≥ 8) and **coverage divergence** findings; coverage series in the analysis-series registry.
@@ -562,6 +565,21 @@ Reports are built from a selection, a tag, an investigation, a chronicle or a si
 - **Disclosure:** chronicles a viewer can see show full shared evidence; otherwise only an **opaque link** (strength band, overlapping dimensions, time overlap). Links require a minimum overlap; anti-probing limits apply. Analysts can **request access** without revealing their own work.
 - **Counting once:** overlap and combined cluster timelines are deduplicated by global evidence key.
 - **Circular reporting:** analytic products carry provenance chains; a judgment that returns through other analysts, or two supports with a shared origin, count as one evidence group in hypotheses and confidence.
+
+### 12.7 Social signals (prompts 134–136)
+
+What people are saying, where it starts, how it spreads, and whether it matches what Foresignal observes independently.
+
+- **Sources (134), operator-enabled:** Bluesky Jetstream v2 (complete public stream, open, on by default; replay with the operator's API token), Bluesky search, Mastodon (hashtag streams and trends per instance), Reddit, YouTube, X (hourly counts for standing topics, billed per request; recent search for cues, billed per post; a monthly spend cap), Threads keyword search, Instagram hashtag search (30 hashtags per 7 days), Telegram (public channel web preview, or the operator's own account through TDLib), and a `social-post` ingest format for anything else (024). Facebook has no public-content API; Meta Content Library is research-only and stays inside Meta's environment.
+- **Posts** are versioned `social-post` records (text, handle, links, media links, engagement, platform geo when given) with per-platform retention and deletion sync as settings. Reposts and quotes inherit the original's originator (116), so amplification is never independent evidence.
+- **Volume and baselines (134):** hourly series per topic, place and entity per platform, scaled by platform denominators (all posts seen on complete streams) so platform growth and outages do not look like attention changes; `social-velocity` findings. Each path is labelled complete, paged or sampled; only complete and paged paths feed baselines. Collection health feeds a **social-attention observability** estimate, so silence is distinguished from not looking.
+- **Narratives and claims (135):** posts cluster into narratives (reposts, quotes, text similarity, shared links or images) as 116 canonical events whose evidence groups count origins; deterministic claim extraction (multilingual event lexicons, gazetteer places, entities, times, negation and hedging) with optional budgeted LLM extraction for large narratives; claims are graded 124 evidence items (Admiralty), with source reliability earned from each account's or channel's corroboration record.
+- **Media (135):** PDQ fingerprints of shared images; reuse findings when an image was first seen earlier or elsewhere (within the fingerprint window, stated with each finding); analysts can match an image on demand.
+- **Propagation and coordination (135):** per-narrative graphs across reposts, platforms and news (132) with earliest observed post per platform (never "originator"), descent share (how much traces to the top three origins), and statistical coordination indicators against null models (no account labels).
+- **Social versus physical (136):** each significant claim is compared with non-social evidence in the same place and window: `corroborated` (with lead times over physical, news and official first observation), `unobserved` (only when `canSeeAbsence` is ok), `contradicted`, `insufficient-coverage`, `pending`. **Attention gaps**: significant physical events with far less discussion than similar past events, reported only where social coverage is adequate.
+- **Cues (136):** physical findings (situation escalation, change points in outage, vessel, flight and fire series, critical alerts) generate budgeted searches with place names and aliases, nearby facilities and event terms in the region's languages; cue results are a targeted sample that never feeds baselines or corroborates its own trigger.
+- **Predictive value (136):** social series and claim types are 120 precursor candidates (FDR, later-period validation); each comparison opens a ledger question scored for the `social-claim` forecaster (122); lead-time statistics use only out-of-sample comparisons.
+- **In analysis:** situations gain a social section; indicators can be `reported` by social claims but only `observed` from physical evidence; assessments get "What people are saying versus what we observe"; chronicles keep narrative, claim and comparison history even after posts are deleted.
 
 ## 13. Worked example: positioning, strike, response
 
@@ -602,13 +620,15 @@ Intel Workbench (ACH with weighted evidence, ICD 203 bands; MIT), Fatebook (fore
 ICD 203 (archive.dni.gov/files/documents/ICD/ICD-203.pdf) [V]: nine tradecraft standards; the two-row likelihood table; no confidence level and likelihood term in one sentence. CORP reliability diagrams (Dimitriadis, Gneiting & Jordan 2021, arXiv 2008.03033) [V]. BOCPD (Adams & MacKay 2007, arXiv 0710.3742) [V]. Noufaily et al. 2013 (improved Farrington) [V]. Aggregation: Satopää et al. 2014; Baron et al. 2014; Atanasov et al. 2017 [S]. ACH: Heuer; Karvetski & Mandel 2020 found no accuracy benefit [S]. Event studies: Corrado 1989 rank test; Campbell & Wasley 1996 abnormal volume [U]. Pre-event trading: Poteshman 2006 (options before 9/11) [V]; Chesney, Crameri & Mancini 2015 [V]; the 2026 oil-futures episodes before US–Iran announcements (Bloomberg, 15 April 2026; Senate Banking minority letter) [S].
 
 ### 14.5 Data sources
-CFTC COT on publicreporting.cftc.gov (Socrata; public domain; datasets: legacy `6dca-aqww`, disaggregated `72hh-3qpy`, TFF `gpe5-46if`, and their futures-and-options variants) [V]. CME: personal non-commercial use only, automated access prohibited → excluded [S]. ICE: end-of-day data paid; ICE publishes a free weekly COT for Brent and gasoil (location to verify) [S]. FRED API: free key; must show the "not endorsed or certified" notice; series marked copyrighted (VIXCLS, OVXCLS (Cboe), DCOILBRENTEU) are personal use only → `LOCAL_ONLY` [V]. EIA API v2: public domain, but spot prices are sourced from LSEG → `LOCAL_ONLY` for those series [V]. Wikimedia Pageviews: CC0, User-Agent with contact required [V]. GDELT 2.0: open with citation; DOC API limited to one request per 5 s [V]. IMF PortWatch: ArcGIS, no key, reuse with attribution, about 7 days lag [V]. NGA MSI and State Department advisories: keyless official APIs [V]. UKMTO: blocks automated clients → excluded [V]. Metaculus: terms restrict AI/ML use without permission → excluded pending permission [S]. World Bank and ECB APIs: keyless [V].
+CFTC COT on publicreporting.cftc.gov (Socrata; public domain; datasets: legacy `6dca-aqww`, disaggregated `72hh-3qpy`, TFF `gpe5-46if`, and their futures-and-options variants) [V]. CME: personal non-commercial use only, automated access prohibited → opt-in adapter (138) [S]. ICE: end-of-day data paid; ICE publishes a free weekly COT for Brent and gasoil (location to verify) [S]. FRED API: free key; must show the "not endorsed or certified" notice; series marked copyrighted (VIXCLS, OVXCLS (Cboe), DCOILBRENTEU) are personal use only → `LOCAL_ONLY` [V]. EIA API v2: public domain, but spot prices are sourced from LSEG → `LOCAL_ONLY` for those series [V]. Wikimedia Pageviews: CC0, User-Agent with contact required [V]. GDELT 2.0: open with citation; DOC API limited to one request per 5 s [V]. IMF PortWatch: ArcGIS, no key, reuse with attribution, about 7 days lag [V]. NGA MSI and State Department advisories: keyless official APIs [V]. UKMTO: blocks some automated clients → opt-in scrape or browser adapter (137) [V]. Metaculus: terms restrict AI/ML use without permission → excluded pending permission [S]. World Bank and ECB APIs: keyless [V].
+
+Social platforms (checked 2026-10-11; prices change often, so 134 seeds them as editable settings): Bluesky Protocol Services (launched 2026-08-13) runs Jetstream v2 with an open, unauthenticated live tail and Network Replay archives that need an API token [S]. X API is pay-per-use: post reads $0.005 each (billed per post returned), recent counts $0.005 per request, full-archive counts $0.010 per request; legacy Basic/Pro tiers closed in 2026; deleted content must be removed within 24 h [S]. xAI's X search tool moved to per-result billing on 2026-09-21 (about $5 per 1,000 posts plus model tokens) [S]. Threads keyword search needs the `threads_keyword_search` permission, 2,200 queries per rolling 24 h [V]. Instagram hashtag search needs App Review for Public Content Access, 30 unique hashtags per rolling 7 days [V]. Meta Content Library is for academic and non-profit researchers and runs in Meta's secure environments [V]. Reddit's free tier is non-commercial, 100 queries per minute, with manual app approval [S]. YouTube Data API: 10,000 units per day, `search.list` 100 units [S]. Mastodon `/api/v1/trends/tags` is public with daily `uses` and `accounts` history [V]. Telegram added a scraping prohibition to its terms on 2026-02-03; TDLib is Boost-licensed with Java (JNI) and JSON interfaces [S]. TikTok's Research API is limited to non-commercial researchers [S]. Google Trends API remains an application-gated alpha [S].
 
 ---
 
 ## 15. Prompt breakdown
 
-### 15.1 New prompts 116–134
+### 15.1 New prompts 116–139
 
 | # | Prompt | Scope | Depends on |
 |---|---|---|---|
@@ -628,9 +648,14 @@ CFTC COT on publicreporting.cftc.gov (Socrata; public domain; datasets: legacy `
 | 129 | Principals-Groups-Sharing-And-Collaboration | principals and groups, notification preferences, access lists, TLP 2.0, tags, threaded comments and mentions, attachments and Admiralty-graded evidence items, investigations (owners, members, links), saved searches | 018, 023, 033, 043, 101, 109, 112, 113, 128 |
 | 130 | Chronicles | layer bundles with capture modes, own partitioned history, thread, replay (state, tiles, tracks, series), lifecycle, storage estimates and caps, proposals from cycles, sharing | 014, 016, 036, 038, 042, 044, 111, 116–129 |
 | 131 | Reports-And-Intelligence-Exchange | reports from tags, selections, investigations, chronicles and situations; deterministic drafts and optional narrative; publish with pinned refs; send to principals; signed packages between instances; read-only links | 018, 029, 055, 109, 111–113, 116, 122–130 |
-| 132 | News-Coverage-And-Media-Bias | articles (metadata only), outlet registry, licensed rating providers and consensus, story clustering via canonical events, coverage balance, blindspots and divergence, use in situations, hypotheses and assessments | 027, 066, 073, 101, 109, 116–119, 124, 127, 128 |
+| 132 | News-Coverage-And-Media-Bias | articles (metadata by default), outlet registry, licensed rating providers and consensus, story clustering via canonical events, coverage balance, blindspots and divergence, use in situations, hypotheses and assessments | 027, 066, 073, 101, 109, 116–119, 124, 127, 128 |
 | 133 | Chronicle-Network-And-Discovery | evidence keys and MinHash fingerprints, discoverability under TLP, opaque links and clusters, deduplicated cluster timelines, federated sketch exchange with network salts, access requests, circular-reporting detection | 098, 109, 113, 116, 118, 129–131 |
-| 134 | ✅ Checkpoint-Intelligence | run and fix all tests from 001–133; determinism, look-ahead, wording, egress, duplicate inflation, manifests, benchmark, collaboration and TLP, chronicle independence, exchange round trip, news independence, chronicle-network disclosure, circular reporting, invariants |
+| 134 | Social-Sources-And-Volume | operator-enabled platform adapters (Bluesky Jetstream on by default; Bluesky search, Mastodon, Reddit, YouTube, X with spend cap, Threads, Instagram hashtags, Telegram web preview or account), `social-post` records and ingest format, topic `social` blocks, term index, deletion sync, denominator-scaled hourly volume series and baselines, `social-velocity` findings, social-attention observability | 005, 010, 024, 036, 040, 093, 098, 109, 116, 117, 119, 130 |
+| 135 | Narratives-Claims-And-Media | narratives as canonical events counted by origin, multilingual deterministic claim extraction with optional LLM extraction, claims as graded evidence items, PDQ image fingerprints and reuse findings, propagation graphs across platforms and news, coordination indicators | 026, 027, 036, 043, 098, 116, 118, 119, 124, 128, 132, 133, 134 |
+| 136 | Social-Physical-Correlation | claim-versus-physical comparisons with detectability, lead times, attention gaps, cue-driven searches, social precursor candidates, `social-claim` ledger forecaster, lead-time statistics, situation, hypothesis, assessment and chronicle integration | 017, 018, 100, 116, 118–124, 127, 130, 132–135 |
+| 137 | Browser-Fetch-And-Web-Sources | optional headless-browser fetch mode, per-source proxies and imported sessions, `access` metadata, honest `BLOCKED`/`LAYOUT_CHANGED`/`GEO_RESTRICTED` health; opt-in web-map, scrape and content adapters (FR24, MarineTraffic, VesselFinder, LiveUAMap, OREF, UKMTO, Hormuz tracker, Broadcastify, TinyGS, TxDOT, InciWeb extras, Facebook pages, TikTok; CCTV frames, GDELT URL metadata, news bodies and bylines) | 003, 005, 006, 043, 062, 066, 072, 075, 077, 088, 109, 132, 134 |
+| 138 | Markets-Forecasts-And-Commercial-Sources | opt-in Kalshi, Polymarket, Metaculus and VIEWS as series and scored external forecasters linked to ledger questions; CME, ICE, Yahoo Finance, CNN Fear & Greed; Google Trends; Electricity Maps; NewsGuard and Ad Fontes ratings; Shodan; Windy webcams | 093, 109, 117, 119, 120, 122, 132, 136, 137 |
+| 139 | ✅ Checkpoint-Intelligence | run and fix all tests from 001–138; determinism, look-ahead, wording, egress, duplicate inflation, manifests, benchmark, collaboration and TLP, chronicle independence, exchange round trip, news independence, chronicle-network disclosure, circular reporting, social independence, absence and cue loops, restricted-adapter defaults, external forecasters, invariants |
 
 ### 15.2 Changes to unexecuted prompts
 
@@ -652,10 +677,16 @@ CFTC COT on publicreporting.cftc.gov (Socrata; public domain; datasets: legacy `
 | 088 | Optional `gfw-sar-detections` (SAR vessel detections) |
 | 099 | New generators: `derived-cable-risk` (anchor drag near submarine cables), `derived-dark-vessel-match` (AIS gaps × SAR detections), `derived-lightning-holdover` (holdover lightning ignitions), `derived-hf-blackout` (HF propagation anomalies) |
 | 100, 101, 102, 103 | Retrofitted by 116 (detectability, evidence groups, manifests) |
-| 012, 022, 041, 057, 097, 137 | Invariants check against `docs/Invariants.md` |
-| 136 | SDKs include `ObjectRef`, the envelope and a `WorkspaceSync` helper |
-| 138 | Disk-full drill, practical capacity bounds, intelligence job costs |
-| 135–139 (v1.2 116–120) | Renumbered; test-run lists and cross-references updated |
+| 012, 022, 041, 057, 097, 142 | Invariants check against `docs/Invariants.md` |
+| 141 | SDKs include `ObjectRef`, the envelope and a `WorkspaceSync` helper |
+| 143 | Disk-full drill, practical capacity bounds, intelligence job costs |
+| 140–144 (v1.2 116–120) | Renumbered; test-run lists and cross-references updated |
+| 117 | Attention topics gain a `social` block (terms per language, hashtags, accounts, channels, platforms, places, entities) used by 134 |
+| 116 | Originator class `social`; canonical families `social-narrative`; observability family `social-attention` (134–135) |
+| 124 | Evidence source `social-claim`; indicator state `reported` (social) distinct from `observed` (136) |
+| 066, 072, 075, 077, 093, 117, 132, 141 | Former exclusions reworded: these prompts build the official routes; 137–138 (and 141's translation backend) add the rest as opt-in adapters |
+| 018, 130, 123 | Notification types `social.divergence`, `social.attention_gap`; chronicle layers `social-narratives`, `social-volume`; social benchmark scenarios (134–136) |
+| 134–138 | Social signals (134–136) and opt-in restricted sources (137–138) inserted on 2026-10-11; checkpoint 134 → 139, tail 135–139 → 140–144 |
 
 ---
 
@@ -663,11 +694,7 @@ CFTC COT on publicreporting.cftc.gov (Socrata; public domain; datasets: legacy `
 
 | Idea | Decision |
 |---|---|
-| Prediction-market prices (Polymarket, Kalshi) | Excluded on terms (093 §8). Research shows market blending improves forecasts; revisit only with written consent. |
-| Metaculus community forecasts as a baseline | Excluded until Metaculus grants permission for this use. |
-| VIEWS forecasts as an external forecaster | Deferred until the data licence is confirmed. |
-| CME/ICE exchange data, options flow | Licence terms; an operator may push their own through a custom source (024). |
-| Social-media scraping (X, Telegram) | Excluded by charter. |
+| Sources excluded on terms (prediction markets, Metaculus, VIEWS, CME/ICE, Electricity Maps, Facebook, TikTok, unofficial and browser-based sources) | **Reversed (2026-10-11):** opt-in adapters, off by default (137–138). |
 | Person-level analysis, insider identification | Never. |
 | Neural forecasting models | Charter non-goal; statistical fitting only. |
 | Acting on a probability automatically | Forecasts drive only operator-written rules on `analytic-finding` records. |
@@ -678,8 +705,6 @@ CFTC COT on publicreporting.cftc.gov (Socrata; public domain; datasets: legacy `
 | Public procurement (SAM.gov, USAspending) | Low signal for this product; revisit on demand. |
 | Argo floats, GCN/LIGO multi-messenger alerts | Low intelligence value; easy to add later as custom or catalogue sources. |
 | ADS-B barometric-vs-geometric altitude pressure mapping | Research-grade; out of scope for 1.0. |
-| Electricity Maps | Commercial API terms; Ember, EIA-930 and grid frequency (093) cover the need. |
-| Social media (X, Telegram, Facebook) | Excluded (scraping or terms). Bluesky's public firehose could supply aggregate keyword volume (honouring deletions, no author analysis); evaluate after 1.0. |
 | Satellite tasking and commercial imagery ordering | Out of scope for the broker; a client or operator integration can push results back through custom sources (024). |
 | Imagery change detection (building counts, disturbed area) | Requires computer-vision models; operators can run their own pipeline and push results as records through custom sources (024), where they become ordinary evidence. |
 | Personal "my news bias" reading analytics | A client feature; Foresignal does not track what people read. |
@@ -698,7 +723,7 @@ Three external reviews (ChatGPT, Gemini, Grok) of the v1.3 design, and what was 
 | Analytic benchmark before autonomous features | ChatGPT (P1) | **Adopted:** 123 benchmark harness with gating |
 | Run fast tests every prompt | ChatGPT (P1); Grok | **Not adopted** (owner decision): tests stay at checkpoints; checkpoints now also verify the invariants registry |
 | Machine-readable decision and invariant registry; one source of truth per concern | ChatGPT; Grok | **Adopted:** `docs/Invariants.md` (ids, owners, tests), checked at every checkpoint; source-of-truth table in Conventions |
-| Ingest, partition and SSE load benchmarks before dense feeds | ChatGPT; Gemini | **Adopted:** 022 performance smoke; 138 capacity and disk-full drill |
+| Ingest, partition and SSE load benchmarks before dense feeds | ChatGPT; Gemini | **Adopted:** 022 performance smoke; 143 capacity and disk-full drill |
 | Temporal knowledge graph | ChatGPT (A) | **Adopted in light form:** 128 relation graph with validity, confidence, provenance and common-dependency queries |
 | Active information-gap detection; "what would have to be true" | ChatGPT (C); Grok | **Adopted:** 124 information value and collection gaps; 127 reports them |
 | Counterfactual engine | ChatGPT (B) | **Deferred** (§16) |
@@ -708,7 +733,7 @@ Three external reviews (ChatGPT, Gemini, Grok) of the v1.3 design, and what was 
 | OpenAPI missing intelligence endpoints | Gemini | **Not a defect:** the spec grows with each prompt by convention (Conventions "Spec drift"); 020 tracks unbuilt operations |
 | Retention deadlock from lagging cursors | Gemini | **Already handled:** the consumer clamp releases after 2 × window and alarms (Core-Data-Model §13); the new cursors inherit it (Conventions) |
 | Geofence flapping from position jitter | Gemini | **Adopted:** 017 `hysteresisMeters` |
-| Single-writer ceiling, SSE memory | Gemini | **Measured:** 022 performance smoke (writer, SSE heap per emitter), 138 soak |
+| Single-writer ceiling, SSE memory | Gemini | **Measured:** 022 performance smoke (writer, SSE heap per emitter), 143 soak |
 | Submarine-cable anchor-drag guard; dark vessels × SAR; holdover lightning ignitions; HF propagation anomalies | Gemini | **Adopted:** 099 generators; 088 optional SAR detections |
 | BGP/outage × NOTAM/fire/conflict co-occurrence | Gemini | **Covered:** 119 co-occurrence mining over all signal families |
 | RIS Live, OSM infrastructure extracts | Grok | **Already planned:** 092 (optional RIS Live), 104 (operator-supplied OSM extract) |
@@ -723,3 +748,6 @@ Three external reviews (ChatGPT, Gemini, Grok) of the v1.3 design, and what was 
 | Three kinds of memory (observations, interpretation, chronicles) | ChatGPT | **Adopted** as a design invariant (§3.1) |
 | Chronicles discovering related chronicles without leaking or double counting | ChatGPT | **Adopted:** 133 chronicle network |
 | Full OpenAPI before parallel client development | Owner | **Adopted:** the complete target spec is authored up front (Conventions "API-first") |
+| Social media as an intelligence signal: velocity, narratives, propagation, claim contradiction, media reuse, coordination, attention divergence, cue-driven search, measured predictive value | Owner (with an external proposal) | **Adopted:** 134–136, with corrections: Facebook and Instagram have no general public-content route (Instagram hashtag search only); X is billed per post read and per counts request, so standing topics use counts and posts are fetched on cues; model-mediated search is a sample, not a baseline; text-derived places carry confidence; reuse detection is limited to fingerprinted media; coordination is reported as indicators, never account labels; silence requires social-coverage observability |
+| No source exclusions on terms or fragility | Owner | **Adopted:** 137 (browser, proxies, sessions, web-map, scrape and content adapters) and 138 (markets and forecast platforms as external forecasters, finance, trends, ratings, Shodan, webcams); no CAPTCHA solving or fingerprint spoofing, challenges are reported as `BLOCKED` |
+| Do not police the operator | Owner | **Adopted:** single-operator tool; restrictive-terms platforms (X, Telegram account mode, Threads, Instagram, Reddit) are opt-in adapters with documented terms, never exclusions (Conventions "Operator choice") |

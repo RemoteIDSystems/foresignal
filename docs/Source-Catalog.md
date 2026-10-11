@@ -122,12 +122,12 @@ Keyless and official feeds that VEL uses and Foresignal lacks. VEL paths are und
 | `uk-ofsi-sanctions` / `un-sanctions` | sanction | UK OFSI ConList CSV; UN consolidated list XML | CSV / XML | Daily. Pairs with `ofac-sdn`. |
 | `gpsjam-daily` | jamming-cell | `gpsjam.org/data/manifest.csv` → `{date}-h3_4.csv` | CSV | Daily. H3 res-4 cells (needs the `h3` Java dependency to turn cells into polygons). Complements Foresignal's derived jamming layer (prompt 057). |
 
-**Excluded from VEL's set:** unofficial web-map endpoints, scraping, and practices that work around blocks.
-- FlightRadar24 `feed.js`, ShipXplorer, MyShipTracking, MarineTraffic and VesselFinder web endpoints.
-- Every headless-Chromium "sidecar" and the real-Chrome fetch tier.
-- The keyless Google Earth and Apple Flyover 3D channels.
-- readsb `aircraft.json` mirrors (`globe.theairtraffic.com`, `skylink.hpradar.com`), whose redistribution terms are unclear and which block datacentre IPs.
-- Rotating egress proxies and WARP.
+**Not in the default set from VEL (opt-in adapters in 137, off by default):** unofficial web-map endpoints, scraping and browser-based collection.
+- FlightRadar24 (official API with the operator's key, or the web feed), ShipXplorer, MyShipTracking, MarineTraffic and VesselFinder (official APIs where they exist, or web endpoints): `flightradar24`, `marinetraffic`, `vesselfinder`, `myshiptracking`, `shipxplorer`.
+- Headless-browser collection: 137's optional `browser` fetch mode (Playwright).
+- readsb `aircraft.json` mirrors: `readsb-mirrors` with operator-listed URLs.
+- Proxies: per-source proxies (137), including any pool the operator supplies.
+- The keyless Google Earth and Apple Flyover 3D channels are client basemaps, fetched by clients directly (Foresignal does not host basemaps).
 
 **Design notes from VEL (ideas, not code):**
 - Alerts on **enter/exit transitions**, not on every match. Adopted as the trigger rule `mode` (Architecture §8.3).
@@ -169,38 +169,53 @@ These are structured feeds that rarely appear in OSINT globe projects. Reference
 | `who-don` | disease-outbreak | `www.who.int/api/emergencies/diseaseoutbreaknews` | none | 6 h. Country-level. |
 | `faa-nas-status` | airport-delay | `nasstatus.faa.gov/api/airport-status-information` | none | 5 min. Airport points. |
 | `eia-petroleum` / `gie-agsi` / `ember-electricity` | energy | EIA v2 API, `agsi.gie.eu/api`, Ember monthly CSV | keys for EIA and AGSI | Weekly or daily. These are time series with no geometry. Carried as records without geometry, `kind=series-point`, with the series id as `externalId` plus the period (prompt 055). |
-| `polymarket` / `kalshi` | prediction-market | `gamma-api.polymarket.com`, `api.elections.kalshi.com/trade-api/v2` | none | **Polymarket JA3-blocks server-side clients, so it is excluded.** Kalshi is fine. |
+| `polymarket` / `kalshi` | prediction-market | `gamma-api.polymarket.com`, `api.elections.kalshi.com/trade-api/v2` | none | Opt-in adapters and external forecasters in 138 (off by default; see their terms there). |
 
 **Design notes worth borrowing (ideas, not code):**
 - WM's seed envelope state `OK | OK_ZERO | ERROR` is the same idea as Foresignal's zero-result health rule.
 - Its "keep last good data on failure" behaviour is already implicit in Foresignal: records persist until retention removes them.
 - Its ACLED-over-GDELT dedup on a 0.1° grid and same-day match is included in derived layers (prompt 057).
 
-**Excluded from WM's set:**
-- OREF sirens: needs a residential proxy to evade an Akamai WAF.
-- WTO Hormuz tracker: Power BI scraping.
-- Yahoo Finance and CNN Fear & Greed: unofficial endpoints and scraping.
-- Telegram MTProto: needs a personal user session.
-- X API and Windy: commercial keys.
-- LiveUAMap.
+**Not in WM's default set here (opt-in adapters in 137–138, off by default):**
+- OREF sirens: `oref-alerts` (usually needs a proxy located in Israel).
+- WTO Hormuz tracker: `hormuz-tracker` (browser mode).
+- Yahoo Finance and CNN Fear & Greed: `yahoo-finance`, `cnn-fear-greed` (unofficial endpoints).
+- Windy: `windy-webcams` (operator key).
+- LiveUAMap: `liveuamap` (official API or browser mode).
+- Telegram and the X API: operator-enabled social adapters (134).
 
-## Excluded by charter
+## Opt-in restricted sources (prompts 137–138)
 
-These are left out because they scrape or use headless browsers, rely on unofficial endpoints, or depend on an upstream's tolerance:
+Sources that use unofficial endpoints, scraping or a headless browser, or whose terms restrict collection or cost money. Each is an adapter that ships **off by default**; its descriptor's `access` block shows route, terms summary, fragility and requirements before the operator enables it. Unofficial routes break: adapters report `BLOCKED`, `LAYOUT_CHANGED` or `GEO_RESTRICTED` rather than returning empty data. Foresignal does not solve CAPTCHAs or spoof client fingerprints; the operator can import a browser session or set a proxy.
 
-- **LiveUAMap:** Playwright scraping past Cloudflare Turnstile.
-- **Telegram OSINT:** HTML scraping of `t.me/s/`.
-- **Broadcastify:** HTML scraping.
-- **NUFORC:** nonce scraping.
-- **yfinance and the unofficial Google Translate endpoint.**
-- **Article-title scraping of GDELT URLs.**
-- **Windy webcams:** keyed and commercial.
-- **Shodan:** keyed, commercial, on-demand recon. It doesn't fit an ingest broker; agents can call it directly.
-- **CME Group data:** personal, non-commercial use only; automated access and data mining prohibited and technically enforced. (DataMine is paid.)
-- **ICE end-of-day futures data:** paid subscription with redistribution licensing. (ICE's free weekly COT for Brent and gasoil is evaluated in 117.)
-- **Prediction-market prices (Polymarket, Kalshi):** terms forbid storing or archiving (093 §8).
-- **Metaculus community forecasts:** terms restrict AI/ML and commercial use without written permission; excluded until permission exists.
-- **UKMTO / JMIC advisories:** the site blocks automated clients and offers no official feed; NGA MSI (088) and MARAD advisories cover the same ground.
+| Source id | Route | Requires | Terms and notes | Prompt |
+|---|---|---|---|---|
+| `flightradar24` | official API or web feed | key (official) | FR24 terms; web feed is unofficial | 137 |
+| `marinetraffic`, `vesselfinder`, `myshiptracking`, `shipxplorer` | official APIs where offered, else web endpoints / browser | key (official) | provider terms | 137 |
+| `readsb-mirrors` | `aircraft.json` from operator-listed mirrors | — | redistribution terms unclear; mirrors may block datacentre IPs | 137 |
+| `liveuamap` | official API or browser | key or browser | Liveuamap terms; public map uses Cloudflare Turnstile (`BLOCKED` without a session) | 137 |
+| `oref-alerts` | unofficial JSON | proxy in Israel | geo-restricted | 137 |
+| `ukmto-advisories` | scrape / browser | browser | site blocks some automated clients | 137 |
+| `hormuz-tracker` | browser (dashboard data queries) | browser | unofficial | 137 |
+| `nuforc` | scrape | — | unofficial | 137 |
+| `broadcastify` | premium API or scrape | key (official) | feed status and listener counts | 137 |
+| `tinygs` | web client endpoints or browser | — | no published API terms | 137 |
+| `txdot-cctv`, GEV unofficial camera loaders | unofficial endpoints | — | no published terms | 137 |
+| `inciweb-extra` | undocumented index and incident pages | — | unofficial | 137 |
+| `facebook-pages`, `tiktok` | browser / unofficial web endpoints | browser; session optional | platform terms restrict scraping | 137 |
+| CCTV frame snapshots, GDELT URL metadata, news bodies and bylines | settings on 072, 066, 132 | — | upstream site terms | 137 |
+| `kalshi`, `polymarket` | market data APIs | — | Kalshi's terms restrict storing data without consent; Polymarket gamma API open | 138 |
+| `metaculus` | API | operator token | terms restrict AI/ML and commercial use without permission | 138 |
+| `views-forecasts` | VIEWS API | — | confirm the data licence | 138 |
+| `cme-settlements` | DataMine or public settlement pages | credentials (DataMine) | personal, non-commercial use; automated access restricted | 138 |
+| `ice-eod` | operator's ICE subscription | subscription | redistribution licensing | 138 |
+| `yahoo-finance`, `cnn-fear-greed` | unofficial endpoints | — | unofficial | 138 |
+| `google-trends` | official alpha API or web endpoints | alpha access (official) | unofficial web endpoints | 138 |
+| `electricity-maps` | API | key | commercial terms | 138 |
+| `newsguard`, `adfontes` | API / licensed import | key or licence | proprietary ratings | 138 |
+| `shodan` | API | key | commercial | 138 |
+| `windy-webcams` | Webcams API v3 | key | Windy terms | 138 |
+| `google-translate-web` | unofficial translate endpoint (translation backend) | — | unofficial | 141 |
 
 ## Markets, attention and structural series (prompt 117, v1.3)
 
@@ -243,7 +258,27 @@ Articles are stored as metadata only (no bodies, no bylines). Ratings are import
 | `mbfc` ratings | Media Bias/Fact Check API with the operator's own paid key | provider terms; `LOCAL_ONLY` | off | |
 | `operator` ratings | CSV/JSON import | declared at import | n/a | |
 
-Excluded: Ad Fontes Media and NewsGuard (proprietary, no open licence); scraping any ratings site.
+Opt-in (138): NewsGuard (operator key) and Ad Fontes Media (operator licence) as rating providers; any other provider through the operator CSV import.
+
+## Social platforms (prompts 134–136, v1.3)
+
+Foresignal is a single-operator tool: every platform below is an adapter the operator enables with their own credentials and budget, after reading the platform's terms (summarised here; check them yourself, they change). Nothing is hard-blocked. "Collection" says what the data can be used for: **complete** and **paged** paths feed volume baselines; **sample** paths feed claims and leads only.
+
+| Source id | Access | Cost and quota (checked 2026-10-11) | Terms summary | Default | Collection | Deletion sync |
+|---|---|---|---|---|---|---|
+| `bluesky-jetstream` | Jetstream v2 WebSocket (`jetstream.us-east` / `us-west.bsky.network`), Network Replay with API token | free; replay token from `bsky.network/account` | Bluesky Protocol Services contracts | **on** | complete (posts, reposts) | on (delete events) |
+| `bluesky-search` | AppView `app.bsky.feed.searchPosts` | free; app password if required | as above | off | paged | on |
+| `mastodon` | per instance: hashtag streams, `/api/v1/trends/tags`, account statuses | free; per-instance limits | each instance's rules | off | complete per instance (streams), daily history (trends) | n/a |
+| `reddit` | OAuth API, `/r/{sub}/new`, `/search` | free tier 100 queries/min, non-commercial, manual app approval | Reddit Data API Terms | off | paged | optional |
+| `youtube` | Data API v3 | 10,000 units/day; `search.list` 100 units, `videos.list` 1 unit | YouTube API Services Terms | off | sample (search), complete (tracked videos' stats) | n/a |
+| `x` | API v2 pay-per-use: `counts/recent`, `search/recent` (optional `counts/all`, `search/all`) | $0.005 per post read; $0.005 per recent counts request; monthly cap `social.x.monthlyCapUsd` (default $25) | X Developer Agreement; remove deleted content within 24 h | off | complete counts; paged search | on |
+| `threads` | `keyword_search` with `threads_keyword_search` permission | 2,200 queries per rolling 24 h | Meta Platform Terms | off | paged (`RECENT`) | on |
+| `instagram-hashtags` | Graph API `ig_hashtag_search`, `recent_media` (business account, Public Content Access review) | 30 unique hashtags per rolling 7 days | Meta Platform Terms | off | sample | optional |
+| `telegram` | `web-preview`: `t.me/s/{channel}` pages; `account`: TDLib (Boost licence) with the operator's own account | free; per-host pacing | Telegram's terms prohibit scraping since 2026-02-03; the operator decides | off | paged per channel | optional |
+| `xai-x-search` (cue backend, 136) | xAI API X search tool | ~$5 per 1,000 posts returned plus model tokens (per-result billing since 2026-09-21) | xAI terms | off | sample | n/a |
+| custom (`social-post` format, 024) | operator pushes posts from any tool | n/a | operator's responsibility | n/a | as declared | operator |
+
+Also opt-in: `facebook-pages` and `tiktok` (browser and unofficial web endpoints, 137; Meta Content Library is research-only and TikTok's Research API academic-only, so there is no official route), and `google-trends` (138). Operators can push any other data through the `social-post` custom format.
 
 ## Reference-history datasets (prompt 121, v1.3)
 

@@ -8,12 +8,12 @@
 - **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text. `docs/Invariants.md` lists the invariants each prompt must keep.
-- **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–134).
+- **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–139).
 - **Previous Completion Report:** read `completion-reports/071-CR-*.md` and follow its "Notes for the next prompt".
 
 ## Read first
 
-- `docs/Source-Catalog.md` row `cctv-*` (God's Eye View ports) and the "Excluded by charter" list
+- `docs/Source-Catalog.md` row `cctv-*` (God's Eye View ports) and the "Opt-in restricted sources" section (137)
 - `docs/Core-Data-Model.md` §2 (time contract: "Catalogue and reference" row), §3 (descriptor fields, adapter rules 7–13, limits), §5.3 ("Everything else" defaults)
 - `docs/Architecture.md` §4.2 (adapter rules, adapter families, GEV porting rule)
 - `docs/Adapter-Guide.md` (prompt 011): package layout, fixture procedure, fieldSpecs contract test
@@ -22,7 +22,7 @@
 
 ## Objective
 
-Ingest public traffic-camera **catalogues** (location, direction, image or stream URL, access hints) from official open-data endpoints as one source per pack. Frames are **never fetched, proxied or stored** by Foresignal; clients load them directly from the upstream host using the URL and the `frameAccess` hint in the record. Port the God's Eye View loaders, minus anything that spoofs a browser or relies on unofficial web-app endpoints.
+Ingest public traffic-camera **catalogues** (location, direction, image or stream URL, access hints) from official open-data endpoints as one source per pack. Frames are **not fetched** by this prompt (137 adds opt-in frame snapshots); clients load them directly from the upstream host using the URL and the `frameAccess` hint in the record. Port the God's Eye View loaders that use official open-data endpoints; 137 adds the unofficial ones as opt-in adapters.
 
 ## Tasks
 
@@ -58,7 +58,7 @@ Defaults: interval 15 min (min 10 min), budget 2/min, 200/day, unless stated. Us
 | `cctv-estonia` | `https://tarktee.transpordiamet.ee/api/v1/datex/roadCameraLocations` + `.../roadCameraImages` | DATEX II XML: parse with a hardened StAX reader (no DTD, no external entities). Join locations and images by camera id. |
 | `cctv-tallinn`, `cctv-warendorf` | Bundled GEV packs → `src/main/resources/cctv/packs/{tallinn,warendorf}.json` | Static catalogues: no network request. `fetch` reads the resource; interval 24 h. Warendorf has `http:` frames → `frameInsecure=true`. Keep the GEV origin header in the JSON files' sibling `NOTICE`. |
 
-**Not ported:** TxDOT. GEV calls `its.txdot.gov/its/DistrictIts/GetCctvStatusListByDistrict`, the ITS web map's internal endpoint, which has no published terms (charter: no unofficial web-map endpoints). Add it to the Source Catalog "Excluded" list with that reason. Also skip GEV's Shinjuku pack (not in the catalogue).
+**Not ported:** TxDOT. GEV calls `its.txdot.gov/its/DistrictIts/GetCctvStatusListByDistrict`, the ITS web map's internal endpoint, which has no published terms; it becomes the opt-in `txdot-cctv` adapter in 137. Also skip GEV's Shinjuku pack (not in the catalogue).
 
 ### 3. Port notes
 
@@ -89,13 +89,13 @@ Defaults: interval 15 min (min 10 min), budget 2/min, 200/day, unless stated. Us
 
 - One source per pack in the registry, all disabled, with licence and terms set.
 - No code path fetches, proxies or stores a camera frame; no User-Agent override exists in the package.
-- TxDOT is documented as excluded.
+- TxDOT is documented as an opt-in adapter (137).
 - Compiles.
 
 ## Guardrails (mandatory)
 
-1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 134, 137, 138, 139).
-2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 139).
+1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 139, 142, 143, 144).
+2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 144).
 3. **Reuse policy.** Never copy code from ShadowBroker, Velocity or World Monitor (AGPL) or SatDump (GPL). They are reference material only. God's Eye View (MIT, `~/Documents/GitLab/gods-eye-view`) may be ported to Java if you add an origin header comment and an entry in `THIRD_PARTY_NOTICES.md`.
 4. **Stay in scope.** Implement what this prompt specifies, no more. If the docs conflict with reality (for example, a library API differs from what the docs assume), choose the approach most faithful to `docs/Architecture.md` and record it under "Deviations" in the Completion Report.
 5. **Verify versions.** When adding a dependency, confirm the version exists on Maven Central and is compatible with Spring Boot 4.1 and Java 21.
