@@ -17,6 +17,12 @@ Every build prompt follows these conventions. When a prompt's text disagrees wit
 | **SatDump product ids** | `satdump-{station}-…` for every SatDump product: geostationary (049) and polar (054). |
 | **Spec drift** | Each prompt that adds or changes code-visible API types updates `docs/OpenAPI.json` for **those** types, with `x-elaro-scope` on every operation, then regenerates Postman. Enums added in code (e.g. `Mode.DERIVED`, `ParamType.LAN_URL`/`INBOX_PATH`) must appear in the spec. 013 catches up the source-related gaps from 004. |
 
+## No credentials during construction
+
+- **Building and testing never needs the owner's keys.** All tests use WireMock and recorded fixtures; no test calls a real upstream.
+- **Keyed sources** (e.g. AISStream, FIRMS, OpenSky, UCDP, ACLED, URLhaus, Ontario 511, AirNow, OpenAQ, eBird, GFW, Cloudflare Radar, ReliefWeb/HDX app ids): if no key is available, build the fixture from the provider's published documentation or examples. Mark it `synthetic: true` in the fixture's README, with "recapture with a real key". Never stop, prompt for a key, or use someone else's key.
+- **Runtime keys** are entered later through the API (`PUT /v1/sources/{id}/credentials`). Only prompt 119 can optionally use them, through `ELARO_VERIFY_*` environment variables; it skips those checks when the variables are absent.
+
 ## Defaults that override earlier design text
 
 | Item | Value | Why |
