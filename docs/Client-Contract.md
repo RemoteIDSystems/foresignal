@@ -1,6 +1,6 @@
 # Foresignal — Client Contract (v1)
 
-How applications built on Foresignal name, fetch, relate, annotate and share focus on the same objects. It is the reference for every frontend (3D globe, 2D map, analyst workstation, satellite and RF consoles, mobile, embedded widgets) and for agents. Prompt 128 implements it; prompt 135's SDKs ship helpers for it. `GET /v1/contract` reports the versions in force.
+How applications built on Foresignal name, fetch, relate, annotate and share focus on the same objects. It is the reference for every frontend (3D globe, 2D map, analyst workstation, satellite and RF consoles, mobile, embedded widgets) and for agents. Prompt 128 implements it; prompt 136's SDKs ship helpers for it. `GET /v1/contract` reports the versions in force.
 
 ---
 
@@ -158,6 +158,12 @@ A context travels between applications as a deep link payload: `{"v":1,"ws":"01J
 - Validation (annotations with verdicts) is how analysts teach the system; make it one click on any finding, event or situation.
 - Offline and edge clients use offline packs (111) and federation (113); the context and references are the same.
 
+## 9. Recommended frontend architecture (informative)
+
+- Keep Foresignal headless; build each frontend (globe, analyst workstation, satellite, RF/sensors, intelligence, operations) as an independently runnable module on a shared client SDK generated from `docs/OpenAPI.json`.
+- Share state only through Foresignal: workspaces and their synchronised context (§5), deep links (§6), investigations, chronicles and reports. A unifying shell, when it comes, coordinates layout and navigation, not data.
+- Develop against the complete target spec from day one: generate types and clients from `docs/OpenAPI.json`, run a mock server from it, and read `x-foresignal-status` (`planned` or `implemented`) and `x-foresignal-prompt` to know when each operation goes live.
+
 ## 10. Collaboration (prompt 129)
 
 - **Who:** every request runs as a principal (person, agent or service) through its token; `GET /v1/me` returns the principal, scopes, groups and preferences.
@@ -193,7 +199,14 @@ A chronicle is a saved monitoring thread with its own recorded history. Clients:
 - A situation has no single probability. Where a design calls for a headline gauge, show the leading hypothesis's probability (with its ICD term) **and**, separately, the evidence quality or confidence; never label a probability as "confidence".
 - Every percentage shown must come from a ledger forecast, a hypothesis revision or a finding's statistics, with its issuer and knowledge cutoff (§3.2).
 
-## 9. Versioning
+## 15. Chronicle network (prompt 133)
+
+- `GET /v1/chronicles/{id}/related` returns links at the disclosure level the caller is allowed: **full** (both chronicles visible: shared events and entities), or **opaque** (strength band, overlapping dimensions, time overlap; title and owner only if revealed). Render opaque links as "a related thread exists", with a request-access action; never infer or display more.
+- Owners set discoverability (`none`, `instance`, `network`) within their TLP's limits; show the effective setting on the chronicle.
+- Cluster timelines are already deduplicated by evidence; show which visible chronicles hold each item.
+- Hypotheses and reports may show `CIRCULAR_REPORTING`; display it as a caveat on the affected support.
+
+## 16. Versioning
 
 - `GET /v1/contract` → `{contractVersion, objectTypes, relationTypes, contextSchemaVersion, deepLinkVersion}`.
 - Within `/v1`, changes are additive (new types, relation types, optional context fields). Removing or renaming anything requires a new major contract version and a deprecation period announced through `Deprecation` headers.

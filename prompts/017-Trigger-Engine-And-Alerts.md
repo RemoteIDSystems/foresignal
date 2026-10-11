@@ -8,7 +8,7 @@
 - **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text. `docs/Invariants.md` lists the invariants each prompt must keep.
-- **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–133).
+- **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–134).
 - **Previous Completion Report:** read `completion-reports/016-CR-*.md` and follow its "Notes for the next prompt".
 
 ## Read first
@@ -45,7 +45,7 @@ Extend `TriggerRuleEntity` (add columns via Hibernate) and `TriggerRuleInput`:
 - **`near`** `{point: [lon, lat] | placeId, radiusKm (0.1–2000)}`, materialised into `geofence` as `ST_Buffer(point::geography, r)`; mutually exclusive with `geofence`. `placeId` needs a `PlaceLookup` bean (prompt 036, which also re-materialises on place edits); without one → 400 `PLACES_UNAVAILABLE`.
 - `mode` `match` (default) | `enter` | `exit`; edge modes need a geofence or a condition (else 400). `reappearAsEnter` default true when the rule has a geofence, else false. `onlyNew` (version = 1).
 - `cooldown` (duration, default 0) and `cooldownScope` `record` (default) | `rule`.
-- `severity` `info|warning|critical` (default warning); `enrich`, `enrichRadiusKm` (1–2000, default 100), `enrichWindow` (default 24h) stored for prompt 030.
+- `severity` `info|warning|critical` (default warning); `enrich`, `enrichRadiusKm` (1–1000, default 100), `enrichWindow` (default 24h) stored for prompt 030.
 - `autoResolve` `{onInverseEdge, onTombstone, onExpiry, staleAfter}`; default all true (staleAfter null) for `enter` rules, null (off) for `match`; not allowed on `exit` rules (400).
 - `maxAlertsPerHour` (nullable → app setting `triggers.defaultMaxAlertsPerHour`, default 120; 0 = unlimited) and `autoDisableOnStorm` (default false).
 - `activeFrom`, `activeUntil` (timestamptz, nullable) and `activeWindow` `{timezone (IANA), windows: [{days: [MON…SUN], start: "HH:mm", end: "HH:mm"}]}`; `end < start` spans midnight.
@@ -133,8 +133,8 @@ Seed only through `TestRecords`.
 
 ## Guardrails (mandatory)
 
-1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 133, 136, 137, 138).
-2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 138).
+1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 134, 137, 138, 139).
+2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 139).
 3. **Reuse policy.** Never copy code from ShadowBroker, Velocity or World Monitor (AGPL) or SatDump (GPL). They are reference material only. God's Eye View (MIT, `~/Documents/GitLab/gods-eye-view`) may be ported to Java if you add an origin header comment and an entry in `THIRD_PARTY_NOTICES.md`.
 4. **Stay in scope.** Implement what this prompt specifies, no more. If the docs conflict with reality (for example, a library API differs from what the docs assume), choose the approach most faithful to `docs/Architecture.md` and record it under "Deviations" in the Completion Report.
 5. **Verify versions.** When adding a dependency, confirm the version exists on Maven Central and is compatible with Spring Boot 4.1 and Java 21.

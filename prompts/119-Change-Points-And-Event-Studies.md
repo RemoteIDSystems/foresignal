@@ -38,7 +38,7 @@ Build the discovery layer's foundations and first three detectors. Foundations: 
 - Add resolutions 2 (region-hour) and 3 (region-day) to `activity_rollup`, with a nullable `region_code` text column and `cell = stableHash64(region_code)` for those rows. Region = the record head's 040 country code, or `CC-admin1` when the source's setting `statsRegionLevel=admin1`. Records without a region tag go to region `ZZ`.
 - `RegionRollupJob` mirrors 038's `RollupJob` (durable cursor `stats.region.cursor` in `app_setting`, closed buckets only, ≤ 6 h catch-up per run, days computed from raw rows, never by summing hours) and joins 019's consumer clamp. First start backfills from the oldest retained seq (bounded by `foresignal.stats.backfill`).
 - Retention: `RetentionSettings.stats.regionHourly` 1095 d, `regionDaily` 3650 d.
-- `/v1/stats/series` and `/v1/stats/top` accept `groupBy=region` and `region=` filters.
+- `/v1/stats/timeseries` (`groupBy=region`) and `/v1/stats/top` (`by=region`) accept `region=` filters.
 
 ### 2. Signal families (`ai.foresignal.analytics.family`)
 
@@ -128,8 +128,8 @@ Dependencies: Apache Commons Statistics (distributions, inference; verify the cu
 
 ## Guardrails (mandatory)
 
-1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 133, 136, 137, 138).
-2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 138).
+1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 134, 137, 138, 139).
+2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 139).
 3. **Reuse policy.** Never copy code from ShadowBroker, Velocity or World Monitor (AGPL) or SatDump (GPL). They are reference material only. God's Eye View (MIT, `~/Documents/GitLab/gods-eye-view`) may be ported to Java if you add an origin header comment and an entry in `THIRD_PARTY_NOTICES.md`.
 4. **Stay in scope.** Implement what this prompt specifies, no more. If the docs conflict with reality (for example, a library API differs from what the docs assume), choose the approach most faithful to `docs/Architecture.md` and `docs/Intelligence-Design.md`, and record it under "Deviations" in the Completion Report.
 5. **Verify versions.** When adding a dependency, confirm the version exists on Maven Central and is compatible with Spring Boot 4.1 and Java 21.

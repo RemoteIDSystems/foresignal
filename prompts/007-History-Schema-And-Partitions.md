@@ -8,12 +8,12 @@
 - **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text. `docs/Invariants.md` lists the invariants each prompt must keep.
-- **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–133).
+- **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–134).
 - **Previous Completion Report:** read `completion-reports/006-CR-*.md` and follow its "Notes for the next prompt".
 
 ## Read first
 
-- `docs/Core-Data-Model.md` §0, §1 (invariants I1, I9, I10), §8 (tables), §9 (partitioning and schema ownership), §16 (deployment), §17 (`SchemaParityIT`), and the **"006a History Schema And Partitions"** bullets under *Per-prompt changes* (006a is this prompt; its "016" is prompt 019 and its "063" is prompt 138)
+- `docs/Core-Data-Model.md` §0, §1 (invariants I1, I9, I10), §8 (tables), §9 (partitioning and schema ownership), §16 (deployment), §17 (`SchemaParityIT`), and the **"006a History Schema And Partitions"** bullets under *Per-prompt changes* (006a is this prompt; its "016" is prompt 019 and its "063" is prompt 139)
 - `docs/Gap-Analysis.md` §8.A item 2 (`validFrom`, `record_head.title`)
 - `docs/Architecture.md` §7.1, §7.3 (superseded by Core-Data-Model §8–§9 where they differ)
 - Code: `config/SchemaBootstrap`, `config/PostgisExtensionInitializer`, `config/SpatialIndexInitializer`, `store/*` (record entities from prompt 002), `test/DatabaseCleaner`, `store/EntityMappingIT`, `config/SchemaBootstrapIT`
@@ -47,7 +47,7 @@ Register in `SchemaBootstrap` as bean `historySchemaInitializer` with `@DependsO
 4. `CREATE INDEX IF NOT EXISTS` on the parent: `record_version_source_external_seq_idx (source_id, external_id, seq)`, `record_version_source_observed_idx (source_id, observed_at)`, `record_version_geom_gist USING GIST (geom)`. No `ingested_at` index, no unique constraint.
 5. `PartitionManager.ensureAhead()`.
 
-Keep the DDL as constants in one class (prompt 138 moves it into the Flyway baseline). Never create a DEFAULT partition.
+Keep the DDL as constants in one class (prompt 139 moves it into the Flyway baseline). Never create a DEFAULT partition.
 
 ### 3. `PartitionManager` (`ai.foresignal.store.history`)
 
@@ -72,7 +72,7 @@ Update `SpatialIndexInitializer.STATEMENTS`: remove the `record_version` GiST (n
 
 - Main `application.yml`: `spring.jpa.properties.hibernate.hbm2ddl.extra_physical_table_types: PARTITIONED TABLE`; `spring.datasource.hikari.data-source-properties.reWriteBatchedInserts: true` (this also covers the Testcontainers `@ServiceConnection` URL); the `foresignal.history.*` defaults; `foresignal.ingest.writer.exclusive: true`.
 - `application-test.yml`: `foresignal.ingest.writer.exclusive: false`, `foresignal.history.maintenance.enabled: false`, `foresignal.retention.scheduled: false` (read by prompt 019). It must **not** override `spring.jpa.properties`.
-- Fix the Flyway references in `SchemaBootstrap` Javadoc, `SpatialIndexInitializer` and the `application.yml` comment from "prompt 042" to "prompt 138".
+- Fix the Flyway references in `SchemaBootstrap` Javadoc, `SpatialIndexInitializer` and the `application.yml` comment from "prompt 042" to "prompt 139".
 - `docker-compose.yml`: add to `db` `command: ["postgres","-c","shared_buffers=512MB","-c","max_wal_size=8GB","-c","checkpoint_timeout=15min","-c","wal_compression=lz4","-c","max_locks_per_transaction=256","-c","autovacuum_vacuum_cost_limit=2000"]`; ports `"${FORESIGNAL_DB_BIND:-127.0.0.1}:5433:5432"` and `"${FORESIGNAL_BIND:-127.0.0.1}:8080:8080"`.
 
 ### 6. Test support
@@ -103,8 +103,8 @@ Update `SpatialIndexInitializer.STATEMENTS`: remove the `record_version` GiST (n
 
 ## Guardrails (mandatory)
 
-1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 133, 136, 137, 138).
-2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 138).
+1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 134, 137, 138, 139).
+2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 139).
 3. **Reuse policy.** Never copy code from ShadowBroker, Velocity or World Monitor (AGPL) or SatDump (GPL). They are reference material only. God's Eye View (MIT, `~/Documents/GitLab/gods-eye-view`) may be ported to Java if you add an origin header comment and an entry in `THIRD_PARTY_NOTICES.md`.
 4. **Stay in scope.** Implement what this prompt specifies, no more. If the docs conflict with reality (for example, a library API differs from what the docs assume), choose the approach most faithful to `docs/Architecture.md` and record it under "Deviations" in the Completion Report.
 5. **Verify versions.** When adding a dependency, confirm the version exists on Maven Central and is compatible with Spring Boot 4.1 and Java 21.

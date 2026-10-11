@@ -65,7 +65,7 @@ Implement **rolling hypotheses**. A hypothesis set frames one key question and i
 6. **Speculative-link cap:** `probability_cap = min(0.98, posterior implied by the linked findings' likelihood ratio, where LR = (1 − placebo rate) ÷ placebo rate bounded to [1, 20], applied to the hypothesis prior)`. The updater never raises a speculative-link hypothesis above its cap; an operator override is allowed, logged and labelled.
 7. **Confidence:** recomputed by rule (`ConfidenceAssessor` 1.0.0): high requires ≥ 2 observed indicators from ≥ 2 families with credibility ≥ M, no broken linchpin, sources with 109 grade ≥ B (or default), and no `LOW_REPORTING_DENSITY`; moderate requires ≥ 1 observed indicator with credibility ≥ M; otherwise low. A broken linchpin lowers confidence one step.
 8. **Output:** a `hypothesis_revision` with drivers and a deterministic rationale ("Moved 'response within 72 h' from unlikely (31%) to roughly even chance (49%): NOTAMs closing southern Saudi airspace observed (high diagnosticity); naval co-occurrence absent with coverage (low)."), lint-checked; and, when the set has `question_id`, a ledger forecast from forecaster `indicator-bayes` (multiple-choice distribution mapped by `ledger_outcome`).
-9. **Band changes** (`EstimativeLanguage.crossesBand`) emit SSE `hypothesis.band_changed` and the notification event of the same name, rate-limited to one per set per 6 h (the latest wins).
+9. **Band changes** (`EstimativeLanguage.crossesBand`) emit SSE `set.band_changed` on topic `hypotheses` and the 018 notification event `hypothesis.band_changed`, rate-limited to one per set per 6 h (the latest wins).
 
 ### 5. Lifecycle and reviews
 
@@ -123,8 +123,8 @@ Implement **rolling hypotheses**. A hypothesis set frames one key question and i
 
 ## Guardrails (mandatory)
 
-1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 133, 136, 137, 138).
-2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 138).
+1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 134, 137, 138, 139).
+2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 139).
 3. **Reuse policy.** Never copy code from ShadowBroker, Velocity or World Monitor (AGPL) or SatDump (GPL). They are reference material only. God's Eye View (MIT, `~/Documents/GitLab/gods-eye-view`) may be ported to Java if you add an origin header comment and an entry in `THIRD_PARTY_NOTICES.md`.
 4. **Stay in scope.** Implement what this prompt specifies, no more. If the docs conflict with reality (for example, a library API differs from what the docs assume), choose the approach most faithful to `docs/Architecture.md` and `docs/Intelligence-Design.md`, and record it under "Deviations" in the Completion Report.
 5. **Verify versions.** When adding a dependency, confirm the version exists on Maven Central and is compatible with Spring Boot 4.1 and Java 21.

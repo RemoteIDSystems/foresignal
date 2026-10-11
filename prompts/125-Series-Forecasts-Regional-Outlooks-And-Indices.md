@@ -40,7 +40,7 @@ Add Foresignal's own statistical forecasts and make them accountable. A **series
 - **Forecasts:** nightly after 119's change-point run: horizons 1, 7, 28 days; quantiles p05, p10, p25, p50, p75, p90, p95 (monotone-adjusted); stored in `series_forecast(ref, made_at, asof_seq, horizon, target_period, quantiles, method, version)`.
 - **Ledger:** for refs listed in `analysis.forecasts.questionSeries` (operator setting; defaults: PortWatch Bab el-Mandeb, Hormuz and Suez transits, COT WTI `mm_net`), open numeric questions per horizon via `ForecastService.openQuestion` (`series-value` resolver, category `activity` or `markets`), forecaster `statistical`, plus the 122 `climatology` and `persistence` baselines automatically.
 - **Exceedance:** a realised value outside the 1-step p05–p95 band → `forecast-exceedance` finding (119 table; `notable`; `significant` outside p01–p99 computed from the same distribution).
-- API: `GET /v1/series/forecast?ref&horizon` (read; LOCAL_ONLY refs return quantiles in standardised units unless the caller may see local values), `GET /v1/series/forecast/model?ref` (read; method and backtest).
+- API: `GET /v1/analytics/series/forecast?ref&horizon` (read; LOCAL_ONLY refs return quantiles in standardised units unless the caller may see local values), `GET /v1/analytics/series/forecast/model?ref` (read; method and backtest).
 
 ### 2. Regional outlooks (`ai.foresignal.outlook.regional`, `regional-outlook` 1.0.0)
 
@@ -88,8 +88,8 @@ Add Foresignal's own statistical forecasts and make them accountable. A **series
 
 ## Guardrails (mandatory)
 
-1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 133, 136, 137, 138).
-2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 138).
+1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 134, 137, 138, 139).
+2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 139).
 3. **Reuse policy.** Never copy code from ShadowBroker, Velocity or World Monitor (AGPL) or SatDump (GPL). They are reference material only. God's Eye View (MIT, `~/Documents/GitLab/gods-eye-view`) may be ported to Java if you add an origin header comment and an entry in `THIRD_PARTY_NOTICES.md`.
 4. **Stay in scope.** Implement what this prompt specifies, no more. If the docs conflict with reality (for example, a library API differs from what the docs assume), choose the approach most faithful to `docs/Architecture.md` and `docs/Intelligence-Design.md`, and record it under "Deviations" in the Completion Report.
 5. **Verify versions.** When adding a dependency, confirm the version exists on Maven Central and is compatible with Spring Boot 4.1 and Java 21.

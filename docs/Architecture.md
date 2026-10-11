@@ -114,7 +114,8 @@ ai.foresignal
 │                   workspaces and context sync, sensor discovery (128)
 ├── collab          Principals, groups, access lists, TLP, tags, comments, attachments,
 │                   evidence items, saved searches (129)
-├── chronicle       Chronicles: capture, partitioned history, thread, replay (130)
+├── chronicle       Chronicles: capture, partitioned history, thread, replay (130);
+│                   network: fingerprints, discovery, access requests (133)
 ├── report          Reports, renditions, signed intelligence packages (131)
 ├── media           News articles, stories, outlet registry, rating providers, coverage (132)
 └── api             Controllers, DTOs, ProblemDetail handlers, pagination cursors
@@ -627,7 +628,7 @@ Optional. Without a configured provider, Foresignal is fully functional: briefin
 
 - **Keys:** a VAPID key pair (P-256) is generated on first start. The private key is stored encrypted in `system_secret`. `GET /v1/push/vapid-public-key` is open.
 - **Subscriptions:** `POST /v1/push/subscriptions` takes `{name, subscription: {endpoint, keys: {p256dh, auth}}, filters: {events, ruleIds, minSeverity}}` and requires `read` scope (or open reads). `DELETE /v1/push/subscriptions/{id}` removes one, and `GET` lists them (admin).
-- **Delivery:** the built-in `webpush` channel encrypts payloads per RFC 8291 (`aes135gcm`) and signs a VAPID JWT (ES256, RFC 8292) using JDK crypto only. A `404` or `410` from the push service deletes the subscription.
+- **Delivery:** the built-in `webpush` channel encrypts payloads per RFC 8291 (`aes136gcm`) and signs a VAPID JWT (ES256, RFC 8292) using JDK crypto only. A `404` or `410` from the push service deletes the subscription.
 - **Payload:** `{title, body, severity, url, event, id}`. Frontends (a PWA or the operator console) register a service worker and subscribe.
 
 ## 25. Production hardening (prompt 063)

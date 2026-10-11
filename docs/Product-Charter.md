@@ -112,6 +112,7 @@ Open-source situational-awareness projects (ShadowBroker, God's Eye View, Veloci
 | **TLP** | Traffic Light Protocol 2.0 label (CLEAR, GREEN, AMBER, AMBER+STRICT, RED) bounding how a work product may be shared. |
 | **Chronicle** | A named monitoring thread: a bundle of layers that records its own history while active, independent of global retention, and can be replayed, shared, archived or deleted. |
 | **Report / package** | An analyst product with pinned evidence; a signed package carries it to principals on another instance. |
+| **Chronicle network** | Relationships between chronicles discovered from keyed fingerprints of their evidence, never their content. |
 | **Outlet rating** | Lean, factuality, ownership or state-affiliation of a news outlet from a declared, licensed provider. |
 | **Object reference / workspace** | The canonical `type:id` name of any Foresignal object, and a shared investigation focus (selection, time range, viewport) that several clients follow live ([Client Contract](Client-Contract.md)). |
 | **Assessment** | The output of a daily, weekly or monthly analysis cycle: key judgments, what changed, hypotheses, indicators, forecasts and speculation, following ICD 203. |
@@ -227,7 +228,8 @@ Open-source situational-awareness projects (ShadowBroker, God's Eye View, Veloci
 - **FR-72** Chronicles bundle chosen layers into named monitoring threads that record their own history while active, replay at any past moment, and can be proposed by the analysis cycles, shared, archived and deleted (130).
 - **FR-73** Reports are drafted from tags, selections, investigations, chronicles or situations, published with pinned evidence and TLP banners, and sent to principals on the same instance or as signed packages to other instances (131).
 - **FR-74** News articles (metadata only) are clustered into stories; outlets carry lean, factuality and ownership ratings from licensed providers; coverage balance, blindspots and divergence inform situations, hypotheses and assessments (132).
-- **FR-75** Probabilities are stored as numbers and expressed with ICD 203 terms; likelihood and confidence are separate, and generated text is linted.
+- **FR-75** Chronicles discover related chronicles (other analysts' and other instances') from privacy-preserving fingerprints, disclosed only as discoverability and TLP allow; shared evidence counts once and circular reporting is detected (133).
+- **FR-76** Probabilities are stored as numbers and expressed with ICD 203 terms; likelihood and confidence are separate, and generated text is linted.
 
 ## 9. Non-functional requirements
 

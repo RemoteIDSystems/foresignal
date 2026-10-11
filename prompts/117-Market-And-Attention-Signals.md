@@ -66,7 +66,7 @@ Add the market and attention signals the intelligence layer correlates with even
 - `attention_topic`: `id` (slug `^[a-z0-9-]{3,48}$`), `name`, `description`, `gdelt_query` (≤ 250 chars; validated by a dry character check and, on create, one budgeted test call when `gdelt-timelines` is enabled), `wiki_articles` (≤ 20 `{project, article}`; `project` like `en.wikipedia`), `keywords` (≤ 30, used by 118's linker), `region_codes` (040 codes), `themes`, `enabled`, `created_by`, timestamps.
 - Adapters never read the store (Architecture §3), so `AttentionTopicService` **syncs** enabled topics into the `topics` param of `gdelt-timelines` and `wikimedia-pageviews` through `SourceService` (validated by their param schemas) whenever topics change.
 - Ship five example topics, disabled: `red-sea-shipping`, `strait-of-hormuz`, `gulf-energy-infrastructure`, `taiwan-strait`, `ukraine-front`.
-- API: `GET /v1/attention/topics` (read), `GET /v1/attention/topics/{id}` (read), `POST`, `PUT /{id}`, `DELETE /{id}` (agent). MCP: `list_attention_topics` (read). Problem codes: `UNKNOWN_TOPIC` (404), `TOPIC_INVALID` (400).
+- API: `GET /v1/attention/topics` (read), `GET /v1/attention/topics/{id}` (read), `POST`, `PUT /{id}`, `DELETE /{id}` (agent). MCP: `list_attention_topics` (read). Problem codes: `UNKNOWN_ATTENTION_TOPIC` (404), `TOPIC_INVALID` (400).
 
 ### 5. `wikimedia-pageviews` (POLLING, keyless)
 
@@ -122,8 +122,8 @@ Investigate whether ICE Futures Europe publishes its weekly Commitments of Trade
 
 ## Guardrails (mandatory)
 
-1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 133, 136, 137, 138).
-2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 138).
+1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 134, 137, 138, 139).
+2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 139).
 3. **Reuse policy.** Never copy code from ShadowBroker, Velocity or World Monitor (AGPL) or SatDump (GPL). They are reference material only. God's Eye View (MIT, `~/Documents/GitLab/gods-eye-view`) may be ported to Java if you add an origin header comment and an entry in `THIRD_PARTY_NOTICES.md`.
 4. **Stay in scope.** Implement what this prompt specifies, no more. If the docs conflict with reality (for example, a library API differs from what the docs assume), choose the approach most faithful to `docs/Architecture.md` and `docs/Intelligence-Design.md`, and record it under "Deviations" in the Completion Report.
 5. **Verify versions.** When adding a dependency, confirm the version exists on Maven Central and is compatible with Spring Boot 4.1 and Java 21.

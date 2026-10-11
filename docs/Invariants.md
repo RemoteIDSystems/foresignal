@@ -4,7 +4,7 @@ Machine-checkable list of the rules the build must keep. Each invariant has a st
 
 **How it is used:**
 - Prompts cite invariant ids when they touch an owning component ("keeps ING-1, ING-2").
-- Every checkpoint (012, 022, 041, 057, 097, 133, 136) verifies that each invariant whose owner prompt is at or before it is asserted by at least one existing test. From 133 on, `InvariantRegistryTest` parses this file and checks that the named test classes exist.
+- Every checkpoint (012, 022, 041, 057, 097, 134, 137) verifies that each invariant whose owner prompt is at or before it is asserted by at least one existing test. From 134 on, `InvariantRegistryTest` parses this file and checks that the named test classes exist.
 - Test names below are the expected class names. A prompt that names its test differently updates this file in the same commit.
 - Detailed definitions live in the referenced documents; this file is the index.
 
@@ -104,9 +104,14 @@ Format: `| id | invariant | owner | enforced by | tests |`
 | NEWS-1 | Media ratings come only from declared providers with licence and date; no model generates them | 132 | rating providers | `RatingProvidersTest` |
 | NEWS-2 | News reprints of one originator count as one evidence group; no author names are stored | 132 | 116 resolver, news adapters | `NewsStoryClusteringIT`, `NewsIndependenceTest` |
 
+| DISC-1 | Chronicle relationships are disclosed only within visibility, discoverability and TLP; sketches never carry content, titles or owners unless revealed | 133 | `ChronicleDiscoveryJob`, disclosure rules | `DisclosureTest`, `FederatedSketchIT` |
+| DISC-2 | Shared evidence counts once across chronicles and clusters | 133 | evidence keys, cluster timeline | `ChronicleDiscoveryIT` |
+| DISC-3 | Circular reporting is counted as one evidence group in hypotheses and confidence | 133 | `CircularReportingDetector` | `CircularReportingTest` |
+| MEM-1 | Observations are never edited by interpretation; chronicles copy observations and snapshot interpretation; nothing downstream mutates an upstream memory | 116 | code structure, writers | `MemorySeparationTest` |
+
 ## Process
 
 | Id | Invariant | Owner | Enforced by | Tests |
 |---|---|---|---|---|
-| PRC-1 | Every API operation is in `docs/OpenAPI.json` with `x-foresignal-scope`, in AccessPolicy and in the Postman collection; `pending-operations.txt` lists only unbuilt operations and is empty at 136 | 020 | contract tests | `OpenApiContractIT`, `PostmanCoverageTest` |
+| PRC-1 | Every API operation is in `docs/OpenAPI.json` with `x-foresignal-scope`, in AccessPolicy and in the Postman collection; `pending-operations.txt` lists only unbuilt operations and is empty at 137 | 020 | contract tests | `OpenApiContractIT`, `PostmanCoverageTest` |
 | PRC-2 | No GPL/AGPL code or dependency in the application | 001 | dependency and reuse checks | `LicenceAllowlistTest` |

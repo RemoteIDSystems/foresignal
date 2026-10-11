@@ -8,7 +8,7 @@
 - **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text. `docs/Invariants.md` lists the invariants each prompt must keep.
-- **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–133).
+- **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–134).
 - **Previous Completion Report:** read `completion-reports/112-CR-*.md` and follow its "Notes for the next prompt".
 
 ## Read first
@@ -26,7 +26,7 @@ Let Foresignal instances share data with each other safely. A new `foresignal-pe
 ### 1. Identity and global record refs (`ai.foresignal.federation`)
 
 - **Instance id** = the install id from `InstallIdService` (003). Add an operator-settable display name `federation.instanceName`.
-- **`RecordRef`:** `urn:foresignal:{instanceId}:{sourceId}:{externalId}` (externalId percent-encoded). Expose `ref` on the Record DTO, version items and `Change` (014). Parse and format in one class.
+- **`RecordRef`:** `urn:foresignal:{instanceId}:{sourceId}:{externalId}` (externalId percent-encoded). Expose it as `globalRef` on the Record DTO, version items and `Change` (014). Parse and format in one class.
 - **`GET /v1/federation/info`** (read): `{instanceId, instanceName, version, apiVersion, jwksUri, capabilities:["changes","stream","snapshot","ingest"], time}`, signed: the response carries an `Foresignal-Signature` detached JWS over the body (109 `JwsSigner`).
 
 ### 2. Serving side: federation feed
@@ -95,7 +95,7 @@ Let Foresignal instances share data with each other safely. A new `foresignal-pe
 
 - **Peers:** `GET/POST /v1/peers`, `GET/PUT/DELETE /v1/peers/{id}`, `POST /v1/peers/{id}/test` (fetch `/info`, verify, report), `POST /v1/peers/{id}/resync`, `POST /v1/peers/{id}/ingest-key` (rotate; shown once). All admin.
 - **Health:** peer sources use 006 health with reasons `PEER_KEY_MISMATCH`, `PEER_UNREACHABLE`, `PEER_RESYNC`. Metrics `foresignal.federation.items{peer,result}`, `lag_seq{peer}`.
-- `docs/OpenAPI.json`: schemas `FederationInfo`, `FederationItem`, `Provenance` (extend 109's), `Peer`, `PeerCreate`, `PeerSelection`, `CompactMessage` (documented CBOR keys); `ref` on `Record`, `RecordVersion`, `Change`; the operations above with `x-foresignal-scope` (`read` + federation capability noted in the description; ingest endpoints `ingest-key`). Update `AccessPolicy`. Regenerate Postman with BODIES for `createPeer`, `updatePeer`, `federationIngest`.
+- `docs/OpenAPI.json`: schemas `FederationInfo`, `FederationItem`, `Provenance` (extend 109's), `Peer`, `PeerCreate`, `PeerSelection`, `CompactMessage` (documented CBOR keys); `globalRef` on `Record`, `RecordVersion`, `Change`; the operations above with `x-foresignal-scope` (`read` + federation capability noted in the description; ingest endpoints `ingest-key`). Update `AccessPolicy`. Regenerate Postman with BODIES for `createPeer`, `updatePeer`, `federationIngest`.
 - MCP (025): `list_peers`, `peer_status` (admin).
 - `docs/Operator-Guide.md` "Federation and edge relay": topology examples (home hub ⇄ cabin edge; two friends' instances), the licence rules (what never leaves), key pinning, edge profile memory notes, compact messages over mesh.
 - `docs/Architecture.md`: a short "Federation" section (refs, chain, loop and dedup rules).
@@ -120,8 +120,8 @@ Let Foresignal instances share data with each other safely. A new `foresignal-pe
 
 ## Guardrails (mandatory)
 
-1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 133, 136, 137, 138).
-2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 138).
+1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 134, 137, 138, 139).
+2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 139).
 3. **Reuse policy.** Never copy code from ShadowBroker, Velocity or World Monitor (AGPL) or SatDump (GPL). They are reference material only. God's Eye View (MIT, `~/Documents/GitLab/gods-eye-view`) may be ported to Java if you add an origin header comment and an entry in `THIRD_PARTY_NOTICES.md`.
 4. **Stay in scope.** Implement what this prompt specifies, no more. If the docs conflict with reality (for example, a library API differs from what the docs assume), choose the approach most faithful to `docs/Architecture.md` and record it under "Deviations" in the Completion Report.
 5. **Verify versions.** When adding a dependency, confirm the version exists on Maven Central and is compatible with Spring Boot 4.1 and Java 21.

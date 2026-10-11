@@ -7,24 +7,25 @@ One ordered list of prompts that takes Foresignal from an empty repository to a 
   - [Core Data Model](Core-Data-Model.md) is authoritative for ingest, history, live state, triggers, SSE, asOf and retention.
   - [Weather & Imagery Design](Weather-Imagery-Design.md) is authoritative for rasters, weather and SatDump.
   - [Gap Analysis](Gap-Analysis.md) covers client, output, input and platform gaps, verified.
-- **v1.3 design input:** [Intelligence Design](Intelligence-Design.md) is authoritative for the intelligence layer: situations, discovery (change points, event studies, co-occurrence, precursors), base rates and analogs, rolling hypotheses, the forecast ledger, outlooks and indices, impact projection and analysis cycles (prompts 116–133).
+- **v1.3 design input:** [Intelligence Design](Intelligence-Design.md) is authoritative for the intelligence layer: situations, discovery (change points, event studies, co-occurrence, precursors), base rates and analogs, rolling hypotheses, the forecast ledger, outlooks and indices, impact projection and analysis cycles (prompts 116–134).
 - **v1.3 contracts:** [Client Contract](Client-Contract.md) is authoritative for object references, relations, workspaces and deep links (prompt 128, the frontends). [Invariants](Invariants.md) indexes the invariants every checkpoint verifies.
   - The ChatGPT, Grok and Gemini architecture reviews are folded into the items below.
 
 ## 1. Process
 
+0. **API-first.** `docs/OpenAPI.json` is the complete target API, authored before implementation (each operation tagged with the prompt that implements it and `planned` or `implemented`). Clients are built in parallel against it; prompts implement it and amend it only with recorded deviations (Conventions "API-first").
 1. Each unit of work is a prompt in `/prompts`, named `NNN-<Prompt-Description>.md`.
 2. Claude Code runs them in order, either one at a time or unattended with `prompts/000-Run-Sequence.md`.
 3. Each prompt starts by reading the earlier Completion Reports and adapting to what was actually built.
 4. Each prompt ends by writing `/completion-reports/NNN-CR-<Prompt-Description>.md` with the implementation commit hash.
-5. **Checkpoint prompts** (marked ✅ below) run the test suite built so far and fix failures before the next feature work. Prompt 136 does the final full regression and enforces ≥ 90% coverage.
-6. **Collect early.** After 022 (the core milestone), deploy a collecting instance on the bench server with the event-class sources enabled and the analytic retention defaults (`docs/Conventions.md`), and upgrade it as the build continues. History cannot be backfilled from live feeds, and the intelligence block (116–133) is far more useful on weeks of real history. Reference-history imports (121) supply the long outside view.
+5. **Checkpoint prompts** (marked ✅ below) run the test suite built so far and fix failures before the next feature work. Prompt 137 does the final full regression and enforces ≥ 90% coverage.
+6. **Collect early.** After 022 (the core milestone), deploy a collecting instance on the bench server with the event-class sources enabled and the analytic retention defaults (`docs/Conventions.md`), and upgrade it as the build continues. History cannot be backfilled from live feeds, and the intelligence block (116–134) is far more useful on weeks of real history. Reference-history imports (121) supply the long outside view.
 
 ## 2. Guardrails (in every prompt)
 
-1. **Tests:** feature prompts write unit and integration tests targeting ≥ 90% line coverage but **do not run them**. Tests run only in the checkpoint prompts (012, 022, 041, 057, 097, 133) and the final full run (136). Every checkpoint also verifies the invariants registry.
+1. **Tests:** feature prompts write unit and integration tests targeting ≥ 90% line coverage but **do not run them**. Tests run only in the checkpoint prompts (012, 022, 041, 057, 097, 134) and the final full run (137). Every checkpoint also verifies the invariants registry.
 2. **Finish with Compile → Commit → Push.** Compile with `./gradlew compileJava compileTestJava`, commit, push to `origin main`, and put the commit hash in the Completion Report.
-3. **Hibernate only during development.** Schema changes go through Hibernate (`ddl-auto=update`) plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns (partitioned history). **No Flyway until prompt 138.**
+3. **Hibernate only during development.** Schema changes go through Hibernate (`ddl-auto=update`) plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns (partitioned history). **No Flyway until prompt 139.**
 
 ## 3. Completion Report template
 
@@ -230,17 +231,18 @@ Design: [Intelligence Design](Intelligence-Design.md); client contract: [Client 
 | 130 | Chronicles | Named monitoring threads: layer bundles with capture modes, their own partitioned history, thread, replay, storage estimates and caps, lifecycle, proposals from the analysis cycles, sharing | Ready |
 | 131 | Reports-And-Intelligence-Exchange | Reports from tags, selections, investigations, chronicles and situations; publish with pinned evidence and TLP banners; send to principals; signed packages between instances; read-only links | Ready |
 | 132 | News-Coverage-And-Media-Bias | News articles (metadata only), outlet registry with licensed lean, factuality and ownership ratings, story clustering, coverage balance, blindspots and divergence in situations, hypotheses and assessments | Ready |
-| 133 | ✅ Checkpoint-Intelligence | Run and fix all tests from 001–132; determinism, no look-ahead, wording, egress, duplicate inflation, manifests, benchmark, collaboration and TLP, chronicle independence, exchange, news independence, invariants | Ready |
+| 133 | Chronicle-Network-And-Discovery | Related chronicles from privacy-preserving fingerprints (local and federated), discoverability under TLP, opaque links and clusters, access requests, evidence counted once, circular-reporting detection | Ready |
+| 134 | ✅ Checkpoint-Intelligence | Run and fix all tests from 001–133; determinism, no look-ahead, wording, egress, duplicate inflation, manifests, benchmark, collaboration and TLP, chronicle independence, exchange, news independence, chronicle-network disclosure, invariants | Ready |
 
 ### Maintenance, clients and hardening
 
 | # | Prompt | Scope | Status |
 |---|---|---|---|
-| 134 | Adapter-Doctor | LLM-assisted diagnosis: probe, compare with fixture, explain, propose parser fix | Ready |
-| 135 | Client-SDKs-CLI-And-Extensibility | Dart/TypeScript/Python SDK generation with SSE layer and `WorkspaceSync`, picocli CLI, MCP remote authorization (RFC 9728), plugin SPI (WASM-first), science and security formats (CZML, QuakeML, STIX), audio briefings and translation | Ready |
-| 136 | ✅ Full-Test-Run-And-Fix | Full regression, ≥ 90% coverage gate, invariants registry | Ready |
-| 137 | Runtime-Verification | Live soak on the bench server: storage, WAL, persist ratio, storms, restore drill, disk-full drill, capacity bounds, Tailscale profile, metrics drift; intelligence jobs' runtime and cost | Ready |
-| 138 | Production-Hardening | Docs consolidation into Architecture/Charter, Flyway baseline (tiered DDL, all indexes), `ddl-auto=validate`, oasdiff, release `v1.0.0` | Ready |
+| 135 | Adapter-Doctor | LLM-assisted diagnosis: probe, compare with fixture, explain, propose parser fix | Ready |
+| 136 | Client-SDKs-CLI-And-Extensibility | Dart/TypeScript/Python SDK generation with SSE layer and `WorkspaceSync`, picocli CLI, MCP remote authorization (RFC 9728), plugin SPI (WASM-first), science and security formats (CZML, QuakeML, STIX), audio briefings and translation | Ready |
+| 137 | ✅ Full-Test-Run-And-Fix | Full regression, ≥ 90% coverage gate, invariants registry | Ready |
+| 138 | Runtime-Verification | Live soak on the bench server: storage, WAL, persist ratio, storms, restore drill, disk-full drill, capacity bounds, Tailscale profile, metrics drift; intelligence jobs' runtime and cost | Ready |
+| 139 | Production-Hardening | Docs consolidation into Architecture/Charter, Flyway baseline (tiered DDL, all indexes), `ddl-auto=validate`, oasdiff, release `v1.0.0` | Ready |
 
 **Outside this repository:** client applications built on Foresignal have their own repositories and roadmaps:
 - the web globe and operator console
@@ -255,20 +257,20 @@ They consume the API, SSE, MCP, push and SDKs above.
 
 Some older prompt text, and the design docs, still use earlier numbers. Translate them with these tables.
 
-**Roadmap v1.2 → v1.3** (2026-10-11: intelligence block inserted as 116–133):
+**Roadmap v1.2 → v1.3** (2026-10-11: intelligence block inserted as 116–134):
 
 | v1.2 | v1.3 | Note |
 |---|---|---|
 | 001–115 | unchanged | |
 | 103 Backtesting-And-Hypotheses | 103 Backtesting-And-Precursor-Tests | same number; its "hypothesis" object is now a **precursor test** |
-| — | 116–133 | new intelligence block (evidence, signals, situations, discovery, base rates, ledger, benchmark, hypotheses, outlooks, impact, cycles, client contract, collaboration, chronicles, reports and exchange, news coverage, checkpoint) |
-| 116 Adapter-Doctor | 134 | |
-| 117 Client-SDKs-CLI-And-Extensibility | 135 | |
-| 118 Full-Test-Run-And-Fix | 136 | |
-| 119 Runtime-Verification | 137 | |
-| 120 Production-Hardening | 138 | |
+| — | 116–134 | new intelligence block (evidence, signals, situations, discovery, base rates, ledger, benchmark, hypotheses, outlooks, impact, cycles, client contract, collaboration, chronicles, reports and exchange, news coverage, chronicle network, checkpoint) |
+| 116 Adapter-Doctor | 135 | |
+| 117 Client-SDKs-CLI-And-Extensibility | 136 | |
+| 118 Full-Test-Run-And-Fix | 137 | |
+| 119 Runtime-Verification | 138 | |
+| 120 Production-Hardening | 139 | |
 
-Completion Reports 001–005 and the design docs written before 2026-10-11 use v1.2 numbers; where they say 116–120, read 134–138. (A short-lived draft of v1.3 on 2026-10-11 numbered the block 116–126 and the tail 127–131; nothing was built against it.)
+Completion Reports 001–005 and the design docs written before 2026-10-11 use v1.2 numbers; where they say 116–120, read 135–139. (A short-lived draft of v1.3 on 2026-10-11 numbered the block 116–126 and the tail 127–131; nothing was built against it.)
 
 **Product rename (2026-10-11): Elaro → Foresignal.** Completion Reports 001–005 (and any text written before the rename) use the old names. Translate:
 
@@ -318,12 +320,12 @@ Completion Reports 001–005 and the design docs written before 2026-10-11 use v
 | 040 | 075 | 057 | 099 |
 | 041 | 076 | 058 | 042–056 (weather block) |
 | 042 | 077 | 059 | 109 |
-| 043 | 078 | 060 | 116 → v1.3 134 |
-| 044 | 080 | 061 | 118 → v1.3 136 |
-| 045 | 081 | 062 | 119 → v1.3 137 |
-| | | 063 | 120 → v1.3 138 |
+| 043 | 078 | 060 | 116 → v1.3 135 |
+| 044 | 080 | 061 | 118 → v1.3 137 |
+| 045 | 081 | 062 | 119 → v1.3 138 |
+| | | 063 | 120 → v1.3 139 |
 
-**Core-Data-Model.md labels:** 006a → 007, 007 → 008, 007b → 009, 030a → 044. Its "063" (Flyway) is now 138.
+**Core-Data-Model.md labels:** 006a → 007, 007 → 008, 007b → 009, 030a → 044. Its "063" (Flyway) is now 139.
 
 **Weather-Imagery-Design.md labels** (its §10 list) → v1.2:
 
@@ -341,7 +343,7 @@ Completion Reports 001–005 and the design docs written before 2026-10-11 use v
 | | | 075 | 107 |
 | | | 076 | 108 |
 
-Its "080" (runtime verification) is now 137, and its "081" (Flyway) is now 138.
+Its "080" (runtime verification) is now 138, and its "081" (Flyway) is now 139.
 
 **Gap-Analysis.md labels:**
 
@@ -357,7 +359,7 @@ Its "080" (runtime verification) is now 137, and its "081" (Flyway) is now 138.
 | 028f | 040 | 059a | 110 |
 | 028g | 058 | 059b | 111 |
 | 028h | 059 | 059c | 112 |
-| 028i | 060 | 060a | 117 → v1.3 135 |
+| 028i | 060 | 060a | 117 → v1.3 136 |
 | 028j | 061 | | |
 | 039a | 073 | | |
 
@@ -366,4 +368,5 @@ Its "extend NNN" items apply to the renumbered prompt: translate NNN with the v1
 ## 6. API tooling
 
 - `postman/Foresignal.postman_collection.json` and `postman/Foresignal-Local.postman_environment.json` are generated from `docs/OpenAPI.json` by `scripts/generate-postman.py`. Any prompt that changes the spec regenerates them.
-- Prompt 020 adds a contract test that fails when any operation is missing from the collection.
+- Prompt 020 adds a contract test that fails when any operation is missing from the collection, and the route-level test that keeps code and spec in step (`pending-operations.txt` lists the `planned` operations not built yet; it must be empty at 137).
+- **Parallel client development:** clients generate SDKs from `docs/OpenAPI.json` (for example `openapi-typescript` / `openapi-fetch`, or `dart-dio`) and run a mock server from it (for example `npx @stoplight/prism-cli@5 mock docs/OpenAPI.json`), filtering by `x-foresignal-status` to see what is already live. Prompt 136 later publishes official SDKs.
