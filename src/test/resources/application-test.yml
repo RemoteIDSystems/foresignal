@@ -1,0 +1,28 @@
+# Test profile. The datasource is supplied by the shared PostGIS container via
+# @ServiceConnection, so no URL is set here.
+
+spring:
+  jpa:
+    # 'update', not 'create-drop'. All integration tests share one container, and
+    # Spring's test-context cache can hold several contexts against it at once;
+    # when one context closed, create-drop would drop the schema - including the
+    # GiST indexes created by SchemaBootstrap - out from under the contexts still
+    # running. Tests get a clean slate from DatabaseCleaner truncating rows
+    # instead, which leaves the schema and its indexes in place.
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+
+foresignal:
+  # Kept off the real ./data directory so tests never touch developer state.
+  data-dir: ${java.io.tmpdir}/foresignal-test-data
+  reset-admin-token: false
+  version: test
+
+logging:
+  level:
+    root: warn
+    ai.foresignal: info
+    org.testcontainers: warn
+    com.github.dockerjava: warn
+    org.hibernate.SQL: warn

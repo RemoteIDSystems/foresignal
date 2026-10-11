@@ -1,0 +1,45 @@
+# Foresignal — broker plus PostGIS.
+#
+#   docker compose up -d        # database and broker
+#   docker compose up -d db     # database only, for local development
+#                               # (then run the app from your IDE or ./gradlew bootRun)
+services:
+  db:
+    image: postgis/postgis:17-3.5
+    environment:
+      POSTGRES_DB: foresignal
+      POSTGRES_USER: foresignal
+      POSTGRES_PASSWORD: foresignal
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U foresignal -d foresignal"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+  foresignal:
+    build: .
+    environment:
+      FORESIGNAL_DB_URL: jdbc:postgresql://db:5432/foresignal
+      FORESIGNAL_DB_USER: foresignal
+      FORESIGNAL_DB_PASSWORD: foresignal
+      FORESIGNAL_DATA_DIR: /data
+      FORESIGNAL_PORT: "8080"
+      SPRING_PROFILES_ACTIVE: docker
+    volumes:
+      - foresignal-data:/data
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  foresignal-data:

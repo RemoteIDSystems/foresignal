@@ -1,0 +1,83 @@
+# Foresignal bootstrap configuration.
+#
+# Only bootstrap concerns live here, all overridable by environment variables
+# (Architecture §13). Sources, budgets, credentials, retention, triggers,
+# webhooks and CORS are stored in the database and managed through the API.
+
+spring:
+  application:
+    name: foresignal
+  datasource:
+    url: ${FORESIGNAL_DB_URL:jdbc:postgresql://localhost:5433/foresignal}
+    username: ${FORESIGNAL_DB_USER:foresignal}
+    password: ${FORESIGNAL_DB_PASSWORD:foresignal}
+  jpa:
+    # Hibernate owns the schema during development. Flyway is introduced only
+    # in production hardening (prompt 042).
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          batch_size: 500
+          time_zone: UTC
+        order_inserts: true
+  threads:
+    virtual:
+      enabled: true
+  mvc:
+    async:
+      # SSE streams are long-lived; MVC must not time them out.
+      request-timeout: -1
+    problemdetails:
+      # RFC 9457 error bodies (Architecture §10). GlobalExceptionHandler is what
+      # actually shapes them: declaring a ResponseEntityExceptionHandler bean makes
+      # Boot's own problem-details configuration back off.
+      enabled: true
+
+server:
+  port: ${FORESIGNAL_PORT:8080}
+
+foresignal:
+  data-dir: ${FORESIGNAL_DATA_DIR:./data}
+  # Root for INBOX_PATH source parameters. Every inbox read is confined to this
+  # directory, re-checked per file, so a symlink cannot redirect a read out of it.
+  inbox-dir: ${FORESIGNAL_INBOX_DIR:${FORESIGNAL_DATA_DIR:./data}/inbox}
+  reset-admin-token: ${FORESIGNAL_RESET_ADMIN_TOKEN:false}
+  version: ${spring.application.version:unknown}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      # 'never', not 'when-authorized'. when-authorized is resolved by Spring
+      # Security, which Foresignal deliberately does not use, so it would silently
+      # behave as never anyway. /actuator/health is for container health checks;
+      # detailed status belongs to GET /v1/system.
+      show-details: never
+
+springdoc:
+  api-docs:
+    # The springdoc-generated document is served separately; it is used for
+    # drift detection against the authored contract (prompt 017).
+    path: /v1/openapi-generated.json
+  swagger-ui:
+    path: /docs
+    url: /v1/openapi.json
+
+---
+# Container runtime: structured JSON logs for log shipping. Local runs keep the
+# default human-readable console output.
+spring:
+  config:
+    activate:
+      on-profile: docker
+
+logging:
+  structured:
+    format:
+      console: ecs
