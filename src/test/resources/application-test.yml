@@ -24,6 +24,8 @@ foresignal:
   ingest:
     writer:
       exclusive: false
+      # Short, so IngestWriterIT can provoke a lock timeout (55P03) and its retry quickly.
+      lock-timeout: 500ms
   history:
     maintenance:
       enabled: false

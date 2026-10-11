@@ -14,11 +14,11 @@ Format: `| id | invariant | owner | enforced by | tests |`
 
 | Id | Invariant | Owner | Enforced by | Tests |
 |---|---|---|---|---|
-| ING-1 | Only the writer inserts `record_version` and writes `record_head`, `record_live`, `seq_clock` (Core I1); exclusive writer lock in production | 009 | `IngestWriter`, advisory lock | `IngestWriterExclusivityIT` |
-| ING-2 | `seq` is allocated inside the writer transaction; every seq of a batch exceeds every seq allocated earlier (Core I2) | 009 | writer allocator | `SeqAllocatorIT` |
-| ING-3 | `ingested_at` never decreases with seq (Core I3) | 009 | writer clock guard | `IngestClockGuardTest` |
+| ING-1 | Only the writer inserts `record_version` and writes `record_head`, `record_live`, `seq_clock` (Core I1); exclusive writer lock in production | 009 | `IngestWriter`, advisory lock | `IngestWriterIT` |
+| ING-2 | `seq` is allocated inside the writer transaction; every seq of a batch exceeds every seq allocated earlier (Core I2) | 009 | writer allocator | `IngestWriterIT` |
+| ING-3 | `ingested_at` never decreases with seq (Core I3) | 009 | writer clock guard | `IngestClockGuardTest`, `IngestWriterIT` |
 | ING-4 | Per entity, accepted `observed_at` never decreases; future values clamped; LATE dropped (Core I4) | 008 | normalizer, time contract | `TimeContractTest` |
-| ING-5 | Every head has exactly one live row and the reverse (Core I10) | 009 | writer upserts, load repair | `HeadLiveConsistencyIT` |
+| ING-5 | Every head has exactly one live row and the reverse (Core I10) | 009 | writer upserts, load repair | `IngestWriterIT` |
 | ING-6 | `record_version` is changed only by native SQL (Core I9) | 007 | code structure | `NoJpaWritesToRecordVersionTest` |
 | ING-7 | Hash input excludes volatile fields; identical content produces no new version (Core §4) | 008 | `ContentHasher` | `ContentHasherTest` |
 | ING-8 | Continuously observed entities keep a version no older than the effective keyframe plus the poll interval (Core I6) | 008 | policy engine, validator | `IngestPolicyEngineTest`, `IngestPolicyValidatorTest` |

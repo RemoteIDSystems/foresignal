@@ -13,8 +13,8 @@ import java.util.Map;
  *
  * @param seen records submitted
  * @param persisted versions written
- * @param live live-row updates without a version
- * @param touched touch rows written
+ * @param live observations written as live-only updates, without a version
+ * @param touched observations written as touches (each entity gets one touch row per batch)
  * @param touchesThrottled touches suppressed by the throttle
  * @param late observations dropped as older than the live state
  * @param skipped tombstones for absent or already tombstoned entities

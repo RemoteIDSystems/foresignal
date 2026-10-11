@@ -64,9 +64,13 @@ foresignal:
       enabled: true
       interval: 10m
   ingest:
+    # Commands that may wait for the single writer before producers back off.
+    queue-capacity: 64
     writer:
       # Hold the single-writer advisory lock (invariant I1). Off in tests.
       exclusive: true
+      # SET LOCAL lock_timeout for each batch transaction; a timeout is retried.
+      lock-timeout: 10s
 
 management:
   endpoints:

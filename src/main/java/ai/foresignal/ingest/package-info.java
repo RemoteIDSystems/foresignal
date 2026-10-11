@@ -1,13 +1,20 @@
 /**
- * Single-writer ingest: the pure core (this prompt) and, from prompt 009, the writer that applies
- * it to SQL.
+ * Single-writer ingest: the pure core (prompt 008) and the writer that applies it to SQL (prompt
+ * 009).
  *
- * <p><strong>This package's core never touches the database.</strong> {@link
+ * <p><strong>The core never touches the database.</strong> {@link
  * ai.foresignal.ingest.Normalizer}, {@link ai.foresignal.ingest.ContentHasher}, {@link
- * ai.foresignal.ingest.IngestPolicyEngine}, {@link ai.foresignal.ingest.EntityState} and the value
- * types are deterministic code with no Spring, JDBC or JPA dependencies, so they can be tested
- * exhaustively. The only Spring beans are {@link ai.foresignal.ingest.SourceIngestProfiles} and the
- * {@link ai.foresignal.ingest.PersistGate} implementations.
+ * ai.foresignal.ingest.IngestPolicyEngine}, {@link ai.foresignal.ingest.EntityState}, {@code
+ * BatchFold}, {@link ai.foresignal.ingest.ClockGuard} and the value types are deterministic code
+ * with no Spring, JDBC or JPA dependencies, so they can be tested exhaustively.
+ *
+ * <p><strong>The writer is the only database code.</strong> {@link
+ * ai.foresignal.ingest.IngestWriter} takes commands from the bounded {@link
+ * ai.foresignal.ingest.IngestQueue} on one thread and is the only code that inserts {@code
+ * record_version} and writes {@code record_head}, {@code record_live} and {@code seq_clock}
+ * (invariant I1), always with native SQL (I9). The other Spring beans are {@link
+ * ai.foresignal.ingest.SourceIngestProfiles} and the {@link ai.foresignal.ingest.PersistGate}
+ * implementations.
  *
  * <h2>Time contract (Core-Data-Model §2)</h2>
  *

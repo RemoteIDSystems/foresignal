@@ -61,6 +61,11 @@ public class PartitionManager {
      * unique index ({@code pg_type_typname_nsp_index}) instead of reporting {@code 42P07}.
      */
     static final String UNIQUE_VIOLATION = "23505";
+    /**
+     * The same race can also surface as {@code type "rv_..." already exists} ({@code 42710}), when
+     * the concurrent creator's row type is committed first.
+     */
+    static final String DUPLICATE_OBJECT = "42710";
     static final int MAX_RETRIES = 5;
     static final long BASE_BACKOFF_MILLIS = 200;
 
@@ -346,7 +351,9 @@ public class PartitionManager {
         try {
             execute(connection, "CREATE TABLE " + name + " (LIKE " + HistoryDdl.TABLE + " INCLUDING DEFAULTS)");
         } catch (SQLException e) {
-            if (!DUPLICATE_TABLE.equals(e.getSQLState()) && !UNIQUE_VIOLATION.equals(e.getSQLState())) {
+            if (!DUPLICATE_TABLE.equals(e.getSQLState())
+                    && !UNIQUE_VIOLATION.equals(e.getSQLState())
+                    && !DUPLICATE_OBJECT.equals(e.getSQLState())) {
                 throw e;
             }
             // Exists already, from a concurrent creator or an interrupted earlier attempt. Attach it

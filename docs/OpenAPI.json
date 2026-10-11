@@ -22,6 +22,11 @@
         "version": "1.3.0",
         "date": "2026-10-11",
         "note": "008: IngestOutcome.rejections[].reason lists the normalizer's rejection codes (description only; no schema change)."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-11",
+        "note": "009: IngestOutcome byReason, live and touched descriptions state their exact meaning (description only; no schema change)."
       }
     ]
   },
@@ -87425,11 +87430,12 @@
           },
           "live": {
             "type": "integer",
-            "minimum": 0
+            "minimum": 0,
+            "description": "Observations written as live-only updates, without a version"
           },
           "touched": {
             "type": "integer",
-            "description": "Touch rows written",
+            "description": "Observations written as touches (unchanged content, refreshed observedAt, lastReceivedAt and validity)",
             "minimum": 0
           },
           "touchesThrottled": {
@@ -87449,7 +87455,7 @@
             "additionalProperties": {
               "type": "integer"
             },
-            "description": "Persisted versions per persist reason"
+            "description": "Persisted versions per persist reason; every reason is present, zeros included: FIRST, REAPPEAR, SIGNIFICANT, TOMBSTONE, CHANGE, SAMPLE, KEYFRAME, HEARTBEAT, TRIGGER_EDGE"
           },
           "versionBytes": {
             "type": "integer",
