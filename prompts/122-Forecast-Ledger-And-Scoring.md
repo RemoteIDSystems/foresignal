@@ -100,6 +100,7 @@ Auto-created questions:
 ### 8. API, SSE, MCP, notifications
 
 - Questions: `GET /v1/forecasts/questions?status&category&linked&dueBefore&cursor` (read), `GET /v1/forecasts/questions/{id}` (read; criteria, resolver, forecasts by forecaster with the latest first, ensemble, ICD term, scores when resolved), `POST /v1/forecasts/questions` (agent), `PATCH /v1/forecasts/questions/{id}` (agent; title, tags, `closes_at`; criteria and resolver are immutable once a forecast exists), `POST /v1/forecasts/questions/{id}/annul` (agent, reason), `POST /v1/forecasts/questions/{id}/resolve` (agent; manual).
+- History: `GET /v1/forecasts/questions/{id}/history?forecaster&step=1d` (read): the standing probability (or quantiles) per day for each forecaster and the ensemble, for trend sparklines; derived from the immutable forecasts, not stored separately.
 - Forecasts: `POST /v1/forecasts/questions/{id}/forecasts` (read scope submits as `operator:{principal}`; agent scope may name another registered `operator` or `external` forecaster), `GET /v1/forecasts/questions/{id}/forecasts?forecaster` (read).
 - Forecasters and scores: `GET /v1/forecasts/forecasters` (read), `PUT /v1/forecasts/forecasters/{id}` (admin: active, config), `GET /v1/forecasts/scorecard?forecaster&category&from&to` (read), `GET /v1/forecasts/calibration?forecaster&category` (read; CORP curve points and bins), `GET /v1/forecasts/compare?a&b&category` (read; shared questions, paired bootstrap).
 - Evaluations: `POST /v1/forecasts/evaluations`, `GET /v1/forecasts/evaluations/{id}` (agent).
@@ -138,8 +139,8 @@ Auto-created questions:
 
 ## Guardrails (mandatory)
 
-1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 129, 132, 133, 134).
-2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 134).
+1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 133, 136, 137, 138).
+2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 138).
 3. **Reuse policy.** Never copy code from ShadowBroker, Velocity or World Monitor (AGPL) or SatDump (GPL). They are reference material only. God's Eye View (MIT, `~/Documents/GitLab/gods-eye-view`) may be ported to Java if you add an origin header comment and an entry in `THIRD_PARTY_NOTICES.md`.
 4. **Stay in scope.** Implement what this prompt specifies, no more. If the docs conflict with reality (for example, a library API differs from what the docs assume), choose the approach most faithful to `docs/Architecture.md` and `docs/Intelligence-Design.md`, and record it under "Deviations" in the Completion Report.
 5. **Verify versions.** When adding a dependency, confirm the version exists on Maven Central and is compatible with Spring Boot 4.1 and Java 21.

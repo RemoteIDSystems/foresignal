@@ -1,13 +1,13 @@
 # Foresignal — Client Contract (v1)
 
-How applications built on Foresignal name, fetch, relate, annotate and share focus on the same objects. It is the reference for every frontend (3D globe, 2D map, analyst workstation, satellite and RF consoles, mobile, embedded widgets) and for agents. Prompt 128 implements it; prompt 131's SDKs ship helpers for it. `GET /v1/contract` reports the versions in force.
+How applications built on Foresignal name, fetch, relate, annotate and share focus on the same objects. It is the reference for every frontend (3D globe, 2D map, analyst workstation, satellite and RF consoles, mobile, embedded widgets) and for agents. Prompt 128 implements it; prompt 135's SDKs ship helpers for it. `GET /v1/contract` reports the versions in force.
 
 ---
 
 ## 1. Principles
 
 1. **Foresignal is the intelligence foundation; clients are views.** Entity resolution, correlation, history, forecasts, investigations and validation live in Foresignal. A client never re-implements them; it renders, filters and interacts.
-2. **One owner for shared state.** Workspaces, annotations, relations, saved views (036) and cases (101) are owned by Foresignal. Clients cache them, never fork them.
+2. **One owner for shared state.** Workspaces, annotations, relations, saved views (036) and investigations (101) are owned by Foresignal. Clients cache them, never fork them.
 3. **Headless stays headless.** Foresignal stores client layout only as opaque JSON and never interprets UI state.
 4. **Works without an LLM.** Everything in this contract is deterministic; AI enriches, it is never needed to render or investigate.
 5. **Deployment-neutral.** The same contract supports one application with switchable workspaces, several independent applications, or a hybrid of standalone modules inside an optional shell. Recommended path: build the first frontend standalone on the shared SDK and this contract; add a unifying shell only when several frontends exist.
@@ -30,11 +30,16 @@ Grammar: `{type}:{id}`. Ids are opaque to clients; compare references as strings
 | `hypothesis-set`, `hypothesis`, `indicator` | ULID | `hypothesis-set:01J…` | 124 |
 | `assessment` | ULID | `assessment:01J…` | 127 |
 | `alert` | id | `alert:…` | 017 |
-| `case` | id | `case:…` | 101 |
+| `investigation` | id (display id `INV-yyyy-nnnn` also accepted) | `investigation:01J…` | 101 |
 | `place`, `view`, `watchlist` | id | `place:…` | 036 |
 | `source` | source id | `source:usgs-earthquakes` | 004 |
 | `sensor` | `{kind}:{id}` (source, receiver, station, satellite) | `sensor:satellite:25544` | 128 |
 | `workspace`, `annotation` | ULID | `workspace:01J…` | 128 |
+| `principal`, `group`, `tag`, `attachment`, `evidence-item`, `saved-search` | id | `principal:jsmith` | 023, 129 |
+| `chronicle` | ULID (display id `CHR-yyyy-nnnn` also accepted) | `chronicle:01J…` | 130 |
+| `report` | ULID (display id `RPT-yyyy-nnnn`) | `report:01J…` | 131 |
+| `news-story`, `outlet` | ULID / id | `news-story:01J…` | 132 |
+| `remote` | `{instanceId}/{type}:{id}`, read-only material received from another instance | `remote:fs-eu-1/report:01J…` | 131 |
 
 Unknown types are rejected with `400 OBJECT_REF_INVALID`. New types are added only with a contract minor version bump.
 
@@ -87,7 +92,7 @@ Time-aware edges with `valid_from`/`valid_to`, `confidence`, `label` (confirmed 
 
 | Type | Meaning | Typical producer |
 |---|---|---|
-| `member-of` | object belongs to a situation or case | 118, 101 |
+| `member-of` | object belongs to a situation or investigation | 118, 101 |
 | `observed-by` | an observation of a canonical event or entity | 116, 098 |
 | `same-as` | two references denote the same thing (re-reports, entity links) | 116, 098 |
 | `located-in` | within a place or region (computed on demand) | 036, 040 |
@@ -98,6 +103,8 @@ Time-aware edges with `valid_from`/`valid_to`, `confidence`, `label` (confirmed 
 | `evidence-for` / `evidence-against` | supports or contradicts an event or hypothesis | 101, 124 |
 | `about` | a question or assessment concerns an object | 122, 127 |
 | `mentions` | a text record names an object | 118 |
+| `precedes` | A tends to come before B (validated precursor) or came before it (timeline) | 120, 128 |
+| `causes` | asserted causal link; never machine-asserted; label at most `possible` until an operator confirms | operators, 124 |
 | `related-to` | operator-asserted link | operators, agents |
 
 Queries: neighbourhood (`/v1/objects/{ref}/related`), subgraph (`POST /v1/graph`), common dependencies (`POST /v1/graph/common-dependencies`).
@@ -150,6 +157,41 @@ A context travels between applications as a deep link payload: `{"v":1,"ws":"01J
 - Show coverage (`observability` layers) next to any absence-based view.
 - Validation (annotations with verdicts) is how analysts teach the system; make it one click on any finding, event or situation.
 - Offline and edge clients use offline packs (111) and federation (113); the context and references are the same.
+
+## 10. Collaboration (prompt 129)
+
+- **Who:** every request runs as a principal (person, agent or service) through its token; `GET /v1/me` returns the principal, scopes, groups and preferences.
+- **Data vs work products:** records and analytic objects are readable per scope. Work products (investigations, workspaces, chronicles, reports, saved searches, notes, attachments, evidence items) have an owner, a visibility and an access list; without access they are invisible.
+- **TLP:** every work product carries `tlp` (`CLEAR`, `GREEN`, `AMBER`, `AMBER+STRICT`, `RED`). Show it prominently on screen, in exports and in every rendition; never offer a share target the label forbids (the API refuses with `TLP_VIOLATION`).
+- **Tags** (personal or shared), **comments** (threads, `@mentions`), **attachments** and **evidence items** (Admiralty grades: source reliability A–F, information credibility 1–6) work on any object reference. Envelopes include the caller's visible tags.
+- **Shared with me** and **my items** are single lists (`/v1/shared-with-me`, `/v1/my`), so a workbench's navigation (my investigations, shared with me, recent) needs no client bookkeeping.
+
+## 11. Chronicles (prompt 130)
+
+A chronicle is a saved monitoring thread with its own recorded history. Clients:
+- create one from the current workspace (its layers, area and filters become chronicle layers) or accept one the analysis cycles proposed;
+- show the projected storage (`/estimate`) before activation and the cap while it runs;
+- render the live **thread** (`/thread`, SSE topic `chronicle`) with per-user unread counts;
+- replay from chronicle storage only (`/state?at`, `/tiles`, `/tracks`, `/series`, `/frames`), so replay never depends on global retention;
+- store their auto-arranged layout in the chronicle's workspace, and open a chronicle with its context;
+- offer pause, stop, archive, restore and delete with the owner's confirmation.
+
+## 12. Reports and exchange (prompt 131)
+
+- Build a report from the current selection, a tag, an investigation, a chronicle or a situation (`/v1/reports/draft`); edit blocks; publish to freeze a revision with pinned references; download Markdown, HTML or the JSON bundle.
+- Send to principals and groups here, or as a signed package to principals on other instances; received material appears under `remote:` references, read-only, with sender, authors, signature status and TLP.
+- Never render a received report as if it were local analysis; show its origin.
+
+## 13. News coverage display (prompt 132)
+
+- Show an outlet's lean and factuality **with the provider and date** of each rating and the consensus; when providers disagree, show the spread.
+- Show a story's coverage balance (left, center, right, unrated), state-affiliated share and blindspot flag; link to the articles (outbound links only).
+- Treat coverage as context, not truth: a blindspot or skew is a caveat on evidence, never a verdict.
+
+## 14. Display rules for scores and confidence
+
+- A situation has no single probability. Where a design calls for a headline gauge, show the leading hypothesis's probability (with its ICD term) **and**, separately, the evidence quality or confidence; never label a probability as "confidence".
+- Every percentage shown must come from a ledger forecast, a hypothesis revision or a finding's statistics, with its issuer and knowledge cutoff (§3.2).
 
 ## 9. Versioning
 

@@ -15,7 +15,7 @@
 
 - `docs/Intelligence-Design.md` §0, §2 (principles), §3 (stack and DERIVED sources), §6.1 (situations), §11 (interfaces)
 - `docs/Core-Data-Model.md` §10 (ChangeBus), §13 (consumer clamp)
-- Completion Reports of 116 (evidence groups, `EvidenceService`, manifests), 015 (multiplexed `/v1/events/stream`), 017 (alerts, AlertBus, rule tags), 018 (event types), 025 (MCP registry), 027 (embeddings), 029 (renderer), 036 (places), 039 (`private`), 040 (region tags), 098 (entities), 099 (`derived-corroboration`), 100 (anomalies), 101 (intelligence events, cases, `foresignal-intel`), 102 (analyst profiles), 117 (attention topics)
+- Completion Reports of 116 (evidence groups, `EvidenceService`, manifests), 015 (multiplexed `/v1/events/stream`), 017 (alerts, AlertBus, rule tags), 018 (event types), 025 (MCP registry), 027 (embeddings), 029 (renderer), 036 (places), 039 (`private`), 040 (region tags), 098 (entities), 099 (`derived-corroboration`), 100 (anomalies), 101 (intelligence events, investigations, `foresignal-intel`), 102 (analyst profiles), 117 (attention topics)
 
 ## Objective
 
@@ -34,11 +34,11 @@ Give Foresignal a memory for unfolding stories. A **situation** groups related i
 - **`situation`:**
   - identity: `id` (ULID), `title`, `theme` (maritime | aviation | conflict | infrastructure | weather | cyber | markets | health | space | mixed), `status` (emerging | active | dormant | closed), `severity` (info | warning | critical), `severity_override` (nullable, logged);
   - place and time: `region_codes` text[] (040), `geom` (Geometry 4326: convex hull of member geometries buffered by 25 km, simplified to ≤ 500 vertices; null when no member has geometry), `centroid`, `started_at`, `last_activity_at`, `closed_at`;
-  - links: `topic_ids` text[] (117 attention topics), `entity_ids` text[] (098), `case_ids` text[] (101);
+  - links: `topic_ids` text[] (117 attention topics), `entity_ids` text[] (098), `investigation_ids` text[] (101);
   - text: `summary` (deterministic, §4), `brief` (nullable LLM markdown), `brief_generated_at`, `brief_model`;
   - provenance: `origin` (auto | operator | agent | analyst), `linker_version`, `merged_into`, `private` bool, `version` int (optimistic locking), `created_at`, `updated_at`.
   - Indexes: GiST(`geom`), `(status, last_activity_at DESC)`, GIN(`region_codes`).
-- **`situation_member`:** `situation_id`, `member_type` (intel_event | finding | alert | anomaly | record | case), `ref` (id or `source/externalId`), `seq` and `version` (records), `kind`, `signal_family`, `observed_at`, `role` (core | context), `join_reason` jsonb (`{score, components: {region, distanceKm, entity, topic, textSimilarity, theme, recencyHours}, linkerVersion}`), `corroboration` (corroborated | uncorroborated | unknown | n/a), `added_at`, `added_by`. Unique `(situation_id, member_type, ref, seq)`.
+- **`situation_member`:** `situation_id`, `member_type` (intel_event | finding | alert | anomaly | record | investigation), `ref` (id or `source/externalId`), `seq` and `version` (records), `kind`, `signal_family`, `observed_at`, `role` (core | context), `join_reason` jsonb (`{score, components: {region, distanceKm, entity, topic, textSimilarity, theme, recencyHours}, linkerVersion}`), `corroboration` (corroborated | uncorroborated | unknown | n/a), `added_at`, `added_by`. Unique `(situation_id, member_type, ref, seq)`.
 - **`situation_snapshot`:** `situation_id`, `day` (UTC date), `status`, `severity`, `member_counts` jsonb (by member type and signal family), `new_members` int, `area_km2`, `region_codes`, `key_values` jsonb (latest values of linked analysis series when 119 exists; empty before), `asof_seq`. PK `(situation_id, day)`.
 - **`situation_log`:** `situation_id`, `at`, `actor` (token id, `linker:<version>`, `analyst:<profile>`), `action` (created, member_added, member_removed, status, severity, merged, split, renamed, brief), `before`/`after` jsonb.
 - **Records:** publish every situation as a record of the DERIVED source `foresignal-intel` (kind `situation`, externalId = situation id). Payload: title, theme, status, severity, memberCount, signalFamilies, regionCodes, corroborationShare, `automated: true`; emitted only on change; tombstoned on merge or after closure plus the `intel` retention class. Ordinary 017 rules can then alert on situations.
@@ -128,8 +128,8 @@ Give Foresignal a memory for unfolding stories. A **situation** groups related i
 
 ## Guardrails (mandatory)
 
-1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 129, 132, 133, 134).
-2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 134).
+1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 133, 136, 137, 138).
+2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 138).
 3. **Reuse policy.** Never copy code from ShadowBroker, Velocity or World Monitor (AGPL) or SatDump (GPL). They are reference material only. God's Eye View (MIT, `~/Documents/GitLab/gods-eye-view`) may be ported to Java if you add an origin header comment and an entry in `THIRD_PARTY_NOTICES.md`.
 4. **Stay in scope.** Implement what this prompt specifies, no more. If the docs conflict with reality (for example, a library API differs from what the docs assume), choose the approach most faithful to `docs/Architecture.md` and `docs/Intelligence-Design.md`, and record it under "Deviations" in the Completion Report.
 5. **Verify versions.** When adding a dependency, confirm the version exists on Maven Central and is compatible with Spring Boot 4.1 and Java 21.

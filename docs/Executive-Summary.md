@@ -32,6 +32,8 @@ Foresignal separates the three concerns, and adds an intelligence layer on top:
   - Record every forecast in a ledger, resolve it from Foresignal's own data and score it, with calibration for each forecaster, including the LLM and you.
   - Publish daily, weekly and monthly assessments in intelligence-community style (ICD 203).
   - Count evidence by independent origin, know what could not have been seen, and benchmark every detector before trusting it.
+- **Built for teams and many instances:** named people and groups, sharing under TLP labels, tags, comments, graded evidence, investigations, **chronicles** (saved monitoring threads that keep their own replayable history), and reports sent to colleagues here or as signed packages to other Foresignal instances.
+- **News coverage, not just news:** stories clustered across outlets, with lean, factuality and ownership from licensed rating providers, blindspots and coverage balance used as evidence-quality signals.
 - **One contract for every frontend** ([Client Contract](Client-Contract.md)): shared object references, a relation graph, analyst validation, and workspaces that keep a globe, an analyst workstation and sensor consoles in sync.
 - **Agents are first-class:** a built-in MCP server exposes the data and watch management as tools for OpenClaw, Claude and any MCP client. Scoped tokens keep agents within limits.
 - **Anything can push in:** custom sources accept records through an inbound webhook, from local SDRs, Home Assistant, scripts or agents.
@@ -78,13 +80,13 @@ Individuals: OSINT hobbyists, analysts, researchers, makers and developers who w
 
 ## Plan
 
-A single ordered list of 134 prompts in the [Roadmap](Roadmap.md), in this order:
+A single ordered list of 138 prompts in the [Roadmap](Roadmap.md), in this order:
 
 1. foundation and core API
 2. channels, tokens, inbound webhooks, MCP and the LLM features
 3. about 100 sources
 4. derived layers, gridded products and provenance
-5. the intelligence layer: evidence independence and observability, discovery, situations, base rates, the forecast ledger, a benchmark harness, hypotheses, analysis cycles, and the client contract for the frontends
+5. the intelligence layer: evidence independence and observability, discovery, situations, base rates, the forecast ledger, a benchmark harness, hypotheses, analysis cycles, the client contract, collaboration, chronicles, reports and news coverage
 6. the full test run, runtime verification and production hardening
 
 See the [Product Charter](Product-Charter.md), [Architecture](Architecture.md), [OpenAPI spec](OpenAPI.json) and [Source Catalog](Source-Catalog.md).

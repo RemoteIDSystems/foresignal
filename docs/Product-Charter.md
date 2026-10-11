@@ -56,7 +56,7 @@ Open-source situational-awareness projects (ShadowBroker, God's Eye View, Veloci
 ## 5. Non-goals
 
 - A user interface of any kind inside the broker. Frontends (globe, operator console, mobile) are separate repositories.
-- Multi-user accounts with logins or a user directory. Access is by scoped API tokens (`read`, `agent`, `admin`).
+- Password logins or an identity provider inside the broker. People and agents are **named principals** holding scoped API tokens (`read`, `agent`, `admin`) and pairing codes; groups and per-object sharing exist for work products (prompt 129), but Foresignal is not a user-directory product.
 - Training or fine-tuning neural models, or bundling model weights. Foresignal calls providers the operator configures. (Fitting statistical models to the operator's own data, such as baselines, forecasts, index weights and recalibration, is in scope.)
 - Analysing private individuals, or accusing anyone of wrongdoing. Market findings describe aggregate activity only.
 - Sending email or chat messages other than notifications the operator configured.
@@ -108,6 +108,11 @@ Open-source situational-awareness projects (ShadowBroker, God's Eye View, Veloci
 | **Ledger** | The store of questions and forecasts, with automatic resolution, scoring and calibration. |
 | **Canonical event / evidence group** | A real-world occurrence, linked to every observation of it; observations tracing to one originator form one evidence group, and only evidence groups count as independent. |
 | **Observability** | The estimated probability that a source detects a phenomenon in a place at a time; needed before "nothing happened" can be concluded. |
+| **Principal / group** | A named person, agent or service that holds tokens; groups collect principals for sharing. |
+| **TLP** | Traffic Light Protocol 2.0 label (CLEAR, GREEN, AMBER, AMBER+STRICT, RED) bounding how a work product may be shared. |
+| **Chronicle** | A named monitoring thread: a bundle of layers that records its own history while active, independent of global retention, and can be replayed, shared, archived or deleted. |
+| **Report / package** | An analyst product with pinned evidence; a signed package carries it to principals on another instance. |
+| **Outlet rating** | Lean, factuality, ownership or state-affiliation of a news outlet from a declared, licensed provider. |
 | **Object reference / workspace** | The canonical `type:id` name of any Foresignal object, and a shared investigation focus (selection, time range, viewport) that several clients follow live ([Client Contract](Client-Contract.md)). |
 | **Assessment** | The output of a daily, weekly or monthly analysis cycle: key judgments, what changed, hypotheses, indicators, forecasts and speculation, following ICD 203. |
 
@@ -218,7 +223,11 @@ Open-source situational-awareness projects (ShadowBroker, God's Eye View, Veloci
 - **FR-68** Hazard forecasts are turned into scored, probabilistic impact statements on places and infrastructure (126).
 - **FR-69** Daily, weekly and monthly analysis cycles publish assessments that build on the previous one, with optional LLM analyst, red-team, forecaster and proposer roles; an intel board summarises the layer (127).
 - **FR-70** Every object has a canonical reference and envelope; a time-aware relation graph, annotations with human verdicts, synchronised workspaces with deep links, and sensor discovery serve all frontends through one contract (128).
-- **FR-71** Probabilities are stored as numbers and expressed with ICD 203 terms; likelihood and confidence are separate, and generated text is linted.
+- **FR-71** Principals, groups, access lists and TLP labels let several people share work products on one instance; tags, threaded comments with mentions, attachments, Admiralty-graded evidence items, investigations and saved searches support collaboration (129).
+- **FR-72** Chronicles bundle chosen layers into named monitoring threads that record their own history while active, replay at any past moment, and can be proposed by the analysis cycles, shared, archived and deleted (130).
+- **FR-73** Reports are drafted from tags, selections, investigations, chronicles or situations, published with pinned evidence and TLP banners, and sent to principals on the same instance or as signed packages to other instances (131).
+- **FR-74** News articles (metadata only) are clustered into stories; outlets carry lean, factuality and ownership ratings from licensed providers; coverage balance, blindspots and divergence inform situations, hypotheses and assessments (132).
+- **FR-75** Probabilities are stored as numbers and expressed with ICD 203 terms; likelihood and confidence are separate, and generated text is linted.
 
 ## 9. Non-functional requirements
 
@@ -293,6 +302,9 @@ The remaining sources are ported from God's Eye View (cameras, transit, bikeshar
 | Spurious correlations from mining many patterns | False confidence | False-discovery control, out-of-sample validation, base rates on every finding, precursor decay |
 | Overconfident or biased AI judgments | Misleading assessments | LLM forecasts are scored, capped, recalibrated and monitored for bias; deterministic detectors own the evidence |
 | Speculation read as accusation | Reputational and legal harm | No person-level analysis; speculative links carry alternatives and coincidence baselines; fixed wording rules |
+| Sensitive work shared too widely | Leak of analysis or sources | TLP on every work product, enforced in `EgressPolicy`; invisible-by-default access lists; audit log |
+| Chronicle storage growth | Disk exhaustion | Per-layer capture modes, estimates before activation, size caps with visible fallback to events-only |
+| Media ratings licences or bias in ratings | Terms breach; skewed analysis | Licence acknowledgement per provider, LOCAL_ONLY where needed, provider breakdown and disagreement always shown, coverage treated as a caveat not a verdict |
 | Licensed data leaking through outputs | Terms breach | `LOCAL_ONLY` egress for FRED, LSEG-sourced prices and ACLED; derived statistics only |
 
 ## 14. Success criteria

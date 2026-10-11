@@ -85,6 +85,10 @@ Budget refusal or failure in a role marks that role `skipped` with a reason; the
 
 The monthly cycle (or `POST /v1/analysis/maintenance/run`, agent) triggers, in order, recording each outcome in the run: 116 observability re-estimation; the 123 historical benchmark suite; 121 base-rate refresh; 120 precursor re-test; 122 Platt refits, ensemble weight refresh and extremizing check; 125 index weight fits (proposals) and series-method re-selection; archival proposals for hypothesis sets past `horizon`; and, when the profile's provider has a `knowledgeCutoff`, a 122 retrospective evaluation of `llm:*` forecasters over the past month's resolved questions.
 
+### 5a. On-demand situation assessments
+
+- `POST /v1/situations/{id}/assessment {roles?, effort?}` (agent, `alwaysAuthenticated`, 202): runs the cycle machinery scoped to one situation (its members, linked hypothesis sets, questions, findings, coverage) and stores an `assessment` with `cadence = on-demand` and `situation_id`, structured with the same sections (bottom line, key insights, what changed since the previous assessment of this situation, outlook, risks, speculation, sources). `GET /v1/situations/{id}/assessments` lists them. Each assessment exposes its model, effort, manifest and prompt template ids (116), so a client can show "view prompt" and "re-run".
+
 ### 6. Intel board
 
 - `GET /v1/intel/board` (read; ≤ 8 KB; ETag; `Cache-Control: max-age=60`): top 5 situations by severity and recency; hypothesis band changes in the last 24 h; indicators observed in the last 24 h; forecasts due in the next 7 days (title, ensemble probability, term); the latest assessment id, cadence and BLUF headline for each cadence; the ensemble's Brier skill and calibration headline over the last 90 days, **next to the operator's** (operator vs machine, when the operator has ≥ 20 resolved forecasts); the latest benchmark status per component (123). Respects `private` and LOCAL_ONLY.
@@ -126,8 +130,8 @@ The monthly cycle (or `POST /v1/analysis/maintenance/run`, agent) triggers, in o
 
 ## Guardrails (mandatory)
 
-1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 129, 132, 133, 134).
-2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 134).
+1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 133, 136, 137, 138).
+2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 138).
 3. **Reuse policy.** Never copy code from ShadowBroker, Velocity or World Monitor (AGPL) or SatDump (GPL). They are reference material only. God's Eye View (MIT, `~/Documents/GitLab/gods-eye-view`) may be ported to Java if you add an origin header comment and an entry in `THIRD_PARTY_NOTICES.md`.
 4. **Stay in scope.** Implement what this prompt specifies, no more. If the docs conflict with reality (for example, a library API differs from what the docs assume), choose the approach most faithful to `docs/Architecture.md` and `docs/Intelligence-Design.md`, and record it under "Deviations" in the Completion Report.
 5. **Verify versions.** When adding a dependency, confirm the version exists on Maven Central and is compatible with Spring Boot 4.1 and Java 21.

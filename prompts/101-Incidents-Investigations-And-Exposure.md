@@ -1,14 +1,14 @@
-# 101 — Incidents Cases And Exposure
+# 101 — Incidents Investigations And Exposure
 
 > Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
-> Completion Report: `completion-reports/101-CR-Incidents-Cases-And-Exposure.md`
+> Completion Report: `completion-reports/101-CR-Incidents-Investigations-And-Exposure.md`
 
 ## Context
 
 - **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text. `docs/Invariants.md` lists the invariants each prompt must keep.
-- **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–129).
+- **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–133).
 - **Previous Completion Report:** read `completion-reports/100-CR-*.md` and follow its "Notes for the next prompt".
 
 ## Read first
@@ -20,7 +20,7 @@
 
 ## Objective
 
-Make the **intelligence event** a first-class object: a typed, located and time-bounded finding. It is built by deterministic correlation recipes from pinned record versions, carries supporting and contradicting evidence, a confidence score and evidence quality, and keeps the detector version and parameters needed to reproduce it. Add case files for operator investigations and an ExposureService that says what is inside an affected area. Events stream over SSE, appear in MCP and can raise alerts through ordinary rules.
+Make the **intelligence event** a first-class object: a typed, located and time-bounded finding. It is built by deterministic correlation recipes from pinned record versions, carries supporting and contradicting evidence, a confidence score and evidence quality, and keeps the detector version and parameters needed to reproduce it. Add **investigations** (operator case files) and an ExposureService that says what is inside an affected area. Events stream over SSE, appear in MCP and can raise alerts through ordinary rules.
 
 ## Analytic principles (binding)
 
@@ -34,6 +34,8 @@ Make the **intelligence event** a first-class object: a typed, located and time-
    - `speculation`: alternatives and any LLM narrative, always labelled.
 
 > **v1.3 note:** `signal_family` values must come from one shared registry; prompt 119 creates `intel/signal-families.json` and reconciles the strings used here. Use the family names listed in `docs/Intelligence-Design.md` §5.4 where they fit. Prompt 118 links intelligence events into situations, and prompt 116 retrofits `EventScorer` to count independent evidence groups instead of sources.
+
+> **v1.3 note:** prompt 129 extends investigations with owners, members and access lists, TLP labels, status, and links to workspaces, hypothesis sets, questions, chronicles (130) and reports (131). Keep `investigation` open for those columns.
 
 ## Tasks
 
@@ -108,12 +110,12 @@ Make the **intelligence event** a first-class object: a typed, located and time-
 - `POST /v1/intel/events` (agent) creates an event with `origin=agent|operator`. It needs ≥ 1 member that exists (verified by seq). The scorer computes confidence; client-supplied confidence is rejected.
 - `PATCH` changes title, status, a severity override (logged) and notes. Member add and remove are agent-scoped and logged.
 
-### 4. Case files
+### 4. Investigations
 
-- `case_file`: id, title, status (open | closed), summary (markdown, operator-authored), tags, created_by, created_at, updated_at.
-- `case_item`: case_id, item_type (event | alert | record | anomaly | place | briefing_run | note), ref, pinned `seq`, `snapshot` (≤ 64 KB, taken when added, so evidence survives retention), note, added_at, added_by.
-- Adding an alert to a case sets its 017 status to `investigating`, if that status exists.
-- `GET /v1/cases/{id}/export?format=json|md|geojson`: md is a report with item citations `[source/externalId@vN]`. All formats carry the "Automated analysis inputs; verify before acting" header and licence attributions.
+- `investigation`: id, `display_id` (human-readable, `INV-{yyyy}-{nnnn}`, sequential per year), title, status (open | closed), summary (markdown, operator-authored), tags, created_by, created_at, updated_at.
+- `investigation_item`: investigation_id, item_type (event | alert | record | anomaly | place | briefing_run | note), ref, pinned `seq`, `snapshot` (≤ 64 KB, taken when added, so evidence survives retention), note, added_at, added_by.
+- Adding an alert to an investigation sets its 017 status to `investigating`, if that status exists.
+- `GET /v1/investigations/{id}/export?format=json|md|geojson`: md is a report with item citations `[source/externalId@vN]`. All formats carry the "Automated analysis inputs; verify before acting" header and licence attributions.
 
 ### 5. ExposureService
 
@@ -140,20 +142,20 @@ Make the **intelligence event** a first-class object: a typed, located and time-
   - `POST /v1/intel/events/{id}/members` (agent), `DELETE /v1/intel/events/{id}/members/{memberId}` (agent)
   - `POST /v1/intel/events/{id}/merge {intoId}` (agent)
   - `GET /v1/intel/recipes` (read), `PUT /v1/intel/recipes/{id}` (admin: enabled, params), `POST /v1/intel/recipes/{id}/test` (agent)
-- **Cases:** `GET/POST /v1/cases`, `GET/PATCH/DELETE /v1/cases/{id}`, `POST /v1/cases/{id}/items`, `DELETE /v1/cases/{id}/items/{itemId}`, `GET /v1/cases/{id}/export` (agent for writes, read for GETs).
+- **Investigations:** `GET/POST /v1/investigations`, `GET/PATCH/DELETE /v1/investigations/{id}`, `POST /v1/investigations/{id}/items`, `DELETE /v1/investigations/{id}/items/{itemId}`, `GET /v1/investigations/{id}/export` (agent for writes, read for GETs).
 - **Exposure:** `POST /v1/exposure {geometry | placeId | eventId}` (read).
 - **SSE:** on the multiplexed `/v1/events/stream`, add topic `intel` with events `intel.event.created|updated|resolved|merged` (payload: summary plus `version`). Clients resync with `GET /v1/intel/events?since`. Respect `private`.
-- **MCP:** `list_intel_events`, `get_intel_event` (compact by default; evidence first; speculation labelled), `get_exposure` (read); `create_intel_event`, `update_intel_event_status`, `create_case`, `add_to_case` (agent).
-- **Problem codes:** `UNKNOWN_EVENT`, `UNKNOWN_CASE` (404); `EVENT_MEMBER_NOT_FOUND`, `RECIPE_INVALID` (400); `EVENT_VERSION_CONFLICT` (409); `PACK_NOT_INSTALLED` (409).
+- **MCP:** `list_intel_events`, `get_intel_event` (compact by default; evidence first; speculation labelled), `get_exposure` (read); `create_intel_event`, `update_intel_event_status`, `create_investigation`, `add_to_investigation` (agent).
+- **Problem codes:** `UNKNOWN_EVENT`, `UNKNOWN_INVESTIGATION` (404); `EVENT_MEMBER_NOT_FOUND`, `RECIPE_INVALID` (400); `EVENT_VERSION_CONFLICT` (409); `PACK_NOT_INSTALLED` (409).
 
 ### 7. Spec, Postman, docs
 
 - `docs/OpenAPI.json`:
-  - schemas `IntelligenceEvent`, `IntelEventMember`, `IntelEventPage`, `CorrelationRecipe`, `CaseFile`, `CaseItem`, `Exposure`; tag `Intelligence`; every operation with `x-foresignal-scope`;
+  - schemas `IntelligenceEvent`, `IntelEventMember`, `IntelEventPage`, `CorrelationRecipe`, `Investigation`, `InvestigationItem`, `Exposure`; tag `Intelligence`; every operation with `x-foresignal-scope`;
   - the SSE event schemas (020 conventions);
-  - regenerate Postman, and add BODIES for `createIntelEvent`, `addIntelEventMember`, `mergeIntelEvent`, `updateRecipe`, `testRecipe`, `createCase`, `addCaseItem`, `computeExposure`, `importPopulationPack`.
+  - regenerate Postman, and add BODIES for `createIntelEvent`, `addIntelEventMember`, `mergeIntelEvent`, `updateRecipe`, `testRecipe`, `createInvestigation`, `addInvestigationItem`, `computeExposure`, `importPopulationPack`.
 - AccessPolicy rows as listed.
-- `docs/Operator-Guide.md` "Intelligence events": principles, recipes and tuning, the confidence formula, dedup, cases, the population pack download and import steps with GHSL attribution.
+- `docs/Operator-Guide.md` "Intelligence events": principles, recipes and tuning, the confidence formula, dedup, investigations, the population pack download and import steps with GHSL attribution.
 - `docs/Agent-Guide.md`: how agents should cite members and present speculation.
 - `THIRD_PARTY_NOTICES.md`: GHSL (when installed by the operator; data is not bundled) and H3.
 
@@ -170,22 +172,22 @@ Make the **intelligence event** a first-class object: a typed, located and time-
   - a private member marks the event private;
   - the `foresignal-intel` record is emitted only on change.
 - `EventAlertIT`: a 017 rule on `kind=intelligence-event` fires on a critical event.
-- `CaseFileIT`: items keep snapshots after the referenced version is purged; md and geojson export.
+- `InvestigationIT`: items keep snapshots after the referenced version is purged; md and geojson export.
 - `ExposureServiceIT`: facility counts in a polygon; population via a tiny synthetic GeoTIFF fixture imported to H3; `not-installed` without a pack.
-- `IntelControllersIT` / `CasesControllerIT`: CRUD, optimistic-lock 409, scopes, SSE topic delivery, MCP tool output shape.
+- `IntelControllersIT` / `InvestigationsControllerIT`: CRUD, optimistic-lock 409, scopes, SSE topic delivery, MCP tool output shape.
 
 ## Acceptance criteria
 
 - Built-in recipes create events from seeded records with pinned members, join reasons, detector version and parameters. Re-running a recipe over the same seq range yields the same events.
 - Event responses separate evidence, inference and speculation. Confidence is labelled as a non-calibrated score.
-- Alerts can fire from events through ordinary trigger rules. Cases survive the retention of their source versions.
+- Alerts can fire from events through ordinary trigger rules. Investigations survive the retention of their source versions.
 - Exposure works with no population pack and reports `not-installed` for that section.
 - Compiles.
 
 ## Guardrails (mandatory)
 
-1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 129, 132, 133, 134).
-2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 134).
+1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 133, 136, 137, 138).
+2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 138).
 3. **Reuse policy.** Never copy code from ShadowBroker, Velocity or World Monitor (AGPL) or SatDump (GPL). They are reference material only. God's Eye View (MIT, `~/Documents/GitLab/gods-eye-view`) may be ported to Java if you add an origin header comment and an entry in `THIRD_PARTY_NOTICES.md`.
 4. **Stay in scope.** Implement what this prompt specifies, no more. If the docs conflict with reality (for example, a library API differs from what the docs assume), choose the approach most faithful to `docs/Architecture.md` and record it under "Deviations" in the Completion Report.
 5. **Verify versions.** When adding a dependency, confirm the version exists on Maven Central and is compatible with Spring Boot 4.1 and Java 21.
@@ -194,7 +196,7 @@ Make the **intelligence event** a first-class object: a typed, located and time-
 ## Finish: Compile → Commit → Push
 
 1. **Compile:** `./gradlew compileJava compileTestJava` must succeed. Fix every compile error. Do not run tests.
-2. **Commit** all changes with the message `101: Incidents Cases And Exposure`. Capture the full hash with `git rev-parse HEAD`; this is the *implementation commit*.
-3. **Write** `completion-reports/101-CR-Incidents-Cases-And-Exposure.md` using the template in `docs/Roadmap.md` §3, including the implementation commit hash.
+2. **Commit** all changes with the message `101: Incidents Investigations And Exposure`. Capture the full hash with `git rev-parse HEAD`; this is the *implementation commit*.
+3. **Write** `completion-reports/101-CR-Incidents-Investigations-And-Exposure.md` using the template in `docs/Roadmap.md` §3, including the implementation commit hash.
 4. **Commit** the report with the message `101: completion report`, then run `git push origin main`.
 5. End your reply with the line `Implementation commit: <hash>`.

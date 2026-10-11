@@ -6,7 +6,7 @@ Every candidate was checked against `docs/Roadmap.md` (001–063), Product-Chart
 
 ---
 
-> **v1.3 (2026-10-11):** the intelligence gaps (discovery, situations, base rates, rolling hypotheses, forecast accountability, analysis cycles) are designed in [Intelligence Design](Intelligence-Design.md) and built by prompts 116–129.
+> **v1.3 (2026-10-11):** the intelligence gaps (discovery, situations, base rates, rolling hypotheses, forecast accountability, analysis cycles) are designed in [Intelligence Design](Intelligence-Design.md) and built by prompts 116–133.
 
 ## 1. Biggest gaps
 

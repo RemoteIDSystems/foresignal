@@ -20,7 +20,7 @@
    - compile (`./gradlew compileJava compileTestJava`)
    - commit the implementation as `NNN: <Title>` (for example `005: Upstream Client And Budgets`)
    - write the Completion Report `completion-reports/NNN-CR-<Name>.md` in the same format as the earlier reports, with the 40-character implementation commit hash, commit it as `NNN: completion report`, and push to `origin main`
-   - feature prompts never run tests; checkpoint prompts (012, 022, 041, 057, 097, 129, 132) run them as instructed
+   - feature prompts never run tests; checkpoint prompts (012, 022, 041, 057, 097, 133, 136) run them as instructed
 5. **Check before moving on:**
    - `git status` is clean
    - `git log origin/main -1` matches local `HEAD`
@@ -35,7 +35,7 @@ Stop and write `completion-reports/RUN-STATUS.md`, then commit it as `Run status
 - **Compile:** compilation fails and you can't fix it within the prompt's scope after a reasonable effort.
 - **Checkpoint tests:** a checkpoint's tests still fail after you've fixed everything you can determine to be a defect. List the failures and your analysis.
 - **Docker unavailable:** a checkpoint needs Testcontainers and Docker isn't running.
-- **Needs the bench server:** Foresignal's production host is the owner's Linux amd64 bench server; the development machine is a Mac. Prompt 133 (Runtime Verification) measures and soaks a real deployment, so it must run on that server. Before starting 133, check `uname -sm`; unless it prints `Linux x86_64`, stop and ask the owner to run 133 on the bench server. Every other prompt runs on either machine, and nothing may assume macOS-only tools or paths.
+- **Needs the bench server:** Foresignal's production host is the owner's Linux amd64 bench server; the development machine is a Mac. Prompt 137 (Runtime Verification) measures and soaks a real deployment, so it must run on that server. Before starting 137, check `uname -sm`; unless it prints `Linux x86_64`, stop and ask the owner to run 137 on the bench server. Every other prompt runs on either machine, and nothing may assume macOS-only tools or paths.
 - **Push:** `git push` is rejected and can't be resolved as below (auth failure, or incoming changes outside planner paths). Don't force-push, ever. (In this case the status file can't be pushed; leave it committed locally.)
   - **Planner changes arrived meanwhile:** the owner may push planner commits while a prompt runs. If the push is rejected as non-fast-forward, run `git fetch origin` and check `git diff --name-only HEAD...origin/main`. When every incoming path is under `docs/`, `prompts/`, `postman/`, `scripts/` or `client screen ideas/`, merge them with `git pull --no-rebase --no-edit origin main` (a merge, never a rebase, so the implementation hash in the Completion Report stays valid), re-run `./gradlew compileJava compileTestJava`, and push again. If a merge conflict appears, or any incoming path is elsewhere, stop.
 - **Destructive operation needed:** the prompt would require deleting user data outside the repo, dropping a non-test database, or changing system settings.

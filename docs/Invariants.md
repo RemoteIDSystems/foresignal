@@ -4,7 +4,7 @@ Machine-checkable list of the rules the build must keep. Each invariant has a st
 
 **How it is used:**
 - Prompts cite invariant ids when they touch an owning component ("keeps ING-1, ING-2").
-- Every checkpoint (012, 022, 041, 057, 097, 129, 132) verifies that each invariant whose owner prompt is at or before it is asserted by at least one existing test. From 129 on, `InvariantRegistryTest` parses this file and checks that the named test classes exist.
+- Every checkpoint (012, 022, 041, 057, 097, 133, 136) verifies that each invariant whose owner prompt is at or before it is asserted by at least one existing test. From 133 on, `InvariantRegistryTest` parses this file and checks that the named test classes exist.
 - Test names below are the expected class names. A prompt that names its test differently updates this file in the same commit.
 - Detailed definitions live in the referenced documents; this file is the index.
 
@@ -90,9 +90,23 @@ Format: `| id | invariant | owner | enforced by | tests |`
 | OBJ-1 | Workspace context updates are versioned; a stale `If-Match` is rejected; clients ignore their own `originClientId` | 128 | workspace service | `WorkspaceSyncIT` |
 | OBJ-2 | Projected relations mirror their source structures after reconcile; only operator relations are editable | 128 | `RelationProjector` | `RelationProjectorIT` |
 
+## Collaboration, chronicles, exchange and news
+
+| Id | Invariant | Owner | Enforced by | Tests |
+|---|---|---|---|---|
+| COL-1 | Work products are invisible to principals without access; every share and ACL change is audited | 129 | `AccessResolver` | `AccessResolverTest`, `CollaborationEgressTest` |
+| COL-2 | TLP bounds every share, link, export, rendition and package; derived products inherit the strictest input label | 129 | `EgressPolicy` | `TlpPolicyTest`, `ReportTlpTest` |
+| COL-3 | Uploaded files are never executed or served as active content | 129 | attachment service | `AttachmentIT` |
+| CHR-1 | A chronicle's captured history is never removed by global retention; only its own retention or deletion removes it | 130 | chronicle storage | `ChronicleCaptureIT`, `ChronicleRetentionIndependenceIT` |
+| CHR-2 | Chronicle capture never blocks ingest; capacity limits degrade visibly to events-only, never silently | 130 | `ChronicleCaptureService` | `ChronicleCaptureIT`, `ChronicleLifecycleIT` |
+| RPT-1 | Published report revisions are immutable and cite pinned versions | 131 | report service | `ReportPublishIT` |
+| RPT-2 | Packages are signature- and hash-verified before import; imported material is read-only and never enters local evidence or the ledger unless copied deliberately | 131 | exchange service | `PackageSigningTest`, `ExchangeRoundTripIT` |
+| NEWS-1 | Media ratings come only from declared providers with licence and date; no model generates them | 132 | rating providers | `RatingProvidersTest` |
+| NEWS-2 | News reprints of one originator count as one evidence group; no author names are stored | 132 | 116 resolver, news adapters | `NewsStoryClusteringIT`, `NewsIndependenceTest` |
+
 ## Process
 
 | Id | Invariant | Owner | Enforced by | Tests |
 |---|---|---|---|---|
-| PRC-1 | Every API operation is in `docs/OpenAPI.json` with `x-foresignal-scope`, in AccessPolicy and in the Postman collection; `pending-operations.txt` lists only unbuilt operations and is empty at 132 | 020 | contract tests | `OpenApiContractIT`, `PostmanCoverageTest` |
+| PRC-1 | Every API operation is in `docs/OpenAPI.json` with `x-foresignal-scope`, in AccessPolicy and in the Postman collection; `pending-operations.txt` lists only unbuilt operations and is empty at 136 | 020 | contract tests | `OpenApiContractIT`, `PostmanCoverageTest` |
 | PRC-2 | No GPL/AGPL code or dependency in the application | 001 | dependency and reuse checks | `LicenceAllowlistTest` |

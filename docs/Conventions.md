@@ -10,7 +10,7 @@ Every build prompt follows these conventions. When a prompt's text disagrees wit
 | Invariants and the tests that assert them | [Invariants](Invariants.md) |
 | Ingest, history, live state, triggers, SSE, asOf, retention | [Core Data Model](Core-Data-Model.md) |
 | Weather, imagery, SatDump | [Weather & Imagery Design](Weather-Imagery-Design.md) |
-| Intelligence layer (098–129) | [Intelligence Design](Intelligence-Design.md) |
+| Intelligence layer (098–133) | [Intelligence Design](Intelligence-Design.md) |
 | Client-facing object contract, relations, workspaces, deep links | [Client Contract](Client-Contract.md) |
 | Overall architecture, scope, sources, order | [Architecture](Architecture.md), [Product Charter](Product-Charter.md), [Source Catalog](Source-Catalog.md), [Roadmap](Roadmap.md) |
 | API surface | [OpenAPI](OpenAPI.json), kept in step by each prompt |
@@ -23,7 +23,7 @@ Every build prompt follows these conventions. When a prompt's text disagrees wit
 |---|---|
 | **`EgressPolicy`** (`ai.foresignal.security.EgressPolicy`) | **One** component decides whether a record may leave Foresignal on a given path: API reads, tiles, SSE, search/embeddings, LLM context, MCP, exports, sinks, federation, share links. Inputs: the source's `private` flag (039), descriptor `egress` `OPEN \| LOCAL_ONLY` (062), and licence policy (109). Prompts 026 (LLM context), 039, 062 and 109 each **extend** this single class. Never create a parallel policy class such as `LlmEgressPolicy` or `PrivateEgressPolicy`; if an earlier prompt created one, merge it into `EgressPolicy`. |
 | **Key-in-path URLs** | Every key carried in a URL path (feed keys, tile keys, share-link keys) uses **`/v1/k/{key}/…`**. Key prefixes: `fsf_` feed/tile, `fss_` share. One filter (035) resolves them; 050 and 112 reuse it. |
-| **Pending operations** | `src/test/resources/openapi/pending-operations.txt` (created in 020) lists spec operations not yet implemented, one per line with the prompt that builds them. **Every prompt that implements a listed operation deletes its line.** Prompt 132 requires the file to be empty. |
+| **Pending operations** | `src/test/resources/openapi/pending-operations.txt` (created in 020) lists spec operations not yet implemented, one per line with the prompt that builds them. **Every prompt that implements a listed operation deletes its line.** Prompt 136 requires the file to be empty. |
 | **`RetentionState.purgeSeq`** | Advances **only** when retention purges heads (entities disappear without a tombstone). Routine version deletes and partition drops don't advance it. Clients get `410 RESYNC_REQUIRED` only when `after < purgeSeq`. |
 | **Startup order** | `ai.foresignal.config.StartupOrder` (009): schema → partitions → writer → trigger engine → embedding/derived workers → scheduler. New background services register their phase there. |
 | **Shared parsers** | Format parsers shared by several adapters live under `ai.foresignal.source.formats.*`: readsb JSON, CAP 1.2, AIVDM, GeoJSON, KISS/AX.25. Adapters never import each other. |
@@ -37,7 +37,7 @@ Every build prompt follows these conventions. When a prompt's text disagrees wit
 
 - **Building and testing never needs the owner's keys.** All tests use WireMock and recorded fixtures; no test calls a real upstream.
 - **Keyed sources** (e.g. AISStream, FIRMS, OpenSky, UCDP, ACLED, URLhaus, Ontario 511, AirNow, OpenAQ, eBird, GFW, Cloudflare Radar, ReliefWeb/HDX app ids): if no key is available, build the fixture from the provider's published documentation or examples. Mark it `synthetic: true` in the fixture's README, with "recapture with a real key". Never stop, prompt for a key, or use someone else's key.
-- **Runtime keys** are entered later through the API (`PUT /v1/sources/{id}/credentials`). Only prompt 133 can optionally use them, through `FORESIGNAL_VERIFY_*` environment variables; it skips those checks when the variables are absent.
+- **Runtime keys** are entered later through the API (`PUT /v1/sources/{id}/credentials`). Only prompt 137 can optionally use them, through `FORESIGNAL_VERIFY_*` environment variables; it skips those checks when the variables are absent.
 
 ## Defaults that override earlier design text
 
@@ -64,7 +64,7 @@ Adapters set retention defaults by **analytic class** through `defaultRetention`
 
 Deploy a collecting instance early (after 022) with these defaults; see `docs/Roadmap.md` §1.
 
-## Intelligence conventions (prompts 098–129)
+## Intelligence conventions (prompts 098–133)
 
 - **Authority:** `docs/Intelligence-Design.md` wins over older prompt text on the intelligence layer.
 - **Evidence, inference, speculation** are separate sections in every analytic response; speculation is labelled.
@@ -80,8 +80,12 @@ Deploy a collecting instance early (after 022) with these defaults; see `docs/Ro
 - **Manifests:** every analytic output from 100 onward stores a 116 `manifest_id`.
 - **Benchmarks gate autonomy:** autonomous proposals and LLM ensemble weight follow 123 `BenchmarkGate`.
 - **Object references:** APIs that return or accept references to other objects use the [Client Contract](Client-Contract.md) `ObjectRef` grammar from 128 on; earlier endpoints keep their ids and gain resolvers in 128.
-- **Durable cursors** added by the block (`evidence.cursor`, `situation.cursor`, `stats.region.cursor`, `precursor.cursor`, `impact.cursor`, `relation.cursor`) join 019's consumer clamp, including its release-after-2×-window rule with an alarm.
+- **Principals and work products:** every actor is a principal (023); work products (investigations, workspaces, chronicles, reports, saved searches, notes, attachments, evidence items) carry `owner`, `visibility`, an access list and `tlp` (129). `AccessResolver` decides visibility; unshared objects are invisible, not forbidden.
+- **TLP** is part of `EgressPolicy`: shares, links, exports, renditions and exchange packages respect it, and derived products inherit the strictest input label.
+- **Chronicles own their copies:** captured data is never deleted by global retention (130).
+- **Ratings are imported, never generated:** media lean and factuality come only from declared providers with licence and date (132); no bylines or author names are stored.
+- **Durable cursors** added by the block (`evidence.cursor`, `situation.cursor`, `stats.region.cursor`, `precursor.cursor`, `impact.cursor`, `relation.cursor`, `chronicle.cursor.{id}`) join 019's consumer clamp, including its release-after-2×-window rule with an alarm.
 
 ## Test-run prompts
 
-Feature prompts write tests but don't run them. Tests run in **012, 022, 041, 057, 097, 129, 132**, and also in **133** and **134**, which may change production code or schema ownership after 132.
+Feature prompts write tests but don't run them. Tests run in **012, 022, 041, 057, 097, 133, 136**, and also in **137** and **138**, which may change production code or schema ownership after 136.

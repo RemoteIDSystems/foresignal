@@ -229,6 +229,22 @@ All are `series-point` + `series-latest` records (093 model) with `family`, `tra
 
 Every catalogued source also has an originator and observability entry in `src/main/resources/intel/originators.json` and `intel/observability.json` (prompt 116).
 
+## News and media ratings (prompt 132, v1.3)
+
+Articles are stored as metadata only (no bodies, no bylines). Ratings are imported from declared providers, never generated.
+
+| Source / provider | Access | Licence / egress | Default | Notes |
+|---|---|---|---|---|
+| `gdelt-articles` | GDELT DOC 2.0 `ArtList` per attention topic | open with citation | on with topics | shares GDELT host pacing with `gdelt-timelines` (1 request / 5 s) |
+| `news-feed-*` | outlet RSS/Atom via the 073 feed kit | per outlet | operator-added | title, link, summary only |
+| `wikidata` ratings | Wikidata Query Service | CC0 | on | country, owner, state media, public broadcaster, political alignment (P1387) where present |
+| `partisan-web` ratings | The Partisan Web data files | CC BY 4.0 (confirm the data licence) | on once confirmed | map its axes; non left–right axes kept as separate dimensions |
+| `allsides` ratings | operator import of published ratings | reported CC BY-NC 4.0 (confirm on allsides.com); `LOCAL_ONLY` unless permission recorded | off | attribution required |
+| `mbfc` ratings | Media Bias/Fact Check API with the operator's own paid key | provider terms; `LOCAL_ONLY` | off | |
+| `operator` ratings | CSV/JSON import | declared at import | n/a | |
+
+Excluded: Ad Fontes Media and NewsGuard (proprietary, no open licence); scraping any ratings site.
+
 ## Reference-history datasets (prompt 121, v1.3)
 
 Imported as weekly counts per family and region (`reference_history`); never served raw.

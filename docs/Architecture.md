@@ -112,6 +112,11 @@ ai.foresignal
 ├── cycle           Analysis cycles, assessments, intel board (127)
 ├── object          Object references, envelopes, relation graph, annotations,
 │                   workspaces and context sync, sensor discovery (128)
+├── collab          Principals, groups, access lists, TLP, tags, comments, attachments,
+│                   evidence items, saved searches (129)
+├── chronicle       Chronicles: capture, partitioned history, thread, replay (130)
+├── report          Reports, renditions, signed intelligence packages (131)
+├── media           News articles, stories, outlet registry, rating providers, coverage (132)
 └── api             Controllers, DTOs, ProblemDetail handlers, pagination cursors
 ```
 
@@ -622,7 +627,7 @@ Optional. Without a configured provider, Foresignal is fully functional: briefin
 
 - **Keys:** a VAPID key pair (P-256) is generated on first start. The private key is stored encrypted in `system_secret`. `GET /v1/push/vapid-public-key` is open.
 - **Subscriptions:** `POST /v1/push/subscriptions` takes `{name, subscription: {endpoint, keys: {p256dh, auth}}, filters: {events, ruleIds, minSeverity}}` and requires `read` scope (or open reads). `DELETE /v1/push/subscriptions/{id}` removes one, and `GET` lists them (admin).
-- **Delivery:** the built-in `webpush` channel encrypts payloads per RFC 8291 (`aes131gcm`) and signs a VAPID JWT (ES256, RFC 8292) using JDK crypto only. A `404` or `410` from the push service deletes the subscription.
+- **Delivery:** the built-in `webpush` channel encrypts payloads per RFC 8291 (`aes135gcm`) and signs a VAPID JWT (ES256, RFC 8292) using JDK crypto only. A `404` or `410` from the push service deletes the subscription.
 - **Payload:** `{title, body, severity, url, event, id}`. Frontends (a PWA or the operator console) register a service worker and subscribe.
 
 ## 25. Production hardening (prompt 063)
@@ -682,6 +687,7 @@ Authoritative design: [Intelligence Design](Intelligence-Design.md). Summary of 
 - **Retention:** analytic retention classes (Conventions) keep event kinds 5 years and series 10 years; intelligence tables are outside `RetentionJob`.
 - **Benchmarks** (123) measure analytic usefulness on planted-truth scenarios and a historical corpus and gate autonomous features.
 - **Clients** use one object contract, relation graph, annotations and synchronised workspaces (128, [Client Contract](Client-Contract.md)); Foresignal stores client layout only as opaque JSON.
+- **Collaboration and products:** principals, groups, access lists and TLP govern work products (129); chronicles keep their own partitioned history (130); reports and signed packages carry analysis between people and instances (131); news coverage and outlet ratings inform evidence quality (132).
 - **Invariants** are indexed in [Invariants](Invariants.md) and verified at every checkpoint.
 - **Wording:** probabilities are numbers; ICD 203 terms are derived and linted by one `EstimativeLanguage` utility.
 - **Libraries:** Apache Commons Statistics, Commons Numbers, Commons RNG and Hipparchus; no GPL statistics libraries.

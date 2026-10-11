@@ -77,6 +77,7 @@ Then retrofit 099, 100, 101 and 103 to use them.
 - `ManifestService.record(...)` returns the id. From this prompt on, every analytic output stores `manifest_id`. Retrofit here: 100 anomaly observations, 101 intelligence events and recipe runs, 102 analyst runs, 103 backtest jobs (nullable `manifest_id` columns; written for new outputs).
 - **Replay:** `POST /v1/manifests/{id}/replay` (agent; a 103 job): re-run a deterministic component at the manifest's `asof_seq` with the recorded configuration and inputs, compare with the stored output, and report `identical | differs` (with a diff summary) or `not-replayable` (reason: inputs purged by retention, component removed, or LLM output). LLM components are reported as "inputs recorded; model output not reproducible".
 - `GET /v1/manifests/{id}` (agent).
+- **Prompt templates:** every LLM role's system prompt and instructions live in versioned resource templates (`src/main/resources/llm/templates/{id}@{version}.md`); manifests record `{templateId, version}`. `GET /v1/prompt-templates/{id}?version` (read) returns the template text, so clients can show exactly what the model was asked (operator `instructions` are shown only to agent scope). Model outputs and filled-in prompts are still stored only when `llm.logContent=true`.
 
 ### 5. API, MCP, SSE, docs
 
@@ -110,8 +111,8 @@ Then retrofit 099, 100, 101 and 103 to use them.
 
 ## Guardrails (mandatory)
 
-1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 129, 132, 133, 134).
-2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 134).
+1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 133, 136, 137, 138).
+2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 138).
 3. **Reuse policy.** Never copy code from ShadowBroker, Velocity or World Monitor (AGPL) or SatDump (GPL). They are reference material only. God's Eye View (MIT, `~/Documents/GitLab/gods-eye-view`) may be ported to Java if you add an origin header comment and an entry in `THIRD_PARTY_NOTICES.md`.
 4. **Stay in scope.** Implement what this prompt specifies, no more. If the docs conflict with reality (for example, a library API differs from what the docs assume), choose the approach most faithful to `docs/Architecture.md` and `docs/Intelligence-Design.md`, and record it under "Deviations" in the Completion Report.
 5. **Verify versions.** When adding a dependency, confirm the version exists on Maven Central and is compatible with Spring Boot 4.1 and Java 21.
