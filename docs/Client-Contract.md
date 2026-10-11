@@ -1,6 +1,6 @@
 # Foresignal — Client Contract (v1)
 
-How applications built on Foresignal name, fetch, relate, annotate and share focus on the same objects. It is the reference for every frontend (3D globe, 2D map, analyst workstation, satellite and RF consoles, mobile, embedded widgets) and for agents. Prompt 128 implements it; prompt 141's SDKs ship helpers for it. `GET /v1/contract` reports the versions in force.
+How applications built on Foresignal name, fetch, relate, annotate and share focus on the same objects. It is the reference for every frontend (3D globe, 2D map, analyst workstation, satellite and RF consoles, mobile, embedded widgets) and for agents. Prompt 128 implements it; prompt 140's SDKs ship helpers for it. `GET /v1/contract` reports the versions in force.
 
 ---
 

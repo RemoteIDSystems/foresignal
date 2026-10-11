@@ -1,15 +1,15 @@
-# 141 — Client SDKs CLI And Extensibility
+# 140 — Client SDKs CLI And Extensibility
 
 > Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
-> Completion Report: `completion-reports/141-CR-Client-SDKs-CLI-And-Extensibility.md`
+> Completion Report: `completion-reports/140-CR-Client-SDKs-CLI-And-Extensibility.md`
 
 ## Context
 
 - **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
-- **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–139).
-- **Previous Completion Report:** read `completion-reports/140-CR-*.md` and follow its "Notes for the next prompt".
+- **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–138).
+- **Previous Completion Report:** read `completion-reports/139-CR-*.md` and follow its "Notes for the next prompt".
 
 ## Read first
 
@@ -49,13 +49,15 @@ Make Foresignal easy to build on and extend, keeping every piece minimal and opt
   - deep-link encode/decode for the context payload, with the schema version check.
   Contract tests: the three SDKs round-trip the same fixture contexts and refs.
 
+- **EDP provider libraries** (`docs/External-Data-Protocol.md`), Python (`sdk/python-edp`, package `foresignal_edp`) and TypeScript (`sdk/typescript-edp`), independent of the API clients so provider projects stay small: manifest builder and validator (against the exported `docs/protocol/edp-1.0` schemas), typed item builders for every item type, a push client (batching ≤ 10,000 items or 5 MB, NDJSON option, retries with backoff on 429 and 503, idempotent re-sends), a pull-server helper (framework-neutral handler for `GET items?cursor=` and optional `search`, with a pluggable cursor store), and `status` reporting. Each library runs the 024 conformance fixtures in its tests and ships one example provider.
+
 ### 2. CLI (`cli/`, a standalone Gradle build, not part of the broker build)
 
 - picocli 4.7.x, `java.net.http`, Jackson; GraalVM native image optional via `org.graalvm.buildtools.native` and `picocli-codegen` (reflection config generated). Java 21.
 - **Config:** `foresignal login --url --token` stores `~/.config/foresignal/config.json` (POSIX 0600; warn on Windows) with named profiles. Env `FORESIGNAL_URL`/`FORESIGNAL_TOKEN` override. The token is never printed.
 - **Commands:**
   - `system`
-  - `sources list|show|enable|disable|health|fetch|probe|doctor` (140)
+  - `sources list|show|enable|disable|health|fetch|probe|doctor` (139)
   - `records query|get|history|track`
   - `changes tail [--source --kind --bbox] [--live]` (SSE with the same resume/reset semantics as task 1)
   - `alerts list|ack|resolve|tail`
@@ -64,6 +66,7 @@ Make Foresignal easy to build on and extend, keeping every piece minimal and opt
   - `briefings list|run`
   - `exports create|status|download` (111)
   - `tokens list|create|revoke`
+  - `edp validate <manifest.json> [items.ndjson]` (local schema validation, plus `--remote` to call `POST /v1/external/validate`), `edp sources list|show|approve|suspend`, `edp tokens create`
 - **Output:** `--output table|json|ndjson`; exit codes 0, 1 (usage), 2 (API error with the ProblemDetail `code`), 3 (network).
 - Tests (picocli `CommandLine` + WireMock) live in `cli/src/test` and run with the CLI build only.
 
@@ -107,7 +110,6 @@ Make Foresignal easy to build on and extend, keeping every piece minimal and opt
   - An RSS 2.0 podcast feed of runs with audio: `GET /v1/briefings/{id}/podcast.rss` (058 feed writer, `<enclosure>`; feed keys).
   - A failure never blocks text delivery.
 - **Translation:** channel setting `language` (BCP 47). When it differs from the source language (`notify.defaultLanguage`, default `en`), translate title and body via the 026 chat role (low effort, prompt treats content as untrusted text to translate, never instructions; output plain text ≤ 1.5× input length).
-- **Translation backends:** besides the 026 chat role, an opt-in `google-translate-web` backend (unofficial web endpoint, off by default, `access.route = unofficial-api`; setting `notify.translationBackend` = `llm | google-translate-web`).
   - Cache by `(sha256(text), lang)` for 24 h. Timeout 8 s, then send the original with a `[untranslated]` marker.
   - Budget role `translate`. Never translate structured fields, URLs or record values in templates' code spans.
 
@@ -139,8 +141,8 @@ Make Foresignal easy to build on and extend, keeping every piece minimal and opt
 
 ## Guardrails (mandatory)
 
-1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 139, 142, 143, 144).
-2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 144).
+1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 138, 141, 142, 143).
+2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 143).
 3. **Reuse policy.** Never copy code from ShadowBroker, Velocity or World Monitor (AGPL) or SatDump (GPL). They are reference material only. God's Eye View (MIT, `~/Documents/GitLab/gods-eye-view`) may be ported to Java if you add an origin header comment and an entry in `THIRD_PARTY_NOTICES.md`.
 4. **Stay in scope.** Implement what this prompt specifies, no more. If the docs conflict with reality (for example, a library API differs from what the docs assume), choose the approach most faithful to `docs/Architecture.md` and record it under "Deviations" in the Completion Report.
 5. **Verify versions.** When adding a dependency, confirm the version exists on Maven Central and is compatible with Spring Boot 4.1 and Java 21.
@@ -149,7 +151,7 @@ Make Foresignal easy to build on and extend, keeping every piece minimal and opt
 ## Finish: Compile → Commit → Push
 
 1. **Compile:** `./gradlew compileJava compileTestJava` must succeed. Fix every compile error. Do not run tests.
-2. **Commit** all changes with the message `141: Client SDKs CLI And Extensibility`. Capture the full hash with `git rev-parse HEAD`; this is the *implementation commit*.
-3. **Write** `completion-reports/141-CR-Client-SDKs-CLI-And-Extensibility.md` using the template in `docs/Roadmap.md` §3, including the implementation commit hash.
-4. **Commit** the report with the message `141: completion report`, then run `git push origin main`.
+2. **Commit** all changes with the message `140: Client SDKs CLI And Extensibility`. Capture the full hash with `git rev-parse HEAD`; this is the *implementation commit*.
+3. **Write** `completion-reports/140-CR-Client-SDKs-CLI-And-Extensibility.md` using the template in `docs/Roadmap.md` §3, including the implementation commit hash.
+4. **Commit** the report with the message `140: completion report`, then run `git push origin main`.
 5. End your reply with the line `Implementation commit: <hash>`.

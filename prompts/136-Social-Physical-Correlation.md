@@ -43,7 +43,7 @@ Compare what people say with what Foresignal observes. For every significant nar
 
 ### 3. Cue-driven social search (`SocialCueService`)
 
-- **Automatic cues** from physical triggers (settings `social.cues`): situation activated or escalated (118), `significant` findings of selected types (119: change points in outage, vessel, flight and fire series; 100 anomalies), critical alerts (017), and canonical events of selected families with ≥ 2 evidence groups. Each cue builds queries from the place (036/040 names and multilingual aliases, nearby port, airport or facility names from 098/104), the event type (lexicon terms for the family in the region's languages) and the time window, and runs them on enabled search-capable platforms (`bluesky-search`, `reddit`, `x`, `threads`, `youtube`, `telegram` account mode, `mastodon` hashtags), within `social.cues.maxPerDay` (50), `maxCostUsdPerCue` (1.00) and the platforms' own budgets.
+- **Automatic cues** from physical triggers (settings `social.cues`): situation activated or escalated (118), `significant` findings of selected types (119: change points in outage, vessel, flight and fire series; 100 anomalies), critical alerts (017), and canonical events of selected families with ≥ 2 evidence groups. Each cue builds queries from the place (036/040 names and multilingual aliases, nearby port, airport or facility names from 098/104), the event type (lexicon terms for the family in the region's languages) and the time window, and runs them on enabled search-capable platforms (`bluesky-search`, `reddit`, `x`, `threads`, `youtube`, `mastodon` hashtags, and EDP providers that declare `transport.search` (024)), within `social.cues.maxPerDay` (50), `maxCostUsdPerCue` (1.00) and the platforms' own budgets.
 - **Manual cues:** `POST /v1/social/cues` (agent) with place, bbox, entity or situation, extra terms, platforms, window and a cost cap → 202 with the cue.
 - Cue record: `id`, `trigger` (`{type, ref}`), `queries` (per platform, exact strings), `platforms`, `window`, `status` (`queued | running | done | failed | budget-refused`), `results` (posts found per platform), `narrativeIds`, `costUsd`, `manifestId`. Cue results are stored as posts with `collection = cue` and `cueId`, joined into narratives (135) and compared (§1).
 - Cue-found posts are a **targeted sample**: they never feed velocity baselines (134), and comparisons record that the narrative was found by looking (`foundBy: cue`), which the lead-time statistics keep separate from organically detected narratives.
@@ -71,7 +71,7 @@ Compare what people say with what Foresignal observes. For every significant nar
 - SSE topic `social`: `comparison.updated`, `cue.completed`, `attention.gap`.
 - `docs/OpenAPI.json`: as specified there (`SocialComparison`, `SocialCue`, `SocialCueInput`, `LeadTimeStats`, `SocialSettings`; situation `social` section; chronicle layer types; notification event types); status implemented; pending list updated.
 - `docs/Operator-Guide.md` "Social versus physical": comparison statuses and what they do and do not mean, coverage requirements, cues and their costs, reading lead times.
-- Invariants SOC-1 to SOC-5 (`docs/Invariants.md`) asserted by the tests below. AccessPolicy rows. Problem codes: `UNKNOWN_COMPARISON`, `UNKNOWN_CUE` (404), `CUE_LIMIT_REACHED` (429), `BUDGET_EXHAUSTED` (429, from 134).
+- Invariants SOC-1 to SOC-5 (`docs/Invariants.md`) asserted by the tests below. AccessPolicy rows. Problem codes: `UNKNOWN_COMPARISON`, `UNKNOWN_CUE` (404), `CUE_LIMIT_REACHED` (429), `BUDGET_EXCEEDED` (429, from 134).
 
 ## Tests to write (do not run)
 
@@ -93,8 +93,8 @@ Compare what people say with what Foresignal observes. For every significant nar
 
 ## Guardrails (mandatory)
 
-1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 137, 140, 141, 142).
-2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 142).
+1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 138, 141, 142, 143).
+2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 143).
 3. **Reuse policy.** Never copy code from ShadowBroker, Velocity or World Monitor (AGPL) or SatDump (GPL). They are reference material only. God's Eye View (MIT, `~/Documents/GitLab/gods-eye-view`) may be ported to Java if you add an origin header comment and an entry in `THIRD_PARTY_NOTICES.md`.
 4. **Stay in scope.** Implement what this prompt specifies, no more. If the docs conflict with reality (for example, a library API differs from what the docs assume), choose the approach most faithful to `docs/Architecture.md` and `docs/Intelligence-Design.md`, and record it under "Deviations" in the Completion Report.
 5. **Verify versions.** When adding a dependency, confirm the version exists on Maven Central and is compatible with Spring Boot 4.1 and Java 21.

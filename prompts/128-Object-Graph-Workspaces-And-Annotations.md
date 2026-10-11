@@ -93,7 +93,7 @@ So a client panel never fans out dozens of requests on a selection change:
 
 - `docs/OpenAPI.json`: `ObjectRef` (pattern), `ObjectEnvelope`, `ObjectAction`, `Dossier`, `ContextSummary`, `ObjectResolveRequest/Result`, `Relation`, `GraphRequest/Result`, `CommonDependencies`, `Annotation`, `Precision`, `Workspace`, `WorkspaceContext`, `ContextPatchEvent`, `PresenceEvent`, `ContextLink`, `Sensor`, `Contract`; tags `Objects`, `Workspaces`; `x-foresignal-scope` everywhere; SSE schemas; Postman BODIES for resolve, graph, annotate, create workspace, patch context.
 - Keep `docs/Client-Contract.md` in sync with what was built (it is the frontend teams' reference); record any deviation in the CR.
-- Note for 141 (SDKs): the generated SDKs expose `ObjectRef`, the envelope and a `WorkspaceSync` helper (subscribe, apply remote patches, send local patches with `If-Match`, ignore own `originClientId`).
+- Note for 140 (SDKs): the generated SDKs expose `ObjectRef`, the envelope and a `WorkspaceSync` helper (subscribe, apply remote patches, send local patches with `If-Match`, ignore own `originClientId`).
 - AccessPolicy rows as listed. Problem codes: `OBJECT_REF_INVALID` (400), `UNKNOWN_OBJECT`, `UNKNOWN_WORKSPACE`, `UNKNOWN_ANNOTATION` (404), `WORKSPACE_CONTEXT_STALE` (412), `WORKSPACE_FORBIDDEN` (403).
 - `docs/Operator-Guide.md` "Objects, workspaces and validation"; `docs/Agent-Guide.md`: refer to objects by `ObjectRef`; use workspace focus to show the operator what you mean.
 
@@ -123,8 +123,8 @@ So a client panel never fans out dozens of requests on a selection change:
 
 ## Guardrails (mandatory)
 
-1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 139, 142, 143, 144).
-2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 144).
+1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 138, 141, 142, 143).
+2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 143).
 3. **Reuse policy.** Never copy code from ShadowBroker, Velocity or World Monitor (AGPL) or SatDump (GPL). They are reference material only. God's Eye View (MIT, `~/Documents/GitLab/gods-eye-view`) may be ported to Java if you add an origin header comment and an entry in `THIRD_PARTY_NOTICES.md`.
 4. **Stay in scope.** Implement what this prompt specifies, no more. If the docs conflict with reality (for example, a library API differs from what the docs assume), choose the approach most faithful to `docs/Architecture.md` and `docs/Intelligence-Design.md`, and record it under "Deviations" in the Completion Report.
 5. **Verify versions.** When adding a dependency, confirm the version exists on Maven Central and is compatible with Spring Boot 4.1 and Java 21.

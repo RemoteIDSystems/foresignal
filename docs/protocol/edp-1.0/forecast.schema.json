@@ -1,0 +1,133 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://foresignal.ai/protocol/edp-1.0/forecast.schema.json",
+  "title": "Foresignal EDP 1.0 forecast",
+  "type": "object",
+  "description": "A probability (or quantiles) for a question",
+  "properties": {
+    "stream": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "maxLength": 48
+    },
+    "type": {
+      "type": "string",
+      "const": "forecast"
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "observedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "properties": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Item properties, validated against the stream's payloadSchema"
+    },
+    "question": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties": {
+        "externalId": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "closeTime": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "resolutionCriteria": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "externalId",
+        "title"
+      ]
+    },
+    "questionRef": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "probability": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0,
+      "maximum": 1
+    },
+    "quantiles": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/Quantiles"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "madeAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "stream",
+    "type",
+    "id",
+    "madeAt"
+  ],
+  "additionalProperties": true,
+  "$defs": {
+    "Quantiles": {
+      "type": "object",
+      "properties": {
+        "p05": {
+          "type": "number"
+        },
+        "p10": {
+          "type": "number"
+        },
+        "p25": {
+          "type": "number"
+        },
+        "p50": {
+          "type": "number"
+        },
+        "p75": {
+          "type": "number"
+        },
+        "p90": {
+          "type": "number"
+        },
+        "p95": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "p05",
+        "p25",
+        "p50",
+        "p75",
+        "p95"
+      ]
+    }
+  }
+}

@@ -1,0 +1,573 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://foresignal.ai/protocol/edp-1.0/manifest.schema.json",
+  "title": "Foresignal EDP 1.0 manifest",
+  "type": "object",
+  "description": "Self-description of an EDP provider (docs/External-Data-Protocol.md §2)",
+  "properties": {
+    "protocol": {
+      "type": "string",
+      "pattern": "^foresignal-edp/1\\.[0-9]+$"
+    },
+    "source": {
+      "$ref": "#/$defs/EdpSourceInfo"
+    },
+    "transport": {
+      "$ref": "#/$defs/EdpTransport"
+    },
+    "streams": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 50,
+      "items": {
+        "$ref": "#/$defs/EdpStream"
+      }
+    }
+  },
+  "required": [
+    "protocol",
+    "source",
+    "transport",
+    "streams"
+  ],
+  "additionalProperties": true,
+  "$defs": {
+    "EdpCoverage": {
+      "type": "object",
+      "description": "Declared footprint and detection probability (low-confidence observability)",
+      "properties": {
+        "area": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": true,
+              "description": "GeoJSON geometry (WGS84, lon/lat)"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "family": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "pDetect": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "EdpPresentation": {
+      "type": "object",
+      "description": "Layer hints for clients and styles",
+      "properties": {
+        "color": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "icon": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "labelField": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "minZoom": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "maxZoom": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "tileProperties": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "EdpPull": {
+      "type": "object",
+      "description": "Provider items endpoint Foresignal polls",
+      "properties": {
+        "itemsUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "intervalSeconds": {
+          "type": "integer",
+          "minimum": 60,
+          "default": 300
+        },
+        "auth": {
+          "type": "string",
+          "enum": [
+            "none",
+            "bearer",
+            "header",
+            "basic"
+          ],
+          "default": "none"
+        },
+        "header": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "itemsUrl"
+      ]
+    },
+    "EdpSearch": {
+      "type": "object",
+      "description": "Optional provider search endpoint used by cues (136)",
+      "properties": {
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "auth": {
+          "type": "string",
+          "enum": [
+            "none",
+            "bearer",
+            "header",
+            "basic"
+          ],
+          "default": "none"
+        },
+        "header": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "url"
+      ]
+    },
+    "EdpSourceInfo": {
+      "type": "object",
+      "description": "Identity, publisher, licence, access and originator of a provider",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+          "maxLength": 48
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "publisher": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "url": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "contact": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "name"
+          ]
+        },
+        "homepage": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "licence": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "url": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "attribution": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "redistribution": {
+              "type": "string",
+              "enum": [
+                "allowed",
+                "local-only",
+                "unknown"
+              ],
+              "default": "unknown"
+            }
+          }
+        },
+        "terms": {
+          "type": "object",
+          "properties": {
+            "summary": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "url": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        },
+        "access": {
+          "type": "object",
+          "properties": {
+            "route": {
+              "type": "string",
+              "enum": [
+                "official",
+                "unofficial-api",
+                "scrape",
+                "browser",
+                "other"
+              ]
+            },
+            "fragility": {
+              "type": "string",
+              "enum": [
+                "low",
+                "medium",
+                "high"
+              ]
+            }
+          },
+          "required": [
+            "route"
+          ]
+        },
+        "originator": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+              "maxLength": 48
+            },
+            "class": {
+              "type": "string",
+              "enum": [
+                "sensor-network",
+                "agency",
+                "aggregator",
+                "media",
+                "crowd",
+                "social",
+                "operator",
+                "derived"
+              ]
+            },
+            "aggregates": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": [
+            "id",
+            "class"
+          ]
+        },
+        "private": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "publisher",
+        "originator"
+      ]
+    },
+    "EdpStream": {
+      "type": "object",
+      "description": "One typed stream of items",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+          "maxLength": 48
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "layer",
+            "atomic"
+          ]
+        },
+        "itemType": {
+          "type": "string",
+          "enum": [
+            "feature",
+            "event",
+            "observation",
+            "document",
+            "forecast"
+          ]
+        },
+        "kind": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+          "maxLength": 48
+        },
+        "title": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "geometry": {
+          "type": "string",
+          "enum": [
+            "Point",
+            "LineString",
+            "Polygon",
+            "MultiPolygon",
+            "any",
+            "none"
+          ],
+          "default": "any"
+        },
+        "update": {
+          "type": "string",
+          "enum": [
+            "incremental",
+            "snapshot"
+          ],
+          "default": "incremental"
+        },
+        "payloadSchema": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "JSON Schema 2020-12 for item properties"
+        },
+        "fields": {
+          "$ref": "#/$defs/EdpStreamFields"
+        },
+        "ttl": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "retentionClass": {
+          "type": "string",
+          "enum": [
+            "event",
+            "bulk-event",
+            "series",
+            "state",
+            "track",
+            "reference",
+            "social"
+          ],
+          "default": "event"
+        },
+        "unit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "documentType": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "social-post",
+            "article",
+            "report",
+            "transcript",
+            "note",
+            null
+          ]
+        },
+        "presentation": {
+          "$ref": "#/$defs/EdpPresentation"
+        },
+        "coverage": {
+          "$ref": "#/$defs/EdpCoverage"
+        },
+        "complete": {
+          "type": "boolean",
+          "default": false,
+          "description": "The stream is a complete record of its scope (social volume baselines may use it)"
+        },
+        "suggestedBindings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EdpSuggestedBinding"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "mode",
+        "itemType",
+        "kind"
+      ]
+    },
+    "EdpStreamFields": {
+      "type": "object",
+      "description": "Field roles, as in custom sources (024)",
+      "properties": {
+        "title": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "significant": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "volatile": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "observedAtMode": {
+          "type": "string",
+          "enum": [
+            "upstream",
+            "received"
+          ],
+          "default": "upstream"
+        }
+      }
+    },
+    "EdpSuggestedBinding": {
+      "type": "object",
+      "description": "A binding the provider recommends for an atomic stream",
+      "properties": {
+        "target": {
+          "type": "string",
+          "enum": [
+            "series",
+            "canonical-family",
+            "social",
+            "news",
+            "evidence",
+            "indicator",
+            "forecast",
+            "place",
+            "situation",
+            "chronicle"
+          ]
+        },
+        "config": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "target"
+      ]
+    },
+    "EdpTransport": {
+      "type": "object",
+      "description": "How items reach Foresignal",
+      "properties": {
+        "push": {
+          "type": "boolean",
+          "default": true
+        },
+        "pull": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/EdpPull"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "search": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/EdpSearch"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

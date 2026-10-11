@@ -1,0 +1,159 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://foresignal.ai/protocol/edp-1.0/document.schema.json",
+  "title": "Foresignal EDP 1.0 document",
+  "type": "object",
+  "description": "A text item: post, article, report, transcript or note",
+  "properties": {
+    "stream": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "maxLength": 48
+    },
+    "type": {
+      "type": "string",
+      "const": "document"
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "observedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "properties": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Item properties, validated against the stream's payloadSchema"
+    },
+    "documentType": {
+      "type": "string",
+      "enum": [
+        "social-post",
+        "article",
+        "report",
+        "transcript",
+        "note"
+      ]
+    },
+    "text": {
+      "type": "string",
+      "maxLength": 20000
+    },
+    "title": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "url": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "author": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties": {
+        "handle": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "accountId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "language": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "publishedAt": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "about": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Foresignal object references or URLs"
+    },
+    "media": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "thumbUrl": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "url"
+        ]
+      }
+    },
+    "geometry": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "GeoJSON geometry (WGS84, lon/lat)"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "engagement": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": {
+        "type": [
+          "number",
+          "null"
+        ]
+      }
+    }
+  },
+  "required": [
+    "stream",
+    "type",
+    "id",
+    "documentType",
+    "text"
+  ],
+  "additionalProperties": true
+}

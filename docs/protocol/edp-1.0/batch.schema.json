@@ -1,0 +1,608 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://foresignal.ai/protocol/edp-1.0/batch.schema.json",
+  "title": "Foresignal EDP 1.0 batch",
+  "type": "object",
+  "description": "A batch of EDP items (push body or pull response)",
+  "properties": {
+    "protocol": {
+      "type": "string"
+    },
+    "sourceId": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "maxLength": 48
+    },
+    "sentAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "complete": {
+      "type": "boolean",
+      "default": false
+    },
+    "items": {
+      "type": "array",
+      "maxItems": 10000,
+      "items": {
+        "$ref": "#/$defs/EdpItem"
+      }
+    },
+    "nextCursor": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "required": [
+    "protocol",
+    "items"
+  ],
+  "$defs": {
+    "EdpDeleteItem": {
+      "type": "object",
+      "description": "Tombstone for {stream}:{id}",
+      "properties": {
+        "stream": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+          "maxLength": 48
+        },
+        "type": {
+          "type": "string",
+          "const": "delete"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "observedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Item properties, validated against the stream's payloadSchema"
+        }
+      },
+      "required": [
+        "stream",
+        "type",
+        "id"
+      ],
+      "additionalProperties": true
+    },
+    "EdpDocumentItem": {
+      "type": "object",
+      "description": "A text item: post, article, report, transcript or note",
+      "properties": {
+        "stream": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+          "maxLength": 48
+        },
+        "type": {
+          "type": "string",
+          "const": "document"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "observedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Item properties, validated against the stream's payloadSchema"
+        },
+        "documentType": {
+          "type": "string",
+          "enum": [
+            "social-post",
+            "article",
+            "report",
+            "transcript",
+            "note"
+          ]
+        },
+        "text": {
+          "type": "string",
+          "maxLength": 20000
+        },
+        "title": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "url": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "author": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "handle": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "name": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "accountId": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        },
+        "language": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "publishedAt": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "about": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Foresignal object references or URLs"
+        },
+        "media": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string"
+              },
+              "url": {
+                "type": "string"
+              },
+              "thumbUrl": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "url"
+            ]
+          }
+        },
+        "geometry": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": true,
+              "description": "GeoJSON geometry (WGS84, lon/lat)"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "engagement": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": [
+              "number",
+              "null"
+            ]
+          }
+        }
+      },
+      "required": [
+        "stream",
+        "type",
+        "id",
+        "documentType",
+        "text"
+      ],
+      "additionalProperties": true
+    },
+    "EdpEventItem": {
+      "type": "object",
+      "description": "A discrete occurrence",
+      "properties": {
+        "stream": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+          "maxLength": 48
+        },
+        "type": {
+          "type": "string",
+          "const": "event"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "observedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Item properties, validated against the stream's payloadSchema"
+        },
+        "eventTime": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "geometry": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": true,
+              "description": "GeoJSON geometry (WGS84, lon/lat)"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "upstreamEventId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "stream",
+        "type",
+        "id",
+        "eventTime"
+      ],
+      "additionalProperties": true
+    },
+    "EdpFeatureItem": {
+      "type": "object",
+      "description": "Current state of an entity (layer streams)",
+      "properties": {
+        "stream": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+          "maxLength": 48
+        },
+        "type": {
+          "type": "string",
+          "const": "feature"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "observedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Item properties, validated against the stream's payloadSchema"
+        },
+        "geometry": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": true,
+              "description": "GeoJSON geometry (WGS84, lon/lat)"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "eventTime": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "validUntil": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "stream",
+        "type",
+        "id"
+      ],
+      "additionalProperties": true
+    },
+    "EdpForecastItem": {
+      "type": "object",
+      "description": "A probability (or quantiles) for a question",
+      "properties": {
+        "stream": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+          "maxLength": 48
+        },
+        "type": {
+          "type": "string",
+          "const": "forecast"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "observedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Item properties, validated against the stream's payloadSchema"
+        },
+        "question": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "externalId": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "closeTime": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date-time"
+            },
+            "resolutionCriteria": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "externalId",
+            "title"
+          ]
+        },
+        "questionRef": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "probability": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "quantiles": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/Quantiles"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "madeAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "stream",
+        "type",
+        "id",
+        "madeAt"
+      ],
+      "additionalProperties": true
+    },
+    "EdpItem": {
+      "description": "One EDP item (one variant per type)",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/EdpFeatureItem"
+        },
+        {
+          "$ref": "#/$defs/EdpEventItem"
+        },
+        {
+          "$ref": "#/$defs/EdpObservationItem"
+        },
+        {
+          "$ref": "#/$defs/EdpDocumentItem"
+        },
+        {
+          "$ref": "#/$defs/EdpForecastItem"
+        },
+        {
+          "$ref": "#/$defs/EdpDeleteItem"
+        },
+        {
+          "$ref": "#/$defs/EdpStatusItem"
+        }
+      ]
+    },
+    "EdpObservationItem": {
+      "type": "object",
+      "description": "A value of a series",
+      "properties": {
+        "stream": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+          "maxLength": 48
+        },
+        "type": {
+          "type": "string",
+          "const": "observation"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "observedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Item properties, validated against the stream's payloadSchema"
+        },
+        "seriesKey": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "t": {
+          "type": "string",
+          "description": "Time or period: 2026-10-10, 2026-W41, 2026-10, or a timestamp"
+        },
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "knownAt": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "unit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "stream",
+        "type",
+        "id",
+        "seriesKey",
+        "t",
+        "value"
+      ],
+      "additionalProperties": true
+    },
+    "EdpStatusItem": {
+      "type": "object",
+      "description": "Provider health (no record)",
+      "properties": {
+        "stream": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+          "maxLength": 48
+        },
+        "type": {
+          "type": "string",
+          "const": "status"
+        },
+        "health": {
+          "type": "string",
+          "enum": [
+            "ok",
+            "degraded",
+            "blocked",
+            "layout-changed",
+            "geo-restricted"
+          ]
+        },
+        "message": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "type",
+        "health"
+      ]
+    },
+    "Quantiles": {
+      "type": "object",
+      "properties": {
+        "p05": {
+          "type": "number"
+        },
+        "p10": {
+          "type": "number"
+        },
+        "p25": {
+          "type": "number"
+        },
+        "p50": {
+          "type": "number"
+        },
+        "p75": {
+          "type": "number"
+        },
+        "p90": {
+          "type": "number"
+        },
+        "p95": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "p05",
+        "p25",
+        "p50",
+        "p75",
+        "p95"
+      ]
+    }
+  }
+}

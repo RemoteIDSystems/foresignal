@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://foresignal.ai/protocol/edp-1.0/status.schema.json",
+  "title": "Foresignal EDP 1.0 status",
+  "type": "object",
+  "description": "Provider health (no record)",
+  "properties": {
+    "stream": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "maxLength": 48
+    },
+    "type": {
+      "type": "string",
+      "const": "status"
+    },
+    "health": {
+      "type": "string",
+      "enum": [
+        "ok",
+        "degraded",
+        "blocked",
+        "layout-changed",
+        "geo-restricted"
+      ]
+    },
+    "message": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "required": [
+    "type",
+    "health"
+  ]
+}

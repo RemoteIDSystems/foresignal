@@ -34,8 +34,8 @@ Foresignal separates the three concerns, and adds an intelligence layer on top:
   - Count evidence by independent origin, know what could not have been seen, and benchmark every detector before trusting it.
 - **Built for teams and many instances:** named people and groups, sharing under TLP labels, tags, comments, graded evidence, investigations, **chronicles** (saved monitoring threads that keep their own replayable history), and reports sent to colleagues here or as signed packages to other Foresignal instances.
 - **News coverage, not just news:** stories clustered across outlets, with lean, factuality and ownership from licensed rating providers, blindspots and coverage balance used as evidence-quality signals.
-- **What people say versus what sensors see:** public social media (Bluesky, Mastodon, Reddit, YouTube, X, Threads, Instagram, Telegram, as the operator chooses) becomes narratives and claims counted by independent origin, compared with physical observations in both directions (corroborated with measured lead time, unobserved despite coverage, events with suspiciously little attention), with image-reuse and coordination checks.
-- **Your sources, your call:** sources other tools leave out on terms or fragility (flight and ship web maps, conflict maps, sirens, prediction markets, exchange data, Google Trends, Facebook, TikTok, Telegram) are opt-in adapters, off by default, with their terms and fragility shown; prediction markets and forecast platforms are scored in the forecast ledger like every other forecaster.
+- **What people say versus what sensors see:** public social media (Bluesky, Mastodon, Reddit, YouTube, X, Threads and Instagram as the operator chooses, plus any platform an external provider brings) becomes narratives and claims counted by independent origin, compared with physical observations in both directions (corroborated with measured lead time, unobserved despite coverage, events with suspiciously little attention), with image-reuse and coordination checks.
+- **Bring any source:** the [External Data Protocol](External-Data-Protocol.md) lets anyone write a data source as a separate project (web maps, scrapers, Telegram channels, prediction markets, niche feeds). Providers describe themselves with a manifest, deliver layers or atomic items, and the operator binds atomic streams to series, evidence, indicators, forecasts or chronicles, without changing Foresignal.
 - **One contract for every frontend** ([Client Contract](Client-Contract.md)): shared object references, a relation graph, analyst validation, and workspaces that keep a globe, an analyst workstation and sensor consoles in sync.
 - **Agents are first-class:** a built-in MCP server exposes the data and watch management as tools for OpenClaw, Claude and any MCP client. Scoped tokens keep agents within limits.
 - **Anything can push in:** custom sources accept records through an inbound webhook, from local SDRs, Home Assistant, scripts or agents.
@@ -51,7 +51,7 @@ Individuals: OSINT hobbyists, analysts, researchers, makers and developers who w
 | In scope | Not in scope |
 |---|---|
 | Ingest, normalize, version and re-serve public telemetry (~100 sources) | Any UI inside the broker (frontends are separate repositories) |
-| Per-source scheduling, budgets, health; inbound push sources | Scraping sites that forbid it, or headless-browser collection |
+| Per-source scheduling, budgets, health; inbound push sources | Fringe and specialist sources inside the core (they are external EDP providers) |
 | Trigger engine; 13 notification channel types including Web Push | Multi-user accounts with logins (scoped API tokens instead) |
 | REST, GeoJSON, vector tiles, SSE, MCP; OpenAPI-first; Postman collection | Horizontal scale-out (single instance by design) |
 | Optional LLM: Ask, briefings, enrichment, semantic search, adapter doctor | Training or fine-tuning neural models |
@@ -82,13 +82,13 @@ Individuals: OSINT hobbyists, analysts, researchers, makers and developers who w
 
 ## Plan
 
-A single ordered list of 144 prompts in the [Roadmap](Roadmap.md), in this order:
+A single ordered list of 143 prompts in the [Roadmap](Roadmap.md), in this order:
 
 1. foundation and core API
 2. channels, tokens, inbound webhooks, MCP and the LLM features
 3. about 100 sources
 4. derived layers, gridded products and provenance
-5. the intelligence layer: evidence independence and observability, discovery, situations, base rates, the forecast ledger, a benchmark harness, hypotheses, analysis cycles, the client contract, collaboration, chronicles, reports, news coverage, social signals and opt-in restricted sources
+5. the intelligence layer: evidence independence and observability, discovery, situations, base rates, the forecast ledger, a benchmark harness, hypotheses, analysis cycles, the client contract, collaboration, chronicles, reports, news coverage, social signals and external data providers
 6. the full test run, runtime verification and production hardening
 
 See the [Product Charter](Product-Charter.md), [Architecture](Architecture.md), [OpenAPI spec](OpenAPI.json) and [Source Catalog](Source-Catalog.md).

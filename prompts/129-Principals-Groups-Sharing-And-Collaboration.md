@@ -23,7 +23,7 @@ Make Foresignal work for several people, on one shared server or across separate
 
 ## Principles (binding)
 
-- **No passwords in the broker.** Principals authenticate with scoped tokens, device pairing codes (023) or, for MCP, the 141 RFC 9728 flow. Scopes still decide which operations a token may call; access lists only narrow access to individual shareable objects.
+- **No passwords in the broker.** Principals authenticate with scoped tokens, device pairing codes (023) or, for MCP, the 140 RFC 9728 flow. Scopes still decide which operations a token may call; access lists only narrow access to individual shareable objects.
 - **Data stays instance-wide; work products are shareable.** Records, findings, situations, forecasts and other analytic objects remain readable per scope (and `private` per 039). Access lists apply to work products: investigations, workspaces, chronicles (130), reports (131), saved searches, notes and attachments.
 - **TLP travels with the object** and bounds every share, export and exchange.
 - **Uploaded files are data, never code.** They are stored content-addressed, served as attachments with safe content types, and never executed or rendered as active content.
@@ -112,8 +112,8 @@ Make Foresignal work for several people, on one shared server or across separate
 
 ## Guardrails (mandatory)
 
-1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 139, 142, 143, 144).
-2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 144).
+1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 138, 141, 142, 143).
+2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 143).
 3. **Reuse policy.** Never copy code from ShadowBroker, Velocity or World Monitor (AGPL) or SatDump (GPL). They are reference material only. God's Eye View (MIT, `~/Documents/GitLab/gods-eye-view`) may be ported to Java if you add an origin header comment and an entry in `THIRD_PARTY_NOTICES.md`.
 4. **Stay in scope.** Implement what this prompt specifies, no more. If the docs conflict with reality (for example, a library API differs from what the docs assume), choose the approach most faithful to `docs/Architecture.md` and `docs/Intelligence-Design.md`, and record it under "Deviations" in the Completion Report.
 5. **Verify versions.** When adding a dependency, confirm the version exists on Maven Central and is compatible with Spring Boot 4.1 and Java 21.

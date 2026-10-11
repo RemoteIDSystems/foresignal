@@ -8,7 +8,7 @@
 - **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text. `docs/Invariants.md` lists the invariants each prompt must keep.
-- **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–139).
+- **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–138).
 - **Previous Completion Report:** read `completion-reports/019-CR-*.md` and follow its "Notes for the next prompt".
 
 ## Read first
@@ -47,7 +47,7 @@ Make the authored spec the served contract and add automated checks so the imple
 ### 4. Contract test (`OpenApiContractIT`)
 
 - Load `docs/OpenAPI.json` from the repo path and fetch `/v1/openapi-generated.json` from the running app (`@IntegrationTest`).
-- **Pending list:** `src/test/resources/openapi/pending-operations.txt` lists operationIds the spec already contains but that later prompts implement, one per line with the implementing prompt (`createStreamTicket 023`). Seed it from the spec itself: every operation whose `x-foresignal-status` is `planned` and whose `x-foresignal-prompt` is later than 020 (the complete target spec is authored up front; Conventions "API-first"), with that prompt number. Add `SpecAnnotationsTest`: every operation has `x-foresignal-scope`, `x-foresignal-prompt` and `x-foresignal-status`; `implemented` operations are not pending; `planned` operations owned by prompts ≤ the current one fail with "implement or re-assign". Each later prompt deletes its lines when it adds the endpoint; 142 requires the file to be empty.
+- **Pending list:** `src/test/resources/openapi/pending-operations.txt` lists operationIds the spec already contains but that later prompts implement, one per line with the implementing prompt (`createStreamTicket 023`). Seed it from the spec itself: every operation whose `x-foresignal-status` is `planned` and whose `x-foresignal-prompt` is later than 020 (the complete target spec is authored up front; Conventions "API-first"), with that prompt number. Add `SpecAnnotationsTest`: every operation has `x-foresignal-scope`, `x-foresignal-prompt` and `x-foresignal-status`; `implemented` operations are not pending; `planned` operations owned by prompts ≤ the current one fail with "implement or re-assign". Each later prompt deletes its lines when it adds the endpoint; 141 requires the file to be empty.
 - Assert:
   - `(path template, method)` pairs: authored minus pending == generated, both directions; normalise path variable names
   - a pending operation that **is** implemented fails the test ("remove it from pending-operations.txt")
@@ -71,16 +71,16 @@ Make the authored spec the served contract and add automated checks so the imple
 
 - `redocly.yaml` at the repo root: `recommended` ruleset plus `operation-operationId-unique`, `operation-4xx-response` (error), `no-unused-components` (warn), and a configurable assertion rule requiring `x-foresignal-scope` on every operation (enum `open|read|agent|admin`).
 - Gradle task `lintOpenApi`: `npx --yes @redocly/cli@2.41.1 lint docs/OpenAPI.json` (verify the latest 2.x on npm; Node ≥ 20.19 required). **Wire it into `check`** (not `compileJava` or `test`). When `npx` is missing it fails with an install hint unless `-PskipOpenApiLint=true` is passed. Fix every lint error in the spec now.
-- Optional `checkSdkGeneration` (not wired to anything): runs `@openapitools/openapi-generator-cli` (pinned) for `typescript-fetch` and `dart-dio` into `build/sdk-check` and fails on generator errors. Record known 3.1 nullable-union issues for dart-dio in the CR (prompt 141 owns the pre-processed spec).
+- Optional `checkSdkGeneration` (not wired to anything): runs `@openapitools/openapi-generator-cli` (pinned) for `typescript-fetch` and `dart-dio` into `build/sdk-check` and fails on generator errors. Record known 3.1 nullable-union issues for dart-dio in the CR (prompt 140 owns the pre-processed spec).
 
 ### 8. API-evolution convention
 
 Add `docs/Architecture.md` §10.1 "API evolution" (and link it from README "Development"):
 - `/v1` is additive only (NFR-10). Allowed: new operations, new optional request fields, new response fields, new enum values, new error codes, new SSE event types.
-- Clients must ignore unknown fields, unknown enum values and unknown SSE event names; the generated SDKs (141) must be configured accordingly.
+- Clients must ignore unknown fields, unknown enum values and unknown SSE event names; the generated SDKs (140) must be configured accordingly.
 - Never remove or rename fields, change types, tighten validation of existing fields, or add required request fields. Breaking changes go to `/v2`.
 - Deprecation: `deprecated: true` in the spec plus `Deprecation` (RFC 9745) and `Sunset` (RFC 8594) headers; at least one minor release before removal in `/v2`.
-- Every spec change regenerates Postman and passes `lintOpenApi`; `info.version` bumps minor on additions. After v1.0.0, 144 adds oasdiff breaking-change checks in CI.
+- Every spec change regenerates Postman and passes `lintOpenApi`; `info.version` bumps minor on additions. After v1.0.0, 143 adds oasdiff breaking-change checks in CI.
 - Every operation carries `x-foresignal-scope`; error codes are stable identifiers in `ErrorCodes`.
 
 ## Tests to write (do not run)
@@ -101,8 +101,8 @@ Add `docs/Architecture.md` §10.1 "API evolution" (and link it from README "Deve
 
 ## Guardrails (mandatory)
 
-1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 139, 142, 143, 144).
-2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 144).
+1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 138, 141, 142, 143).
+2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 143).
 3. **Reuse policy.** Never copy code from ShadowBroker, Velocity or World Monitor (AGPL) or SatDump (GPL). They are reference material only. God's Eye View (MIT, `~/Documents/GitLab/gods-eye-view`) may be ported to Java if you add an origin header comment and an entry in `THIRD_PARTY_NOTICES.md`.
 4. **Stay in scope.** Implement what this prompt specifies, no more. If the docs conflict with reality (for example, a library API differs from what the docs assume), choose the approach most faithful to `docs/Architecture.md` and record it under "Deviations" in the Completion Report.
 5. **Verify versions.** When adding a dependency, confirm the version exists on Maven Central and is compatible with Spring Boot 4.1 and Java 21.

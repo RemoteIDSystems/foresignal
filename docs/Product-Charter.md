@@ -62,7 +62,7 @@ Open-source situational-awareness projects (ShadowBroker, God's Eye View, Veloci
 - Sending email or chat messages other than notifications the operator configured.
 - Horizontal scale-out or clustering (single instance by design).
 - Hosting or proxying basemaps and imagery (Esri, GIBS, Google 3D Tiles, OSM tiles are fetched by clients directly).
-- Policing the operator's choice of sources. Sources with unofficial endpoints, scraping, headless browsers, paid access or restrictive terms are **opt-in adapters**, off by default, with their terms and fragility documented (134, 137–138); Foresignal is self-hosted software for its operator's own, non-commercial use.
+- Fringe and specialist source adapters in the core (web maps, scrapers, browser automation, prediction markets, niche feeds). They are separate projects that speak the [External Data Protocol](External-Data-Protocol.md); Foresignal accepts whatever the operator connects and does not police that choice.
 - Real-time sub-second latency guarantees.
 
 ## 6. Users and personas
@@ -230,11 +230,11 @@ Open-source situational-awareness projects (ShadowBroker, God's Eye View, Veloci
 - **FR-74** News articles (metadata only) are clustered into stories; outlets carry lean, factuality and ownership ratings from licensed providers; coverage balance, blindspots and divergence inform situations, hypotheses and assessments (132).
 - **FR-75** Chronicles discover related chronicles (other analysts' and other instances') from privacy-preserving fingerprints, disclosed only as discoverability and TLP allow; shared evidence counts once and circular reporting is detected (133).
 - **FR-76** Probabilities are stored as numbers and expressed with ICD 203 terms; likelihood and confidence are separate, and generated text is linted.
-- **FR-77** The operator can enable social platform adapters (Bluesky, Mastodon, Reddit, YouTube, X, Threads, Instagram hashtags, Telegram, and a custom `social-post` format) with their own credentials and spend caps; tracked topics, places and entities get hourly mention-volume series with coverage-aware baselines and velocity findings; retention and deletion sync are per-platform settings (134).
+- **FR-77** The operator can enable social platform adapters (Bluesky, Mastodon, Reddit, YouTube, X, Threads, Instagram hashtags, and any other platform through EDP providers) with their own credentials and spend caps; tracked topics, places and entities get hourly mention-volume series with coverage-aware baselines and velocity findings; retention and deletion sync are per-platform settings (134).
 - **FR-78** Social posts cluster into narratives counted by independent origin, with structured multilingual claims, image fingerprints and reuse findings, cross-platform propagation with earliest observed posts, and coordination indicators (135).
 - **FR-79** Social claims are compared with independent physical evidence (corroborated with lead times, unobserved despite adequate coverage, contradicted, insufficient coverage); attention gaps are reported where social coverage is adequate; physical findings cue budgeted social searches; the predictive value of social signals is measured out of sample (136).
-- **FR-80** Sources that need a headless browser, a proxy, an imported session or an unofficial endpoint are available as opt-in adapters (web maps for aircraft and vessels, conflict maps, sirens, maritime advisories, scanner listener counts, camera frames, article bodies, Facebook pages, TikTok), each showing its route, terms summary and fragility, and reporting blocked, changed or geo-restricted upstreams honestly (137).
-- **FR-81** Prediction markets, Metaculus and VIEWS can be linked to ledger questions as scored external forecasters; exchange and finance data, Google Trends, Electricity Maps, NewsGuard and Ad Fontes ratings, Shodan and Windy webcams are opt-in adapters (138).
+- **FR-80** Third parties can add data sources without changing Foresignal through the External Data Protocol: a provider registers a self-describing manifest (by the operator or with a one-time registration token), pushes or serves items (features, events, observations, documents, forecasts, deletes, status), and its layer streams appear as map layers while the operator approves the source (024).
+- **FR-81** The operator binds atomic EDP streams to series, canonical-event families, the social and news pipelines, hypothesis evidence and indicators, forecast questions (as scored external forecasters), places, situations and chronicles; provider libraries and a validator make writing providers easy (137, 140).
 
 ## 9. Non-functional requirements
 

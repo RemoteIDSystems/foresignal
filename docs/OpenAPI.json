@@ -16,7 +16,7 @@
       {
         "version": "1.3.0",
         "date": "2026-10-11",
-        "note": "Complete target API for prompts 006-144 authored up front (API-first), including social signals (134-136) and opt-in restricted sources (137-138)."
+        "note": "Complete target API for prompts 006-143 authored up front (API-first), including social signals (134-136) and the External Data Protocol (024, 137)."
       }
     ]
   },
@@ -124,8 +124,8 @@
       "description": "Async bulk exports, atSeq snapshots and PMTiles offline packs with licence sidecars and signed manifests"
     },
     {
-      "name": "Exposure",
-      "description": "Opt-in internet-exposure monitoring (Shodan saved queries, 138)"
+      "name": "External",
+      "description": "External Data Protocol: third-party providers, items, bindings (024, 137; docs/External-Data-Protocol.md)"
     },
     {
       "name": "Federation",
@@ -177,7 +177,7 @@
     },
     {
       "name": "MCP",
-      "description": "Remote MCP authorization: RFC 9728 protected resource metadata (141)"
+      "description": "Remote MCP authorization: RFC 9728 protected resource metadata (140)"
     },
     {
       "name": "Map Styles",
@@ -190,10 +190,6 @@
     {
       "name": "Maps",
       "description": "Server-rendered static map PNGs from Natural Earth and Foresignal's own frames."
-    },
-    {
-      "name": "Markets",
-      "description": "Prediction markets and forecast platforms as opt-in sources and external forecasters (138)"
     },
     {
       "name": "Media",
@@ -237,7 +233,7 @@
     },
     {
       "name": "Plugins",
-      "description": "Out-of-tree WASM parser plugins, disabled by default (141)"
+      "description": "Out-of-tree WASM parser plugins, disabled by default (140)"
     },
     {
       "name": "Products",
@@ -305,7 +301,7 @@
     },
     {
       "name": "Standards",
-      "description": "Standards outputs: FDSN event / QuakeML, STIX 2.1 and TAXII 2.1 (141)"
+      "description": "Standards outputs: FDSN event / QuakeML, STIX 2.1 and TAXII 2.1 (140)"
     },
     {
       "name": "Stats",
@@ -2825,7 +2821,7 @@
         "x-foresignal-extended-by": [
           "035, 036, 039, 038",
           "109",
-          "141"
+          "140"
         ],
         "x-foresignal-status": "planned"
       }
@@ -11216,6 +11212,22 @@
             "topic": "social",
             "prompt": "136"
           },
+          "external.source.state": {
+            "schema": {
+              "$ref": "#/components/schemas/ExternalSourceStateEvent"
+            },
+            "id": false,
+            "topic": "external",
+            "prompt": "024"
+          },
+          "external.binding.disabled": {
+            "schema": {
+              "$ref": "#/components/schemas/ExternalBindingEvent"
+            },
+            "id": false,
+            "topic": "external",
+            "prompt": "137"
+          },
           "alert.enriched": {
             "schema": {
               "$ref": "#/components/schemas/Alert"
@@ -11529,7 +11541,8 @@
           "situations": "118",
           "analytics": "119",
           "forecasts": "122",
-          "social": "134"
+          "social": "134",
+          "external": "024"
         }
       }
     },
@@ -13364,7 +13377,7 @@
         ],
         "operationId": "ingestRecordsFormat",
         "summary": "Push records in a named format",
-        "description": "Parses the body with the named `IngestFormat` and submits one batch to the single writer (same versioning, policies, live/touch semantics, change stream, triggers and retention as polled data). Credentials: `X-Foresignal-Ingest-Key`, `Authorization: Bearer eik_…`, Basic with the key as password, a device key (039, bound to one entity), or an `admin` token; a configured signature verifier must also pass unless `keyOptional`. 200 when the request is valid even with per-record rejections (MISSING_OBSERVED_AT, LOW_ACCURACY, …). OwnTracks, Overland, OsmAnd and GPSLogger get their native reply shapes. Format `social-post` (134) takes a JSON array of `SocialPostIngestItem` and stores `social-post` records with `collection = import`.\n\n**Scope:** ingest key (or an `admin` token).",
+        "description": "Parses the body with the named `IngestFormat` and submits one batch to the single writer (same versioning, policies, live/touch semantics, change stream, triggers and retention as polled data). Credentials: `X-Foresignal-Ingest-Key`, `Authorization: Bearer eik_…`, Basic with the key as password, a device key (039, bound to one entity), or an `admin` token; a configured signature verifier must also pass unless `keyOptional`. 200 when the request is valid even with per-record rejections (MISSING_OBSERVED_AT, LOW_ACCURACY, …). OwnTracks, Overland, OsmAnd and GPSLogger get their native reply shapes.\n\n**Scope:** ingest key (or an `admin` token).",
         "parameters": [
           {
             "name": "X-Signature-256",
@@ -13513,17 +13526,6 @@
                 "identity"
               ]
             }
-          },
-          {
-            "name": "format",
-            "in": "path",
-            "required": true,
-            "description": "Ingest format id: native, alertmanager, cloudevents, cap, mapping (024); owntracks, osmand, overland, gpslogger (039); social-post (134). `media`/`rasters` (054) and `mapping-preview` (059) are reserved and served by their own operations. Unknown → 404 FORMAT_UNKNOWN",
-            "schema": {
-              "type": "string",
-              "pattern": "^[a-z0-9-]+$",
-              "example": "social-post"
-            }
           }
         ],
         "requestBody": {
@@ -13555,13 +13557,6 @@
                   },
                   {
                     "$ref": "#/components/schemas/GpsLoggerFix"
-                  },
-                  {
-                    "type": "array",
-                    "items": {
-                      "$ref": "#/components/schemas/SocialPostIngestItem"
-                    },
-                    "description": "`social-post` format (134)"
                   }
                 ]
               }
@@ -13760,8 +13755,7 @@
           }
         ],
         "x-foresignal-extended-by": [
-          "059",
-          "134"
+          "059"
         ]
       },
       "get": {
@@ -21580,7 +21574,7 @@
           }
         ],
         "x-foresignal-extended-by": [
-          "141"
+          "140"
         ]
       }
     },
@@ -73853,7 +73847,7 @@
           }
         ],
         "x-foresignal-scope": "admin",
-        "x-foresignal-prompt": "140",
+        "x-foresignal-prompt": "139",
         "x-foresignal-status": "planned",
         "x-foresignal-always-authenticated": true
       }
@@ -73946,7 +73940,7 @@
           }
         ],
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "140",
+        "x-foresignal-prompt": "139",
         "x-foresignal-status": "planned"
       }
     },
@@ -74017,7 +74011,7 @@
           }
         ],
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "140",
+        "x-foresignal-prompt": "139",
         "x-foresignal-status": "planned"
       }
     },
@@ -74055,7 +74049,7 @@
           {}
         ],
         "x-foresignal-scope": "open",
-        "x-foresignal-prompt": "141",
+        "x-foresignal-prompt": "140",
         "x-foresignal-status": "planned"
       }
     },
@@ -74093,7 +74087,7 @@
           {}
         ],
         "x-foresignal-scope": "open",
-        "x-foresignal-prompt": "141",
+        "x-foresignal-prompt": "140",
         "x-foresignal-status": "planned"
       }
     },
@@ -74143,7 +74137,7 @@
           }
         ],
         "x-foresignal-scope": "admin",
-        "x-foresignal-prompt": "141",
+        "x-foresignal-prompt": "140",
         "x-foresignal-status": "planned"
       },
       "put": {
@@ -74211,7 +74205,7 @@
           }
         ],
         "x-foresignal-scope": "admin",
-        "x-foresignal-prompt": "141",
+        "x-foresignal-prompt": "140",
         "x-foresignal-status": "planned"
       }
     },
@@ -74261,7 +74255,7 @@
           }
         ],
         "x-foresignal-scope": "admin",
-        "x-foresignal-prompt": "141",
+        "x-foresignal-prompt": "140",
         "x-foresignal-status": "planned"
       },
       "put": {
@@ -74319,7 +74313,7 @@
           }
         ],
         "x-foresignal-scope": "admin",
-        "x-foresignal-prompt": "141",
+        "x-foresignal-prompt": "140",
         "x-foresignal-status": "planned"
       }
     },
@@ -74391,7 +74385,7 @@
           }
         ],
         "x-foresignal-scope": "admin",
-        "x-foresignal-prompt": "141",
+        "x-foresignal-prompt": "140",
         "x-foresignal-status": "planned"
       },
       "put": {
@@ -74491,7 +74485,7 @@
           }
         ],
         "x-foresignal-scope": "admin",
-        "x-foresignal-prompt": "141",
+        "x-foresignal-prompt": "140",
         "x-foresignal-status": "planned"
       }
     },
@@ -74719,7 +74713,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "141",
+        "x-foresignal-prompt": "140",
         "x-foresignal-status": "planned"
       }
     },
@@ -74761,7 +74755,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "141",
+        "x-foresignal-prompt": "140",
         "x-foresignal-status": "planned"
       }
     },
@@ -74802,7 +74796,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "141",
+        "x-foresignal-prompt": "140",
         "x-foresignal-status": "planned"
       }
     },
@@ -74891,7 +74885,7 @@
           }
         ],
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "141",
+        "x-foresignal-prompt": "140",
         "x-foresignal-status": "planned"
       }
     },
@@ -74941,7 +74935,7 @@
           }
         ],
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "141",
+        "x-foresignal-prompt": "140",
         "x-foresignal-status": "planned"
       }
     },
@@ -74991,7 +74985,7 @@
           }
         ],
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "141",
+        "x-foresignal-prompt": "140",
         "x-foresignal-status": "planned"
       }
     },
@@ -75041,7 +75035,7 @@
           }
         ],
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "141",
+        "x-foresignal-prompt": "140",
         "x-foresignal-status": "planned"
       }
     },
@@ -75112,7 +75106,7 @@
           }
         ],
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "141",
+        "x-foresignal-prompt": "140",
         "x-foresignal-status": "planned"
       }
     },
@@ -75227,7 +75221,7 @@
           }
         ],
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "141",
+        "x-foresignal-prompt": "140",
         "x-foresignal-status": "planned"
       }
     },
@@ -75293,7 +75287,7 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "141",
+        "x-foresignal-prompt": "140",
         "x-foresignal-status": "planned"
       }
     },
@@ -75348,7 +75342,7 @@
         ],
         "operationId": "getSocialPlatform",
         "summary": "Get a social platform adapter",
-        "description": "One adapter with health, quotas, spend and settings; Telegram includes its account session state.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "One adapter with health, quotas, spend and settings.\n\n**Scope:** `read` (open while `security.openReads` is on).",
         "parameters": [
           {
             "name": "platformId",
@@ -75509,7 +75503,7 @@
             "schema": {
               "type": "string",
               "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
-              "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, `telegram`, or the platform a 024 `social-post` custom source declares",
+              "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 137) declares",
               "example": "bluesky"
             }
           },
@@ -75664,7 +75658,7 @@
             "schema": {
               "type": "string",
               "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
-              "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, `telegram`, or the platform a 024 `social-post` custom source declares",
+              "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 137) declares",
               "example": "bluesky"
             }
           },
@@ -75808,7 +75802,7 @@
             "schema": {
               "type": "string",
               "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
-              "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, `telegram`, or the platform a 024 `social-post` custom source declares",
+              "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 137) declares",
               "example": "bluesky"
             }
           },
@@ -75943,7 +75937,7 @@
             "schema": {
               "type": "string",
               "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
-              "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, `telegram`, or the platform a 024 `social-post` custom source declares",
+              "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 137) declares",
               "example": "bluesky"
             }
           },
@@ -75997,229 +75991,6 @@
           }
         ],
         "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "134",
-        "x-foresignal-status": "planned"
-      }
-    },
-    "/v1/social/telegram/login": {
-      "post": {
-        "tags": [
-          "Social"
-        ],
-        "operationId": "startTelegramLogin",
-        "summary": "Start Telegram account login",
-        "description": "Starts a TDLib login for the operator's own Telegram account (`telegram` adapter in `account` mode); Telegram sends a code. Continue with `/v1/social/telegram/login/confirm`.\n\n**Scope:** `admin`.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TelegramLoginRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Code sent",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TelegramLoginState"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Login refused (TELEGRAM_LOGIN_FAILED, VALIDATION_FAILED)",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Missing or invalid token",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Token lacks the required scope",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Telegram adapter disabled or not in account mode (PLATFORM_DISABLED)",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "TDLib native library missing (TDLIB_UNAVAILABLE)",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearerToken": []
-          }
-        ],
-        "x-foresignal-scope": "admin",
-        "x-foresignal-prompt": "134",
-        "x-foresignal-status": "planned"
-      }
-    },
-    "/v1/social/telegram/login/confirm": {
-      "post": {
-        "tags": [
-          "Social"
-        ],
-        "operationId": "confirmTelegramLogin",
-        "summary": "Confirm Telegram account login",
-        "description": "Submits the code (and the two-step verification password when required). Returns `password-required` when Telegram asks for the password, `ready` when the session is established; the session database is encrypted with the 003 secret key.\n\n**Scope:** `admin`.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TelegramLoginConfirm"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Login state",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TelegramLoginState"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Wrong code or password, or no login in progress (TELEGRAM_LOGIN_FAILED)",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Missing or invalid token",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Token lacks the required scope",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "TDLib native library missing (TDLIB_UNAVAILABLE)",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearerToken": []
-          }
-        ],
-        "x-foresignal-scope": "admin",
-        "x-foresignal-prompt": "134",
-        "x-foresignal-status": "planned"
-      }
-    },
-    "/v1/social/telegram/session": {
-      "delete": {
-        "tags": [
-          "Social"
-        ],
-        "operationId": "deleteTelegramSession",
-        "summary": "Log out the Telegram session",
-        "description": "Logs the operator's Telegram account out and deletes the local TDLib database; idempotent. The adapter falls back to `credentials-required` in account mode.\n\n**Scope:** `admin`.",
-        "responses": {
-          "204": {
-            "description": "Logged out"
-          },
-          "401": {
-            "description": "Missing or invalid token",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Token lacks the required scope",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "TDLib native library missing (TDLIB_UNAVAILABLE)",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearerToken": []
-          }
-        ],
-        "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "134",
         "x-foresignal-status": "planned"
       }
@@ -76311,7 +76082,7 @@
             "schema": {
               "type": "string",
               "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
-              "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, `telegram`, or the platform a 024 `social-post` custom source declares",
+              "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 137) declares",
               "example": "bluesky"
             }
           },
@@ -76478,7 +76249,7 @@
             "schema": {
               "type": "string",
               "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
-              "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, `telegram`, or the platform a 024 `social-post` custom source declares",
+              "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 137) declares",
               "example": "bluesky"
             }
           },
@@ -77781,7 +77552,7 @@
             "schema": {
               "type": "string",
               "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
-              "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, `telegram`, or the platform a 024 `social-post` custom source declares",
+              "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 137) declares",
               "example": "bluesky"
             }
           },
@@ -77982,235 +77753,78 @@
         "x-foresignal-status": "planned"
       }
     },
-    "/v1/settings/browser": {
+    "/v1/external/protocol": {
       "get": {
         "tags": [
-          "Settings"
+          "External"
         ],
-        "operationId": "getBrowserSettings",
-        "summary": "Get headless-browser settings",
-        "description": "The optional headless-browser runtime used by sources in `browser` fetch mode: enabled flag, executable, installed version and limits.\n\n**Scope:** `admin`.",
+        "operationId": "getEdpProtocol",
+        "summary": "Get the EDP protocol description",
+        "description": "Protocol version, supported item types and stream modes, and the JSON Schema names served below (docs/External-Data-Protocol.md).\n\n**Scope:** `open` (no token).",
         "responses": {
           "200": {
             "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/BrowserSettings"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Missing or invalid token",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Token lacks the required scope",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
+                  "$ref": "#/components/schemas/EdpProtocolInfo"
                 }
               }
             }
           }
         },
-        "x-foresignal-scope": "admin",
-        "x-foresignal-prompt": "137",
+        "x-foresignal-scope": "open",
+        "x-foresignal-prompt": "024",
         "x-foresignal-status": "planned",
         "security": [
-          {
-            "bearerToken": []
-          }
-        ]
-      },
-      "put": {
-        "tags": [
-          "Settings"
-        ],
-        "operationId": "updateBrowserSettings",
-        "summary": "Set headless-browser settings",
-        "description": "Replaces the settings. Enabling without an installed or configured browser leaves browser-mode sources in `BROWSER_UNAVAILABLE` until one is installed.\n\n**Scope:** `admin`.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/BrowserSettings"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Updated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BrowserSettings"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Validation failed (VALIDATION_FAILED)",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Missing or invalid token",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Token lacks the required scope",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          }
-        },
-        "x-foresignal-scope": "admin",
-        "x-foresignal-prompt": "137",
-        "x-foresignal-status": "planned",
-        "security": [
-          {
-            "bearerToken": []
-          }
+          {}
         ]
       }
     },
-    "/v1/settings/browser/install": {
-      "post": {
-        "tags": [
-          "Settings"
-        ],
-        "operationId": "installBrowser",
-        "summary": "Install the headless browser",
-        "description": "Downloads the Playwright-managed Chromium once; poll `GET /v1/settings/browser` for progress.\n\n**Scope:** `admin`.",
-        "responses": {
-          "202": {
-            "description": "Install started",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BrowserSettings"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Install already running (INSTALL_RUNNING)",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Missing or invalid token",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Token lacks the required scope",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          }
-        },
-        "x-foresignal-scope": "admin",
-        "x-foresignal-prompt": "137",
-        "x-foresignal-status": "planned",
-        "security": [
-          {
-            "bearerToken": []
-          }
-        ]
-      }
-    },
-    "/v1/sources/{sourceId}/browser-session": {
+    "/v1/external/protocol/schemas/{name}": {
       "parameters": [
         {
-          "name": "sourceId",
+          "name": "name",
           "in": "path",
           "required": true,
           "schema": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "manifest",
+              "batch",
+              "item",
+              "feature",
+              "event",
+              "observation",
+              "document",
+              "forecast",
+              "delete",
+              "status"
+            ]
           }
         }
       ],
       "get": {
         "tags": [
-          "Sources"
+          "External"
         ],
-        "operationId": "getSourceBrowserSession",
-        "summary": "Get a source browser session",
-        "description": "Metadata of the imported browser session (domains, earliest cookie expiry, import time); never the cookies.\n\n**Scope:** `admin`.",
+        "operationId": "getEdpSchema",
+        "summary": "Get an EDP JSON Schema",
+        "description": "A JSON Schema 2020-12 document exported from this specification's `Edp*` components.\n\n**Scope:** `open` (no token).",
         "responses": {
           "200": {
-            "description": "OK",
+            "description": "JSON Schema",
             "content": {
-              "application/json": {
+              "application/schema+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/BrowserSessionInfo"
+                  "type": "object",
+                  "additionalProperties": true
                 }
               }
             }
           },
           "404": {
-            "description": "No session or unknown source (UNKNOWN_SOURCE)",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Missing or invalid token",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Token lacks the required scope",
+            "description": "Unknown schema",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -78220,188 +77834,34 @@
             }
           }
         },
-        "x-foresignal-scope": "admin",
-        "x-foresignal-prompt": "137",
+        "x-foresignal-scope": "open",
+        "x-foresignal-prompt": "024",
         "x-foresignal-status": "planned",
         "security": [
-          {
-            "bearerToken": []
-          }
-        ]
-      },
-      "put": {
-        "tags": [
-          "Sources"
-        ],
-        "operationId": "putSourceBrowserSession",
-        "summary": "Import a source browser session",
-        "description": "Stores a Playwright storage-state JSON exported by the operator after logging in themselves; encrypted at rest and used only by this source.\n\n**Scope:** `admin`.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/BrowserSessionInput"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Imported",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BrowserSessionInfo"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Not a valid storage state (SESSION_INVALID)",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Unknown source (UNKNOWN_SOURCE)",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Missing or invalid token",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Token lacks the required scope",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          }
-        },
-        "x-foresignal-scope": "admin",
-        "x-foresignal-prompt": "137",
-        "x-foresignal-status": "planned",
-        "security": [
-          {
-            "bearerToken": []
-          }
-        ]
-      },
-      "delete": {
-        "tags": [
-          "Sources"
-        ],
-        "operationId": "deleteSourceBrowserSession",
-        "summary": "Remove a source browser session",
-        "description": "Deletes the stored session.\n\n**Scope:** `admin`.",
-        "responses": {
-          "204": {
-            "description": "Removed"
-          },
-          "404": {
-            "description": "Unknown source (UNKNOWN_SOURCE)",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Missing or invalid token",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Token lacks the required scope",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          }
-        },
-        "x-foresignal-scope": "admin",
-        "x-foresignal-prompt": "137",
-        "x-foresignal-status": "planned",
-        "security": [
-          {
-            "bearerToken": []
-          }
+          {}
         ]
       }
     },
-    "/v1/markets": {
+    "/v1/external/sources": {
       "get": {
         "tags": [
-          "Markets"
+          "External"
         ],
-        "operationId": "listMarkets",
-        "summary": "List prediction markets",
-        "description": "Markets known to the enabled prediction-market adapters (138), for search and linking to ledger questions.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "operationId": "listExternalSources",
+        "summary": "List external sources",
+        "description": "EDP providers registered on this instance with state, streams and last activity.\n\n**Scope:** `admin`.",
         "parameters": [
           {
-            "name": "platform",
+            "name": "state",
             "in": "query",
             "required": false,
-            "description": "Platform",
+            "description": "Filter by state",
             "schema": {
               "type": "string",
               "enum": [
-                "kalshi",
-                "polymarket",
-                "metaculus"
-              ]
-            }
-          },
-          {
-            "name": "q",
-            "in": "query",
-            "required": false,
-            "description": "Text search in titles and rules",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "status",
-            "in": "query",
-            "required": false,
-            "description": "Status",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "open",
-                "closed",
-                "resolved"
+                "pending",
+                "active",
+                "suspended"
               ]
             }
           },
@@ -78433,13 +77893,23 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MarketPage"
+                  "$ref": "#/components/schemas/ExternalSourcePage"
                 }
               }
             }
           },
           "401": {
-            "description": "Missing or invalid token",
+            "description": "Missing or invalid credentials",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Token lacks the required scope",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -78449,149 +77919,10 @@
             }
           }
         },
-        "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "138",
+        "x-foresignal-scope": "admin",
+        "x-foresignal-prompt": "024",
         "x-foresignal-status": "planned",
         "security": [
-          {},
-          {
-            "bearerToken": []
-          }
-        ]
-      }
-    },
-    "/v1/markets/{platform}/{marketId}": {
-      "parameters": [
-        {
-          "name": "platform",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "type": "string",
-            "enum": [
-              "kalshi",
-              "polymarket",
-              "metaculus"
-            ]
-          }
-        },
-        {
-          "name": "marketId",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "type": "string"
-          }
-        }
-      ],
-      "get": {
-        "tags": [
-          "Markets"
-        ],
-        "operationId": "getMarket",
-        "summary": "Get a prediction market",
-        "description": "Latest prices or community prediction, status and the series refs of its history.\n\n**Scope:** `read` (open while `security.openReads` is on).",
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Market"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not found (UNKNOWN_MARKET)",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Missing or invalid token",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          }
-        },
-        "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "138",
-        "x-foresignal-status": "planned",
-        "security": [
-          {},
-          {
-            "bearerToken": []
-          }
-        ]
-      }
-    },
-    "/v1/forecasts/questions/{questionId}/market-links": {
-      "parameters": [
-        {
-          "name": "questionId",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "$ref": "#/components/schemas/Ulid"
-          }
-        }
-      ],
-      "get": {
-        "tags": [
-          "Forecasts"
-        ],
-        "operationId": "listQuestionMarketLinks",
-        "summary": "List market links of a question",
-        "description": "Markets and forecast platforms linked to this ledger question as external forecasters.\n\n**Scope:** `read` (open while `security.openReads` is on).",
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/MarketLink"
-                  }
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not found (UNKNOWN_QUESTION)",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Missing or invalid token",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          }
-        },
-        "x-foresignal-scope": "read",
-        "x-foresignal-prompt": "138",
-        "x-foresignal-status": "planned",
-        "security": [
-          {},
           {
             "bearerToken": []
           }
@@ -78599,34 +77930,34 @@
       },
       "post": {
         "tags": [
-          "Forecasts"
+          "External"
         ],
-        "operationId": "createQuestionMarketLink",
-        "summary": "Link a market to a question",
-        "description": "The linked market or platform question becomes an external forecaster for this question (submits on moves ≥ 0.02 and at least daily; joins the ensemble after 30 resolved links).\n\n**Scope:** `agent`.",
+        "operationId": "registerExternalSource",
+        "summary": "Register an external source",
+        "description": "Registers an EDP provider from a manifest or a manifest URL (fetched once, SSRF-guarded). The source is created `pending` unless `approve` is true. The ingest key is returned once.\n\n**Scope:** `admin`.",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/MarketLinkInput"
+                "$ref": "#/components/schemas/ExternalSourceRegistration"
               }
             }
           }
         },
         "responses": {
           "201": {
-            "description": "Linked",
+            "description": "Registered",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MarketLink"
+                  "$ref": "#/components/schemas/ExternalSourceCreated"
                 }
               }
             }
           },
-          "404": {
-            "description": "Not found (UNKNOWN_QUESTION, UNKNOWN_MARKET)",
+          "400": {
+            "description": "Manifest invalid (MANIFEST_INVALID, with errors)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -78636,7 +77967,7 @@
             }
           },
           "409": {
-            "description": "Already linked (MARKET_ALREADY_LINKED)",
+            "description": "Source id exists (SOURCE_EXISTS)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -78646,7 +77977,793 @@
             }
           },
           "401": {
-            "description": "Missing or invalid token",
+            "description": "Missing or invalid credentials",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Token lacks the required scope",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-foresignal-scope": "admin",
+        "x-foresignal-prompt": "024",
+        "x-foresignal-status": "planned",
+        "security": [
+          {
+            "bearerToken": []
+          }
+        ]
+      }
+    },
+    "/v1/external/sources/{sourceId}": {
+      "parameters": [
+        {
+          "name": "sourceId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "pattern": "^ext-[a-z0-9]+(-[a-z0-9]+)*$"
+          }
+        }
+      ],
+      "get": {
+        "tags": [
+          "External"
+        ],
+        "operationId": "getExternalSource",
+        "summary": "Get an external source",
+        "description": "Manifest, state, access block, per-stream statistics, last validation errors, pull status and layer presentation hints.\n\n**Scope:** `admin`.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExternalSource"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (UNKNOWN_EXTERNAL_SOURCE)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Token lacks the required scope",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-foresignal-scope": "admin",
+        "x-foresignal-prompt": "024",
+        "x-foresignal-status": "planned",
+        "security": [
+          {
+            "bearerToken": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "External"
+        ],
+        "operationId": "deleteExternalSource",
+        "summary": "Delete an external source",
+        "description": "Deletes the custom source and its bindings; records age out through retention.\n\n**Scope:** `admin`.",
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "404": {
+            "description": "Not found (UNKNOWN_EXTERNAL_SOURCE)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Token lacks the required scope",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-foresignal-scope": "admin",
+        "x-foresignal-prompt": "024",
+        "x-foresignal-status": "planned",
+        "security": [
+          {
+            "bearerToken": []
+          }
+        ]
+      }
+    },
+    "/v1/external/sources/{sourceId}/manifest": {
+      "parameters": [
+        {
+          "name": "sourceId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "pattern": "^ext-[a-z0-9]+(-[a-z0-9]+)*$"
+          }
+        }
+      ],
+      "put": {
+        "tags": [
+          "External"
+        ],
+        "operationId": "updateExternalSourceManifest",
+        "summary": "Update a source manifest",
+        "description": "Additive changes apply at once; changes to streams, kinds, item types, modes or payload schemas return the source to `pending`. Accepted from an admin token or the source's own ingest key.\n\n**Scope:** ingest key of the source (or `admin`).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EdpManifest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExternalSource"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Manifest invalid (MANIFEST_INVALID)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (UNKNOWN_EXTERNAL_SOURCE)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-foresignal-scope": "agent",
+        "x-foresignal-prompt": "024",
+        "x-foresignal-status": "planned",
+        "security": [
+          {
+            "ingestKey": []
+          },
+          {
+            "ingestKeyBearer": []
+          },
+          {
+            "ingestKeyBasic": []
+          },
+          {
+            "bearerToken": []
+          }
+        ],
+        "x-foresignal-auth": "ingest-key"
+      }
+    },
+    "/v1/external/sources/{sourceId}/approve": {
+      "parameters": [
+        {
+          "name": "sourceId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "pattern": "^ext-[a-z0-9]+(-[a-z0-9]+)*$"
+          }
+        }
+      ],
+      "post": {
+        "tags": [
+          "External"
+        ],
+        "operationId": "approveExternalSource",
+        "summary": "Approve an external source",
+        "description": "Activates a pending source after review of its access block, licence and streams.\n\n**Scope:** `admin`.",
+        "responses": {
+          "200": {
+            "description": "Approved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExternalSource"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (UNKNOWN_EXTERNAL_SOURCE)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Token lacks the required scope",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-foresignal-scope": "admin",
+        "x-foresignal-prompt": "024",
+        "x-foresignal-status": "planned",
+        "security": [
+          {
+            "bearerToken": []
+          }
+        ]
+      }
+    },
+    "/v1/external/sources/{sourceId}/suspend": {
+      "parameters": [
+        {
+          "name": "sourceId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "pattern": "^ext-[a-z0-9]+(-[a-z0-9]+)*$"
+          }
+        }
+      ],
+      "post": {
+        "tags": [
+          "External"
+        ],
+        "operationId": "suspendExternalSource",
+        "summary": "Suspend an external source",
+        "description": "Stops accepting pushes and pulling; records stay.\n\n**Scope:** `admin`.",
+        "responses": {
+          "200": {
+            "description": "Suspended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExternalSource"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (UNKNOWN_EXTERNAL_SOURCE)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Token lacks the required scope",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-foresignal-scope": "admin",
+        "x-foresignal-prompt": "024",
+        "x-foresignal-status": "planned",
+        "security": [
+          {
+            "bearerToken": []
+          }
+        ]
+      }
+    },
+    "/v1/external/sources/{sourceId}/items": {
+      "parameters": [
+        {
+          "name": "sourceId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "pattern": "^ext-[a-z0-9]+(-[a-z0-9]+)*$"
+          }
+        }
+      ],
+      "post": {
+        "tags": [
+          "External"
+        ],
+        "operationId": "pushExternalItems",
+        "summary": "Push EDP items",
+        "description": "Accepts a batch (JSON) or NDJSON items; validates each item against its stream and returns per-item rejections. Pending or suspended sources answer 409.\n\n**Scope:** ingest key of the source (or `admin`).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EdpBatch"
+              }
+            },
+            "application/x-ndjson": {
+              "schema": {
+                "type": "string",
+                "description": "One EdpItem per line; the first line may be a batch header without items"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Processed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EdpIngestResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Batch invalid",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "SOURCE_PENDING_APPROVAL or SOURCE_SUSPENDED",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Batch over 5 MB",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate or items-per-minute cap (INGEST_RECORD_RATE)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-foresignal-scope": "agent",
+        "x-foresignal-prompt": "024",
+        "x-foresignal-status": "planned",
+        "security": [
+          {
+            "ingestKey": []
+          },
+          {
+            "ingestKeyBearer": []
+          },
+          {
+            "ingestKeyBasic": []
+          },
+          {
+            "bearerToken": []
+          }
+        ],
+        "x-foresignal-auth": "ingest-key"
+      }
+    },
+    "/v1/external/registration-tokens": {
+      "get": {
+        "tags": [
+          "External"
+        ],
+        "operationId": "listRegistrationTokens",
+        "summary": "List registration tokens",
+        "description": "Unexpired registration tokens (prefix, uses, expiry); never the token.\n\n**Scope:** `admin`.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RegistrationToken"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Token lacks the required scope",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-foresignal-scope": "admin",
+        "x-foresignal-prompt": "024",
+        "x-foresignal-status": "planned",
+        "security": [
+          {
+            "bearerToken": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "External"
+        ],
+        "operationId": "createRegistrationToken",
+        "summary": "Create a registration token",
+        "description": "A one-time (by default) `fsx_` token a third-party provider uses to self-register with `POST /v1/external/register`. Returned once.\n\n**Scope:** `admin`.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistrationTokenInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegistrationTokenCreated"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed (VALIDATION_FAILED)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Token lacks the required scope",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-foresignal-scope": "admin",
+        "x-foresignal-prompt": "024",
+        "x-foresignal-status": "planned",
+        "security": [
+          {
+            "bearerToken": []
+          }
+        ]
+      }
+    },
+    "/v1/external/registration-tokens/{tokenId}": {
+      "parameters": [
+        {
+          "name": "tokenId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/Ulid"
+          }
+        }
+      ],
+      "delete": {
+        "tags": [
+          "External"
+        ],
+        "operationId": "deleteRegistrationToken",
+        "summary": "Revoke a registration token",
+        "description": "Revokes an unused token.\n\n**Scope:** `admin`.",
+        "responses": {
+          "204": {
+            "description": "Revoked"
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Token lacks the required scope",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-foresignal-scope": "admin",
+        "x-foresignal-prompt": "024",
+        "x-foresignal-status": "planned",
+        "security": [
+          {
+            "bearerToken": []
+          }
+        ]
+      }
+    },
+    "/v1/external/register": {
+      "post": {
+        "tags": [
+          "External"
+        ],
+        "operationId": "selfRegisterExternalSource",
+        "summary": "Self-register an external source",
+        "description": "A provider registers itself with a registration token; the source is created `pending` for the operator to approve. The ingest key is returned once.\n\n**Scope:** registration token.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EdpManifest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Registered",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExternalSourceCreated"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Manifest invalid (MANIFEST_INVALID)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "REGISTRATION_TOKEN_INVALID",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Source id exists or outside the token's prefix",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-foresignal-scope": "open",
+        "x-foresignal-prompt": "024",
+        "x-foresignal-status": "planned",
+        "security": [
+          {
+            "registrationToken": []
+          }
+        ]
+      }
+    },
+    "/v1/external/validate": {
+      "post": {
+        "tags": [
+          "External"
+        ],
+        "operationId": "validateEdp",
+        "summary": "Validate a manifest or items",
+        "description": "Checks a manifest, items for an existing source, or both, without storing anything. For provider developers and CI.\n\n**Scope:** `agent`.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EdpValidationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EdpValidationReport"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -78667,7 +78784,7 @@
           }
         },
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "138",
+        "x-foresignal-prompt": "024",
         "x-foresignal-status": "planned",
         "security": [
           {
@@ -78676,16 +78793,646 @@
         ]
       }
     },
-    "/v1/forecasts/questions/{questionId}/market-links/{linkId}": {
+    "/v1/external/sources/{sourceId}/bindings": {
       "parameters": [
         {
-          "name": "questionId",
+          "name": "sourceId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "pattern": "^ext-[a-z0-9]+(-[a-z0-9]+)*$"
+          }
+        }
+      ],
+      "get": {
+        "tags": [
+          "External"
+        ],
+        "operationId": "listExternalBindings",
+        "summary": "List bindings of a source",
+        "description": "Bindings of the source's atomic streams with state and counts.\n\n**Scope:** `admin`.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ExternalBinding"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (UNKNOWN_EXTERNAL_SOURCE)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Token lacks the required scope",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-foresignal-scope": "admin",
+        "x-foresignal-prompt": "137",
+        "x-foresignal-status": "planned",
+        "security": [
+          {
+            "bearerToken": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "External"
+        ],
+        "operationId": "createExternalBinding",
+        "summary": "Create a binding",
+        "description": "Binds a stream to a target (series, canonical family, social, news, evidence, indicator, forecast, place, situation, chronicle). Backfills from stored records unless `backfill` is false.\n\n**Scope:** `admin`.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExternalBindingInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExternalBinding"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "BINDING_TARGET_INVALID",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (UNKNOWN_EXTERNAL_SOURCE)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Token lacks the required scope",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-foresignal-scope": "admin",
+        "x-foresignal-prompt": "137",
+        "x-foresignal-status": "planned",
+        "security": [
+          {
+            "bearerToken": []
+          }
+        ]
+      }
+    },
+    "/v1/external/sources/{sourceId}/bindings/accept-suggested": {
+      "parameters": [
+        {
+          "name": "sourceId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "pattern": "^ext-[a-z0-9]+(-[a-z0-9]+)*$"
+          }
+        }
+      ],
+      "post": {
+        "tags": [
+          "External"
+        ],
+        "operationId": "acceptSuggestedBindings",
+        "summary": "Accept suggested bindings",
+        "description": "Creates the bindings the manifest suggests (each remains editable).\n\n**Scope:** `admin`.",
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ExternalBinding"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (UNKNOWN_EXTERNAL_SOURCE)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Token lacks the required scope",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-foresignal-scope": "admin",
+        "x-foresignal-prompt": "137",
+        "x-foresignal-status": "planned",
+        "security": [
+          {
+            "bearerToken": []
+          }
+        ]
+      }
+    },
+    "/v1/external/bindings/{bindingId}": {
+      "parameters": [
+        {
+          "name": "bindingId",
           "in": "path",
           "required": true,
           "schema": {
             "$ref": "#/components/schemas/Ulid"
           }
+        }
+      ],
+      "get": {
+        "tags": [
+          "External"
+        ],
+        "operationId": "getExternalBinding",
+        "summary": "Get a binding",
+        "description": "Binding with counts and last error.\n\n**Scope:** `admin`.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExternalBinding"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (UNKNOWN_BINDING)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Token lacks the required scope",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
         },
+        "x-foresignal-scope": "admin",
+        "x-foresignal-prompt": "137",
+        "x-foresignal-status": "planned",
+        "security": [
+          {
+            "bearerToken": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "External"
+        ],
+        "operationId": "updateExternalBinding",
+        "summary": "Replace a binding",
+        "description": "Replaces target config, filter or enabled state.\n\n**Scope:** `admin`.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExternalBindingInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExternalBinding"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "BINDING_TARGET_INVALID",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (UNKNOWN_BINDING)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Token lacks the required scope",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-foresignal-scope": "admin",
+        "x-foresignal-prompt": "137",
+        "x-foresignal-status": "planned",
+        "security": [
+          {
+            "bearerToken": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "External"
+        ],
+        "operationId": "deleteExternalBinding",
+        "summary": "Delete a binding",
+        "description": "Stops the binding; what it created stays.\n\n**Scope:** `admin`.",
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "404": {
+            "description": "Not found (UNKNOWN_BINDING)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Token lacks the required scope",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-foresignal-scope": "admin",
+        "x-foresignal-prompt": "137",
+        "x-foresignal-status": "planned",
+        "security": [
+          {
+            "bearerToken": []
+          }
+        ]
+      }
+    },
+    "/v1/external/bindings/{bindingId}/preview": {
+      "parameters": [
+        {
+          "name": "bindingId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/Ulid"
+          }
+        }
+      ],
+      "post": {
+        "tags": [
+          "External"
+        ],
+        "operationId": "previewExternalBinding",
+        "summary": "Preview a binding",
+        "description": "Evaluates the binding over the last 100 items without side effects.\n\n**Scope:** `admin`.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExternalBindingPreview"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (UNKNOWN_BINDING)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Token lacks the required scope",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-foresignal-scope": "admin",
+        "x-foresignal-prompt": "137",
+        "x-foresignal-status": "planned",
+        "security": [
+          {
+            "bearerToken": []
+          }
+        ]
+      }
+    },
+    "/v1/external/sources/{sourceId}/question-links": {
+      "parameters": [
+        {
+          "name": "sourceId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "pattern": "^ext-[a-z0-9]+(-[a-z0-9]+)*$"
+          }
+        }
+      ],
+      "get": {
+        "tags": [
+          "External"
+        ],
+        "operationId": "listExternalQuestionLinks",
+        "summary": "List question links",
+        "description": "Maps of the provider's question ids to ledger questions for forecast streams.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ExternalQuestionLink"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (UNKNOWN_EXTERNAL_SOURCE)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-foresignal-scope": "read",
+        "x-foresignal-prompt": "137",
+        "x-foresignal-status": "planned",
+        "security": [
+          {},
+          {
+            "bearerToken": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "External"
+        ],
+        "operationId": "createExternalQuestionLink",
+        "summary": "Link a provider question",
+        "description": "Links a provider question id to a ledger question so its forecast items become external forecasts there.\n\n**Scope:** `agent`.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExternalQuestionLinkInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Linked",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExternalQuestionLink"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (UNKNOWN_EXTERNAL_SOURCE, UNKNOWN_QUESTION)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "QUESTION_ALREADY_LINKED",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Token lacks the required scope",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-foresignal-scope": "agent",
+        "x-foresignal-prompt": "137",
+        "x-foresignal-status": "planned",
+        "security": [
+          {
+            "bearerToken": []
+          }
+        ]
+      }
+    },
+    "/v1/external/question-links/{linkId}": {
+      "parameters": [
         {
           "name": "linkId",
           "in": "path",
@@ -78697,17 +79444,17 @@
       ],
       "delete": {
         "tags": [
-          "Forecasts"
+          "External"
         ],
-        "operationId": "deleteQuestionMarketLink",
-        "summary": "Unlink a market from a question",
-        "description": "Stops further external forecasts from this link; past forecasts stay in the ledger.\n\n**Scope:** `agent`.",
+        "operationId": "deleteExternalQuestionLink",
+        "summary": "Remove a question link",
+        "description": "Stops further forecasts through this link; recorded forecasts stay.\n\n**Scope:** `agent`.",
         "responses": {
           "204": {
-            "description": "Unlinked"
+            "description": "Removed"
           },
           "404": {
-            "description": "Not found (UNKNOWN_QUESTION)",
+            "description": "Not found (UNKNOWN_QUESTION_LINK)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -78717,7 +79464,7 @@
             }
           },
           "401": {
-            "description": "Missing or invalid token",
+            "description": "Missing or invalid credentials",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -78738,347 +79485,7 @@
           }
         },
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "138",
-        "x-foresignal-status": "planned",
-        "security": [
-          {
-            "bearerToken": []
-          }
-        ]
-      }
-    },
-    "/v1/shodan/queries": {
-      "get": {
-        "tags": [
-          "Exposure"
-        ],
-        "operationId": "listShodanQueries",
-        "summary": "List Shodan saved queries",
-        "description": "Saved queries of the opt-in `shodan` adapter with their latest counts.\n\n**Scope:** `admin`.",
-        "parameters": [
-          {
-            "name": "cursor",
-            "in": "query",
-            "required": false,
-            "description": "Opaque page cursor",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "required": false,
-            "description": "Page size",
-            "schema": {
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 500,
-              "default": 100
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ShodanQueryPage"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Missing or invalid token",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Token lacks the required scope",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          }
-        },
-        "x-foresignal-scope": "admin",
-        "x-foresignal-prompt": "138",
-        "x-foresignal-status": "planned",
-        "security": [
-          {
-            "bearerToken": []
-          }
-        ]
-      },
-      "post": {
-        "tags": [
-          "Exposure"
-        ],
-        "operationId": "createShodanQuery",
-        "summary": "Create a Shodan saved query",
-        "description": "Daily count series and, for monitored networks, `exposed-service` records.\n\n**Scope:** `admin`.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ShodanQueryInput"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Created",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ShodanQuery"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Validation failed (VALIDATION_FAILED)",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Missing or invalid token",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Token lacks the required scope",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          }
-        },
-        "x-foresignal-scope": "admin",
-        "x-foresignal-prompt": "138",
-        "x-foresignal-status": "planned",
-        "security": [
-          {
-            "bearerToken": []
-          }
-        ]
-      }
-    },
-    "/v1/shodan/queries/{queryId}": {
-      "parameters": [
-        {
-          "name": "queryId",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "$ref": "#/components/schemas/Ulid"
-          }
-        }
-      ],
-      "get": {
-        "tags": [
-          "Exposure"
-        ],
-        "operationId": "getShodanQuery",
-        "summary": "Get a Shodan saved query",
-        "description": "Query, cadence, latest count and series ref.\n\n**Scope:** `admin`.",
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ShodanQuery"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not found (UNKNOWN_SHODAN_QUERY)",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Missing or invalid token",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Token lacks the required scope",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          }
-        },
-        "x-foresignal-scope": "admin",
-        "x-foresignal-prompt": "138",
-        "x-foresignal-status": "planned",
-        "security": [
-          {
-            "bearerToken": []
-          }
-        ]
-      },
-      "put": {
-        "tags": [
-          "Exposure"
-        ],
-        "operationId": "updateShodanQuery",
-        "summary": "Replace a Shodan saved query",
-        "description": "Replaces the query definition.\n\n**Scope:** `admin`.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ShodanQueryInput"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Updated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ShodanQuery"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Validation failed (VALIDATION_FAILED)",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not found (UNKNOWN_SHODAN_QUERY)",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Missing or invalid token",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Token lacks the required scope",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          }
-        },
-        "x-foresignal-scope": "admin",
-        "x-foresignal-prompt": "138",
-        "x-foresignal-status": "planned",
-        "security": [
-          {
-            "bearerToken": []
-          }
-        ]
-      },
-      "delete": {
-        "tags": [
-          "Exposure"
-        ],
-        "operationId": "deleteShodanQuery",
-        "summary": "Delete a Shodan saved query",
-        "description": "Stops the query; its series is kept.\n\n**Scope:** `admin`.",
-        "responses": {
-          "204": {
-            "description": "Deleted"
-          },
-          "404": {
-            "description": "Not found (UNKNOWN_SHODAN_QUERY)",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Missing or invalid token",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Token lacks the required scope",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          }
-        },
-        "x-foresignal-scope": "admin",
-        "x-foresignal-prompt": "138",
+        "x-foresignal-prompt": "137",
         "x-foresignal-status": "planned",
         "security": [
           {
@@ -80154,7 +80561,7 @@
           "054",
           "062",
           "109",
-          "137"
+          "024"
         ]
       },
       "SourceSettings": {
@@ -80527,7 +80934,7 @@
         ],
         "x-foresignal-extended-by": [
           "013",
-          "137"
+          "024"
         ]
       },
       "SourceDetail": {
@@ -80721,7 +81128,7 @@
         "x-foresignal-extended-by": [
           "013",
           "063",
-          "140",
+          "139",
           "134"
         ]
       },
@@ -85454,7 +85861,7 @@
                 "description": "Network → post retention",
                 "example": {
                   "x": "30d",
-                  "telegram": "90d"
+                  "bluesky": "90d"
                 }
               }
             }
@@ -87422,7 +87829,7 @@
           "055",
           "060",
           "115",
-          "141",
+          "140",
           "136"
         ],
         "x-foresignal-property-prompts": {
@@ -87717,7 +88124,7 @@
           "055",
           "060",
           "115",
-          "141",
+          "140",
           "136"
         ]
       },
@@ -88189,7 +88596,7 @@
         "x-foresignal-extended-by": [
           "026",
           "122",
-          "141"
+          "140"
         ]
       },
       "LlmSettings": {
@@ -89222,7 +89629,7 @@
           "schedule"
         ],
         "x-foresignal-extended-by": [
-          "141"
+          "140"
         ]
       },
       "Briefing": {
@@ -89453,7 +89860,7 @@
         "x-foresignal-extended-by": [
           "029",
           "109",
-          "141"
+          "140"
         ]
       },
       "BriefingRunPage": {
@@ -92942,24 +93349,6 @@
             "type": "object",
             "description": "GPSLogger options (039)",
             "properties": {}
-          },
-          "social-post": {
-            "type": "object",
-            "description": "`social-post` options (134): JSON array of SocialPostIngestItem; posts carry `collection = import` and the custom source's originator class",
-            "properties": {
-              "platform": {
-                "type": [
-                  "string",
-                  "null"
-                ],
-                "description": "Platform applied to items that omit it"
-              },
-              "topicMatching": {
-                "type": "boolean",
-                "default": true,
-                "description": "Run the 117 term index; when false every item is stored"
-              }
-            }
           }
         },
         "additionalProperties": {
@@ -96106,6 +96495,14 @@
               "updatedAt": {
                 "type": "string",
                 "format": "date-time"
+              },
+              "external": {
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "description": "Latest values or documents of external streams bound to this place (137)",
+                "additionalProperties": true
               }
             },
             "required": [
@@ -121661,35 +122058,6 @@
               }
             ],
             "description": "Social tracking block (134): terms, hashtags, accounts, channels, excludes, platforms, places, regions, entities, mode"
-          },
-          "google": {
-            "type": [
-              "object",
-              "null"
-            ],
-            "description": "Google Trends block for the opt-in `google-trends` adapter (138)",
-            "properties": {
-              "terms": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                },
-                "maxItems": 5
-              },
-              "geo": {
-                "type": [
-                  "string",
-                  "null"
-                ],
-                "description": "ISO country or subdivision code; empty = worldwide"
-              },
-              "category": {
-                "type": [
-                  "integer",
-                  "null"
-                ]
-              }
-            }
           }
         },
         "required": [
@@ -140143,7 +140511,7 @@
                   "string",
                   "null"
                 ],
-                "description": "BCP 47 language for translated notifications (141)"
+                "description": "BCP 47 language for translated notifications (140)"
               }
             },
             "required": [
@@ -140247,7 +140615,7 @@
                   "string",
                   "null"
                 ],
-                "description": "BCP 47 (141)"
+                "description": "BCP 47 (140)"
               }
             },
             "required": [
@@ -142332,6 +142700,9 @@
           },
           {
             "$ref": "#/components/schemas/ChronicleSocialVolumeSelector"
+          },
+          {
+            "$ref": "#/components/schemas/ChronicleExternalStreamSelector"
           }
         ]
       },
@@ -149143,8 +149514,7 @@
           "youtube",
           "x",
           "threads",
-          "instagram-hashtags",
-          "telegram"
+          "instagram-hashtags"
         ],
         "description": "Social platform adapter (a 004 source with descriptor, budget, health and credentials). Only `bluesky-jetstream` is on by default (134)"
       },
@@ -149327,7 +149697,7 @@
           "platform": {
             "type": "string",
             "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
-            "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, `telegram`, or the platform a 024 `social-post` custom source declares",
+            "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 137) declares",
             "example": "bluesky"
           },
           "postId": {
@@ -149364,7 +149734,7 @@
           "platform": {
             "type": "string",
             "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
-            "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, `telegram`, or the platform a 024 `social-post` custom source declares",
+            "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 137) declares",
             "example": "bluesky"
           },
           "postId": {
@@ -149494,7 +149864,7 @@
               "string",
               "null"
             ],
-            "description": "Telegram channel, subreddit, Mastodon instance or YouTube channel"
+            "description": "Subreddit, Mastodon instance or YouTube channel"
           },
           "collection": {
             "type": "string",
@@ -149619,151 +149989,6 @@
           "nextCursor"
         ]
       },
-      "SocialPostIngestItem": {
-        "type": "object",
-        "description": "One item of the 024 ingest format `social-post` (JSON array body). The server computes `authorKey` and sets `collection = import`; the custom source's originator class applies (134)",
-        "properties": {
-          "platform": {
-            "type": "string",
-            "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
-            "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, `telegram`, or the platform a 024 `social-post` custom source declares",
-            "example": "bluesky"
-          },
-          "postId": {
-            "type": "string",
-            "description": "Platform post id (Bluesky AT-URI rkey path, Mastodon `{instance}/{id}`, …)"
-          },
-          "url": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "uri"
-          },
-          "author": {
-            "$ref": "#/components/schemas/SocialAuthor"
-          },
-          "text": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "maxLength": 5000,
-            "description": "Null once deleted (tombstoned)"
-          },
-          "language": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "description": "BCP 47; platform-supplied, else detected (Lingua, restricted to `social.languages`)",
-            "example": "en"
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time",
-            "description": "Platform creation time"
-          },
-          "replyTo": {
-            "oneOf": [
-              {
-                "$ref": "#/components/schemas/SocialPostLink"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "quoteOf": {
-            "oneOf": [
-              {
-                "$ref": "#/components/schemas/SocialPostLink"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "repostOf": {
-            "oneOf": [
-              {
-                "$ref": "#/components/schemas/SocialPostLink"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "links": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "format": "uri"
-            },
-            "description": "Expanded URLs"
-          },
-          "hashtags": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "mentions": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "Mentioned handles"
-          },
-          "media": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/SocialPostMedia"
-            }
-          },
-          "engagement": {
-            "oneOf": [
-              {
-                "$ref": "#/components/schemas/SocialEngagement"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "geo": {
-            "oneOf": [
-              {
-                "$ref": "#/components/schemas/SocialPostGeo"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "channel": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "description": "Telegram channel, subreddit, Mastodon instance or YouTube channel"
-          },
-          "observedAt": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "date-time",
-            "description": "Default: ingest time"
-          }
-        },
-        "required": [
-          "platform",
-          "postId",
-          "author",
-          "createdAt"
-        ]
-      },
       "AttentionTopicSocialChannel": {
         "type": "object",
         "description": "A channel followed for a topic",
@@ -149771,14 +149996,13 @@
           "platform": {
             "type": "string",
             "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
-            "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, `telegram`, or the platform a 024 `social-post` custom source declares",
+            "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 137) declares",
             "example": "bluesky"
           },
           "type": {
             "type": "string",
             "enum": [
               "subreddit",
-              "telegram-channel",
               "mastodon-instance",
               "mastodon-hashtag",
               "youtube-channel"
@@ -149834,7 +150058,7 @@
                 "platform": {
                   "type": "string",
                   "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
-                  "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, `telegram`, or the platform a 024 `social-post` custom source declares",
+                  "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 137) declares",
                   "example": "bluesky"
                 },
                 "handle": {
@@ -149867,7 +150091,7 @@
             "items": {
               "type": "string",
               "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
-              "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, `telegram`, or the platform a 024 `social-post` custom source declares",
+              "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 137) declares",
               "example": "bluesky"
             },
             "description": "Subset of networks; empty = all enabled"
@@ -150037,8 +150261,6 @@
               "channel-poll",
               "account-poll",
               "hashtag-search",
-              "web-preview",
-              "tdlib",
               "cue"
             ]
           },
@@ -150058,47 +150280,6 @@
           "collectionType",
           "enabled",
           "feedsBaselines"
-        ]
-      },
-      "TelegramSession": {
-        "type": "object",
-        "description": "State of the operator's Telegram account session (TDLib, `account` mode)",
-        "properties": {
-          "state": {
-            "type": "string",
-            "enum": [
-              "none",
-              "code-sent",
-              "password-required",
-              "ready",
-              "logged-out",
-              "unavailable"
-            ],
-            "description": "`unavailable` when the TDLib native library (`social.telegram.tdlibPath`) is missing"
-          },
-          "phoneMasked": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "example": "+44 •••• ••• 123"
-          },
-          "accountName": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "since": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "date-time"
-          }
-        },
-        "required": [
-          "state"
         ]
       },
       "SocialPlatformPrice": {
@@ -150139,7 +150320,7 @@
               "string",
               "null"
             ],
-            "description": "Adapter mode: telegram `web-preview` | `account`; x `counts` | `search` | `counts+search`; others null",
+            "description": "Adapter mode: x `counts` | `search` | `counts+search`; others null",
             "example": "web-preview"
           },
           "channels": {
@@ -150147,7 +150328,7 @@
             "items": {
               "type": "string"
             },
-            "description": "Channels polled regardless of topics: subreddits, Telegram channels, Mastodon instances or hashtags, YouTube channels"
+            "description": "Channels polled regardless of topics: subreddits, Mastodon instances or hashtags, YouTube channels"
           },
           "deletionSync": {
             "type": "boolean",
@@ -150222,21 +150403,6 @@
               "comments": {
                 "type": "boolean",
                 "description": "YouTube comment threads"
-              },
-              "tdlibPath": {
-                "type": [
-                  "string",
-                  "null"
-                ],
-                "description": "Telegram TDLib native library path (`social.telegram.tdlibPath`)"
-              },
-              "pacingSeconds": {
-                "type": [
-                  "number",
-                  "null"
-                ],
-                "minimum": 0,
-                "description": "Telegram web-preview per-host pacing"
               }
             },
             "additionalProperties": true
@@ -150256,7 +150422,7 @@
           "network": {
             "type": "string",
             "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
-            "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, `telegram`, or the platform a 024 `social-post` custom source declares",
+            "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 137) declares",
             "example": "bluesky"
           },
           "name": {
@@ -150439,17 +150605,6 @@
               "enabled"
             ]
           },
-          "session": {
-            "oneOf": [
-              {
-                "$ref": "#/components/schemas/TelegramSession"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Telegram only"
-          },
           "terms": {
             "type": "object",
             "description": "Terms and cost summary from docs/Source-Catalog.md (the operator decides)",
@@ -150488,80 +150643,6 @@
           "paths",
           "credentials",
           "settings"
-        ]
-      },
-      "TelegramLoginRequest": {
-        "type": "object",
-        "description": "Start a Telegram account-mode login; Telegram sends a code to the account",
-        "properties": {
-          "phone": {
-            "type": "string",
-            "pattern": "^\\+[1-9][0-9]{6,14}$",
-            "description": "E.164 phone number of the operator's own account"
-          }
-        },
-        "required": [
-          "phone"
-        ]
-      },
-      "TelegramLoginConfirm": {
-        "type": "object",
-        "description": "Confirm a Telegram login with the received code and, when two-step verification is on, the password",
-        "properties": {
-          "code": {
-            "type": "string",
-            "pattern": "^[0-9]{4,8}$"
-          },
-          "password": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "writeOnly": true,
-            "description": "Two-step verification password; never stored"
-          }
-        },
-        "required": [
-          "code"
-        ]
-      },
-      "TelegramLoginState": {
-        "type": "object",
-        "description": "Telegram login progress; the TDLib database lives under `${FORESIGNAL_DATA_DIR}/telegram/` encrypted with the 003 secret key",
-        "properties": {
-          "session": {
-            "$ref": "#/components/schemas/TelegramSession"
-          },
-          "codeType": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "enum": [
-              "app",
-              "sms",
-              "call",
-              "flash-call",
-              "email",
-              null
-            ],
-            "description": "How Telegram delivered the code"
-          },
-          "codeTimeoutSeconds": {
-            "type": [
-              "integer",
-              "null"
-            ]
-          },
-          "passwordHint": {
-            "type": [
-              "string",
-              "null"
-            ]
-          }
-        },
-        "required": [
-          "session"
         ]
       },
       "SocialCoverageBucket": {
@@ -150603,7 +150684,7 @@
           "platform": {
             "type": "string",
             "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
-            "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, `telegram`, or the platform a 024 `social-post` custom source declares",
+            "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 137) declares",
             "example": "bluesky"
           },
           "regionCode": {
@@ -150739,7 +150820,7 @@
           "platform": {
             "type": "string",
             "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
-            "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, `telegram`, or the platform a 024 `social-post` custom source declares",
+            "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 137) declares",
             "example": "bluesky"
           },
           "language": {
@@ -150859,7 +150940,7 @@
           "platform": {
             "type": "string",
             "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
-            "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, `telegram`, or the platform a 024 `social-post` custom source declares",
+            "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 137) declares",
             "example": "bluesky"
           },
           "posts": {
@@ -151320,7 +151401,7 @@
                 "platform": {
                   "type": "string",
                   "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
-                  "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, `telegram`, or the platform a 024 `social-post` custom source declares",
+                  "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 137) declares",
                   "example": "bluesky"
                 },
                 "points": {
@@ -151723,7 +151804,7 @@
             "items": {
               "type": "string",
               "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
-              "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, `telegram`, or the platform a 024 `social-post` custom source declares",
+              "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 137) declares",
               "example": "bluesky"
             }
           },
@@ -151767,7 +151848,7 @@
                 "platform": {
                   "type": "string",
                   "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
-                  "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, `telegram`, or the platform a 024 `social-post` custom source declares",
+                  "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 137) declares",
                   "example": "bluesky"
                 }
               },
@@ -152074,7 +152155,7 @@
                 "platform": {
                   "type": "string",
                   "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
-                  "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, `telegram`, or the platform a 024 `social-post` custom source declares",
+                  "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 137) declares",
                   "example": "bluesky"
                 },
                 "postRef": {
@@ -152148,7 +152229,7 @@
                 "platform": {
                   "type": "string",
                   "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
-                  "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, `telegram`, or the platform a 024 `social-post` custom source declares",
+                  "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 137) declares",
                   "example": "bluesky"
                 },
                 "firstObservedAt": {
@@ -153117,7 +153198,7 @@
                 "platform": {
                   "type": "string",
                   "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
-                  "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, `telegram`, or the platform a 024 `social-post` custom source declares",
+                  "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 137) declares",
                   "example": "bluesky"
                 },
                 "regionCode": {
@@ -153275,7 +153356,7 @@
                     "platform": {
                       "type": "string",
                       "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
-                      "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, `telegram`, or the platform a 024 `social-post` custom source declares",
+                      "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 137) declares",
                       "example": "bluesky"
                     },
                     "account": {
@@ -153589,7 +153670,7 @@
                     "items": {
                       "type": "string",
                       "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
-                      "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, `telegram`, or the platform a 024 `social-post` custom source declares",
+                      "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 137) declares",
                       "example": "bluesky"
                     }
                   }
@@ -153691,7 +153772,7 @@
                 "platform": {
                   "type": "string",
                   "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
-                  "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, `telegram`, or the platform a 024 `social-post` custom source declares",
+                  "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 137) declares",
                   "example": "bluesky"
                 },
                 "regionCode": {
@@ -153834,7 +153915,7 @@
             "items": {
               "type": "string",
               "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
-              "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, `telegram`, or the platform a 024 `social-post` custom source declares",
+              "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 137) declares",
               "example": "bluesky"
             }
           },
@@ -153891,7 +153972,7 @@
           "platform": {
             "type": "string",
             "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
-            "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, `telegram`, or the platform a 024 `social-post` custom source declares",
+            "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 137) declares",
             "example": "bluesky"
           },
           "language": {
@@ -154251,7 +154332,7 @@
             "items": {
               "type": "string",
               "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
-              "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, `telegram`, or the platform a 024 `social-post` custom source declares",
+              "description": "Social network: `bluesky`, `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`, or the platform an EDP provider (024, 137) declares",
               "example": "bluesky"
             }
           },
@@ -154270,277 +154351,1461 @@
           "at"
         ]
       },
-      "SourceAccess": {
+      "EdpProtocolInfo": {
         "type": "object",
-        "description": "How a source reaches its upstream and what enabling it involves (137)",
+        "description": "EDP protocol description (024)",
         "properties": {
-          "route": {
+          "protocol": {
             "type": "string",
-            "enum": [
-              "official",
-              "unofficial-api",
-              "scrape",
-              "browser"
-            ]
+            "example": "foresignal-edp/1.0"
           },
-          "termsSummary": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "termsUrl": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "uri"
-          },
-          "fragility": {
-            "type": "string",
-            "enum": [
-              "low",
-              "medium",
-              "high"
-            ]
-          },
-          "requires": {
+          "supported": {
             "type": "array",
             "items": {
-              "type": "string",
-              "enum": [
-                "key",
-                "session",
-                "proxy",
-                "browser",
-                "subscription"
-              ]
-            }
-          },
-          "defaultEnabled": {
-            "type": "boolean"
-          },
-          "fetchMode": {
-            "type": "string",
-            "enum": [
-              "direct",
-              "browser"
-            ],
-            "description": "Current fetch mode"
-          },
-          "proxyConfigured": {
-            "type": "boolean"
-          },
-          "sessionImported": {
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "route",
-          "fragility",
-          "defaultEnabled"
-        ]
-      },
-      "BrowserSettings": {
-        "type": "object",
-        "description": "Optional headless-browser runtime for browser-mode sources (137)",
-        "properties": {
-          "enabled": {
-            "type": "boolean",
-            "default": false
-          },
-          "executablePath": {
-            "type": [
-              "string",
-              "null"
+              "type": "string"
+            },
+            "example": [
+              "foresignal-edp/1.0"
             ]
           },
-          "installedVersion": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "readOnly": true
-          },
-          "installState": {
-            "type": "string",
-            "enum": [
-              "none",
-              "installing",
-              "installed",
-              "failed"
-            ],
-            "readOnly": true
-          },
-          "maxPages": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 16,
-            "default": 2
-          },
-          "pageTimeoutSeconds": {
-            "type": "integer",
-            "minimum": 5,
-            "maximum": 600,
-            "default": 60
-          },
-          "maxRssMb": {
-            "type": "integer",
-            "minimum": 256,
-            "default": 1024
-          }
-        }
-      },
-      "BrowserSessionInput": {
-        "type": "object",
-        "description": "Playwright storage state exported by the operator (137)",
-        "properties": {
-          "storageState": {
-            "type": "object",
-            "additionalProperties": true,
-            "description": "Playwright storage-state JSON (cookies, origins)"
-          }
-        },
-        "required": [
-          "storageState"
-        ]
-      },
-      "BrowserSessionInfo": {
-        "type": "object",
-        "description": "Metadata of an imported browser session (137)",
-        "properties": {
-          "sourceId": {
-            "type": "string"
-          },
-          "domains": {
+          "itemTypes": {
             "type": "array",
             "items": {
               "type": "string"
             }
           },
-          "earliestCookieExpiry": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "date-time"
+          "modes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "layer",
+                "atomic"
+              ]
+            }
           },
-          "importedAt": {
-            "type": "string",
-            "format": "date-time"
+          "schemas": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "documentation": {
+            "type": "string"
           }
         },
         "required": [
-          "sourceId",
-          "domains",
-          "importedAt"
+          "protocol",
+          "itemTypes",
+          "modes"
         ]
       },
-      "Market": {
+      "EdpManifest": {
         "type": "object",
-        "description": "A prediction market or forecast-platform question known to an opt-in adapter (138)",
+        "description": "Self-description of an EDP provider (docs/External-Data-Protocol.md §2)",
         "properties": {
-          "platform": {
+          "protocol": {
             "type": "string",
-            "enum": [
-              "kalshi",
-              "polymarket",
-              "metaculus"
-            ]
+            "pattern": "^foresignal-edp/1\\.[0-9]+$"
           },
-          "marketId": {
-            "type": "string"
+          "source": {
+            "$ref": "#/components/schemas/EdpSourceInfo"
           },
-          "title": {
-            "type": "string"
+          "transport": {
+            "$ref": "#/components/schemas/EdpTransport"
           },
-          "rules": {
+          "streams": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 50,
+            "items": {
+              "$ref": "#/components/schemas/EdpStream"
+            }
+          }
+        },
+        "required": [
+          "protocol",
+          "source",
+          "transport",
+          "streams"
+        ],
+        "additionalProperties": true
+      },
+      "EdpSourceInfo": {
+        "type": "object",
+        "description": "Identity, publisher, licence, access and originator of a provider",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+            "maxLength": 48
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "description": {
             "type": [
               "string",
               "null"
             ]
           },
-          "closeTime": {
+          "version": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "publisher": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "url": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "contact": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "name"
+            ]
+          },
+          "homepage": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "licence": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "url": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "attribution": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "redistribution": {
+                "type": "string",
+                "enum": [
+                  "allowed",
+                  "local-only",
+                  "unknown"
+                ],
+                "default": "unknown"
+              }
+            }
+          },
+          "terms": {
+            "type": "object",
+            "properties": {
+              "summary": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "url": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "access": {
+            "type": "object",
+            "properties": {
+              "route": {
+                "type": "string",
+                "enum": [
+                  "official",
+                  "unofficial-api",
+                  "scrape",
+                  "browser",
+                  "other"
+                ]
+              },
+              "fragility": {
+                "type": "string",
+                "enum": [
+                  "low",
+                  "medium",
+                  "high"
+                ]
+              }
+            },
+            "required": [
+              "route"
+            ]
+          },
+          "originator": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+                "maxLength": 48
+              },
+              "class": {
+                "type": "string",
+                "enum": [
+                  "sensor-network",
+                  "agency",
+                  "aggregator",
+                  "media",
+                  "crowd",
+                  "social",
+                  "operator",
+                  "derived"
+                ]
+              },
+              "aggregates": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "id",
+              "class"
+            ]
+          },
+          "private": {
+            "type": "boolean",
+            "default": false
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "publisher",
+          "originator"
+        ]
+      },
+      "EdpTransport": {
+        "type": "object",
+        "description": "How items reach Foresignal",
+        "properties": {
+          "push": {
+            "type": "boolean",
+            "default": true
+          },
+          "pull": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EdpPull"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "search": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EdpSearch"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "EdpPull": {
+        "type": "object",
+        "description": "Provider items endpoint Foresignal polls",
+        "properties": {
+          "itemsUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "intervalSeconds": {
+            "type": "integer",
+            "minimum": 60,
+            "default": 300
+          },
+          "auth": {
+            "type": "string",
+            "enum": [
+              "none",
+              "bearer",
+              "header",
+              "basic"
+            ],
+            "default": "none"
+          },
+          "header": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "itemsUrl"
+        ]
+      },
+      "EdpStream": {
+        "type": "object",
+        "description": "One typed stream of items",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+            "maxLength": 48
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "layer",
+              "atomic"
+            ]
+          },
+          "itemType": {
+            "type": "string",
+            "enum": [
+              "feature",
+              "event",
+              "observation",
+              "document",
+              "forecast"
+            ]
+          },
+          "kind": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+            "maxLength": 48
+          },
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "geometry": {
+            "type": "string",
+            "enum": [
+              "Point",
+              "LineString",
+              "Polygon",
+              "MultiPolygon",
+              "any",
+              "none"
+            ],
+            "default": "any"
+          },
+          "update": {
+            "type": "string",
+            "enum": [
+              "incremental",
+              "snapshot"
+            ],
+            "default": "incremental"
+          },
+          "payloadSchema": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "JSON Schema 2020-12 for item properties"
+          },
+          "fields": {
+            "$ref": "#/components/schemas/EdpStreamFields"
+          },
+          "ttl": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retentionClass": {
+            "type": "string",
+            "enum": [
+              "event",
+              "bulk-event",
+              "series",
+              "state",
+              "track",
+              "reference",
+              "social"
+            ],
+            "default": "event"
+          },
+          "unit": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "documentType": {
             "type": [
               "string",
               "null"
             ],
-            "format": "date-time"
-          },
-          "status": {
-            "type": "string",
             "enum": [
-              "open",
-              "closed",
-              "resolved"
+              "social-post",
+              "article",
+              "report",
+              "transcript",
+              "note",
+              null
             ]
           },
-          "resolution": {
+          "presentation": {
+            "$ref": "#/components/schemas/EdpPresentation"
+          },
+          "coverage": {
+            "$ref": "#/components/schemas/EdpCoverage"
+          },
+          "complete": {
+            "type": "boolean",
+            "default": false,
+            "description": "The stream is a complete record of its scope (social volume baselines may use it)"
+          },
+          "suggestedBindings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EdpSuggestedBinding"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "mode",
+          "itemType",
+          "kind"
+        ]
+      },
+      "EdpStreamFields": {
+        "type": "object",
+        "description": "Field roles, as in custom sources (024)",
+        "properties": {
+          "title": {
             "type": [
               "string",
               "null"
             ]
           },
-          "lastMid": {
+          "significant": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "volatile": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "observedAtMode": {
+            "type": "string",
+            "enum": [
+              "upstream",
+              "received"
+            ],
+            "default": "upstream"
+          }
+        }
+      },
+      "EdpPresentation": {
+        "type": "object",
+        "description": "Layer hints for clients and styles",
+        "properties": {
+          "color": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "icon": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "labelField": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "minZoom": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "maxZoom": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "tileProperties": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": true
+      },
+      "EdpCoverage": {
+        "type": "object",
+        "description": "Declared footprint and detection probability (low-confidence observability)",
+        "properties": {
+          "area": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": true,
+                "description": "GeoJSON geometry (WGS84, lon/lat)"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "family": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "pDetect": {
             "type": [
               "number",
               "null"
             ],
             "minimum": 0,
-            "maximum": 1,
-            "description": "Implied probability (market mid or community prediction)"
-          },
-          "yesBid": {
-            "type": [
-              "number",
-              "null"
+            "maximum": 1
+          }
+        }
+      },
+      "EdpSuggestedBinding": {
+        "type": "object",
+        "description": "A binding the provider recommends for an atomic stream",
+        "properties": {
+          "target": {
+            "type": "string",
+            "enum": [
+              "series",
+              "canonical-family",
+              "social",
+              "news",
+              "evidence",
+              "indicator",
+              "forecast",
+              "place",
+              "situation",
+              "chronicle"
             ]
           },
-          "yesAsk": {
-            "type": [
-              "number",
-              "null"
-            ]
+          "config": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "target"
+        ]
+      },
+      "EdpBatch": {
+        "type": "object",
+        "description": "A batch of EDP items (push body or pull response)",
+        "properties": {
+          "protocol": {
+            "type": "string"
           },
-          "volume": {
-            "type": [
-              "number",
-              "null"
-            ]
+          "sourceId": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+            "maxLength": 48
           },
-          "openInterest": {
-            "type": [
-              "number",
-              "null"
-            ]
+          "sentAt": {
+            "type": "string",
+            "format": "date-time"
           },
-          "seriesRefs": {
+          "complete": {
+            "type": "boolean",
+            "default": false
+          },
+          "items": {
             "type": "array",
+            "maxItems": 10000,
             "items": {
-              "$ref": "#/components/schemas/SeriesRef"
+              "$ref": "#/components/schemas/EdpItem"
             }
           },
-          "updatedAt": {
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "protocol",
+          "items"
+        ]
+      },
+      "EdpItem": {
+        "description": "One EDP item (one variant per type)",
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/EdpFeatureItem"
+          },
+          {
+            "$ref": "#/components/schemas/EdpEventItem"
+          },
+          {
+            "$ref": "#/components/schemas/EdpObservationItem"
+          },
+          {
+            "$ref": "#/components/schemas/EdpDocumentItem"
+          },
+          {
+            "$ref": "#/components/schemas/EdpForecastItem"
+          },
+          {
+            "$ref": "#/components/schemas/EdpDeleteItem"
+          },
+          {
+            "$ref": "#/components/schemas/EdpStatusItem"
+          }
+        ],
+        "discriminator": {
+          "propertyName": "type",
+          "mapping": {
+            "feature": "#/components/schemas/EdpFeatureItem",
+            "event": "#/components/schemas/EdpEventItem",
+            "observation": "#/components/schemas/EdpObservationItem",
+            "document": "#/components/schemas/EdpDocumentItem",
+            "forecast": "#/components/schemas/EdpForecastItem",
+            "delete": "#/components/schemas/EdpDeleteItem",
+            "status": "#/components/schemas/EdpStatusItem"
+          }
+        }
+      },
+      "EdpFeatureItem": {
+        "type": "object",
+        "description": "Current state of an entity (layer streams)",
+        "properties": {
+          "stream": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+            "maxLength": 48
+          },
+          "type": {
+            "type": "string",
+            "const": "feature"
+          },
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "observedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "properties": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Item properties, validated against the stream's payloadSchema"
+          },
+          "geometry": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": true,
+                "description": "GeoJSON geometry (WGS84, lon/lat)"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "eventTime": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "validUntil": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "stream",
+          "type",
+          "id"
+        ],
+        "additionalProperties": true
+      },
+      "EdpEventItem": {
+        "type": "object",
+        "description": "A discrete occurrence",
+        "properties": {
+          "stream": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+            "maxLength": 48
+          },
+          "type": {
+            "type": "string",
+            "const": "event"
+          },
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "observedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "properties": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Item properties, validated against the stream's payloadSchema"
+          },
+          "eventTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "geometry": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": true,
+                "description": "GeoJSON geometry (WGS84, lon/lat)"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "upstreamEventId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "stream",
+          "type",
+          "id",
+          "eventTime"
+        ],
+        "additionalProperties": true
+      },
+      "EdpObservationItem": {
+        "type": "object",
+        "description": "A value of a series",
+        "properties": {
+          "stream": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+            "maxLength": 48
+          },
+          "type": {
+            "type": "string",
+            "const": "observation"
+          },
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "observedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "properties": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Item properties, validated against the stream's payloadSchema"
+          },
+          "seriesKey": {
+            "type": "string",
+            "maxLength": 128
+          },
+          "t": {
+            "type": "string",
+            "description": "Time or period: 2026-10-10, 2026-W41, 2026-10, or a timestamp"
+          },
+          "value": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "knownAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "unit": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "stream",
+          "type",
+          "id",
+          "seriesKey",
+          "t",
+          "value"
+        ],
+        "additionalProperties": true
+      },
+      "EdpDocumentItem": {
+        "type": "object",
+        "description": "A text item: post, article, report, transcript or note",
+        "properties": {
+          "stream": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+            "maxLength": 48
+          },
+          "type": {
+            "type": "string",
+            "const": "document"
+          },
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "observedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "properties": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Item properties, validated against the stream's payloadSchema"
+          },
+          "documentType": {
+            "type": "string",
+            "enum": [
+              "social-post",
+              "article",
+              "report",
+              "transcript",
+              "note"
+            ]
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 20000
+          },
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "author": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "handle": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "name": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "accountId": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "language": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "publishedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "about": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Foresignal object references or URLs"
+          },
+          "media": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": "string"
+                },
+                "thumbUrl": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "url"
+              ]
+            }
+          },
+          "geometry": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": true,
+                "description": "GeoJSON geometry (WGS84, lon/lat)"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "engagement": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "additionalProperties": {
+              "type": [
+                "number",
+                "null"
+              ]
+            }
+          }
+        },
+        "required": [
+          "stream",
+          "type",
+          "id",
+          "documentType",
+          "text"
+        ],
+        "additionalProperties": true
+      },
+      "EdpForecastItem": {
+        "type": "object",
+        "description": "A probability (or quantiles) for a question",
+        "properties": {
+          "stream": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+            "maxLength": 48
+          },
+          "type": {
+            "type": "string",
+            "const": "forecast"
+          },
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "observedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "properties": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Item properties, validated against the stream's payloadSchema"
+          },
+          "question": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "externalId": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "closeTime": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time"
+              },
+              "resolutionCriteria": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "externalId",
+              "title"
+            ]
+          },
+          "questionRef": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "probability": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 1
+          },
+          "quantiles": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Quantiles"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "madeAt": {
             "type": "string",
             "format": "date-time"
           }
         },
         "required": [
-          "platform",
-          "marketId",
-          "title",
-          "status",
-          "updatedAt"
+          "stream",
+          "type",
+          "id",
+          "madeAt"
+        ],
+        "additionalProperties": true
+      },
+      "EdpDeleteItem": {
+        "type": "object",
+        "description": "Tombstone for {stream}:{id}",
+        "properties": {
+          "stream": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+            "maxLength": 48
+          },
+          "type": {
+            "type": "string",
+            "const": "delete"
+          },
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "observedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "properties": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Item properties, validated against the stream's payloadSchema"
+          }
+        },
+        "required": [
+          "stream",
+          "type",
+          "id"
+        ],
+        "additionalProperties": true
+      },
+      "EdpStatusItem": {
+        "type": "object",
+        "description": "Provider health (no record)",
+        "properties": {
+          "stream": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+            "maxLength": 48
+          },
+          "type": {
+            "type": "string",
+            "const": "status"
+          },
+          "health": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "degraded",
+              "blocked",
+              "layout-changed",
+              "geo-restricted"
+            ]
+          },
+          "message": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "type",
+          "health"
         ]
       },
-      "MarketPage": {
+      "EdpItemRejection": {
         "type": "object",
-        "description": "A page of markets",
+        "description": "Why one item was rejected",
+        "properties": {
+          "index": {
+            "type": "integer"
+          },
+          "stream": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "example": "SCHEMA_INVALID"
+          },
+          "schemaErrors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "required": [
+          "index",
+          "reason"
+        ]
+      },
+      "EdpIngestResult": {
+        "type": "object",
+        "description": "Result of a push",
+        "properties": {
+          "accepted": {
+            "type": "integer"
+          },
+          "rejected": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EdpItemRejection"
+            }
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/IngestOutcome"
+          }
+        },
+        "required": [
+          "accepted",
+          "rejected"
+        ]
+      },
+      "EdpValidationRequest": {
+        "type": "object",
+        "description": "Dry-run validation input",
+        "properties": {
+          "manifest": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EdpManifest"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sourceId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          }
+        }
+      },
+      "EdpValidationReport": {
+        "type": "object",
+        "description": "Dry-run validation result",
+        "properties": {
+          "manifestValid": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "manifestErrors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "breakingChanges": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "itemsValid": {
+            "type": "integer"
+          },
+          "rejected": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EdpItemRejection"
+            }
+          }
+        }
+      },
+      "ExternalStreamStats": {
+        "type": "object",
+        "description": "Per-stream activity",
+        "properties": {
+          "streamId": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "items": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "rejected": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "lastItemAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "bindings": {
+            "type": "integer"
+          }
+        }
+      },
+      "ExternalSource": {
+        "type": "object",
+        "description": "An EDP provider registered on this instance (024)",
+        "properties": {
+          "sourceId": {
+            "type": "string",
+            "example": "ext-hormuz-transits"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "active",
+              "suspended"
+            ]
+          },
+          "registeredVia": {
+            "type": "string",
+            "enum": [
+              "operator",
+              "registration-token"
+            ]
+          },
+          "manifest": {
+            "$ref": "#/components/schemas/EdpManifest"
+          },
+          "manifestSha256": {
+            "type": "string"
+          },
+          "access": {
+            "$ref": "#/components/schemas/SourceAccess"
+          },
+          "egress": {
+            "type": "string"
+          },
+          "approvedBy": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "approvedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastItemAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "pull": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "cursor": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "lastPollAt": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time"
+              },
+              "lastError": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "streams": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExternalStreamStats"
+            }
+          },
+          "lastValidationErrors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EdpItemRejection"
+            }
+          },
+          "health": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sourceId",
+          "state",
+          "manifest",
+          "createdAt"
+        ]
+      },
+      "ExternalSourcePage": {
+        "type": "object",
+        "description": "A page of external sources",
         "properties": {
           "items": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/Market"
+              "$ref": "#/components/schemas/ExternalSource"
             }
           },
           "nextCursor": {
@@ -154554,42 +155819,206 @@
           "items"
         ]
       },
-      "MarketLinkInput": {
+      "ExternalSourceRegistration": {
         "type": "object",
-        "description": "Link a market to a ledger question (138)",
+        "description": "Register by manifest or manifest URL",
         "properties": {
-          "platform": {
-            "type": "string",
-            "enum": [
-              "kalshi",
-              "polymarket",
-              "metaculus",
-              "views"
+          "manifest": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EdpManifest"
+              },
+              {
+                "type": "null"
+              }
             ]
           },
-          "marketId": {
-            "type": "string"
-          },
-          "orientation": {
-            "type": "string",
-            "enum": [
-              "yes-means-yes",
-              "yes-means-no"
+          "manifestUrl": {
+            "type": [
+              "string",
+              "null"
             ],
-            "default": "yes-means-yes"
+            "format": "uri"
+          },
+          "approve": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      },
+      "ExternalSourceCreated": {
+        "type": "object",
+        "description": "A registered source and its ingest key (shown once)",
+        "properties": {
+          "source": {
+            "$ref": "#/components/schemas/ExternalSource"
+          },
+          "ingestKey": {
+            "type": "string",
+            "description": "eik_… (shown once)"
           }
         },
         "required": [
-          "platform",
-          "marketId"
+          "source",
+          "ingestKey"
         ]
       },
-      "MarketLink": {
+      "RegistrationTokenInput": {
         "type": "object",
-        "description": "A market linked to a ledger question as an external forecaster (138)",
+        "description": "Create a registration token",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "maxUses": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1
+          },
+          "sourceIdPrefix": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Only manifests whose source.id starts with this prefix"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "RegistrationToken": {
+        "type": "object",
+        "description": "A registration token (never the secret)",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "prefix": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "maxUses": {
+            "type": "integer"
+          },
+          "uses": {
+            "type": "integer"
+          },
+          "sourceIdPrefix": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "prefix",
+          "maxUses",
+          "uses",
+          "createdAt"
+        ]
+      },
+      "RegistrationTokenCreated": {
+        "type": "object",
+        "description": "A new registration token (shown once)",
         "allOf": [
           {
-            "$ref": "#/components/schemas/MarketLinkInput"
+            "$ref": "#/components/schemas/RegistrationToken"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "token": {
+                "type": "string",
+                "description": "fsx_… (shown once)"
+              }
+            },
+            "required": [
+              "token"
+            ]
+          }
+        ]
+      },
+      "ExternalBindingInput": {
+        "type": "object",
+        "description": "Bind an atomic stream to a target (137)",
+        "properties": {
+          "streamId": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string",
+            "enum": [
+              "series",
+              "canonical-family",
+              "social",
+              "news",
+              "evidence",
+              "indicator",
+              "forecast",
+              "place",
+              "situation",
+              "chronicle"
+            ]
+          },
+          "config": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Target configuration (docs/External-Data-Protocol.md §5)"
+          },
+          "filter": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "description": "017 conditions on item properties"
+          },
+          "enabled": {
+            "type": "boolean",
+            "default": true
+          },
+          "backfill": {
+            "type": "boolean",
+            "default": true
+          }
+        },
+        "required": [
+          "streamId",
+          "target"
+        ]
+      },
+      "ExternalBinding": {
+        "type": "object",
+        "description": "A binding with its state (137)",
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ExternalBindingInput"
           },
           {
             "type": "object",
@@ -154597,15 +156026,138 @@
               "id": {
                 "$ref": "#/components/schemas/Ulid"
               },
-              "questionId": {
-                "$ref": "#/components/schemas/Ulid"
+              "sourceId": {
+                "type": "string"
               },
-              "forecasterId": {
+              "manifestSha256": {
+                "type": "string"
+              },
+              "state": {
                 "type": "string",
-                "example": "market:kalshi"
+                "enum": [
+                  "active",
+                  "disabled",
+                  "backfilling",
+                  "error"
+                ]
+              },
+              "applied": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "lastError": {
+                "type": [
+                  "string",
+                  "null"
+                ]
               },
               "createdBy": {
                 "type": "string"
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "required": [
+              "id",
+              "sourceId",
+              "state",
+              "createdAt"
+            ]
+          }
+        ]
+      },
+      "ExternalBindingPreview": {
+        "type": "object",
+        "description": "What a binding would do over recent items (no side effects)",
+        "properties": {
+          "evaluated": {
+            "type": "integer"
+          },
+          "matched": {
+            "type": "integer"
+          },
+          "effects": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "itemRef": {
+                  "type": "string"
+                },
+                "action": {
+                  "type": "string"
+                },
+                "targetRef": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              }
+            }
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "evaluated",
+          "matched",
+          "effects"
+        ]
+      },
+      "ExternalQuestionLinkInput": {
+        "type": "object",
+        "description": "Map a provider question id to a ledger question (137)",
+        "properties": {
+          "streamId": {
+            "type": "string"
+          },
+          "externalQuestionId": {
+            "type": "string"
+          },
+          "questionId": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "orientation": {
+            "type": "string",
+            "enum": [
+              "same",
+              "inverse"
+            ],
+            "default": "same"
+          }
+        },
+        "required": [
+          "streamId",
+          "externalQuestionId",
+          "questionId"
+        ]
+      },
+      "ExternalQuestionLink": {
+        "type": "object",
+        "description": "A provider question linked to a ledger question",
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ExternalQuestionLinkInput"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "$ref": "#/components/schemas/Ulid"
+              },
+              "sourceId": {
+                "type": "string"
+              },
+              "forecasterId": {
+                "type": "string",
+                "example": "edp:ext-markets/kalshi"
               },
               "createdAt": {
                 "type": "string",
@@ -154621,98 +156173,158 @@
             },
             "required": [
               "id",
-              "questionId",
+              "sourceId",
               "forecasterId",
               "createdAt"
             ]
           }
         ]
       },
-      "ShodanQueryInput": {
+      "SourceAccess": {
         "type": "object",
-        "description": "A Shodan saved query (138)",
+        "description": "How a source reaches its data and what enabling it involves",
         "properties": {
-          "name": {
-            "type": "string"
-          },
-          "query": {
-            "type": "string",
-            "maxLength": 1000
-          },
-          "regionCodes": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "cadence": {
+          "route": {
             "type": "string",
             "enum": [
-              "daily",
-              "weekly"
-            ],
-            "default": "daily"
+              "official",
+              "unofficial-api",
+              "scrape",
+              "browser",
+              "other"
+            ]
           },
-          "monitorNetworks": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "CIDR ranges whose hosts become exposed-service records"
+          "termsSummary": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "termsUrl": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "fragility": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ]
           }
         },
         "required": [
-          "name",
-          "query"
+          "route"
         ]
       },
-      "ShodanQuery": {
+      "ChronicleExternalStreamSelector": {
         "type": "object",
-        "description": "A Shodan saved query with its latest count (138)",
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/ShodanQueryInput"
-          },
-          {
-            "type": "object",
-            "properties": {
-              "id": {
-                "$ref": "#/components/schemas/Ulid"
-              },
-              "lastCount": {
-                "type": [
-                  "integer",
-                  "null"
-                ]
-              },
-              "lastRunAt": {
-                "type": [
-                  "string",
-                  "null"
-                ],
-                "format": "date-time"
-              },
-              "seriesRef": {
-                "$ref": "#/components/schemas/SeriesRef"
-              }
-            },
-            "required": [
-              "id"
-            ]
-          }
-        ]
-      },
-      "ShodanQueryPage": {
-        "type": "object",
-        "description": "A page of Shodan saved queries",
+        "description": "Chronicle layer capturing an external stream (137)",
         "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ShodanQuery"
-            }
+          "type": {
+            "type": "string",
+            "const": "external-stream"
           },
-          "nextCursor": {
+          "sourceId": {
+            "type": "string"
+          },
+          "streamId": {
+            "type": "string"
+          },
+          "filter": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          }
+        },
+        "required": [
+          "type",
+          "sourceId",
+          "streamId"
+        ]
+      },
+      "ExternalSourceStateEvent": {
+        "type": "object",
+        "description": "SSE external.source.state payload",
+        "properties": {
+          "sourceId": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "change": {
+            "type": "string",
+            "enum": [
+              "registered",
+              "approved",
+              "suspended",
+              "manifest-changed",
+              "deleted"
+            ]
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "sourceId",
+          "change",
+          "at"
+        ]
+      },
+      "ExternalBindingEvent": {
+        "type": "object",
+        "description": "SSE external.binding.disabled payload",
+        "properties": {
+          "bindingId": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "sourceId": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "bindingId",
+          "sourceId",
+          "reason",
+          "at"
+        ]
+      },
+      "EdpSearch": {
+        "type": "object",
+        "description": "Optional provider search endpoint used by cues (136)",
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "auth": {
+            "type": "string",
+            "enum": [
+              "none",
+              "bearer",
+              "header",
+              "basic"
+            ],
+            "default": "none"
+          },
+          "header": {
             "type": [
               "string",
               "null"
@@ -154720,7 +156332,7 @@
           }
         },
         "required": [
-          "items"
+          "url"
         ]
       },
       "WeatherSettings": {
@@ -154781,6 +156393,12 @@
         "type": "http",
         "scheme": "basic",
         "description": "Custom-source ingest key sent as the Basic-auth password (024), for devices that only support Basic auth."
+      },
+      "registrationToken": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "fsx_<base64url>",
+        "description": "One-time EDP registration token (024) for POST /v1/external/register."
       }
     }
   },
@@ -154979,6 +156597,136 @@
         },
         "x-foresignal-scope": "open",
         "x-foresignal-prompt": "110",
+        "x-foresignal-status": "planned"
+      }
+    },
+    "edpProviderItems": {
+      "get": {
+        "tags": [
+          "External"
+        ],
+        "operationId": "edpProviderItems",
+        "summary": "EDP provider items endpoint",
+        "description": "Served by an EDP provider whose manifest declares `transport.pull`; Foresignal calls it every `intervalSeconds` with the stored cursor and follows `nextCursor` (docs/External-Data-Protocol.md §4.2). Auth as the manifest declares (`none`, `bearer`, `header`, `basic`) with the credential the operator entered.\n\n**Scope:** `open` (outbound; scope does not apply).",
+        "parameters": [
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "description": "Opaque cursor from the previous response; absent on first call",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Maximum items",
+            "schema": {
+              "type": "integer",
+              "default": 500
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A batch",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EdpBatch"
+                }
+              }
+            }
+          }
+        },
+        "x-foresignal-scope": "open",
+        "x-foresignal-prompt": "024",
+        "x-foresignal-status": "planned"
+      }
+    },
+    "edpProviderSearch": {
+      "get": {
+        "tags": [
+          "External"
+        ],
+        "operationId": "edpProviderSearch",
+        "summary": "EDP provider search endpoint",
+        "description": "Optional; served by a provider whose manifest declares `transport.search`. Foresignal calls it for cue-driven searches (136) and stores the returned items as cue results (docs/External-Data-Protocol.md §4.3).\n\n**Scope:** `open` (outbound; scope does not apply).",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "description": "Query text",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "required": false,
+            "description": "Start time",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "until",
+            "in": "query",
+            "required": false,
+            "description": "End time",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "bbox",
+            "in": "query",
+            "required": false,
+            "description": "minLon,minLat,maxLon,maxLat",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "lang",
+            "in": "query",
+            "required": false,
+            "description": "BCP 47 languages, comma-separated",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Maximum items",
+            "schema": {
+              "type": "integer",
+              "default": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A batch",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EdpBatch"
+                }
+              }
+            }
+          }
+        },
+        "x-foresignal-scope": "open",
+        "x-foresignal-prompt": "024",
         "x-foresignal-status": "planned"
       }
     }

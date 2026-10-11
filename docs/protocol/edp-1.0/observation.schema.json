@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://foresignal.ai/protocol/edp-1.0/observation.schema.json",
+  "title": "Foresignal EDP 1.0 observation",
+  "type": "object",
+  "description": "A value of a series",
+  "properties": {
+    "stream": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "maxLength": 48
+    },
+    "type": {
+      "type": "string",
+      "const": "observation"
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "observedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "properties": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Item properties, validated against the stream's payloadSchema"
+    },
+    "seriesKey": {
+      "type": "string",
+      "maxLength": 128
+    },
+    "t": {
+      "type": "string",
+      "description": "Time or period: 2026-10-10, 2026-W41, 2026-10, or a timestamp"
+    },
+    "value": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "knownAt": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "unit": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "required": [
+    "stream",
+    "type",
+    "id",
+    "seriesKey",
+    "t",
+    "value"
+  ],
+  "additionalProperties": true
+}

@@ -17280,11 +17280,11 @@
       ]
     },
     {
-      "name": "Exposure",
-      "description": "Opt-in internet-exposure monitoring (Shodan saved queries, 138)",
+      "name": "External",
+      "description": "External Data Protocol: third-party providers, items, bindings (024, 137; docs/External-Data-Protocol.md)",
       "item": [
         {
-          "name": "List Shodan saved queries",
+          "name": "Get the EDP protocol description",
           "event": [
             {
               "listen": "test",
@@ -17305,16 +17305,102 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/shodan/queries",
+              "raw": "{{baseUrl}}/v1/external/protocol",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "v1",
-                "shodan",
-                "queries"
+                "external",
+                "protocol"
+              ],
+              "query": []
+            },
+            "description": "Protocol version, supported item types and stream modes, and the JSON Schema names served below (docs/External-Data-Protocol.md).\n\n**Scope:** `open` (no token).\n\noperationId: `getEdpProtocol`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Get an EDP JSON Schema",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/schema+json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/external/protocol/schemas/{{name}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "external",
+                "protocol",
+                "schemas",
+                "{{name}}"
+              ],
+              "query": []
+            },
+            "description": "A JSON Schema 2020-12 document exported from this specification's `Edp*` components.\n\n**Scope:** `open` (no token).\n\noperationId: `getEdpSchema`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "List external sources",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/external/sources",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "external",
+                "sources"
               ],
               "query": [
+                {
+                  "key": "state",
+                  "value": "pending",
+                  "description": "Filter by state",
+                  "disabled": true
+                },
                 {
                   "key": "cursor",
                   "value": "{{cursor}}",
@@ -17329,7 +17415,7 @@
                 }
               ]
             },
-            "description": "Saved queries of the opt-in `shodan` adapter with their latest counts.\n\n**Scope:** `admin`.\n\noperationId: `listShodanQueries`",
+            "description": "EDP providers registered on this instance with state, streams and last activity.\n\n**Scope:** `admin`.\n\noperationId: `listExternalSources`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -17343,7 +17429,7 @@
           }
         },
         {
-          "name": "Create a Shodan saved query",
+          "name": "Register an external source",
           "event": [
             {
               "listen": "test",
@@ -17368,18 +17454,18 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/shodan/queries",
+              "raw": "{{baseUrl}}/v1/external/sources",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "v1",
-                "shodan",
-                "queries"
+                "external",
+                "sources"
               ],
               "query": []
             },
-            "description": "Daily count series and, for monitored networks, `exposed-service` records.\n\n**Scope:** `admin`.\n\noperationId: `createShodanQuery`",
+            "description": "Registers an EDP provider from a manifest or a manifest URL (fetched once, SSRF-guarded). The source is created `pending` unless `approve` is true. The ingest key is returned once.\n\n**Scope:** `admin`.\n\noperationId: `registerExternalSource`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -17402,7 +17488,7 @@
           }
         },
         {
-          "name": "Get a Shodan saved query",
+          "name": "Get an external source",
           "event": [
             {
               "listen": "test",
@@ -17423,19 +17509,19 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/shodan/queries/{{queryId}}",
+              "raw": "{{baseUrl}}/v1/external/sources/{{sourceId}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "v1",
-                "shodan",
-                "queries",
-                "{{queryId}}"
+                "external",
+                "sources",
+                "{{sourceId}}"
               ],
               "query": []
             },
-            "description": "Query, cadence, latest count and series ref.\n\n**Scope:** `admin`.\n\noperationId: `getShodanQuery`",
+            "description": "Manifest, state, access block, per-stream statistics, last validation errors, pull status and layer presentation hints.\n\n**Scope:** `admin`.\n\noperationId: `getExternalSource`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -17449,7 +17535,49 @@
           }
         },
         {
-          "name": "Replace a Shodan saved query",
+          "name": "Delete an external source",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 204', () => pm.expect([204]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/external/sources/{{sourceId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "external",
+                "sources",
+                "{{sourceId}}"
+              ],
+              "query": []
+            },
+            "description": "Deletes the custom source and its bindings; records age out through retention.\n\n**Scope:** `admin`.\n\noperationId: `deleteExternalSource`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update a source manifest",
           "event": [
             {
               "listen": "test",
@@ -17474,19 +17602,282 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/shodan/queries/{{queryId}}",
+              "raw": "{{baseUrl}}/v1/external/sources/{{sourceId}}/manifest",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "v1",
-                "shodan",
-                "queries",
-                "{{queryId}}"
+                "external",
+                "sources",
+                "{{sourceId}}",
+                "manifest"
               ],
               "query": []
             },
-            "description": "Replaces the query definition.\n\n**Scope:** `admin`.\n\noperationId: `updateShodanQuery`",
+            "description": "Additive changes apply at once; changes to streams, kinds, item types, modes or payload schemas return the source to `pending`. Accepted from an admin token or the source's own ingest key.\n\n**Scope:** ingest key of the source (or `admin`).\n\noperationId: `updateExternalSourceManifest`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{agentToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Approve an external source",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/external/sources/{{sourceId}}/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "external",
+                "sources",
+                "{{sourceId}}",
+                "approve"
+              ],
+              "query": []
+            },
+            "description": "Activates a pending source after review of its access block, licence and streams.\n\n**Scope:** `admin`.\n\noperationId: `approveExternalSource`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Suspend an external source",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/external/sources/{{sourceId}}/suspend",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "external",
+                "sources",
+                "{{sourceId}}",
+                "suspend"
+              ],
+              "query": []
+            },
+            "description": "Stops accepting pushes and pulling; records stay.\n\n**Scope:** `admin`.\n\noperationId: `suspendExternalSource`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Push EDP items",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/external/sources/{{sourceId}}/items",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "external",
+                "sources",
+                "{{sourceId}}",
+                "items"
+              ],
+              "query": []
+            },
+            "description": "Accepts a batch (JSON) or NDJSON items; validates each item against its stream and returns per-item rejections. Pending or suspended sources answer 409.\n\n**Scope:** ingest key of the source (or `admin`).\n\noperationId: `pushExternalItems`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{agentToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "List registration tokens",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/external/registration-tokens",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "external",
+                "registration-tokens"
+              ],
+              "query": []
+            },
+            "description": "Unexpired registration tokens (prefix, uses, expiry); never the token.\n\n**Scope:** `admin`.\n\noperationId: `listRegistrationTokens`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create a registration token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/external/registration-tokens",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "external",
+                "registration-tokens"
+              ],
+              "query": []
+            },
+            "description": "A one-time (by default) `fsx_` token a third-party provider uses to self-register with `POST /v1/external/register`. Returned once.\n\n**Scope:** `admin`.\n\noperationId: `createRegistrationToken`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -17509,7 +17900,7 @@
           }
         },
         {
-          "name": "Delete a Shodan saved query",
+          "name": "Revoke a registration token",
           "event": [
             {
               "listen": "test",
@@ -17525,25 +17916,635 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/v1/shodan/queries/{{queryId}}",
+              "raw": "{{baseUrl}}/v1/external/registration-tokens/{{tokenId}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "v1",
-                "shodan",
-                "queries",
-                "{{queryId}}"
+                "external",
+                "registration-tokens",
+                "{{tokenId}}"
               ],
               "query": []
             },
-            "description": "Stops the query; its series is kept.\n\n**Scope:** `admin`.\n\noperationId: `deleteShodanQuery`",
+            "description": "Revokes an unused token.\n\n**Scope:** `admin`.\n\noperationId: `deleteRegistrationToken`",
             "auth": {
               "type": "bearer",
               "bearer": [
                 {
                   "key": "token",
                   "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Self-register an external source",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/external/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "external",
+                "register"
+              ],
+              "query": []
+            },
+            "description": "A provider registers itself with a registration token; the source is created `pending` for the operator to approve. The ingest key is returned once.\n\n**Scope:** registration token.\n\noperationId: `selfRegisterExternalSource`",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Validate a manifest or items",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/external/validate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "external",
+                "validate"
+              ],
+              "query": []
+            },
+            "description": "Checks a manifest, items for an existing source, or both, without storing anything. For provider developers and CI.\n\n**Scope:** `agent`.\n\noperationId: `validateEdp`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{agentToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "List bindings of a source",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/external/sources/{{sourceId}}/bindings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "external",
+                "sources",
+                "{{sourceId}}",
+                "bindings"
+              ],
+              "query": []
+            },
+            "description": "Bindings of the source's atomic streams with state and counts.\n\n**Scope:** `admin`.\n\noperationId: `listExternalBindings`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create a binding",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/external/sources/{{sourceId}}/bindings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "external",
+                "sources",
+                "{{sourceId}}",
+                "bindings"
+              ],
+              "query": []
+            },
+            "description": "Binds a stream to a target (series, canonical family, social, news, evidence, indicator, forecast, place, situation, chronicle). Backfills from stored records unless `backfill` is false.\n\n**Scope:** `admin`.\n\noperationId: `createExternalBinding`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Accept suggested bindings",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/external/sources/{{sourceId}}/bindings/accept-suggested",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "external",
+                "sources",
+                "{{sourceId}}",
+                "bindings",
+                "accept-suggested"
+              ],
+              "query": []
+            },
+            "description": "Creates the bindings the manifest suggests (each remains editable).\n\n**Scope:** `admin`.\n\noperationId: `acceptSuggestedBindings`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get a binding",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/external/bindings/{{bindingId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "external",
+                "bindings",
+                "{{bindingId}}"
+              ],
+              "query": []
+            },
+            "description": "Binding with counts and last error.\n\n**Scope:** `admin`.\n\noperationId: `getExternalBinding`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Replace a binding",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/external/bindings/{{bindingId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "external",
+                "bindings",
+                "{{bindingId}}"
+              ],
+              "query": []
+            },
+            "description": "Replaces target config, filter or enabled state.\n\n**Scope:** `admin`.\n\noperationId: `updateExternalBinding`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Delete a binding",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 204', () => pm.expect([204]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/external/bindings/{{bindingId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "external",
+                "bindings",
+                "{{bindingId}}"
+              ],
+              "query": []
+            },
+            "description": "Stops the binding; what it created stays.\n\n**Scope:** `admin`.\n\noperationId: `deleteExternalBinding`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Preview a binding",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/external/bindings/{{bindingId}}/preview",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "external",
+                "bindings",
+                "{{bindingId}}",
+                "preview"
+              ],
+              "query": []
+            },
+            "description": "Evaluates the binding over the last 100 items without side effects.\n\n**Scope:** `admin`.\n\noperationId: `previewExternalBinding`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "List question links",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/external/sources/{{sourceId}}/question-links",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "external",
+                "sources",
+                "{{sourceId}}",
+                "question-links"
+              ],
+              "query": []
+            },
+            "description": "Maps of the provider's question ids to ledger questions for forecast streams.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `listExternalQuestionLinks`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Link a provider question",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/external/sources/{{sourceId}}/question-links",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "external",
+                "sources",
+                "{{sourceId}}",
+                "question-links"
+              ],
+              "query": []
+            },
+            "description": "Links a provider question id to a ledger question so its forecast items become external forecasts there.\n\n**Scope:** `agent`.\n\noperationId: `createExternalQuestionLink`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{agentToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Remove a question link",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 204', () => pm.expect([204]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/external/question-links/{{linkId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "external",
+                "question-links",
+                "{{linkId}}"
+              ],
+              "query": []
+            },
+            "description": "Stops further forecasts through this link; recorded forecasts stay.\n\n**Scope:** `agent`.\n\noperationId: `deleteExternalQuestionLink`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{agentToken}}",
                   "type": "string"
                 }
               ]
@@ -19200,152 +20201,6 @@
               "query": []
             },
             "description": "Runs the monthly check now: ensemble weights, Platt fits (\u2265 50 resolved per forecaster and category) and the extremizing factor, enabled only with \u2265 5 distinct forecaster types and an out-of-sample log-score gain over \u2265 100 resolutions.\n\n**Scope:** `agent` or `admin`.\n\noperationId: `refitForecastEnsemble`",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{agentToken}}",
-                  "type": "string"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "name": "List market links of a question",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/v1/forecasts/questions/{{questionId}}/market-links",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "v1",
-                "forecasts",
-                "questions",
-                "{{questionId}}",
-                "market-links"
-              ],
-              "query": []
-            },
-            "description": "Markets and forecast platforms linked to this ledger question as external forecasters.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `listQuestionMarketLinks`",
-            "auth": {
-              "type": "noauth"
-            }
-          }
-        },
-        {
-          "name": "Link a market to a question",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/v1/forecasts/questions/{{questionId}}/market-links",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "v1",
-                "forecasts",
-                "questions",
-                "{{questionId}}",
-                "market-links"
-              ],
-              "query": []
-            },
-            "description": "The linked market or platform question becomes an external forecaster for this question (submits on moves \u2265 0.02 and at least daily; joins the ensemble after 30 resolved links).\n\n**Scope:** `agent`.\n\noperationId: `createQuestionMarketLink`",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{agentToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          }
-        },
-        {
-          "name": "Unlink a market from a question",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('status is 204', () => pm.expect([204]).to.include(pm.response.code));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "DELETE",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/v1/forecasts/questions/{{questionId}}/market-links/{{linkId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "v1",
-                "forecasts",
-                "questions",
-                "{{questionId}}",
-                "market-links",
-                "{{linkId}}"
-              ],
-              "query": []
-            },
-            "description": "Stops further external forecasts from this link; past forecasts stay in the ledger.\n\n**Scope:** `agent`.\n\noperationId: `deleteQuestionMarketLink`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -21696,7 +22551,7 @@
               ],
               "query": []
             },
-            "description": "Parses the body with the named `IngestFormat` and submits one batch to the single writer (same versioning, policies, live/touch semantics, change stream, triggers and retention as polled data). Credentials: `X-Foresignal-Ingest-Key`, `Authorization: Bearer eik_\u2026`, Basic with the key as password, a device key (039, bound to one entity), or an `admin` token; a configured signature verifier must also pass unless `keyOptional`. 200 when the request is valid even with per-record rejections (MISSING_OBSERVED_AT, LOW_ACCURACY, \u2026). OwnTracks, Overland, OsmAnd and GPSLogger get their native reply shapes. Format `social-post` (134) takes a JSON array of `SocialPostIngestItem` and stores `social-post` records with `collection = import`.\n\n**Scope:** ingest key (or an `admin` token).\n\noperationId: `ingestRecordsFormat`",
+            "description": "Parses the body with the named `IngestFormat` and submits one batch to the single writer (same versioning, policies, live/touch semantics, change stream, triggers and retention as polled data). Credentials: `X-Foresignal-Ingest-Key`, `Authorization: Bearer eik_\u2026`, Basic with the key as password, a device key (039, bound to one entity), or an `admin` token; a configured signature verifier must also pass unless `keyOptional`. 200 when the request is valid even with per-record rejections (MISSING_OBSERVED_AT, LOW_ACCURACY, \u2026). OwnTracks, Overland, OsmAnd and GPSLogger get their native reply shapes.\n\n**Scope:** ingest key (or an `admin` token).\n\noperationId: `ingestRecordsFormat`",
             "auth": {
               "type": "noauth"
             },
@@ -25225,7 +26080,7 @@
     },
     {
       "name": "MCP",
-      "description": "Remote MCP authorization: RFC 9728 protected resource metadata (141)",
+      "description": "Remote MCP authorization: RFC 9728 protected resource metadata (140)",
       "item": [
         {
           "name": "Protected resource metadata",
@@ -25737,121 +26592,6 @@
               ]
             },
             "description": "Basemap-free server-rendered PNG: Natural Earth land, water and boundaries, product frames, alert geometry, place marker and range rings, scale bar, frame valid times, legend, attribution and an \"Automated \u2014 not an official warning\" footer. Missing or stale frames are drawn as a labelled note, never omitted; nothing fetches third-party tiles. Immutable only when every frame is content-addressed and pinned; otherwise a short max-age with an ETag.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getStaticMap`",
-            "auth": {
-              "type": "noauth"
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "Markets",
-      "description": "Prediction markets and forecast platforms as opt-in sources and external forecasters (138)",
-      "item": [
-        {
-          "name": "List prediction markets",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/v1/markets",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "v1",
-                "markets"
-              ],
-              "query": [
-                {
-                  "key": "platform",
-                  "value": "kalshi",
-                  "description": "Platform",
-                  "disabled": true
-                },
-                {
-                  "key": "q",
-                  "value": "",
-                  "description": "Text search in titles and rules",
-                  "disabled": true
-                },
-                {
-                  "key": "status",
-                  "value": "open",
-                  "description": "Status",
-                  "disabled": true
-                },
-                {
-                  "key": "cursor",
-                  "value": "{{cursor}}",
-                  "description": "Opaque page cursor",
-                  "disabled": true
-                },
-                {
-                  "key": "limit",
-                  "value": "100",
-                  "description": "Page size",
-                  "disabled": true
-                }
-              ]
-            },
-            "description": "Markets known to the enabled prediction-market adapters (138), for search and linking to ledger questions.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `listMarkets`",
-            "auth": {
-              "type": "noauth"
-            }
-          }
-        },
-        {
-          "name": "Get a prediction market",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/v1/markets/{{platform}}/{{marketId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "v1",
-                "markets",
-                "{{platform}}",
-                "{{marketId}}"
-              ],
-              "query": []
-            },
-            "description": "Latest prices or community prediction, status and the series refs of its history.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getMarket`",
             "auth": {
               "type": "noauth"
             }
@@ -30753,7 +31493,7 @@
     },
     {
       "name": "Plugins",
-      "description": "Out-of-tree WASM parser plugins, disabled by default (141)",
+      "description": "Out-of-tree WASM parser plugins, disabled by default (140)",
       "item": [
         {
           "name": "List plugins",
@@ -37661,158 +38401,6 @@
           }
         },
         {
-          "name": "Get headless-browser settings",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/v1/settings/browser",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "v1",
-                "settings",
-                "browser"
-              ],
-              "query": []
-            },
-            "description": "The optional headless-browser runtime used by sources in `browser` fetch mode: enabled flag, executable, installed version and limits.\n\n**Scope:** `admin`.\n\noperationId: `getBrowserSettings`",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{adminToken}}",
-                  "type": "string"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "name": "Set headless-browser settings",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/v1/settings/browser",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "v1",
-                "settings",
-                "browser"
-              ],
-              "query": []
-            },
-            "description": "Replaces the settings. Enabling without an installed or configured browser leaves browser-mode sources in `BROWSER_UNAVAILABLE` until one is installed.\n\n**Scope:** `admin`.\n\noperationId: `updateBrowserSettings`",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{adminToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          }
-        },
-        {
-          "name": "Install the headless browser",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('status is 202', () => pm.expect([202]).to.include(pm.response.code));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/v1/settings/browser/install",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "v1",
-                "settings",
-                "browser",
-                "install"
-              ],
-              "query": []
-            },
-            "description": "Downloads the Playwright-managed Chromium once; poll `GET /v1/settings/browser` for progress.\n\n**Scope:** `admin`.\n\noperationId: `installBrowser`",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{adminToken}}",
-                  "type": "string"
-                }
-              ]
-            }
-          }
-        },
-        {
           "name": "Get weather settings",
           "event": [
             {
@@ -39558,7 +40146,7 @@
               ],
               "query": []
             },
-            "description": "One adapter with health, quotas, spend and settings; Telegram includes its account session state.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getSocialPlatform`",
+            "description": "One adapter with health, quotas, spend and settings.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getSocialPlatform`",
             "auth": {
               "type": "noauth"
             }
@@ -39920,169 +40508,6 @@
             "description": "The latest version of one post by network and platform post id (percent-encode ids that contain `/`).\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getSocialPost`",
             "auth": {
               "type": "noauth"
-            }
-          }
-        },
-        {
-          "name": "Start Telegram account login",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/v1/social/telegram/login",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "v1",
-                "social",
-                "telegram",
-                "login"
-              ],
-              "query": []
-            },
-            "description": "Starts a TDLib login for the operator's own Telegram account (`telegram` adapter in `account` mode); Telegram sends a code. Continue with `/v1/social/telegram/login/confirm`.\n\n**Scope:** `admin`.\n\noperationId: `startTelegramLogin`",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{adminToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          }
-        },
-        {
-          "name": "Confirm Telegram account login",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/v1/social/telegram/login/confirm",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "v1",
-                "social",
-                "telegram",
-                "login",
-                "confirm"
-              ],
-              "query": []
-            },
-            "description": "Submits the code (and the two-step verification password when required). Returns `password-required` when Telegram asks for the password, `ready` when the session is established; the session database is encrypted with the 003 secret key.\n\n**Scope:** `admin`.\n\noperationId: `confirmTelegramLogin`",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{adminToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          }
-        },
-        {
-          "name": "Log out the Telegram session",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('status is 204', () => pm.expect([204]).to.include(pm.response.code));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "DELETE",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/v1/social/telegram/session",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "v1",
-                "social",
-                "telegram",
-                "session"
-              ],
-              "query": []
-            },
-            "description": "Logs the operator's Telegram account out and deletes the local TDLib database; idempotent. The adapter falls back to `credentials-required` in account mode.\n\n**Scope:** `admin`.\n\noperationId: `deleteTelegramSession`",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{adminToken}}",
-                  "type": "string"
-                }
-              ]
             }
           }
         },
@@ -41988,155 +42413,6 @@
               ]
             }
           }
-        },
-        {
-          "name": "Get a source browser session",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/v1/sources/{{sourceId}}/browser-session",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "v1",
-                "sources",
-                "{{sourceId}}",
-                "browser-session"
-              ],
-              "query": []
-            },
-            "description": "Metadata of the imported browser session (domains, earliest cookie expiry, import time); never the cookies.\n\n**Scope:** `admin`.\n\noperationId: `getSourceBrowserSession`",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{adminToken}}",
-                  "type": "string"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "name": "Import a source browser session",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/v1/sources/{{sourceId}}/browser-session",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "v1",
-                "sources",
-                "{{sourceId}}",
-                "browser-session"
-              ],
-              "query": []
-            },
-            "description": "Stores a Playwright storage-state JSON exported by the operator after logging in themselves; encrypted at rest and used only by this source.\n\n**Scope:** `admin`.\n\noperationId: `putSourceBrowserSession`",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{adminToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          }
-        },
-        {
-          "name": "Remove a source browser session",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('status is 204', () => pm.expect([204]).to.include(pm.response.code));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "DELETE",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/v1/sources/{{sourceId}}/browser-session",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "v1",
-                "sources",
-                "{{sourceId}}",
-                "browser-session"
-              ],
-              "query": []
-            },
-            "description": "Deletes the stored session.\n\n**Scope:** `admin`.\n\noperationId: `deleteSourceBrowserSession`",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{adminToken}}",
-                  "type": "string"
-                }
-              ]
-            }
-          }
         }
       ]
     },
@@ -42355,7 +42631,7 @@
     },
     {
       "name": "Standards",
-      "description": "Standards outputs: FDSN event / QuakeML, STIX 2.1 and TAXII 2.1 (141)",
+      "description": "Standards outputs: FDSN event / QuakeML, STIX 2.1 and TAXII 2.1 (140)",
       "item": [
         {
           "name": "FDSN event query",

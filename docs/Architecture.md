@@ -118,7 +118,6 @@ ai.foresignal
 │                   network: fingerprints, discovery, access requests (133)
 ├── report          Reports, renditions, signed intelligence packages (131)
 ├── media           News articles, stories, outlet registry, rating providers, coverage (132)
-├── markets         Prediction markets, forecast platforms and market links to the ledger (138)
 ├── social          Platform adapters, posts, term index, volume series and baselines (134);
 │                   narratives, claims, media fingerprints, propagation, coordination (135);
 │                   social–physical comparisons, attention gaps, cues, lead times (136)
@@ -694,7 +693,7 @@ Authoritative design: [Intelligence Design](Intelligence-Design.md). Summary of 
 - **Clients** use one object contract, relation graph, annotations and synchronised workspaces (128, [Client Contract](Client-Contract.md)); Foresignal stores client layout only as opaque JSON.
 - **Collaboration and products:** principals, groups, access lists and TLP govern work products (129); chronicles keep their own partitioned history (130); reports and signed packages carry analysis between people and instances (131); news coverage and outlet ratings inform evidence quality (132).
 - **Social signals** (134–136): platform adapters are ordinary sources (STREAMING or POLLING) with budgets in money as well as calls; posts are `social-post` records; volume series join the analysis-series registry; narratives are canonical events (116) whose evidence groups count origins; comparisons with physical evidence use the observability model, and cues reuse the source framework with per-cue caps.
-- **Opt-in restricted sources** (137–138): `collect` gains a `browser` fetch mode (Playwright, optional runtime), per-source proxies and imported sessions; descriptors carry an `access` block (route, terms summary, fragility, requirements); adapters for unofficial, scraped and paid sources ship disabled.
+- **External data** (024, 137): third-party providers speak the [External Data Protocol](External-Data-Protocol.md); an EDP source is a custom source whose descriptor comes from the provider's manifest (`ai.foresignal.inbound.edp`), layer streams are ordinary kinds, and a binding router (`external.binding.cursor`) routes atomic streams into series, evidence, indicators, forecasts, places, situations and chronicles. Fringe adapters live outside the repository.
 - **Invariants** are indexed in [Invariants](Invariants.md) and verified at every checkpoint.
 - **Wording:** probabilities are numbers; ICD 203 terms are derived and linted by one `EstimativeLanguage` utility.
 - **Libraries:** Apache Commons Statistics, Commons Numbers, Commons RNG and Hipparchus; no GPL statistics libraries.
