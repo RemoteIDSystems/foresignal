@@ -78,6 +78,13 @@ These supersede anything above that conflicts with them. Sources: `docs/Core-Dat
 - **Budget outlook (from the Grok review):** `budgetHoursRemaining`, the hours until today's budget is exhausted at the last hour's rate (null when the rate is 0).
 - **Frame-age hook (weather):** a pluggable `HealthRule` SPI. Product sources (later) contribute a frame-age rule: degraded when the newest frame is older than `3 × cadence` or `maxGap`. The view gains optional `newestFrameAt` and `frameAgeSeconds`.
 
+## From the 005 completion report (authoritative)
+
+Read `completion-reports/005-CR-Upstream-Client-And-Budgets.md` "Notes for the next prompt" first. In particular, `source_health` rows already exist (`BackoffRegistry` creates them), so health writes must upsert their own columns and leave `backoff_until` and `adapter_state` alone. Budget refusals and backoff skips are never failures.
+
+- **Usage flush failures:** `UsageMeter.flush` currently logs and swallows a failed flush, so the unflushed counts are lost and the next day's budget is silently wider than configured. Make it visible: count consecutive flush failures (a counter `UsageMeter` exposes, or a hook it calls), expose it through a Spring Boot Actuator `HealthIndicator` named `usageMeter` (`DOWN` with `consecutiveFailures` and the last error message, redacted, while failing; `UP` otherwise), and log at `WARN` once per failure streak rather than on every flush. This is system health, not per-source health: it must not change any source's `status`, and it doesn't change the OpenAPI contract.
+- Tests: extend `HealthServiceIT` with a flush failure that turns the indicator `DOWN` and a later successful flush that turns it back `UP`.
+
 ## Tests to write (do not run)
 
 - `HealthEvaluatorTest` (extend): coverage dropped vs. possible format change table, budget-hours computation, a custom `HealthRule` contributing a status.
