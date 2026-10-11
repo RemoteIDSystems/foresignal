@@ -6,7 +6,7 @@
 ## Context
 
 - **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
-- **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`.
+- **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, and `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump.
 - **Previous Completion Report:** read `completion-reports/003-CR-*.md` and follow its "Notes for the next prompt".
 
 ## Read first
@@ -95,8 +95,60 @@ Implement as specified in Architecture §4.1, using Java records where possible:
 - `FakeFamily`: three feeds.
 - A `@TestConfiguration` that registers them. These are reused by prompts 005–008.
 
+## v1.2 data-model and platform additions (authoritative)
+
+These supersede anything above that conflicts with them. **Read `docs/Core-Data-Model.md` §2 (time contract), §3 (ingest input) and §5.1 (policy settings and validation), plus its "004 Source Framework" bullets under *Per-prompt changes*, and implement them exactly.** `docs/Core-Data-Model.md` is authoritative for the data model wherever `docs/Architecture.md` §4–§11 disagree.
+
+### A. Ingest input and descriptor (Core-Data-Model §2, §3)
+
+- **`NormalizedRecord`:**
+  - adds `eventTime`, `quality` (`Quality`) and `observers` (`List<Observer>`), with builder support
+  - `observedAt` is required unless the source's `observedAtMode=RECEIVED`
+  - `validUntil` is **only** an upstream-asserted expiry
+- **New types:** `Quality`, `PositionSource`, `Observer`, `Coverage`; `FetchResult` gains `coverage`.
+- **`SourceDescriptor` adds:**
+  - `licence`, `termsUrl`
+  - `historyTier` (`STANDARD` | `TRACK`), `observedAtMode` (`UPSTREAM` | `RECEIVED`), `ttlAnchor` (`OBSERVED` | `RECEIVED`, with the tier-dependent default)
+  - `defaultIngestPolicy`, `volatileFields`, `significantFields`, `motion` (`MotionSpec`), `thresholds` (`FieldThreshold`)
+  - `defaultRetention` (STANDARD only), `skewTolerance`, `limits` (`RecordLimits`), `allowNullIsland`
+- **`IngestPolicy`:** a sealed type (`All`, `Sampled`, `Latest`) with `minInterval`, `keyframe`, `minDeviationMeters`, `thresholds` and `edgeMinInterval`, plus JSON mapping, and an **`IngestPolicyValidator`** implementing §5.1 exactly (including `keyframe ≤ ttl − pollInterval − 30 s` and the default ALL keyframe).
+- **Registry validation adds:**
+  - payload field names are top-level keys
+  - TRACK requires a TTL and `ttlAnchor=OBSERVED`, and forbids `defaultRetention`
+  - SAMPLED and LATEST require `significantFields`
+  - threshold and motion fields must not be significant
+  - warnings for non-significant `searchFields` and `tileProperties`
+- **`SourceService`:**
+  - `update` accepts and validates `ingestPolicy` (an explicit null clears it), stored in the new `source_settings.ingest_policy` jsonb column
+  - rejects a retention setting on TRACK sources with `400 RETENTION_TIER_FIXED`
+  - adds `effectiveIngestPolicy(id)` and `effectiveRetention(id)`
+- **Javadoc:** `RecordSink.accept` may block. Write adapter rules 7–13 from Core-Data-Model §3 into the SPI package Javadoc.
+
+### B. Weather and imagery hooks (docs/Weather-Imagery-Design.md §2, §10.1)
+
+Add these hooks now, so later prompts don't need to refactor the SPI:
+
+- **`ProductSpec`:** an optional `List<ProductSpec> products` on the descriptor. Define `ProductSpec` as a minimal record (`id`, `title`, `kind`) here; the raster-products prompt extends it.
+- **`kindRetention`:** an optional map from kind to Duration on the descriptor (STANDARD only), used by retention resolution in prompt 016.
+- **`Mode.DERIVED`:** sources computed from stored data or events. They make no upstream requests (`ctx.http()` throws), and `recordTtl` must be null. They are enabled, parameterised, health-tracked and retained like any other source. The runtime comes in a later prompt; the registry accepts the mode now.
+- **Param type `LAN_URL`:** validation resolves the host once and requires a loopback, RFC 1918, link-local or ULA address (a `.local` name must resolve to one of those). The resolved IP is stored in `ValidatedParams`, so the client connects to the **pinned IP** with the original Host header and redirects disabled (prompt 005 implements the connect side). This defeats DNS rebinding.
+- **Param type `INBOX_PATH`:** the realpath must sit under `ELARO_INBOX_DIR`. Add the bootstrap property `elaro.inbox-dir` with default `${ELARO_DATA_DIR}/inbox` and env `ELARO_INBOX_DIR`. Provide an `InboxFiles` helper that opens every file with `NOFOLLOW_LINKS` and re-checks its realpath against the root, per file and per scan.
+
+### C. Error-handling fix (from the 003 Completion Report)
+
+`GlobalExceptionHandler` currently maps every `IllegalArgumentException` to 400, which would hide internal bugs as validation errors.
+
+- Add `InvalidInputException` (400, `VALIDATION_FAILED`) and make `Durations`, `ParamValidator`, the bbox and cursor parsers and every other input parser throw it, or `ValidationException`.
+- Change the generic `IllegalArgumentException` handler to return **500** and log the stack trace with the correlation id.
+- Update the existing tests that assumed the old mapping.
+
 ## Tests to write (do not run)
 
+- `IngestPolicyValidatorTest`: the full §5.1 matrix, including the TTL/keyframe constraint and the invalid-combination errors.
+- `SourceRegistryTest` (extend): TRACK without a TTL, TRACK with `defaultRetention`, SAMPLED without `significantFields`, significant threshold or motion fields, DERIVED with a TTL; all rejected.
+- `ParamValidatorTest` (extend): `LAN_URL` accepts a private address, rejects a public one, rejects DNS that resolves to a public address, and pins the IP. `INBOX_PATH` rejects symlink escapes and paths outside the root.
+- `SourceServiceIT` (extend): `ingestPolicy` round trip and clear; TRACK retention rejected with 400 `RETENTION_TIER_FIXED`.
+- `GlobalExceptionHandlerTest` (update): `InvalidInputException` → 400; a bare `IllegalArgumentException` → 500 with the stack trace logged.
 - `SourceRegistryTest`: discovery including families, and every validation failure (bad id, duplicates, interval inversion, mode mismatch, invalid default); dynamic register and unregister, duplicates rejected, event published.
 - `ParamValidatorTest`: each type, defaults, required, allowed, unknown keys, multiple errors aggregated, bbox range errors.
 - `SourceServiceIT`:

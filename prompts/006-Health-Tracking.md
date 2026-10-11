@@ -6,7 +6,9 @@
 ## Context
 
 - **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
-- **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`.
+- **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.2 prompt numbers; translate them with `docs/Roadmap.md` §5.
+- **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
+- **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, and `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump.
 - **Previous Completion Report:** read `completion-reports/005-CR-*.md` and follow its "Notes for the next prompt".
 
 ## Read first
@@ -62,8 +64,24 @@ Keep thresholds as named constants.
 - Wire health into `SourceService` views (the seam left in prompt 004), so the source summary and detail carry `status`, `lastSuccessAt` and `budgetUsedToday`.
 - Expose Micrometer gauges: `elaro.source.status{source, status}` (1 for the current status) and `elaro.source.consecutive_failures{source}`.
 
+## v1.2 additions (authoritative)
+
+These supersede anything above that conflicts with them. Sources: `docs/Core-Data-Model.md` *Per-prompt changes* → 006, and `docs/Weather-Imagery-Design.md` §2 (Health row).
+
+- **`recordSuccess(IngestOutcome)`:** `last_records_changed = persisted`, plus last-hour late, clamped and rejected counts. Define `IngestOutcome` here as a record in the `ingest` package if prompt 007 hasn't created it yet; 007 owns the final shape in Core-Data-Model §6.
+- **`source_health.last_data_at`:** set on OK fetches that returned records and on stream flushes, never on a 304.
+- **Coverage history:** `last_coverage` and a `recent_coverage` ring of 20.
+- **Evaluator rule 5 becomes two rules:**
+  - "**coverage dropped**": receivers or expected fall by ≥ 50% against the median of the last 20
+  - "**possible format change**": zero records seen while coverage is steady
+- **View additions:** `coverage`, `storage` (Core-Data-Model §15: observationsPerMinute, versionsPerMinute, persistRatio, triggerEdgeShare, bytesPerDay, projectedBytes, lateLastHour, clampedLastHour) and `lastDataAt`.
+- **Budget outlook (from the Grok review):** `budgetHoursRemaining`, the hours until today's budget is exhausted at the last hour's rate (null when the rate is 0).
+- **Frame-age hook (weather):** a pluggable `HealthRule` SPI. Product sources (later) contribute a frame-age rule: degraded when the newest frame is older than `3 × cadence` or `maxGap`. The view gains optional `newestFrameAt` and `frameAgeSeconds`.
+
 ## Tests to write (do not run)
 
+- `HealthEvaluatorTest` (extend): coverage dropped vs. possible format change table, budget-hours computation, a custom `HealthRule` contributing a status.
+- `HealthServiceIT` (extend): storage math from `source_usage`, `last_data_at` not updated by a 304.
 - `HealthEvaluatorTest`: table-driven, covering every rule, rule precedence, and boundary values (exactly 3 failures, exactly 20%, a 304 not polluting counts, `zeroResultsNormal`).
 - `HealthTrackerIT`: success and failure transitions persisted; ring buffer of 5; error message truncation and redaction; HTTP status captured.
 - `HealthServiceIT`: views combine usage and budget correctly; filtering by status.
@@ -75,9 +93,9 @@ Keep thresholds as named constants.
 
 ## Guardrails (mandatory)
 
-1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests are first run in prompt 061 (Full Test Run And Fix).
-2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`). **Do not add Flyway, Liquibase or SQL migration files.**
-3. **Reuse policy.** Never copy code from ShadowBroker, Velocity or World Monitor, which are AGPL. They are reference material only. God's Eye View (MIT, `~/Documents/GitLab/gods-eye-view`) may be ported to Java if you add an origin header comment and an entry in `THIRD_PARTY_NOTICES.md`.
+1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 118, 119, 120).
+2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 120).
+3. **Reuse policy.** Never copy code from ShadowBroker, Velocity or World Monitor (AGPL) or SatDump (GPL). They are reference material only. God's Eye View (MIT, `~/Documents/GitLab/gods-eye-view`) may be ported to Java if you add an origin header comment and an entry in `THIRD_PARTY_NOTICES.md`.
 4. **Stay in scope.** Implement what this prompt specifies, no more. If the docs conflict with reality (for example, a library API differs from what the docs assume), choose the approach most faithful to `docs/Architecture.md` and record it under "Deviations" in the Completion Report.
 5. **Verify versions.** When adding a dependency, confirm the version exists on Maven Central and is compatible with Spring Boot 4.1 and Java 21.
 6. **Finish with Compile → Commit → Push** (see the final section).

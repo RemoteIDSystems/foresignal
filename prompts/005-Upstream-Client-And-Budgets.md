@@ -6,7 +6,7 @@
 ## Context
 
 - **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
-- **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`.
+- **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, and `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump.
 - **Previous Completion Report:** read `completion-reports/004-CR-*.md` and follow its "Notes for the next prompt".
 
 ## Read first
@@ -80,8 +80,25 @@ Make every upstream request budgeted, metered, identifiable and polite. After th
 
 A capture buffer used by the probe feature in prompt 008: a list of `RecordedExchange` with a per-body byte cap.
 
+## v1.2 additions (authoritative)
+
+These supersede anything above that conflicts with them. Sources: `docs/Core-Data-Model.md` *Per-prompt changes* → 005, and `docs/Weather-Imagery-Design.md` §2 (UpstreamClient and BudgetGovernor rows).
+
+- **`FetchTrace`:** `SourceHttp` records one per request: redacted URL, status, ETag, bytes and a streaming SHA-256 of the body (no bodies kept). `FetchExecutor` (prompt 008) turns these into `fetch_log` rows.
+- **`UsageMeter.recordIngest(sourceId, IngestCounts)`:** `SourceUsageEntity` gains `records_seen`, `versions`, `live_updates`, `touches`, `late`, `skipped`, `rejected` and `version_bytes`, and the flush upsert accumulates them.
+- **New `SourceHttp` methods:**
+  - **`getRange(url, start, end, maxBytes)`:** accepts only 206 (or 200 when `start=0`), rejects short bodies, follows no redirects.
+  - **`download(url, Path tmp, maxBytes)`:** streams to a temp file under `${ELARO_DATA_DIR}/rasters/tmp`.
+  - **`listS3(bucket, prefix, startAfter)`:** anonymous ListObjectsV2 against public buckets, with XML parsed safely (no XXE). It returns keys, sizes and ETags.
+  - **Response cap:** the descriptor's `maxResponseBytes` overrides the 32 MB default.
+- **`LAN_URL` connections:** connect to the IP pinned during validation (prompt 004), keep the original Host header, and disable redirects.
+- **`BudgetGovernor` megabyte budget:** an optional `mbPerDay` budget, charged in advance from the known size (S3 `Size`, `.idx` offsets) and corrected afterwards from actual bytes.
+
 ## Tests to write (do not run)
 
+- `UpstreamClientIT` (extend): `getRange` (206 OK; a 200 for a non-zero start is rejected; a short body is rejected), `download` with the cap, `listS3` paging with `startAfter` against a WireMock S3 XML fixture, and `LAN_URL` pinned-IP connect with no redirects.
+- `BudgetGovernorTest` (extend): `mbPerDay` advance charge and correction.
+- `FetchTraceTest`: redaction, streaming hash, byte count.
 - `BudgetGovernorTest` (with `MutableClock`):
   - per-minute refill, per-day exhaustion and midnight UTC reset
   - seeding from prior usage

@@ -1,6 +1,12 @@
 # Elaro — Architecture
 
-Version 1.1 · 2026-10-10 · Companion to the [Product Charter](Product-Charter.md) and [OpenAPI spec](OpenAPI.json).
+Version 1.2 · 2026-10-10 · Companion to the [Product Charter](Product-Charter.md) and [OpenAPI spec](OpenAPI.json).
+
+> **v1.2 note:** [Core-Data-Model.md](Core-Data-Model.md) is authoritative for the data model, and supersedes §4–§11 of this document wherever they conflict. It covers time semantics, persisted vs. live state, ingest policies, partitioned history, the writer, SSE live events, trigger edges, asOf and retention. [Weather-Imagery-Design.md](Weather-Imagery-Design.md) is authoritative for weather, raster products, imagery and SatDump. A later docs prompt folds both into this file.
+>
+> Correction: `seq` is **monotonic in commit order**, not gap-free; gaps from rolled-back allocations are expected and harmless.
+>
+> Access rule: any unmatched `/v1/**` path requires `admin` (fail closed), so a new endpoint is never accidentally world-writable.
 
 ---
 
