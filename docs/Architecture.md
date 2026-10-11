@@ -613,7 +613,7 @@ Optional. Without a configured provider, Elaro is fully functional: briefings us
 2. Switch `ddl-auto` to `validate`; delete `SchemaBootstrap`. The reindex job (§20) keeps its own DDL for dimension changes.
 3. Consider partitioning `record_version` by month if volume demands it (decide from measured volume).
 
-## 26. Reuse policy
+## 26. Reuse policy and reference projects
 
 | Repository | Licence | Use |
 |---|---|---|
@@ -621,3 +621,33 @@ Optional. Without a configured provider, Elaro is fully functional: briefings us
 | ShadowBroker | AGPL-3.0 | Reference only: endpoints, parameters, quirks. No code copied. |
 | Velocity | AGPL-3.0 | Reference only |
 | World Monitor | AGPL-3.0 | Reference only |
+| SatDump | GPL-3.0 | Reference only. Elaro talks to a separately run SatDump through files and HTTP; never copy code, headers, structs or projection code. |
+| MeshCore | MIT | Protocol reference for mesh sources and channels (`docs/companion_protocol.md`, `docs/payloads.md`); talk to companions through `meshcore_py` or the bridge script. |
+| MeshDTN | Owner's project (firmware and app are MIT forks of MeshCore and meshcore-open) | Elaro's store-carry-forward mesh partner: the specifications define what Elaro sends over mesh. |
+
+### What each project contributed
+
+- **God's Eye View:** the only project whose code is ported. It supplies the camera catalogues, transit, bikeshare, fire perimeters, radio and weather-model (GFS/HRRR wind, 051) sources. See `docs/Source-Catalog.md` (GEV).
+- **ShadowBroker:** the second main input to the source inventory: endpoints, parameters and upstream quirks (Source-Catalog, SB). Also the cautionary tale: the Meshtastic project called out its traffic as 1–2 orders of magnitude above typical clients, which is why Elaro meters every source and enforces budgets.
+- **Velocity:** keyless and official feeds Elaro lacked (Source-Catalog, VEL), and enter/exit geofence alerting (§8).
+- **World Monitor:** structured feeds such as cyber, conflict, disasters, sanctions, internet outages and energy series (Source-Catalog, WM).
+- **All four together:** the product shape. Each fuses collection, display and alerting into one app; Elaro separates them into a headless broker that collects quietly, keeps history and alerts, with any map or app as a client (Executive Summary, Product Charter §2).
+- **SatDump:** the station integration (049, 054, 107).
+- **MeshCore:** mesh sources and outbound mesh channels (083, 084).
+- **MeshDTN:** compact intelligence messages for delay-tolerant mesh delivery (084's CBOR profile, 113).
+
+### Where to get them
+
+Prompts reference these at fixed paths under `~/Documents/GitLab/`, as siblings of `elaro`. Every build host (the Mac or the Linux bench server) needs the same layout. `gods-eye-view` is required, because prompts may port from it; the rest are read-only references.
+
+| Local path | Clone from |
+|---|---|
+| `~/Documents/GitLab/gods-eye-view` | `http://192.168.1.134/mirrors/gods-eye-view.git` (upstream https://github.com/bilawalsidhu/gods-eye-view) |
+| `~/Documents/GitLab/Shadowbroker` | https://github.com/BigBodyCobain/Shadowbroker.git |
+| `~/Documents/GitLab/velocity` | https://github.com/AndrewCTF/velocity.git |
+| `~/Documents/GitLab/worldmonitor` | https://github.com/koala73/worldmonitor.git |
+| `~/Documents/GitLab/SatDump` | `http://192.168.1.134/mirrors/SatDump.git` (upstream https://github.com/SatDump/SatDump) |
+| `~/Documents/GitLab/MeshCore` | `http://192.168.1.134/mirrors/MeshCore.git` |
+| `~/Documents/GitLab/meshdtn` | https://gitlab.com/adam.allard/meshdtn.git (specifications) |
+| `~/Documents/GitLab/meshdtn-firmware` | https://gitlab.com/adam.allard/meshdtn-firmware.git |
+| `~/Documents/GitLab/meshdtn-app` | https://gitlab.com/adam.allard/meshdtn-app.git |
