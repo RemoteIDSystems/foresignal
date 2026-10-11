@@ -64,6 +64,13 @@ public class TriggerRuleEntity {
     @Column(name = "message_template", columnDefinition = "text")
     private String messageTemplate;
 
+    /**
+     * Whether an entity reappearing after a tombstone counts as entering the rule (Core-Data-Model
+     * §11). The API defaults it to true for rules with a geofence; the column default is false.
+     */
+    @Column(name = "reappear_as_enter", nullable = false, columnDefinition = "boolean default false")
+    private boolean reappearAsEnter;
+
     @JdbcTypeCode(SqlTypes.TIMESTAMP_UTC)
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
@@ -167,6 +174,16 @@ public class TriggerRuleEntity {
 
     public void setMessageTemplate(String messageTemplate) {
         this.messageTemplate = messageTemplate;
+    }
+
+    /** Whether a reappearance after a tombstone counts as an enter. */
+    public boolean isReappearAsEnter() {
+        return reappearAsEnter;
+    }
+
+    /** Sets whether a reappearance after a tombstone counts as an enter. */
+    public void setReappearAsEnter(boolean reappearAsEnter) {
+        this.reappearAsEnter = reappearAsEnter;
     }
 
     public Instant getCreatedAt() {

@@ -9,6 +9,7 @@ import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.Stream;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
@@ -29,6 +30,11 @@ public class InboxFiles {
 
     private final Path root;
 
+    /**
+     * Creates the reader for the configured inbox. Marked {@code @Autowired} because the class has a
+     * second, test-only constructor, and Spring cannot choose between two otherwise.
+     */
+    @Autowired
     public InboxFiles(ForesignalProperties properties) {
         this(properties.inboxDir());
     }

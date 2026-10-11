@@ -13,6 +13,7 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
@@ -40,6 +41,11 @@ public class SecretKeyStore {
     private final SecretKey key;
     private final Path keyFile;
 
+    /**
+     * Loads or creates the key in the configured data directory. Marked {@code @Autowired} because
+     * the class has a second, test-only constructor, and Spring cannot choose between two otherwise.
+     */
+    @Autowired
     public SecretKeyStore(ForesignalProperties properties) {
         this(properties.dataDir());
     }

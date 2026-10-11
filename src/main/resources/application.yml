@@ -11,9 +11,15 @@ spring:
     url: ${FORESIGNAL_DB_URL:jdbc:postgresql://localhost:5433/foresignal}
     username: ${FORESIGNAL_DB_USER:foresignal}
     password: ${FORESIGNAL_DB_PASSWORD:foresignal}
+    hikari:
+      data-source-properties:
+        # Lets the ingest writer's JDBC batches become multi-row inserts. Also
+        # applies to the Testcontainers @ServiceConnection URL.
+        reWriteBatchedInserts: true
   jpa:
-    # Hibernate owns the schema during development. Flyway is introduced only
-    # in production hardening (prompt 042).
+    # Hibernate owns the schema during development, except the partitioned
+    # record_version, whose DDL HistorySchemaInitializer owns. Flyway is
+    # introduced only in production hardening (prompt 144).
     hibernate:
       ddl-auto: update
     open-in-view: false
@@ -23,6 +29,10 @@ spring:
           batch_size: 500
           time_zone: UTC
         order_inserts: true
+        hbm2ddl:
+          # Makes Hibernate see the partitioned record_version as an existing
+          # table instead of trying to create it.
+          extra_physical_table_types: PARTITIONED TABLE
   threads:
     virtual:
       enabled: true
@@ -46,6 +56,17 @@ foresignal:
   inbox-dir: ${FORESIGNAL_INBOX_DIR:${FORESIGNAL_DATA_DIR:./data}/inbox}
   reset-admin-token: ${FORESIGNAL_RESET_ADMIN_TOKEN:false}
   version: ${spring.application.version:unknown}
+  history:
+    # Seq values per record_version leaf (Core-Data-Model §9).
+    track-block: 20000000
+    standard-block: 250000000
+    maintenance:
+      enabled: true
+      interval: 10m
+  ingest:
+    writer:
+      # Hold the single-writer advisory lock (invariant I1). Off in tests.
+      exclusive: true
 
 management:
   endpoints:

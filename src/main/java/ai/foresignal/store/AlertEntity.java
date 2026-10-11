@@ -8,6 +8,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import java.util.Map;
 import java.util.UUID;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
@@ -53,6 +54,20 @@ public class AlertEntity {
     @JdbcTypeCode(SqlTypes.TIMESTAMP_UTC)
     @Column(name = "acknowledged_at")
     private Instant acknowledgedAt;
+
+    /** The triggering observation's {@code observed_at}. */
+    @JdbcTypeCode(SqlTypes.TIMESTAMP_UTC)
+    @Column(name = "observed_at")
+    private Instant observedAt;
+
+    /**
+     * The record as it was when the alert fired (Core-Data-Model §8): kind, version, observedAt,
+     * GeoJSON geometry and payload, at most 16 KB. Alerts outlive the versions they refer to, so
+     * they carry their own copy.
+     */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "record_snapshot")
+    private Map<String, Object> recordSnapshot;
 
     protected AlertEntity() {
         // for JPA
@@ -124,5 +139,25 @@ public class AlertEntity {
 
     public void setAcknowledgedAt(Instant acknowledgedAt) {
         this.acknowledgedAt = acknowledgedAt;
+    }
+
+    /** The triggering observation's time, or null. */
+    public Instant getObservedAt() {
+        return observedAt;
+    }
+
+    /** Sets the triggering observation's time. */
+    public void setObservedAt(Instant observedAt) {
+        this.observedAt = observedAt;
+    }
+
+    /** The record snapshot taken when the alert fired, or null. */
+    public Map<String, Object> getRecordSnapshot() {
+        return recordSnapshot;
+    }
+
+    /** Sets the record snapshot. */
+    public void setRecordSnapshot(Map<String, Object> recordSnapshot) {
+        this.recordSnapshot = recordSnapshot;
     }
 }

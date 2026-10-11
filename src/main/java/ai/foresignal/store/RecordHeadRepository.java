@@ -1,12 +1,13 @@
 package ai.foresignal.store;
 
-import java.time.Instant;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 
+/**
+ * Access to persisted record heads. Only the ingest writer writes them (invariant I1); head purges
+ * run on the writer as {@code HeadPurge} commands (prompt 019), never as a repository delete.
+ */
 public interface RecordHeadRepository extends JpaRepository<RecordHeadEntity, RecordHeadId> {
 
     /** Backs {@code /v1/kinds}: the current record count per kind. */
@@ -19,13 +20,9 @@ public interface RecordHeadRepository extends JpaRepository<RecordHeadEntity, Re
             """)
     List<KindCount> countByKind();
 
+    /** Every head of one source. */
     List<RecordHeadEntity> findByIdSourceId(String sourceId);
 
+    /** The number of heads of one source. */
     long countByIdSourceId(String sourceId);
-
-    /** Used by retention: current but stale heads, per Architecture §11 step 2. */
-    @Modifying
-    @Query("delete from RecordHeadEntity h where h.id.sourceId = :sourceId and h.observedAt < :before")
-    int deleteBySourceIdAndObservedAtBefore(
-            @Param("sourceId") String sourceId, @Param("before") Instant before);
 }

@@ -1,6 +1,8 @@
 package ai.foresignal.test;
 
+import ai.foresignal.ingest.IngestStateReset;
 import java.util.List;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -13,7 +15,12 @@ import org.springframework.jdbc.core.JdbcTemplate;
  * several cached Spring contexts share one database.
  *
  * <p>Tables are discovered from {@code information_schema} rather than listed, so an entity added
- * in a later prompt is cleaned without anyone remembering to update this class.
+ * in a later prompt is cleaned without anyone remembering to update this class. Partitions of
+ * {@code record_version} (the tier parents and every seq-range leaf) are left out of that list:
+ * {@code TRUNCATE record_version} recurses into them, and the leaves themselves must survive.
+ *
+ * <p>After truncating, every {@link IngestStateReset} bean reloads its cached state, because the
+ * ingest writer's allocator and clock state would otherwise point at rows that no longer exist.
  */
 public class DatabaseCleaner {
 
@@ -27,12 +34,18 @@ public class DatabaseCleaner {
     static final String RECORD_SEQUENCE = "record_seq";
 
     private final JdbcTemplate jdbc;
+    private final ObjectProvider<IngestStateReset> stateResets;
 
-    public DatabaseCleaner(JdbcTemplate jdbc) {
+    /** Creates a cleaner that resets the given {@link IngestStateReset} beans after each clean. */
+    public DatabaseCleaner(JdbcTemplate jdbc, ObjectProvider<IngestStateReset> stateResets) {
         this.jdbc = jdbc;
+        this.stateResets = stateResets;
     }
 
-    /** Deletes every row from every Foresignal table and restarts the identity and record sequences. */
+    /**
+     * Deletes every row from every Foresignal table, restarts the identity and record sequences,
+     * then resets every {@link IngestStateReset} bean.
+     */
     public void clean() {
         List<String> tables = foresignalTables();
         if (!tables.isEmpty()) {
@@ -41,26 +54,37 @@ public class DatabaseCleaner {
             jdbc.execute("TRUNCATE " + joined + " RESTART IDENTITY CASCADE");
         }
         resetRecordSequence();
+        stateResets.orderedStream().forEach(IngestStateReset::resetState);
     }
 
-    /** The Foresignal-owned base tables in the public schema. */
+    /**
+     * The Foresignal-owned base tables in the public schema, excluding every table that is a
+     * partition of another ({@code pg_inherits} child).
+     */
     List<String> foresignalTables() {
         return jdbc.queryForList(
                 """
-                select quote_ident(table_name)
-                  from information_schema.tables
-                 where table_schema = 'public'
-                   and table_type = 'BASE TABLE'
-                   and table_name <> ?
-                 order by table_name
+                select quote_ident(t.table_name)
+                  from information_schema.tables t
+                 where t.table_schema = 'public'
+                   and t.table_type = 'BASE TABLE'
+                   and t.table_name <> ?
+                   and not exists (
+                       select 1
+                         from pg_inherits i
+                         join pg_class c on c.oid = i.inhrelid
+                         join pg_namespace n on n.oid = c.relnamespace
+                        where n.nspname = t.table_schema
+                          and c.relname = t.table_name)
+                 order by t.table_name
                 """,
                 String.class,
                 POSTGIS_REFERENCE_TABLE);
     }
 
     private void resetRecordSequence() {
-        // The sequence exists only once Hibernate has created the schema; tolerate its absence so
-        // a cleaner can run against a database that has no record_version yet.
+        // The sequence exists once the history bootstrap has run; tolerate its absence so a cleaner
+        // can run against a database that has no record_version yet.
         Boolean present =
                 jdbc.queryForObject(
                         "select exists (select 1 from pg_sequences where schemaname = 'public' and sequencename = ?)",
@@ -79,8 +103,9 @@ public class DatabaseCleaner {
     public static class TestConfig {
 
         @Bean
-        public DatabaseCleaner databaseCleaner(JdbcTemplate jdbc) {
-            return new DatabaseCleaner(jdbc);
+        public DatabaseCleaner databaseCleaner(
+                JdbcTemplate jdbc, ObjectProvider<IngestStateReset> stateResets) {
+            return new DatabaseCleaner(jdbc, stateResets);
         }
     }
 }

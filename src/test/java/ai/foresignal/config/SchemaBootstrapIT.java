@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-/** Verifies the two things Hibernate cannot create for itself (Architecture §7.3). */
+/** Verifies the schema Hibernate cannot create for itself (Core-Data-Model §9). */
 @IntegrationTest
 class SchemaBootstrapIT {
 
@@ -46,8 +46,62 @@ class SchemaBootstrapIT {
         assertThat(indexNames())
                 .contains(
                         "record_version_geom_gist",
-                        "record_head_geom_gist",
-                        "trigger_rule_geofence_gist");
+                        "record_live_geom_gist",
+                        "trigger_rule_geofence_gist")
+                .doesNotContain("record_head_geom_gist");
+    }
+
+    @Test
+    @DisplayName("record_version owns its three partitioned indexes and nothing else")
+    void recordVersionIndexes() {
+        List<String> parentIndexes =
+                jdbc.queryForList(
+                        "select indexname from pg_indexes where schemaname = 'public' and tablename = 'record_version'",
+                        String.class);
+
+        assertThat(parentIndexes)
+                .containsExactlyInAnyOrder(
+                        "record_version_pkey",
+                        "record_version_source_external_seq_idx",
+                        "record_version_source_observed_idx",
+                        "record_version_geom_gist");
+    }
+
+    @Test
+    @DisplayName("record_version is partitioned by tier, then by seq range, with no DEFAULT partition")
+    void recordVersionIsPartitioned() {
+        assertThat(jdbc.queryForObject(
+                        "select relkind::text from pg_class where relname = 'record_version'", String.class))
+                .isEqualTo("p");
+        assertThat(jdbc.queryForObject(
+                        "select pg_get_partkeydef('record_version'::regclass)", String.class))
+                .isEqualTo("LIST (history_tier)");
+        for (String parent : List.of("record_version_std", "record_version_trk")) {
+            assertThat(jdbc.queryForObject(
+                            "select pg_get_partkeydef(?::regclass)", String.class, parent))
+                    .isEqualTo("RANGE (seq)");
+            assertThat(jdbc.queryForObject(
+                            "select partdefid from pg_partitioned_table where partrelid = ?::regclass",
+                            Long.class,
+                            parent))
+                    .isZero();
+        }
+        assertThat(jdbc.queryForObject(
+                        "select pg_get_expr(relpartbound, oid) from pg_class where relname = 'record_version_trk'",
+                        String.class))
+                .isEqualTo("FOR VALUES IN ('1')");
+    }
+
+    @Test
+    @DisplayName("startup attached at least 1.5 blocks of leaves per tier")
+    void leavesExistAhead() {
+        for (var tier : ai.foresignal.source.spi.HistoryTier.values()) {
+            var leaves = ai.foresignal.test.TestPartitions.leaves(jdbc, tier);
+            long block = ai.foresignal.store.history.HistoryProperties.defaults().block(tier);
+            assertThat(leaves).isNotEmpty();
+            long covered = leaves.get(leaves.size() - 1).toSeq() - leaves.get(0).fromSeq();
+            assertThat(covered).isGreaterThanOrEqualTo(block + block / 2);
+        }
     }
 
     @Test
@@ -101,7 +155,12 @@ class SchemaBootstrapIT {
                         "source_health",
                         "source_usage",
                         "record_version",
+                        "record_version_std",
+                        "record_version_trk",
                         "record_head",
+                        "record_live",
+                        "fetch_log",
+                        "seq_clock",
                         "trigger_rule",
                         "alert",
                         "webhook",

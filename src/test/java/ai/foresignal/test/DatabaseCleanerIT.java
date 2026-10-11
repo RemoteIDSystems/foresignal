@@ -2,11 +2,15 @@ package ai.foresignal.test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import ai.foresignal.ingest.IngestStateReset;
+import ai.foresignal.source.spi.HistoryTier;
 import ai.foresignal.store.AppSettingEntity;
 import ai.foresignal.store.AppSettingRepository;
 import ai.foresignal.store.SystemSecretEntity;
 import ai.foresignal.store.SystemSecretRepository;
+import ai.foresignal.store.history.LeafInfo;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.MethodOrderer;
@@ -14,6 +18,7 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.support.StaticListableBeanFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
@@ -38,7 +43,7 @@ class DatabaseCleanerIT {
     void leavesRowsBehind() {
         appSettings.saveAndFlush(new AppSettingEntity("leftover", "{\"a\":1}", Instant.now()));
         systemSecrets.saveAndFlush(new SystemSecretEntity("leftover", new byte[] {1}));
-        jdbc.update("select nextval('record_seq')");
+        jdbc.queryForObject("select nextval('record_seq')", Long.class);
 
         assertThat(appSettings.count()).isEqualTo(1);
     }
@@ -91,7 +96,7 @@ class DatabaseCleanerIT {
         assertThat(indexes)
                 .contains(
                         "record_version_geom_gist",
-                        "record_head_geom_gist",
+                        "record_live_geom_gist",
                         "trigger_rule_geofence_gist");
 
         List<String> tables =
@@ -101,7 +106,7 @@ class DatabaseCleanerIT {
                          where table_schema = 'public' and table_type = 'BASE TABLE'
                         """,
                         String.class);
-        assertThat(tables).contains("record_version", "record_head", "app_setting");
+        assertThat(tables).contains("record_version", "record_head", "record_live", "app_setting");
     }
 
     @Test
@@ -140,6 +145,9 @@ class DatabaseCleanerIT {
                         "source_usage",
                         "record_version",
                         "record_head",
+                        "record_live",
+                        "fetch_log",
+                        "seq_clock",
                         "trigger_rule",
                         "alert",
                         "webhook",
@@ -151,5 +159,69 @@ class DatabaseCleanerIT {
     private long countSpatialRefSys() {
         Long count = jdbc.queryForObject("select count(*) from spatial_ref_sys", Long.class);
         return count == null ? 0 : count;
+    }
+
+    @Test
+    @Order(9)
+    @DisplayName("partitions are never listed for truncation on their own")
+    void leavesAreNotTruncatedIndividually() {
+        assertThat(cleaner.foresignalTables())
+                .contains("record_version")
+                .doesNotContain("record_version_std", "record_version_trk")
+                .noneMatch(name -> name.startsWith("rv_"));
+    }
+
+    @Test
+    @Order(10)
+    @DisplayName("cleaning empties record_version through its parent and keeps every partition")
+    void partitionsSurviveCleaning() {
+        List<LeafInfo> trackBefore = TestPartitions.leaves(jdbc, HistoryTier.TRACK);
+        List<LeafInfo> standardBefore = TestPartitions.leaves(jdbc, HistoryTier.STANDARD);
+        assertThat(trackBefore).isNotEmpty();
+        assertThat(standardBefore).isNotEmpty();
+        jdbc.update(
+                """
+                insert into record_version (seq, ingested_at, observed_at, received_at, version,
+                    history_tier, persist_reason, qa_flags, tombstone, source_id, external_id, kind, payload)
+                values (nextval('record_seq'), now(), now(), now(), 1, 1, 0, 0, false, 's', 'e', 'k', '{}'::jsonb)
+                """);
+        assertThat(jdbc.queryForObject("select count(*) from record_version", Long.class)).isEqualTo(1L);
+
+        cleaner.clean();
+
+        assertThat(jdbc.queryForObject("select count(*) from record_version", Long.class)).isZero();
+        assertThat(TestPartitions.leaves(jdbc, HistoryTier.TRACK)).isEqualTo(trackBefore);
+        assertThat(TestPartitions.leaves(jdbc, HistoryTier.STANDARD)).isEqualTo(standardBefore);
+        assertThat(jdbc.queryForObject(
+                        "select relkind::text from pg_class where relname = 'record_version'", String.class))
+                .isEqualTo("p");
+    }
+
+    @Test
+    @Order(11)
+    @DisplayName("every IngestStateReset bean is reset after the tables are truncated")
+    void ingestStateResetBeansAreInvoked() {
+        List<String> calls = new ArrayList<>();
+        StaticListableBeanFactory beans = new StaticListableBeanFactory();
+        beans.addBean("first", (IngestStateReset) () -> calls.add(
+                "first:" + jdbc.queryForObject("select count(*) from app_setting", Long.class)));
+        beans.addBean("second", (IngestStateReset) () -> calls.add("second"));
+        appSettings.saveAndFlush(new AppSettingEntity("pending", "{}", Instant.now()));
+
+        new DatabaseCleaner(jdbc, beans.getBeanProvider(IngestStateReset.class)).clean();
+
+        // The reset runs after truncation: the first bean saw an empty table.
+        assertThat(calls).containsExactlyInAnyOrder("first:0", "second");
+    }
+
+    @Test
+    @Order(12)
+    @DisplayName("with no IngestStateReset beans, cleaning still works")
+    void cleaningWithoutResetBeans() {
+        StaticListableBeanFactory none = new StaticListableBeanFactory();
+
+        new DatabaseCleaner(jdbc, none.getBeanProvider(IngestStateReset.class)).clean();
+
+        assertThat(appSettings.count()).isZero();
     }
 }

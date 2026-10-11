@@ -2,6 +2,7 @@ package ai.foresignal.store;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import ai.foresignal.source.spi.HistoryTier;
 import ai.foresignal.test.IntegrationTest;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -18,12 +19,14 @@ import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.Polygon;
 import org.locationtech.jts.geom.PrecisionModel;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Limit;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * Persists and reloads each entity, exercising the mappings most likely to be wrong: jsonb,
- * geometry and composite keys.
+ * geometry, smallints and composite keys. {@code record_version} rows are inserted with native SQL,
+ * the only way they are ever written.
  */
 @IntegrationTest
 class EntityMappingIT {
@@ -40,6 +43,9 @@ class EntityMappingIT {
     @Autowired private SourceUsageRepository sourceUsage;
     @Autowired private RecordHeadRepository recordHeads;
     @Autowired private RecordVersionRepository recordVersions;
+    @Autowired private RecordLiveRepository recordLives;
+    @Autowired private FetchLogRepository fetchLogs;
+    @Autowired private SeqClockRepository seqClock;
     @Autowired private TriggerRuleRepository triggerRules;
     @Autowired private AlertRepository alerts;
     @Autowired private WebhookRepository webhooks;
@@ -258,10 +264,10 @@ class EntityMappingIT {
         assertThat(sourceUsage.totalsForSource("nobody", NOW, NOW.plusSeconds(60))).isEmpty();
     }
 
-    // ---------- record_version (immutable) ----------
+    // ---------- record_version (immutable, partitioned) ----------
 
     @Test
-    @DisplayName("a record_version inserted through JdbcTemplate reads back through the repository")
+    @DisplayName("a record_version inserted with native SQL reads back through the repository")
     void recordVersionReadsBack() {
         long seq = insertRecordVersion("usgs-earthquakes", "us7000abcd", 1, point(-122.4, 37.8));
 
@@ -272,10 +278,36 @@ class EntityMappingIT {
         assertThat(loaded.getExternalId()).isEqualTo("us7000abcd");
         assertThat(loaded.getVersion()).isEqualTo(1);
         assertThat(loaded.getKind()).isEqualTo("earthquake");
-        assertThat(loaded.getObservedAt()).isEqualTo(NOW);
-        assertThat(loaded.getContentHash()).hasSize(64);
+        assertThat(loaded.getIngestedAt()).isEqualTo(NOW);
+        assertThat(loaded.getObservedAt()).isEqualTo(NOW.minusSeconds(30));
+        assertThat(loaded.getReceivedAt()).isEqualTo(NOW.minusSeconds(5));
+        assertThat(loaded.getEventTime()).isEqualTo(NOW.minusSeconds(60));
+        assertThat(loaded.getValidUntil()).isEqualTo(NOW.plusSeconds(3600));
+        assertThat(loaded.getValidUntilExplicit()).isNull();
+        assertThat(loaded.getValidFrom()).isEqualTo(NOW.minusSeconds(120));
+        assertThat(loaded.getPrevSeq()).isNull();
+        assertThat(loaded.getBatchId()).isEqualTo(77L);
+        assertThat(loaded.getHistoryTier()).isEqualTo(HistoryTier.STANDARD);
+        assertThat(loaded.getHistoryTierCode()).isEqualTo((short) 0);
+        assertThat(loaded.getPersistReason()).isEqualTo((short) 1);
+        assertThat(loaded.getQaFlags()).isEqualTo((short) 4);
         assertThat(loaded.isTombstone()).isFalse();
         assertThat(loaded.getPayload()).containsEntry("mag", 6.1);
+        assertThat(loaded.getQuality()).containsEntry("positionSource", "gnss");
+        assertThat(loaded.getObserver()).singleElement().satisfies(o -> assertThat(o).containsEntry("id", "rx1"));
+    }
+
+    @Test
+    @DisplayName("a TRACK version is routed to the track tier and decodes its tier")
+    void trackVersionReadsBack() {
+        long seq = insertRecordVersion("adsblol-mil", "ae1234", 1, null, HistoryTier.TRACK);
+
+        RecordVersionEntity loaded = recordVersions.findById(seq).orElseThrow();
+
+        assertThat(loaded.getHistoryTier()).isEqualTo(HistoryTier.TRACK);
+        assertThat(jdbc.queryForObject(
+                        "select tableoid::regclass::text from record_version where seq = ?", String.class, seq))
+                .startsWith("rv_t_");
     }
 
     @Test
@@ -309,37 +341,44 @@ class EntityMappingIT {
     }
 
     @Test
-    @DisplayName("versions of one record are returned newest first")
+    @DisplayName("versions of one record are ordered by seq")
     void recordVersionHistory() {
         insertRecordVersion("usgs-earthquakes", "us-rev", 1, null);
         insertRecordVersion("usgs-earthquakes", "us-rev", 2, null);
         insertRecordVersion("usgs-earthquakes", "us-rev", 3, null);
 
-        assertThat(
-                        recordVersions.findBySourceIdAndExternalIdOrderByVersionDesc(
-                                "usgs-earthquakes", "us-rev"))
+        assertThat(recordVersions.findBySourceIdAndExternalIdOrderBySeqDesc("usgs-earthquakes", "us-rev"))
                 .extracting(RecordVersionEntity::getVersion)
                 .containsExactly(3, 2, 1);
+        assertThat(recordVersions.findBySourceIdAndExternalIdOrderBySeqAsc("usgs-earthquakes", "us-rev"))
+                .extracting(RecordVersionEntity::getVersion)
+                .containsExactly(1, 2, 3);
     }
 
     @Test
     void findsOneVersionByCoordinates() {
         insertRecordVersion("usgs-earthquakes", "us-rev", 2, null);
 
-        assertThat(
-                        recordVersions.findBySourceIdAndExternalIdAndVersion(
-                                "usgs-earthquakes", "us-rev", 2))
+        assertThat(recordVersions.findBySourceIdAndExternalIdAndVersion("usgs-earthquakes", "us-rev", 2))
                 .isPresent();
-        assertThat(
-                        recordVersions.findBySourceIdAndExternalIdAndVersion(
-                                "usgs-earthquakes", "us-rev", 99))
+        assertThat(recordVersions.findBySourceIdAndExternalIdAndVersion("usgs-earthquakes", "us-rev", 99))
                 .isEmpty();
+    }
+
+    @Test
+    @DisplayName("two versions with the same (source, external, version) are allowed: no unique constraint")
+    void noUniqueConstraintOnVersion() {
+        insertRecordVersion("usgs-earthquakes", "dup", 1, null);
+        insertRecordVersion("usgs-earthquakes", "dup", 1, null);
+
+        assertThat(recordVersions.findBySourceIdAndExternalIdOrderBySeqAsc("usgs-earthquakes", "dup"))
+                .hasSize(2);
     }
 
     // ---------- record_head (composite key) ----------
 
     @Test
-    @DisplayName("a head round trips, including its composite key and search text")
+    @DisplayName("a head round trips every persisted-state column")
     void recordHeadRoundTrip() {
         long seq = insertRecordVersion("usgs-earthquakes", "us7000abcd", 1, point(-122.4, 37.8));
         var id = new RecordHeadId("usgs-earthquakes", "us7000abcd");
@@ -347,12 +386,19 @@ class EntityMappingIT {
         head.setSeq(seq);
         head.setVersion(1);
         head.setKind("earthquake");
-        head.setObservedAt(NOW);
-        head.setValidUntil(NOW.plusSeconds(3600));
-        head.setGeom(point(-122.4, 37.8));
-        head.setContentHash("a".repeat(64));
+        head.setEventTime(NOW.minusSeconds(60));
+        head.setValidUntilExplicit(NOW.plusSeconds(7200));
+        head.setValidFrom(NOW.minusSeconds(120));
         head.setTombstone(false);
+        head.setStaticHash(-1234567890123L);
+        head.setHashRecipe(2);
+        head.setPersistedObservedAt(NOW);
+        head.setPersistedReceivedAt(NOW.plusSeconds(1));
+        head.setPersistedGeom(point(-122.4, 37.8));
+        head.setPayload(Map.of("mag", 6.1));
+        head.setQuality(Map.of("positionSource", "gnss"));
         head.setSearchText("M 6.1 - 10km NE of Example City");
+        head.setTitle("M 6.1 - Example City");
 
         recordHeads.saveAndFlush(head);
 
@@ -360,10 +406,30 @@ class EntityMappingIT {
         assertThat(loaded.getId().getSourceId()).isEqualTo("usgs-earthquakes");
         assertThat(loaded.getId().getExternalId()).isEqualTo("us7000abcd");
         assertThat(loaded.getSeq()).isEqualTo(seq);
+        assertThat(loaded.getVersion()).isEqualTo(1);
         assertThat(loaded.getKind()).isEqualTo("earthquake");
-        assertThat(loaded.getValidUntil()).isEqualTo(NOW.plusSeconds(3600));
+        assertThat(loaded.getEventTime()).isEqualTo(NOW.minusSeconds(60));
+        assertThat(loaded.getValidUntilExplicit()).isEqualTo(NOW.plusSeconds(7200));
+        assertThat(loaded.getValidFrom()).isEqualTo(NOW.minusSeconds(120));
+        assertThat(loaded.isTombstone()).isFalse();
+        assertThat(loaded.getStaticHash()).isEqualTo(-1234567890123L);
+        assertThat(loaded.getHashRecipe()).isEqualTo(2);
+        assertThat(loaded.getPersistedObservedAt()).isEqualTo(NOW);
+        assertThat(loaded.getPersistedReceivedAt()).isEqualTo(NOW.plusSeconds(1));
+        assertThat(loaded.getPersistedGeom().getSRID()).isEqualTo(WGS84);
+        assertThat(loaded.getPayload()).containsEntry("mag", 6.1);
+        assertThat(loaded.getQuality()).containsEntry("positionSource", "gnss");
         assertThat(loaded.getSearchText()).isEqualTo("M 6.1 - 10km NE of Example City");
-        assertThat(loaded.getGeom().getSRID()).isEqualTo(WGS84);
+        assertThat(loaded.getTitle()).isEqualTo("M 6.1 - Example City");
+    }
+
+    @Test
+    @DisplayName("record_head has only the primary key and the (kind) index")
+    void recordHeadIndexes() {
+        assertThat(jdbc.queryForList(
+                        "select indexname from pg_indexes where tablename = 'record_head' order by indexname",
+                        String.class))
+                .containsExactlyInAnyOrder("record_head_pkey", "record_head_kind_idx");
     }
 
     @Test
@@ -384,6 +450,187 @@ class EntityMappingIT {
 
         assertThat(recordHeads.countByIdSourceId("usgs-earthquakes")).isEqualTo(2);
         assertThat(recordHeads.findByIdSourceId("usgs-earthquakes")).hasSize(2);
+    }
+
+    // ---------- record_live ----------
+
+    @Test
+    @DisplayName("a live row round trips, including kinematic jsonb and geometry")
+    void recordLiveRoundTrip() {
+        var id = new RecordHeadId("adsblol-mil", "ae1234");
+        var live = new RecordLiveEntity(id);
+        live.setObservedAt(NOW);
+        live.setLastReceivedAt(NOW.plusSeconds(2));
+        live.setValidUntil(NOW.plusSeconds(360));
+        live.setGeom(point(-77.0, 38.9));
+        live.setFullHash(42L);
+        live.setDirty(true);
+        live.setKinematic(new java.util.LinkedHashMap<>(Map.of("track", 270.5, "gs", 410)));
+        live.setQuality(Map.of("positionSource", "adsb"));
+        live.setQaFlags((short) 3);
+
+        recordLives.saveAndFlush(live);
+
+        RecordLiveEntity loaded = reload(() -> recordLives.findById(id).orElseThrow());
+        assertThat(loaded.getObservedAt()).isEqualTo(NOW);
+        assertThat(loaded.getLastReceivedAt()).isEqualTo(NOW.plusSeconds(2));
+        assertThat(loaded.getValidUntil()).isEqualTo(NOW.plusSeconds(360));
+        assertThat(loaded.getGeom().getSRID()).isEqualTo(WGS84);
+        assertThat(loaded.getFullHash()).isEqualTo(42L);
+        assertThat(loaded.isDirty()).isTrue();
+        assertThat(loaded.getKinematic()).containsEntry("track", 270.5).containsEntry("gs", 410);
+        assertThat(loaded.getQuality()).containsEntry("positionSource", "adsb");
+        assertThat(loaded.getQaFlags()).isEqualTo((short) 3);
+        assertThat(recordLives.countByIdSourceId("adsblol-mil")).isEqualTo(1);
+        assertThat(recordLives.findByIdSourceId("adsblol-mil")).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("kinematic defaults to an empty object and is never null")
+    void recordLiveKinematicDefaults() {
+        jdbc.update(
+                """
+                insert into record_live (source_id, external_id, observed_at, last_received_at,
+                                         full_hash, dirty)
+                values ('s', 'e', now(), now(), 1, false)
+                """);
+
+        assertThat(jdbc.queryForObject(
+                        "select kinematic::text from record_live where external_id = 'e'", String.class))
+                .isEqualTo("{}");
+        assertThat(jdbc.queryForObject(
+                        "select qa_flags from record_live where external_id = 'e'", Short.class))
+                .isZero();
+        var live = new RecordLiveEntity(new RecordHeadId("s", "x"));
+        live.setKinematic(null);
+        live.setQaFlags(null);
+        assertThat(live.getKinematic()).isEmpty();
+        assertThat(live.getQaFlags()).isZero();
+    }
+
+    @Test
+    @DisplayName("record_live has a GiST index on geom, no index on observed_at, and HOT storage parameters")
+    void recordLiveIndexesAndStorage() {
+        List<String> definitions = jdbc.queryForList(
+                "select indexdef from pg_indexes where tablename = 'record_live'", String.class);
+        assertThat(definitions).anyMatch(d -> d.contains("record_live_geom_gist") && d.toLowerCase().contains("gist"));
+        assertThat(definitions).noneMatch(d -> d.contains("observed_at"));
+        assertThat(definitions).hasSize(2); // primary key + GiST
+
+        String options = jdbc.queryForObject(
+                "select array_to_string(reloptions, ',') from pg_class where relname = 'record_live'",
+                String.class);
+        assertThat(options)
+                .contains("fillfactor=70")
+                .contains("autovacuum_vacuum_scale_factor=0.02")
+                .contains("autovacuum_vacuum_cost_limit=2000");
+    }
+
+    // ---------- fetch_log ----------
+
+    @Test
+    @DisplayName("a fetch-log row round trips every column, with enums stored as names")
+    void fetchLogRoundTrip() {
+        var entry = new FetchLogEntity("usgs-earthquakes", FetchTrigger.SCHEDULED, FetchStatus.OK, NOW);
+        entry.setReceivedAt(NOW.plusSeconds(1));
+        entry.setIngestedAt(NOW.plusSeconds(2));
+        entry.setHttpStatus(200);
+        entry.setRequestCount(1);
+        entry.setUrlRedacted("https://earthquake.usgs.gov/feed?key=***");
+        entry.setEtag("\"abc\"");
+        entry.setBytes(12345L);
+        entry.setBodySha256("f".repeat(64));
+        entry.setAdapterVersion("1.0.0");
+        entry.setLicence("public-domain");
+        entry.setPrincipal("admin");
+        entry.setRecordsSeen(10);
+        entry.setRejected(1);
+        entry.setLate(2);
+        entry.setSkipped(3);
+        entry.setVersionsWritten(4);
+        entry.setLiveUpdates(5);
+        entry.setTouches(6);
+        entry.setFromSeq(100L);
+        entry.setToSeq(103L);
+        entry.setCoverage(new CoverageSample(3, 10, 9, List.of(-180.0, -90.0, 180.0, 90.0)));
+        entry.setError(null);
+
+        Long id = fetchLogs.saveAndFlush(entry).getId();
+
+        FetchLogEntity loaded = reload(() -> fetchLogs.findById(id).orElseThrow());
+        assertThat(loaded.getSourceId()).isEqualTo("usgs-earthquakes");
+        assertThat(loaded.getTrigger()).isEqualTo(FetchTrigger.SCHEDULED);
+        assertThat(loaded.getStatus()).isEqualTo(FetchStatus.OK);
+        assertThat(loaded.getStartedAt()).isEqualTo(NOW);
+        assertThat(loaded.getReceivedAt()).isEqualTo(NOW.plusSeconds(1));
+        assertThat(loaded.getIngestedAt()).isEqualTo(NOW.plusSeconds(2));
+        assertThat(loaded.getHttpStatus()).isEqualTo(200);
+        assertThat(loaded.getRequestCount()).isEqualTo(1);
+        assertThat(loaded.getUrlRedacted()).endsWith("key=***");
+        assertThat(loaded.getEtag()).isEqualTo("\"abc\"");
+        assertThat(loaded.getBytes()).isEqualTo(12345L);
+        assertThat(loaded.getBodySha256()).hasSize(64);
+        assertThat(loaded.getAdapterVersion()).isEqualTo("1.0.0");
+        assertThat(loaded.getLicence()).isEqualTo("public-domain");
+        assertThat(loaded.getPrincipal()).isEqualTo("admin");
+        assertThat(loaded.getRecordsSeen()).isEqualTo(10);
+        assertThat(loaded.getRejected()).isEqualTo(1);
+        assertThat(loaded.getLate()).isEqualTo(2);
+        assertThat(loaded.getSkipped()).isEqualTo(3);
+        assertThat(loaded.getVersionsWritten()).isEqualTo(4);
+        assertThat(loaded.getLiveUpdates()).isEqualTo(5);
+        assertThat(loaded.getTouches()).isEqualTo(6);
+        assertThat(loaded.getFromSeq()).isEqualTo(100L);
+        assertThat(loaded.getToSeq()).isEqualTo(103L);
+        assertThat(loaded.getCoverage().receivers()).isEqualTo(3);
+        assertThat(loaded.getCoverage().region()).containsExactly(-180.0, -90.0, 180.0, 90.0);
+        assertThat(loaded.getError()).isNull();
+        assertThat(jdbc.queryForObject("select trigger || '/' || status from fetch_log where id = ?", String.class, id))
+                .isEqualTo("SCHEDULED/OK");
+    }
+
+    @Test
+    @DisplayName("the fetch log pages newest first by keyset on id")
+    void fetchLogKeysetPaging() {
+        for (int i = 0; i < 5; i++) {
+            fetchLogs.save(new FetchLogEntity("s", FetchTrigger.MANUAL, FetchStatus.FAILED, NOW.plusSeconds(i)));
+        }
+        fetchLogs.save(new FetchLogEntity("other", FetchTrigger.PUSH, FetchStatus.REFUSED, NOW));
+        fetchLogs.flush();
+
+        List<FetchLogEntity> first = fetchLogs.findBySourceIdOrderByIdDesc("s", Limit.of(2));
+        assertThat(first).extracting(FetchLogEntity::getStartedAt)
+                .containsExactly(NOW.plusSeconds(4), NOW.plusSeconds(3));
+
+        List<FetchLogEntity> next = fetchLogs.findBySourceIdAndIdLessThanOrderByIdDesc(
+                "s", first.get(1).getId(), Limit.of(10));
+        assertThat(next).extracting(FetchLogEntity::getStartedAt)
+                .containsExactly(NOW.plusSeconds(2), NOW.plusSeconds(1), NOW);
+    }
+
+    @Test
+    @DisplayName("fetch_log is indexed on (source_id, started_at DESC)")
+    void fetchLogIndex() {
+        assertThat(jdbc.queryForList(
+                        "select indexdef from pg_indexes where tablename = 'fetch_log'", String.class))
+                .anyMatch(d -> d.contains("(source_id, started_at DESC)"));
+    }
+
+    // ---------- seq_clock ----------
+
+    @Test
+    @DisplayName("seq_clock maps minutes to first seqs and finds the cutoff for a time")
+    void seqClockRoundTrip() {
+        Instant minute = NOW.truncatedTo(ChronoUnit.MINUTES);
+        seqClock.saveAndFlush(new SeqClockEntity(minute, 100));
+        seqClock.saveAndFlush(new SeqClockEntity(minute.plusSeconds(60), 250));
+
+        assertThat(seqClock.findById(minute).orElseThrow().getFirstSeq()).isEqualTo(100);
+        assertThat(seqClock.findFirstByMinuteLessThanEqualOrderByMinuteDesc(minute.plusSeconds(90)))
+                .get()
+                .extracting(SeqClockEntity::getFirstSeq)
+                .isEqualTo(250L);
+        assertThat(seqClock.findFirstByMinuteLessThanEqualOrderByMinuteDesc(minute.minusSeconds(1))).isEmpty();
     }
 
     // ---------- trigger_rule ----------
@@ -444,6 +691,28 @@ class EntityMappingIT {
     }
 
     @Test
+    @DisplayName("reappear_as_enter round trips and defaults to false in the database")
+    void triggerRuleReappearAsEnter() {
+        UUID id = UUID.randomUUID();
+        var rule = new TriggerRuleEntity(id, "geofence rule");
+        rule.setReappearAsEnter(true);
+        rule.setCreatedAt(NOW);
+        rule.setUpdatedAt(NOW);
+        triggerRules.saveAndFlush(rule);
+
+        assertThat(reload(() -> triggerRules.findById(id).orElseThrow()).isReappearAsEnter()).isTrue();
+
+        UUID raw = UUID.randomUUID();
+        jdbc.update(
+                "insert into trigger_rule (id, name, enabled, conditions, only_new, created_at, updated_at)"
+                        + " values (?, 'raw', true, '[]'::jsonb, false, now(), now())",
+                raw);
+        assertThat(jdbc.queryForObject(
+                        "select reappear_as_enter from trigger_rule where id = ?", Boolean.class, raw))
+                .isFalse();
+    }
+
+    @Test
     void triggerRuleDefaultsToMatchMode() {
         UUID id = UUID.randomUUID();
         var rule = new TriggerRuleEntity(id, "default mode");
@@ -489,6 +758,30 @@ class EntityMappingIT {
         assertThat(loaded.getFiredAt()).isEqualTo(NOW);
         assertThat(loaded.getMessage()).isEqualTo("M6.1 near Example City");
         assertThat(loaded.getAcknowledgedAt()).isNull();
+        assertThat(loaded.getObservedAt()).isNull();
+        assertThat(loaded.getRecordSnapshot()).isNull();
+    }
+
+    @Test
+    @DisplayName("an alert carries the observation time and a record snapshot")
+    void alertSnapshotRoundTrip() {
+        var alert = new AlertEntity(UUID.randomUUID(), 7L, "usgs-earthquakes", "us-snap", NOW);
+        alert.setObservedAt(NOW.minusSeconds(30));
+        alert.setRecordSnapshot(Map.of(
+                "kind", "earthquake",
+                "version", 2,
+                "observedAt", "2026-03-01T11:59:30Z",
+                "geometry", Map.of("type", "Point", "coordinates", List.of(-122.4, 37.8)),
+                "payload", Map.of("mag", 6.1)));
+
+        Long id = alerts.saveAndFlush(alert).getId();
+
+        AlertEntity loaded = reload(() -> alerts.findById(id).orElseThrow());
+        assertThat(loaded.getObservedAt()).isEqualTo(NOW.minusSeconds(30));
+        assertThat(loaded.getRecordSnapshot())
+                .containsEntry("kind", "earthquake")
+                .containsEntry("version", 2)
+                .containsKey("geometry");
     }
 
     @Test
@@ -598,8 +891,10 @@ class EntityMappingIT {
         appSettings.saveAndFlush(
                 new AppSettingEntity("retention", "{\"default\":\"7d\"}", NOW));
 
+        // jsonb stores the parsed value and prints it in its canonical form, so compare ignoring
+        // whitespace; the point is that it is an object, not a JSON string.
         assertThat(appSettings.findById("retention").orElseThrow().getValue())
-                .isEqualTo("{\"default\":\"7d\"}");
+                .isEqualToIgnoringWhitespace("{\"default\":\"7d\"}");
         assertThat(
                         jdbc.queryForObject(
                                 "select jsonb_typeof(value) from app_setting where key = 'retention'",
@@ -634,36 +929,57 @@ class EntityMappingIT {
         head.setSeq(seq);
         head.setVersion(1);
         head.setKind(kind);
-        head.setObservedAt(NOW);
-        head.setContentHash("b".repeat(64));
+        head.setStaticHash(1L);
+        head.setHashRecipe(1);
+        head.setPersistedObservedAt(NOW);
+        head.setPersistedReceivedAt(NOW);
+        head.setPayload(Map.of("k", 1));
         recordHeads.saveAndFlush(head);
     }
 
-    /**
-     * Inserts a {@code record_version} the way the ingest writer will: straight through JDBC,
-     * because the entity is {@code @Immutable} and Hibernate will never insert it.
-     */
     private long insertRecordVersion(String sourceId, String externalId, int version, Point geom) {
+        return insertRecordVersion(sourceId, externalId, version, geom, HistoryTier.STANDARD);
+    }
+
+    /**
+     * Inserts a {@code record_version} the way the ingest writer will: native SQL, because the
+     * entity is {@code @Immutable} and Hibernate never inserts it (invariant I9).
+     */
+    private long insertRecordVersion(
+            String sourceId, String externalId, int version, Point geom, HistoryTier tier) {
         Long seq = jdbc.queryForObject("select nextval('record_seq')", Long.class);
         jdbc.update(
-                """
-                insert into record_version
-                    (seq, source_id, external_id, version, kind, observed_at, ingested_at,
-                     valid_until, geom, payload, content_hash, tombstone)
-                values (?, ?, ?, ?, 'earthquake', ?, ?, null,
-                        ST_SetSRID(ST_GeomFromText(cast(? as text)), 4326), ?::jsonb, ?, false)
-                """,
+                INSERT_RECORD_VERSION,
                 seq,
+                java.sql.Timestamp.from(NOW),
+                java.sql.Timestamp.from(NOW.minusSeconds(30)),
+                java.sql.Timestamp.from(NOW.minusSeconds(5)),
+                java.sql.Timestamp.from(NOW.minusSeconds(60)),
+                java.sql.Timestamp.from(NOW.plusSeconds(3600)),
+                77L,
+                version,
+                tier.code(),
                 sourceId,
                 externalId,
-                version,
-                java.sql.Timestamp.from(NOW),
-                java.sql.Timestamp.from(NOW),
                 geom == null ? null : geom.toText(),
                 "{\"mag\":6.1,\"place\":\"Example City\"}",
-                "c".repeat(64));
+                "{\"positionSource\":\"gnss\"}",
+                "[{\"id\":\"rx1\"}]",
+                java.sql.Timestamp.from(NOW.minusSeconds(120)));
         return seq;
     }
+
+    /** Every {@code record_version} column, in DDL order. */
+    private static final String INSERT_RECORD_VERSION =
+            """
+            insert into record_version
+                (seq, ingested_at, observed_at, received_at, event_time, valid_until,
+                 valid_until_explicit, prev_seq, batch_id, version, history_tier, persist_reason,
+                 qa_flags, tombstone, source_id, external_id, kind, geom, payload, quality, observer,
+                 valid_from)
+            values (?, ?, ?, ?, ?, ?, null, null, ?, ?, ?, 1, 4, false, ?, ?, 'earthquake',
+                    ST_SetSRID(ST_GeomFromText(cast(? as text)), 4326), ?::jsonb, ?::jsonb, ?::jsonb, ?)
+            """;
 
     private static Point point(double lon, double lat) {
         return GEOMETRY.createPoint(new Coordinate(lon, lat));

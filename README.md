@@ -74,6 +74,18 @@ the database and is managed through the API.
 | `FORESIGNAL_DATA_DIR` | `./data` | Secret key file location |
 | `FORESIGNAL_RESET_ADMIN_TOKEN` | `false` | Regenerate the admin token on start |
 
+## Deployment notes
+
+- **Ports bind to localhost by default.** `docker compose` publishes the broker
+  on `127.0.0.1:8080` and the database on `127.0.0.1:5433`. Set
+  `FORESIGNAL_BIND=0.0.0.0` for LAN access to the broker, and
+  `FORESIGNAL_DB_BIND=0.0.0.0` likewise for the database.
+- **Disk.** At full load expect about 10–15 GB/day of history writes plus
+  15–20 GB/day of WAL. A 3-day track window holds about 40M rows, roughly 20 GB
+  including indexes.
+- **Clock.** NTP must be synced before Foresignal starts. Otherwise the ingest
+  writer's clock guard holds ingest until the clock is sane.
+
 ## Documentation
 
 - [Executive Summary](docs/Executive-Summary.md) — what Foresignal is and why
