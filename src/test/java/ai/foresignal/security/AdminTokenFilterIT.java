@@ -27,7 +27,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -111,9 +110,13 @@ class AdminTokenFilterIT {
     @Test
     @DisplayName("a write with the token succeeds")
     void writeWithTokenSucceeds() throws Exception {
-        mvc.perform(put("/v1/sources/usgs-earthquakes").header(HttpHeaders.AUTHORIZATION, bearer()))
+        // The real SourcesController (013) answers now; an empty body changes nothing.
+        mvc.perform(put("/v1/sources/usgs-earthquakes")
+                        .header(HttpHeaders.AUTHORIZATION, bearer())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
                 .andExpect(status().isOk())
-                .andExpect(content().string("updated"));
+                .andExpect(jsonPath("$.descriptor.id").value("usgs-earthquakes"));
     }
 
     @Test
@@ -257,16 +260,6 @@ class AdminTokenFilterIT {
         @GetMapping("/v1/kinds")
         String kinds() {
             return "kinds";
-        }
-
-        @GetMapping("/v1/sources")
-        String sources() {
-            return "sources";
-        }
-
-        @PutMapping("/v1/sources/{sourceId}")
-        String updateSource() {
-            return "updated";
         }
 
         @GetMapping("/v1/settings/retention")

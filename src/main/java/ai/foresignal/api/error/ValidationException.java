@@ -21,7 +21,19 @@ public class ValidationException extends ForesignalException {
     }
 
     public ValidationException(String detail, List<FieldError> errors) {
-        super(HttpStatus.BAD_REQUEST, ErrorCodes.VALIDATION_FAILED, detail);
+        this(ErrorCodes.VALIDATION_FAILED, detail, errors);
+    }
+
+    /**
+     * A 400 with a more specific code than {@code VALIDATION_FAILED}, for example
+     * {@code INGEST_POLICY_INVALID}, still carrying every field error.
+     *
+     * @param code the problem's {@code code}
+     * @param detail the human-readable summary
+     * @param errors every field-level problem
+     */
+    public ValidationException(String code, String detail, List<FieldError> errors) {
+        super(HttpStatus.BAD_REQUEST, code, detail);
         this.errors = errors == null ? List.of() : List.copyOf(errors);
     }
 

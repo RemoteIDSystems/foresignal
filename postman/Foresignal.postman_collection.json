@@ -41794,7 +41794,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"enabled\": true,\n  \"interval\": \"60s\",\n  \"params\": {\n    \"feed\": \"all_day\"\n  },\n  \"budget\": {\n    \"perMinute\": 4,\n    \"perDay\": 2000\n  },\n  \"retention\": \"365d\"\n}",
+              "raw": "{\n  \"enabled\": true,\n  \"interval\": \"60s\",\n  \"params\": {\n    \"feed\": \"all_day\"\n  },\n  \"budget\": {\n    \"perMinute\": 4,\n    \"perDay\": 2000\n  },\n  \"retention\": \"365d\",\n  \"ingestPolicy\": {\n    \"mode\": \"SAMPLED\",\n    \"minInterval\": \"60s\",\n    \"keyframe\": \"240s\",\n    \"minDeviationMeters\": 1000,\n    \"thresholds\": true,\n    \"edgeMinInterval\": \"30s\"\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"

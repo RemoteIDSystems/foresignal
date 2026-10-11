@@ -32,6 +32,11 @@
         "version": "1.3.0",
         "date": "2026-10-11",
         "note": "010: probeSource documents 409 NOT_SUPPORTED_FOR_MODE for push and derived sources, which have no upstream to probe."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-11",
+        "note": "013: every Sources operation of prompt 013 (including listSourceFetches) is implemented; updateSource's 400 attributes INGEST_POLICY_INVALID and RETENTION_TIER_FIXED to 013 (was 014, a pre-v1.3 number); SourceDescriptor.defaultIngestPolicy documents that the §5.1 defaults are filled in (description only)."
       }
     ]
   },
@@ -436,7 +441,7 @@
         "x-foresignal-extended-by": [
           "035, 039"
         ],
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/sources/health": {
@@ -532,7 +537,7 @@
         "x-foresignal-extended-by": [
           "035"
         ],
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/sources/{sourceId}": {
@@ -626,7 +631,7 @@
         "x-foresignal-extended-by": [
           "035, 039"
         ],
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       },
       "put": {
         "tags": [
@@ -657,7 +662,7 @@
             }
           },
           "400": {
-            "description": "Validation failed (VALIDATION_FAILED, INGEST_POLICY_INVALID, RETENTION_TIER_FIXED (014); EGRESS_FIXED (069); PRIVATE_REQUIRED (086); VALIDATION_FAILED for adapter params, e.g. meshtastic-mqtt maxSubscriptions > 3 (083), stac-* without aoi (096), or enabling DCS on a satdump-{station} source without an effective dcsBbox (107))",
+            "description": "Validation failed (VALIDATION_FAILED, INGEST_POLICY_INVALID, RETENTION_TIER_FIXED (013); EGRESS_FIXED (069); PRIVATE_REQUIRED (086); VALIDATION_FAILED for adapter params, e.g. meshtastic-mqtt maxSubscriptions > 3 (083), stac-* without aoi (096), or enabling DCS on a satdump-{station} source without an effective dcsBbox (107))",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -719,7 +724,7 @@
           "107",
           "109"
         ],
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/sources/{sourceId}/credentials": {
@@ -804,7 +809,7 @@
           }
         ],
         "x-foresignal-prompt": "013",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       },
       "delete": {
         "tags": [
@@ -855,7 +860,7 @@
           }
         ],
         "x-foresignal-prompt": "013",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/sources/{sourceId}/fetch": {
@@ -962,7 +967,7 @@
             }
           }
         ],
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/sources/{sourceId}/probe": {
@@ -1080,7 +1085,7 @@
           }
         ],
         "x-foresignal-prompt": "013",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/sources/{sourceId}/health": {
@@ -1174,7 +1179,7 @@
         "x-foresignal-extended-by": [
           "035"
         ],
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/sources/{sourceId}/usage": {
@@ -1315,7 +1320,7 @@
         "x-foresignal-extended-by": [
           "035"
         ],
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/kinds": {
@@ -10400,7 +10405,7 @@
         },
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "013",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -80346,7 +80351,12 @@
             "description": "Axis for TTL and keyframes (TRACK must be OBSERVED; STANDARD defaults to RECEIVED)"
           },
           "defaultIngestPolicy": {
-            "$ref": "#/components/schemas/IngestPolicy"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/IngestPolicy"
+              }
+            ],
+            "description": "The descriptor's policy with the Core-Data-Model §5.1 defaults filled in (ALL keyframe = ttl − pollInterval − 30s or `none`; edgeMinInterval = minInterval / 2)"
           },
           "volatileFields": {
             "type": "array",

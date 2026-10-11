@@ -1,0 +1,314 @@
+package ai.foresignal.api;
+
+import ai.foresignal.api.dto.CredentialsUpdate;
+import ai.foresignal.api.dto.FetchOutcomeDto;
+import ai.foresignal.api.dto.FetchPage;
+import ai.foresignal.api.dto.ProbeResultDto;
+import ai.foresignal.api.dto.SourceDetail;
+import ai.foresignal.api.dto.SourceHealthDto;
+import ai.foresignal.api.dto.SourceSettingsUpdate;
+import ai.foresignal.api.dto.SourceSummary;
+import ai.foresignal.api.dto.UsageSeries;
+import ai.foresignal.api.error.InvalidInputException;
+import ai.foresignal.api.error.ValidationException;
+import ai.foresignal.api.mapper.FetchLogMapper;
+import ai.foresignal.api.mapper.FetchOutcomeMapper;
+import ai.foresignal.api.mapper.HealthMapper;
+import ai.foresignal.api.mapper.SourceMapper;
+import ai.foresignal.api.mapper.UsageMapper;
+import ai.foresignal.collect.HealthService;
+import ai.foresignal.collect.ManualFetchService;
+import ai.foresignal.collect.ProbeService;
+import ai.foresignal.collect.UsageMeter;
+import ai.foresignal.collect.UsageResolution;
+import ai.foresignal.source.HealthStatus;
+import ai.foresignal.source.SourceRegistry;
+import ai.foresignal.source.SourceService;
+import ai.foresignal.source.SourceView;
+import ai.foresignal.source.spi.SourceDescriptor;
+import ai.foresignal.store.FetchStatus;
+import ai.foresignal.store.FetchTrigger;
+import ai.foresignal.store.query.FetchLogQuery;
+import jakarta.validation.Valid;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.format.DateTimeParseException;
+import java.util.Comparator;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Function;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
+
+/**
+ * Source management over REST: the subscription control point (OpenAPI tag {@code Sources}).
+ *
+ * <p>Thin on purpose: every decision lives in {@link SourceService}, {@link HealthService},
+ * {@link ManualFetchService}, {@link ProbeService}, {@link UsageMeter} and {@link FetchLogQuery},
+ * and mapping lives in {@code ai.foresignal.api.mapper}. Nothing here changes what a source fetches
+ * except {@code updateSource}, the credential operations and the explicit {@code fetchSourceNow}.
+ *
+ * <p><strong>Protected operations</strong> (admin token, enforced by {@code TokenFilter} through
+ * {@code AccessPolicy}, not here):
+ * <ul>
+ *   <li>{@code PUT /v1/sources/{sourceId}} ({@code updateSource})
+ *   <li>{@code PUT /v1/sources/{sourceId}/credentials} ({@code setSourceCredentials})
+ *   <li>{@code DELETE /v1/sources/{sourceId}/credentials} ({@code deleteSourceCredentials})
+ *   <li>{@code POST /v1/sources/{sourceId}/fetch} ({@code fetchSourceNow})
+ *   <li>{@code POST /v1/sources/{sourceId}/probe} ({@code probeSource})
+ *   <li>{@code GET /v1/sources/{sourceId}/fetches} ({@code listSourceFetches})
+ * </ul>
+ * The other GETs need the {@code read} scope, which is open while {@code security.openReads} is on.
+ *
+ * <p>Credential values are accepted by {@code setSourceCredentials} and appear in no response.
+ */
+@RestController
+@RequestMapping("/v1/sources")
+public class SourcesController {
+
+    /** Longest range {@code getSourceUsage} serves at minute resolution. */
+    static final Duration MAX_MINUTE_RANGE = Duration.ofDays(31);
+
+    /** Range {@code getSourceUsage} covers when {@code from} is omitted. */
+    static final Duration DEFAULT_USAGE_RANGE = Duration.ofHours(24);
+
+    private final SourceRegistry registry;
+    private final SourceService sources;
+    private final HealthService health;
+    private final ManualFetchService manualFetch;
+    private final ProbeService probes;
+    private final UsageMeter usage;
+    private final FetchLogQuery fetchLog;
+    private final SourceMapper mapper;
+    private final Clock clock;
+
+    /** Creates the controller. */
+    public SourcesController(
+            SourceRegistry registry,
+            SourceService sources,
+            HealthService health,
+            ManualFetchService manualFetch,
+            ProbeService probes,
+            UsageMeter usage,
+            FetchLogQuery fetchLog,
+            SourceMapper mapper,
+            Clock clock) {
+        this.registry = registry;
+        this.sources = sources;
+        this.health = health;
+        this.manualFetch = manualFetch;
+        this.probes = probes;
+        this.usage = usage;
+        this.fetchLog = fetchLog;
+        this.mapper = mapper;
+        this.clock = clock;
+    }
+
+    /** {@code listSources}: every source, sorted by id. */
+    @GetMapping
+    public List<SourceSummary> listSources() {
+        return sources.list().stream()
+                .sorted(Comparator.comparing(SourceView::id))
+                .map(mapper::summary)
+                .toList();
+    }
+
+    /**
+     * {@code listSourceHealth}: health of every source, optionally filtered by status (repeatable or
+     * comma-separated). Mapped as a literal path, which Spring prefers over {@code /{sourceId}}.
+     */
+    @GetMapping("/health")
+    public List<SourceHealthDto> listSourceHealth(@RequestParam(name = "status", required = false) List<String> status) {
+        Set<HealthStatus> wanted = parseAll(status, "status", HealthStatus.class, HealthStatus::fromValue);
+        Optional<Set<HealthStatus>> filter = wanted.isEmpty() ? Optional.empty() : Optional.of(wanted);
+        return health.all(filter).stream()
+                .sorted(Comparator.comparing(v -> v.sourceId()))
+                .map(HealthMapper::health)
+                .toList();
+    }
+
+    /** {@code getSource}: descriptor, settings and health; 404 for an unknown id. */
+    @GetMapping("/{sourceId}")
+    public SourceDetail getSource(@PathVariable String sourceId) {
+        return detail(sourceId);
+    }
+
+    /**
+     * {@code updateSource}: a partial settings change. Omitted fields are unchanged; explicit
+     * {@code null} for {@code retention} or {@code ingestPolicy} clears that override.
+     *
+     * <p>400 {@code VALIDATION_FAILED}, {@code INGEST_POLICY_INVALID} or {@code RETENTION_TIER_FIXED};
+     * 409 {@code CREDENTIALS_REQUIRED}.
+     */
+    @PutMapping("/{sourceId}")
+    public SourceDetail updateSource(
+            @PathVariable String sourceId, @Valid @RequestBody SourceSettingsUpdate body) {
+        SourceDescriptor descriptor = registry.descriptor(sourceId);
+        sources.update(sourceId, mapper.update(body, descriptor));
+        return detail(sourceId);
+    }
+
+    /** {@code setSourceCredentials}: stores credentials, encrypted; 204. */
+    @PutMapping("/{sourceId}/credentials")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void setSourceCredentials(
+            @PathVariable String sourceId, @Valid @RequestBody CredentialsUpdate body) {
+        sources.setCredentials(sourceId, body.values());
+    }
+
+    /** {@code deleteSourceCredentials}: removes credentials (and disables a source needing them); 204. */
+    @DeleteMapping("/{sourceId}/credentials")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteSourceCredentials(@PathVariable String sourceId) {
+        sources.deleteCredentials(sourceId);
+    }
+
+    /** {@code fetchSourceNow}: one MANUAL fetch, ingested normally; 409 and 429 as in prompt 010. */
+    @PostMapping("/{sourceId}/fetch")
+    public FetchOutcomeDto fetchSourceNow(@PathVariable String sourceId) {
+        return FetchOutcomeMapper.outcome(manualFetch.fetchNow(sourceId));
+    }
+
+    /**
+     * {@code probeSource}: a diagnostic fetch or stream capture that never ingests. {@code maxBytes}
+     * 1024..10485760 (default 262144), {@code seconds} 1..60 (default 10), both checked by
+     * {@link ProbeService}.
+     */
+    @PostMapping("/{sourceId}/probe")
+    public ProbeResultDto probeSource(
+            @PathVariable String sourceId,
+            @RequestParam(name = "maxBytes", required = false) Integer maxBytes,
+            @RequestParam(name = "seconds", required = false) Integer seconds) {
+        return FetchOutcomeMapper.probe(probes.probe(sourceId, maxBytes, seconds));
+    }
+
+    /** {@code getSourceHealth}: health of one source. */
+    @GetMapping("/{sourceId}/health")
+    public SourceHealthDto getSourceHealth(@PathVariable String sourceId) {
+        return HealthMapper.health(health.health(sourceId));
+    }
+
+    /**
+     * {@code getSourceUsage}: request, byte and ingest counters per bucket over {@code [from, to)},
+     * with totals. Defaults: the last 24 hours at hour resolution. A range over 31 days at minute
+     * resolution, or a {@code from} not before {@code to}, is 400.
+     */
+    @GetMapping("/{sourceId}/usage")
+    public UsageSeries getSourceUsage(
+            @PathVariable String sourceId,
+            @RequestParam(name = "from", required = false) String from,
+            @RequestParam(name = "to", required = false) String to,
+            @RequestParam(name = "resolution", required = false) String resolution) {
+        registry.descriptor(sourceId);
+        Instant now = clock.instant();
+        Instant end = to == null ? now : parseInstant("to", to);
+        Instant start = from == null ? end.minus(DEFAULT_USAGE_RANGE) : parseInstant("from", from);
+        UsageResolution res = parseResolution(resolution);
+        if (!start.isBefore(end)) {
+            throw ValidationException.forField("from", "must be before to");
+        }
+        if (res == UsageResolution.MINUTE && Duration.between(start, end).compareTo(MAX_MINUTE_RANGE) > 0) {
+            throw ValidationException.forField(
+                    "resolution", "minute resolution serves at most 31 days; use hour or day for longer ranges");
+        }
+        return UsageMapper.series(sourceId, start, res, usage.series(sourceId, start, end, res));
+    }
+
+    /**
+     * {@code listSourceFetches}: the source's {@code fetch_log}, newest first, keyset-paged on id.
+     * {@code limit} 1..1000 (default 100); {@code status} and {@code trigger} are repeatable or
+     * comma-separated.
+     */
+    @GetMapping("/{sourceId}/fetches")
+    public FetchPage listSourceFetches(
+            @PathVariable String sourceId,
+            @RequestParam(name = "after", required = false) Long after,
+            @RequestParam(name = "limit", required = false) Integer limit,
+            @RequestParam(name = "status", required = false) List<String> status,
+            @RequestParam(name = "trigger", required = false) List<String> trigger) {
+        registry.descriptor(sourceId);
+        int size = limit == null ? FetchLogQuery.DEFAULT_LIMIT : limit;
+        if (size < 1 || size > FetchLogQuery.MAX_LIMIT) {
+            throw ValidationException.forField("limit", "must be between 1 and " + FetchLogQuery.MAX_LIMIT);
+        }
+        if (after != null && after < 0) {
+            throw ValidationException.forField("after", "must not be negative");
+        }
+        Set<FetchStatus> statuses = parseAll(status, "status", FetchStatus.class, SourcesController::fetchStatus);
+        Set<FetchTrigger> triggers = parseAll(trigger, "trigger", FetchTrigger.class, SourcesController::fetchTrigger);
+        return FetchLogMapper.page(fetchLog.page(sourceId, after, size, statuses, triggers));
+    }
+
+    // ---------- helpers ----------
+
+    private SourceDetail detail(String sourceId) {
+        SourceView view = sources.view(sourceId);
+        return new SourceDetail(
+                mapper.descriptor(view.descriptor()),
+                mapper.settings(
+                        view,
+                        sources.ingestPolicyOverride(sourceId),
+                        sources.retentionOverride(sourceId),
+                        sources.effectiveRetention(sourceId)),
+                HealthMapper.health(health.health(sourceId)));
+    }
+
+    private static FetchStatus fetchStatus(String value) {
+        return FetchStatus.valueOf(value.trim().toUpperCase(Locale.ROOT));
+    }
+
+    private static FetchTrigger fetchTrigger(String value) {
+        return FetchTrigger.valueOf(value.trim().toUpperCase(Locale.ROOT));
+    }
+
+    private static <E extends Enum<E>> Set<E> parseAll(
+            List<String> values, String field, Class<E> type, Function<String, E> parse) {
+        Set<E> out = EnumSet.noneOf(type);
+        if (values == null) {
+            return out;
+        }
+        for (String value : values) {
+            if (value == null || value.isBlank()) {
+                continue;
+            }
+            try {
+                out.add(parse.apply(value));
+            } catch (IllegalArgumentException e) {
+                throw ValidationException.forField(field, "unknown value '" + value + "'");
+            }
+        }
+        return out;
+    }
+
+    private static Instant parseInstant(String field, String value) {
+        try {
+            return Instant.parse(value.trim());
+        } catch (DateTimeParseException e) {
+            throw ValidationException.forField(field, "must be an ISO-8601 instant, for example 2026-10-11T00:00:00Z");
+        }
+    }
+
+    private static UsageResolution parseResolution(String value) {
+        if (value == null || value.isBlank()) {
+            return UsageResolution.HOUR;
+        }
+        try {
+            return UsageResolution.fromWireValue(value);
+        } catch (InvalidInputException e) {
+            throw ValidationException.forField("resolution", "must be minute, hour or day");
+        }
+    }
+}

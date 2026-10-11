@@ -1,0 +1,431 @@
+package ai.foresignal.api.mapper;
+
+import ai.foresignal.api.dto.BudgetDto;
+import ai.foresignal.api.dto.CredentialFieldDto;
+import ai.foresignal.api.dto.FieldThresholdDto;
+import ai.foresignal.api.dto.IngestPolicyDto;
+import ai.foresignal.api.dto.MotionSpecDto;
+import ai.foresignal.api.dto.ParamSpecDto;
+import ai.foresignal.api.dto.SourceDescriptorDto;
+import ai.foresignal.api.dto.SourceSettingsDto;
+import ai.foresignal.api.dto.SourceSummary;
+import ai.foresignal.api.error.ErrorCodes;
+import ai.foresignal.api.error.FieldError;
+import ai.foresignal.api.error.InvalidInputException;
+import ai.foresignal.api.error.ValidationException;
+import ai.foresignal.settings.AppSettingService;
+import ai.foresignal.settings.Durations;
+import ai.foresignal.settings.RetentionSettings;
+import ai.foresignal.settings.SettingKeys;
+import ai.foresignal.source.IngestPolicyCodec;
+import ai.foresignal.source.SourceSettingsUpdate;
+import ai.foresignal.source.SourceView;
+import ai.foresignal.source.spi.Budget;
+import ai.foresignal.source.spi.CredentialField;
+import ai.foresignal.source.spi.FieldThreshold;
+import ai.foresignal.source.spi.IngestPolicy;
+import ai.foresignal.source.spi.IngestPolicyValidator;
+import ai.foresignal.source.spi.MotionSpec;
+import ai.foresignal.source.spi.ParamSpec;
+import ai.foresignal.source.spi.ProductSpec;
+import ai.foresignal.source.spi.SourceDescriptor;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
+import java.util.TreeMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.ObjectNode;
+
+/**
+ * Maps sources between the domain ({@link SourceDescriptor}, {@link SourceView}, {@link IngestPolicy})
+ * and the API records ({@link SourceSummary}, {@link SourceDescriptorDto}, {@link SourceSettingsDto},
+ * {@link IngestPolicyDto}), and turns an API settings update into the service's
+ * {@link SourceSettingsUpdate}.
+ *
+ * <p>Ingest policies go through {@link IngestPolicyCodec} in both directions, so the API body and
+ * {@code source_settings.ingest_policy} share one JSON shape.
+ */
+@Component
+public class SourceMapper {
+
+    private static final Logger log = LoggerFactory.getLogger(SourceMapper.class);
+
+    static final String POLICY_FIELD = "ingestPolicy";
+
+    private final IngestPolicyCodec codec;
+    private final JsonMapper jsonMapper;
+    private final AppSettingService appSettings;
+
+    /**
+     * Creates the mapper.
+     *
+     * @param codec the one ingest-policy JSON shape
+     * @param jsonMapper Boot's mapper (durations in shorthand)
+     * @param appSettings read for {@code retention.trackWindow} and the global retention default
+     */
+    public SourceMapper(IngestPolicyCodec codec, JsonMapper jsonMapper, AppSettingService appSettings) {
+        this.codec = codec;
+        this.jsonMapper = jsonMapper;
+        this.appSettings = appSettings;
+    }
+
+    // ---------- summary ----------
+
+    /** One row of {@code GET /v1/sources}. */
+    public SourceSummary summary(SourceView view) {
+        SourceDescriptor d = view.descriptor();
+        return new SourceSummary(
+                d.id(),
+                d.name(),
+                sorted(d.kinds()),
+                d.mode().wireValue(),
+                false,
+                view.enabled(),
+                view.health().status(),
+                d.requiresCredentials(),
+                view.credentialsSet(),
+                view.interval(),
+                budget(view.budget()),
+                view.health().budgetUsedToday(),
+                view.health().lastSuccessAt(),
+                d.historyTier().name(),
+                d.licence(),
+                d.termsUrl(),
+                view.health().lastDataAt());
+    }
+
+    // ---------- descriptor ----------
+
+    /** Every descriptor field the API exposes. */
+    public SourceDescriptorDto descriptor(SourceDescriptor d) {
+        return new SourceDescriptorDto(
+                d.id(),
+                d.name(),
+                d.description(),
+                sorted(d.kinds()),
+                d.homepage(),
+                d.attribution(),
+                d.mode().wireValue(),
+                false,
+                d.credentialFields().stream().map(SourceMapper::credentialField).toList(),
+                d.params().stream().map(SourceMapper::param).toList(),
+                d.minInterval(),
+                d.defaultInterval(),
+                budget(d.defaultBudget()),
+                d.recordTtl(),
+                d.zeroResultsNormal(),
+                d.tileProperties(),
+                d.searchFields(),
+                d.embedFields(),
+                d.rankField(),
+                d.licence(),
+                d.termsUrl(),
+                d.historyTier().name(),
+                d.observedAtMode().name(),
+                d.ttlAnchor().name(),
+                policy(IngestPolicyValidator.applyDefaults(d.defaultIngestPolicy(), d)),
+                d.volatileFields(),
+                d.significantFields(),
+                motion(d.motion()),
+                d.thresholds().stream().map(SourceMapper::threshold).toList(),
+                d.defaultRetention(),
+                new TreeMap<>(d.kindRetention()),
+                d.skewTolerance(),
+                d.allowNullIsland(),
+                d.products().stream().map(ProductSpec::id).toList(),
+                d.titleField(),
+                new TreeMap<>(d.entityKeys()),
+                new TreeMap<>(d.fieldSpecs()),
+                new TreeMap<>(d.kindDisplay()),
+                d.aggBelowZoom(),
+                d.startField(),
+                d.endField(),
+                d.privateSource(),
+                d.privatePrecisionDecimals());
+    }
+
+    static CredentialFieldDto credentialField(CredentialField field) {
+        return new CredentialFieldDto(field.name(), field.description(), field.required());
+    }
+
+    static ParamSpecDto param(ParamSpec spec) {
+        return new ParamSpecDto(
+                spec.name(),
+                spec.type().wireValue(),
+                spec.description(),
+                spec.defaultValue() instanceof Duration duration ? Durations.format(duration) : spec.defaultValue(),
+                spec.required(),
+                spec.allowed());
+    }
+
+    static MotionSpecDto motion(MotionSpec motion) {
+        return motion == null
+                ? null
+                : new MotionSpecDto(motion.speedField(), motion.speedUnit().wireValue(), motion.courseField());
+    }
+
+    static FieldThresholdDto threshold(FieldThreshold threshold) {
+        return new FieldThresholdDto(threshold.field(), threshold.delta(), threshold.angular());
+    }
+
+    /** The API budget: request limits only ({@code mbPerDay} is not part of the schema). */
+    public static BudgetDto budget(Budget budget) {
+        return budget == null ? null : new BudgetDto(budget.perMinute(), budget.perDay());
+    }
+
+    // ---------- settings ----------
+
+    /**
+     * The settings of one source.
+     *
+     * @param view the effective view ({@link ai.foresignal.source.SourceService#view(String)})
+     * @param policyOverride the stored ingest-policy override, if any
+     * @param retentionOverride the stored retention override, if any
+     * @param sourceRetention {@link ai.foresignal.source.SourceService#effectiveRetention(String)}
+     */
+    public SourceSettingsDto settings(
+            SourceView view,
+            Optional<IngestPolicy> policyOverride,
+            Optional<Duration> retentionOverride,
+            Optional<Duration> sourceRetention) {
+        return new SourceSettingsDto(
+                view.enabled(),
+                view.interval(),
+                view.params(),
+                budget(view.budget()),
+                retentionOverride.orElse(null),
+                view.credentialsSet(),
+                view.updatedAt(),
+                policyOverride.map(this::policy).orElse(null),
+                policy(view.ingestPolicy()),
+                effectiveRetention(view.descriptor(), sourceRetention));
+    }
+
+    /**
+     * The retention window in force.
+     *
+     * <p>TRACK: {@code retention.trackWindow} (3d by default; prompt 019 adds more settings).
+     * STANDARD: the source's own window (override, else descriptor default), else the global
+     * retention setting for the source.
+     */
+    public Duration effectiveRetention(SourceDescriptor descriptor, Optional<Duration> sourceRetention) {
+        RetentionSettings retention = retentionSettings();
+        if (descriptor.isTrack()) {
+            return retention.trackWindow();
+        }
+        return sourceRetention.orElseGet(() -> retention.forSource(descriptor.id()));
+    }
+
+    private RetentionSettings retentionSettings() {
+        try {
+            return appSettings.getOrDefault(
+                    SettingKeys.RETENTION, RetentionSettings.class, RetentionSettings::defaults);
+        } catch (RuntimeException e) {
+            log.debug("Could not read retention settings; using the shipped defaults", e);
+            return RetentionSettings.defaults();
+        }
+    }
+
+    // ---------- ingest policy ----------
+
+    /** The API form of {@code policy}; a missing keyframe becomes {@code "none"}. Null for null. */
+    public IngestPolicyDto policy(IngestPolicy policy) {
+        if (policy == null) {
+            return null;
+        }
+        ObjectNode tree = codec.toTree(policy);
+        return new IngestPolicyDto(
+                text(tree, "mode"),
+                text(tree, "minInterval"),
+                text(tree, "keyframe"),
+                tree.hasNonNull("minDeviationMeters") ? tree.get("minDeviationMeters").doubleValue() : null,
+                tree.hasNonNull("thresholds") ? tree.get("thresholds").booleanValue() : null,
+                text(tree, "edgeMinInterval"));
+    }
+
+    private static String text(ObjectNode tree, String field) {
+        return tree.hasNonNull(field) ? tree.get(field).asString() : null;
+    }
+
+    /**
+     * The domain policy from its API form, parsed by {@link IngestPolicyCodec}.
+     *
+     * <p>Shape problems (unknown mode, unparseable duration, {@code keyframe: none} on an ALL
+     * policy of a source with a TTL) are reported with field paths such as
+     * {@code ingestPolicy.keyframe}. The §5.1 rules themselves are checked by the service.
+     *
+     * @throws ValidationException {@code INGEST_POLICY_INVALID} with every problem in {@code errors}
+     */
+    public IngestPolicy policy(IngestPolicyDto dto, SourceDescriptor descriptor) {
+        if (dto == null) {
+            return null;
+        }
+        List<FieldError> errors = new ArrayList<>();
+        String mode = dto.mode() == null ? null : dto.mode().trim().toUpperCase(Locale.ROOT);
+        if (mode == null || !List.of("ALL", "SAMPLED", "LATEST").contains(mode)) {
+            errors.add(new FieldError(POLICY_FIELD + ".mode", "must be one of ALL, SAMPLED or LATEST, but was " + dto.mode()));
+        }
+        checkDuration(errors, "minInterval", dto.minInterval(), false);
+        checkDuration(errors, "keyframe", dto.keyframe(), true);
+        checkDuration(errors, "edgeMinInterval", dto.edgeMinInterval(), false);
+        if ("SAMPLED".equals(mode) && dto.minInterval() == null) {
+            errors.add(new FieldError(POLICY_FIELD + ".minInterval", "is required for SAMPLED"));
+        }
+        if ("ALL".equals(mode)
+                && isNone(dto.keyframe())
+                && descriptor != null
+                && descriptor.recordTtl() != null) {
+            errors.add(
+                    new FieldError(
+                            POLICY_FIELD + ".keyframe",
+                            "'none' is only allowed when the source has no TTL; "
+                                    + descriptor.id()
+                                    + " has a recordTtl of "
+                                    + Durations.format(descriptor.recordTtl())));
+        }
+        if (!errors.isEmpty()) {
+            throw invalidPolicy(errors);
+        }
+
+        ObjectNode tree = jsonMapper.createObjectNode();
+        tree.put("mode", mode);
+        putIfSet(tree, "minInterval", dto.minInterval());
+        putIfSet(tree, "keyframe", dto.keyframe());
+        putIfSet(tree, "edgeMinInterval", dto.edgeMinInterval());
+        if (dto.minDeviationMeters() != null) {
+            tree.put("minDeviationMeters", dto.minDeviationMeters());
+        }
+        if (dto.thresholds() != null) {
+            tree.put("thresholds", dto.thresholds());
+        }
+        try {
+            return codec.fromTree(tree);
+        } catch (InvalidInputException | JacksonException e) {
+            throw invalidPolicy(List.of(new FieldError(POLICY_FIELD, e.getMessage())));
+        }
+    }
+
+    private static void putIfSet(ObjectNode tree, String field, String value) {
+        if (value != null) {
+            tree.put(field, value.trim());
+        }
+    }
+
+    private static boolean isNone(String value) {
+        return value != null && IngestPolicyCodec.KEYFRAME_NONE.equalsIgnoreCase(value.trim());
+    }
+
+    private static void checkDuration(List<FieldError> errors, String field, String value, boolean noneAllowed) {
+        if (value == null || (noneAllowed && isNone(value))) {
+            return;
+        }
+        try {
+            Durations.parse(value);
+        } catch (InvalidInputException e) {
+            errors.add(new FieldError(POLICY_FIELD + "." + field, e.getMessage()));
+        }
+    }
+
+    private static ValidationException invalidPolicy(List<FieldError> errors) {
+        return new ValidationException(
+                ErrorCodes.INGEST_POLICY_INVALID, "The ingest policy is not valid.", errors);
+    }
+
+    // ---------- updates ----------
+
+    /**
+     * The service update for an API body.
+     *
+     * <p>Every malformed value is collected, so the caller sees all of them in one 400. Ingest
+     * policy shape problems are reported on their own as {@code INGEST_POLICY_INVALID}.
+     *
+     * @throws ValidationException {@code VALIDATION_FAILED}, or {@code INGEST_POLICY_INVALID} for a
+     *     malformed policy
+     */
+    public SourceSettingsUpdate update(
+            ai.foresignal.api.dto.SourceSettingsUpdate body, SourceDescriptor descriptor) {
+        if (body == null) {
+            return SourceSettingsUpdate.empty();
+        }
+        List<FieldError> errors = new ArrayList<>();
+
+        Duration interval = parseDuration(errors, "interval", body.getInterval());
+
+        Duration retention = null;
+        boolean clearRetention = false;
+        if (body.isRetentionPresent()) {
+            if (body.getRetention() == null) {
+                clearRetention = true;
+            } else {
+                retention = parseDuration(errors, "retention", body.getRetention());
+            }
+        }
+
+        Budget budget = null;
+        if (body.getBudget() != null) {
+            BudgetDto b = body.getBudget();
+            if (b.perMinute() == null) {
+                errors.add(new FieldError("budget.perMinute", "is required"));
+            }
+            if (b.perDay() == null) {
+                errors.add(new FieldError("budget.perDay", "is required"));
+            }
+            if (b.perMinute() != null && b.perDay() != null) {
+                Integer mbPerDay =
+                        descriptor.defaultBudget() == null ? null : descriptor.defaultBudget().mbPerDay();
+                budget = new Budget(b.perMinute(), b.perDay(), mbPerDay);
+            }
+        }
+
+        if (!errors.isEmpty()) {
+            throw new ValidationException("The settings for " + descriptor.id() + " are not valid.", errors);
+        }
+
+        IngestPolicy policy = null;
+        boolean clearPolicy = false;
+        if (body.isIngestPolicyPresent()) {
+            if (body.getIngestPolicy() == null) {
+                clearPolicy = true;
+            } else {
+                policy = policy(body.getIngestPolicy(), descriptor);
+            }
+        }
+
+        Map<String, Object> params = null;
+        if (body.getParams() != null) {
+            // A JSON null value means "not set", which falls back to the parameter's default.
+            params = new LinkedHashMap<>();
+            for (Map.Entry<String, Object> entry : body.getParams().entrySet()) {
+                if (entry.getValue() != null) {
+                    params.put(entry.getKey(), entry.getValue());
+                }
+            }
+        }
+        return new SourceSettingsUpdate(
+                body.getEnabled(), interval, params, budget, retention, clearRetention, policy, clearPolicy);
+    }
+
+    private static Duration parseDuration(List<FieldError> errors, String field, String value) {
+        if (value == null) {
+            return null;
+        }
+        try {
+            return Durations.parse(value);
+        } catch (InvalidInputException e) {
+            errors.add(new FieldError(field, e.getMessage()));
+            return null;
+        }
+    }
+
+    private static List<String> sorted(java.util.Collection<String> values) {
+        return values.stream().sorted().toList();
+    }
+}

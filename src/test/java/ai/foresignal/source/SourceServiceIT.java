@@ -341,7 +341,8 @@ class SourceServiceIT {
                                 assertThat(foresignal.getCode()).isEqualTo(SourceService.RETENTION_TIER_FIXED);
                                 assertThat(foresignal.getStatus().value()).isEqualTo(400);
                             })
-                    .hasMessageContaining("fixed by its TRACK history tier");
+                    .hasMessageContaining("fixed by its TRACK history tier")
+                    .hasMessageContaining("retention.trackWindow");
         }
 
         @Test
@@ -430,11 +431,15 @@ class SourceServiceIT {
                                                             true))))
                     .isInstanceOf(ValidationException.class)
                     .satisfies(
-                            e ->
-                                    assertThat(((ValidationException) e).getErrors())
-                                            .anySatisfy(
-                                                    error ->
-                                                            assertThat(error.field()).isEqualTo("ingestPolicy")));
+                            e -> {
+                                ValidationException v = (ValidationException) e;
+                                assertThat(v.getCode()).isEqualTo(SourceService.INGEST_POLICY_INVALID);
+                                assertThat(v.getErrors())
+                                        .anySatisfy(
+                                                error ->
+                                                        assertThat(error.field())
+                                                                .isEqualTo("ingestPolicy.keyframe"));
+                            });
         }
     }
 

@@ -111,6 +111,8 @@ public class AccessPolicy {
                 rule(HttpMethod.POST, "/v1/sources/*/fetch", AccessRequirement.ADMIN),
                 rule(HttpMethod.POST, "/v1/sources/*/probe", AccessRequirement.ADMIN),
                 rule(HttpMethod.PUT, "/v1/sources/*", AccessRequirement.ADMIN),
+                // The provenance log exposes redacted URLs, ETags and body hashes: admin (013).
+                rule(HttpMethod.GET, "/v1/sources/*/fetches", AccessRequirement.ADMIN),
                 rule(HttpMethod.GET, "/v1/sources/**", AccessRequirement.READ),
 
                 // ---- Records, changes, tiles, kinds, history: data reads ----

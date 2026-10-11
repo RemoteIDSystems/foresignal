@@ -1,6 +1,7 @@
 package ai.foresignal.source;
 
 import ai.foresignal.api.error.ConflictException;
+import ai.foresignal.api.error.ErrorCodes;
 import ai.foresignal.api.error.ForesignalException;
 import ai.foresignal.api.error.FieldError;
 import ai.foresignal.api.error.ValidationException;
@@ -54,7 +55,13 @@ public class SourceService implements ApplicationRunner {
     private static final Logger log = LoggerFactory.getLogger(SourceService.class);
 
     /** Returned when an operator tries to set retention on a TRACK source. */
-    public static final String RETENTION_TIER_FIXED = "RETENTION_TIER_FIXED";
+    public static final String RETENTION_TIER_FIXED = ErrorCodes.RETENTION_TIER_FIXED;
+
+    /** Returned when an ingest-policy override breaks a Core-Data-Model §5.1 rule. */
+    public static final String INGEST_POLICY_INVALID = ErrorCodes.INGEST_POLICY_INVALID;
+
+    /** The JSON path every ingest-policy problem is reported under. */
+    static final String POLICY_FIELD = "ingestPolicy";
 
     private final SourceRegistry registry;
     private final SourceSettingsRepository settings;
@@ -250,6 +257,7 @@ public class SourceService implements ApplicationRunner {
         SourceView before = settings.findById(id).isPresent() ? view(id) : null;
 
         List<FieldError> errors = new ArrayList<>();
+        List<FieldError> policyErrors = new ArrayList<>();
 
         if (update.interval() != null) {
             Duration interval = update.interval();
@@ -296,12 +304,20 @@ public class SourceService implements ApplicationRunner {
         }
 
         applyRetention(descriptor, update, row, errors);
-        applyIngestPolicy(descriptor, update, row, errors);
+        applyIngestPolicy(descriptor, update, row, policyErrors);
 
         if (update.enabled() != null) {
             row.setEnabled(update.enabled());
         }
 
+        if (!policyErrors.isEmpty()) {
+            // A policy problem gets its own code so a client can tell "fix the policy" from "fix
+            // a field"; every other error found in the same request travels with it.
+            List<FieldError> all = new ArrayList<>(policyErrors);
+            all.addAll(errors);
+            throw new ValidationException(
+                    INGEST_POLICY_INVALID, "The ingest policy for " + id + " is not valid.", all);
+        }
         if (!errors.isEmpty()) {
             throw new ValidationException("The settings for " + id + " are not valid.", errors);
         }
@@ -346,7 +362,9 @@ public class SourceService implements ApplicationRunner {
                     RETENTION_TIER_FIXED,
                     "Retention for "
                             + descriptor.id()
-                            + " is fixed by its TRACK history tier and cannot be set per source.");
+                            + " is fixed by its TRACK history tier and cannot be set per source."
+                            + " Change the TRACK window with the retention.trackWindow setting"
+                            + " instead.");
         }
         Duration retention = update.retention();
         if (retention.isZero() || retention.isNegative()) {
@@ -369,12 +387,36 @@ public class SourceService implements ApplicationRunner {
             return;
         }
         IngestPolicy policy = IngestPolicyValidator.applyDefaults(update.ingestPolicy(), descriptor);
-        List<String> problems = IngestPolicyValidator.problems(policy, descriptor, "ingestPolicy");
+        List<String> problems = IngestPolicyValidator.problems(policy, descriptor, POLICY_FIELD);
         if (!problems.isEmpty()) {
-            problems.forEach(problem -> errors.add(new FieldError("ingestPolicy", problem)));
+            problems.forEach(problem -> errors.add(new FieldError(policyFieldOf(problem), problem)));
             return;
         }
         row.setIngestPolicy(policyCodec.toJson(policy));
+    }
+
+    /**
+     * The field path a validator message is about.
+     *
+     * <p>{@link IngestPolicyValidator} starts each message with the path it concerns, for example
+     * {@code "ingestPolicy.keyframe (PT1H) must not exceed ..."}, so the leading token is the field.
+     * A message about the descriptor itself (a TTL too short for any keyframe) names no field and is
+     * reported under {@code ingestPolicy.keyframe}, the value an operator would have to change.
+     */
+    static String policyFieldOf(String problem) {
+        if (problem == null || !problem.startsWith(POLICY_FIELD + ".")) {
+            return POLICY_FIELD + ".keyframe";
+        }
+        int end = problem.length();
+        for (int i = POLICY_FIELD.length() + 1; i < problem.length(); i++) {
+            char c = problem.charAt(i);
+            if (!Character.isLetterOrDigit(c) && c != '.') {
+                end = i;
+                break;
+            }
+        }
+        String field = problem.substring(0, end);
+        return field.endsWith(".") ? field.substring(0, field.length() - 1) : field;
     }
 
     private void requireCredentials(SourceDescriptor descriptor, String id) {
@@ -528,6 +570,35 @@ public class SourceService implements ApplicationRunner {
     public IngestPolicy effectiveIngestPolicy(String id) {
         SourceDescriptor descriptor = registry.descriptor(id);
         return resolveIngestPolicy(descriptor, settings.findById(id).orElse(null));
+    }
+
+    /**
+     * The operator's ingest-policy override as stored, or empty when the descriptor default applies.
+     *
+     * <p>Unlike {@link #effectiveIngestPolicy(String)} no defaults are filled in, so a client can
+     * tell an override from the default.
+     */
+    @Transactional(readOnly = true)
+    public Optional<IngestPolicy> ingestPolicyOverride(String id) {
+        registry.descriptor(id);
+        return settings.findById(id).map(row -> policyCodec.fromJson(row.getIngestPolicy()));
+    }
+
+    /**
+     * The operator's per-source retention override, or empty when none is stored.
+     *
+     * <p>Always empty for a TRACK source, which cannot have one.
+     */
+    @Transactional(readOnly = true)
+    public Optional<Duration> retentionOverride(String id) {
+        SourceDescriptor descriptor = registry.descriptor(id);
+        if (descriptor.isTrack()) {
+            return Optional.empty();
+        }
+        return settings.findById(id)
+                .map(SourceSettingsEntity::getRetention)
+                .filter(value -> !value.isBlank())
+                .map(Durations::parse);
     }
 
     /**

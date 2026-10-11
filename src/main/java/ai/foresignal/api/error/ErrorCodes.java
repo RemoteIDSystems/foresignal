@@ -23,6 +23,12 @@ public final class ErrorCodes {
     public static final String PAYLOAD_TOO_LARGE = "PAYLOAD_TOO_LARGE";
     public static final String INTERNAL_ERROR = "INTERNAL_ERROR";
 
+    /** 400: a source's ingest-policy override breaks a Core-Data-Model §5.1 rule. */
+    public static final String INGEST_POLICY_INVALID = "INGEST_POLICY_INVALID";
+
+    /** 400: retention was set on a TRACK source, whose window is {@code retention.trackWindow}. */
+    public static final String RETENTION_TIER_FIXED = "RETENTION_TIER_FIXED";
+
     private static final String TYPE_PREFIX = "https://foresignal.ai/problems/";
 
     private ErrorCodes() {}

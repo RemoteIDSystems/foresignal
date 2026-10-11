@@ -154,6 +154,7 @@ class AccessPolicyTest {
         "DELETE, /v1/sources/usgs-earthquakes/credentials",
         "POST, /v1/sources/usgs-earthquakes/fetch",
         "POST, /v1/sources/usgs-earthquakes/probe",
+        "GET, /v1/sources/usgs-earthquakes/fetches",
         "POST, /v1/search/reindex",
         "GET, /v1/push/subscriptions",
     })
@@ -221,6 +222,18 @@ class AccessPolicyTest {
         assertScope("GET", "/v1/sources/usgs-earthquakes", Scope.READ);
         assertScope("PUT", "/v1/sources/usgs-earthquakes", Scope.ADMIN);
         assertScope("PUT", "/v1/sources/usgs-earthquakes/credentials", Scope.ADMIN);
+    }
+
+    @Test
+    @DisplayName("the fetch log is admin even though it is a GET under /v1/sources (013)")
+    void fetchLogIsAdmin() {
+        assertScope("GET", "/v1/sources/usgs-earthquakes/fetches", Scope.ADMIN);
+        assertScope("GET", "/v1/sources/usgs-earthquakes/fetches?limit=10&status=OK", Scope.ADMIN);
+        assertScope("GET", "/v1/sources/usgs-earthquakes/fetches/", Scope.ADMIN);
+        // The neighboring reads stay read.
+        assertScope("GET", "/v1/sources/usgs-earthquakes/health", Scope.READ);
+        assertScope("GET", "/v1/sources/usgs-earthquakes/usage", Scope.READ);
+        assertScope("GET", "/v1/sources/health", Scope.READ);
     }
 
     @Test

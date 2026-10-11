@@ -15,7 +15,8 @@ PATH_VARS = {"sourceId": "sourceId", "externalId": "externalId", "ruleId": "rule
              "layer": "tileLayer", "z": "tileZ", "x": "tileX", "y": "tileY"}
 
 BODIES = {
-  "updateSource": {"enabled": True, "interval": "60s", "params": {"feed": "all_day"}, "budget": {"perMinute": 4, "perDay": 2000}, "retention": "365d"},
+  "updateSource": {"enabled": True, "interval": "60s", "params": {"feed": "all_day"}, "budget": {"perMinute": 4, "perDay": 2000}, "retention": "365d",
+                   "ingestPolicy": {"mode": "SAMPLED", "minInterval": "60s", "keyframe": "240s", "minDeviationMeters": 1000, "thresholds": True, "edgeMinInterval": "30s"}},
   "setSourceCredentials": {"values": {"apiKey": "REPLACE_ME"}},
   "createTrigger": {"name": "Big quake", "enabled": True, "source": "usgs-earthquakes", "kind": "earthquake",
                     "conditions": [{"path": "mag", "op": ">=", "value": 6}], "mode": "enter", "cooldown": "0s", "severity": "critical", "enrich": True,
