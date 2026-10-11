@@ -1,11 +1,11 @@
 # 060 — MQTT Channel And HA Discovery
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/060-CR-MQTT-Channel-And-HA-Discovery.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -36,16 +36,16 @@
 
 ## Objective
 
-Publish Elaro's alerts, briefings, system events, source health and a live summary to the operator's MQTT broker, with a Last Will so consumers know when Elaro is down. Make Elaro appear in Home Assistant automatically through MQTT discovery. This is a notification channel (durable deliveries for events) plus a state publisher (retained topics), built on one supervised client library that the later MQTT source adapters (083, 085) reuse.
+Publish Foresignal's alerts, briefings, system events, source health and a live summary to the operator's MQTT broker, with a Last Will so consumers know when Foresignal is down. Make Foresignal appear in Home Assistant automatically through MQTT discovery. This is a notification channel (durable deliveries for events) plus a state publisher (retained topics), built on one supervised client library that the later MQTT source adapters (083, 085) reuse.
 
 ## Tasks
 
-### 1. Dependency and shared client (`ai.elaro.mqtt`)
+### 1. Dependency and shared client (`ai.foresignal.mqtt`)
 
 - Add `com.hivemq:hivemq-mqtt-client` (or `-shaded`) 1.4.0 to `gradle/libs.versions.toml` with a comment on the decision.
 - Update `docs/Architecture.md` §2: MQTT → HiveMQ MQTT Client, replacing Paho; record why. Leave a note for 083 and 085 to use `MqttConnections`.
 - `MqttConnections` holds one supervised `Mqtt5AsyncClient` (or `Mqtt3AsyncClient` when `protocolVersion=3.1.1`) per channel. Each connection has:
-  - client id `elaro-{installIdShort}-{channelIdShort}`
+  - client id `foresignal-{installIdShort}-{channelIdShort}`
   - automatic reconnect with exponential backoff (1 s → 120 s, with jitter)
   - session expiry 1 h
   - keepalive 60 s
@@ -53,13 +53,13 @@ Publish Elaro's alerts, briefings, system events, source health and a live summa
   - username and password from the channel's secrets
 - **Last Will:** `{prefix}/status` = `offline`, retained, QoS 1. On every (re)connect, publish `online` retained. On graceful shutdown, publish `offline` before disconnecting.
 - **Destination policy:** run the broker host through 035's outbound URL policy. Channels are operator-configured, so private hosts are allowed. A public host without TLS or without credentials → validation warning `MQTT_INSECURE_PUBLIC_BROKER`, returned in the channel response; it is not a refusal.
-- Expose a `/v1/system` `mqtt` block (connections, connected, lastError) and a metric `elaro.mqtt.connected{channel}`.
+- Expose a `/v1/system` `mqtt` block (connections, connected, lastError) and a metric `foresignal.mqtt.connected{channel}`.
 
 ### 2. `mqtt` channel type (018 SPI)
 
 - Config:
   - `brokerUrl` (`mqtt://`, `mqtts://`, `ws://`, `wss://`)
-  - `topicPrefix` (default `elaro`, validated `^[A-Za-z0-9_\-/]{1,64}$`, no wildcards)
+  - `topicPrefix` (default `foresignal`, validated `^[A-Za-z0-9_\-/]{1,64}$`, no wildcards)
   - `qos` (0|1, default 1), `protocolVersion` (`5`|`3.1.1`, default 5)
   - `messageExpiry` (default 24h, used for non-retained event messages)
   - `payloadTemplate` (optional JSON with placeholders, like webhook `bodyTemplate`)
@@ -93,11 +93,11 @@ Publish Elaro's alerts, briefings, system events, source health and a live summa
 
 ### 3. Home Assistant discovery (when `haDiscovery=true`)
 
-- One device config on `{haPrefix}/device/elaro_{installIdShort}/config`:
-  - `dev: {ids: ["elaro_{installId}"], name: "Elaro", mf: "Elaro", mdl: "Elaro broker", sw: <version>, cu: <publicBaseUrl>}`
-  - `o: {name: "Elaro", sw: <version>, url: <project URL>}`
+- One device config on `{haPrefix}/device/foresignal_{installIdShort}/config`:
+  - `dev: {ids: ["foresignal_{installId}"], name: "Foresignal", mf: "Foresignal", mdl: "Foresignal broker", sw: <version>, cu: <publicBaseUrl>}`
+  - `o: {name: "Foresignal", sw: <version>, url: <project URL>}`
   - `availability: [{topic: "{prefix}/status"}]`
-  - `cmps`, all with `unique_id: "elaro_{installId}_{key}"`:
+  - `cmps`, all with `unique_id: "foresignal_{installId}_{key}"`:
     - sensors `alerts_open_critical|warning|info` (state topic `{prefix}/summary`, `value_template` into the glance JSON)
     - `sources_failing`, `sources_degraded`
     - `last_briefing` (`device_class: timestamp`)
@@ -115,13 +115,13 @@ Publish Elaro's alerts, briefings, system events, source health and a live summa
 - `docs/OpenAPI.json`:
   - the `mqtt` entry in the channel type catalogue (config and secret field specs)
   - `ChannelInput` docs
-  - new operation `republishMqttChannel` (`POST /v1/channels/{channelId}/mqtt/republish`, admin, `x-elaro-scope`)
+  - new operation `republishMqttChannel` (`POST /v1/channels/{channelId}/mqtt/republish`, admin, `x-foresignal-scope`)
   - `SystemInfo.mqtt`
   - warning code `MQTT_INSECURE_PUBLIC_BROKER`
 - Add an `mqtt` channel `BODIES` example, then regenerate Postman. `AccessPolicy`: `/v1/channels/**` is already admin.
 - Product Charter FR-35: add `mqtt`. Architecture §17: add the row and the topic tree.
 - `docs/Operator-Guide.md` "MQTT and Home Assistant":
-  - Mosquitto example with ACLs (Elaro writes `elaro/#` and `homeassistant/#` and reads `homeassistant/status`)
+  - Mosquitto example with ACLs (Foresignal writes `foresignal/#` and `homeassistant/#` and reads `homeassistant/status`)
   - the topic table
   - an HA automation on the `alerts_critical` event entity
   - the Node-RED subscription example
@@ -145,8 +145,8 @@ Publish Elaro's alerts, briefings, system events, source health and a live summa
 
 ## Acceptance criteria
 
-- With a Mosquitto broker and HA's MQTT integration, Elaro appears as a device with alert sensors, per-severity alert event entities and rule problem sensors, without hand-written YAML.
-- Killing Elaro flips `{prefix}/status` to `offline`.
+- With a Mosquitto broker and HA's MQTT integration, Foresignal appears as a device with alert sensors, per-severity alert event entities and rule problem sensors, without hand-written YAML.
+- Killing Foresignal flips `{prefix}/status` to `offline`.
 - Alert messages are delivered durably (QoS 1, retried).
 - The library choice and Netty resolution are recorded in the CR and in Architecture §2.
 - Compiles.

@@ -1,11 +1,11 @@
 # 085 — Keyless AIS
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/085-CR-Keyless-AIS.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -25,18 +25,18 @@ Add three keyless vessel sources (Norway's open AIS stream, Finland's Digitraffi
 
 ## Tasks
 
-### 1. Shared AIVDM codec (`ai.elaro.codec.ais`)
+### 1. Shared AIVDM codec (`ai.foresignal.codec.ais`)
 
-Implement in-house, in Java 21 records and sealed types. Do not use `tbsalling/aismessages` (non-free licence). `dk.dma.ais.lib` (Apache-2.0) may be consulted, but write our own so the encoder and sentinel handling match Elaro's rules.
+Implement in-house, in Java 21 records and sealed types. Do not use `tbsalling/aismessages` (non-free licence). `dk.dma.ais.lib` (Apache-2.0) may be consulted, but write our own so the encoder and sentinel handling match Foresignal's rules.
 
 - **`TagBlock`**: parse and strip an IEC 61162-450 TAG block `\k:v,k:v*hh\` before the sentence (`c` unix time in seconds or milliseconds, `s` source station, `g` group `n-m-id`, `n` line count), verifying the checksum. A missing TAG block is not an error.
 - **`NmeaSentence`**: `!AIVDM`/`!AIVDO`/`!BSVDM` with fragment count, number, sequential id, channel, payload, fill bits and `*hh` checksum (bad checksum → dropped and counted).
-- **`FragmentAssembler`**: key `(talker, seqId or TAG group id, channel, fragCount)`, max 9 fragments, 2 s timeout, bounded at 1,000 open groups; out-of-order fragments accepted; counts `elaro.ais.fragments.{completed,expired}`.
+- **`FragmentAssembler`**: key `(talker, seqId or TAG group id, channel, fragCount)`, max 9 fragments, 2 s timeout, bounded at 1,000 open groups; out-of-order fragments accepted; counts `foresignal.ais.fragments.{completed,expired}`.
 - **`SixBit`**: armour decode/encode (ASCII 48–119 → 6-bit), bit reader/writer with signed fields, 6-bit text with `@` padding trimmed.
 - **`AisMessage`** sealed decoders: 1/2/3 (Class A position), 4 (base station, counted only), 5 (static and voyage), 18 (Class B position), 19 (Class B extended), 21 (AtoN, counted only), 24A/24B (Class B static), 27 (long-range; position at 1/10 minute). Other types are counted and dropped.
 - **Sentinels → absent** (adapter rule 11): lat 91 / lon 181, SOG 1023 (102.3 kn), COG 3600, heading 511, ROT −128, draught 0, ETA month 0, empty or all-`@` names.
 - **Encoder** (for prompt 110): `AisEncoder` for types 1, 5, 18 and 24A/B, and `NmeaWriter` that splits into fragments ≤ 82 characters with sequential ids 0–9 and correct fill bits. Round-trip tests prove decode(encode(x)) == x.
-- **`AivdmSocketCodec`** (id `aivdm`, `Framing.LINES`) in 069's `ai.elaro.source.codec` wraps the codec for socket sources; its session owns a `FragmentAssembler` and a `VesselStateMerger`.
+- **`AivdmSocketCodec`** (id `aivdm`, `Framing.LINES`) in 069's `ai.foresignal.source.codec` wraps the codec for socket sources; its session owns a `FragmentAssembler` and a `VesselStateMerger`.
 - **`VesselStateMerger`**: per-MMSI static cache (types 5, 19, 24A/B; 6 h TTL; bounded 100k LRU) merged into each position into one complete snapshot (adapter rule 7). Use **exactly 063's `aisstream` payload keys, units and fieldSpecs** so derived layers (099) and the 110 sink treat every vessel source alike: `mmsi, name, callsign, imo, shipType` (int), `class` (`A|B`), `destination, navStatus, draught` (m), `lengthM` (A+B), `beamM` (C+D), `eta` (ISO-8601 UTC, omitted when any part is unavailable), `sog, cog, heading`. Rate of turn and the position-accuracy flag go to `quality.extra` (`ais.rot`, `ais.pos_acc`), not the payload. Static data for an MMSI with no position yet is held, not emitted (063's rule). If 063's CR shows different names, follow 063.
 
 ### 2. Common vessel descriptor
@@ -56,7 +56,7 @@ Implement in-house, in Java 21 records and sealed types. Do not use `tbsalling/a
 
 ### 4. `ais-digitraffic` (STREAMING, MQTT over WSS)
 
-- `wss://meri.digitraffic.fi:443/mqtt` through 060's `MqttConnections` (HiveMQ WebSocket transport; this host is fixed in the descriptor, not operator input). Subscribe `vessels-v2/+/location`, `vessels-v2/+/metadata` and `vessels-v2/status` (3 subscriptions). Client id `Elaro; {installId}-{random6}` (the format in Fintraffic's examples); send `Digitraffic-User: Elaro/{version} ({installId})` on the WebSocket upgrade.
+- `wss://meri.digitraffic.fi:443/mqtt` through 060's `MqttConnections` (HiveMQ WebSocket transport; this host is fixed in the descriptor, not operator input). Subscribe `vessels-v2/+/location`, `vessels-v2/+/metadata` and `vessels-v2/status` (3 subscriptions). Client id `Foresignal; {installId}-{random6}` (the format in Fintraffic's examples); send `Digitraffic-User: Foresignal/{version} ({installId})` on the WebSocket upgrade.
 - Location JSON `{time (s), sog, cog, navStat, rot, posAcc, raim, heading, lon, lat}`; metadata JSON `{timestamp (ms), destination, name, draught, eta, posType, refA..refD, callSign, imo, type}`. MMSI comes from the topic. Map into the 063 payload keys; `refA+refB` → `lengthM`, `refC+refD` → `beamM`.
 - Metadata bootstrap: `GET https://meri.digitraffic.fi/api/ais/v1/vessels` every 12 h with `Accept-Encoding: gzip` (**verified 2026-10:** the API answers 406 without it) and the `Digitraffic-User` header; seed `VesselStateMerger`.
 - **Drop location fixes older than 24 h** (Velocity found many stale fixes on the REST side; apply the guard on MQTT too). Never use the REST `locations` endpoint.

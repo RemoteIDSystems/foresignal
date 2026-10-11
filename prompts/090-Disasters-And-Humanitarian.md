@@ -1,11 +1,11 @@
 # 090 — Disasters And Humanitarian
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/090-CR-Disasters-And-Humanitarian.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -25,7 +25,7 @@ Add the humanitarian and disaster layer: multi-hazard natural events, humanitari
 
 ## Tasks
 
-### 1. Shared helpers (`ai.elaro.source.adapters.humanitarian`)
+### 1. Shared helpers (`ai.foresignal.source.adapters.humanitarian`)
 
 - Use 040's `CountryCentroids` (`byIso2`, `byIso3`, `byFips`, `byName`; label points that always fall inside the country) for every country-level record, and set payload `geometryApproximate=true` (Adapter Guide rule from 040). Use 040's country polygons where a polygon is wanted. Unknown country → null geometry, counted. Do not bundle another centroid or FIPS table; if the State Department fixture contains a FIPS code `byFips` lacks, add it to 040's table as an alias.
 - `HtmlText.strip(html, maxChars)`: jsoup-free, allowlist-based tag stripper with entity decoding (reuse 018's sanitizer if present).

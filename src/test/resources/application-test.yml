@@ -13,16 +13,16 @@ spring:
       ddl-auto: update
     open-in-view: false
 
-elaro:
+foresignal:
   # Kept off the real ./data directory so tests never touch developer state.
-  data-dir: ${java.io.tmpdir}/elaro-test-data
+  data-dir: ${java.io.tmpdir}/foresignal-test-data
   reset-admin-token: false
   version: test
 
 logging:
   level:
     root: warn
-    ai.elaro: info
+    ai.foresignal: info
     org.testcontainers: warn
     com.github.dockerjava: warn
     org.hibernate.SQL: warn

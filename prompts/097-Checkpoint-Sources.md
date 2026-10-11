@@ -1,11 +1,11 @@
 # 097 — Checkpoint Sources
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/097-CR-Checkpoint-Sources.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -48,7 +48,7 @@ Run the whole suite built so far (001–096) and fix what fails before the intel
    6. **Streaming adapters.** For `aisstream`, `ais-digitraffic`, `emsc` WebSocket, `aprs-is`, `meshtastic-mqtt`, `ais-kystverket` and the socket receivers: the reconnect ladder matches the catalogue (aisstream 5 s → 15 s → 60 s → 300 s → 900 s and an hourly probe after key rejection; APRS-IS 30 s → 15 min with jitter; Meshtastic 15–300 s), the silence watchdog fires, one budget unit is charged per connection attempt, and the sink follows §7 (one outstanding batch, flush at 2 s or 2,000 entries, ALL buffer cap 50,000 with a 30 s block then drop). Use a controllable clock or scheduler, never real sleeps.
    7. **Socket transport (069).** LAN validator rejects public addresses and DNS that resolves to one; UDP listener drops datagrams from senders outside the allowlist; TCP client reconnects; codec SPI framing handles partial and concatenated frames; no listener binds to a non-configured port.
    8. **CAP parser (067, 089).** One shared parser: XXE disabled; `Cancel` closes (tombstones) the referenced alert, `Update` supersedes, `AllClear` resolves; `onset`/`effective` map per §2; polygon and circle areas convert correctly (circle `lat,lon radiusKm`); multi-`info` blocks are handled per the 067 Completion Report.
-   9. **Mesh opt-in defaults (083, 084).** `meshtastic-mqtt` is disabled by default, one root topic, `maxSubscriptions ≤ 3`, 100 msg/min cap, keepalive 120 s, client id `elaro-<installId>`; outbound mesh channels never target the public LongFast channel; no GPL Meshtastic protobuf classes are on the classpath (JSON/MQTT routes only); a test fails if `com.geeksville.mesh` or generated Meshtastic protobuf packages appear.
+   9. **Mesh opt-in defaults (083, 084).** `meshtastic-mqtt` is disabled by default, one root topic, `maxSubscriptions ≤ 3`, 100 msg/min cap, keepalive 120 s, client id `foresignal-<installId>`; outbound mesh channels never target the public LongFast channel; no GPL Meshtastic protobuf classes are on the classpath (JSON/MQTT routes only); a test fails if `com.geeksville.mesh` or generated Meshtastic protobuf packages appear.
    10. **Privacy flags.** Every local or personal source (`local-*` receivers with station position, `meshtastic-local`, `meshcore-local`, ACARS/VDL2/HFDL, Remote ID, personal-location sources from 039, `local-aprs` messages) declares the 008 `private` flag or the documented local-only egress default. Assert: private records never appear in `openReads` responses, tiles, embeddings or LLM egress; ACARS content stays metadata-only; Remote ID pilot and home positions are stripped from public paths; observer data needs `include=observer` with agent or admin scope.
    11. **Licence fields.** Every descriptor has `licence` and `termsUrl` (or a documented null), and non-commercial sources (OpenSky, ACLED, IOC, TeleGeography if already present) carry the restriction in `licence`.
 

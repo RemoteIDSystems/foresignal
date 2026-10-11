@@ -1,11 +1,11 @@
 # 045 — Raster Tiles And Styles
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/045-CR-Raster-Tiles-And-Styles.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -20,11 +20,11 @@
 
 ## Objective
 
-Serve every raster product to map clients as on-the-fly WebMercator PNG-8 tiles, single images and animation loops, rendered from the compressed native-grid frames through cached index maps. Add the versioned style registry with JSON and PNG legends, the content-addressed cache policy, a bounded fair render queue, AOI warming, and client-direct external catalogue entries. Amend the Charter and Architecture for "Elaro hosts derived products, never proxies".
+Serve every raster product to map clients as on-the-fly WebMercator PNG-8 tiles, single images and animation loops, rendered from the compressed native-grid frames through cached index maps. Add the versioned style registry with JSON and PNG legends, the content-addressed cache policy, a bounded fair render queue, AOI warming, and client-direct external catalogue entries. Amend the Charter and Architecture for "Foresignal hosts derived products, never proxies".
 
 ## Tasks
 
-### 1. Grid definitions (`ai.elaro.raster.GridDef`)
+### 1. Grid definitions (`ai.foresignal.raster.GridDef`)
 
 Sealed interface with `lonLatToIndex(lon, lat) → (double i, double j)` (NaN outside), `indexToLonLat`, `bounds()`, built from `raster_grid.definition`:
 - `LatLonGrid`: regular lat/lon, `lo1/la1` of the first point, `dx/dy`, longitude wrap (0..360 or −180..180, normalise once).
@@ -33,12 +33,12 @@ Sealed interface with `lonLatToIndex(lon, lat) → (double i, double j)` (NaN ou
 - `AffineGrid`: GeoTIFF-style geotransform in EPSG:4326 or EPSG:3857.
 - No GeoTools (LGPL) and no proj4j.
 
-### 2. TileRenderer and IndexMapCache (`ai.elaro.raster.render`)
+### 2. TileRenderer and IndexMapCache (`ai.foresignal.raster.render`)
 
 - WebMercatorQuad, 256 px tiles; `@2x` renders 512 px for the same extent.
-- `IndexMapCache` (Caffeine, byte-weighed, `elaro.raster.index-cache-mb`): key `(gridId, z, x, y, scale)` → `int[]` source cell index per output pixel (−1 outside). Pixel centres are inverse-projected from WebMercator, then `GridDef.lonLatToIndex`, nearest cell. Products whose spec sets `resample: bilinear` (continuous model fields) use a 4-index + weights variant.
+- `IndexMapCache` (Caffeine, byte-weighed, `foresignal.raster.index-cache-mb`): key `(gridId, z, x, y, scale)` → `int[]` source cell index per output pixel (−1 outside). Pixel centres are inverse-projected from WebMercator, then `GridDef.lonLatToIndex`, nearest cell. Products whose spec sets `resample: bilinear` (continuous model fields) use a 4-index + weights variant.
 - Render = gather raw codes through the index map → style palette index → PNG-8 with `IndexColorModel` and tRNS (JDK ImageIO; no gzip on PNG). Target 4–8 ms per tile; add a JMH-free microbenchmark test that logs timings only.
-- Tile cache (Caffeine, `elaro.raster.tile-cache-mb`), key `(productId, frameKey, style@v, z, x, y, scale)`.
+- Tile cache (Caffeine, `foresignal.raster.tile-cache-mb`), key `(productId, frameKey, style@v, z, x, y, scale)`.
 - Above the product's native `maxZoom` (MRMS 8, GOES C13 7, GFS 4, HRRR 8): 400 `TILE_OUT_OF_RANGE` (clients overzoom). Below `minZoom` likewise.
 - An empty or out-of-bounds tile returns **one shared transparent PNG** with one fixed ETag, cached immutable; `?empty=204` opts into 204.
 
@@ -55,20 +55,20 @@ Sealed interface with `lonLatToIndex(lon, lat) → (double i, double j)` (NaN ou
 
 - `GET /v1/products/{id}/tiles/{frameKey}/{z}/{x}/{y}[@2x].png?style&run&empty&onExpired`
 - `GET /v1/products/{id}/tilejson?frameKey&style`: TileJSON 3.0.0 with a **concrete content-addressed template** (aliases resolved at generation; the JSON itself short max-age), `bounds`, `minzoom`, `maxzoom` (native), `center`, `tileSize: 256`, `@2x` variant, attribution text.
-- `GET /v1/products/{id}/image/{frameKey}.{png|jpg}?bbox&width&height&crs=EPSG:3857|EPSG:4326&style`: up to 2048 px a side; returns header `Elaro-Image-Bounds: w,s,e,n`.
+- `GET /v1/products/{id}/image/{frameKey}.{png|jpg}?bbox&width&height&crs=EPSG:3857|EPSG:4326&style`: up to 2048 px a side; returns header `Foresignal-Image-Bounds: w,s,e,n`.
 - `GET /v1/products/loop?products=a[,b]|past=..&future=..&bbox|place&radiusKm&frames≤24&from&to&width≤1024&crs=EPSG:3857&style`: the server snaps the bbox once and returns `{crs, bounds[w,s,e,n], coordinates[[tl],[tr],[br],[bl]], width, height, frames[{time, timeKey, frameKey, kind, run?, step?, url, bytes, expiresAt}], legendUrl, attribution[], serverTime}`. `place` resolves through 036 places (`UNKNOWN_PLACE` 404). Frame URLs point at `/image`. Never mixes forecast runs.
 
 ### 5. Cache policy (one rule for tiles, images, legends, fields and media)
 
 - Content-addressed URL (frame token `{timeKey}~{sha8}`, versioned style, pinned `run` for forecasts, frame `complete`) → `{public|private}, max-age=31536000, immutable`, strong ETag.
-- Anything else (alias, bare `timeKey`, unversioned style, partial frame) → `{public|private}, max-age=min(cadence/2, 60s)`, ETag, `WebRequest.checkNotModified` **before** rendering, and header `Elaro-Frame-Time`.
+- Anything else (alias, bare `timeKey`, unversioned style, partial frame) → `{public|private}, max-age=min(cadence/2, 60s)`, ETag, `WebRequest.checkNotModified` **before** rendering, and header `Foresignal-Frame-Time`.
 - `public` only when `security.openReads=true` covers the path; otherwise `private`.
-- Stale `sha8` → 404 `UNKNOWN_FRAME` with `Link` to the current key; expired → 410 `FRAME_EXPIRED`, or with `?onExpired=transparent` the transparent tile plus `Elaro-Frame-Expired: true`.
+- Stale `sha8` → 404 `UNKNOWN_FRAME` with `Link` to the current key; expired → 410 `FRAME_EXPIRED`, or with `?onExpired=transparent` the transparent tile plus `Foresignal-Frame-Expired: true`.
 - Implement as one `RasterCachePolicy` helper used by every raster controller.
 
 ### 6. RenderQueue and warming
 
-- `RenderQueue` on a platform pool sized from the profile (`elaro.raster.render-pool`). Priority: newest-frame warming first, then interactive, then prefetch (`Elaro-Prefetch: 1` or `?prefetch=1`). Fair queueing round-robin per token id, else tile key (050), else client IP. Single-flight per tile cache key. Bounded wait **1.5 s**; then 503 `RENDER_BUSY` with `Retry-After: 1`. Gauges feed the `/v1/system` `rasters.renderQueue` and `renderBusyLastHour`.
+- `RenderQueue` on a platform pool sized from the profile (`foresignal.raster.render-pool`). Priority: newest-frame warming first, then interactive, then prefetch (`Foresignal-Prefetch: 1` or `?prefetch=1`). Fair queueing round-robin per token id, else tile key (050), else client IP. Single-flight per tile cache key. Bounded wait **1.5 s**; then 503 `RENDER_BUSY` with `Retry-After: 1`. Gauges feed the `/v1/system` `rasters.renderQueue` and `renderBusyLastHour`.
 - Warming: on `RasterFrameCommittedEvent` for a complete frame, render the tiles intersecting the places-AOI envelope (036 `PlacesAoiService`; `weather.defaultAoi` when there are no places) at z ≤ `maxZoomForAnimation` (radar 7, IR 6; from the spec) at 1× and 2× into the tile cache. If 036's AOI service is missing, add a minimal one (envelope of place buffers of max(radiusKm, 150 km), fallback Texas bbox with a health warning) and note it.
 - **No client request ever causes an upstream fetch.**
 
@@ -81,9 +81,9 @@ Sealed interface with `lonLatToIndex(lon, lat) → (double i, double j)` (NaN ou
 
 ### 8. Spec, Postman, docs
 
-- `docs/OpenAPI.json`: operations `getProductTile` (`image/png`), `getProductTileJson`, `getProductImage` (`image/png`, `image/jpeg`), `getProductLoop`, `listStyles`, `getStyle`, `getProductLegend`, `getProductLegendPng`, each `"x-elaro-scope": "read"`; schemas `TileJson`, `ProductLoop`, `Style`, `Legend`, `ExternalCatalogueEntry`; problem codes `TILE_OUT_OF_RANGE`, `UNKNOWN_STYLE` 400, `RENDER_BUSY` 503 (+ `Retry-After`), `UNKNOWN_PLACE` 404. Regenerate Postman with `python3 scripts/generate-postman.py docs/OpenAPI.json postman`.
+- `docs/OpenAPI.json`: operations `getProductTile` (`image/png`), `getProductTileJson`, `getProductImage` (`image/png`, `image/jpeg`), `getProductLoop`, `listStyles`, `getStyle`, `getProductLegend`, `getProductLegendPng`, each `"x-foresignal-scope": "read"`; schemas `TileJson`, `ProductLoop`, `Style`, `Legend`, `ExternalCatalogueEntry`; problem codes `TILE_OUT_OF_RANGE`, `UNKNOWN_STYLE` 400, `RENDER_BUSY` 503 (+ `Retry-After`), `UNKNOWN_PLACE` 404. Regenerate Postman with `python3 scripts/generate-postman.py docs/OpenAPI.json postman`.
 - `AccessPolicy`: the routes above under READ (already covered by `GET /v1/products/**` and `/v1/styles/**`; add tests).
-- `docs/Product-Charter.md` line 58 non-goal amended: "Elaro hosts products derived from data it ingests; it never proxies basemaps or third-party tiles (GIBS and nowCOAST are external catalogue entries clients fetch directly)"; FR-55 rewritten for self-rendered radar, satellite and model products. `docs/Executive-Summary.md` line 46 to match. `docs/Architecture.md` §1 rule ("no client request ever causes an upstream fetch: tiles, samples, media, maps, SatDump polar plots") and a new §27 Raster products (grids, renderer, styles, cache policy, queue). `docs/Source-Catalog.md` line 48 replaced.
+- `docs/Product-Charter.md` line 58 non-goal amended: "Foresignal hosts products derived from data it ingests; it never proxies basemaps or third-party tiles (GIBS and nowCOAST are external catalogue entries clients fetch directly)"; FR-55 rewritten for self-rendered radar, satellite and model products. `docs/Executive-Summary.md` line 46 to match. `docs/Architecture.md` §1 rule ("no client request ever causes an upstream fetch: tiles, samples, media, maps, SatDump polar plots") and a new §27 Raster products (grids, renderer, styles, cache policy, queue). `docs/Source-Catalog.md` line 48 replaced.
 - `THIRD_PARTY_NOTICES.md`: viridis (CC0) and cmocean (MIT) ramps.
 
 ## Tests to write (do not run)

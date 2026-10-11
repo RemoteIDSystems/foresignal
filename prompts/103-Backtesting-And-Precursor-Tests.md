@@ -1,11 +1,11 @@
 # 103 — Backtesting And Precursor Tests
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/103-CR-Backtesting-And-Precursor-Tests.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -23,13 +23,13 @@ Let the operator ask "what would this rule or recipe have done?" and "does X ten
 
 ## Principles (binding)
 
-- Backtests replay what Elaro **stored**, not ground truth. Every result carries generated caveats (§2).
+- Backtests replay what Foresignal **stored**, not ground truth. Every result carries generated caveats (§2).
 - **No look-ahead.** Anomaly and recipe replays use only data with `seq ≤` the replay cursor at each step. Baselines train only on buckets before the evaluated bucket.
 - Hit rates, lifts and p-values are descriptive statistics with stated assumptions. They are never presented as calibrated probabilities. Small samples are labelled `insufficient`.
 
 ## Tasks
 
-### 1. Job framework (`ai.elaro.backtest`)
+### 1. Job framework (`ai.foresignal.backtest`)
 
 - `backtest_job` columns:
   - id (ULID), `type` (rule | recipe | precursor | quality);
@@ -37,7 +37,7 @@ Let the operator ask "what would this rule or recipe have done?" and "does X ten
   - `from_seq`, `to_seq`, requested time range;
   - status (queued | running | done | failed | cancelled), progress (0–1), started/finished;
   - `result` jsonb (≤ 1 MB; larger detail is truncated with `truncated: true`), `caveats` jsonb, `detector_version`, created_by.
-- `BacktestWorker`: one platform thread by default (`elaro.backtest.concurrency`, max 2).
+- `BacktestWorker`: one platform thread by default (`foresignal.backtest.concurrency`, max 2).
   - It processes in 50k-seq chunks, each with `statement_timeout=60s`, and checks for cancellation between chunks.
   - At most one queued or running job per token (409 `BACKTEST_IN_PROGRESS`).
   - Jobs are capped at 90 days or the retained range, whichever is shorter.
@@ -129,7 +129,7 @@ Emit each caveat that applies, with a code, text and data:
 
 - `docs/OpenAPI.json`:
   - schemas `BacktestJob`, `BacktestRequest`, `BacktestCaveat`, `RuleBacktestResult`, `RecipeBacktestResult`, `PrecursorTest`, `PrecursorTestInput`, `PrecursorTestResult`, `RuleQuality`, `TuningSuggestion`;
-  - tag `Analysis`; `x-elaro-scope` on every operation;
+  - tag `Analysis`; `x-foresignal-scope` on every operation;
   - regenerate Postman with BODIES for `createBacktest` (rule with variants), `createPrecursorTest` ("GPS jamming precedes AIS gaps within 6 h within 100 km") and `testPrecursorTest`.
 - AccessPolicy rows as above.
 - `docs/Operator-Guide.md` "Backtesting and precursor tests": caveat codes, no look-ahead, reading lift and p-values, multiple testing, the feedback mapping.

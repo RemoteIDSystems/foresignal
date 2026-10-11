@@ -1,11 +1,11 @@
 # 101 — Incidents Cases And Exposure
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/101-CR-Incidents-Cases-And-Exposure.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -37,7 +37,7 @@ Make the **intelligence event** a first-class object: a typed, located and time-
 
 ## Tasks
 
-### 1. Data model (`ai.elaro.intel`)
+### 1. Data model (`ai.foresignal.intel`)
 
 - **`intelligence_event`:**
   - Identity and state: `id` (ULID), `type` (registry: `maritime-disruption`, `aviation-anomaly`, `infrastructure-disruption`, `weather-impact`, `seismic`, `custom`), `title`, `severity` (info | warning | critical), `status` (emerging | active | resolved | dismissed).
@@ -52,7 +52,7 @@ Make the **intelligence event** a first-class object: a typed, located and time-
   - Unique `(event_id, member_type, source_id, external_id, seq)`.
 - **`intelligence_event_log`:** event_id, at, actor (token id or `recipe:<id>`), action (created, member_added, status, merged, edited, reopened), before/after jsonb.
 - **Private:** an event with any member from a `private` source is `private=true` and follows 039 enforcement everywhere (lists, SSE, MCP, tiles, LLM egress).
-- **Records.** Publish every event as a record of the DERIVED source `elaro-intel` (kind `intelligence-event`, externalId = event id). The payload holds type, severity, status, confidence, label, evidenceQuality, memberCount, signalFamilies, title and `automated: true`, emitted only on change.
+- **Records.** Publish every event as a record of the DERIVED source `foresignal-intel` (kind `intelligence-event`, externalId = event id). The payload holds type, severity, status, confidence, label, evidenceQuality, memberCount, signalFamilies, title and `automated: true`, emitted only on change.
   - Tombstone on dismiss or merge.
   - This gives SSE changes, tiles, search and **alerts from events through ordinary 017 rules** (for example `kind=intelligence-event`, `severity == critical`, `enter`). Add that recipe to the docs.
 - Add `intel.cursor` (§2) to the retention consumer clamp (019 registry, or extend the clamp).
@@ -124,7 +124,7 @@ Make the **intelligence event** a first-class object: a typed, located and time-
   - optional `population`.
 - Every section has `status` (ok | unavailable | not-installed) and attribution.
 - **Population pack (optional):**
-  - `POST /v1/packs/population/import {path}` (admin). `path` is validated like `INBOX_PATH` under `${ELARO_DATA_DIR}/packs`.
+  - `POST /v1/packs/population/import {path}` (admin). `path` is validated like `INBOX_PATH` under `${FORESIGNAL_DATA_DIR}/packs`.
   - It imports GHSL GHS-POP tiles in EPSG:4326 with the 054 GeoTIFF reader, streaming rows and rejecting BigTIFF. Each pixel's population is aggregated to the H3 cell containing its centre, at resolutions 5 and 7.
   - Store in `population_h3(h3 bigint, res smallint, pop real, epoch smallint, PK(h3, res))`, with an import record (file sha256, epoch, licence `CC-BY-4.0`, attribution "© European Union, GHSL").
   - Query: polyfill the geometry at res 7 (res 5 when the area is > 50,000 km²) and sum.
@@ -149,7 +149,7 @@ Make the **intelligence event** a first-class object: a typed, located and time-
 ### 7. Spec, Postman, docs
 
 - `docs/OpenAPI.json`:
-  - schemas `IntelligenceEvent`, `IntelEventMember`, `IntelEventPage`, `CorrelationRecipe`, `CaseFile`, `CaseItem`, `Exposure`; tag `Intelligence`; every operation with `x-elaro-scope`;
+  - schemas `IntelligenceEvent`, `IntelEventMember`, `IntelEventPage`, `CorrelationRecipe`, `CaseFile`, `CaseItem`, `Exposure`; tag `Intelligence`; every operation with `x-foresignal-scope`;
   - the SSE event schemas (020 conventions);
   - regenerate Postman, and add BODIES for `createIntelEvent`, `addIntelEventMember`, `mergeIntelEvent`, `updateRecipe`, `testRecipe`, `createCase`, `addCaseItem`, `computeExposure`, `importPopulationPack`.
 - AccessPolicy rows as listed.
@@ -168,7 +168,7 @@ Make the **intelligence event** a first-class object: a typed, located and time-
   - quiet period → resolved; new evidence reopens;
   - cursor restart gives exactly-once membership;
   - a private member marks the event private;
-  - the `elaro-intel` record is emitted only on change.
+  - the `foresignal-intel` record is emitted only on change.
 - `EventAlertIT`: a 017 rule on `kind=intelligence-event` fires on a critical event.
 - `CaseFileIT`: items keep snapshots after the referenced version is purged; md and geojson export.
 - `ExposureServiceIT`: facility counts in a polygon; population via a tiny synthetic GeoTIFF fixture imported to H3; `not-installed` without a pack.

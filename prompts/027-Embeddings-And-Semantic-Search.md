@@ -1,11 +1,11 @@
 # 027 — Embeddings And Semantic Search
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/027-CR-Embeddings-And-Semantic-Search.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -28,7 +28,7 @@ Semantic and hybrid search over records, briefings and enriched alerts, using pg
 
 ### 1. Database image with pgvector
 
-- `docker/db/Dockerfile`: `FROM postgis/postgis:17-3.5` (the image pinned in compose today), install `postgresql-17-pgvector` from the PGDG apt repository that image already uses, clean apt lists. Compose `db` builds from `docker/db` (image `elaro-db:17-3.5-pgvector`), keeping the 007 PostgreSQL flags and binds.
+- `docker/db/Dockerfile`: `FROM postgis/postgis:17-3.5` (the image pinned in compose today), install `postgresql-17-pgvector` from the PGDG apt repository that image already uses, clean apt lists. Compose `db` builds from `docker/db` (image `foresignal-db:17-3.5-pgvector`), keeping the 007 PostgreSQL flags and binds.
 - Testcontainers: `PostgisContainers` builds `docker/db` once per JVM (`ImageFromDockerfile` or the Testcontainers 2.x equivalent), declared a compatible substitute for `postgres`.
 - `SchemaBootstrap` phase 1: `CREATE EXTENSION IF NOT EXISTS vector` right after `postgis`, in the same pre-EntityManagerFactory phase as `HistorySchemaInitializer`. Failure is non-fatal: `SemanticCapability.available=false` with the reason, one warning.
 
@@ -41,7 +41,7 @@ Semantic and hybrid search over records, briefings and enriched alerts, using pg
   - `tsv tsvector GENERATED ALWAYS AS (to_tsvector('simple', coalesce(text,''))) STORED` + GIN; GiST on `geom`; btree on (`source_id`, `effective_time`)
 - **Index state** in `app_setting['search.index']`: `{activeSlot, activeModelId, activeSpec, pending: {slot, modelId, spec, startedAt, total, done} | null}`. All reads and writes resolve the slot from this state; never hardcode a column.
 
-### 3. EmbeddingWorker (`ai.elaro.search`)
+### 3. EmbeddingWorker (`ai.foresignal.search`)
 
 - Runs only when semantic search is available and an embedding provider is assigned.
 - Subscribes to `ChangeBus` (queue 4096) with the durable cursor `embedding.cursor`; catches up at startup and on `onGap`. Advance the cursor promptly: retention clamps to `min(trigger.cursor, embedding.cursor) + 1` (Core-Data-Model §13), so a stalled worker holds retention until the clamp is released at 2 × window.
@@ -79,7 +79,7 @@ Triggered by `EmbeddingModelChangedEvent(oldSpec, newSpec)` (026) or `POST /v1/s
 
 ### 6. Spec, Postman, docs
 
-- `docs/OpenAPI.json`: `SearchStatus.activeModel` and `reindex` object; `SearchResult.seq`, `effectiveTime`; params `timeField`, `docType`; `cancelReindex` (DELETE, admin); error codes `REINDEX_RUNNING`, `SEMANTIC_UNAVAILABLE`; `x-elaro-scope` read for search/status, admin for reindex; `AccessPolicy` rules; regenerate Postman (`python3 scripts/generate-postman.py docs/OpenAPI.json postman`).
+- `docs/OpenAPI.json`: `SearchStatus.activeModel` and `reindex` object; `SearchResult.seq`, `effectiveTime`; params `timeField`, `docType`; `cancelReindex` (DELETE, admin); error codes `REINDEX_RUNNING`, `SEMANTIC_UNAVAILABLE`; `x-foresignal-scope` read for search/status, admin for reindex; `AccessPolicy` rules; regenerate Postman (`python3 scripts/generate-postman.py docs/OpenAPI.json postman`).
 - `docs/Operator-Guide.md` "Search": DB image, choosing an embedding model, what a model change does (dual index, ETA in status, cost of the backfill), the `embed` flag.
 
 ## Tests to write (do not run)

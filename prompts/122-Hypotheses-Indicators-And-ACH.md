@@ -1,11 +1,11 @@
 # 122 — Hypotheses Indicators And ACH
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/122-CR-Hypotheses-Indicators-And-ACH.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults, analytic retention, intelligence conventions) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and **`docs/Intelligence-Design.md` is authoritative for the intelligence layer** (situations, findings, precursors, base rates, analogs, the forecast ledger, hypotheses, forecasts, impact projection and analysis cycles).
@@ -30,7 +30,7 @@ Implement **rolling hypotheses**. A hypothesis set frames one key question and i
 
 ## Tasks
 
-### 1. Data model (`ai.elaro.hypothesis`)
+### 1. Data model (`ai.foresignal.hypothesis`)
 
 - **`hypothesis_set`:** `id` (ULID), `question` (the key question, ≤ 300 chars), `description`, `kind` (exclusive | independent), `cadence` (daily | weekly | monthly), `horizon` (date by which the question resolves), `status` (active | resolved | archived), `situation_id` (nullable), `question_id` (nullable; 121), `region_codes`, `themes`, `origin` (operator | agent | analyst), `confidence` (low | moderate | high, set-level), `last_reviewed_at`, `next_review_at`, `private`, `version`, timestamps.
 - **`hypothesis`:** `id`, `set_id`, `label` (short), `statement`, `type` (outcome | explanation | speculative-link | other), `prior`, `prior_basis` jsonb (`{type: base-rate|analogs|operator, ref, rationale}`), `probability`, `estimative_term` (derived), `confidence` (low | moderate | high), `confidence_basis` jsonb (evidence quality, source reliability from 109, coverage, reporting density, agreement between forecasters), `ledger_outcome` (which outcome of the linked question this hypothesis maps to), `status` (open | confirmed | refuted | expired), `version`.
@@ -40,7 +40,7 @@ Implement **rolling hypotheses**. A hypothesis set frames one key question and i
 - **`indicator`:** `id`, `set_id`, `description`, `signal` jsonb (one of: `rule` (an inline 017/100 rule spec), `precursor` (119 id), `series` (ref + condition or `changePoint: true`), `intelEvent` (type + area), `situation` (id + status or minimum severity), `question` (121 id + outcome), `manual`), `signal_family` (118 registry), `credibility` and `relevance` (H | M | L), `expected_by` (nullable), `lr` jsonb (per hypothesis id: `{class: high|medium|low|neutral, direction: supports|weakens, value?, rationale?}`), `absence_lr` jsonb (optional overrides), `state` (pending | emerging | observed | absent | unknown-coverage | retired), `watch_rule_id`, `observed_evidence` jsonb, `last_state_change_at`, `origin`.
 - **`ach_evidence`:** `id`, `set_id`, `source` (indicator | record | finding | intel_event | alert | manual), `ref`, `description`, `credibility`, `relevance`, `ratings` jsonb (per hypothesis: CC | C | N | NA | I | II), `added_by`, `added_at`, `removed_at`.
 - **`key_assumption`:** `id`, `set_id`, `text`, `linchpin` bool, `rationale`, `would_be_wrong_if`, `status` (solid | caveated | unsupported | broken), `indicator_ids`, `review_due`, `updated_by`, `updated_at`.
-- **Records:** publish each set as an `elaro-intel` record (kind `hypothesis-set`; payload: question, kind, hypotheses with probabilities and terms, set confidence, status, last revision time), emitted on change.
+- **Records:** publish each set as an `foresignal-intel` record (kind `hypothesis-set`; payload: question, kind, hypotheses with probabilities and terms, set confidence, status, last revision time), emitted on change.
 
 ### 2. Indicators that watch for themselves
 
@@ -92,7 +92,7 @@ Implement **rolling hypotheses**. A hypothesis set frames one key question and i
 
 ### 8. Spec and docs
 
-- `docs/OpenAPI.json`: `HypothesisSet`, `HypothesisSetInput`, `Hypothesis`, `HypothesisRevision`, `Indicator`, `IndicatorInput`, `AchMatrix`, `AchEvidence`, `KeyAssumption`, `HypothesisSetDraft`; tag `Hypotheses`; `x-elaro-scope`; SSE schemas; Postman BODIES for creating the worked-example set (Intelligence-Design §13) with indicators, adding evidence, a review, and a draft.
+- `docs/OpenAPI.json`: `HypothesisSet`, `HypothesisSetInput`, `Hypothesis`, `HypothesisRevision`, `Indicator`, `IndicatorInput`, `AchMatrix`, `AchEvidence`, `KeyAssumption`, `HypothesisSetDraft`; tag `Hypotheses`; `x-foresignal-scope`; SSE schemas; Postman BODIES for creating the worked-example set (Intelligence-Design §13) with indicators, adding evidence, a review, and a draft.
 - AccessPolicy rows as listed.
 - `docs/Operator-Guide.md` "Rolling hypotheses": key questions, competing hypotheses and "other", priors from base rates, indicators and LR classes, absence, damping, ACH as an audit trail, key assumptions, speculative links and why they are capped, reading revisions.
 - `docs/Agent-Guide.md`: never present a speculative link without its alternatives and baseline; keep likelihood terms and confidence levels in separate sentences.

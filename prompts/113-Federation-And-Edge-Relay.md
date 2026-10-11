@@ -1,11 +1,11 @@
 # 113 — Federation And Edge Relay
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/113-CR-Federation-And-Edge-Relay.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -19,15 +19,15 @@
 
 ## Objective
 
-Let Elaro instances share data with each other safely. A new `elaro-peer` source family consumes another instance's change feed with a provenance chain (origin instance id and origin seq) on every record, selective replication, licence and permission checks on the serving side, loop prevention, dedup and globally unique record refs. An edge-relay mode lets a lightweight node (a Pi at a receiver site) collect locally and forward over intermittent links, and a compact, prioritised message format carries only events, never raw tracks, over mesh or other delay-tolerant links.
+Let Foresignal instances share data with each other safely. A new `foresignal-peer` source family consumes another instance's change feed with a provenance chain (origin instance id and origin seq) on every record, selective replication, licence and permission checks on the serving side, loop prevention, dedup and globally unique record refs. An edge-relay mode lets a lightweight node (a Pi at a receiver site) collect locally and forward over intermittent links, and a compact, prioritised message format carries only events, never raw tracks, over mesh or other delay-tolerant links.
 
 ## Tasks
 
-### 1. Identity and global record refs (`ai.elaro.federation`)
+### 1. Identity and global record refs (`ai.foresignal.federation`)
 
 - **Instance id** = the install id from `InstallIdService` (003). Add an operator-settable display name `federation.instanceName`.
-- **`RecordRef`:** `urn:elaro:{instanceId}:{sourceId}:{externalId}` (externalId percent-encoded). Expose `ref` on the Record DTO, version items and `Change` (014). Parse and format in one class.
-- **`GET /v1/federation/info`** (read): `{instanceId, instanceName, version, apiVersion, jwksUri, capabilities:["changes","stream","snapshot","ingest"], time}`, signed: the response carries an `Elaro-Signature` detached JWS over the body (109 `JwsSigner`).
+- **`RecordRef`:** `urn:foresignal:{instanceId}:{sourceId}:{externalId}` (externalId percent-encoded). Expose `ref` on the Record DTO, version items and `Change` (014). Parse and format in one class.
+- **`GET /v1/federation/info`** (read): `{instanceId, instanceName, version, apiVersion, jwksUri, capabilities:["changes","stream","snapshot","ingest"], time}`, signed: the response carries an `Foresignal-Signature` detached JWS over the body (109 `JwsSigner`).
 
 ### 2. Serving side: federation feed
 
@@ -44,19 +44,19 @@ Let Elaro instances share data with each other safely. A new `elaro-peer` source
   - `LicenceEgressGuard.allows(FEDERATION, terms)`: FORBIDDEN and LOCAL_ONLY are excluded, so `opensky-states`, `acled`, `aisstream`, local receivers and MLAT positions never leave.
   - Private sources (039) are always excluded.
   - Exercise records (115) are excluded unless the token sets `includeExercise`.
-  - Count exclusions in `elaro.federation.denied{reason}`.
+  - Count exclusions in `foresignal.federation.denied{reason}`.
 
-### 3. Consuming side: the `elaro-peer` source family
+### 3. Consuming side: the `foresignal-peer` source family
 
 - **Entity `peer`:** `id` (slug), `name`, `base_url` (outbound URL policy 035; LAN, Tailnet and public allowed per policy), `token` (encrypted credential), `pinned_kid` (JWK thumbprint pinned on first successful `/info`; TOFU, changeable only by admin), `remote_instance_id`, `selection` jsonb, `mode` (`PULL | RECEIVE`), `enabled`, `state`, `last_seq`, `last_error`.
 - **Dynamic sources:** each enabled peer registers via `SourceRegistry.registerDynamic` (004): `peer-{id}` (STANDARD) and, when the selection includes TRACK-tier kinds, `peer-{id}-trk` (TRACK, `ttlAnchor=OBSERVED`, TTL = the remote kind's TTL or `selection.trackTtl`, default 10 min).
-  - Descriptor: `Mode.STREAMING`, `observedAtMode=UPSTREAM` (the remote `observedAt`), `licence` "mixed (per record)", `reliability` `F` unless configured, `volatileFields: ["_elaro"]`.
+  - Descriptor: `Mode.STREAMING`, `observedAtMode=UPSTREAM` (the remote `observedAt`), `licence` "mixed (per record)", `reliability` `F` unless configured, `volatileFields: ["_foresignal"]`.
   - Default ingest policy: STANDARD → `ALL`; TRACK → `SAMPLED` with the Core-Data-Model §5.3 track defaults.
 - **Mapping:**
   - local `externalId` = `{originSourceId}/{originExternalId}` (if > 256 chars: `sha256:` + hex plus the original in the payload)
   - kind, geometry, `eventTime`, `validUntil` (explicit only) and quality preserved
-  - payload = remote payload plus `_elaro: {originRef, originSeq, originLicence, chain}` (volatile, so never hashed)
-  - 109's resolver uses `_elaro.originLicence` as the per-record licence.
+  - payload = remote payload plus `_foresignal: {originRef, originSeq, originLicence, chain}` (volatile, so never hashed)
+  - 109's resolver uses `_foresignal.originLicence` as the per-record licence.
 - **Selection:** `sources[]`, `kinds[]`, `bbox` or `placeId` polygon, `maxAge` (drop items with `observedAt` older than this), `backfill` (`none` = current snapshot only, default; or a duration of history to page from `/changes`), `live` (bool), `maxHops` (default 3). Remote filters are passed as query parameters; re-check locally.
 - **PULL runtime** (streaming supervisor, 010):
   1. `/info`: verify the JWS against the remote JWKS and the pinned kid; on mismatch → `failing` with a clear health reason, no ingest.
@@ -64,15 +64,15 @@ Let Elaro instances share data with each other safely. A new `elaro-peer` source
   3. SSE from `last_seq`, with reconnect backoff 5 s → 5 min, honouring `Retry-After`.
   4. Catch up via `/changes` pages after gaps.
   - Budget: SSE connects count as requests (005); snapshot and catch-up pages are budgeted.
-- **Loop prevention:** drop any item whose `chain` contains the local instance id, or whose chain length ≥ `maxHops` (`elaro.federation.dropped{reason="loop"|"hops"}`).
+- **Loop prevention:** drop any item whose `chain` contains the local instance id, or whose chain length ≥ `maxHops` (`foresignal.federation.dropped{reason="loop"|"hops"}`).
 - **Dedup across paths:** table `federation_origin(origin_ref PK, owner_source_id, local_external_id, origin_seq bigint, updated_at)`. On arrival, upsert only if `origin_seq` > stored; otherwise drop as `dedup`. The first peer source to claim an origin ref owns it; ownership moves when the owning peer is disabled or deleted, at the next arrival. Origin seq is monotonic per origin instance, so this orders updates arriving over different paths.
 - **Tombstones** propagate (remote tombstone → local tombstone). A remote `reset` → resync snapshot, then tombstone local heads absent from the snapshot (the "tombstone absent heads" writer support; check it exists, else implement it as an `IngestBatch` flag).
 
 ### 4. Edge relay mode
 
-- **Profile `elaro.mode=edge`** (env `ELARO_MODE=edge`): enables collection (local receivers 069, mesh 083, keyless AIS 085, decoders 086), the writer, triggers and channels. Disables embeddings, LLM features, raster products and rendering, briefings, OGC, exports and federation serving, via feature flags checked at bean creation (`@ConditionalOnProperty`). Defaults: `retention.trackWindow=6h`, `retention.defaultWindow=1d`, JVM heap target 256 MB documented. `/v1/system.features` reflects the mode.
+- **Profile `foresignal.mode=edge`** (env `FORESIGNAL_MODE=edge`): enables collection (local receivers 069, mesh 083, keyless AIS 085, decoders 086), the writer, triggers and channels. Disables embeddings, LLM features, raster products and rendering, briefings, OGC, exports and federation serving, via feature flags checked at bean creation (`@ConditionalOnProperty`). Defaults: `retention.trackWindow=6h`, `retention.defaultWindow=1d`, JVM heap target 256 MB documented. `/v1/system.features` reflects the mode.
 - **Push to a hub** (`mode=RECEIVE` on the hub's peer row):
-  - The hub exposes `POST /v1/federation/ingest/{peerId}`. Auth by a peer ingest key (`elp_…`, shown once; Bearer). Body: up to 1,000 version items with provenance (gzip accepted). Idempotent on `(origin_ref, origin_seq)` via `federation_origin`. Same loop, dedup, licence and private checks as PULL; the hub also verifies the edge's JWS over each batch body against its pinned key.
+  - The hub exposes `POST /v1/federation/ingest/{peerId}`. Auth by a peer ingest key (`fsp_…`, shown once; Bearer). Body: up to 1,000 version items with provenance (gzip accepted). Idempotent on `(origin_ref, origin_seq)` via `federation_origin`. Same loop, dedup, licence and private checks as PULL; the hub also verifies the edge's JWS over each batch body against its pinned key.
   - The edge runs a `federation-push` sink (110 Sink SPI, CHANGE_FEED, durable cursor) to the hub URL. Offline periods hold the cursor; the 110 clamp release and resync rules apply.
 - Edge records keep the edge's licence terms. `LOCAL_ONLY` sources may be pushed to a hub **only** when the operator marks the peer `sameOperator=true` (their own hub); this is the one documented exception, and the hub then treats those records as `LOCAL_ONLY` again (never re-federated).
 
@@ -94,8 +94,8 @@ Let Elaro instances share data with each other safely. A new `elaro-peer` source
 ### 6. API, health, spec and docs
 
 - **Peers:** `GET/POST /v1/peers`, `GET/PUT/DELETE /v1/peers/{id}`, `POST /v1/peers/{id}/test` (fetch `/info`, verify, report), `POST /v1/peers/{id}/resync`, `POST /v1/peers/{id}/ingest-key` (rotate; shown once). All admin.
-- **Health:** peer sources use 006 health with reasons `PEER_KEY_MISMATCH`, `PEER_UNREACHABLE`, `PEER_RESYNC`. Metrics `elaro.federation.items{peer,result}`, `lag_seq{peer}`.
-- `docs/OpenAPI.json`: schemas `FederationInfo`, `FederationItem`, `Provenance` (extend 109's), `Peer`, `PeerCreate`, `PeerSelection`, `CompactMessage` (documented CBOR keys); `ref` on `Record`, `RecordVersion`, `Change`; the operations above with `x-elaro-scope` (`read` + federation capability noted in the description; ingest endpoints `ingest-key`). Update `AccessPolicy`. Regenerate Postman with BODIES for `createPeer`, `updatePeer`, `federationIngest`.
+- **Health:** peer sources use 006 health with reasons `PEER_KEY_MISMATCH`, `PEER_UNREACHABLE`, `PEER_RESYNC`. Metrics `foresignal.federation.items{peer,result}`, `lag_seq{peer}`.
+- `docs/OpenAPI.json`: schemas `FederationInfo`, `FederationItem`, `Provenance` (extend 109's), `Peer`, `PeerCreate`, `PeerSelection`, `CompactMessage` (documented CBOR keys); `ref` on `Record`, `RecordVersion`, `Change`; the operations above with `x-foresignal-scope` (`read` + federation capability noted in the description; ingest endpoints `ingest-key`). Update `AccessPolicy`. Regenerate Postman with BODIES for `createPeer`, `updatePeer`, `federationIngest`.
 - MCP (025): `list_peers`, `peer_status` (admin).
 - `docs/Operator-Guide.md` "Federation and edge relay": topology examples (home hub ⇄ cabin edge; two friends' instances), the licence rules (what never leaves), key pinning, edge profile memory notes, compact messages over mesh.
 - `docs/Architecture.md`: a short "Federation" section (refs, chain, loop and dedup rules).
@@ -104,9 +104,9 @@ Let Elaro instances share data with each other safely. A new `elaro-peer` source
 
 - `RecordRefTest`: format and parse round trip, encoding, long externalId hashing.
 - `FederationFeedIT`: items carry provenance and licence; FORBIDDEN, LOCAL_ONLY, MLAT, private and exercise records excluded; token without `federation` → 403; purge horizon → 410; snapshot paging.
-- `PeerSourceIT` (two Spring contexts are expensive: serve the remote side from WireMock fixtures recorded from `FederationFeedIT` output): JWS and pinned-kid verification; mapping to `peer-{id}` and `peer-{id}-trk`; `_elaro` excluded from hashing (identical remote re-send makes no version); per-record licence via `originLicence`; tombstone propagation; reset → resync plus tombstoning of absent heads.
+- `PeerSourceIT` (two Spring contexts are expensive: serve the remote side from WireMock fixtures recorded from `FederationFeedIT` output): JWS and pinned-kid verification; mapping to `peer-{id}` and `peer-{id}-trk`; `_foresignal` excluded from hashing (identical remote re-send makes no version); per-record licence via `originLicence`; tombstone propagation; reset → resync plus tombstoning of absent heads.
 - `LoopAndDedupTest`: own instance in chain dropped; `maxHops`; the same origin over two peers yields one local record; a stale origin seq dropped; ownership transfer after peer deletion.
-- `EdgeModeContextTest`: with `elaro.mode=edge`, LLM, embedding, raster and export beans are absent and `features` reports them off.
+- `EdgeModeContextTest`: with `foresignal.mode=edge`, LLM, embedding, raster and export beans are absent and `features` reports them off.
 - `FederationIngestIT`: ingest key auth, idempotency on `(origin_ref, origin_seq)`, JWS check, `sameOperator` LOCAL_ONLY rule; `FederationPushSinkIT`: offline buffering via the cursor and resume.
 - `CompactMessageCodecTest`: extended keys round trip through the 084 codec; old 084 golden vectors still decode; ≤ 160 bytes with the drop order 9, 8 before 10–12; title truncation on a UTF-8 boundary; type 5 for intel events. `CompactOutboxTest`: priority order, TTL expiry, dedup and resend on resolve, byte budget.
 

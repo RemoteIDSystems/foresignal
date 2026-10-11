@@ -1,11 +1,11 @@
 # 046 — Radar And Satellite Rasters
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/046-CR-Radar-And-Satellite-Rasters.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -27,7 +27,7 @@ Bring in the first real raster products: MRMS reflectivity, precipitation rate w
 
 ### 1. Hooks (check, add if missing)
 
-- **005:** `listS3(bucket, prefix, startAfter)` (anonymous ListObjectsV2, XXE-safe XML, keys/sizes/ETags, paging), `download(url, Path tmp, maxBytes)` into `${ELARO_DATA_DIR}/rasters/tmp`, `getRange(url, start, end, maxBytes)` (206 only, or 200 when start=0; short bodies rejected; no redirects), `mbPerDay` charged in advance from S3 `Size` and corrected from actual bytes, per-descriptor `maxResponseBytes`.
+- **005:** `listS3(bucket, prefix, startAfter)` (anonymous ListObjectsV2, XXE-safe XML, keys/sizes/ETags, paging), `download(url, Path tmp, maxBytes)` into `${FORESIGNAL_DATA_DIR}/rasters/tmp`, `getRange(url, start, end, maxBytes)` (206 only, or 200 when start=0; short bodies rejected; no redirects), `mbPerDay` charged in advance from S3 `Size` and corrected from actual bytes, per-descriptor `maxResponseBytes`.
 - **006:** the frame-age `HealthRule` (042 registers it for product sources).
 - **042 / 045:** `ctx.rasters()`, `RasterDecodePool`, `GridStore`, `GeosGrid`, `LatLonGrid`, styles `nws-reflectivity@1`, `precip-rate@1`, `mesh@1`, `ir-gray@1`, `ir-enhanced@1`.
 
@@ -53,18 +53,18 @@ Bring in the first real raster products: MRMS reflectivity, precipitation rate w
 ### 3. Hardening
 
 - `SafeNetcdf.open(Path)`: the only call site of `NetcdfFiles.open` / `NetcdfDatasets.openDataset`. It requires a regular file whose realpath sits under `rasters/tmp` or the bundled self-test directory; it never accepts a `String` (NetCDF-Java accepts URLs, which would be SSRF). A test scans `src/main/java` for other call sites.
-- Pin `ucar.nc2.util.DiskCache` and `DiskCache2` to `${ELARO_DATA_DIR}/cache/netcdf/`, never the user home. Use `Grib2RecordScanner.readData` per message; never create `.gbx9` or `.ncx4` indexes.
+- Pin `ucar.nc2.util.DiskCache` and `DiskCache2` to `${FORESIGNAL_DATA_DIR}/cache/netcdf/`, never the user home. Use `Grib2RecordScanner.readData` per message; never create `.gbx9` or `.ncx4` indexes.
 - Dockerfile/compose `JAVA_TOOL_OPTIONS` add `-Djava.io.tmpdir=/data/tmp -Djna.tmpdir=/data/tmp` (exec allowed on that mount, so libaec's native library can be extracted). Create the directory at startup.
 - **Startup self-test** (`DecoderSelfTest`, on `ApplicationReadyEvent`, async): decode bundled minimal fixtures under `src/main/resources/raster/selftest/` for GRIB2 templates 5.3 (GFS complex packing), 5.41 (MRMS PNG) and 5.42 (CCSDS/AEC, via libaec), plus one NetCDF4/HDF5 file. On failure, the affected products are disabled with a health reason, and their endpoints return 503 `PRODUCT_UNAVAILABLE`. Fixtures: cut single messages from real files (range-read via the `.idx` for GFS; one ECMWF open-data message for 5.42); keep each under 200 KB; record provenance in `src/main/resources/raster/selftest/README.md`.
 
-### 4. RasterDecoder SPI (`ai.elaro.raster.decode`)
+### 4. RasterDecoder SPI (`ai.foresignal.raster.decode`)
 
 - `RasterDecoder { boolean supports(DecodeRequest r); DecodedGrid decode(Path file, DecodeRequest r) throws RasterFormatException, SilentFormatChangeException; }`. `DecodedGrid(gridDefinition, nx, ny, float[] or short[] data, validTime, referenceTime, metadata)`.
 - `Grib2Decoder`: scans messages; selects by discipline/category/number and level from the request, **never by message index**. A missing field → `SilentFormatChangeException` (health degraded, no frame written).
 - `NetcdfDecoder`: enhanced mode (scale_factor, add_offset, `_Unsigned`, `_FillValue`); variable and projection attributes by name. A missing variable → `SilentFormatChangeException`.
 - Gzip inputs (`.grib2.gz`) are inflated by streaming into a sibling temp file before decoding. Temp files are deleted in `finally`.
 
-### 5. `mrms` source (`ai.elaro.source.adapters.mrms`)
+### 5. `mrms` source (`ai.foresignal.source.adapters.mrms`)
 
 - POLLING, interval 2 min (min 2 min), budget 30/min, 12,000/day, `mbPerDay` 4,000, `maxResponseBytes` 8 MB. STANDARD, `licence` "US-PD", `termsUrl` https://registry.opendata.aws/noaa-mrms-pds/, kinds `[raster-frame]`, `kindRetention{raster-frame: 7d}`, `zeroResultsNormal=true`, `observedAtMode` UPSTREAM.
 - Products (S3 bucket `noaa-mrms-pds`, prefix `CONUS/{Product}/{YYYYMMDD}/`, keys like `MRMS_MergedReflectivityQCComposite_00.50_20261010-000041.grib2.gz`, verified 2026-10):
@@ -77,7 +77,7 @@ Bring in the first real raster products: MRMS reflectivity, precipitation rate w
 - `frame_id` from the key timestamp (`20261010T000041Z`); `valid_time` = that time; `upstream_key` = S3 key.
 - Ladder: every frame for 6 h, then 10-min frames to 48 h. temporal cadence 2 min, `maxGap` 6 min (frame-age degraded after 6 min).
 
-### 6. `goes-east-abi` source (`ai.elaro.source.adapters.goes`)
+### 6. `goes-east-abi` source (`ai.foresignal.source.adapters.goes`)
 
 - POLLING, interval 5 min, budget 10/min, 2,000/day, `mbPerDay` 2,500, `maxResponseBytes` 8 MB. STANDARD, "US-PD", kinds `[raster-frame]`.
 - Product `goes-east-ir`: bucket `noaa-goes19`, prefix `ABI-L2-CMIPC/{YYYY}/{DOY}/{HH}/`, filter keys matching `OR_ABI-L2-CMIPC-M\dC13_G19_s(\d{14})_` (keys sort by channel, so list with prefix `.../OR_ABI-L2-CMIPC-M` and `startAfter`; do not hard-code the scan mode M6). Files 3.4–3.9 MB (verified 3.87 MB, 2026-10).
@@ -92,7 +92,7 @@ Bring in the first real raster products: MRMS reflectivity, precipitation rate w
 
 ### 8. Spec, Postman, docs
 
-- No new operations. `docs/OpenAPI.json`: `x-elaro-products` examples on `Product` for the four products; `SourceHealth` already carries `newestFrameAt`. Regenerate Postman with `python3 scripts/generate-postman.py docs/OpenAPI.json postman` if the spec changed.
+- No new operations. `docs/OpenAPI.json`: `x-foresignal-products` examples on `Product` for the four products; `SourceHealth` already carries `newestFrameAt`. Regenerate Postman with `python3 scripts/generate-postman.py docs/OpenAPI.json postman` if the spec changed.
 - `docs/Source-Catalog.md`: rows for `mrms` and `goes-east-abi` (tier STANDARD, policy ALL, TTL none, time base, budgets, licence) and the §1.4 corrections: NEXRAD L2 at `unidata-nexrad-level2` (`noaa-nexrad-level2` returns AccessDenied), L3 at `unidata-nexrad-level3`; GOES-East is GOES-19 (`noaa-goes19`); NOAA-15/18/19 decommissioned (137 MHz APT gone); ProbSevere v3 at `noaa-mrms-pds/ProbSevere/`; lightning probability at `CONUS/LightningProbabilityNext30minGrid_scale_1/`; HRRR `wrfsfcf01` ≈ 142 MB; GFS PNS 26-29/26-30 notes; ECMWF CC BY 4.0; AWC request limits.
 - `docs/Architecture.md` §2 (stack row), §13 (`/data/tmp`, NetCDF cache).
 
@@ -105,7 +105,7 @@ Bring in the first real raster products: MRMS reflectivity, precipitation rate w
 - `DecoderSelfTestTest`: all four fixtures decode; a corrupted 5.42 fixture disables only the products needing it.
 - `MrmsAdapterWireMockTest`: S3 XML listing with `start-after`, day rollover, 15-frame cap, precip/flag pairing and the 4-min fallback, `mbPerDay` advance charge, 503 + `Retry-After` backoff.
 - `GoesAbiAdapterWireMockTest`: C13 filtering across channels and scan modes, budget accounting.
-- `MrmsIngestIT` / `GoesIngestIT`: fixture → frame row, `.elg`, `raster-frame` record, tile renders non-empty at z=6.
+- `MrmsIngestIT` / `GoesIngestIT`: fixture → frame row, `.fsg`, `raster-frame` record, tile renders non-empty at z=6.
 - `UnidataScopeBuildTest` (Gradle TestKit or a simple resolution-result unit test) for `checkUnidataScope`.
 
 ## Acceptance criteria

@@ -1,11 +1,11 @@
 # 064 — Space Adapters
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/064-CR-Space-Adapters.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -23,11 +23,11 @@
 
 ## Objective
 
-Add the space sources: `celestrak-gp` (GP element sets), `celestrak-socrates` (conjunctions), `launch-library` (launches) and optional `spacetrack-tip` (re-entry predictions). Add Orekit-based predicted `satellite-pass` records for places and SatDump stations, and a CelesTrak-compatible `gp.php` endpoint so Gpredict, Look4Sat and SatDump can read elements from Elaro instead of each hitting CelesTrak. CelesTrak's 2026 usage policy is strict, so etiquette is a hard requirement here.
+Add the space sources: `celestrak-gp` (GP element sets), `celestrak-socrates` (conjunctions), `launch-library` (launches) and optional `spacetrack-tip` (re-entry predictions). Add Orekit-based predicted `satellite-pass` records for places and SatDump stations, and a CelesTrak-compatible `gp.php` endpoint so Gpredict, Look4Sat and SatDump can read elements from Foresignal instead of each hitting CelesTrak. CelesTrak's 2026 usage policy is strict, so etiquette is a hard requirement here.
 
 ## Tasks
 
-### 1. `celestrak-gp` (`ai.elaro.source.adapters.celestrak`)
+### 1. `celestrak-gp` (`ai.foresignal.source.adapters.celestrak`)
 
 **Verified 2026-10 facts (usage policy of 2026-05-22):**
 - GP data is checked only every 2 h, and one download per update is enforced. A repeat gets **HTTP 403 with body "GP data has not updated since your last successful download"**.
@@ -104,7 +104,7 @@ Add the space sources: `celestrak-gp` (GP element sets), `celestrak-socrates` (c
   - SGP4 needs UTC-TAI.
   - TEME→ITRF uses EOP; if EOP is absent, configure Orekit's no-EOP fallback and accept the sub-kilometre error.
   - 6-digit NORAD numbers must be accepted when you build a `TLE` object from OMM numbers through the field constructor. No text TLE is involved.
-- **`ai.elaro.space.PassPredictor`:** `predict(OmmElements e, Observer(lat, lon, altM), Instant from, Duration horizon, double minElevationDeg) → List<PredictedPass(aos, tca, los, maxElevationDeg, aosAzimuthDeg, losAzimuthDeg, groundTrack)>`.
+- **`ai.foresignal.space.PassPredictor`:** `predict(OmmElements e, Observer(lat, lon, altM), Instant from, Duration horizon, double minElevationDeg) → List<PredictedPass(aos, tca, los, maxElevationDeg, aosAzimuthDeg, losAzimuthDeg, groundTrack)>`.
   - Use `TLEPropagator` with an `ElevationDetector` on a `TopocentricFrame` (WGS84 `OneAxisEllipsoid`), a 60 s max check and a 1 ms threshold.
   - The ground track is ≤ 60 sub-points from AOS to LOS.
   - Pure, apart from Orekit data loading.
@@ -131,12 +131,12 @@ Add the space sources: `celestrak-gp` (GP element sets), `celestrak-socrates` (c
 - **Access:** `read` scope. Add an explicit AccessPolicy rule for `/compat/**`, because the fail-closed default covers only `/v1/**`; the rule must not leave it open. Accept 035 path-bound feed keys (`?key=`), since Gpredict and Look4Sat cannot send headers.
 - **Client notes (Operator Guide):**
   - Gpredict uses `GROUP=…&FORMAT=tle`; Look4Sat uses `GROUP=active&FORMAT=csv`.
-  - SatDump defaults to orbicentral (`kepler_settings.urls_to_fetch` = `http://orbicentral.net/gp.php?GROUP=active&FORMAT=omm`, verified 2026-10). Point it at Elaro with `FORMAT=json` and confirm with SatDump's parser. `FORMAT=omm` falls to CSV here; a SatDump-specific OMM feed is 107's job.
+  - SatDump defaults to orbicentral (`kepler_settings.urls_to_fetch` = `http://orbicentral.net/gp.php?GROUP=active&FORMAT=omm`, verified 2026-10). Point it at Foresignal with `FORMAT=json` and confirm with SatDump's parser. `FORMAT=omm` falls to CSV here; a SatDump-specific OMM feed is 107's job.
 
 ### 7. Spec, catalogue, docs
 
 - `docs/OpenAPI.json`:
-  - Add the two `/compat/celestrak/...` operations (`x-elaro-scope: read`, with parameters, the response media types above, 400 text).
+  - Add the two `/compat/celestrak/...` operations (`x-foresignal-scope: read`, with parameters, the response media types above, 400 text).
   - Add `satellite`, `conjunction`, `launch`, `reentry-prediction` and `satellite-pass` payload examples to the kind docs.
   - Regenerate Postman with `python3 scripts/generate-postman.py docs/OpenAPI.json postman`.
   - MCP (025): no new tool; `query_records` with `kind=satellite-pass` covers it. Document this in the Agent Guide.

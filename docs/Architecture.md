@@ -1,4 +1,4 @@
-# Elaro — Architecture
+# Foresignal — Architecture
 
 Version 1.2 · 2026-10-10 · Companion to the [Product Charter](Product-Charter.md) and [OpenAPI spec](OpenAPI.json).
 
@@ -12,10 +12,10 @@ Version 1.2 · 2026-10-10 · Companion to the [Product Charter](Product-Charter.
 
 ## 1. Overview
 
-Elaro is a single Spring Boot process backed by one PostgreSQL database with PostGIS and pgvector. Inside the process, five core subsystems communicate through narrow interfaces (diagram below). Around them sit the operator and intelligence features: scoped tokens, inbound webhooks, notification channels, the MCP server, and an optional LLM subsystem that powers semantic search, Ask, briefings and alert enrichment (§15–§24).
+Foresignal is a single Spring Boot process backed by one PostgreSQL database with PostGIS and pgvector. Inside the process, five core subsystems communicate through narrow interfaces (diagram below). Around them sit the operator and intelligence features: scoped tokens, inbound webhooks, notification channels, the MCP server, and an optional LLM subsystem that powers semantic search, Ask, briefings and alert enrichment (§15–§24).
 
 ```
-                 ┌──────────────────────────── Elaro process ─────────────────────────────┐
+                 ┌──────────────────────────── Foresignal process ─────────────────────────────┐
                  │                                                                        │
   Upstreams ◄────┤  ① Collection                ② Ingest              ③ Distribution      │
   (HTTP, WS,     │  ┌───────────────┐   results ┌─────────────┐ batch  ┌───────────────┐   │
@@ -68,11 +68,11 @@ Exact dependency versions are pinned in `gradle/libs.versions.toml` and verified
 
 ## 3. Package layout
 
-Single Gradle module, base package `ai.elaro`.
+Single Gradle module, base package `ai.foresignal`.
 
 ```
-ai.elaro
-├── ElaroApplication
+ai.foresignal
+├── ForesignalApplication
 ├── config          Jackson, CORS, virtual threads, OpenAPI metadata, clock, schema bootstrap
 ├── security        Tokens and scopes, AccessPolicy, TokenFilter, CredentialCipher, SecretKeyStore
 ├── source          SourceAdapter SPI, descriptors, registry, settings, credentials
@@ -90,7 +90,7 @@ ai.elaro
 ├── mcp             MCP server and tool catalog
 ├── llm             Provider registry, LlmClient implementations, budgets, usage
 ├── search          Embedding worker, semantic and hybrid search
-├── ask             Ask Elaro: tool loop, threads, proposed actions
+├── ask             Ask Foresignal: tool loop, threads, proposed actions
 ├── briefing        Briefing definitions, scheduler, digest and LLM renderers
 ├── retention       RetentionSettings, RetentionJob
 ├── settings        AppSettingService (typed key/value), export/import
@@ -198,7 +198,7 @@ public record FetchResult(List<NormalizedRecord> records, boolean complete) {}
 `UpstreamClient` is the **only** path to the network. For each request:
 
 1. `BudgetGovernor.tryConsume(sourceId)` — checks two Bucket4j bandwidths: `perMinute` (greedy refill) and `perDay` (interval refill at UTC midnight). If refused → `BudgetExceededException`; the meter records `refused`; no request is sent.
-2. Send with per-request timeout (default 20 s) and gzip accepted. The `User-Agent` is `Elaro/<version> (+https://elaro.ai; install=<id>)`, where `<id>` is a random 8-character install id generated on first start (stored in `app_setting`). Upstreams can then rate-limit or contact one misbehaving install without blocking every Elaro user (a lesson from ShadowBroker). Never spoof browser User-Agents.
+2. Send with per-request timeout (default 20 s) and gzip accepted. The `User-Agent` is `Foresignal/<version> (+https://foresignal.ai; install=<id>)`, where `<id>` is a random 8-character install id generated on first start (stored in `app_setting`). Upstreams can then rate-limit or contact one misbehaving install without blocking every Foresignal user (a lesson from ShadowBroker). Never spoof browser User-Agents.
    - **Conditional GET:** `ctx.http().getConditional(url, stateKey)` stores `ETag`/`Last-Modified` in `adapter_state` and sends `If-None-Match`/`If-Modified-Since`. A `304` returns `NotModified`; the run counts as a success with zero changes and does not trigger zero-result degradation. CelesTrak's fair-use policy requires this.
    - **Response cap:** bodies are read with a byte cap (default 32 MB, per-descriptor override) to protect the heap.
 3. `UsageMeter.record(sourceId, bytes, status)`.
@@ -324,8 +324,8 @@ Unique (`source_id`, `external_id`, `version`); index (`ingested_at`); index (`s
 
 ### 7.2 Secrets
 
-- **Admin token:** 32 random bytes, base64url, prefixed `elr_`. Generated on first start when `admin_token_hash` is absent; printed once in a clearly delimited log block. Only the SHA-256 hash is stored. Rotation: `POST /v1/system/admin-token/rotate` returns a new token once. Recovery: starting with env `ELARO_RESET_ADMIN_TOKEN=true` regenerates and prints a new token.
-- **Credential encryption:** AES-256-GCM. The key is generated on first start and stored in a file on the data volume (`${ELARO_DATA_DIR:-./data}/secret.key`, mode 0600), never in the database, so a database dump alone does not reveal upstream keys.
+- **Admin token:** 32 random bytes, base64url, prefixed `fsr_`. Generated on first start when `admin_token_hash` is absent; printed once in a clearly delimited log block. Only the SHA-256 hash is stored. Rotation: `POST /v1/system/admin-token/rotate` returns a new token once. Recovery: starting with env `FORESIGNAL_RESET_ADMIN_TOKEN=true` regenerates and prints a new token.
+- **Credential encryption:** AES-256-GCM. The key is generated on first start and stored in a file on the data volume (`${FORESIGNAL_DATA_DIR:-./data}/secret.key`, mode 0600), never in the database, so a database dump alone does not reveal upstream keys.
 
 ### 7.3 SchemaBootstrap
 
@@ -391,7 +391,7 @@ Free-text `q` matches `ILIKE` on a generated text column of selected payload fie
 - Errors use RFC 9457 `application/problem+json` (Spring `ProblemDetail`) with a `code` extension (e.g. `CREDENTIALS_REQUIRED`, `BUDGET_EXCEEDED`, `VALIDATION_FAILED`).
 - Pagination: opaque `cursor` plus `limit` (default 500, max 5,000); responses include `nextCursor`.
 - GeoJSON via `Accept: application/geo+json` or `?format=geojson`. Features carry `id = "<source>:<externalId>"` and properties `{source, externalId, kind, version, seq, observedAt, validUntil, payload}`.
-- **Auth:** a token filter checks `Authorization: Bearer elr_…` against the scope that `AccessPolicy` requires for the method and path (§15). Data GETs are open by default (`security.openReads=true`). Writes and configuration reads need the scope the policy lists. Comparison is constant-time against stored hashes.
+- **Auth:** a token filter checks `Authorization: Bearer fsr_…` against the scope that `AccessPolicy` requires for the method and path (§15). Data GETs are open by default (`security.openReads=true`). Writes and configuration reads need the scope the policy lists. Comparison is constant-time against stored hashes.
 - **CORS:** allowed origins come from `app_setting.cors` (default `*` for GET/HEAD/OPTIONS; writes require an explicit origin list).
 - **The spec is authored, not generated.** `docs/OpenAPI.json` is copied onto the classpath at build time and served verbatim at `/v1/openapi.json`; Swagger UI at `/docs` points to it. springdoc generates a spec from the code at the internal path `/v1/openapi-generated.json`, which exists only so a contract test can assert the implementation matches the authored spec (same paths, methods and operationIds). See §12.
 
@@ -414,14 +414,14 @@ Per the methodology, tests are **written with every prompt but executed only onc
 | Unit | JUnit 5, AssertJ, Mockito | Hashing, budget math, health derivation, rule SQL builder, duration parsing, cursor encoding, template rendering, parsers |
 | Adapter contract | Fixture files + parser tests | Each adapter's parser against a recorded upstream response |
 | Adapter integration | WireMock | Each adapter through `UpstreamClient` (budget, headers, 429 backoff) |
-| Persistence integration | Testcontainers with the Elaro DB image (PostGIS + pgvector, built from `docker/db/Dockerfile`, a compatible substitute for `postgres`) | Writer versioning, head upserts, spatial queries, MVT, retention, trigger SQL, vector search |
+| Persistence integration | Testcontainers with the Foresignal DB image (PostGIS + pgvector, built from `docker/db/Dockerfile`, a compatible substitute for `postgres`) | Writer versioning, head upserts, spatial queries, MVT, retention, trigger SQL, vector search |
 | LLM | WireMock stubs for the Anthropic, OpenAI-compatible and Ollama APIs; a deterministic `FakeLlmClient` | Tool loops, budgets, fallbacks, prompt-injection containment. **No test calls a real model.** |
 | Notifications | WireMock receivers per channel type; GreenMail (or equivalent) for SMTP | Payload formats, retries, rate limits |
 | API integration | `@SpringBootTest` + MockMvc + Testcontainers | Every endpoint, auth rules, ProblemDetail errors, SSE replay and resume |
 | OpenAPI contract | Test comparing springdoc output to `docs/OpenAPI.json` paths and operations | Prevents drift |
 | End-to-end | Testcontainers + WireMock USGS | Enable source → ingest → revision → trigger → SSE alert → channel delivery received |
 
-JaCoCo enforces ≥ 90% line coverage (`jacocoTestCoverageVerification`), excluding generated code and `ElaroApplication`.
+JaCoCo enforces ≥ 90% line coverage (`jacocoTestCoverageVerification`), excluding generated code and `ForesignalApplication`.
 
 ## 13. Configuration
 
@@ -429,11 +429,11 @@ File-based configuration is limited to bootstrap concerns, all overridable by en
 
 | Env | Default | Purpose |
 |---|---|---|
-| `ELARO_DB_URL` | `jdbc:postgresql://localhost:5433/elaro` | Database |
-| `ELARO_DB_USER` / `ELARO_DB_PASSWORD` | `elaro` / `elaro` | Database |
-| `ELARO_PORT` | `8080` | HTTP port |
-| `ELARO_DATA_DIR` | `./data` | Secret key file location |
-| `ELARO_RESET_ADMIN_TOKEN` | `false` | Regenerate admin token on start |
+| `FORESIGNAL_DB_URL` | `jdbc:postgresql://localhost:5433/foresignal` | Database |
+| `FORESIGNAL_DB_USER` / `FORESIGNAL_DB_PASSWORD` | `foresignal` / `foresignal` | Database |
+| `FORESIGNAL_PORT` | `8080` | HTTP port |
+| `FORESIGNAL_DATA_DIR` | `./data` | Secret key file location |
+| `FORESIGNAL_RESET_ADMIN_TOKEN` | `false` | Regenerate admin token on start |
 
 Everything else — sources, budgets, credentials, retention, triggers, channels, tokens, LLM providers, briefings, CORS — is stored in the database and managed through the API.
 
@@ -442,12 +442,12 @@ Everything else — sources, budgets, credentials, retention, triggers, channels
 ```
 docker-compose.yml
 ├── db      build: docker/db (PostGIS + pgvector)  volume pgdata  port 5433:5432  healthcheck pg_isready
-├── elaro   build: .   volume elaro-data:/data  port 8080  depends_on db (healthy)  restart: unless-stopped
+├── foresignal   build: .   volume foresignal-data:/data  port 8080  depends_on db (healthy)  restart: unless-stopped
 └── ollama  ollama/ollama  volume ollama  port 11434   profile "local-llm" (optional; `docker compose --profile local-llm up -d`)
 ```
 
 - `docker compose up -d` serves both the always-on bench server and occasional use.
-- The JAR also runs standalone (`java -jar elaro.jar`) against any Postgres 15+ with PostGIS. pgvector is optional.
+- The JAR also runs standalone (`java -jar foresignal.jar`) against any Postgres 15+ with PostGIS. pgvector is optional.
 - For internet exposure, put it behind a reverse proxy with TLS. Documentation will include a Caddy example.
 
 ## 15. Access tokens and scopes
@@ -460,7 +460,7 @@ docker-compose.yml
 | `agent` | `read` plus: create, update and delete triggers and briefings; acknowledge alerts; run briefings; Ask with actions; MCP write tools |
 | `admin` | Everything: sources, credentials, custom sources, channels, LLM providers, tokens, settings, retention, CORS, system |
 
-- **Tokens** live in `api_token`. The plaintext (`elr_` + 32 random bytes, base64url) is shown once at creation; only the SHA-256 hash is stored. Tokens can expire and be revoked, and `last_used_at` is updated at most once a minute.
+- **Tokens** live in `api_token`. The plaintext (`fsr_` + 32 random bytes, base64url) is shown once at creation; only the SHA-256 hash is stored. Tokens can expire and be revoked, and `last_used_at` is updated at most once a minute.
 - **Bootstrap token:** the first-start admin token (§7.2) is the `api_token` row named `bootstrap` with scope `admin`. Rotation and reset keep working as described in §7.2.
 - **`AccessPolicy`** is the single table mapping (method, path pattern) to a minimum scope. The token filter enforces it, and the MCP server uses the same scopes for tools.
 - **Settings:** `app_setting['security'] = {"openReads": true}`. When false, data GETs require at least `read`.
@@ -468,7 +468,7 @@ docker-compose.yml
 
 ## 16. Inbound webhooks and custom push sources
 
-Some data can't be polled: a local SDR, an ais-catcher instance, Home Assistant, a script, an n8n flow or an OpenClaw agent that wants to report something. These push into Elaro.
+Some data can't be polled: a local SDR, an ais-catcher instance, Home Assistant, a script, an n8n flow or an OpenClaw agent that wants to report something. These push into Foresignal.
 
 - **Mode `PUSH`:** the adapter SPI's `Mode` gains `PUSH`. The scheduler never polls push sources, and budgets apply as inbound rate limits (`perMinute` requests).
 - **Custom sources** are created at runtime through `POST /v1/custom-sources` (admin), stored in `custom_source`, and registered in `SourceRegistry` as dynamic descriptors.
@@ -477,7 +477,7 @@ Some data can't be polled: a local SDR, an ais-catcher instance, Home Assistant,
   - It appears in `/v1/sources` with settings, health and retention like any other source.
   - Creation returns an **ingest key** once; it can be rotated. Deleting a custom source stops ingest; its records age out through retention.
 - **Ingest endpoint:** `POST /v1/ingest/{sourceId}` accepts either a GeoJSON FeatureCollection (`id` maps to `externalId`, and properties `kind` and `observedAt` are required unless the source has exactly one kind, in which case `observedAt` defaults to now) or `{"records": [...]}` in the `NormalizedRecordPreview` shape.
-  - Auth: `X-Elaro-Ingest-Key: <key>`, or a bearer token with `admin` scope.
+  - Auth: `X-Foresignal-Ingest-Key: <key>`, or a bearer token with `admin` scope.
   - Limits: 5 MB per request and 10,000 records.
   - Records go through the same `IngestQueue`, so versioning, change stream, triggers, embeddings and retention all apply.
   - Response: an `IngestOutcome` (seen, changed, rejected with reasons).
@@ -489,7 +489,7 @@ One delivery system serves alerts, briefings and system events across many desti
 
 | Type | Non-secret config | Secret config | Delivery |
 |---|---|---|---|
-| `webhook` | `url`, `method` (POST/PUT), `headers`, `bodyTemplate` (optional; default Elaro JSON) | `hmacSecret`, secret header values | JSON; `X-Elaro-Event`, `X-Elaro-Delivery`, `X-Elaro-Timestamp`, `X-Elaro-Signature: sha256=HMAC("<timestamp>.<body>")` |
+| `webhook` | `url`, `method` (POST/PUT), `headers`, `bodyTemplate` (optional; default Foresignal JSON) | `hmacSecret`, secret header values | JSON; `X-Foresignal-Event`, `X-Foresignal-Delivery`, `X-Foresignal-Timestamp`, `X-Foresignal-Signature: sha256=HMAC("<timestamp>.<body>")` |
 | `slack` | `username`, `iconEmoji` | `webhookUrl` (incoming webhook) | Block Kit message, mrkdwn |
 | `mattermost` | `channel`, `username`, `iconUrl` | `webhookUrl` (incoming webhook) | Slack-compatible payload with Mattermost markdown and attachments |
 | `discord` | `username` | `webhookUrl` | Embeds; colour by severity |
@@ -531,18 +531,18 @@ One delivery system serves alerts, briefings and system events across many desti
 | System | `system_status` |
 
 - **Output shaping:** `detail: short|long`, list caps with `*_total` and `truncated` flags, and optional geometry simplification. This keeps agent context budgets small.
-- **Resources and prompts:** resources `elaro://sources` and `elaro://kinds`, and a `situation-report` prompt.
+- **Resources and prompts:** resources `foresignal://sources` and `foresignal://kinds`, and a `situation-report` prompt.
 - **Clients:** OpenClaw (as an MCP skill), Claude Desktop and Claude Code, n8n, and any MCP-capable agent.
 
 ## 19. LLM subsystem
 
-Optional. Without a configured provider, Elaro is fully functional: briefings use digest mode, search uses text matching, enrichment is skipped, and Ask returns `409 LLM_NOT_CONFIGURED`.
+Optional. Without a configured provider, Foresignal is fully functional: briefings use digest mode, search uses text matching, enrichment is skipped, and Ask returns `409 LLM_NOT_CONFIGURED`.
 
 - **Providers** live in `llm_provider` and are managed through `/v1/llm/providers`. Roles are set in `app_setting['llm'] = {chatProvider, embeddingProvider, askEnabled, enrichmentEnabled, logContent}`.
 
 | Type | Implementation | Notes |
 |---|---|---|
-| `anthropic` | Official Anthropic Java SDK (`com.anthropic:anthropic-java`; verify the current version) | Default model `claude-opus-5-5`. Adaptive thinking is always on, so control depth with `effort` (Opus 5.5's default is `medium`; Elaro sets it explicitly per use: Ask `medium`, briefings `medium`, enrichment `low`). Forced `tool_choice` is not supported, so use `auto` and instruct in the prompt. Enable server-side refusal fallback (`fallbacks: "default"`, beta `server-side-fallback-2026-07-01`) and check `stop_reason == "refusal"` before reading content. Stream long outputs. Cache the stable system prompt and tool definitions with `cache_control`. **No embeddings endpoint**, so pair it with a separate embedding provider. |
+| `anthropic` | Official Anthropic Java SDK (`com.anthropic:anthropic-java`; verify the current version) | Default model `claude-opus-5-5`. Adaptive thinking is always on, so control depth with `effort` (Opus 5.5's default is `medium`; Foresignal sets it explicitly per use: Ask `medium`, briefings `medium`, enrichment `low`). Forced `tool_choice` is not supported, so use `auto` and instruct in the prompt. Enable server-side refusal fallback (`fallbacks: "default"`, beta `server-side-fallback-2026-07-01`) and check `stop_reason == "refusal"` before reading content. Stream long outputs. Cache the stable system prompt and tool definitions with `cache_control`. **No embeddings endpoint**, so pair it with a separate embedding provider. |
 | `openai-compatible` | `java.net.http` client for `/chat/completions` and `/embeddings` | OpenAI, OpenRouter, Groq, Mistral, vLLM, LM Studio, llama.cpp server, LocalAI |
 | `ollama` | `java.net.http` client for native `/api/chat` (with tools) and `/api/embed` | Local by default (`http://ollama:11434` with the compose profile). Typical choices: a Qwen or Llama chat model with tool support, `nomic-embed-text` (768 dims) or `mxbai-embed-large` (1024) for embeddings |
 
@@ -569,7 +569,7 @@ Optional. Without a configured provider, Elaro is fully functional: briefings us
   - `hybrid` fuses the two with reciprocal rank fusion.
   - Results include score, document type, record reference and a snippet.
 
-## 21. Ask Elaro
+## 21. Ask Foresignal
 
 - **Requests:**
   - `POST /v1/ask` takes `{question, threadId?, scope?: {sources, kinds, bbox, since, until}, allowActions?: false}` and returns `{threadId, answer (markdown), citations: [{id, seq, title}], proposedActions: [...], usage}`.
@@ -633,24 +633,24 @@ Optional. Without a configured provider, Elaro is fully functional: briefings us
 | ShadowBroker | AGPL-3.0 | Reference only: endpoints, parameters, quirks. No code copied. |
 | Velocity | AGPL-3.0 | Reference only |
 | World Monitor | AGPL-3.0 | Reference only |
-| SatDump | GPL-3.0 | Reference only. Elaro talks to a separately run SatDump through files and HTTP; never copy code, headers, structs or projection code. |
+| SatDump | GPL-3.0 | Reference only. Foresignal talks to a separately run SatDump through files and HTTP; never copy code, headers, structs or projection code. |
 | MeshCore | MIT | Protocol reference for mesh sources and channels (`docs/companion_protocol.md`, `docs/payloads.md`); talk to companions through `meshcore_py` or the bridge script. |
-| MeshDTN | Owner's project (firmware and app are MIT forks of MeshCore and meshcore-open) | Elaro's store-carry-forward mesh partner: the specifications define what Elaro sends over mesh. |
+| MeshDTN | Owner's project (firmware and app are MIT forks of MeshCore and meshcore-open) | Foresignal's store-carry-forward mesh partner: the specifications define what Foresignal sends over mesh. |
 
 ### What each project contributed
 
 - **God's Eye View:** the only project whose code is ported. It supplies the camera catalogues, transit, bikeshare, fire perimeters, radio and weather-model (GFS/HRRR wind, 051) sources. See `docs/Source-Catalog.md` (GEV).
-- **ShadowBroker:** the second main input to the source inventory: endpoints, parameters and upstream quirks (Source-Catalog, SB). Also the cautionary tale: the Meshtastic project called out its traffic as 1–2 orders of magnitude above typical clients, which is why Elaro meters every source and enforces budgets.
-- **Velocity:** keyless and official feeds Elaro lacked (Source-Catalog, VEL), and enter/exit geofence alerting (§8).
+- **ShadowBroker:** the second main input to the source inventory: endpoints, parameters and upstream quirks (Source-Catalog, SB). Also the cautionary tale: the Meshtastic project called out its traffic as 1–2 orders of magnitude above typical clients, which is why Foresignal meters every source and enforces budgets.
+- **Velocity:** keyless and official feeds Foresignal lacked (Source-Catalog, VEL), and enter/exit geofence alerting (§8).
 - **World Monitor:** structured feeds such as cyber, conflict, disasters, sanctions, internet outages and energy series (Source-Catalog, WM).
-- **All four together:** the product shape. Each fuses collection, display and alerting into one app; Elaro separates them into a headless broker that collects quietly, keeps history and alerts, with any map or app as a client (Executive Summary, Product Charter §2).
+- **All four together:** the product shape. Each fuses collection, display and alerting into one app; Foresignal separates them into a headless broker that collects quietly, keeps history and alerts, with any map or app as a client (Executive Summary, Product Charter §2).
 - **SatDump:** the station integration (049, 054, 107).
 - **MeshCore:** mesh sources and outbound mesh channels (083, 084).
 - **MeshDTN:** compact intelligence messages for delay-tolerant mesh delivery (084's CBOR profile, 113).
 
 ### Where to get them
 
-Prompts reference these at fixed paths under `~/Documents/GitLab/`, as siblings of `elaro`. Every build host (the Mac or the Linux bench server) needs the same layout. `gods-eye-view` is required, because prompts may port from it; the rest are read-only references.
+Prompts reference these at fixed paths under `~/Documents/GitLab/`, as siblings of `foresignal`. Every build host (the Mac or the Linux bench server) needs the same layout. `gods-eye-view` is required, because prompts may port from it; the rest are read-only references.
 
 | Local path | Clone from |
 |---|---|
@@ -669,7 +669,7 @@ Prompts reference these at fixed paths under `~/Documents/GitLab/`, as siblings 
 Authoritative design: [Intelligence Design](Intelligence-Design.md). Summary of how it sits on the platform:
 
 - **Stack:** signals (records, rollups, series) → detection (099, 100) → correlation (101, 104) → discovery (118 change points, event studies, co-occurrence; 119 precursors; 123 outlooks and indices; 124 impact projection) → memory (117 situations, 120 base rates and analogs) → reasoning (122 rolling hypotheses) → accountability (121 forecast ledger) → rhythm (125 analysis cycles and assessments).
-- **Outputs are platform objects:** typed tables plus records of the DERIVED sources `elaro-intel`, `elaro-analytics` and `elaro-outlook`, so triggers, SSE, tiles, search, briefings and MCP work unchanged. Forecast questions and forecasts are append-only ledger rows.
+- **Outputs are platform objects:** typed tables plus records of the DERIVED sources `foresignal-intel`, `foresignal-analytics` and `foresignal-outlook`, so triggers, SSE, tiles, search, briefings and MCP work unchanged. Forecast questions and forecasts are append-only ledger rows.
 - **Determinism and versioning:** detectors, scorers, updaters and forecasters are pure, versioned components; outputs store `{name, version, params}` and `asOfSeq`. The LLM explains, challenges, proposes and forecasts (scored like any forecaster); it never creates evidence or changes deterministic scores.
 - **Time:** every series point carries `knownAt`; live detection uses only known data; replays and retrospective evaluation read through `asOf` (§9 query paths, Core-Data-Model §12).
 - **Durable cursors** (`situation.cursor`, `stats.region.cursor`, `precursor.cursor`, `impact.cursor`) join the retention consumer clamp; scheduled jobs (rollups, detectors, mining, resolution, cycles) use the 029/102 scheduler pattern and the 103 job framework.

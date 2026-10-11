@@ -1,11 +1,11 @@
 # 131 — Production Hardening
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/131-CR-Production-Hardening.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -22,7 +22,7 @@
 
 ## Objective
 
-Cut Elaro over to production form and release `v1.0.0`. Fold the v1.2 design documents into the Architecture and Charter so one set of docs is authoritative. Replace Hibernate DDL and the bootstrap initializers with a Flyway baseline that contains the full tiered and partitioned schema, every extension and index, and every table added through 130; switch to `ddl-auto=validate`. Add an API-compatibility gate against the frozen v1.0.0 spec. Write release notes and tag.
+Cut Foresignal over to production form and release `v1.0.0`. Fold the v1.2 design documents into the Architecture and Charter so one set of docs is authoritative. Replace Hibernate DDL and the bootstrap initializers with a Flyway baseline that contains the full tiered and partitioned schema, every extension and index, and every table added through 130; switch to `ddl-auto=validate`. Add an API-compatibility gate against the frozen v1.0.0 spec. Write release notes and tag.
 
 ## Tasks
 
@@ -89,14 +89,14 @@ Cut Elaro over to production form and release `v1.0.0`. Fold the v1.2 design doc
   - `security.openReads` documented trade-offs; compose binds 8080 and 5433 to `127.0.0.1` by default
   - the Docker image runs as non-root with a read-only root filesystem where feasible (writable `/data` and `tmp` only)
   - health-check `curl` present
-  - log format and level defaults; `ELARO_BIND` and the profile docs
+  - log format and level defaults; `FORESIGNAL_BIND` and the profile docs
   - Fix anything 129/130 listed as a production blocker.
-- **Versioning:** set the Gradle `version = "1.0.0"`; `ElaroVersion` and `/v1/system` report it; the image label `org.opencontainers.image.version`.
+- **Versioning:** set the Gradle `version = "1.0.0"`; `ForesignalVersion` and `/v1/system` report it; the image label `org.opencontainers.image.version`.
 - **Release notes:** `docs/Release-Notes-v1.0.0.md` and a `CHANGELOG.md` entry.
   - Highlights by area; supported upstream sources (from the catalog); compose profiles; hardware sizing from 130.
   - Breaking-change policy; known limitations (flush/poll resolution of triggers, asOf granularity, approximate asOf under SAMPLED, skipped verification steps); upgrade notes (the baseline-on-migrate behaviour, or recreate the volumes).
   - Licences and third-party notices.
-- **Tag:** after the implementation and report commits, create an annotated tag `v1.0.0` ("Elaro 1.0.0") on the implementation commit and push it with `git push origin v1.0.0`. Record the tag and hash in the Completion Report.
+- **Tag:** after the implementation and report commits, create an annotated tag `v1.0.0` ("Foresignal 1.0.0") on the implementation commit and push it with `git push origin v1.0.0`. Record the tag and hash in the Completion Report.
 
 ## Tests to write
 

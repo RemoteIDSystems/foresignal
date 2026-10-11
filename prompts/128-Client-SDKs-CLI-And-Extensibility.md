@@ -1,11 +1,11 @@
 # 128 — Client SDKs CLI And Extensibility
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/128-CR-Client-SDKs-CLI-And-Extensibility.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -21,19 +21,19 @@
 
 ## Objective
 
-Make Elaro easy to build on and extend, keeping every piece minimal and optional: generated Dart, TypeScript and Python SDKs with a hand-written streaming and pagination layer; a picocli CLI; OAuth-based remote authorization for `/mcp` that delegates to the operator's identity provider; a WASM-first plugin SPI for out-of-tree parsers; a few science and security exchange formats; and audio briefings plus notification translation through configured providers. None of these changes the core data path.
+Make Foresignal easy to build on and extend, keeping every piece minimal and optional: generated Dart, TypeScript and Python SDKs with a hand-written streaming and pagination layer; a picocli CLI; OAuth-based remote authorization for `/mcp` that delegates to the operator's identity provider; a WASM-first plugin SPI for out-of-tree parsers; a few science and security exchange formats; and audio briefings plus notification translation through configured providers. None of these changes the core data path.
 
 ## Tasks
 
 ### 1. SDK generation (`sdk/`, generated into the repo, published separately)
 
 - Gradle task `generateSdks` (not wired to `build`; runs tools via Docker or `npx`/`pipx` when present, else fails with install instructions). Pin every tool version in `sdk/versions.properties` and verify current versions at implementation.
-- **Dart** (`sdk/dart/elaro_api`):
-  - `scripts/sdk/preprocess-dart.py` turns `docs/OpenAPI.json` into an OAS 3.0.3 copy: `type: [T, "null"]` → `type: T` + `nullable: true`; `oneOf: [{$ref}, {type: "null"}]` → `allOf: [{$ref}]` + `nullable: true`; `const` → single-value `enum`; `examples` → `example`; drops `webhooks`, `$schema`, `jsonSchemaDialect`; keeps `x-elaro-*`.
-  - Generate with openapi-generator `dart-dio` (`serializationLibrary=json_serializable`, `pubName=elaro_api`).
+- **Dart** (`sdk/dart/foresignal_api`):
+  - `scripts/sdk/preprocess-dart.py` turns `docs/OpenAPI.json` into an OAS 3.0.3 copy: `type: [T, "null"]` → `type: T` + `nullable: true`; `oneOf: [{$ref}, {type: "null"}]` → `allOf: [{$ref}]` + `nullable: true`; `const` → single-value `enum`; `examples` → `example`; drops `webhooks`, `$schema`, `jsonSchemaDialect`; keeps `x-foresignal-*`.
+  - Generate with openapi-generator `dart-dio` (`serializationLibrary=json_serializable`, `pubName=foresignal_api`).
   - `checkSdkGeneration` (020) runs the preprocess step plus a generator dry run.
 - **TypeScript** (`sdk/typescript`): `openapi-typescript` for types plus `openapi-fetch` for the client (both MIT; native OAS 3.1).
-- **Python** (`sdk/python`): `openapi-python-client` (native 3.1), package `elaro_client`.
+- **Python** (`sdk/python`): `openapi-python-client` (native 3.1), package `foresignal_client`.
 - **Hand-written layer per SDK** (`sdk/{lang}/…/realtime`, `…/paging`), identical semantics:
   - **`ChangeStream`:** opens `/v1/changes/stream` or `/v1/events/stream` (015) with `after=` / `Last-Event-ID`, using a stream ticket (023) where headers aren't possible (browsers). Tracks the last `change` id.
     - On `reset`: emits a `Reset` signal, pages the snapshot (`/v1/records?order=id`, keeping `watermarkSeq`), then reopens at the watermark.
@@ -46,7 +46,7 @@ Make Elaro easy to build on and extend, keeping every piece minimal and optional
 ### 2. CLI (`cli/`, a standalone Gradle build, not part of the broker build)
 
 - picocli 4.7.x, `java.net.http`, Jackson; GraalVM native image optional via `org.graalvm.buildtools.native` and `picocli-codegen` (reflection config generated). Java 21.
-- **Config:** `elaro login --url --token` stores `~/.config/elaro/config.json` (POSIX 0600; warn on Windows) with named profiles. Env `ELARO_URL`/`ELARO_TOKEN` override. The token is never printed.
+- **Config:** `foresignal login --url --token` stores `~/.config/foresignal/config.json` (POSIX 0600; warn on Windows) with named profiles. Env `FORESIGNAL_URL`/`FORESIGNAL_TOKEN` override. The token is never printed.
 - **Commands:**
   - `system`
   - `sources list|show|enable|disable|health|fetch|probe|doctor` (127)
@@ -63,24 +63,24 @@ Make Elaro easy to build on and extend, keeping every piece minimal and optional
 
 ### 3. MCP remote authorization (RFC 9728, IdP delegation)
 
-- **Settings** `mcp.auth`: `mode` (`token` default | `oauth` | `both`), `issuer`, `audience` (default `{publicBaseUrl}/mcp`, the canonical resource URI), `jwksUri` (optional; else discovered via RFC 8414 then OIDC discovery from the issuer, through the outbound URL policy 035), `scopeMap` (e.g. `{"elaro:read":"read","elaro:agent":"agent"}`; `admin` is **never** mappable), `scopeClaim` (`scope` or `scp`), `allowedAlgs` (`RS256`, `ES256`, `EdDSA`/`Ed25519`).
-- **Protected resource metadata:** `GET /.well-known/oauth-protected-resource/mcp` and `GET /.well-known/oauth-protected-resource` (open) return `{resource, authorization_servers:[issuer], scopes_supported, bearer_methods_supported:["header"], resource_name:"Elaro", resource_documentation}`.
+- **Settings** `mcp.auth`: `mode` (`token` default | `oauth` | `both`), `issuer`, `audience` (default `{publicBaseUrl}/mcp`, the canonical resource URI), `jwksUri` (optional; else discovered via RFC 8414 then OIDC discovery from the issuer, through the outbound URL policy 035), `scopeMap` (e.g. `{"foresignal:read":"read","foresignal:agent":"agent"}`; `admin` is **never** mappable), `scopeClaim` (`scope` or `scp`), `allowedAlgs` (`RS256`, `ES256`, `EdDSA`/`Ed25519`).
+- **Protected resource metadata:** `GET /.well-known/oauth-protected-resource/mcp` and `GET /.well-known/oauth-protected-resource` (open) return `{resource, authorization_servers:[issuer], scopes_supported, bearer_methods_supported:["header"], resource_name:"Foresignal", resource_documentation}`.
 - **Validation** (JWT via Nimbus JOSE+JWT, Apache-2.0; JWKS cached and refreshed on unknown `kid`, at most once per minute):
   - `iss` must equal the issuer, `aud` must contain the audience (RFC 8707), `exp`/`nbf` with 60 s skew, alg allowlist.
-  - Mapped scopes → the Elaro scope for MCP tool checks (025). The token is never forwarded anywhere (no passthrough).
-  - Applies only to `/mcp`; REST keeps Elaro tokens.
+  - Mapped scopes → the Foresignal scope for MCP tool checks (025). The token is never forwarded anywhere (no passthrough).
+  - Applies only to `/mcp`; REST keeps Foresignal tokens.
 - **Errors:**
-  - missing or invalid token → `401` with `WWW-Authenticate: Bearer resource_metadata="…", scope="elaro:read"`
+  - missing or invalid token → `401` with `WWW-Authenticate: Bearer resource_metadata="…", scope="foresignal:read"`
   - a tool needing more → `403` with `error="insufficient_scope", scope="…", resource_metadata="…"`
 - **No built-in authorization server and no device grant.** Document setup with Keycloak, Authentik, Pocket ID and Auth0 (client registration, the `resource` parameter, scope names), plus Claude and other MCP clients connecting remotely.
 
 ### 4. Plugin SPI (WASM-first, out-of-tree; disabled by default)
 
 - Write `docs/Plugin-Design.md`: goals; non-goals (no JVM plugins, no network or filesystem for plugins); the ABI; the security model; versioning.
-- **Minimal implementation** `ai.elaro.plugin` using Chicory (pure-Java WASM runtime, Apache-2.0; verify the version):
-  - `plugins.enabled=false`; plugins load from `${ELARO_DATA_DIR}/plugins/{name}/` containing `plugin.wasm` and `plugin.json` (`name`, `version`, `abi: 1`, `kind: "parser"`, `sha256`).
+- **Minimal implementation** `ai.foresignal.plugin` using Chicory (pure-Java WASM runtime, Apache-2.0; verify the version):
+  - `plugins.enabled=false`; plugins load from `${FORESIGNAL_DATA_DIR}/plugins/{name}/` containing `plugin.wasm` and `plugin.json` (`name`, `version`, `abi: 1`, `kind: "parser"`, `sha256`).
   - The admin enables each one via `PUT /v1/plugins/{name}` after reviewing the sha256.
-- **ABI v1 (parser only):** the host calls the exported `elaro_parse(ptr, len) -> ptr` with the raw upstream bytes; the plugin returns UTF-8 JSON `{"records":[IngestRecord…],"complete":bool}`. Exports `alloc`/`dealloc`. **No WASI imports granted** (no clock, fs or net); a single host import `elaro_log(level, ptr, len)` rate-limited.
+- **ABI v1 (parser only):** the host calls the exported `foresignal_parse(ptr, len) -> ptr` with the raw upstream bytes; the plugin returns UTF-8 JSON `{"records":[IngestRecord…],"complete":bool}`. Exports `alloc`/`dealloc`. **No WASI imports granted** (no clock, fs or net); a single host import `foresignal_log(level, ptr, len)` rate-limited.
 - **Limits:** memory ≤ 64 MB (max pages), a wall-clock timeout of 5 s via an interrupting thread, output ≤ 16 MB, validated by the normal ingest normalizer (008).
 - **Use:** a `wasm-feed` source family. Each operator-defined source names a plugin plus a URL (fetched by the budgeted `SourceHttp`, URL through 035) and a full descriptor (tier, time base, licence terms, ingest policy) in its config.
 - Ship one example plugin source (Rust, `examples/plugins/geojson-passthrough/`) built outside the Gradle build, plus its compiled test artefact under `src/test/resources/plugins/` for tests.
@@ -88,10 +88,10 @@ Make Elaro easy to build on and extend, keeping every piece minimal and optional
 ### 5. Science and security formats (each optional and small)
 
 - **CZML:** `GET /v1/history?…&format=czml` and `GET /v1/records/{s}/{id}/track?format=czml` (037). Document packet first (`clock` from the range), one packet per entity with `position` sampled `cartographicDegrees` `[t, lon, lat, h]` epochs, `availability`, `label` = title, `point` styling from `kindDisplay` colour. Cap 5,000 entities. Attribution in the document packet `description`.
-- **FDSN event / QuakeML:** `GET /fdsnws/event/1/query` (read; open under `openReads`) over `earthquake` kind records (011/089) with `starttime`, `endtime`, `minlatitude…`/`latitude`+`maxradius`, `minmagnitude`, `maxmagnitude`, `orderby` (`time`, `magnitude`), `limit`, `format=xml|text`. `xml` = QuakeML 1.2 BED (`event`, `origin`, `magnitude`, publicIDs `smi:elaro/{source}/{externalId}`); `text` = the FDSN pipe-separated format. Plus `/fdsnws/event/1/version` and `application.wadl` (minimal). `204` when empty (FDSN convention).
+- **FDSN event / QuakeML:** `GET /fdsnws/event/1/query` (read; open under `openReads`) over `earthquake` kind records (011/089) with `starttime`, `endtime`, `minlatitude…`/`latitude`+`maxradius`, `minmagnitude`, `maxmagnitude`, `orderby` (`time`, `magnitude`), `limit`, `format=xml|text`. `xml` = QuakeML 1.2 BED (`event`, `origin`, `magnitude`, publicIDs `smi:foresignal/{source}/{externalId}`); `text` = the FDSN pipe-separated format. Plus `/fdsnws/event/1/version` and `application.wadl` (minimal). `204` when empty (FDSN convention).
 - **STIX 2.1 / TAXII 2.1** (read-only; agent scope):
-  - `GET /v1/export/stix?kind=&since=` returns a STIX bundle: `cisa-kev`/`nvd-cves` → `vulnerability` (with `external_references` CVE), abuse.ch IOCs → `indicator` (pattern from the IOC type, e.g. `[url:value = '…']`, `valid_from`) plus an `identity` for Elaro; deterministic UUIDv5 ids from the record ref.
-  - TAXII 2.1: `GET /taxii2/` (discovery), `/taxii2/elaro/` (API root), `/collections/`, `/collections/{id}/objects/` with `added_after` and pagination; media type `application/taxii+json;version=2.1`.
+  - `GET /v1/export/stix?kind=&since=` returns a STIX bundle: `cisa-kev`/`nvd-cves` → `vulnerability` (with `external_references` CVE), abuse.ch IOCs → `indicator` (pattern from the IOC type, e.g. `[url:value = '…']`, `valid_from`) plus an `identity` for Foresignal; deterministic UUIDv5 ids from the record ref.
+  - TAXII 2.1: `GET /taxii2/` (discovery), `/taxii2/foresignal/` (API root), `/collections/`, `/collections/{id}/objects/` with `added_after` and pagination; media type `application/taxii+json;version=2.1`.
 
 ### 6. Audio briefings and notification translation
 
@@ -106,13 +106,13 @@ Make Elaro easy to build on and extend, keeping every piece minimal and optional
 
 ### 7. Spec, Postman, docs
 
-- `docs/OpenAPI.json`: `.well-known/oauth-protected-resource` operations (open), `GET/PUT /v1/plugins`, `GET/PUT /v1/plugins/{name}` (admin), `format=czml` on history and track, FDSN and TAXII operations, `exportStix`, `getBriefingPodcast`, the `audio` option on briefing schemas, `language` on channel schemas, `tts` in provider role enums, settings `mcp.auth` and `plugins`. Every operation gets `x-elaro-scope`. Update `AccessPolicy` (`/fdsnws/**` and `/taxii2/**` mapped explicitly; nothing falls through to the fail-closed default by accident). Regenerate Postman with a BODIES entry for `updatePlugin`.
+- `docs/OpenAPI.json`: `.well-known/oauth-protected-resource` operations (open), `GET/PUT /v1/plugins`, `GET/PUT /v1/plugins/{name}` (admin), `format=czml` on history and track, FDSN and TAXII operations, `exportStix`, `getBriefingPodcast`, the `audio` option on briefing schemas, `language` on channel schemas, `tts` in provider role enums, settings `mcp.auth` and `plugins`. Every operation gets `x-foresignal-scope`. Update `AccessPolicy` (`/fdsnws/**` and `/taxii2/**` mapped explicitly; nothing falls through to the fail-closed default by accident). Regenerate Postman with a BODIES entry for `updatePlugin`.
 - MCP (025): `get_track` gains `format: czml` (returns a media link, not inline); no new tools otherwise.
 - Docs: `sdk/README.md`, `cli/README.md`, `docs/Plugin-Design.md`, `docs/Operator-Guide.md` sections "Remote MCP with your identity provider", "Plugins", "Audio briefings and translation", `docs/Agent-Guide.md` "Remote MCP authorization". `THIRD_PARTY_NOTICES.md` for Nimbus, Chicory and generator outputs if licence headers require it.
 
 ## Tests to write (do not run)
 
-- `PreprocessDartSpecTest` (pytest under `scripts/sdk/tests`): each transformation; the output parses as OAS 3.0.3; `x-elaro-*` kept.
+- `PreprocessDartSpecTest` (pytest under `scripts/sdk/tests`): each transformation; the output parses as OAS 3.0.3; `x-foresignal-*` kept.
 - SDK realtime tests in each SDK: resume after disconnect with the last id, `reset` → snapshot plus reopen at the watermark, heartbeat timeout reconnect, `observedAt` guard, ticket use; paging iterators across 3 pages; `410` typed error.
 - CLI tests (CLI build): login file permissions, table/json output, exit codes, `changes tail` reset handling.
 - `ProtectedResourceMetadataIT`: both well-known paths; fields.
@@ -126,7 +126,7 @@ Make Elaro easy to build on and extend, keeping every piece minimal and optional
 
 - `./gradlew generateSdks` produces Dart, TypeScript and Python SDKs, each with the shared realtime and paging semantics and native tests.
 - The CLI builds as a jar (native optional) and tails changes with correct resume and reset handling.
-- With `mcp.auth.mode=oauth`, an MCP client discovers the IdP via RFC 9728 and is held to its mapped scopes; no authorization server exists in Elaro.
+- With `mcp.auth.mode=oauth`, an MCP client discovers the IdP via RFC 9728 and is held to its mapped scopes; no authorization server exists in Foresignal.
 - Plugins, formats, audio and translation are off or inert unless configured, and the broker runs unchanged without them.
 - Compiles.
 

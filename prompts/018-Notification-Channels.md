@@ -1,11 +1,11 @@
 # 018 — Notification Channels
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/018-CR-Notification-Channels.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -29,22 +29,22 @@ Deliver alerts, briefings and system events to the destinations an operator actu
 
 ### 1. Replace the webhook entities from prompt 002
 
-Delete `WebhookEntity`, `WebhookDeliveryEntity`, their repositories and every reference. Add (Hibernate, `ai.elaro.store`):
+Delete `WebhookEntity`, `WebhookDeliveryEntity`, their repositories and every reference. Add (Hibernate, `ai.foresignal.store`):
 - `NotificationChannelEntity` (`notification_channel`) per Architecture §7.1, plus `timezone varchar(64)`, `quiet_hours jsonb`, `group_window_seconds int default 0`, `backlog_cap int default 20`, `edit_in_place bool default true`.
 - `NotificationEntity` (`notification`): `id bigint identity`, `event` (`alert|briefing|system|test`), `subtype varchar(64)` (`alert.fired`, `alert.resolved`, `alert.acknowledged`, `system.source_failing`, `system.delivery_failed`, …), `severity`, `title`, `short_title`, `body_markdown`, `url`, `links jsonb`, `data jsonb`, `alert_id`, `briefing_run_id`, `rule_id`, `tags text[]`, `update_of bigint null` (the notification this one updates), `origin varchar(64)`, `created_at`. Index `(created_at)`, `(alert_id)`. Every `NotificationMessage` is persisted, **including system events with no matching channel** (prompt 033 builds the inbox on this table).
 - `NotificationDeliveryEntity` (`notification_delivery`) per §7.1, plus `notification_id`, `kind` (`send|update|followup|digest`), `provider_message_ref varchar(512)`, `deferred_reason varchar(32)` (`quiet_hours|paused|enrichment|grouping`), `note varchar(200)`. Index `(status, next_attempt_at)`, `(channel_id, id DESC)`, `(notification_id)`.
 
 Hibernate `update` leaves the old webhook tables in dev databases; note that in the CR. Reuse `DeliveryStatus`.
 
-### 2. Message model and SPI (`ai.elaro.notify`)
+### 2. Message model and SPI (`ai.foresignal.notify`)
 
 - **`NotificationMessage`** record: `id` (notification id), `event`, `subtype`, `title`, `shortTitle` (≤ 40 chars, for watches, mesh and push), `bodyMarkdown`, `severity`, `url`, `links` (`List<Link(label, url)>`, max 3), `data`, `tags`, `attachments` (`List<Attachment(filename, contentType, byte[] bytes, String mediaId)>`, empty in this prompt; prompt 055 fills it), `updateOf` (nullable), `origin` (install id).
 - **`ChannelType`**: `id()`, `spec()` (`ChannelTypeSpec`: config and secret fields, served by `GET /v1/channels/types`), `capabilities()` (`editInPlace`, `attachments`, `fanOut`), `validate(config, secrets)`, `render(msg, settings) → PreparedRequest`, `Optional<PreparedRequest> renderUpdate(msg, providerMessageRef, settings)` (empty = send a follow-up message instead), `Optional<String> extractRef(response)`, `rateLimit()`.
 - `PreparedRequest`: method, URL, headers, and a body that is bytes, form fields, **or multipart parts** (so 055 only adds parts), or an SMTP `MimeMessage` builder for email. Types that do not support attachments ignore them without error.
 - `fanOut` exists so `webpush` (031) and `mqtt` (060) fit the SPI without refactoring.
-- **`MarkdownRenderer`**: Elaro's subset (headings, bold, italic, links, bullet lists, code) to Slack mrkdwn (escape `&`, `<`, `>`), Telegram HTML (allowed tags only, entities escaped), Matrix HTML, Discord markdown, Adaptive Card TextBlock markdown, Zulip markdown, plain text and email HTML.
+- **`MarkdownRenderer`**: Foresignal's subset (headings, bold, italic, links, bullet lists, code) to Slack mrkdwn (escape `&`, `<`, `>`), Telegram HTML (allowed tags only, entities escaped), Matrix HTML, Discord markdown, Adaptive Card TextBlock markdown, Zulip markdown, plain text and email HTML.
 - **`Truncator`** (shared by every type): truncates by characters or UTF-8 bytes on a grapheme boundary (`BreakIterator`), never inside an HTML tag or entity, and appends "…" plus a link to `url` when space allows.
-- **`OriginMarker`**: every outbound request carries the instance id (`InstallIdService`) as `X-Elaro-Origin` where headers are possible, and as `elaroOrigin` in JSON bodies (webhook, Apprise, Home Assistant) or an `elaro-origin` tag (ntfy, Gotify extras). Prompt 024's ntfy/Gotify-compatible publish and ingest formats drop inbound messages that carry this instance's marker (loop guard). Document the contract in the class Javadoc.
+- **`OriginMarker`**: every outbound request carries the instance id (`InstallIdService`) as `X-Foresignal-Origin` where headers are possible, and as `foresignalOrigin` in JSON bodies (webhook, Apprise, Home Assistant) or an `foresignal-origin` tag (ntfy, Gotify extras). Prompt 024's ntfy/Gotify-compatible publish and ingest formats drop inbound messages that carry this instance's marker (loop guard). Document the contract in the class Javadoc.
 
 ### 3. Implement every type
 
@@ -52,7 +52,7 @@ Each type is its own class with golden-fixture payload tests:
 
 | Type | Notes |
 |---|---|
-| `webhook` | Default body `{"event","subtype","message": NotificationMessage,"data","elaroOrigin"}`, or an operator `bodyTemplate` (JSON-escaped `{{…}}`). Headers `X-Elaro-Event`, `X-Elaro-Delivery`, `X-Elaro-Timestamp`, `X-Elaro-Origin`, `User-Agent`; with `hmacSecret`, `X-Elaro-Signature: sha256=<hex HMAC-SHA256("<timestamp>.<body>")>`. POST or PUT; extra headers whose values may be secret. Updates are follow-ups with `subtype` set. |
+| `webhook` | Default body `{"event","subtype","message": NotificationMessage,"data","foresignalOrigin"}`, or an operator `bodyTemplate` (JSON-escaped `{{…}}`). Headers `X-Foresignal-Event`, `X-Foresignal-Delivery`, `X-Foresignal-Timestamp`, `X-Foresignal-Origin`, `User-Agent`; with `hmacSecret`, `X-Foresignal-Signature: sha256=<hex HMAC-SHA256("<timestamp>.<body>")>`. POST or PUT; extra headers whose values may be secret. Updates are follow-ups with `subtype` set. |
 | `slack` | Incoming webhook. Block Kit: header, mrkdwn section, context (severity, time), link buttons from `url` and `links`; `text` fallback. Incoming webhooks cannot edit, so updates are follow-ups. |
 | `mattermost` | Incoming webhook. `text` plus `attachments` with colour by severity; optional `channel`, `username`, `icon_url`. Follow-ups. |
 | `discord` | `POST {webhookUrl}?wait=true`; one embed (title, description ≤ 4096, colour, url, timestamp). Store the returned message `id`. **Update:** `PATCH {webhookUrl}/messages/{id}`. |
@@ -106,7 +106,7 @@ Each type is its own class with golden-fixture payload tests:
 
 ### 8. Spec, Postman, docs
 
-- `docs/OpenAPI.json`: add `homeassistant`, `apprise`, `zulip` to the `Channel`/`ChannelInput`/`ChannelType` enums; add `timezone`, `quietHours`, `groupWindowSeconds`, `backlogCap`, `editInPlace` to `Channel` and `ChannelInput`; extend `NotificationDelivery`; add schemas `NotificationMessage`, `NotificationLink`, `QuietHours`, `NotificationSettings`; add `getNotificationSettings`/`updateNotificationSettings` with `"x-elaro-scope": "admin"` (covered by the existing `/v1/settings/**` AccessPolicy rule; verify). Add `notifications` to `SettingsBundle`.
+- `docs/OpenAPI.json`: add `homeassistant`, `apprise`, `zulip` to the `Channel`/`ChannelInput`/`ChannelType` enums; add `timezone`, `quietHours`, `groupWindowSeconds`, `backlogCap`, `editInPlace` to `Channel` and `ChannelInput`; extend `NotificationDelivery`; add schemas `NotificationMessage`, `NotificationLink`, `QuietHours`, `NotificationSettings`; add `getNotificationSettings`/`updateNotificationSettings` with `"x-foresignal-scope": "admin"` (covered by the existing `/v1/settings/**` AccessPolicy rule; verify). Add `notifications` to `SettingsBundle`.
 - Regenerate Postman (`python3 scripts/generate-postman.py docs/OpenAPI.json postman`); add BODIES for `createChannel` variants and `updateNotificationSettings`.
 - `docs/Operator-Guide.md`: a "Notification channels" section with setup steps per type (Teams Workflows only; HA webhook vs notify mode; ntfy `call` prerequisites; Apprise 424 semantics; Zulip bot), edit-in-place support matrix, quiet hours and pause, webhook signature verification, the origin marker.
 

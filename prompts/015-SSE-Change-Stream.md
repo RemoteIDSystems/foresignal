@@ -1,11 +1,11 @@
 # 015 — SSE Change Stream
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/015-CR-SSE-Change-Stream.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -26,7 +26,7 @@ Give clients a live, filtered, resumable stream with two lanes: lossless `change
 
 ## Tasks
 
-### 1. Generic SSE machinery (`ai.elaro.stream.sse`)
+### 1. Generic SSE machinery (`ai.foresignal.stream.sse`)
 
 - `SseClient`: wraps a Spring `SseEmitter` (timeout 0) and a dedicated **virtual** sender thread. It owns two lanes:
   - **FIFO lane** for id-bearing events (`change`, later `alert`, `notification`): bounded queue of `clientBuffer` (1,000). Overflow sends `reset {reason:"buffer_overflow", resumeAfter, watermarkSeq}` and completes the emitter.
@@ -59,7 +59,7 @@ Give clients a live, filtered, resumable stream with two lanes: lossless `change
 ### 3. Multiplexed stream (`GET /v1/events/stream`, `streamEvents`)
 
 - `topics` (comma list; default `changes`). Topics come from an `EventTopic` SPI: `name()`, `requiredScope()`, `filterType()`, `replay(cursor, filter, sink)`, `subscribe(hub)`. Register `changes` here (it wraps task 2). **Prompt 017 registers `alerts`, prompt 018 registers `notifications` and `system`.** An unknown or not-yet-registered topic → 400 `UNKNOWN_TOPIC`; a topic whose scope the caller lacks → 403.
-- First event `hello {streamId, topics, watermarkSeq, filterVersion: 1}`. `streamId` is 128 random bits (base64url), bound to the principal id from `StreamPrincipalResolver`. For anonymous callers, `hello` also carries a `streamKey` that must accompany a PATCH as `Elaro-Stream-Key`.
+- First event `hello {streamId, topics, watermarkSeq, filterVersion: 1}`. `streamId` is 128 random bits (base64url), bound to the principal id from `StreamPrincipalResolver`. For anonymous callers, `hello` also carries a `streamKey` that must accompany a PATCH as `Foresignal-Stream-Key`.
 - **Composite cursor:** every id-bearing event on this endpoint carries `id: <topic cursors>` in a fixed form, e.g. `c=1234;a=56;n=7`, holding the latest delivered cursor of every subscribed topic. `Last-Event-ID` is parsed back into per-topic resume points; a malformed id → 400 `INVALID_CURSOR`.
 - Filter parameters on connect use per-topic prefixes: `changes.source`, `changes.kind`, `changes.externalId`, `changes.bbox`, `changes.near`, `changes.radiusKm`, `changes.live`, `changes.touches`, `changes.payload`. Other topics define theirs (017: `alerts.minSeverity`, `alerts.ruleId`, `alerts.source`, `alerts.kind`).
 - **`PATCH /v1/events/stream/{streamId}/filter`** (`updateEventStreamFilter`): body `EventStreamFilter {topics?, changes?: {...}, alerts?: {...}, notifications?: {...}}`; omitted topic blocks are unchanged. Validate fully before applying. Only the owning principal may patch (else 404, not 403, so ids are not probeable). On success the hub swaps the filter atomically on the sender thread, emits `filter-applied {atSeq, filterVersion}` where `atSeq` is the last change seq delivered under the old filter, and returns 200 with the same body. Events after that frame use the new filter. **No server-side spatial delta replay:** the client loads the newly exposed area with `/v1/records?bbox=…` or tiles.
@@ -67,7 +67,7 @@ Give clients a live, filtered, resumable stream with two lanes: lossless `change
 
 ### 4. Spec, Postman, docs
 
-- `docs/OpenAPI.json`: `streamChanges` + `externalId`, `near`, `radiusKm`, `live`, `touches`; document event types `change`, `live`, `touch`, `resync`, `heartbeat`, `reset` with schemas. New `streamEvents` (GET `/v1/events/stream`, `"x-elaro-scope": "read"`) and `updateEventStreamFilter` (PATCH, `"x-elaro-scope": "read"`, ownership enforced in code). Schemas: `Change` (+ fields above), new `LiveEvent`, `TouchEvent`, `ResyncEvent` (reason `gap|live_cap|live_dropped`, `watermarkSeq`), `ResetEvent` (reason `buffer_overflow|replay_cap|resync_required`, `resumeAfter`, `watermarkSeq`), `HelloEvent`, `FilterAppliedEvent`, `EventStreamFilter`. Error codes `STREAM_LIMIT`, `UNKNOWN_TOPIC`.
+- `docs/OpenAPI.json`: `streamChanges` + `externalId`, `near`, `radiusKm`, `live`, `touches`; document event types `change`, `live`, `touch`, `resync`, `heartbeat`, `reset` with schemas. New `streamEvents` (GET `/v1/events/stream`, `"x-foresignal-scope": "read"`) and `updateEventStreamFilter` (PATCH, `"x-foresignal-scope": "read"`, ownership enforced in code). Schemas: `Change` (+ fields above), new `LiveEvent`, `TouchEvent`, `ResyncEvent` (reason `gap|live_cap|live_dropped`, `watermarkSeq`), `ResetEvent` (reason `buffer_overflow|replay_cap|resync_required`, `resumeAfter`, `watermarkSeq`), `HelloEvent`, `FilterAppliedEvent`, `EventStreamFilter`. Error codes `STREAM_LIMIT`, `UNKNOWN_TOPIC`.
 - `AccessPolicy`: `GET /v1/events/stream` READ and `PATCH /v1/events/stream/*/filter` READ; extend `AccessPolicyTest`.
 - Regenerate Postman (`python3 scripts/generate-postman.py docs/OpenAPI.json postman`); add an example body for `updateEventStreamFilter` (new bbox and `live: true`) to `BODIES`.
 - `docs/Agent-Guide.md`: "Streaming" section: the two lanes, the client contract, the debounce-then-PATCH pattern for map pans (300–500 ms), and why `live`/`touch` have no ids.

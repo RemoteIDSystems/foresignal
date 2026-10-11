@@ -1,19 +1,19 @@
 # Third-party notices
 
-Elaro itself is distributed under the MIT licence (see [LICENSE](LICENSE)). This
-file records third-party works whose code has been incorporated into Elaro, and
+Foresignal itself is distributed under the MIT licence (see [LICENSE](LICENSE)). This
+file records third-party works whose code has been incorporated into Foresignal, and
 the notices those works require.
 
-Elaro's reuse policy (Architecture §16) is deliberately narrow:
+Foresignal's reuse policy (Architecture §16) is deliberately narrow:
 
-| Repository | Licence | Use in Elaro |
+| Repository | Licence | Use in Foresignal |
 |---|---|---|
 | God's Eye View | MIT | Fetch and parse logic may be ported to Java, with an origin header comment in the ported file and an entry in the table below. |
 | ShadowBroker | AGPL-3.0 | Reference only — endpoints, parameters and upstream quirks. No code copied. |
 | Velocity | AGPL-3.0 | Reference only. No code copied. |
 | World Monitor | AGPL-3.0 | Reference only. No code copied. |
 
-Data fetched from upstream providers at runtime is **not** covered by Elaro's
+Data fetched from upstream providers at runtime is **not** covered by Foresignal's
 licence. Each provider's terms continue to apply; see
 [`docs/Source-Catalog.md`](docs/Source-Catalog.md) for per-source details.
 
@@ -21,14 +21,14 @@ licence. Each provider's terms continue to apply; see
 
 ## God's Eye View
 
-Portions of Elaro's adapter fetch and parse logic are ported from
+Portions of Foresignal's adapter fetch and parse logic are ported from
 [God's Eye View](https://github.com/bilawalsidhu/gods-eye-view), which is
 distributed under the MIT licence. Ported files carry an origin comment naming
 the source file, and are listed in the table below.
 
 Only source code is ported. The upstream `LICENSE` additionally carries a
 notice covering bundled datasets and 3D models that are *not* MIT-licensed;
-none of those assets are used by Elaro.
+none of those assets are used by Foresignal.
 
 ### Licence
 
@@ -60,5 +60,5 @@ SOFTWARE.
 
 No files have been ported yet. Later prompts add a row per ported file.
 
-| Elaro file | GEV origin file |
+| Foresignal file | GEV origin file |
 |---|---|

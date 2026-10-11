@@ -1,11 +1,11 @@
 # 068 — IODA Outages Adapter
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/068-CR-IODA-Outages-Adapter.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -25,7 +25,7 @@ Ingest IODA internet-outage alerts as one `outage` state record per entity and d
 
 ## Tasks
 
-### 1. Descriptor (`ai.elaro.source.adapters.ioda.IodaOutagesAdapter`)
+### 1. Descriptor (`ai.foresignal.source.adapters.ioda.IodaOutagesAdapter`)
 
 | Field | Value |
 |---|---|
@@ -61,7 +61,7 @@ Ingest IODA internet-outage alerts as one `outage` state record per entity and d
   - `summary` (`"{entityName}: {datasource} {level}"`); `country` (ISO2 for country entities; for regions from `attrs` when present)
 - **Geometry (no network):**
   - `country`: `GazetteerService.countryCentroid(code)` (040). IODA uses ISO2 codes; verify on the fixture.
-  - `region`: an admin1 centroid from 040, matched by IODA region code if 040 carries a crosswalk, else by (country, normalised name). On no match, null geometry and count `elaro.ioda.region_unmatched`.
+  - `region`: an admin1 centroid from 040, matched by IODA region code if 040 carries a crosswalk, else by (country, normalised name). On no match, null geometry and count `foresignal.ioda.region_unmatched`.
   - `asn`: null geometry.
   - Every centroid sets `geometryApproximate: true`.
 - **040 hook:** if `GazetteerService` lacks `countryCentroid` or admin1 name lookup, add it to the 040 service, backed by the bundled Natural Earth data, without network access.

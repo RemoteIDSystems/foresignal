@@ -1,12 +1,12 @@
-# Elaro Weather & Imagery subsystem: final design (replaces roadmap prompt 058)
+# Foresignal Weather & Imagery subsystem: final design (replaces roadmap prompt 058)
 
 Prepared 2026-10-10. Nothing in the repo was modified.
 
 I read these files:
-- `/Users/adamallard/Documents/GitLab/elaro/docs/Architecture.md`: §1, §4–§11 (with §6 hashing, §8 the trigger SQL and §11 retention), §14, §15 and §26
-- `/Users/adamallard/Documents/GitLab/elaro/docs/Roadmap.md`: the table; prompts 003–028 are Ready and 029–063 are To write
-- `/Users/adamallard/Documents/GitLab/elaro/docs/Source-Catalog.md`: line 48
-- `/Users/adamallard/Documents/GitLab/elaro/docs/Product-Charter.md`: line 58 and FR-55
+- `/Users/adamallard/Documents/GitLab/foresignal/docs/Architecture.md`: §1, §4–§11 (with §6 hashing, §8 the trigger SQL and §11 retention), §14, §15 and §26
+- `/Users/adamallard/Documents/GitLab/foresignal/docs/Roadmap.md`: the table; prompts 003–028 are Ready and 029–063 are To write
+- `/Users/adamallard/Documents/GitLab/foresignal/docs/Source-Catalog.md`: line 48
+- `/Users/adamallard/Documents/GitLab/foresignal/docs/Product-Charter.md`: line 58 and FR-55
 
 This version uses the reviewed draft and applies every blocker and major review issue, plus most minor ones. §0.2 lists each issue and where it is resolved.
 
@@ -28,9 +28,9 @@ This version uses the reviewed draft and applies every blocker and major review 
 | Raster alerts | Derived records only, plus `cooldownScope` and `near` in the trigger engine | The existing engine, SSE, MVT, Ask and briefings work unchanged |
 | "Unknown" vs "nothing nearby" | **Two different representations.** "None within 100 km" is the numeric sentinel `999`. "Unknown" keeps the last known values and sets section `status: stale\|no-coverage` with `asOf`. `null` is never used for a metric. | Stale or missing data can no longer fire an all-clear |
 | SatDump | **One source per station: `satdump-{station}`.** It has an optional `/api` loop and an inbox scan loop that share `adapter_state`. | One source owns `satellite-pass`, and the RF statistics and products join inside that source |
-| SatDump polar georeferencing | Elaro *reads* any EPSG:4326/3857 GeoTIFF in a pass folder. That reader works with any SatDump version. Only **one** producer path gets fixtures in v1: whichever version the owner's station runs (see §1.5). It ships in a later prompt (043), after station core. | Avoids building against two moving SatDump versions at once |
-| SatDump geostationary | Elaro warps from the `geos` `projection_cfg` using the public CGMS LRIT/HRIT and GOES-R PUG formulas | Works on SatDump 1.2 and 2.0, needs no GPL code and no hook |
-| Charter non-goal "no hosting/proxying imagery" | **Amend it.** Elaro hosts products derived from data it ingests. It never proxies basemaps or third-party tiles. GIBS and nowCOAST are `kind: external` catalogue entries that clients fetch directly. | Keeps Architecture §1 intact |
+| SatDump polar georeferencing | Foresignal *reads* any EPSG:4326/3857 GeoTIFF in a pass folder. That reader works with any SatDump version. Only **one** producer path gets fixtures in v1: whichever version the owner's station runs (see §1.5). It ships in a later prompt (043), after station core. | Avoids building against two moving SatDump versions at once |
+| SatDump geostationary | Foresignal warps from the `geos` `projection_cfg` using the public CGMS LRIT/HRIT and GOES-R PUG formulas | Works on SatDump 1.2 and 2.0, needs no GPL code and no hook |
+| Charter non-goal "no hosting/proxying imagery" | **Amend it.** Foresignal hosts products derived from data it ingests. It never proxies basemaps or third-party tiles. GIBS and nowCOAST are `kind: external` catalogue entries that clients fetch directly. | Keeps Architecture §1 intact |
 | God's Eye View (GEV) port | Only `server/providers/wind/{catalog,gfs,grid,decode}.js` logic and `src/layers/wind/*` (the web particle layer) are ported, under an MIT notice. `weather.js` is a *reference only*, used for the external nowCOAST catalogue entry. No proxy is ported. | Resolves the draft's inconsistency |
 
 **Rule added to Architecture §1 and §26:** no client request ever causes an upstream fetch. That covers tiles, samples, media, maps and SatDump polar plots. Upstream data is pulled only by enabled, budgeted sources on their own schedule.
@@ -62,7 +62,7 @@ This version uses the reviewed draft and applies every blocker and major review 
 | Native legends (major) | §6.3 JSON legend |
 | Terrain-RGB problems (major) | Deferred to 073: §11 |
 | Forecast and mixed-time navigation (major) | §6.1 aliases, §6.2 seamless timeline |
-| All minor issues (toolchain, GFSv17, Teams, catalogue facts, ECMWF, MapLibre v6, LAN_URL/INBOX hardening, GLM limits, `.elg` header, MRMS codes, cooldown SQL, crash window, Unidata repository, Orekit and polarplot churn, externals metadata, expiry, offline, MCP ergonomics, CORS) | Inline throughout. The adaptive-MRMS blind spot is gone because adaptive cadence was dropped. |
+| All minor issues (toolchain, GFSv17, Teams, catalogue facts, ECMWF, MapLibre v6, LAN_URL/INBOX hardening, GLM limits, `.fsg` header, MRMS codes, cooldown SQL, crash window, Unidata repository, Orekit and polarplot churn, externals metadata, expiry, offline, MCP ergonomics, CORS) | Inline throughout. The adaptive-MRMS blind spot is gone because adaptive cadence was dropped. |
 
 ---
 
@@ -122,7 +122,7 @@ This version uses the reviewed draft and applies every blocker and major review 
 - **HRRR and RRFS:**
   - HRRR `wrfsfcf01` is about 142 MB.
   - RRFS has only retro and sample prefixes on NODD. HRRR is not retired; keep the model adapter swappable.
-- **GFS:** PNS 26-29 proposes GFSv17 in October 2026. PNS 26-30 removes GRIB1, goessimp/special files and the time-averaged CRAIN/CSNOW/CFRZR/CICEP fields. There is **no evidence that the 0.5° or 1° files are dropped**. Elaro uses only `pgrb2.0p25` with configurable path templates, and matches fields by `.idx` variable and level string, never by message number.
+- **GFS:** PNS 26-29 proposes GFSv17 in October 2026. PNS 26-30 removes GRIB1, goessimp/special files and the time-averaged CRAIN/CSNOW/CFRZR/CICEP fields. There is **no evidence that the 0.5° or 1° files are dropped**. Foresignal uses only `pgrb2.0p25` with configurable path templates, and matches fields by `.idx` variable and level string, never by message number.
 - **ECMWF:** the whole real-time catalogue has been CC BY 4.0 since 1 Oct 2025. The open subset is still `ifs/0p25` (plus `aifs-single` and `aifs-ens`), with a 0.1° move announced for 2026. At 00/12z, steps run to 144 h, 3-hourly.
 - **AWC:** the cache file updates every minute. AWC asks for at most 1 request/min per thread and 100/min overall, so a 5-minute poll complies. Record this in the descriptor notes.
 
@@ -131,7 +131,7 @@ This version uses the reviewed draft and applies every blocker and major review 
 2. Is the station on the bench server, or on a remote Pi at the antenna?
 3. Hardware: is there an L-band dish for GOES HRIT (1694.1 MHz)? Is there a 137 MHz antenna for Meteor-M2-3/M2-4 LRPT?
 4. Is the bench server 32 GB or 64 GB? (This selects the memory profile.)
-5. Will clients reach Elaro from outside the LAN (VPN, a Tailscale-style overlay, or a public reverse proxy)? This sets the tile-key and Caddy defaults.
+5. Will clients reach Foresignal from outside the LAN (VPN, a Tailscale-style overlay, or a public reverse proxy)? This sets the tile-key and Caddy defaults.
 6. What are the home location and the other places?
 
 ---
@@ -161,7 +161,7 @@ This version uses the reviewed draft and applies every blocker and major review 
     wx-places · wx-areas · wx-cells
 ```
 
-New packages under `ai.elaro`:
+New packages under `ai.foresignal`:
 - `raster`: ProductSpec, ProductRegistry, FrameStore, ElgCodec, GridDef, RasterDecoder SPI, RasterRetentionStep
 - `raster.render`: TileRenderer, IndexMapCache, RenderQueue, StyleRegistry, LegendService, LoopService, MapRenderer
 - `raster.sample`
@@ -185,7 +185,7 @@ Adapters go only through `ctx.http()`. They gain `ctx.rasters()` and `ctx.media(
 | Retention (016) | `retention.kinds` (§2.4), plus `RasterRetentionStep` (ladder, quota, orphan sweep) |
 | Modes | `DERIVED`: fed by ChangeBus or frame events; enabled, parameterised, health-tracked and retained like any source. **Derived records have `recordTtl = null`**; liveness comes from explicit tombstones and startup reconciliation. |
 | `LAN_URL` param | Validation resolves the host once and checks the address is loopback, RFC 1918, link-local or ULA (a `.local` name must resolve to one of those). The connection is made to the **pinned IP**, with the original Host header and redirects disabled. This defeats DNS rebinding. `local-adsb-*` reuses it. |
-| `INBOX_PATH` param | Realpath must sit under `ELARO_INBOX_DIR` (default `${ELARO_DATA_DIR}/inbox`). Every scanned file is opened with `NOFOLLOW_LINKS` and its realpath is re-checked against the root, per file and per scan. |
+| `INBOX_PATH` param | Realpath must sit under `FORESIGNAL_INBOX_DIR` (default `${FORESIGNAL_DATA_DIR}/inbox`). Every scanned file is opened with `NOFOLLOW_LINKS` and its realpath is re-checked against the root, per file and per scan. |
 | ChangeBus / SSE (011, 012) | `externalId` filter on `/v1/changes` and `/v1/changes/stream`. `kind=raster-frame` events always carry their small payload (under 1 KB). |
 
 ### 2.3 Data model (Hibernate entities; GiST via SchemaBootstrap; Flyway in 079)
@@ -214,7 +214,7 @@ Adapters go only through `ctx.http()`. They gain `ctx.rasters()` and `ctx.media(
 **`place`**: `id` · `name` · `geom` Point · `radius_km` (default 20) · `timezone` · `kind` (user, airport, asset) · `tags` text[] · `products` jsonb · `created_at` · `updated_at`.
 
 **Tile keys** reuse `api_token` (019):
-- `type = tile_key`, scope `read`, `prefixes text[]`, `expires_at` (at most 30 d), prefix `elk_`.
+- `type = tile_key`, scope `read`, `prefixes text[]`, `expires_at` (at most 30 d), prefix `fsk_`.
 - Hashed and revocable like any token.
 
 **Changes to existing tables:**
@@ -224,11 +224,11 @@ Adapters go only through `ctx.http()`. They gain `ctx.rasters()` and `ctx.media(
 - `alert`: `context` jsonb.
 - Channel config jsonb: `attachMap` (none | static), `mapProducts`, `mapRadiusKm`, `maxAttachmentBytes`.
 
-**`.elg` frame file** (little-endian, 64-byte header, golden-file test):
+**`.fsg` frame file** (little-endian, 64-byte header, golden-file test):
 
 | Offset | Size | Field |
 |---|---|---|
-| 0 | 4 | magic `ELRG` |
+| 0 | 4 | magic `FSRG` |
 | 4 | 2 | version u16 = 1 |
 | 6 | 1 | dtype u8: 1 u8, 2 u16, 3 i16, 4 f32, 5 rgba8 |
 | 7 | 1 | codec u8: 0 none, 1 deflate |
@@ -256,15 +256,15 @@ A round-trip test runs against sentinel fixtures. Verify the sentinel values at 
 ### 2.4 Storage layout and retention
 
 ```
-${ELARO_DATA_DIR}/rasters/tmp/                                  staging (atomic rename)
-${ELARO_DATA_DIR}/rasters/frames/{productId}/{yyyy}/{mm}/{dd}/{frameId}.elg
-${ELARO_DATA_DIR}/rasters/fields/{productId}/{run}/{step}.f32.gz   GEV-format, precompressed
-${ELARO_DATA_DIR}/rasters/glm/{sat}/{yyyymmdd}.bin                  16 B per flash
-${ELARO_DATA_DIR}/rasters/satdump/{station}/{passId}/               provenance copies
-${ELARO_DATA_DIR}/media/{ab}/{sha256}.{ext}
-${ELARO_DATA_DIR}/cache/netcdf/                                     NetCDF-Java DiskCache (pinned)
-${ELARO_DATA_DIR}/tmp/  (java.io.tmpdir, jna.tmpdir; exec allowed)
-${ELARO_INBOX_DIR}/satdump/{station}/                               ro bind mount
+${FORESIGNAL_DATA_DIR}/rasters/tmp/                                  staging (atomic rename)
+${FORESIGNAL_DATA_DIR}/rasters/frames/{productId}/{yyyy}/{mm}/{dd}/{frameId}.fsg
+${FORESIGNAL_DATA_DIR}/rasters/fields/{productId}/{run}/{step}.f32.gz   GEV-format, precompressed
+${FORESIGNAL_DATA_DIR}/rasters/glm/{sat}/{yyyymmdd}.bin                  16 B per flash
+${FORESIGNAL_DATA_DIR}/rasters/satdump/{station}/{passId}/               provenance copies
+${FORESIGNAL_DATA_DIR}/media/{ab}/{sha256}.{ext}
+${FORESIGNAL_DATA_DIR}/cache/netcdf/                                     NetCDF-Java DiskCache (pinned)
+${FORESIGNAL_DATA_DIR}/tmp/  (java.io.tmpdir, jna.tmpdir; exec allowed)
+${FORESIGNAL_INBOX_DIR}/satdump/{station}/                               ro bind mount
 ```
 
 **Quantisation:**
@@ -328,7 +328,7 @@ The RetentionJob runs per (source, kind) pair. Settings shape: `{"default":"7d",
 
 ### 2.6 Memory and concurrency: two profiles
 
-Selected by `ELARO_PROFILE=small|large`, never by `MaxRAMPercentage`. Architecture §14 documents both.
+Selected by `FORESIGNAL_PROFILE=small|large`, never by `MaxRAMPercentage`. Architecture §14 documents both.
 
 | | Small (32 GB host) | Large (64 GB host) |
 |---|---|---|
@@ -348,7 +348,7 @@ All caches are Caffeine with byte weighers. Eviction rates and hit ratios appear
 
 | Concern | Choice | Licence | Notes |
 |---|---|---|---|
-| GRIB2 and NetCDF4/HDF5 | `edu.ucar:netcdf-java-bom:5.11.0` → `grib`, `cdm-core`; runtime `edu.ucar.unidata:libaec-native:1.1.7.0` | BSD-3; libaec BSD-2; jj2000 permissive; JNA under its Apache-2.0 option | Repository `https://artifacts.unidata.ucar.edu/all/` (the old `/repository/unidata-all/` 301-redirects). Declared with Gradle **`exclusiveContent`** for `edu.ucar` and `edu.ucar.unidata`, verification metadata committed, and a build check that fails if any other group resolves from that repository. This is an explicit exception to the Maven-Central rule (Architecture §2 and §26). Fallback: a vendored local file repository. Use `Grib2RecordScanner.readData` (no `.gbx9`/`.ncx4`). Never pass anything except Elaro temp paths to `NetcdfFiles.open` (it accepts URLs: SSRF). No `netcdf4` module. Set `-Djna.tmpdir`/`-Djava.io.tmpdir=/data/tmp`. A startup self-test decodes bundled 5.3, 5.41 and 5.42 fixtures; on failure the affected products are disabled with a health reason. |
+| GRIB2 and NetCDF4/HDF5 | `edu.ucar:netcdf-java-bom:5.11.0` → `grib`, `cdm-core`; runtime `edu.ucar.unidata:libaec-native:1.1.7.0` | BSD-3; libaec BSD-2; jj2000 permissive; JNA under its Apache-2.0 option | Repository `https://artifacts.unidata.ucar.edu/all/` (the old `/repository/unidata-all/` 301-redirects). Declared with Gradle **`exclusiveContent`** for `edu.ucar` and `edu.ucar.unidata`, verification metadata committed, and a build check that fails if any other group resolves from that repository. This is an explicit exception to the Maven-Central rule (Architecture §2 and §26). Fallback: a vendored local file repository. Use `Grib2RecordScanner.readData` (no `.gbx9`/`.ncx4`). Never pass anything except Foresignal temp paths to `NetcdfFiles.open` (it accepts URLs: SSRF). No `netcdf4` module. Set `-Djna.tmpdir`/`-Djava.io.tmpdir=/data/tmp`. A startup self-test decodes bundled 5.3, 5.41 and 5.42 fixtures; on failure the affected products are disabled with a health reason. |
 | CBOR | `tools.jackson.dataformat:jackson-dataformat-cbor` (Boot BOM, 3.x) | Apache-2.0 | SatDump `product.cbor` |
 | GeoTIFF read (043) | JDK `javax.imageio` TIFF plus a small GeoKey parser (tags 33550, 33922, 34735) | JDK | EPSG:4326 and 3857 only. BigTIFF is rejected with a health reason (or routed to optional GDAL). |
 | Image guard | `ImageGuard` reads the header and rejects anything over 12 000 px on a side or 150 MP **before** decoding | — | Applies to every PNG, TIFF and JPEG from the inbox or ingest |
@@ -362,10 +362,10 @@ All caches are Caffeine with byte weighers. Eviction rates and hit ratios appear
 | GDAL (043, optional) | Build-arg `WITH_GDAL=false`; `ProcessBuilder` only | MIT/X | Exotic CRS and BigTIFF only. No AGPL drivers (e.g. Grok JPEG 2000). No JNI. |
 
 **Licence boundaries:**
-- **SatDump (GPL-3.0).** A separate operator-supplied process; Elaro communicates only through files and HTTP.
-  - No SatDump source, headers, structs or projection code in Elaro. Parsers are written from observed output and fixtures. The geostationary maths comes from the public CGMS and PUG specifications.
-  - Elaro images contain no SatDump binaries or SatDump-produced images.
-  - Any Elaro-authored AngelScript hook (deferred, 074) is MIT, lives as a separate file and is never linked.
+- **SatDump (GPL-3.0).** A separate operator-supplied process; Foresignal communicates only through files and HTTP.
+  - No SatDump source, headers, structs or projection code in Foresignal. Parsers are written from observed output and fixtures. The geostationary maths comes from the public CGMS and PUG specifications.
+  - Foresignal images contain no SatDump binaries or SatDump-produced images.
+  - Any Foresignal-authored AngelScript hook (deferred, 074) is MIT, lives as a separate file and is never linked.
 - **AGPL.** Velocity, Shadowbroker and World Monitor are reference only.
 - **MIT.** GEV wind ports carry file-level origin headers and a `THIRD_PARTY_NOTICES.md` entry (Copyright 2026 Bilawal Sidhu).
 - **Notices** must also list jj2000, libaec, JNA, Natural Earth, viridis/cmocean, and ECMWF CC BY 4.0 (when IFS lands).
@@ -434,12 +434,12 @@ All caches are Caffeine with byte weighers. Eviction rates and hit ratios appear
 
 ### 4.5 Georeferencing
 1. **Geostationary xRIT (v1 core, 036).** Covers GOES-19/18 HRIT and Elektro-L, plus GK-2A only with legitimately obtained KMA keys.
-   - `projection_cfg {type: geos, lon0, sweep_x, scalar_x/y, offset_x/y, width, height, altitude}` maps to an Elaro `geos` grid, with the sweep axis respected.
+   - `projection_cfg {type: geos, lon0, sweep_x, scalar_x/y, offset_x/y, width, height, altitude}` maps to an Foresignal `geos` grid, with the sweep axis respected.
    - It renders through the same tile path as GOES ABI.
    - Footprint = the visible disc seen from `lon0`. A coastline fixture test validates the geometry.
    - FY-4 and MSG HRV are rejected with a health reason.
 2. **Polar (043).**
-   - Elaro accepts any GeoTIFF in EPSG:4326 or 3857 that matches `polarGlob` (default `**/*.tif`) in a ready pass folder, and loads it as an RGBA `affine` frame.
+   - Foresignal accepts any GeoTIFF in EPSG:4326 or 3857 that matches `polarGlob` (default `**/*.tif`) in a ready pass folder, and loads it as an RGBA `affine` frame.
    - Footprint: scan each alpha-mask row for its leftmost and rightmost valid pixel, build the polygon, simplify it with JTS, and split it at the antimeridian.
    - The producer is documented for **one** version, from the owner's answer (§1.5):
      - **If 1.2.2:** composite `"project": {"config": {"type": "equirec"}, "img_format": ".tif", "draw_map_overlay": false}`.
@@ -448,7 +448,7 @@ All caches are Caffeine with byte weighers. Eviction rates and hit ratios appear
 3. **Fallback (043).**
    - No overlay tiles are produced.
    - The approximate swath uses Orekit SGP4 from the TLE in `product.cbor` between the first and last timestamps, ± half swath (`corr_swath`, otherwise a per-instrument table: MSU-MR about 2800 km, AVHRR about 2900 km).
-   - Elaro never reimplements SatDump's raytracer.
+   - Foresignal never reimplements SatDump's raytracer.
 4. **Other CRS**: optional GDAL `gdalwarp -t_srs EPSG:4326`, or rejected with a health reason.
 
 ### 4.6 Thumbnails and media
@@ -457,9 +457,9 @@ All caches are Caffeine with byte weighers. Eviction rates and hit ratios appear
 - `.cadu` and basebands are never copied; they stay under SatDump-side retention.
 
 ### 4.7 Deployment
-- **Same host:** compose profile `satdump` with `network_mode: host`, `/dev/bus/usb` passed through, a shared volume that Elaro mounts `:ro`, and the documented CLI line from §4.0.
+- **Same host:** compose profile `satdump` with `network_mode: host`, `/dev/bus/usb` passed through, a shared volume that Foresignal mounts `:ro`, and the documented CLI line from §4.0.
 - **Remote Pi:**
-  - (a) rsync or Syncthing to `${ELARO_INBOX_DIR}`; the 30-s rescan picks it up. This is the recommended path in v1.
+  - (a) rsync or Syncthing to `${FORESIGNAL_INBOX_DIR}`; the 30-s rescan picks it up. This is the recommended path in v1.
   - (b) Push to `POST /v1/ingest/{sourceId}/media` and `/rasters`: 043, ingest key, 25 MB per file, ImageGuard.
 - **Texas targets:**
   - GOES-19 HRIT/EMWIN on 1694.1 MHz: about 1 m dish, LNA, and an LTE filter.
@@ -530,7 +530,7 @@ All caches are Caffeine with byte weighers. Eviction rates and hit ratios appear
 
 ---
 
-## 6. API design (additive to `/v1`; camelCase; ProblemDetail; `x-elaro-scope` on every operation)
+## 6. API design (additive to `/v1`; camelCase; ProblemDetail; `x-foresignal-scope` on every operation)
 
 ### 6.1 Conventions: time, frame keys and caching
 - **Time in JSON.** Every frame object carries:
@@ -552,11 +552,11 @@ All caches are Caffeine with byte weighers. Eviction rates and hit ratios appear
 | URL | Cache-Control |
 |---|---|
 | Content-addressed (`~sha8`, `@v`, pinned run, `complete`) | `{public\|private}, max-age=31536000, immutable`, strong ETag |
-| Anything else (aliases, bare `timeKey`, unversioned style, partial frame) | `{public\|private}, max-age=min(cadence/2, 60s)`, ETag, `checkNotModified` before rendering, `Elaro-Frame-Time` header |
+| Anything else (aliases, bare `timeKey`, unversioned style, partial frame) | `{public\|private}, max-age=min(cadence/2, 60s)`, ETag, `checkNotModified` before rendering, `Foresignal-Frame-Time` header |
 
   - `public` only when `openReads=true` covers the path; otherwise `private`.
   - A stale `sha8` for a reprocessed frame returns 404 `UNKNOWN_FRAME` with a `Link` header to the current key.
-  - Retention-removed frames return 410 `FRAME_EXPIRED`. With `?onExpired=transparent`, the transparent tile is served with `Elaro-Frame-Expired: true`.
+  - Retention-removed frames return 410 `FRAME_EXPIRED`. With `?onExpired=transparent`, the transparent tile is served with `Foresignal-Frame-Expired: true`.
   - PNG is not gzipped; field binaries are precompressed and sent with `Content-Encoding`.
 
 ### 6.2 Catalogue, frames, timeline
@@ -576,12 +576,12 @@ All caches are Caffeine with byte weighers. Eviction rates and hit ratios appear
 | `GET /v1/products/{id}/tiles/{frameKey}/{z}/{x}/{y}[@2x].png?style&run&empty` | read | WebMercatorQuad, 256 px (512 px for `@2x`). Above native maxzoom: 400 `TILE_OUT_OF_RANGE` (clients overzoom). An empty or out-of-bounds tile returns a **shared transparent PNG with one fixed ETag**, cached immutable; `?empty=204` opts into 204. |
 | `GET /v1/products/{id}/tilejson?frameKey&style` | read | TileJSON 3.0.0 with a **concrete content-addressed template** (an alias is resolved when the JSON is generated; the JSON itself has a short max-age), plus `bounds`, `minzoom`, `maxzoom` (native: MRMS 8, GOES C13 7, GFS 4, HRRR 8), `center`, `tileSize: 256`, `scale` variants and attribution. |
 | `GET /v1/products/loop?products=a[,b]\|past&future&bbox\|place&radiusKm&frames≤24&from&to&width≤1024&crs=EPSG:3857&style` | read | Primary mobile and animation path. The server snaps the bbox once and returns `{crs, bounds[w,s,e,n], coordinates[[tl],[tr],[br],[bl]], width, height, frames[{time, timeKey, frameKey, kind, run?, step?, url, bytes, expiresAt}], legendUrl, attribution[], serverTime}`. |
-| `GET /v1/products/{id}/image/{frameKey}.{png\|jpg}?bbox&width&height&crs&style` | read | Up to 2048 px. Returns the `Elaro-Image-Bounds` header. |
+| `GET /v1/products/{id}/image/{frameKey}.{png\|jpg}?bbox&width&height&crs&style` | read | Up to 2048 px. Returns the `Foresignal-Image-Bounds` header. |
 | `GET /v1/styles`, `/v1/styles/{id}` | read | Versioned JSON compiled to 256-entry LUTs: `nws-reflectivity`, `ir-gray`, `ir-enhanced`, `precip-rate`, `mesh`, `temperature`, `wind-speed`, `smoke`, `rgb` (SatDump). Only registered names are accepted (400 `UNKNOWN_STYLE`). |
 | `GET /v1/products/{id}/legend?style&units=metric\|imperial` (JSON) and `.png?width&orientation&theme=dark\|light&units` | read | JSON: `{styleId, styleVersion, type: continuous\|discrete\|categorical, units, unitsLabel, stops[{value, color, label}], ticks[], categories[{code, color, label}], specials[{kind: noCoverage\|noEcho\|noData, color, label}], meaning[{min, max, text}]}`. Example meaning: "≥ 50 dBZ: heavy rain, hail possible". |
 
 **Render queue:**
-- Priority order: newest frame first, then interactive requests, then prefetch (marked with `Elaro-Prefetch: 1` or `?prefetch=1`).
+- Priority order: newest frame first, then interactive requests, then prefetch (marked with `Foresignal-Prefetch: 1` or `?prefetch=1`).
 - Fair queueing per token or tile key (otherwise per IP), single-flight per tile key, and a bounded wait of 1.5 s or less.
 - After that, 503 `RENDER_BUSY` with `Retry-After: 1`.
 - **Warming:** at ingest, the newest frame is rendered for the places AOI at z ≤ `maxZoomForAnimation` (radar 7, IR 6), at 1× and 2×, into the in-memory tile cache. That is a few dozen tiles at 4–8 ms each.
@@ -621,14 +621,14 @@ Flutter hover readout uses a debounced `/v1/sample` (150 ms or more, on tap or l
 
 ### 6.7 Access for map clients
 - **Tile keys** (ship in 037):
-  - `POST /v1/tile-keys {name, prefixes: ["/v1/products/","/v1/media/","/v1/changes/stream"], ttl ≤ 30d}` (agent scope) returns `elk_…` once. `GET` and `DELETE` work like tokens.
+  - `POST /v1/tile-keys {name, prefixes: ["/v1/products/","/v1/media/","/v1/changes/stream"], ttl ≤ 30d}` (agent scope) returns `fsk_…` once. `GET` and `DELETE` work like tokens.
   - Clients use `/v1/k/{key}/products/...`. `TileKeyFilter` validates the key, the prefix and the GET method, then forwards to the canonical path.
   - Also accepted for `/v1/k/{key}/changes/stream`, for browser `EventSource`.
   - The path-segment form keeps the cache key stable for the key's lifetime.
   - Docs: rotate weekly; keys appear in proxy logs, so they are read-only and prefix-limited by design.
 - **CORS:**
-  - `Expose-Headers: Elaro-Frame-Time, Elaro-Image-Bounds, Elaro-Frame-Expired, Retry-After, Link, ETag`
-  - `Allow-Headers: Authorization, If-None-Match, Elaro-Prefetch`
+  - `Expose-Headers: Foresignal-Frame-Time, Foresignal-Image-Bounds, Foresignal-Frame-Expired, Retry-After, Link, ETag`
+  - `Allow-Headers: Authorization, If-None-Match, Foresignal-Prefetch`
   - `Access-Control-Max-Age: 86400`
 - **Compose profile `web`**: Caddy with `tls internal` (local CA) or DNS-01, for HTTP/2/3. Recommended in the LAN quick-start for map clients; plain `:8080` remains for agents and tools. The docs cover installing the local CA on desktop, Android and iOS. The bundled web client is served same-origin behind Caddy, so there are no preflights.
 - **On plain HTTP/1.1:** use `/loop` for animation, and keep one shared SSE connection per web client (shared through a worker).
@@ -655,7 +655,7 @@ Flutter hover readout uses a debounced `/v1/sample` (150 ms or more, on tap or l
 | `list_satellite_passes`, `get_satellite_pass` | 036 | Pass metadata plus a thumbnail ImageContent |
 | `get_map_image` | 045 | ImageContent (≤ 512 px, ≤ 200 KB) **plus a text caption**: products, frame times, legend summary, alert or place shown |
 
-Resources: `elaro://products`, `elaro://places`, `elaro://products/{id}/legend`.
+Resources: `foresignal://products`, `foresignal://places`, `foresignal://products/{id}/legend`.
 
 ### 6.10 Client recipes (frontend guide, 037)
 
@@ -839,7 +839,7 @@ Only "To write" rows move, and the Ready prompts 001–028 keep their numbers. T
 
 | # | Prompt | Scope | Depends on |
 |---|---|---|---|
-| **029** | `029-Raster-Products-Core.md` | • Data: `ProductSpec`/`ProductRegistry`; entities `raster_product`, `raster_grid`, `raster_frame`; `.elg` codec (64-byte header, golden test); `FrameStore` (atomic writes, sha256); `ctx.rasters()`<br>• Records and health: `raster-frame` records (observation per frame, forecast per completed run); frame-age health; product probe<br>• Retention: per-kind retention (if missing from 016); `RasterRetentionStep` (ladder, quota, orphan sweeper with re-emit)<br>• API: `GET /v1/products`, `/frames`, `/frames/latest` with the time and frameKey conventions; `/v1/system` rasters block; AccessPolicy; OpenAPI<br>• Config: memory profiles; UpstreamClient hooks if missing<br>• Tests: synthetic fixture product | 004–008, 011, 012, 016, 017, 019 |
+| **029** | `029-Raster-Products-Core.md` | • Data: `ProductSpec`/`ProductRegistry`; entities `raster_product`, `raster_grid`, `raster_frame`; `.fsg` codec (64-byte header, golden test); `FrameStore` (atomic writes, sha256); `ctx.rasters()`<br>• Records and health: `raster-frame` records (observation per frame, forecast per completed run); frame-age health; product probe<br>• Retention: per-kind retention (if missing from 016); `RasterRetentionStep` (ladder, quota, orphan sweeper with re-emit)<br>• API: `GET /v1/products`, `/frames`, `/frames/latest` with the time and frameKey conventions; `/v1/system` rasters block; AccessPolicy; OpenAPI<br>• Config: memory profiles; UpstreamClient hooks if missing<br>• Tests: synthetic fixture product | 004–008, 011, 012, 016, 017, 019 |
 | **030** | `030-Media-Store-And-Image-Guard.md` | `media` entity, `MediaStore` (content-addressed), `ImageGuard` (pixel cap), `ThumbnailService` (JPEG/PNG), `ctx.media()`, `/v1/media/**`, retention linkage | 029 |
 | **031** | `031-Raster-Tiles-And-Styles.md` | • Grids: `GridDef` latlon, geos (PUG/CGMS), lcc, affine<br>• Rendering: `TileRenderer` (inverse map, nearest/bilinear), `IndexMapCache`; WebMercatorQuad 256 + `@2x` PNG-8; shared transparent empty tile; `TILE_OUT_OF_RANGE`<br>• Styles: versioned style registry, LUTs; legend JSON + PNG (units, theme, specials, meaning)<br>• Endpoints: TileJSON with concrete templates; `/image`; `/loop`<br>• Caching and load: cache policy (§6.1); render queue (priority, fairness, 1.5-s wait, `RENDER_BUSY`); AOI warming<br>• Catalogue and docs: external catalogue entries (GIBS, nowCOAST) with time and zoom metadata; amend Charter (non-goal, FR-55) and Architecture (§1 rule, new §27) | 029, 030, 013 |
 | **032** | `032-Radar-And-Satellite-Rasters.md` | • NetCDF-Java 5.11.0 + libaec (exclusiveContent repository, verification, DiskCache, SSRF guard, tmpdir, self-test, Architecture §2/§26 exception); `RasterDecoder` SPI<br>• `mrms` (refl, precip + flag, MESH; S3 `start-after`; u8 code scheme and sentinel test)<br>• `goes-east-abi` (CMIPC C13 on a `geos` grid)<br>• Fixtures from real samples; Source Catalog fixes (§1.4) | 029–031 |
@@ -907,7 +907,7 @@ In §4, §5 and §6 above, references to "043" (polar), "045" (maps) and "046" (
   - Source-Catalog line 48 ("radar and IR are self-rendered from NOAA open data; GIBS and nowCOAST are external catalogue entries"), plus the §1.4 fixes
   - Executive-Summary line 46
   - Charter line 58 and FR-55
-  - Architecture §2 (stack and the Unidata exception), §3 (packages), §7 (tables), §11 (`retention.kinds`, raster ladders), §13 (`ELARO_INBOX_DIR`, `ELARO_PROFILE`, raster settings), §14 (profiles `satdump` and `web`, memory profiles), §26 (SatDump GPL and GEV MIT rows)
+  - Architecture §2 (stack and the Unidata exception), §3 (packages), §7 (tables), §11 (`retention.kinds`, raster ladders), §13 (`FORESIGNAL_INBOX_DIR`, `FORESIGNAL_PROFILE`, raster settings), §14 (profiles `satdump` and `web`, memory profiles), §26 (SatDump GPL and GEV MIT rows)
 
 ### 10.4 To verify at implementation
 - **Toolchain:**
@@ -955,4 +955,4 @@ In §4, §5 and §6 above, references to "043" (polar), "045" (maps) and "046" (
 | `flutter_map_tile_caching` in docs | Rejected | GPL-3.0 or commercial; conflicts with an MIT client |
 | Proxying nowCOAST/GIBS (GEV `weather.js`) | Rejected | Would break the "no client request causes an upstream fetch" rule; both serve CORS `*` for direct use |
 | RainViewer, Blitzortung, MRMS `NLDN_*`, Synoptic, Meteostat, Himawari/GK-2A/Meteosat, DWD/OPERA, NEXRAD L2, CAMS | Skipped | Licence, coverage or weight (§1.2) |
-| Removing the claim that GFSv17 drops the 0.5°/1° files | Done | No evidence for it; Elaro uses 0.25° only, with configurable templates |
+| Removing the claim that GFSv17 drops the 0.5°/1° files | Done | No evidence for it; Foresignal uses 0.25° only, with configurable templates |

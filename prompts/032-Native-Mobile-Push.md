@@ -1,11 +1,11 @@
 # 032 — Native Mobile Push
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/032-CR-Native-Mobile-Push.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -27,11 +27,11 @@ Verified 2026-10:
 
 ## Objective
 
-Deliver alerts to the native Flutter apps on iOS (APNs) and Android (FCM) as two new `PushTransport`s behind the 031 fan-out, with device registration at `/v1/push/devices`. Pushes are **visible alerts** whose payload carries only ids, severity and minimal text. A Notification Service Extension (iOS) or the app's message handler (Android) fetches the details from Elaro over the user's own network path. Each operator supplies their own APNs key and Firebase service account; a hosted relay is out of scope.
+Deliver alerts to the native Flutter apps on iOS (APNs) and Android (FCM) as two new `PushTransport`s behind the 031 fan-out, with device registration at `/v1/push/devices`. Pushes are **visible alerts** whose payload carries only ids, severity and minimal text. A Notification Service Extension (iOS) or the app's message handler (Android) fetches the details from Foresignal over the user's own network path. Each operator supplies their own APNs key and Firebase service account; a hosted relay is out of scope.
 
 ## Tasks
 
-### 1. Provider configuration (`ai.elaro.notify.push.provider`, admin only)
+### 1. Provider configuration (`ai.foresignal.notify.push.provider`, admin only)
 
 - `PushProviderEntity` (`push_provider`): `id` slug PK, `type` (`apns|fcm`), `app_ids` jsonb (bundle ids / Android package names served by this key), `config` jsonb, `secret_ciphertext`/`secret_nonce` (`CredentialCipher`), `enabled`, `last_test_at`, `last_error`, `updated_at`.
   - APNs config: `teamId` (10 chars), `keyId` (10 chars), `keyEnvironment` (`sandbox|production|both`), `timeSensitive` (bool, default false: set only when the app has the Time Sensitive capability). Secret: the `.p8` PEM (validate it parses as an EC P-256 PKCS#8 key).
@@ -53,9 +53,9 @@ Deliver alerts to the native Flutter apps on iOS (APNs) and Android (FCM) as two
 - `ApnsJwtCache`: ES256 JWT (`{"alg":"ES256","kid":keyId}` / `{"iss":teamId,"iat":now}`), DER → raw R‖S, regenerated after 40 min; on `403 ExpiredProviderToken` regenerate once and retry; never regenerate more often than every 20 min otherwise.
 - Request `POST /3/device/{token}` with headers `authorization: bearer <jwt>`, `apns-topic: <appId>`, `apns-push-type: alert`, `apns-priority: 10` (5 under quiet-hours downgrade), `apns-expiration` (now + TTL: alert 24 h, briefing 12 h, system 1 h), `apns-collapse-id` (≤ 64 bytes: `a-` + first 40 base64url chars of the 031 Topic hash), `apns-id` (the `push_dispatch` id as UUID).
 - Body (≤ 4096 bytes, enforced by the 031 budget helper):
-  `{"aps":{"alert":{"title":T,"body":B},"sound":"default","mutable-content":1,"interruption-level":L,"thread-id":"elaro-<ruleId|event>","category":"ELARO_<EVENT>"},"e":{"v":1,"id":<notificationId>,"a":<alertId>,"s":"<severity>","ev":"<event>","l":"<links.app>"}}`
+  `{"aps":{"alert":{"title":T,"body":B},"sound":"default","mutable-content":1,"interruption-level":L,"thread-id":"foresignal-<ruleId|event>","category":"FORESIGNAL_<EVENT>"},"e":{"v":1,"id":<notificationId>,"a":<alertId>,"s":"<severity>","ev":"<event>","l":"<links.app>"}}`
   - `interruption-level`: info `passive`, warning `active`, critical `time-sensitive` when the provider sets `timeSensitive`, else `active`. Never `critical` (needs an Apple entitlement). Quiet-hours downgrade → `passive`, no `sound`.
-  - Text by `content_level`: `minimal` → title "Elaro", body "<Severity> alert" / "Briefing ready" / "System notice"; `short` (operator opt-in per device) → title "Elaro · <severity>", body = `shortTitle` (≤ 40 chars). Full titles and bodies never leave the server through Apple.
+  - Text by `content_level`: `minimal` → title "Foresignal", body "<Severity> alert" / "Briefing ready" / "System notice"; `short` (operator opt-in per device) → title "Foresignal · <severity>", body = `shortTitle` (≤ 40 chars). Full titles and bodies never leave the server through Apple.
   - **No data-only tickles:** never send `apns-push-type: background` / `content-available` for alerts; iOS throttles them and drops them for force-quit apps.
 - Responses: 200 → sent; 410 `Unregistered` or 400 `BadDeviceToken`/`DeviceTokenNotForTopic` → gone (delete device); 413 → failed; 429 `TooManyRequests` and 5xx → retry with backoff; 403 `InvalidProviderToken`/`TooManyProviderTokenUpdates` → provider error: mark `push_provider.last_error`, raise a `system` notification (never routed back to this channel), retry later.
 
@@ -68,14 +68,14 @@ Deliver alerts to the native Flutter apps on iOS (APNs) and Android (FCM) as two
 ### 5. Fan-out integration
 
 - `NativeDeviceTargetSource` (031 SPI) returns active devices whose filters match; `NativeDeviceTarget(deviceId, transport, …)`; both transports register as `PushTransport` beans. Per-target state goes in 031's `push_dispatch`; outcomes update the device row.
-- `PushMessage` gains nullable `badge` (filled by 033) and `category`. Deep link `l` comes from 023 `clientLinks.app` (default custom scheme `elaro://alert/{id}`, URL-encoded substitution); verified Universal/App Links are optional and only work for operators who build their own app.
+- `PushMessage` gains nullable `badge` (filled by 033) and `category`. Deep link `l` comes from 023 `clientLinks.app` (default custom scheme `foresignal://alert/{id}`, URL-encoded substitution); verified Universal/App Links are optional and only work for operators who build their own app.
 
 ### 6. Spec, Postman, docs
 
-- `docs/OpenAPI.json` (tag `Push`): `listPushProviders`/`putPushProvider`/`deletePushProvider`/`testPushProvider` (`x-elaro-scope: admin`); `registerPushDevice`, `listPushDevices`, `updatePushDevice`, `deletePushDevice`, `testPushDevice` (`read`); schemas `PushProvider`, `PushProviderInput`, `PushDevice`, `PushDeviceInput`, `NativePushPayload`; codes `PUSH_PROVIDER_NOT_CONFIGURED`, `PUSH_LIMIT_REACHED`. `AccessPolicy` rules (`/v1/push/providers/**` admin before `/v1/push/devices/**` read). BODIES examples for every write; regenerate Postman.
+- `docs/OpenAPI.json` (tag `Push`): `listPushProviders`/`putPushProvider`/`deletePushProvider`/`testPushProvider` (`x-foresignal-scope: admin`); `registerPushDevice`, `listPushDevices`, `updatePushDevice`, `deletePushDevice`, `testPushDevice` (`read`); schemas `PushProvider`, `PushProviderInput`, `PushDevice`, `PushDeviceInput`, `NativePushPayload`; codes `PUSH_PROVIDER_NOT_CONFIGURED`, `PUSH_LIMIT_REACHED`. `AccessPolicy` rules (`/v1/push/providers/**` admin before `/v1/push/devices/**` read). BODIES examples for every write; regenerate Postman.
 - `docs/Architecture.md` §24 "Native push", Charter FR-35/FR-53 updated.
 - `docs/Operator-Guide.md` "Native push": creating an environment-specific APNs key, the Firebase service account, configuring providers, `contentLevel` privacy trade-off, NSE reachability (LAN, VPN or Tailscale) and the fallback text.
-- `docs/Client-Guide.md` (create if absent) "Native push for the Flutter app": APNs registration and environment; NSE (Swift) that reads `e.id`, fetches `GET /v1/notifications/{id}` (033; `/v1/alerts/{id}` until then) with the device token from the Keychain under a 5 s budget and rewrites title/body, else keeps the fallback; `ELARO_*` categories (actions arrive in 033); Android channels per severity and the HIGH-means-visible rule; `elaro://` deep links; Live Activities stay on the client roadmap.
+- `docs/Client-Guide.md` (create if absent) "Native push for the Flutter app": APNs registration and environment; NSE (Swift) that reads `e.id`, fetches `GET /v1/notifications/{id}` (033; `/v1/alerts/{id}` until then) with the device token from the Keychain under a 5 s budget and rewrites title/body, else keeps the fallback; `FORESIGNAL_*` categories (actions arrive in 033); Android channels per severity and the HIGH-means-visible rule; `foresignal://` deep links; Live Activities stay on the client roadmap.
 
 ## Tests to write (do not run)
 

@@ -1,11 +1,11 @@
 # 002 — Persistence Model
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/002-CR-Persistence-Model.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`.
 - **Previous Completion Report:** read `completion-reports/001-CR-*.md` and follow its "Notes for the next prompt".
 
@@ -20,7 +20,7 @@ Define every table as a JPA entity so Hibernate creates the full schema. Add the
 
 ## Tasks
 
-### 1. Entities (package `ai.elaro.store`, sub-packages allowed)
+### 1. Entities (package `ai.foresignal.store`, sub-packages allowed)
 
 Implement exactly the tables in Architecture §7.1, with column names in snake_case as listed.
 
@@ -42,7 +42,7 @@ Implement exactly the tables in Architecture §7.1, with column names in snake_c
 - All timestamps are `Instant` mapped to `timestamptz`.
 - **JSON mapping:** use `@JdbcTypeCode(SqlTypes.JSON)` for jsonb columns with plain Java types (`Map<String,Object>`, `List<…>`, small records). Spring Boot 4 uses **Jackson 3**. Make sure Hibernate's JSON `FormatMapper` works with it. If Hibernate cannot find a compatible mapper on its own, register a custom `FormatMapper` backed by Boot's `JsonMapper` via a `HibernatePropertiesCustomizer` (`hibernate.type.json_format_mapper`). Record what you did.
 
-### 2. SchemaBootstrap (`ai.elaro.config.SchemaBootstrap`)
+### 2. SchemaBootstrap (`ai.foresignal.config.SchemaBootstrap`)
 
 **Phase 1 — before the `EntityManagerFactory` initializes:**
 
@@ -65,7 +65,7 @@ Spring Data JPA repositories for each entity, with only obviously needed finders
 - `SourceUsageRepository`: sum of requests/bytes/errors/refused per source within `[from, to)`.
 - `RecordHeadRepository`: count by kind.
 
-### 4. AppSettingService (`ai.elaro.settings`)
+### 4. AppSettingService (`ai.foresignal.settings`)
 
 - Typed access: `<T> Optional<T> get(String key, Class<T> type)`, `<T> T getOrDefault(String key, Class<T> type, Supplier<T> def)` and `void put(String key, Object value)`, serialized via Jackson to jsonb.
 - A small in-memory cache invalidated on `put`.
@@ -73,7 +73,7 @@ Spring Data JPA repositories for each entity, with only obviously needed finders
 - `SettingKeys` constants: `retention`, `cors`, `trigger.cursor`, `stream.limits`, `install.id`.
 - Settings value records: `RetentionSettings(Duration default, Duration alerts, Duration usage, Map<String,Duration> sources)` with defaults 7d/90d/30d/empty; `CorsSettings(List<String> readOrigins, List<String> writeOrigins)` with default `["*"]` and `[]`.
 
-### 5. Durations (`ai.elaro.settings.Durations`)
+### 5. Durations (`ai.foresignal.settings.Durations`)
 
 - `parse(String)` accepts ISO-8601 (`PT15M`, `P7D`) and shorthand (`30s`, `15m`, `12h`, `7d`, also `1w`). It rejects negatives, zero where inappropriate (expose `parsePositive`) and garbage, throwing `IllegalArgumentException` with a clear message.
 - `format(Duration)` returns the shortest shorthand that is exact (e.g. `7d`, `90m`, `45s`).
@@ -84,7 +84,7 @@ Spring Data JPA repositories for each entity, with only obviously needed finders
 `src/test/resources/application-test.yml` currently sets `ddl-auto: create-drop`. All integration tests share **one** static PostGIS container, and Spring's test-context cache can hold several application contexts at once. When one context closes, `create-drop` would drop the schema, including the GiST indexes from `SchemaBootstrap`, underneath the contexts still using it, causing intermittent failures in prompt 040.
 
 - Change the test profile to `ddl-auto: update`, the same as development.
-- Add `ai.elaro.test.DatabaseCleaner`: a test-scoped bean or JUnit extension that runs `TRUNCATE <every Elaro table> RESTART IDENTITY CASCADE` and `ALTER SEQUENCE record_seq RESTART WITH 1`. Discover the tables from `information_schema.tables` in the public schema, excluding PostGIS's `spatial_ref_sys`.
+- Add `ai.foresignal.test.DatabaseCleaner`: a test-scoped bean or JUnit extension that runs `TRUNCATE <every Foresignal table> RESTART IDENTITY CASCADE` and `ALTER SEQUENCE record_seq RESTART WITH 1`. Discover the tables from `information_schema.tables` in the public schema, excluding PostGIS's `spatial_ref_sys`.
 - Make cleaning the default for `@IntegrationTest` classes (e.g. `@BeforeEach` via an extension registered by the annotation), so every test starts from empty tables while the schema and indexes persist.
 - Document the convention in the `IntegrationTest` Javadoc.
 

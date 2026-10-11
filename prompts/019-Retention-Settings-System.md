@@ -1,11 +1,11 @@
 # 019 — Retention Settings System
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/019-CR-Retention-Settings-System.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -28,9 +28,9 @@ Finish the operator surface: tier-aware retention that drops whole track partiti
 
 ## Tasks
 
-### 1. Retention settings and window resolution (`ai.elaro.retention`)
+### 1. Retention settings and window resolution (`ai.foresignal.retention`)
 
-- Extend `ai.elaro.settings.RetentionSettings`: `default` (7d), `trackWindow` (3d), `provenance` (30d), `alerts` (90d), `usage` (30d), `notifications` (90d), `briefings` (180d), `ask` (90d), `kinds` (map kind → duration), `sources` (map id → duration). Keep the shorthand serialisation.
+- Extend `ai.foresignal.settings.RetentionSettings`: `default` (7d), `trackWindow` (3d), `provenance` (30d), `alerts` (90d), `usage` (30d), `notifications` (90d), `briefings` (180d), `ask` (90d), `kinds` (map kind → duration), `sources` (map id → duration). Keep the shorthand serialisation.
 - `getRetention` / `updateRetention` (PUT replaces the whole object). Validation, all errors collected: every duration ≥ 1h; unknown source ids and unknown kinds listed in one 400; a `sources` entry for a TRACK source, or a `kinds` entry for a kind only TRACK sources emit, → `400 RETENTION_TIER_FIXED`.
 - **One store for per-source overrides:** `retention.sources` is a view over `source_settings.retention` (004). PUT writes those rows in the same transaction; GET reads them. `SourceService.effectiveRetention(id)` delegates to `RetentionResolver`.
 - **`RetentionResolver.window(source, kind)`:** TRACK → `trackWindow` (always). STANDARD, in order: (1) `retention.kinds.{kind}`, (2) the per-source override, (3) descriptor `kindRetention[kind]`, (4) descriptor `defaultRetention`, (5) `retention.default`.
@@ -40,7 +40,7 @@ Finish the operator surface: tier-aware retention that drops whole track partiti
 
 Hourly `@Scheduled`, initial delay 5 min, disabled in the test profile; `runRetention` (POST) runs it synchronously. A second run while one is active → `409 ALREADY_RUNNING`. Structure it as ordered `RetentionStep` beans so later prompts add steps (027 embeddings, 029 briefings, 028 Ask threads, 023 audit).
 
-- **Cutoffs:** `cutoffSeq(t)` from `seq_clock` (Core §8). **Consumer clamp:** clamp every cutoff to `min(consumer cursors) + 1`. Consumers register through a `RetentionConsumer` SPI (`name()`, `cursorSeq()`); register the trigger cursor (`trigger.cursor`) now; 027 adds the embedding cursor. If a cursor is older than `now − 2 × window`, release the clamp for that run, increment `elaro.retention.consumer_lag` and publish a `system` notification (018).
+- **Cutoffs:** `cutoffSeq(t)` from `seq_clock` (Core §8). **Consumer clamp:** clamp every cutoff to `min(consumer cursors) + 1`. Consumers register through a `RetentionConsumer` SPI (`name()`, `cursorSeq()`); register the trigger cursor (`trigger.cursor`) now; 027 adds the embedding cursor. If a cursor is older than `now − 2 × window`, release the clamp for that run, increment `foresignal.retention.consumer_lag` and publish a `system` notification (018).
 1. **TRACK:** `PartitionManager.drop` for every `rv_t_*` leaf whose upper bound ≤ `cutoffSeq(now − trackWindow)`. `floorSeq(track source)` = lower bound of the oldest remaining track leaf (or the next leaf's start when none remain).
 2. **STANDARD:** per (source, kind) with its own window, chunked deletes, one transaction per chunk of 10,000, with the outer seq bound:
    ```sql
@@ -58,15 +58,15 @@ Hourly `@Scheduled`, initial delay 5 min, disabled in the test profile; `runRete
   - **Purge horizon (014's `410 RESYNC_REQUIRED`):** `purgeSeq(source)` advances only when a HeadPurge removes ≥ 1 head of the source: record `ChangeBus.lastPublishedSeq()` at completion (use the command's completion future; add one to `HeadPurge` if 009 did not). A head purge emits no change event, so any client whose cursor is below it may still hold a deleted head. Deleting old versions does **not** advance `purgeSeq` (a cursor above the floor missed nothing; `lowestRetainedSeq` covers it); correct 014's Javadoc if it says otherwise, or every hourly run would force all clients to resync.
   - `window(sourceId)` delegates to `RetentionResolver`.
 - **Concurrency (document in the package Javadoc):** only the writer inserts versions and writes heads and live rows (I1); head purges run on the writer. Retention deletes only versions below a cutoff taken from the past, and drops leaves through `PartitionManager`'s lock. Observed entities keep a version newer than window/4 via the retention keyframe (I6), so their heads are never purge candidates. A purged entity that reappears starts again at version 1 with reason `FIRST`, and no older versions survive (I7). FR-17 as amended: current state is kept while current.
-- `RetentionRunResult` gains `partitionsDropped`, `headsPurged`, `fetchLogDeleted`, `seqClockDeleted`, `notificationsDeleted`, `skippedSources`, `consumerClamp` (`{active, consumer, cursorSeq}`), `perSource` (versions deleted, floorSeq). Metrics `elaro.retention.deleted{table}`, `elaro.retention.duration`; one summary log line per run.
+- `RetentionRunResult` gains `partitionsDropped`, `headsPurged`, `fetchLogDeleted`, `seqClockDeleted`, `notificationsDeleted`, `skippedSources`, `consumerClamp` (`{active, consumer, cursorSeq}`), `perSource` (versions deleted, floorSeq). Metrics `foresignal.retention.deleted{table}`, `foresignal.retention.duration`; one summary log line per run.
 
-### 3. CORS and export/import (`ai.elaro.settings`)
+### 3. CORS and export/import (`ai.foresignal.settings`)
 
 - `getCors` / `updateCors` via `CorsSettingsService` (003).
-- `exportSettings` → `SettingsBundle`: source settings (no credentials), retention (with `kinds`), CORS, notification settings (018), watchdog, trigger rules (full, with ids), channels (no secrets), `exportedAt`, `elaroVersion` (from the `ElaroVersion` bean). 023 adds `security` and `server`.
+- `exportSettings` → `SettingsBundle`: source settings (no credentials), retention (with `kinds`), CORS, notification settings (018), watchdog, trigger rules (full, with ids), channels (no secrets), `exportedAt`, `foresignalVersion` (from the `ForesignalVersion` bean). 023 adds `security` and `server`.
 - `importSettings` (PUT): one transaction; known sources applied, unknown listed in `sourcesUnknown`; an enable whose required credentials are missing is applied as `enabled=false` with a warning; triggers and channels upserted by id (channels without secrets keep existing secrets); retention, CORS, notifications and watchdog applied when present. Any validation error → 400 with all errors and nothing applied.
 
-### 4. System info (`ai.elaro.system`)
+### 4. System info (`ai.foresignal.system`)
 
 - `getSystem` stays `open`, but **anonymous callers get only** `version`, `apiVersion` (the spec's `info.version`), `startedAt`, `uptimeSeconds`, `status` (`ok|degraded|down`), `features`, `limits`. Callers presenting any valid token get the full document (023 sets the minimum to `read`). State this in the operation description.
 - Full document adds to the existing fields: `database` (status, `pg_database_size`, `postgis_lib_version()`), `records` (`current` from `record_head` non-tombstoned, `versions` estimated from `pg_class.reltuples`, `lastSeq`), sources, scheduler, streams, notifications (018 counts), and:
@@ -74,21 +74,21 @@ Hourly `@Scheduled`, initial delay 5 min, disabled in the test profile; `runRete
   - **`catchUp`**: `triggerLagSeq` (lastPublishedSeq − trigger cursor), `ingestQueueDepth`, `catchingUp` (lag > 10,000 seq or queue > 80% for > 1 min).
   - **`features`**: map of booleans contributed by `FeatureContributor` beans (`notifications`, `retention`, later `llm`, `search`, `push`, `mcp`, `weather`…). **`limits`**: page max 5,000, SSE client buffer, `liveMaxEntities`, ingest max bytes and records, tile feature cap.
   - **`warnings[]`** (`{code, message}`): `OPEN_READS_EXPOSED` when `openReads=true` and `publicBaseUrl`'s host or the advertised bind is not loopback, RFC 1918, CGNAT 100.64/10 (tailnets), link-local, ULA or `.local` (reuse `LocalAddresses` from 004); `OPEN_READS_ALL_INTERFACES` (info) when the bind is `0.0.0.0`; `HISTORY_RATE_HIGH` when versions/min > 20,000; `PARTITION_HEADROOM_LOW`; `RETENTION_CONSUMER_LAG`.
-  - Advertised bind: compose passes `ELARO_BIND` into the container; add bootstrap property `elaro.advertised-bind` (`${ELARO_BIND:127.0.0.1}`).
+  - Advertised bind: compose passes `FORESIGNAL_BIND` into the container; add bootstrap property `foresignal.advertised-bind` (`${FORESIGNAL_BIND:127.0.0.1}`).
 - `rotateAdminToken` (admin) returns `AdminTokenResponse` exactly once; the old token stops working immediately.
 
 ### 5. Probes, gauges, watchdog, logging
 
 - **Health groups:** `management.endpoint.health.probes.enabled=true`; `liveness` = `livenessState` only (never the database, to avoid restart loops); `readiness` = `readinessState`, `db`, `ingestWriter` (lock held when exclusive, state loaded, clock guard not holding), `partitions` (headroom ≥ 1 block per tier). Add a separate `catchup` group with a `CatchUpHealthIndicator` that reports `OUT_OF_SERVICE` while `catchingUp`; it is **not** part of readiness. Details stay hidden (`show-details: never`).
-- **Compose healthcheck for `elaro`:** install `curl` in the runtime image (`apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*`) and add `test: ["CMD","curl","-fsS","http://localhost:8080/actuator/health/readiness"]`, interval 15s, start_period 120s.
-- **Gauges** (refreshed every 30 s from cached queries, not per scrape): `elaro.source.data_age_seconds{source}` (now − `last_data_at`), `elaro.alerts.active{severity}` (unresolved alerts, 017 lifecycle), `elaro.records.current`, `elaro.sse.clients{stream}`, `elaro.history.rows{tier}`.
-- **Watchdog** (`app_setting['watchdog']`, `GET/PUT /v1/settings/watchdog`): `heartbeatUrl`, optional `failUrl`, `interval` (default 60s, min 30s), `method` (GET|POST). Ping `heartbeatUrl` each interval only while readiness is UP (and the canary passes when enabled); otherwise ping `failUrl` if set. Works with Healthchecks.io and Uptime Kuma push monitors. 5 s timeout, no redirects, URL redacted in logs; 035 retrofits the outbound URL policy. **Opt-in canary** (`canary.enabled`, `canary.interval` default 1h): submit one synthetic record for a built-in PUSH source `system-canary` (STANDARD, `defaultRetention` 1d, hidden from tiles), wait ≤ 30 s for its change on `ChangeBus`, record `elaro.canary.latency`, and publish a `system` notification on failure.
-- **Logging:** bootstrap env `ELARO_LOG_FORMAT` (`ecs` default in the `docker` profile, `text` otherwise) maps to `logging.structured.format.console`. Add Micrometer Tracing with the OpenTelemetry bridge and **no exporter** (export off by default) so `traceId`/`spanId` appear in the MDC and ECS logs next to the correlation id. Verify the Boot 4.1 property names and versions on Maven Central.
+- **Compose healthcheck for `foresignal`:** install `curl` in the runtime image (`apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*`) and add `test: ["CMD","curl","-fsS","http://localhost:8080/actuator/health/readiness"]`, interval 15s, start_period 120s.
+- **Gauges** (refreshed every 30 s from cached queries, not per scrape): `foresignal.source.data_age_seconds{source}` (now − `last_data_at`), `foresignal.alerts.active{severity}` (unresolved alerts, 017 lifecycle), `foresignal.records.current`, `foresignal.sse.clients{stream}`, `foresignal.history.rows{tier}`.
+- **Watchdog** (`app_setting['watchdog']`, `GET/PUT /v1/settings/watchdog`): `heartbeatUrl`, optional `failUrl`, `interval` (default 60s, min 30s), `method` (GET|POST). Ping `heartbeatUrl` each interval only while readiness is UP (and the canary passes when enabled); otherwise ping `failUrl` if set. Works with Healthchecks.io and Uptime Kuma push monitors. 5 s timeout, no redirects, URL redacted in logs; 035 retrofits the outbound URL policy. **Opt-in canary** (`canary.enabled`, `canary.interval` default 1h): submit one synthetic record for a built-in PUSH source `system-canary` (STANDARD, `defaultRetention` 1d, hidden from tiles), wait ≤ 30 s for its change on `ChangeBus`, record `foresignal.canary.latency`, and publish a `system` notification on failure.
+- **Logging:** bootstrap env `FORESIGNAL_LOG_FORMAT` (`ecs` default in the `docker` profile, `text` otherwise) maps to `logging.structured.format.console`. Add Micrometer Tracing with the OpenTelemetry bridge and **no exporter** (export off by default) so `traceId`/`spanId` appear in the MDC and ECS logs next to the correlation id. Verify the Boot 4.1 property names and versions on Maven Central.
 - Review metric names for consistency and list them all in the CR.
 
 ### 6. Spec, Postman, docs
 
-- `docs/OpenAPI.json`: `RetentionSettings` (+`trackWindow`, `provenance`, `notifications`, `kinds`), `RetentionRunResult` additions, `SystemInfo` (+`apiVersion`, `status`, `features`, `limits`, `history`, `catchUp`, `warnings`; describe the anonymous subset), new `WatchdogSettings` with `getWatchdogSettings`/`updateWatchdogSettings` (`"x-elaro-scope": "admin"`, covered by `/v1/settings/**`), `SettingsBundle` (+`notifications`, `watchdog`), error codes `RETENTION_TIER_FIXED`, `ALREADY_RUNNING`. Regenerate Postman; add BODIES for `updateRetention` (with `kinds`) and `updateWatchdogSettings`.
+- `docs/OpenAPI.json`: `RetentionSettings` (+`trackWindow`, `provenance`, `notifications`, `kinds`), `RetentionRunResult` additions, `SystemInfo` (+`apiVersion`, `status`, `features`, `limits`, `history`, `catchUp`, `warnings`; describe the anonymous subset), new `WatchdogSettings` with `getWatchdogSettings`/`updateWatchdogSettings` (`"x-foresignal-scope": "admin"`, covered by `/v1/settings/**`), `SettingsBundle` (+`notifications`, `watchdog`), error codes `RETENTION_TIER_FIXED`, `ALREADY_RUNNING`. Regenerate Postman; add BODIES for `updateRetention` (with `kinds`) and `updateWatchdogSettings`.
 - `docs/Operator-Guide.md`: retention (tiers, windows, kind resolution order, FR-17 amendment), probes and the compose healthcheck, watchdog and canary, `/v1/system` warnings, log formats.
 
 ## Tests to write (do not run)

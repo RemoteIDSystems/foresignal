@@ -1,11 +1,11 @@
 # 111 — Exports Archive And Offline Packs
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/111-CR-Exports-Archive-And-Offline-Packs.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -20,15 +20,15 @@
 
 ## Objective
 
-Give the operator durable, portable copies of Elaro's data: async bulk exports (GeoParquet 1.1, GeoPackage, FlatGeobuf, GPX) with a licence sidecar and a signed SHA-256 manifest; `atSeq` snapshots and legal-style holds that survive retention; a cold archive that writes data out before retention deletes it; and PMTiles v3 offline packs for phones and field laptops.
+Give the operator durable, portable copies of Foresignal's data: async bulk exports (GeoParquet 1.1, GeoPackage, FlatGeobuf, GPX) with a licence sidecar and a signed SHA-256 manifest; `atSeq` snapshots and legal-style holds that survive retention; a cold archive that writes data out before retention deletes it; and PMTiles v3 offline packs for phones and field laptops.
 
 ## Tasks
 
-### 1. Export jobs (`ai.elaro.export`)
+### 1. Export jobs (`ai.foresignal.export`)
 
 - **Entity `export_job`:** `id` (ULID), `kind` (`EXPORT | SNAPSHOT | PACK`), `format`, `spec` jsonb, `status` (`QUEUED | RUNNING | DONE | FAILED | CANCELLED | EXPIRED`), `principal` (token id), `row_count`, `bytes`, `dir`, `manifest_sha256`, `licence_summary` jsonb, `watermark_seq`, `personal_use` bool, `created_at`, `started_at`, `finished_at`, `expires_at` (default 7 d, `exports.ttl`), `error`, `progress` (0–100).
 - **Spec:** `sources[]`, `kinds[]`, `bbox` or `placeId` (036), `from`/`to` with `timeField` (014 semantics), `mode` (`current | history | asOf | atSeq`), `asOf`/`atSeq`, `fields` (payload allowlist), `flatten` (promote `fieldSpecs` keys to columns), `includePrivate` (admin only), `personalUse`.
-- **Worker:** bounded executor (`exports.maxConcurrent`, default 1) on virtual threads. Stream rows with keyset reads (current: `record_head ⋈ record_live`; history: `record_version` by seq ranges in pages of 10,000; asOf/atSeq: task 3). Never load a full result into memory. Write to `${ELARO_DATA_DIR}/exports/{id}/tmp`, fsync, atomic rename. Limits: `exports.maxRows` (5,000,000), `exports.diskQuotaGb` (20; refuse with `409 EXPORT_QUOTA` when exceeded). Cancellation is checked between pages.
+- **Worker:** bounded executor (`exports.maxConcurrent`, default 1) on virtual threads. Stream rows with keyset reads (current: `record_head ⋈ record_live`; history: `record_version` by seq ranges in pages of 10,000; asOf/atSeq: task 3). Never load a full result into memory. Write to `${FORESIGNAL_DATA_DIR}/exports/{id}/tmp`, fsync, atomic rename. Limits: `exports.maxRows` (5,000,000), `exports.diskQuotaGb` (20; refuse with `409 EXPORT_QUOTA` when exceeded). Cancellation is checked between pages.
 - **Guards:** `LicenceEgressGuard.allows(EXPORT, …)` per source from 109. FORBIDDEN and LOCAL_ONLY records are excluded unless `personalUse=true`; then the sidecar states "personal use only — do not redistribute" and lists those sources. Private sources (039) need admin plus `includePrivate=true`.
 - **API:**
   - `POST /v1/exports` (agent, `alwaysAuthenticated` from 023) → 202 with the job.
@@ -58,15 +58,15 @@ Give the operator durable, portable copies of Elaro's data: async bulk exports (
 - **Snapshot** (`POST /v1/snapshots`, admin): state at seq `S` (default the current `watermarkSeq`; or `asOf` translated with `S(T)`).
   - Rebuild from `record_version` with the Core-Data-Model §12 query (`DISTINCT ON (source_id, external_id) … seq BETWEEN L AND S ORDER BY … seq DESC`, validity on the transaction axis, tombstones dropped), per tier.
   - Below a source's `floorSeq`, read from `record_version_held` (below) or fail with `400 SNAPSHOT_BEYOND_RETENTION`.
-  - Output GeoParquet plus manifest plus JWS under `${ELARO_DATA_DIR}/snapshots/{id}/`. Snapshots don't expire unless `expiresAt` is set.
+  - Output GeoParquet plus manifest plus JWS under `${FORESIGNAL_DATA_DIR}/snapshots/{id}/`. Snapshots don't expire unless `expiresAt` is set.
 - **Holds** (`POST/GET/DELETE /v1/holds`, admin): `{name, reason, sources[], kinds[], from, to (time or seq; to may be open), expiresAt?}`. Limit `holds.max` (20).
 - **Hold mechanism: archive-then-delete.** Don't block partition drops. A `HoldCopyStep` (`RetentionStep`, ordered before every delete or drop) copies rows that are about to be removed and fall inside an active hold into **`record_version_held`** (same columns plus `hold_id`, PK `(hold_id, seq)`, plain table with GiST and `(source_id, external_id, seq)` indexes) with `INSERT … ON CONFLICT DO NOTHING`. If the copy fails, retention skips that source this run, the same failure rule as Core-Data-Model §13 step 2. Leaves stay droppable and I7/`floorSeq` are unchanged.
 - `GET /v1/holds/{id}/versions` (admin, keyset). `/v1/system` reports held rows and bytes. Deleting a hold deletes its copies.
 
 ### 4. Cold archive
 
-- **Settings `archive`:** `enabled` (false), `sources` (allowlist; empty = all non-private STANDARD and TRACK sources), `root` (`${ELARO_DATA_DIR}/archive`), `target` (`local | s3`), `s3{endpoint, bucket, prefix, region, pathStyle}` plus secrets `accessKey`/`secretKey` (encrypted), `keepLocal` (true).
-- **`ArchiveStep`** (`RetentionStep`, after `HoldCopyStep`, before the deletes in Core-Data-Model §13 steps 1–2): for each TRACK leaf about to be dropped and each STANDARD chunk about to be deleted, write the rows as GeoParquet (task 2 writer) to the hive layout `record_version/tier={std|trk}/source_id={id}/date={yyyy-mm-dd of ingested_at UTC}/part-{fromSeq}-{toSeq}.parquet` plus a `_manifest.json` (rows, sha256, licence summary). Verify by reading back the row count **before** the delete or drop proceeds. On failure, skip deletion for that source or leaf this run and alarm `elaro.archive.failed`.
+- **Settings `archive`:** `enabled` (false), `sources` (allowlist; empty = all non-private STANDARD and TRACK sources), `root` (`${FORESIGNAL_DATA_DIR}/archive`), `target` (`local | s3`), `s3{endpoint, bucket, prefix, region, pathStyle}` plus secrets `accessKey`/`secretKey` (encrypted), `keepLocal` (true).
+- **`ArchiveStep`** (`RetentionStep`, after `HoldCopyStep`, before the deletes in Core-Data-Model §13 steps 1–2): for each TRACK leaf about to be dropped and each STANDARD chunk about to be deleted, write the rows as GeoParquet (task 2 writer) to the hive layout `record_version/tier={std|trk}/source_id={id}/date={yyyy-mm-dd of ingested_at UTC}/part-{fromSeq}-{toSeq}.parquet` plus a `_manifest.json` (rows, sha256, licence summary). Verify by reading back the row count **before** the delete or drop proceeds. On failure, skip deletion for that source or leaf this run and alarm `foresignal.archive.failed`.
 - **S3 upload** (async after local write): a minimal SigV4 client on `java.net.http` (`PutObject`; multipart above 64 MB), with the endpoint checked by the outbound URL policy (035). Delete the local copy only when `keepLocal=false` and the upload checksum matches. No AWS SDK.
 - `GET /v1/archive/catalog?source=&from=&to=` (admin) lists partitions and files. The Operator Guide shows DuckDB access (`read_parquet('archive/record_version/**/*.parquet', hive_partitioning=true)`).
 - Licence: `ARCHIVE` egress (operator-owned storage) is allowed for every licence; manifests record the licences anyway.
@@ -74,7 +74,7 @@ Give the operator durable, portable copies of Elaro's data: async bulk exports (
 ### 5. PMTiles v3 offline packs
 
 - `POST /v1/packs` (agent, `alwaysAuthenticated`): `{name, bbox | placeId, minZoom (≥ 0), maxZoom (≤ 14), vector: {sources[], kinds[], asOf?}, raster: {productId, frame: "latest" | frameId}?}` → one `.pmtiles` per tile type (MVT pack and/or PNG pack). Cap `packs.maxTiles` (200,000; `400 PACK_TOO_LARGE`, with the computed count).
-- **Writer** (`ai.elaro.export.pmtiles.PmTilesWriter`, in-house; reuse 108's if it exists):
+- **Writer** (`ai.foresignal.export.pmtiles.PmTilesWriter`, in-house; reuse 108's if it exists):
   - Tile id: Hilbert index per the spec (cumulative tile count of lower zooms plus the Hilbert position).
   - Tiles generated via the 016/037 MVT query and the 045 renderer, deduplicated by content hash (`run_length` for consecutive identical tiles, shared offsets for repeats).
   - Entries sorted by tile id; directories encoded as varint count, delta tile ids, run lengths, lengths, offsets (0 = contiguous); gzip internal compression.
@@ -87,8 +87,8 @@ Give the operator durable, portable copies of Elaro's data: async bulk exports (
 
 - `ExportRetentionStep`: delete expired export and pack directories and set `EXPIRED`; orphan sweep of directories with no row.
 - `/v1/system`: `exports` block (queued, running, bytes) and `archive` block (last run, bytes, failures).
-- Metrics `elaro.export.rows`, `elaro.export.duration`, `elaro.archive.bytes`.
-- `docs/OpenAPI.json`: schemas `ExportJob`, `ExportSpec`, `ExportManifest`, `Snapshot`, `Hold`, `ArchiveSettings`, `ArchivePartition`, `PackSpec`; all operations above with `x-elaro-scope`; settings key `archive` via the settings API (secrets write-only). Update `AccessPolicy`. Regenerate Postman with BODIES for `createExport`, `createSnapshot`, `createHold`, `createPack`.
+- Metrics `foresignal.export.rows`, `foresignal.export.duration`, `foresignal.archive.bytes`.
+- `docs/OpenAPI.json`: schemas `ExportJob`, `ExportSpec`, `ExportManifest`, `Snapshot`, `Hold`, `ArchiveSettings`, `ArchivePartition`, `PackSpec`; all operations above with `x-foresignal-scope`; settings key `archive` via the settings API (secrets write-only). Update `AccessPolicy`. Regenerate Postman with BODIES for `createExport`, `createSnapshot`, `createHold`, `createPack`.
 - MCP (025): `create_export`, `get_export` (agent). Return the download URL, never file bytes.
 - `docs/Operator-Guide.md`: "Exports, snapshots and holds", "Cold archive" (S3/MinIO setup, DuckDB and GDAL access), "Offline packs" (load in MapLibre via the `pmtiles` protocol from a local file, flutter_map PMTiles). `THIRD_PARTY_NOTICES.md` for new dependencies.
 

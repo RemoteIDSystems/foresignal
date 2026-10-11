@@ -1,11 +1,11 @@
 # 030 — Alert Enrichment
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/030-CR-Alert-Enrichment.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -22,14 +22,14 @@
 
 ## Objective
 
-Alerts that explain themselves. When a rule has `enrich=true`, an LLM writes a short, cited summary from what Elaro knows around the alert: the record's persisted history, nearby activity of any kind, nearby alerts and semantically related documents. Channels can wait briefly to include it, and channels that support editing update the message in place when the summary arrives late. Enrichment never blocks delivery beyond the channel's wait.
+Alerts that explain themselves. When a rule has `enrich=true`, an LLM writes a short, cited summary from what Foresignal knows around the alert: the record's persisted history, nearby activity of any kind, nearby alerts and semantically related documents. Channels can wait briefly to include it, and channels that support editing update the message in place when the summary arrives late. Enrichment never blocks delivery beyond the channel's wait.
 
 ## Tasks
 
-### 1. EnrichmentWorker (`ai.elaro.trigger`)
+### 1. EnrichmentWorker (`ai.foresignal.trigger`)
 
-- An `AlertBus` listener (prompt 017) with a bounded queue (256) and a small virtual-thread pool (concurrency 4). On overflow, drop and count `elaro.enrichment.dropped`.
-- **Skip** when `llm.enrichmentEnabled` is false, no chat provider is configured, the rule lacks `enrich=true`, the alert is not in an open state (017 lifecycle: already resolved), or `fired_at` is older than 10 minutes (catch-up after downtime). Count `elaro.enrichment.skipped{reason}`.
+- An `AlertBus` listener (prompt 017) with a bounded queue (256) and a small virtual-thread pool (concurrency 4). On overflow, drop and count `foresignal.enrichment.dropped`.
+- **Skip** when `llm.enrichmentEnabled` is false, no chat provider is configured, the rule lacks `enrich=true`, the alert is not in an open state (017 lifecycle: already resolved), or `fired_at` is older than 10 minutes (catch-up after downtime). Count `foresignal.enrichment.skipped{reason}`.
 - **Context assembly** (all through existing services; anchor time `T = alert.observed_at`, anchor geometry = the alerted version's geometry, else `record_snapshot.geometry`):
   - the alerted version (load by `seq`; fall back to `alert.record_snapshot` when retention removed it) and up to 10 prior versions of the same entity (`/versions` service, newest first, excluding HEARTBEAT), short form with `persistReason`
   - records of **any** kind within `enrichRadiusKm` and `T ± enrichWindow`: query `record_version` with `ST_DWithin(geom::geography, :point, :radiusM)` and `observed_at BETWEEN …`, `persist_reason <> HEARTBEAT`, `DISTINCT ON (source_id, external_id)` latest in window, top 30 by `observed_at` desc, excluding the alerted entity; add current head ⋈ live rows inside the radius whose `l.observed_at` falls in the window (live-only movement)
@@ -56,8 +56,8 @@ Alerts that explain themselves. When a rule has `enrich=true`, an LLM writes a s
 
 ### 3. Failure handling
 
-- On budget refusal, provider error, refusal (`stopReason=refusal`) or timeout (20 s): log, increment `elaro.enrichment.failed{reason}`, leave deliveries at their scheduled time without a summary. Never retry an enrichment.
-- Metrics: `elaro.enrichment.duration`, `elaro.enrichment.succeeded`, `failed{reason}`, `skipped{reason}`, `dropped`.
+- On budget refusal, provider error, refusal (`stopReason=refusal`) or timeout (20 s): log, increment `foresignal.enrichment.failed{reason}`, leave deliveries at their scheduled time without a summary. Never retry an enrichment.
+- Metrics: `foresignal.enrichment.duration`, `foresignal.enrichment.succeeded`, `failed{reason}`, `skipped{reason}`, `dropped`.
 
 ### 4. Rule validation and API
 

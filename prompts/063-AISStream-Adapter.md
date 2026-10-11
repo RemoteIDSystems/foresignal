@@ -1,11 +1,11 @@
 # 063 — AISStream Adapter
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/063-CR-AISStream-Adapter.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -22,11 +22,11 @@
 
 ## Objective
 
-Build Elaro's first streaming adapter: `aisstream`, a WebSocket feed of global AIS. It merges position and static messages into complete per-MMSI vessel snapshots, scrubs AIS sentinels, and stays polite under one connection per key with a slow reconnect ladder. It is also the reference pattern for every later streaming adapter (085, 082, 083, 089), so the Adapter Guide gains a streaming section here.
+Build Foresignal's first streaming adapter: `aisstream`, a WebSocket feed of global AIS. It merges position and static messages into complete per-MMSI vessel snapshots, scrubs AIS sentinels, and stays polite under one connection per key with a slow reconnect ladder. It is also the reference pattern for every later streaming adapter (085, 082, 083, 089), so the Adapter Guide gains a streaming section here.
 
 ## Tasks
 
-### 1. Descriptor (`ai.elaro.source.adapters.aisstream.AisStreamAdapter implements StreamingAdapter`)
+### 1. Descriptor (`ai.foresignal.source.adapters.aisstream.AisStreamAdapter implements StreamingAdapter`)
 
 | Field | Value |
 |---|---|
@@ -46,7 +46,7 @@ Keyless note for the descriptor description and the Source-Catalog row: no key m
 
 ### 2. Connection and subscription
 
-- Open with `ctx.http().openWebSocket(URI.create("wss://stream.aisstream.io/v0/stream"), listener, Map.of())`. It consumes budget and sets the Elaro UA.
+- Open with `ctx.http().openWebSocket(URI.create("wss://stream.aisstream.io/v0/stream"), listener, Map.of())`. It consumes budget and sets the Foresignal UA.
 - **Within 3 s of `onOpen`**, send one text frame:
 
   ```json
@@ -92,7 +92,7 @@ Keyless note for the descriptor description and the Source-Catalog row: no key m
   - Payload: `mmsi, name, callsign, imo, shipType` (int), `class` (`A|B`), `destination, navStatus, draught` (m), `lengthM` (A+B), `beamM` (C+D), `eta` (ISO-8601 UTC at the next occurrence of month/day/hour/minute, omitted when any part is "not available"), `sog, cog, heading`.
   - `quality.positionSource` REPORTED.
 - Send records to the sink as they come. 010's `PolicyAwareRecordSink` keeps the newest `observedAt` per MMSI per 2 s flush.
-- **Metrics:** `elaro.aisstream.messages{type}`, `elaro.aisstream.dropped{reason=untimed|oversize|malformed|unknown_type|no_mmsi}`, gauge `elaro.aisstream.vessels`.
+- **Metrics:** `foresignal.aisstream.messages{type}`, `foresignal.aisstream.dropped{reason=untimed|oversize|malformed|unknown_type|no_mmsi}`, gauge `foresignal.aisstream.vessels`.
 
 ### 5. Fixtures and capture
 

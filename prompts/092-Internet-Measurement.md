@@ -1,11 +1,11 @@
 # 092 — Internet Measurement
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/092-CR-Internet-Measurement.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -27,7 +27,7 @@ Add the internet-measurement sources: Cloudflare Radar outages and BGP events, R
 
 ### 1. Shared pieces
 
-- **H3:** add `com.uber:h3` 4.4.0 (latest confirmed on Maven Central, verified 2026-10; check for a newer 4.x) to `gradle/libs.versions.toml`. It is JNI with bundled natives; confirm linux-x86_64 and linux-aarch64 load in the Docker image and note it in `THIRD_PARTY_NOTICES.md` (Apache-2.0). Add `ai.elaro.geo.H3Cells` (`cellToPolygon(String|long)`, `latLngToCell(lat, lon, res)`, `isValid`), shared with 099.
+- **H3:** add `com.uber:h3` 4.4.0 (latest confirmed on Maven Central, verified 2026-10; check for a newer 4.x) to `gradle/libs.versions.toml`. It is JNI with bundled natives; confirm linux-x86_64 and linux-aarch64 load in the Docker image and note it in `THIRD_PARTY_NOTICES.md` (Apache-2.0). Add `ai.foresignal.geo.H3Cells` (`cellToPolygon(String|long)`, `latLngToCell(lat, lon, res)`, `isValid`), shared with 099.
 - **Country geometry:** reuse the 068 country-centroid table. Records located only by country get a Point (or MultiPoint) and payload `geometryApproximate: true`.
 - All adapters: identifiable UA, conditional GET where the upstream supports it, `Retry-After` honoured, untrusted upstream text capped at 2 KB and listed in `embedFields` only when it is human prose.
 
@@ -89,7 +89,7 @@ Add the internet-measurement sources: Cloudflare Radar outages and BGP events, R
 
 ### 7. `ris-live` (optional, streaming, disabled by default)
 
-- WebSocket `wss://ris-live.ripe.net/v1/ws/?client=elaro-{installId}` (one budget unit per connect; budget 6/hour). Params: `prefixes` (string-list, required, ≤ 50), `expectedOrigins` (map prefix → ASN list, optional), `hosts` (optional RRC list). Send one `{"type":"ris_subscribe","data":{"prefix":p,"moreSpecific":true,"type":"UPDATE"}}` per prefix, plus `{"type":"RIS_PEER_STATE"}`. **Never subscribe to the full firehose.**
+- WebSocket `wss://ris-live.ripe.net/v1/ws/?client=foresignal-{installId}` (one budget unit per connect; budget 6/hour). Params: `prefixes` (string-list, required, ≤ 50), `expectedOrigins` (map prefix → ASN list, optional), `hosts` (optional RRC list). Send one `{"type":"ris_subscribe","data":{"prefix":p,"moreSpecific":true,"type":"UPDATE"}}` per prefix, plus `{"type":"RIS_PEER_STATE"}`. **Never subscribe to the full firehose.**
 - **Peer-visibility tracking** (`PrefixVisibilityTracker`, pure): per watched prefix keep, per `(host, peer)`, the last announced path or a withdrawal; peers count toward the denominator when seen in the last 24 h and not reported down by `RIS_PEER_STATE`. Derived state: `visibility = announcing/known` (0.1 bands), `origins[]` (last AS of each path; AS_SET entries flattened and flagged), `unexpectedOrigin` (origin ∉ `expectedOrigins`), `moreSpecifics[]` (≤ 20).
 - Kind `bgp-prefix-state`, `externalId = prefix:{p}`, no geometry, STANDARD, ALL, `observedAtMode=UPSTREAM` (newest message `timestamp`). Push a record to the sink only when the banded state changes or every 10 min; identical snapshots become touches. `peer_asn` arrives as a string.
 - Reconnect ladder 5 s → 15 s → 60 s → 300 s with jitter; a server "too slow" error triggers the next rung. Silence watchdog 5 min. While disconnected, set `status: no-data` in the payload rather than lowering visibility.

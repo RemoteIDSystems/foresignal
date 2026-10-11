@@ -1,11 +1,11 @@
 # 096 — Satellite Scenes STAC
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/096-CR-Satellite-Scenes-STAC.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -14,18 +14,18 @@
 ## Read first
 
 - `docs/Gap-Analysis.md` §4b row "Satellite scenes (STAC)": footprints and links only, Earth Search default
-- `docs/Product-Charter.md` §5 (non-goal: hosting or proxying imagery) and `docs/Weather-Imagery-Design.md` §0.1 (Elaro hosts only products derived from data it ingests; third-party imagery stays client-direct)
+- `docs/Product-Charter.md` §5 (non-goal: hosting or proxying imagery) and `docs/Weather-Imagery-Design.md` §0.1 (Foresignal hosts only products derived from data it ingests; third-party imagery stays client-direct)
 - `docs/Core-Data-Model.md` §2 (revised events: `eventTime` = acquisition, `observedAt` = upstream `updated`), §3 (limits: ≤ 10,000 vertices, adapter rules 7–13)
 - Completion Reports for 036 (places as AOIs), 073 (shared geometry helpers, antimeridian handling if added)
 - Upstream: Earth Search `https://earth-search.aws.element84.com/v1` (landing page, `/collections`, `/search`), STAC API Item Search spec and the `query`, `sort` and `fields` extensions (`https://github.com/stac-api-extensions`), Copernicus Sentinel data legal notice, USGS Landsat data policy
 
 ## Objective
 
-Record new Sentinel-2 and Landsat (optionally Sentinel-1) scenes over the operator's areas of interest as `satellite-scene` records: footprint geometry, acquisition time, cloud cover, AOI coverage, and links to the STAC item and any public thumbnail. Elaro never downloads or proxies imagery; clients follow the links. Rules can then alert on "a new cloud-free scene covers home".
+Record new Sentinel-2 and Landsat (optionally Sentinel-1) scenes over the operator's areas of interest as `satellite-scene` records: footprint geometry, acquisition time, cloud cover, AOI coverage, and links to the STAC item and any public thumbnail. Foresignal never downloads or proxies imagery; clients follow the links. Rules can then alert on "a new cloud-free scene covers home".
 
 ## Tasks
 
-### 1. `EarthSearchFamily` (`ai.elaro.source.adapters.stac`)
+### 1. `EarthSearchFamily` (`ai.foresignal.source.adapters.stac`)
 
 Static, code-reviewed feed list against `https://earth-search.aws.element84.com/v1` (v1 is current, STAC 1.0.0, items appear about 2 h after acquisition, no deprecation announced; verified 2026-10):
 
@@ -73,7 +73,7 @@ Microsoft Planetary Computer STAC (`https://planetarycomputer.microsoft.com/api/
 - No new operations. Add kind `satellite-scene` through `fieldSpecs` (units: `cloudCover` `%`, `sunElevation` `deg`); regenerate Postman with `python3 scripts/generate-postman.py docs/OpenAPI.json postman` if examples change.
 - `docs/Source-Catalog.md` rows for the three sources (tier, policy, `observedAtMode`, retention, licence) with the verified 2026-10 notes: `sentinel-2-c1-l2a`, `query` not `filter`, requester-pays thumbnails, Planetary Computer alternative.
 - `docs/Operator-Guide.md` "Satellite scenes": AOI setup, the "links only, no imagery" rule, and rule recipes: `kind=satellite-scene`, `cloudCover < 20 AND aoiCoverPct >= 80`, `match` with `only_new`; and a Sentinel-1 recipe for cloudy-season flood watching.
-- `docs/Agent-Guide.md`: agents find scenes with `query_records kind=satellite-scene` and follow `stacItemUrl`; Elaro never fetches imagery.
+- `docs/Agent-Guide.md`: agents find scenes with `query_records kind=satellite-scene` and follow `stacItemUrl`; Foresignal never fetches imagery.
 
 ## Tests to write (do not run)
 

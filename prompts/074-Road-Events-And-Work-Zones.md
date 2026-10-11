@@ -1,11 +1,11 @@
 # 074 — Road Events And Work Zones
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/074-CR-Road-Events-And-Work-Zones.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -25,7 +25,7 @@ Ingest current road events (incidents, closures, roadworks, restrictions) from f
 
 ## Tasks
 
-### 1. Shared model (`ai.elaro.source.adapters.roads`)
+### 1. Shared model (`ai.foresignal.source.adapters.roads`)
 
 - `RoadEventPayload` builder producing a slim, allowlisted payload (omit nulls):
   - `category`: `roadwork|incident|closure|restriction|weather|event|other` (mapping tables per format below)
@@ -51,7 +51,7 @@ Ingest current road events (incidents, closures, roadworks, restrictions) from f
 
 ### 4. `digitraffic-road`
 
-- `https://tie.digitraffic.fi/api/traffic-message/v1/messages?inactiveHours=0&includeAreaGeometry=false&situationType={type}`, one request per value of param `situationTypes` (string-list, allowed `TRAFFIC_ANNOUNCEMENT, ROAD_WORK, WEIGHT_RESTRICTION, EXEMPTED_TRANSPORT`, default `TRAFFIC_ANNOUNCEMENT, ROAD_WORK`). Headers: `Digitraffic-User: Elaro/<version>`, gzip. Conditional GET per type (`getConditional(uri, "msg:" + type)`); ETag + Last-Modified verified 2026-10.
+- `https://tie.digitraffic.fi/api/traffic-message/v1/messages?inactiveHours=0&includeAreaGeometry=false&situationType={type}`, one request per value of param `situationTypes` (string-list, allowed `TRAFFIC_ANNOUNCEMENT, ROAD_WORK, WEIGHT_RESTRICTION, EXEMPTED_TRANSPORT`, default `TRAFFIC_ANNOUNCEMENT, ROAD_WORK`). Headers: `Digitraffic-User: Foresignal/<version>`, gzip. Conditional GET per type (`getConditional(uri, "msg:" + type)`); ETag + Last-Modified verified 2026-10.
 - Verified 2026-10 shape: GeoJSON FeatureCollection with `dataUpdatedTime`; feature properties `situationId`, `situationType`, `trafficAnnouncementType`, `version`, `releaseTime`, `versionTime`, `announcements[{language, title, location{description}, locationDetails, features[{name, quantity, unit}], roadWorkPhases[], timeAndDuration{startTime, endTime}, additionalInformation, sender}]`, `contact` (drop: personal contact data). About 515 active `ROAD_WORK` situations on capture day.
 - Mapping: `externalId = situationId`; `observedAt = versionTime`; `ROAD_WORK → roadwork`, `WEIGHT_RESTRICTION|EXEMPTED_TRANSPORT → restriction`, `TRAFFIC_ANNOUNCEMENT` → by `trafficAnnouncementType` (`ACCIDENT_REPORT|PRELIMINARY_ACCIDENT_REPORT → incident`, closures in `features[].name` → `closure`, else `other`); headline from the first announcement title; `roads` from `locationDetails.roadAddressLocation.primaryPoint.roadAddress.road`; `language = fi` unless the announcement says otherwise.
 - Interval 5 min (min 1 min), budget 6/min, 3000/day. Licence CC BY 4.0, attribution "Fintraffic / digitraffic.fi". Note in the Source Catalog that Digitraffic also publishes DATEX II, deliberately not used.
@@ -66,7 +66,7 @@ Ingest current road events (incidents, closures, roadworks, restrictions) from f
 
 ### 6. Fixtures, docs
 
-- Capture real responses per source (`curl --compressed -A "Elaro-fixture/<version>"`; for NDW keep the `.xml.gz` and a trimmed `.xml` of ≤ 30 situations). README with dates, URLs and the WZDx registry snapshot date.
+- Capture real responses per source (`curl --compressed -A "Foresignal-fixture/<version>"`; for NDW keep the `.xml.gz` and a trimmed `.xml` of ≤ 30 situations). README with dates, URLs and the WZDx registry snapshot date.
 - `docs/Source-Catalog.md`: rows for every source, the WZDx registry snapshot procedure (re-vendoring is a reviewed change), and the DATEX/Digitraffic decision.
 - `docs/Adapter-Guide.md`: "Normalised kinds across formats" using `road-event` as the example.
 - No API change.

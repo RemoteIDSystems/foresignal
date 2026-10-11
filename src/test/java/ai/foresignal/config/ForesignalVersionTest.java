@@ -1,0 +1,87 @@
+package ai.foresignal.config;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.nio.file.Path;
+import java.util.Properties;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.boot.info.BuildProperties;
+
+class ForesignalVersionTest {
+
+    private static BuildProperties buildProperties(String version) {
+        Properties properties = new Properties();
+        if (version != null) {
+            properties.setProperty("version", version);
+        }
+        return new BuildProperties(properties);
+    }
+
+    private static ForesignalProperties foresignalProperties(String version) {
+        return new ForesignalProperties(Path.of("./data"), null, false, version);
+    }
+
+    @Test
+    @DisplayName("build info wins when it is available")
+    void prefersBuildProperties() {
+        assertThat(ForesignalVersion.resolve(buildProperties("1.2.3"), "9.9.9")).isEqualTo("1.2.3");
+    }
+
+    @Test
+    @DisplayName("falls back to foresignal.version when there is no build info")
+    void fallsBackToConfiguredVersion() {
+        assertThat(ForesignalVersion.resolve(null, "0.1.0-SNAPSHOT")).isEqualTo("0.1.0-SNAPSHOT");
+    }
+
+    @Test
+    @DisplayName("falls back to 'dev' when nothing is available")
+    void fallsBackToDev() {
+        assertThat(ForesignalVersion.resolve(null, null)).isEqualTo(ForesignalVersion.FALLBACK);
+        assertThat(ForesignalVersion.resolve(null, "")).isEqualTo(ForesignalVersion.FALLBACK);
+        assertThat(ForesignalVersion.resolve(null, "   ")).isEqualTo(ForesignalVersion.FALLBACK);
+    }
+
+    @Test
+    @DisplayName("'unknown' is not treated as a version")
+    void treatsUnknownAsAbsent() {
+        // ForesignalProperties normalizes a missing version to "unknown"; surfacing that as the running
+        // version would be worse than saying "dev".
+        assertThat(ForesignalVersion.resolve(null, ForesignalProperties.UNKNOWN_VERSION))
+                .isEqualTo(ForesignalVersion.FALLBACK);
+    }
+
+    @Test
+    @DisplayName("build info with no version falls through to the property")
+    void ignoresBuildPropertiesWithoutVersion() {
+        assertThat(ForesignalVersion.resolve(buildProperties(null), "0.2.0")).isEqualTo("0.2.0");
+    }
+
+    @Test
+    @DisplayName("the bean resolves through the ObjectProvider")
+    void beanResolvesFromProvider() {
+        var version = new ForesignalVersion(provider(buildProperties("4.5.6")), foresignalProperties("0.0.1"));
+
+        assertThat(version.version()).isEqualTo("4.5.6");
+        assertThat(version).hasToString("4.5.6");
+    }
+
+    @Test
+    @DisplayName("the bean copes with no BuildProperties bean present")
+    void beanWorksWithoutBuildProperties() {
+        var version = new ForesignalVersion(provider(null), foresignalProperties("0.1.0-SNAPSHOT"));
+
+        assertThat(version.version()).isEqualTo("0.1.0-SNAPSHOT");
+    }
+
+    /** Every ObjectProvider method is a default, so overriding one is enough. */
+    private static ObjectProvider<BuildProperties> provider(BuildProperties value) {
+        return new ObjectProvider<>() {
+            @Override
+            public BuildProperties getIfAvailable() {
+                return value;
+            }
+        };
+    }
+}

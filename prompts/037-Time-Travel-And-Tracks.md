@@ -1,11 +1,11 @@
 # 037 — Time Travel And Tracks
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/037-CR-Time-Travel-And-Tracks.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -26,7 +26,7 @@ Make history playable. Clients get map tiles as they were at any retained instan
 
 ## Tasks
 
-### 1. Shared asOf planning (`ai.elaro.store.history`)
+### 1. Shared asOf planning (`ai.foresignal.store.history`)
 
 - Extract the asOf logic from the 014 records path into `AsOfResolver.plan(Instant t, Set<String> sourceIds) → AsOfPlan(t, s, lByTier, horizon, approximate, watermarkSeq)`. If 014 already has an equivalent class, move it here and keep its behaviour. `/v1/records?asOf` must use it after this prompt.
 - Rules, exactly as Core-Data-Model §12:
@@ -54,7 +54,7 @@ Make history playable. Clients get map tiles as they were at any retained instan
   ```
   Then use 016's `ST_AsMVT` projection and properties: `source`, `externalId`, `kind`, `title`, `observedAt`, `version` and `tileProperties` from the version payload. Use the same feature cap, and the same `agg=grid|hex` path below `aggBelowZoom`.
 - `SET LOCAL statement_timeout = '15s'`; on timeout return 503 `QUERY_TIMEOUT` with `Retry-After: 5`.
-- Response headers: `Elaro-As-Of`, `Elaro-As-Of-Seq: S`, `Elaro-Approximate`.
+- Response headers: `Foresignal-As-Of`, `Foresignal-As-Of-Seq: S`, `Foresignal-Approximate`.
 - **Caching:** past tiles are immutable only when all of these hold:
   - `t ≤ now − 2 min`, so the minute bucket is closed;
   - `t < fidelity.finalBefore(tier)` or the range is already downsampled;
@@ -127,7 +127,7 @@ Make history playable. Clients get map tiles as they were at any retained instan
 
 - `docs/OpenAPI.json`:
   - Add `asOf` to `getTile` and the TileJSON operations, plus the response headers.
-  - New operations `getRecordTrack` (read), `getHistoryFrames` (read) and `getTimeline` (read), each with `x-elaro-scope`.
+  - New operations `getRecordTrack` (read), `getHistoryFrames` (read) and `getTimeline` (read), each with `x-foresignal-scope`.
   - New schemas `Track`, `HistoryFrames`, `HistoryFrame`, `FrameItem`, `Timeline`, `TimelineBucket`.
   - Error codes `TRACK_WINDOW_TOO_LARGE`, `FRAMES_TOO_LARGE`, `TIMELINE_TOO_LARGE` and `QUERY_TIMEOUT`.
 - `AccessPolicy`: add `GET /v1/history/**` and `GET /v1/timeline` as READ (`/v1/records/**` already covers `/track`), and make sure feed keys and tile tickets (035, 050) accept the new GET paths.

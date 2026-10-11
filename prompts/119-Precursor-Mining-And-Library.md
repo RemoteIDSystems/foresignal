@@ -1,11 +1,11 @@
 # 119 — Precursor Mining And Library
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/119-CR-Precursor-Mining-And-Library.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults, analytic retention, intelligence conventions) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and **`docs/Intelligence-Design.md` is authoritative for the intelligence layer** (situations, findings, precursors, base rates, analogs, the forecast ledger, hypotheses, forecasts, impact projection and analysis cycles).
@@ -32,7 +32,7 @@ Turn 103's one-off "does X precede Y?" test into a discovery and validation loop
 
 103 calls the object a **precursor test** (`precursor_test`, `/v1/precursor-tests`, MCP `test_precursor`, job type `precursor`). If 103 was built with the older name `hypothesis`, rename table, classes, endpoints, MCP tools, OpenAPI schemas and Postman items now, keeping old paths as deprecated aliases that return `Deprecation` headers until 131. Record what was renamed in the CR.
 
-### 2. Candidate generation (`ai.elaro.precursor`)
+### 2. Candidate generation (`ai.foresignal.precursor`)
 
 - **Event families** (from 118's registry and data): intel event types (101), alert rule tags (017), anomaly classifications per rule (100), change points per series family (118), `unexplained-move` findings per series family (118), situation activations per theme (117), and reference-import families (120, when present).
 - **Event-stream candidates:** (a) operator-registered pairs (`precursor_candidate` rows with antecedent and consequent selectors, spatial rule, lag bounds); (b) automatic pairs among the top-K families (K = 12) per region by occurrence count over the discovery window, with `minLag` 0, `maxLag` from `{1 d, 3 d, 7 d, 14 d}` and spatial rule `sameRegion: country` (admin1 when both families support it).

@@ -1,11 +1,11 @@
 # 007 — History Schema And Partitions
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/007-CR-History-Schema-And-Partitions.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -24,7 +24,7 @@ Replace the prompt-002 history tables with the v1.2 storage model: a `record_ver
 
 ## Tasks
 
-### 1. Entities (`ai.elaro.store`), implement exactly as Core-Data-Model §8
+### 1. Entities (`ai.foresignal.store`), implement exactly as Core-Data-Model §8
 
 - **`RecordVersionEntity`** (rewrite; read-only mapping):
   - `@Immutable`, `@Id seq` with `@SequenceGenerator(name="record_seq", sequenceName="record_seq", allocationSize=1)`. **No** `@UniqueConstraint`, **no** `@Index`, no `content_hash`. The database PK is `(seq, history_tier)`; mapping only `seq` as `@Id` is intentional.
@@ -37,7 +37,7 @@ Replace the prompt-002 history tables with the v1.2 storage model: a `record_ver
 - **Existing tables:** `AlertEntity` + `observed_at timestamptz` and `record_snapshot jsonb`; `TriggerRuleEntity` + `reappear_as_enter boolean not null default false`; `SourceHealthEntity` + `last_data_at timestamptz` (check first: prompt 006 may already have added it, and `last_coverage` / `recent_coverage`; add whichever is missing).
 - **Repositories:** delete `RecordVersionRepository.countBySourceId` and `RecordHeadRepository.deleteBySourceIdAndObservedAtBefore`; rename the version finders to order by `seq`; add `RecordLiveRepository`, `FetchLogRepository` (keyset `findBySourceIdAndIdLessThanOrderByIdDesc`), `SeqClockRepository`. Fix every caller.
 
-### 2. `HistorySchemaInitializer` (`ai.elaro.store.history`)
+### 2. `HistorySchemaInitializer` (`ai.foresignal.store.history`)
 
 Register in `SchemaBootstrap` as bean `historySchemaInitializer` with `@DependsOn("postgisExtensionInitializer")`, and add it to the `EntityManagerFactoryDependsOnPostProcessor` names. It depends only on `DataSource`, `MeterRegistry` and `HistoryProperties`, never on JPA. On `afterPropertiesSet`, on one connection:
 
@@ -49,9 +49,9 @@ Register in `SchemaBootstrap` as bean `historySchemaInitializer` with `@DependsO
 
 Keep the DDL as constants in one class (prompt 131 moves it into the Flyway baseline). Never create a DEFAULT partition.
 
-### 3. `PartitionManager` (`ai.elaro.store.history`)
+### 3. `PartitionManager` (`ai.foresignal.store.history`)
 
-- `HistoryProperties` (`elaro.history`): `track-block` 20,000,000; `standard-block` 250,000,000; `maintenance.enabled` true; `maintenance.interval` 10m.
+- `HistoryProperties` (`foresignal.history`): `track-block` 20,000,000; `standard-block` 250,000,000; `maintenance.enabled` true; `maintenance.interval` 10m.
 - **Leaves:** `rv_s_<start>` / `rv_t_<start>` for `[k·block, (k+1)·block)`, attached under the tier parent. seq is global across tiers.
 - **Locking:** every operation holds one in-process `ReentrantLock` and runs on a dedicated **autocommit** connection from the `DataSource` with `SET lock_timeout = '3s'`, retrying `55P03` up to 5 times (backoff 200 ms × 2ⁿ). Never `@Transactional`.
 - **Coverage is range-based:** keep an in-memory map of attached leaves per tier (refreshed from `pg_inherits` + `pg_get_expr(relpartbound)` at start, after every change and on `refresh()`).
@@ -62,7 +62,7 @@ Keep the DDL as constants in one class (prompt 131 moves it into the Flyway base
 - **Drop** (`drop(tier, leafName)`, called from prompt 019): throw `IllegalStateException` when `TransactionSynchronizationManager.isActualTransactionActive()`; run `ensureAhead()` first; `SET statement_timeout = '10min'`; `ALTER TABLE <tier parent> DETACH PARTITION <leaf> CONCURRENTLY`; `DROP TABLE <leaf>`. Every maintenance run first finishes any leaf with `pg_inherits.inhdetachpending` via `DETACH PARTITION … FINALIZE` then drops it.
 - `leaves(tier)` → `List<LeafInfo(name, tier, fromSeq, toSeq, detachPending)>` for prompt 019 and `/v1/system.history`.
 - **Schedule:** a `@Scheduled` maintenance run every `maintenance.interval` (finalize, `ensureAhead`) and a daily `ANALYZE record_version` (03:17 UTC), both skipped when `maintenance.enabled=false`; also `ANALYZE` after each attach or drop, under the same lock.
-- Gauge `elaro.history.partition.headroom{tier}` = `coveredUpTo(tier, last_value) − last_value`; log a warning when headroom is below one block.
+- Gauge `foresignal.history.partition.headroom{tier}` = `coveredUpTo(tier, last_value) − last_value`; log a warning when headroom is below one block.
 
 ### 4. Spatial indexes and storage parameters
 
@@ -70,20 +70,20 @@ Update `SpatialIndexInitializer.STATEMENTS`: remove the `record_version` GiST (n
 
 ### 5. Configuration and deployment (Core-Data-Model §9, §16)
 
-- Main `application.yml`: `spring.jpa.properties.hibernate.hbm2ddl.extra_physical_table_types: PARTITIONED TABLE`; `spring.datasource.hikari.data-source-properties.reWriteBatchedInserts: true` (this also covers the Testcontainers `@ServiceConnection` URL); the `elaro.history.*` defaults; `elaro.ingest.writer.exclusive: true`.
-- `application-test.yml`: `elaro.ingest.writer.exclusive: false`, `elaro.history.maintenance.enabled: false`, `elaro.retention.scheduled: false` (read by prompt 019). It must **not** override `spring.jpa.properties`.
+- Main `application.yml`: `spring.jpa.properties.hibernate.hbm2ddl.extra_physical_table_types: PARTITIONED TABLE`; `spring.datasource.hikari.data-source-properties.reWriteBatchedInserts: true` (this also covers the Testcontainers `@ServiceConnection` URL); the `foresignal.history.*` defaults; `foresignal.ingest.writer.exclusive: true`.
+- `application-test.yml`: `foresignal.ingest.writer.exclusive: false`, `foresignal.history.maintenance.enabled: false`, `foresignal.retention.scheduled: false` (read by prompt 019). It must **not** override `spring.jpa.properties`.
 - Fix the Flyway references in `SchemaBootstrap` Javadoc, `SpatialIndexInitializer` and the `application.yml` comment from "prompt 042" to "prompt 131".
-- `docker-compose.yml`: add to `db` `command: ["postgres","-c","shared_buffers=512MB","-c","max_wal_size=8GB","-c","checkpoint_timeout=15min","-c","wal_compression=lz4","-c","max_locks_per_transaction=256","-c","autovacuum_vacuum_cost_limit=2000"]`; ports `"${ELARO_DB_BIND:-127.0.0.1}:5433:5432"` and `"${ELARO_BIND:-127.0.0.1}:8080:8080"`.
+- `docker-compose.yml`: add to `db` `command: ["postgres","-c","shared_buffers=512MB","-c","max_wal_size=8GB","-c","checkpoint_timeout=15min","-c","wal_compression=lz4","-c","max_locks_per_transaction=256","-c","autovacuum_vacuum_cost_limit=2000"]`; ports `"${FORESIGNAL_DB_BIND:-127.0.0.1}:5433:5432"` and `"${FORESIGNAL_BIND:-127.0.0.1}:8080:8080"`.
 
 ### 6. Test support
 
-- **`DatabaseCleaner`:** exclude every table that is a `pg_inherits` child (tier parents and leaves) from the discovered list; `TRUNCATE record_version` recurses. After truncating and restarting `record_seq`, call `resetState()` on every bean of a new main-code interface `ai.elaro.ingest.IngestStateReset` (via `ObjectProvider.orderedStream()`; none exist until prompt 009's `IngestWriter` implements it).
-- **`TestPartitions`** (`src/test/java/ai/elaro/test`): `leaves(jdbc, tier)`, `dropAllLeaves(jdbc)` (plain DETACH + DROP, tables must be empty), and `restore(partitionManager)` (`refresh()` + `ensureAhead()`), so a test can run a `PartitionManager` with tiny blocks and put the defaults back in `@AfterEach`.
+- **`DatabaseCleaner`:** exclude every table that is a `pg_inherits` child (tier parents and leaves) from the discovered list; `TRUNCATE record_version` recurses. After truncating and restarting `record_seq`, call `resetState()` on every bean of a new main-code interface `ai.foresignal.ingest.IngestStateReset` (via `ObjectProvider.orderedStream()`; none exist until prompt 009's `IngestWriter` implements it).
+- **`TestPartitions`** (`src/test/java/ai/foresignal/test`): `leaves(jdbc, tier)`, `dropAllLeaves(jdbc)` (plain DETACH + DROP, tables must be empty), and `restore(partitionManager)` (`refresh()` + `ensureAhead()`), so a test can run a `PartitionManager` with tiny blocks and put the defaults back in `@AfterEach`.
 - Update `EntityMappingIT` (raw-SQL `insert_record_version` with the new columns, head/live/fetch_log/seq_clock/alert/trigger-rule round trips) and `SchemaBootstrapIT` (index list, table list, `record_version` is partitioned).
 
 ### 7. Docs
 
-- `README.md` deployment notes: binds default to localhost (`ELARO_BIND=0.0.0.0` for LAN access, `ELARO_DB_BIND` likewise); expect about 10–15 GB/day of history writes plus 15–20 GB/day of WAL at full load; a 3d track window holds about 40M rows (~20 GB with indexes); NTP must be synced before Elaro starts or the writer's clock guard (prompt 009) holds ingest.
+- `README.md` deployment notes: binds default to localhost (`FORESIGNAL_BIND=0.0.0.0` for LAN access, `FORESIGNAL_DB_BIND` likewise); expect about 10–15 GB/day of history writes plus 15–20 GB/day of WAL at full load; a 3d track window holds about 40M rows (~20 GB with indexes); NTP must be synced before Foresignal starts or the writer's clock guard (prompt 009) holds ingest.
 - No API change in this prompt; OpenAPI and Postman are untouched.
 
 ## Tests to write (do not run)

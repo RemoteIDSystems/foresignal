@@ -1,11 +1,11 @@
 # 125 — Analysis Cycles And Assessments
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/125-CR-Analysis-Cycles-And-Assessments.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults, analytic retention, intelligence conventions) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and **`docs/Intelligence-Design.md` is authoritative for the intelligence layer** (situations, findings, precursors, base rates, analogs, the forecast ledger, hypotheses, forecasts, impact projection and analysis cycles).
@@ -19,7 +19,7 @@
 
 ## Objective
 
-Give Elaro an analytic rhythm. **Analysis cycles** run daily, weekly and monthly. Each run builds a deterministic packet of what changed since the previous run of the same cycle. With an LLM configured, it then runs four budgeted roles: **analyst** (key judgments), **red team** (the case against), **forecaster** (scored probabilities for open questions) and **proposer** (new sets, indicators, watches, questions). It always publishes an **assessment** that builds on the previous one and follows the ICD 203 standards. Monthly runs also trigger the maintenance jobs (base-rate refresh, precursor re-test, ensemble refits, index weight proposals). The **intel board** gives clients a small summary of everything.
+Give Foresignal an analytic rhythm. **Analysis cycles** run daily, weekly and monthly. Each run builds a deterministic packet of what changed since the previous run of the same cycle. With an LLM configured, it then runs four budgeted roles: **analyst** (key judgments), **red team** (the case against), **forecaster** (scored probabilities for open questions) and **proposer** (new sets, indicators, watches, questions). It always publishes an **assessment** that builds on the previous one and follows the ICD 203 standards. Monthly runs also trigger the maintenance jobs (base-rate refresh, precursor re-test, ensemble refits, index weight proposals). The **intel board** gives clients a small summary of everything.
 
 ## Principles (binding)
 
@@ -31,7 +31,7 @@ Give Elaro an analytic rhythm. **Analysis cycles** run daily, weekly and monthly
 
 ## Tasks
 
-### 1. Cycles (`ai.elaro.cycle`)
+### 1. Cycles (`ai.foresignal.cycle`)
 
 - `analysis_cycle`: `id`, `name`, `cadence` (daily | weekly | monthly), `schedule` (5-field cron + IANA tz), `scope` jsonb (regions, themes, situation ids, hypothesis set ids or `cadence-match`, sources, categories), `analyst_profile_id` (102; model, effort, budgets, `allow_actions`, owner token), `roles` (subset of analyst, red-team, forecaster, proposer), `forecaster_providers` (provider ids to run the forecaster role with; default the profile's provider), `samples` (forecaster samples per question, default 3, max 7), `max_questions` (default 15 daily, 40 weekly, 60 monthly), `channel_ids`, `notify_min_priority`, `enabled`, `next_run_at`, `last_run_id`.
 - Defaults created on first start, **disabled**: "Daily brief" (06:00, operator timezone from 018's `server` setting), "Weekly assessment" (Monday 07:00), "Monthly outlook" (1st, 08:00).
@@ -98,7 +98,7 @@ The monthly cycle (or `POST /v1/analysis/maintenance/run`, agent) triggers, in o
 
 ### 8. Spec and docs
 
-- `docs/OpenAPI.json`: `AnalysisCycle`, `AnalysisCycleInput`, `CycleRun`, `CyclePacket`, `Assessment`, `KeyJudgment`, `IntelBoard`; tag `Assessments`; `x-elaro-scope`; SSE schemas; Postman BODIES for creating a weekly cycle and running it.
+- `docs/OpenAPI.json`: `AnalysisCycle`, `AnalysisCycleInput`, `CycleRun`, `CyclePacket`, `Assessment`, `KeyJudgment`, `IntelBoard`; tag `Assessments`; `x-foresignal-scope`; SSE schemas; Postman BODIES for creating a weekly cycle and running it.
 - AccessPolicy rows as listed.
 - `docs/Operator-Guide.md` "Analysis cycles": enabling the defaults, choosing models and effort, cost per cycle (estimate from tokens), what each role does, reading an assessment, how the ledger keeps the LLM honest, and the monthly maintenance list.
 - `docs/Agent-Guide.md`: read the latest assessment and the intel board before answering situation questions; cite assessments by id.

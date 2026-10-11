@@ -1,11 +1,11 @@
 # 054 — SatDump Polar Overlays
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/054-CR-SatDump-Polar-Overlays.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -19,7 +19,7 @@
 
 ## Objective
 
-Turn decoded polar passes (Meteor-M LRPT, optional Metop AHRPT) into georeferenced map overlays with real footprints, and give passes without GeoTIFFs an approximate swath. Elaro only **reads** EPSG:4326/3857 GeoTIFFs that SatDump wrote into a pass folder; it never reimplements SatDump's projection. Add remote-Pi push ingest for media and pass bundles, and an optional GDAL path for exotic CRS.
+Turn decoded polar passes (Meteor-M LRPT, optional Metop AHRPT) into georeferenced map overlays with real footprints, and give passes without GeoTIFFs an approximate swath. Foresignal only **reads** EPSG:4326/3857 GeoTIFFs that SatDump wrote into a pass folder; it never reimplements SatDump's projection. Add remote-Pi push ingest for media and pass bundles, and an optional GDAL path for exotic CRS.
 
 ## Tasks
 
@@ -31,13 +31,13 @@ Turn decoded polar passes (Meteor-M LRPT, optional Metop AHRPT) into georeferenc
   - **No answer recorded:** default to the 1.2.2 composite `project`, best-effort, and say so in the CR.
 - Add one GeoTIFF fixture produced by that version (or a synthetic GeoTIFF with identical tags, documented as such, if no real sample is available).
 
-### 2. GeoTIFF reader (`ai.elaro.raster.geotiff`)
+### 2. GeoTIFF reader (`ai.foresignal.raster.geotiff`)
 
 - JDK `javax.imageio` TIFF plugin plus a small GeoKey parser: ModelPixelScale (33550), ModelTiepoint (33922), ModelTransformation (34264, axis-aligned only; rotation → reject), GeoKeyDirectory (34735).
 - Accept EPSG:4326 (`GeographicTypeGeoKey` 2048 = 4326) and EPSG:3857 (`ProjectedCSTypeGeoKey` 3072 = 3857); honour `GTRasterTypeGeoKey` (PixelIsArea vs PixelIsPoint half-pixel shift). Anything else → GDAL path (task 6) or rejection with health reason "GeoTIFF CRS EPSG:{n} not supported (build with WITH_GDAL=true)".
 - **BigTIFF** (header magic 43) → rejected with health reason "BigTIFF not supported" (or routed to GDAL when enabled).
 - **ImageGuard first:** read dimensions from the header and reject > 12,000 px per side or > 150 MP **before** decoding (043's guard). 8-bit RGB/RGBA and 16-bit grayscale; RGB without alpha gets alpha from a nodata/zero mask.
-- Output: an RGBA `affine` frame (grid `type=affine`, `definition{crs, a, b, c, d, e, f}`) through `ctx.rasters()` → FrameStore (`.elg` dtype 5 rgba8, deflate). Product per pass composite: dynamic product `satdump-{station}-{composite}` (049's dynamic-product mechanism), `temporal.type=pass`, `coverage: swath`, style `rgb@1`, ladder 30 d.
+- Output: an RGBA `affine` frame (grid `type=affine`, `definition{crs, a, b, c, d, e, f}`) through `ctx.rasters()` → FrameStore (`.fsg` dtype 5 rgba8, deflate). Product per pass composite: dynamic product `satdump-{station}-{composite}` (049's dynamic-product mechanism), `temporal.type=pass`, `coverage: swath`, style `rgb@1`, ladder 30 d.
 
 ### 3. Footprint and pass geometry
 
@@ -45,7 +45,7 @@ Turn decoded polar passes (Meteor-M LRPT, optional Metop AHRPT) into georeferenc
 - **Antimeridian:** unwrap longitudes; if the span crosses ±180, split into a MultiPolygon at 180 (test with a Bering Sea pass fixture).
 - Store as `raster_frame.footprint`; update the `satellite-pass` record geometry using the order **actual footprint → approximate swath → station point** (design §4.4). Add `products[].tilesTemplate` (content-addressed) to the pass payload. Re-processing a pass replaces the frame (new `sha8`) and writes one new pass version.
 - `polarGlob` param on `satdump-{station}` (default `**/*.tif`), matched only inside **ready** pass folders (049 readiness rules) with `InboxFiles` (NOFOLLOW, per-file realpath checks).
-- Copy the original GeoTIFF to `${ELARO_DATA_DIR}/rasters/satdump/{station}/{passId}/` as provenance (`.cadu` and basebands are never copied).
+- Copy the original GeoTIFF to `${FORESIGNAL_DATA_DIR}/rasters/satdump/{station}/{passId}/` as provenance (`.cadu` and basebands are never copied).
 
 ### 4. Approximate swath (Orekit)
 
@@ -58,19 +58,19 @@ Turn decoded polar passes (Meteor-M LRPT, optional Metop AHRPT) into georeferenc
 
 - `POST /v1/ingest/{sourceId}/media` and `POST /v1/ingest/{sourceId}/rasters`, ingest-key auth (024's `INGEST_KEY_OR_ADMIN`). Only sources whose descriptor sets `acceptsRemoteMedia=true` (the `satdump-*` family); others → 404 `NOT_FOUND`.
 - **Routing:** `media` and `rasters` are reserved segments and must win over 024's `/v1/ingest/{id}/{format}` IngestFormat route; register both names as reserved in the IngestFormat registry so no format can take them.
-- `/rasters`: `multipart/form-data` pass bundle: a `meta` JSON part `{passFolder, files[]}` plus file parts (`dataset.json`, `product.cbor`, PNG, TIF). Each file ≤ 25 MB (413 `MEDIA_TOO_LARGE`), bundle ≤ 200 MB, filenames sanitised (no separators, no dot-dot). Written atomically to `${ELARO_DATA_DIR}/rasters/satdump/{station}/incoming/{uploadId}/` (the inbox mount is read-only); the inbox loop scans this second root with the same parsers and treats a completed upload as ready. Returns 202 `{uploadId, passFolder}`.
+- `/rasters`: `multipart/form-data` pass bundle: a `meta` JSON part `{passFolder, files[]}` plus file parts (`dataset.json`, `product.cbor`, PNG, TIF). Each file ≤ 25 MB (413 `MEDIA_TOO_LARGE`), bundle ≤ 200 MB, filenames sanitised (no separators, no dot-dot). Written atomically to `${FORESIGNAL_DATA_DIR}/rasters/satdump/{station}/incoming/{uploadId}/` (the inbox mount is read-only); the inbox loop scans this second root with the same parsers and treats a completed upload as ready. Returns 202 `{uploadId, passFolder}`.
 - `/media`: single image + `meta {passId?, composite, timestamp, satellite}` → ImageGuard → MediaStore + thumbnails; attaches to the matching pass by the 049 join rule, else mints a pass.
 - Budget: these count against the source's LAN budget; recommend rsync/Syncthing (design §4.7 a) in docs as the primary path.
 
 ### 6. Optional GDAL (`WITH_GDAL`)
 
 - `Dockerfile` build-arg `WITH_GDAL=false`; when true install `gdal-bin` only (no AGPL drivers, no JNI).
-- `GdalWarp`: detect `gdalwarp --version` at startup (property `elaro.raster.gdal.enabled` auto); run `gdalwarp -t_srs EPSG:4326 -of GTiff -co COMPRESS=DEFLATE <in> <out>` via `ProcessBuilder` with an argument list, env `GDAL_CACHEMAX=256`, a 120-s timeout, inputs/outputs only under Elaro temp or inbox paths, on the decode pool. Used for non-4326/3857 GeoTIFFs and BigTIFF.
+- `GdalWarp`: detect `gdalwarp --version` at startup (property `foresignal.raster.gdal.enabled` auto); run `gdalwarp -t_srs EPSG:4326 -of GTiff -co COMPRESS=DEFLATE <in> <out>` via `ProcessBuilder` with an argument list, env `GDAL_CACHEMAX=256`, a 120-s timeout, inputs/outputs only under Foresignal temp or inbox paths, on the decode pool. Used for non-4326/3857 GeoTIFFs and BigTIFF.
 
 ### 7. Spec, Postman, docs
 
-- `docs/OpenAPI.json` (tag Ingest): `ingestSourceMedia`, `ingestSourceRasters` (multipart schemas, 202/413/404), `x-elaro-scope: open` (the value the spec uses for `/v1/ingest/{sourceId}`; the ingest key is checked by the endpoint); problem `MEDIA_TOO_LARGE`. `AccessPolicy`: covered by `INGEST_KEY_OR_ADMIN` on `/v1/ingest/**`; add explicit tests. Postman `BODIES` for both (multipart placeholders); regenerate.
-- `docs/Operator-Guide.md` SatDump section: the one producer config, `polarGlob`, remote Pi options (sync recommended; push endpoints with an ingest key), GDAL build-arg, health reasons. GPL boundary note: Elaro reads SatDump output only.
+- `docs/OpenAPI.json` (tag Ingest): `ingestSourceMedia`, `ingestSourceRasters` (multipart schemas, 202/413/404), `x-foresignal-scope: open` (the value the spec uses for `/v1/ingest/{sourceId}`; the ingest key is checked by the endpoint); problem `MEDIA_TOO_LARGE`. `AccessPolicy`: covered by `INGEST_KEY_OR_ADMIN` on `/v1/ingest/**`; add explicit tests. Postman `BODIES` for both (multipart placeholders); regenerate.
+- `docs/Operator-Guide.md` SatDump section: the one producer config, `polarGlob`, remote Pi options (sync recommended; push endpoints with an ingest key), GDAL build-arg, health reasons. GPL boundary note: Foresignal reads SatDump output only.
 - `docs/Source-Catalog.md` `satdump-{station}` row: polar overlays, footprints, swath fallback.
 
 ## Tests to write (do not run)

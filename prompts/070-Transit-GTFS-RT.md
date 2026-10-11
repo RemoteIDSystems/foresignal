@@ -1,11 +1,11 @@
 # 070 — Transit GTFS RT
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/070-CR-Transit-GTFS-RT.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -39,7 +39,7 @@ Both come from a static, code-reviewed feed list. Add a **MobilityData catalogue
 - Do not use the old `com.google.transit` artifact: it stopped at 0.0.4.
 - Parse with `FeedMessage.parseFrom` on a size-capped body (`maxResponseBytes` 16 MB). A protobuf parse failure → `UpstreamFormatException`. An HTML or JSON 200 is detected by its first byte before parsing.
 
-### 2. Reviewed feed list (`ai.elaro.source.adapters.transit.TransitFeeds`)
+### 2. Reviewed feed list (`ai.foresignal.source.adapters.transit.TransitFeeds`)
 
 - Port GEV's `TRANSIT_FEED_REGISTRY` to a Java record list. Fields: `id, name, operator, region, vehiclePositionsUrl, alertsUrl` (nullable), `headers, licence, licenceUrl, attribution, timeBase` (`VEHICLE|HEADER`), `routeMode` (function or default mode).
 - Endpoints verified 2026-10:
@@ -51,10 +51,10 @@ Both come from a static, code-reviewed feed list. Add a **MobilityData catalogue
 | `metrotransit-msp` | `https://svc.metrotransit.org/mtgtfs/vehiclepositions.pb` | `…/alerts.pb` | |
 | `hsl-helsinki` | `https://realtime.hsl.fi/realtime/vehicle-positions/v2/hsl` | `https://realtime.hsl.fi/realtime/service-alerts/v2/hsl` | CC BY 4.0. The Digitransit API host needs a subscription key, but these realtime hosts do not. |
 | `ovapi-nl` | `https://gtfs.ovapi.nl/nl/vehiclePositions.pb` | `https://gtfs.ovapi.nl/nl/alerts.pb` | README asks for an identifying UA, conditional GET when polling faster than 1/min, and gzip; terms otherwise unverified |
-| `entur-norway` | `https://api.entur.io/realtime/v1/gtfs-rt/vehicle-positions` | `https://api.entur.io/realtime/v1/gtfs-rt/alerts` | NLOD; **`ET-Client-Name: elaro-{installId}`** is mandatory; data refreshes every 15 s |
+| `entur-norway` | `https://api.entur.io/realtime/v1/gtfs-rt/vehicle-positions` | `https://api.entur.io/realtime/v1/gtfs-rt/alerts` | NLOD; **`ET-Client-Name: foresignal-{installId}`** is mandatory; data refreshes every 15 s |
 | `translink-seq` | `https://gtfsrt.api.translink.com.au/api/realtime/SEQ/VehiclePositions` | `…/SEQ/alerts` | CC BY 4.0 (unverified); text credit only |
 
-- The `ET-Client-Name` value is built from the install id, so each installation is identifiable. It is the only header a feed may add; `User-Agent` stays Elaro's.
+- The `ET-Client-Name` value is built from the install id, so each installation is identifiable. It is the only header a feed may add; `User-Agent` stays Foresignal's.
 
 ### 3. `transit-{id}` VehiclePositions (`TransitVehicleFamily`)
 
@@ -65,7 +65,7 @@ Both come from a static, code-reviewed feed list. Add a **MobilityData catalogue
   - motion `{speedField: speedMs, speedUnit: MPS, courseField: bearing}`; threshold `bearing` 30° angular.
   - Licence and attribution from the feed entry. `egress` OPEN unless the feed entry says otherwise.
 - **Time base, fixed per feed (CDM §2, rule 13):**
-  - `VEHICLE`: `observedAt = vehicle.timestamp`. A vehicle without one is dropped and counted (`elaro.transit.untimed{source}`), never given the header time.
+  - `VEHICLE`: `observedAt = vehicle.timestamp`. A vehicle without one is dropped and counted (`foresignal.transit.untimed{source}`), never given the header time.
   - `HEADER`: always `header.timestamp`.
   - Choose per feed from the fixture: VEHICLE when ≥ 95% of entities carry a timestamp.
 - **Record:**
@@ -104,11 +104,11 @@ Both come from a static, code-reviewed feed list. Add a **MobilityData catalogue
   - The legacy `bit.ly/catalogs-csv` / `sources.csv` (with `mdb_source_id`) is deprecated; do not use it.
 - **`MobilityCatalog`:** loads the snapshot. `search(country, query, entityType)`; `get(id)`.
 - **Enabling a catalogue feed:**
-  - bootstrap property `elaro.transit.catalog-feeds` (comma-separated MDB ids, default empty)
+  - bootstrap property `foresignal.transit.catalog-feeds` (comma-separated MDB ids, default empty)
   - at startup the family registers `transit-mdb-{id}` (vehicle positions, entity `vp`) and `transit-alerts-mdb-{id}` (`sa`), using only the vendored URL, `timeBase=HEADER` (unknown feeds), and licence from `urls.license` or "see provider terms"
   - each URL must pass 035's outbound URL policy at startup; on failure, skip it and log
   - a restart is required; document why: URLs are never accepted at runtime
-- **Admin search endpoint:** `GET /v1/transit/catalog?country=&q=&entityType=vp|tu|sa&limit=` (`x-elaro-scope: admin`) returns snapshot rows and whether each is already enabled. It is read-only, and there is no POST.
+- **Admin search endpoint:** `GET /v1/transit/catalog?country=&q=&entityType=vp|tu|sa&limit=` (`x-foresignal-scope: admin`) returns snapshot rows and whether each is already enabled. It is read-only, and there is no POST.
 
 ### 6. Fixtures
 
@@ -117,7 +117,7 @@ Both come from a static, code-reviewed feed list. Add a **MobilityData catalogue
 
 ### 7. Spec, catalogue, docs
 
-- `docs/OpenAPI.json`: `GET /v1/transit/catalog` with schema `TransitCatalogEntry`, `x-elaro-scope: admin`; add the AccessPolicy rule; regenerate Postman with `python3 scripts/generate-postman.py docs/OpenAPI.json postman`. MCP: none.
+- `docs/OpenAPI.json`: `GET /v1/transit/catalog` with schema `TransitCatalogEntry`, `x-foresignal-scope: admin`; add the AccessPolicy rule; regenerate Postman with `python3 scripts/generate-postman.py docs/OpenAPI.json postman`. MCP: none.
 - `docs/Source-Catalog.md`: the `transit-*` row (TTL 5 min, SAMPLED, per-feed time base, significant fields), new `transit-alerts-*` and `transit-mdb-*` rows, the verified endpoint table.
 - Operator Guide: "Adding a transit feed from the Mobility Database" (search, property, restart, licence check).
 - `THIRD_PARTY_NOTICES.md`: GEV entries for `transitFeeds.js`, `gtfsRealtime.js` and `transitService.js`; MobilityData catalogue (CC0); gtfs-realtime-bindings (Apache-2.0); protobuf-java (BSD-3).

@@ -5,7 +5,7 @@ plugins {
     jacoco
 }
 
-group = "ai.elaro"
+group = "ai.foresignal"
 version = "0.1.0-SNAPSHOT"
 
 java {
@@ -64,7 +64,7 @@ tasks.processResources {
 }
 
 tasks.bootJar {
-    archiveFileName = "elaro.jar"
+    archiveFileName = "foresignal.jar"
 }
 
 jacoco {
@@ -85,7 +85,7 @@ tasks.jacocoTestCoverageVerification {
     // behaviour worth covering.
     classDirectories.setFrom(
         files(sourceSets.main.get().output.classesDirs).asFileTree.matching {
-            exclude("ai/elaro/ElaroApplication*")
+            exclude("ai/foresignal/ForesignalApplication*")
         }
     )
     violationRules {

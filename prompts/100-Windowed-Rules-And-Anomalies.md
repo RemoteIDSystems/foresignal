@@ -1,11 +1,11 @@
 # 100 — Windowed Rules And Anomalies
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/100-CR-Windowed-Rules-And-Anomalies.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -32,7 +32,7 @@ Add rules that reason over time windows instead of single version edges: **count
 
 ## Tasks
 
-### 1. Rule model (`ai.elaro.trigger.window`)
+### 1. Rule model (`ai.foresignal.trigger.window`)
 
 - Add `trigger_rule.type`: `record` (default, the existing engine) | `count` | `absence` | `anomaly`. Existing rules migrate to `record`.
 - Add the jsonb column `window_spec`. Validate it per type:
@@ -129,7 +129,7 @@ Add rules that reason over time windows instead of single version edges: **count
 ### 6. Spec, Postman, docs
 
 - `docs/OpenAPI.json`:
-  - the schemas and operations above, each with `x-elaro-scope`;
+  - the schemas and operations above, each with `x-foresignal-scope`;
   - the `rule-windows` kinds in the kind docs;
   - regenerate Postman with `python3 scripts/generate-postman.py docs/OpenAPI.json postman`, and add BODIES examples for a count rule, an absence rule and an anomaly rule, plus `rebuildBaseline`.
 - AccessPolicy: GET window-state, baseline and anomalies → READ; POST rebuild → AGENT.

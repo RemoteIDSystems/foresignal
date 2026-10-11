@@ -1,11 +1,11 @@
 # 109 — Licence And Provenance
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/109-CR-Licence-And-Provenance.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -26,7 +26,7 @@ Make licence, provenance and reliability first-class on every record and every e
 
 ## Tasks
 
-### 1. Structured licence terms (`ai.elaro.provenance`)
+### 1. Structured licence terms (`ai.foresignal.provenance`)
 
 - **`LicenceTerms`** record: `id` (SPDX id where one exists, e.g. `CC-BY-4.0`, `ODbL-1.0`, `CC0-1.0`, `CC-BY-NC-SA-4.0`; else a slug like `us-gov-public-domain`, `opensky-terms`, `acled-terms`, `aisstream-terms`, `unknown`), `name`, `commercialUse` (`ALLOWED | FORBIDDEN | UNKNOWN`), `shareAlike` (bool), `attributionRequired` (bool), `redistribution` (`ALLOWED | LOCAL_ONLY | FORBIDDEN | UNKNOWN`), `attributionText`, `termsUrl`.
 - **`LicenceCatalog`**: built-in entries for the ids above plus `CC-BY-SA-4.0`, `CC-BY-NC-4.0`, `PDDL-1.0`, `OGL-UK-3.0`, `NLOD-2.0`, `DL-DE-BY-2.0`. Loaded from `src/main/resources/provenance/licences.json` so new entries need no code.
@@ -44,7 +44,7 @@ Make licence, provenance and reliability first-class on every record and every e
 ### 2. Per-record licence resolution
 
 - **Rule:** a version's licence is `fetch_log.licence` of its `batch_id` (Core-Data-Model §14). `FetchExecutor` (010) must snapshot the resolved terms id there; check it does and add it if missing. PUSH batches (024) snapshot the custom source's terms.
-- **Overrides**, applied in order: per-record MLAT downgrade (task 1); a per-record `_elaro.originLicence` for peer sources (113; declare `_elaro` a volatile field there); otherwise the batch licence.
+- **Overrides**, applied in order: per-record MLAT downgrade (task 1); a per-record `_foresignal.originLicence` for peer sources (113; declare `_foresignal` a volatile field there); otherwise the batch licence.
 - **`LicenceResolver`**:
   - `resolve(List<RecordKey+seq>)` → `Map<seq, LicenceTerms>` with **one query per response**: `SELECT v.seq, f.licence FROM record_version v LEFT JOIN fetch_log f ON f.id = v.batch_id WHERE v.seq = ANY(:seqs)`. Use the head's `seq` for current reads (014 already returns `seq`).
   - Fall back to the source's current descriptor terms when `batch_id` is null or the fetch row is gone, and mark `licenceBasis: "descriptor"`.
@@ -54,11 +54,11 @@ Make licence, provenance and reliability first-class on every record and every e
 ### 3. Client licence policy and filtering
 
 - **Policy flags:** `no-nc` (exclude `commercialUse != ALLOWED`), `no-sa` (exclude `shareAlike`), `redistributable` (exclude `redistribution != ALLOWED`). `LicencePolicy` is an immutable set of flags.
-- **Inputs:** request header `Elaro-Licence-Policy: no-nc, no-sa` or query `licencePolicy=no-nc,no-sa`; and a per-token default: add `licence_policy text[]` to `api_token` (023) and accept it on token create/update. The token policy is a **floor**: a request may add flags but cannot remove the token's flags.
-- **Applied on** every record-returning read: `/v1/records`, `/v1/history`, `/v1/changes`, SSE (015: filter events; never send excluded records), tiles (016: drop features), `/v1/search`, MCP read tools (025), Ask and briefing context (028/029: excluded records never reach the model). Filtered responses add `licenceFiltered: <count>` (or `Elaro-Licence-Filtered` header for streams and tiles). Where a policy can exclude a whole source cheaply, prune the source in SQL before reading.
+- **Inputs:** request header `Foresignal-Licence-Policy: no-nc, no-sa` or query `licencePolicy=no-nc,no-sa`; and a per-token default: add `licence_policy text[]` to `api_token` (023) and accept it on token create/update. The token policy is a **floor**: a request may add flags but cannot remove the token's flags.
+- **Applied on** every record-returning read: `/v1/records`, `/v1/history`, `/v1/changes`, SSE (015: filter events; never send excluded records), tiles (016: drop features), `/v1/search`, MCP read tools (025), Ask and briefing context (028/029: excluded records never reach the model). Filtered responses add `licenceFiltered: <count>` (or `Foresignal-Licence-Filtered` header for streams and tiles). Where a policy can exclude a whole source cheaply, prune the source in SQL before reading.
 - **Aggregated attribution** on every record-returning response:
   - JSON pages and GeoJSON FeatureCollections gain `attributions: [{sourceId, licence, text, termsUrl, count}]` (foreign member in GeoJSON).
-  - Every such response also carries `Link: <termsUrl>; rel="license"` per distinct licence (cap 10) and `Elaro-Attribution` with the joined `attributionText` (≤ 1 KB, truncated with "…").
+  - Every such response also carries `Link: <termsUrl>; rel="license"` per distinct licence (cap 10) and `Foresignal-Attribution` with the joined `attributionText` (≤ 1 KB, truncated with "…").
   - TileJSON (016) `attribution` is the aggregate for the layer's sources.
   - `GET /v1/attributions?source=&kind=` (read) returns the aggregate for a scope (for SSE clients and map footers).
 - `include=provenance` on records adds a `provenance` block: `licence` (terms), `licenceBasis`, `fetchId`, `adapterVersion`, `principal` (admin only), `reliability`, `credibility`, `grade`.
@@ -75,7 +75,7 @@ Make licence, provenance and reliability first-class on every record and every e
 | FORBIDDEN | yes (own use) | no | no (EXPORT: only with `personalUse=true`, sidecar marks "do not redistribute") | no |
 
 - `private` sources (039) are evaluated first: excluded on every path except `API_READ`/`TILE`/`SSE`/`MCP` for permitted tokens and `ARCHIVE`, regardless of licence.
-- Each denial counts `elaro.licence.egress.denied{path,licence}`. List every egress path in `docs/Operator-Guide.md` "Licences and egress" with this table; sinks (110) are an egress path.
+- Each denial counts `foresignal.licence.egress.denied{path,licence}`. List every egress path in `docs/Operator-Guide.md` "Licences and egress" with this table; sinks (110) are an egress path.
 
 ### 5. Reliability and credibility (Admiralty code)
 
@@ -96,13 +96,13 @@ Make licence, provenance and reliability first-class on every record and every e
 - **Rotate:** `POST /v1/system/signing-key/rotate` (admin) retires the current key and activates a new one; audit event (023).
 - **`JwsSigner.signDetached(byte[] payload, String typ)`:** protected header `{"alg":"Ed25519","kid":…,"typ":typ,"b64":false,"crit":["b64"],"iat":…,"iss":<instance id>}`; signing input = `ASCII(BASE64URL(header)) || '.' || payload`; output `header..signature`. Setting `signing.legacyAlg=true` emits `"alg":"EdDSA"` for older verifiers. `JwsVerifier` verifies against the JWKS (used by 113 peer pinning).
 - **Apply to:**
-  - Briefing runs (029): sign the stored markdown bytes; `BriefingRun.signature`, header `Elaro-Signature` on `GET /v1/briefings/{id}/runs/{runId}` markdown and HTML renditions (sign each rendition separately).
+  - Briefing runs (029): sign the stored markdown bytes; `BriefingRun.signature`, header `Foresignal-Signature` on `GET /v1/briefings/{id}/runs/{runId}` markdown and HTML renditions (sign each rendition separately).
   - Exports (111): sign `manifest.json`. Provide `ManifestSigner` now so 111 only calls it.
   - Document a verification recipe (Python `jwcrypto`, Node `jose`) in `docs/Operator-Guide.md`. C2PA stays deferred; no Sigstore (Gap §9).
 
 ### 7. Spec, Postman, docs
 
-- `docs/OpenAPI.json`: schemas `LicenceTerms`, `Attribution`, `Provenance`, `SigningKeyInfo`; `attributions` and `licenceFiltered` on `RecordPage`, `FeatureCollection`, `HistoryPage`, `ChangePage`, `SearchResult`; `licencePolicy` query parameter and `Elaro-Licence-Policy` header on every record-returning operation; `include=provenance`; `reliability` on `SourceDescriptor`/`SourceSettingsUpdate`; `licenceTerms` on `SourceDescriptor` and custom-source schemas; `licencePolicy` on token create/update; `signature` on `BriefingRun`; operations `getAttributions` (read), `getJwks` (open), `rotateSigningKey` (admin), each with `x-elaro-scope`. Update `AccessPolicy` (`/.well-known/**` open, the rest as listed). Regenerate Postman (`python3 scripts/generate-postman.py docs/OpenAPI.json postman`; add a BODIES entry for `rotateSigningKey` if it takes a body).
+- `docs/OpenAPI.json`: schemas `LicenceTerms`, `Attribution`, `Provenance`, `SigningKeyInfo`; `attributions` and `licenceFiltered` on `RecordPage`, `FeatureCollection`, `HistoryPage`, `ChangePage`, `SearchResult`; `licencePolicy` query parameter and `Foresignal-Licence-Policy` header on every record-returning operation; `include=provenance`; `reliability` on `SourceDescriptor`/`SourceSettingsUpdate`; `licenceTerms` on `SourceDescriptor` and custom-source schemas; `licencePolicy` on token create/update; `signature` on `BriefingRun`; operations `getAttributions` (read), `getJwks` (open), `rotateSigningKey` (admin), each with `x-foresignal-scope`. Update `AccessPolicy` (`/.well-known/**` open, the rest as listed). Regenerate Postman (`python3 scripts/generate-postman.py docs/OpenAPI.json postman`; add a BODIES entry for `rotateSigningKey` if it takes a body).
 - MCP (025 registry): add `get_attributions`; include `grade` and licence in `get_record` long output.
 - `docs/Source-Catalog.md`: add a `Licence` value per row matching the descriptor (full column restructure happens in 131). `docs/Adapter-Guide.md`: "Licence terms and reliability" section (required fields, MLAT rule, `derivedFrom`).
 

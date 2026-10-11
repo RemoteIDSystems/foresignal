@@ -1,11 +1,11 @@
 # 079 — Hydrology And Coast
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/079-CR-Hydrology-And-Coast.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -24,7 +24,7 @@ Add river, snow, drought and coastal water sources so flood and water triggers h
 
 ## Tasks
 
-Common: package `ai.elaro.source.adapters.hydro.<name>`; `historyTier=STANDARD`, policy ALL; measurement time base (`observedAt = eventTime` = measurement time, `ttlAnchor=OBSERVED`) unless stated; `fieldSpecs` with UCUM units; scrub sentinels (`-999`, `-9999`, `0001-01-01T00:00:00Z`) to omitted fields; all sources **disabled** by default; US federal data is public domain unless stated.
+Common: package `ai.foresignal.source.adapters.hydro.<name>`; `historyTier=STANDARD`, policy ALL; measurement time base (`observedAt = eventTime` = measurement time, `ttlAnchor=OBSERVED`) unless stated; `fieldSpecs` with UCUM units; scrub sentinels (`-999`, `-9999`, `0001-01-01T00:00:00Z`) to omitted fields; all sources **disabled** by default; US federal data is public domain unless stated.
 
 ### 1. `usgs-water` (OGC kit)
 
@@ -57,7 +57,7 @@ Common: package `ai.elaro.source.adapters.hydro.<name>`; `historyTier=STANDARD`,
 ### 5. `noaa-coops-tides`
 
 - Params: `stations` (string-list, **required**, ≤ 20), validated against the water-level station list `https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations.json?type=waterlevels` (777 KB; cached 7 d).
-- Every run, per station: `https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station={id}&date=latest&datum=MLLW&units=metric&time_zone=gmt&application=Elaro&format=json` (verified 2026-10: `{metadata{id,name,lat,lon}, data:[{t, v, s, f, q}]}`, values are strings; `q` `p` preliminary / `v` verified). The `application` parameter is required by CO-OPS etiquette.
+- Every run, per station: `https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station={id}&date=latest&datum=MLLW&units=metric&time_zone=gmt&application=Foresignal&format=json` (verified 2026-10: `{metadata{id,name,lat,lon}, data:[{t, v, s, f, q}]}`, values are strings; `q` `p` preliminary / `v` verified). The `application` parameter is required by CO-OPS etiquette.
 - Every 6 h per station: `product=predictions&interval=hilo&date=today` plus tomorrow (`begin_date`/`end_date`) → next high and low after now.
 - Daily per station: `…/mdapi/prod/webapi/stations/{id}/floodlevels.json` (verified: `nos_minor, nos_moderate, nos_major, nws_minor, nws_moderate, nws_major, action`, in feet) and `…/stations/{id}/datums.json`. Flood levels are not relative to MLLW (The Battery: NOS minor 10.19 ft while the MLLW water level was 1.4 m), so confirm their reference datum in the CO-OPS metadata docs during capture and convert with the station datums before comparing. Compute `floodCategory` (`none|action|minor|moderate|major`) from the NOS thresholds (fallback NWS).
 - Record `kind = tide-gauge`, `externalId = station id`, point from metadata; payload `name, waterLevelM, datum` (`MLLW`), `sigmaM, quality, nextHighTime, nextHighM, nextLowTime, nextLowM, floodCategory, minorFloodM, moderateFloodM, majorFloodM` (converted to MLLW metres). `observedAt = eventTime = t` (GMT). TTL 1 h.

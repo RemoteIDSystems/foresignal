@@ -1,6 +1,6 @@
-# Elaro — Roadmap
+# Foresignal — Roadmap
 
-One ordered list of prompts that takes Elaro from an empty repository to a production-ready release.
+One ordered list of prompts that takes Foresignal from an empty repository to a production-ready release.
 
 - **Companion docs:** [Executive Summary](Executive-Summary.md), [Product Charter](Product-Charter.md), [Architecture](Architecture.md), [OpenAPI spec](OpenAPI.json), [Source Catalog](Source-Catalog.md).
 - **v1.2 design inputs:**
@@ -97,7 +97,7 @@ Legend: ✅ checkpoint.
 | 025 | MCP-Server | Tools with scopes, output shaping, `set_alert_status`, legacy SSE flag | Ready |
 | 026 | LLM-Providers | Anthropic SDK, OpenAI-compatible, Ollama; roles, budgets, usage, health | Ready |
 | 027 | Embeddings-And-Semantic-Search | pgvector DB image, worker, zero-downtime dual-index reindex, `/v1/search` | Ready |
-| 028 | Ask-Elaro | Tool loop, verified citations, threads, proposed actions, streaming | Ready |
+| 028 | Ask-Foresignal | Tool loop, verified citations, threads, proposed actions, streaming | Ready |
 | 029 | Scheduled-Briefings | Digest and LLM briefings, `GET /v1/digest`, HTML renditions | Ready |
 | 030 | Alert-Enrichment | LLM context on alerts, enrichment wait | Ready |
 | 031 | Web-Push | VAPID, RFC 8291, PushTransport SPI, UnifiedPush | Ready |
@@ -116,7 +116,7 @@ Legend: ✅ checkpoint.
 
 | # | Prompt | Scope | Status |
 |---|---|---|---|
-| 042 | Raster-Products-Core | ProductSpec registry, frames, `.elg` codec, FrameStore, raster-frame records, `/v1/products` | Ready |
+| 042 | Raster-Products-Core | ProductSpec registry, frames, `.fsg` codec, FrameStore, raster-frame records, `/v1/products` | Ready |
 | 043 | Media-Store-And-Image-Guard | Content-addressed media, ImageGuard, thumbnails, `/v1/media` | Ready |
 | 044 | History-Downsampling | Track-leaf rewrite-and-swap, asOf widening | Ready |
 | 045 | Raster-Tiles-And-Styles | Grid defs, renderer, styles and legends, TileJSON, `/image`, `/loop`, render queue, external catalogue | Ready |
@@ -202,7 +202,7 @@ Legend: ✅ checkpoint.
 | 110 | Outbound-Sinks | Sink SPI with cursors; MQTT retained state; CoT/TAK; readsb `aircraft.json`/SBS; NMEA AIVDM; APRS-IS serve; CloudEvents | Ready |
 | 111 | Exports-Archive-And-Offline-Packs | GeoParquet/GeoPackage/FlatGeobuf/GPX exports, `atSeq` snapshots and holds, cold archive, PMTiles packs | Ready |
 | 112 | Standards-And-Headerless-Outputs | OGC API Features, CAP output, iCalendar, share links | Ready |
-| 113 | Federation-And-Edge-Relay | Elaro-to-Elaro replication with provenance and loop prevention; compact intelligence messages for MeshDTN | Ready |
+| 113 | Federation-And-Edge-Relay | Foresignal-to-Foresignal replication with provenance and loop prevention; compact intelligence messages for MeshDTN | Ready |
 | 114 | Pattern-Of-Life-And-Trip-Watch | Pattern of life, trip and commute corridor watch, kinematic CPA/ETA | Ready |
 | 115 | Exercise-Replay-And-Alert-Quality | Exercise/replay mode, alert-quality feedback tuning | Ready |
 
@@ -214,7 +214,7 @@ Design: [Intelligence Design](Intelligence-Design.md).
 |---|---|---|---|
 | 116 | Market-And-Attention-Signals | CFTC COT (with history backfill), FRED (local-only), Wikimedia pageviews, GDELT timelines, World Bank indicators; attention topics; series metadata for event studies | Ready |
 | 117 | Situations-And-Storylines | Persistent storylines: deterministic linker, lifecycle, daily snapshots and "what changed", themes, self-refreshing briefs, merge/split | Ready |
-| 118 | Change-Points-And-Event-Studies | Region rollups, `SeriesReader`, analysis-series registry, findings (`elaro-analytics`), CUSUM and BOCPD change points, event studies, pre-event signals, unexplained moves, co-occurrence mining with FDR | Ready |
+| 118 | Change-Points-And-Event-Studies | Region rollups, `SeriesReader`, analysis-series registry, findings (`foresignal-analytics`), CUSUM and BOCPD change points, event studies, pre-event signals, unexplained moves, co-occurrence mining with FDR | Ready |
 | 119 | Precursor-Mining-And-Library | Candidate generation (event streams and series lead–lag), FDR, out-of-sample validation, precursor library and lifecycle, live `precursor-active` | Ready |
 | 120 | Base-Rates-And-Historical-Analogs | Reference-history imports (UCDP, ACLED, USGS, GDACS), base-rate library with intervals, reporting density, situation signatures and analog search | Ready |
 | 121 | Forecast-Ledger-And-Scoring | Questions and machine resolvers, immutable forecasts, baseline forecasters, Brier/log/RPS/CRPS, CORP calibration, bias monitor, ensemble with Platt recalibration, leak-free retrospective evaluation, ICD 203 wording | Ready |
@@ -234,7 +234,7 @@ Design: [Intelligence Design](Intelligence-Design.md).
 | 130 | Runtime-Verification | Live soak on the bench server: storage, WAL, persist ratio, storms, restore drill, Tailscale profile, metrics drift; intelligence jobs' runtime and storage | Ready |
 | 131 | Production-Hardening | Docs consolidation into Architecture/Charter, Flyway baseline (tiered DDL, all indexes), `ddl-auto=validate`, oasdiff, release `v1.0.0` | Ready |
 
-**Outside this repository:** client applications built on Elaro have their own repositories and roadmaps:
+**Outside this repository:** client applications built on Foresignal have their own repositories and roadmaps:
 - the web globe and operator console
 - Flutter desktop and mobile apps
 - the Home Assistant HACS integration
@@ -261,6 +261,22 @@ Some older prompt text, and the design docs, still use earlier numbers. Translat
 | 120 Production-Hardening | 131 | |
 
 Completion Reports 001–005 and the design docs written before 2026-10-11 use v1.2 numbers; where they say 116–120, read 127–131.
+
+**Product rename (2026-10-11): Elaro → Foresignal.** Completion Reports 001–005 (and any text written before the rename) use the old names. Translate:
+
+| Old | New |
+|---|---|
+| Elaro / `elaro` / `ELARO` | Foresignal / `foresignal` / `FORESIGNAL` |
+| package `ai.elaro` (`src/*/java/ai/elaro`) | `ai.foresignal` (`src/*/java/ai/foresignal`) |
+| `ElaroApplication`, `ElaroProperties`, `ElaroVersion`, `ElaroException` | `ForesignalApplication`, `ForesignalProperties`, `ForesignalVersion`, `ForesignalException` |
+| env `ELARO_*`, properties `elaro.*` | `FORESIGNAL_*`, `foresignal.*` |
+| headers `X-Elaro-*`, `Elaro-*`; OpenAPI `x-elaro-*` | `X-Foresignal-*`, `Foresignal-*`; `x-foresignal-*` |
+| token and key prefixes `elr_`, `elf_`, `els_`, `elk_`, `elt_`, `elp_` | `fsr_`, `fsf_`, `fss_`, `fsk_`, `fst_`, `fsp_` |
+| DERIVED sources `elaro-intel`, `elaro-analytics`, `elaro-outlook` | `foresignal-intel`, `foresignal-analytics`, `foresignal-outlook` |
+| raster frame files `.elg`, magic `ELRG` | `.fsg`, magic `FSRG` |
+| domain `elaro.ai`; repo `gitlab.com/adam.allard/elaro`; path `~/Documents/GitLab/elaro` | `foresignal.ai`; `gitlab.com/adam.allard/foresignal`; `~/Documents/GitLab/foresignal` |
+| prompt `028-Ask-Elaro` | `028-Ask-Foresignal` |
+
 
 **Roadmap v1.1 → v1.2:**
 
@@ -341,5 +357,5 @@ Its "extend NNN" items apply to the renumbered prompt: translate NNN with the v1
 
 ## 6. API tooling
 
-- `postman/Elaro.postman_collection.json` and `postman/Elaro-Local.postman_environment.json` are generated from `docs/OpenAPI.json` by `scripts/generate-postman.py`. Any prompt that changes the spec regenerates them.
+- `postman/Foresignal.postman_collection.json` and `postman/Foresignal-Local.postman_environment.json` are generated from `docs/OpenAPI.json` by `scripts/generate-postman.py`. Any prompt that changes the spec regenerates them.
 - Prompt 020 adds a contract test that fails when any operation is missing from the collection.

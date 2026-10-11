@@ -1,11 +1,11 @@
 # 081 — Conflict Sources
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/081-CR-Conflict-Sources.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -35,29 +35,29 @@ Add conflict and civil-alert sources: the daily DeepState occupied-area polygon,
 - Bundle geoBoundaries `UKR` ADM1 (oblasts, incl. Kyiv city and Crimea/Sevastopol) and ADM2 (raions), CC BY 4.0, simplified to ≤ 1,500 vertices per polygon, ≤ 2 MB total; record version and attribution in a `NOTICE` and `THIRD_PARTY_NOTICES.md`.
 - `UaRegionIndex`: lookup by alerts.in.ua `location_uid` / `location_oblast_uid` and by siren.pp.ua `regionId`. Build both crosswalk tables (`alerts-in-ua-uids.json`, `siren-region-ids.json`) during fixture capture from the upstream region lists and names; unmatched ids log once and yield null geometry.
 
-### 3. `alerts-in-ua` (`ai.elaro.source.adapters.alertsinua`)
+### 3. `alerts-in-ua` (`ai.foresignal.source.adapters.alertsinua`)
 
-- `GET https://api.alerts.in.ua/v1/alerts/active.json` with required credential `token`, sent as `Authorization: Bearer` (never as a query param). Verified 2026-10 (developer docs): soft limit 8–10 requests/min per IP, hard limit 12/min (429; systematic violation blocks the IP and token); use `If-Modified-Since` with `Last-Modified` (conditional GET); the token must stay server-side (Elaro proxies; never expose it to clients).
+- `GET https://api.alerts.in.ua/v1/alerts/active.json` with required credential `token`, sent as `Authorization: Bearer` (never as a query param). Verified 2026-10 (developer docs): soft limit 8–10 requests/min per IP, hard limit 12/min (429; systematic violation blocks the IP and token); use `If-Modified-Since` with `Last-Modified` (conditional GET); the token must stay server-side (Foresignal proxies; never expose it to clients).
 - Fields: `id, location_title, location_title_en, location_type` (`oblast|raion|city|hromada|unknown`), `started_at, finished_at, updated_at, alert_type` (`air_raid|artillery_shelling|urban_fights|chemical|nuclear`), `location_uid, location_oblast, location_oblast_uid, location_raion, notes, alert_level` (`red|yellow`), `threats[{threat_type, level, started_at, source_message}]`.
 - Record: `kind = air-raid-alert` for `air_raid`, else `threat-alert`; `externalId = id`; geometry = oblast or raion polygon from `UaRegionIndex` (city/hromada → parent raion with payload `geometryApproximate: true`); payload `location, locationEn, locationType, oblast, raion, alertType, alertLevel, threatTypes` (sorted list), `notes` (≤ 1 KB, untrusted); `observedAt = updated_at`, `eventTime = started_at`. Drop `source_message` text from threats (unverified relays).
 - End of alert: an alert absent from the active list is tombstoned by `AbsenceTombstoner` (two consecutive complete fetches, ≤ 60 s at the default interval); a record that arrives with `finished_at` set is tombstoned at once.
 - Descriptor: interval 30 s (min 20 s), budget 3/min, 4,320/day, STANDARD, ALL, no TTL, `zeroResultsNormal=true`, `titleField=locationEn`, tile `alertType, alertLevel, location`. Licence: no published terms (docs include a no-liability disclaimer and say the data is not for critical infrastructure): `licence = "unspecified (alerts.in.ua)"`, `egress=OPEN`, attribution "alerts.in.ua". Put the disclaimer in `description`.
 
-### 4. `ua-air-raid-siren` (`ai.elaro.source.adapters.uasiren`)
+### 4. `ua-air-raid-siren` (`ai.foresignal.source.adapters.uasiren`)
 
 - `GET https://siren.pp.ua/api/v3/alerts` (verified 2026-10: live data, ETag, 38 regions with alerts; types `AIR`, `ARTILLERY`, `URBAN_FIGHTS`; fields `regionId, regionType` (`State|District|Community`), `regionName, regionEngName, lastUpdate, activeAlerts[{regionId, regionType, type, lastUpdate, activeAlertLevels[{alertLevel, reason, createdAt}]}]`).
 - Terms check (verified 2026-10): siren.pp.ua is a public wrapper around `api.ukrainealarm.com` run by an individual (`PaulAnnekov/uasiren`, last code push 2022); the README states a limit of 50 requests/min per IP and no licence or terms. Ship it disabled, `licence = "unspecified (siren.pp.ua wrapper of ukrainealarm.com)"`, and say in `description` that `alerts-in-ua` is the preferred keyed source and that the official `api.ukrainealarm.com` needs an application key.
 - Record: one per region and alert type: `externalId = regionId + ":" + type`; `kind = air-raid-alert` for `AIR`, else `threat-alert`; geometry from `UaRegionIndex`; payload `region, regionEn, regionType, alertType, alertLevel` (highest of `activeAlertLevels`); `observedAt = lastUpdate` (of the alert), `eventTime` = earliest `createdAt`. Absence → tombstone (two misses). Some regions show alerts unchanged since 2022 (occupied areas): normal, not stale data.
 - Interval 30 s (min 15 s), budget 4/min, 4,000/day, conditional GET.
 
-### 5. `deepstate-frontline` (`ai.elaro.source.adapters.deepstate`)
+### 5. `deepstate-frontline` (`ai.foresignal.source.adapters.deepstate`)
 
 - Daily file from the GitHub mirror: `https://raw.githubusercontent.com/cyterat/deepstate-map-data/{ref}/data/deepstatemap_data_{yyyyMMdd}.geojson`. Verified 2026-10: one Feature, empty properties, MultiPolygon of about 2,900 vertices (77 KB), `crs` CRS84, ETag and `Cache-Control: max-age=300`; the README says files update daily at about 03:00 UTC.
 - Fetch today's UTC date; on 404 try yesterday; conditional GET per file name. Params: `ref` (default `main`; may be a 40-hex commit SHA to **pin** the data) and `fileDate` (required when `ref` is a SHA, since a pinned commit has a fixed newest file). With a pinned ref, fetch once and return not-modified afterwards.
 - Record: `kind = frontline`, single `externalId = occupied-area`; geometry as published (simplify only above 9,500 vertices); payload `mapDate, areaKm2` (geodesic area), `areaChangeKm2` (vs the previous map, kept in state), `ref`; `observedAt = eventTime = mapDate` at 03:00Z (UPSTREAM; fixed). Each daily map with changed geometry is a new version, which is the point: asOf and `/track`-style history show the front over time.
-- Descriptor: interval 6 h (min 1 h), budget 1/min, 20/day, STANDARD, ALL, no TTL. Licence: the mirror repository is GPL-3.0 (Elaro downloads data only, no code); DeepStateMap itself publishes no data terms → `licence = "GPL-3.0 mirror; DeepStateMap terms unspecified"`, `egress=OPEN`, attribution "DeepStateMap.Live via cyterat/deepstate-map-data".
+- Descriptor: interval 6 h (min 1 h), budget 1/min, 20/day, STANDARD, ALL, no TTL. Licence: the mirror repository is GPL-3.0 (Foresignal downloads data only, no code); DeepStateMap itself publishes no data terms → `licence = "GPL-3.0 mirror; DeepStateMap terms unspecified"`, `egress=OPEN`, attribution "DeepStateMap.Live via cyterat/deepstate-map-data".
 
-### 6. `acled` (`ai.elaro.source.adapters.acled`)
+### 6. `acled` (`ai.foresignal.source.adapters.acled`)
 
 - Auth (verified 2026-10, ACLED getting-started guide): required credentials `email`, `password` (encrypted at rest). `POST https://acleddata.com/oauth/token` (form: `username`, `password`, `grant_type=password`, `client_id=acled`, `scope=authenticated`) → access token (24 h) and refresh token (14 d). Keep both in memory only; refresh with `grant_type=refresh_token`; on restart log in again. Token requests count against the budget. An unauthenticated `api/acled/read` returns 403 `Access denied`.
 - Data: `GET https://acleddata.com/api/acled/read?_format=json&limit=5000&page={n}&timestamp={cursor}&timestamp_where=>=&fields=event_id_cnty|event_date|timestamp|disorder_type|event_type|sub_event_type|actor1|actor2|interaction|civilian_targeting|country|iso|admin1|admin2|location|latitude|longitude|geo_precision|time_precision|fatalities|source|notes` plus `iso={codes}` from param `countries` (ISO numeric list, required, ≤ 30). First run: `event_date` window of `lookbackDays` (default 30). Deletions: `GET /api/deleted/read?timestamp={cursor}` → tombstones by `event_id_cnty`. Advance the cursor (max `timestamp` seen) only after all pages succeed. Check field and filter names against the "Elements of ACLED's API" guide during capture.
@@ -65,7 +65,7 @@ Add conflict and civil-alert sources: the daily DeepState occupied-area polygon,
 - Access tiers: what an account receives (event-level rows, recency) depends on its ACLED access level; surface 403 after a successful login as health reason "account access level does not allow this query".
 - Descriptor: interval 6 h (min 1 h), budget 2/min, 200/day, STANDARD, ALL, no TTL. `licence = "ACLED Terms of Use: no redistribution of raw data"`, `egress=LOCAL_ONLY`, attribution "Armed Conflict Location & Event Data (ACLED), acleddata.com".
 
-### 7. `ucdp-ged` (`ai.elaro.source.adapters.ucdp`)
+### 7. `ucdp-ged` (`ai.foresignal.source.adapters.ucdp`)
 
 - Required credential `token`, header `x-ucdp-access-token` (verified 2026-10: 401 "API token required. Add header: x-ucdp-access-token" without it; tokens are issued on request by the API maintainer). Limit 5,000 requests/day, errors included → budget 2/min, 300/day.
 - Version discovery (daily, cached in state): the docs name annual GED `26.1` and monthly candidate releases `YY.0.M` (e.g. `26.0.8`). Probe `GET https://ucdpapi.pcr.uu.se/api/gedevents/{YY}.0.{M}?pagesize=1` from the current month backwards (at most 14 probes, crossing into the previous year); the first version with `TotalCount > 0` is current. Param `version` overrides discovery.

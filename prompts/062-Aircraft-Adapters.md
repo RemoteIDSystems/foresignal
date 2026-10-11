@@ -1,11 +1,11 @@
 # 062 — Aircraft Adapters
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/062-CR-Aircraft-Adapters.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -28,9 +28,9 @@ Add the global aircraft sources: `adsblol-mil` (military worldwide), an optional
 
 ## Tasks
 
-### 1. Shared readsb mapper (`ai.elaro.source.formats.readsb`)
+### 1. Shared readsb mapper (`ai.foresignal.source.formats.readsb`)
 
-Shared format code lives under `ai.elaro.source.formats.*` (not under `adapters`), so adapters may import it without breaking the no-cross-adapter rule. Document this in the Adapter Guide.
+Shared format code lives under `ai.foresignal.source.formats.*` (not under `adapters`), so adapters may import it without breaking the no-cross-adapter rule. Document this in the Adapter Guide.
 
 - `ReadsbAircraftMapper.map(JsonNode ac, Instant upstreamNow, MapperOptions opts) → Optional<NormalizedRecord>`; `ReadsbDocument.parse(byte[])` reads the top level (`ac` for adsb.lol, `aircraft` for local readsb; `now` as seconds, or milliseconds when > 1e11; `total`, `ctime`).
 - `externalId` = `hex` lower-cased, keeping a leading `~` (non-ICAO address). Skip entries without `hex`. Kind `aircraft`.
@@ -43,7 +43,7 @@ Shared format code lives under `ai.elaro.source.formats.*` (not under `adapters`
 - Thresholds: CDM §5.3 states `alt_baro 1,000` in feet; with metre payloads declare `alt_baro` 300 m and `track` 20° (angular). Motion: `{speedField: gs, speedUnit: KNOTS, courseField: track}`.
 - Shared descriptor helper `AircraftDescriptors.global(builder)` applying: TRACK, `ttlAnchor` OBSERVED, `observedAtMode` UPSTREAM, `recordTtl` 6 min (the §5.3 5 min fails `keyframe ≤ ttl − pollInterval − 30 s` at a 60 s poll; 6 min allows polls up to 90 s; record the deviation), policy `SAMPLED{minInterval 60s, keyframe 240s, minDeviationMeters 1000, thresholds true, edgeMinInterval 30s}`, `significantFields = [flight, r, t, squawk, category, emergency, onGround, navDegraded]`, `tileProperties = [flight, r, t, alt_baro, gs, track, squawk, mil]`, `searchFields = [flight, r, t, hex]`, `titleField = flight` (fallback `r`, then `hex`), `licence`, `termsUrl`.
 
-### 2. `adsblol-mil` (`ai.elaro.source.adapters.adsblol`)
+### 2. `adsblol-mil` (`ai.foresignal.source.adapters.adsblol`)
 
 - GET `https://api.adsb.lol/v2/mil`. Interval 30 s (min 15 s), budget 4/min, 3000/day (no published numbers; limits are dynamic, so stay at this rate). Attribution "adsb.lol", licence `ODbL-1.0`, `termsUrl` `https://github.com/adsblol/api`.
 - Keyframe check: `240 ≤ 300 − 30 − 30` holds at the default interval. The validator rejects an interval above 30 s at PUT unless the operator also shortens the keyframe; state this in the descriptor description.
@@ -59,12 +59,12 @@ Shared format code lives under `ai.elaro.source.formats.*` (not under `adapters`
 
 ### 4. adsb.lol etiquette and the 451 rule
 
-- Use the identifiable Elaro User-Agent from 005. **Never spoof a browser UA, never add browser headers to get past a block, never rotate egress.**
+- Use the identifiable Foresignal User-Agent from 005. **Never spoof a browser UA, never add browser headers to get past a block, never rotate egress.**
 - Honour `Retry-After`. Add to `UpstreamClient` (005): `Retry-After` on any 4xx/5xx goes to `BackoffRegistry` clamped to [5 s, 1 h], and an adsb.lol 429 without the header gets 30 s.
 - **HTTP 451 or 403:** add a generic rule to `UpstreamClient`. When the status is 451, or 403 for a source whose descriptor sets `accessDeniedIsTerminal=true` (new boolean, default false; true for the adsb.lol sources), call `BackoffRegistry.onThrottled(source, 1h)` and throw `UpstreamAccessDeniedException(status)`. `HealthEvaluator` reports `failing` with the reason "upstream refused this client (HTTP {status}); see Operator Guide → adsb.lol access". Retry hourly, never faster.
 - Operator Guide section "adsb.lol access": the API states that a key "will be required in the future" and is obtained by feeding (`https://github.com/adsblol/api`). Running a feeder is the supported route to continued and re-api access. When a key scheme is published, a later change adds an optional `apiKey` credential. Until then, declare no credential field.
 
-### 5. `opensky-states` (`ai.elaro.source.adapters.opensky`)
+### 5. `opensky-states` (`ai.foresignal.source.adapters.opensky`)
 
 - **Request:** GET `https://opensky-network.org/api/states/all?extended=1`, plus `lamin,lomin,lamax,lomax` when the optional `bbox` param is set (ParamType BBOX; default world).
 - **Auth:** optional credentials `clientId` and `clientSecret` (both required together; validated in `SourceService.setCredentials`). OAuth2 client credentials: POST form `grant_type=client_credentials&client_id=…&client_secret=…` to `https://auth.opensky-network.org/auth/realms/opensky-network/protocol/openid-connect/token` (verified 2026-10: the path includes `/auth/`). Tokens last 30 min: cache the token in memory per source and refresh 60 s before expiry. On a 401, refresh once and retry. A token-endpoint 400/401 throws `CredentialsRejectedException` (010). Without credentials, run anonymous. **Basic auth ended on 2026-03-18; never send it.** The token POST goes through `ctx.http().post` and consumes budget. Redact the secret (005 redaction).
@@ -91,7 +91,7 @@ Shared format code lives under `ai.elaro.source.formats.*` (not under `adapters`
 
 Capture under `src/test/resources/fixtures/<source-id>/`, each with a README (date, URL, the UA used, trimming):
 
-- `curl -sA "Elaro/<ver> (+https://elaro.ai; install=fixture)" https://api.adsb.lol/v2/mil`, trimmed to ≤ 30 aircraft. Keep one each of: on ground, `lastPosition` only, `~` hex, `mlat` position, `dbFlags` military.
+- `curl -sA "Foresignal/<ver> (+https://foresignal.ai; install=fixture)" https://api.adsb.lol/v2/mil`, trimmed to ≤ 30 aircraft. Keep one each of: on ground, `lastPosition` only, `~` hex, `mlat` position, `dbFlags` military.
 - One `/v2/point/{lat}/{lon}/250` response.
 - An OpenSky anonymous `/states/all?extended=1&lamin=45&lomin=5&lamax=48&lomax=10`, trimmed, plus the response headers in `headers.txt`.
 - Hand-made: `states-null.json`, `adsblol-html-200.html`, `readsb-edge.json` (ground, missing hex, `now` in ms, emergency `none`).
@@ -122,7 +122,7 @@ Capture under `src/test/resources/fixtures/<source-id>/`, each with a README (da
   - `Retry-After` honoured
   - non-JSON 200 throws `UpstreamFormatException`
   - 451 sets a 1 h backoff and the health reason
-  - the UA header is the Elaro UA
+  - the UA header is the Foresignal UA
 - `OpenSkyStatesParserTest`: fixture count, every index, category mapping, `states:null`, malformed document.
 - `OpenSkyAdapterTest` (WireMock):
   - token fetched once and reused, refreshed after expiry (`MutableClock`), 401 → one refresh

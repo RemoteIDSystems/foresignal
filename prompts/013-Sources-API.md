@@ -1,11 +1,11 @@
 # 013 — Sources API
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/013-CR-Sources-API.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -24,11 +24,11 @@ Expose source management, the subscription control point, over REST: the catalog
 
 ## Tasks
 
-### 1. DTOs and mappers (`ai.elaro.api.dto`, `ai.elaro.api.mapper`)
+### 1. DTOs and mappers (`ai.foresignal.api.dto`, `ai.foresignal.api.mapper`)
 
 Java records mirroring the OpenAPI schemas: `SourceSummary`, `SourceDetail`, `SourceDescriptorDto`, `SourceSettingsDto`, `SourceSettingsUpdate`, `CredentialsUpdate`, `SourceHealthDto`, `UsageSeries`, `UsagePoint`, `FetchOutcomeDto`, `ProbeResultDto`, `NormalizedRecordPreviewDto`, `ParamSpecDto`, `CredentialFieldDto`, `BudgetDto`, plus new `IngestPolicyDto`, `MotionSpecDto`, `FieldThresholdDto`, `CoverageDto`, `QualityDto`, `ObserverDto`, `StorageDto`, `FetchLogEntryDto`, `FetchPage`.
 
-- Durations are serialized as shorthand (prompt 002 serializers). Mappers live in `ai.elaro.api.mapper`; controllers stay thin. Bean Validation annotations on input DTOs where the spec has constraints.
+- Durations are serialized as shorthand (prompt 002 serializers). Mappers live in `ai.foresignal.api.mapper`; controllers stay thin. Bean Validation annotations on input DTOs where the spec has constraints.
 - **`SourceDescriptorDto`** carries every descriptor field: the v1.1 set plus `licence`, `termsUrl`, `historyTier` (`STANDARD|TRACK`), `observedAtMode`, `ttlAnchor`, `defaultIngestPolicy`, `volatileFields`, `significantFields`, `motion`, `thresholds`, `defaultRetention`, `kindRetention`, `skewTolerance`, `allowNullIsland`, `mode` (now including `DERIVED`), `products` (ids only). Also the 008 extras if present on the descriptor: `titleField`, `entityKeys`, `fieldSpecs`, `kindDisplay`, `aggBelowZoom`, `startField`, `endField`, `private`. Check the descriptor record; map whatever 008 added and record any field that is missing in the Completion Report.
 - **`IngestPolicyDto`** is a discriminated union on `mode` (`ALL|SAMPLED|LATEST`) with `minInterval`, `keyframe` (a duration or the string `none`), `minDeviationMeters`, `thresholds` (bool), `edgeMinInterval`. Reuse 004's `IngestPolicyCodec` for parsing so the API and `source_settings.ingest_policy` share one JSON shape.
 - **`SourceSettingsDto`** adds `ingestPolicy` (nullable; the operator override) and two read-only fields: `effectiveIngestPolicy` (from `SourceService.effectiveIngestPolicy`) and `effectiveRetention` (from `SourceService.effectiveRetention`; for TRACK this is `retention.trackWindow`, default 3d, until prompt 019 adds the setting).
@@ -66,13 +66,13 @@ Java records mirroring the OpenAPI schemas: `SourceSummary`, `SourceDetail`, `So
 
 ### 4. Query for fetches
 
-Add `FetchLogQuery` (`ai.elaro.store.query`, `NamedParameterJdbcTemplate`): `WHERE source_id = :s AND (:after IS NULL OR id < :after) [AND status = ANY(:st)] [AND trigger = ANY(:tr)] ORDER BY id DESC LIMIT :limit + 1`. Fetch one extra row for `nextAfter`. If 010 built a JPA `FetchLogRepository`, reuse its entity for mapping but keep the keyset query native.
+Add `FetchLogQuery` (`ai.foresignal.store.query`, `NamedParameterJdbcTemplate`): `WHERE source_id = :s AND (:after IS NULL OR id < :after) [AND status = ANY(:st)] [AND trigger = ANY(:tr)] ORDER BY id DESC LIMIT :limit + 1`. Fetch one extra row for `nextAfter`. If 010 built a JPA `FetchLogRepository`, reuse its entity for mapping but keep the keyset query native.
 
 ### 5. Spec, Postman, docs
 
 - `docs/OpenAPI.json`:
   - Schemas per *Spec changes*: `SourceDescriptor` (+ the fields in task 1), `SourceSettings` and `SourceSettingsUpdate` (+ `ingestPolicy` nullable; `effectiveIngestPolicy`, `effectiveRetention` read-only on `SourceSettings`), new `IngestPolicy` (`oneOf` All/Sampled/Latest with `discriminator` on `mode`), `MotionSpec`, `FieldThreshold`, `Quality`, `Observer`, `Coverage`, `SourceHealth` (+ `coverage`, `storage`, `lastDataAt`, `budgetHoursRemaining`, `newestFrameAt`, `frameAgeSeconds`), `FetchOutcome` (+ counts), `NormalizedRecordPreview` (+ `eventTime`, `quality`, `observers`), `UsagePoint` (+ counters), new `FetchLogEntry`, `FetchPage`.
-  - New operation `listSourceFetches` with `"x-elaro-scope": "admin"`; `updateSource` documents 400 `INGEST_POLICY_INVALID` and `RETENTION_TIER_FIXED`.
+  - New operation `listSourceFetches` with `"x-foresignal-scope": "admin"`; `updateSource` documents 400 `INGEST_POLICY_INVALID` and `RETENTION_TIER_FIXED`.
   - Add both codes to the error-code list in the `Problem` schema description.
 - `AccessPolicy`: add `rule(HttpMethod.GET, "/v1/sources/*/fetches", ADMIN)` **above** the `GET /v1/sources/**` READ rule, and extend `AccessPolicyTest` for it.
 - Regenerate Postman with `python3 scripts/generate-postman.py docs/OpenAPI.json postman`. Add an example body for `updateSource` with an `ingestPolicy` (SAMPLED) in the script's `BODIES` map.

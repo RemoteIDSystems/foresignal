@@ -1,11 +1,11 @@
 # 114 — Pattern Of Life And Trip Watch
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/114-CR-Pattern-Of-Life-And-Trip-Watch.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -19,11 +19,11 @@
 
 ## Objective
 
-Add three analyses for tracked entities: pattern of life (where an entity dwells and when, learned with DBSCAN, with deviations as records rules can match), trip and commute corridor watch (hazards along a client-supplied route around a scheduled departure), and general kinematic CPA/ETA queries. Routing stays in the client; Elaro only buffers and watches the geometry it is given.
+Add three analyses for tracked entities: pattern of life (where an entity dwells and when, learned with DBSCAN, with deviations as records rules can match), trip and commute corridor watch (hazards along a client-supplied route around a scheduled departure), and general kinematic CPA/ETA queries. Routing stays in the client; Foresignal only buffers and watches the geometry it is given.
 
 ## Tasks
 
-### 1. Pattern of life (`ai.elaro.pol`)
+### 1. Pattern of life (`ai.foresignal.pol`)
 
 - **Opt-in subjects only.** Entity `pol_subject`: `id`, `subject_type` (`record` (sourceId+externalId) | `entity` (098 entity id) | `watchlist` (036; every member)), `ref`, `enabled`, `params` jsonb, `created_by`. Private sources (039) need admin; their outputs inherit `private` and the precision cap.
 - **Input:** persisted positions for the subject from `record_version` (TRACK tier, within the track window), read incrementally from a per-subject cursor (`last_seq`). Downsampled ranges (044) are fine: dwell uses observed-time gaps.
@@ -53,13 +53,13 @@ Add three analyses for tracked entities: pattern of life (where an entity dwells
   - `POST /v1/pol/subjects/{id}/recompute`
   - Purge: deleting a subject deletes its stays and places and tombstones its derived records; the 039 per-entity purge also cascades here.
 
-### 2. Trip and commute corridor watch (`ai.elaro.trip`)
+### 2. Trip and commute corridor watch (`ai.foresignal.trip`)
 
 - **Entity `trip`:**
   - `id`, `name`, `route_place_id` (036 route place: LineString + `bufferMeters`) **or** inline `route` (GeoJSON LineString ≤ 5,000 vertices) plus `bufferMeters` (default 2,000, max 50,000)
   - `schedule`: one-off `departAt`, or recurring (`days` of week, `departTime`, `timezone`) for commutes; `expectedDuration`
   - `leadTime` (default 60 min), `hazardKinds[]` (default `nws-alert`, `road-event`, `work-zone`, `fire-perimeter`, `cyclone-cone`, `earthquake` (M ≥ 4), `incident`), `minSeverity`, `channelIds[]`, optional `anchor` (a moving-anchor record from 036, e.g. the operator's OwnTracks device), `enabled`.
-- **The route comes from the client.** Document that clients compute it with their own router (Valhalla can exclude polygons; OSRM cannot). Elaro never calls a routing service. Validate geometry; antimeridian-split long routes.
+- **The route comes from the client.** Document that clients compute it with their own router (Valhalla can exclude polygons; OSRM cannot). Foresignal never calls a routing service. Validate geometry; antimeridian-split long routes.
 - **Corridor:** `ST_Buffer(route::geography, bufferMeters)::geometry`, materialised on save into `trip.corridor` with a GiST index.
 - **Pre-trip check** (scheduler tick 1 min; fires at `departAt − leadTime` per occurrence):
   - query current records of `hazardKinds` intersecting the corridor, plus forecast hazards whose `validFrom` (008) falls inside `[departAt, departAt + expectedDuration]`
@@ -71,7 +71,7 @@ Add three analyses for tracked entities: pattern of life (where an entity dwells
 - **Anchor progress:** with an anchor, compute the remaining route from the anchor's projection onto the route and report hazards **ahead** only, with ETA to each (task 3).
 - **API** (agent): `GET/POST /v1/trips`, `GET/PUT/DELETE /v1/trips/{id}`, `POST /v1/trips/{id}/check` (run the pre-trip check now; returns the briefing without delivering when `dryRun=true`), `GET /v1/trips/{id}/runs`.
 
-### 3. Kinematic CPA/ETA (`ai.elaro.kinematics`)
+### 3. Kinematic CPA/ETA (`ai.foresignal.kinematics`)
 
 - **`KinematicState`** from head ⋈ live: position, `observedAt`, speed (m/s) and course (degrees) from payload per the 011 Adapter Guide fields, or derived from the last two persisted positions when absent (≥ 10 s apart). Altitude in metres when present.
 - **CPA** (constant velocity, local equirectangular frame at the midpoint as in 099's `derived-cpa`; reject when separation > 500 km → `400 CPA_RANGE`):
@@ -97,7 +97,7 @@ Add three analyses for tracked entities: pattern of life (where an entity dwells
 
 ### 4. Spec, MCP, docs
 
-- `docs/OpenAPI.json`: schemas `PolSubject`, `PolPlace`, `PolStay`, `PolDeviation` (kind payload), `Trip`, `TripSchedule`, `TripRun`, `CpaResult`, `EtaResult`, the `ApproachCondition` variant in the trigger condition `oneOf`; every operation above with `x-elaro-scope`; error codes `CPA_RANGE`, `TRIP_ROUTE_INVALID`, `STATE_TOO_OLD`. Update `AccessPolicy`. Regenerate Postman with BODIES for `createPolSubject`, `createTrip`, `checkTrip`, `cpaBatch`.
+- `docs/OpenAPI.json`: schemas `PolSubject`, `PolPlace`, `PolStay`, `PolDeviation` (kind payload), `Trip`, `TripSchedule`, `TripRun`, `CpaResult`, `EtaResult`, the `ApproachCondition` variant in the trigger condition `oneOf`; every operation above with `x-foresignal-scope`; error codes `CPA_RANGE`, `TRIP_ROUTE_INVALID`, `STATE_TOO_OLD`. Update `AccessPolicy`. Regenerate Postman with BODIES for `createPolSubject`, `createTrip`, `checkTrip`, `cpaBatch`.
 - MCP (025): `get_pattern_of_life` (agent), `check_trip` (agent), `get_cpa`, `get_eta` (read; compact output).
 - `docs/Operator-Guide.md` "Pattern of life" (privacy: opt-in only, private inheritance, purge), "Trips and commutes" (client routing, Valhalla exclusion example, lead time), "CPA/ETA and approach rules". `docs/Agent-Guide.md`: CPA/ETA tools.
 

@@ -1,11 +1,11 @@
 # 041 — Checkpoint Platform
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/041-CR-Checkpoint-Platform.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -17,7 +17,7 @@
 - `docs/Core-Data-Model.md` §1 (invariants I1–I10), §10 (SSE), §12 (asOf), §13 (retention and the consumer clamp)
 - `docs/Architecture.md` §15 (scopes), §18 (MCP), §19 (LLM safety), §20 (embeddings), §21 (Ask), §22 (briefings), §24 (Web Push)
 - `docs/Gap-Analysis.md` §1 items 4, 5 and 7, §6 and §7 (the platform behaviours 023–040 were meant to deliver)
-- `docs/OpenAPI.json` (every `x-elaro-scope`)
+- `docs/OpenAPI.json` (every `x-foresignal-scope`)
 
 ## Objective
 
@@ -38,7 +38,7 @@ Run the whole suite written by prompts 001–040 and make it green before the we
      - Audit rows exist for writes and agent tool calls.
    - **Ingest formats (024, 039):**
      - `alertmanager`, `cloudevents`, `cap` (XXE disabled: DTD and external entities rejected), `mapping`, `owntracks`, `osmand`, `overland`, `gpslogger`.
-     - The ingest key is accepted as `X-Elaro-Ingest-Key`, Bearer and Basic; device keys are bound to one entity.
+     - The ingest key is accepted as `X-Foresignal-Ingest-Key`, Bearer and Basic; device keys are bound to one entity.
      - Each format's reply shape is exact (OwnTracks `[]`, Overland `{"result":"ok"}`).
      - Keys never appear in logs or `fetch_log.url_redacted`.
      - ntfy/Gotify-compatible publish paths work.

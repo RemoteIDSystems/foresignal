@@ -1,11 +1,11 @@
 # 003 — Security And Secrets
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/003-CR-Security-And-Secrets.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`.
 - **Previous Completion Report:** read `completion-reports/002-CR-*.md` and follow its "Notes for the next prompt".
 
@@ -21,9 +21,9 @@ Lock down writes with the single admin token. Encrypt upstream credentials at re
 
 ## Tasks
 
-### 1. SecretKeyStore (`ai.elaro.security`)
+### 1. SecretKeyStore (`ai.foresignal.security`)
 
-- On startup, load `${elaro.data-dir}/secret.key` (32 random bytes). If it is absent, create the directory and the file, setting POSIX permissions to `rw-------` where the filesystem supports them (log a warning otherwise).
+- On startup, load `${foresignal.data-dir}/secret.key` (32 random bytes). If it is absent, create the directory and the file, setting POSIX permissions to `rw-------` where the filesystem supports them (log a warning otherwise).
 - Never log the key. Expose a `SecretKey` (AES) to `CredentialCipher` only.
 
 ### 2. CredentialCipher
@@ -34,10 +34,10 @@ Lock down writes with the single admin token. Encrypt upstream credentials at re
 
 ### 3. AdminTokenService (bootstrap token)
 
-- At startup (before the web server accepts requests), if `system_secret['admin_token_hash']` is absent, **or** `elaro.reset-admin-token=true`:
-  - generate a token: `"elr_" + base64url(32 random bytes, no padding)`
+- At startup (before the web server accepts requests), if `system_secret['admin_token_hash']` is absent, **or** `foresignal.reset-admin-token=true`:
+  - generate a token: `"fsr_" + base64url(32 random bytes, no padding)`
   - store the SHA-256 hex of the token
-  - log it once inside a clearly delimited banner (e.g. a box with "ELARO ADMIN TOKEN — shown once, store it securely")
+  - log it once inside a clearly delimited banner (e.g. a box with "FORESIGNAL ADMIN TOKEN — shown once, store it securely")
 - `boolean verify(String presentedToken)`: hash, then `MessageDigest.isEqual` against the stored hash. Cache the stored hash in memory.
 - `String rotate()`: generate and store a new token, invalidate the cache and return the token. The endpoint for this comes in prompt 016.
 - Prompt 019 moves this token into the `api_token` table (as the `bootstrap` admin token). Keep the hashing and verification logic in a reusable `TokenHasher` so 019 can reuse it.
@@ -52,7 +52,7 @@ A `OncePerRequestFilter` ordered after CORS. It requires `Authorization: Bearer 
 Behaviour:
 
 - Everything else is open, including `/v1/openapi.json`, `/docs/**` and `/actuator/health`. `/actuator/prometheus` is open too (document this; it is LAN-only).
-- When the token is missing or invalid, respond `401` with `application/problem+json`, `code: "UNAUTHORIZED"` and a `WWW-Authenticate: Bearer realm="elaro"` header. Never echo the presented token.
+- When the token is missing or invalid, respond `401` with `application/problem+json`, `code: "UNAUTHORIZED"` and a `WWW-Authenticate: Bearer realm="foresignal"` header. Never echo the presented token.
 - Keep the path rules in one place: an `AccessPolicy` class that maps (method, path pattern) to a **minimum scope** (`READ`, `AGENT`, `ADMIN`) or `OPEN`, so it can be unit tested exhaustively. Prompt 019 adds scoped tokens. Until then the only token is the bootstrap admin token, so every protected rule effectively requires `ADMIN`. Write the table with the final scopes from `docs/Architecture.md` §15 now, so prompt 019 only changes token lookup, not the policy.
 - Admin GETs must include `/v1/channels/**`, `/v1/tokens/**`, `/v1/llm/**`, `/v1/custom-sources/**` and GET `/v1/push/subscriptions` (endpoints added by later prompts).
 - `POST /v1/ingest/**` is special-cased: prompt 020 authorizes it with a per-source ingest key. Leave it marked `INGEST_KEY_OR_ADMIN` in the policy, with an extension point.
@@ -61,24 +61,24 @@ Behaviour:
 ### 5. InstallIdService
 
 - `app_setting['install.id']`: 8 lowercase alphanumerics, generated on first start and stable afterwards.
-- `userAgent()` returns `Elaro/<version> (+https://elaro.ai; install=<id>)`.
-- **Version source** (from the 001 report): add a small `ElaroVersion` bean that prefers `BuildProperties.getVersion()` (via `ObjectProvider<BuildProperties>`), falls back to `elaro.version`, then to `"dev"`. Every later use of the version (User-Agent, `/v1/system`, settings export) reads `ElaroVersion`, never `ElaroProperties.version` directly.
+- `userAgent()` returns `Foresignal/<version> (+https://foresignal.ai; install=<id>)`.
+- **Version source** (from the 001 report): add a small `ForesignalVersion` bean that prefers `BuildProperties.getVersion()` (via `ObjectProvider<BuildProperties>`), falls back to `foresignal.version`, then to `"dev"`. Every later use of the version (User-Agent, `/v1/system`, settings export) reads `ForesignalVersion`, never `ForesignalProperties.version` directly.
 
-### 6. Error model (`ai.elaro.api.error`)
+### 6. Error model (`ai.foresignal.api.error`)
 
-- **Exception hierarchy:** `ElaroException(HttpStatus status, String code, String detail)` with subclasses:
+- **Exception hierarchy:** `ForesignalException(HttpStatus status, String code, String detail)` with subclasses:
   - `NotFoundException` (404, `NOT_FOUND`)
   - `ConflictException` (409, code supplied, e.g. `CREDENTIALS_REQUIRED`, `ALREADY_RUNNING`, `IN_BACKOFF`)
   - `ValidationException` (400, `VALIDATION_FAILED`, with a list of `{field, message}`)
   - `BudgetExceededProblem` (429, `BUDGET_EXCEEDED`)
 - **`GlobalExceptionHandler`:** `@RestControllerAdvice` extending `ResponseEntityExceptionHandler`. It maps the hierarchy plus Bean Validation errors, malformed JSON, type mismatches and `IllegalArgumentException` from parsing to `ProblemDetail`. Each problem gets:
-  - `type = https://elaro.ai/problems/<code-in-kebab-case>`
+  - `type = https://foresignal.ai/problems/<code-in-kebab-case>`
   - a `code` property
   - an `errors` property when there are field errors
 - Unexpected exceptions return a 500 with a generic detail; log the stack trace with a correlation id that is also included in the problem body (`instance` or a property).
 - Set `spring.mvc.problemdetails.enabled=true`.
 
-### 7. Dynamic CORS (`ai.elaro.config.CorsFilter`)
+### 7. Dynamic CORS (`ai.foresignal.config.CorsFilter`)
 
 - Read `CorsSettings` from `AppSettingService` (cached; refreshed on `AppSettingChangedEvent("cors")`).
   - GET, HEAD and OPTIONS requests for read endpoints allow `readOrigins`, where `*` means any origin.
@@ -88,7 +88,7 @@ Behaviour:
 
 ### 8. Actuator health details (from the 001 report)
 
-`management.endpoint.health.show-details: when-authorized` depends on Spring Security, which Elaro deliberately does not use, so it silently behaves as `never`. Set it explicitly to `never`. `/actuator/health` returns only `UP`/`DOWN` for container health checks; detailed status (DB, PostGIS version, scheduler) belongs to `GET /v1/system` in prompt 016. Record this in the CR.
+`management.endpoint.health.show-details: when-authorized` depends on Spring Security, which Foresignal deliberately does not use, so it silently behaves as `never`. Set it explicitly to `never`. `/actuator/health` returns only `UP`/`DOWN` for container health checks; detailed status (DB, PostGIS version, scheduler) belongs to `GET /v1/system` in prompt 016. Record this in the CR.
 
 ## Tests to write (do not run)
 
@@ -100,7 +100,7 @@ Behaviour:
 - `GlobalExceptionHandlerTest`: each exception maps to the expected status, code, type and body.
 - `CorsFilterIT`: read preflight with `*`, a write preflight rejected by default, allowed after updating the settings.
 - `InstallIdServiceIT`: stable across calls; User-Agent format.
-- `ElaroVersionTest`: BuildProperties preferred, then the property, then `dev`.
+- `ForesignalVersionTest`: BuildProperties preferred, then the property, then `dev`.
 
 ## Acceptance criteria
 

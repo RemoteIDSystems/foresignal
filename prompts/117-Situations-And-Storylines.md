@@ -1,11 +1,11 @@
 # 117 — Situations And Storylines
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/117-CR-Situations-And-Storylines.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults, analytic retention, intelligence conventions) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and **`docs/Intelligence-Design.md` is authoritative for the intelligence layer** (situations, findings, precursors, base rates, analogs, the forecast ledger, hypotheses, forecasts, impact projection and analysis cycles).
@@ -15,11 +15,11 @@
 
 - `docs/Intelligence-Design.md` §0, §2 (principles), §3 (stack and DERIVED sources), §6.1 (situations), §11 (interfaces)
 - `docs/Core-Data-Model.md` §10 (ChangeBus), §13 (consumer clamp)
-- Completion Reports of 015 (multiplexed `/v1/events/stream`), 017 (alerts, AlertBus, rule tags), 018 (event types), 025 (MCP registry), 027 (embeddings), 029 (renderer), 036 (places), 039 (`private`), 040 (region tags), 098 (entities), 099 (`derived-corroboration`), 100 (anomalies), 101 (intelligence events, cases, `elaro-intel`), 102 (analyst profiles), 116 (attention topics)
+- Completion Reports of 015 (multiplexed `/v1/events/stream`), 017 (alerts, AlertBus, rule tags), 018 (event types), 025 (MCP registry), 027 (embeddings), 029 (renderer), 036 (places), 039 (`private`), 040 (region tags), 098 (entities), 099 (`derived-corroboration`), 100 (anomalies), 101 (intelligence events, cases, `foresignal-intel`), 102 (analyst profiles), 116 (attention topics)
 
 ## Objective
 
-Give Elaro a memory for unfolding stories. A **situation** groups related intelligence events, anomalies, alerts, findings and records into one storyline that persists for days to months ("Red Sea shipping disruption"), with a lifecycle, a daily deterministic snapshot so "what changed since yesterday or last week" is a diff, and an optional LLM brief that refreshes itself when the evidence changes. A deterministic linker builds situations automatically; operators and agents can shape them.
+Give Foresignal a memory for unfolding stories. A **situation** groups related intelligence events, anomalies, alerts, findings and records into one storyline that persists for days to months ("Red Sea shipping disruption"), with a lifecycle, a daily deterministic snapshot so "what changed since yesterday or last week" is a diff, and an optional LLM brief that refreshes itself when the evidence changes. A deterministic linker builds situations automatically; operators and agents can shape them.
 
 ## Principles (binding)
 
@@ -29,7 +29,7 @@ Give Elaro a memory for unfolding stories. A **situation** groups related intell
 
 ## Tasks
 
-### 1. Data model (`ai.elaro.situation`)
+### 1. Data model (`ai.foresignal.situation`)
 
 - **`situation`:**
   - identity: `id` (ULID), `title`, `theme` (maritime | aviation | conflict | infrastructure | weather | cyber | markets | health | space | mixed), `status` (emerging | active | dormant | closed), `severity` (info | warning | critical), `severity_override` (nullable, logged);
@@ -41,7 +41,7 @@ Give Elaro a memory for unfolding stories. A **situation** groups related intell
 - **`situation_member`:** `situation_id`, `member_type` (intel_event | finding | alert | anomaly | record | case), `ref` (id or `source/externalId`), `seq` and `version` (records), `kind`, `signal_family`, `observed_at`, `role` (core | context), `join_reason` jsonb (`{score, components: {region, distanceKm, entity, topic, textSimilarity, theme, recencyHours}, linkerVersion}`), `corroboration` (corroborated | uncorroborated | unknown | n/a), `added_at`, `added_by`. Unique `(situation_id, member_type, ref, seq)`.
 - **`situation_snapshot`:** `situation_id`, `day` (UTC date), `status`, `severity`, `member_counts` jsonb (by member type and signal family), `new_members` int, `area_km2`, `region_codes`, `key_values` jsonb (latest values of linked analysis series when 118 exists; empty before), `asof_seq`. PK `(situation_id, day)`.
 - **`situation_log`:** `situation_id`, `at`, `actor` (token id, `linker:<version>`, `analyst:<profile>`), `action` (created, member_added, member_removed, status, severity, merged, split, renamed, brief), `before`/`after` jsonb.
-- **Records:** publish every situation as a record of the DERIVED source `elaro-intel` (kind `situation`, externalId = situation id). Payload: title, theme, status, severity, memberCount, signalFamilies, regionCodes, corroborationShare, `automated: true`; emitted only on change; tombstoned on merge or after closure plus the `intel` retention class. Ordinary 017 rules can then alert on situations.
+- **Records:** publish every situation as a record of the DERIVED source `foresignal-intel` (kind `situation`, externalId = situation id). Payload: title, theme, status, severity, memberCount, signalFamilies, regionCodes, corroborationShare, `automated: true`; emitted only on change; tombstoned on merge or after closure plus the `intel` retention class. Ordinary 017 rules can then alert on situations.
 - **Private:** a situation with any private member is private and follows `EgressPolicy` everywhere.
 
 ### 2. Linker (`SituationLinker`, version `1.0.0`)
@@ -102,7 +102,7 @@ Give Elaro a memory for unfolding stories. A **situation** groups related intell
 
 ### 8. Spec, Postman, docs
 
-- `docs/OpenAPI.json`: schemas `Situation`, `SituationSummary`, `SituationMember`, `SituationChanges`, `SituationTimelineEntry`, `SituationInput`, `SituationPatch`; tag `Situations`; `x-elaro-scope` on every operation; SSE event schemas. Regenerate Postman with `python3 scripts/generate-postman.py docs/OpenAPI.json postman`, with BODIES for create, add member, merge and split.
+- `docs/OpenAPI.json`: schemas `Situation`, `SituationSummary`, `SituationMember`, `SituationChanges`, `SituationTimelineEntry`, `SituationInput`, `SituationPatch`; tag `Situations`; `x-foresignal-scope` on every operation; SSE event schemas. Regenerate Postman with `python3 scripts/generate-postman.py docs/OpenAPI.json postman`, with BODIES for create, add member, merge and split.
 - AccessPolicy rows as above.
 - `docs/Operator-Guide.md` "Situations": what links and why (the score table), tuning `linkThreshold` and windows, themes, briefs and their cost.
 - `docs/Agent-Guide.md`: present situations evidence first; quote the corroboration share.
@@ -123,7 +123,7 @@ Give Elaro a memory for unfolding stories. A **situation** groups related intell
 - Situations form, activate, go dormant and reopen from seeded intel events and findings, with a stored, reproducible `join_reason` on every link.
 - "What changed since" is answered from snapshots, without an LLM.
 - The LLM brief is optional, budgeted, debounced and never changes members, status or severity.
-- Situations appear as `elaro-intel` records, on SSE and in MCP.
+- Situations appear as `foresignal-intel` records, on SSE and in MCP.
 - Compiles.
 
 ## Guardrails (mandatory)

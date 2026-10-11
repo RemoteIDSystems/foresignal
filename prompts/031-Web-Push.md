@@ -1,11 +1,11 @@
 # 031 — Web Push
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/031-CR-Web-Push.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -24,11 +24,11 @@
 
 ## Objective
 
-Built-in push for browsers (PWA, operator console) and for native Android and Linux apps through UnifiedPush, which speaks the same RFC 8030/8291 wire protocol. Elaro holds its own VAPID key, so no third-party push account is needed. Delivery runs through a `PushTransport` SPI so prompt 032 adds APNs and FCM as siblings without refactoring this prompt.
+Built-in push for browsers (PWA, operator console) and for native Android and Linux apps through UnifiedPush, which speaks the same RFC 8030/8291 wire protocol. Foresignal holds its own VAPID key, so no third-party push account is needed. Delivery runs through a `PushTransport` SPI so prompt 032 adds APNs and FCM as siblings without refactoring this prompt.
 
 ## Tasks
 
-### 1. VAPID keys (`ai.elaro.notify.push`)
+### 1. VAPID keys (`ai.foresignal.notify.push`)
 
 - On first start generate a P-256 key pair. Store the public key (uncompressed point, base64url, 87 chars) and the private key (PKCS#8, encrypted with `CredentialCipher`) in `system_secret` (`push.vapid.public`, `push.vapid.private`).
 - `GET /v1/push/vapid-public-key` (open) returns `{publicKey}`. The same key is what a Flutter app passes to UnifiedPush `registerApp(vapid: …)`.
@@ -57,30 +57,30 @@ Implement RFC 8291 + RFC 8188 with `java.security`/`javax.crypto`:
 
 ### 4. Subscriptions and validation
 
-- Extend `PushSubscriptionEntity`: `status` (`pending|active`), `verify_code_hash`, `verify_expires_at`, `endpoint_host`, `transport_label` (`browser|unifiedpush|other`, display and filter only; the wire protocol is identical), `payload_format` (`elaro|declarative`), `lang`, `token_id`, `failure_count`, `last_failure_at`, `last_status`.
+- Extend `PushSubscriptionEntity`: `status` (`pending|active`), `verify_code_hash`, `verify_expires_at`, `endpoint_host`, `transport_label` (`browser|unifiedpush|other`, display and filter only; the wire protocol is identical), `payload_format` (`foresignal|declarative`), `lang`, `token_id`, `failure_count`, `last_failure_at`, `last_status`.
 - `POST /v1/push/subscriptions` (read scope, and `alwaysAuthenticated` per 023, so a token is always required): validate
   - `https` scheme only; no userinfo; endpoint ≤ 1000 bytes
   - key lengths: p256dh 65 bytes uncompressed (base64url-decoded), auth 16 bytes
   - **address policy:** resolve the host; every resolved address must be globally routable (reject loopback, RFC 1918, CGNAT 100.64/10, link-local, ULA fc00::/7, IPv4-mapped/compatible IPv6, NAT64 64:ff9b::/96, 6to4, multicast, 0.0.0.0/8, metadata addresses) **unless** the host or every resolved address matches `push.allowedPrivateHosts`. Reuse `LocalAddresses` from 004 for classification. No global "allow private" flag.
   - caps: ≤ 5 `pending` per token and ≤ 200 subscriptions in total (409 `PUSH_LIMIT_REACHED`)
-- **Registration verification:** a new row is `pending`. Elaro immediately sends a verification push `{v:1, event:"verify", subscriptionId, code}` (16 random bytes base64url; only the SHA-256 is stored; TTL 600, Urgency `high`). The client echoes it with `POST /v1/push/subscriptions/{id}/verify {code}` (read scope, creating token only). Match → `active`; mismatch → 400 `VERIFY_FAILED` (5 tries, then delete). A sweeper deletes `pending` rows older than 10 min. Only `active` rows receive notifications. This stops a read-scope caller from using Elaro as a push amplifier.
+- **Registration verification:** a new row is `pending`. Foresignal immediately sends a verification push `{v:1, event:"verify", subscriptionId, code}` (16 random bytes base64url; only the SHA-256 is stored; TTL 600, Urgency `high`). The client echoes it with `POST /v1/push/subscriptions/{id}/verify {code}` (read scope, creating token only). Match → `active`; mismatch → 400 `VERIFY_FAILED` (5 tries, then delete). A sweeper deletes `pending` rows older than 10 min. Only `active` rows receive notifications. This stops a read-scope caller from using Foresignal as a push amplifier.
 - **Send-time recheck:** before each send, re-resolve the endpoint host, apply the same address policy, connect to the **checked IP** with the original Host/SNI (reuse the pinned-IP connector from 005 used for `LAN_URL`), never follow redirects. A failed recheck → `failed` with `URL_NOT_ALLOWED`, and the subscription is disabled after 3 consecutive rechecks fail. (Prompt 035 later swaps this check for `OutboundUrlPolicy` profile `PUSH_ENDPOINT`.)
 - `DELETE /v1/push/subscriptions/{id}`: creating token or admin, else 404. `GET /v1/push/subscriptions` (admin) lists `endpointHost` only, never full endpoints, with `status`, `transportLabel`, `lastSuccessAt`, `failureCount`.
 - **Revoke cascade:** check that 023 deletes subscriptions on token revoke/expiry; if the hook is missing, add a `TokenRevokedEvent` listener that deletes rows with that `token_id`.
 
 ### 5. Payload, Topic and urgency
 
-- Elaro payload (`payload_format=elaro`, JSON, UTF-8): `{v:1, event, id (persisted notification id from 018; alert id if 018's row is absent), alertId?, ruleId?, severity, title, shortTitle (≤ 40 chars from 018's shared Truncator), body (plain text ≤ 1000 chars), url (alias of links.api), links {api, app, web} (from 023 clientLinks; omit absent), tags (rule tags), lang (subscription lang → push.defaultLang), tag ("elaro-alert-<alertId>" or "elaro-<event>-<id>", so repeats for one alert replace each other in the OS), silent, ts}`.
-- **Declarative format** (`payload_format=declarative`, for Safari 18.4+ without a service worker): `{"web_push": 8030, "notification": {"title", "body", "navigate": links.web ?? links.api, "lang", "tag", "silent", "data": <elaro payload minus title/body>}}`. Verify the member list against the current WebKit documentation and record differences; omit `app_badge` (reported crash in Safari 18.5).
+- Foresignal payload (`payload_format=foresignal`, JSON, UTF-8): `{v:1, event, id (persisted notification id from 018; alert id if 018's row is absent), alertId?, ruleId?, severity, title, shortTitle (≤ 40 chars from 018's shared Truncator), body (plain text ≤ 1000 chars), url (alias of links.api), links {api, app, web} (from 023 clientLinks; omit absent), tags (rule tags), lang (subscription lang → push.defaultLang), tag ("foresignal-alert-<alertId>" or "foresignal-<event>-<id>", so repeats for one alert replace each other in the OS), silent, ts}`.
+- **Declarative format** (`payload_format=declarative`, for Safari 18.4+ without a service worker): `{"web_push": 8030, "notification": {"title", "body", "navigate": links.web ?? links.api, "lang", "tag", "silent", "data": <foresignal payload minus title/body>}}`. Verify the member list against the current WebKit documentation and record differences; omit `app_badge` (reported crash in Safari 18.5).
 - **Topic header:** `Topic = base64url(SHA-256(key))[0:32]` with key `alert:<ruleId>:<source>:<externalId>` for alerts, `briefing:<briefingId>` for briefings, `system:<code>` for system events. The push service then replaces an undelivered message for the same entity.
 - **Quiet hours:** honour the 018 per-channel quiet hours on the Push channel. Mode `downgrade` sends `Urgency: very-low` and `silent: true`; `defer` and `drop` follow 018. Critical bypasses quiet hours.
 - Briefings send a 200-char excerpt; system events send title and code only.
 
 ### 6. Spec, Postman, docs
 
-- `docs/OpenAPI.json`: extend `PushSubscriptionInput` (`transportLabel`, `payloadFormat`, `lang`, `filters.tags`), `PushSubscription` (`status`, `transportLabel`, `payloadFormat`, `failureCount`, `lastStatus`); add `POST /v1/push/subscriptions/{subscriptionId}/verify` (`verifyPushSubscription`, `x-elaro-scope: read`); `ServerSettings.push`; problem codes `PUSH_LIMIT_REACHED`, `VERIFY_FAILED`, `URL_NOT_ALLOWED`; a `PushPayload` schema documenting both formats. Update `AccessPolicy`, add a BODIES example for the verify op, regenerate Postman with `python3 scripts/generate-postman.py docs/OpenAPI.json postman`.
+- `docs/OpenAPI.json`: extend `PushSubscriptionInput` (`transportLabel`, `payloadFormat`, `lang`, `filters.tags`), `PushSubscription` (`status`, `transportLabel`, `payloadFormat`, `failureCount`, `lastStatus`); add `POST /v1/push/subscriptions/{subscriptionId}/verify` (`verifyPushSubscription`, `x-foresignal-scope: read`); `ServerSettings.push`; problem codes `PUSH_LIMIT_REACHED`, `VERIFY_FAILED`, `URL_NOT_ALLOWED`; a `PushPayload` schema documenting both formats. Update `AccessPolicy`, add a BODIES example for the verify op, regenerate Postman with `python3 scripts/generate-postman.py docs/OpenAPI.json postman`.
 - `docs/Architecture.md` §24: rename to "Push" with subsections Web Push, UnifiedPush and "Native push (032)"; describe the SPI and `push_dispatch`. `docs/Product-Charter.md` FR-53: native apps subscribe through UnifiedPush.
-- `docs/Operator-Guide.md` "Web Push and UnifiedPush": service-worker snippet (`pushManager.subscribe({userVisibleOnly: true, applicationServerKey})`, POST to Elaro, handle `event: "verify"` by POSTing the code, `showNotification(title, {body, tag, lang, silent, data})`, `notificationclick` opens `links.web`); a Flutter UnifiedPush snippet (pass the VAPID key to `registerApp`, decrypt via the library, echo the verification code); the LAN distributor case (`push.allowedPrivateHosts`, https still required); reach limits (no iOS, no macOS/Windows desktop: use 032 or ntfy).
+- `docs/Operator-Guide.md` "Web Push and UnifiedPush": service-worker snippet (`pushManager.subscribe({userVisibleOnly: true, applicationServerKey})`, POST to Foresignal, handle `event: "verify"` by POSTing the code, `showNotification(title, {body, tag, lang, silent, data})`, `notificationclick` opens `links.web`); a Flutter UnifiedPush snippet (pass the VAPID key to `registerApp`, decrypt via the library, echo the verification code); the LAN distributor case (`push.allowedPrivateHosts`, https still required); reach limits (no iOS, no macOS/Windows desktop: use 032 or ntfy).
 
 ## Tests to write (do not run)
 

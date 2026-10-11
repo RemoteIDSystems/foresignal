@@ -1,11 +1,11 @@
 # 129 — Full Test Run And Fix
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/129-CR-Full-Test-Run-And-Fix.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -15,7 +15,7 @@
 
 - Every Completion Report in `completion-reports/`, especially the checkpoint reports 012, 022, 041, 057 and 097 (known flaky tests, deferred fixes, test-only workarounds) and the "Issues found / open questions" sections of 098–128
 - `docs/Core-Data-Model.md` §1 (invariants I1–I10), §17 (test strategy, `TestRecords`, `SchemaParityIT`, operator truth-table fixture)
-- `docs/Architecture.md` §12 (test layers, JaCoCo gate) and `build.gradle.kts` (`jacocoTestCoverageVerification`: LINE, BUNDLE, ≥ 0.90, excluding `ElaroApplication`)
+- `docs/Architecture.md` §12 (test layers, JaCoCo gate) and `build.gradle.kts` (`jacocoTestCoverageVerification`: LINE, BUNDLE, ≥ 0.90, excluding `ForesignalApplication`)
 - `docs/Weather-Imagery-Design.md` §10.3 (the full test run includes fixture contract tests for every weather and SatDump output)
 
 ## Objective
@@ -24,12 +24,12 @@ The final regression before runtime verification. Run the whole suite with cover
 
 ## Test run
 
-1. Start Docker if needed (Testcontainers needs it; the Elaro DB image from `docker/db/Dockerfile` must build). Run `./gradlew clean test jacocoTestReport jacocoTestCoverageVerification`. Use `--continue` so one failing class doesn't hide others, and keep the HTML reports (`build/reports/tests/test`, `build/reports/jacoco/test/html`).
+1. Start Docker if needed (Testcontainers needs it; the Foresignal DB image from `docker/db/Dockerfile` must build). Run `./gradlew clean test jacocoTestReport jacocoTestCoverageVerification`. Use `--continue` so one failing class doesn't hide others, and keep the HTML reports (`build/reports/tests/test`, `build/reports/jacoco/test/html`).
 2. Triage failures by root cause and group them (one shared cause → one fix): context-load failures first (they cascade), then schema and bootstrap, then the writer and invariants, then API, then adapters. Fix production code. Change a test only when it asserts the wrong thing, and document each such change (test, old assertion, why it was wrong, new assertion) in the Completion Report.
 3. Re-run until green. Record pass/fail/skip counts and the coverage percentage for every run, and every fix (commit-level summary: cause → change → tests affected) in the Completion Report.
 4. **Coverage to ≥ 90% LINE (BUNDLE):**
    - From the JaCoCo XML, list packages and classes by missed lines. Write tests for the largest gaps first; count real behaviour, not getters.
-   - Allowed exclusions, each justified in the Completion Report: `ElaroApplication`, generated code, `record` classes with no logic (only if JaCoCo counts their synthetic methods), and `main()`-style dev tools. Never exclude a package to pass the gate. Never weaken the rule element, counter or minimum.
+   - Allowed exclusions, each justified in the Completion Report: `ForesignalApplication`, generated code, `record` classes with no logic (only if JaCoCo counts their synthetic methods), and `main()`-style dev tools. Never exclude a package to pass the gate. Never weaken the rule element, counter or minimum.
    - The `cli/` build, `sdk/` code and the WASM example are outside the bundle; don't count them in either direction.
 5. **Focus areas** (read the code for each, add tests where behaviour is unpinned, fix what breaks):
    - **Core pipeline:**
@@ -47,14 +47,14 @@ The final regression before runtime verification. Run the whole suite with cover
      - edge semantics (FIRST, REAPPEAR, tombstone predecessor), cooldown on `observed_at`, `edgeMinInterval`, `max_alerts_per_hour`
      - alert lifecycle and `autoResolve`; channel retries with `Retry-After`, quiet hours, folding, edit-in-place refs; exercise isolation (115)
    - **Access and privacy:**
-     - AccessPolicy fail-closed for every unmatched `/v1/**` path; add a test that walks every operation in `docs/OpenAPI.json` and asserts its `x-elaro-scope` equals the enforced scope
+     - AccessPolicy fail-closed for every unmatched `/v1/**` path; add a test that walks every operation in `docs/OpenAPI.json` and asserts its `x-foresignal-scope` equals the enforced scope
      - restricted tokens, feed keys and share keys bound to their paths
      - private sources excluded from openReads, tiles, embeddings, LLM context, sinks, exports and federation
      - licence egress denials on every `EgressPath` (109)
    - **LLM features:** no test calls a real model (assert the WireMock stubs only); budgets refuse; prompt-injection fixtures for Ask, enrichment, analyst (102), doctor (127) and translation (128)
    - **Adapters and weather:**
      - every adapter has a passing fixture contract test and a fieldSpecs contract test; every weather and SatDump output has a fixture or golden test
-     - `.elg` golden file, MRMS sentinel round trip, tile golden images within tolerance
+     - `.fsg` golden file, MRMS sentinel round trip, tile golden images within tolerance
    - **Contract:** the OpenAPI drift test, Postman completeness test (020), required lint if `npx` is present, event schemas versus emitted payloads
 6. **Flakiness:** run the full suite **twice more** after green. Any test that fails intermittently gets fixed (Awaitility with explicit timeouts, `MutableClock` instead of sleeps, deterministic ordering, isolated ports), never `@Disabled`. List any test that still needs a retry, with the reason.
 7. Run `./gradlew compileJava compileTestJava` and the `cli/` build's `test` once (record the result; CLI failures are fixed if cheap, else listed).

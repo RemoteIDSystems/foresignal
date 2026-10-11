@@ -1,11 +1,11 @@
 # 010 — Collector Scheduler
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/010-CR-Collector-Scheduler.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -26,10 +26,10 @@ Connect subscription to collection. Enabled polling sources are fetched on sched
 
 ## Tasks
 
-### 1. `DefaultFetchContext` (`ai.elaro.collect`)
+### 1. `DefaultFetchContext` (`ai.foresignal.collect`)
 
 - `http()`: the source-bound `UpstreamClient.forSource(…)`, with a per-fetch trace collector (prompt 005's `FetchTrace`) and, when probing, a `RequestRecorder`
-- `params()` (validated effective params), `credentials()` (via `CredentialsAccess`), `clock()`, `lastSuccessAt()`, `state()` (`AdapterStateStore` on `source_health.adapter_state`), `descriptor()`, `log()` (SLF4J logger `elaro.source.<id>`)
+- `params()` (validated effective params), `credentials()` (via `CredentialsAccess`), `clock()`, `lastSuccessAt()`, `state()` (`AdapterStateStore` on `source_health.adapter_state`), `descriptor()`, `log()` (SLF4J logger `foresignal.source.<id>`)
 - DERIVED sources get a context whose `http()` throws (prompt 004 rule).
 
 ### 2. `FetchExecutor`
@@ -39,7 +39,7 @@ Connect subscription to collection. Enabled polling sources are fetched on sched
 1. `HealthTracker.recordAttempt`; `startedAt = clock.now()`.
 2. Run `adapter.fetch(ctx)` on a **virtual thread** with the descriptor's `fetchTimeout`; on timeout interrupt and fail with `AdapterTimeoutException`. Dispatch through a small `FetchDispatcher` seam so prompt 042 can route heavy product decodes to a bounded platform pool.
 3. `receivedAt = clock.now()` when `fetch` returns; wrap each record as `IngestRecord(record, receivedAt, arrivalIndex)`.
-4. Build the `FetchLogEntry` from the collected traces: `request_count` = traces, `url_redacted`/`http_status`/`etag`/`body_sha256` from the last trace, `bytes` = sum, `adapter_version` = `ElaroVersion`, `licence` from the descriptor, `principal` null, `coverage` from `FetchResult`.
+4. Build the `FetchLogEntry` from the collected traces: `request_count` = traces, `url_redacted`/`http_status`/`etag`/`body_sha256` from the last trace, `bytes` = sum, `adapter_version` = `ForesignalVersion`, `licence` from the descriptor, `principal` null, `coverage` from `FetchResult`.
 5. Outcome table:
 
 | Result | `fetch_log` | Health and ingest |
@@ -56,7 +56,7 @@ Connect subscription to collection. Enabled polling sources are fetched on sched
    Rows written here use a `FetchLogWriter` (JDBC insert, `ingested_at` null). `fetch_log` is not covered by I1, so this does not conflict with the single writer.
 6. Return `FetchOutcome`: `sourceId, startedAt, durationMs, success, recordsSeen, recordsChanged (= persisted), persisted, live, touched, touchesThrottled, late, skipped, rejected, byReason, fromSeq, toSeq, error`.
 
-Also: a per-source `AtomicBoolean running` prevents overlap; a scheduled run that would overlap is skipped and counted (`elaro.fetch.skipped{reason=overlap}`). Timer `elaro.fetch.duration{source,result}`.
+Also: a per-source `AtomicBoolean running` prevents overlap; a scheduled run that would overlap is skipped and counted (`foresignal.fetch.skipped{reason=overlap}`). Timer `foresignal.fetch.duration{source,result}`.
 
 ### 3. `CollectorScheduler`
 
@@ -86,13 +86,13 @@ Also: a per-source `AtomicBoolean running` prevents overlap; a scheduled run tha
   - `receivedAt` is stamped on `accept`.
   - **One outstanding batch** per source: flush at 2 s or 2,000 entries, but only once the previous batch's future has completed; keep buffering meanwhile.
   - SAMPLED / LATEST: a map keyed by `externalId`; the greatest `observedAt` wins (`receivedAt` under `observedAtMode=RECEIVED`), ties go to the later arrival.
-  - ALL: an ordered list capped at `allBufferMax` (50,000). At the cap `accept` blocks for up to 30 s, then drops the record and counts `elaro.stream.records.dropped{source}`.
+  - ALL: an ordered list capped at `allBufferMax` (50,000). At the cap `accept` blocks for up to 30 s, then drops the record and counts `foresignal.stream.records.dropped{source}`.
   - Each flush produces one `fetch_log` row (`trigger=STREAM`, written by the writer) and calls `HealthTracker.recordStreamFlush(outcome)`, which updates `last_data_at`. `stop(source)` closes the handle and flushes.
   - Javadoc the documented limit: under SAMPLED and LATEST, trigger edges and samples have *flush resolution* for streams (≥ 2 s, longer while a batch is in flight) and *poll resolution* for polling sources.
 
 ### 6. Spec, Postman, docs
 
-- `docs/OpenAPI.json`: `FetchOutcome` gains `persisted`, `live`, `touched`, `touchesThrottled`, `late`, `skipped`, `rejected`, `byReason`; `NormalizedRecordPreview` gains `eventTime`, `validFrom`, `quality` (`$ref Quality`), `observers` (array of `Observer`); add `Quality`, `Observer` and `Coverage` schemas per Core-Data-Model §3. `fetchSourceNow` 409 description adds "not supported for this source mode". The operations already carry `x-elaro-scope: admin`; no new operations. Regenerate Postman (`python3 scripts/generate-postman.py docs/OpenAPI.json postman`).
+- `docs/OpenAPI.json`: `FetchOutcome` gains `persisted`, `live`, `touched`, `touchesThrottled`, `late`, `skipped`, `rejected`, `byReason`; `NormalizedRecordPreview` gains `eventTime`, `validFrom`, `quality` (`$ref Quality`), `observers` (array of `Observer`); add `Quality`, `Observer` and `Coverage` schemas per Core-Data-Model §3. `fetchSourceNow` 409 description adds "not supported for this source mode". The operations already carry `x-foresignal-scope: admin`; no new operations. Regenerate Postman (`python3 scripts/generate-postman.py docs/OpenAPI.json postman`).
 - `docs/Architecture.md` is folded later; record the sink change in the Completion Report.
 
 ## Tests to write (do not run)

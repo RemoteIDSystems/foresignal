@@ -1,6 +1,6 @@
-# Elaro — Source Catalog
+# Foresignal — Source Catalog
 
-The working inventory of upstreams Elaro will integrate, merged from God's Eye View (GEV, MIT, so code is **portable**) and ShadowBroker (SB, AGPL, so it is **reference only**). Velocity (VEL) and World Monitor (WM), both AGPL, are reference only. Their findings are merged below.
+The working inventory of upstreams Foresignal will integrate, merged from God's Eye View (GEV, MIT, so code is **portable**) and ShadowBroker (SB, AGPL, so it is **reference only**). Velocity (VEL) and World Monitor (WM), both AGPL, are reference only. Their findings are merged below.
 
 Reference paths: GEV = `~/Documents/GitLab/gods-eye-view`, SB = `~/Documents/GitLab/Shadowbroker/backend`.
 
@@ -18,7 +18,7 @@ Roadmap prompts: aircraft → 029, `aisstream` → 030, `celestrak-gp`/`launch-l
 
 | Source id | Kind | Upstream | Protocol | Auth | Default interval · budget | Reference | Notes |
 |---|---|---|---|---|---|---|---|
-| `adsblol-mil` | aircraft | `api.adsb.lol/v2/mil` | REST JSON (readsb) | none | 30 s · 4/min, 3000/day | GEV `server/providers/aircraft/adsb-lol.js`, `src/data/adsbLolFallback.js` | Honour `Retry-After` (clamp 5–120 s). ODbL. TTL 5 min. **VEL reports adsb.lol returns HTTP 451 to non-browser User-Agents.** Elaro never spoofs. If our identifiable UA gets 451 during runtime verification (prompt 062), mark the source failing and pursue adsb.lol's API-key/feeder programme. Do not work around it. |
+| `adsblol-mil` | aircraft | `api.adsb.lol/v2/mil` | REST JSON (readsb) | none | 30 s · 4/min, 3000/day | GEV `server/providers/aircraft/adsb-lol.js`, `src/data/adsbLolFallback.js` | Honour `Retry-After` (clamp 5–120 s). ODbL. TTL 5 min. **VEL reports adsb.lol returns HTTP 451 to non-browser User-Agents.** Foresignal never spoofs. If our identifiable UA gets 451 during runtime verification (prompt 062), mark the source failing and pursue adsb.lol's API-key/feeder programme. Do not work around it. |
 | `adsblol-region-*` (family) | aircraft | `api.adsb.lol/v2/lat/{lat}/lon/{lon}/dist/{nm}` | REST JSON | none | 60 s · 2/min, 1500/day per region | GEV `opensky.js` fallback; SB regions (6 centres) | Family: one source per region (`na`, `eu`, `asia`, `oceania`, `africa`, `sa`). Bulk endpoint has returned HTTP 451 before, so expect failures and keep OpenSky as an alternative. VEL: the planet-radius form `/v2/point/0/0/20000` returns about 12k aircraft in one call, and `/v2/all-with-pos` is gone (404). Consider one global source instead of six regions (fewer requests), and decide in prompt 029. |
 | `opensky-states` | aircraft | `opensky-network.org/api/states/all?extended=1`; OAuth token at `auth.opensky-network.org/.../token` | REST + OAuth2 client_credentials | clientId, clientSecret (optional; anonymous mode is lower-rate) | 300 s · 1/min, 900/day | GEV `server/providers/aircraft/opensky.js` (credit governor) | ~4000 credits/day; `/states/all` costs 4. Honour `X-Rate-Limit-Retry-After-Seconds`. Positional state arrays (idx 0 icao24, 1 callsign, 5 lon, 6 lat, 7 baro alt m, 9 vel m/s, 10 track). Non-commercial terms. VEL (2026): **basic auth is dead since Mar 2026**; the anonymous budget is 400 credits/day per IP; cost is 1 credit for 2×2°, 2 for 10×10°, 4 for the world. Read `x-rate-limit-remaining` and keep a reserve. |
 | `aisstream` | vessel | `wss://stream.aisstream.io/v0/stream`; subscribe `{APIKey, BoundingBoxes, FilterMessageTypes}` | WebSocket (streaming) | apiKey | streaming · 6 connects/hour | GEV `server/providers/vessels/ais-live.js`, `ais-store.js`, `src/data/aisStreamAdapter.js`, `aisWatchdog.js` | One connection per key. Reconnect ladder 5 s → 15 s → 60 s → 300 s → 900 s; if the key is rejected, probe hourly. Silence watchdog 120 s. Param `boundingBoxes` (default world), message types PositionReport, StandardClassBPositionReport, ShipStaticData. Merge static data into vessel payload. TTL 30 min. Sentinels: lat 91 / lon 181, SOG 102.3, heading 511. |
@@ -83,7 +83,7 @@ Roadmap prompts:
 | `kiwisdr` | sdr-receiver | `rx.linkfanel.net/kiwisdr_com.js` | JS-literal parse | none | 24 h. Lenient parser (trailing commas, comments). |
 | `openmhz-systems` | scanner | `api.openmhz.com/systems` | REST JSON | none | 1 h. Calls are on demand later. |
 | `aprs-is` | aprs-station | `rotate.aprs2.net:14580`, filter `r/{lat}/{lon}/{km}` | raw TCP (streaming) | callsign (+passcode for TX; receive-only uses -1) | **Opt-in, narrow filter mandatory.** Reconnect 30 s → 15 min with jitter. |
-| `meshtastic-mqtt` | mesh-node | `mqtt.meshtastic.org:1883`, topic `msh/{root}/#` | MQTT (streaming) | public creds | **Mesh.md rules:** disabled by default, one root topic default, `maxSubscriptions` ≤ 3, 100 msg/min cap, keepalive 120 s, reconnect 15–300 s, identifiable client id `elaro-<installId>`. |
+| `meshtastic-mqtt` | mesh-node | `mqtt.meshtastic.org:1883`, topic `msh/{root}/#` | MQTT (streaming) | public creds | **Mesh.md rules:** disabled by default, one root topic default, `maxSubscriptions` ≤ 3, 100 msg/min cap, keepalive 120 s, reconnect 15–300 s, identifiable client id `foresignal-<installId>`. |
 | `meshtastic-map` | mesh-node | `meshtastic.liamcottle.net/api/v1/nodes` (~37 MB) | REST JSON | none | **Daily at most.** Community hobby service. |
 | `wri-power-plants` | power-plant | WRI Global Power Plant Database CSV (GitHub release) | CSV | none | Weekly reference dataset. CC BY 4.0. |
 | `ourairports` | airport | `ourairports.com/data/airports.csv` | CSV | none | Weekly reference dataset. |
@@ -103,7 +103,7 @@ Roadmap prompts:
 - `uk-ofsi-sanctions`, `un-sanctions` → 053
 - `gpsjam-daily` → 054
 
-Keyless and official feeds that VEL uses and Elaro lacks. VEL paths are under `~/Documents/GitLab/velocity/apps/api/app/`.
+Keyless and official feeds that VEL uses and Foresignal lacks. VEL paths are under `~/Documents/GitLab/velocity/apps/api/app/`.
 
 | Source id | Kind | Upstream | Protocol | Notes |
 |---|---|---|---|---|
@@ -120,7 +120,7 @@ Keyless and official feeds that VEL uses and Elaro lacks. VEL paths are under `~
 | `spc-storm-reports` | storm-report | `www.spc.noaa.gov/climo/reports/today.csv` | CSV | 15 min. Tornado, hail and wind reports, as points. |
 | `ua-air-raid-siren` | air-raid-alert | `siren.pp.ua/api/v3/alerts` | REST JSON | A keyless alternative to `alerts-in-ua`. Verify its terms. |
 | `uk-ofsi-sanctions` / `un-sanctions` | sanction | UK OFSI ConList CSV; UN consolidated list XML | CSV / XML | Daily. Pairs with `ofac-sdn`. |
-| `gpsjam-daily` | jamming-cell | `gpsjam.org/data/manifest.csv` → `{date}-h3_4.csv` | CSV | Daily. H3 res-4 cells (needs the `h3` Java dependency to turn cells into polygons). Complements Elaro's derived jamming layer (prompt 057). |
+| `gpsjam-daily` | jamming-cell | `gpsjam.org/data/manifest.csv` → `{date}-h3_4.csv` | CSV | Daily. H3 res-4 cells (needs the `h3` Java dependency to turn cells into polygons). Complements Foresignal's derived jamming layer (prompt 057). |
 
 **Excluded from VEL's set:** unofficial web-map endpoints, scraping, and practices that work around blocks.
 - FlightRadar24 `feed.js`, ShipXplorer, MyShipTracking, MarineTraffic and VesselFinder web endpoints.
@@ -132,7 +132,7 @@ Keyless and official feeds that VEL uses and Elaro lacks. VEL paths are under `~
 **Design notes from VEL (ideas, not code):**
 - Alerts on **enter/exit transitions**, not on every match. Adopted as the trigger rule `mode` (Architecture §8.3).
 - When fusing sources, pick the freshest observation by its observation time, not by merge order. Applies to the aircraft-fusion derived layer (prompt 057).
-- Publish the age of the data, not of the response. Elaro's `observedAt` already does this.
+- Publish the age of the data, not of the response. Foresignal's `observedAt` already does this.
 - Read credit budgets from response headers (OpenSky `x-rate-limit-remaining`).
 - Treat an HTTP 200 with a non-JSON body as throttling. Adapters should throw `UpstreamFormatException` on an unexpected content type.
 - Derived-layer recipes for later: `ais_gap` (no fix for 30 min), `loiter` (every fix within 0.5 nm of the centroid over 30 min), `rendezvous` (two vessels within 0.5 nm), deception checks (duplicate MMSI more than 50 km apart within 120 s, vessel speed over 80 kn, aircraft speed over 1400 kn), and the GPS-jamming thresholds (NACp < 8 or NIC < 7; ≥ 30% medium, ≥ 50% high, ≥ 3 aircraft).
@@ -150,7 +150,7 @@ Roadmap prompts:
 - `submarine-cables` → 056
 - `faa-nas-status` → 049 (also listed under Velocity)
 
-These are structured feeds that rarely appear in OSINT globe projects. Reference files are under `~/Documents/GitLab/worldmonitor/scripts/seed-*.mjs`. `gdacs` (prompt 034) is confirmed at `gdacsapi/api/events/geteventlist/MAP`; WM drops Green alerts, and Elaro keeps them and lets triggers filter.
+These are structured feeds that rarely appear in OSINT globe projects. Reference files are under `~/Documents/GitLab/worldmonitor/scripts/seed-*.mjs`. `gdacs` (prompt 034) is confirmed at `gdacsapi/api/events/geteventlist/MAP`; WM drops Green alerts, and Foresignal keeps them and lets triggers filter.
 
 | Source id | Kind | Upstream | Auth | Notes |
 |---|---|---|---|---|
@@ -172,8 +172,8 @@ These are structured feeds that rarely appear in OSINT globe projects. Reference
 | `polymarket` / `kalshi` | prediction-market | `gamma-api.polymarket.com`, `api.elections.kalshi.com/trade-api/v2` | none | **Polymarket JA3-blocks server-side clients, so it is excluded.** Kalshi is fine. |
 
 **Design notes worth borrowing (ideas, not code):**
-- WM's seed envelope state `OK | OK_ZERO | ERROR` is the same idea as Elaro's zero-result health rule.
-- Its "keep last good data on failure" behaviour is already implicit in Elaro: records persist until retention removes them.
+- WM's seed envelope state `OK | OK_ZERO | ERROR` is the same idea as Foresignal's zero-result health rule.
+- Its "keep last good data on failure" behaviour is already implicit in Foresignal: records persist until retention removes them.
 - Its ACLED-over-GDELT dedup on a 0.1° grid and same-day match is included in derived layers (prompt 057).
 
 **Excluded from WM's set:**

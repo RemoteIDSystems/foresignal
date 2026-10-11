@@ -1,4 +1,4 @@
-# Elaro v1.2 core data model (final)
+# Foresignal v1.2 core data model (final)
 
 Status: final proposal for `docs/Architecture.md` v1.2. It replaces the refined v1.2 proposal and resolves every blocker and major issue from the skeptic round. Minor issues are taken where they are cheap. §18 maps each issue to its resolution. Section headers name the part of Architecture.md they replace or extend.
 
@@ -32,7 +32,7 @@ Repo facts checked for this design:
 
 | ID | Invariant | Enforced by |
 |---|---|---|
-| I1 | Only the writer thread inserts `record_version` and writes `record_head`, `record_live` and `seq_clock`. Retention may delete versions and drop leaves. Head purges run on the writer. | Code structure. When `elaro.ingest.writer.exclusive=true` (the production default), `pg_try_advisory_lock` is held on a dedicated non-pooled connection. |
+| I1 | Only the writer thread inserts `record_version` and writes `record_head`, `record_live` and `seq_clock`. Retention may delete versions and drop leaves. Head purges run on the writer. | Code structure. When `foresignal.ingest.writer.exclusive=true` (the production default), `pg_try_advisory_lock` is held on a dedicated non-pooled connection. |
 | I2 | seq is allocated inside the writer transaction by the single allocator. Every seq of a batch is greater than every seq allocated earlier, including rolled-back allocations. | §6 step 7 and `lastAllocatedSeq` |
 | I3 | `ingested_at` never decreases with seq. | `ingestedAt = max(clock.now, lastIngestedAt)`, state loaded from the database at start, clock guard (§6.1) |
 | I4 | Per entity, accepted `observed_at` never decreases. | Fixed time base per source, always clamp the future, LATE drop, in-batch sort |
@@ -41,7 +41,7 @@ Repo facts checked for this design:
 | I7 | A head is purged only when every version of it is gone. | `h.seq < floorSeq(source)` (§13) |
 | I8 | For every enabled rule, after each processed observation, P(head state) = P(latest state). The only exception is a flip held back by `edgeMinInterval`, which is persisted on the first observation after the interval passes. | `PersistGate` compares against persisted state (§11) |
 | I9 | `record_version` is changed only by native SQL. | Code review |
-| I10 | Every head has exactly one live row, and the reverse. | Writer upserts both. The load query uses LEFT JOIN, repairs a missing live row and counts `elaro.ingest.repair.live_missing`. |
+| I10 | Every head has exactly one live row, and the reverse. | Writer upserts both. The load query uses LEFT JOIN, repairs a missing live row and counts `foresignal.ingest.repair.live_missing`. |
 
 ---
 
@@ -51,7 +51,7 @@ Repo facts checked for this design:
 |---|---|---|---|---|
 | `event_time` (nullable) | When a discrete real-world event happened, or a measurement period | Adapter | Yes | `effective_time`, `{{eventTime}}` |
 | `observed_at` (required) | When upstream last observed or updated this state | Adapter, or framework under `observedAtMode=RECEIVED` | No | LATE check, SAMPLED Δt, OBSERVED-anchor TTL and keyframes, client last-writer-wins, cooldown, playback |
-| `received_at` | When Elaro received the response, message or push (the sink stamps streams) | Framework | No | Clamp, RECEIVED-anchor TTL and keyframes, retention keyframe, touch throttle, `last_received_at` |
+| `received_at` | When Foresignal received the response, message or push (the sink stamps streams) | Framework | No | Clamp, RECEIVED-anchor TTL and keyframes, retention keyframe, touch throttle, `last_received_at` |
 | `ingested_at` | Batch timestamp, monotonic | Writer | No | asOf, retention through `seq_clock` |
 
 `effective_time = COALESCE(event_time, observed_at)`.
@@ -82,9 +82,9 @@ Repo facts checked for this design:
 | Push (020) | Per custom source config | Per custom source `observedAtMode` | |
 
 **Normalizer rules:**
-1. If `observed_at > received_at`, set `observed_at = received_at`. Only when the excess is greater than `skewTolerance` (default 2 min) is the `FUTURE_CLAMPED` flag set and `elaro.ingest.records.clamped{source}` counted.
+1. If `observed_at > received_at`, set `observed_at = received_at`. Only when the excess is greater than `skewTolerance` (default 2 min) is the `FUTURE_CLAMPED` flag set and `foresignal.ingest.records.clamped{source}` counted.
 2. Reject `observed_at < 1970-01-02`.
-3. Writer: if `observed_at < l.observed_at`, the observation is **LATE** and dropped with no side effects (`elaro.ingest.records.late`). Equal timestamps are accepted in arrival order.
+3. Writer: if `observed_at < l.observed_at`, the observation is **LATE** and dropped with no side effects (`foresignal.ingest.records.late`). Equal timestamps are accepted in arrival order.
 
 ---
 
@@ -251,7 +251,7 @@ Definitions:
 **Budget:** about 10k versions/min (aircraft 4.5k, vessels 2.5k, local ≤ 1.2k, transit 1.8k, standard < 0.5k).
 - Retention keyframes add less than 1% on STANDARD and nothing on TRACK.
 - NFR-2: 40,000 observations/min, of which ≤ 20,000 persisted versions/min.
-- `elaro.ingest.persist{reason=TRIGGER_EDGE}`: a warning is raised when its share is above 20% of a source's versions over 1 h.
+- `foresignal.ingest.persist{reason=TRIGGER_EDGE}`: a warning is raised when its share is above 20% of a source's versions over 1 h.
 
 ---
 
@@ -259,12 +259,12 @@ Definitions:
 
 ### 6.1 Lifecycle and state
 
-- Platform thread `elaro-ingest-writer`, started on `ApplicationReadyEvent`.
-- **Lock** (when `elaro.ingest.writer.exclusive=true`):
-  - `pg_try_advisory_lock(hashtext('elaro.ingest.writer'))` on a dedicated connection opened with `DriverManager` from `JdbcConnectionDetails`, outside Hikari.
+- Platform thread `foresignal-ingest-writer`, started on `ApplicationReadyEvent`.
+- **Lock** (when `foresignal.ingest.writer.exclusive=true`):
+  - `pg_try_advisory_lock(hashtext('foresignal.ingest.writer'))` on a dedicated connection opened with `DriverManager` from `JdbcConnectionDetails`, outside Hikari.
   - Keepalive `SELECT 1` every 30 s.
   - If the lock is held at start, it fails with a clear error.
-  - On connection loss, it pauses command processing, reacquires with backoff, and raises `elaro.ingest.writer.lock_lost`.
+  - On connection loss, it pauses command processing, reacquires with backoff, and raises `foresignal.ingest.writer.lock_lost`.
 - **State init** (`resetState()`, also called by `DatabaseCleaner`):
   - `lastSeq, lastIngestedAt` come from `SELECT seq, ingested_at FROM record_version ORDER BY seq DESC LIMIT 1`.
   - `lastIngestedAt` is then raised to `max(lastIngestedAt, max(seq_clock.minute), max(fetch_log.ingested_at))`.
@@ -272,8 +272,8 @@ Definitions:
   - The migrated-recipe map is cleared.
 - **Clock guard:**
   - At start, if `clock.now < lastIngestedAt − 5 min`, it does not process batches. The queue fills and producers back off. Health alarm `writer.clockBehind`; re-check every 30 s.
-  - At run time, each batch compares wall-clock delta with `System.nanoTime` delta. A divergence above 5 min counts `elaro.ingest.clock.jump{direction}` and raises a health warning.
-  - Backward jumps are absorbed by the I3 clamp, counted as `elaro.ingest.clock.clamped`. Ingest is never stopped.
+  - At run time, each batch compares wall-clock delta with `System.nanoTime` delta. A divergence above 5 min counts `foresignal.ingest.clock.jump{direction}` and raises a health warning.
+  - Backward jumps are absorbed by the I3 clamp, counted as `foresignal.ingest.clock.clamped`. Ingest is never stopped.
 - **Profiles:** `SourceIngestProfile` is cached and refreshed on settings events. The rule snapshot is read once at batch start (an `AtomicReference` from `PersistGate`).
 
 ### 6.2 Batch steps
@@ -337,10 +337,10 @@ Definitions:
 - `version_bytes` = UTF-8 length of payload JSON + quality JSON + observer JSON + 120.
 
 **Metrics:**
-- `elaro.ingest.records.{seen,persisted,live,touched,touches_throttled,late,skipped,clamped,rejected}{source}`
-- `elaro.ingest.persist{source,reason}`
-- `elaro.ingest.batch.duration{phase}`
-- `elaro.ingest.batch.retries`
+- `foresignal.ingest.records.{seen,persisted,live,touched,touches_throttled,late,skipped,clamped,rejected}{source}`
+- `foresignal.ingest.persist{source,reason}`
+- `foresignal.ingest.batch.duration{phase}`
+- `foresignal.ingest.batch.retries`
 
 ---
 
@@ -348,7 +348,7 @@ Definitions:
 
 - One outstanding batch per streaming source. Flush at 2 s or 2,000 entries, once the previous future has completed.
 - **SAMPLED / LATEST:** a map keyed by externalId. The greatest `observedAt` wins; ties go to the later arrival.
-- **ALL:** an ordered list, capped at `allBufferMax=50,000`. At the cap, `accept` blocks for up to 30 s, then drops and counts `elaro.stream.records.dropped`.
+- **ALL:** an ordered list, capped at `allBufferMax=50,000`. At the cap, `accept` blocks for up to 30 s, then drops and counts `foresignal.stream.records.dropped`.
 - `receivedAt` is stamped on accept. Each flush produces one `fetch_log` row (`trigger=STREAM`) and updates `source_health.last_data_at`.
 - **Documented limit:** under SAMPLED and LATEST, trigger edges and samples have *flush resolution* for streams (≥ 2 s, longer while a batch is in flight) and *poll resolution* for polling sources.
 
@@ -441,7 +441,7 @@ seq is global across tiers. At a 3d track window there are about 3–5 track lea
   - A pending detach is finished with `FINALIZE` on the next run.
 - Never create a DEFAULT partition.
 - **Schedule:** phase 1, every 10 min, and inline from pre-flight.
-- Gauge `elaro.history.partition.headroom{tier}`. Warn when headroom is below 1 block.
+- Gauge `foresignal.history.partition.headroom{tier}`. Warn when headroom is below 1 block.
 - `ANALYZE record_version` daily and after each attach or drop, under the same lock.
 
 **DatabaseCleaner:**
@@ -449,7 +449,7 @@ seq is global across tiers. At a 3d track window there are about 3–5 track lea
 - Calls `IngestWriter.resetState()` after truncating.
 
 **Test profile:**
-- `elaro.ingest.writer.exclusive=false`.
+- `foresignal.ingest.writer.exclusive=false`.
 - Scheduled partition maintenance and retention disabled.
 
 ---
@@ -558,7 +558,7 @@ Granularity is one batch. Valid-time asOf is not offered; use `/v1/history`.
 - **v1.3:** adapters set `defaultRetention` / `kindRetention` by analytic class (`docs/Conventions.md` "Analytic retention": event kinds 1825 d, series 3650 d, bulk events 90 d), so the 7d global default applies only to sources without a class.
 - A per-source retention PUT on a TRACK source is rejected with `400 RETENTION_TIER_FIXED`.
 
-**Consumer clamp:** `cutoffSeq` is clamped to `min(trigger.cursor, embedding.cursor) + 1`. If a cursor is older than `now − 2 × window`, the clamp is released and `elaro.retention.consumer_lag` is alarmed.
+**Consumer clamp:** `cutoffSeq` is clamped to `min(trigger.cursor, embedding.cursor) + 1`. If a cursor is older than `now − 2 × window`, the clamp is released and `foresignal.retention.consumer_lag` is alarmed.
 
 **RetentionJob** (hourly, not `@Transactional`):
 1. **TRACK:** `PartitionManager.drop` for every `rv_t_*` whose upper bound ≤ `cutoffSeq(now − trackWindow)`.
@@ -620,17 +620,17 @@ Track `floorSeq` is unchanged by it. asOf over a downsampled range widens TTL va
 db:
   command: ["postgres","-c","shared_buffers=512MB","-c","max_wal_size=8GB","-c","checkpoint_timeout=15min",
             "-c","wal_compression=lz4","-c","max_locks_per_transaction=256","-c","autovacuum_vacuum_cost_limit=2000"]
-  ports: ["${ELARO_DB_BIND:-127.0.0.1}:5433:5432"]
-elaro:
-  ports: ["${ELARO_BIND:-127.0.0.1}:8080:8080"]
+  ports: ["${FORESIGNAL_DB_BIND:-127.0.0.1}:5433:5432"]
+foresignal:
+  ports: ["${FORESIGNAL_BIND:-127.0.0.1}:8080:8080"]
 ```
 
 - `application.yml`: `spring.datasource.hikari.data-source-properties.reWriteBatchedInserts: true`. This also covers the Testcontainers `@ServiceConnection` URL.
 - Docs:
-  - LAN access needs `ELARO_BIND=0.0.0.0`.
+  - LAN access needs `FORESIGNAL_BIND=0.0.0.0`.
   - Expect about 10–15 GB/day of history writes plus 15–20 GB/day of WAL.
   - A 3d track window holds about 40M rows, roughly 20 GB including indexes.
-  - NTP must sync before Elaro starts; otherwise the clock guard holds ingest.
+  - NTP must sync before Foresignal starts; otherwise the clock guard holds ingest.
 
 ---
 
@@ -740,7 +740,7 @@ elaro:
 - `HistorySchemaInitializer`, wired as in §9 (`@DependsOn` postgis, added to `EntityManagerFactoryDependsOnPostProcessor`). `extra_physical_table_types` in main `application.yml`.
 - `SpatialIndexInitializer`: GiST on `record_live.geom`, drop the `record_head` GiST, `record_live` storage parameters.
 - `PartitionManager`: `ensureAhead` (1.5 blocks), `ensureFor`, `coveredUpTo`, lock, 42P07/42P17 handling, headroom gauge, daily ANALYZE. `drop` uses DETACH CONCURRENTLY on an autocommit connection plus FINALIZE recovery; implemented and tested here, called from 016.
-- Properties: `elaro.history.trackBlock=20000000`, `standardBlock=250000000`, `elaro.ingest.writer.exclusive=true` (false in `application-test.yml`). Disable scheduled maintenance in the test profile.
+- Properties: `foresignal.history.trackBlock=20000000`, `standardBlock=250000000`, `foresignal.ingest.writer.exclusive=true` (false in `application-test.yml`). Disable scheduled maintenance in the test profile.
 - DatabaseCleaner: partition filter; calls `IngestWriter.resetState()` if the bean exists (`ObjectProvider`).
 - `TestPartitions` helper. Update `EntityMappingIT`. Javadoc and comment fixes (Flyway 063).
 - Compose: bindings and PostgreSQL flags; `reWriteBatchedInserts` Hikari property.
@@ -893,7 +893,7 @@ elaro:
   - the revision event has `persistReason = SIGNIFICANT`;
   - asOf before the revision returns version 1;
   - `/v1/system.history` reports two tiers.
-- Operator guide: policies, tiers and windows, `ELARO_BIND`, storage projection, NTP.
+- Operator guide: policies, tiers and windows, `FORESIGNAL_BIND`, storage projection, NTP.
 - Smoke script checks `watermarkSeq`.
 
 **Other affected prompts:**
@@ -968,4 +968,4 @@ elaro:
 | Putting `extra_physical_table_types` in the test YAML too | The test profile file (`application-test.yml`) layers on the main file. Duplicating it invites drift. |
 | A two-lane ingest queue, per-source auto-throttling, TimescaleDB, `ingested_at` partitioning, composite FK, carry-forward version tables | Rejected earlier for unchanged reasons: one outstanding batch bounds delay; auto-throttling hides data; portability and licence; the seq design prunes for free; I5 + I6 suffice. |
 
-Files referenced: `/Users/adamallard/Documents/GitLab/elaro/docs/Architecture.md`, `/Users/adamallard/Documents/GitLab/elaro/docs/Roadmap.md`, `/Users/adamallard/Documents/GitLab/elaro/src/main/java/ai/elaro/config/SchemaBootstrap.java`, `/Users/adamallard/Documents/GitLab/elaro/src/main/resources/application.yml`, `/Users/adamallard/Documents/GitLab/elaro/src/test/resources/application-test.yml`, `/Users/adamallard/Documents/GitLab/elaro/src/test/java/ai/elaro/test/DatabaseCleaner.java`, `/Users/adamallard/Documents/GitLab/elaro/prompts/007-Ingest-Writer-And-Change-Bus.md`.
+Files referenced: `/Users/adamallard/Documents/GitLab/foresignal/docs/Architecture.md`, `/Users/adamallard/Documents/GitLab/foresignal/docs/Roadmap.md`, `/Users/adamallard/Documents/GitLab/foresignal/src/main/java/ai/foresignal/config/SchemaBootstrap.java`, `/Users/adamallard/Documents/GitLab/foresignal/src/main/resources/application.yml`, `/Users/adamallard/Documents/GitLab/foresignal/src/test/resources/application-test.yml`, `/Users/adamallard/Documents/GitLab/foresignal/src/test/java/ai/foresignal/test/DatabaseCleaner.java`, `/Users/adamallard/Documents/GitLab/foresignal/prompts/007-Ingest-Writer-And-Change-Bus.md`.

@@ -1,11 +1,11 @@
 # 029 — Scheduled Briefings
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/029-CR-Scheduled-Briefings.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -26,7 +26,7 @@ Scheduled briefings ("morning brief", "weekly maritime summary") delivered to th
 
 ## Tasks
 
-### 1. Model (`ai.elaro.briefing`)
+### 1. Model (`ai.foresignal.briefing`)
 
 - `BriefingEntity` and `BriefingRunEntity` per §7.1.
 - **Validation:** 5-field cron converted to Spring's 6-field `CronExpression` (prefix `0`), rejecting schedules more frequent than every 15 minutes; `timezone` a valid `ZoneId`; scope ids exist; `channelIds` exist and subscribe to `briefing` (otherwise a warning in the response, not a failure); `mode=llm` accepted without a provider (checked at run time); `lookback` 1 h–7 d (default: since the last run, or 24 h).
@@ -70,7 +70,7 @@ Define `DigestStatsProvider` as an interface with this SQL implementation; promp
 - `listBriefings`, `createBriefing`, `getBriefing`, `updateBriefing`, `deleteBriefing`, `runBriefing` (synchronous ≤ 120 s), `listBriefingRuns`, `getBriefingRun` (JSON/HTML), `getLatestBriefingRun`, `previewBriefing` (no store, no delivery, no schedule change), `getDigest`.
 - **MCP** (025 registry): `list_briefings`, `get_briefing_run`, `get_digest` (read), `create_briefing`, `run_briefing` (agent).
 - `RetentionStep` using the `briefings` setting; export/import includes briefings.
-- `docs/OpenAPI.json`: new `Digest` schema and `getDigest` (`x-elaro-scope: read`), `getLatestBriefingRun` (read), `text/html` response content on run reads, `BriefingRun.warnings`, `stats` documented with the §3 structure; error code `BRIEFING_RUNNING`. Update `AccessPolicy` (`GET /v1/digest` read). Regenerate Postman (`python3 scripts/generate-postman.py docs/OpenAPI.json postman`) with BODIES for create/preview.
+- `docs/OpenAPI.json`: new `Digest` schema and `getDigest` (`x-foresignal-scope: read`), `getLatestBriefingRun` (read), `text/html` response content on run reads, `BriefingRun.warnings`, `stats` documented with the §3 structure; error code `BRIEFING_RUNNING`. Update `AccessPolicy` (`GET /v1/digest` read). Regenerate Postman (`python3 scripts/generate-postman.py docs/OpenAPI.json postman`) with BODIES for create/preview.
 - `docs/Operator-Guide.md` "Briefings" and `docs/Agent-Guide.md` "Catch-up with /v1/digest" (cursor loop, `gap` handling).
 
 ## Tests to write (do not run)

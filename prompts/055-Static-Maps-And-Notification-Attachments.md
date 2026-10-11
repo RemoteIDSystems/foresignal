@@ -1,11 +1,11 @@
 # 055 — Static Maps And Notification Attachments
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/055-CR-Static-Maps-And-Notification-Attachments.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -27,11 +27,11 @@ Render basemap-free static map PNGs on the server (rasters, alert geometry, plac
 ### 1. Natural Earth basemap asset
 
 - `scripts/build-basemap.py`: downloads Natural Earth 1:50m (public domain) land, coastline, lakes, admin-0 boundary lines and admin-1 (states/provinces) lines; quantises to int32 microdegrees, delta-encodes each ring, and writes `src/main/resources/basemap/ne50m.bin` (header: magic `ELBM`, version, layer table). Commit the generated file (target ≤ 4 MB) and the script; the build never downloads anything.
-- `BasemapStore` (`ai.elaro.raster.render`): lazy-loads the binary into memory once, with a coarse per-layer bbox index for culling.
+- `BasemapStore` (`ai.foresignal.raster.render`): lazy-loads the binary into memory once, with a coarse per-layer bbox index for culling.
 - Add Natural Earth to `THIRD_PARTY_NOTICES.md` (public domain, attribution appreciated).
 - Optional operator basemap: setting `maps.basemapUrlTemplate`, accepted only when its host validates through `LocalAddresses` (LAN tile server); fetched by the renderer only within the existing request (no caching proxy). Docs warn about the `tile.openstreetmap.org` usage policy. Default off.
 
-### 2. `MapRenderer` (Java2D, `ai.elaro.raster.render`)
+### 2. `MapRenderer` (Java2D, `ai.foresignal.raster.render`)
 
 - Input `MapSpec{bbox | center+radiusKm, width (≤ 1280), height (default = width × 0.75), time, products[], style per product, alert?, place?, rangeRingsKm[], theme light|dark, units}`; Web Mercator projection; bbox snapped once.
 - Layers, in order: background/water; land; lakes; raster overlays composited from `TileRenderer`'s image path for each product's frame at `time` (frame resolution as `/image`: `latest`, `now`, ISO; forecasts need `run` or use `latest`); admin lines; coastline; alert/record geometry (stroke + translucent fill by severity); place markers and range rings; scale bar; header strip with product names and **frame valid times** (UTC plus the place's local time); legend strip from `LegendService` (compact, units); attribution line from each product's structured attribution; footer "Automated — not an official warning".
@@ -42,7 +42,7 @@ Render basemap-free static map PNGs on the server (rasters, alert geometry, plac
 ### 3. `GET /v1/maps/static`
 
 - `?products&center=lon,lat&radiusKm | bbox &time&width≤1280&height&alert={alertId}&place={placeId}&style&theme&units` (read scope). `alert` loads the alert's record geometry and centres on it (radius default 50 km); `place` adds marker and rings.
-- Response `image/png` with `Elaro-Image-Bounds` and `Elaro-Frame-Time`. Cache rule (design §6.1): immutable only when every product frame is content-addressed and pinned; otherwise short max-age + ETag computed from (frame keys, styles, spec).
+- Response `image/png` with `Foresignal-Image-Bounds` and `Foresignal-Frame-Time`. Cache rule (design §6.1): immutable only when every product frame is content-addressed and pinned; otherwise short max-age + ETag computed from (frame keys, styles, spec).
 - Errors: `UNKNOWN_PRODUCT`, `UNKNOWN_PLACE`, `UNKNOWN_FRAME`, `RUN_REQUIRED`, 400 `VALIDATION_FAILED` for oversize or invalid bbox.
 
 ### 4. Alert attachments
@@ -75,7 +75,7 @@ Render basemap-free static map PNGs on the server (rasters, alert geometry, plac
 
 ### 7. Spec, Postman, docs
 
-- `docs/OpenAPI.json` (tag Maps): `getStaticMap` (`image/png`, headers `Elaro-Image-Bounds`, `Elaro-Frame-Time`), `x-elaro-scope: read`; channel config schemas gain `attachMap`, `mapProducts`, `mapRadiusKm`, `maxAttachmentBytes`; `NotificationMessage.attachments`. `AccessPolicy` READ for `GET /v1/maps/**`. Regenerate Postman.
+- `docs/OpenAPI.json` (tag Maps): `getStaticMap` (`image/png`, headers `Foresignal-Image-Bounds`, `Foresignal-Frame-Time`), `x-foresignal-scope: read`; channel config schemas gain `attachMap`, `mapProducts`, `mapRadiusKm`, `maxAttachmentBytes`; `NotificationMessage.attachments`. `AccessPolicy` READ for `GET /v1/maps/**`. Regenerate Postman.
 - `docs/Operator-Guide.md`: attachments per channel, caps and downgrade path, ntfy server attachment setup (`attachment-cache-dir`; verify current option names), privacy note that images leave the LAN on cloud channels (hence opt-in), no public basemaps.
 - `docs/Product-Charter.md`: confirm the non-goal amendment covers static maps (derived from ingested data, no proxied basemaps).
 
@@ -83,7 +83,7 @@ Render basemap-free static map PNGs on the server (rasters, alert geometry, plac
 
 - `BasemapStoreTest`: loads the binary, layer counts, bbox culling.
 - `MapRendererTest`: golden-image comparison with tolerance (pixel diff ≤ 1%) for a synthetic product frame, alert polygon, place rings, light and dark themes; unavailable product draws the note; footer and attribution present.
-- `StaticMapEndpointIT`: params, size caps, `Elaro-Image-Bounds`, cache headers (pinned vs alias), 503 `RENDER_BUSY` under a saturated queue.
+- `StaticMapEndpointIT`: params, size caps, `Foresignal-Image-Bounds`, cache headers (pinned vs alias), 503 `RENDER_BUSY` under a saturated queue.
 - `AlertMapServiceIT`: waits for a newer frame (≤ 5 s, `MutableClock`/Awaitility), renders once for three channels, media `expires_at` 7 d, `satellite-pass` uses the thumbnail, concurrent with enrichment wait.
 - `AttachmentDowngradeTest`: 800 → 600 → thumbnail → text by cap.
 - `DiscordAttachmentTest`, `TelegramPhotoTest`, `NtfyAttachmentTest` (413 fallback), `PushoverAttachmentTest`, `EmailInlineCidTest`: golden multipart structures (WireMock / GreenMail).
@@ -93,7 +93,7 @@ Render basemap-free static map PNGs on the server (rasters, alert geometry, plac
 
 ## Acceptance criteria
 
-- `/v1/maps/static` and `get_map_image` render from Natural Earth plus Elaro's own frames, with times, legend, attribution and the footer.
+- `/v1/maps/static` and `get_map_image` render from Natural Earth plus Foresignal's own frames, with times, legend, attribution and the footer.
 - A geolocated alert renders one map, stored as 7-day media, attached natively on the five channel types and linked on the rest, within each channel's cap.
 - No request path fetches a third-party basemap.
 - Compiles.

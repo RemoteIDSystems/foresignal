@@ -1,11 +1,11 @@
 # 058 — Map Styles Feeds And KML
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/058-CR-Map-Styles-Feeds-And-KML.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -38,7 +38,7 @@
 
 ## Objective
 
-Let off-the-shelf clients use Elaro with no custom code:
+Let off-the-shelf clients use Foresignal with no custom code:
 
 - a MapLibre overlay style and sprite generated from each kind's display hints
 - Atom and JSON Feed for alerts and briefing runs, so feed readers and automations can subscribe
@@ -52,19 +52,19 @@ Every output is overlay-only (no basemap, no glyphs), honours `openReads`, feed 
 
 - `scripts/build-sprite.sh` documents how to regenerate the sprite: download pinned Maki and Temaki releases (verify the tags), select the icons named by any `kindDisplay.icon` plus a default set (`marker`, `circle`, `triangle`, `airport`, `ferry`, `fire-station`, `danger`, `rail`, `bicycle`, `communications-tower`, `volcano`, `earthquake`…), and run `spreet --sdf` at 1× and 2×.
 - Commit the outputs:
-  - `src/main/resources/map/sprite/elaro.{json,png}` and `elaro@2x.{json,png}`
+  - `src/main/resources/map/sprite/foresignal.{json,png}` and `foresignal@2x.{json,png}`
   - one 32 px PNG per icon under `map/icons/` (for KML)
 - `SpriteCatalog` loads the JSON at startup and computes `sha8` over the PNG bytes.
 - Registry validation (extend 008's `DescriptorValidator`): an unknown `kindDisplay.icon` fails startup, with the list of valid names.
 - `THIRD_PARTY_NOTICES.md`: Maki and Temaki (CC0), spreet (tool only, not shipped).
 
-### 2. MapLibre style (`ai.elaro.map`)
+### 2. MapLibre style (`ai.foresignal.map`)
 
 - `GET /v1/map/style.json?layers=a,b&theme=light|dark` (read). A version-8 style document:
   - `sources`: one `vector` source per requested layer, with `url` = 016's per-layer TileJSON (concrete URL from `publicBaseUrl`, or a `/v1/k/{key}/…` prefix when the request itself came in through a tile key)
-  - `sprite`: `<base>/v1/map/sprites/elaro-{sha8}`
+  - `sprite`: `<base>/v1/map/sprites/foresignal-{sha8}`
   - **no `glyphs`** and no text layers
-  - `metadata.elaro`: `{layers: [{id, kinds, attribution, minzoom, aggBelowZoom}], generatedAt}`
+  - `metadata.foresignal`: `{layers: [{id, kinds, attribution, minzoom, aggBelowZoom}], generatedAt}`
 - Layers per kind, from `kindDisplay`, filtered with `["==", ["get","kind"], kind]` when the source carries several kinds:
   - **Points with an icon:** a `symbol` layer, `icon-image` = icon, SDF `icon-color` = colour (a data-driven `match` on `severity` or `colorField` when declared), `icon-rotate` from `rotateField` (e.g. `track`) with `icon-rotation-alignment: map`, `icon-allow-overlap: true`.
   - **Points without an icon:** a `circle` layer with radius `interpolate` by zoom and an optional `sizeField` (e.g. `frp`, `mag`).
@@ -72,7 +72,7 @@ Every output is overlay-only (no basemap, no glyphs), honours `openReads`, feed 
   - **Polygons:** `fill` (opacity 0.25) plus `line` outline.
   - **Below `aggBelowZoom`:** add a second source using 016's `agg=hex`, with a `fill` colour ramp on `count`, and set `maxzoom`/`minzoom` so the two layer sets hand over cleanly.
 - If a property the style needs (`rotateField`, `sizeField`, `colorField`) is missing from the source's `tileProperties`, startup fails validation with a clear message.
-- `GET /v1/map/sprites/elaro-{sha8}[@2x].{json,png}` (read): `public|private, max-age=31536000, immutable` (it is content-addressed). An unknown `sha8` → 404 with `Link` to the current one.
+- `GET /v1/map/sprites/foresignal-{sha8}[@2x].{json,png}` (read): `public|private, max-age=31536000, immutable` (it is content-addressed). An unknown `sha8` → 404 with `Link` to the current one.
 - Style caching: strong ETag over the document, `max-age=300`.
 - Private sources (039) are omitted unless the caller is allowed.
 - Generated URLs use `publicBaseUrl` and never raw `X-Forwarded-*`, unless 023's trusted-proxy handling validated them.
@@ -90,17 +90,17 @@ Every output is overlay-only (no basemap, no glyphs), honours `openReads`, feed 
   - `GET /v1/briefings/{id}/runs/feed.atom` and `.json`
 - Write Atom with StAX (`XMLStreamWriter`), not Rome. Write JSON Feed with Jackson.
 - Entry fields:
-  - `id`: `tag:elaro,2026:{installId}/alert/{id}` (or `/briefing-run/{id}`)
+  - `id`: `tag:foresignal,2026:{installId}/alert/{id}` (or `/briefing-run/{id}`)
   - `updated` / `date_modified`: the last lifecycle change; `published` / `date_published`: `firedAt`
   - `title`: `shortTitle`, else the title
   - `link rel=alternate`: the deep link via `clientLinks`, else `publicBaseUrl/v1/alerts/{id}`
   - `category`: severity and rule tags
-  - `author`: Elaro
+  - `author`: Foresignal
 - Content:
   - Atom `content type="html"` and JSON Feed `content_html` hold the markdown rendered with commonmark-java, then sanitised by an OWASP allowlist policy (`p, br, strong, em, code, pre, ul, ol, li, blockquote, h3–h6, a[href]` with `http`/`https` only and `rel="nofollow noopener"`).
   - `content_text` holds plain text.
   - Briefing runs embed the full markdown, sanitised the same way.
-- GeoRSS (`xmlns:georss="http://www.georss.org/georss"`): `georss:point "lat lon"` for points; `georss:polygon` for single polygons with ≤ 500 vertices; otherwise the centroid as a point. JSON Feed uses the extension `_elaro: {severity, state, sourceId, externalId, geometry}`.
+- GeoRSS (`xmlns:georss="http://www.georss.org/georss"`): `georss:point "lat lon"` for points; `georss:polygon` for single polygons with ≤ 500 vertices; otherwise the centroid as a point. JSON Feed uses the extension `_foresignal: {severity, state, sourceId, externalId, geometry}`.
 - Conditional GET: ETag = hash(max lifecycle timestamp, max id, filters), plus `Last-Modified`; `If-None-Match` and `If-Modified-Since` → 304.
 - Media types `application/atom+xml` and `application/feed+json`. RSS 2.0 and WebSub are not offered; note this in the docs.
 - Private-source alerts are excluded unless the key or token passes the private gate. Call `EgressPolicy.allows(FEED, …)`.
@@ -127,7 +127,7 @@ Every output is overlay-only (no basemap, no glyphs), honours `openReads`, feed 
 
 ### 5. Spec, Postman, docs
 
-- `docs/OpenAPI.json`: operations `getMapStyle`, `getMapSprite`, `getMapIcon`, `getAlertsAtom`, `getAlertsJsonFeed`, `getBriefingRunsAtom`, `getBriefingRunsJsonFeed`, `getKmlNetworkLink`, `getKmlRecords`, `getKmlTracks`, `getTriggerKml`. Each is read with `x-elaro-scope` and has the correct media types (`application/json`, `image/png`, `application/atom+xml`, `application/feed+json`, `application/vnd.google-earth.kml+xml`, `application/vnd.google-earth.kmz`). Add `KindDisplay` to the kind schema docs if 008 did not.
+- `docs/OpenAPI.json`: operations `getMapStyle`, `getMapSprite`, `getMapIcon`, `getAlertsAtom`, `getAlertsJsonFeed`, `getBriefingRunsAtom`, `getBriefingRunsJsonFeed`, `getKmlNetworkLink`, `getKmlRecords`, `getKmlTracks`, `getTriggerKml`. Each is read with `x-foresignal-scope` and has the correct media types (`application/json`, `image/png`, `application/atom+xml`, `application/feed+json`, `application/vnd.google-earth.kml+xml`, `application/vnd.google-earth.kmz`). Add `KindDisplay` to the kind schema docs if 008 did not.
 - `AccessPolicy`: READ for `GET /v1/map/**`, `/v1/kml/**`, `/v1/alerts/feed.*`, `/v1/briefings/*/runs/feed.*` and `/v1/triggers/*.kml`, ordered before any broader rule. Feed keys (035) accept these prefixes, and tile keys (050) accept `/v1/map/`.
 - Regenerate Postman (GET only, so no `BODIES` changes).
 - Docs:

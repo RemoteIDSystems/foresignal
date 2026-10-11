@@ -1,6 +1,6 @@
-# Elaro
+# Foresignal
 
-**Elaro** ([elaro.ai](https://elaro.ai)) is an open-source, self-hosted
+**Foresignal** ([foresignal.ai](https://foresignal.ai)) is an open-source, self-hosted
 **intelligence broker**: a headless service that continuously collects public
 telemetry from many upstream feeds, normalizes it into one versioned store, and
 re-serves it over a single documented API. It is the data foundation for a
@@ -10,7 +10,7 @@ clients, agent and MCP clients — that will be built on top of it.
 Every existing open-source "god's-eye" project fuses three concerns into one
 application: *subscription* (what gets collected, how often, at what cost to
 upstreams), *display* (what a screen shows) and *alerting* (what deserves
-attention). Elaro separates them. Subscription is server-side and is the only
+attention). Foresignal separates them. Subscription is server-side and is the only
 thing that causes fetching, with per-source schedules and budgets so the broker
 always knows what it is spending on each upstream and refuses to exceed it.
 Display is the client's business, served by filtered queries, vector tiles and
@@ -52,7 +52,7 @@ docker compose up -d db
 ```
 
 Postgres then listens on `localhost:5433` (database, user and password all
-`elaro`), which matches the application's defaults.
+`foresignal`), which matches the application's defaults.
 
 To compile:
 
@@ -67,23 +67,23 @@ the database and is managed through the API.
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `ELARO_DB_URL` | `jdbc:postgresql://localhost:5433/elaro` | Database URL |
-| `ELARO_DB_USER` | `elaro` | Database user |
-| `ELARO_DB_PASSWORD` | `elaro` | Database password |
-| `ELARO_PORT` | `8080` | HTTP port |
-| `ELARO_DATA_DIR` | `./data` | Secret key file location |
-| `ELARO_RESET_ADMIN_TOKEN` | `false` | Regenerate the admin token on start |
+| `FORESIGNAL_DB_URL` | `jdbc:postgresql://localhost:5433/foresignal` | Database URL |
+| `FORESIGNAL_DB_USER` | `foresignal` | Database user |
+| `FORESIGNAL_DB_PASSWORD` | `foresignal` | Database password |
+| `FORESIGNAL_PORT` | `8080` | HTTP port |
+| `FORESIGNAL_DATA_DIR` | `./data` | Secret key file location |
+| `FORESIGNAL_RESET_ADMIN_TOKEN` | `false` | Regenerate the admin token on start |
 
 ## Documentation
 
-- [Executive Summary](docs/Executive-Summary.md) — what Elaro is and why
+- [Executive Summary](docs/Executive-Summary.md) — what Foresignal is and why
 - [Product Charter](docs/Product-Charter.md) — scope, requirements, decisions
 - [Architecture](docs/Architecture.md) — stack, packages, data model, deployment
 - [OpenAPI spec](docs/OpenAPI.json) — the API contract, served at `/v1/openapi.json`
-- [Source Catalog](docs/Source-Catalog.md) — the upstream feeds Elaro collects
+- [Source Catalog](docs/Source-Catalog.md) — the upstream feeds Foresignal collects
 - [Roadmap](docs/Roadmap.md) — task decomposition and build order
 
 ## Licence
 
-MIT — see [LICENSE](LICENSE). Third-party notices and Elaro's code-reuse policy
+MIT — see [LICENSE](LICENSE). Third-party notices and Foresignal's code-reuse policy
 are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

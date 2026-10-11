@@ -1,11 +1,11 @@
 # 006 — Health Tracking
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/006-CR-Health-Tracking.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -23,7 +23,7 @@ Make every source self-diagnosing. The health model is how the operator, and lat
 
 ## Tasks
 
-### 1. HealthTracker (`ai.elaro.collect`)
+### 1. HealthTracker (`ai.foresignal.collect`)
 
 Backed by `source_health`; extend `SourceHealthEntity` if needed. All updates are short transactions.
 
@@ -62,7 +62,7 @@ Keep thresholds as named constants.
   - budget fields from `BudgetGovernor.status`
   - `requestsLastHour`, `bytesLastHour`, `refusedLastHour`
 - Wire health into `SourceService` views (the seam left in prompt 004), so the source summary and detail carry `status`, `lastSuccessAt` and `budgetUsedToday`.
-- Expose Micrometer gauges: `elaro.source.status{source, status}` (1 for the current status) and `elaro.source.consecutive_failures{source}`.
+- Expose Micrometer gauges: `foresignal.source.status{source, status}` (1 for the current status) and `foresignal.source.consecutive_failures{source}`.
 
 ## v1.2 additions (authoritative)
 

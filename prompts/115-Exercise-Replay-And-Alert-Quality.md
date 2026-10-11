@@ -1,11 +1,11 @@
 # 115 — Exercise Replay And Alert Quality
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/115-CR-Exercise-Replay-And-Alert-Quality.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -23,12 +23,12 @@ Two operator workflows on top of the trigger engine and the 103 backtest layer. 
 
 ## Tasks
 
-### 1. Exercise flag everywhere (`ai.elaro.exercise`)
+### 1. Exercise flag everywhere (`ai.foresignal.exercise`)
 
 - **Columns:** `alert.exercise bool not null default false`, `alert.exercise_run_id`; `notification.exercise` on the persisted notification row (018); `channel.accept_exercise bool default false`.
 - **Marking rules** (one helper, `ExerciseMarking`, used by every renderer):
   - NotificationMessage title prefix `[EXERCISE] ` and body footer "This is an exercise replay of data from {from}–{to}. No action required."
-  - Webhook header `X-Elaro-Exercise: true` and payload field `exercise: true`
+  - Webhook header `X-Foresignal-Exercise: true` and payload field `exercise: true`
   - Push payloads (031/032) `exercise: true` with urgency forced to `normal`, never time-sensitive or critical interruption levels
   - CAP (112) `status=Exercise`
   - MCP and SSE alert events (`alert`, `alert.updated`, `alert.resolved`) carry `exercise: true`
@@ -83,7 +83,7 @@ Two operator workflows on top of the trigger engine and the 103 backtest layer. 
 
 ### 5. Spec, MCP, docs
 
-- `docs/OpenAPI.json`: `exercise` on `Alert`, the alert event schemas and `NotificationMessage`; `includeExercise` on `listAlerts`, `streamAlerts` and the events-stream alerts filter; `acceptExercise` on channel schemas; schemas `ExerciseRun`, `ExerciseRunCreate`, `ExerciseStats`, `AlertSignal`, `RuleQualityDaily`, `TuningSuggestionRecord` (extends 103's `TuningSuggestion` with id, status, `ruleRev`), `TuningLogEntry`; `RuleQuality` gains `signals`, `signalScore` and `daily`. Operations above, each with `x-elaro-scope`; error codes `REPLAY_BEYOND_RETENTION`, `EXERCISE_RUNNING`, `SUGGESTION_STALE`. Update `AccessPolicy`. Regenerate Postman with BODIES for `createExercise`, `applyTuningSuggestion`, `dismissTuningSuggestion`.
+- `docs/OpenAPI.json`: `exercise` on `Alert`, the alert event schemas and `NotificationMessage`; `includeExercise` on `listAlerts`, `streamAlerts` and the events-stream alerts filter; `acceptExercise` on channel schemas; schemas `ExerciseRun`, `ExerciseRunCreate`, `ExerciseStats`, `AlertSignal`, `RuleQualityDaily`, `TuningSuggestionRecord` (extends 103's `TuningSuggestion` with id, status, `ruleRev`), `TuningLogEntry`; `RuleQuality` gains `signals`, `signalScore` and `daily`. Operations above, each with `x-foresignal-scope`; error codes `REPLAY_BEYOND_RETENTION`, `EXERCISE_RUNNING`, `SUGGESTION_STALE`. Update `AccessPolicy`. Regenerate Postman with BODIES for `createExercise`, `applyTuningSuggestion`, `dismissTuningSuggestion`.
 - MCP (025): `start_exercise`, `get_exercise` (agent), `apply_tuning_suggestion` (agent), `set_alert_feedback` (agent, if missing).
 - `docs/Operator-Guide.md`:
   - "Exercises and replay": a rehearsal checklist, which channels to opt in, marking examples per channel type, retention limits on replay windows.

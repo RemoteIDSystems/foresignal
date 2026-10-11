@@ -1,11 +1,11 @@
 # 108 — Map Interop And Offline
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/108-CR-Map-Interop-And-Offline.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -30,7 +30,7 @@
 
 ## Objective
 
-Open Elaro's raster products to GIS, TAK, 3D and offline clients without changing the core renderer:
+Open Foresignal's raster products to GIS, TAK, 3D and offline clients without changing the core renderer:
 - WMTS with Time, OGC API Tiles and EDR, and a WorldCRS84Quad and 512 px pyramid;
 - data tiles that carry values instead of colours;
 - WebP, style fragments, more field encodings and animated GIF;
@@ -41,7 +41,7 @@ The design rule still holds: **no client request ever causes an upstream fetch**
 
 ## Tasks
 
-### 1. Renderer extensions (`ai.elaro.raster.render`)
+### 1. Renderer extensions (`ai.foresignal.raster.render`)
 
 - **TileMatrixSet abstraction:** `WebMercatorQuad` (existing) and `WorldCRS84Quad` (EPSG:4326, 2×1 tiles at z0, 256 px). `GridDef` inverse mapping already handles latlon output; add the 4326 tile-to-lonlat transform. URL `…/tiles/{frameKey}/{tms}/{z}/{x}/{y}.{ext}` with `tms` ∈ `WebMercatorQuad|WorldCRS84Quad`. The existing un-prefixed path stays WebMercatorQuad.
 - **512 px pyramid:** `tileSize=512` renders natively at 512 (not upscaled 256). It is distinct from `@2x`: z is one less for the same detail. TileJSON advertises `tileSize: 512` variants.
@@ -90,15 +90,15 @@ The design rule still holds: **no client request ever causes an upstream fetch**
   - Output is CoverageJSON (`application/prs.coverage+json`). Position maps to `SampleService`; area is a native-grid subset with the product's units and the nodata mask.
 - Collections list products only. Prompt 112 adds Features collections under the same root, so keep the landing and collection code extensible.
 
-### 4. Exports (async jobs, `ai.elaro.raster.export`)
+### 4. Exports (async jobs, `ai.foresignal.raster.export`)
 
 - `POST /v1/products/{id}/exports` (agent) with body `{format: mbtiles|pmtiles|cog, frameKey | frameKeys[] (≤ 24), bbox | placeId+radiusKm, minZoom, maxZoom, style, tms}`.
   - Caps: ≤ 50,000 tiles per tileset and ≤ 2 GB per file.
   - Response: 202 with `{exportId}`. `GET /v1/exports/{id}` returns status, progress, files with sha256 and expiry. `GET /v1/exports/{id}/files/{name}` downloads.
-  - Files live under `${ELARO_DATA_DIR}/exports/` with 48 h expiry and are included in the raster disk quota.
+  - Files live under `${FORESIGNAL_DATA_DIR}/exports/` with 48 h expiry and are included in the raster disk quota.
 - **MBTiles:** `org.xerial:sqlite-jdbc` (Apache-2.0), schema 1.3 (`metadata` with attribution, bounds, format, type `overlay`, `json` for the time; `tiles` table), one file per frame.
 - **PMTiles v3:**
-  - If 111 hasn't added it yet, add an in-house writer in `ai.elaro.export.pmtiles`: Hilbert tile ids, a clustered layout, a gzip-compressed directory, root and leaf directories, and the JSON metadata. 111 will reuse it.
+  - If 111 hasn't added it yet, add an in-house writer in `ai.foresignal.export.pmtiles`: Hilbert tile ids, a clustered layout, a gzip-compressed directory, root and leaf directories, and the JSON metadata. 111 will reuse it.
   - A golden-file test against the spec's header layout.
 - **COG:**
   - A minimal in-house classic-TIFF writer: tiled 512×512, deflate, internal overviews (factor 2 until < 512 px), with all IFDs written before tile data (COG layout), ModelPixelScale/ModelTiepoint/GeoKeyDirectory tags for EPSG:4326 or 3857, and a GDAL_NODATA tag.
@@ -110,7 +110,7 @@ The design rule still holds: **no client request ever causes an upstream fetch**
 
 - `GET /v1/products/{id}/style-fragment.json?frameKey&style&tms`, and `GET /v1/products/style-fragment.json?products=a,b&…`.
   - Returns `{version: 8, sources: {...}, layers: [...]}` with concrete content-addressed URLs, `minzoom`/`maxzoom`, bounds and attribution, plus legend links in `metadata`.
-  - The layer ids are namespaced `elaro-{product}`.
+  - The layer ids are namespaced `foresignal-{product}`.
   - The frontend guide includes a 30-line merge helper (JS and Dart) that inserts fragments below a named layer of the client's basemap style. The server never fetches a basemap style.
 - **ATAK MOBAC:** `GET /v1/products/{id}/mobac.xml?style` (read; meant to be used through a tile-key path).
   - Returns `<customMapSource>` with name, minZoom, maxZoom (native), `tileType` png, `tileUpdate` `None`, and a URL template using `{$z}/{$x}/{$y}` on the `latest` alias with the caller's key prefix.
@@ -146,7 +146,7 @@ The design rule still holds: **no client request ever causes an upstream fetch**
 ### 8. Spec, Postman, docs
 
 - `docs/OpenAPI.json`:
-  - every new operation with `x-elaro-scope`: WMTS, OGC landing/collections/tiles/EDR, data tiles, `.webp`, `tms` param, `tileSize`, `.i16`/tiled `.png` fields, `loop.gif`, exports, `style-fragment`, `mobac.xml`, place pack;
+  - every new operation with `x-foresignal-scope`: WMTS, OGC landing/collections/tiles/EDR, data tiles, `.webp`, `tms` param, `tileSize`, `.i16`/tiled `.png` fields, `loop.gif`, exports, `style-fragment`, `mobac.xml`, place pack;
   - media types `application/vnd.sqlite3`, `application/vnd.pmtiles`, `image/tiff; application=geotiff; profile=cloud-optimized`, `image/webp`, `image/gif`, `application/prs.coverage+json`, `application/xml`;
   - problem codes `FORMAT_UNAVAILABLE` (406), `EDR_TOO_LARGE` (413), `PACK_TOO_LARGE` (413), `UNKNOWN_EXPORT` (404), `IMAGE_LINKS_REQUIRE_HTTPS` (400);
   - regenerate Postman with BODIES for `createProductExport` and `createPlacePack`.

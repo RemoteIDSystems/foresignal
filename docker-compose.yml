@@ -1,4 +1,4 @@
-# Elaro — broker plus PostGIS.
+# Foresignal — broker plus PostGIS.
 #
 #   docker compose up -d        # database and broker
 #   docker compose up -d db     # database only, for local development
@@ -7,32 +7,32 @@ services:
   db:
     image: postgis/postgis:17-3.5
     environment:
-      POSTGRES_DB: elaro
-      POSTGRES_USER: elaro
-      POSTGRES_PASSWORD: elaro
+      POSTGRES_DB: foresignal
+      POSTGRES_USER: foresignal
+      POSTGRES_PASSWORD: foresignal
     volumes:
       - pgdata:/var/lib/postgresql/data
     ports:
       - "5433:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U elaro -d elaro"]
+      test: ["CMD-SHELL", "pg_isready -U foresignal -d foresignal"]
       interval: 5s
       timeout: 5s
       retries: 10
       start_period: 30s
     restart: unless-stopped
 
-  elaro:
+  foresignal:
     build: .
     environment:
-      ELARO_DB_URL: jdbc:postgresql://db:5432/elaro
-      ELARO_DB_USER: elaro
-      ELARO_DB_PASSWORD: elaro
-      ELARO_DATA_DIR: /data
-      ELARO_PORT: "8080"
+      FORESIGNAL_DB_URL: jdbc:postgresql://db:5432/foresignal
+      FORESIGNAL_DB_USER: foresignal
+      FORESIGNAL_DB_PASSWORD: foresignal
+      FORESIGNAL_DATA_DIR: /data
+      FORESIGNAL_PORT: "8080"
       SPRING_PROFILES_ACTIVE: docker
     volumes:
-      - elaro-data:/data
+      - foresignal-data:/data
     ports:
       - "8080:8080"
     depends_on:
@@ -42,4 +42,4 @@ services:
 
 volumes:
   pgdata:
-  elaro-data:
+  foresignal-data:

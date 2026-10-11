@@ -1,11 +1,11 @@
 # 072 — CCTV Catalogs
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/072-CR-CCTV-Catalogs.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -22,11 +22,11 @@
 
 ## Objective
 
-Ingest public traffic-camera **catalogues** (location, direction, image or stream URL, access hints) from official open-data endpoints as one source per pack. Frames are **never fetched, proxied or stored** by Elaro; clients load them directly from the upstream host using the URL and the `frameAccess` hint in the record. Port the God's Eye View loaders, minus anything that spoofs a browser or relies on unofficial web-app endpoints.
+Ingest public traffic-camera **catalogues** (location, direction, image or stream URL, access hints) from official open-data endpoints as one source per pack. Frames are **never fetched, proxied or stored** by Foresignal; clients load them directly from the upstream host using the URL and the `frameAccess` hint in the record. Port the God's Eye View loaders, minus anything that spoofs a browser or relies on unofficial web-app endpoints.
 
 ## Tasks
 
-### 1. Family and shared pieces (`ai.elaro.source.adapters.cctv`)
+### 1. Family and shared pieces (`ai.foresignal.source.adapters.cctv`)
 
 - `CctvCatalogFamily implements SourceAdapterFamily` returns one `CctvPackAdapter implements PollingAdapter` per entry of a static, code-reviewed pack list (`CctvPacks`). Pack lists are never caller-supplied.
 - Each pack has: id, name, provider, homepage, attribution, licence, termsUrl, catalogue URL(s), parser (`CctvPackParser` functional interface: `List<CameraEntry> parse(byte[] body, PackContext pc)`), allowed frame-URL origins, default interval, budget, optional credential and extra headers.
@@ -34,9 +34,9 @@ Ingest public traffic-camera **catalogues** (location, direction, image or strea
   - `kind = camera`; `externalId` = upstream camera id (or `stationId:presetId` for Digitraffic); geometry `Point(lon, lat)`; reject coordinates outside the pack's bounding box (port GEV `isLikely*Coordinate` checks) and count them.
   - Payload allowlist (omit nulls, no counters, no upstream timestamps): `name, provider, region, road, direction` (compass text as published), `headingDeg` (**only** when the upstream publishes a direction; do **not** port GEV `fallbackHeadingFromId` or the pitch/fov/range/mount rendering hints, which are synthetic), `status` (`active|offline`), `imageUrl`, `videoUrl` (only an official HLS/stream URL), `refreshSeconds` (if published), `frameAccess` (`direct|browser|key`), `frameInsecure` (true for an `http:` frame URL that has no https equivalent).
   - Every `imageUrl`/`videoUrl` must parse as an absolute URL whose origin is in the pack's allowed origins; otherwise drop the URL and keep the camera (`status` unchanged, `frameAccess` absent).
-- **Frame-access hints:** a classpath resource `cctv/hosts.json` maps frame host → `{access, cors, notes}`. Populate it during fixture capture: for each pack, `HEAD` one frame with Elaro's User-Agent and no `Referer`. `image/*` → `direct`; an HTML bot wall or 403 → `browser` (works only from a real browser `<img>`); key-gated hosts → `key`. Record `Referer`/`Origin` requirements here only when the upstream documents them. **Never** add a User-Agent override (GEV's `NSW_IMAGE_USER_AGENT` browser string is not ported).
+- **Frame-access hints:** a classpath resource `cctv/hosts.json` maps frame host → `{access, cors, notes}`. Populate it during fixture capture: for each pack, `HEAD` one frame with Foresignal's User-Agent and no `Referer`. `image/*` → `direct`; an HTML bot wall or 403 → `browser` (works only from a real browser `<img>`); key-gated hosts → `key`. Record `Referer`/`Origin` requirements here only when the upstream documents them. **Never** add a User-Agent override (GEV's `NSW_IMAGE_USER_AGENT` browser string is not ported).
   - Verified 2026-10: `webcams.transport.nsw.gov.au` returns `text/html` to non-browser clients → `browser`; DriveBC `/images/{id}.jpg` and TfL JamCam S3 frames return `image/jpeg` → `direct`.
-- **Absence tombstones:** add `ai.elaro.source.support.AbsenceTombstoner` (reused by prompts 074 and 075). It keeps the id set of the last complete fetch in `AdapterStateStore` (key `absence:ids`, sorted, gzip+base64 above 64 KB) and emits a tombstone for an id missing from **two consecutive** complete fetches. It never tombstones on a 304, a truncated body or a parse error.
+- **Absence tombstones:** add `ai.foresignal.source.support.AbsenceTombstoner` (reused by prompts 074 and 075). It keeps the id set of the last complete fetch in `AdapterStateStore` (key `absence:ids`, sorted, gzip+base64 above 64 KB) and emits a tombstone for an id missing from **two consecutive** complete fetches. It never tombstones on a 304, a truncated body or a parse error.
 - Descriptor (all packs): `historyTier=STANDARD`, policy ALL, `observedAtMode=RECEIVED` (catalogues have no per-camera update time), `ttlAnchor=RECEIVED`, `recordTtl=null`, `zeroResultsNormal=false`, `searchFields=name,road,region`, `tileProperties=name,direction,status,frameAccess`, `titleField=name`, `significantFields` empty (all payload keys significant), `volatileFields` empty, `embedFields` none, `fieldSpecs` for `headingDeg` (`deg`) and `refreshSeconds` (`s`) if the prompt 008 fields exist. Optional param `bbox` (type bbox) filters cameras after parsing. Every pack ships **disabled**.
 
 ### 2. Packs
@@ -48,7 +48,7 @@ Defaults: interval 15 min (min 10 min), budget 2/min, 200/day, unless stated. Us
 | `cctv-tfl` | `https://api.tfl.gov.uk/Place/Type/JamCam` | Keyless; optional credential `appKey` sent as `app_key` query param (redacted). 1.1 MB, no ETag, `Cache-Control max-age=43200` → default interval 60 min. Keep `available=true` → `active`; image from `additionalProperties[key=imageUrl]`; ignore `videoUrl` (MP4 clips, not a stream). Licence "Powered by TfL Open Data" (OGL v2 based). |
 | `cctv-caltrans-d1` … `cctv-caltrans-d12` | `https://cwwp2.dot.ca.gov/data/d{N}/cctv/cctvStatusD{NN}.json` | One source per district (12 sources). ETag + Last-Modified. Keep `inService=true` → `active`; image `imageData.static.currentImageURL` on `cwwp2.dot.ca.gov` only; stream `imageData.streamingVideoURL` when present. Up to 2.4 MB per district: set `maxResponseBytes` 8 MB. |
 | `cctv-ontario511` | `https://511on.ca/api/v2/get/cameras?format=json&lang=en` | **Now requires a developer key**: without one the server answers 400 `Invalid Key`. Required credential `key` (query param, redacted). Published throttle 10 calls / 60 s → budget 2/min, 200/day. Image origin `https://511on.ca/map/Cctv/`. |
-| `cctv-digitraffic` | `https://tie.digitraffic.fi/api/weathercam/v1/stations` | Requires gzip (406 without `Accept-Encoding: gzip`, which `UpstreamClient` sends) and a `Digitraffic-User: Elaro/<version>` header. ETag + Last-Modified. One record per preset of a station with `collectionStatus=GATHERING`; image `https://weathercam.digitraffic.fi/{presetId}.jpg`. Licence CC BY 4.0, attribution "Fintraffic / digitraffic.fi". |
+| `cctv-digitraffic` | `https://tie.digitraffic.fi/api/weathercam/v1/stations` | Requires gzip (406 without `Accept-Encoding: gzip`, which `UpstreamClient` sends) and a `Digitraffic-User: Foresignal/<version>` header. ETag + Last-Modified. One record per preset of a station with `collectionStatus=GATHERING`; image `https://weathercam.digitraffic.fi/{presetId}.jpg`. Licence CC BY 4.0, attribution "Fintraffic / digitraffic.fi". |
 | `cctv-drivebc` | `https://www.drivebc.ca/api/webcams/` | ETag. Location from GeoJSON `location.coordinates`; image `https://www.drivebc.ca/images/{id}.jpg`; direction from `orientation`; keep the upstream `credit` in `provider` when present. Licence Open Government Licence – British Columbia. |
 | `cctv-nsw` | `https://data.livetraffic.com/cameras/traffic-cam.json` | GeoJSON, ETag + Last-Modified, keyless. Fields `title`, `view`, `direction`, `region`, `href`. `frameAccess=browser`. Licence CC BY 4.0 (Transport for NSW). |
 | `cctv-calgary` | `https://data.calgary.ca/resource/k7p9-kppz.json?$limit=5000` | Socrata SODA, ETag. Frames on `trafficcam.calgary.ca`. Licence Open Government Licence – City of Calgary. |
@@ -63,11 +63,11 @@ Defaults: interval 15 min (min 10 min), budget 2/min, 200/day, unless stated. Us
 ### 3. Port notes
 
 - Each ported Java file carries a header naming the GEV origin file(s) and the MIT notice. Add a `THIRD_PARTY_NOTICES.md` entry for `server/providers/cctv/*` and the two config packs.
-- Drop GEV's frame proxy (`media.js`, `stream.js`, `range.js`), ground heights, the source cap/round-robin (`cap.js`) and distance prioritisation. Elaro stores every camera of an enabled pack; operators trim with `bbox`.
+- Drop GEV's frame proxy (`media.js`, `stream.js`, `range.js`), ground heights, the source cap/round-robin (`cap.js`) and distance prioritisation. Foresignal stores every camera of an enabled pack; operators trim with `bbox`.
 
 ### 4. Fixtures (`src/test/resources/fixtures/cctv-*/`)
 
-- Capture one real response per pack with `curl -s --compressed -A "Elaro-fixture/<version>"` (add `Digitraffic-User` for Digitraffic; use your own key for Ontario and strip it from the README). Trim each to ≤ 25 cameras keeping the envelope. Record the capture date, URL and the frame-access probe results in `README.md`.
+- Capture one real response per pack with `curl -s --compressed -A "Foresignal-fixture/<version>"` (add `Digitraffic-User` for Digitraffic; use your own key for Ontario and strip it from the README). Trim each to ≤ 25 cameras keeping the envelope. Record the capture date, URL and the frame-access probe results in `README.md`.
 - Edge cases per family of formats: camera without coordinates, out-of-bbox coordinates, off-host image URL, `inService=false`, duplicate id.
 
 ### 5. Docs
@@ -81,7 +81,7 @@ Defaults: interval 15 min (min 10 min), budget 2/min, 200/day, unless stated. Us
 - `CctvPackParsersTest`: each pack's real fixture parses to the expected count with spot-checked fields; edge cases (skips counted, off-host URLs dropped, synthetic heading never produced, `http:` frames flagged).
 - `CameraRecordMapperTest`: payload allowlist, null omission, `SnapshotContract.assertStableStaticHash` across two parses of the same fixture, fieldSpecs contract (no undeclared keys).
 - `AbsenceTombstonerTest`: tombstone only after two consecutive complete misses; no tombstone on 304, truncation or parse failure; state round trip above 64 KB.
-- `CctvPackAdapterTest` (WireMock): URL and headers per pack (`Digitraffic-User`, TfL `app_key` redacted in traces, Ontario `key` required and `400 Invalid Key` surfacing as `UpstreamHttpException`), conditional GET 304 → notModified, User-Agent is Elaro's (never a browser string).
+- `CctvPackAdapterTest` (WireMock): URL and headers per pack (`Digitraffic-User`, TfL `app_key` redacted in traces, Ontario `key` required and `400 Invalid Key` surfacing as `UpstreamHttpException`), conditional GET 304 → notModified, User-Agent is Foresignal's (never a browser string).
 - `CctvFamilyRegistryTest`: every pack registers, ids unique, all disabled by default, Ontario requires credentials before enable (409 `CREDENTIALS_REQUIRED`).
 - `CctvIngestIT` (`@IntegrationTest` + WireMock): enable `cctv-caltrans-d4` → N records; remove one camera twice → one tombstone; identical re-fetch → no new versions.
 

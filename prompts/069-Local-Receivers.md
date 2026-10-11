@@ -1,11 +1,11 @@
 # 069 — Local Receivers
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/069-CR-Local-Receivers.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -46,9 +46,9 @@ Extend `LAN_URL` validation (004/005) to the schemes `tcp://host:port` and `udp:
 - **TCP:** the host resolves once to a loopback, RFC 1918, link-local or ULA address, which is pinned; the connect goes to the pinned IP.
 - **UDP:** `bindHost` must be `0.0.0.0`, `::` or a local interface address. A companion param of type `string-list` named `allowSenders` is **required**: IPs or CIDRs, each wholly inside private, loopback, link-local or ULA space. Validate it with `LocalAddresses`.
 - **The port is always explicit.** No defaults are assumed: conventional ports such as 30003 appear in the docs only.
-- **No server sockets.** Elaro never listens on TCP for these sources; inbound TCP serving is 110's SERVE sinks.
+- **No server sockets.** Foresignal never listens on TCP for these sources; inbound TCP serving is 110's SERVE sinks.
 
-### 2. Socket transport (`ai.elaro.collect.socket`)
+### 2. Socket transport (`ai.foresignal.collect.socket`)
 
 - `StreamContext.sockets()` returns `SocketTransport`. Add it to the SPI; adapters still never construct sockets themselves.
 - **`tcp(LanEndpoint, SocketOptions, Framing, FrameHandler) → StreamHandle`:**
@@ -61,10 +61,10 @@ Extend `LAN_URL` validation (004/005) to the schemes `tcp://host:port` and `udp:
 - **`udp(LanEndpoint bind, Set<Cidr> allowSenders, DatagramHandler) → StreamHandle`:**
   - a `DatagramChannel` read on a virtual thread; one budget unit per bind
   - datagrams ≤ 64 KB
-  - datagrams from senders outside the allowlist are dropped and counted (`elaro.socket.udp.rejected{source}`), never parsed
-- Metrics: `elaro.socket.connects{source,result}`, `elaro.socket.frames{source}`, `elaro.socket.frames.dropped{source,reason}`.
+  - datagrams from senders outside the allowlist are dropped and counted (`foresignal.socket.udp.rejected{source}`), never parsed
+- Metrics: `foresignal.socket.connects{source,result}`, `foresignal.socket.frames{source}`, `foresignal.socket.frames.dropped{source,reason}`.
 
-### 3. Codec SPI (`ai.elaro.source.codec`)
+### 3. Codec SPI (`ai.foresignal.source.codec`)
 
 - `SocketCodec`:
   - `String id()`
@@ -75,7 +75,7 @@ Extend `LAN_URL` validation (004/005) to the schemes `tcp://host:port` and `udp:
 
 ### 4. Sources
 
-Slot families from code-reviewed lists: the operator supplies only LAN params, never arbitrary hosts. `elaro.local-receivers.slots` (default 2) sets how many slots each family registers. All are disabled by default with `egress` LOCAL_ONLY.
+Slot families from code-reviewed lists: the operator supplies only LAN params, never arbitrary hosts. `foresignal.local-receivers.slots` (default 2) sets how many slots each family registers. All are disabled by default with `egress` LOCAL_ONLY.
 
 **`local-adsb-{n}`** (POLLING; readsb, dump1090 or skyaware978 `aircraft.json`):
 - Params: `url` (`LAN_URL`, http/https, path must end in `aircraft.json`, no credentials, query or fragment) and `band` (`1090|978`, default 1090).

@@ -1,11 +1,11 @@
 # 107 — SatDump Extras
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/107-CR-SatDump-Extras.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -15,7 +15,7 @@
 
 - `docs/Weather-Imagery-Design.md`:
   - §10.3 row "075" (this prompt; its 075 = 107), §5.3 "SatDump extras"
-  - §3 licence boundaries (SatDump GPL-3.0: files and HTTP only, no SatDump code or structs; an Elaro hook is MIT, a separate file, never linked)
+  - §3 licence boundaries (SatDump GPL-3.0: files and HTTP only, no SatDump code or structs; an Foresignal hook is MIT, a separate file, never linked)
   - §4.0–§4.7 (station requirements, inbox loop, NOFOLLOW/realpath, pass join, `/api` drift fixtures), §2.2 (`LAN_URL`, `INBOX_PATH`), §11 (DCS/EMWIN deferred here)
   - Translate design numbers with `docs/Roadmap.md` §5: its 036 = 049, 041 = 054, 044 `celestrak-gp` = 064, and 035 = 048
 - `docs/Gap-Analysis.md` §2 row "SatDump / Gpredict / Look4Sat" (CelesTrak-compatible `gp.php`; unknown `FORMAT` defaults to CSV)
@@ -29,10 +29,10 @@ Finish the ground-station integration:
 - filtered DCS (environmental data platforms) and EMWIN products from the owner's GOES HRIT reception;
 - an EMWIN warnings fallback that keeps alerts flowing when the internet is down;
 - `glm-local` lightning from a GRB station;
-- a SatDump-friendly orbital-elements feed served from Elaro's CelesTrak cache;
+- a SatDump-friendly orbital-elements feed served from Foresignal's CelesTrak cache;
 - the SatDump 2.0 hook, gated on 2.0 actually being in use.
 
-All of it stays on the far side of the GPL boundary: Elaro reads files and HTTP only.
+All of it stays on the far side of the GPL boundary: Foresignal reads files and HTTP only.
 
 ## Tasks
 
@@ -43,9 +43,9 @@ All of it stays on the far side of the GPL boundary: Elaro reads files and HTTP 
   - Locate them under the pass/run folder by glob `dcsGlob` (default `**/DCS/**/*.json`). Verify the actual layout on the owner's version and record it; keep a fixture per pinned version.
   - Parse leniently: DCP address, message time, channel, signal strength, frequency offset, data (bytes/ASCII), failure code. Unknown keys are ignored.
 - **Location:** messages carry a DCP address, not a position. Resolve through a `dcp_location` table (address PK, lat, lon, name, agency, source, updated_at), loaded from:
-  1. an operator CSV at `${ELARO_INBOX_DIR}/dcs/dcp_locations.csv` (`address,lat,lon,name,agency`), re-read on change;
+  1. an operator CSV at `${FORESIGNAL_INBOX_DIR}/dcs/dcp_locations.csv` (`address,lat,lon,name,agency`), re-read on change;
   2. optionally, the NOAA DCS Platform Description Table export if a public, redistributable file is confirmed. Verify the URL and terms; if they are unclear, do not fetch it, and document the CSV path only.
-  - **Messages without a location are dropped** and counted (`elaro.satdump.dcs.dropped{reason=no_location|outside_bbox|not_allowlisted}`).
+  - **Messages without a location are dropped** and counted (`foresignal.satdump.dcs.dropped{reason=no_location|outside_bbox|not_allowlisted}`).
 - **Records:**
   - kind `dcp-observation`, externalId `{address}`;
   - `observedAt` = message time; `eventTime` = message time;
@@ -95,27 +95,27 @@ All of it stays on the far side of the GPL boundary: Elaro reads files and HTTP 
 - Check that 064 delivered `/compat/celestrak/gp.php` (CelesTrak query grammar: `GROUP`, `CATNR`, `NAME`, `FORMAT=tle|3le|2le|xml|kvn|json|csv`; unknown `FORMAT` → CSV). Add it if missing.
 - **Add:**
   - path aliases SatDump and other tools use: `/compat/celestrak/NORAD/elements/gp.php` and `/compat/celestrak/NORAD/elements/{group}.txt` (TLE). Groups at least `weather`, `noaa`, `goes`, `resource`, `amateur`, `cubesat`, `active`, `stations`;
-  - **offline behaviour:** always serve from the cache; add `X-Elaro-Elements-Age: <seconds>` and a warning header when older than 3 d. Never fetch upstream on request.
+  - **offline behaviour:** always serve from the cache; add `X-Foresignal-Elements-Age: <seconds>` and a warning header when older than 3 d. Never fetch upstream on request.
   - **access:** SatDump cannot send auth headers, so document the feed-key form `/v1/k/{key}/compat/celestrak/...` (035) or `openReads`.
 - Operator docs:
-  - pointing SatDump's TLE update URLs at Elaro, via the settings UI or config file, verifying the exact config key on the owner's version and recording it (Gap-Analysis notes recent SatDump builds fetch from orbicentral by default);
+  - pointing SatDump's TLE update URLs at Foresignal, via the settings UI or config file, verifying the exact config key on the owner's version and recording it (Gap-Analysis notes recent SatDump builds fetch from orbicentral by default);
   - Gpredict and Look4Sat equivalents.
 - Tests: format matrix, aliases, stale header, feed-key access.
 
 ### 5. SatDump 2.0 hook (gated)
 
-- **Gate:** active only when `elaro.satdump.version` (a new setting with values `1.2` | `2.0`, from the owner's §1.5 answer) is `2.0`, or when a 2.0 stable release exists. Verified 2026-10: it does not; 1.2.2 is the latest stable.
-- **Always implement the Elaro side, version-agnostic.** The inbox loop recognises an `elaro-manifest.json` in a pass folder: `{schema: 1, satellite, norad?, timestamp, products[{name, instrument, file, projection: "equirec", bounds[w,s,e,n], composite}]}`. The listed GeoTIFFs and PNGs go through the 054 pipeline (ImageGuard, GeoTIFF reader). The manifest is validated by a JSON schema; unknown versions are rejected with a health reason.
-- **Ship the hook as a separate MIT file**, `contrib/satdump/elaro_hook.as` (AngelScript), with an MIT header and a README:
+- **Gate:** active only when `foresignal.satdump.version` (a new setting with values `1.2` | `2.0`, from the owner's §1.5 answer) is `2.0`, or when a 2.0 stable release exists. Verified 2026-10: it does not; 1.2.2 is the latest stable.
+- **Always implement the Foresignal side, version-agnostic.** The inbox loop recognises an `foresignal-manifest.json` in a pass folder: `{schema: 1, satellite, norad?, timestamp, products[{name, instrument, file, projection: "equirec", bounds[w,s,e,n], composite}]}`. The listed GeoTIFFs and PNGs go through the 054 pipeline (ImageGuard, GeoTIFF reader). The manifest is validated by a JSON schema; unknown versions are rejected with a health reason.
+- **Ship the hook as a separate MIT file**, `contrib/satdump/foresignal_hook.as` (AngelScript), with an MIT header and a README:
   - it runs on product finish, writes equirectangular composites and the manifest, and never includes SatDump headers or copies SatDump code;
   - it is marked **experimental** and needs `PLUGIN_SCRIPTING` (design §4.0).
-  - Elaro images do not contain it; the operator copies it.
+  - Foresignal images do not contain it; the operator copies it.
   - If the AngelScript API cannot be verified against a 2.0 build, ship the README and the manifest specification only, and record that in the Completion Report.
 - Fixtures: a synthetic manifest pass folder; a contract test for the manifest schema.
 
 ### 6. Spec, Postman, docs
 
-- `docs/OpenAPI.json`: the `/compat/celestrak/**` aliases (scope read, `x-elaro-scope: read`, `text/plain`/`application/json`/`application/xml`); kind schemas `dcp-observation`, `emwin-product`, `emwin-warning`; source param docs. Regenerate Postman.
+- `docs/OpenAPI.json`: the `/compat/celestrak/**` aliases (scope read, `x-foresignal-scope: read`, `text/plain`/`application/json`/`application/xml`); kind schemas `dcp-observation`, `emwin-product`, `emwin-warning`; source param docs. Regenerate Postman.
 - AccessPolicy: `/compat/celestrak/**` GET → READ (works under openReads and feed keys).
 - `docs/Source-Catalog.md`: rows for DCS/EMWIN (via `satdump-{station}`) and `glm-local-{station}`, with the verification notes above.
 - `docs/Operator-Guide.md` "SatDump extras": SatDump options to enable, `dcp_locations.csv`, volume warnings, the EMWIN fallback recipe, GRB hardware, the TLE feed setup, and the 2.0 hook status.
@@ -128,7 +128,7 @@ All of it stays on the far side of the GPL boundary: Elaro reads files and HTTP 
 - `EmwinFallbackIT`: with `nws-alerts` healthy, the record carries `duplicateOf`; with it failing, no `duplicateOf` and the recipe rule fires; CAN → tombstone.
 - `GlmLocalAdapterTest`: decode fixture, dedup against internet flashes, health when locked with no files.
 - `CelestrakCompatIT`: aliases, format matrix, unknown FORMAT → CSV, stale header, feed-key access, no upstream call on request.
-- `ElaroManifestTest`: schema validation, products routed through ImageGuard, unknown schema rejected.
+- `ForesignalManifestTest`: schema validation, products routed through ImageGuard, unknown schema rejected.
 - Ingest ITs for `dcp-observation` (emit only on change) and `emwin-warning` (versioned by ETN).
 
 ## Acceptance criteria

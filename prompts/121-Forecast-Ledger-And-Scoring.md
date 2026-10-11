@@ -1,11 +1,11 @@
 # 121 — Forecast Ledger And Scoring
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/121-CR-Forecast-Ledger-And-Scoring.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults, analytic retention, intelligence conventions) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and **`docs/Intelligence-Design.md` is authoritative for the intelligence layer** (situations, findings, precursors, base rates, analogs, the forecast ledger, hypotheses, forecasts, impact projection and analysis cycles).
@@ -18,7 +18,7 @@
 
 ## Objective
 
-Build the **forecast ledger**: resolvable questions, immutable timestamped forecasts from many forecasters, automatic resolution from Elaro's own data, proper scoring, calibration and bias monitoring, a track-record-weighted ensemble with recalibration, and leak-free retrospective evaluation. Add the baseline forecasters (base rate, climatology, persistence, precursor, analog), the operator as a forecaster, and the `EstimativeLanguage` utility every component uses to turn numbers into ICD 203 words.
+Build the **forecast ledger**: resolvable questions, immutable timestamped forecasts from many forecasters, automatic resolution from Foresignal's own data, proper scoring, calibration and bias monitoring, a track-record-weighted ensemble with recalibration, and leak-free retrospective evaluation. Add the baseline forecasters (base rate, climatology, persistence, precursor, analog), the operator as a forecaster, and the `EstimativeLanguage` utility every component uses to turn numbers into ICD 203 words.
 
 ## Principles (binding)
 
@@ -29,12 +29,12 @@ Build the **forecast ledger**: resolvable questions, immutable timestamped forec
 
 ## Tasks
 
-### 1. `EstimativeLanguage` (`ai.elaro.forecast.language`)
+### 1. `EstimativeLanguage` (`ai.foresignal.forecast.language`)
 
 - `term(p)` → the ICD 203 term (one row only: almost no chance, very unlikely, unlikely, roughly even chance, likely, very likely, almost certain); `band(p)`; `crossesBand(p0, p1)`.
 - `lint(text, claims)`: rejects (a) a likelihood term whose band disagrees with the claim's number, (b) terms from the second ICD row (remote, highly improbable, improbable, roughly even odds, probable, highly probable, nearly certain) mixed with the first, (c) a likelihood term and a confidence level ("low/moderate/high confidence") in the same sentence. Returns violations with offsets. Used by 122, 125 and the 028/102 validators for intelligence outputs.
 
-### 2. Data model (`ai.elaro.forecast`)
+### 2. Data model (`ai.foresignal.forecast`)
 
 - `forecast_question`: `id` (ULID), `title`, `type` (binary | multiple | ordered | numeric), `outcomes` jsonb (multiple/ordered labels; numeric `unit`, `lower`, `upper`), `resolution_criteria` (text, ≤ 2,000 chars), `resolver` jsonb (§3) or `{type: manual}`, `opens_at`, `closes_at`, `resolve_by`, `status` (open | closed | resolved | annulled), `resolution` jsonb (`{outcome | value, resolvedAt, resolvedBy, evidence[], note}`), `category` (e.g. `conflict`, `maritime`, `markets`, `weather-impact`, `activity`), `tags`, links (`situation_id`, `hypothesis_set_id`, `precursor_id`, `finding_id`, `series_ref`, `outlook_id`), `origin` (operator | agent | system | analyst), `dedup_key`, `private`, `version`, timestamps. Indexes `(status, resolve_by)`, `(category, status)`.
 - `forecaster`: `id` (slug), `type` (`base-rate | climatology | persistence | statistical | precursor | analog | impact | indicator-bayes | llm | operator | external | ensemble`), `name`, `config` jsonb, `version`, `active`, `created_at`.
@@ -109,7 +109,7 @@ Auto-created questions:
 
 ### 9. Spec and docs
 
-- `docs/OpenAPI.json`: all schemas above; tag `Forecasts`; `x-elaro-scope` everywhere; SSE schemas; Postman BODIES for create question (each resolver type), submit forecast (binary, multiple, numeric), resolve, evaluation.
+- `docs/OpenAPI.json`: all schemas above; tag `Forecasts`; `x-foresignal-scope` everywhere; SSE schemas; Postman BODIES for create question (each resolver type), submit forecast (binary, multiple, numeric), resolve, evaluation.
 - AccessPolicy rows as listed.
 - `docs/Operator-Guide.md` "Forecast ledger": writing resolvable questions, reading Brier, log score, CRPS, skill and calibration plots, why LLM forecasts are capped and recalibrated, leakage, and "operator vs machine".
 - `docs/Agent-Guide.md`: always submit probabilities with base-rate reasoning; quote criteria verbatim.
@@ -128,7 +128,7 @@ Auto-created questions:
 
 ## Acceptance criteria
 
-- Questions resolve automatically from Elaro's data, early when possible, after release lags, and annul on coverage gaps.
+- Questions resolve automatically from Foresignal's data, early when possible, after release lags, and annul on coverage gaps.
 - Every forecaster's forecasts are immutable, timestamped with their knowledge cutoff, and scored with Brier/log/RPS/CRPS, time-averaged, with calibration, skill and bias reports.
 - The ensemble weights by track record, recalibrates, caps LLM extremes and only extremizes when justified.
 - Retrospective evaluation is leak-free for statistical forecasters and refuses leakage-prone LLM questions.

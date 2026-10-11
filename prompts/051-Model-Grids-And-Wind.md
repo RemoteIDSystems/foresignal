@@ -1,11 +1,11 @@
 # 051 — Model Grids And Wind
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/051-CR-Model-Grids-And-Wind.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -13,7 +13,7 @@
 
 ## Read first
 
-- `docs/Weather-Imagery-Design.md` §0.1 (rows "GRIB2/NetCDF decoder", "Where frames live", "God's Eye View port"), §1.4 (GFS/HRRR facts), §2.3 (`raster_frame`, `.elg`), §2.4 (fields layout, quantisation, model ladder), §2.5 (`gfs`, `hrrr` budgets), §2.6 (HRRR runs per profile), §5.1 (`gfs`, `hrrr` rows), §6.1 (frame keys, aliases, `RUN_REQUIRED`), §6.2 (timeline), §6.4 (fields and wind), §6.8 (forecast SSE events), §6.10 (particles), §10.4. Design prompt 038 = v1.2 051.
+- `docs/Weather-Imagery-Design.md` §0.1 (rows "GRIB2/NetCDF decoder", "Where frames live", "God's Eye View port"), §1.4 (GFS/HRRR facts), §2.3 (`raster_frame`, `.fsg`), §2.4 (fields layout, quantisation, model ladder), §2.5 (`gfs`, `hrrr` budgets), §2.6 (HRRR runs per profile), §5.1 (`gfs`, `hrrr` rows), §6.1 (frame keys, aliases, `RUN_REQUIRED`), §6.2 (timeline), §6.4 (fields and wind), §6.8 (forecast SSE events), §6.10 (particles), §10.4. Design prompt 038 = v1.2 051.
 - `docs/Gap-Analysis.md` §8 item 57 (alternate field formats and HRRR smoke fields go to 106; nothing here).
 - Completion Reports of **042** (ProductSpec, FrameStore, frame conventions), **045** (GridDef `latlon`/`lcc`, TileRenderer, styles, render queue), **046** (NetCDF-Java, `RasterDecoder` SPI, decode pool), **050** (frontend guide), **016** (MVT path).
 - God's Eye View (MIT, `~/Documents/GitLab/gods-eye-view`): `server/providers/wind/{catalog,gfs,grid,decode}.js` and `src/layers/wind/*`. `server/providers/wind.js` (the GEV proxy) and `server/providers/wind/ifs.js` are reference only here (IFS is 105).
@@ -25,13 +25,13 @@ Add forecast models: GFS 0.25° and HRRR CONUS as budgeted product sources, with
 
 ## Tasks
 
-### 1. GEV port: inventory, ranges, cycles (`ai.elaro.raster.model`)
+### 1. GEV port: inventory, ranges, cycles (`ai.foresignal.raster.model`)
 
 Port to Java with a file header naming the origin file and the MIT notice, and add rows to the `THIRD_PARTY_NOTICES.md` "Ported files" table:
 - **`GribIdx`** (from `gfs.js` `parseGfsIdx`): lines `msg:offset:d=YYYYMMDDHH:VAR:LEVEL:TIME:…`; skip malformed lines; reject an inventory with no valid line (an HTML error page is never an empty inventory). Keep the time-range field (e.g. `0-6 hour acc fcst`).
-- **`IdxRangePlanner`** (from `windMessageRanges`): a message spans its offset to the next message's offset − 1. For the last message, the end is the object size from `listS3` `Size` (GEV throws there; Elaro must not). Adjacent wanted messages are coalesced into one `getRange`. Each range is charged to `mbPerDay` in advance from the offsets (005).
+- **`IdxRangePlanner`** (from `windMessageRanges`): a message spans its offset to the next message's offset − 1. For the last message, the end is the object size from `listS3` `Size` (GEV throws there; Foresignal must not). Adjacent wanted messages are coalesced into one `getRange`. Each range is charged to `mbPerDay` in advance from the offsets (005).
 - **Field matching** is by `(variable, level[, timeRange])`, **never by message number**. Verified 2026-10: GFS `f006` lists `APCP:surface:0-6 hour acc fcst` twice, so take the first match and match accumulations by the run-total range `0-{step} hour acc`. A missing required field degrades health ("possible format change: GFS idx missing GUST:surface") and writes no frame. A missing optional field drops only that product (GEV `loadOptionalScalar` pattern).
-- **`ModelCycleSelector`** (from `catalog.js`): candidate cycles from the clock with a configurable availability lag (GFS 3.5 h, HRRR 50 min), confirmed by the `.idx` existing. Not GEV's `nearestGfsStep` (hourly to f120); Elaro's step lists are below.
+- **`ModelCycleSelector`** (from `catalog.js`): candidate cycles from the clock with a configurable availability lag (GFS 3.5 h, HRRR 50 min), confirmed by the `.idx` existing. Not GEV's `nearestGfsStep` (hourly to f120); Foresignal's step lists are below.
 - **Limits** (from `decode.js`/`grid.js`): ≤ 8 MB per GRIB message, `ni × nj ≤ 2,000,000` (HRRR 1799×1059 = 1.9 M fits), all values finite after scale/offset. Decoding uses 046's NetCDF-Java `RasterDecoder` on a temp file (`Grib2RecordScanner.readData`); ecCodes WASM is not ported.
 - **`WindResampler`** (from `grid.js` `resampleWindGrid`): bilinear, longitude wraps, latitude clamps; output `lo1=0, la1=90`, `nx=360/dx`, `ny=180/dy+1`.
 
@@ -42,10 +42,10 @@ Both are POLLING product sources (`zeroResultsNormal=true`, `observedAtMode=UPST
 | Source | Template (default) | Runs / steps | Budget |
 |---|---|---|---|
 | `gfs` | `gfs.{yyyyMMdd}/{HH}/atmos/gfs.t{HH}z.pgrb2.0p25.f{FFF}` | 4/day; f000–f048 3-hourly, f054–f120 6-hourly (29 steps) | 60/min, 3,000/day, 1,000 MB/day; 15-min check |
-| `hrrr` | `hrrr.{yyyyMMdd}/conus/hrrr.t{HH}z.wrfsfcf{FF}.grib2` | every 3 h (`ELARO_PROFILE=small`: 6 h); f00–f18 | 60/min, 4,000/day, 2,000 MB/day; 10-min check |
+| `hrrr` | `hrrr.{yyyyMMdd}/conus/hrrr.t{HH}z.wrfsfcf{FF}.grib2` | every 3 h (`FORESIGNAL_PROFILE=small`: 6 h); f00–f18 | 60/min, 4,000/day, 2,000 MB/day; 10-min check |
 
 Products (ProductSpec, `temporal.type=forecast`, `maxGap` = step spacing, ladder "current complete run + previous complete run"):
-- `gfs` (kind `field`): UGRD/VGRD `10 m above ground`; `.elg` i16 two bands (u, v; scale 0.01 m/s) on `latlon` 1440×721 for tiles, sampling and vectors, **plus** field files `rasters/fields/gfs/{run}/{step}.f32.gz` at 1° and 0.25° (precompressed gzip). Native max zoom 4.
+- `gfs` (kind `field`): UGRD/VGRD `10 m above ground`; `.fsg` i16 two bands (u, v; scale 0.01 m/s) on `latlon` 1440×721 for tiles, sampling and vectors, **plus** field files `rasters/fields/gfs/{run}/{step}.f32.gz` at 1° and 0.25° (precompressed gzip). Native max zoom 4.
 - `gfs-gust` (`GUST:surface`), `gfs-t2m` (`TMP:2 m above ground`), `gfs-apcp` (`APCP:surface:0-{step} hour acc`, run-total; consumers difference steps): i16 with scale/offset.
 - `hrrr` (kind `field`, `UGRD/VGRD:10 m above ground`), `hrrr-refc` (`REFC:entire atmosphere`, styled `nws-reflectivity`), `hrrr-gust` (`GUST:surface`), `hrrr-smoke` (`MASSDEN:8 m above ground`, style `smoke`): `lcc` 1799×1059 i16. Native max zoom 8. Verified 2026-10: these exact strings are present in `wrfsfcf01.grib2.idx`. Verify MASSDEN units (kg m⁻³ expected; convert to µg m⁻³ for display) at implementation.
 - **HRRR winds are grid-relative.** Check GRIB2 "resolution and component flags" bit 5; when set, rotate to earth-relative before storing: `α = n·(λ − λ₀)` with cone constant `n = sin(φ₁)` for the tangent LCC (HRRR: φ₁ = 38.5°, λ₀ = −97.5°), `u_e = u·cos α + v·sin α`, `v_e = −u·sin α + v·cos α`. GFS (latlon) is earth-relative. Add a fixture test with a known rotation.
@@ -62,7 +62,7 @@ Products (ProductSpec, `temporal.type=forecast`, `maxGap` = step spacing, ladder
 
 ### 4. Fields endpoints (`gfs` only in v1)
 
-- `GET /v1/products/gfs/fields/{frameKey}.json?run&res=1|0.25&bbox` → GEV `schemaVersion: 1` manifest: `model`, `cycle{date, hour, forecastHour, runIso, validIso}`, `level`, `units: "m/s"`, `grid{nx, ny, lo1, la1, dx, dy}`, `stale`, `unavailable`, `reason`; Elaro additions `components[{name:"u",offset:0},{name:"v",offset:nx·ny·4}]`, `byteLength`, `sha256`, `attribution`, and a content-addressed `dataUrl` (`…/fields/{frameKey}.f32?run=<runIso>&res=…&bbox=<snapped>`).
+- `GET /v1/products/gfs/fields/{frameKey}.json?run&res=1|0.25&bbox` → GEV `schemaVersion: 1` manifest: `model`, `cycle{date, hour, forecastHour, runIso, validIso}`, `level`, `units: "m/s"`, `grid{nx, ny, lo1, la1, dx, dy}`, `stale`, `unavailable`, `reason`; Foresignal additions `components[{name:"u",offset:0},{name:"v",offset:nx·ny·4}]`, `byteLength`, `sha256`, `attribution`, and a content-addressed `dataUrl` (`…/fields/{frameKey}.f32?run=<runIso>&res=…&bbox=<snapped>`).
 - `GET …/fields/{frameKey}.f32` → planar little-endian Float32 u then v, rows north→south, longitudes 0..359 (1°: 360×181, 521,280 bytes raw; 0.25°: 1440×721, 8.3 MB). Served precompressed with `Content-Encoding: gzip` (return 406 only if the client refuses gzip). `bbox` (recommended for 0.25°) is snapped outward to grid cells and wraps across 0°; bbox subsets are cut on the fly from the 0.25° file and cached in `tileCacheMb`.
 - Cache policy per design §6.1 (fields are covered by the same rule).
 
@@ -77,11 +77,11 @@ Products (ProductSpec, `temporal.type=forecast`, `maxGap` = step spacing, ladder
 
 ### 7. Frontend guide: wind
 
-In `docs/Frontend-Guide.md` "Wind particles": the framework-neutral GEV modules (`model.js`, `streamlines.js`, `fields.js`, `source.js`) can be reused by a web client under the MIT notice; `rendering.js`/`gpuRendering.js` are Cesium-specific, so MapLibre needs a `CustomLayerInterface` wrapper. Give the manifest adapter (Elaro's `dataUrl` replaces GEV's `/api/wind/grid` regex check). Flutter and Cesium use barb MVT or the `wind-speed` raster; particles stay a web-only progressive enhancement.
+In `docs/Frontend-Guide.md` "Wind particles": the framework-neutral GEV modules (`model.js`, `streamlines.js`, `fields.js`, `source.js`) can be reused by a web client under the MIT notice; `rendering.js`/`gpuRendering.js` are Cesium-specific, so MapLibre needs a `CustomLayerInterface` wrapper. Give the manifest adapter (Foresignal's `dataUrl` replaces GEV's `/api/wind/grid` regex check). Flutter and Cesium use barb MVT or the `wind-speed` raster; particles stay a web-only progressive enhancement.
 
 ### 8. Spec, Postman, docs
 
-- `docs/OpenAPI.json`: `getProductFieldManifest`, `getProductFieldData` (`application/octet-stream`), `getProductVectorTile` (`application/vnd.mapbox-vector-tile`), `getProductTimeline`; `run` parameter docs and `RUN_REQUIRED` on frame/tile/image operations; schemas `FieldManifest`, `Timeline`, `TimelineTick`. All `x-elaro-scope: read`; `AccessPolicy` READ for these GETs. Regenerate Postman.
+- `docs/OpenAPI.json`: `getProductFieldManifest`, `getProductFieldData` (`application/octet-stream`), `getProductVectorTile` (`application/vnd.mapbox-vector-tile`), `getProductTimeline`; `run` parameter docs and `RUN_REQUIRED` on frame/tile/image operations; schemas `FieldManifest`, `Timeline`, `TimelineTick`. All `x-foresignal-scope: read`; `AccessPolicy` READ for these GETs. Regenerate Postman.
 - `docs/Source-Catalog.md`: `gfs` and `hrrr` rows (tier, policy, budgets, `mbPerDay`, licence US-PD, configurable templates for GFSv17, field matching by variable/level); replace line 48 if 045 has not.
 - `docs/Operator-Guide.md`: model sources, profile-dependent HRRR cadence, GFSv17 template override.
 

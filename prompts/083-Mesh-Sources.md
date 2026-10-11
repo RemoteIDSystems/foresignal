@@ -1,11 +1,11 @@
 # 083 — Mesh Sources
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/083-CR-Mesh-Sources.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -26,7 +26,7 @@ Bring mesh networks in without repeating ShadowBroker's mistake (it was reported
 
 ## Tasks
 
-### 1. Shared mesh model (`ai.elaro.source.adapters.mesh`)
+### 1. Shared mesh model (`ai.foresignal.source.adapters.mesh`)
 
 - Kind `mesh-node`. externalId: Meshtastic `!` + 8-hex node number (unsigned); MeshCore `mc:` + first 12 hex chars of the public key.
 - Payload (allowlisted, no nulls): `network` (`meshtastic`/`meshcore`), `longName, shortName, role, hwModel, firmware, nodeType` (MeshCore chat/repeater/room/sensor), `positionPrecisionBits`, `batteryLevel, voltage, channelUtil, airUtilTx, uptimeS` and `lastHeardAt` (all volatile, so telemetry jitter only touches the live row; `lowBattery` = `batteryLevel < 15` is a computed significant field per adapter rule 12).
@@ -45,8 +45,8 @@ Bring mesh networks in without repeating ShadowBroker's mistake (it was reported
 - **Disabled by default**; enabling logs a WARN summarising the rules.
 - Params: `root` (string, default `msh/US`, pattern `^msh/[A-Za-z0-9_]+(/[A-Za-z0-9_]+)?$`), `extraRoots` (string-list, default empty), `maxSubscriptions` (integer, default 1, **hard maximum 3**; root + extraRoots must fit, else 400 `VALIDATION_FAILED` at PUT).
 - Subscribe to `<root>/2/json/#` only, one subscription per root, QoS 0. **No wildcard above the root** (`msh/#` and `+/…` rejected).
-- Client id `elaro-<installId>` (stable, identifiable); keepalive 120 s; clean session; reconnect 15 s → 300 s exponential with jitter; budget 12 connects/hour, 100/day.
-- **Inbound cap 100 messages/min** (sliding window, before parsing); excess dropped and counted `elaro.mesh.dropped{source,reason=rate}`, with a WARN at most once per 10 min.
+- Client id `foresignal-<installId>` (stable, identifiable); keepalive 120 s; clean session; reconnect 15 s → 300 s exponential with jitter; budget 12 connects/hour, 100/day.
+- **Inbound cap 100 messages/min** (sliding window, before parsing); excess dropped and counted `foresignal.mesh.dropped{source,reason=rate}`, with a WARN at most once per 10 min.
 - **Verified 2026-10:** the docs still describe JSON output (not on nRF52), but most public-broker traffic is protobuf on `/2/e/`; expect sparse JSON. Set `zeroResultsNormal=true` and state this in the Source-Catalog row. Public positions are already reduced to 10–16 bits of precision; keep `positionPrecisionBits` and set `Quality.accuracyMeters` from it.
 - `includeText` param (default false) for public text; public channel text is never posted anywhere else.
 
@@ -68,7 +68,7 @@ Bring mesh networks in without repeating ShadowBroker's mistake (it was reported
 Two transports, one record mapper (`MeshCoreEventMapper`):
 
 - **Bridge (first, recommended for USB/BLE companions):** ship `contrib/meshcore-bridge/bridge.py` (MIT, depends on `meshcore` from PyPI, the `meshcore_py` package) that connects via serial, BLE or TCP and POSTs JSON events (`contact`, `advert`, `channel_msg`, `contact_msg`, `self_info`) to a PUSH source `meshcore-bridge` through 024's ingest endpoint with an IngestFormat `meshcore-json`. Include a README and a systemd unit.
-- **Native TCP (WiFi companion firmware):** param `endpoint` (`LAN_URL tcp://`, required, **no default port**; the firmware example defaults to 5000 only when built with `TCP_PORT` unset). Framing: radio→app `'>'` + uint16 LE length + frame; app→radio `'<'` + length + frame; frames > 176 bytes skipped. Startup sequence: `CMD_APP_START` (0x01, app name "Elaro"), `CMD_DEVICE_QUERY` (0x16 0x03), `CMD_GET_CONTACTS` (0x04), then `CMD_SYNC_NEXT_MESSAGE` (0x0A) on `PUSH_CODE_MSG_WAITING` (0x83). One command in flight, 5 s timeout. Transport: 069's `ctx.sockets().tcp(…, Framing.RAW, …)` with a codec `meshcore-companion` that reassembles `>`-frames. This is the one LAN source that must write after connect: extend 069's transport with `SocketOptions.commandWriter(CommandGuard)`, whose handle exposes `send(byte[])` only through the guard below (default handles stay receive-only, as 082 requires).
+- **Native TCP (WiFi companion firmware):** param `endpoint` (`LAN_URL tcp://`, required, **no default port**; the firmware example defaults to 5000 only when built with `TCP_PORT` unset). Framing: radio→app `'>'` + uint16 LE length + frame; app→radio `'<'` + length + frame; frames > 176 bytes skipped. Startup sequence: `CMD_APP_START` (0x01, app name "Foresignal"), `CMD_DEVICE_QUERY` (0x16 0x03), `CMD_GET_CONTACTS` (0x04), then `CMD_SYNC_NEXT_MESSAGE` (0x0A) on `PUSH_CODE_MSG_WAITING` (0x83). One command in flight, 5 s timeout. Transport: 069's `ctx.sockets().tcp(…, Framing.RAW, …)` with a codec `meshcore-companion` that reassembles `>`-frames. This is the one LAN source that must write after connect: extend 069's transport with `SocketOptions.commandWriter(CommandGuard)`, whose handle exposes `send(byte[])` only through the guard below (default handles stay receive-only, as 082 requires).
 - Contact frame (`RESP_CODE_CONTACT` 0x03 / `PUSH_CODE_NEW_ADVERT` 0x8A): pubkey 32, type, flags, out_path_len, out_path 64, name 32 (NUL-terminated), last_advert uint32, lat int32 ×1e-6, lon int32 ×1e-6, lastmod uint32. `PUSH_CODE_ADVERT` (0x80) carries only the pubkey: re-query it with `CMD_GET_CONTACT_BY_KEY` (0x1E). Read channel names once with `CMD_GET_CHANNEL` (0x1F, indices 0–7) so messages carry `channelName`.
 - **Allowed command set** (enforced by a `MeshCoreCommandGuard` allowlist): 0x01 (app start), 0x16 (device query), 0x04 (get contacts), 0x0A (sync next message), 0x05 (get time), 0x14 (battery and storage), 0x1E (contact by key), 0x1F (get channel), plus the send commands that 084 registers. Never `CMD_SET_*`, import/export key, reboot or factory reset. Never send login, status, telemetry or path-discovery requests to repeaters (receive-only health).
 - **`MeshCoreCompanionLink`** (singleton per host:port): the companion accepts one TCP client, so the source and the 084 channel share this link. It owns reconnect (5 s → 5 min), the command queue and frame dispatch.
@@ -87,7 +87,7 @@ Record: 5 minutes of `msh/<root>/2/json/#` from a private broker fed by a test n
 ## Tests to write (do not run)
 
 - `MeshtasticJsonParserTest`: fixtures per type, unsigned node ids, unknown type dropped, `/2/e/` topic ignored without parsing.
-- `MeshtasticMqttRulesTest`: `maxSubscriptions` > 3 rejected, wildcard roots rejected, client id `elaro-<installId>`, keepalive 120 s, reconnect bounds 15–300 s, the 100/min limiter drops the 101st message.
+- `MeshtasticMqttRulesTest`: `maxSubscriptions` > 3 rejected, wildcard roots rejected, client id `foresignal-<installId>`, keepalive 120 s, reconnect bounds 15–300 s, the 100/min limiter drops the 101st message.
 - `MeshtasticMqttAdapterTest`: against an embedded MQTT broker (HiveMQ CE or Moquette Testcontainer): exactly the configured subscriptions, merge of nodeinfo + position into one snapshot.
 - `MeshtasticMapParserTest`: streaming parse of a trimmed real fixture and a 10k-node synthetic file without building a tree.
 - `MeshCoreFrameCodecTest` and `MeshCoreEventMapperTest`: framing, contact decode (lat/lon scaling, NUL-padded names), advert push re-query, oversize frame skipped.

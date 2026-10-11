@@ -1,11 +1,11 @@
 # 104 — Infrastructure Dependency Mapping
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/104-CR-Infrastructure-Dependency-Mapping.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -20,7 +20,7 @@
 
 ## Objective
 
-Build a facility graph of power, telecom, transport, health, water and space infrastructure from open reference datasets and an operator-supplied OSM extract. The graph has typed relationships that each carry an uncertainty label and the evidence for it. It answers "what depends on things inside this outage or event area?" with paths and explicit uncertainty. All of it is open data, processed locally. Elaro never queries the public Overpass API in bulk.
+Build a facility graph of power, telecom, transport, health, water and space infrastructure from open reference datasets and an operator-supplied OSM extract. The graph has typed relationships that each carry an uncertainty label and the evidence for it. It answers "what depends on things inside this outage or event area?" with paths and explicit uncertainty. All of it is open data, processed locally. Foresignal never queries the public Overpass API in bulk.
 
 ## Principles (binding)
 
@@ -32,7 +32,7 @@ Build a facility graph of power, telecom, transport, health, water and space inf
 
 ### 1. OSM infrastructure source (`osm-infrastructure`)
 
-- POLLING adapter with a weekly default interval and no network access. It reads `inboxPath` (`INBOX_PATH` param, default `${ELARO_INBOX_DIR}/osm`).
+- POLLING adapter with a weekly default interval and no network access. It reads `inboxPath` (`INBOX_PATH` param, default `${FORESIGNAL_INBOX_DIR}/osm`).
 - **Input:** RFC 8142 GeoJSON text sequences produced by the operator, or by the optional `WITH_OSMIUM=true` image build-arg (`ProcessBuilder` only, like GDAL in 054; osmium is GPL-3.0 and is never linked or bundled by default). The Operator Guide documents the commands:
   ```
   osmium tags-filter region-latest.osm.pbf \
@@ -61,7 +61,7 @@ Build a facility graph of power, telecom, transport, health, water and space inf
   - Attribution "© OpenStreetMap contributors" appears in every response that includes OSM-derived data.
 - Docs: a fixture capture procedure (a small extract around a test city, processed with the commands above and trimmed to about 200 features), a parser contract test, an ingest IT, and a `docs/Source-Catalog.md` row.
 
-### 2. Graph model (`ai.elaro.infra`)
+### 2. Graph model (`ai.foresignal.infra`)
 
 - **`infra_node`:**
   - Columns: id bigserial, `source_id`, `external_id` (unique pair), `facility_type`, name, `geom` (Geometry 4326), `point` (Point, a representative point), `attributes` jsonb (capacityMw, voltageKv, iata, beds, …), `region_tags`, `licence`, `built_at`.
@@ -118,7 +118,7 @@ Build a facility graph of power, telecom, transport, health, water and space inf
 
 - `docs/OpenAPI.json`:
   - schemas `InfraNode`, `InfraEdge`, `InfraImpactRequest`, `InfraImpactResult`, `InfraBuild`, `InfraRules`;
-  - tag `Infrastructure`; `x-elaro-scope` on every operation;
+  - tag `Infrastructure`; `x-foresignal-scope` on every operation;
   - regenerate Postman with BODIES for `computeAffectedInfrastructure`, `rebuildInfraGraph` and `updateInfraRules`.
 - AccessPolicy rows as above.
 - `docs/Source-Catalog.md`: an `osm-infrastructure` row (inbox, ODbL, no network).

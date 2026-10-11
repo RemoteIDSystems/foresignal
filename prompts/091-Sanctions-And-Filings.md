@@ -1,11 +1,11 @@
 # 091 — Sanctions And Filings
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/091-CR-Sanctions-And-Filings.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -25,7 +25,7 @@ Add the three official sanctions lists (US OFAC, UK, UN) and the SEC 8-K current
 
 ## Tasks
 
-### 1. Shared sanctions model (`ai.elaro.source.adapters.sanctions`)
+### 1. Shared sanctions model (`ai.foresignal.source.adapters.sanctions`)
 
 - Kind `sanction`, no geometry. externalId `{list}:{upstream id}`.
 - Payload (allowlisted, no nulls): `list` (`OFAC-SDN`, `OFAC-CONS`, `UK`, `UN`), `name` (primary, full), `partyType` (`individual`, `entity`, `vessel`, `aircraft`), `programs` (regimes), `aliases` (≤ 50, strings ≤ 200 chars), `nationalities`, `dateOfBirth` (string as published), `identifiers` (≤ 30 of `{type, value, country}`), `addresses` (≤ 10 of `{city, country}` only), `remarks` (≤ 2 KB), `listedOn`, `lastUpdated`, `crossRefs` (e.g. UN reference on UK entries), `imo`, `mmsi`, `callSign`, `vesselFlag`, `aircraftTail`.
@@ -58,7 +58,7 @@ Add the three official sanctions lists (US OFAC, UK, UN) and the SEC 8-K current
 ### 5. `sec-8k` (POLLING)
 
 - `GET https://www.sec.gov/cgi-bin/browse-edgar?action=getcurrent&type=8-K&output=atom&count=100` (verified 2026-10: Atom, ISO-8859-1; entry `title` "8-K - AUTOZONE INC (0000866787) (Filer)", `link` to the filing index, `summary` HTML with `Filed`, `AccNo`, `Size` and one `Item N.NN: title` line per item, `updated`, `category term` = form type, `id` = `urn:tag:sec.gov,2008:accession-number=…`).
-- **User-Agent:** SEC requires a declared UA with contact details. Param `contactEmail` (required). If 005's client has no per-source UA contact suffix, add one: the UA stays `Elaro/<version> (+https://elaro.ai; install=<id>)` with `; contact=<email>` appended. Never use another product's UA. Respect SEC's 10 requests/second ceiling by a wide margin (budget 6/min).
+- **User-Agent:** SEC requires a declared UA with contact details. Param `contactEmail` (required). If 005's client has no per-source UA contact suffix, add one: the UA stays `Foresignal/<version> (+https://foresignal.ai; install=<id>)` with `; contact=<email>` appended. Never use another product's UA. Respect SEC's 10 requests/second ceiling by a wide margin (budget 6/min).
 - Parse with the XML declaration's encoding. Record: kind `filing`, externalId accession number, no geometry, `eventTime` = `Filed` date, `observedAt` = entry `updated`, payload `form` (`8-K`, `8-K/A`), `company, cik, items` (codes like `2.02`), `itemTitles, sizeKb, url`. `rankField` none; `embedFields` `company, itemTitles`; searchFields `company, items`. Item codes make rules such as "Item 1.05 (material cybersecurity incident)" a simple `items in […]` trigger (017).
 - Paging: if all 100 entries are new, fetch `&start=100` and `&start=200` (max 3 pages). `complete=false` (rolling feed, never tombstone). Interval 10 min, budget 6/min, 600/day. Public domain.
 
@@ -78,7 +78,7 @@ Capture once (the large lists trimmed to 50 entries with the XML structure intac
 - `UkSanctionsParserTest`: name types, UN cross-reference, ship details; `UnSanctionsParserTest`: individuals and entities, documents, reference ids.
 - `DelistingGuardTest`: removal → tombstone; 20 % shrink → no tombstones, degraded, system event.
 - `Sec8kParserTest`: ISO-8859-1, items parsed from the summary, accession id, 8-K/A.
-- `Sec8kAdapterTest` (WireMock): UA carries the contact suffix and the Elaro identifier; paging stops at 3 pages.
+- `Sec8kAdapterTest` (WireMock): UA carries the contact suffix and the Foresignal identifier; paging stops at 3 pages.
 - `SanctionsIngestIT`: re-ingesting an unchanged list produces no versions; an amended `lastUpdated` produces one; a delisted entry is tombstoned (FR-15).
 
 ## Acceptance criteria

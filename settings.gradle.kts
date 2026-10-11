@@ -1,1 +1,1 @@
-rootProject.name = "elaro"
+rootProject.name = "foresignal"

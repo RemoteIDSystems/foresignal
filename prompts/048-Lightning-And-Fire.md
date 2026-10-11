@@ -1,11 +1,11 @@
 # 048 — Lightning And Fire
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/048-CR-Lightning-And-Fire.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -33,16 +33,16 @@ Add lightning and fire inputs: GOES-19 GLM flashes kept in an in-memory AOI ring
 - **017 / 036:** `near` and `cooldownScope` on trigger rules. **019:** per-kind retention; the 042 `RasterRetentionStep` gains GLM archive retention here.
 - **006:** frame-age style health rule, reused as a "newest file age" rule for GLM (`maxGap` 2 min) and FDC (15 min).
 
-### 2. GLM flash store (`ai.elaro.raster.lightning`)
+### 2. GLM flash store (`ai.foresignal.raster.lightning`)
 
 - `FlashStore`, reached by adapters through `ctx.rasters().flashes()`:
-  - **Archive:** `${ELARO_DATA_DIR}/rasters/glm/{sat}/{yyyymmdd}.bin`, append-only, **16 bytes per flash**, little-endian: `int32 msOfDayUtc`, `float32 lat`, `float32 lon`, `float32 energyFj`. Only flashes with `flash_quality_flag == 0`. Full field of view (≈ 28 MB/day). fsync on each append batch; a torn trailing record (< 16 bytes) is truncated on open.
-  - **Ring:** in memory, last 60 min, flashes inside the places-AOI geometry only (small profile). The large profile may opt in to CONUS (`elaro.raster.glm-ring-scope=aoi|conus`). Primitive arrays in time buckets of 1 min, no per-flash objects.
+  - **Archive:** `${FORESIGNAL_DATA_DIR}/rasters/glm/{sat}/{yyyymmdd}.bin`, append-only, **16 bytes per flash**, little-endian: `int32 msOfDayUtc`, `float32 lat`, `float32 lon`, `float32 energyFj`. Only flashes with `flash_quality_flag == 0`. Full field of view (≈ 28 MB/day). fsync on each append batch; a torn trailing record (< 16 bytes) is truncated on open.
+  - **Ring:** in memory, last 60 min, flashes inside the places-AOI geometry only (small profile). The large profile may opt in to CONUS (`foresignal.raster.glm-ring-scope=aoi|conus`). Primitive arrays in time buckets of 1 min, no per-flash objects.
   - On startup the ring is rebuilt from the tail of today's (and, near midnight, yesterday's) archive.
   - Read API for 052 and 056: `flashesWithin(point, radiusKm, since)`, `countWithin(geometry, since)`, `nearestKm(point, since)`, and `newestFlashFileTime()` (so consumers can tell "no lightning" from "no data").
 - Retention: archive files older than 14 d are deleted by `RasterRetentionStep`; bytes count toward the raster disk quota.
 
-### 3. `goes-glm` (`ai.elaro.source.adapters.goes`)
+### 3. `goes-glm` (`ai.foresignal.source.adapters.goes`)
 
 - `listS3("noaa-goes19", "GLM-L2-LCFA/{YYYY}/{DOY}/{HH}/", startAfter)`; files are 20-s granules (`OR_GLM-L2-LCFA_G19_s20262831400000_e…_c….nc`, ≈ 0.2 MB quiet to ≈ 0.36 MB active, verified 2026-10). Process every new file in order; catch up at most 60 min after an outage.
 - Descriptor: POLLING, interval 30 s, budget 10/min, 10,000/day (≈ 2,880 listings + 4,320 downloads), `mbPerDay` 3,000, kinds `[lightning-cluster]`, `kindRetention{lightning-cluster: 3d}`, STANDARD, ALL, `recordTtl` null, `licence` "US-PD", `zeroResultsNormal=true`, `titleField` `label`.
@@ -54,7 +54,7 @@ Add lightning and fire inputs: GOES-19 GLM flashes kept in an in-memory AOI ring
   - Tombstone a cluster after **10 min with no member flashes in processed files**. If no file has been processed for more than 2 min (`maxGap`), freeze: no tombstones and no updates until data resumes. On restart, clusters listed in adapter state that are not re-matched within 10 min of resumed processing are tombstoned.
 - Place metrics (nearest flash, counts within radius) are computed by `wx-places` in 052 from `FlashStore`; nothing here writes place-weather.
 
-### 4. `goes-fdc` (`ai.elaro.source.adapters.goes`)
+### 4. `goes-fdc` (`ai.foresignal.source.adapters.goes`)
 
 - `listS3("noaa-goes19", "ABI-L2-FDCC/{YYYY}/{DOY}/{HH}/", startAfter)`; one ≈ 0.48 MB file per 5 min (verified 2026-10).
 - Descriptor: POLLING, interval 5 min, **budget 4/min, 800/day** (288 listings + 288 downloads + hour/day rollover listings leave no headroom under the design's 600; record this), `mbPerDay` 300, kinds `[fire-detection, fire-cluster]`, `kindRetention` 7 d each, STANDARD, ALL, `recordTtl` null, `licence` "US-PD", `titleField` `label`.
@@ -64,7 +64,7 @@ Add lightning and fire inputs: GOES-19 GLM flashes kept in an in-memory AOI ring
 - Tombstone a pixel after **3 consecutive processed scans** without it (miss counters in adapter state). Scans not processed (feed down, decode failure) do not count.
 - **`fire-cluster`:** 8-connected components over current detections after a 1-pixel dilation. Identity carried from the previous scan by pixel overlap (largest overlap wins), else `fc-{ulid}`. Geometry: convex hull of member pixel centres buffered 1 km, vertices rounded to 0.01° (a Point for one pixel). Payload: `pixels`, `frpTotalMw`, `frpMaxMw` (2 significant figures), `firstSeenAt`, `label`. Tombstoned after 3 processed scans without members.
 
-### 5. `hms-smoke` and `hms-fire` (`ai.elaro.source.adapters.hms`)
+### 5. `hms-smoke` and `hms-fire` (`ai.foresignal.source.adapters.hms`)
 
 - Daily files (verified 2026-10, ETag and Last-Modified present, so use `getConditional`):
   - smoke: `https://satepsanone.nesdis.noaa.gov/pub/FIRE/web/HMS/Smoke_Polygons/KML/{YYYY}/{MM}/hms_smoke{YYYYMMDD}.kml`

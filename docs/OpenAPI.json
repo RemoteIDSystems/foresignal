@@ -1,7 +1,7 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Elaro API",
+    "title": "Foresignal API",
     "version": "1.0.0",
     "summary": "Headless intelligence broker: ingest, version and re-serve public telemetry.",
     "description": "All configuration is done through this API. The MCP server (streamable HTTP) is at `/mcp` and is not described here; it exposes the same data as tools. Reads of data are open on the local network; all writes and settings reads require the admin bearer token printed on first start. Errors are RFC 9457 problem+json. Timestamps are ISO-8601 UTC. `/v1` is additive-only once released.",
@@ -10,7 +10,7 @@
       "identifier": "MIT"
     },
     "contact": {
-      "url": "https://elaro.ai"
+      "url": "https://foresignal.ai"
     }
   },
   "servers": [
@@ -38,7 +38,7 @@
     },
     {
       "name": "Ask",
-      "description": "Natural-language questions answered from Elaro's data with verified citations"
+      "description": "Natural-language questions answered from Foresignal's data with verified citations"
     },
     {
       "name": "Briefings",
@@ -119,7 +119,7 @@
             }
           }
         },
-        "x-elaro-scope": "read",
+        "x-foresignal-scope": "read",
         "security": [
           {},
           {
@@ -182,7 +182,7 @@
             }
           }
         },
-        "x-elaro-scope": "read",
+        "x-foresignal-scope": "read",
         "security": [
           {},
           {
@@ -243,7 +243,7 @@
             }
           }
         },
-        "x-elaro-scope": "read",
+        "x-foresignal-scope": "read",
         "security": [
           {},
           {
@@ -330,7 +330,7 @@
             }
           }
         },
-        "x-elaro-scope": "admin",
+        "x-foresignal-scope": "admin",
         "security": [
           {
             "bearerToken": []
@@ -413,7 +413,7 @@
             }
           }
         },
-        "x-elaro-scope": "admin",
+        "x-foresignal-scope": "admin",
         "security": [
           {
             "bearerToken": []
@@ -462,7 +462,7 @@
             }
           }
         },
-        "x-elaro-scope": "admin",
+        "x-foresignal-scope": "admin",
         "security": [
           {
             "bearerToken": []
@@ -552,7 +552,7 @@
             }
           }
         },
-        "x-elaro-scope": "admin",
+        "x-foresignal-scope": "admin",
         "security": [
           {
             "bearerToken": []
@@ -658,7 +658,7 @@
             }
           }
         },
-        "x-elaro-scope": "admin",
+        "x-foresignal-scope": "admin",
         "security": [
           {
             "bearerToken": []
@@ -718,7 +718,7 @@
             }
           }
         },
-        "x-elaro-scope": "read",
+        "x-foresignal-scope": "read",
         "security": [
           {},
           {
@@ -816,7 +816,7 @@
             }
           }
         },
-        "x-elaro-scope": "read",
+        "x-foresignal-scope": "read",
         "security": [
           {},
           {
@@ -858,7 +858,7 @@
             }
           }
         },
-        "x-elaro-scope": "read",
+        "x-foresignal-scope": "read",
         "security": [
           {},
           {
@@ -1022,7 +1022,7 @@
             }
           }
         },
-        "x-elaro-scope": "read",
+        "x-foresignal-scope": "read",
         "security": [
           {},
           {
@@ -1113,7 +1113,7 @@
             }
           }
         },
-        "x-elaro-scope": "read",
+        "x-foresignal-scope": "read",
         "security": [
           {},
           {
@@ -1186,7 +1186,7 @@
             }
           }
         },
-        "x-elaro-scope": "read",
+        "x-foresignal-scope": "read",
         "security": [
           {},
           {
@@ -1331,7 +1331,7 @@
             }
           }
         },
-        "x-elaro-scope": "read",
+        "x-foresignal-scope": "read",
         "security": [
           {},
           {
@@ -1440,7 +1440,7 @@
             }
           }
         },
-        "x-elaro-scope": "read",
+        "x-foresignal-scope": "read",
         "security": [
           {},
           {
@@ -1544,7 +1544,7 @@
             }
           }
         },
-        "x-elaro-scope": "read",
+        "x-foresignal-scope": "read",
         "security": [
           {},
           {
@@ -1646,7 +1646,7 @@
             }
           }
         },
-        "x-elaro-scope": "read",
+        "x-foresignal-scope": "read",
         "security": [
           {},
           {
@@ -1688,7 +1688,7 @@
             }
           }
         },
-        "x-elaro-scope": "read",
+        "x-foresignal-scope": "read",
         "security": [
           {},
           {
@@ -1755,7 +1755,7 @@
             }
           }
         },
-        "x-elaro-scope": "agent",
+        "x-foresignal-scope": "agent",
         "security": [
           {
             "bearerToken": []
@@ -1815,7 +1815,7 @@
             }
           }
         },
-        "x-elaro-scope": "read",
+        "x-foresignal-scope": "read",
         "security": [
           {},
           {
@@ -1892,7 +1892,7 @@
             }
           }
         },
-        "x-elaro-scope": "agent",
+        "x-foresignal-scope": "agent",
         "security": [
           {
             "bearerToken": []
@@ -1941,7 +1941,7 @@
             }
           }
         },
-        "x-elaro-scope": "agent",
+        "x-foresignal-scope": "agent",
         "security": [
           {
             "bearerToken": []
@@ -2035,7 +2035,7 @@
             }
           }
         },
-        "x-elaro-scope": "agent",
+        "x-foresignal-scope": "agent",
         "security": [
           {
             "bearerToken": []
@@ -2137,7 +2137,7 @@
             }
           }
         },
-        "x-elaro-scope": "read",
+        "x-foresignal-scope": "read",
         "security": [
           {},
           {
@@ -2200,7 +2200,7 @@
             }
           }
         },
-        "x-elaro-scope": "read",
+        "x-foresignal-scope": "read",
         "security": [
           {},
           {
@@ -2261,7 +2261,7 @@
             }
           }
         },
-        "x-elaro-scope": "read",
+        "x-foresignal-scope": "read",
         "security": [
           {},
           {
@@ -2332,7 +2332,7 @@
             }
           }
         },
-        "x-elaro-scope": "agent",
+        "x-foresignal-scope": "agent",
         "security": [
           {
             "bearerToken": []
@@ -2380,7 +2380,7 @@
             }
           }
         },
-        "x-elaro-scope": "admin",
+        "x-foresignal-scope": "admin",
         "security": [
           {
             "bearerToken": []
@@ -2446,7 +2446,7 @@
             }
           }
         },
-        "x-elaro-scope": "admin",
+        "x-foresignal-scope": "admin",
         "security": [
           {
             "bearerToken": []
@@ -2494,7 +2494,7 @@
             }
           }
         },
-        "x-elaro-scope": "admin",
+        "x-foresignal-scope": "admin",
         "security": [
           {
             "bearerToken": []
@@ -2542,7 +2542,7 @@
             }
           }
         },
-        "x-elaro-scope": "admin",
+        "x-foresignal-scope": "admin",
         "security": [
           {
             "bearerToken": []
@@ -2608,7 +2608,7 @@
             }
           }
         },
-        "x-elaro-scope": "admin",
+        "x-foresignal-scope": "admin",
         "security": [
           {
             "bearerToken": []
@@ -2656,7 +2656,7 @@
             }
           }
         },
-        "x-elaro-scope": "admin",
+        "x-foresignal-scope": "admin",
         "security": [
           {
             "bearerToken": []
@@ -2724,7 +2724,7 @@
             }
           }
         },
-        "x-elaro-scope": "admin",
+        "x-foresignal-scope": "admin",
         "security": [
           {
             "bearerToken": []
@@ -2752,7 +2752,7 @@
             }
           }
         },
-        "x-elaro-scope": "open",
+        "x-foresignal-scope": "open",
         "security": []
       }
     },
@@ -2796,7 +2796,7 @@
             }
           }
         },
-        "x-elaro-scope": "admin",
+        "x-foresignal-scope": "admin",
         "security": [
           {
             "bearerToken": []
@@ -2847,7 +2847,7 @@
             }
           }
         },
-        "x-elaro-scope": "admin",
+        "x-foresignal-scope": "admin",
         "security": [
           {
             "bearerToken": []
@@ -2913,7 +2913,7 @@
             }
           }
         },
-        "x-elaro-scope": "admin",
+        "x-foresignal-scope": "admin",
         "security": [
           {
             "bearerToken": []
@@ -2986,7 +2986,7 @@
             }
           }
         },
-        "x-elaro-scope": "admin",
+        "x-foresignal-scope": "admin",
         "security": [
           {
             "bearerToken": []
@@ -3034,7 +3034,7 @@
             }
           }
         },
-        "x-elaro-scope": "admin",
+        "x-foresignal-scope": "admin",
         "security": [
           {
             "bearerToken": []
@@ -3100,7 +3100,7 @@
             }
           }
         },
-        "x-elaro-scope": "admin",
+        "x-foresignal-scope": "admin",
         "security": [
           {
             "bearerToken": []
@@ -3148,7 +3148,7 @@
             }
           }
         },
-        "x-elaro-scope": "admin",
+        "x-foresignal-scope": "admin",
         "security": [
           {
             "bearerToken": []
@@ -3214,7 +3214,7 @@
             }
           }
         },
-        "x-elaro-scope": "admin",
+        "x-foresignal-scope": "admin",
         "security": [
           {
             "bearerToken": []
@@ -3265,7 +3265,7 @@
             }
           }
         },
-        "x-elaro-scope": "admin",
+        "x-foresignal-scope": "admin",
         "security": [
           {
             "bearerToken": []
@@ -3341,7 +3341,7 @@
             }
           }
         },
-        "x-elaro-scope": "admin",
+        "x-foresignal-scope": "admin",
         "security": [
           {
             "bearerToken": []
@@ -3411,7 +3411,7 @@
             }
           }
         },
-        "x-elaro-scope": "admin",
+        "x-foresignal-scope": "admin",
         "security": [
           {
             "bearerToken": []
@@ -3497,7 +3497,7 @@
             }
           }
         },
-        "x-elaro-scope": "admin",
+        "x-foresignal-scope": "admin",
         "security": [
           {
             "bearerToken": []
@@ -3546,7 +3546,7 @@
             }
           }
         },
-        "x-elaro-scope": "admin",
+        "x-foresignal-scope": "admin",
         "security": [
           {
             "bearerToken": []
@@ -3616,7 +3616,7 @@
             }
           }
         },
-        "x-elaro-scope": "admin",
+        "x-foresignal-scope": "admin",
         "security": [
           {
             "bearerToken": []
@@ -3728,7 +3728,7 @@
             }
           }
         },
-        "x-elaro-scope": "open",
+        "x-foresignal-scope": "open",
         "security": [
           {
             "ingestKey": []
@@ -3782,7 +3782,7 @@
             }
           }
         },
-        "x-elaro-scope": "admin",
+        "x-foresignal-scope": "admin",
         "security": [
           {
             "bearerToken": []
@@ -3833,7 +3833,7 @@
             }
           }
         },
-        "x-elaro-scope": "admin",
+        "x-foresignal-scope": "admin",
         "security": [
           {
             "bearerToken": []
@@ -3899,7 +3899,7 @@
             }
           }
         },
-        "x-elaro-scope": "admin",
+        "x-foresignal-scope": "admin",
         "security": [
           {
             "bearerToken": []
@@ -3969,7 +3969,7 @@
             }
           }
         },
-        "x-elaro-scope": "admin",
+        "x-foresignal-scope": "admin",
         "security": [
           {
             "bearerToken": []
@@ -4045,7 +4045,7 @@
             }
           }
         },
-        "x-elaro-scope": "admin",
+        "x-foresignal-scope": "admin",
         "security": [
           {
             "bearerToken": []
@@ -4094,7 +4094,7 @@
             }
           }
         },
-        "x-elaro-scope": "admin",
+        "x-foresignal-scope": "admin",
         "security": [
           {
             "bearerToken": []
@@ -4164,7 +4164,7 @@
             }
           }
         },
-        "x-elaro-scope": "admin",
+        "x-foresignal-scope": "admin",
         "security": [
           {
             "bearerToken": []
@@ -4271,7 +4271,7 @@
             }
           }
         },
-        "x-elaro-scope": "admin",
+        "x-foresignal-scope": "admin",
         "security": [
           {
             "bearerToken": []
@@ -4322,7 +4322,7 @@
             }
           }
         },
-        "x-elaro-scope": "admin",
+        "x-foresignal-scope": "admin",
         "security": [
           {
             "bearerToken": []
@@ -4398,7 +4398,7 @@
             }
           }
         },
-        "x-elaro-scope": "admin",
+        "x-foresignal-scope": "admin",
         "security": [
           {
             "bearerToken": []
@@ -4468,7 +4468,7 @@
             }
           }
         },
-        "x-elaro-scope": "admin",
+        "x-foresignal-scope": "admin",
         "security": [
           {
             "bearerToken": []
@@ -4544,7 +4544,7 @@
             }
           }
         },
-        "x-elaro-scope": "admin",
+        "x-foresignal-scope": "admin",
         "security": [
           {
             "bearerToken": []
@@ -4603,7 +4603,7 @@
             }
           }
         },
-        "x-elaro-scope": "admin",
+        "x-foresignal-scope": "admin",
         "security": [
           {
             "bearerToken": []
@@ -4673,7 +4673,7 @@
             }
           }
         },
-        "x-elaro-scope": "admin",
+        "x-foresignal-scope": "admin",
         "security": [
           {
             "bearerToken": []
@@ -4756,7 +4756,7 @@
             }
           }
         },
-        "x-elaro-scope": "admin",
+        "x-foresignal-scope": "admin",
         "security": [
           {
             "bearerToken": []
@@ -4804,7 +4804,7 @@
             }
           }
         },
-        "x-elaro-scope": "admin",
+        "x-foresignal-scope": "admin",
         "security": [
           {
             "bearerToken": []
@@ -4870,7 +4870,7 @@
             }
           }
         },
-        "x-elaro-scope": "admin",
+        "x-foresignal-scope": "admin",
         "security": [
           {
             "bearerToken": []
@@ -4964,7 +4964,7 @@
             }
           }
         },
-        "x-elaro-scope": "admin",
+        "x-foresignal-scope": "admin",
         "security": [
           {
             "bearerToken": []
@@ -5133,7 +5133,7 @@
             }
           }
         },
-        "x-elaro-scope": "read",
+        "x-foresignal-scope": "read",
         "security": [
           {},
           {
@@ -5172,7 +5172,7 @@
             }
           }
         },
-        "x-elaro-scope": "read",
+        "x-foresignal-scope": "read",
         "security": [
           {},
           {
@@ -5231,7 +5231,7 @@
             }
           }
         },
-        "x-elaro-scope": "admin",
+        "x-foresignal-scope": "admin",
         "security": [
           {
             "bearerToken": []
@@ -5246,7 +5246,7 @@
         ],
         "operationId": "ask",
         "summary": "Ask a question",
-        "description": "Answers from Elaro's data using the chat provider with tools. Citations are verified against tool results. Write actions are only proposed unless `allowActions` is true and the token has agent scope.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "Answers from Foresignal's data using the chat provider with tools. Citations are verified against tool results. Write actions are only proposed unless `allowActions` is true and the token has agent scope.\n\n**Scope:** `read` (open while `security.openReads` is on).",
         "requestBody": {
           "required": true,
           "content": {
@@ -5309,7 +5309,7 @@
             }
           }
         },
-        "x-elaro-scope": "read",
+        "x-foresignal-scope": "read",
         "security": [
           {},
           {
@@ -5368,7 +5368,7 @@
             }
           }
         },
-        "x-elaro-scope": "read",
+        "x-foresignal-scope": "read",
         "security": [
           {},
           {
@@ -5430,7 +5430,7 @@
             }
           }
         },
-        "x-elaro-scope": "read",
+        "x-foresignal-scope": "read",
         "security": [
           {},
           {
@@ -5491,7 +5491,7 @@
             }
           }
         },
-        "x-elaro-scope": "read",
+        "x-foresignal-scope": "read",
         "security": [
           {},
           {
@@ -5541,7 +5541,7 @@
             }
           }
         },
-        "x-elaro-scope": "agent",
+        "x-foresignal-scope": "agent",
         "security": [
           {
             "bearerToken": []
@@ -5621,7 +5621,7 @@
             }
           }
         },
-        "x-elaro-scope": "agent",
+        "x-foresignal-scope": "agent",
         "security": [
           {
             "bearerToken": []
@@ -5701,7 +5701,7 @@
             }
           }
         },
-        "x-elaro-scope": "agent",
+        "x-foresignal-scope": "agent",
         "security": [
           {
             "bearerToken": []
@@ -5742,7 +5742,7 @@
             }
           }
         },
-        "x-elaro-scope": "read",
+        "x-foresignal-scope": "read",
         "security": [
           {},
           {
@@ -5809,7 +5809,7 @@
             }
           }
         },
-        "x-elaro-scope": "agent",
+        "x-foresignal-scope": "agent",
         "security": [
           {
             "bearerToken": []
@@ -5877,7 +5877,7 @@
             }
           }
         },
-        "x-elaro-scope": "agent",
+        "x-foresignal-scope": "agent",
         "security": [
           {
             "bearerToken": []
@@ -5937,7 +5937,7 @@
             }
           }
         },
-        "x-elaro-scope": "read",
+        "x-foresignal-scope": "read",
         "security": [
           {},
           {
@@ -6014,7 +6014,7 @@
             }
           }
         },
-        "x-elaro-scope": "agent",
+        "x-foresignal-scope": "agent",
         "security": [
           {
             "bearerToken": []
@@ -6063,7 +6063,7 @@
             }
           }
         },
-        "x-elaro-scope": "agent",
+        "x-foresignal-scope": "agent",
         "security": [
           {
             "bearerToken": []
@@ -6143,7 +6143,7 @@
             }
           }
         },
-        "x-elaro-scope": "agent",
+        "x-foresignal-scope": "agent",
         "security": [
           {
             "bearerToken": []
@@ -6226,7 +6226,7 @@
             }
           }
         },
-        "x-elaro-scope": "read",
+        "x-foresignal-scope": "read",
         "security": [
           {},
           {
@@ -6297,7 +6297,7 @@
             }
           }
         },
-        "x-elaro-scope": "read",
+        "x-foresignal-scope": "read",
         "security": [
           {},
           {
@@ -6335,7 +6335,7 @@
             }
           }
         },
-        "x-elaro-scope": "open",
+        "x-foresignal-scope": "open",
         "security": []
       }
     },
@@ -6382,7 +6382,7 @@
             }
           }
         },
-        "x-elaro-scope": "admin",
+        "x-foresignal-scope": "admin",
         "security": [
           {
             "bearerToken": []
@@ -6438,7 +6438,7 @@
             }
           }
         },
-        "x-elaro-scope": "read",
+        "x-foresignal-scope": "read",
         "security": [
           {},
           {
@@ -6492,7 +6492,7 @@
             }
           }
         },
-        "x-elaro-scope": "read",
+        "x-foresignal-scope": "read",
         "security": [
           {},
           {
@@ -7986,7 +7986,7 @@
             "type": "string",
             "format": "date-time"
           },
-          "elaroVersion": {
+          "foresignalVersion": {
             "type": "string"
           },
           "sources": {
@@ -8264,7 +8264,7 @@
         "properties": {
           "token": {
             "type": "string",
-            "example": "elr_\u2026",
+            "example": "fsr_\u2026",
             "description": "Shown once; store it securely"
           }
         },
@@ -8291,7 +8291,7 @@
           "publicBaseUrl": {
             "type": "string",
             "format": "uri",
-            "example": "http://elaro.local:8080",
+            "example": "http://foresignal.local:8080",
             "description": "Base URL used in notification links"
           }
         },
@@ -8348,7 +8348,7 @@
           },
           "tokenPrefix": {
             "type": "string",
-            "example": "elr_AbC1"
+            "example": "fsr_AbC1"
           },
           "createdAt": {
             "type": "string",
@@ -10273,13 +10273,13 @@
       "bearerToken": {
         "type": "http",
         "scheme": "bearer",
-        "bearerFormat": "elr_<base64url>",
-        "description": "Scoped API token (read < agent < admin). The bootstrap admin token is printed once on first start. Required scope per operation is in `x-elaro-scope`."
+        "bearerFormat": "fsr_<base64url>",
+        "description": "Scoped API token (read < agent < admin). The bootstrap admin token is printed once on first start. Required scope per operation is in `x-foresignal-scope`."
       },
       "ingestKey": {
         "type": "apiKey",
         "in": "header",
-        "name": "X-Elaro-Ingest-Key",
+        "name": "X-Foresignal-Ingest-Key",
         "description": "Per-source ingest key returned once when a custom source is created"
       }
     }

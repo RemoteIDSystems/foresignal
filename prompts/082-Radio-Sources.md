@@ -1,11 +1,11 @@
 # 082 — Radio Sources
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/082-CR-Radio-Sources.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -25,11 +25,11 @@ Add five amateur-radio sources: PSK Reporter FT8 spots, the public KiwiSDR recei
 
 ## Tasks
 
-### 1. Shared pieces (`ai.elaro.source.adapters.radio`)
+### 1. Shared pieces (`ai.foresignal.source.adapters.radio`)
 
 - **`Maidenhead`**: locator (4, 6 or 8 characters, case-insensitive) → centre point and cell envelope; reject malformed locators with `null`. Pure, unit-tested.
 - **`AprsParser`** (pure, in-house; do not add a GPL or unlicensed APRS library): `AprsPacket parse(String tnc2Line)` for TNC2 text `SRC>DEST,PATH:info`. Support uncompressed positions (`! = / @`, with and without timestamp), compressed positions, Mic-E (latitude and message bits from the destination field), objects (`;`, killed objects become tombstones), items (`)`), status (`>`), messages (`:ADDRESSEE:text{id`), and position weather (`_` after the symbol). Return symbol table/code, course/speed (knots → m/s in payload `speedMps`), altitude (`/A=` feet → `altitudeM`), comment (≤ 256 chars, control characters stripped) and the q-construct/igate from the path. Unknown formats return a packet with `type=unsupported`, which adapters count and drop.
-- **`AprsPacketDedup`** (singleton bean): key = SHA-256 of `source + ":" + info`, window 30 s, bounded (50k entries, LRU). `local-aprs-*` registers every packet it ingests; `aprs-is` drops a packet already seen from `local-aprs-*` within the window when `dedupLocal=true` (default), counting `elaro.aprs.dedup{source}`. RF is first-hand, so the local copy always wins.
+- **`AprsPacketDedup`** (singleton bean): key = SHA-256 of `source + ":" + info`, window 30 s, bounded (50k entries, LRU). `local-aprs-*` registers every packet it ingests; `aprs-is` drops a packet already seen from `local-aprs-*` within the window when `dedupLocal=true` (default), counting `foresignal.aprs.dedup{source}`. RF is first-hand, so the local copy always wins.
 - **Raw TCP to fixed public hosts.** 069's `SocketTransport` (`ctx.sockets()`) is LAN-only by design. Add `SocketTransport.tcpPublic(HostPort, SocketOptions, Framing, FrameHandler)` that accepts **only** a host:port listed in the descriptor's new `allowedHosts` field (never operator input), resolves it normally, and otherwise behaves like `tcp(...)` (one budget unit per connect attempt, idle watchdog, `Framing.LINES`). 085 reuses it.
 - **`SocketOptions.receiveOnly()`** (add to 069's options if absent): the transport rejects an `onConnect` writer and its handle exposes no write method, so a receive-only source has no code path that can transmit. Do not half-close the socket (`shutdownOutput`): Direwolf and aprsc treat EOF from the client as a disconnect. `receiveOnlyAfterConnect()` is the same except that the `onConnect` writer runs once first.
 
@@ -56,7 +56,7 @@ Add five amateur-radio sources: PSK Reporter FT8 spots, the public KiwiSDR recei
 
 ### 5. `aprs-is` (STREAMING, opt-in)
 
-- `rotate.aprs2.net:14580` (descriptor `allowedHosts`) via `ctx.sockets().tcpPublic(…, Framing.LINES, …)`. The login line is the `onConnect` writer under `SocketOptions.receiveOnlyAfterConnect()`: `user {login} pass -1 vers Elaro {version} filter {filter}\r\n`. **Passcode is always -1** (receive-only); the adapter never writes anything after login.
+- `rotate.aprs2.net:14580` (descriptor `allowedHosts`) via `ctx.sockets().tcpPublic(…, Framing.LINES, …)`. The login line is the `onConnect` writer under `SocketOptions.receiveOnlyAfterConnect()`: `user {login} pass -1 vers Foresignal {version} filter {filter}\r\n`. **Passcode is always -1** (receive-only); the adapter never writes anything after login.
 - Params: `filter` (string, **required**, no default, must contain only `r/`, `b/`, `p/`, `t/` or `f/` terms; reject `r/` radius > 250 km, more than 5 terms, and any bare wildcard), `login` (string, default `EL` + first 6 install-id characters uppercased; `^[A-Z0-9]{3,9}(-\d{1,2})?$`; `N0CALL`/`NOCALL` rejected; **verified 2026-10:** aprsc refuses `N0CALL` with "Login by user not allowed" and accepts an unverified non-callsign login), `includeMessages` (boolean, default false), `dedupLocal` (boolean, default true), `maxSubscriptions` fixed at 1.
 - Reconnect 30 s → 15 min, exponential with ±20% jitter; idle watchdog 120 s (the server sends `#` comments about every 20 s). Disabled by default.
 - Record: kind `aprs-station` (objects and items use the object name), externalId = source call with SSID, `observedAtMode` RECEIVED (APRS timestamps are optional and unreliable). Payload `symbol, comment, speedMps, courseDeg, altitudeM, type, weather` (weather keys only when present), plus `path` and `raw` (the TNC2 line, ≤ 512 chars, which 110's APRS-IS serve sink re-emits) as volatile fields. Observer: `receiverId` = igate from the q-construct. Messages become kind `aprs-message` only when `includeMessages=true`; they are never embedded.
@@ -64,10 +64,10 @@ Add five amateur-radio sources: PSK Reporter FT8 spots, the public KiwiSDR recei
 
 ### 6. `local-aprs-{n}` (STREAMING, LAN, receive-only)
 
-- Slot family on 069's pattern (`elaro.local-receivers.slots`, disabled by default, `egress` LOCAL_ONLY with `egressOverridable=true`). Param `endpoint` (`LAN_URL tcp://`, e.g. `tcp://192.168.1.20:8001`; Direwolf's conventional KISS port is 8001 but none is assumed). Optional `stationCallsign` (Observer `receiverId`).
+- Slot family on 069's pattern (`foresignal.local-receivers.slots`, disabled by default, `egress` LOCAL_ONLY with `egressOverridable=true`). Param `endpoint` (`LAN_URL tcp://`, e.g. `tcp://192.168.1.20:8001`; Direwolf's conventional KISS port is 8001 but none is assumed). Optional `stationCallsign` (Observer `receiverId`).
 - Connect with `ctx.sockets().tcp(endpoint, SocketOptions.receiveOnly(), Framing.RAW, …)` and the codec `kiss-ax25` (069's codec SPI, registered here).
-- **`KissFrameDecoder`**: FEND/FESC/TFEND/TFESC unescaping, port nibble, command 0 data frames only; others ignored. **`Ax25UiDecoder`**: address fields (shifted ASCII, SSID, H-bit), control 0x03, PID 0xF0, then the info field rendered as TNC2 text and passed to `AprsParser`. Frames that are not AX.25 UI (for example a MeshCore KISS modem, which carries raw MeshCore packets, not AX.25) are counted `elaro.aprs.local.non_ax25` and dropped; say so in the Operator Guide.
-- **Provably receive-only:** under `receiveOnly()` there is no write path; the adapter sends no KISS commands, and Elaro never igates.
+- **`KissFrameDecoder`**: FEND/FESC/TFEND/TFESC unescaping, port nibble, command 0 data frames only; others ignored. **`Ax25UiDecoder`**: address fields (shifted ASCII, SSID, H-bit), control 0x03, PID 0xF0, then the info field rendered as TNC2 text and passed to `AprsParser`. Frames that are not AX.25 UI (for example a MeshCore KISS modem, which carries raw MeshCore packets, not AX.25) are counted `foresignal.aprs.local.non_ax25` and dropped; say so in the Operator Guide.
+- **Provably receive-only:** under `receiveOnly()` there is no write path; the adapter sends no KISS commands, and Foresignal never igates.
 - Same record shape as `aprs-is`; registers with `AprsPacketDedup`. The operator may mark the source private (039); then 008's precision cap applies. Budget 60 connects/hour; reconnect 5 s → 5 min.
 
 ### 7. Fixtures
@@ -84,7 +84,7 @@ Capture with an identifiable UA and record URL, date and size in each `README.md
 - `MaidenheadTest`, `AprsParserTest` (one fixture line per format including Mic-E, compressed, killed object, message, weather, malformed), `KissFrameDecoderTest` (escapes, split frames, non-zero command ignored), `Ax25UiDecoderTest` (non-UI and non-AX.25 frames dropped).
 - `PskReporterParserTest` (real fixture; DOCTYPE/XXE payload throws; observer populated; payload has no receiver callsign), `LenientJsLiteralParserTest` (comments, trailing commas, real fixture), `OpenMhzAdapterTest` (WireMock challenge page → `BLOCKED_CHALLENGE`, no retry with another UA).
 - `PskReporterAdapterTest`, `KiwiSdrAdapterTest` (WireMock: URL, `appcontact`, conditional GET, 304).
-- `AprsIsAdapterTest` (embedded TCP server: exact login line with `pass -1`, nothing written after login, filter validation errors, reconnect jitter bounds, dedup against a local packet), `LocalAprsAdapterTest` (embedded KISS server: zero bytes received from Elaro, the handle has no write method, `onConnect` writer rejected), `TcpPublicTest` (host not in `allowedHosts` refused).
+- `AprsIsAdapterTest` (embedded TCP server: exact login line with `pass -1`, nothing written after login, filter validation errors, reconnect jitter bounds, dedup against a local packet), `LocalAprsAdapterTest` (embedded KISS server: zero bytes received from Foresignal, the handle has no write method, `onConnect` writer rejected), `TcpPublicTest` (host not in `allowedHosts` refused).
 - `RadioIngestIT` (`@IntegrationTest`): PSK spots ingest with observers only under `include=observer` for an admin token; APRS station re-beacon with the same content only touches.
 
 ## Acceptance criteria

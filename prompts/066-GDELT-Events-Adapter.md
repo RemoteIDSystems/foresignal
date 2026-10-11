@@ -1,11 +1,11 @@
 # 066 — GDELT Events Adapter
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/066-CR-GDELT-Events-Adapter.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -25,7 +25,7 @@ Ingest GDELT 2.0 events as `conflict-event` point records. Each run reads the ne
 
 ## Tasks
 
-### 1. Descriptor (`ai.elaro.source.adapters.gdelt.GdeltEventsAdapter`)
+### 1. Descriptor (`ai.foresignal.source.adapters.gdelt.GdeltEventsAdapter`)
 
 | Field | Value |
 |---|---|
@@ -53,7 +53,7 @@ Ingest GDELT 2.0 events as `conflict-event` point records. Each run reads the ne
    - The byte length must equal the declared size, and the MD5 must equal the declared hash; otherwise throw `UpstreamFormatException` and leave `lastFile` unchanged.
    - Unzip with `ZipInputStream`: exactly one entry named `{ts}.export.CSV`, uncompressed size capped at 200 MB (counted while streaming, to defeat zip bombs), no directory entries.
 5. **Newest file only.**
-   - If the file's timestamp is more than 15 min after `lastFile`'s, count the skipped files (`elaro.gdelt.files_skipped`) and set `Coverage(expected = files due, actual = 1)` so 006's coverage rule sees the gaps.
+   - If the file's timestamp is more than 15 min after `lastFile`'s, count the skipped files (`foresignal.gdelt.files_skipped`) and set `Coverage(expected = files due, actual = 1)` so 006's coverage rule sees the gaps.
    - Store `lastFile` after a successful hand-off.
 
 ### 3. Parser (`GdeltExportParser`, pure)
@@ -81,7 +81,7 @@ Ingest GDELT 2.0 events as `conflict-event` point records. Each run reads the ne
   - omit empty strings
 - **`summary`** is built only from codes and names, never from the article:
   - `"{actor1Name|Unknown actor} — {cameoRoot} — {actor2Name|} in {actionGeoName}"`, collapsed and trimmed to ≤ 200 characters.
-  - It is the embedded text (`embedFields`). `sourceUrl` is never fetched, unfurled or scraped by Elaro (charter). It is passed to LLM features only as an untrusted data field, under 028's rules.
+  - It is the embedded text (`embedFields`). `sourceUrl` is never fetched, unfurled or scraped by Foresignal (charter). It is passed to LLM features only as an untrusted data field, under 028's rules.
 
 ### 4. Fixtures
 

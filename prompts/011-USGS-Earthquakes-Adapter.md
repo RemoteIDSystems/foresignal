@@ -1,11 +1,11 @@
 # 011 — USGS Earthquakes Adapter
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/011-CR-USGS-Earthquakes-Adapter.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -26,7 +26,7 @@ Implement the first real adapter end to end on the v1.2 pipeline. It is the **re
 
 ## Tasks
 
-### 1. Adapter (`ai.elaro.source.adapters.usgs`)
+### 1. Adapter (`ai.foresignal.source.adapters.usgs`)
 
 **`UsgsEarthquakesAdapter implements PollingAdapter`**, `@Component`. Descriptor:
 
@@ -50,7 +50,7 @@ Implement the first real adapter end to end on the v1.2 pipeline. It is the **re
 | kindDisplay | `earthquake`: titleTemplate `M {mag} - {place}`, icon `earthquake`, colour `#D9480F` |
 
 `fetch`:
-- `ctx.http().getConditional(URI(baseUrl + "/earthquakes/feed/v1.0/summary/" + feed + ".geojson"), "feed:" + feed)`, with `baseUrl` = `https://earthquake.usgs.gov`, overridable only by the test property `elaro.test.adapters.usgs.base-url` (document the mechanism in the Adapter Guide).
+- `ctx.http().getConditional(URI(baseUrl + "/earthquakes/feed/v1.0/summary/" + feed + ".geojson"), "feed:" + feed)`, with `baseUrl` = `https://earthquake.usgs.gov`, overridable only by the test property `foresignal.test.adapters.usgs.base-url` (document the mechanism in the Adapter Guide).
 - A 304 → `FetchResult.unchanged()`; otherwise parse with `UsgsGeoJsonParser` and return `FetchResult.complete(records)` (complete is informational; absent records are never auto-tombstoned, and quakes age out of the rolling window without being deleted).
 - Verified 2026-10: responses carry **no `ETag`**, only `Last-Modified` (generation time) and `cache-control: public, max-age=60`; `If-Modified-Since` returns 304. `metadata.api` is `2.7.0`; the feature shape matches the format page; `tz` is always null.
 
@@ -66,7 +66,7 @@ A revised quake (USGS updates `mag`, `status` and `updated`) changes the static 
 
 ### 2. Fixtures (`src/test/resources/fixtures/usgs-earthquakes/`)
 
-- **Capture procedure:** `curl -s -A "Elaro-fixture-capture (+https://elaro.ai)" https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson`, trimmed to ≤ 25 features with `metadata` kept, saved as `all_day.geojson`. Write the capture date, URL and trimming method in a sibling `README.md`.
+- **Capture procedure:** `curl -s -A "Foresignal-fixture-capture (+https://foresignal.ai)" https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson`, trimmed to ≤ 25 features with `metadata` kept, saved as `all_day.geojson`. Write the capture date, URL and trimming method in a sibling `README.md`.
 - `edge-cases.geojson` (hand-made): null `mag`, missing optional fields, a feature without an id, one without geometry, one without `updated`, one with `depth` missing, one with `status: deleted`.
 - `revised.geojson`: one feature of `all_day` with changed `mag`, `status: reviewed` and later `updated`.
 - `updated-only.geojson`: the same as `all_day` with only `updated` advanced on one feature.
@@ -87,7 +87,7 @@ About 2–3 pages, using USGS as the worked example:
 
 ### 4. Test support
 
-`FieldSpecContract.assertPayloadKeysDeclared(SourceDescriptor d, List<NormalizedRecord> records)` in `src/test/java/ai/elaro/testsupport/adapters`: fails listing every payload key not in `fieldSpecs` (respecting `FieldSpec.kinds`) and every declared key whose observed JSON type contradicts `FieldType`.
+`FieldSpecContract.assertPayloadKeysDeclared(SourceDescriptor d, List<NormalizedRecord> records)` in `src/test/java/ai/foresignal/testsupport/adapters`: fails listing every payload key not in `fieldSpecs` (respecting `FieldSpec.kinds`) and every declared key whose observed JSON type contradicts `FieldType`.
 
 ### 5. Spec, Postman, docs
 

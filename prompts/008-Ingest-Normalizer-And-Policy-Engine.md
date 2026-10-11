@@ -1,11 +1,11 @@
 # 008 — Ingest Normalizer And Policy Engine
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/008-CR-Ingest-Normalizer-And-Policy-Engine.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -40,7 +40,7 @@ Add to `SourceDescriptor` (record component, builder method, default) and valida
 
 Add `Instant validFrom` (nullable) to `NormalizedRecord` and its builder, after `validUntil`; update every constructor call. A record with `validFrom > validUntil` is rejected (`VALID_RANGE_INVERTED`).
 
-### 2. Ingest types (`ai.elaro.ingest`), per Core-Data-Model §3 and §6
+### 2. Ingest types (`ai.foresignal.ingest`), per Core-Data-Model §3 and §6
 
 - `IngestRecord(NormalizedRecord record, Instant receivedAt, long arrival)`.
 - `FetchLogEntry`: the provenance of one batch, filled by the collector (prompt 010): `sourceId, trigger (FetchTrigger), status (FetchStatus), startedAt, receivedAt, httpStatus, requestCount, urlRedacted, etag, bytes, bodySha256, adapterVersion, licence, principal, coverage, error`. The writer adds counts, `ingested_at` and seqs.
@@ -60,7 +60,7 @@ Add `Instant validFrom` (nullable) to `NormalizedRecord` and its builder, after 
 5. **Geometry:** SRID 4326; force 2D (drop Z/M; vertical values belong in the payload); coordinates outside ±180/±90 → reject; invalid → `GeometryFixer` + `GEOMETRY_FIXED`, empty result → null; an exact (0,0) point → null + `NULL_ISLAND` unless `allowNullIsland`.
 6. **Private precision cap** (applied before hashing): when the source is private, reduce geometry with `GeometryPrecisionReducer` at `privatePrecisionDecimals`.
 7. **Quality** (§14): `accuracyMeters ≥ 0`, `confidence ∈ [0,1]`, `extra` keys match `^[a-z0-9]+\.[a-z0-9_]+$` with scalar values; else reject `QUALITY_INVALID`.
-8. **Validity:** `valid_until_explicit` = the record's `validUntil`, forced to null on TRACK sources (count `elaro.ingest.records.valid_until_ignored`); effective `valid_until = explicit ?? anchor + ttl` (null without TTL), where `anchor` is `observed_at` or `received_at` per `ttlAnchor`. Keep `validFrom`.
+8. **Validity:** `valid_until_explicit` = the record's `validUntil`, forced to null on TRACK sources (count `foresignal.ingest.records.valid_until_ignored`); effective `valid_until = explicit ?? anchor + ttl` (null without TTL), where `anchor` is `observed_at` or `received_at` per `ttlAnchor`. Keep `validFrom`.
 9. **Tombstones:** `geom = null`, `payload = {}`, kinematic `{}`, `kind` kept.
 10. **Derived head fields:** `searchText` (lowercase join of `searchFields` values, dot-paths allowed, ≤ 1,000 chars); `title` via `TitleResolver` (below); `entityKeys` via `EntityKeyExtractor` (below).
 
@@ -106,13 +106,13 @@ Immutable profile per source: id, tier, observedAtMode, ttl, ttlAnchor, effectiv
 
 ### 9. Test support and docs
 
-- `SnapshotContract.assertStableStaticHash(descriptor, List<NormalizedRecord> snapshotsOfOneEntity)` in `src/test/java/ai/elaro/testsupport/ingest` (adapters from prompt 011 on use it).
+- `SnapshotContract.assertStableStaticHash(descriptor, List<NormalizedRecord> snapshotsOfOneEntity)` in `src/test/java/ai/foresignal/testsupport/ingest` (adapters from prompt 011 on use it).
 - `docs/OpenAPI.json`: add `FieldSpec` and `KindDisplay` schemas and `SourceDescriptor` properties `titleField`, `entityKeys`, `fieldSpecs`, `kindDisplay`, `aggBelowZoom`, `startField`, `endField`, `private`, `privatePrecisionDecimals` (schemas only; prompt 013 exposes them). Regenerate Postman with `python3 scripts/generate-postman.py docs/OpenAPI.json postman`.
-- Package Javadoc for `ai.elaro.ingest`: the time contract, decision table, and that this package never touches the database.
+- Package Javadoc for `ai.foresignal.ingest`: the time contract, decision table, and that this package never touches the database.
 
 ### GeoJSON reader replacement (from the 004 report; see docs/Conventions.md)
 - Prompt 004 added `org.locationtech.jts.io:jts-io-common` for `Geo.fromGeoJson`, which pulls in the unmaintained `json-simple:1.1.1` and exposes it to untrusted upstream GeoJSON.
-- Add `ai.elaro.source.formats.geojson.GeoJsonReader`, a Jackson 3 tree reader producing JTS geometries with SRID 4326. It supports Point, MultiPoint, LineString, MultiLineString, Polygon, MultiPolygon and GeometryCollection, and Feature/FeatureCollection unwrapping. It enforces the Core-Data-Model §3 limits (≤ 10,000 vertices checked before construction; no NaN or Infinity; nesting depth bounded) and reports errors as `InvalidInputException`.
+- Add `ai.foresignal.source.formats.geojson.GeoJsonReader`, a Jackson 3 tree reader producing JTS geometries with SRID 4326. It supports Point, MultiPoint, LineString, MultiLineString, Polygon, MultiPolygon and GeometryCollection, and Feature/FeatureCollection unwrapping. It enforces the Core-Data-Model §3 limits (≤ 10,000 vertices checked before construction; no NaN or Infinity; nesting depth bounded) and reports errors as `InvalidInputException`.
 - Re-point `Geo.fromGeoJson` at it and **remove the `jts-io-common` dependency** from the version catalog and build (confirm with `./gradlew dependencies` that `json-simple` is gone).
 - Use `FetchResult.unchanged()` for the 304 factory everywhere; 004 named it that because `notModified()` clashes with the record accessor.
 
@@ -127,7 +127,7 @@ Immutable profile per source: id, tier, observedAtMode, ttl, ttlAnchor, effectiv
 
 ## Acceptance criteria
 
-- `ai.elaro.ingest` core classes have no Spring, JDBC or JPA dependencies except `SourceIngestProfiles` and the gate beans.
+- `ai.foresignal.ingest` core classes have no Spring, JDBC or JPA dependencies except `SourceIngestProfiles` and the gate beans.
 - The decision table in code matches Core-Data-Model §5.2 row for row, and the matrix test names reference the row numbers.
 - Compiles.
 

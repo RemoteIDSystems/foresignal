@@ -1,11 +1,11 @@
 # 001 — Project Scaffold
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/001-CR-Project-Scaffold.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`.
 
 ## Read first
@@ -35,7 +35,7 @@ If a newer 9.x Gradle is current and Spring Boot 4.1 supports it, you may use it
 
 ### 2. Build files
 
-- `settings.gradle.kts`: `rootProject.name = "elaro"`.
+- `settings.gradle.kts`: `rootProject.name = "foresignal"`.
 - `gradle/libs.versions.toml`: a version catalog. Verify every version on Maven Central. Starting points (confirm or update):
 
 | Library | Version |
@@ -51,34 +51,34 @@ If a newer 9.x Gradle is current and Spring Boot 4.1 supports it, you may use it
 
 - `build.gradle.kts`:
   - **Plugins:** `java`, `org.springframework.boot`, `io.spring.dependency-management`, `jacoco`.
-  - **Toolchain and compiler:** Java 21; compile with `-parameters`; group `ai.elaro`, version `0.1.0-SNAPSHOT`.
+  - **Toolchain and compiler:** Java 21; compile with `-parameters`; group `ai.foresignal`, version `0.1.0-SNAPSHOT`.
   - **Dependencies:** `spring-boot-starter-web`, `spring-boot-starter-data-jpa`, `spring-boot-starter-validation`, `spring-boot-starter-actuator`, `org.hibernate.orm:hibernate-spatial` (version from the Boot BOM), `org.postgresql:postgresql`, `io.micrometer:micrometer-registry-prometheus`, Bucket4j, springdoc.
   - **Test dependencies:** `spring-boot-starter-test`, `spring-boot-testcontainers`, `org.testcontainers:testcontainers-postgresql`, `org.testcontainers:testcontainers-junit-jupiter`, WireMock standalone, Awaitility.
   - **Tests:** `tasks.test { useJUnitPlatform() }`.
-  - **Coverage gate:** `jacocoTestCoverageVerification` requires LINE coverage ≥ 0.90 at BUNDLE level, excluding `ai/elaro/ElaroApplication*`. `check` depends on it, and `jacocoTestReport` produces XML and HTML.
+  - **Coverage gate:** `jacocoTestCoverageVerification` requires LINE coverage ≥ 0.90 at BUNDLE level, excluding `ai/foresignal/ForesignalApplication*`. `check` depends on it, and `jacocoTestReport` produces XML and HTML.
   - **Spec on the classpath:** `processResources` copies `docs/OpenAPI.json` to `static/v1/openapi.json`, which is used in prompt 017.
-  - **Packaging:** `bootJar` archive name `elaro.jar`.
+  - **Packaging:** `bootJar` archive name `foresignal.jar`.
 
 ### 3. Application
 
-- `ai.elaro.ElaroApplication`: `@SpringBootApplication`, `@EnableScheduling`, `@ConfigurationPropertiesScan`.
-- `ai.elaro.config.ElaroProperties`: `@ConfigurationProperties("elaro")` with `dataDir` (Path, default `./data`), `resetAdminToken` (boolean), `version` (from build info).
-- `ai.elaro.config.ClockConfig`: a `Clock` bean (UTC). Always inject the `Clock`; never call `Instant.now()` directly, so tests can control time.
+- `ai.foresignal.ForesignalApplication`: `@SpringBootApplication`, `@EnableScheduling`, `@ConfigurationPropertiesScan`.
+- `ai.foresignal.config.ForesignalProperties`: `@ConfigurationProperties("foresignal")` with `dataDir` (Path, default `./data`), `resetAdminToken` (boolean), `version` (from build info).
+- `ai.foresignal.config.ClockConfig`: a `Clock` bean (UTC). Always inject the `Clock`; never call `Instant.now()` directly, so tests can control time.
 - Enable `springBoot { buildInfo() }` so the version is available.
 - Create the package skeleton from Architecture §3, with a `package-info.java` in each package (`config`, `security`, `source`, `source.adapters`, `collect`, `ingest`, `store`, `stream`, `trigger`, `retention`, `settings`, `system`, `api`) containing a one-line description.
 
 ### 4. Configuration (`src/main/resources/application.yml`)
 
-- **Datasource:** `${ELARO_DB_URL:jdbc:postgresql://localhost:5433/elaro}`, user and password from `ELARO_DB_USER` / `ELARO_DB_PASSWORD` (default `elaro`).
+- **Datasource:** `${FORESIGNAL_DB_URL:jdbc:postgresql://localhost:5433/foresignal}`, user and password from `FORESIGNAL_DB_USER` / `FORESIGNAL_DB_PASSWORD` (default `foresignal`).
 - **JPA:**
   - `ddl-auto: update`, `open-in-view: false`
   - Hibernate `jdbc.batch_size: 500`, `order_inserts: true`
   - `jdbc.time_zone: UTC`
-- **Server:** `server.port: ${ELARO_PORT:8080}`
+- **Server:** `server.port: ${FORESIGNAL_PORT:8080}`
 - **Threads and async:**
   - `spring.threads.virtual.enabled: true`
   - `spring.mvc.async.request-timeout: -1` (needed for SSE)
-- **Elaro:** `elaro.data-dir: ${ELARO_DATA_DIR:./data}`, `elaro.reset-admin-token: ${ELARO_RESET_ADMIN_TOKEN:false}`
+- **Foresignal:** `foresignal.data-dir: ${FORESIGNAL_DATA_DIR:./data}`, `foresignal.reset-admin-token: ${FORESIGNAL_RESET_ADMIN_TOKEN:false}`
 - **Actuator:** expose `health,info,prometheus`; health shows details only when authorized.
 - **springdoc:** `springdoc.api-docs.path: /v1/openapi-generated.json`, `springdoc.swagger-ui.path: /docs`, `springdoc.swagger-ui.url: /v1/openapi.json`
 - **Logging:** structured JSON console logging (`logging.structured.format.console: ecs`) behind a profile. Default to human-readable output locally, and have the `docker` profile switch to JSON.
@@ -86,35 +86,35 @@ If a newer 9.x Gradle is current and Spring Boot 4.1 supports it, you may use it
 ### 5. Packaging and runtime
 
 - **`docker-compose.yml`** (Architecture §14):
-  - `db` service: `postgis/postgis:17-3.5`, env `POSTGRES_DB/USER/PASSWORD=elaro`, volume `pgdata`, ports `5433:5432`, healthcheck `pg_isready -U elaro -d elaro`.
-  - `elaro` service: `build: .`, env pointing at `db:5432`, `SPRING_PROFILES_ACTIVE=docker`, `ELARO_DATA_DIR=/data`, volume `elaro-data:/data`, ports `8080:8080`, `depends_on: db: condition: service_healthy`, `restart: unless-stopped`.
+  - `db` service: `postgis/postgis:17-3.5`, env `POSTGRES_DB/USER/PASSWORD=foresignal`, volume `pgdata`, ports `5433:5432`, healthcheck `pg_isready -U foresignal -d foresignal`.
+  - `foresignal` service: `build: .`, env pointing at `db:5432`, `SPRING_PROFILES_ACTIVE=docker`, `FORESIGNAL_DATA_DIR=/data`, volume `foresignal-data:/data`, ports `8080:8080`, `depends_on: db: condition: service_healthy`, `restart: unless-stopped`.
   - Also support running only the DB with `docker compose up -d db` for local development (document this).
 - **`Dockerfile`:**
   - Build stage: `eclipse-temurin:21-jdk` runs `./gradlew bootJar -x test --no-daemon`.
-  - Runtime stage: `eclipse-temurin:21-jre` as a non-root user with `/data` owned by that user; `ENTRYPOINT ["java","-XX:MaxRAMPercentage=75","-jar","/app/elaro.jar"]`.
+  - Runtime stage: `eclipse-temurin:21-jre` as a non-root user with `/data` owned by that user; `ENTRYPOINT ["java","-XX:MaxRAMPercentage=75","-jar","/app/foresignal.jar"]`.
 - **Ignore and editor files:** `.dockerignore`, `.gitignore` (Gradle, IDE, `data/`, `build/`, `.env`) and `.editorconfig`.
 
 ### 6. Licence, docs, housekeeping
 
 - **`LICENSE`:** MIT, `Copyright (c) 2026 Adam Allard`.
-- **`THIRD_PARTY_NOTICES.md`:** an intro plus a "God's Eye View" section with its MIT licence text and `Copyright (c) 2026 Bilawal Sidhu`. Copy the text from `~/Documents/GitLab/gods-eye-view/LICENSE`. Include an empty "Ported files" table (columns: Elaro file, GEV origin file) for later prompts to fill in.
+- **`THIRD_PARTY_NOTICES.md`:** an intro plus a "God's Eye View" section with its MIT licence text and `Copyright (c) 2026 Bilawal Sidhu`. Copy the text from `~/Documents/GitLab/gods-eye-view/LICENSE`. Include an empty "Ported files" table (columns: Foresignal file, GEV origin file) for later prompts to fill in.
 - **`README.md`:** replace the GitLab template. Cover:
-  - what Elaro is (2 paragraphs drawn from `docs/Executive-Summary.md`) and its status ("under construction")
+  - what Foresignal is (2 paragraphs drawn from `docs/Executive-Summary.md`) and its status ("under construction")
   - requirements (Docker, or Java 21 plus Postgres/PostGIS)
   - a quickstart placeholder that prompt 018 will complete
-  - a "Postman" section: import `postman/Elaro.postman_collection.json` and `postman/Elaro-Local.postman_environment.json`, then set `adminToken`
+  - a "Postman" section: import `postman/Foresignal.postman_collection.json` and `postman/Foresignal-Local.postman_environment.json`, then set `adminToken`
   - links to the docs, and the MIT licence
 - **`completion-reports/`:** create it with a `.gitkeep`.
 
-### 7. Test infrastructure (`src/test/java/ai/elaro/...`)
+### 7. Test infrastructure (`src/test/java/ai/foresignal/...`)
 
-- **`ai.elaro.test.PostgisContainers`:** a shared static Testcontainers `PostgreSQLContainer` using `DockerImageName.parse("postgis/postgis:17-3.5").asCompatibleSubstituteFor("postgres")`, reused across test classes.
-- **`ai.elaro.test.IntegrationTest`:** a composed annotation (`@SpringBootTest`, `@Testcontainers` or `@ImportTestcontainers`, a `@ServiceConnection` wiring, `@ActiveProfiles("test")`). Later prompts annotate integration tests with it.
-- **`src/test/resources/application-test.yml`:** `elaro.data-dir` set to a temp directory, plus quiet logging.
-- **`ai.elaro.test.WireMockSupport`:** a JUnit 5 extension or base class that starts WireMock on a dynamic port, for adapter tests.
-- **`ai.elaro.test.MutableClock`:** a controllable `Clock` for tests, exposed as a `@TestConfiguration` primary bean when imported.
-- **`ElaroApplicationTests`:** a `contextLoads` test using `@IntegrationTest`.
-- **Unit tests:** cover `ElaroProperties` binding defaults and `MutableClock`.
+- **`ai.foresignal.test.PostgisContainers`:** a shared static Testcontainers `PostgreSQLContainer` using `DockerImageName.parse("postgis/postgis:17-3.5").asCompatibleSubstituteFor("postgres")`, reused across test classes.
+- **`ai.foresignal.test.IntegrationTest`:** a composed annotation (`@SpringBootTest`, `@Testcontainers` or `@ImportTestcontainers`, a `@ServiceConnection` wiring, `@ActiveProfiles("test")`). Later prompts annotate integration tests with it.
+- **`src/test/resources/application-test.yml`:** `foresignal.data-dir` set to a temp directory, plus quiet logging.
+- **`ai.foresignal.test.WireMockSupport`:** a JUnit 5 extension or base class that starts WireMock on a dynamic port, for adapter tests.
+- **`ai.foresignal.test.MutableClock`:** a controllable `Clock` for tests, exposed as a `@TestConfiguration` primary bean when imported.
+- **`ForesignalApplicationTests`:** a `contextLoads` test using `@IntegrationTest`.
+- **Unit tests:** cover `ForesignalProperties` binding defaults and `MutableClock`.
 
 ## Acceptance criteria
 

@@ -1,11 +1,11 @@
 # 078 — Environment Sensors
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/078-CR-Environment-Sensors.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -25,7 +25,7 @@ Add environmental measurement sources: air quality (OpenAQ, Sensor.Community, Ai
 
 ## Tasks
 
-Common: package `ai.elaro.source.adapters.env.<name>`; `historyTier=STANDARD`; policy ALL unless stated; time base per Core-Data-Model §2 "Measurements": `observedAt` = measurement time, `eventTime` = measurement period end (or the same instant when no period is published), `ttlAnchor=OBSERVED`; `fieldSpecs` with UCUM units on every numeric field (`ug/m3`, `[ppm]`, `Cel`, `%`, `hPa`, `m/s`, `m`, `s`, `{counts}/min`, `nSv/h`); skip measurements older than param `maxAge` (default 6 h; RadNet 24 h) and count them; all sources **disabled** by default.
+Common: package `ai.foresignal.source.adapters.env.<name>`; `historyTier=STANDARD`; policy ALL unless stated; time base per Core-Data-Model §2 "Measurements": `observedAt` = measurement time, `eventTime` = measurement period end (or the same instant when no period is published), `ttlAnchor=OBSERVED`; `fieldSpecs` with UCUM units on every numeric field (`ug/m3`, `[ppm]`, `Cel`, `%`, `hPa`, `m/s`, `m`, `s`, `{counts}/min`, `nSv/h`); skip measurements older than param `maxAge` (default 6 h; RadNet 24 h) and count them; all sources **disabled** by default.
 
 ### 1. `openaq`
 
@@ -73,7 +73,7 @@ Common: package `ai.elaro.source.adapters.env.<name>`; `historyTier=STANDARD`; p
 - Records: `externalId = deviceType + ":" + device serial` (or the slot id), point, `kind = indoor-air-quality` when indoor else `air-quality`; payload `pm1, pm25, pm10, tempC, humidityPct, pressureHpa, co2Ppm, tvocIndex, noxIndex, deviceModel, channelDisagreement`.
 - Time base: `observedAtMode=RECEIVED` for every slot (devices disagree on clocks; a LAN poll is near-instant). TTL 10 min, OBSERVED anchor.
 - Policy (deviation from §5.3, justified by 60-s LAN sampling): `SAMPLED`, `minInterval` 60 s, `keyframe` 8 min (`≤ ttl − pollInterval − 30 s` = 600 − 60 − 30 = 510 s), `significantFields = deviceModel, channelDisagreement`, thresholds `pm25` 5, `pm10` 10, `co2Ppm` 100, `tempC` 1, `humidityPct` 5 (thresholds are not significant; the validator checks this).
-- Interval 60 s (min 30 s), budget 4/min, 3000/day. `private=true` (home location) and `egress=LOCAL_ONLY` with `egressOverridable=true` (prompt 062 field, prompt 069 convention for local receivers). The slot count follows `elaro.local-receivers.slots` if prompt 069 added it (default 4 here otherwise).
+- Interval 60 s (min 30 s), budget 4/min, 3000/day. `private=true` (home location) and `egress=LOCAL_ONLY` with `egressOverridable=true` (prompt 062 field, prompt 069 convention for local receivers). The slot count follows `foresignal.local-receivers.slots` if prompt 069 added it (default 4 here otherwise).
 
 ### 8. Fixtures, docs
 

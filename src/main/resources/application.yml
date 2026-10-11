@@ -1,4 +1,4 @@
-# Elaro bootstrap configuration.
+# Foresignal bootstrap configuration.
 #
 # Only bootstrap concerns live here, all overridable by environment variables
 # (Architecture §13). Sources, budgets, credentials, retention, triggers,
@@ -6,11 +6,11 @@
 
 spring:
   application:
-    name: elaro
+    name: foresignal
   datasource:
-    url: ${ELARO_DB_URL:jdbc:postgresql://localhost:5433/elaro}
-    username: ${ELARO_DB_USER:elaro}
-    password: ${ELARO_DB_PASSWORD:elaro}
+    url: ${FORESIGNAL_DB_URL:jdbc:postgresql://localhost:5433/foresignal}
+    username: ${FORESIGNAL_DB_USER:foresignal}
+    password: ${FORESIGNAL_DB_PASSWORD:foresignal}
   jpa:
     # Hibernate owns the schema during development. Flyway is introduced only
     # in production hardening (prompt 042).
@@ -37,14 +37,14 @@ spring:
       enabled: true
 
 server:
-  port: ${ELARO_PORT:8080}
+  port: ${FORESIGNAL_PORT:8080}
 
-elaro:
-  data-dir: ${ELARO_DATA_DIR:./data}
+foresignal:
+  data-dir: ${FORESIGNAL_DATA_DIR:./data}
   # Root for INBOX_PATH source parameters. Every inbox read is confined to this
   # directory, re-checked per file, so a symlink cannot redirect a read out of it.
-  inbox-dir: ${ELARO_INBOX_DIR:${ELARO_DATA_DIR:./data}/inbox}
-  reset-admin-token: ${ELARO_RESET_ADMIN_TOKEN:false}
+  inbox-dir: ${FORESIGNAL_INBOX_DIR:${FORESIGNAL_DATA_DIR:./data}/inbox}
+  reset-admin-token: ${FORESIGNAL_RESET_ADMIN_TOKEN:false}
   version: ${spring.application.version:unknown}
 
 management:
@@ -55,7 +55,7 @@ management:
   endpoint:
     health:
       # 'never', not 'when-authorized'. when-authorized is resolved by Spring
-      # Security, which Elaro deliberately does not use, so it would silently
+      # Security, which Foresignal deliberately does not use, so it would silently
       # behave as never anyway. /actuator/health is for container health checks;
       # detailed status belongs to GET /v1/system.
       show-details: never

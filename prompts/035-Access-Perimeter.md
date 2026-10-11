@@ -1,11 +1,11 @@
 # 035 — Access Perimeter
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/035-CR-Access-Perimeter.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -20,11 +20,11 @@
 
 ## Objective
 
-Close Elaro's perimeter before remote and mobile use. One enforcement point applies token and anonymous restrictions to every read path; header-less clients get path-bound feed keys; every client is rate-limited, and failed authentication backs off instead of locking out; every operator-supplied outbound URL passes one SSRF policy.
+Close Foresignal's perimeter before remote and mobile use. One enforcement point applies token and anonymous restrictions to every read path; header-less clients get path-bound feed keys; every client is rate-limited, and failed authentication backs off instead of locking out; every operator-supplied outbound URL passes one SSRF policy.
 
 ## Tasks
 
-### 1. Restriction model and the single enforcement point (`ai.elaro.security.restrict`)
+### 1. Restriction model and the single enforcement point (`ai.foresignal.security.restrict`)
 
 - `ReadRestriction` (immutable): `sources` (set, null = any), `kinds`, `bbox` and/or `area` (MultiPolygon 4326, ≤ 2,000 vertices; 036 adds `placeIds` resolved to an area), `endpoints` (path-prefix allowlist), `excludePrivate` (default true for anonymous and feed keys), `maxRequestsPerMinute`. Check that 023 stored `api_token.restrictions` jsonb with this shape; extend it if not. Restrictions are rejected on admin tokens (400 `RESTRICTION_NOT_ALLOWED`: admin can mint tokens anyway).
 - `RequestPrincipal` (request-scoped): token id/scope or anonymous or feed key, plus the effective `ReadRestriction`. `TokenFilter` builds it; endpoint allowlists are checked there (403 `RESTRICTED`).
@@ -47,7 +47,7 @@ Close Elaro's perimeter before remote and mobile use. One enforcement point appl
 
 ### 3. Feed keys for header-less clients
 
-- Feed keys are `api_token` rows with `type = feed_key`, prefix `elf_`, scope `read`, `prefixes text[]` (allowed canonical path prefixes, e.g. `/v1/records`, `/v1/changes/stream`, `/v1/tiles/`), mandatory `restrictions` (at least one of sources/kinds/area), `expires_at` ≤ 365 d. Hashed, listed and revoked like tokens; `last_used_at` throttled. 050 adds tile keys (`type = tile_key`, `elk_`) on the same filter.
+- Feed keys are `api_token` rows with `type = feed_key`, prefix `fsf_`, scope `read`, `prefixes text[]` (allowed canonical path prefixes, e.g. `/v1/records`, `/v1/changes/stream`, `/v1/tiles/`), mandatory `restrictions` (at least one of sources/kinds/area), `expires_at` ≤ 365 d. Hashed, listed and revoked like tokens; `last_used_at` throttled. 050 adds tile keys (`type = tile_key`, `fsk_`) on the same filter.
 - API (admin): `GET/POST /v1/feed-keys`, `DELETE /v1/feed-keys/{id}`; creation returns the key and ready-made URLs once.
 - `PathKeyFilter` (before `TokenFilter`): `/v1/k/{key}/<rest>` → validate key (constant time), method GET/HEAD only, `/v1/<rest>` starts with one of `prefixes`, then forward to the canonical path with the feed-key principal. Works for KML NetworkLinks, iCal subscriptions, feed readers, HA `geo_json_events` and browser `EventSource` (`/v1/k/{key}/changes/stream`). Invalid → 401 `INVALID_FEED_KEY`; expired/revoked → 410.
 - Hygiene: responses carry `Referrer-Policy: no-referrer`, `X-Robots-Tag: noindex`, `Cache-Control: private` (tiles may keep `max-age` but never `public`); redact `/v1/k/{key}` in Tomcat access logs, Micrometer tags and the Caddy example; never echo the key in response bodies other than creation.
@@ -58,9 +58,9 @@ Close Elaro's perimeter before remote and mobile use. One enforcement point appl
 - `ClientRateLimitFilter` (Bucket4j already on the classpath; no starter): key = token id, else feed-key id, else client IP resolved through 023's trusted-proxy settings (never raw `X-Forwarded-For`). Classes and defaults in `app_setting['ratelimits']`: `read` 600/min, `tiles` 1,200/min, `stream` 30 opens/min + 8 concurrent per client, `expensive` 20/min (search, Ask, LLM-backed MCP tools, `/v1/sample` later), `write` 120/min, `anonymous` 120/min per IP. Token `maxRequestsPerMinute` overrides `read`. Over limit → 429 `RATE_LIMITED` with `Retry-After`. Admin tokens are exempt from `read`/`tiles` only.
 - Optional limit for `/actuator/prometheus` by IP and a setting `security.metricsOpen` (default true, LAN assumption); when false, metrics require an admin token.
 - `AuthFailureBackoff`: per client IP, after 5 failed credential checks within 60 s, each further **failed** attempt receives 429 with `Retry-After` doubling from 1 s to a 300 s cap; a correct credential is always evaluated and accepted (no lockout of the owner behind NAT); a success resets the counter. Count failures for bearer tokens, ingest keys, feed keys and action capabilities (033).
-- Metrics: `elaro.ratelimit.rejected{class}`, `elaro.auth.failures`, `elaro.auth.backoff.active`.
+- Metrics: `foresignal.ratelimit.rejected{class}`, `foresignal.auth.failures`, `foresignal.auth.backoff.active`.
 
-### 5. Outbound URL policy (`ai.elaro.net.OutboundUrlPolicy`)
+### 5. Outbound URL policy (`ai.foresignal.net.OutboundUrlPolicy`)
 
 - `check(URI, Profile)` → `Allowed(pinnedAddresses)` or `URL_NOT_ALLOWED` (400 at validation, delivery failure at send). Profiles:
   - `PUBLIC_ONLY`: globally routable addresses only (LLM frontier providers, public webhooks)
@@ -74,8 +74,8 @@ Close Elaro's perimeter before remote and mobile use. One enforcement point appl
 
 ### 6. Spec, Postman, docs
 
-- `docs/OpenAPI.json`: `ApiTokenInput`/`ApiToken` `restrictions` (`ReadRestriction` schema); `SecuritySettings.anonymous`, `metricsOpen`; `listFeedKeys`/`createFeedKey`/`revokeFeedKey` (`x-elaro-scope: admin`); a `feedKey` path-segment security scheme and a documented `/v1/k/{key}/…` alias (note it in `info.description`, not as duplicated operations); `RateLimitSettings` + `getRateLimits`/`updateRateLimits` (admin); `OutboundSettings` + get/update (admin); codes `RESTRICTED`, `RESTRICTION_NOT_ALLOWED`, `INVALID_FEED_KEY`, `RATE_LIMITED`, `URL_NOT_ALLOWED`; 429 responses on data operations. Update `AccessPolicy`, BODIES examples, regenerate Postman.
-- `docs/Architecture.md` §15 (restrictions, anonymous profile, feed keys, rate limits) and a new "Outbound URL policy" section; Charter FR-39/FR-40. `docs/Operator-Guide.md` "Exposing Elaro": restricted tokens for kiosks and family phones, feed keys, limits, log redaction in Caddy.
+- `docs/OpenAPI.json`: `ApiTokenInput`/`ApiToken` `restrictions` (`ReadRestriction` schema); `SecuritySettings.anonymous`, `metricsOpen`; `listFeedKeys`/`createFeedKey`/`revokeFeedKey` (`x-foresignal-scope: admin`); a `feedKey` path-segment security scheme and a documented `/v1/k/{key}/…` alias (note it in `info.description`, not as duplicated operations); `RateLimitSettings` + `getRateLimits`/`updateRateLimits` (admin); `OutboundSettings` + get/update (admin); codes `RESTRICTED`, `RESTRICTION_NOT_ALLOWED`, `INVALID_FEED_KEY`, `RATE_LIMITED`, `URL_NOT_ALLOWED`; 429 responses on data operations. Update `AccessPolicy`, BODIES examples, regenerate Postman.
+- `docs/Architecture.md` §15 (restrictions, anonymous profile, feed keys, rate limits) and a new "Outbound URL policy" section; Charter FR-39/FR-40. `docs/Operator-Guide.md` "Exposing Foresignal": restricted tokens for kiosks and family phones, feed keys, limits, log redaction in Caddy.
 
 ## Tests to write (do not run)
 

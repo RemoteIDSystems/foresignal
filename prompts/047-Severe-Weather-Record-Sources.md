@@ -1,11 +1,11 @@
 # 047 — Severe Weather Record Sources
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/047-CR-Severe-Weather-Record-Sources.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -34,7 +34,7 @@ Add four record sources that turn official severe-weather products into alertabl
 - **008:** the `validFrom` descriptor field / record extra and `titleField`, `fieldSpecs`. **040:** the `ref_admin2` US county table (`fips5`, `geom`), used for NWS county geometry below.
 - `InstallIdService.userAgent()` must include a contact (NWS requires one). If it does not, append the optional `server.contactEmail` setting; never spoof a browser.
 
-### 2. `nws-alerts` (`ai.elaro.source.adapters.nws`)
+### 2. `nws-alerts` (`ai.foresignal.source.adapters.nws`)
 
 - `GET https://api.weather.gov/alerts/active?status=actual` (+ `area=` when the param is set), `Accept: application/geo+json`. Verified 2026-10: the national feed is ≈ 2.6 MB raw, ≈ 207 KB gzip; **`If-None-Match` is not honoured** (a repeat returns 200), so rely on gzip and record `body_sha256`.
 - Descriptor: POLLING, interval 60 s (min 30 s), budget 2/min, 1,600/day, kind `nws-alert`, `kindRetention{nws-alert: 30d}`, STANDARD, policy ALL, `observedAtMode` UPSTREAM, `ttlAnchor` RECEIVED, `recordTtl` null, `licence` "US-PD", `termsUrl` https://www.weather.gov/disclaimer, `titleField` `headline`, `embedFields` `[headline, description, instruction]`, `searchFields` `[event, headline, areaDesc]`, `zeroResultsNormal=true`.
@@ -46,7 +46,7 @@ Add four record sources that turn official severe-weather products into alertabl
 - Description and instruction are untrusted upstream text: they are embedded and searchable but marked as data in any LLM context (the 028 citation rules apply).
 - Prompt 067 (Hazard-Adapters) no longer owns `nws-alerts`; add a note to the Source Catalog so it is not re-implemented there.
 
-### 3. `mrms-probsevere` (`ai.elaro.source.adapters.mrms`)
+### 3. `mrms-probsevere` (`ai.foresignal.source.adapters.mrms`)
 
 - `listS3("noaa-mrms-pds", "ProbSevere/{YYYYMMDD}/", startAfter)` then download **only the newest** file (`MRMS_PROBSEVERE_20261010_000041.json`, ≈ 0.25–0.27 MB, verified 2026-10). Objects are snapshots; skipping intermediate files loses nothing.
 - Descriptor: POLLING, interval 2 min, **budget 4/min, 1,600/day** (a list plus a download every 2 min is 1,440/day; the design's 800/day cannot cover it: record this), `mbPerDay` 300, kind `probsevere-object`, `kindRetention{probsevere-object: 3d}`, STANDARD, ALL, `recordTtl` null, `licence` "US-PD", `titleField` `label`, `zeroResultsNormal=true`.
@@ -55,7 +55,7 @@ Add four record sources that turn official severe-weather products into alertabl
 - `externalId` = `ID`. Payload: `probSevere`, `probTor`, `probHail`, `probWind` (ints), `meshIn` (0.25 in steps), `compRefDbz` (1 dBZ), `vil`, `echoTop50Kft`, `flashRate`, `muCape`, `mlCape`, `ebShearKt`, `srh01km`, `motion{speedKmh (5), bearingDeg (10)}` derived from `MOTION_EAST`/`MOTION_SOUTH` (m/s), `label` ("ProbSevere 44% (tor 26%)"), `automated: true`, `notAWarning: true`. `volatileFields`: `[muCape, mlCape, ebShearKt, srh01km, flashRate]` (environmental fields that drift every scan).
 - Tombstone ids absent from the newest **successfully processed** file (within the AOI). An object leaving the AOI is tombstoned too (documented). No tombstones when the listing or download failed or the file is older than the last processed one.
 
-### 4. `spc-outlooks` (`ai.elaro.source.adapters.spc`)
+### 4. `spc-outlooks` (`ai.foresignal.source.adapters.spc`)
 
 - Files under `https://www.spc.noaa.gov/products/outlook/`, each fetched with `getConditional` (ETag and Last-Modified verified 2026-10):
   - day 1 and day 2: `day{d}otlk_{cat,torn,wind,hail,sigtorn,sigwind,sighail}.lyr.geojson`
@@ -64,7 +64,7 @@ Add four record sources that turn official severe-weather products into alertabl
 - Feature properties `DN`, `LABEL`, `LABEL2`, `VALID`, `EXPIRE`, `ISSUE` (`yyyyMMddHHmm` UTC). `externalId` = `day{d}:{type}:{LABEL}` (e.g. `day1:cat:MDT`, `day1:torn:0.10`, `day1:sigtorn:SIGN`). `observedAt` = ISSUE, `eventTime` = VALID, `validUntil` = EXPIRE. Payload `day`, `type`, `label`, `label2`, `dn` (numeric rank for rules such as `dn >= 5`), `issue`, `valid`, `expire`, `title` ("Day 1 Moderate Risk"). MultiPolygon geometry.
 - Per-file completeness: labels absent from a successfully fetched (200) file are tombstoned for that day and type only. A 304 changes nothing; a 404 for a layer marks health degraded with reason "SPC layer {file} missing" and tombstones nothing.
 
-### 5. `awc-metars` (`ai.elaro.source.adapters.awc`)
+### 5. `awc-metars` (`ai.foresignal.source.adapters.awc`)
 
 - `GET https://aviationweather.gov/data/cache/metars.cache.csv.gz` with `getConditional` (ETag, Last-Modified, `max-age=30` verified 2026-10). AWC asks for at most 1 request/min per thread and 100/min overall: a 5-minute poll complies. Put this in the descriptor notes.
 - Descriptor: POLLING, interval 5 min (min 1 min), budget 2/min, 400/day, `mbPerDay` 100, kind `metar`, `kindRetention{metar: 7d}`, STANDARD, ALL, `ttlAnchor` OBSERVED, `recordTtl` 3 h (an old report must not read as current), `licence` "US-PD", `titleField` `stationId`.
@@ -84,13 +84,13 @@ Add four record sources that turn official severe-weather products into alertabl
 
 ### 7. Spec, Postman, docs
 
-- No new operations. If 042 did not add them, ensure `SourceHealth` health reasons and `Record` payload examples exist; add `x-elaro-examples` for the four kinds under `Record`. Regenerate Postman with `python3 scripts/generate-postman.py docs/OpenAPI.json postman` if the spec changed.
+- No new operations. If 042 did not add them, ensure `SourceHealth` health reasons and `Record` payload examples exist; add `x-foresignal-examples` for the four kinds under `Record`. Regenerate Postman with `python3 scripts/generate-postman.py docs/OpenAPI.json postman` if the spec changed.
 - `docs/Source-Catalog.md`: rows for all four sources (tier, policy, TTL, `ttlAnchor`, `observedAtMode`, significant/volatile fields, retention, licence, budgets and the verified facts above); move `nws-alerts` out of the hazard group; remove `spc-outlooks` from the 089 group.
 - `docs/Adapter-Guide.md`: "tombstone only from a complete, successful response" rule with these sources as examples.
 
 ## Tests to write (do not run)
 
-- Fixture capture procedure in each adapter's test package README: `curl -A "<elaro UA>" --compressed` for NWS (national and `area=TX`), the newest ProbSevere key via the S3 listing, each SPC layer, and the AWC cache file; store under `src/test/resources/fixtures/{nws,probsevere,spc,awc}/`.
+- Fixture capture procedure in each adapter's test package README: `curl -A "<foresignal UA>" --compressed` for NWS (national and `area=TX`), the newest ProbSevere key via the S3 listing, each SPC layer, and the AWC cache file; store under `src/test/resources/fixtures/{nws,probsevere,spc,awc}/`.
 - Parser contract tests: `NwsAlertsParserTest` (polygon vs county-union vs none, onset → eventTime/validFrom, Cancel/Update references, text truncation, `fieldSpecs` coverage via the 011 contract helper), `ProbSevereParserTest` (string → number, motion derivation, AOI filter), `SpcOutlookParserTest` (ids, ISSUE/VALID/EXPIRE parsing, day-3 layer set), `MetarCsvParserTest` (preamble skip, repeated sky columns, VRB, "10+", newest-per-station).
 - WireMock adapter tests: `NwsAlertsAdapterTest` (UA contains contact, gzip, `area` param, 503 + Retry-After backoff, truncated body → no tombstones), `ProbSevereAdapterTest` (listing with `startAfter`, newest-only download, failed download → no tombstones), `SpcOutlooksAdapterTest` (304 path, 404 layer → degraded and no tombstones), `AwcMetarsAdapterTest` (conditional GET, budget).
 - Ingest ITs (seeding through the real pipeline, `TestRecords` for assertions only): `NwsAlertsIngestIT` (expiry via `validUntil`, absent id tombstoned, re-fetch → touches only), `ProbSevereIngestIT` (AOI change re-filters), `SpcOutlookIngestIT`, `MetarIngestIT` (new report → version; same report → touch; TTL expiry after 3 h).

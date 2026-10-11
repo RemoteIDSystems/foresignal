@@ -1,11 +1,11 @@
 # 023 — Scoped API Tokens
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/023-CR-Scoped-API-Tokens.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -17,8 +17,8 @@
 - `docs/Gap-Analysis.md` §1 items 4–5, §2 (Flutter mobile, local web rows), §6 (stream tickets, restricted tokens, device pairing, remote access, public-exposure hardening, audit log, deep links), §8.A item 12 ("extend 019" = 023)
 - `docs/Core-Data-Model.md` §14 (observer gating, `security.exposeObserver`)
 - `docs/Product-Charter.md` §8.7–§8.8 (FR-30, FR-31, FR-39, FR-40)
-- `docs/OpenAPI.json`: operations tagged `Tokens`, `getSecuritySettings`/`updateSecuritySettings`, `getServerSettings`/`updateServerSettings`; schemas `ApiToken*`, `SecuritySettings`, `ServerSettings`; every operation's `x-elaro-scope`
-- Existing code: `ai.elaro.security` (`AccessPolicy`, `AccessRequirement`, `TokenFilter`, `TokenHasher`, `AdminTokenService`, `Scope`); Completion Reports of 015 (stream limits), 018 (`links`, `server` setting), 019 (`/v1/system` gating, retention steps), 020 (pending operations list)
+- `docs/OpenAPI.json`: operations tagged `Tokens`, `getSecuritySettings`/`updateSecuritySettings`, `getServerSettings`/`updateServerSettings`; schemas `ApiToken*`, `SecuritySettings`, `ServerSettings`; every operation's `x-foresignal-scope`
+- Existing code: `ai.foresignal.security` (`AccessPolicy`, `AccessRequirement`, `TokenFilter`, `TokenHasher`, `AdminTokenService`, `Scope`); Completion Reports of 015 (stream limits), 018 (`links`, `server` setting), 019 (`/v1/system` gating, retention steps), 020 (pending operations list)
 
 ## Objective
 
@@ -26,12 +26,12 @@ Replace the single admin token with scoped API tokens (`read` < `agent` < `admin
 
 ## Tasks
 
-### 1. Token model (`ai.elaro.security`)
+### 1. Token model (`ai.foresignal.security`)
 
 - `ApiTokenEntity` (`api_token`) per §7.1 plus: restriction columns `allowed_sources text[]`, `allowed_kinds text[]`, `allowed_bbox geometry(Polygon,4326)`, `allowed_endpoints text[]` (each `"METHOD /v1/path/pattern"`, Ant-style, method may be `*`); device columns `device_name`, `device_platform` (`ios|android|macos|windows|linux|web|other`), `app_version`, `device_reported_at`; `created_via` (`api|pairing|bootstrap`).
-- **`TokenService`:** `create(name, scope, expiresAt, restrictions, device)` returns the plaintext once (`elr_` + base64url(32 bytes)), stored as SHA-256 via `TokenHasher`, with `token_prefix` (first 8 chars). `list()`, `revoke(id)` (bootstrap → 409 `BOOTSTRAP_TOKEN`), `authenticate(presented)` → `Optional<AuthenticatedToken(id, name, scope, restrictions)>` via lookup by hash with constant-time comparison; revoked and expired tokens rejected. `last_used_at` updated at most once per minute per token, asynchronously.
+- **`TokenService`:** `create(name, scope, expiresAt, restrictions, device)` returns the plaintext once (`fsr_` + base64url(32 bytes)), stored as SHA-256 via `TokenHasher`, with `token_prefix` (first 8 chars). `list()`, `revoke(id)` (bootstrap → 409 `BOOTSTRAP_TOKEN`), `authenticate(presented)` → `Optional<AuthenticatedToken(id, name, scope, restrictions)>` via lookup by hash with constant-time comparison; revoked and expired tokens rejected. `last_used_at` updated at most once per minute per token, asynchronously.
 - Validation: an `allowed_endpoints` pattern must match at least one spec operation that the token's scope can reach; bbox valid and within ±180/±90; source ids and kinds must exist.
-- **Bootstrap migration:** at startup, if `system_secret['admin_token_hash']` exists and no `api_token` row named `bootstrap` does, create it (scope `admin`, `created_via=bootstrap`) with that hash, then delete the secret. `AdminTokenService` (first start, `ELARO_RESET_ADMIN_TOKEN`, rotation) now operates on that row; operator-visible behaviour is unchanged.
+- **Bootstrap migration:** at startup, if `system_secret['admin_token_hash']` exists and no `api_token` row named `bootstrap` does, create it (scope `admin`, `created_via=bootstrap`) with that hash, then delete the secret. `AdminTokenService` (first start, `FORESIGNAL_RESET_ADMIN_TOKEN`, rotation) now operates on that row; operator-visible behaviour is unchanged.
 - **Revoke cascade:** revocation publishes `ApiTokenRevokedEvent(tokenId)` after commit. Listeners: the stream-ticket store (invalidate tickets), the SSE hubs (close that token's open streams), and a documented hook for 031, which deletes push subscriptions created by the token (031 stores `token_id`).
 
 ### 2. Enforcement
@@ -44,11 +44,11 @@ Replace the single admin token with scoped API tokens (`read` < `agent` < `admin
 - `/v1/system` full details now need ≥ `read` (019 left any valid token).
 - `CurrentToken` request-scoped holder (id, name, scope, restrictions, device) for audit, Ask actions and MCP.
 - **Private-source gate hook:** `SourceVisibilityGate.visible(sourceId, CurrentToken)`: a source whose descriptor has `private=true` (008) is visible only to `agent`/`admin` tokens without a source restriction excluding it. Apply it now in `SourceService` listings and where records/changes resolve their source filter (private sources are excluded, or 404 when named explicitly). Prompt 039 extends it to every path (tiles, SSE, search, embeddings, LLM egress, exports).
-- **`AccessPolicySpecSyncTest`:** for every operation in `docs/OpenAPI.json`, `AccessPolicy` returns the same scope as `x-elaro-scope` and the same `alwaysAuthenticated` as `x-elaro-always-authenticated`; template paths matched against the policy's patterns; the top-level `webhooks` object is skipped.
+- **`AccessPolicySpecSyncTest`:** for every operation in `docs/OpenAPI.json`, `AccessPolicy` returns the same scope as `x-foresignal-scope` and the same `alwaysAuthenticated` as `x-foresignal-always-authenticated`; template paths matched against the policy's patterns; the top-level `webhooks` object is skipped.
 
-### 3. Stream and tile tickets (`ai.elaro.security.ticket`)
+### 3. Stream and tile tickets (`ai.foresignal.security.ticket`)
 
-- `POST /v1/stream-tickets` `{purpose: "stream"|"tiles", paths?: [...]}` → `{ticket, purpose, expiresAt}`. The ticket inherits the caller's token id, scope and restrictions, never more. Tickets are `elt_` + 24 random bytes, held in memory by hash (lost on restart; clients mint again on 401).
+- `POST /v1/stream-tickets` `{purpose: "stream"|"tiles", paths?: [...]}` → `{ticket, purpose, expiresAt}`. The ticket inherits the caller's token id, scope and restrictions, never more. Tickets are `fst_` + 24 random bytes, held in memory by hash (lost on restart; clients mint again on 401).
 - **Stream tickets** (`?ticket=` on `/v1/changes/stream`, `/v1/alerts/stream`, `/v1/events/stream`): first connect within 60 s of minting; after that the same ticket keeps working for reconnects (browser `EventSource` reuses the URL) while the token is valid, up to 5 min after the last disconnect and 24 h total. At most one concurrent stream per ticket; 015's per-token stream limits count it against the parent token.
 - **Tile tickets** (`?ticket=` on `/v1/tiles/**` and TileJSON): reusable for any number of requests until expiry (default 10 min, max 1 h, `ttl` field).
 - Plug stream tickets into 015's `StreamPrincipalResolver` (the principal is the parent token, so per-token limits and ownership still apply); plug tile tickets into the token filter.
@@ -57,16 +57,16 @@ Replace the single admin token with scoped API tokens (`read` < `agent` < `admin
 ### 4. Devices and pairing
 
 - `PUT /v1/tokens/current/device` (read scope, the calling token itself): `{deviceName, platform, appVersion}`; sets `device_reported_at`.
-- `POST /v1/pairing-codes` (admin): `{name, scope (read|agent only; admin is never pairable), restrictions?, ttl (default 10m, max 1h)}` → `{id, code, expiresAt, qrPayload}`. `code` = 8 Crockford base32 chars shown as `XXXX-XXXX`, stored hashed in `pairing_code` (`id`, `code_hash`, `name`, `scope`, `restrictions jsonb`, `expires_at`, `claimed_at`, `claimed_token_id`, `created_by_token_id`). `qrPayload` = the `clientLinks.pair` template (default `elaro://pair?u={publicBaseUrl}&c={code}`).
+- `POST /v1/pairing-codes` (admin): `{name, scope (read|agent only; admin is never pairable), restrictions?, ttl (default 10m, max 1h)}` → `{id, code, expiresAt, qrPayload}`. `code` = 8 Crockford base32 chars shown as `XXXX-XXXX`, stored hashed in `pairing_code` (`id`, `code_hash`, `name`, `scope`, `restrictions jsonb`, `expires_at`, `claimed_at`, `claimed_token_id`, `created_by_token_id`). `qrPayload` = the `clientLinks.pair` template (default `foresignal://pair?u={publicBaseUrl}&c={code}`).
 - `GET /v1/pairing-codes/{id}/qr.svg` (admin): SVG QR of `qrPayload` via ZXing `core` (Apache-2.0; verify the version on Maven Central; add a THIRD_PARTY_NOTICES entry).
 - `GET /v1/pairing-codes` (admin, unclaimed and unexpired), `DELETE /v1/pairing-codes/{id}` (admin).
 - `POST /v1/pairing/claim` (open): `{code, device:{deviceName, platform, appVersion}}` → `ApiTokenCreated` (`created_via=pairing`). Single use; constant-time comparison; Bucket4j limit of 5 attempts per minute per client IP plus 50 per hour globally, then 429; every failure audited.
 
 ### 5. Server settings, trusted proxies, clientLinks
 
-- `GET/PUT /v1/settings/server` (`ServerSettings`): `publicBaseUrl` (already used by 018; move its storage here if 018 stored it elsewhere, and record that), `timezone` (default UTC), `clientLinks` (templates `alert`, `record`, `briefingRun`, `pair`; defaults use the `elaro://` scheme, e.g. `elaro://alerts/{id}`; operators may set verified `https://` links). 018's link builder adds an "Open in app" link from `clientLinks` when set.
+- `GET/PUT /v1/settings/server` (`ServerSettings`): `publicBaseUrl` (already used by 018; move its storage here if 018 stored it elsewhere, and record that), `timezone` (default UTC), `clientLinks` (templates `alert`, `record`, `briefingRun`, `pair`; defaults use the `foresignal://` scheme, e.g. `foresignal://alerts/{id}`; operators may set verified `https://` links). 018's link builder adds an "Open in app" link from `clientLinks` when set.
 - **https warning:** PUT returns `warnings` and `/v1/system` lists `PUBLIC_BASE_URL_INSECURE` when `publicBaseUrl` is `http://` and its host is not loopback, private, CGNAT or `.local` (reuse `LocalAddresses`), and `PUBLIC_BASE_URL_MISMATCH` when requests arrive with forwarded proto `https` while `publicBaseUrl` is `http`.
-- **Trusted proxies:** `server.forward-headers-strategy=native` (Tomcat `RemoteIpValve`, not `framework`); bootstrap env `ELARO_TRUSTED_PROXIES` (a regex) maps to `server.tomcat.remoteip.internal-proxies`, default loopback only (`127\.0\.0\.1|0:0:0:0:0:0:0:1|::1`). Document Docker-network and Tailscale examples. The client IP is then used by audit, pairing limits and 035.
+- **Trusted proxies:** `server.forward-headers-strategy=native` (Tomcat `RemoteIpValve`, not `framework`); bootstrap env `FORESIGNAL_TRUSTED_PROXIES` (a regex) maps to `server.tomcat.remoteip.internal-proxies`, default loopback only (`127\.0\.0\.1|0:0:0:0:0:0:0:1|::1`). Document Docker-network and Tailscale examples. The client IP is then used by audit, pairing limits and 035.
 - `GET/PUT /v1/settings/security` (`SecuritySettings`: `openReads`, `exposeObserver`; add the latter if 014 did not).
 - Export/import (019) includes `security` and `server`. Tokens, tickets and pairing codes are **never** exported.
 
@@ -79,7 +79,7 @@ Replace the single admin token with scoped API tokens (`read` < `agent` < `admin
 
 ### 7. Spec, Postman, docs
 
-- `docs/OpenAPI.json`: `ApiToken`/`ApiTokenInput` (+`restrictions`, `device`, `createdVia`); new schemas `TokenRestrictions`, `DeviceInfo`, `StreamTicketRequest`/`StreamTicket`, `PairingCode`/`PairingCodeInput`/`PairingClaim`, `AuditEvent`/`AuditEventPage`; `ServerSettings` (+`timezone`, `clientLinks`, `warnings`), `SecuritySettings` (+`exposeObserver`), `RetentionSettings` (+`audit`). New operations, each with `x-elaro-scope`: `createStreamTicket` (read, `x-elaro-always-authenticated: true`), `updateCurrentTokenDevice` (read), `listPairingCodes`/`createPairingCode`/`deletePairingCode`/`getPairingCodeQr` (admin), `claimPairingCode` (open), `listAuditEvents` (admin). Add `x-elaro-always-authenticated: true` to the operations in §2. Add `ticket` query parameters to the SSE and tile operations. Error codes `INSUFFICIENT_SCOPE`, `ENDPOINT_NOT_ALLOWED`, `RESTRICTION_NOT_ENFORCED`, `BOOTSTRAP_TOKEN`, `PAIRING_CODE_INVALID`.
+- `docs/OpenAPI.json`: `ApiToken`/`ApiTokenInput` (+`restrictions`, `device`, `createdVia`); new schemas `TokenRestrictions`, `DeviceInfo`, `StreamTicketRequest`/`StreamTicket`, `PairingCode`/`PairingCodeInput`/`PairingClaim`, `AuditEvent`/`AuditEventPage`; `ServerSettings` (+`timezone`, `clientLinks`, `warnings`), `SecuritySettings` (+`exposeObserver`), `RetentionSettings` (+`audit`). New operations, each with `x-foresignal-scope`: `createStreamTicket` (read, `x-foresignal-always-authenticated: true`), `updateCurrentTokenDevice` (read), `listPairingCodes`/`createPairingCode`/`deletePairingCode`/`getPairingCodeQr` (admin), `claimPairingCode` (open), `listAuditEvents` (admin). Add `x-foresignal-always-authenticated: true` to the operations in §2. Add `ticket` query parameters to the SSE and tile operations. Error codes `INSUFFICIENT_SCOPE`, `ENDPOINT_NOT_ALLOWED`, `RESTRICTION_NOT_ENFORCED`, `BOOTSTRAP_TOKEN`, `PAIRING_CODE_INVALID`.
 - `AccessPolicy` rules for every new path, in contract order, specific before general (`/v1/tokens/current/device` before `/v1/tokens/**`; `/v1/pairing/claim` open).
 - Remove implemented operations from `pending-operations.txt` (020). Regenerate Postman; BODIES for `createToken` (restricted), `createStreamTicket`, `createPairingCode`, `claimPairingCode`, `updateCurrentTokenDevice`; extend the generator's auth mapping if `alwaysAuthenticated` read operations need `{{readToken}}`, and add `readToken` to the environment.
 - `docs/Operator-Guide.md`: tokens and scopes, restricted tokens (data restrictions active from 035), pairing a phone (QR), tickets for browser clients, trusted proxies, clientLinks, the audit log.
@@ -98,7 +98,7 @@ Replace the single admin token with scoped API tokens (`read` < `agent` < `admin
 
 ## Acceptance criteria
 
-- `x-elaro-scope` and `x-elaro-always-authenticated` agree with `AccessPolicy` for every operation.
+- `x-foresignal-scope` and `x-foresignal-always-authenticated` agree with `AccessPolicy` for every operation.
 - An `agent` token can manage triggers and briefings but gets 403 on sources, credentials, channels, providers, tokens and settings.
 - A phone can pair with a code or QR without ever seeing the admin token.
 - Revoking a token immediately invalidates its tickets and open streams.

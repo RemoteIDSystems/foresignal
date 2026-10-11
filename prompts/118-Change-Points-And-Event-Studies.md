@@ -1,11 +1,11 @@
 # 118 — Change Points And Event Studies
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/118-CR-Change-Points-And-Event-Studies.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults, analytic retention, intelligence conventions) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and **`docs/Intelligence-Design.md` is authoritative for the intelligence layer** (situations, findings, precursors, base rates, analogs, the forecast ledger, hypotheses, forecasts, impact projection and analysis cycles).
@@ -15,11 +15,11 @@
 
 - `docs/Intelligence-Design.md` §2, §3 (DERIVED sources), §4.2 (region rollups), §4.3 (series), §5.1–§5.4 and §5.6 (findings, change points, event studies, co-occurrence, series registry), §12 (libraries)
 - `docs/Core-Data-Model.md` §8 (`seq_clock`, `S(T)`), §13 (consumer clamp)
-- Completion Reports of 038 (`activity_rollup`, RollupJob, stats API), 040 (region tags), 052 (DERIVED runtime), 088 (PortWatch), 093 (series), 100 (`activity_sample`, slot baseline, CoverageGate), 101 (`signal_family`, `elaro-intel`), 103 (job framework, caveat generator, Wilson interval), 116 (series metadata, topics), 117 (situations)
+- Completion Reports of 038 (`activity_rollup`, RollupJob, stats API), 040 (region tags), 052 (DERIVED runtime), 088 (PortWatch), 093 (series), 100 (`activity_sample`, slot baseline, CoverageGate), 101 (`signal_family`, `foresignal-intel`), 103 (job framework, caveat generator, Wilson interval), 116 (series metadata, topics), 117 (situations)
 
 ## Objective
 
-Build the discovery layer's foundations and first three detectors. Foundations: region rollups, one `SeriesReader` over series, rollups and rule samples, an analysis-series registry, a shared signal-family registry, the `analytic_finding` table with the `elaro-analytics` DERIVED source, and a small statistics package. Detectors: change points (CUSUM and BOCPD), event studies (batch, live pre-event signals, unexplained moves) and co-occurrence mining with false-discovery control. Every finding states how often something this strong happens by chance.
+Build the discovery layer's foundations and first three detectors. Foundations: region rollups, one `SeriesReader` over series, rollups and rule samples, an analysis-series registry, a shared signal-family registry, the `analytic_finding` table with the `foresignal-analytics` DERIVED source, and a small statistics package. Detectors: change points (CUSUM and BOCPD), event studies (batch, live pre-event signals, unexplained moves) and co-occurrence mining with false-discovery control. Every finding states how often something this strong happens by chance.
 
 ## Principles (binding)
 
@@ -34,16 +34,16 @@ Build the discovery layer's foundations and first three detectors. Foundations: 
 ### 1. Region rollups (extends 038)
 
 - Add resolutions 2 (region-hour) and 3 (region-day) to `activity_rollup`, with a nullable `region_code` text column and `cell = stableHash64(region_code)` for those rows. Region = the record head's 040 country code, or `CC-admin1` when the source's setting `statsRegionLevel=admin1`. Records without a region tag go to region `ZZ`.
-- `RegionRollupJob` mirrors 038's `RollupJob` (durable cursor `stats.region.cursor` in `app_setting`, closed buckets only, ≤ 6 h catch-up per run, days computed from raw rows, never by summing hours) and joins 019's consumer clamp. First start backfills from the oldest retained seq (bounded by `elaro.stats.backfill`).
+- `RegionRollupJob` mirrors 038's `RollupJob` (durable cursor `stats.region.cursor` in `app_setting`, closed buckets only, ≤ 6 h catch-up per run, days computed from raw rows, never by summing hours) and joins 019's consumer clamp. First start backfills from the oldest retained seq (bounded by `foresignal.stats.backfill`).
 - Retention: `RetentionSettings.stats.regionHourly` 1095 d, `regionDaily` 3650 d.
 - `/v1/stats/series` and `/v1/stats/top` accept `groupBy=region` and `region=` filters.
 
-### 2. Signal families (`ai.elaro.analytics.family`)
+### 2. Signal families (`ai.foresignal.analytics.family`)
 
 - `src/main/resources/intel/signal-families.json`: rules mapping `(sourceId | kind | intel event type | finding type | anomaly rule tag)` → family. Families: `ais-behaviour`, `aviation-military`, `aviation-ops`, `conflict`, `outage`, `internet-measurement`, `gnss-interference`, `nav-warning`, `attention`, `seismic`, `fire`, `weather-severe`, `cyber`, `markets`, `sanctions`, `health`, `space`. 101's `signal_family` strings must resolve through this registry; reconcile and record any renames in the CR.
 - `SignalFamilyRegistry.familyOf(...)`, operator extensions through `intel.signalFamilies` (settings).
 
-### 3. Series access (`ai.elaro.analytics.series`)
+### 3. Series access (`ai.foresignal.analytics.series`)
 
 - `SeriesRef` parse/format: `series:{sourceId}/{seriesId}`, `rollup:{hour|day}/{sourceId}/{kind}/{region|cell:h3}`, `rule:{ruleId}/{groupKey}`.
 - `SeriesReader.read(ref, from, to, asOf)` → regular points `{periodStart, value, knownAt, coverageOk}` with explicit gaps. `knownAt` = ingest time of the supplying version (via `seq_clock`); rollups use bucket close time; rule samples use their write time. Coverage for rollups comes from the involved source's `fetch_log` per bucket (the 100 CoverageGate logic, reused); series points are `coverageOk=true` unless the source was failing over the period.
@@ -55,7 +55,7 @@ Build the discovery layer's foundations and first three detectors. Foundations: 
 - Nightly auto-registration (02:00 UTC): region-day rollups with ≥ 30 non-zero days in the last 90; all `series-point` series from 093 and 116; PortWatch chokepoint series (088); anomaly rule groups (100) with ≥ 8 weeks of samples. Cap `analysis.series.max` (2,000), keeping the highest-volume refs. Operator rows are never removed automatically.
 - API: `GET /v1/analytics/series?family&region&enabled&cursor` (read), `PUT /v1/analytics/series` (agent; upsert by ref), `DELETE /v1/analytics/series?ref=` (agent).
 
-### 5. Statistics package (`ai.elaro.analytics.math`)
+### 5. Statistics package (`ai.foresignal.analytics.math`)
 
 Dependencies: Apache Commons Statistics (distributions, inference; verify the current 1.x on Maven Central), Commons Numbers, Commons RNG (deterministic seeded sampling). No GPL libraries. Implement and golden-test:
 - robust location and scale (median, MAD × 1.4826 with a floor), Anscombe transform `2√(x + 3/8)`;
@@ -66,10 +66,10 @@ Dependencies: Apache Commons Statistics (distributions, inference; verify the cu
 - Corrado rank test; deterministic placebo date sampler;
 - reuse 103's Wilson interval (move it here if it lives in `backtest`, keeping a delegate).
 
-### 6. Findings (`ai.elaro.analytics.finding`)
+### 6. Findings (`ai.foresignal.analytics.finding`)
 
 - `analytic_finding` as in Intelligence-Design §5.1 (all columns), plus `dedup_key`, `superseded_by`, `version`. Indexes: `(finding_type, detected_at DESC)`, GIN(`region_codes`), GiST(`geom`).
-- **DERIVED source `elaro-analytics`** (052 runtime): one `analytic-finding` record per finding (`externalId` = finding id; payload `findingType`, `severity`, `title`, `regionCodes`, `seriesRefs`, key stats, `baseRate`, `automated: true`), emitted on create and on change; tombstoned on dismiss or supersede. Analytic class `intel`.
+- **DERIVED source `foresignal-analytics`** (052 runtime): one `analytic-finding` record per finding (`externalId` = finding id; payload `findingType`, `severity`, `title`, `regionCodes`, `seriesRefs`, key stats, `baseRate`, `automated: true`), emitted on create and on change; tombstoned on dismiss or supersede. Analytic class `intel`.
 - Severity: `significant` when the detector's p (or placebo p) ≤ 0.001 and the effect passes its threshold; `notable` when ≤ 0.01; otherwise `info` (stored, not published as a record unless `analysis.findings.publishInfo=true`).
 - Dedup: a new finding of the same type, series and overlapping window supersedes the older one.
 - Offer `notable`+ findings to the 117 linker (the linker reads `analytic-finding` records from the ChangeBus).
@@ -98,7 +98,7 @@ Dependencies: Apache Commons Statistics (distributions, inference; verify the cu
 ### 8. MCP, spec, docs
 
 - MCP: `list_findings`, `get_finding`, `get_series_data`, `list_analysis_series` (read; added to the read catalogue); `run_event_study`, `upsert_analysis_series` (agent).
-- `docs/OpenAPI.json`: `SeriesRef`, `SeriesPoint`, `AnalysisSeries`, `AnalyticFinding`, `FindingPage`, `EventStudyRequest`, `EventStudyResult`, stats region parameters; tag `Analytics`; `x-elaro-scope` everywhere; SSE schemas. Regenerate Postman with BODIES for upsert series, event study and dismiss finding.
+- `docs/OpenAPI.json`: `SeriesRef`, `SeriesPoint`, `AnalysisSeries`, `AnalyticFinding`, `FindingPage`, `EventStudyRequest`, `EventStudyResult`, stats region parameters; tag `Analytics`; `x-foresignal-scope` everywhere; SSE schemas. Regenerate Postman with BODIES for upsert series, event study and dismiss finding.
 - AccessPolicy rows as listed. Problem codes: `UNKNOWN_FINDING` (404), `SERIES_REF_INVALID` (400), `SERIES_NOT_FOUND` (404, reuse 093's), `EVENT_STUDY_INVALID` (400).
 - `docs/Operator-Guide.md` "Discovery": what each detector does in plain words, how to read base rates and placebo p-values, `DAILY_RESOLUTION_ONLY`, watch pairs, tuning and cost.
 - `docs/Agent-Guide.md`: always quote a finding's base rate and caveats; never call a pre-event signal evidence of wrongdoing.
@@ -113,7 +113,7 @@ Dependencies: Apache Commons Statistics (distributions, inference; verify the cu
 - `EventStudyEngineTest`: planted pre-event abnormality found with low placebo p; no look-ahead (a later point changes nothing); weekly windows; clustered overlapping events.
 - `LiveEventStudyIT`: a seeded intel event triggers watch pairs and a `pre-event-signal`; lagged weekly data schedules a re-check; an unexplained move later linked to an event.
 - `CoOccurrenceMinerTest`: planted joint exceedance survives BH; independent noise does not (fixed seed).
-- `FindingServiceIT`: dedup and supersede, `elaro-analytics` record emitted only on change, dismiss tombstones, `LOCAL_ONLY` values withheld from non-local callers, SSE topic.
+- `FindingServiceIT`: dedup and supersede, `foresignal-analytics` record emitted only on change, dismiss tombstones, `LOCAL_ONLY` values withheld from non-local callers, SSE topic.
 - `AnalyticsControllersIT`: endpoints, scopes, MCP tool shapes.
 
 ## Acceptance criteria
@@ -121,7 +121,7 @@ Dependencies: Apache Commons Statistics (distributions, inference; verify the cu
 - Region rollups, the series reader and the registry give every detector one consistent, coverage-aware view of series.
 - Change points, event studies (batch and live) and co-occurrence findings are reproducible, versioned and carry base rates and caveats.
 - Live detection never uses data that was not yet known.
-- Findings are records of `elaro-analytics`, so ordinary rules can alert on them, and the situation linker can attach them.
+- Findings are records of `foresignal-analytics`, so ordinary rules can alert on them, and the situation linker can attach them.
 - Compiles.
 
 ## Guardrails (mandatory)

@@ -1,11 +1,11 @@
 # 127 — Adapter Doctor
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/127-CR-Adapter-Doctor.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -26,11 +26,11 @@ When a source breaks, tell the operator or the maintaining agent what changed an
 
 ### 1. Runtime access to fixtures and adapter source
 
-- **Fixtures:** a Gradle `processResources` step copies `src/test/resources/fixtures/**` into the jar under `META-INF/elaro/fixtures/` with a per-file cap of 256 KB (larger files are truncated to a structurally valid prefix where possible: first N JSON array elements, first 500 CSV rows; otherwise skipped with a log line). Record a `fixtures-index.json` (sourceId → files, captured date from the Adapter Guide fixture header if present, sha256).
-- **Adapter source:** copy `src/main/java/ai/elaro/source/adapters/**/*.java` into `META-INF/elaro/adapter-src/` with an index (sourceId → files) built from a `@AdapterSource` annotation or the package-per-adapter convention. The project is MIT, so shipping its own sources is fine. Never include third-party code or secrets.
+- **Fixtures:** a Gradle `processResources` step copies `src/test/resources/fixtures/**` into the jar under `META-INF/foresignal/fixtures/` with a per-file cap of 256 KB (larger files are truncated to a structurally valid prefix where possible: first N JSON array elements, first 500 CSV rows; otherwise skipped with a log line). Record a `fixtures-index.json` (sourceId → files, captured date from the Adapter Guide fixture header if present, sha256).
+- **Adapter source:** copy `src/main/java/ai/foresignal/source/adapters/**/*.java` into `META-INF/foresignal/adapter-src/` with an index (sourceId → files) built from a `@AdapterSource` annotation or the package-per-adapter convention. The project is MIT, so shipping its own sources is fine. Never include third-party code or secrets.
 - **`FixtureCatalog`** and **`AdapterSourceCatalog`** read these at runtime, and are absent-safe (the report says "no fixture for this source").
 
-### 2. Structure extraction and diff (`ai.elaro.doctor`)
+### 2. Structure extraction and diff (`ai.foresignal.doctor`)
 
 - **`StructureExtractor`** by content type or sniffing:
   - **JSON:** path tree with `[]` for arrays (e.g. `features[].properties.mag`). Per path: observed JSON types, presence ratio across array elements, example values (≤ 3, each ≤ 80 chars, numbers kept, strings truncated), array length stats.
@@ -51,7 +51,7 @@ When a source breaks, tell the operator or the maintaining agent what changed an
   - `ENDPOINT_MOVED` (404/410, or 301/308 to another host).
   - `RATE_LIMITED` (429, or backoff active) → budget advice from the descriptor versus observed usage.
   - `UPSTREAM_ERROR` (5xx streak).
-  - `HTML_INSTEAD_OF_DATA` (login wall, maintenance page or captcha; Elaro never solves captchas).
+  - `HTML_INSTEAD_OF_DATA` (login wall, maintenance page or captcha; Foresignal never solves captchas).
   - `EMPTY_RESULT` (structure intact, zero items; consider `zeroResultsNormal` and params).
   - `FIELD_RENAMED` (rename candidate score ≥ 0.7 on a path the parser reads).
   - `FIELD_REMOVED` (a removed path that the parser reads).
@@ -99,8 +99,8 @@ When a source breaks, tell the operator or the maintaining agent what changed an
 - `POST /v1/sources/{id}/doctor` (admin; `alwaysAuthenticated` per 035 because it can spend LLM budget): body `DoctorOptions`, returns the report (synchronous, ≤ 90 s, with a 202 + `Location` fallback when longer).
 - `GET /v1/sources/{id}/doctor/reports` (agent) and `GET /v1/doctor/reports/{reportId}` (agent).
 - MCP (025): `diagnose_source` (admin) and `get_doctor_report` (agent), with compact output (findings, summary, patch only with `detail=long`).
-- `docs/OpenAPI.json`: schemas `DoctorOptions`, `DoctorReport`, `DoctorFinding`, `StructureDiff`, `ProposedPatch`; `lastDoctorReport` on `SourceHealth`; operations with `x-elaro-scope`; error code `DOCTOR_BUSY`. Update `AccessPolicy`. Regenerate Postman with a BODIES entry for `runSourceDoctor`.
-- `docs/Adapter-Guide.md` "Adapter doctor": how fixtures feed it (keep fixtures current), reading findings, applying a proposed patch by hand plus refreshing the fixture and contract test. `docs/Agent-Guide.md`: a maintenance-agent loop (watch health → `diagnose_source` → open a merge request with the patch after human review). 128's CLI adds `elaro sources doctor <id>`.
+- `docs/OpenAPI.json`: schemas `DoctorOptions`, `DoctorReport`, `DoctorFinding`, `StructureDiff`, `ProposedPatch`; `lastDoctorReport` on `SourceHealth`; operations with `x-foresignal-scope`; error code `DOCTOR_BUSY`. Update `AccessPolicy`. Regenerate Postman with a BODIES entry for `runSourceDoctor`.
+- `docs/Adapter-Guide.md` "Adapter doctor": how fixtures feed it (keep fixtures current), reading findings, applying a proposed patch by hand plus refreshing the fixture and contract test. `docs/Agent-Guide.md`: a maintenance-agent loop (watch health → `diagnose_source` → open a merge request with the patch after human review). 128's CLI adds `foresignal sources doctor <id>`.
 
 ## Tests to write (do not run)
 

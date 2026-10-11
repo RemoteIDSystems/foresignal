@@ -1,11 +1,11 @@
 # 067 — Hazard Adapters
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/067-CR-Hazard-Adapters.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -30,7 +30,7 @@ Add three hazard sources: `nhc-cyclones`, `gdacs` and `tsunami-warnings`. Build 
 
 ## Tasks
 
-### 1. Shared CAP 1.2 (`ai.elaro.source.formats.cap`)
+### 1. Shared CAP 1.2 (`ai.foresignal.source.formats.cap`)
 
 **`CapParser.parse(InputStream, CapParseOptions) → CapAlert`:**
 - StAX with DTDs and external entities disabled and entity expansion off; 2 MB input cap.
@@ -49,7 +49,7 @@ Add three hazard sources: `nhc-cyclones`, `gdacs` and `tsunami-warnings`. Build 
 - Geocode-only areas give null geometry, and the geocodes go in the payload. 089 resolves boundaries.
 - Hand the result to the normalizer's `GeometryFixer`.
 
-**`CapThreadResolver`** gives one Elaro record per alert thread:
+**`CapThreadResolver`** gives one Foresignal record per alert thread:
 - `threadKey` = the source's custom key when supplied (tsunami uses incidents; see §4). Otherwise the earliest referenced `{sender}:{identifier}`, looked up through a bounded `identifier → threadKey` map held in adapter state (TTL 14 d, ≤ 20,000 entries). Otherwise the message's own `{sender}:{identifier}`.
 
 **`CapRecordMapper.toRecord(CapAlert, CapMappingProfile) → NormalizedRecord`** (profile: kind, language preference, parameter allowlist, payload text caps):
@@ -74,7 +74,7 @@ Add three hazard sources: `nhc-cyclones`, `gdacs` and `tsunami-warnings`. Build 
 
 **`validFrom` hook:** if 008 did not add `validFrom` to `NormalizedRecord`, the head and the hash inputs, add it as 008 specifies: nullable, hashed like `validUntil`.
 
-### 2. `nhc-cyclones` (`ai.elaro.source.adapters.nhc`)
+### 2. `nhc-cyclones` (`ai.foresignal.source.adapters.nhc`)
 
 - `getConditional("https://www.nhc.noaa.gov/CurrentStorms.json")`. Verified 2026-10: CloudFront sends ETag, Last-Modified and `max-age=300`.
 - Interval 10 min (min 5 min); budget 2/min, 300/day. `zeroResultsNormal` **true** (out of season). STANDARD, ALL, no TTL. Licence `US-PD`.
@@ -96,12 +96,12 @@ Add three hazard sources: `nhc-cyclones`, `gdacs` and `tsunami-warnings`. Build 
 - **Coverage note:** Central Pacific is unverified. The file repackages the AL and EP feeds, and `binNumber` is defined only as AT/EP. Accept `cp` ids when they appear, and document that CPHC storms may be missing (CPHC RSS `https://www.nhc.noaa.gov/index-cp.xml` is not ingested here).
 - Cone, track and forecast points are 075's job; do not parse the GIS links.
 
-### 3. `gdacs` (`ai.elaro.source.adapters.gdacs`)
+### 3. `gdacs` (`ai.foresignal.source.adapters.gdacs`)
 
 - Verified 2026-10: `GET https://www.gdacs.org/gdacsapi/api/events/geteventlist/MAP?eventtype={T}`, where `eventtype` is **required** and takes a single value (a bare or comma-separated request returns 400).
 - Param `eventTypes` (string-list, allowed `EQ, TC, FL, VO, DR, WF`, default all). One request per type, **sequentially**.
 - Interval 15 min (min 10 min); budget 6/min, 700/day. STANDARD, ALL. `recordTtl` 48 h (anchor RECEIVED): each poll touches listed events, and an event missing from the list for 48 h expires.
-- **Keep Green alerts** (World Monitor drops them; Elaro lets triggers filter).
+- **Keep Green alerts** (World Monitor drops them; Foresignal lets triggers filter).
 - **Record:**
   - kind `disaster`, `externalId = {eventtype}:{eventid}` (episodes update one record)
   - revised-event time base: `eventTime = fromdate`, `observedAt = datemodified`
@@ -110,7 +110,7 @@ Add three hazard sources: `nhc-cyclones`, `gdacs` and `tsunami-warnings`. Build 
 - `embedFields = [name, description]`; `tileProperties alertLevel, eventType, alertScore`; `rankField alertScore`.
 - Licence: "GDACS terms of use (disclaimer; no explicit licence)"; `termsUrl` the March 2025 PDF. Its disclaimer applies: alerts are automatic, unreviewed, and no substitute for official warnings. Put it in the descriptor description and in the Agent Guide.
 
-### 4. `tsunami-warnings` (`ai.elaro.source.adapters.tsunami`)
+### 4. `tsunami-warnings` (`ai.foresignal.source.adapters.tsunami`)
 
 - Verified 2026-10: each feed holds **only the latest message**.
   - CAP 1.2: `https://www.tsunami.gov/events/xml/PAAQCAP.xml` (NTWC) and `https://www.tsunami.gov/events/xml/PHEBCAP.xml` (PTWC).

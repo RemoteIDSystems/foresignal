@@ -1,11 +1,11 @@
 # 076 — Cyber Feeds
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/076-CR-Cyber-Feeds.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -27,7 +27,7 @@ Add the cyber-threat sources: the CISA Known Exploited Vulnerabilities catalogue
 
 Common descriptor values unless stated: `historyTier=STANDARD`, policy ALL, `ttlAnchor=RECEIVED`, every text field untrusted for LLM use (prompt 028 rules), all sources **disabled** by default.
 
-### 1. `cisa-kev` (`ai.elaro.source.adapters.cisa`)
+### 1. `cisa-kev` (`ai.foresignal.source.adapters.cisa`)
 
 - `GET https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json` with conditional GET (verified 2026-10: ETag + Last-Modified; `catalogVersion` `2026.10.08`, `count` 1739).
 - One record per entry: `kind = vulnerability`, `externalId = cveID`, no geometry.
@@ -35,15 +35,15 @@ Common descriptor values unless stated: `historyTier=STANDARD`, policy ALL, `ttl
 - Payload: `cveId, vendorProject, product, vulnerabilityName` (trimmed; upstream has leading spaces), `shortDescription, requiredAction, dueDate, knownRansomwareCampaignUse` (`Known|Unknown`), `cwes, notes` (≤ 2 KB), `kev: true`.
 - `titleField = vulnerabilityName`, `searchFields = cveId, vendorProject, product, vulnerabilityName`, `embedFields = vulnerabilityName, shortDescription`, `rankField` none. Interval 6 h (min 1 h), budget 1/min, 20/day. Entries removed from the catalogue (rare) → `AbsenceTombstoner` (prompt 072). Licence: CC0 1.0 (as published with `cisagov/kev-data`; confirm during capture).
 
-### 2. `abusech-feodo` and `abusech-urlhaus` (`ai.elaro.source.adapters.abusech`)
+### 2. `abusech-feodo` and `abusech-urlhaus` (`ai.foresignal.source.adapters.abusech`)
 
-- **`abusech-feodo`:** `GET https://feodotracker.abuse.ch/downloads/ipblocklist.json` (param `list` ∈ `standard` → `ipblocklist.json` (C2s active in the last 30 days, with metadata), `recommended` → `ipblocklist_recommended.json`; default `standard`). Verified 2026-10: keyless, ETag + Last-Modified, regenerated every 5 minutes, and the site banner states the datasets are **currently empty** → `zeroResultsNormal=true`. Record `kind = malware-c2`, `externalId = ip:port`; geometry = the country label point from prompt 040's `CountryCentroids.byIso2` (`ai.elaro.reference`; check it exists, else bundle Natural Earth admin-0 label points and leave a note for 040 to switch it over) with payload `geometryApproximate: true`; payload `ip, port, status, hostname, asn, asName, country, malware, firstSeen, lastOnline`; `observedAt = last_online` (date at 00:00Z), `eventTime = first_seen`. Interval 15 min (min 5 min), budget 2/min, 200/day. Absence tombstones on. Licence CC0 (abuse.ch terms: commercial and non-commercial use without limitation).
+- **`abusech-feodo`:** `GET https://feodotracker.abuse.ch/downloads/ipblocklist.json` (param `list` ∈ `standard` → `ipblocklist.json` (C2s active in the last 30 days, with metadata), `recommended` → `ipblocklist_recommended.json`; default `standard`). Verified 2026-10: keyless, ETag + Last-Modified, regenerated every 5 minutes, and the site banner states the datasets are **currently empty** → `zeroResultsNormal=true`. Record `kind = malware-c2`, `externalId = ip:port`; geometry = the country label point from prompt 040's `CountryCentroids.byIso2` (`ai.foresignal.reference`; check it exists, else bundle Natural Earth admin-0 label points and leave a note for 040 to switch it over) with payload `geometryApproximate: true`; payload `ip, port, status, hostname, asn, asName, country, malware, firstSeen, lastOnline`; `observedAt = last_online` (date at 00:00Z), `eventTime = first_seen`. Interval 15 min (min 5 min), budget 2/min, 200/day. Absence tombstones on. Licence CC0 (abuse.ch terms: commercial and non-commercial use without limitation).
 - **`abusech-urlhaus`:** verified 2026-10: `https://urlhaus-api.abuse.ch/v1/urls/recent/limit/3/` answers **401 Unauthorized** without a key. Required credential `authKey` (free from `auth.abuse.ch`), sent as header `Auth-Key`. `GET https://urlhaus-api.abuse.ch/v1/urls/recent/limit/{n}/` with param `limit` (default 1000, max 1000). Do not use the bulk `downloads/json_recent/` file: it still answered without a key on 2026-10-10 but the API page states every download requires an Auth-Key, and it is 17 MB.
   - Record `kind = malware-url`, `externalId = id`, no geometry; payload `url, urlDefanged` (`hxxp://`, `[.]` in the host), `host, urlStatus, threat, tags, blacklists, reporter, reference` (`urlhaus_reference`); `observedAt = date_added` (fixed), `eventTime = date_added`.
   - Treat `url` as hostile: never render as a link (`fieldSpecs` hint `noLink: true`), never fetch it, never give it to an LLM outside an untrusted block.
   - Interval 15 min (dumps regenerate every 5 minutes; abuse.ch asks not to fetch more often), budget 2/min, 200/day, `recordTtl` 30 d. Licence CC0; note "commercial or for-profit needs may require a Spamhaus subscription" from the API page.
 
-### 3. `nvd-cves` with EPSS bands (`ai.elaro.source.adapters.nvd`)
+### 3. `nvd-cves` with EPSS bands (`ai.foresignal.source.adapters.nvd`)
 
 - **CVE fetch:** `GET https://services.nvd.nist.gov/rest/json/cves/2.0?lastModStartDate={cursor}&lastModEndDate={now}&resultsPerPage=2000&startIndex={k}`. Optional credential `apiKey` sent as header `apiKey`.
   - The window may not exceed 120 days; split if the cursor is older.
@@ -60,14 +60,14 @@ Common descriptor values unless stated: `historyTier=STANDARD`, policy ALL, `ttl
   - Attribution: "EPSS scores from FIRST.org (first.org/epss)".
 - Budget accounting: EPSS calls count against the same source budget; raise the default per-day budget to cover `ceil(ids/100)` daily calls.
 
-### 4. `ct-domain-watch` (`ai.elaro.source.adapters.ct`)
+### 4. `ct-domain-watch` (`ai.foresignal.source.adapters.ct`)
 
 - **Approach (verified 2026-10):** crt.sh polling is rejected (Gap-Analysis §9). Use the SSLMate **Cert Spotter** CT Search API v1: `GET https://api.certspotter.com/v1/issuances?domain={d}&include_subdomains=true&match_wildcards=true&expand=dns_names&expand=issuer&after={cursor}`. Unauthenticated queries are allowed for personal or evaluation use up to an unpublished hourly limit; production use needs an API key (optional credential `apiKey`, sent as `Authorization: Bearer`). The free tier may change without notice, so handle `rate_limited` errors as throttling (honour `Retry-After`).
 - Params: `domains` (string-list, **required**, ≤ 25; each validated as a registrable hostname, IDNA-normalised, no wildcards, ≤ 253 chars), `expectedIssuers` (string-list of issuer friendly names or CAA domains, optional).
 - Per domain: cursor `after:{domain}` in state; page until an empty array (cap 10 pages per run). First run without a cursor lists every unexpired issuance: ingest them, then continue incrementally.
 - Record: `kind = certificate-issuance`, `externalId = id`, no geometry; `observedAtMode=RECEIVED` (the API gives no discovery time), `eventTime = not_before`, `validUntil = not_after` (an upstream-asserted expiry). Payload `watchedDomain, dnsNames` (≤ 100), `issuerName, issuerOperator, issuerCaaDomains, notBefore, notAfter, revoked, certSha256, pubkeySha256`, and `unexpectedIssuer` (true when `expectedIssuers` is set and the issuer matches none; significant, so triggers can fire on it).
 - Interval 1 h (min 15 min), budget 2/min, 48/day without a key (raise when a key is set). Licence: SSLMate API terms (record `termsUrl`).
-- Document the self-hosted alternative in `docs/Operator-Guide.md`: run SSLMate's open-source `certspotter` monitor (MPL-2.0) with a hook script that posts each discovery to a prompt 024 custom PUSH source. Elaro ships no CT log client.
+- Document the self-hosted alternative in `docs/Operator-Guide.md`: run SSLMate's open-source `certspotter` monitor (MPL-2.0) with a hook script that posts each discovery to a prompt 024 custom PUSH source. Foresignal ships no CT log client.
 
 ### 5. Fixtures, docs
 

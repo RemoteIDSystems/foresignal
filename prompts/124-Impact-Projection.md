@@ -1,11 +1,11 @@
 # 124 — Impact Projection
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/124-CR-Impact-Projection.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults, analytic retention, intelligence conventions) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and **`docs/Intelligence-Design.md` is authoritative for the intelligence layer** (situations, findings, precursors, base rates, analogs, the forecast ledger, hypotheses, forecasts, impact projection and analysis cycles).
@@ -18,7 +18,7 @@
 
 ## Objective
 
-Turn the hazard forecasts Elaro already ingests into **probabilistic, scored impact statements**: "Hurricane X: 40% chance of tropical-storm-force winds at Port Y within 48 h; given that, outages are reported in the surrounding admin1 in 55% of comparable cases → 22% chance of an outage report by Thursday 18:00Z." Each statement is a `projected-impact` finding with its inputs and dependency paths, and a ledger question that Elaro resolves from its own outage, aviation and incident sources.
+Turn the hazard forecasts Foresignal already ingests into **probabilistic, scored impact statements**: "Hurricane X: 40% chance of tropical-storm-force winds at Port Y within 48 h; given that, outages are reported in the surrounding admin1 in 55% of comparable cases → 22% chance of an outage report by Thursday 18:00Z." Each statement is a `projected-impact` finding with its inputs and dependency paths, and a ledger question that Foresignal resolves from its own outage, aviation and incident sources.
 
 ## Principles (binding)
 
@@ -28,7 +28,7 @@ Turn the hazard forecasts Elaro already ingests into **probabilistic, scored imp
 
 ## Tasks
 
-### 1. Hazard inputs (`ai.elaro.impact.hazard`)
+### 1. Hazard inputs (`ai.foresignal.impact.hazard`)
 
 `HazardForecast` = `{hazardType, source record ref (pinned), validFrom, validTo, geometry or probability field, probabilityModel, issuedAt}`. Adapters from existing records:
 
@@ -82,7 +82,7 @@ Turn the hazard forecasts Elaro already ingests into **probabilistic, scored imp
 ## Acceptance criteria
 
 - Hazard forecasts with published probabilities produce `projected-impact` findings that combine them with historical conditional rates, exposed assets and dependency paths.
-- Projections above the threshold become ledger questions that resolve from Elaro's own sources and are scored.
+- Projections above the threshold become ledger questions that resolve from Foresignal's own sources and are scored.
 - Cones and categorical labels are never used as probabilities on their own.
 - Compiles.
 

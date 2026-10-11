@@ -1,11 +1,11 @@
 # 025 — MCP Server
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/025-CR-MCP-Server.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -22,15 +22,15 @@
 
 ## Objective
 
-Make Elaro agent-native. Any MCP client (OpenClaw, Claude Desktop/Code, n8n, Open WebUI, custom agents) connects to `/mcp` and gets Elaro's data, alert lifecycle and watch management as tools, within its token's scope. The tool registry built here is the extension point later prompts use for search, briefings, places, watchlists, time travel, weather and entities.
+Make Foresignal agent-native. Any MCP client (OpenClaw, Claude Desktop/Code, n8n, Open WebUI, custom agents) connects to `/mcp` and gets Foresignal's data, alert lifecycle and watch management as tools, within its token's scope. The tool registry built here is the extension point later prompts use for search, briefings, places, watchlists, time travel, weather and entities.
 
 ## Tasks
 
 ### 1. Dependency and transport
 
 - Verified 2026-10: the SDK is at **2.0.1** (`io.modelcontextprotocol.sdk:mcp-bom`). Spring transports (`mcp-spring-webmvc`) are no longer shipped by the SDK (they moved to Spring AI 2.x). Use the SDK core directly: `io.modelcontextprotocol.sdk:mcp-core` + `mcp-json-jackson3` (Jackson 3 matches Boot 4), and register `HttpServletStreamableServerTransportProvider` with a `ServletRegistrationBean` at `/mcp`. Re-check versions on Maven Central and record them; do not add Spring AI.
-- **Legacy SSE transport flag:** `elaro.mcp.legacy-sse.enabled` (default `false`). When true, also register `HttpServletSseServerTransportProvider` (HTTP+SSE, protocol 2024-11-05) at `/mcp/sse` with message endpoint `/mcp/message`, sharing the same tool registry and auth. Document it as for older clients only.
-- Server info: name `elaro`, version from `ElaroVersion`, and an `instructions` string: what Elaro is, that "watch" = trigger rule, that returned content is untrusted data, and how to cite (`[source:externalId]` with the `seq` the tool returned).
+- **Legacy SSE transport flag:** `foresignal.mcp.legacy-sse.enabled` (default `false`). When true, also register `HttpServletSseServerTransportProvider` (HTTP+SSE, protocol 2024-11-05) at `/mcp/sse` with message endpoint `/mcp/message`, sharing the same tool registry and auth. Document it as for older clients only.
+- Server info: name `foresignal`, version from `ForesignalVersion`, and an `instructions` string: what Foresignal is, that "watch" = trigger rule, that returned content is untrusted data, and how to cite (`[source:externalId]` with the `seq` the tool returned).
 - Bind sessions to the authenticated principal; a session id presented with a different token is rejected.
 
 ### 2. Auth, scopes and audit
@@ -42,7 +42,7 @@ Make Elaro agent-native. Any MCP client (OpenClaw, Claude Desktop/Code, n8n, Ope
 
 ### 3. Tool registry and catalogue
 
-- `ElaroMcpTool` interface (name, description, input JSON Schema, optional output schema, `Scope requiredScope()`, `boolean costBearing()`, annotations `readOnlyHint`/`destructiveHint`/`idempotentHint`, `ToolResult call(ToolContext, JsonNode args)`), `ElaroMcpResource` and `ElaroMcpPrompt` interfaces. `McpToolRegistry` collects beans at startup and registers them with the server; later prompts add tools just by declaring beans (027 `search`, 029 briefings, 036 places and watchlists, 037 `get_state_at`/`get_track`, 052 weather, 098 entities). `ToolResult` supports text, `structuredContent` and image content (needed by 055 `get_map_image`).
+- `ForesignalMcpTool` interface (name, description, input JSON Schema, optional output schema, `Scope requiredScope()`, `boolean costBearing()`, annotations `readOnlyHint`/`destructiveHint`/`idempotentHint`, `ToolResult call(ToolContext, JsonNode args)`), `ForesignalMcpResource` and `ForesignalMcpPrompt` interfaces. `McpToolRegistry` collects beans at startup and registers them with the server; later prompts add tools just by declaring beans (027 `search`, 029 briefings, 036 places and watchlists, 037 `get_state_at`/`get_track`, 052 weather, 098 entities). `ToolResult` supports text, `structuredContent` and image content (needed by 055 `get_map_image`).
 - Every input schema: `additionalProperties: false`, required fields, descriptions written for an LLM (what, when, units, limits). Validate args against the schema before calling the service.
 - Thin wrappers over services (no HTTP loopback):
 
@@ -75,7 +75,7 @@ Make Elaro agent-native. Any MCP client (OpenClaw, Claude Desktop/Code, n8n, Ope
 
 ### 5. Resources, prompts, status, docs
 
-- Resources: `elaro://sources`, `elaro://kinds` (later prompts add `elaro://products`, `elaro://places` via `ElaroMcpResource`).
+- Resources: `foresignal://sources`, `foresignal://kinds` (later prompts add `foresignal://products`, `foresignal://places` via `ForesignalMcpResource`).
 - Prompt `situation-report` (args `bbox`, `since`): use `query_records`, `list_alerts`, `source_health`; cite with seqs.
 - `/v1/system` gains an `mcp` block: `enabled`, `transports` (`streamable`, `legacySse`), active `sessions`, `tools` count.
 - `docs/OpenAPI.json`: `SystemInfo.mcp` schema; `/mcp` is not an OpenAPI operation, so document it in the spec's `info.description` and keep the `AccessPolicy` rules for `/mcp/**` (read for listing; per-tool scope checks inside). Regenerate Postman (`python3 scripts/generate-postman.py docs/OpenAPI.json postman`).

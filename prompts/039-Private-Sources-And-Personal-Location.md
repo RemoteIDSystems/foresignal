@@ -1,11 +1,11 @@
 # 039 — Private Sources And Personal Location
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/039-CR-Private-Sources-And-Personal-Location.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -36,7 +36,7 @@
 
 ## Objective
 
-Make it safe to feed family phones and personal trackers into Elaro.
+Make it safe to feed family phones and personal trackers into Foresignal.
 
 - A `private` source is invisible on every read and egress path unless the caller is explicitly allowed.
 - The four common tracker apps can push without custom glue.
@@ -45,7 +45,7 @@ Make it safe to feed family phones and personal trackers into Elaro.
 
 ## Tasks
 
-### 1. Visibility model (`ai.elaro.security.visibility`)
+### 1. Visibility model (`ai.foresignal.security.visibility`)
 
 - Effective privacy = descriptor `private` (008) **OR** `CustomSourceInput.private` **OR** `source_settings.private`. An admin can tighten a source this way but cannot make a descriptor-private source public.
 - `SourceVisibility`:
@@ -73,7 +73,7 @@ Apply each item below and test it.
 - **Later egress hooks:** add an `EgressPolicy.allows(path, sourceId, principal)` interface, with paths EXPORT, SINK, FEDERATION, SHARE and FEED. Prompts 058, 110, 111, 112 and 113 must call it. Document this in Architecture.
 - **Audit (023):** every private-data read by a non-admin principal, and every export or purge.
 
-### 3. Personal-location ingest formats (024 `IngestFormat` SPI, `ai.elaro.inbound.formats.location`)
+### 3. Personal-location ingest formats (024 `IngestFormat` SPI, `ai.foresignal.inbound.formats.location`)
 
 Each format owns its auth, its reply shape and its field mapping. Every one of them maps to kind `tracker`.
 
@@ -144,7 +144,7 @@ Each format owns its auth, its reply shape and its field mapping. Every one of t
   - operations for the device CRUD and rotate, `exportRecord`, `purgeRecord` and `purgeDevice` (admin), and the ingest format paths (`/v1/ingest/{sourceId}/{format}` plus the `k/{key}` variants and GET for `osmand`/`gpslogger`)
   - `purged` on `Change`; schemas `IngestDevice`, `IngestDeviceCreated`, `PurgeReport`
   - error codes `DEVICE_ENTITY_MISMATCH`, `LOW_ACCURACY` (rejection reason)
-- Each operation gets `x-elaro-scope`. Add `BODIES` entries for the device create and purge, then regenerate Postman.
+- Each operation gets `x-foresignal-scope`. Add `BODIES` entries for the device create and purge, then regenerate Postman.
 - `AccessPolicy`: `GET` and `POST /v1/ingest/**` → `INGEST_KEY_OR_ADMIN` (including device keys and path keys); admin for the export and purge paths, which must sit before the `/v1/records/**` READ rule.
 - `docs/Operator-Guide.md` "Personal location and privacy":
   - setup per app

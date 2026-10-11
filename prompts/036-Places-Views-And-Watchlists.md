@@ -1,11 +1,11 @@
 # 036 — Places Views And Watchlists
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/036-CR-Places-Views-And-Watchlists.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -14,7 +14,7 @@
 ## Read first
 
 - `docs/Gap-Analysis.md` §1 items 2 and 7, §5 (Watchlists, Moving-anchor rows), §6 (Places, saved views row), §8 item 21 ("028b")
-- `docs/Weather-Imagery-Design.md` §2.3 (`place` entity; `trigger_rule.near`, `cooldown_scope`), §5.1 "Places AOI", §6.5 (`/v1/places`), §6.9 (place MCP tools, `elaro://places`), §6.11 (AccessPolicy, `UNKNOWN_PLACE`), §7.3 (near materialised into `geofence`; deleting a place), §10.2 row "033 Places-And-AOI" (= this prompt)
+- `docs/Weather-Imagery-Design.md` §2.3 (`place` entity; `trigger_rule.near`, `cooldown_scope`), §5.1 "Places AOI", §6.5 (`/v1/places`), §6.9 (place MCP tools, `foresignal://places`), §6.11 (AccessPolicy, `UNKNOWN_PLACE`), §7.3 (near materialised into `geofence`; deleting a place), §10.2 row "033 Places-And-AOI" (= this prompt)
 - `docs/Core-Data-Model.md` §11 (edge SQL, `TriggerPersistGate` exact evaluation, shared operator truth table), §12 (query paths)
 - Completion Reports of 008 (`entityKeys` descriptor field), 014 (`near`/`radiusKm`, formats), 015 (filters, PATCH), 016 (tiles, TileJSON), 017 (set operators, source/kind arrays, `near`, `cooldownScope`, buffered LineString fences), 023 (`alwaysAuthenticated`, audit), 025, 028, 029, 035 (`RestrictionClamp`, `ReadRestriction.placeIds` hook)
 
@@ -24,7 +24,7 @@ Give every rule, view, briefing, Ask scope and client one shared vocabulary for 
 
 ## Tasks
 
-### 1. Places (`ai.elaro.place`)
+### 1. Places (`ai.foresignal.place`)
 
 - `PlaceEntity` (`place`), generalising the Weather design's point-only table: `id` slug PK (`^[a-z0-9]+(-[a-z0-9]+)*$`, ≤ 64), `name`, `shape` (`point|polygon|route`), `geom` geometry(Geometry, 4326) (Point, Polygon/MultiPolygon, LineString), `radius_km` (point; default 20, 0.1–500), `buffer_m` (route; 10–50,000), `area` geometry(MultiPolygon, 4326) **derived** on save (`ST_Buffer(geom::geography, r)::geometry` for points and routes, the polygon itself for polygons; `GeometryFixer`, ≤ 10,000 vertices), `timezone` (IANA, default server zone), `kind` (`user|airport|asset`), `tags` text[], `products` jsonb (weather product ids for place-weather, used by 052), `sensitive` (default true), `version` int, `created_at`, `updated_at`. GiST on `area` (SchemaBootstrap; 131 adds it to Flyway).
 - API: `GET /v1/places` (filter `kind`, `tag`), `POST /v1/places`, `GET/PUT/DELETE /v1/places/{placeId}`. Reads need `read` and are `alwaysAuthenticated` (a home location is sensitive even with `openReads`); writes need `agent`. 404 `UNKNOWN_PLACE`. `DELETE` → 409 `PLACE_IN_USE` listing referencing rules, views and briefings, unless `?force=true`, which disables those rules (document that tombstoned place-weather records can fire exit rules, per the Weather design).
@@ -38,14 +38,14 @@ Give every rule, view, briefing, Ask scope and client one shared vocabulary for 
 - Check 017 for `trigger_rule.near` jsonb and materialisation into `geofence`; add or extend it to: `near: {placeIds: [..] | placeId, radiusKm?}` (geofence = union of `area`, buffered by `radiusKm` when given), `near: {point: [lon, lat], radiusKm}`, and the anchor form in task 5. Store `geofence_origin` (`inline|near`). On `PlaceChangedEvent`, re-materialise every referencing rule in one transaction and refresh the gate snapshot.
 - Semantics of a place edit (document): both `v` and `p` are evaluated against the current fence, and the gate compares persisted state under the current fence, so editing a place never fires edges for stationary entities; an entity that moves after the edit converges on its next observation. Record `context.near = {placeIds, placeVersions}` on each alert.
 
-### 3. Saved views (`ai.elaro.view`)
+### 3. Saved views (`ai.foresignal.view`)
 
 - `SavedViewEntity` (`saved_view`): `id` uuid, `slug` unique, `name`, `sources` text[], `kinds` text[], `place_ids` text[], `bbox`, `area` MultiPolygon, `conditions` jsonb (the 017 `Condition` grammar including `in/notIn/exists/matches/startsWith` and `inWatchlist`; max 20), `time_field`, `include_expired`, `fields` (projection whitelist of validated top-level-rooted JSON paths, max 50), `version`, `created_at`, `updated_at`.
 - `RecordPredicate`: one compiled form shared by rules and views, rendered to SQL by the 017 predicate renderer (alias parameter, bound paths and values) and evaluated in Java by the `TriggerPersistGate` evaluator for streams. Views and rules must consume `trigger/operator-truth-table.json`.
 - Rendering: `GET /v1/views/{id}/records` (all 014 formats, keyset pagination, `fields` projection as bound `payload #> :path`), `GET /v1/views/{id}/tiles/{z}/{x}/{y}.mvt` and `/v1/views/{id}/tiles.json` (cache key includes `version`), `GET /v1/views/{id}/stream` (015 SSE with the view's predicate; `leftFilter` semantics unchanged). Also a `view=<id|slug>` parameter on `/v1/records`, `/v1/changes`, `/v1/changes/stream`, `/v1/events/stream` and `/v1/search`, intersected with any other filters and with 035 restrictions.
 - CRUD: `GET/POST /v1/views`, `GET/PUT/DELETE /v1/views/{id}` (definitions: read token; writes: agent). View data follows normal data-read rules (`openReads`) unless the view references a place or watchlist, in which case a token is required.
 
-### 4. Watchlists (`ai.elaro.watch`)
+### 4. Watchlists (`ai.foresignal.watch`)
 
 - `watch_list`: `id` uuid, `name`, `identity` (`icao24|registration|callsign|mmsi|imo|custom`), `normalize` (`upper|lower|digits|none`; defaults: icao24/registration/callsign `upper`, mmsi/imo `digits`), `description`, `item_count`, `created_at`, `updated_at`. `watch_list_item`: `list_id`, `value` (normalised), `label`, `notes`, `tags` text[], `added_at`, `origin` (`manual|csv|json`); unique (`list_id`, `value`). Cap 100,000 items per list.
 - API (agent scope for reads and writes): CRUD `/v1/watchlists`, `GET/POST/DELETE /v1/watchlists/{id}/items`, `POST /v1/watchlists/{id}/import` (`text/csv` with header `value[,label,notes,tags]`, or JSON array; `mode=merge|replace`; `dryRun=true` returns adds/updates/removals/invalid rows; ≤ 5 MB), `GET /v1/watchlists/{id}/export` (`text/csv`). Validate values per identity (icao24 = 6 hex; mmsi = 9 digits; imo = 7 digits with check digit). Audit every edit (023).
@@ -67,12 +67,12 @@ Give every rule, view, briefing, Ask scope and client one shared vocabulary for 
 ### 6. Scopes, MCP and export
 
 - Briefing scope (029) and Ask scope (028) accept `placeIds` and `viewId`: resolved server-side to areas and predicates; the LLM receives place **names** and km-rounded distances, never coordinates. Add `{place}` to the briefing digest headings.
-- MCP tools (025 registry): `list_places`, `get_place`, `records_near_place` (read); `create_place`, `update_place`, `delete_place` (agent); `list_views`, `get_view_records` (read), `create_view` (agent); `list_watchlists`, `get_watchlist` (agent), `add_to_watchlist`, `remove_from_watchlist` (agent). Resource `elaro://places` (names, shapes, radius; coordinates only in `detail=long` for agent tokens). Ask gains `propose_view`. `create_watch`/`update_watch` schemas gain `near` and `inWatchlist`.
+- MCP tools (025 registry): `list_places`, `get_place`, `records_near_place` (read); `create_place`, `update_place`, `delete_place` (agent); `list_views`, `get_view_records` (read), `create_view` (agent); `list_watchlists`, `get_watchlist` (agent), `add_to_watchlist`, `remove_from_watchlist` (agent). Resource `foresignal://places` (names, shapes, radius; coordinates only in `detail=long` for agent tokens). Ask gains `propose_view`. `create_watch`/`update_watch` schemas gain `near` and `inWatchlist`.
 - Settings export/import (019): places, views and watchlists behind `includePlaces`/`includeWatchlists` flags (default false; export warns that places reveal locations).
 
 ### 7. Spec, Postman, docs
 
-- `docs/OpenAPI.json`: tags `Places`, `Views`, `Watchlists`; schemas `Place`, `PlaceInput`, `PlacesAoi`, `SavedView`, `SavedViewInput`, `Watchlist`, `WatchlistInput`, `WatchlistItem`, `WatchlistImportResult`, `Near` (oneOf places/point/anchor), `Condition.op` + `inWatchlist`/`notInWatchlist`; operations above with `x-elaro-scope` (places/views reads `read`, places/views writes `agent`, watchlists `agent`), `GET /v1/places/aoi` (`read`); `place`, `view`, `inWatchlist` params on records, history, tiles, changes, streams, search; codes `UNKNOWN_PLACE`, `PLACE_IN_USE`, `UNKNOWN_VIEW`, `UNKNOWN_WATCHLIST`, `WATCHLIST_TOO_LARGE`, `ANCHOR_STALE`. Update `AccessPolicy` (specific rules before `/v1/records/**`), BODIES examples (including a CSV import), regenerate Postman.
+- `docs/OpenAPI.json`: tags `Places`, `Views`, `Watchlists`; schemas `Place`, `PlaceInput`, `PlacesAoi`, `SavedView`, `SavedViewInput`, `Watchlist`, `WatchlistInput`, `WatchlistItem`, `WatchlistImportResult`, `Near` (oneOf places/point/anchor), `Condition.op` + `inWatchlist`/`notInWatchlist`; operations above with `x-foresignal-scope` (places/views reads `read`, places/views writes `agent`, watchlists `agent`), `GET /v1/places/aoi` (`read`); `place`, `view`, `inWatchlist` params on records, history, tiles, changes, streams, search; codes `UNKNOWN_PLACE`, `PLACE_IN_USE`, `UNKNOWN_VIEW`, `UNKNOWN_WATCHLIST`, `WATCHLIST_TOO_LARGE`, `ANCHOR_STALE`. Update `AccessPolicy` (specific rules before `/v1/records/**`), BODIES examples (including a CSV import), regenerate Postman.
 - `docs/Architecture.md`: new sections Places and AOI, Saved views, Watchlists, Moving anchors (amend §8.3/§11 trigger text). Charter FRs for places, views, watchlists and near-me. `docs/Agent-Guide.md` recipes: "track these 40 tails across every aircraft source", "alert me when an M5+ quake is within 150 km of my phone".
 
 ## Tests to write (do not run)

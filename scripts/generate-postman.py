@@ -25,7 +25,7 @@ BODIES = {
                     "cooldown": "1h", "messageTemplate": "{{payload.name}} ({{externalId}}) entered Hormuz"},
   "createChannel": {"name": "ntfy phone", "type": "ntfy", "config": {"serverUrl": "https://ntfy.sh", "topic": "REPLACE_TOPIC"},
                     "secrets": {}, "events": ["alert", "briefing", "system"], "ruleIds": None, "minSeverity": "warning", "enabled": True},
-  "updateChannel": {"name": "Slack #ops", "type": "slack", "config": {"username": "Elaro"},
+  "updateChannel": {"name": "Slack #ops", "type": "slack", "config": {"username": "Foresignal"},
                     "secrets": {"webhookUrl": "https://hooks.slack.com/services/REPLACE"}, "events": ["alert", "briefing"], "ruleIds": None,
                     "minSeverity": "info", "waitForEnrichmentSeconds": 20, "enabled": True},
   "createToken": {"name": "openclaw-agent", "scope": "agent", "expiresAt": None},
@@ -54,7 +54,7 @@ BODIES = {
   "createPushSubscription": {"name": "Laptop browser", "subscription": {"endpoint": "https://push.example/REPLACE",
                              "keys": {"p256dh": "REPLACE", "auth": "REPLACE"}}, "filters": {"events": ["alert"], "minSeverity": "warning"}},
   "updateSecuritySettings": {"openReads": True},
-  "updateServerSettings": {"publicBaseUrl": "http://elaro.local:8080"},
+  "updateServerSettings": {"publicBaseUrl": "http://foresignal.local:8080"},
   "updateRetention": {"default": "7d", "alerts": "90d", "usage": "30d", "briefings": "180d", "ask": "90d", "sources": {"usgs-earthquakes": "3650d"}},
   "updateCors": {"readOrigins": ["*"], "writeOrigins": ["http://localhost:5173"]},
   "importSettings": {"sources": {"usgs-earthquakes": {"enabled": True, "interval": "60s"}},
@@ -92,7 +92,7 @@ def example_for(schema):
 
 def req_item(path, method, op):
     opid = op["operationId"]
-    scope = op.get("x-elaro-scope", "open")
+    scope = op.get("x-foresignal-scope", "open")
     admin = scope in ("agent", "admin")
     pm_path = re.sub(r"\{(\w+)\}", lambda m: "{{" + PATH_VARS.get(m.group(1), m.group(1)) + "}}", path)
     raw = "{{baseUrl}}" + pm_path
@@ -120,7 +120,7 @@ def req_item(path, method, op):
                "description": (op.get("description") or op.get("summary", "")) + f"\n\noperationId: `{opid}`"}
     if opid == "ingestRecords":
         request["auth"] = {"type": "noauth"}
-        request["header"].append({"key": "X-Elaro-Ingest-Key", "value": "{{ingestKey}}"})
+        request["header"].append({"key": "X-Foresignal-Ingest-Key", "value": "{{ingestKey}}"})
     elif admin:
         var = "{{agentToken}}" if scope == "agent" else "{{adminToken}}"
         request["auth"] = {"type": "bearer", "bearer": [{"key": "token", "value": var, "type": "string"}]}
@@ -164,7 +164,7 @@ def step(n, opid, name=None, overrides=None):
     return it
 
 quickstart = {"name": "00 Quickstart — USGS end to end",
-  "description": "Run in order (Collection Runner works). Set `adminToken` first (from `docker compose logs elaro | grep -A3 \"ELARO ADMIN TOKEN\"`). Enables USGS earthquakes, creates an enter-mode M≥4.5 rule, waits, and reads data back. SSE requests are left in the Streams folder (run them manually; Postman shows events live).",
+  "description": "Run in order (Collection Runner works). Set `adminToken` first (from `docker compose logs foresignal | grep -A3 \"FORESIGNAL ADMIN TOKEN\"`). Enables USGS earthquakes, creates an enter-mode M≥4.5 rule, waits, and reads data back. SSE requests are left in the Streams folder (run them manually; Postman shows events live).",
   "item": [
     step(1, "getSystem", "System status"),
     step(2, "listSources", "List sources"),
@@ -199,8 +199,8 @@ streams = {"name": "Streams (SSE — run manually)", "description": "Postman dis
                     dict(by_id["askStream"], name="Ask (streaming)")]}
 
 collection = {
-  "info": {"_postman_id": str(uuid.uuid5(uuid.NAMESPACE_URL, "https://elaro.ai/postman")), "name": "Elaro API",
-           "description": f"{spec['info']['description']}\n\nGenerated from docs/OpenAPI.json (v{spec['info']['version']}). Every operation is included, grouped by tag. Admin operations use Bearer `{{{{adminToken}}}}`, agent operations `{{{{agentToken}}}}` (defaults to the admin token; set it to an agent-scope token to test scopes), ingest uses `X-Elaro-Ingest-Key: {{{{ingestKey}}}}`, and reads use no auth (open while openReads is on). Test scripts capture ids into collection variables (ruleId, channelId, alertId, briefingId, threadId, ingestKey, externalId, lastSeq, cursor…).",
+  "info": {"_postman_id": str(uuid.uuid5(uuid.NAMESPACE_URL, "https://foresignal.ai/postman")), "name": "Foresignal API",
+           "description": f"{spec['info']['description']}\n\nGenerated from docs/OpenAPI.json (v{spec['info']['version']}). Every operation is included, grouped by tag. Admin operations use Bearer `{{{{adminToken}}}}`, agent operations `{{{{agentToken}}}}` (defaults to the admin token; set it to an agent-scope token to test scopes), ingest uses `X-Foresignal-Ingest-Key: {{{{ingestKey}}}}`, and reads use no auth (open while openReads is on). Test scripts capture ids into collection variables (ruleId, channelId, alertId, briefingId, threadId, ingestKey, externalId, lastSeq, cursor…).",
            "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"},
   "item": [quickstart, quickstart2, streams] + folders,
   "variable": [{"key": k, "value": v} for k, v in [
@@ -210,11 +210,11 @@ collection = {
       ("lastSeq", "0"), ("cursor", ""),
       ("tileLayer", "earthquake"), ("tileZ", "0"), ("tileX", "0"), ("tileY", "0")]],
 }
-env = {"id": str(uuid.uuid5(uuid.NAMESPACE_URL, "https://elaro.ai/postman/env/local")), "name": "Elaro — Local",
+env = {"id": str(uuid.uuid5(uuid.NAMESPACE_URL, "https://foresignal.ai/postman/env/local")), "name": "Foresignal — Local",
        "values": [{"key": "baseUrl", "value": "http://localhost:8080", "type": "default", "enabled": True},
                   {"key": "adminToken", "value": "", "type": "secret", "enabled": True}],
        "_postman_variable_scope": "environment"}
-(outdir / "Elaro.postman_collection.json").write_text(json.dumps(collection, indent=2))
-(outdir / "Elaro-Local.postman_environment.json").write_text(json.dumps(env, indent=2))
+(outdir / "Foresignal.postman_collection.json").write_text(json.dumps(collection, indent=2))
+(outdir / "Foresignal-Local.postman_environment.json").write_text(json.dumps(env, indent=2))
 ops = {i["_opid"] for i in items}
 print(len(items), "requests across", len(folders), "tag folders; quickstart", len(quickstart["item"]), "steps; covers all ops:", ops == {op["operationId"] for p in spec["paths"].values() for m, op in p.items() if m != "parameters"})

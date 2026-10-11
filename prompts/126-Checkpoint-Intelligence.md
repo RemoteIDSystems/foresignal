@@ -1,11 +1,11 @@
 # 126 — Checkpoint Intelligence
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/126-CR-Checkpoint-Intelligence.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults, analytic retention, intelligence conventions) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and **`docs/Intelligence-Design.md` is authoritative for the intelligence layer** (situations, findings, precursors, base rates, analogs, the forecast ledger, hypotheses, forecasts, impact projection and analysis cycles).
@@ -27,15 +27,15 @@ Run the whole suite built so far (001–125) and fix what fails. The intelligenc
 2. Triage failures by root cause and group them. Fix production code. Change a test only if it asserts the wrong thing, and document each such change with the reason.
 3. Re-run until green. Record pass/fail counts per run and every fix in the Completion Report.
 4. Scrutinise these focus areas. Where a required test is missing, write it, run it and fix what it finds:
-   1. **Golden statistics.** Every function in `ai.elaro.analytics.math` and the 123 forecasting methods has a golden-value test against reference values computed independently (document the source of each reference value: a textbook example, a published table, or a calculation shown in the test). Brier, log, RPS, CRPS, Murphy and CORP decompositions sum correctly.
+   1. **Golden statistics.** Every function in `ai.foresignal.analytics.math` and the 123 forecasting methods has a golden-value test against reference values computed independently (document the source of each reference value: a textbook example, a published table, or a calculation shown in the test). Brier, log, RPS, CRPS, Murphy and CORP decompositions sum correctly.
    2. **Determinism.** A `DeterminismTest` runs every detector, scorer, updater, forecaster and miner twice on identical inputs, seeds and `asOfSeq`, and asserts identical output (including permutation, placebo and bootstrap statistics).
    3. **No look-ahead.** A `LookAheadTest` inserts records and series points after a cutoff and asserts unchanged outputs for: event studies (batch and live), precursor discovery and validation windows, method selection (123), index fitting, retrospective evaluation (121) and analog search (120). Live pre-event checks ignore points whose `knownAt` is after the event.
    4. **Wording.** Every template (revision rationale, assessment sections, finding explanations, precursor descriptions) and every text fixture passes `EstimativeLanguage.lint`; a test generates each template across all ICD bands.
    5. **Egress.** An `IntelligenceEgressTest` seeds private and LOCAL_ONLY inputs (a private source, FRED and ACLED-derived data) and asserts they never appear in `openReads` responses, non-local tokens' responses, SSE payloads, MCP tool output, tiles, embeddings sent to a cloud provider, or LLM request fixtures (derived standardised statistics are allowed where the docs say so).
    6. **Durable cursors.** The retention consumer clamp includes `situation.cursor`, `stats.region.cursor`, `precursor.cursor` and `impact.cursor`; each subscriber resumes exactly once after a restart.
    7. **Ledger integrity.** Forecasts are immutable; `made_at` and `asof_seq` are server-set; annulled questions are never scored; time-averaged scoring carries forecasts forward; LLM caps and Platt recalibration apply only to their forecasters.
-   8. **API surface.** Every new endpoint from 116–125 is in `docs/OpenAPI.json` with `x-elaro-scope`, in AccessPolicy and in the Postman collection; 020's drift and coverage tests pass; `src/test/resources/openapi/pending-operations.txt` lists only operations that are genuinely not built.
-   9. **Coverage.** Run `./gradlew jacocoTestReport` and report line coverage for `ai.elaro.attention`, `situation`, `analytics`, `precursor`, `baserate`, `forecast`, `hypothesis`, `outlook`, `impact` and `cycle`. Raise any package under 85% toward 90% with meaningful tests, or explain why not.
+   8. **API surface.** Every new endpoint from 116–125 is in `docs/OpenAPI.json` with `x-foresignal-scope`, in AccessPolicy and in the Postman collection; 020's drift and coverage tests pass; `src/test/resources/openapi/pending-operations.txt` lists only operations that are genuinely not built.
+   9. **Coverage.** Run `./gradlew jacocoTestReport` and report line coverage for `ai.foresignal.attention`, `situation`, `analytics`, `precursor`, `baserate`, `forecast`, `hypothesis`, `outlook`, `impact` and `cycle`. Raise any package under 85% toward 90% with meaningful tests, or explain why not.
 
 ## Acceptance criteria
 

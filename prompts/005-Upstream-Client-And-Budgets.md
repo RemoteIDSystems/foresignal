@@ -1,11 +1,11 @@
 # 005 — Upstream Client And Budgets
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/005-CR-Upstream-Client-And-Budgets.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, and `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump.
 - **Previous Completion Report:** read `completion-reports/004-CR-*.md` and follow its "Notes for the next prompt".
 
@@ -21,7 +21,7 @@ Make every upstream request budgeted, metered, identifiable and polite. After th
 
 ## Tasks
 
-### 1. BudgetGovernor (`ai.elaro.collect`)
+### 1. BudgetGovernor (`ai.foresignal.collect`)
 
 - **Buckets:** one Bucket4j `Bucket` per source with two limits:
   - **per minute:** capacity `perMinute`, greedy refill of `perMinute` per 1 minute
@@ -74,7 +74,7 @@ Make every upstream request budgeted, metered, identifiable and polite. After th
 - **`openWebSocket(uri, listener, headers)`:**
   - consumes **one** budget unit per connection attempt, sets the User-Agent, and returns the `WebSocket`
   - metering counts the connection as one request; streaming adapters report received bytes via `UsageMeter.record` through a helper on `StreamContext`
-- **Exceptions** (in `ai.elaro.collect`): `BudgetExceededException`, `InBackoffException`, `UpstreamHttpException(int status, String bodySnippet)`, `UpstreamIOException` (wrapping IO and timeout).
+- **Exceptions** (in `ai.foresignal.collect`): `BudgetExceededException`, `InBackoffException`, `UpstreamHttpException(int status, String bodySnippet)`, `UpstreamIOException` (wrapping IO and timeout).
 
 ### 5. RequestRecorder
 
@@ -88,7 +88,7 @@ These supersede anything above that conflicts with them. Sources: `docs/Core-Dat
 - **`UsageMeter.recordIngest(sourceId, IngestCounts)`:** `SourceUsageEntity` gains `records_seen`, `versions`, `live_updates`, `touches`, `late`, `skipped`, `rejected` and `version_bytes`, and the flush upsert accumulates them.
 - **New `SourceHttp` methods:**
   - **`getRange(url, start, end, maxBytes)`:** accepts only 206 (or 200 when `start=0`), rejects short bodies, follows no redirects.
-  - **`download(url, Path tmp, maxBytes)`:** streams to a temp file under `${ELARO_DATA_DIR}/rasters/tmp`.
+  - **`download(url, Path tmp, maxBytes)`:** streams to a temp file under `${FORESIGNAL_DATA_DIR}/rasters/tmp`.
   - **`listS3(bucket, prefix, startAfter)`:** anonymous ListObjectsV2 against public buckets, with XML parsed safely (no XXE). It returns keys, sizes and ETags.
   - **Response cap:** the descriptor's `maxResponseBytes` overrides the 32 MB default.
 - **`LAN_URL` connections:** connect to the IP pinned during validation (prompt 004), keep the original Host header, and disable redirects.

@@ -1,11 +1,11 @@
 # 014 — Records Changes API
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/014-CR-Records-Changes-API.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -27,7 +27,7 @@ Serve stored data to clients: current state from `record_head ⋈ record_live`, 
 
 ## Tasks
 
-### 1. Shared parameters (`ai.elaro.api.support`)
+### 1. Shared parameters (`ai.foresignal.api.support`)
 
 - `BboxParser` → `BboxFilter(List<Envelope>)`: `minLon,minLat,maxLon,maxLat`, lon in [-180, 180], lat in [-90, 90], `minLat < maxLat`. **When `minLon > maxLon` the box crosses the antimeridian: split it into `[minLon,180]` and `[-180,maxLon]`** and OR the two envelopes in SQL. Replace the v1.1 rejection; prompt 015 and 016 reuse this parser.
 - `NearParser`: `near=lon,lat` (GeoJSON order, same as bbox) plus `radiusKm` (0 < r ≤ 2000, required with `near`). SQL: a degree-envelope prefilter `l.geom && ST_Expand(point, :dLat/:dLon)` (computed conservatively in Java, with `cos(lat)` clamped and antimeridian split), then `ST_DWithin(l.geom::geography, :pt::geography, :radiusM)`.
@@ -37,9 +37,9 @@ Serve stored data to clients: current state from `record_head ⋈ record_live`, 
 - `precision` 0–7 (default 7) → `ST_AsGeoJSON(geom, :precision)`. Storage precision is unchanged.
 - `simplify` metres (0–100,000): `ST_Transform(ST_SimplifyPreserveTopology(ST_Transform(geom, 3857), :m / cos(radians(ST_Y(ST_Centroid(geom))))), 4326)`; points pass through untouched. Document that topology is preserved per feature only.
 - `limit`: default 500, max 5,000 (history 50,000); out of range → 400.
-- Statement timeout `elaro.api.query.statementTimeout` (default 30 s) on every query in this prompt (`SET LOCAL statement_timeout` in a read-only transaction).
+- Statement timeout `foresignal.api.query.statementTimeout` (default 30 s) on every query in this prompt (`SET LOCAL statement_timeout` in a read-only transaction).
 
-### 2. Current state (`ai.elaro.store.query.RecordQueryService`)
+### 2. Current state (`ai.foresignal.store.query.RecordQueryService`)
 
 Native SQL via `NamedParameterJdbcTemplate`; geometry as raw `ST_AsGeoJSON` text. Current reads touch **only** `record_head h JOIN record_live l USING (source_id, external_id)` (I5).
 
@@ -56,8 +56,8 @@ Native SQL via `NamedParameterJdbcTemplate`; geometry as raw `ST_AsGeoJSON` text
 
 - **`versions(source, externalId)`**: `WHERE source_id=? AND external_id=? ORDER BY seq`, with `since`/`until` on `observed_at`, `limit` (default 500, max 5,000) and a `seq` cursor. Items carry `persistReason, ingestedAt, receivedAt, batchId, quality, observer` (gated as above) and `downsampled` (false until prompt 044).
 - **`history`**: over `record_version` by `timeField` (default `observed`) and bbox, keyset `(observed_at, seq)`; `ingested` becomes seq bounds via `seq_clock` so partitions prune. Required `since`; cap 50,000 per page.
-- **`changes(after, filter, includePayload, limit ≤ 10000)`**: `seq > :after ORDER BY seq`, filters `source`, `kind`, `externalId`, bbox. Returns `lastSeq`, `hasMore`, `watermarkSeq` and `purgeHorizon`. Each `Change` carries `prevSeq, historyTier, persistReason, observedAt, eventTime, validUntil, qaFlags`. Payload loads use `seq = ANY(?)`. **Kinds listed in `elaro.api.changes.inlinePayloadKinds` (default `[raster-frame]`) always include their payload**, even with `payload=false` (Weather §6.8).
-- **Purge horizon → `410 RESYNC_REQUIRED`:** define `ai.elaro.retention.RetentionState` if 019 has not (it publishes the real values later): `long purgeSeq(String sourceId)` (the global seq allocated when retention last **purged heads** of that source, i.e. entities disappeared without a tombstone; routine version deletes do **not** advance it, otherwise every client would have to resync after each hourly retention run; 0 = never), `long lowestRetainedSeq(Set<String> sources)`, and `Duration window(String sourceId)`. Ship a default bean returning 0 for both seqs and `SourceService.effectiveRetention`. `purgeHorizon` = max `purgeSeq` over the filtered sources (all sources when unfiltered). When `after < purgeHorizon`, return 410 problem `code RESYNC_REQUIRED` with `purgeHorizon` and `watermarkSeq` extensions; the client re-snapshots.
+- **`changes(after, filter, includePayload, limit ≤ 10000)`**: `seq > :after ORDER BY seq`, filters `source`, `kind`, `externalId`, bbox. Returns `lastSeq`, `hasMore`, `watermarkSeq` and `purgeHorizon`. Each `Change` carries `prevSeq, historyTier, persistReason, observedAt, eventTime, validUntil, qaFlags`. Payload loads use `seq = ANY(?)`. **Kinds listed in `foresignal.api.changes.inlinePayloadKinds` (default `[raster-frame]`) always include their payload**, even with `payload=false` (Weather §6.8).
+- **Purge horizon → `410 RESYNC_REQUIRED`:** define `ai.foresignal.retention.RetentionState` if 019 has not (it publishes the real values later): `long purgeSeq(String sourceId)` (the global seq allocated when retention last **purged heads** of that source, i.e. entities disappeared without a tombstone; routine version deletes do **not** advance it, otherwise every client would have to resync after each hourly retention run; 0 = never), `long lowestRetainedSeq(Set<String> sources)`, and `Duration window(String sourceId)`. Ship a default bean returning 0 for both seqs and `SourceService.effectiveRetention`. `purgeHorizon` = max `purgeSeq` over the filtered sources (all sources when unfiltered). When `after < purgeHorizon`, return 410 problem `code RESYNC_REQUIRED` with `purgeHorizon` and `watermarkSeq` extensions; the client re-snapshots.
 
 ### 4. asOf (transaction time; Core-Data-Model §12, exactly)
 
@@ -80,9 +80,9 @@ Native SQL via `NamedParameterJdbcTemplate`; geometry as raw `ST_AsGeoJSON` text
 - **DTO** (`Record`): `id = "<source>:<externalId>"`, `version, seq, observedAt, persistedObservedAt, eventTime, validFrom` (if 008 added it), `validUntil, tombstone, kind, title, geometry, payload, quality, live (= l.dirty), qaFlags, attribution`, optional `distanceKm`, `ingestedAt` (versions, history and asOf only; drop it from `required`).
 - **`title`**: from `record_head.title` (008/009). If the column is missing, compute it at read time with a shared `TitleResolver` (descriptor `titleField`, else the first non-empty of `title > name > callsign > place`, else `kind externalId`) and note it in the Completion Report. MCP (025) and Ask (028) reuse the resolver.
 - **GeoJSON** (`?format=geojson` or `Accept: application/geo+json`; `format` wins): `Feature.properties = {source, externalId, kind, title, version, seq, observedAt, validUntil, live, payload}`; `FeatureCollection` adds `nextCursor`, `attributions`, `watermarkSeq`, `asOf`, `approximate`, `horizon`. Null geometry is allowed (RFC 7946).
-- **Streaming formats** `format=ndjson` (`application/x-ndjson`), `geojsonseq` (`application/geo+json-seq`, RFC 8142 record separators) and `csv` (geometry as WKT, payload paths from `fields=` as columns; requires `fields=` for payload columns) on `/v1/records`, `/v1/history` and `/v1/changes`. Stream with `RowCallbackHandler` (fetch size 1,000) without paging, capped at `elaro.api.stream.maxRows` (default 500,000). Run a `count(*)` over `… LIMIT cap+1` first; over the cap → 400 `RESULT_TOO_LARGE` (no silent truncation). Send `Elaro-Watermark-Seq` as a header. Use Jackson 3's `tools.jackson.dataformat:jackson-dataformat-csv`.
+- **Streaming formats** `format=ndjson` (`application/x-ndjson`), `geojsonseq` (`application/geo+json-seq`, RFC 8142 record separators) and `csv` (geometry as WKT, payload paths from `fields=` as columns; requires `fields=` for payload columns) on `/v1/records`, `/v1/history` and `/v1/changes`. Stream with `RowCallbackHandler` (fetch size 1,000) without paging, capped at `foresignal.api.stream.maxRows` (default 500,000). Run a `count(*)` over `… LIMIT cap+1` first; over the cap → 400 `RESULT_TOO_LARGE` (no silent truncation). Send `Foresignal-Watermark-Seq` as a header. Use Jackson 3's `tools.jackson.dataformat:jackson-dataformat-csv`.
 - **ETags** (strong) with `If-None-Match` → 304, `Vary: Accept, Accept-Encoding, Authorization`, `Cache-Control: private, no-cache` (`public` when `openReads` is on): single record `"<version>.<l.observed_at epoch ms>"`; lists and kinds `hash(normalized query, lastPublishedSeq, LiveBus last batch number, now truncated to the minute)`. Add `lastPublishedBatchNo()` to `LiveBus` if 009 lacks it.
-- **Compression:** `server.compression.enabled` (toggle `ELARO_COMPRESSION`, default true) with mime types `application/json, application/geo+json, application/x-ndjson, application/geo+json-seq, application/problem+json, application/vnd.mapbox-vector-tile`; never `text/event-stream`.
+- **Compression:** `server.compression.enabled` (toggle `FORESIGNAL_COMPRESSION`, default true) with mime types `application/json, application/geo+json, application/x-ndjson, application/geo+json-seq, application/problem+json, application/vnd.mapbox-vector-tile`; never `text/event-stream`.
 
 ### 6. Kind schema
 
@@ -94,7 +94,7 @@ Native SQL via `NamedParameterJdbcTemplate`; geometry as raw `ST_AsGeoJSON` text
 
 ### 8. Spec, Postman, docs
 
-- `docs/OpenAPI.json` per *Spec changes* plus: `listRecords` + `asOf`, `asOfSeq`, `order`, `sort`, `timeField`, `include`, `externalId`, `near`, `radiusKm`, `fields`, `precision`, `simplify`, format enum `json|geojson|ndjson|geojsonseq|csv`; `getRecord` + `include`, `fields`, `precision`; `listRecordVersions` + `since`, `until`, `limit`, `cursor`; `queryHistory` + `timeField`, `externalId`, `near`, `radiusKm`, `fields`, `precision`, `simplify`, formats; `listChanges` + `externalId`, formats, 410 response; new `getKindSchema` (`"x-elaro-scope": "read"`). Schemas `Record`, `RecordVersion`, `RecordPage`, `FeatureCollection`, `Feature.properties`, `Change`, `ChangePage` (+ `watermarkSeq`, `purgeHorizon`), `KindSummary` (+ `display`), `Quality`, `Observer`. Error codes `ASOF_FILTER_REQUIRED`, `ASOF_BEYOND_RETENTION`, `ASOF_INVALID`, `RESYNC_REQUIRED`, `RESULT_TOO_LARGE`. Response media types for the streaming formats and 304s.
+- `docs/OpenAPI.json` per *Spec changes* plus: `listRecords` + `asOf`, `asOfSeq`, `order`, `sort`, `timeField`, `include`, `externalId`, `near`, `radiusKm`, `fields`, `precision`, `simplify`, format enum `json|geojson|ndjson|geojsonseq|csv`; `getRecord` + `include`, `fields`, `precision`; `listRecordVersions` + `since`, `until`, `limit`, `cursor`; `queryHistory` + `timeField`, `externalId`, `near`, `radiusKm`, `fields`, `precision`, `simplify`, formats; `listChanges` + `externalId`, formats, 410 response; new `getKindSchema` (`"x-foresignal-scope": "read"`). Schemas `Record`, `RecordVersion`, `RecordPage`, `FeatureCollection`, `Feature.properties`, `Change`, `ChangePage` (+ `watermarkSeq`, `purgeHorizon`), `KindSummary` (+ `display`), `Quality`, `Observer`. Error codes `ASOF_FILTER_REQUIRED`, `ASOF_BEYOND_RETENTION`, `ASOF_INVALID`, `RESYNC_REQUIRED`, `RESULT_TOO_LARGE`. Response media types for the streaming formats and 304s.
 - `AccessPolicy`: add `GET /v1/kinds/*/schema` READ (the existing `/v1/kinds` rule matches only the exact path); extend `AccessPolicyTest`.
 - Regenerate Postman (`python3 scripts/generate-postman.py docs/OpenAPI.json postman`).
 - `docs/Agent-Guide.md`: a "Keeping a mirror" section (snapshot with `order=id`, `watermarkSeq`, changes replay, 410 handling, `validUntil` expiry) and the Home Assistant `geo_json_events` URL pattern (`format=geojson`, bbox, explicit limit; works only with `openReads`).

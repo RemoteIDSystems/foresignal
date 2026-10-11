@@ -1,11 +1,11 @@
 # 049 — SatDump Station Core
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/049-CR-SatDump-Station-Core.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -16,17 +16,17 @@
 - `docs/Weather-Imagery-Design.md` §0.1 (SatDump rows), §1.5 (owner questions), §2.2 (`LAN_URL`, `INBOX_PATH`), §2.4 (storage, ladders, retention), §2.5 (budget), §3 (CBOR, image guard, licence boundaries), **§4 in full** (station requirements, one source per station, `/api` loop, inbox loop, pass lifecycle and join, georeferencing item 1, thumbnails, deployment), §6.6 (polarplot endpoint), §6.9 (MCP tools), §7.4 ("Meteor pass decoded" recipe). Design prompt 036 = this prompt; inside §4 its "043"/"041" polar overlays are v1.2 **054**, "044 celestrak-gp" predicted passes are **064**, and "074"/"075" DCS/EMWIN and the 2.0 hook are **107** (Roadmap §5).
 - `docs/Core-Data-Model.md` §2, §3, §5.3
 - Completion Reports 004, 005, 025, 036, 042, 043, 045
-- SatDump source (GPL-3.0) at `~/Documents/GitLab/SatDump`, **read-only and reference only**: never copy code, headers, structs or projection code into Elaro. Parsers are written from observed output and fixtures.
+- SatDump source (GPL-3.0) at `~/Documents/GitLab/SatDump`, **read-only and reference only**: never copy code, headers, structs or projection code into Foresignal. Parsers are written from observed output and fixtures.
 
 ## Objective
 
-Make the owner's SatDump ground station a first-class source: one `satdump-{station}` source with an optional `/api` loop (station state, RF sessions, live polar plot) and an inbox loop over SatDump's output directory (passes, products, thumbnails, GOES/Elektro xRIT geostationary frames). Passes become `satellite-pass` records joined to their RF statistics. Elaro talks to SatDump only through HTTP and files.
+Make the owner's SatDump ground station a first-class source: one `satdump-{station}` source with an optional `/api` loop (station state, RF sessions, live polar plot) and an inbox loop over SatDump's output directory (passes, products, thumbnails, GOES/Elektro xRIT geostationary frames). Passes become `satellite-pass` records joined to their RF statistics. Foresignal talks to SatDump only through HTTP and files.
 
 ## Tasks
 
 ### 1. Hooks (check, add if missing)
 
-- **004:** `ParamType.LAN_URL` (resolve once; loopback, RFC 1918, link-local or ULA only; `.local` must resolve to one of those; pinned IP stored) and `INBOX_PATH` (realpath under `ELARO_INBOX_DIR`), plus `InboxFiles` (every file opened with `NOFOLLOW_LINKS`, realpath re-checked per file and per scan).
+- **004:** `ParamType.LAN_URL` (resolve once; loopback, RFC 1918, link-local or ULA only; `.local` must resolve to one of those; pinned IP stored) and `INBOX_PATH` (realpath under `FORESIGNAL_INBOX_DIR`), plus `InboxFiles` (every file opened with `NOFOLLOW_LINKS`, realpath re-checked per file and per scan).
 - **005:** `LAN_URL` requests connect to the pinned IP with the original Host header and redirects disabled.
 - **042 / 043 / 045:** `ctx.rasters()` with dynamic products (`ProductRegistry.registerDynamic`), `ctx.media()`, `ImageGuard`/`GuardedImages`, `ThumbnailService`, `GeosGrid`, style `rgb@1` and `ir-gray@1`.
 - **036:** places (station location may reference a place). **025:** the MCP tool registry with scopes and compact output.
@@ -44,9 +44,9 @@ Make the owner's SatDump ground station a first-class source: one `satdump-{stat
 - xRIT layout: `{outdir}/IMAGES/{satellite}/[{region}/]{YYYY-MM-DD_HH-MM-SS}/product.cbor` plus channel images; the region level is optional. Geostationary `projection_cfg`: `type: geos`, `lon0`, `sweep_x`, `scalar_x`, `scalar_y`, `offset_x`, `offset_y`, `width`, `height`, `altitude`.
 - 1.2.2 differs in `product.cbor` image keys; keep parsing lenient and keep one fixture set per pinned version.
 
-### 3. Source and descriptor (`ai.elaro.source.adapters.satdump`)
+### 3. Source and descriptor (`ai.foresignal.source.adapters.satdump`)
 
-- `SatDumpFamily` registers one `satdump-{station}` source per name in `elaro.satdump.stations` (env `ELARO_SATDUMP_STATIONS`, comma list, default empty).
+- `SatDumpFamily` registers one `satdump-{station}` source per name in `foresignal.satdump.stations` (env `FORESIGNAL_SATDUMP_STATIONS`, comma list, default empty).
 - Mode STREAMING (two long-running loops under the streaming supervisor). Kinds `[ground-station, satellite-pass, raster-frame]`; `kindRetention{ground-station: 30d, satellite-pass: 365d, raster-frame: 7d}`; STANDARD; policy ALL; `observedAtMode` UPSTREAM (ground-station records are stamped with the time the `/api` response was read; passes and frames carry SatDump timestamps); `recordTtl` null; `licence` "operator-owned"; budget 60/min, 50,000/day (LAN only); `titleField` `title`; `zeroResultsNormal=true`.
 - Params: `apiUrl` (`LAN_URL`, optional), `inboxPath` (`INBOX_PATH`, optional; **at least one required**, else `VALIDATION_FAILED`), `location` (`lat,lon[,altM]` or a place id), `satNames` (optional JSON map overriding the normalisation table), `apiInterval` (duration, default 5 s, 2–30 s), `scanInterval` (default 30 s).
 - Health: failing when `apiUrl` is set and unreachable for 3 consecutive polls; with no `apiUrl` the source stays healthy on the inbox loop alone. The supervisor's "connected" flag is the inbox loop's liveness.
@@ -78,7 +78,7 @@ Make the owner's SatDump ground station a first-class source: one `satdump-{stat
 
 - Covers GOES-19/18 HRIT and Elektro-L (GK-2A only with legitimately obtained KMA keys).
 - Dynamic product per satellite/region/channel: id `satdump-{station}-{satKey}-{region}-{channel}` (kebab-case, ≤ 64 chars, region `fd` when absent), category imagery, kind raster, `temporal{type: observation, cadence: observed median interval, maxGap: 3×cadence}`, `spatial{coverage: station-disc}`, ladder 72 h.
-- `projection_cfg` → Elaro `GeosGrid`: the CGMS/PUG normalized-geostationary model from public specifications, respecting `sweep_x`, with `scalar_x/y` and `offset_x/y` mapping columns/lines to scan angles (`altitude` = satellite height). FY-4 and MSG HRV are rejected with the health reason above.
+- `projection_cfg` → Foresignal `GeosGrid`: the CGMS/PUG normalized-geostationary model from public specifications, respecting `sweep_x`, with `scalar_x/y` and `offset_x/y` mapping columns/lines to scan angles (`altitude` = satellite height). FY-4 and MSG HRV are rejected with the health reason above.
 - 8-bit channels → u8, 16-bit grayscale → u16 (scale from `bit_depth`), composites → rgba8. Rendered through the 045 tile path like GOES ABI. Footprint = the visible disc from `lon0`; validate with a coastline fixture test.
 - Frame `frame_id` from the folder timestamp (`2026-10-10_14-30-00` → `20261010T143000Z`); `partial` → `complete` per §5; each completion emits the `raster-frame` record.
 
@@ -89,10 +89,10 @@ Make the owner's SatDump ground station a first-class source: one `satdump-{stat
 
 ### 9. Deployment, licence, docs
 
-- `docker-compose.yml` profile `satdump`: service `satdump` using `image: ${SATDUMP_IMAGE:-satdump:local}` built by the operator from SatDump's own Dockerfile (Elaro images contain **no** SatDump binaries or SatDump-produced images), `network_mode: host`, `/dev/bus/usb` passthrough, output volume shared with Elaro mounted `:ro` at `${ELARO_INBOX_DIR}/satdump/{station}`, and the documented command `satdump legacy autotrack … --http_server 0.0.0.0:8081` with `finish_processing: true` and no server mode.
+- `docker-compose.yml` profile `satdump`: service `satdump` using `image: ${SATDUMP_IMAGE:-satdump:local}` built by the operator from SatDump's own Dockerfile (Foresignal images contain **no** SatDump binaries or SatDump-produced images), `network_mode: host`, `/dev/bus/usb` passthrough, output volume shared with Foresignal mounted `:ro` at `${FORESIGNAL_INBOX_DIR}/satdump/{station}`, and the documented command `satdump legacy autotrack … --http_server 0.0.0.0:8081` with `finish_processing: true` and no server mode.
 - `docs/Operator-Guide.md` "SatDump ground station": §4.0 requirements (headless legacy CLI for `/api`; GUI stations work in products-only mode; pin a version), §4.7 same-host and remote-Pi (rsync/Syncthing into the inbox, recommended in v1), Texas targets (GOES-19 HRIT/EMWIN 1694.1 MHz with ~1 m dish, LNA, LTE filter; Meteor-M2-3/M2-4 LRPT 137.9/137.1 MHz; optional Metop-B/C AHRPT 1701.3 MHz; drop `noaa_apt`, `noaa_dsb`, `noaa_hrpt`), "do not use SatDump's webhook plugin" (plain text only), and the §1.5 owner questions with the defaults used when unanswered.
 - `docs/Architecture.md` §26 SatDump GPL row: separate operator-supplied process; files and HTTP only; no code, headers or structs; parsers from fixtures. `THIRD_PARTY_NOTICES.md`: note that SatDump is not distributed.
-- `docs/OpenAPI.json`: tag `Ground Stations`; operation `getGroundStationPolarplot` (`image/jpeg`, `"x-elaro-scope": "read"`); problem code `NO_ACTIVE_PASS` 404; `Record` examples for `ground-station` and `satellite-pass`. `AccessPolicy`: `GET /v1/ground-stations/**` → READ. Regenerate Postman with `python3 scripts/generate-postman.py docs/OpenAPI.json postman`.
+- `docs/OpenAPI.json`: tag `Ground Stations`; operation `getGroundStationPolarplot` (`image/jpeg`, `"x-foresignal-scope": "read"`); problem code `NO_ACTIVE_PASS` 404; `Record` examples for `ground-station` and `satellite-pass`. `AccessPolicy`: `GET /v1/ground-stations/**` → READ. Regenerate Postman with `python3 scripts/generate-postman.py docs/OpenAPI.json postman`.
 - `docs/Source-Catalog.md`: `satdump-{station}` row (time bases, kinds, retention, budget, LAN-only).
 
 ## Tests to write (do not run)

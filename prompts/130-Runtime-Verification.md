@@ -1,11 +1,11 @@
 # 130 — Runtime Verification
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/130-CR-Runtime-Verification.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -22,7 +22,7 @@
 
 ## Objective
 
-Run Elaro for real on the bench server and prove the Charter's success criteria with live upstreams, real channels and a local model. Measure ingest, storage, WAL and weather resource use against the design projections, rehearse failure and recovery (restore, forced catch-up, storms), check the remote-access profile and metric names, and leave a 7-day soak running with a checklist. Fix defects found, with tests. Write the results to `docs/Runtime-Verification.md`.
+Run Foresignal for real on the bench server and prove the Charter's success criteria with live upstreams, real channels and a local model. Measure ingest, storage, WAL and weather resource use against the design projections, rehearse failure and recovery (restore, forced catch-up, storms), check the remote-access profile and metric names, and leave a 7-day soak running with a checklist. Fix defects found, with tests. Write the results to `docs/Runtime-Verification.md`.
 
 ## Tasks
 
@@ -35,7 +35,7 @@ Run Elaro for real on the bench server and prove the Charter's success criteria 
   - `web` (Caddy `tls internal`, HTTP/2/3)
   - `tailscale` (task 7)
 - Use the small and large memory profiles (Weather §2.6) for one hour each and record the heap/RSS envelope against NFR-1.
-- Credentials the run needs (Slack webhook, AISStream key, FIRMS key, Tailscale auth key, ntfy topic) come from environment variables the owner supplies (`ELARO_VERIFY_*`). Missing ones mark the dependent step **SKIPPED (no credential)**; never invent or reuse other credentials.
+- Credentials the run needs (Slack webhook, AISStream key, FIRMS key, Tailscale auth key, ntfy topic) come from environment variables the owner supplies (`FORESIGNAL_VERIFY_*`). Missing ones mark the dependent step **SKIPPED (no credential)**; never invent or reuse other credentials.
 
 ### 2. Enable core sources live and verify etiquette
 
@@ -80,7 +80,7 @@ Run Elaro for real on the bench server and prove the Charter's success criteria 
   - Pause trigger evaluation using the mechanism 019 provides (read its Completion Report; if none, stop the engine via its setting), let ingest run 10 min, then resume.
   - Verify `/actuator/health/readiness` reports catch-up as not ready, then flips back to ready when the cursor is within threshold, while liveness stays UP and the compose healthcheck behaves as documented.
   - Record the timings.
-- **Restore drill** (on a scratch compose project, `-p elaro-restore`, never the live volumes):
+- **Restore drill** (on a scratch compose project, `-p foresignal-restore`, never the live volumes):
   - take the documented backup (backup profile or `pg_dump` plus `secret.key`)
   - restore into fresh volumes and start
   - verify row counts per table, `record_seq` ≥ max(seq), partitions attached and `ensureAhead` coverage, credentials decrypt, the signing key and JWKS unchanged, triggers fire on new data, SSE resume from a pre-backup `after` gets `reset` or continues correctly
@@ -88,16 +88,16 @@ Run Elaro for real on the bench server and prove the Charter's success criteria 
 - **Storm scenario:**
   - Run when the SPC Day-1 outlook has Slight risk or higher over the operator's area. Soak 12 h covering the event: radar cells, ProbSevere, GLM clusters, NWS alerts, place-weather versions, render load, versions/min peaks, alert storm control (`max_alerts_per_hour`, folding).
   - If no such day occurs during this prompt, run the reduced variant (replay a retained stormy window with the 115 exercise replay against opted-in test channels) and list the live stormy-day soak as pending in the checklist with the exact procedure.
-- **Restart under load:** `docker compose restart elaro` during peak ingest; verify no duplicate versions, the clock guard behaviour, the streaming reconnect ladder, and no budget burst after restart (seeded buckets).
+- **Restart under load:** `docker compose restart foresignal` during peak ingest; verify no duplicate versions, the clock guard behaviour, the streaming reconnect ladder, and no budget burst after restart (seeded buckets).
 
 ### 6. API conformance runs
 
 - `scripts/smoke.sh` against the live instance; record the output.
-- Newman against a **scratch instance** (`-p elaro-verify`, fresh DB) so destructive requests don't touch live data: `npx newman run postman/Elaro.postman_collection.json -e postman/Elaro-Local.postman_environment.json --env-var adminToken=$TOKEN --reporters cli,junit`. Fix spec, collection or code mismatches; commit the regenerated collection if changed.
+- Newman against a **scratch instance** (`-p foresignal-verify`, fresh DB) so destructive requests don't touch live data: `npx newman run postman/Foresignal.postman_collection.json -e postman/Foresignal-Local.postman_environment.json --env-var adminToken=$TOKEN --reporters cli,junit`. Fix spec, collection or code mismatches; commit the regenerated collection if changed.
 
 ### 7. Remote access and metric names
 
-- **Tailscale profile:** with `ELARO_VERIFY_TS_AUTHKEY`, start the profile. Check HTTPS via `tailscale serve`, `publicBaseUrl` https and no warning, forwarded headers honoured only from the trusted proxy, generated links (push actions, share links) using the tailnet URL, 8080 and 5433 still bound to 127.0.0.1 (`ss -ltnp`), and a phone pairing flow over the tailnet (023).
+- **Tailscale profile:** with `FORESIGNAL_VERIFY_TS_AUTHKEY`, start the profile. Check HTTPS via `tailscale serve`, `publicBaseUrl` https and no warning, forwarded headers honoured only from the trusted proxy, generated links (push actions, share links) using the tailnet URL, 8080 and 5433 still bound to 127.0.0.1 (`ss -ltnp`), and a phone pairing flow over the tailnet (023).
 - **Metric-name drift:** `scripts/verify/metric-drift.sh` scrapes `/actuator/prometheus` and diffs metric names against those referenced in `docs/` (Operator Guide tables, Architecture) and the Grafana dashboards from 034. Fix the docs or the code so the sets match (excluding JVM/Tomcat defaults); keep the script for CI use in 131.
 
 ### 8. Report and soak checklist
@@ -117,7 +117,7 @@ Run Elaro for real on the bench server and prove the Charter's success criteria 
 ## Tests to write (do not run)
 
 - Regression tests for every defect fixed in this prompt, in the matching test class.
-- `MetricNamesDocumentedTest`: every `elaro.*` meter registered at startup appears in the Operator Guide metrics table (parses the markdown), so 7's drift check also runs in the suite.
+- `MetricNamesDocumentedTest`: every `foresignal.*` meter registered at startup appears in the Operator Guide metrics table (parses the markdown), so 7's drift check also runs in the suite.
 - **Sanctioned run:** this is a verification prompt. If any production code changed, run `./gradlew test jacocoTestReport jacocoTestCoverageVerification` once before the final commit, fix until green, and record the counts and coverage in the Completion Report.
 
 ## Acceptance criteria

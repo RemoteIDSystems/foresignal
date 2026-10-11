@@ -1,6 +1,6 @@
-# Elaro — Executive Summary
+# Foresignal — Executive Summary
 
-**Elaro** (elaro.ai) is an open-source, self-hosted **intelligence broker**. It is a headless service that continuously collects public telemetry from many upstream feeds, normalizes it into one versioned store, alerts on what matters, and re-serves everything through one documented API, an MCP server for AI agents, and push notifications. An optional LLM, either a frontier model or one running locally, turns that data into answers, briefings and context. Elaro is the data foundation for a family of frontends: a 3D globe, a 2D analyst map, an operator console, mobile apps and agents.
+**Foresignal** (foresignal.ai) is an open-source, self-hosted **intelligence broker**. It is a headless service that continuously collects public telemetry from many upstream feeds, normalizes it into one versioned store, alerts on what matters, and re-serves everything through one documented API, an MCP server for AI agents, and push notifications. An optional LLM, either a frontier model or one running locally, turns that data into answers, briefings and context. Foresignal is the data foundation for a family of frontends: a 3D globe, a 2D analyst map, an operator console, mobile apps and agents.
 
 ## The problem
 
@@ -14,7 +14,7 @@ Because these are fused, turning a layer off stops collecting it, so you can't w
 
 ## The solution
 
-Elaro separates the three concerns, and adds an intelligence layer on top:
+Foresignal separates the three concerns, and adds an intelligence layer on top:
 
 - **Subscription is server-side** and is the only thing that causes fetching. Each source is enabled, scheduled and **budgeted** through the API, so the broker always knows its spend per upstream and never exceeds it.
 - **Display is the client's business.** Frontends use filtered queries, vector tiles and filtered live streams, and their choices never reach the collector.
@@ -29,7 +29,7 @@ Elaro separates the three concerns, and adds an intelligence layer on top:
   - Detect unusual changes, cross-domain co-occurrences, and market or attention moves before (or without) an event, each with a stated base rate.
   - Remember unfolding situations for weeks, with "what changed since last week" from stored snapshots.
   - Maintain rolling hypotheses: competing explanations, indicators that watch for themselves, and revisions that explain what moved.
-  - Record every forecast in a ledger, resolve it from Elaro's own data and score it, with calibration for each forecaster, including the LLM and you.
+  - Record every forecast in a ledger, resolve it from Foresignal's own data and score it, with calibration for each forecaster, including the LLM and you.
   - Publish daily, weekly and monthly assessments in intelligence-community style (ICD 203).
 - **Agents are first-class:** a built-in MCP server exposes the data and watch management as tools for OpenClaw, Claude and any MCP client. Scoped tokens keep agents within limits.
 - **Anything can push in:** custom sources accept records through an inbound webhook, from local SDRs, Home Assistant, scripts or agents.
@@ -72,7 +72,7 @@ Individuals: OSINT hobbyists, analysts, researchers, makers and developers who w
 4. **API as the product.** One contract, many frontends, plus MCP for agents.
 5. **Intelligence without lock-in.** Frontier or local models, with citations checked against real records and model actions gated by scope.
 6. **Built for an AI maintainer.** Health API, raw-fetch probes, fixture tests and an LLM adapter doctor.
-7. **Analysis that measures itself.** Years of versioned history, leak-free replays, base rates on day one, rolling hypotheses and a scored forecast ledger. Every comparable open-source tool is AGPL; Elaro is MIT.
+7. **Analysis that measures itself.** Years of versioned history, leak-free replays, base rates on day one, rolling hypotheses and a scored forecast ledger. Every comparable open-source tool is AGPL; Foresignal is MIT.
 
 ## Plan
 

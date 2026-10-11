@@ -1,11 +1,11 @@
 # 021 — End To End Milestone
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/021-CR-End-To-End-Milestone.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -29,9 +29,9 @@ Then make the project usable by a human: README quickstart, Operator Guide (incl
 
 ## Tasks
 
-### 1. End-to-end test (`ai.elaro.e2e.MilestoneE2EIT`)
+### 1. End-to-end test (`ai.foresignal.e2e.MilestoneE2EIT`)
 
-Full context (`@IntegrationTest`, real HTTP on a random port), the Elaro DB image via Testcontainers, WireMock serving USGS fixtures (base-URL override from 011) and separate WireMock receivers for the channels. Use field names exactly as 017 and 018 built them (check their CRs). Seed nothing with raw SQL. Steps, each with explicit assertions:
+Full context (`@IntegrationTest`, real HTTP on a random port), the Foresignal DB image via Testcontainers, WireMock serving USGS fixtures (base-URL override from 011) and separate WireMock receivers for the channels. Use field names exactly as 017 and 018 built them (check their CRs). Seed nothing with raw SQL. Steps, each with explicit assertions:
 
 1. Obtain the admin token (a test-only hook or a known hash in test config; document which). A write without it → 401.
 2. `GET /v1/sources` → `usgs-earthquakes` present, `enabled=false`, status `disabled`, `historyTier=STANDARD`, `licence` set.
@@ -40,7 +40,7 @@ Full context (`@IntegrationTest`, real HTTP on a random port), the Elaro DB imag
 5. Open SSE: `/v1/changes/stream?source=usgs-earthquakes&touches=true` and `/v1/alerts/stream`.
 6. `PUT /v1/sources/usgs-earthquakes {"enabled":true}`. Within 5 s: one `change` per fixture feature (`persistReason=FIRST`); `GET /v1/records?source=usgs-earthquakes&format=geojson` returns the FeatureCollection with `watermarkSeq`; health `healthy`; usage ≥ 1 request; `GET /v1/sources/usgs-earthquakes/fetches` shows one `OK` row with `versionsWritten` = feature count.
 7. `POST /v1/sources/usgs-earthquakes/fetch` with the identical fixture → **no** `change` event (bounded wait), at least one `touch` event, the newest fetch row has `versionsWritten = 0`, and every record is still version 1.
-8. Record `T1 = now`. Switch the stub to a fixture where one feature becomes `mag 6.4`; fetch. Then: a version-2 `change` with `persistReason=SIGNIFICANT`; `/versions` shows 2; an alert `fired` SSE event with the rendered message; the webhook receiver gets a POST with a valid `X-Elaro-Signature` and an `X-Elaro-Origin` header; Slack gets Block Kit containing the message; Discord gets a POST with `?wait=true`; a `notification` row exists.
+8. Record `T1 = now`. Switch the stub to a fixture where one feature becomes `mag 6.4`; fetch. Then: a version-2 `change` with `persistReason=SIGNIFICANT`; `/versions` shows 2; an alert `fired` SSE event with the rendered message; the webhook receiver gets a POST with a valid `X-Foresignal-Signature` and an `X-Foresignal-Origin` header; Slack gets Block Kit containing the message; Discord gets a POST with `?wait=true`; a `notification` row exists.
 9. `GET /v1/records?source=usgs-earthquakes&asOf=<T1>` → the revised feature at version 1 with its old magnitude, `asOf` and `horizon` in the response.
 10. `GET /v1/alerts` lists the alert; `POST /v1/alerts/{id}/ack` → acknowledged.
 11. Switch to a fixture where the feature becomes `mag 5.8`; fetch. Then: version 3; the alert is `resolved` (SSE lifecycle event); Discord receives `PATCH …/messages/111`; Slack receives a follow-up message.
@@ -53,17 +53,17 @@ Make it robust: Awaitility with explicit timeouts, SSE readers on background thr
 
 ### 2. Smoke script (`scripts/smoke.sh`)
 
-POSIX shell with `curl` and `jq` against a running instance (`ELARO_URL`, default `http://localhost:8080`; `ELARO_TOKEN`): check `/v1/system` and `/actuator/health/readiness`; list sources; enable `usgs-earthquakes`; wait for records and assert the page carries a numeric `watermarkSeq`; create and delete a test trigger; print a summary. Exit non-zero on failure. Prompt 130 uses it. `shellcheck`-clean if available.
+POSIX shell with `curl` and `jq` against a running instance (`FORESIGNAL_URL`, default `http://localhost:8080`; `FORESIGNAL_TOKEN`): check `/v1/system` and `/actuator/health/readiness`; list sources; enable `usgs-earthquakes`; wait for records and assert the page carries a numeric `watermarkSeq`; create and delete a test trigger; print a summary. Exit non-zero on failure. Prompt 130 uses it. `shellcheck`-clean if available.
 
 ### 3. Deployment additions
 
-- **Compose `tailscale` profile:** a `tailscale/tailscale` service (pin a version verified on Docker Hub) with `TS_AUTHKEY` (operator env), `TS_HOSTNAME=elaro`, `TS_STATE_DIR=/var/lib/tailscale` (named volume), `TS_SERVE_CONFIG=/config/serve.json`, and `docker/tailscale/serve.json` proxying HTTPS 443 on the tailnet name to `http://elaro:8080`. Elaro's own port stays bound to `${ELARO_BIND:-127.0.0.1}`.
+- **Compose `tailscale` profile:** a `tailscale/tailscale` service (pin a version verified on Docker Hub) with `TS_AUTHKEY` (operator env), `TS_HOSTNAME=foresignal`, `TS_STATE_DIR=/var/lib/tailscale` (named volume), `TS_SERVE_CONFIG=/config/serve.json`, and `docker/tailscale/serve.json` proxying HTTPS 443 on the tailnet name to `http://foresignal:8080`. Foresignal's own port stays bound to `${FORESIGNAL_BIND:-127.0.0.1}`.
 - `docker/caddy/Caddyfile.example`: reverse proxy with automatic HTTPS (or `tls internal` for LAN), `flush_interval -1` for SSE, and a comment that forwarded headers are trusted only after 023's trusted-proxy setting. Prompt 050 adds the Caddy compose profile.
-- `docker/avahi/elaro.service`: an Avahi service file advertising `_http._tcp` and `_elaro._tcp` on port 8080 with TXT `path=/v1` and `api=v1` only. **Never put the install id or any stable identifier in TXT records.**
+- `docker/avahi/foresignal.service`: an Avahi service file advertising `_http._tcp` and `_foresignal._tcp` on port 8080 with TXT `path=/v1` and `api=v1` only. **Never put the install id or any stable identifier in TXT records.**
 
 ### 4. Documentation
 
-- **`README.md` quickstart:** `docker compose up -d` → admin token via `docker compose logs elaro | grep -A3 "ELARO ADMIN TOKEN"` → enable USGS with curl → `curl -N localhost:8080/v1/changes/stream`; local development (`docker compose up -d db` + `./gradlew bootRun`); links to `/docs`, the docs folder and the Operator Guide; Postman (import collection and environment, set `adminToken`, run "00 Quickstart — USGS end to end", or headless with `npx newman run postman/Elaro.postman_collection.json --folder "00 Quickstart — USGS end to end" --env-var adminToken=$ELARO_TOKEN`).
+- **`README.md` quickstart:** `docker compose up -d` → admin token via `docker compose logs foresignal | grep -A3 "FORESIGNAL ADMIN TOKEN"` → enable USGS with curl → `curl -N localhost:8080/v1/changes/stream`; local development (`docker compose up -d db` + `./gradlew bootRun`); links to `/docs`, the docs folder and the Operator Guide; Postman (import collection and environment, set `adminToken`, run "00 Quickstart — USGS end to end", or headless with `npx newman run postman/Foresignal.postman_collection.json --folder "00 Quickstart — USGS end to end" --env-var adminToken=$FORESIGNAL_TOKEN`).
 - **`docs/Operator-Guide.md`** (create or extend; keep sections written by 018 and 019):
   - first start and the token; rotating and resetting it
   - enabling sources, credentials, budgets, reading health, usage and `/fetches`
@@ -72,18 +72,18 @@ POSIX shell with `curl` and `jq` against a running instance (`ELARO_URL`, defaul
   - notification channels (link to 018's section), streaming for frontends (snapshot + `watermarkSeq` + SSE resume, `reset`, `resync`, `410 RESYNC_REQUIRED`), tiles, asOf
   - export/import
   - **Storage projection:** at full load expect about 10–15 GB/day of history writes plus 15–20 GB/day of WAL; a 3d track window holds about 40M rows (≈ 20 GB with indexes); read `/v1/system.history` and health `storage.projectedBytes`; the PostgreSQL flags from Core §16.
-  - **Clock and NTP:** the host must sync time before Elaro starts (chrony or systemd-timesyncd; check `timedatectl`); the writer's clock guard holds ingest after a backward clock step; forward jumps only alarm.
-  - **Binds:** 8080 and 5433 bind to `127.0.0.1` by default; LAN access needs `ELARO_BIND=0.0.0.0`; read the `/v1/system` warnings when `openReads` is on.
+  - **Clock and NTP:** the host must sync time before Foresignal starts (chrony or systemd-timesyncd; check `timedatectl`); the writer's clock guard holds ingest after a backward clock step; forward jumps only alarm.
+  - **Binds:** 8080 and 5433 bind to `127.0.0.1` by default; LAN access needs `FORESIGNAL_BIND=0.0.0.0`; read the `/v1/system` warnings when `openReads` is on.
   - **Remote access & TLS:** Tailscale Serve (the `tailscale` profile, or `tailscale serve --bg 8080` on the host) as the recommended path; Caddy as the alternative; set `publicBaseUrl` to the HTTPS name; never expose 5433; port-forwarding without TLS is unsupported.
   - **mDNS:** install the Avahi file, what it advertises and why it carries no identifier.
-  - **Backups:** `pg_dump -Fc` (partitioned history dumps and restores normally) plus `${ELARO_DATA_DIR}/secret.key`; **credentials and channel secrets cannot be decrypted without `secret.key`**; a restore drill; stop Elaro before restoring.
+  - **Backups:** `pg_dump -Fc` (partitioned history dumps and restores normally) plus `${FORESIGNAL_DATA_DIR}/secret.key`; **credentials and channel secrets cannot be decrypted without `secret.key`**; a restore drill; stop Foresignal before restoring.
   - troubleshooting with `/v1/sources/health`, probe, readiness and the catch-up group.
 - **`docs/Roadmap.md` §4:** mark 001–021 **Done**.
 
 ## Tests to write (do not run)
 
 - `MilestoneE2EIT` as above.
-- `ComposeFilesTest` (unit): parses `docker-compose.yml`; default binds are `127.0.0.1`; the `tailscale` service exists only under its profile; `elaro` has a readiness healthcheck. Parses `docker/avahi/elaro.service` and asserts no TXT record contains the install id pattern.
+- `ComposeFilesTest` (unit): parses `docker-compose.yml`; default binds are `127.0.0.1`; the `tailscale` service exists only under its profile; `foresignal` has a readiness healthcheck. Parses `docker/avahi/foresignal.service` and asserts no TXT record contains the install id pattern.
 
 ## Acceptance criteria
 

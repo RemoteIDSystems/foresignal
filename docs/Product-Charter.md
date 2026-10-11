@@ -1,23 +1,23 @@
-# Elaro — Product Charter
+# Foresignal — Product Charter
 
 | | |
 |---|---|
-| Product | Elaro — headless intelligence broker |
-| Domain | elaro.ai |
+| Product | Foresignal — headless intelligence broker |
+| Domain | foresignal.ai |
 | Owner | Adam Allard |
 | Licence | MIT |
-| Repository | gitlab.com/adam.allard/elaro |
+| Repository | gitlab.com/adam.allard/foresignal |
 | Status | Charter v1.3 — 2026-10-11 |
 
 ---
 
 ## 1. Purpose
 
-Elaro is the data foundation for a family of situational-awareness applications. It collects public telemetry (aircraft, vessels, satellites, seismicity, fires, conflict events, weather, outages, infrastructure, cameras, transit, and more), normalizes it into versioned records, evaluates alert rules against the change stream, and serves everything through one stable, documented API.
+Foresignal is the data foundation for a family of situational-awareness applications. It collects public telemetry (aircraft, vessels, satellites, seismicity, fires, conflict events, weather, outages, infrastructure, cameras, transit, and more), normalizes it into versioned records, evaluates alert rules against the change stream, and serves everything through one stable, documented API.
 
-Elaro has **no user interface**. Every capability, including all configuration, is reachable through the API and, for agents, the MCP server. Elaro pushes notifications to the services the operator already uses, and can optionally use an LLM (frontier or local) to answer questions, write briefings and add context to alerts. Frontends are separate repositories.
+Foresignal has **no user interface**. Every capability, including all configuration, is reachable through the API and, for agents, the MCP server. Foresignal pushes notifications to the services the operator already uses, and can optionally use an LLM (frontier or local) to answer questions, write briefings and add context to alerts. Frontends are separate repositories.
 
-On top of the collected history, Elaro runs an **intelligence layer** ([Intelligence Design](Intelligence-Design.md)): it discovers unusual changes and cross-domain patterns, remembers unfolding situations, maintains rolling hypotheses with indicators that watch for themselves, and records probabilistic forecasts in a ledger that scores them, so the operator always knows how often Elaro was right.
+On top of the collected history, Foresignal runs an **intelligence layer** ([Intelligence Design](Intelligence-Design.md)): it discovers unusual changes and cross-domain patterns, remembers unfolding situations, maintains rolling hypotheses with indicators that watch for themselves, and records probabilistic forecasts in a ledger that scores them, so the operator always knows how often Foresignal was right.
 
 ## 2. Vision
 
@@ -51,13 +51,13 @@ Open-source situational-awareness projects (ShadowBroker, God's Eye View, Veloci
 | G11 | Optional intelligence, never required | With an LLM configured, Ask answers with verified citations, briefings are narrative and alerts carry context. Without one, every non-LLM feature works unchanged. Local models are fully supported. |
 | G12 | Open to inbound data | Any system can push records into a custom source through an inbound webhook, and those records get the same versioning, alerting and search as polled data |
 | G13 | Correlate and remember | Unusual changes, cross-domain co-occurrences and pre-event market or attention moves are detected deterministically with a stated base rate; related evidence is grouped into situations that persist for weeks; "what changed since last week" is answered from stored snapshots |
-| G14 | Forecast honestly | Every probability Elaro produces starts from a stated base rate, is recorded immutably with its knowledge cutoff, resolves automatically from Elaro's own data where possible, and is scored (Brier, log, CRPS) with calibration shown per forecaster, including the LLM and the operator |
+| G14 | Forecast honestly | Every probability Foresignal produces starts from a stated base rate, is recorded immutably with its knowledge cutoff, resolves automatically from Foresignal's own data where possible, and is scored (Brier, log, CRPS) with calibration shown per forecaster, including the LLM and the operator |
 
 ## 5. Non-goals
 
 - A user interface of any kind inside the broker. Frontends (globe, operator console, mobile) are separate repositories.
 - Multi-user accounts with logins or a user directory. Access is by scoped API tokens (`read`, `agent`, `admin`).
-- Training or fine-tuning neural models, or bundling model weights. Elaro calls providers the operator configures. (Fitting statistical models to the operator's own data, such as baselines, forecasts, index weights and recalibration, is in scope.)
+- Training or fine-tuning neural models, or bundling model weights. Foresignal calls providers the operator configures. (Fitting statistical models to the operator's own data, such as baselines, forecasts, index weights and recalibration, is in scope.)
 - Analysing private individuals, or accusing anyone of wrongdoing. Market findings describe aggregate activity only.
 - Sending email or chat messages other than notifications the operator configured.
 - Horizontal scale-out or clustering (single instance by design).
@@ -69,11 +69,11 @@ Open-source situational-awareness projects (ShadowBroker, God's Eye View, Veloci
 
 | Persona | Description | Primary needs |
 |---|---|---|
-| **The Operator** (primary; the owner) | Runs Elaro on an always-on Linux bench server. Configures sources, budgets, retention and triggers through the API or the future operator console. | Reliability, visibility of spend and health, alerts, zero file editing |
-| **The Occasional Runner** | Individual who starts Elaro with Docker Compose when they want to look at the world, then stops it. | Fast startup, sensible defaults, no mandatory API keys for a useful first run |
-| **The Frontend Developer** | Builds a globe, 2D map, phone app, Grafana board or CLI against Elaro. | Stable, documented, typed API; GeoJSON; tiles; streaming; CORS |
+| **The Operator** (primary; the owner) | Runs Foresignal on an always-on Linux bench server. Configures sources, budgets, retention and triggers through the API or the future operator console. | Reliability, visibility of spend and health, alerts, zero file editing |
+| **The Occasional Runner** | Individual who starts Foresignal with Docker Compose when they want to look at the world, then stops it. | Fast startup, sensible defaults, no mandatory API keys for a useful first run |
+| **The Frontend Developer** | Builds a globe, 2D map, phone app, Grafana board or CLI against Foresignal. | Stable, documented, typed API; GeoJSON; tiles; streaming; CORS |
 | **The Agent** | An MCP-speaking agent (OpenClaw, Claude, n8n) or HTTP client that queries data, manages watches, receives alerts or maintains adapters. | MCP tools, scoped tokens, machine-readable health, raw-fetch diagnostics, predictable schemas |
-| **The Integrator** | Connects home automation, local receivers, scripts or chat ops to Elaro. | Inbound webhooks, notification channels, a Postman collection |
+| **The Integrator** | Connects home automation, local receivers, scripts or chat ops to Foresignal. | Inbound webhooks, notification channels, a Postman collection |
 | **The Contributor** | Open-source developer adding or fixing an adapter. | One small class per adapter, fixture-based tests, clear contract |
 | **The Analyst** | The operator (or an agent) in analysis mode: follows situations, frames key questions, forecasts, and reads daily, weekly and monthly assessments. | Cited evidence, base rates, competing hypotheses, calibrated probabilities, a track record |
 
@@ -168,7 +168,7 @@ Open-source situational-awareness projects (ShadowBroker, God's Eye View, Veloci
 
 ### 8.9 Inbound webhooks and custom sources
 - **FR-41** The operator can create custom push sources (id, kinds, attribution, TTL, tile/search/embed fields, inbound rate limit). Each gets an ingest key shown once and rotatable.
-- **FR-42** `POST /v1/ingest/{sourceId}` accepts GeoJSON or Elaro records (≤ 5 MB, ≤ 10,000 records) authenticated by ingest key. Pushed records get full versioning, triggers, search and retention.
+- **FR-42** `POST /v1/ingest/{sourceId}` accepts GeoJSON or Foresignal records (≤ 5 MB, ≤ 10,000 records) authenticated by ingest key. Pushed records get full versioning, triggers, search and retention.
 
 ### 8.10 MCP server
 - **FR-43** An MCP server at `/mcp` (streamable HTTP) exposes record queries, history, changes, search, sources and health, alerts, watches (triggers), briefings and system status as tools, with scope enforcement and size-bounded outputs.
@@ -183,7 +183,7 @@ Open-source situational-awareness projects (ShadowBroker, God's Eye View, Veloci
 - **FR-48** Changing the embedding model triggers a reindex. Search status reports coverage and backlog.
 
 ### 8.13 Ask
-- **FR-49** `POST /v1/ask` (and a streaming variant) answers natural-language questions using Elaro's data through tools, with citations verified against tool results, threads for follow-ups, and proposed actions. Providers without tool support use retrieval-only mode.
+- **FR-49** `POST /v1/ask` (and a streaming variant) answers natural-language questions using Foresignal's data through tools, with citations verified against tool results, threads for follow-ups, and proposed actions. Providers without tool support use retrieval-only mode.
 
 ### 8.14 Briefings
 - **FR-50** The operator or an agent can schedule briefings (cron and timezone, scope, lookback, digest or LLM mode, instructions, channels), run or preview them on demand, and browse past runs.
@@ -193,7 +193,7 @@ Open-source situational-awareness projects (ShadowBroker, God's Eye View, Veloci
 - **FR-52** Rules with `enrich=true` get an LLM context summary drawn from nearby records, the record's history and semantic neighbours. Channels can wait up to 60 s to include it. Enrichment never blocks delivery beyond that wait.
 
 ### 8.16 Web Push
-- **FR-53** Browsers can subscribe for push notifications using Elaro's VAPID key, with event, rule and severity filters. Delivery uses RFC 8291 encryption, and expired subscriptions are removed automatically.
+- **FR-53** Browsers can subscribe for push notifications using Foresignal's VAPID key, with event, rule and severity filters. Delivery uses RFC 8291 encryption, and expired subscriptions are removed automatically.
 
 ### 8.17 Derived layers, products and provenance
 - **FR-54** Derived sources compute layers from stored records (GPS jamming cells, AIS gaps, loitering, rendezvous, deception checks, holding patterns) and publish them as ordinary records.
@@ -206,7 +206,7 @@ Open-source situational-awareness projects (ShadowBroker, God's Eye View, Veloci
 - **FR-59** Situations group related evidence deterministically, persist with a lifecycle and daily snapshots, and answer "what changed since" without an LLM (117).
 - **FR-60** Change points, event studies (including live pre-event signals and unexplained moves) and co-occurrences are detected over registered series with stated base rates and caveats (118).
 - **FR-61** Precursor patterns are mined with false-discovery control, validated on later data, kept in a library with a lifecycle, and announced live when their antecedent occurs (119).
-- **FR-62** Base rates exist per event family and region from Elaro's history and imported reference datasets; historical analogs of a situation are found with their outcomes (120).
+- **FR-62** Base rates exist per event family and region from Foresignal's history and imported reference datasets; historical analogs of a situation are found with their outcomes (120).
 - **FR-63** A forecast ledger records questions with machine resolvers and immutable forecasts from many forecasters, resolves them automatically, scores them (Brier, log, RPS, CRPS), shows calibration and bias, combines forecasters into a recalibrated ensemble, and evaluates forecasters retrospectively without look-ahead (121).
 - **FR-64** Rolling hypothesis sets have priors from base rates, indicators that watch for themselves, deterministic revisions with rationale, an ACH matrix and key assumptions; speculative links carry alternatives and coincidence baselines (122).
 - **FR-65** Series forecasts, regional 4-week outlooks and regional indices are published with their measured accuracy; index weights are fitted to outcomes and proposed (123).
@@ -259,14 +259,14 @@ The remaining sources are ported from God's Eye View (cameras, transit, bikeshar
 
 - Java 21 LTS, Spring Boot 4.1, Gradle (Kotlin DSL) with wrapper.
 - PostgreSQL 17 + PostGIS 3.5; schema managed by Hibernate (`ddl-auto=update`) during development; Flyway introduced only when preparing for production.
-- Single Gradle module, packages under `ai.elaro`.
+- Single Gradle module, packages under `ai.foresignal`.
 - MIT licence. God's Eye View (MIT) code may be ported with its copyright notice retained in `THIRD_PARTY_NOTICES.md`. ShadowBroker, Velocity and World Monitor (AGPL) are reference material only — no code is copied.
 - Development methodology: numbered prompts executed by Claude Code, each producing a completion report. Tests are written alongside code but **run only once the project is code complete** (prompt 061). Each prompt ends with compile, commit, push. Flyway arrives in prompt 063.
-- LLM integration: Anthropic through the official Java SDK, defaulting to `claude-opus-5-5`; other providers over their HTTP APIs. Elaro never depends on an LLM to function.
+- LLM integration: Anthropic through the official Java SDK, defaulting to `claude-opus-5-5`; other providers over their HTTP APIs. Foresignal never depends on an LLM to function.
 
 ## 12. Assumptions
 
-- The operator's network is trusted for reads; Elaro is not exposed directly to the internet without a reverse proxy.
+- The operator's network is trusted for reads; Foresignal is not exposed directly to the internet without a reverse proxy.
 - Upstream feeds' terms permit personal, non-commercial use as configured; the operator is responsible for supplying their own keys.
 - Docker is available on the target host.
 
@@ -291,13 +291,13 @@ The remaining sources are ported from God's Eye View (cameras, transit, bikeshar
 
 ## 14. Success criteria
 
-1. Elaro runs on the bench server continuously for 7 days with the core sources enabled, with no source or LLM provider exceeding budget.
+1. Foresignal runs on the bench server continuously for 7 days with the core sources enabled, with no source or LLM provider exceeding budget.
 2. A trigger rule (e.g. `mag >= 6`, `enter` mode) fires and is delivered by SSE, Slack or Mattermost, ntfy and Web Push, with an LLM context summary.
 3. A frontend renders live aircraft and earthquakes using only the OpenAPI spec, GeoJSON/MVT and SSE.
 4. All tests pass with ≥ 90% coverage.
 5. The health API correctly flags an adapter broken by a simulated upstream format change, and the adapter doctor explains the change.
 6. A daily briefing is delivered every morning for 7 days, in both digest and LLM modes, and with a local model.
-7. An OpenClaw agent connected over MCP with an `agent` token answers questions from Elaro's data and creates a watch, and cannot change sources or credentials.
+7. An OpenClaw agent connected over MCP with an `agent` token answers questions from Foresignal's data and creates a watch, and cannot change sources or credentials.
 8. A custom source receives records from a script through the inbound webhook, and they trigger alerts.
 9. After 90 days of operation, the forecast ledger shows at least 100 resolved questions, and the ensemble's Brier skill against the base-rate forecaster is positive with its interval reported.
 10. A weekly assessment is published for 4 consecutive weeks, each explaining what changed against the previous one, with every judgment cited and every probability expressed in ICD 203 terms.

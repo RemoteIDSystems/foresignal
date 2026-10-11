@@ -1,11 +1,11 @@
 # 026 — LLM Providers
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/026-CR-LLM-Providers.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -21,13 +21,13 @@
 
 ## Objective
 
-Make an LLM a first-class, optional, budgeted part of Elaro. The operator can configure Anthropic Claude through the official SDK, any OpenAI-compatible API, or a local Ollama model. Later prompts (027–030, 056, 102, 117–125, 127) build on the `LlmClient` abstraction from this prompt.
+Make an LLM a first-class, optional, budgeted part of Foresignal. The operator can configure Anthropic Claude through the official SDK, any OpenAI-compatible API, or a local Ollama model. Later prompts (027–030, 056, 102, 117–125, 127) build on the `LlmClient` abstraction from this prompt.
 
 > **v1.3 note:** add an optional `knowledgeCutoff` (ISO date) to each provider's model configuration (and to `/v1/llm/providers` schemas). Prompt 121 uses it to keep retrospective evaluation of LLM forecasters free of training-data leakage; nothing in this prompt reads it.
 
 ## Tasks
 
-### 1. Provider model (`ai.elaro.llm`)
+### 1. Provider model (`ai.foresignal.llm`)
 
 - **Entities:** `LlmProviderEntity` and `LlmUsageEntity` per §7.1. The API key is encrypted with `CredentialCipher` and never returned (`apiKeySet` only).
 - **`LlmSettings`** in `app_setting['llm']`: `chatProvider`, `embeddingProvider`, `askEnabled`, `enrichmentEnabled`, `logContent`, `askMaxTokens`. Validate that assigned providers exist and are enabled, that the chat provider has `chatModel`, and that the embedding provider has `embeddingModel` and `embeddingDimensions`. **Anthropic cannot be the embedding provider** (no embeddings endpoint): 400 with an explanation.
@@ -59,7 +59,7 @@ Make an LLM a first-class, optional, budgeted part of Elaro. The operator can co
 - **Refusals:** enable the server-side refusal fallback: beta `server-side-fallback-2026-07-01` plus top-level body property `fallbacks: "default"` (via the beta messages path or the SDK's additional-body-property support). Always check `stop_reason == refusal` before reading content; map to `stopReason=refusal` with `stop_details.category`.
 - **Streaming:** use the SDK's streaming API when `stream=true` or `maxTokens > 16000`, and accumulate the final message with the SDK helper.
 - **Prompt caching:** `cache_control: ephemeral` on the last system block (`systemOfTextBlockParams`) and on the last tool definition, so repeated Ask and briefing calls reuse the stable prefix. Keep the system prompt and tool order deterministic (no timestamps in system; dates go in the final user turn). Record `cache_read_input_tokens` as `cachedTokens`.
-- **Errors:** map the SDK's typed exceptions most-specific-first (rate limit, overloaded/5xx, auth, invalid request, connection) to Elaro errors; rate-limit errors honour `retry-after`.
+- **Errors:** map the SDK's typed exceptions most-specific-first (rate limit, overloaded/5xx, auth, invalid request, connection) to Foresignal errors; rate-limit errors honour `retry-after`.
 - **Models:** `models()` uses `client.models().list()`. **No embeddings:** `embed()` throws `UnsupportedOperationException` with a clear message.
 
 **`OpenAiCompatibleLlmClient`** (`java.net.http`, via `LlmHttp`):
@@ -83,11 +83,11 @@ Make an LLM a first-class, optional, budgeted part of Elaro. The operator can co
 - `listLlmProviders`, `createLlmProvider` (201), `getLlmProvider`, `updateLlmProvider` (omit `apiKey` to keep it; changing model or dimensions of the active embedding provider, or reassigning `embeddingProvider`, publishes `EmbeddingModelChangedEvent(oldSpec, newSpec)`, handled by 027), `deleteLlmProvider` (409 if assigned to a role).
 - `testLlmProvider`: chat "Reply with the single word: ok" (`maxTokens` 16, purpose `test`) plus an embedding of "test" if configured; returns `LlmTestResult`; consumes budget.
 - `listLlmProviderModels`; `getLlmSettings` / `updateLlmSettings`; `getLlmUsage`. Export/import: providers (without keys) and settings. `/v1/system` `llm` block: configured, providers per role, tokens today.
-- `docs/OpenAPI.json`: add `refusalCategory` and `cachedTokens` to `LlmTestResult`, `supportsTools` and health to `LlmProvider`; keep `x-elaro-scope: admin` on every LLM operation; `AccessPolicy` rules for `/v1/llm/**` (admin); regenerate Postman (`python3 scripts/generate-postman.py docs/OpenAPI.json postman`) with BODIES examples for create/update provider and settings.
+- `docs/OpenAPI.json`: add `refusalCategory` and `cachedTokens` to `LlmTestResult`, `supportsTools` and health to `LlmProvider`; keep `x-foresignal-scope: admin` on every LLM operation; `AccessPolicy` rules for `/v1/llm/**` (admin); regenerate Postman (`python3 scripts/generate-postman.py docs/OpenAPI.json postman`) with BODIES examples for create/update provider and settings.
 
 ### 6. Docker Compose and docs
 
-- `ollama` service under profile `local-llm` (`ollama/ollama`, volume `ollama`, port bound to `${ELARO_BIND:-127.0.0.1}:11434`), per Architecture §14.
+- `ollama` service under profile `local-llm` (`ollama/ollama`, volume `ollama`, port bound to `${FORESIGNAL_BIND:-127.0.0.1}:11434`), per Architecture §14.
 - `docs/Operator-Guide.md` "LLM" section: `docker compose --profile local-llm up -d`, then `docker compose exec ollama ollama pull qwen3:14b` and `ollama pull nomic-embed-text`; configuring a Claude provider (API key from the Anthropic Console); roles, effort per use, budgets and costs; the data-egress statement (with a frontier provider the records the model reads are sent to that provider; private sources are withheld; the local profile keeps everything on the box).
 
 ## Tests to write (do not run)

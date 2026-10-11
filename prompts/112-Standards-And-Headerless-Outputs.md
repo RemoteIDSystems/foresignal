@@ -1,11 +1,11 @@
 # 112 — Standards And Headerless Outputs
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/112-CR-Standards-And-Headerless-Outputs.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -20,11 +20,11 @@
 
 ## Objective
 
-Serve Elaro through standards that existing tools already speak, and to clients that can only fetch a URL: OGC API Features with basic CQL2 for QGIS/GDAL/GeoPandas; CAP 1.2 messages with an Atom index for alerting systems; iCalendar feeds for calendar apps; and share links with path-bound keys and privacy masks. Every output honours token scope, feed keys, private sources and the licence guard.
+Serve Foresignal through standards that existing tools already speak, and to clients that can only fetch a URL: OGC API Features with basic CQL2 for QGIS/GDAL/GeoPandas; CAP 1.2 messages with an Atom index for alerting systems; iCalendar feeds for calendar apps; and share links with path-bound keys and privacy masks. Every output honours token scope, feed keys, private sources and the licence guard.
 
 ## Tasks
 
-### 1. OGC API – Features (`ai.elaro.ogc`, base `/v1/ogc`)
+### 1. OGC API – Features (`ai.foresignal.ogc`, base `/v1/ogc`)
 
 - **Endpoints** (read scope; `openReads` and feed keys honoured; JSON only, no HTML):
   - `GET /v1/ogc` landing page, with links `self`, `conformance`, `data`, `service-desc` → `/v1/openapi.json`.
@@ -41,7 +41,7 @@ Serve Elaro through standards that existing tools already speak, and to clients 
   - `bbox` (4 or 6 numbers; `bbox-crs` only CRS84, else `400`)
   - `datetime` (instant, `a/b`, `../b`, `a/..`; against `effective` time for current and `observed` for history, per Core-Data-Model §12)
   - `filter`, `filter-lang` (`cql2-text` default, `cql2-json`), `filter-crs` (CRS84 only)
-  - Elaro extensions `source`, `licencePolicy`
+  - Foresignal extensions `source`, `licencePolicy`
   - Unknown parameters → `400` (OGC permits it; document the choice).
 - **CQL2:** a hand-written recursive-descent parser for CQL2-Text and a Jackson parser for CQL2-JSON, both producing one AST.
   - Supported: comparison `= <> < <= > >=`, `IS [NOT] NULL`, `AND/OR/NOT`, parentheses, string/number/boolean/`TIMESTAMP('…')`/`DATE('…')` literals, property references, and `S_INTERSECTS(geometry, <WKT POINT|POLYGON|BBOX>)`.
@@ -50,14 +50,14 @@ Serve Elaro through standards that existing tools already speak, and to clients 
   - Limits: depth ≤ 20, ≤ 200 nodes.
 - **Guards:** private sources (039) excluded unless the token permits them; restricted-token limits (035) apply; licence policy and `Link rel=license` (109).
 
-### 2. CAP 1.2 output and Atom index (`ai.elaro.cap`)
+### 2. CAP 1.2 output and Atom index (`ai.foresignal.cap`)
 
 - **One CAP message per alert state change** (017 lifecycle). Store `cap_message`: `identifier`, `alert_id`, `msg_type`, `sent`, `xml` (text), `references`.
-  - `identifier` = `{instanceId}-{alertId}-{n}`; `sender` = setting `cap.sender` (default `elaro@{instanceId}`); `sent` with an offset.
+  - `identifier` = `{instanceId}-{alertId}-{n}`; `sender` = setting `cap.sender` (default `foresignal@{instanceId}`); `sent` with an offset.
   - `status`: `Actual`; `Exercise` for exercise alerts (115 sets the flag; read it if present); `Test` for channel tests.
   - `msgType`: `Alert` on fire; `Update` on any change (ack, snooze, enrichment, severity); `Update` with `<responseType>AllClear</responseType>` on resolve. **Never `Cancel`**: CAP reserves Cancel for erroneous issuance (Gap §3).
   - `<references>` lists every prior message for the alert (`sender,identifier,sent`).
-- **`scope` is always `Public`** (Private would require `<addresses>`). Every message carries `<note>Generated automatically by an Elaro instance from third-party data. Not an official warning.</note>`.
+- **`scope` is always `Public`** (Private would require `<addresses>`). Every message carries `<note>Generated automatically by an Foresignal instance from third-party data. Not an official warning.</note>`.
 - **`<info>`:**
   - `language` (channel or default `en-US`)
   - `category`, mapped from kind via a table in `src/main/resources/cap/categories.json` (earthquake/tsunami → Geo, weather → Met, fire → Fire, outage/infrastructure → Infra, aircraft/vessel/transport → Transport, cyber/conflict → Security, health → Health, else Other)
@@ -66,21 +66,21 @@ Serve Elaro through standards that existing tools already speak, and to clients 
   - `severity`: critical → `Severe`, warning → `Moderate`, info → `Minor`
   - `certainty`: `Observed` for upstream observations, `Likely` for DERIVED sources, `Unknown` otherwise
   - `effective`, `expires` (record `validUntil` or alert TTL)
-  - `senderName` "Elaro ({instance name})", `headline` (≤ 160 chars), `description` (plain-text body), `web` (deep link from `clientLinks`)
-  - `parameter`s `elaroRuleId`, `elaroSource`, `elaroExternalId`, `elaroSeq`, `elaroGrade` (109)
+  - `senderName` "Foresignal ({instance name})", `headline` (≤ 160 chars), `description` (plain-text body), `web` (deep link from `clientLinks`)
+  - `parameter`s `foresignalRuleId`, `foresignalSource`, `foresignalExternalId`, `foresignalSeq`, `foresignalGrade` (109)
 - **`<area>`:** `areaDesc` (place name or `{lat},{lon}`); `<polygon>` as `lat,lon` pairs (closed ring, simplified to ≤ 100 points, CW/CCW irrelevant), or `<circle>` `lat,lon radiusKm` for point records (radius = rule geofence buffer or 1 km).
 - **Endpoints** (read scope; feed keys allowed):
   - `GET /v1/cap/alerts.atom` (Atom 1.0; reuse 058's writer): one entry per current message, `<link rel="alternate" type="application/cap+xml">`; filters `ruleId`, `minSeverity`, `tags`, `placeId`, `since`
   - `GET /v1/cap/alerts/{alertId}.cap` (latest message)
   - `GET /v1/cap/messages/{identifier}.cap`
 - Content type `application/cap+xml`; ETag. `cap_message` rows follow alert retention.
-- Do not re-emit upstream official CAP as if Elaro were the sender: for alerts on official CAP sources (067/089), add `<web>` to the upstream message and state the upstream sender in the description.
+- Do not re-emit upstream official CAP as if Foresignal were the sender: for alerts on official CAP sources (067/089), add `<web>` to the upstream message and state the upstream sender in the description.
 
-### 3. iCalendar feeds (`ai.elaro.ical`, hand-written writer)
+### 3. iCalendar feeds (`ai.foresignal.ical`, hand-written writer)
 
 - `GET /v1/calendars/{feed}.ics` (read; feed keys allowed; filters `bbox`, `placeId`, `source`, `kind`):
   - `launches` (064 `launch-library`): DTSTART = NET, DTEND = window end (or NET + 1 h); `STATUS:CONFIRMED` when the launch status is Go, else `TENTATIVE`; LOCATION = pad name; GEO = pad.
-  - `tfr` (087 `faa-tfr`): effective → DTSTART, expiry → DTEND (open-ended: DTSTART only plus `X-ELARO-OPEN-ENDED:TRUE`).
+  - `tfr` (087 `faa-tfr`): effective → DTSTART, expiry → DTEND (open-ended: DTSTART only plus `X-FORESIGNAL-OPEN-ENDED:TRUE`).
   - `nws` (047 `nws-alerts`): onset (`validFrom`) → DTSTART, `ends`/`expires` → DTEND; SUMMARY = event + area.
   - `briefings` (029): the next 30 days of occurrences of each enabled briefing, expanded from cron plus timezone as individual VEVENTs. Don't translate cron to RRULE.
   - `custom?source=&kind=`: any kind whose descriptor declares `startField`/`endField` (008); `400 ICAL_FIELDS_MISSING` otherwise.
@@ -88,12 +88,12 @@ Serve Elaro through standards that existing tools already speak, and to clients 
   - `UID` = `{sourceId}:{externalId}@{instanceId}`; `SEQUENCE` = record version; `DTSTAMP` = ingested time of that version; `LAST-MODIFIED`
   - `URL` deep link; `DESCRIPTION` with the attribution line (109)
   - Tombstoned or expired records stay for 7 days as `STATUS:CANCELLED`
-- **Calendar properties:** `PRODID:-//Elaro//{version}//EN`, `VERSION:2.0`, `CALSCALE:GREGORIAN`, `METHOD:PUBLISH`, `X-WR-CALNAME`, `REFRESH-INTERVAL;VALUE=DURATION:PT15M`, `X-PUBLISHED-TTL:PT15M`.
-- **Formatting:** UTC times with `Z`; CRLF; fold lines at 75 octets without splitting UTF-8 sequences; escape `\ ; ,` and newlines. Cap 2,000 events per feed (`X-ELARO-TRUNCATED:TRUE`). ETag plus conditional GET.
+- **Calendar properties:** `PRODID:-//Foresignal//{version}//EN`, `VERSION:2.0`, `CALSCALE:GREGORIAN`, `METHOD:PUBLISH`, `X-WR-CALNAME`, `REFRESH-INTERVAL;VALUE=DURATION:PT15M`, `X-PUBLISHED-TTL:PT15M`.
+- **Formatting:** UTC times with `Z`; CRLF; fold lines at 75 octets without splitting UTF-8 sequences; escape `\ ; ,` and newlines. Cap 2,000 events per feed (`X-FORESIGNAL-TRUNCATED:TRUE`). ETag plus conditional GET.
 
-### 4. Share links (`ai.elaro.share`)
+### 4. Share links (`ai.foresignal.share`)
 
-- **Entity `share_link`:** `id`, `key_hash` (SHA-256 of `els_` + 32 random bytes base64url; plaintext shown once), `target_type` (`record | alert | view | track | briefing-run | export`), `target_ref`, `field_mask` jsonb, `precision_m`, `expires_at` (default 7 d, max 30 d), `max_uses`, `uses`, `created_by`, `revoked_at`, `last_used_at`.
+- **Entity `share_link`:** `id`, `key_hash` (SHA-256 of `fss_` + 32 random bytes base64url; plaintext shown once), `target_type` (`record | alert | view | track | briefing-run | export`), `target_ref`, `field_mask` jsonb, `precision_m`, `expires_at` (default 7 d, max 30 d), `max_uses`, `uses`, `created_by`, `revoked_at`, `last_used_at`.
 - **Path-bound key:** the key authorises only `GET /s/{key}` and its sub-paths `/s/{key}/geojson`, `/s/{key}/tiles/{z}/{x}/{y}.mvt` (views and tracks) and `/s/{key}/download` (exports), resolved server-side to the target. It is never accepted as a bearer token anywhere else. Reuse the 035 feed-key matcher.
 - **Rendering:** JSON (or GeoJSON by `Accept` or `/geojson`). No HTML (Charter: no UI). When `clientLinks.share` (023) is configured, `?open=1` redirects (302) to the client template with the key.
 - **Masks:**
@@ -104,7 +104,7 @@ Serve Elaro through standards that existing tools already speak, and to clients 
 
 ### 5. Spec, Postman, docs
 
-- `docs/OpenAPI.json`: OGC operations (`ogcLanding`, `ogcConformance`, `ogcCollections`, `ogcCollection`, `ogcItems`, `ogcItem`, `ogcQueryables`), CAP (`capAtom`, `getCapForAlert`, `getCapMessage`), iCalendar (`getCalendar`), share links (`createShareLink`, `listShareLinks`, `revokeShareLink`, `openShareLink` and its sub-paths). Schemas `OgcLandingPage`, `OgcConformance`, `OgcCollection(s)`, `ShareLink`, `ShareLinkCreate`; error codes `FILTER_INVALID`, `ICAL_FIELDS_MISSING`, `SHARE_LICENCE_FORBIDDEN`, `SHARE_EXPIRED`. Every operation gets `x-elaro-scope` (`/s/**` is `open` with key validation). Update `AccessPolicy` and the 035 feed-key path table. Regenerate Postman with a BODIES entry for `createShareLink`.
+- `docs/OpenAPI.json`: OGC operations (`ogcLanding`, `ogcConformance`, `ogcCollections`, `ogcCollection`, `ogcItems`, `ogcItem`, `ogcQueryables`), CAP (`capAtom`, `getCapForAlert`, `getCapMessage`), iCalendar (`getCalendar`), share links (`createShareLink`, `listShareLinks`, `revokeShareLink`, `openShareLink` and its sub-paths). Schemas `OgcLandingPage`, `OgcConformance`, `OgcCollection(s)`, `ShareLink`, `ShareLinkCreate`; error codes `FILTER_INVALID`, `ICAL_FIELDS_MISSING`, `SHARE_LICENCE_FORBIDDEN`, `SHARE_EXPIRED`. Every operation gets `x-foresignal-scope` (`/s/**` is `open` with key validation). Update `AccessPolicy` and the 035 feed-key path table. Regenerate Postman with a BODIES entry for `createShareLink`.
 - MCP (025): `create_share_link` (agent).
 - `docs/Operator-Guide.md`: "Standards outputs" (QGIS OGC API connection, GDAL `OAPIF:` string, GeoPandas example, CAP consumers and the not-official note, subscribing a calendar with a feed key, share-link privacy defaults).
 

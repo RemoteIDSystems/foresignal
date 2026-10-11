@@ -1,11 +1,11 @@
 # 038 — Stats Rollups And Glance
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/038-CR-Stats-Rollups-And-Glance.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -38,10 +38,10 @@ The rollup is driven by a durable seq cursor, never by an in-memory listener alo
 
 ## Tasks
 
-### 1. `activity_rollup` (`ai.elaro.stats`)
+### 1. `activity_rollup` (`ai.foresignal.stats`)
 
 - Hibernate entity `ActivityRollupEntity`:
-  - PK `(resolution smallint, bucket_start timestamptz, source_id, kind, cell bigint)`. `resolution` is 0 = hour, 1 = day. `cell` is an H3 index at `elaro.stats.cellRes` (default 4, ≈ 1,770 km²), or 0 for records without geometry.
+  - PK `(resolution smallint, bucket_start timestamptz, source_id, kind, cell bigint)`. `resolution` is 0 = hour, 1 = day. `cell` is an H3 index at `foresignal.stats.cellRes` (default 4, ≈ 1,770 km²), or 0 for records without geometry.
   - `cell_lon`, `cell_lat` (the cell centre, used for bbox filtering).
   - Measures: `versions` (persisted, excluding HEARTBEAT and KEYFRAME), `entities` (distinct `external_id`), `firsts` (FIRST and REAPPEAR), `tombstones`, `edges` (TRIGGER_EDGE).
   - Indexes `(resolution, bucket_start)` and `(source_id, resolution, bucket_start)`.
@@ -51,7 +51,7 @@ The rollup is driven by a durable seq cursor, never by an in-memory listener alo
   - Hour H is closed once `now ≥ H + 1 h + 2 min` and the writer's last ingested time has passed it.
   - For each closed hour it runs one `GROUP BY source_id, kind, cell` over that seq range (centroid → H3 in Java, streamed with a JDBC fetch size). It writes the rows and advances the cursor, in one transaction.
   - Days are computed the same way from raw rows (distinct entities are not additive, so never sum hours into days).
-  - First start: backfill from the oldest retained seq, bounded by `elaro.stats.backfill` (default 30d).
+  - First start: backfill from the oldest retained seq, bounded by `foresignal.stats.backfill` (default 30d).
   - Catch up in chunks of ≤ 6 hours per run.
 - **Retention interaction:**
   - Add `stats.rollup.cursor` to 019's consumer clamp (`min(trigger, embedding, rollup)`), so raw rows are never deleted before they are rolled up.
@@ -98,7 +98,7 @@ The rollup is driven by a durable seq cursor, never by an in-memory listener alo
 ### 4. Metric projections: `/v1/metrics`
 
 - Definitions in `app_setting['metrics'] = {projections: [...]}`, edited with `GET/PUT /v1/settings/metrics` (admin). Each projection has:
-  - `name`: `^[a-z_][a-z0-9_]*$`, emitted as `elaro_data_<name>`
+  - `name`: `^[a-z_][a-z0-9_]*$`, emitted as `foresignal_data_<name>`
   - `source`, optional `kind`
   - `path`: the 017 trigger path syntax; reuse its parser
   - `labels[≤ 4 {name, path}]`; the label value is always `source` + `externalId` unless `labels` replaces it
@@ -107,14 +107,14 @@ The rollup is driven by a durable seq cursor, never by an in-memory listener alo
 - `ProjectionService`:
   - at start, seeds from `record_head ⋈ record_live` (the merged payload)
   - subscribes to ChangeBus and LiveBus; under SAMPLED, live values matter
-  - non-numeric values are skipped and counted in `elaro.projection.coercion_failures{projection}`
+  - non-numeric values are skipped and counted in `foresignal.projection.coercion_failures{projection}`
   - drops a series when the head is tombstoned, expires (`valid_until`, checked every minute) or is purged
 - A dedicated `PrometheusMeterRegistry` (not the global one), rendered by `GET /v1/metrics`:
   - text format 0.0.4, or OpenMetrics when `Accept` asks for it
-  - each value has a companion `elaro_data_<name>_observed_timestamp_seconds`
+  - each value has a companion `foresignal_data_<name>_observed_timestamp_seconds`
   - a global cap of 10,000 series raises a system event once and stops adding series
 - `/v1/metrics` is READ (Prometheus sends `authorization: Bearer`). It is **not** on the open actuator endpoint.
-- If 019 did not add `elaro.source.data_age_seconds{source}` and `elaro.alerts.open{severity}`, add them to the main registry.
+- If 019 did not add `foresignal.source.data_age_seconds{source}` and `foresignal.alerts.open{severity}`, add them to the main registry.
 
 ### 5. Briefing digest on stats
 
@@ -125,7 +125,7 @@ The rollup is driven by a durable seq cursor, never by an in-memory listener alo
 ### 6. Spec, Postman, docs
 
 - `docs/OpenAPI.json`:
-  - Operations `getStatsTimeseries`, `getStatsGrid`, `getStatsTop`, `rebuildStatsRollup` (admin), `getGlance` (read; `application/json` and `text/plain`), `getMetrics` (read; `text/plain`), `getMetricSettings`/`updateMetricSettings` (admin), each with `x-elaro-scope`.
+  - Operations `getStatsTimeseries`, `getStatsGrid`, `getStatsTop`, `rebuildStatsRollup` (admin), `getGlance` (read; `application/json` and `text/plain`), `getMetrics` (read; `text/plain`), `getMetricSettings`/`updateMetricSettings` (admin), each with `x-foresignal-scope`.
   - The `count` parameter on `listRecords`, `queryHistory` and `search`.
   - Schemas `StatsSeries`, `StatsTop`, `CountResult`, `Glance`, `MetricProjection`, `MetricSettings`.
   - `RetentionSettings.stats`, and error codes `STATS_TOO_LARGE` and `QUERY_TIMEOUT`.

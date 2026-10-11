@@ -1,11 +1,11 @@
 # 075 — Fire Perimeters Radio Cyclone Cones
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/075-CR-Fire-Perimeters-Radio-Cyclone-Cones.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -59,9 +59,9 @@ Base `https://cwfis.cfs.nrcan.gc.ca/geoserver/public/wfs`, `outputFormat=applica
 ### 4. `radio-browser`
 
 - Mirror discovery: `GET https://all.api.radio-browser.info/json/servers` → `[{ip, name}]`; keep names matching `^[a-z0-9-]+\.api\.radio-browser\.info$` (reject everything else; this is the SSRF guard), de-duplicate, shuffle, cache 6 h in `AdapterStateStore`. Fallback list when discovery fails: `de1`, `de2`, `nl1` (from GEV constants). Verified 2026-10: discovery returned only `de1.api.radio-browser.info` (IPv4 + IPv6). On a mirror failure (IO, 5xx) try the next mirror within the same fetch, counting each attempt against the budget.
-- Crawl: `/json/stations/search?has_geo_info=true&hidebroken=true&order=stationuuid&limit=1000&offset=N` until a short page or `maxStations` (param, default 40,000). Send Elaro's UA (the API asks for a descriptive one).
+- Crawl: `/json/stations/search?has_geo_info=true&hidebroken=true&order=stationuuid&limit=1000&offset=N` until a short page or `maxStations` (param, default 40,000). Send Foresignal's UA (the API asks for a descriptive one).
 - Record: `kind = radio-station`, `externalId = stationuuid`, point from `geo_lat`/`geo_long` (reject 0,0 per the null-island rule), `observedAt = lastchangetime_iso8601`. Payload: `name` (trim tabs/whitespace), `streamUrl` (`url_resolved`), `homepage, favicon, tags` (split, ≤ 15), `countryCode, state, languages, codec, bitrate, hls` (bool), `online` (`lastcheckok == 1`). **Leave out** `votes, clickcount, clicktrend, clicktimestamp*, lastchecktime*, lastlocalchecktime*, changeuuid` (raw counters and churn, adapter rule 8).
-- Descriptor: interval 6 h (min 6 h), budget 2/min, 200/day, STANDARD, ALL, no TTL, absence tombstones on (only after an untruncated crawl), `titleField=name`, `searchFields=name,tags,state`, tile `name, codec, online`. Stream URLs are links for clients; Elaro never fetches a stream. Licence: Radio Browser data is published as free/open (record the exact statement from `api.radio-browser.info` during capture).
+- Descriptor: interval 6 h (min 6 h), budget 2/min, 200/day, STANDARD, ALL, no TTL, absence tombstones on (only after an untruncated crawl), `titleField=name`, `searchFields=name,tags,state`, tile `name, codec, online`. Stream URLs are links for clients; Foresignal never fetches a stream. Licence: Radio Browser data is published as free/open (record the exact statement from `api.radio-browser.info` during capture).
 - Port notes: GEV header and `THIRD_PARTY_NOTICES.md` entry for the radio files used.
 
 ### 5. `nhc-cyclone-cones`

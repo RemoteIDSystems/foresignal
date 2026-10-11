@@ -1,11 +1,11 @@
 # 044 — History Downsampling
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/044-CR-History-Downsampling.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -40,7 +40,7 @@ Shrink TRACK-tier history older than a raw window without losing anything that m
 
 `history_downsample` (Hibernate entity): `leaf_name` PK, `history_tier`, `from_seq`, `to_seq`, `default_interval_s`, `rows_before`, `rows_after`, `started_at`, `completed_at`, `status` (RUNNING, DONE, FAILED), `error`. Queried by the asOf path, `/versions` and `testTrigger`. Cache the DONE ranges in a `DownsampleRanges` bean (refreshed after each run and on startup).
 
-### 4. `HistoryDownsampler` (`ai.elaro.retention`)
+### 4. `HistoryDownsampler` (`ai.foresignal.retention`)
 
 Runs from `RetentionJob` (not `@Transactional`), at most **one leaf per run**, under the `PartitionManager` lock.
 
@@ -64,7 +64,7 @@ Runs from `RetentionJob` (not `@Transactional`), at most **one leaf per run**, u
 
 Rules: the writer never inserts into an eligible leaf (its range is far below `lastAllocatedSeq`), so no lock on writes is needed beyond step 6. **Track `floorSeq` is unchanged.** Startup recovery: a RUNNING row whose `_ds` table exists and is not attached is dropped and the row marked FAILED; if the swap had committed, finish steps 7–8. I9 holds: only native SQL touches `record_version`.
 
-Metrics: `elaro.history.downsample.rows_before`, `rows_after`, `duration`, `failures`. `/v1/system.history` per tier adds `downsampledLeaves` and `downsampledRows`.
+Metrics: `foresignal.history.downsample.rows_before`, `rows_after`, `duration`, `failures`. `/v1/system.history` per tier adds `downsampledLeaves` and `downsampledRows`.
 
 ### 5. Read-path effects
 
@@ -75,12 +75,12 @@ Metrics: `elaro.history.downsample.rows_before`, `rows_after`, `duration`, `fail
 
 ### 6. Spec, Postman, docs
 
-- `docs/OpenAPI.json`: `RecordVersion.downsampled` (boolean); `RetentionSettings.trackRawWindow`, `trackDownsampleInterval`; `SourceSettings`/`SourceSettingsUpdate.downsampleInterval` (nullable); `TriggerTestResult.warnings` (array of `{code, message}`) if missing; `SystemInfo.history` tier fields `downsampledLeaves`, `downsampledRows`. No new operations (no new `x-elaro-scope` entries). Update the `updateRetention` and `updateSource` bodies in the Postman script's BODIES map, then regenerate with `python3 scripts/generate-postman.py docs/OpenAPI.json postman`.
+- `docs/OpenAPI.json`: `RecordVersion.downsampled` (boolean); `RetentionSettings.trackRawWindow`, `trackDownsampleInterval`; `SourceSettings`/`SourceSettingsUpdate.downsampleInterval` (nullable); `TriggerTestResult.warnings` (array of `{code, message}`) if missing; `SystemInfo.history` tier fields `downsampledLeaves`, `downsampledRows`. No new operations (no new `x-foresignal-scope` entries). Update the `updateRetention` and `updateSource` bodies in the Postman script's BODIES map, then regenerate with `python3 scripts/generate-postman.py docs/OpenAPI.json postman`.
 - `docs/Architecture.md` §11 (downsampling: keep set, swap, asOf widening); Operator Guide section "History downsampling" (what is kept, storage effect, how to disable).
 
 ## Tests to write (do not run)
 
-- `DownsampleKeepSetIT` (seed through `TestRecords` only, small `elaro.history.trackBlock` via `TestPartitions`): FIRST/REAPPEAR/SIGNIFICANT/TOMBSTONE/TRIGGER_EDGE kept; max seq per entity per leaf kept; head- and alert-referenced seqs kept; one sample per entity per interval; per-source interval override honoured.
+- `DownsampleKeepSetIT` (seed through `TestRecords` only, small `foresignal.history.trackBlock` via `TestPartitions`): FIRST/REAPPEAR/SIGNIFICANT/TOMBSTONE/TRIGGER_EDGE kept; max seq per entity per leaf kept; head- and alert-referenced seqs kept; one sample per entity per interval; per-source interval override honoured.
 - `HistoryDownsamplerIT`: full rewrite-and-swap; leaf bounds and indexes intact (`pg_inherits`, `pg_indexes`); concurrent writer batches into the newest leaf succeed during the swap; lock timeout path retries then fails cleanly with no orphan `_ds` table; startup recovery for both crash points; `floorSeq` unchanged; leaves near the drop horizon and above the consumer clamp skipped.
 - `AsOfDownsampledIT`: a stationary keyframed aircraft queried between surviving rows is still present with `approximate=true`; STANDARD unaffected.
 - `RecordVersionsApiIT` (extend): `downsampled` flag.

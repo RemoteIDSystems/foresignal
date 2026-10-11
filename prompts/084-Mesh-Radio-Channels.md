@@ -1,11 +1,11 @@
 # 084 — Mesh Radio Channels
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/084-CR-Mesh-Radio-Channels.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -21,11 +21,11 @@
 
 ## Objective
 
-Let Elaro send alerts over the operator's own LoRa mesh, and accept short field reports back, without ever loading a public channel. Two new channel types, `meshtastic` and `meshcore`, share a compact message profile, an airtime (duty-cycle) governor and a small report grammar that only works over a private, keyed channel. Meshtastic stays on the JSON route (no GPL protobufs); MeshCore uses its MIT companion protocol through the link 083 built.
+Let Foresignal send alerts over the operator's own LoRa mesh, and accept short field reports back, without ever loading a public channel. Two new channel types, `meshtastic` and `meshcore`, share a compact message profile, an airtime (duty-cycle) governor and a small report grammar that only works over a private, keyed channel. Meshtastic stays on the JSON route (no GPL protobufs); MeshCore uses its MIT companion protocol through the link 083 built.
 
 ## Tasks
 
-### 1. Compact message profile (`ai.elaro.notify.mesh`)
+### 1. Compact message profile (`ai.foresignal.notify.mesh`)
 
 - **`MeshShortTextFormatter`**: `{sev} {title} {where} {hhmm}Z #{code}`. `sev` is ASCII (`!!!` critical, `!!` warning, `i` info; no emoji, which cost 4 bytes each). `where` is `{{near.place}}` (040) or a 2-decimal lat/lon. `code` is a 4-character Crockford base32 short id of the alert, stored on the delivery row so `ACK` replies can find the alert. Truncate with 018's `Truncator` by **characters for MeshCore (cap 133)** and **UTF-8 bytes for Meshtastic (cap 200)**, never splitting a code point; the `#code` suffix is always kept. A resolved alert renders as `OK {title} #{code}`.
 - **`MeshCborProfile`** (machine-readable, optional per channel, `profile=cbor`): CBOR map with integer keys `0` version (1), `1` type (1 alert, 2 resolved, 3 report-ack, 4 status), `2` short code, `3` severity (0–2), `4` kind (≤ 16 chars), `5`/`6` lat/lon as int ×1e5, `7` epoch seconds, `8` title (≤ 60 chars), `9` source id (≤ 24 chars). Encoded size ≤ 160 bytes; drop key 8, then 9, until it fits. Use Jackson's CBOR dataformat module (Boot-managed Jackson 3 coordinates). Prompt 113 reuses and extends this codec for MeshDTN messages, so keep it in its own package with golden vectors, and make the decoder ignore unknown integer keys (forward compatibility).
@@ -37,7 +37,7 @@ Let Elaro send alerts over the operator's own LoRa mesh, and accept short field 
 - Config `region` (`EU_868`, `EU_433`, `UK_868`, `US`, `ANZ`, `OTHER`) gives the regulatory ceiling: 10 % for EU_868/UK_868 (869.40–869.65 MHz, the band Meshtastic EU_868 uses), 10 % for EU_433, no duty cycle for US/ANZ (dwell-time rules are the radio's job). `dutyCyclePercent` (default **1.0**, a polite share of the channel; must be ≤ the ceiling; maximum 10).
 - Also enforce `minSpacing` (default 30 s between transmissions) and `maxMessagesPerHour` (default 20).
 - A message that does not fit is deferred through 018's `next_attempt_at` and folded into one digest line (`{n} alerts, top: {title} #{code}`) when released. Critical alerts jump the queue but never exceed the regulatory ceiling.
-- Counters: `elaro.channel.mesh.airtime_seconds{channel}`, `deferred`, `folded`, `dropped`. Raise a system event when the deferral backlog is older than 1 h.
+- Counters: `foresignal.channel.mesh.airtime_seconds{channel}`, `deferred`, `folded`, `dropped`. Raise a system event when the deferral backlog is older than 1 h.
 
 ### 3. Channel SPI fit
 
@@ -46,7 +46,7 @@ Both types implement 018's `ChannelType` (`spec`, `validate`, `rateLimit`, capab
 ### 4. `meshtastic` channel type (MQTT JSON downlink)
 
 - Config: `brokerUrl` (`LAN_URL`, `mqtt://`/`mqtts://`), `root` (default `msh/local`), `gatewayNodeNum` (unsigned decimal, the `from` field), `channelIndex` (1–7), `channelName` (string), `toNodeNum` (optional, DM), `topicSuffixNodeId` (boolean, default false), `region`, `airtimePreset`, `dutyCyclePercent`, `profile` (`text`|`cbor`), `minSeverity` (default `warning`), `reportsEnabled`, `allowedSenders`. Secrets: `username`, `password`.
-- Publish through 060's `MqttConnections` (one client per broker, client id `elaro-<installId>-mesh`) at QoS 1 to `{root}/2/json/mqtt/` (append `!{gatewayHex}` when `topicSuffixNodeId`; community reports show some firmware needs it) with `{"from":gatewayNodeNum,"type":"sendtext","payload":text,"channel":channelIndex[,"to":toNodeNum]}`. CBOR profile is sent as text `~E1 ` + base64url (JSON downlink only carries text).
+- Publish through 060's `MqttConnections` (one client per broker, client id `foresignal-<installId>-mesh`) at QoS 1 to `{root}/2/json/mqtt/` (append `!{gatewayHex}` when `topicSuffixNodeId`; community reports show some firmware needs it) with `{"from":gatewayNodeNum,"type":"sendtext","payload":text,"channel":channelIndex[,"to":toNodeNum]}`. CBOR profile is sent as text `~E1 ` + base64url (JSON downlink only carries text).
 - Document the node prerequisites: JSON enabled (not available on nRF52), a channel named `mqtt` with downlink enabled, and MQTT encryption disabled toward the private broker.
 - **Never public:** reject at create/update with 400 `MESH_PUBLIC_CHANNEL` when the broker host is `*.meshtastic.org` or not a LAN address, when `channelIndex` is 0, when `channelName` is empty or a modem-preset default (`LongFast, LongSlow, LongModerate, MediumFast, MediumSlow, ShortFast, ShortSlow, ShortTurbo, VLongSlow`), or when the operator sets `licensedMode=true` (ham mode disables encryption). Require `privateChannelConfirmed=true`.
 - No delivery acknowledgement is visible over JSON; the delivery is `sent` once the broker PUBACKs.
@@ -72,7 +72,7 @@ Both types implement 018's `ChannelType` (`spec`, `validate`, `rateLimit`, capab
 
 ### 7. Spec, Postman, docs
 
-- `docs/OpenAPI.json`: add `meshtastic` and `meshcore` to the channel-type enums in `ChannelType`, `Channel` and `ChannelInput`; add `unacked` to the delivery status enum; add `GET /v1/channels/{channelId}/airtime` (`x-elaro-scope: admin`, response `ChannelAirtime {windowSeconds, usedSeconds, limitSeconds, dutyCyclePercent, queued, foldedLastHour, droppedLastHour}`) and error code `MESH_PUBLIC_CHANNEL`. AccessPolicy: the new path is admin. Regenerate Postman (add example create bodies for both types in the script's BODIES map).
+- `docs/OpenAPI.json`: add `meshtastic` and `meshcore` to the channel-type enums in `ChannelType`, `Channel` and `ChannelInput`; add `unacked` to the delivery status enum; add `GET /v1/channels/{channelId}/airtime` (`x-foresignal-scope: admin`, response `ChannelAirtime {windowSeconds, usedSeconds, limitSeconds, dutyCyclePercent, queued, foldedLastHour, droppedLastHour}`) and error code `MESH_PUBLIC_CHANNEL`. AccessPolicy: the new path is admin. Regenerate Postman (add example create bodies for both types in the script's BODIES map).
 - `GET /v1/channels/types` lists both types with their config fields.
 - `docs/Operator-Guide.md` "Mesh alert channels": node prerequisites, why public channels are refused, duty-cycle maths with a worked LongFast example, report grammar card, and a note that unattended transmission on amateur allocations is subject to local rules (for example FCC Part 97), so these channels are for licence-free ISM operation.
 - Source-Catalog: add `mesh-reports`.

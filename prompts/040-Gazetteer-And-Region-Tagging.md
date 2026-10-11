@@ -1,11 +1,11 @@
 # 040 — Gazetteer And Region Tagging
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/040-CR-Gazetteer-And-Region-Tagging.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -40,7 +40,7 @@ Give every record a human place context without any online geocoder: country, fi
   - `name`, `nameLong`, `continent`
   - `labelLon`, `labelLat` (NE `LABEL_X`/`LABEL_Y`; these always fall inside the country, unlike geometric centroids)
   - `aliases` (a pipe-separated list including the GeoNames `countryInfo` names, plus common variants such as "Türkiye/Turkey", "Czechia/Czech Republic", "Côte d'Ivoire/Ivory Coast")
-- `CountryCentroids` bean (`ai.elaro.reference`): `byIso2`, `byIso3`, `byFips`, `byName` (case- and accent-insensitive, aliases included), `all()`. Available at startup with no database or network.
+- `CountryCentroids` bean (`ai.foresignal.reference`): `byIso2`, `byIso3`, `byFips`, `byName` (case- and accent-insensitive, aliases included), `all()`. Available at startup with no database or network.
 - Check whether 068, 076 or 090 have already bundled their own table. If one has, switch it to `CountryCentroids` now; otherwise document that those adapters must use it.
 
 ### 2. Reference tables and loader
@@ -59,11 +59,11 @@ Give every record a human place context without any online geocoder: country, fi
   - Marine Regions IHO sea areas are **not** offered: their terms ask that products not be re-hosted. NE marine polygons are the default sea layer.
 - `ReferenceDataLoader`:
   - Downloads through `UpstreamClient` with an identifiable UA and a small budget. The URLs come from the bundled manifest; there are no caller-supplied URLs.
-  - Writes to `${ELARO_DATA_DIR}/reference/` and verifies SHA-256 (mismatch → `REFERENCE_CHECKSUM_MISMATCH`, dataset not loaded).
-  - `elaro.reference.offlineDir` loads pre-placed files instead.
+  - Writes to `${FORESIGNAL_DATA_DIR}/reference/` and verifies SHA-256 (mismatch → `REFERENCE_CHECKSUM_MISMATCH`, dataset not loaded).
+  - `foresignal.reference.offlineDir` loads pre-placed files instead.
   - Parses GeoJSON with streaming Jackson plus JTS `GeoJsonReader`, applying `GeometryFixer`. Parses GeoNames TSV.
   - Loads into a staging table, then swaps inside one transaction (`TRUNCATE` + `INSERT … SELECT`). `geom_simple` = `ST_SimplifyPreserveTopology(geom, 0.01)`.
-  - Runs async on first boot when `elaro.reference.autoLoad=true` (default). It never blocks startup or readiness; failures surface as a `reference` readiness detail and a system event.
+  - Runs async on first boot when `foresignal.reference.autoLoad=true` (default). It never blocks startup or readiness; failures surface as a `reference` readiness detail and a system event.
 - API:
   - `GET /v1/reference` (read): datasets, editions, row counts, attributions, load state
   - `POST /v1/reference/load {datasets[]}` (admin, async, 202)
@@ -72,13 +72,13 @@ Give every record a human place context without any online geocoder: country, fi
 - Licensing:
   - GeoNames CC BY 4.0 attribution goes in `THIRD_PARTY_NOTICES.md`, in `/v1/reference`, and in any response field derived from `near`. Expose `RegionAttribution` so prompt 109 can aggregate it.
   - Natural Earth needs no attribution, but credit it anyway.
-  - The docs state that NE draws de facto boundaries; `elaro.reference.neAdmin0Variant` can select an NE point-of-view file (e.g. `_ind`), with its URL and hash in the manifest.
+  - The docs state that NE draws de facto boundaries; `foresignal.reference.neAdmin0Variant` can select an NE point-of-view file (e.g. `_ind`), with its URL and hash in the manifest.
 
 ### 3. RegionTagger
 
 - `RegionTagger.tag(Geometry) → RegionTags{iso2, admin1, admin2, sea, near{geonameid, name, iso2, admin1, distanceKm, bearingDeg, compass16, population}}` on the representative point (`ST_PointOnSurface` for areas).
 - Containment uses `ST_Covers` on `ref_country`/`ref_admin1`/`ref_admin2`. For coastal points within 5 km, fall back to the nearest country by distance; at sea, `iso2` is null and `sea` is set.
-- `near` is the KNN nearest place with `population ≥ elaro.reference.nearMinPopulation` (default 0, since the cities15000 file is already filtered).
+- `near` is the KNN nearest place with `population ≥ foresignal.reference.nearMinPopulation` (default 0, since the cities15000 file is already filtered).
 - An LRU cache on coordinates rounded to 0.01° (50,000 entries).
 - If the reference tables are empty, `near`, `admin1` and so on are null and `iso2` comes from a point-in-polygon test against bundled simplified country polygons. If that is too large to bundle, `iso2` is null. Never fail.
 
@@ -118,7 +118,7 @@ Give every record a human place context without any online geocoder: country, fi
 ### 7. Spec, Postman, docs
 
 - `docs/OpenAPI.json`:
-  - operations `getReference`, `loadReference` (admin, 202), `listReferenceCountries`, `reverseGeocode`, each with `x-elaro-scope`
+  - operations `getReference`, `loadReference` (admin, 202), `listReferenceCountries`, `reverseGeocode`, each with `x-foresignal-scope`
   - parameters `country`, `admin1`, `county` on `listRecords`, `search`, `listAlerts`; `include=region`
   - schemas `RegionTags`, `ReferenceStatus`, `CountryRef`; `geofenceRef` on trigger schemas; `region` on `Alert`, `Record`, `BriefingScope`
   - error codes `UNKNOWN_REGION`, `REFERENCE_DATA_MISSING`, `REFERENCE_CHECKSUM_MISMATCH`

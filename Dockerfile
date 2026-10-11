@@ -17,18 +17,18 @@ RUN ./gradlew bootJar -x test --no-daemon
 # ---- Runtime stage -----------------------------------------------------------
 FROM eclipse-temurin:21-jre AS runtime
 
-RUN groupadd --system --gid 1001 elaro \
- && useradd --system --uid 1001 --gid elaro --create-home --home-dir /home/elaro elaro \
+RUN groupadd --system --gid 1001 foresignal \
+ && useradd --system --uid 1001 --gid foresignal --create-home --home-dir /home/foresignal foresignal \
  && mkdir -p /app /data \
- && chown -R elaro:elaro /app /data
+ && chown -R foresignal:foresignal /app /data
 
-COPY --from=build --chown=elaro:elaro /src/build/libs/elaro.jar /app/elaro.jar
+COPY --from=build --chown=foresignal:foresignal /src/build/libs/foresignal.jar /app/foresignal.jar
 
-USER elaro
+USER foresignal
 WORKDIR /app
 VOLUME ["/data"]
 EXPOSE 8080
 
-ENV ELARO_DATA_DIR=/data
+ENV FORESIGNAL_DATA_DIR=/data
 
-ENTRYPOINT ["java","-XX:MaxRAMPercentage=75","-jar","/app/elaro.jar"]
+ENTRYPOINT ["java","-XX:MaxRAMPercentage=75","-jar","/app/foresignal.jar"]

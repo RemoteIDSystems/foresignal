@@ -1,4 +1,4 @@
-# What Elaro is missing: clients, outputs, inputs and roadmap changes
+# What Foresignal is missing: clients, outputs, inputs and roadmap changes
 
 Every candidate was checked against `docs/Roadmap.md` (001–063), Product-Charter, Architecture, Source-Catalog and OpenAPI. Prompt numbers below are the current Roadmap numbers. New prompts get letter suffixes so nothing has to be renumbered. If the untracked `Weather-Imagery-Design.md` renumbering is adopted, map them across.
 
@@ -31,7 +31,7 @@ Every candidate was checked against `docs/Roadmap.md` (001–063), Product-Chart
 
 7. **No named places, and no protection for personal data (should).** Every rule, briefing, Ask scope and client pastes its own polygon. Add a `place` resource (point+radius, polygon, route+buffer) and saved views, plus moving "near me" anchors. Once phones, family members or OwnTracks feed positions in, a per-source `private` flag is needed. It must keep those sources out of `openReads`, tiles, embeddings and LLM egress, and support purge and export per entity.
 
-8. **"Push data to other systems" means notifications only (should).** The record stream is pull-only. A Sink SPI with durable cursors would let existing ecosystems use Elaro with no new frontend code:
+8. **"Push data to other systems" means notifications only (should).** The record stream is pull-only. A Sink SPI with durable cursors would let existing ecosystems use Foresignal with no new frontend code:
    - MQTT with Home Assistant discovery
    - Cursor-on-Target for ATAK, iTAK and WinTAK
    - readsb `aircraft.json` and SBS-1 for tar1090
@@ -51,9 +51,9 @@ Every candidate was checked against `docs/Roadmap.md` (001–063), Product-Chart
 
 ## 2. Client types
 
-| Client | What Elaro must add | Priority | Effort |
+| Client | What Foresignal must add | Priority | Effort |
 |---|---|---|---|
-| Flutter mobile | Native push (UnifiedPush now, APNs/FCM later), pairing, sync protocol, deep links (`elaro://`), glance endpoint, offline packs | should | M |
+| Flutter mobile | Native push (UnifiedPush now, APNs/FCM later), pairing, sync protocol, deep links (`foresignal://`), glance endpoint, offline packs | should | M |
 | Flutter desktop / tray | Notification inbox with per-device read cursor; presence-aware deferral (desktop active = phone waits, critical always sent) | should | S |
 | Local web / PWA | Stream tickets, TileJSON and style, Web Push actions (with fallback where Safari lacks them) | should | S |
 | Generated SDKs (Dart, then TS, then Python) | Hand-written SSE resume/`reset`/heartbeat layer; cursor iterators; Dart needs a pre-processed spec because dart-dio handles OpenAPI 3.1 nullable unions badly | should | M |
@@ -76,7 +76,7 @@ Every candidate was checked against `docs/Roadmap.md` (001–063), Product-Chart
 
 ## 3. Outputs and interoperability
 
-| Output | What Elaro must add | Priority | Effort |
+| Output | What Foresignal must add | Priority | Effort |
 |---|---|---|---|
 | TileJSON 3.0 + tiles index | Extend 013 | should | S |
 | MapLibre style + CC0 sprite | Display hints in descriptor; overlay-only, icon/circle layers, no glyph hosting | should | M |
@@ -130,7 +130,7 @@ Every candidate was checked against `docs/Roadmap.md` (001–063), Product-Chart
 | Station health (feeders, SatNOGS, UPS) | readsb stats instead of graphs1090 scraping; UPS via NUT push recipe | could | M |
 | Rayhunter | GET-only, private source, never fetch QMDL/PCAP; geotag needs a tracker | could | S–M |
 | Raspberry Shake, lightning (AS3935/WH57), NOAA SAME, NAVTEX, Inmarsat-C EGC | Mostly push recipes or presets; EGC strictly a SafetyNET allowlist | could | S each |
-| Home Assistant state bridge | `subscribe_entities` (non-admin), allowlist enforced in Elaro, private flag first | could | M |
+| Home Assistant state bridge | `subscribe_entities` (non-admin), allowlist enforced in Foresignal, private flag first | could | M |
 | Frigate, Kismet, home-network IDS, trunk-recorder | Recipes via 020; high privacy | could | — |
 
 ### 4b. Internet feeds

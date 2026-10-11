@@ -1,4 +1,4 @@
-# Elaro Intelligence: analysis, rolling hypotheses and forecasting (v1.3 design)
+# Foresignal Intelligence: analysis, rolling hypotheses and forecasting (v1.3 design)
 
 Prepared 2026-10-11, from a survey of the four reference projects' code, a web scan of open-source and commercial tools, and a review of forecasting and intelligence-analysis research (§14).
 
@@ -12,13 +12,13 @@ New prompts **116–126** implement it. The former 116–120 are renumbered **12
 
 | Question | Decision | Why |
 |---|---|---|
-| What is the product claim? | Elaro correlates across domains **over durable, versioned history**, keeps **rolling hypotheses**, and **measures its own accuracy** with leak-free replays. | World Monitor already has LLM briefs, an index, baselines and a Brier-scored forecast store, but 180 days of event history, hand-set weights and no demonstrated skill. Nobody has competing-hypothesis tracking, stored out-of-sample lead–lag tests or point-in-time evaluation (§1). |
+| What is the product claim? | Foresignal correlates across domains **over durable, versioned history**, keeps **rolling hypotheses**, and **measures its own accuracy** with leak-free replays. | World Monitor already has LLM briefs, an index, baselines and a Brier-scored forecast store, but 180 days of event history, hand-set weights and no demonstrated skill. Nobody has competing-hypothesis tracking, stored out-of-sample lead–lag tests or point-in-time evaluation (§1). |
 | Who finds patterns? | **Deterministic detectors** (statistics over stored data) find and quantify. The LLM explains, challenges, proposes and forecasts, and is scored like any other forecaster. | Reproducible and testable. Research shows LLMs categorise conflict better than they forecast it, and statistical models win on counts (§14.3). |
 | How are uncertain judgments expressed? | A numeric **probability** is the source of truth; the ICD 203 term is derived from it. **Confidence** (low, moderate, high) in the evidence is a separate field. Generated text never puts a likelihood term and a confidence level in the same sentence (ICD 203, analytic standard 2 on uncertainty). | The US intelligence community's analytic standard; separates "how likely" from "how good is the evidence". |
 | What is a rolling hypothesis? | A **hypothesis set** (competing answers to one key question) whose probabilities move with observed **indicators** and periodic reviews, with every revision kept and explained against the previous one (ICD 203 standard 7). | Each review starts from the last one; the revision history is the audit trail. |
 | How is "were we right?" answered? | A **forecast ledger**: questions with machine-checkable resolution, immutable timestamped forecasts from many forecasters (base rates, statistics, precursors, analogs, indicators, the LLM, the operator, an ensemble), automatic resolution, proper scoring (Brier, log, RPS, CRPS), CORP reliability diagrams, skill against base rates, and bias monitors. | Calibration is what makes a probability worth acting on. ACH alone has shown no accuracy benefit in studies, so its output is scored too. |
 | Speculative links (unusual oil-futures positioning before a strike) | Allowed as **speculative-link hypotheses**, always shown with the **coincidence baseline** (how often such a move happens with nothing following) and alternatives; capped by evidence; never phrased as an accusation. | Interesting and useful, without overclaiming. Free daily and weekly data cannot see intraday trading, and the UI says so. |
-| Outside view on day one | **Reference-history imports** (UCDP GED, ACLED history, USGS ComCat, GDACS, CFTC and PortWatch history) as region-week counts, so base rates exist before Elaro has a year of its own data. | Explicit base rates are among the strongest accuracy levers measured for LLM and human forecasters. |
+| Outside view on day one | **Reference-history imports** (UCDP GED, ACLED history, USGS ComCat, GDACS, CFTC and PortWatch history) as region-week counts, so base rates exist before Foresignal has a year of its own data. | Explicit base rates are among the strongest accuracy levers measured for LLM and human forecasters. |
 | How long is data kept? | **Analytic retention classes** (§4.1): event kinds 5 years, series 10 years, intelligence outputs indefinitely; dense telemetry keeps its short raw window plus rollups and derived records. | The 7-day default was right for storage and wrong for analysis. |
 | No look-ahead | Every job and forecast records its **knowledge cutoff** (`asOfSeq`). Replays and retrospective evaluations read through `asOf`. Series points carry `knownAt`; publication lags (COT ≈ 3 days, PortWatch ≈ 7 days) are respected. | Transaction-time history makes leak-free evaluation possible. Competitors cannot do it. |
 | LLM forecasts and training leakage | Retrospective evaluation of an LLM forecaster only uses questions opened **after** the model's knowledge cutoff; earlier ones are excluded as `LEAKAGE_RISK`. Live LLM forecasts are capped to [0.03, 0.97] and recalibrated (Platt) on the ledger once 50 have resolved. | Models cannot reliably pretend not to know outcomes; LLM forecasts hedge and lean toward "yes". |
@@ -46,7 +46,7 @@ New prompts **116–126** implement it. The former 116–120 are renumbered **12
 
 Commercial tools set the bar for "impressive": Dataminr's self-regenerating event briefs and investigative agents; Windward's unprompted anomaly detection with suggested causes; Babel Street's challenge agents; Primer's claim-level verification; ACLED CAST publishing its forecasts **with** its accuracy metrics.
 
-### 1.2 Where Elaro wins
+### 1.2 Where Foresignal wins
 
 1. **Versioned, transaction-time history** of raw and derived state, kept for years for event data: "what did we know at time T" for every replay and evaluation.
 2. **Weights and probabilities learned from outcomes:** index weights, ensemble weights and recalibration are fitted to resolved questions; nothing important rests on a hand-set weight forever.
@@ -59,9 +59,9 @@ Commercial tools set the bar for "impressive": Dataminr's self-regenerating even
 
 ### 1.3 Must-match list
 
-Elaro must also match what the best competitors already do. Where each lives:
+Foresignal must also match what the best competitors already do. Where each lives:
 
-| Competitor capability | Elaro |
+| Competitor capability | Foresignal |
 |---|---|
 | Briefs with server-validated citations; local-first providers | 026, 028, 029, 102 |
 | Uncited answers withheld; watch officer drafting briefs for ack | 028 verifier, 102 analyst |
@@ -95,7 +95,7 @@ Excluded on terms or principle: prediction-market prices (Polymarket, Kalshi; 09
 10. **Reproducible and versioned.** Every detector, scorer, updater and forecaster has a name and semantic version stored with its outputs.
 11. **Budgeted and optional.** Deterministic analysis runs without an LLM. LLM roles are budgeted per run and per day (026) and fall back to deterministic output.
 12. **Private stays private.** Anything built from a `private` source (039) is private and follows `EgressPolicy` everywhere, including LLM context.
-13. **Licensed data stays local.** Series whose terms forbid redistribution (FRED copyrighted series, EIA spot prices sourced from LSEG, ACLED) are `egress=LOCAL_ONLY`: Elaro computes on them and serves derived signals, never the raw values, outside the operator's own tokens.
+13. **Licensed data stays local.** Series whose terms forbid redistribution (FRED copyrighted series, EIA spot prices sourced from LSEG, ACLED) are `egress=LOCAL_ONLY`: Foresignal computes on them and serves derived signals, never the raw values, outside the operator's own tokens.
 
 ---
 
@@ -117,13 +117,13 @@ Excluded on terms or principle: prediction-market prices (Polymarket, Kalshi; 09
  L0  Collection ─ budgeted sources · health · history with analytic retention (001–097)
 ```
 
-Outputs are ordinary Elaro objects: typed tables for structure, plus records of a DERIVED source so SSE, tiles, search, triggers, briefings and MCP work unchanged.
+Outputs are ordinary Foresignal objects: typed tables for structure, plus records of a DERIVED source so SSE, tiles, search, triggers, briefings and MCP work unchanged.
 
 | DERIVED source | Kinds | Created by |
 |---|---|---|
-| `elaro-intel` (101) | `intelligence-event`, `situation` (117), `hypothesis-set` (122) | 101, 117, 122 |
-| `elaro-analytics` (118) | `analytic-finding`, payload `findingType` ∈ `change-point`, `pre-event-signal`, `unexplained-move`, `co-occurrence`, `precursor-active`, `forecast-exceedance`, `outlook-exceedance`, `projected-impact` | 118, 119, 123, 124 |
-| `elaro-outlook` (123) | `regional-outlook`, `regional-index` | 123 |
+| `foresignal-intel` (101) | `intelligence-event`, `situation` (117), `hypothesis-set` (122) | 101, 117, 122 |
+| `foresignal-analytics` (118) | `analytic-finding`, payload `findingType` ∈ `change-point`, `pre-event-signal`, `unexplained-move`, `co-occurrence`, `precursor-active`, `forecast-exceedance`, `outlook-exceedance`, `projected-impact` | 118, 119, 123, 124 |
+| `foresignal-outlook` (123) | `regional-outlook`, `regional-index` | 123 |
 
 Forecast questions and forecasts are **not** records: they are append-only ledger rows with their own API and SSE topic.
 
@@ -143,7 +143,7 @@ Forecast questions and forecasts are **not** records: they are append-only ledge
 | `state` | SAMPLED status (gauges, sensors, station health) | 365 d | rollups |
 | `track` | TRACK tier (aircraft, vessels, satellites) | `trackWindow` (3 d) plus 044 downsampling | rollups, PoL (114), derived layers (099), entity registry (098) |
 | `reference` | catalogues (power plants, ports, cables) | 90 d of history; heads kept while current | n/a |
-| `intel` | Elaro's outputs: anomalies, intel events, situations, findings, outlooks | records 1825 d; **typed tables never auto-deleted** (admin purge only) | n/a |
+| `intel` | Foresignal's outputs: anomalies, intel events, situations, findings, outlooks | records 1825 d; **typed tables never auto-deleted** (admin purge only) | n/a |
 
 Event-class sources are small (USGS ≈ 300 versions/day, ACLED ≈ 1–3k/day, IODA a few hundred). Five years of all `event` sources is expected in the low tens of GB; `/v1/system.history` reports the real projection and 130 measures it.
 
@@ -188,7 +188,7 @@ History cannot be backfilled from live feeds. The roadmap recommends deploying a
 - `detector` `{name, version, params}`; links `situation_id`, `precursor_id`, `question_ids`;
 - `explanation` (deterministic template), `private`.
 
-Each finding is also an `elaro-analytics` record, so ordinary rules can alert on it.
+Each finding is also an `foresignal-analytics` record, so ordinary rules can alert on it.
 
 ### 5.2 Change points
 
@@ -210,7 +210,7 @@ Example: Bab el-Mandeb daily transits (PortWatch, 088) fall from a 60-day level 
 - **Statistics:** abnormal values, cumulative abnormal value per window (CAR), cross-event average (CAAR); significance by the standardised test, the **Corrado rank test**, and a **placebo test** (the same statistic at 500 deterministic pseudo-event dates from periods without qualifying events). Overlapping events are clustered before averaging. The placebo distribution is the **coincidence baseline** shown with every live signal.
 - **Live `pre-event-signal`:** when a qualifying event arrives (default: intel events ≥ warning, situations turning active, significant change points), the configured **watch pairs** (event family × series) are checked over the pre-event window using only points known before the event. Placebo p ≤ 0.01 and |CAR| ≥ `minEffect` → finding: "WTI managed-money net long rose 2.8 SD in the 2 weeks before the event; moves this large occur before about 3% of comparable windows with no event."
 - **Live `unexplained-move`:** a daily scan of watched market and attention series. A move with |z| ≥ 3 against the estimation window and **no** qualifying event in the linked regions or themes within ±2 days becomes an `unexplained-move` finding. If a qualifying event appears within the following 7 days, the finding is linked to it and re-labelled as an observed pre-event signal; that link feeds precursor mining (119).
-- **Resolution limit:** Elaro's market data is daily or weekly. The documented 2026 oil-futures episodes were visible minute by minute in licensed exchange data; Elaro cannot see moves like those, and every market finding carries `DAILY_RESOLUTION_ONLY`.
+- **Resolution limit:** Foresignal's market data is daily or weekly. The documented 2026 oil-futures episodes were visible minute by minute in licensed exchange data; Foresignal cannot see moves like those, and every market finding carries `DAILY_RESOLUTION_ONLY`.
 - Batch studies run on the 103 job framework (`type = event-study`) with its caveats and no-look-ahead rules.
 
 ### 5.4 Co-occurrence mining
@@ -384,7 +384,7 @@ Optional structural covariates come from World Bank indicators (116).
 
 ## 10. Impact projection (prompt 124)
 
-`ImpactProjector` (`impact-projection` 1.0.0) turns hazard forecasts Elaro ingests into probabilistic, scored impact statements:
+`ImpactProjector` (`impact-projection` 1.0.0) turns hazard forecasts Foresignal ingests into probabilistic, scored impact statements:
 
 | Hazard input | Probability used |
 |---|---|
@@ -448,13 +448,13 @@ All read tools join the read catalogue (025), so Ask, the analyst and the cycles
 
 Notification event types (018): `situation.activated`, `situation.escalated`, `hypothesis.band_changed`, `indicator.observed`, `assumption.broken`, `forecast.resolved`, `finding.significant`, `assessment.published`. Defaults: weekly assessment and band changes on, the rest off.
 
-**Libraries** (verified 2026-10): Apache Commons Statistics 1.3 (distributions, descriptive statistics, inference), Commons Numbers and Commons RNG, Hipparchus 4.0.x (optimisers for ETS maximum likelihood and NB/Poisson regression; confirm the LICENSE file is Apache-2.0). Optional: ServiceNow `stl-decomp-4j` (Apache-2.0) for STL. Written in-house under `ai.elaro.analytics.math` with golden-value tests: CUSUM, BOCPD, ETS, PAV, CRPS, RPS, Corrado rank test, block surrogates, Benjamini–Hochberg/Yekutieli, Wilson and Jeffreys intervals, Platt scaling. Excluded: Smile (GPL-3.0 / commercial), Weka, JSAT, jdistlib (GPL), Commons Math 3.6.1 (unsupported).
+**Libraries** (verified 2026-10): Apache Commons Statistics 1.3 (distributions, descriptive statistics, inference), Commons Numbers and Commons RNG, Hipparchus 4.0.x (optimisers for ETS maximum likelihood and NB/Poisson regression; confirm the LICENSE file is Apache-2.0). Optional: ServiceNow `stl-decomp-4j` (Apache-2.0) for STL. Written in-house under `ai.foresignal.analytics.math` with golden-value tests: CUSUM, BOCPD, ETS, PAV, CRPS, RPS, Corrado rank test, block surrogates, Benjamini–Hochberg/Yekutieli, Wilson and Jeffreys intervals, Platt scaling. Excluded: Smile (GPL-3.0 / commercial), Weka, JSAT, jdistlib (GPL), Commons Math 3.6.1 (unsupported).
 
 ---
 
 ## 13. Worked example: positioning, strike, response
 
-The owner's scenario of 9–11 October 2026, used to illustrate the mechanics (Elaro has not verified the events): heavy oil-futures buying on Friday 9 October, a Houthi strike on Riyadh on Saturday 10 October, and an expected Saudi or coalition response. A documented precedent exists: in March and April 2026 large oil-futures trades minutes before US–Iran announcements drew CFTC and DOJ inquiries (§14.4).
+The owner's scenario of 9–11 October 2026, used to illustrate the mechanics (Foresignal has not verified the events): heavy oil-futures buying on Friday 9 October, a Houthi strike on Riyadh on Saturday 10 October, and an expected Saudi or coalition response. A documented precedent exists: in March and April 2026 large oil-futures trades minutes before US–Iran announcements drew CFTC and DOJ inquiries (§14.4).
 
 1. **Signals.** ACLED/UCDP and GDELT (081, 066) mark the strike; NOTAM/TFR changes (087), AIS behaviour near Bab el-Mandeb (099, 088) and GPS-jamming cells (099) add context; EIA daily prices (093), FRED volatility (116, local only) and CFTC managed-money positions (116) give the market side; GDELT timelines and Wikipedia pageviews for the topic (116) give the attention side.
 2. **Correlation.** A 101 recipe creates an intel event; the 117 linker attaches it to the open "Red Sea / Gulf escalation" situation.
@@ -474,7 +474,7 @@ The owner's scenario of 9–11 October 2026, used to illustrate the mechanics (E
 ### 14.1 Competitors
 From the reference repositories' code (paths are in the survey notes kept outside the repo) and their public pages: World Monitor (github.com/koala73/worldmonitor, AGPL-3.0-only with a commercial option; its paid tier sells "intel memory" and similar-event lookup); ShadowBroker (github.com/BigBodyCobain/Shadowbroker, AGPL-3.0); Velocity (github.com/AndrewCTF/velocity, AGPL-3.0+); God's Eye View (github.com/bilawalsidhu/gods-eye-view, MIT); Crucix (github.com/calesthio/Crucix, AGPL-3.0). WorldWideView is Elastic-licensed (source-available). Commercial: Dataminr ReGenAI and Intel Agents (dataminr.com/press), Windward Early Detection (windward.ai), Babel Street Insights Investigator challenge agents (May 2026), Seerist (June 2026), ACLED CAST methodology (acleddata.com/methodology/cast-methodology), VIEWS (views_pipeline code is CC BY-NC-SA 4.0, so not reusable here).
 
-### 14.2 Design references (MIT/BSD; reference only under Elaro's reuse policy)
+### 14.2 Design references (MIT/BSD; reference only under Foresignal's reuse policy)
 Intel Workbench (ACH with weighted evidence, ICD 203 bands; MIT), Fatebook (forecast ledger with Brier and calibration charts; MIT), Metaculus platform (scoring module; BSD-2-Clause), Metaculus forecasting-tools (bot framework; MIT), Open Synthesis (collaborative ACH; AGPL, archived).
 
 ### 14.3 Forecasting research
@@ -503,7 +503,7 @@ CFTC COT on publicreporting.cftc.gov (Socrata; public domain; datasets: legacy `
 |---|---|---|---|
 | 116 | Market-And-Attention-Signals | `cftc-cot` (+ history backfill), `fred-series` (public-domain defaults; copyrighted series local-only), `wikimedia-pageviews`, `gdelt-timelines`, `worldbank-indicators`; `attention_topic`; optional `ice-cot` | 093, 066, 095, 073 |
 | 117 | Situations-And-Storylines | situations, members, snapshots, linker, lifecycle, themes, briefs, merge/split | 101, 098, 040, 099, 116 |
-| 118 | Change-Points-And-Event-Studies | region rollups, `SeriesReader`, series registry, findings + `elaro-analytics`, CUSUM and BOCPD, event studies, pre-event signals, unexplained moves, co-occurrence | 038, 040, 093, 100, 103, 116, 117 |
+| 118 | Change-Points-And-Event-Studies | region rollups, `SeriesReader`, series registry, findings + `foresignal-analytics`, CUSUM and BOCPD, event studies, pre-event signals, unexplained moves, co-occurrence | 038, 040, 093, 100, 103, 116, 117 |
 | 119 | Precursor-Mining-And-Library | precursor tests (renamed), event and series candidates, BH/BY, validation, library, live `precursor-active` | 103, 118 |
 | 120 | Base-Rates-And-Historical-Analogs | base-rate library, reference imports, signatures, analog search | 117, 118, 027 |
 | 121 | Forecast-Ledger-And-Scoring | questions, resolvers, forecasts, forecasters, scoring, CORP, bias monitor, ensemble, Platt, retrospective evaluation, `EstimativeLanguage` | 119, 120 |

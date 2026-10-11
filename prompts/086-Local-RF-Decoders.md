@@ -1,11 +1,11 @@
 # 086 — Local RF Decoders
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/086-CR-Local-RF-Decoders.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -24,7 +24,7 @@ Bring the operator's own SDR decoders in through the 069 socket transport and th
 
 ## Tasks
 
-All socket sources here use 069's transport (`ctx.sockets()`), its codec SPI and its slot-family pattern (`elaro.local-receivers.slots`, disabled by default, `egress` LOCAL_ONLY), and connect with `SocketOptions.receiveOnly()` (082) unless stated otherwise.
+All socket sources here use 069's transport (`ctx.sockets()`), its codec SPI and its slot-family pattern (`foresignal.local-receivers.slots`, disabled by default, `egress` LOCAL_ONLY), and connect with `SocketOptions.receiveOnly()` (082) unless stated otherwise.
 
 ### 1. `local-acars-{n}` (STREAMING, metadata only)
 
@@ -55,14 +55,14 @@ All socket sources here use 069's transport (`ctx.sockets()`), its codec SPI and
 
 - Params: `brokerUrl` (`LAN_URL mqtt://`/`mqtts://`, 083's extension), `topics` (string-list, default `wardragon/#`; verify topic names against DragonSync `docs/mqtt-schema.md` at fixture capture and update the default), credentials optional. Connect through 060's `MqttConnections`; disabled by default, `egress` LOCAL_ONLY.
 - **`RemoteIdMapper`**: drone id (serial or session id), position, `alt`, `agl`, `speed`, `vspeed`, `course`, `uaType`, `idType`, `operatorId`, `rssi`, `freqMhz`, `seen_by`, `observed_at`. `observedAt` = DragonSync `observed_at` (kit time); `rid_timestamp` is not UTC and goes nowhere.
-- **Drop DJI DroneID** detections (proprietary, not ASTM F3411/ASD-STAN Remote ID; Gap §9). Identify them by the protocol or source field documented in `mqtt-schema.md` (record which field in the fixture README); count `elaro.remoteid.dropped{reason=dji}`.
+- **Drop DJI DroneID** detections (proprietary, not ASTM F3411/ASD-STAN Remote ID; Gap §9). Identify them by the protocol or source field documented in `mqtt-schema.md` (record which field in the fixture README); count `foresignal.remoteid.dropped{reason=dji}`.
 - **Strip pilot and home positions** (`pilot_lat/lon`, `home_lat/lon`, operator location) before the record is built. Param `keepOperatorPosition` (default false) is accepted only when the source's effective privacy (039) is on (400 `PRIVATE_REQUIRED` otherwise) and then stores them as payload `operatorPoint` (never geometry).
 - Record kind `drone`, externalId `rid:` + id, TRACK, SAMPLED (minInterval 5 s, keyframe 60 s, TTL 3 min, deviation 25 m, edgeMinInterval 2 s), significant `idType, uaType, operatorId`, `motion {speedField: speed, speedUnit: m/s, courseField: course}`, Observer = `seen_by` + rssi + freq.
 
 ### 5. Push presets: Raspberry Shake and NOAA SAME
 
 - **rsudp:** 059 mapping preset `rsudp-alarm` for rsudp's `custom` module (a documented script that POSTs `{"event":"ALARM"|"RESET","time":…,"station":…,"channel":…}` to `/v1/ingest/{id}/mapping`). Kind `seismic-trigger`, geometry = the custom source's configured station point, `eventTime = time`. Ship the script under `contrib/rsudp/`.
-- **SAME:** IngestFormat `same` on 024's SPI (`POST /v1/ingest/{id}/same`, `text/plain`). Accept multimon-ng (`EAS: ZCZC-…`) and bare header lines; ignore `NNNN`. Parse `ZCZC-ORG-EEE-PSSCCC(-PSSCCC)*+TTTT-JJJHHMM-LLLLLLLL-`: event code, part-of-county digit, state and county FIPS (`000` = whole state), purge `TTTT`, issue time (Julian day + HHMM UTC, year from the receive clock with rollover handling), sender. Collapse the three header repetitions (identical header within 10 s). Record kind `same-alert`, externalId `sender|issue|event`, `eventTime = issue`, `validUntil = issue + purge` (upstream-asserted), geometry = union of 040 county polygons (state polygon for `000`), payload `eventCode, eventName, org, locations, sender, rawHeader`. Bundle the NWS SAME event-code table (public domain) as a resource. Ship a `contrib/same/` recipe (`rtl_fm … | multimon-ng -a EAS -t raw - | elaro-post`).
+- **SAME:** IngestFormat `same` on 024's SPI (`POST /v1/ingest/{id}/same`, `text/plain`). Accept multimon-ng (`EAS: ZCZC-…`) and bare header lines; ignore `NNNN`. Parse `ZCZC-ORG-EEE-PSSCCC(-PSSCCC)*+TTTT-JJJHHMM-LLLLLLLL-`: event code, part-of-county digit, state and county FIPS (`000` = whole state), purge `TTTT`, issue time (Julian day + HHMM UTC, year from the receive clock with rollover handling), sender. Collapse the three header repetitions (identical header within 10 s). Record kind `same-alert`, externalId `sender|issue|event`, `eventTime = issue`, `validUntil = issue + purge` (upstream-asserted), geometry = union of 040 county polygons (state polygon for `000`), payload `eventCode, eventName, org, locations, sender, rawHeader`. Bundle the NWS SAME event-code table (public domain) as a resource. Ship a `contrib/same/` recipe (`rtl_fm … | multimon-ng -a EAS -t raw - | foresignal-post`).
 
 ### 6. Fixtures
 

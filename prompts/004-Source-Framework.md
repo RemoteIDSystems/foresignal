@@ -1,11 +1,11 @@
 # 004 — Source Framework
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/004-CR-Source-Framework.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, and `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump.
 - **Previous Completion Report:** read `completion-reports/003-CR-*.md` and follow its "Notes for the next prompt".
 
@@ -21,7 +21,7 @@ Build the adapter SPI that every source implements, the registry that discovers 
 
 ## Tasks
 
-### 1. SPI types (`ai.elaro.source.spi`)
+### 1. SPI types (`ai.foresignal.source.spi`)
 
 Implement as specified in Architecture §4.1, using Java records where possible:
 
@@ -48,7 +48,7 @@ Implement as specified in Architecture §4.1, using Java records where possible:
   - `WebSocket openWebSocket(URI, WebSocket.Listener, Map<String,String> headers)`
 - Declare `UpstreamResponse` as a record: `status`, `headers`, `body` (byte[]), `contentType`, `truncated`, `notModified`, and `String bodyAsString()`.
 
-### 2. SourceRegistry (`ai.elaro.source`)
+### 2. SourceRegistry (`ai.foresignal.source`)
 
 - Collects all `SourceAdapter` beans plus every adapter returned by `SourceAdapterFamily` beans.
 - Validates at startup and fails fast with a clear message listing every problem:
@@ -70,7 +70,7 @@ Implement as specified in Architecture §4.1, using Java records where possible:
   - rejects unknown keys
   - collects **all** errors into a `ValidationException` with field paths like `params.feed`
 
-### 4. SourceService (`ai.elaro.source`)
+### 4. SourceService (`ai.foresignal.source`)
 
 - **Startup:** for every registered source with no `source_settings` row, insert defaults (`enabled=false`, `interval=defaultInterval`, `params={}`, budget = `defaultBudget`, `retention=null`). Rows for unregistered sources are left untouched and logged once as orphaned.
 - **Views:** `SourceView view(id)` and `List<SourceView> list()` return the descriptor plus effective settings plus `credentialsSet`. Health is added in prompt 006, so leave a seam.
@@ -88,7 +88,7 @@ Implement as specified in Architecture §4.1, using Java records where possible:
 - **Effective settings:** `effectiveParams(id)` returns validated params; `effectiveBudget(id)`.
 - All writes are `@Transactional`; events are published after commit (`@TransactionalEventListener` consumers, or `TransactionSynchronization`).
 
-### 5. Test fixtures (`src/test/java/ai/elaro/testsupport/adapters`)
+### 5. Test fixtures (`src/test/java/ai/foresignal/testsupport/adapters`)
 
 - `FakePollingAdapter`: configurable descriptor and a scripted sequence of `FetchResult`s or exceptions.
 - `FakeStreamingAdapter`: emits scripted records to the sink.
@@ -132,7 +132,7 @@ Add these hooks now, so later prompts don't need to refactor the SPI:
 - **`kindRetention`:** an optional map from kind to Duration on the descriptor (STANDARD only), used by retention resolution in prompt 016.
 - **`Mode.DERIVED`:** sources computed from stored data or events. They make no upstream requests (`ctx.http()` throws), and `recordTtl` must be null. They are enabled, parameterised, health-tracked and retained like any other source. The runtime comes in a later prompt; the registry accepts the mode now.
 - **Param type `LAN_URL`:** validation resolves the host once and requires a loopback, RFC 1918, link-local or ULA address (a `.local` name must resolve to one of those). The resolved IP is stored in `ValidatedParams`, so the client connects to the **pinned IP** with the original Host header and redirects disabled (prompt 005 implements the connect side). This defeats DNS rebinding.
-- **Param type `INBOX_PATH`:** the realpath must sit under `ELARO_INBOX_DIR`. Add the bootstrap property `elaro.inbox-dir` with default `${ELARO_DATA_DIR}/inbox` and env `ELARO_INBOX_DIR`. Provide an `InboxFiles` helper that opens every file with `NOFOLLOW_LINKS` and re-checks its realpath against the root, per file and per scan.
+- **Param type `INBOX_PATH`:** the realpath must sit under `FORESIGNAL_INBOX_DIR`. Add the bootstrap property `foresignal.inbox-dir` with default `${FORESIGNAL_DATA_DIR}/inbox` and env `FORESIGNAL_INBOX_DIR`. Provide an `InboxFiles` helper that opens every file with `NOFOLLOW_LINKS` and re-checks its realpath against the root, per file and per scan.
 
 ### C. Error-handling fix (from the 003 Completion Report)
 

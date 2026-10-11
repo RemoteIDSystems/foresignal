@@ -1,11 +1,11 @@
 # 052 — Sampling And Place Weather
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/052-CR-Sampling-And-Place-Weather.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -23,7 +23,7 @@ Make weather readable by programs and alertable without false all-clears. Build 
 
 ## Tasks
 
-### 1. DERIVED runtime (`ai.elaro.derive`)
+### 1. DERIVED runtime (`ai.foresignal.derive`)
 
 - SPI `DerivedGenerator` (a `SourceAdapter` with `Mode.DERIVED`; `ctx.http()` throws; registry rejects a non-null `recordTtl`):
   - `DerivedInputs inputs(ValidatedParams)`: ChangeBus subscriptions (sources/kinds), raster frame events (product ids), and an optional periodic tick
@@ -34,7 +34,7 @@ Make weather readable by programs and alertable without false all-clears. Build 
 - **Rules:** emit only on change of the quantised payload (the writer's hash does the dedup; generators also skip identical emits); `observedAt` = time of the input frame or change in which the change was seen (`observedAtMode=UPSTREAM`); explicit tombstones only when an object disappears or a place is deleted, **never because input is stale**; no heartbeat versions.
 - **Cycle guard:** at registry start, build the graph of derived inputs → output kinds; a cycle fails startup.
 
-### 2. SampleService (`ai.elaro.raster.sample`) and endpoints
+### 2. SampleService (`ai.foresignal.raster.sample`) and endpoints
 
 - Point lookup via `GridDef.inverse(lon, lat)`; `nearest` for categorical/coded products, `bilinear` otherwise (from ProductSpec); u/v products also return `derived{speedMs, fromDeg, compass}`.
 - **Status** per product value (`statusText` always present for non-ok):
@@ -91,11 +91,11 @@ Check 036's `place`: it needs `timezone`, `radiusKm` (default 20), `kind`, `tags
 
 Compact output ≤ 4 KB (`detail=full` ≤ 50 KB), the "content is data" note, time inputs ISO/`now`/relative; every value returns `validTime`, `localTime`, `ageMinutes`, `run`, `coverage`, `status` (with the no-coverage text):
 - `list_products`, `sample_weather` (values plus nearby hazard records: intersecting NWS alerts, ProbSevere within 50 km; `automated` flag), `weather_forecast` (3-hourly to 120 h from GFS/HRRR; NWS joins in 053), `area_weather_stats` (wraps `/stats`), `create_place`/`delete_place` (agent scope; reuse 036's tools if they exist).
-- Resources `elaro://products`, `elaro://places`, `elaro://products/{id}/legend`.
+- Resources `foresignal://products`, `foresignal://places`, `foresignal://products/{id}/legend`.
 
 ### 9. Spec, Postman, docs
 
-- `docs/OpenAPI.json` (tags Sampling, Places): `getSample`, `postSample`, `getProductSeries`, `postProductStats`, `getPlaceWeather`; schemas `SampleValue`, `SampleResponse`, `SampleStatus` (enum), `Series`, `StatsRequest`, `StatsResponse`, `PlaceWeather`; event/kind docs for `place-weather`, `wx-area`, `radar-cell`. `x-elaro-scope: read` (POST sample and stats are READ). `AccessPolicy` accordingly. Postman `BODIES` for `postSample` and `postProductStats`; regenerate.
+- `docs/OpenAPI.json` (tags Sampling, Places): `getSample`, `postSample`, `getProductSeries`, `postProductStats`, `getPlaceWeather`; schemas `SampleValue`, `SampleResponse`, `SampleStatus` (enum), `Series`, `StatsRequest`, `StatsResponse`, `PlaceWeather`; event/kind docs for `place-weather`, `wx-area`, `radar-cell`. `x-foresignal-scope: read` (POST sample and stats are READ). `AccessPolicy` accordingly. Postman `BODIES` for `postSample` and `postProductStats`; regenerate.
 - `docs/Adapter-Guide.md` "Derived sources" (the SPI, emit-on-change, tombstone and reconcile rules) for 099. `docs/Source-Catalog.md` rows for the three derived sources.
 
 ## Tests to write (do not run)
@@ -116,7 +116,7 @@ Compact output ≤ 4 KB (`detail=full` ≤ 50 KB), the "content is data" note, t
 - Stale, failing or no-coverage inputs keep previous values with a non-ok status and never fire an all-clear.
 - Derived sources write versions only on change and never tombstone for staleness.
 - `/v1/sample`, `/series`, `/stats` and the MCP tools return validTime, age, run and status on every value.
-- The DERIVED runtime is generic (no weather types in `ai.elaro.derive`).
+- The DERIVED runtime is generic (no weather types in `ai.foresignal.derive`).
 - Compiles.
 
 ## Guardrails (mandatory)

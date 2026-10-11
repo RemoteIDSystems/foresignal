@@ -1,11 +1,11 @@
 # 116 — Market And Attention Signals
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/116-CR-Market-And-Attention-Signals.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults, analytic retention, intelligence conventions) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and **`docs/Intelligence-Design.md` is authoritative for the intelligence layer** (situations, findings, precursors, base rates, analogs, the forecast ledger, hypotheses, forecasts, impact projection and analysis cycles).
@@ -61,7 +61,7 @@ Add the market and attention signals the intelligence layer correlates with even
 - `seriesId = fred.{id}`; family from units (percent → rate; dollars per barrel or per MMBtu → price; index → index); `releaseLagDays` 1.
 - Attribution on every response that includes these series, and in the Operator Guide: "This product uses the FRED® API but is not endorsed or certified by the Federal Reserve Bank of St. Louis." plus the series' own source line.
 
-### 4. Attention topics (`ai.elaro.attention`)
+### 4. Attention topics (`ai.foresignal.attention`)
 
 - `attention_topic`: `id` (slug `^[a-z0-9-]{3,48}$`), `name`, `description`, `gdelt_query` (≤ 250 chars; validated by a dry character check and, on create, one budgeted test call when `gdelt-timelines` is enabled), `wiki_articles` (≤ 20 `{project, article}`; `project` like `en.wikipedia`), `keywords` (≤ 30, used by 117's linker), `region_codes` (040 codes), `themes`, `enabled`, `created_by`, timestamps.
 - Adapters never read the store (Architecture §3), so `AttentionTopicService` **syncs** enabled topics into the `topics` param of `gdelt-timelines` and `wikimedia-pageviews` through `SourceService` (validated by their param schemas) whenever topics change.
@@ -73,7 +73,7 @@ Add the market and attention signals the intelligence layer correlates with even
 - Daily at 02:30 UTC (pageviews for day D are published on D+1). For each topic article: per-article daily for `[lastStored − 3 d, yesterday]` (first run: 90 days), `agent=user`. Requests are serialised; budget `perMinute 60`.
 - `seriesId = wiki.{project}.{article}` (article URL-encoded as in the API path), value = views, `family` attention, `transform` log-level, `releaseLagDays` 1, `topicId` set.
 - **Top articles:** for each project used by any topic, `pageviews/top/{project}/all-access/{yyyy}/{mm}/{dd}` for yesterday → one record `kind=attention-top`, `externalId = {project}:{date}`, payload: the top 100 `{article, views, rank}`. Analytic class `bulk-event`.
-- User-Agent: the standard Elaro UA (it carries the project URL as contact); if the setting `system.contact` is set, append `; contact={value}`. A 403 with a UA complaint marks the source failing with a clear reason.
+- User-Agent: the standard Foresignal UA (it carries the project URL as contact); if the setting `system.contact` is set, append `; contact={value}`. A 403 with a UA complaint marks the source failing with a clear reason.
 - Licence: CC0.
 
 ### 6. `gdelt-timelines` (POLLING, keyless)
@@ -96,7 +96,7 @@ Investigate whether ICE Futures Europe publishes its weekly Commitments of Trade
 
 - All series sources: analytic class `series` (Conventions), STANDARD tier, `embedFields` none, `kindDisplay` for `series-point` reused from 093.
 - `docs/Source-Catalog.md`: rows for `cftc-cot`, `fred-series`, `wikimedia-pageviews`, `gdelt-timelines`, `worldbank-indicators` (and `ice-cot` or its exclusion), with licence, egress, cadence and release lag; add CME, ICE end-of-day, UKMTO and Metaculus to the excluded list with reasons.
-- `docs/OpenAPI.json`: `AttentionTopic`, `AttentionTopicInput`; the `SeriesCatalogEntry` additions; the backfill operation; tag `Attention`; `x-elaro-scope` on every operation. Regenerate Postman (`python3 scripts/generate-postman.py docs/OpenAPI.json postman`) with BODIES for create topic and backfill.
+- `docs/OpenAPI.json`: `AttentionTopic`, `AttentionTopicInput`; the `SeriesCatalogEntry` additions; the backfill operation; tag `Attention`; `x-foresignal-scope` on every operation. Regenerate Postman (`python3 scripts/generate-postman.py docs/OpenAPI.json postman`) with BODIES for create topic and backfill.
 - AccessPolicy rows as listed.
 - `docs/Operator-Guide.md` "Markets and attention": what each source gives and its lag, the FRED key and notice, copyrighted series and `LOCAL_ONLY`, topics and how to write a GDELT query, the backfill command, and the explicit limit "daily and weekly data cannot show intraday trading".
 

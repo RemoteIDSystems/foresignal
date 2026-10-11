@@ -1,11 +1,11 @@
 # 098 — Entity Registry
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/098-CR-Entity-Registry.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -21,11 +21,11 @@
 
 ## Objective
 
-Give Elaro a canonical identity layer for physical objects observed across sources: one aircraft seen by adsb.lol, airplanes.live, OpenSky and a local receiver, one vessel seen by three AIS feeds and named in a sanctions list, one satellite in CelesTrak and SatNOGS. Resolution uses **deterministic keys only** (ICAO hex, registration, airframe serial, MMSI, IMO, NORAD id, COSPAR id, callsign with a validity window), with confidence and time-bounded links. There is no fuzzy name matching and no automatic merge of two anchored entities. Entities cover vehicles and objects only, never people or organisations.
+Give Foresignal a canonical identity layer for physical objects observed across sources: one aircraft seen by adsb.lol, airplanes.live, OpenSky and a local receiver, one vessel seen by three AIS feeds and named in a sanctions list, one satellite in CelesTrak and SatNOGS. Resolution uses **deterministic keys only** (ICAO hex, registration, airframe serial, MMSI, IMO, NORAD id, COSPAR id, callsign with a validity window), with confidence and time-bounded links. There is no fuzzy name matching and no automatic merge of two anchored entities. Entities cover vehicles and objects only, never people or organisations.
 
 ## Tasks
 
-### 1. Schema (`ai.elaro.entity`, Hibernate entities)
+### 1. Schema (`ai.foresignal.entity`, Hibernate entities)
 
 - **`entity`:** `id varchar(26)` (ULID) PK, `type` (`aircraft|vessel|satellite|station`), `display_name`, `attributes jsonb` (≤ 16 KB), `provisional bool`, `status` (`ACTIVE|MERGED`), `merged_into varchar(26) null`, `created_at`, `updated_at`.
 - **`entity_key`:** `id` identity PK, `entity_id`, `key_type`, `key_value varchar(64)` (normalised), `role` (`ANCHOR|WEAK`), `confidence real`, `origin` (`REGISTRY|CO_ASSERTED|OBSERVED|OPERATOR`), `origin_ref` (`sourceId:externalId` or operator token id), `valid_from`, `valid_to null`, `retracted bool`. Partial unique index `(key_type, key_value) WHERE valid_to IS NULL` (create it in `SchemaBootstrap`), index `(entity_id)`.
@@ -52,10 +52,10 @@ Give Elaro a canonical identity layer for physical objects observed across sourc
 ### 3. Resolver and linker
 
 - **`EntityResolver.resolve(KeySet, observedAt, origin)`** is pure and deterministic. Input keys come from the descriptor `entityKeys` declaration (008: `{type, field|fields, role, prefix}`) via the extraction hook. Order:
-  1. Normalise and validate; drop invalid keys (`elaro.entity.invalid_keys{type}`).
-  2. An anchor key with an open entity E → link to E. For each co-asserted weak key: open on E → no-op; open on a **provisional** F → merge F into E (move keys, aliases and links; `F.status=MERGED`, `merged_into=E`); open on another **anchored** F → close F's key at `observedAt`, open it on E (re-assignment, e.g. MMSI moved to a new hull), count `elaro.entity.reassigned`.
+  1. Normalise and validate; drop invalid keys (`foresignal.entity.invalid_keys{type}`).
+  2. An anchor key with an open entity E → link to E. For each co-asserted weak key: open on E → no-op; open on a **provisional** F → merge F into E (move keys, aliases and links; `F.status=MERGED`, `merged_into=E`); open on another **anchored** F → close F's key at `observedAt`, open it on E (re-assignment, e.g. MMSI moved to a new hull), count `foresignal.entity.reassigned`.
   3. An anchor key with no entity → create an anchored entity with every co-asserted key.
-  4. No anchor key: weak keys matching exactly one entity → link. Matching two entities → link by precedence (`icao24` > `registration` > `air:`; `mmsi` > `sea:`), never merge, count `elaro.entity.conflicts`.
+  4. No anchor key: weak keys matching exactly one entity → link. Matching two entities → link by precedence (`icao24` > `registration` > `air:`; `mmsi` > `sea:`), never merge, count `foresignal.entity.conflicts`.
   5. Nothing matches and a non-callsign weak key exists → create a provisional entity (`provisional=true`).
 - **`EntityLinker`** consumes ChangeBus with the durable `entity` cursor:
   - processes only `FIRST`, `REAPPEAR`, `SIGNIFICANT` and `TOMBSTONE` versions (keys are significant fields, so other reasons cannot change them); loads payloads with `seq = ANY(?)`;
@@ -63,10 +63,10 @@ Give Elaro a canonical identity layer for physical objects observed across sourc
   - copies declared attributes (descriptor `entityAttributes`: payload field → attribute name) into `entity.attributes`, registry origin winning over observations; sets `display_name` by precedence registration > vessel name > satellite name > key;
   - **backfill:** with no cursor, scans current heads of every source with `entityKeys` in chunks of 2,000, then starts from the watermark;
   - a 10-minute job closes `air:` links past `callsignGap` (join `record_live.observed_at`), with no per-observation writes.
-- **Private sources (039):** records from `private` sources never create entities or links unless `elaro.entity.includePrivate=true`; even then, links from private sources are visible only to admin tokens.
+- **Private sources (039):** records from `private` sources never create entities or links unless `foresignal.entity.includePrivate=true`; even then, links from private sources are visible only to admin tokens.
 - **Descriptor updates:** add `entityKeys` and `entityAttributes` to existing adapters where the payload carries the fields: aircraft families and `local-adsb-*` (`hex`, `r`, `flight`), vessel sources (`mmsi`, `imo`, `callsign`, `name` as alias), `celestrak-gp` (`NORAD_CAT_ID`, `OBJECT_ID`, `OBJECT_NAME`), sanctions lists from 091 (vessel IMO and MMSI, aircraft registration and serial only; never person entries), and `aprs-is` (`ham:`) when it is not private.
 
-### 4. `faa-registry` adapter (`ai.elaro.source.adapters.faaregistry`)
+### 4. `faa-registry` adapter (`ai.foresignal.source.adapters.faaregistry`)
 
 - POLLING, kind `aircraft-registration`, STANDARD, ALL, no TTL, `observedAtMode=RECEIVED`, `licence="US-PD"`, `termsUrl` = the FAA download page. Interval default 7 d (min 1 d), budget 2/min and 10/day, `mbPerDay` 200, `maxResponseBytes` 150 MB.
 - `ctx.http().download(...)` to a temp file (conditional on `Last-Modified`), open the zip safely (reject entries with `..` or absolute paths, cap uncompressed size at 500 MB), stream-parse `MASTER.txt` and `ACFTREF.txt` (comma-delimited, header row, trailing spaces, trailing empty column). Emit with the 094 chunked fetch and complete-set reconciliation, so deregistered N-numbers are tombstoned. Our identifiable UA only; if the host refuses it, mark the source failing (no spoofing).
@@ -89,7 +89,7 @@ Give Elaro a canonical identity layer for physical objects observed across sourc
 
 ### 6. Spec, Postman, docs
 
-- `docs/OpenAPI.json`: the operations above with `x-elaro-scope` (read; admin for writes), schemas `Entity`, `EntityKey`, `EntityAlias`, `EntityLink`, `EntityPage`, `EntityKeyInput`, `EntityMergeInput`, `Record.entityId`, error codes `ENTITY_NOT_FOUND`, `ENTITY_KEY_INVALID`, `ENTITY_KEY_CONFLICT`. AccessPolicy rules. Add BODIES examples for the two POSTs, then run `python3 scripts/generate-postman.py docs/OpenAPI.json postman`.
+- `docs/OpenAPI.json`: the operations above with `x-foresignal-scope` (read; admin for writes), schemas `Entity`, `EntityKey`, `EntityAlias`, `EntityLink`, `EntityPage`, `EntityKeyInput`, `EntityMergeInput`, `Record.entityId`, error codes `ENTITY_NOT_FOUND`, `ENTITY_KEY_INVALID`, `ENTITY_KEY_CONFLICT`. AccessPolicy rules. Add BODIES examples for the two POSTs, then run `python3 scripts/generate-postman.py docs/OpenAPI.json postman`.
 - `docs/Source-Catalog.md` row `faa-registry`; `docs/Agent-Guide.md` (entity tools, "deterministic keys only"); `docs/Adapter-Guide.md` (`entityKeys`, `entityAttributes`); `docs/Operator-Guide.md` (privacy: no owner PII, PIA, private sources).
 
 ## Tests to write (do not run)

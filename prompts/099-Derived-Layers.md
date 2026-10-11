@@ -1,11 +1,11 @@
 # 099 — Derived Layers
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/099-CR-Derived-Layers.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -14,7 +14,7 @@
 ## Read first
 
 - `docs/Weather-Imagery-Design.md` §2.2 (row "Modes": DERIVED), §7.1 (principles for derived records: emit on change, no TTL, explicit tombstones, startup reconciliation, unknown is not clear, `automated: true`), §7.4 (enter/exit recipes). Its "072"/"070 (old 057)" means this prompt; its "039" means 052.
-- The 052 Completion Report: the DERIVED runtime in `ai.elaro.derive` (generator SPI, inputs, reconciliation, health)
+- The 052 Completion Report: the DERIVED runtime in `ai.foresignal.derive` (generator SPI, inputs, reconciliation, health)
 - `docs/Source-Catalog.md` "Design notes from VEL" (ais_gap, loiter, rendezvous, deception, GPS-jamming thresholds, freshest-observation fusion) and "Derived layers"
 - `docs/Gap-Analysis.md` §8 item 54 (fusion by hex, corroboration/credibility, port calls, kinematic CPA, felt-locally), §5 rows "Reliability grading" and "Kinematic CPA"
 - `docs/Core-Data-Model.md` §5.3 (aircraft and vessel significant fields), §10.1 (ChangeBus, LiveBus, `onLiveDropped`), §14 (coverage)
@@ -27,7 +27,7 @@ Implement the derived layers as DERIVED sources on the 052 runtime. Each generat
 
 ## Tasks
 
-### 1. Runtime extensions (`ai.elaro.derive`)
+### 1. Runtime extensions (`ai.foresignal.derive`)
 
 Check what 052 built and add what is missing:
 - **`ObservationFeed`:** merges ChangeBus versions (payloads loaded by `seq = ANY(?)`) and LiveBus updates into `Observation(sourceId, externalId, kind, observedAt, geometry, payload, positionSource)`, filtered per generator by source ids and kinds. Generators need LiveBus because SAMPLED persistence thins tracks.
@@ -66,7 +66,7 @@ All are STANDARD, ALL, `recordTtl=null`, disabled by default, parameterised, hea
 - No absence-based record (AIS gap, squawk cleared, port departure inferred) is emitted when the input source is not `healthy`, or when the window was `degraded-input`.
 - Detection payloads say "automated detection" and never accuse: deception and jamming records state the check that matched, not intent.
 - Private sources (039) are never inputs unless the generator's `includePrivate` param is set, and then the derived source is itself `private`.
-- Bound memory and CPU: per-generator `maxEntities`, grid-bucketed pair searches (no O(n²) over the world), CPA restricted to its AOI. Expose `elaro.derive.eval.duration{generator}` and `elaro.derive.state.size{generator}`.
+- Bound memory and CPU: per-generator `maxEntities`, grid-bucketed pair searches (no O(n²) over the world), CPA restricted to its AOI. Expose `foresignal.derive.eval.duration{generator}` and `foresignal.derive.state.size{generator}`.
 
 ### 4. Spec, Postman, docs
 

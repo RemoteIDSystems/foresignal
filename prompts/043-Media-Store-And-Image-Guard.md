@@ -1,11 +1,11 @@
 # 043 — Media Store And Image Guard
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/043-CR-Media-Store-And-Image-Guard.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -19,7 +19,7 @@
 
 ## Objective
 
-Add a content-addressed media store for images Elaro derives or receives: SatDump composites and thumbnails, static maps and notification attachments. Every image passes `ImageGuard` before any pixel is decoded, so a hostile or corrupt file in an inbox or an ingest body cannot exhaust memory. Media rows follow the lifetime of the record that owns them.
+Add a content-addressed media store for images Foresignal derives or receives: SatDump composites and thumbnails, static maps and notification attachments. Every image passes `ImageGuard` before any pixel is decoded, so a hostile or corrupt file in an inbox or an ingest body cannot exhaust memory. Media rows follow the lifetime of the record that owns them.
 
 ## Tasks
 
@@ -28,7 +28,7 @@ Add a content-addressed media store for images Elaro derives or receives: SatDum
 - **019:** the RetentionJob `RetentionStep` extension point and per-kind retention resolution (042 added them if 019 had not). This prompt registers `MediaRetentionStep` on it.
 - **018:** `NotificationMessage.attachments: List<Attachment(filename, contentType, bytes, mediaId)>` (empty by default). If 018 did not add the field, add it now with no channel using it; 055 fills it. Teams must be implemented only through Power Automate Workflows URLs, rejecting `webhook.office.com` with a validation error; if 018 still accepts Office 365 connector URLs, fix the validator here and note it in the Completion Report.
 
-### 2. Entity (`ai.elaro.media`)
+### 2. Entity (`ai.foresignal.media`)
 
 `MediaEntity` / table `media`, exactly as §2.3 plus one column:
 - `id` (ULID, varchar 26), `sha256` (char 64, indexed), `content_type`, `width`, `height`, `bytes`, `path`
@@ -42,18 +42,18 @@ Add a content-addressed media store for images Elaro derives or receives: SatDum
 - `ImageGuard.inspect(Path | InputStream, declaredContentType)` returns `ImageInfo(format, width, height, bitDepth, hasAlpha)` or throws `ImageRejectedException(reason)`.
 - Sniff magic bytes (PNG `89 50 4E 47`, JPEG `FF D8 FF`, TIFF `II*\0` / `MM\0*`; BigTIFF `II+\0` is rejected with reason "BigTIFF not supported"). The declared content type must agree with the sniffed format.
 - Read dimensions from the header only (`ImageIO.getImageReaders(ImageInputStream)` → `reader.getWidth(0)` / `getHeight(0)` with `ignoreMetadata=true`; never `read()`).
-- Reject anything over **12,000 px on a side or 150 megapixels**, and files over `elaro.media.max-file-bytes` (default 25 MB), **before** decoding. Also reject multi-image TIFFs beyond the first IFD unless the caller opts in.
+- Reject anything over **12,000 px on a side or 150 megapixels**, and files over `foresignal.media.max-file-bytes` (default 25 MB), **before** decoding. Also reject multi-image TIFFs beyond the first IFD unless the caller opts in.
 - Applies to every PNG, TIFF and JPEG from the inbox or any ingest path. Expose a `GuardedImages.decode(Path)` helper that runs `inspect` and then decodes with `ImageIO` (16-bit grayscale PNG supported), so callers cannot skip the guard.
-- Metrics `elaro.media.guard.rejected{reason}`.
+- Metrics `foresignal.media.guard.rejected{reason}`.
 
 ### 4. MediaStore and ThumbnailService
 
 - `MediaStore.store(MediaInput)`: `MediaInput(Path or bytes, contentType, role, sourceId, recordRef?, licence, expiresAt?)`.
-  - Stream to `${ELARO_DATA_DIR}/media/tmp`, hash sha256 while writing, run `ImageGuard`, then atomic-rename to `media/{ab}/{sha256}.{ext}` where `ab` is the first two hex characters. If the file exists, reuse it (content addressing); always insert a new row.
+  - Stream to `${FORESIGNAL_DATA_DIR}/media/tmp`, hash sha256 while writing, run `ImageGuard`, then atomic-rename to `media/{ab}/{sha256}.{ext}` where `ab` is the first two hex characters. If the file exists, reuse it (content addressing); always insert a new row.
   - Returns `MediaRef(id, sha256, contentType, width, height, bytes)`.
 - `ThumbnailService.thumbnails(MediaRef)`: a **256 px and a 1024 px** long-edge rendition, JPEG quality 0.85, or PNG when the source has alpha. Downscale by progressive halving with bilinear interpolation, then one final bicubic step. Stored as `role=thumbnail` rows with `variant_of`. Images already smaller than the target are not upscaled; the original is linked instead.
 - `ctx.media()`: add `MediaSink media()` to `FetchContext` and `StreamContext`, delegating to `MediaStore` with the source id filled in. Adapters never write files themselves.
-- Disk accounting: media bytes appear in the `/v1/system` `rasters` block as `mediaBytes` and count against `elaro.raster.disk-quota-gb`.
+- Disk accounting: media bytes appear in the `/v1/system` `rasters` block as `mediaBytes` and count against `foresignal.raster.disk-quota-gb`.
 
 ### 5. Retention linkage (`MediaRetentionStep`)
 
@@ -61,7 +61,7 @@ Add a content-addressed media store for images Elaro derives or receives: SatDum
 - Rows with null `expires_at` follow the owning record: delete when `created_at` is older than the effective retention window of the owning record's (source, kind), resolved by the 019 per-kind order, **or** when the owning record's head no longer exists and the row is older than 24 h.
 - Thumbnails go with their original (`variant_of`).
 - A file is unlinked only when no remaining row references its sha256 (row delete first, then unlink).
-- Hourly orphan sweep: files with no row are removed; rows with no file are deleted and counted (`elaro.media.orphans{type}`).
+- Hourly orphan sweep: files with no row are removed; rows with no file are deleted and counted (`foresignal.media.orphans{type}`).
 
 ### 6. API
 
@@ -72,7 +72,7 @@ Add a content-addressed media store for images Elaro derives or receives: SatDum
 
 ### 7. Spec, Postman, docs
 
-- `docs/OpenAPI.json`: tag `Media`; operations `getMedia` (`image/png`, `image/jpeg`, `image/tiff` responses), `getMediaThumbnail`, `getMediaMeta`, each `"x-elaro-scope": "read"`; schemas `Media`, `Attachment`; problem codes `UNKNOWN_MEDIA` 404, `MEDIA_EXPIRED` 410, `MEDIA_TOO_LARGE` 413. Regenerate Postman with `python3 scripts/generate-postman.py docs/OpenAPI.json postman`.
+- `docs/OpenAPI.json`: tag `Media`; operations `getMedia` (`image/png`, `image/jpeg`, `image/tiff` responses), `getMediaThumbnail`, `getMediaMeta`, each `"x-foresignal-scope": "read"`; schemas `Media`, `Attachment`; problem codes `UNKNOWN_MEDIA` 404, `MEDIA_EXPIRED` 410, `MEDIA_TOO_LARGE` 413. Regenerate Postman with `python3 scripts/generate-postman.py docs/OpenAPI.json postman`.
 - `AccessPolicy`: `GET /v1/media/**` → READ.
 - `docs/Architecture.md` §7 (`media` table), §11 (media retention linkage).
 

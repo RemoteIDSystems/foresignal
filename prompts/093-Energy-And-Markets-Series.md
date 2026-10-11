@@ -1,11 +1,11 @@
 # 093 — Energy And Markets Series
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/093-CR-Energy-And-Markets-Series.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -21,11 +21,11 @@
 
 ## Objective
 
-Bring energy time series into Elaro as records without geometry, so the same versioning, triggers, briefings and MCP tools apply to oil prices, US grid demand, EU gas storage, monthly generation mix, grid-frequency excursions and GB carbon intensity. Each data point is a record (`kind=series-point`, `externalId = {seriesId}:{period}`), and an upstream revision becomes a new version. Prediction markets are evaluated and excluded on terms (§8).
+Bring energy time series into Foresignal as records without geometry, so the same versioning, triggers, briefings and MCP tools apply to oil prices, US grid demand, EU gas storage, monthly generation mix, grid-frequency excursions and GB carbon intensity. Each data point is a record (`kind=series-point`, `externalId = {seriesId}:{period}`), and an upstream revision becomes a new version. Prediction markets are evaluated and excluded on terms (§8).
 
 ## Tasks
 
-### 1. Series framework (`ai.elaro.source.series`)
+### 1. Series framework (`ai.foresignal.source.series`)
 
 - **`SeriesPoint` builder** producing a `NormalizedRecord`:
   - `kind = series-point`, `externalId = {seriesId}:{period}`, geometry null;
@@ -80,8 +80,8 @@ Bring energy time series into Elaro as records without geometry, so the same ver
 
 ### 8. Prediction markets: excluded
 
-- **Kalshi:** market-data reads work without auth (verified 2026-10; fields are now dollar and fixed-point strings such as `yes_bid_dollars`, `volume_fp`), but the Developer Agreement limits API use to a member's own trading and forbids collecting, caching or storing the data, and the Data Terms forbid cached or archived datasets without written consent. Storing versions is the core of Elaro, so **do not implement an adapter**.
-- **Polymarket:** the gamma API is not technically blocked today (contrary to the catalogue's JA3 note); exclude it on terms and product grounds (Elaro is not a trading tool).
+- **Kalshi:** market-data reads work without auth (verified 2026-10; fields are now dollar and fixed-point strings such as `yes_bid_dollars`, `volume_fp`), but the Developer Agreement limits API use to a member's own trading and forbids collecting, caching or storing the data, and the Data Terms forbid cached or archived datasets without written consent. Storing versions is the core of Foresignal, so **do not implement an adapter**.
+- **Polymarket:** the gamma API is not technically blocked today (contrary to the catalogue's JA3 note); exclude it on terms and product grounds (Foresignal is not a trading tool).
 - Record both in `docs/Source-Catalog.md` under "Excluded", with the verification date and "reconsider only with written permission".
 
 ### 9. API, MCP, spec, docs
@@ -89,7 +89,7 @@ Bring energy time series into Elaro as records without geometry, so the same ver
 - `GET /v1/series` (read): series catalogue from `series-latest` records (`sourceId, series, seriesName, unit, frequency, latestPeriod, latestValue, status`), filters `source`, `q`.
 - `GET /v1/series/{sourceId}/{seriesId}` (read): points ordered by `periodStart`, params `from`, `to`, `limit` ≤ 5,000, `format=json|csv`, using the §1 index; 404 `SERIES_NOT_FOUND`.
 - MCP `get_series` (read; compact output, `limit` ≤ 500, `*_total`, `truncated`) in the 025 registry.
-- `docs/OpenAPI.json`: both operations with `x-elaro-scope: read`, schemas `SeriesInfo`, `SeriesPage`, `SeriesPoint`; AccessPolicy rule; regenerate Postman with `python3 scripts/generate-postman.py docs/OpenAPI.json postman`.
+- `docs/OpenAPI.json`: both operations with `x-foresignal-scope: read`, schemas `SeriesInfo`, `SeriesPage`, `SeriesPoint`; AccessPolicy rule; regenerate Postman with `python3 scripts/generate-postman.py docs/OpenAPI.json postman`.
 - `docs/Source-Catalog.md` rows for every source (tier, policy, retention, `observedAtMode`, licence, the verified 2026-10 differences); `docs/Operator-Guide.md` (keys, ERCOT registration and US-only access, rule recipes: `series-latest` `value > x` enter; `frequency-excursion` `severity in [statutory, severe]` match with `only_new`).
 
 ## Tests to write (do not run)

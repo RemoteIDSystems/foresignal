@@ -1,11 +1,11 @@
 # 061 — Interactive Chat Commands
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/061-CR-Interactive-Chat-Commands.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -30,7 +30,7 @@
 
 ## Objective
 
-Let the operator talk back to Elaro from the chat apps already used for alerts: list and acknowledge alerts, ask questions, run briefings and check health from Telegram or Matrix. Commands are accepted only from chat ids the operator allowlisted, and each chat is mapped to `read` or `agent` scope. That scope is enforced by the same service-layer checks as API tokens, and admin is never possible. This changes a Charter non-goal, so the amendment ships with the code.
+Let the operator talk back to Foresignal from the chat apps already used for alerts: list and acknowledge alerts, ask questions, run briefings and check health from Telegram or Matrix. Commands are accepted only from chat ids the operator allowlisted, and each chat is mapped to `read` or `agent` scope. That scope is enforced by the same service-layer checks as API tokens, and admin is never possible. This changes a Charter non-goal, so the amendment ships with the code.
 
 ## Tasks
 
@@ -39,7 +39,7 @@ Let the operator talk back to Elaro from the chat apps already used for alerts: 
 - Product Charter §5: replace the bullet with:
   > Sending email or chat messages other than notifications the operator configured, **and replies to commands from chat ids the operator explicitly allowlisted on an interactive channel**.
 - Add an FR (the next free number in §8.6):
-  > **FR-x** Telegram and Matrix channels can be made interactive. Allowlisted chats may send commands (`/alerts`, `/alert`, `/ack`, `/resolve`, `/snooze`, `/ask`, `/brief`, `/status`, `/sources`, `/help`), each chat mapped to `read` or `agent` scope (never `admin`). Elaro replies only to allowlisted chats, uses the Bot API or the Matrix client API (never user sessions), and sends summaries and links rather than raw payloads.
+  > **FR-x** Telegram and Matrix channels can be made interactive. Allowlisted chats may send commands (`/alerts`, `/alert`, `/ack`, `/resolve`, `/snooze`, `/ask`, `/brief`, `/status`, `/sources`, `/help`), each chat mapped to `read` or `agent` scope (never `admin`). Foresignal replies only to allowlisted chats, uses the Bot API or the Matrix client API (never user sessions), and sends summaries and links rather than raw payloads.
 - Architecture: a new section "Interactive chat commands" covering the connector SPI, principals, cursors, the router and the safety rules below.
 
 ### 2. Configuration (extends the 018 `telegram` and `matrix` types)
@@ -54,13 +54,13 @@ Let the operator talk back to Elaro from the chat apps already used for alerts: 
   - Group chats or rooms with more than two members must list `userIds`, otherwise any member could command (Telegram ids < 0; for Matrix, check membership count at start).
   - `scope` ∈ {read, agent}.
   - At most 50 entries.
-- Telegram: interactive mode needs a bot used only by this Elaro instance.
+- Telegram: interactive mode needs a bot used only by this Foresignal instance.
   - At start, call `getWebhookInfo`. If a webhook URL is set and `takeOverWebhook` is false → interactive health `degraded` ("bot has a webhook; set takeOverWebhook or use a dedicated bot"). Otherwise call `deleteWebhook`.
   - Call `setMyCommands`, scoped to each allowed chat.
 - Matrix: rooms must be **unencrypted**. If an `m.room.encryption` state event exists → `degraded` ("encrypted rooms are not supported"); ignore that room.
 - Global kill switch: app setting `chatops.enabled` (default true).
 
-### 3. Connectors (`ai.elaro.chatops`)
+### 3. Connectors (`ai.foresignal.chatops`)
 
 - `ChatConnector` SPI:
   - `start(ChannelConfig, CommandSink)`, `stop()`
@@ -87,7 +87,7 @@ Let the operator talk back to Elaro from the chat apps already used for alerts: 
 ### 4. Principals and router
 
 - Each allowlisted chat (and user) maps to a `ChatPrincipal(name = "chat:{channelId}:{chatId}[:{userId}]", scope, privateAccess)`. It is passed through 023's `CurrentPrincipal`, so every service call is scope-checked exactly like a token. Chat principals count as authenticated for `alwaysAuthenticated` services such as Ask.
-- **Unknown chats or users are ignored silently** (no reply). They are counted in `elaro.chatops.rejected{channel}` and audited at debug level. With `discoveryMode` on, `/whoami` from any chat replies with only its chat id and user id, so the operator can copy them.
+- **Unknown chats or users are ignored silently** (no reply). They are counted in `foresignal.chatops.rejected{channel}` and audited at debug level. With `discoveryMode` on, `/whoami` from any chat replies with only its chat id and user id, so the operator can copy them.
 - `CommandRouter` (strict parsing; ≤ 2,000 chars; unknown command → short help):
 
   | Command | Scope | Behaviour |
@@ -114,7 +114,7 @@ Let the operator talk back to Elaro from the chat apps already used for alerts: 
 - `docs/OpenAPI.json`:
   - channel config docs for `interactive`, `allowedChats`, the rate limits, `takeOverWebhook` and `discoveryMode`
   - `Channel.interactive` status
-  - new operation `getChannelInteractiveStatus` (`GET /v1/channels/{channelId}/interactive`, admin, `x-elaro-scope`)
+  - new operation `getChannelInteractiveStatus` (`GET /v1/channels/{channelId}/interactive`, admin, `x-foresignal-scope`)
   - the app setting `chatops.enabled` in the settings schema
 - Add a `BODIES` example for an interactive Telegram channel, then regenerate Postman. `AccessPolicy`: `/v1/channels/**` is already admin.
 - `docs/Operator-Guide.md` "Chat commands":

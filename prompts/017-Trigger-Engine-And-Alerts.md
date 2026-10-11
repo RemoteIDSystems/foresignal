@@ -1,11 +1,11 @@
 # 017 — Trigger Engine And Alerts
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/017-CR-Trigger-Engine-And-Alerts.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -26,7 +26,7 @@ The alerting layer: rules evaluated against persisted versions, so a subscribed-
 
 ## Tasks
 
-### 1. Rule model and validation (`ai.elaro.trigger`)
+### 1. Rule model and validation (`ai.foresignal.trigger`)
 
 Extend `TriggerRuleEntity` (add columns via Hibernate) and `TriggerRuleInput`:
 
@@ -96,7 +96,7 @@ Alert columns: `state` (`firing|acknowledged|resolved`), `acknowledged_at`, `ack
 
 ### 6. Spec, Postman, docs
 
-- `docs/OpenAPI.json`: `TriggerRuleInput`/`TriggerRule` (+ every field in task 1; `Condition.op` enum with the new operators and array values; `geofence` accepts lines with `bufferMeters`; `near`), `Alert` (+ lifecycle fields, `observedAt`, `recordSnapshot`, `tags`), `TriggerTestResult` (+ backtest fields), alert event schemas (`AlertEvent` with `type`). New operations `snoozeTrigger`, `unsnoozeTrigger`, `resolveAlert`, `snoozeAlert`, `unsnoozeAlert`, `setAlertFeedback`, each `"x-elaro-scope": "agent"`; new parameters on `listTriggers`, `testTrigger`, `listAlerts`, `streamAlerts`. Error codes `TRIGGER_PATH_VOLATILE`, `PLACES_UNAVAILABLE`, `FEATURE_UNAVAILABLE`.
+- `docs/OpenAPI.json`: `TriggerRuleInput`/`TriggerRule` (+ every field in task 1; `Condition.op` enum with the new operators and array values; `geofence` accepts lines with `bufferMeters`; `near`), `Alert` (+ lifecycle fields, `observedAt`, `recordSnapshot`, `tags`), `TriggerTestResult` (+ backtest fields), alert event schemas (`AlertEvent` with `type`). New operations `snoozeTrigger`, `unsnoozeTrigger`, `resolveAlert`, `snoozeAlert`, `unsnoozeAlert`, `setAlertFeedback`, each `"x-foresignal-scope": "agent"`; new parameters on `listTriggers`, `testTrigger`, `listAlerts`, `streamAlerts`. Error codes `TRIGGER_PATH_VOLATILE`, `PLACES_UNAVAILABLE`, `FEATURE_UNAVAILABLE`.
 - `AccessPolicy`: `POST /v1/alerts/*/resolve`, `POST|DELETE /v1/alerts/*/snooze`, `PUT /v1/alerts/*/feedback` → AGENT, above the `GET /v1/alerts/**` rule (`/v1/triggers/**` writes are already AGENT). Extend `AccessPolicyTest`.
 - Regenerate Postman (`python3 scripts/generate-postman.py docs/OpenAPI.json postman`); add `BODIES` for `createTrigger` (a `kinds` array with an `in` condition and a route geofence), `snoozeTrigger`, `resolveAlert`, `snoozeAlert`, `setAlertFeedback`.
 - `docs/Agent-Guide.md` "Rules" section: prefer `enter`/`exit` or cooldown on SAMPLED sources and derived records; flush or poll resolution; edges need the predecessor version to be retained; a tombstone after an inside version is an exit; `forecastHorizon` fires on new versions only.

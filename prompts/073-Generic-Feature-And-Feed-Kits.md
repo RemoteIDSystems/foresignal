@@ -1,11 +1,11 @@
 # 073 — Generic Feature And Feed Kits
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/073-CR-Generic-Feature-And-Feed-Kits.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -16,7 +16,7 @@
 - `docs/Gap-Analysis.md` §4c rows "Generic RSS/Atom/GeoRSS/JSON Feed family" and "OGC API / ArcGIS / WFS kits", §8.C item 34 (Gap label 039a = this prompt)
 - `docs/Core-Data-Model.md` §2 (time contract), §3 (descriptor fields, adapter rules 7–13, limits incl. 10,000 vertices), §5.3 defaults
 - `docs/Architecture.md` §4.2 (adapter families: static, code-reviewed lists; never caller-supplied)
-- `docs/Adapter-Guide.md` (prompt 011); prompt 072's `AbsenceTombstoner` (`ai.elaro.source.support`)
+- `docs/Adapter-Guide.md` (prompt 011); prompt 072's `AbsenceTombstoner` (`ai.foresignal.source.support`)
 - Prompt 035 outbound URL policy (`OutboundUrlPolicy`), prompt 024 IngestFormat SPI (for the WebSub push path)
 - Specs: ArcGIS REST "Query (Feature Service/Layer)"; OGC API – Features Part 1 (OGC 17-069r4); WFS 2.0 GetFeature (GeoServer `outputFormat=application/json`); RSS 2.0; Atom RFC 4287; GeoRSS Simple and GML; W3C Basic Geo; JSON Feed 1.1; W3C WebSub
 
@@ -26,7 +26,7 @@ Build two reusable, protocol-level kits so most "it's just a feature service" or
 
 ## Tasks
 
-### 1. Feature kit clients (`ai.elaro.source.kit.feature`)
+### 1. Feature kit clients (`ai.foresignal.source.kit.feature`)
 
 All clients use `ctx.http()` only, are stateless, and return an iterator of GeoJSON feature trees with hard caps (`maxPages`, default 10; `maxFeatures`, default 50,000; overall bytes via `maxResponseBytes`).
 
@@ -49,9 +49,9 @@ All clients use `ctx.http()` only, are stateless, and return an iterator of GeoJ
 - `FeatureKitFamily implements SourceAdapterFamily` creates a `KitFeatureAdapter` per spec. The adapter maps each feature through `FeatureMapper` (pure): allowlisted fields only, renamed, value-mapped, spec constants added, typed (number coercion from strings, trimmed strings, epoch-ms/ISO-8601/`yyyy-MM-dd HH:mm:ss` with the spec's zone), nulls and sentinels (`-999`, `-9999`, `0001-01-01…`) removed, `externalId` from `idField` (string), rejected when missing. Uses `AbsenceTombstoner` when `absenceTombstones=true` and the fetch was complete (not truncated, `maxPages` not hit).
 - Descriptor from spec: `historyTier=STANDARD`, policy ALL, plus the spec fields; every kit source ships **disabled**.
 - Starter spec (proves the ArcGIS path in production): `feature-wfigs-incidents`: NIFC WFIGS Incident Locations Current (`services3.arcgis.com/T4QMspbfLg3qTGWY/arcgis/rest/services/WFIGS_Incident_Locations_Current/FeatureServer/0`), kind `fire-incident`, id `IrwinID`, observedAt `ModifiedOnDateTime_dt`, eventTime `FireDiscoveryDateTime`, absence tombstones on, 10 min, public domain. Verified 2026-10: `maxRecordCount` 2000, `editingInfo.lastEditDate` present (so the short-circuit applies), fields `IrwinID`, `IncidentName`, `IncidentSize`, `PercentContained`, `POOState`, `UniqueFireIdentifier`, `FireDiscoveryDateTime`, `ModifiedOnDateTime_dt`. OGC and WFS starters arrive with prompts 075 and 079.
-- **Operator overlay (off by default):** when `elaro.kits.operator-specs.enabled=true`, also load `${ELARO_DATA_DIR}/kits/{features,feeds}/*.json` at startup. Every URL must pass `OutboundUrlPolicy` (prompt 035); if that class is missing, refuse the overlay and log why. Overlay ids must start with `op-`. Never accept specs over the API.
+- **Operator overlay (off by default):** when `foresignal.kits.operator-specs.enabled=true`, also load `${FORESIGNAL_DATA_DIR}/kits/{features,feeds}/*.json` at startup. Every URL must pass `OutboundUrlPolicy` (prompt 035); if that class is missing, refuse the overlay and log why. Overlay ids must start with `op-`. Never accept specs over the API.
 
-### 3. Feed kit (`ai.elaro.source.kit.feed`)
+### 3. Feed kit (`ai.foresignal.source.kit.feed`)
 
 - **`FeedParser`** (pure): `byte[] → FeedDocument` for RSS 2.0, RSS 1.0 (RDF), Atom 1.0 and JSON Feed 1.0/1.1. Detect by content type, then by root element / `version` key.
   - XML through a hardened StAX factory (`SUPPORT_DTD=false`, external entities off, coalescing on, 8 MB cap). Handle `CDATA`, `content:encoded`, Atom `type=html|xhtml|text`.
@@ -64,7 +64,7 @@ All clients use `ctx.http()` only, are stateless, and return an iterator of GeoJ
 
 ### 4. Curated bulletin pack (`kits/feeds/bulletins.json`, all disabled)
 
-Verified reachable with Elaro's UA on 2026-10-10:
+Verified reachable with Foresignal's UA on 2026-10-10:
 
 | Source id | URL | Licence |
 |---|---|---|
@@ -75,11 +75,11 @@ Verified reachable with Elaro's UA on 2026-10-10:
 | `feed-ecdc-threats` | `https://www.ecdc.europa.eu/en/taxonomy/term/1307/feed` | ECDC reuse policy (attribution) |
 | `feed-who-news` | `https://www.who.int/rss-feeds/news-english.xml` | WHO terms (attribution, non-commercial reuse) |
 
-Smithsonian GVP's weekly RSS returned 403 to Elaro's UA (2026-10) and is not included.
+Smithsonian GVP's weekly RSS returned 403 to Foresignal's UA (2026-10) and is not included.
 
 ### 5. WebSub (off by default)
 
-- Setting `elaro.kits.websub.enabled=false` (bootstrap property). Only when true, and only for feed sources with spec `websub: true`, and only when `publicBaseUrl` is an `https` URL: if the feed advertises `<link rel="hub">` and `<link rel="self">` (or JSON Feed `hubs`), subscribe: `POST hub` with `hub.mode=subscribe`, `hub.topic=<self>`, `hub.callback=${publicBaseUrl}/v1/websub/{sourceId}/{subscriptionToken}`, `hub.secret` (32 random bytes, stored encrypted with `CredentialCipher`), `hub.lease_seconds=86400`. Hub URLs must pass `OutboundUrlPolicy`.
+- Setting `foresignal.kits.websub.enabled=false` (bootstrap property). Only when true, and only for feed sources with spec `websub: true`, and only when `publicBaseUrl` is an `https` URL: if the feed advertises `<link rel="hub">` and `<link rel="self">` (or JSON Feed `hubs`), subscribe: `POST hub` with `hub.mode=subscribe`, `hub.topic=<self>`, `hub.callback=${publicBaseUrl}/v1/websub/{sourceId}/{subscriptionToken}`, `hub.secret` (32 random bytes, stored encrypted with `CredentialCipher`), `hub.lease_seconds=86400`. Hub URLs must pass `OutboundUrlPolicy`.
 - New table `websub_subscription(source_id PK, hub, topic, token, secret_enc, state, lease_expires_at, last_verified_at, last_push_at)`.
 - Endpoints:
   - `GET /v1/websub/{sourceId}/{token}`: intent verification; echo `hub.challenge` only when mode, topic and token match a pending subscription; else 404.
@@ -88,7 +88,7 @@ Smithsonian GVP's weekly RSS returned 403 to Elaro's UA (2026-10) and is not inc
 
 ### 6. Spec, Postman, docs
 
-- `docs/OpenAPI.json`: the two `/v1/websub/{sourceId}/{token}` operations with `"x-elaro-scope": "open"` and `security: []`, query parameters `hub.mode`, `hub.topic`, `hub.challenge`, `hub.lease_seconds`; 202/403/404 responses (ProblemDetail). Add a Postman example body (an Atom snippet) in the generator's BODIES map and regenerate with `python3 scripts/generate-postman.py docs/OpenAPI.json postman`.
+- `docs/OpenAPI.json`: the two `/v1/websub/{sourceId}/{token}` operations with `"x-foresignal-scope": "open"` and `security: []`, query parameters `hub.mode`, `hub.topic`, `hub.challenge`, `hub.lease_seconds`; 202/403/404 responses (ProblemDetail). Add a Postman example body (an Atom snippet) in the generator's BODIES map and regenerate with `python3 scripts/generate-postman.py docs/OpenAPI.json postman`.
 - `AccessPolicy`: permit anonymous `GET|POST /v1/websub/*/*` only; everything else unchanged (fail closed).
 - `docs/Adapter-Guide.md`: "Kit sources" section: writing a feature or feed spec, validator rules, the time-base rule, simplification, operator overlay, WebSub.
 - `docs/Source-Catalog.md`: kit rows (`feature-wfigs-incidents`, `feed-*`) and a note that 075/079/088/094 sources are kit-based.
@@ -109,7 +109,7 @@ Smithsonian GVP's weekly RSS returned 403 to Elaro's UA (2026-10) and is not inc
 ## Acceptance criteria
 
 - Both families register their specs at startup; all kit sources are disabled by default.
-- With `elaro.kits.websub.enabled=false`, no subscription is ever attempted and the callback returns 404.
+- With `foresignal.kits.websub.enabled=false`, no subscription is ever attempted and the callback returns 404.
 - Spec validation failures stop startup with every problem listed.
 - Compiles.
 

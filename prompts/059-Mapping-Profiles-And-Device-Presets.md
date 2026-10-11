@@ -1,11 +1,11 @@
 # 059 — Mapping Profiles And Device Presets
 
-> Elaro build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/elaro`).
+> Foresignal build prompt. Run it in a Claude Code session at the repository root (`~/Documents/GitLab/foresignal`).
 > Completion Report: `completion-reports/059-CR-Mapping-Profiles-And-Device-Presets.md`
 
 ## Context
 
-- **Project:** Elaro, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.elaro`.
+- **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
 - **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–126).
@@ -37,7 +37,7 @@ Let the operator onboard any JSON, form or query-string device without code. A d
 
 ## Tasks
 
-### 1. RecordMapping (`ai.elaro.mapping`)
+### 1. RecordMapping (`ai.foresignal.mapping`)
 
 - Schema (`version: 1`). Every value spec is one of `{path}`, `{template: "x-{{$.a}}"}` (substitution only) or `{const}`.
   - `select`: optional JSONPath producing an array; one record per item, with item-relative paths
@@ -83,7 +83,7 @@ Let the operator onboard any JSON, form or query-string device without code. A d
   - path key `/v1/ingest/{sourceId}/k/{key}/{format}` for firmware that can set only a host and path (Ecowitt, GMC)
   - The path key requires the per-source setting `allowPathKey` (default false; presets that need it turn it on).
 - **IP allowlist:** per-source setting `ingestAllowCidrs`. When a path key, query key or GET is used, the default is private ranges only (loopback, RFC 1918, link-local, ULA). Other addresses → 403 `INGEST_SOURCE_DENIED`. Most of this firmware sends cleartext HTTP; the docs say so.
-- **Redaction:** reuse 039's filter for `/k/{key}/`, `PASSWORD=`, `PASSKEY=`, `key=`, in Elaro logs, the audit log and `fetch_log.url_redacted`. Document proxy log rules (a Caddy `log` filter example).
+- **Redaction:** reuse 039's filter for `/k/{key}/`, `PASSWORD=`, `PASSKEY=`, `key=`, in Foresignal logs, the audit log and `fetch_log.url_redacted`. Document proxy log rules (a Caddy `log` filter example).
 - **Replies:** each format declares its own (`wu-pws` → `200 text/plain success`; `ecowitt` → `200`; `gmc` → `200 text/plain OK.`, unverified; others → `IngestOutcome`).
 
 ### 3. Preview, samples, test
@@ -127,7 +127,7 @@ Let the operator onboard any JSON, form or query-string device without code. A d
   - `CustomSourceInput.mapping`, `.preset`, `.presetParams`, `.allowPathKey`, `.ingestAllowCidrs`, `.captureSamples`
   - operations `previewMapping`, `suggestMapping`, `listMappingPresets`, `listCustomSourceSamples`, `testCustomSourceMapping` (all admin), plus the GET/form/path-key ingest variants with their content types
   - error codes `INGEST_SOURCE_DENIED`, `EGRESS_CONFIRMATION_REQUIRED`, `MAPPING_INVALID`
-  - each operation with `x-elaro-scope`
+  - each operation with `x-foresignal-scope`
 - `BODIES` entries for preview, suggest and a preset-based custom source create; regenerate Postman.
 - `AccessPolicy`: ADMIN for `/v1/mappings/**` (`suggest` also `alwaysAuthenticated`); `GET /v1/ingest/**` → `INGEST_KEY_OR_ADMIN`.
 - `docs/Operator-Guide.md` "Devices and mappings": a section per preset with the exact device settings, the cleartext and LAN caveat, mapping authoring, and preview and suggest. `docs/Architecture.md` §16: RecordMapping.
