@@ -59,6 +59,19 @@ public class SourceUsageEntity {
     @Column(name = "version_bytes", nullable = false)
     private long versionBytes;
 
+    /**
+     * Observations whose time was clamped by the time contract (Core-Data-Model §2, I3).
+     *
+     * <p>Declared with a database default so {@code ddl-auto=update} can add it to a table that
+     * already has rows.
+     */
+    @Column(name = "clamped", nullable = false, columnDefinition = "bigint default 0 not null")
+    private long clamped;
+
+    /** Versions persisted for the {@code TRIGGER_EDGE} reason, for the storage trigger-edge share. */
+    @Column(name = "trigger_edges", nullable = false, columnDefinition = "bigint default 0 not null")
+    private long triggerEdges;
+
     protected SourceUsageEntity() {
         // for JPA
     }
@@ -169,5 +182,21 @@ public class SourceUsageEntity {
 
     public void setVersionBytes(long versionBytes) {
         this.versionBytes = versionBytes;
+    }
+
+    public long getClamped() {
+        return clamped;
+    }
+
+    public void setClamped(long clamped) {
+        this.clamped = clamped;
+    }
+
+    public long getTriggerEdges() {
+        return triggerEdges;
+    }
+
+    public void setTriggerEdges(long triggerEdges) {
+        this.triggerEdges = triggerEdges;
     }
 }

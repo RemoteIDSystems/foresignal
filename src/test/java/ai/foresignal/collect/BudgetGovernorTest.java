@@ -387,6 +387,7 @@ class BudgetGovernorTest {
                 null,
                 IngestPolicy.all(),
                 false,
-                Instant.EPOCH);
+                Instant.EPOCH,
+                null);
     }
 }

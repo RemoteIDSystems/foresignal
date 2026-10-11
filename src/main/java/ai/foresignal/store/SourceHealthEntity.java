@@ -25,6 +25,9 @@ public class SourceHealthEntity {
     /** How many recent run counts {@link #recentRecordCounts} keeps (Architecture §7.1). */
     public static final int RECENT_RECORD_COUNTS_LIMIT = 5;
 
+    /** How many recent coverage reports {@link #recentCoverage} keeps (Core-Data-Model §14). */
+    public static final int RECENT_COVERAGE_LIMIT = 20;
+
     @Id
     @Column(name = "source_id", length = 64, nullable = false)
     private String sourceId;
@@ -65,6 +68,26 @@ public class SourceHealthEntity {
     @JdbcTypeCode(SqlTypes.TIMESTAMP_UTC)
     @Column(name = "backoff_until")
     private Instant backoffUntil;
+
+    /** The most recent coverage a fetch reported, or null when none ever has. */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "last_coverage")
+    private CoverageSample lastCoverage;
+
+    /**
+     * The last {@value #RECENT_COVERAGE_LIMIT} coverage reports, newest last.
+     *
+     * <p>Nullable in the schema, so rows created by writers that predate it (the backoff registry
+     * inserts only its own columns) need no default; the getter presents null as empty.
+     */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "recent_coverage")
+    private List<CoverageSample> recentCoverage = new ArrayList<>();
+
+    /** The last fetch or stream flush that returned records; a 304 never sets it. */
+    @JdbcTypeCode(SqlTypes.TIMESTAMP_UTC)
+    @Column(name = "last_data_at")
+    private Instant lastDataAt;
 
     /** Adapter-owned scratch state, for example an upstream cursor or ETag. */
     @JdbcTypeCode(SqlTypes.JSON)
@@ -173,6 +196,31 @@ public class SourceHealthEntity {
 
     public void setBackoffUntil(Instant backoffUntil) {
         this.backoffUntil = backoffUntil;
+    }
+
+    public CoverageSample getLastCoverage() {
+        return lastCoverage;
+    }
+
+    public void setLastCoverage(CoverageSample lastCoverage) {
+        this.lastCoverage = lastCoverage;
+    }
+
+    /** The coverage ring, newest last; never null. */
+    public List<CoverageSample> getRecentCoverage() {
+        return recentCoverage == null ? new ArrayList<>() : recentCoverage;
+    }
+
+    public void setRecentCoverage(List<CoverageSample> recentCoverage) {
+        this.recentCoverage = recentCoverage == null ? new ArrayList<>() : recentCoverage;
+    }
+
+    public Instant getLastDataAt() {
+        return lastDataAt;
+    }
+
+    public void setLastDataAt(Instant lastDataAt) {
+        this.lastDataAt = lastDataAt;
     }
 
     public Map<String, String> getAdapterState() {

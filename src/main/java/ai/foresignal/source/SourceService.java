@@ -28,6 +28,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.ApplicationEventPublisher;
@@ -63,7 +64,14 @@ public class SourceService implements ApplicationRunner {
     private final CredentialCipher cipher;
     private final ApplicationEventPublisher events;
     private final Clock clock;
+    private final ObjectProvider<SourceHealthLookup> healthLookup;
 
+    /**
+     * Creates the service.
+     *
+     * @param healthLookup resolved lazily on each view, so health can depend on beans that depend on
+     *     this service without a construction cycle
+     */
     public SourceService(
             SourceRegistry registry,
             SourceSettingsRepository settings,
@@ -72,7 +80,8 @@ public class SourceService implements ApplicationRunner {
             IngestPolicyCodec policyCodec,
             CredentialCipher cipher,
             ApplicationEventPublisher events,
-            Clock clock) {
+            Clock clock,
+            ObjectProvider<SourceHealthLookup> healthLookup) {
         this.registry = registry;
         this.settings = settings;
         this.credentials = credentials;
@@ -81,8 +90,10 @@ public class SourceService implements ApplicationRunner {
         this.cipher = cipher;
         this.events = events;
         this.clock = clock;
+        this.healthLookup = healthLookup;
     }
 
+    /** Seeds default settings rows at startup. */
     @Override
     public void run(ApplicationArguments args) {
         seedDefaults();
@@ -188,7 +199,8 @@ public class SourceService implements ApplicationRunner {
                     descriptor.defaultRetention(),
                     IngestPolicyValidator.applyDefaults(descriptor.defaultIngestPolicy(), descriptor),
                     credentialsSet,
-                    null);
+                    null,
+                    healthOf(descriptor, false));
         }
         return new SourceView(
                 descriptor,
@@ -199,7 +211,27 @@ public class SourceService implements ApplicationRunner {
                 resolveRetention(descriptor, row),
                 resolveIngestPolicy(descriptor, row),
                 credentialsSet,
-                row.getUpdatedAt());
+                row.getUpdatedAt(),
+                healthOf(descriptor, row.isEnabled()));
+    }
+
+    /**
+     * The health slice of a view, from the {@link SourceHealthLookup} when one is present.
+     *
+     * <p>A failure to read health must not make the source list unanswerable, so it degrades to
+     * {@link SourceHealthSummary#unavailable(boolean)} with a log line instead.
+     */
+    private SourceHealthSummary healthOf(SourceDescriptor descriptor, boolean enabled) {
+        SourceHealthLookup lookup = healthLookup.getIfAvailable();
+        if (lookup == null) {
+            return SourceHealthSummary.unavailable(enabled);
+        }
+        try {
+            return lookup.summary(descriptor, enabled);
+        } catch (RuntimeException e) {
+            log.warn("Could not read health for {}; reporting it as unavailable", descriptor.id(), e);
+            return SourceHealthSummary.unavailable(enabled);
+        }
     }
 
     // ---------- updates ----------

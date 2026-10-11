@@ -10,7 +10,9 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.LongAdder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,6 +57,8 @@ public class UsageMeter {
         final LongAdder skipped = new LongAdder();
         final LongAdder rejected = new LongAdder();
         final LongAdder versionBytes = new LongAdder();
+        final LongAdder clamped = new LongAdder();
+        final LongAdder triggerEdges = new LongAdder();
 
         UsageTotalsWindow snapshot() {
             return new UsageTotalsWindow(
@@ -70,7 +74,9 @@ public class UsageMeter {
                             late.sum(),
                             skipped.sum(),
                             rejected.sum(),
-                            versionBytes.sum()));
+                            versionBytes.sum(),
+                            clamped.sum(),
+                            triggerEdges.sum()));
         }
 
         boolean isEmpty() {
@@ -93,6 +99,13 @@ public class UsageMeter {
      */
     private final ConcurrentHashMap<UsageKey, Counters> live = new ConcurrentHashMap<>();
 
+    /** Failed flushes since the last success. */
+    private final AtomicInteger consecutiveFlushFailures = new AtomicInteger();
+
+    /** The most recent flush error, cleared on recovery. */
+    private volatile String lastFlushError;
+
+    /** Creates a meter writing to {@code source_usage} through {@code jdbc}. */
     public UsageMeter(JdbcTemplate jdbc, Clock clock) {
         this.jdbc = jdbc;
         this.clock = clock;
@@ -129,6 +142,8 @@ public class UsageMeter {
         counters.skipped.add(counts.skipped());
         counters.rejected.add(counts.rejected());
         counters.versionBytes.add(counts.versionBytes());
+        counters.clamped.add(counts.clamped());
+        counters.triggerEdges.add(counts.triggerEdges());
     }
 
     private Counters counters(String sourceId) {
@@ -174,7 +189,9 @@ public class UsageMeter {
                         ingest.late(),
                         ingest.skipped(),
                         ingest.rejected(),
-                        ingest.versionBytes()
+                        ingest.versionBytes(),
+                        ingest.clamped(),
+                        ingest.triggerEdges()
                     });
         }
 
@@ -183,11 +200,53 @@ public class UsageMeter {
         }
         try {
             jdbc.batchUpdate(UPSERT_SQL, batch);
+            onFlushSucceeded();
         } catch (RuntimeException e) {
             // Losing a minute of accounting is better than failing the scheduler thread, but it
-            // must be visible: usage drives the daily budget seed after a restart.
-            log.error("Could not flush {} usage row(s); those counts are lost", batch.size(), e);
+            // must be visible: usage drives the daily budget seed after a restart, so lost counts
+            // silently widen tomorrow's allowance. The usageMeter health indicator reports it.
+            onFlushFailed(batch.size(), e);
         }
+    }
+
+    private void onFlushSucceeded() {
+        int previous = consecutiveFlushFailures.getAndSet(0);
+        if (previous > 0) {
+            lastFlushError = null;
+            log.info("Usage flush recovered after {} consecutive failure(s)", previous);
+        }
+    }
+
+    private void onFlushFailed(int rows, RuntimeException e) {
+        lastFlushError = e.getClass().getSimpleName() + (e.getMessage() == null ? "" : ": " + e.getMessage());
+        int failures = consecutiveFlushFailures.incrementAndGet();
+        if (failures == 1) {
+            // Once per streak: a database outage would otherwise log a stack trace every minute.
+            log.warn(
+                    "Could not flush {} usage row(s); those counts are lost and the daily budget seed"
+                            + " will be low until flushes recover",
+                    rows,
+                    e);
+        } else {
+            log.debug("Usage flush failure #{} ({} row(s) lost)", failures, rows, e);
+        }
+    }
+
+    /**
+     * Flushes that have failed in a row since the last successful one.
+     *
+     * <p>Zero while flushing works. Read by the {@code usageMeter} health indicator.
+     */
+    public int consecutiveFlushFailures() {
+        return consecutiveFlushFailures.get();
+    }
+
+    /**
+     * The last flush error as {@code ExceptionClass: message}, unredacted, or null when the latest
+     * flush succeeded. Callers that expose it must redact it.
+     */
+    public String lastFlushError() {
+        return lastFlushError;
     }
 
     /** Flushes on shutdown, so the final minute is not lost. */
@@ -200,8 +259,9 @@ public class UsageMeter {
             """
             insert into source_usage
                 (source_id, minute, requests, bytes, errors, refused,
-                 records_seen, versions, live_updates, touches, late, skipped, rejected, version_bytes)
-            values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 records_seen, versions, live_updates, touches, late, skipped, rejected, version_bytes,
+                 clamped, trigger_edges)
+            values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             on conflict (source_id, minute) do update set
                 requests      = source_usage.requests      + excluded.requests,
                 bytes         = source_usage.bytes         + excluded.bytes,
@@ -214,7 +274,9 @@ public class UsageMeter {
                 late          = source_usage.late          + excluded.late,
                 skipped       = source_usage.skipped       + excluded.skipped,
                 rejected      = source_usage.rejected      + excluded.rejected,
-                version_bytes = source_usage.version_bytes + excluded.version_bytes
+                version_bytes = source_usage.version_bytes + excluded.version_bytes,
+                clamped       = source_usage.clamped       + excluded.clamped,
+                trigger_edges = source_usage.trigger_edges + excluded.trigger_edges
             """;
 
     // ---------- queries ----------
@@ -262,7 +324,8 @@ public class UsageMeter {
                 select date_trunc(?, minute) as bucket,
                        sum(requests), sum(bytes), sum(errors), sum(refused),
                        sum(records_seen), sum(versions), sum(live_updates), sum(touches),
-                       sum(late), sum(skipped), sum(rejected), sum(version_bytes)
+                       sum(late), sum(skipped), sum(rejected), sum(version_bytes),
+                       sum(clamped), sum(trigger_edges)
                   from source_usage
                  where source_id = ? and minute >= ? and minute < ?
                  group by bucket
@@ -296,6 +359,34 @@ public class UsageMeter {
                 .toList();
     }
 
+    /**
+     * The earliest minute in {@code [from, to)} with any usage for the source, persisted or live.
+     *
+     * <p>Health uses it to average storage over the span a source has actually been running, rather
+     * than diluting a two-day-old source's rate over seven days.
+     */
+    public Optional<Instant> earliestMinute(String sourceId, Instant from, Instant to) {
+        Timestamp persisted =
+                jdbc.query(
+                        "select min(minute) from source_usage where source_id = ? and minute >= ? and minute < ?",
+                        rs -> rs.next() ? rs.getTimestamp(1) : null,
+                        sourceId,
+                        Timestamp.from(from),
+                        Timestamp.from(to));
+        Instant earliest = persisted == null ? null : persisted.toInstant();
+        for (UsageKey key : live.keySet()) {
+            if (!key.sourceId().equals(sourceId)
+                    || key.minute().isBefore(from)
+                    || !key.minute().isBefore(to)) {
+                continue;
+            }
+            if (earliest == null || key.minute().isBefore(earliest)) {
+                earliest = key.minute();
+            }
+        }
+        return Optional.ofNullable(earliest);
+    }
+
     private UsageTotalsWindow persistedTotals(String sourceId, Instant from, Instant to) {
         String sql =
                 """
@@ -304,7 +395,8 @@ public class UsageMeter {
                        coalesce(sum(records_seen), 0), coalesce(sum(versions), 0),
                        coalesce(sum(live_updates), 0), coalesce(sum(touches), 0),
                        coalesce(sum(late), 0), coalesce(sum(skipped), 0),
-                       coalesce(sum(rejected), 0), coalesce(sum(version_bytes), 0)
+                       coalesce(sum(rejected), 0), coalesce(sum(version_bytes), 0),
+                       coalesce(sum(clamped), 0), coalesce(sum(trigger_edges), 0)
                   from source_usage
                  where source_id = ? and minute >= ? and minute < ?
                 """;
@@ -341,6 +433,8 @@ public class UsageMeter {
         long refused = rs.getLong(i++);
         IngestCounts ingest =
                 new IngestCounts(
+                        rs.getLong(i++),
+                        rs.getLong(i++),
                         rs.getLong(i++),
                         rs.getLong(i++),
                         rs.getLong(i++),

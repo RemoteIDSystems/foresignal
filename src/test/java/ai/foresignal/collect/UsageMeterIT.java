@@ -165,6 +165,22 @@ class UsageMeterIT {
         }
 
         @Test
+        @DisplayName("clamped and trigger-edge counters accumulate and read back (prompt 006)")
+        void clampedAndTriggerEdges() {
+            meter.recordIngest(SOURCE, new IngestCounts(10, 4, 0, 6, 0, 0, 0, 512, 2, 1));
+            meter.flush();
+            meter.recordIngest(SOURCE, new IngestCounts(10, 4, 0, 6, 0, 0, 0, 512, 1, 3));
+            meter.flush();
+
+            Map<String, Object> row = onlyRow();
+            assertThat(column(row, "clamped")).isEqualTo(3);
+            assertThat(column(row, "trigger_edges")).isEqualTo(4);
+            IngestCounts read = meter.lastHour(SOURCE).ingest();
+            assertThat(read.clamped()).isEqualTo(3);
+            assertThat(read.triggerEdges()).isEqualTo(4);
+        }
+
+        @Test
         @DisplayName("an ingest batch with no counts is not worth a row")
         void zeroIngestIsIgnored() {
             meter.recordIngest(SOURCE, IngestCounts.ZERO);
@@ -550,6 +566,75 @@ class UsageMeterIT {
 
             meter.flush();
             assertThat(column(onlyRow(), "requests")).isEqualTo(calls);
+        }
+    }
+
+    // ---------- prompt 006 additions ----------
+
+    @Nested
+    @DisplayName("earliest minute")
+    class EarliestMinute {
+
+        @Test
+        @DisplayName("is the first persisted or live minute inside the window")
+        void persistedAndLive() {
+            assertThat(meter.earliestMinute(SOURCE, MINUTE.minusSeconds(3600), MINUTE.plusSeconds(3600))).isEmpty();
+
+            meter.record(SOURCE, 1, true);
+            assertThat(meter.earliestMinute(SOURCE, MINUTE.minusSeconds(3600), MINUTE.plusSeconds(3600)))
+                    .contains(MINUTE);
+
+            meter.flush();
+            clock.advance(Duration.ofMinutes(5));
+            meter.record(SOURCE, 1, true);
+            meter.record(OTHER, 1, true);
+            assertThat(meter.earliestMinute(SOURCE, MINUTE.minusSeconds(3600), MINUTE.plusSeconds(3600)))
+                    .contains(MINUTE);
+            assertThat(meter.earliestMinute(SOURCE, MINUTE.plusSeconds(60), MINUTE.plusSeconds(3600)))
+                    .contains(MINUTE.plus(Duration.ofMinutes(5)));
+        }
+    }
+
+    @Nested
+    @DisplayName("flush failures")
+    class FlushFailures {
+
+        @Test
+        @DisplayName("are counted per streak, keep the last error, and reset on the next success")
+        void streak() {
+            JdbcTemplate failing = org.mockito.Mockito.spy(jdbc);
+            UsageMeter flaky = new UsageMeter(failing, clock);
+            org.mockito.Mockito.doThrow(new org.springframework.dao.DataAccessResourceFailureException("db down"))
+                    .when(failing)
+                    .batchUpdate(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.<Object[]>anyList());
+
+            flaky.record(SOURCE, 1, true);
+            flaky.flush();
+            flaky.record(SOURCE, 1, true);
+            flaky.flush();
+
+            assertThat(flaky.consecutiveFlushFailures()).isEqualTo(2);
+            assertThat(flaky.lastFlushError()).isEqualTo("DataAccessResourceFailureException: db down");
+
+            org.mockito.Mockito.doCallRealMethod()
+                    .when(failing)
+                    .batchUpdate(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.<Object[]>anyList());
+            flaky.record(SOURCE, 1, true);
+            flaky.flush();
+
+            assertThat(flaky.consecutiveFlushFailures()).isZero();
+            assertThat(flaky.lastFlushError()).isNull();
+            // The failed minutes' counts are lost; only the successful flush reached the table.
+            assertThat(column(onlyRow(), "requests")).isEqualTo(1);
+        }
+
+        @Test
+        @DisplayName("an empty flush neither fails nor resets anything")
+        void emptyFlush() {
+            meter.flush();
+
+            assertThat(meter.consecutiveFlushFailures()).isZero();
+            assertThat(meter.lastFlushError()).isNull();
         }
     }
 }

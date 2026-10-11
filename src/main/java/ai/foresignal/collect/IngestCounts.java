@@ -15,6 +15,9 @@ package ai.foresignal.collect;
  * @param skipped observations deliberately not persisted by the policy
  * @param rejected observations refused for violating a limit
  * @param versionBytes approximate bytes of version payload written
+ * @param clamped observations whose time the time contract clamped (Core-Data-Model §2)
+ * @param triggerEdges versions persisted for the {@code TRIGGER_EDGE} reason, which health reports
+ *     as a share of all versions
  */
 public record IngestCounts(
         long recordsSeen,
@@ -24,10 +27,26 @@ public record IngestCounts(
         long late,
         long skipped,
         long rejected,
-        long versionBytes) {
+        long versionBytes,
+        long clamped,
+        long triggerEdges) {
 
-    public static final IngestCounts ZERO = new IngestCounts(0, 0, 0, 0, 0, 0, 0, 0);
+    public static final IngestCounts ZERO = new IngestCounts(0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 
+    /** The counts without the clamped and trigger-edge counters, which are then zero. */
+    public IngestCounts(
+            long recordsSeen,
+            long versions,
+            long liveUpdates,
+            long touches,
+            long late,
+            long skipped,
+            long rejected,
+            long versionBytes) {
+        this(recordsSeen, versions, liveUpdates, touches, late, skipped, rejected, versionBytes, 0, 0);
+    }
+
+    /** Counts with only {@code recordsSeen} set. */
     public static IngestCounts seen(long recordsSeen) {
         return new IngestCounts(recordsSeen, 0, 0, 0, 0, 0, 0, 0);
     }
@@ -42,9 +61,12 @@ public record IngestCounts(
                 late + other.late,
                 skipped + other.skipped,
                 rejected + other.rejected,
-                versionBytes + other.versionBytes);
+                versionBytes + other.versionBytes,
+                clamped + other.clamped,
+                triggerEdges + other.triggerEdges);
     }
 
+    /** True when every counter is zero. */
     public boolean isZero() {
         return equals(ZERO);
     }

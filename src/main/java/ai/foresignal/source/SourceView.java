@@ -14,8 +14,8 @@ import java.util.Map;
  * any are stored. There is no code path from a controller to a decrypted credential (see
  * {@link CredentialsAccess}).
  *
- * <p>Health arrives in prompt 006 as an additional component; it is not here yet rather than being
- * a null that callers must tolerate.
+ * <p>{@link #health} carries the status slice of the source summary (prompt 006). It is never null:
+ * when health cannot be computed it is {@link SourceHealthSummary#unavailable(boolean)}.
  *
  * @param descriptor the fixed description
  * @param enabled whether the source is being collected
@@ -26,6 +26,7 @@ import java.util.Map;
  * @param ingestPolicy the effective ingest policy
  * @param credentialsSet true when credentials are stored
  * @param updatedAt when the settings last changed
+ * @param health status, last success, last data and today's budget use
  */
 public record SourceView(
         SourceDescriptor descriptor,
@@ -36,12 +37,15 @@ public record SourceView(
         Duration retention,
         IngestPolicy ingestPolicy,
         boolean credentialsSet,
-        Instant updatedAt) {
+        Instant updatedAt,
+        SourceHealthSummary health) {
 
     public SourceView {
         params = params == null ? Map.of() : Map.copyOf(params);
+        health = health == null ? SourceHealthSummary.unavailable(enabled) : health;
     }
 
+    /** The source id. */
     public String id() {
         return descriptor.id();
     }
