@@ -68,7 +68,7 @@ Keep thresholds as named constants.
 
 These supersede anything above that conflicts with them. Sources: `docs/Core-Data-Model.md` *Per-prompt changes* → 006, and `docs/Weather-Imagery-Design.md` §2 (Health row).
 
-- **`recordSuccess(IngestOutcome)`:** `last_records_changed = persisted`, plus last-hour late, clamped and rejected counts. Define `IngestOutcome` here as a record in the `ingest` package if prompt 007 hasn't created it yet; 007 owns the final shape in Core-Data-Model §6.
+- **`recordSuccess(IngestOutcome)`:** `last_records_changed = persisted`, plus last-hour late, clamped and rejected counts. Define `IngestOutcome` here as a record in the `ingest` package if prompt 008 hasn't created it yet; 008 owns the final shape in Core-Data-Model §6.
 - **`source_health.last_data_at`:** set on OK fetches that returned records and on stream flushes, never on a 304.
 - **Coverage history:** `last_coverage` and a `recent_coverage` ring of 20.
 - **Evaluator rule 5 becomes two rules:**
