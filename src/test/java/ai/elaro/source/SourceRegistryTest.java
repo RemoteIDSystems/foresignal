@@ -471,7 +471,7 @@ class SourceRegistryTest {
             return SourceDescriptor.builder(id)
                     .kind("custom-thing")
                     .mode(Mode.PUSH)
-                    .defaultBudget(new Budget(60, 10_000))
+                    .defaultBudget(Budget.of(60, 10_000))
                     .build();
         }
 

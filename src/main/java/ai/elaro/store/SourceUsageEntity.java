@@ -31,6 +31,34 @@ public class SourceUsageEntity {
     @Column(name = "refused", nullable = false)
     private long refused;
 
+    // --- Ingest counters (Core-Data-Model §8) ---
+    // Kept on the same per-minute row as the request counters so one query answers "what did this
+    // source cost and what did it produce in this minute?".
+
+    @Column(name = "records_seen", nullable = false)
+    private long recordsSeen;
+
+    @Column(name = "versions", nullable = false)
+    private long versions;
+
+    @Column(name = "live_updates", nullable = false)
+    private long liveUpdates;
+
+    @Column(name = "touches", nullable = false)
+    private long touches;
+
+    @Column(name = "late", nullable = false)
+    private long late;
+
+    @Column(name = "skipped", nullable = false)
+    private long skipped;
+
+    @Column(name = "rejected", nullable = false)
+    private long rejected;
+
+    @Column(name = "version_bytes", nullable = false)
+    private long versionBytes;
+
     protected SourceUsageEntity() {
         // for JPA
     }
@@ -77,5 +105,69 @@ public class SourceUsageEntity {
 
     public void setRefused(long refused) {
         this.refused = refused;
+    }
+
+    public long getRecordsSeen() {
+        return recordsSeen;
+    }
+
+    public void setRecordsSeen(long recordsSeen) {
+        this.recordsSeen = recordsSeen;
+    }
+
+    public long getVersions() {
+        return versions;
+    }
+
+    public void setVersions(long versions) {
+        this.versions = versions;
+    }
+
+    public long getLiveUpdates() {
+        return liveUpdates;
+    }
+
+    public void setLiveUpdates(long liveUpdates) {
+        this.liveUpdates = liveUpdates;
+    }
+
+    public long getTouches() {
+        return touches;
+    }
+
+    public void setTouches(long touches) {
+        this.touches = touches;
+    }
+
+    public long getLate() {
+        return late;
+    }
+
+    public void setLate(long late) {
+        this.late = late;
+    }
+
+    public long getSkipped() {
+        return skipped;
+    }
+
+    public void setSkipped(long skipped) {
+        this.skipped = skipped;
+    }
+
+    public long getRejected() {
+        return rejected;
+    }
+
+    public void setRejected(long rejected) {
+        this.rejected = rejected;
+    }
+
+    public long getVersionBytes() {
+        return versionBytes;
+    }
+
+    public void setVersionBytes(long versionBytes) {
+        this.versionBytes = versionBytes;
     }
 }

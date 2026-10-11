@@ -48,7 +48,7 @@ public class FakePollingAdapter implements PollingAdapter {
                 .description("A scripted polling source for tests")
                 .kind("fake-record")
                 .interval(Duration.ofSeconds(10), Duration.ofSeconds(60))
-                .defaultBudget(new Budget(60, 10_000));
+                .defaultBudget(Budget.of(60, 10_000));
     }
 
     @Override

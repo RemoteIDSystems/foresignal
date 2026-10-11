@@ -195,7 +195,7 @@ public class SourceService implements ApplicationRunner {
                 row.isEnabled(),
                 Duration.ofSeconds(row.getIntervalSeconds()),
                 effectiveParamsOrRaw(descriptor, row),
-                new Budget(row.getBudgetPerMinute(), row.getBudgetPerDay()),
+                budgetOf(descriptor, row),
                 resolveRetention(descriptor, row),
                 resolveIngestPolicy(descriptor, row),
                 credentialsSet,
@@ -487,7 +487,7 @@ public class SourceService implements ApplicationRunner {
         SourceDescriptor descriptor = registry.descriptor(id);
         return settings
                 .findById(id)
-                .map(row -> new Budget(row.getBudgetPerMinute(), row.getBudgetPerDay()))
+                .map(row -> budgetOf(descriptor, row))
                 .orElseGet(descriptor::defaultBudget);
     }
 
@@ -507,6 +507,18 @@ public class SourceService implements ApplicationRunner {
     public Optional<Duration> effectiveRetention(String id) {
         SourceDescriptor descriptor = registry.descriptor(id);
         return Optional.ofNullable(resolveRetention(descriptor, settings.findById(id).orElse(null)));
+    }
+
+    /**
+     * The request limits from the settings row, plus the descriptor's byte budget.
+     *
+     * <p>{@code mbPerDay} is not operator-overridable yet: there is no column for it, and it is a
+     * property of how large the upstream's objects are rather than a preference.
+     */
+    private static Budget budgetOf(SourceDescriptor descriptor, SourceSettingsEntity row) {
+        Integer mbPerDay =
+                descriptor.defaultBudget() == null ? null : descriptor.defaultBudget().mbPerDay();
+        return new Budget(row.getBudgetPerMinute(), row.getBudgetPerDay(), mbPerDay);
     }
 
     private IngestPolicy resolveIngestPolicy(SourceDescriptor descriptor, SourceSettingsEntity row) {

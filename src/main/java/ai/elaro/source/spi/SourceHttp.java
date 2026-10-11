@@ -2,6 +2,7 @@ package ai.elaro.source.spi;
 
 import java.net.URI;
 import java.net.http.WebSocket;
+import java.nio.file.Path;
 import java.util.Map;
 
 /**
@@ -37,6 +38,40 @@ public interface SourceHttp {
     /** A POST. */
     UpstreamResponse post(URI uri, String contentType, byte[] body, Map<String, String> headers)
             throws AdapterException;
+
+    /**
+     * A ranged GET, for reading part of a large object.
+     *
+     * <p>Accepts only 206, or 200 when {@code start} is 0, and rejects a body shorter than the
+     * range asked for. An upstream that ignores {@code Range} and sends the whole object would
+     * otherwise be read as if it had honoured it, and a GRIB message index would be parsed from the
+     * wrong offset (Weather-Imagery-Design §2.2).
+     *
+     * <p>Follows no redirects: a redirect on a ranged read usually means the range was dropped.
+     *
+     * @param start first byte, inclusive
+     * @param end last byte, inclusive
+     * @param maxBytes cap for this read, overriding the descriptor's
+     */
+    UpstreamResponse getRange(URI uri, long start, long end, long maxBytes) throws AdapterException;
+
+    /**
+     * Streams a body to a file instead of into memory.
+     *
+     * @param target where to write; the caller owns the file afterwards
+     * @param maxBytes cap for this download
+     */
+    DownloadResult download(URI uri, Path target, long maxBytes) throws AdapterException;
+
+    /**
+     * Lists a public S3 bucket anonymously (ListObjectsV2).
+     *
+     * <p>No credentials and no SDK: the buckets Elaro reads — NOAA's, NASA's — are public, and the
+     * XML is parsed with external entities disabled.
+     *
+     * @param startAfter continue after this key, or null for the first page
+     */
+    S3Listing listS3(String bucket, String prefix, String startAfter) throws AdapterException;
 
     /**
      * Opens a WebSocket for a streaming adapter.

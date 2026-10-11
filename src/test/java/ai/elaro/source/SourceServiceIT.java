@@ -212,7 +212,7 @@ class SourceServiceIT {
         void rejectsBudgetBelowOne() {
             var update =
                     new SourceSettingsUpdate(
-                            null, null, null, new Budget(0, 0), null, false, null, false);
+                            null, null, null, Budget.of(0, 0), null, false, null, false);
 
             assertThatThrownBy(() -> service.update(POLLING, update))
                     .isInstanceOf(ValidationException.class)
@@ -227,10 +227,10 @@ class SourceServiceIT {
         void acceptsValidBudget() {
             service.update(
                     POLLING,
-                    new SourceSettingsUpdate(null, null, null, new Budget(5, 500), null, false, null, false));
+                    new SourceSettingsUpdate(null, null, null, Budget.of(5, 500), null, false, null, false));
 
-            assertThat(service.view(POLLING).budget()).isEqualTo(new Budget(5, 500));
-            assertThat(service.effectiveBudget(POLLING)).isEqualTo(new Budget(5, 500));
+            assertThat(service.view(POLLING).budget()).isEqualTo(Budget.of(5, 500));
+            assertThat(service.effectiveBudget(POLLING)).isEqualTo(Budget.of(5, 500));
         }
 
         @Test
@@ -254,7 +254,7 @@ class SourceServiceIT {
                             null,
                             Duration.ofSeconds(1),
                             Map.of("unknown", "x"),
-                            new Budget(0, 5),
+                            Budget.of(0, 5),
                             null,
                             false,
                             null,
@@ -626,7 +626,7 @@ class SourceServiceIT {
         void budgetChangeDoesNotAffectScheduling() {
             service.update(
                     POLLING,
-                    new SourceSettingsUpdate(null, null, null, new Budget(5, 50), null, false, null, false));
+                    new SourceSettingsUpdate(null, null, null, Budget.of(5, 50), null, false, null, false));
 
             assertThat(recorder.settingsEvents()).hasSize(1);
             assertThat(recorder.settingsEvents().get(0).affectsScheduling()).isFalse();

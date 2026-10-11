@@ -48,7 +48,7 @@ public class FakeStreamingAdapter implements StreamingAdapter {
                 .description("A scripted streaming source for tests")
                 .kind("fake-record")
                 .mode(Mode.STREAMING)
-                .defaultBudget(new Budget(10, 1_000))
+                .defaultBudget(Budget.of(10, 1_000))
                 .recordTtl(Duration.ofMinutes(30));
     }
 

@@ -23,7 +23,7 @@ public class FakePushAdapter implements PushAdapter {
                 .name("Fake push " + id)
                 .kind("fake-record")
                 .mode(Mode.PUSH)
-                .defaultBudget(new Budget(60, 10_000));
+                .defaultBudget(Budget.of(60, 10_000));
     }
 
     @Override

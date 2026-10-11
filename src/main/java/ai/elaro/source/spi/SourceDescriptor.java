@@ -57,6 +57,10 @@ import java.util.Set;
  * @param allowNullIsland true when (0,0) is a real location for this feed
  * @param fetchTimeout overall timeout for one fetch
  * @param maxResponseBytes cap on a single response body
+ * @param userAgentOverride a fixed User-Agent this upstream demands; null means Elaro's own.
+ *     <strong>Not for browser spoofing.</strong> It exists for the rare upstream that rejects
+ *     anything but a specific format, and using it costs the accountability that the standard
+ *     User-Agent provides
  * @param products raster or field products this source publishes
  */
 public record SourceDescriptor(
@@ -95,6 +99,7 @@ public record SourceDescriptor(
         boolean allowNullIsland,
         Duration fetchTimeout,
         int maxResponseBytes,
+        String userAgentOverride,
         List<ProductSpec> products) {
 
     /** Payload fields searched unless a source says otherwise. */
@@ -206,6 +211,7 @@ public record SourceDescriptor(
         private boolean allowNullIsland;
         private Duration fetchTimeout = DEFAULT_FETCH_TIMEOUT;
         private int maxResponseBytes = DEFAULT_MAX_RESPONSE_BYTES;
+        private String userAgentOverride;
 
         private Builder(String id) {
             this.id = id;
@@ -292,7 +298,7 @@ public record SourceDescriptor(
         }
 
         public Builder defaultBudget(int perMinute, int perDay) {
-            this.defaultBudget = new Budget(perMinute, perDay);
+            this.defaultBudget = Budget.of(perMinute, perDay);
             return this;
         }
 
@@ -402,6 +408,17 @@ public record SourceDescriptor(
             return this;
         }
 
+        /**
+         * Overrides the User-Agent for an upstream that demands a specific format.
+         *
+         * <p>Never for browser spoofing: Elaro's own User-Agent is what lets an upstream rate-limit
+         * or contact one misbehaving install instead of blocking every Elaro user.
+         */
+        public Builder userAgentOverride(String userAgentOverride) {
+            this.userAgentOverride = userAgentOverride;
+            return this;
+        }
+
         public Builder product(ProductSpec product) {
             this.products.add(product);
             return this;
@@ -444,6 +461,7 @@ public record SourceDescriptor(
                     allowNullIsland,
                     fetchTimeout,
                     maxResponseBytes,
+                    userAgentOverride,
                     products);
         }
     }
