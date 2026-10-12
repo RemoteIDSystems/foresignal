@@ -3,6 +3,7 @@ package ai.foresignal.stream.sse;
 import ai.foresignal.api.error.ErrorCodes;
 import ai.foresignal.api.error.ForesignalException;
 import ai.foresignal.config.StartupOrder;
+import ai.foresignal.security.ApiTokenRevokedEvent;
 import ai.foresignal.settings.AppSettingChangedEvent;
 import ai.foresignal.settings.AppSettingService;
 import ai.foresignal.settings.SettingKeys;
@@ -284,6 +285,36 @@ public class SseHub {
         byte[] bytes = new byte[STREAM_ID_BYTES];
         random.nextBytes(bytes);
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes).substring(0, STREAM_ID_LENGTH);
+    }
+
+    // ------------------------------------------------------------------------- revocation
+
+    /**
+     * Closes every open stream of the revoked token, whether opened with the token itself or with a
+     * ticket it minted (prompt 023).
+     */
+    @EventListener
+    public void onTokenRevoked(ApiTokenRevokedEvent event) {
+        int closed = closePrincipal(StreamPrincipal.tokenId(event.tokenId()));
+        if (closed > 0) {
+            log.info("Closed {} stream(s) of a revoked token", closed);
+        }
+    }
+
+    /**
+     * Closes every open stream of principal {@code principalId}.
+     *
+     * @return how many were closed
+     */
+    public int closePrincipal(String principalId) {
+        int closed = 0;
+        for (SseClient client : List.copyOf(clients.values())) {
+            if (client.principal().id().equals(principalId)) {
+                client.close();
+                closed++;
+            }
+        }
+        return closed;
     }
 
     // ------------------------------------------------------------------------- ownership

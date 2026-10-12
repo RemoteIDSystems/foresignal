@@ -6,27 +6,37 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
  * Server-wide settings stored under {@link SettingKeys#SERVER} (OpenAPI schema
  * {@code ServerSettings}).
  *
- * <p>Prompt 016 reads {@code publicBaseUrl}, for TileJSON tile URLs; prompt 018 reads it for
- * notification links and reads {@code timezone} as the default channel timezone. Prompt 023 owns the
- * {@code GET/PUT /v1/settings/server} endpoints and adds {@code clientLinks}, {@code push} and the
- * warnings; unknown stored keys are ignored until then.
+ * <p>Prompt 016 reads {@code publicBaseUrl} for TileJSON tile URLs; prompt 018 reads it for
+ * notification links and reads {@code timezone} as the default channel timezone. Prompt 023 owns
+ * the {@code GET/PUT /v1/settings/server} endpoints ({@code ServerSettingsService}) and adds
+ * {@code clientLinks}; {@code push} belongs to prompt 031 and {@code warnings} are computed, never
+ * stored. Unknown stored keys are ignored.
  *
  * @param publicBaseUrl the base URL clients reach Foresignal at, for example
  *     {@code http://foresignal.local:8080}; null or blank means "use the request's scheme, host and
  *     port"
  * @param timezone the server's IANA timezone, or null for UTC (the default channel timezone, 018)
+ * @param clientLinks the deep-link templates the operator set, or null for the defaults
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
-public record ServerSettings(String publicBaseUrl, String timezone) {
+public record ServerSettings(String publicBaseUrl, String timezone, ClientLinks clientLinks) {
+
+    /** The default timezone. */
+    public static final String DEFAULT_TIMEZONE = "UTC";
+
+    /** A setting with a public base URL and a timezone. */
+    public ServerSettings(String publicBaseUrl, String timezone) {
+        this(publicBaseUrl, timezone, null);
+    }
 
     /** A setting with only a public base URL. */
     public ServerSettings(String publicBaseUrl) {
-        this(publicBaseUrl, null);
+        this(publicBaseUrl, null, null);
     }
 
     /** No public base URL. */
     public static ServerSettings defaults() {
-        return new ServerSettings(null, null);
+        return new ServerSettings(null, null, null);
     }
 
     /** The base URL without trailing slashes, or null when unset or blank. */
@@ -39,5 +49,10 @@ public record ServerSettings(String publicBaseUrl, String timezone) {
             value = value.substring(0, value.length() - 1);
         }
         return value.isEmpty() ? null : value;
+    }
+
+    /** The deep-link templates in force: the operator's, completed with the defaults. */
+    public ClientLinks effectiveClientLinks() {
+        return clientLinks == null ? ClientLinks.defaults() : clientLinks.withDefaults();
     }
 }

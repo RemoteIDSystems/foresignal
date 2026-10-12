@@ -41,6 +41,10 @@ services:
       FORESIGNAL_BIND: ${FORESIGNAL_BIND:-127.0.0.1}
       # ecs (default under the docker profile), gelf, logstash or text.
       FORESIGNAL_LOG_FORMAT: ${FORESIGNAL_LOG_FORMAT:-ecs}
+      # Proxies whose X-Forwarded-For/-Proto are honoured (023): a regex or CIDR list,
+      # loopback only by default. The tailscale profile proxies over this compose
+      # network: set e.g. 172\.(1[6-9]|2[0-9]|3[01])\.\d{1,3}\.\d{1,3}
+      FORESIGNAL_TRUSTED_PROXIES: '${FORESIGNAL_TRUSTED_PROXIES:-127\.0\.0\.1|0:0:0:0:0:0:0:1|::1}'
     volumes:
       - foresignal-data:/data
     # Localhost only by default; set FORESIGNAL_BIND=0.0.0.0 for LAN access.

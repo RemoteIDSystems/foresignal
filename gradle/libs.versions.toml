@@ -15,6 +15,8 @@ greenmail = "2.1.14"
 # built on Jackson 3 (tools.jackson), matching Spring Boot 4; Apache-2.0.
 jsonSchemaValidator = "3.0.8"
 jacoco = "0.8.15"
+# QR codes of pairing payloads (023): ZXing core 3.5.4, Apache-2.0, no runtime dependencies.
+zxing = "3.5.4"
 
 [libraries]
 # --- Versions managed by the Spring Boot BOM ---
@@ -52,6 +54,8 @@ micrometer-tracing-bridge-otel = { module = "io.micrometer:micrometer-tracing-br
 # --- Explicitly versioned ---
 bucket4j-core = { module = "com.bucket4j:bucket4j_jdk17-core", version.ref = "bucket4j" }
 springdoc-openapi-starter-webmvc-ui = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", version.ref = "springdoc" }
+# SVG QR codes for device pairing (023); the decoder used by PairingIT is in the same artifact.
+zxing-core = { module = "com.google.zxing:core", version.ref = "zxing" }
 
 # --- Test; versions from the Testcontainers BOM where unspecified ---
 testcontainers-bom = { module = "org.testcontainers:testcontainers-bom", version.ref = "testcontainers" }

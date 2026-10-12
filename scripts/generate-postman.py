@@ -12,7 +12,7 @@ outdir = pathlib.Path(sys.argv[2]); outdir.mkdir(parents=True, exist_ok=True)
 PATH_VARS = {"sourceId": "sourceId", "externalId": "externalId", "ruleId": "ruleId", "alertId": "alertId",
              "channelId": "channelId", "tokenId": "tokenId", "providerId": "providerId", "threadId": "threadId",
              "actionId": "actionId", "briefingId": "briefingId", "runId": "runId", "subscriptionId": "subscriptionId",
-             "layer": "tileLayer", "z": "tileZ", "x": "tileX", "y": "tileY"}
+             "layer": "tileLayer", "z": "tileZ", "x": "tileX", "y": "tileY", "pairingCodeId": "pairingCodeId"}
 
 BODIES = {
   "updateSource": {"enabled": True, "interval": "60s", "params": {"feed": "all_day"}, "budget": {"perMinute": 4, "perDay": 2000}, "retention": "365d",
@@ -65,8 +65,14 @@ BODIES = {
   "createPushSubscription": {"name": "Laptop browser", "subscription": {"endpoint": "https://push.example/REPLACE",
                              "keys": {"p256dh": "REPLACE", "auth": "REPLACE"}}, "filters": {"events": ["alert"], "minSeverity": "warning"}},
   "updateEventStreamFilter": {"changes": {"bbox": "-97.5,32.5,-96.5,33.2", "live": True}},
-  "updateSecuritySettings": {"openReads": True},
-  "updateServerSettings": {"publicBaseUrl": "http://foresignal.local:8080"},
+  "updateSecuritySettings": {"openReads": True, "exposeObserver": False},
+  "updateServerSettings": {"publicBaseUrl": "http://foresignal.local:8080", "timezone": "UTC",
+                           "clientLinks": {"alert": "foresignal://alerts/{id}", "pair": "foresignal://pair?u={publicBaseUrl}&c={code}"}},
+  "createStreamTicket": {"purpose": "stream"},
+  "updateCurrentTokenDevice": {"deviceName": "Pixel 9", "platform": "android", "appVersion": "1.0.0"},
+  "createPairingCode": {"name": "Phone", "scope": "read", "ttl": "10m"},
+  # Replace the example code with the one createPairingCode returned (stored in {{pairingCode}}).
+  "claimPairingCode": {"code": "ABCD-EFGH", "device": {"deviceName": "Pixel 9", "platform": "android", "appVersion": "1.0.0"}},
   "updateRetention": {"default": "7d", "trackWindow": "3d", "provenance": "30d", "alerts": "90d", "usage": "30d",
                       "notifications": "90d", "briefings": "180d", "ask": "90d",
                       "kinds": {"earthquake": "3650d"}, "sources": {"usgs-earthquakes": "1825d"}},
@@ -95,11 +101,21 @@ CAPTURE = {
   "listChanges": "const j = pm.response.json(); pm.collectionVariables.set('lastSeq', j.lastSeq);",
   "listRecords": "const j = pm.response.json(); const it = (j.items || j.features || [])[0]; if (it) { const ext = it.externalId || (it.properties && it.properties.externalId); pm.collectionVariables.set('externalId', ext); }\nif (j.nextCursor) pm.collectionVariables.set('cursor', j.nextCursor);",
   "rotateAdminToken": "const j = pm.response.json(); pm.collectionVariables.set('adminToken', j.token); console.log('New admin token stored in collection variable adminToken');",
+  "createPairingCode": "const j = pm.response.json(); pm.collectionVariables.set('pairingCodeId', j.id); pm.collectionVariables.set('pairingCode', j.code);",
+  "claimPairingCode": "const j = pm.response.json(); pm.collectionVariables.set('readToken', j.token); console.log('Paired token stored in collection variable readToken');",
+  "createStreamTicket": "const j = pm.response.json(); pm.collectionVariables.set('ticket', j.ticket);",
 }
 
 # Extra request items for operations with several useful bodies (one item per variant, placed after the
 # operation's main item). createChannel: one per channel type that needs different fields (018).
 VARIANTS = {
+  "createToken": [
+    ("restricted", {"name": "dashboard-kiosk", "scope": "read", "expiresAt": None,
+                    "restrictions": {"endpoints": ["GET /v1/records/**", "GET /v1/tiles/**", "GET /v1/tiles.json"]}}),
+  ],
+  "createStreamTicket": [
+    ("tiles", {"purpose": "tiles", "ttl": "10m"}),
+  ],
   "createChannel": [
     ("Discord (edits on resolve)", {"name": "Discord #alerts", "type": "discord", "config": {"username": "Foresignal"},
                                     "secrets": {"webhookUrl": "https://discord.com/api/webhooks/REPLACE/REPLACE"}, "events": ["alert", "system"]}),
@@ -171,6 +187,9 @@ def req_item(path, method, op):
     elif admin:
         var = "{{agentToken}}" if scope == "agent" else "{{adminToken}}"
         request["auth"] = {"type": "bearer", "bearer": [{"key": "token", "value": var, "type": "string"}]}
+    elif scope == "read" and op.get("x-foresignal-always-authenticated"):
+        # Always authenticated (023): a token is needed even while openReads is on.
+        request["auth"] = {"type": "bearer", "bearer": [{"key": "token", "value": "{{readToken}}", "type": "string"}]}
     else:
         request["auth"] = {"type": "noauth"}
     if "requestBody" in op:
@@ -254,19 +273,20 @@ streams = {"name": "Streams (SSE — run manually)", "description": "Postman dis
 
 collection = {
   "info": {"_postman_id": str(uuid.uuid5(uuid.NAMESPACE_URL, "https://foresignal.ai/postman")), "name": "Foresignal API",
-           "description": f"{spec['info']['description']}\n\nGenerated from docs/OpenAPI.json (v{spec['info']['version']}). Every operation is included, grouped by tag. Admin operations use Bearer `{{{{adminToken}}}}`, agent operations `{{{{agentToken}}}}` (defaults to the admin token; set it to an agent-scope token to test scopes), ingest uses `X-Foresignal-Ingest-Key: {{{{ingestKey}}}}`, and reads use no auth (open while openReads is on). Test scripts capture ids into collection variables (ruleId, channelId, alertId, briefingId, threadId, ingestKey, externalId, lastSeq, cursor…).",
+           "description": f"{spec['info']['description']}\n\nGenerated from docs/OpenAPI.json (v{spec['info']['version']}). Every operation is included, grouped by tag. Admin operations use Bearer `{{{{adminToken}}}}`, agent operations `{{{{agentToken}}}}` (defaults to the admin token; set it to an agent-scope token to test scopes), always-authenticated read operations `{{{{readToken}}}}` (defaults to the admin token; claiming a pairing code stores a read token there), ingest uses `X-Foresignal-Ingest-Key: {{{{ingestKey}}}}`, and other reads use no auth (open while openReads is on). Test scripts capture ids into collection variables (ruleId, channelId, alertId, briefingId, threadId, ingestKey, externalId, lastSeq, cursor…).",
            "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"},
   "item": [quickstart, quickstart2, streams] + folders,
   "variable": [{"key": k, "value": v} for k, v in [
-      ("baseUrl", "http://localhost:8080"), ("adminToken", ""), ("agentToken", "{{adminToken}}"), ("ingestKey", ""),
+      ("baseUrl", "http://localhost:8080"), ("adminToken", ""), ("agentToken", "{{adminToken}}"), ("readToken", "{{adminToken}}"), ("ingestKey", ""),
       ("sourceId", "usgs-earthquakes"), ("externalId", ""), ("ruleId", ""), ("alertId", ""), ("channelId", ""), ("tokenId", ""),
       ("providerId", "ollama"), ("threadId", ""), ("actionId", ""), ("briefingId", ""), ("runId", ""), ("subscriptionId", ""),
-      ("lastSeq", "0"), ("cursor", ""),
+      ("lastSeq", "0"), ("cursor", ""), ("pairingCodeId", ""), ("pairingCode", ""), ("ticket", ""),
       ("tileLayer", "earthquake"), ("tileZ", "0"), ("tileX", "0"), ("tileY", "0")]],
 }
 env = {"id": str(uuid.uuid5(uuid.NAMESPACE_URL, "https://foresignal.ai/postman/env/local")), "name": "Foresignal — Local",
        "values": [{"key": "baseUrl", "value": "http://localhost:8080", "type": "default", "enabled": True},
-                  {"key": "adminToken", "value": "", "type": "secret", "enabled": True}],
+                  {"key": "adminToken", "value": "", "type": "secret", "enabled": True},
+                  {"key": "readToken", "value": "{{adminToken}}", "type": "secret", "enabled": True}],
        "_postman_variable_scope": "environment"}
 (outdir / "Foresignal.postman_collection.json").write_text(json.dumps(collection, indent=2))
 (outdir / "Foresignal-Local.postman_environment.json").write_text(json.dumps(env, indent=2))

@@ -1,6 +1,7 @@
 package ai.foresignal.security;
 
 import java.util.List;
+import java.util.Objects;
 import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Component;
 import org.springframework.util.AntPathMatcher;
@@ -18,6 +19,11 @@ import org.springframework.util.AntPathMatcher;
  *
  * <p><strong>Order matters.</strong> The first matching rule wins, so specific patterns precede
  * general ones ({@code /v1/sources/{id}/credentials} before {@code /v1/sources/**}).
+ *
+ * <p>Prompt 023 adds the token, ticket, pairing and audit paths and the
+ * {@code alwaysAuthenticated} flag ({@link AccessRequirement.RequiresScope#alwaysAuthenticated()}),
+ * which mirrors the spec's {@code x-foresignal-always-authenticated}. {@link #alwaysAuthenticated()}
+ * lists those rules so prompt 025 can mark LLM-backed MCP tools the same way.
  */
 @Component
 public class AccessPolicy {
@@ -72,8 +78,36 @@ public class AccessPolicy {
         return AccessRequirement.OPEN;
     }
 
+    /**
+     * The rules marked always authenticated: operations that need a token even while
+     * {@code security.openReads} is on (cost-bearing paths, invariant SEC-5). Prompt 025 reads this
+     * to mark LLM-backed MCP tools the same way.
+     *
+     * @return each such rule's method (null for any) and Ant pattern, in table order
+     */
+    public List<EndpointRule> alwaysAuthenticated() {
+        return rules.stream()
+                .filter(rule -> rule.requirement().alwaysAuthenticated())
+                .map(rule -> new EndpointRule(rule.method(), rule.pattern()))
+                .toList();
+    }
+
+    /**
+     * One (method, Ant pattern) pair of the table.
+     *
+     * @param method the HTTP method, or null for every method
+     * @param pattern the Ant-style path pattern
+     */
+    public record EndpointRule(HttpMethod method, String pattern) {
+
+        /** Requires a pattern. */
+        public EndpointRule {
+            Objects.requireNonNull(pattern, "pattern");
+        }
+    }
+
     /** Strips a trailing slash and any query string, so rules need not account for either. */
-    private static String normalize(String path) {
+    static String normalize(String path) {
         String result = path == null || path.isEmpty() ? "/" : path;
         int query = result.indexOf('?');
         if (query >= 0) {
@@ -88,7 +122,8 @@ public class AccessPolicy {
     /**
      * The rules, in contract order. {@code null} methods match any method.
      *
-     * <p>Transcribed from the 92 operations in {@code docs/OpenAPI.json}.
+     * <p>Transcribed from the {@code x-foresignal-scope} and
+     * {@code x-foresignal-always-authenticated} annotations in {@code docs/OpenAPI.json}.
      */
     private static List<Rule> rules() {
         return List.of(
@@ -98,12 +133,23 @@ public class AccessPolicy {
                 // ---- Open informational endpoints ----
                 rule(HttpMethod.GET, "/v1/system", AccessRequirement.OPEN),
                 rule(HttpMethod.GET, "/v1/push/vapid-public-key", AccessRequirement.OPEN),
+                // The pairing code in the body is the credential (023).
+                rule(HttpMethod.POST, "/v1/pairing/claim", AccessRequirement.OPEN),
+
+                // ---- Tokens, tickets, pairing and audit (023) ----
+                // The calling token reports its own device: read, before the admin /v1/tokens/** rule.
+                rule(HttpMethod.PUT, "/v1/tokens/current/device", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.POST, "/v1/stream-tickets", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(null, "/v1/pairing-codes/**", AccessRequirement.ADMIN),
+                rule(HttpMethod.GET, "/v1/audit", AccessRequirement.ADMIN),
 
                 // ---- Admin configuration areas (reads included) ----
                 rule(null, "/v1/settings/**", AccessRequirement.ADMIN),
                 rule(null, "/v1/system/admin-token/**", AccessRequirement.ADMIN),
                 rule(null, "/v1/channels/**", AccessRequirement.ADMIN),
                 rule(null, "/v1/tokens/**", AccessRequirement.ADMIN),
+                // Testing a provider spends LLM tokens (always authenticated, 026).
+                rule(HttpMethod.POST, "/v1/llm/providers/*/test", AccessRequirement.ADMIN_ALWAYS_AUTHENTICATED),
                 rule(null, "/v1/llm/**", AccessRequirement.ADMIN),
                 rule(null, "/v1/custom-sources/**", AccessRequirement.ADMIN),
 
@@ -132,9 +178,10 @@ public class AccessPolicy {
                 rule(HttpMethod.GET, "/v1/tiles.json", AccessRequirement.READ),
 
                 // ---- Search: read, except reindex ----
-                rule(HttpMethod.POST, "/v1/search/reindex", AccessRequirement.ADMIN),
+                rule(HttpMethod.POST, "/v1/search/reindex", AccessRequirement.ADMIN_ALWAYS_AUTHENTICATED),
                 rule(HttpMethod.GET, "/v1/search/status", AccessRequirement.READ),
-                rule(HttpMethod.GET, "/v1/search", AccessRequirement.READ),
+                // Semantic search embeds the query: always authenticated (023, 027).
+                rule(HttpMethod.GET, "/v1/search", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
 
                 // ---- Triggers: read to list, agent to change ----
                 rule(HttpMethod.GET, "/v1/triggers/**", AccessRequirement.READ),
@@ -150,19 +197,25 @@ public class AccessPolicy {
 
                 // ---- Briefings: read to list, agent to change or run ----
                 rule(HttpMethod.GET, "/v1/briefings/**", AccessRequirement.READ),
+                // Previewing and running a briefing call the LLM (029).
+                rule(HttpMethod.POST, "/v1/briefings/preview", AccessRequirement.AGENT_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.POST, "/v1/briefings/*/run", AccessRequirement.AGENT_ALWAYS_AUTHENTICATED),
                 rule(null, "/v1/briefings/**", AccessRequirement.AGENT),
 
                 // ---- Ask: asking is a read; confirming an action is not ----
                 rule(HttpMethod.POST, "/v1/ask/actions/**", AccessRequirement.AGENT),
                 rule(HttpMethod.DELETE, "/v1/ask/threads/*", AccessRequirement.AGENT),
-                rule(HttpMethod.GET, "/v1/ask/threads/**", AccessRequirement.READ),
-                rule(HttpMethod.POST, "/v1/ask/stream", AccessRequirement.READ),
-                rule(HttpMethod.POST, "/v1/ask", AccessRequirement.READ),
+                // Asking spends LLM tokens: always authenticated (023, 028).
+                rule(HttpMethod.GET, "/v1/ask/threads/**", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.POST, "/v1/ask/stream", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.POST, "/v1/ask", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
 
                 // ---- Web Push: listing subscriptions is admin, managing your own is read ----
+                // Subscribing makes the server send pushes: always authenticated (023, 031).
                 rule(HttpMethod.GET, "/v1/push/subscriptions", AccessRequirement.ADMIN),
-                rule(HttpMethod.POST, "/v1/push/subscriptions", AccessRequirement.READ),
-                rule(HttpMethod.DELETE, "/v1/push/subscriptions/*", AccessRequirement.READ));
+                rule(HttpMethod.POST, "/v1/push/subscriptions", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.POST, "/v1/push/subscriptions/*/verify", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.DELETE, "/v1/push/subscriptions/*", AccessRequirement.READ_ALWAYS_AUTHENTICATED));
     }
 
     private static Rule rule(HttpMethod method, String pattern, AccessRequirement requirement) {

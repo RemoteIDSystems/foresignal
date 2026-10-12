@@ -1,24 +1,26 @@
 package ai.foresignal.api.support;
 
+import ai.foresignal.security.CurrentToken;
 import ai.foresignal.security.Scope;
+import ai.foresignal.security.SourceVisibilityGate;
 import ai.foresignal.security.TokenFilter;
+import ai.foresignal.security.TokenRestrictions;
 import ai.foresignal.settings.AppSettingService;
 import ai.foresignal.settings.SecuritySettings;
 import ai.foresignal.settings.SettingKeys;
 import ai.foresignal.source.SourceRegistry;
-import ai.foresignal.source.spi.SourceDescriptor;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Set;
-import java.util.TreeSet;
 import org.springframework.stereotype.Component;
 
 /**
  * Resolves the {@link ReadCaller} of a request (the scope {@code TokenFilter} recorded, plus the
  * {@code security} setting) and the sources that caller may not read.
  *
- * <p>Private sources (descriptor {@code private=true}) are hidden from anonymous {@code openReads}
- * callers on the read endpoints of prompt 014. Prompt 039 completes the enforcement on every path
- * through {@code EgressPolicy}.
+ * <p>Private sources (descriptor {@code private=true}) are visible only to {@code agent} and
+ * {@code admin} tokens ({@link SourceVisibilityGate}, prompt 023); anonymous callers and
+ * {@code read} tokens never see them. Prompt 039 completes the enforcement on every path through
+ * {@code EgressPolicy}.
  */
 @Component
 public class ReadCallerResolver {
@@ -41,17 +43,18 @@ public class ReadCallerResolver {
         return new ReadCaller(scope, security.exposeObserver(), security.openReads());
     }
 
-    /** The sources {@code caller} may not read: every private source for an anonymous caller. */
+    /**
+     * The sources {@code caller} may not read: every private source unless the caller holds an
+     * {@code agent} or {@code admin} token.
+     */
     public Set<String> excludedSources(ReadCaller caller) {
-        if (!caller.isAnonymous()) {
-            return Set.of();
-        }
-        Set<String> excluded = new TreeSet<>();
-        for (SourceDescriptor descriptor : registry.descriptors()) {
-            if (descriptor.privateSource()) {
-                excluded.add(descriptor.id());
-            }
-        }
-        return Set.copyOf(excluded);
+        return SourceVisibilityGate.excludedSources(registry, caller.scope(), TokenRestrictions.NONE);
+    }
+
+    /** The private sources the caller of {@code request} may not read, with its restrictions. */
+    public Set<String> excludedSources(HttpServletRequest request) {
+        TokenRestrictions restrictions = CurrentToken.of(request).map(CurrentToken::restrictions)
+                .orElse(TokenRestrictions.NONE);
+        return SourceVisibilityGate.excludedSources(registry, resolve(request).scope(), restrictions);
     }
 }

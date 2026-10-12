@@ -3,6 +3,7 @@ package ai.foresignal.security;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import ai.foresignal.config.ForesignalProperties;
+import ai.foresignal.store.SystemSecretEntity;
 import ai.foresignal.store.SystemSecretRepository;
 import ai.foresignal.test.IntegrationTest;
 import ch.qos.logback.classic.Level;
@@ -11,6 +12,7 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.time.Clock;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,11 +20,20 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.PlatformTransactionManager;
 
+/**
+ * The bootstrap admin token on {@code api_token} (prompts 003, 019, 023): first start, reset,
+ * rotation, and the migration from the pre-023 {@code system_secret['admin_token_hash']}.
+ */
 @IntegrationTest
 class AdminTokenServiceIT {
 
     @Autowired private SystemSecretRepository secrets;
+    @Autowired private ApiTokenRepository tokens;
+    @Autowired private PrincipalService principals;
+    @Autowired private PlatformTransactionManager transactions;
+    @Autowired private Clock clock;
     @Autowired private TokenHasher hasher;
 
     private ListAppender<ILoggingEvent> logs;
@@ -46,7 +57,7 @@ class AdminTokenServiceIT {
     /** A service bound to a fresh, empty table, as if this were a first start. */
     private AdminTokenService service(boolean reset) {
         var properties = new ForesignalProperties(Path.of("./data"), null, reset, "test");
-        var service = new AdminTokenService(secrets, hasher, properties);
+        var service = new AdminTokenService(tokens, secrets, hasher, principals, transactions, clock, properties);
         service.ensureToken();
         return service;
     }
@@ -104,12 +115,15 @@ class AdminTokenServiceIT {
         AdminTokenService service = service(false);
         String token = loggedToken();
 
-        String stored =
-                new String(
-                        secrets.findById(AdminTokenService.ADMIN_TOKEN_HASH_KEY).orElseThrow().getValue(),
-                        StandardCharsets.UTF_8);
-
-        assertThat(stored).isEqualTo(hasher.hash(token)).hasSize(64).isNotEqualTo(token);
+        ApiTokenEntity row = bootstrapRow();
+        assertThat(row.getTokenHash()).isEqualTo(hasher.hash(token)).hasSize(64).isNotEqualTo(token);
+        assertThat(row.getName()).isEqualTo(ApiTokenEntity.BOOTSTRAP_NAME);
+        assertThat(row.getScope()).isEqualTo(Scope.ADMIN);
+        assertThat(row.getCreatedVia()).isEqualTo("bootstrap");
+        assertThat(row.getTokenPrefix()).isEqualTo(token.substring(0, 8));
+        assertThat(principals.find(row.getPrincipalId())).get()
+                .extracting(PrincipalEntity::getHandle).isEqualTo(PrincipalEntity.OWNER_HANDLE);
+        assertThat(secrets.findById(AdminTokenService.ADMIN_TOKEN_HASH_KEY)).isEmpty();
         assertThat(service.verify(token)).isTrue();
     }
 
@@ -206,5 +220,56 @@ class AdminTokenServiceIT {
     @Test
     void reportsThatItIsInitialized() {
         assertThat(service(false).isInitialized()).isTrue();
+    }
+
+    private ApiTokenEntity bootstrapRow() {
+        return tokens.findFirstByCreatedViaOrderByCreatedAtAsc("bootstrap").orElseThrow();
+    }
+
+    @Test
+    @DisplayName("migration: a legacy system_secret hash becomes the bootstrap row and keeps working; the secret is deleted")
+    void migratesTheLegacySecret() {
+        String legacyToken = hasher.generateToken();
+        secrets.saveAndFlush(new SystemSecretEntity(AdminTokenService.ADMIN_TOKEN_HASH_KEY,
+                hasher.hash(legacyToken).getBytes(StandardCharsets.UTF_8)));
+
+        AdminTokenService service = service(false);
+
+        assertThat(messages()).noneMatch(m -> m.contains("FORESIGNAL ADMIN TOKEN"));
+        assertThat(messages()).anyMatch(m -> m.contains("Moved the existing admin token"));
+        assertThat(service.verify(legacyToken)).isTrue();
+        assertThat(secrets.findById(AdminTokenService.ADMIN_TOKEN_HASH_KEY)).isEmpty();
+        ApiTokenEntity row = bootstrapRow();
+        assertThat(row.getTokenHash()).isEqualTo(hasher.hash(legacyToken));
+        assertThat(row.isBootstrap()).isTrue();
+        assertThat(tokens.count()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("migration: with a bootstrap row already present the legacy secret is only deleted")
+    void legacySecretNextToAnExistingRowIsDropped() {
+        AdminTokenService service = service(false);
+        String current = loggedToken();
+        secrets.saveAndFlush(new SystemSecretEntity(AdminTokenService.ADMIN_TOKEN_HASH_KEY,
+                hasher.hash("fsr_some-old-token").getBytes(StandardCharsets.UTF_8)));
+
+        service.ensureToken();
+
+        assertThat(secrets.findById(AdminTokenService.ADMIN_TOKEN_HASH_KEY)).isEmpty();
+        assertThat(service.verify(current)).isTrue();
+        assertThat(service.verify("fsr_some-old-token")).isFalse();
+        assertThat(tokens.count()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("rotate recreates the bootstrap row when it is missing")
+    void rotateRecreatesTheRow() {
+        AdminTokenService service = service(false);
+        tokens.deleteAll();
+
+        String rotated = service.rotate();
+
+        assertThat(service.verify(rotated)).isTrue();
+        assertThat(service.bootstrapTokenId()).isPresent();
     }
 }

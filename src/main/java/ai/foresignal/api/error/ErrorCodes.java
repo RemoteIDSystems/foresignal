@@ -77,6 +77,27 @@ public final class ErrorCodes {
     /** 400: shrinking a geofence by {@code hysteresisMeters} leaves nothing (prompt 017). */
     public static final String GEOFENCE_TOO_SMALL_FOR_HYSTERESIS = "GEOFENCE_TOO_SMALL_FOR_HYSTERESIS";
 
+    /** 403: the token's scope is below the operation's; carries {@code requiredScope} (prompt 023). */
+    public static final String INSUFFICIENT_SCOPE = "INSUFFICIENT_SCOPE";
+
+    /** 403: the token has an endpoint restriction and no pattern matches the request (prompt 023). */
+    public static final String ENDPOINT_NOT_ALLOWED = "ENDPOINT_NOT_ALLOWED";
+
+    /**
+     * 403: the token has source, kind or bbox restrictions, which are enforced from prompt 035; until
+     * then such a token is refused on data reads rather than served unrestricted (prompt 023).
+     */
+    public static final String RESTRICTION_NOT_ENFORCED = "RESTRICTION_NOT_ENFORCED";
+
+    /** 409: the bootstrap admin token cannot be revoked; rotate it instead (prompt 023). */
+    public static final String BOOTSTRAP_TOKEN = "BOOTSTRAP_TOKEN";
+
+    /** 400: an unknown, expired or already claimed pairing code (prompt 023). */
+    public static final String PAIRING_CODE_INVALID = "PAIRING_CODE_INVALID";
+
+    /** 429: too many attempts; honour {@code Retry-After} (pairing claims, prompt 023). */
+    public static final String RATE_LIMITED = "RATE_LIMITED";
+
     private static final String TYPE_PREFIX = "https://foresignal.ai/problems/";
 
     private ErrorCodes() {}

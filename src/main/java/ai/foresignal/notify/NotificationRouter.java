@@ -2,6 +2,7 @@ package ai.foresignal.notify;
 
 import ai.foresignal.collect.SourceHealthChangedEvent;
 import ai.foresignal.config.StartupOrder;
+import ai.foresignal.settings.ClientLinks;
 import ai.foresignal.settings.ServerSettings;
 import ai.foresignal.source.HealthStatus;
 import ai.foresignal.store.NotificationChannelEntity;
@@ -132,7 +133,7 @@ public class NotificationRouter implements AlertListener {
                 .shortTitle(alert.ruleName())
                 .body(text.body())
                 .url(url)
-                .links(List.of(new NotificationMessage.Link("Open alert", url)))
+                .links(alertLinks(alert.id(), url))
                 .data(data)
                 .tags(alert.tags())
                 .alertId(alert.id())
@@ -183,7 +184,7 @@ public class NotificationRouter implements AlertListener {
                         + (alert.ruleName() == null ? "alert" : alert.ruleName()))
                 .body(AlertTemplates.tidy(body))
                 .url(url)
-                .links(List.of(new NotificationMessage.Link("Open alert", url)))
+                .links(alertLinks(alert.id(), url))
                 .data(data)
                 .tags(alert.tags())
                 .alertId(alert.id())
@@ -293,6 +294,20 @@ public class NotificationRouter implements AlertListener {
         }
         data.put("record", record);
         return data;
+    }
+
+    /**
+     * The links of an alert message: "Open alert" to the API URL, plus "Open in app" from the
+     * {@code server} setting's {@code clientLinks.alert} template when the operator has set
+     * {@code clientLinks} (prompt 023).
+     */
+    List<NotificationMessage.Link> alertLinks(long id, String url) {
+        ServerSettings server = channels.serverSettings();
+        if (server == null || server.clientLinks() == null) {
+            return List.of(new NotificationMessage.Link("Open alert", url));
+        }
+        String app = ClientLinks.fill(server.effectiveClientLinks().alert(), Map.of("id", Long.toString(id)));
+        return List.of(new NotificationMessage.Link("Open alert", url), new NotificationMessage.Link("Open in app", app));
     }
 
     private String alertUrl(long id) {

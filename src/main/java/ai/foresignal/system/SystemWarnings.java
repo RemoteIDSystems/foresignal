@@ -2,6 +2,7 @@ package ai.foresignal.system;
 
 import ai.foresignal.retention.RetentionJob;
 import ai.foresignal.retention.RetentionRun;
+import ai.foresignal.security.SecureRequestMonitor;
 import ai.foresignal.settings.AppSettingService;
 import ai.foresignal.settings.SecuritySettings;
 import ai.foresignal.settings.ServerSettings;
@@ -16,6 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.regex.Pattern;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -32,6 +34,8 @@ import org.springframework.stereotype.Component;
  *   <li>{@code HISTORY_RATE_HIGH} (warning): more than 20,000 versions per minute.
  *   <li>{@code PARTITION_HEADROOM_LOW} (critical): a tier has less than one block attached ahead.
  *   <li>{@code RETENTION_CONSUMER_LAG} (warning): the last retention run released a consumer clamp.
+ *   <li>{@code PUBLIC_BASE_URL_INSECURE} and {@code PUBLIC_BASE_URL_MISMATCH} (warning, prompt 023):
+ *       see {@link PublicBaseUrlWarnings}.
  * </ul>
  */
 @Component
@@ -52,14 +56,24 @@ public class SystemWarnings {
     private final PartitionManager partitions;
     private final RetentionJob retention;
     private final String advertisedBind;
+    private final SecureRequestMonitor secureRequests;
+
+    /** Creates the component without a request monitor (no {@code PUBLIC_BASE_URL_MISMATCH}). */
+    public SystemWarnings(AppSettingService settings, PartitionManager partitions, RetentionJob retention,
+            String advertisedBind) {
+        this(settings, partitions, retention, advertisedBind, new SecureRequestMonitor());
+    }
 
     /** Creates the component. */
+    @Autowired
     public SystemWarnings(AppSettingService settings, PartitionManager partitions, RetentionJob retention,
-            @Value("${foresignal.advertised-bind:127.0.0.1}") String advertisedBind) {
+            @Value("${foresignal.advertised-bind:127.0.0.1}") String advertisedBind,
+            SecureRequestMonitor secureRequests) {
         this.settings = settings;
         this.partitions = partitions;
         this.retention = retention;
         this.advertisedBind = advertisedBind == null ? "" : advertisedBind.strip();
+        this.secureRequests = secureRequests;
     }
 
     /** The bind the container publishes the port on ({@code FORESIGNAL_BIND}). */
@@ -72,8 +86,9 @@ public class SystemWarnings {
         List<Warning> out = new ArrayList<>();
         SecuritySettings security =
                 settings.getOrDefault(SettingKeys.SECURITY, SecuritySettings.class, SecuritySettings::defaults);
+        ServerSettings server = settings.getOrDefault(SettingKeys.SERVER, ServerSettings.class, ServerSettings::defaults);
+        out.addAll(PublicBaseUrlWarnings.of(server, secureRequests.sawHttps()));
         if (security.openReads()) {
-            ServerSettings server = settings.getOrDefault(SettingKeys.SERVER, ServerSettings.class, ServerSettings::defaults);
             String baseHost = host(server.normalizedPublicBaseUrl());
             boolean bindAll = isAllInterfaces(advertisedBind);
             boolean bindExposed = !bindAll && !isLocal(advertisedBind);
@@ -112,7 +127,8 @@ public class SystemWarnings {
         return out;
     }
 
-    static String host(String url) {
+    /** The host of {@code url}, without IPv6 brackets, or null. */
+    public static String host(String url) {
         if (url == null) {
             return null;
         }
@@ -132,7 +148,7 @@ public class SystemWarnings {
     }
 
     /** True for a local literal address or name; host names are never resolved. */
-    static boolean isLocal(String host) {
+    public static boolean isLocal(String host) {
         if (host == null || host.isBlank()) {
             return true;
         }

@@ -1,5 +1,6 @@
 package ai.foresignal.api;
 
+import ai.foresignal.api.error.NotFoundException;
 import ai.foresignal.api.dto.ChangePage;
 import ai.foresignal.api.mapper.RecordMapper;
 import ai.foresignal.api.support.ApiProperties;
@@ -26,6 +27,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.Map;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -106,8 +108,13 @@ public class ChangesController {
         ResponseFormat fmt = ResponseFormat.negotiate(format, accept, FORMATS);
         Long afterSeq = QueryParams.nonNegativeLong("after", after);
         List<String> sources = QueryParams.multi("source", source);
+        Set<String> hidden = callers.excludedSources(caller);
         for (String id : sources) {
             registry.descriptor(id);
+            if (hidden.contains(id)) {
+                // A private source the caller may not see is reported like an unknown one (023).
+                throw NotFoundException.of("Source", id);
+            }
         }
         FieldSelection selection = FieldSelector.parse(fields);
         ChangesQuery query = new ChangesQuery(

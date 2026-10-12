@@ -54,7 +54,7 @@ Format: `| id | invariant | owner | enforced by | tests |`
 | SEC-1 | Unmatched `/v1/**` paths require `admin` (fail closed) | 003 | `AccessPolicy` | `AccessPolicyTest` |
 | SEC-2 | The admin token is stored only as a hash and printed only in its first-start banner | 003 | `AdminTokenService`, `TokenHasher` | `AdminTokenServiceIT`, `TokenHasherTest` |
 | SEC-3 | Credentials are encrypted at rest with the install key | 003 | `CredentialCipher`, `SecretKeyStore` | `CredentialCipherTest`, `SecretKeyStoreTest` |
-| SEC-4 | Token scope ordering `read < agent < admin` is enforced on every operation and MCP tool; restricted tokens stay within their restrictions | 023, 035 | `AccessPolicy`, restricted-token filter | `ScopeTest`, `RestrictedTokenIT` |
+| SEC-4 | Token scope ordering `read < agent < admin` is enforced on every operation and MCP tool; restricted tokens stay within their restrictions | 023, 035 | `AccessPolicy`, restricted-token filter | `ScopeTest`, `TokenFilterIT`, `AccessPolicySyncTest`, `RestrictedTokenIT` |
 | SEC-5 | Every LLM-spending path is `alwaysAuthenticated`, even under `openReads` | 023 | `AccessPolicy` | `AlwaysAuthenticatedIT` |
 | EGR-1 | Private records never leave through non-private paths (API, tiles, SSE, search, LLM context, MCP, exports, sinks, federation, share links) | 039 | `EgressPolicy` | `PrivateEgressIT` |
 | EGR-2 | `LOCAL_ONLY` raw values are served only to callers allowed local egress; derived standardised statistics may be shared | 062 | `EgressPolicy` | `LocalOnlyEgressIT` |

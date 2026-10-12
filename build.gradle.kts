@@ -31,6 +31,7 @@ dependencies {
     implementation(libs.spring.boot.micrometer.tracing.opentelemetry)
     implementation(libs.micrometer.tracing.bridge.otel)
     implementation(libs.springdoc.openapi.starter.webmvc.ui)
+    implementation(libs.zxing.core)
     runtimeOnly(libs.postgresql)
 
     testImplementation(platform(libs.testcontainers.bom))

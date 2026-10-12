@@ -77,6 +77,11 @@
         "version": "1.3.0",
         "date": "2026-10-12",
         "note": "022: streamEvents' canonical.created, canonical.merged and canonical.flagged events carry topic evidence and prompt 116, like the other later-prompt events (they were ungated, so the conformance test counted them as current). Additive; no operation or schema changed."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-12",
+        "note": "023: listTokens, createToken, revokeToken, getSecuritySettings, updateSecuritySettings, getServerSettings, updateServerSettings, createStreamTicket, updateCurrentTokenDevice, listPairingCodes, createPairingCode, deletePairingCode, getPairingCodeQr, claimPairingCode and listAuditEvents are implemented. Additive reconciliations: Problem documents requiredScope (INSUFFICIENT_SCOPE) and lists the codes INSUFFICIENT_SCOPE, ENDPOINT_NOT_ALLOWED, RESTRICTION_NOT_ENFORCED (403), BOOTSTRAP_TOKEN (409), PAIRING_CODE_INVALID (400) and RATE_LIMITED (429); getSystem's full document needs at least the read scope; updateSecuritySettings refuses the 035/069 members until those prompts; updateServerSettings requires publicBaseUrl (null allowed), restricts clientLinks templates to foresignal:// and https://, refuses push until 031 and documents PUBLIC_BASE_URL_MISMATCH; createToken documents the bbox rule and refuses restriction members and privateAccess that later prompts enforce; getPairingCodeQr is available until a restart."
       }
     ]
   },
@@ -5725,7 +5730,7 @@
         ],
         "operationId": "getSystem",
         "summary": "System information",
-        "description": "Anonymous callers get only version, apiVersion, startedAt, uptimeSeconds, status, features and limits; callers presenting any valid token get the full document (database, records, sources, scheduler, ingestWriter, streams, notifications, history per tier, catchUp and warnings).\n\n**Scope:** `open` (no token; a valid token returns the full document).",
+        "description": "Anonymous callers get only version, apiVersion, startedAt, uptimeSeconds, status, features and limits; callers presenting a valid token of at least the `read` scope get the full document (023; every valid token has at least `read`) (database, records, sources, scheduler, ingestWriter, streams, notifications, history per tier, catchUp and warnings, which include PUBLIC_BASE_URL_INSECURE and PUBLIC_BASE_URL_MISMATCH from 023).\n\n**Scope:** `open` (no token; a valid token returns the full document).",
         "responses": {
           "200": {
             "description": "System",
@@ -5862,7 +5867,7 @@
           }
         ],
         "x-foresignal-prompt": "023",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       },
       "post": {
         "tags": [
@@ -5870,7 +5875,7 @@
         ],
         "operationId": "createToken",
         "summary": "Create an API token",
-        "description": "Returns the token value (`fsr_` + 32 random bytes, base64url) exactly once. Optional `restrictions` (sources, kinds, bbox, endpoints; area and more from 035) are validated: endpoint patterns must match an operation the scope can reach, source ids and kinds must exist. Restrictions on admin tokens → 400 RESTRICTION_NOT_ALLOWED (035).\n\n**Scope:** `admin`.",
+        "description": "Returns the token value (`fsr_` + 32 random bytes, base64url) exactly once. Optional `restrictions` (sources, kinds, bbox, endpoints; area and more from 035) are validated: endpoint patterns must match an operation the scope can reach, source ids and kinds must exist; bbox within ±180/±90 with min < max. Restriction members later prompts enforce (`area`, `placeIds`, `excludePrivate`, `maxRequestsPerMinute` from 035, `federation`, `includeExercise` from 113) and `privateAccess: true` (039) are refused with 400 until then. Restrictions on admin tokens → 400 RESTRICTION_NOT_ALLOWED (035).\n\n**Scope:** `admin`.",
         "requestBody": {
           "required": true,
           "content": {
@@ -5933,7 +5938,7 @@
         "x-foresignal-extended-by": [
           "130"
         ],
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/tokens/{tokenId}": {
@@ -6008,7 +6013,7 @@
           }
         ],
         "x-foresignal-prompt": "023",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/settings/security": {
@@ -6058,7 +6063,7 @@
           }
         ],
         "x-foresignal-prompt": "023",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       },
       "put": {
         "tags": [
@@ -6066,7 +6071,7 @@
         ],
         "operationId": "updateSecuritySettings",
         "summary": "Set security settings",
-        "description": "Set security settings\n\n**Scope:** `admin`.",
+        "description": "Replaces `openReads` (required) and `exposeObserver`. Members later prompts own (`anonymous`, `metricsOpen` from 035, `exposeMlat` from 069) are refused with 400 until then, so a protection is never reported on that nothing enforces.\n\n**Scope:** `admin`.",
         "requestBody": {
           "required": true,
           "content": {
@@ -6126,7 +6131,7 @@
           }
         ],
         "x-foresignal-prompt": "023",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/settings/server": {
@@ -6176,7 +6181,7 @@
           }
         ],
         "x-foresignal-prompt": "023",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       },
       "put": {
         "tags": [
@@ -6184,7 +6189,7 @@
         ],
         "operationId": "updateServerSettings",
         "summary": "Set server settings",
-        "description": "Sets `publicBaseUrl`, `timezone`, `clientLinks` and `push` (031). The response carries `warnings` (PUBLIC_BASE_URL_INSECURE when `publicBaseUrl` is http:// and its host is not loopback, private, CGNAT or `.local`). `push.allowedPrivateHosts` entries are exact hostnames or CIDRs (IPv4 prefix ≥ /8, IPv6 ≥ /32).\n\n**Scope:** `admin`.",
+        "description": "Sets `publicBaseUrl` (required; null means the request's own address), `timezone`, `clientLinks` (each template `foresignal://` or `https://`) and `push` (031; refused with 400 until then). The response carries `warnings` (PUBLIC_BASE_URL_INSECURE when `publicBaseUrl` is http:// and its host is not loopback, private, CGNAT or `.local`; PUBLIC_BASE_URL_MISMATCH when requests arrive over https while it is http://). `push.allowedPrivateHosts` entries are exact hostnames or CIDRs (IPv4 prefix ≥ /8, IPv6 ≥ /32).\n\n**Scope:** `admin`.",
         "requestBody": {
           "required": true,
           "content": {
@@ -6244,7 +6249,7 @@
           }
         ],
         "x-foresignal-prompt": "023",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/custom-sources": {
@@ -13090,7 +13095,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "023",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true,
         "security": [
           {
@@ -13179,7 +13184,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "023",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true,
         "security": [
           {
@@ -13251,7 +13256,7 @@
         },
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "023",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -13337,7 +13342,7 @@
         },
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "023",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -13420,7 +13425,7 @@
         },
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "023",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -13447,7 +13452,7 @@
         ],
         "operationId": "getPairingCodeQr",
         "summary": "QR code of a pairing payload",
-        "description": "SVG QR code (ZXing) encoding the code's `qrPayload`, for scanning with the app. Available while the code is unclaimed and unexpired.\n\n**Scope:** `admin`.",
+        "description": "SVG QR code (ZXing) encoding the code's `qrPayload`, for scanning with the app. Available while the code is unclaimed and unexpired, and until a restart (the code is stored hashed; its payload is held in memory only).\n\n**Scope:** `admin`.",
         "responses": {
           "200": {
             "description": "SVG image",
@@ -13510,7 +13515,7 @@
         },
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "023",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -13578,7 +13583,7 @@
         },
         "x-foresignal-scope": "open",
         "x-foresignal-prompt": "023",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {}
         ]
@@ -13727,7 +13732,7 @@
         },
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "023",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -80442,6 +80447,19 @@
               "null"
             ],
             "description": "BUDGET_EXCEEDED: estimated cost of the refused call"
+          },
+          "requiredScope": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "read",
+              "agent",
+              "admin",
+              null
+            ],
+            "description": "INSUFFICIENT_SCOPE: the scope the operation needs (023)"
           }
         },
         "required": [
@@ -80450,6 +80468,7 @@
         ],
         "x-foresignal-extended-by": [
           "013",
+          "023",
           "135"
         ],
         "x-foresignal-error-codes": [
@@ -80562,6 +80581,36 @@
             "code": "GEOFENCE_TOO_SMALL_FOR_HYSTERESIS",
             "status": 400,
             "prompt": "017"
+          },
+          {
+            "code": "INSUFFICIENT_SCOPE",
+            "status": 403,
+            "prompt": "023"
+          },
+          {
+            "code": "ENDPOINT_NOT_ALLOWED",
+            "status": 403,
+            "prompt": "023"
+          },
+          {
+            "code": "RESTRICTION_NOT_ENFORCED",
+            "status": 403,
+            "prompt": "023"
+          },
+          {
+            "code": "BOOTSTRAP_TOKEN",
+            "status": 409,
+            "prompt": "023"
+          },
+          {
+            "code": "PAIRING_CODE_INVALID",
+            "status": 400,
+            "prompt": "023"
+          },
+          {
+            "code": "RATE_LIMITED",
+            "status": 429,
+            "prompt": "023"
           }
         ]
       },

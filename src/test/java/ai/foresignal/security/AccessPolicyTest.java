@@ -24,10 +24,12 @@ class AccessPolicyTest {
         return policy.requirementFor(HttpMethod.valueOf(method), path);
     }
 
+    /** Asserts the scope only; {@link #alwaysAuthenticatedRules} checks the flag (prompt 023). */
     private void assertScope(String method, String path, Scope expected) {
         assertThat(requirement(method, path))
                 .as("%s %s", method, path)
-                .isEqualTo(new AccessRequirement.RequiresScope(expected));
+                .isInstanceOfSatisfying(AccessRequirement.RequiresScope.class,
+                        r -> assertThat(r.scope()).as("%s %s", method, path).isEqualTo(expected));
     }
 
     private void assertOpen(String method, String path) {
@@ -305,5 +307,90 @@ class AccessPolicyTest {
     @DisplayName("OPTIONS on a protected path still resolves through the table")
     void optionsResolves() {
         assertThat(requirement("OPTIONS", "/v1/settings/cors")).isNotNull();
+    }
+
+    // ---------- prompt 023 ----------
+
+    @ParameterizedTest(name = "023: {0} {1} -> {2}")
+    @CsvSource({
+        "PUT, /v1/tokens/current/device, READ",
+        "POST, /v1/stream-tickets, READ",
+        "GET, /v1/tokens, ADMIN",
+        "POST, /v1/tokens, ADMIN",
+        "DELETE, /v1/tokens/9f1e, ADMIN",
+        "PUT, /v1/tokens/9f1e/device, ADMIN",
+        "GET, /v1/pairing-codes, ADMIN",
+        "POST, /v1/pairing-codes, ADMIN",
+        "DELETE, /v1/pairing-codes/9f1e, ADMIN",
+        "GET, /v1/pairing-codes/9f1e/qr.svg, ADMIN",
+        "GET, /v1/audit, ADMIN",
+        "GET, /v1/settings/security, ADMIN",
+        "PUT, /v1/settings/server, ADMIN",
+    })
+    @DisplayName("token, ticket, pairing and audit paths; the device rule precedes /v1/tokens/**")
+    void promptTwentyThreeRules(String method, String path, Scope scope) {
+        assertScope(method, path, scope);
+    }
+
+    @Test
+    @DisplayName("claiming a pairing code is open: the code is the credential")
+    void pairingClaimIsOpen() {
+        assertOpen("POST", "/v1/pairing/claim");
+        assertScope("GET", "/v1/pairing/claim", Scope.ADMIN);
+    }
+
+    @ParameterizedTest(name = "always authenticated: {0} {1}")
+    @CsvSource({
+        "POST, /v1/ask",
+        "POST, /v1/ask/stream",
+        "GET, /v1/ask/threads",
+        "GET, /v1/ask/threads/9f1e",
+        "GET, /v1/search",
+        "POST, /v1/push/subscriptions",
+        "DELETE, /v1/push/subscriptions/abc",
+        "POST, /v1/stream-tickets",
+        "PUT, /v1/tokens/current/device",
+        "POST, /v1/search/reindex",
+        "POST, /v1/briefings/preview",
+        "POST, /v1/briefings/9f1e/run",
+        "POST, /v1/llm/providers/ollama/test",
+    })
+    @DisplayName("cost-bearing operations need a token even under openReads (SEC-5)")
+    void alwaysAuthenticatedRules(String method, String path) {
+        assertThat(requirement(method, path).alwaysAuthenticated()).as("%s %s", method, path).isTrue();
+    }
+
+    @ParameterizedTest(name = "not always authenticated: {0} {1}")
+    @CsvSource({
+        "GET, /v1/records",
+        "GET, /v1/search/status",
+        "GET, /v1/changes/stream",
+        "GET, /v1/tiles/earthquake/1/2/3.mvt",
+        "GET, /v1/system",
+    })
+    void ordinaryReadsFollowOpenReads(String method, String path) {
+        assertThat(requirement(method, path).alwaysAuthenticated()).as("%s %s", method, path).isFalse();
+    }
+
+    @Test
+    @DisplayName("alwaysAuthenticated() lists exactly the flagged rules, for 025's MCP tools")
+    void alwaysAuthenticatedListing() {
+        assertThat(policy.alwaysAuthenticated())
+                .contains(new AccessPolicy.EndpointRule(HttpMethod.POST, "/v1/ask"),
+                        new AccessPolicy.EndpointRule(HttpMethod.GET, "/v1/search"),
+                        new AccessPolicy.EndpointRule(HttpMethod.POST, "/v1/stream-tickets"))
+                .doesNotContain(new AccessPolicy.EndpointRule(HttpMethod.GET, "/v1/records/**"));
+        assertThat(policy.alwaysAuthenticated()).allSatisfy(rule -> assertThat(
+                policy.requirementFor(rule.method() == null ? HttpMethod.GET : rule.method(),
+                        rule.pattern().replace("**", "x").replace("*", "x")).alwaysAuthenticated()).isTrue());
+    }
+
+    @Test
+    @DisplayName("the requirement records and their flag compare by value")
+    void requirementEquality() {
+        assertThat(new AccessRequirement.RequiresScope(Scope.READ)).isEqualTo(AccessRequirement.READ);
+        assertThat(AccessRequirement.READ_ALWAYS_AUTHENTICATED).isNotEqualTo(AccessRequirement.READ);
+        assertThat(AccessRequirement.OPEN.alwaysAuthenticated()).isFalse();
+        assertThat(AccessRequirement.INGEST_KEY_OR_ADMIN.alwaysAuthenticated()).isFalse();
     }
 }

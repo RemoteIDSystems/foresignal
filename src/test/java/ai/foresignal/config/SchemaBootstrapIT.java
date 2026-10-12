@@ -195,7 +195,12 @@ class SchemaBootstrapIT {
                         "notification",
                         "retention_state",
                         "app_setting",
-                        "system_secret");
+                        "system_secret",
+                        // 023: scoped tokens, principals, pairing codes and the audit log.
+                        "api_token",
+                        "principal",
+                        "pairing_code",
+                        "audit_event");
     }
 
     @Test

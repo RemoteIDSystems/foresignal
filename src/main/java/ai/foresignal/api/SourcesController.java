@@ -1,5 +1,9 @@
 package ai.foresignal.api;
 
+import jakarta.servlet.http.HttpServletRequest;
+import ai.foresignal.api.error.NotFoundException;
+import ai.foresignal.security.SourceVisibilityGate;
+import ai.foresignal.security.CurrentToken;
 import ai.foresignal.api.dto.CredentialsUpdate;
 import ai.foresignal.api.dto.FetchOutcomeDto;
 import ai.foresignal.api.dto.FetchPage;
@@ -96,6 +100,7 @@ public class SourcesController {
     private final UsageMeter usage;
     private final FetchLogQuery fetchLog;
     private final SourceMapper mapper;
+    private final SourceVisibilityGate visibility;
     private final Clock clock;
 
     /** Creates the controller. */
@@ -108,7 +113,9 @@ public class SourcesController {
             UsageMeter usage,
             FetchLogQuery fetchLog,
             SourceMapper mapper,
+            SourceVisibilityGate visibility,
             Clock clock) {
+        this.visibility = visibility;
         this.registry = registry;
         this.sources = sources;
         this.health = health;
@@ -123,8 +130,10 @@ public class SourcesController {
     /** {@code listSources}: every source, sorted by id. */
     @GetMapping
     @Operation(operationId = "listSources", tags = "Sources")
-    public List<SourceSummary> listSources() {
+    public List<SourceSummary> listSources(HttpServletRequest request) {
+        Optional<CurrentToken> caller = CurrentToken.of(request);
         return sources.list().stream()
+                .filter(view -> visibility.visible(view.id(), caller))
                 .sorted(Comparator.comparing(SourceView::id))
                 .map(mapper::summary)
                 .toList();
@@ -136,10 +145,13 @@ public class SourcesController {
      */
     @GetMapping("/health")
     @Operation(operationId = "listSourceHealth", tags = "Sources")
-    public List<SourceHealthDto> listSourceHealth(@RequestParam(name = "status", required = false) List<String> status) {
+    public List<SourceHealthDto> listSourceHealth(@RequestParam(name = "status", required = false) List<String> status,
+            HttpServletRequest request) {
+        Optional<CurrentToken> caller = CurrentToken.of(request);
         Set<HealthStatus> wanted = parseAll(status, "status", HealthStatus.class, HealthStatus::fromValue);
         Optional<Set<HealthStatus>> filter = wanted.isEmpty() ? Optional.empty() : Optional.of(wanted);
         return health.all(filter).stream()
+                .filter(v -> visibility.visible(v.sourceId(), caller))
                 .sorted(Comparator.comparing(v -> v.sourceId()))
                 .map(HealthMapper::health)
                 .toList();
@@ -148,7 +160,8 @@ public class SourcesController {
     /** {@code getSource}: descriptor, settings and health; 404 for an unknown id. */
     @GetMapping("/{sourceId}")
     @Operation(operationId = "getSource", tags = "Sources")
-    public SourceDetail getSource(@PathVariable String sourceId) {
+    public SourceDetail getSource(@PathVariable String sourceId, HttpServletRequest request) {
+        requireVisible(sourceId, request);
         return detail(sourceId);
     }
 
@@ -209,7 +222,8 @@ public class SourcesController {
     /** {@code getSourceHealth}: health of one source. */
     @GetMapping("/{sourceId}/health")
     @Operation(operationId = "getSourceHealth", tags = "Sources")
-    public SourceHealthDto getSourceHealth(@PathVariable String sourceId) {
+    public SourceHealthDto getSourceHealth(@PathVariable String sourceId, HttpServletRequest request) {
+        requireVisible(sourceId, request);
         return HealthMapper.health(health.health(sourceId));
     }
 
@@ -224,8 +238,10 @@ public class SourcesController {
             @PathVariable String sourceId,
             @RequestParam(name = "from", required = false) String from,
             @RequestParam(name = "to", required = false) String to,
-            @RequestParam(name = "resolution", required = false) String resolution) {
+            @RequestParam(name = "resolution", required = false) String resolution,
+            HttpServletRequest request) {
         registry.descriptor(sourceId);
+        requireVisible(sourceId, request);
         Instant now = clock.instant();
         Instant end = to == null ? now : parseInstant("to", to);
         Instant start = from == null ? end.minus(DEFAULT_USAGE_RANGE) : parseInstant("from", from);
@@ -267,6 +283,16 @@ public class SourcesController {
     }
 
     // ---------- helpers ----------
+
+    /**
+     * 404 for a private source the caller may not see, exactly as for an unknown one
+     * ({@link SourceVisibilityGate}, prompt 023).
+     */
+    private void requireVisible(String sourceId, HttpServletRequest request) {
+        if (!visibility.visible(sourceId, CurrentToken.of(request))) {
+            throw NotFoundException.of("Source", sourceId);
+        }
+    }
 
     private SourceDetail detail(String sourceId) {
         SourceView view = sources.view(sourceId);

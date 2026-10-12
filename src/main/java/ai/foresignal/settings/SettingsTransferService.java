@@ -37,13 +37,14 @@ import tools.jackson.databind.node.ObjectNode;
  * <p><strong>Export</strong> carries source settings (never credentials), retention (with
  * {@code kinds} and the per-source view), CORS, notification settings, the watchdog, every trigger
  * rule (with its id) and every channel without its secrets, plus {@code exportedAt} and
- * {@code foresignalVersion}. Prompt 023 adds {@code security} and {@code server}.
+ * {@code foresignalVersion}, and (prompt 023) {@code security} and {@code server}. Tokens, tickets
+ * and pairing codes are never exported.
  *
  * <p><strong>Import</strong> runs in one transaction. Known sources are applied and unknown ones
  * listed in {@code sourcesUnknown}; enabling a source whose required credentials are missing is
  * applied as {@code enabled=false} with a warning. Triggers and channels are upserted by id (a
- * channel without secrets keeps the ones it has). Retention, CORS, notifications and the watchdog
- * are applied when present. Any validation error is a 400 listing every error, and nothing is
+ * channel without secrets keeps the ones it has). Retention, CORS, notifications, the watchdog,
+ * security and server are applied when present. Any validation error is a 400 listing every error, and nothing is
  * applied (the transaction rolls back).
  */
 @Service
@@ -51,7 +52,7 @@ public class SettingsTransferService {
 
     /** Sections handled by this version. */
     static final Set<String> HANDLED = Set.of("exportedAt", "foresignalVersion", "sources", "retention", "cors",
-            "notifications", "watchdog", "triggers", "channels");
+            "notifications", "watchdog", "triggers", "channels", "security", "server");
 
     /** Channel members that are output only, dropped before a channel is upserted. */
     static final Set<String> CHANNEL_OUTPUT_ONLY = Set.of("id", "secretFields", "createdAt", "updatedAt",
@@ -69,6 +70,8 @@ public class SettingsTransferService {
     private final ChannelService channels;
     private final ChannelMapper channelMapper;
     private final ForesignalVersion version;
+    private final SecuritySettingsService security;
+    private final ServerSettingsService server;
     private final JsonMapper json;
     private final Clock clock;
 
@@ -76,8 +79,10 @@ public class SettingsTransferService {
     public SettingsTransferService(SourceRegistry registry, SourceService sources, SourceMapper sourceMapper,
             RetentionSettingsService retention, CorsSettingsService cors, NotificationSettingsService notifications,
             WatchdogSettingsService watchdog, TriggerRuleService triggers, TriggerMapper triggerMapper,
-            ChannelService channels, ChannelMapper channelMapper, ForesignalVersion version, JsonMapper json,
-            Clock clock) {
+            ChannelService channels, ChannelMapper channelMapper, ForesignalVersion version,
+            SecuritySettingsService security, ServerSettingsService server, JsonMapper json, Clock clock) {
+        this.security = security;
+        this.server = server;
         this.registry = registry;
         this.sources = sources;
         this.sourceMapper = sourceMapper;
@@ -121,6 +126,8 @@ public class SettingsTransferService {
         out.put("cors", cors.get());
         out.put("notifications", NotificationSettingsService.body(notifications.get()));
         out.put("watchdog", watchdog.get());
+        out.put("security", security.get());
+        out.put("server", server.get());
         out.put("triggers", triggers.list(null, null).stream().map(triggerMapper::rule).toList());
         List<Map<String, Object>> channelList = new ArrayList<>();
         for (ChannelService.View view : channels.list()) {
@@ -235,6 +242,27 @@ public class SettingsTransferService {
                 watchdog.put(WatchdogSettingsService.parse(watchdogNode));
             } catch (RuntimeException e) {
                 errors.add("watchdog", e);
+            }
+        }
+        JsonNode securityNode = present(bundle, "security");
+        if (securityNode != null) {
+            try {
+                security.apply(SecuritySettingsService.parse(securityNode));
+            } catch (RuntimeException e) {
+                errors.add("security", e);
+            }
+        }
+        JsonNode serverNode = present(bundle, "server");
+        if (serverNode != null) {
+            try {
+                JsonNode serverInput = serverNode;
+                if (serverNode.isObject() && !serverNode.has("publicBaseUrl")) {
+                    // A bundle written with nulls left out still means "no public base URL".
+                    serverInput = ((ObjectNode) serverNode).deepCopy().putNull("publicBaseUrl");
+                }
+                server.apply(ServerSettingsService.parse(serverInput));
+            } catch (RuntimeException e) {
+                errors.add("server", e);
             }
         }
         JsonNode triggersNode = present(bundle, "triggers");

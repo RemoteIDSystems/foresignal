@@ -28,8 +28,10 @@ in a password manager. Send it as `Authorization: Bearer fsr_…`.
 
 Data reads (`GET` of records, changes, tiles and alerts, and the streams) need no token while the
 `security` setting's `openReads` is on, which is the default on a trusted network. Every write, the
-fetch log and `/v1/system`'s full document need the token. Scoped read and agent tokens arrive in
-prompt 023.
+fetch log and `/v1/system`'s full document need a token. The admin token is the `api_token` row
+named `bootstrap`; give agents, dashboards and phones their own scoped tokens instead (see
+[Tokens, pairing and the audit log](#tokens-pairing-and-the-audit-log)). An install upgraded from
+before prompt 023 keeps its admin token: it moves into that row on the first start.
 
 ## Sources
 
@@ -369,6 +371,10 @@ changes, alerts and other topics on one connection, and its filter can be change
   that seq; take a new snapshot. Routine version deletes never cause it.
 - A `heartbeat` arrives every 15 s; a proxy must not buffer the stream (see the Caddy example).
 
+**Browsers and map loaders without an `Authorization` header** use a ticket instead of putting a
+token in the URL: `POST /v1/stream-tickets` (any token, `read` or higher) and append
+`?ticket=fst_…` to the stream or tile URL. See [Tickets for browser clients](#tickets-for-browser-clients).
+
 **Tiles.** `GET /v1/tiles/{kind}/{z}/{x}/{y}.mvt` serves Mapbox Vector Tiles of current state for one
 kind (for example `/v1/tiles/earthquake/3/1/3.mvt`), with `agg=grid` or `agg=hex` for aggregates.
 `GET /v1/tiles.json` and `/v1/tiles/{kind}.json` are TileJSON for MapLibre.
@@ -379,6 +385,109 @@ response echoes `asOf` and reports `horizon`, the earliest time the involved sou
 supports; earlier times are `400 ASOF_BEYOND_RETENTION`. `asOfSeq` pins the same thing by seq, and
 `GET /v1/records/{source}/{id}/versions` lists every stored version.
 
+## Tokens, pairing and the audit log
+
+### Tokens and scopes
+
+Every caller authenticates with `Authorization: Bearer fsr_…`. Scopes, least to most privileged:
+
+| Scope | Can |
+|---|---|
+| `read` | Every data read (needed only when `openReads` is off), stream and tile tickets, its own device report; later Ask, search and Web Push |
+| `agent` | `read` plus managing triggers and briefings and the alert lifecycle; sees private sources |
+| `admin` | Everything: sources, credentials, channels, LLM providers, tokens, pairing codes, settings, the audit log |
+
+- **Create:** `POST /v1/tokens {"name": "openclaw", "scope": "agent", "expiresAt": null}` answers
+  `201` with `token` once; only its SHA-256 and its first eight characters (`tokenPrefix`) are
+  stored. Every token belongs to a principal: name an existing one with `principalId` (id or
+  handle), or a new one named after the token is created.
+- **List:** `GET /v1/tokens` shows names, scopes, prefixes, `lastUsedAt` (updated at most once a
+  minute), expiry, revocation, device and restrictions, never values.
+- **Revoke:** `DELETE /v1/tokens/{id}`. The token stops working at once, its tickets are dropped and
+  its open streams close. The `bootstrap` token cannot be revoked (`409 BOOTSTRAP_TOKEN`); rotate it
+  with `POST /v1/system/admin-token/rotate`.
+- **Errors:** a missing or invalid token is `401`; a token whose scope is too low is
+  `403 INSUFFICIENT_SCOPE` with `requiredScope`.
+- **Always authenticated:** ticket minting, the device report and, from their prompts, Ask, search
+  and Web Push need a token even while `openReads` is on, because they cost money or send messages.
+
+### Restricted tokens
+
+`restrictions` narrows a token further:
+
+```json
+POST /v1/tokens
+{"name": "kitchen-dashboard", "scope": "read",
+ "restrictions": {"endpoints": ["GET /v1/records/**", "GET /v1/tiles/**", "GET /v1/tiles.json"]}}
+```
+
+- `endpoints` (`METHOD /v1/path/pattern`, Ant style, method may be `*`) is enforced now: any other
+  request is `403 ENDPOINT_NOT_ALLOWED`. Each pattern must match an operation the scope can reach.
+- `sources`, `kinds` and `bbox` are enforced on every read path from prompt 035. Until then a token
+  carrying them is refused on data reads with `403 RESTRICTION_NOT_ENFORCED` rather than served
+  unfiltered. Other members (`area`, `placeIds`, `federation`, …) are refused until their prompts.
+
+### Pairing a phone
+
+A phone gets its own `read` or `agent` token without ever seeing the admin token:
+
+1. `POST /v1/pairing-codes {"name": "Pixel", "scope": "read", "ttl": "10m"}` returns `code`
+   (`XXXX-XXXX`, single use, at most 1 h) and `qrPayload`
+   (`foresignal://pair?u=<publicBaseUrl>&c=<code>`).
+2. Show `GET /v1/pairing-codes/{id}/qr.svg` and scan it with the app, or type the code.
+3. The app calls `POST /v1/pairing/claim {"code": "…", "device": {"deviceName": "Pixel", "platform": "android"}}`
+   and receives its token once.
+
+`admin` is never pairable. Codes are stored hashed and claims are limited to 5 per minute per client
+IP and 50 per hour overall (`429 RATE_LIMITED`); every claim is audited. `GET /v1/pairing-codes`
+lists open codes (never their values) and `DELETE` withdraws one. The QR image is held in memory, so
+after a restart create a new code. Apps report their device later with
+`PUT /v1/tokens/current/device`.
+
+### Tickets for browser clients
+
+`EventSource` and map tile loaders cannot send headers, and tokens never belong in URLs. Mint a
+ticket with the token instead:
+
+- `POST /v1/stream-tickets {"purpose": "stream"}` → `{"ticket": "fst_…", "expiresAt": …}`. Use it as
+  `?ticket=` on `/v1/changes/stream`, `/v1/alerts/stream` or `/v1/events/stream`. The first connect
+  must come within 60 s; `EventSource` reconnects with the same URL keep working up to 5 minutes
+  after a disconnect and 24 h in total, one stream at a time (`429 STREAM_LIMIT` for a second).
+- `{"purpose": "tiles", "ttl": "10m"}` gives a ticket for `/v1/tiles/**` and TileJSON, reusable for
+  any number of requests until it expires (at most 1 h).
+
+A ticket carries its token's scope and restrictions, never more; it is refused in the
+`Authorization` header and on other paths, is stripped before logging, and is held in memory: after
+a restart or a `401`, mint a new one.
+
+### Trusted proxies
+
+Behind Tailscale Serve or Caddy, Foresignal sees the proxy's address. Tomcat honours
+`X-Forwarded-For` and `X-Forwarded-Proto` only from addresses matching `FORESIGNAL_TRUSTED_PROXIES`
+(a regular expression, or a comma-separated CIDR list). The default trusts loopback only
+(`127\.0\.0\.1|0:0:0:0:0:0:0:1|::1`), which is right for a proxy on the host
+(`tailscale serve --bg 8080`, Caddy on the host). A proxy in another container reaches Foresignal
+from the Docker network, so trust that network, for example
+`FORESIGNAL_TRUSTED_PROXIES='172\.(1[6-9]|2[0-9]|3[01])\.\d{1,3}\.\d{1,3}'` for the compose
+`tailscale` profile. Never trust addresses a client can reach directly: a client could then forge its
+IP. The resolved client IP is what the audit log and the pairing limits use.
+
+### Deep links (`clientLinks`)
+
+`PUT /v1/settings/server` also sets `timezone` and `clientLinks`, the templates apps and
+notifications use: `alert` (`foresignal://alerts/{id}`), `record`, `briefingRun` and `pair`. Templates
+must use `foresignal://` or an `https://` link you have verified for the app. Once you set
+`clientLinks`, alert notifications carry an "Open in app" link next to "Open alert".
+
+### The audit log
+
+`GET /v1/audit` (admin) lists, newest first: every authenticated write with its token, scope,
+operation, status, target and client IP; every `401`/`403` on a write path; pairing claims; token
+revocations. Filter with `since`, `until`, `tokenId`, `operationId` and `status`, and page with
+`cursor` and `limit` (up to 500). Entries never contain secrets, token values or request bodies.
+They are kept for `retention.audit` (default 90 days). Writing the log never slows a request: under
+extreme load entries are dropped and counted (`foresignal.audit.dropped`).
+
 ## Retention
 
 `GET /v1/settings/retention` shows every window; `PUT` replaces the whole object (every window at
@@ -388,7 +497,7 @@ also runs hourly, starting 5 minutes after boot.
 ```json
 PUT /v1/settings/retention
 {"default": "7d", "trackWindow": "3d", "provenance": "30d", "alerts": "90d", "usage": "30d",
- "notifications": "90d", "kinds": {"earthquake": "3650d"}, "sources": {"usgs-earthquakes": "1825d"}}
+ "notifications": "90d", "audit": "90d", "kinds": {"earthquake": "3650d"}, "sources": {"usgs-earthquakes": "1825d"}}
 ```
 
 **Which window applies.** A TRACK source always uses `trackWindow`. A STANDARD record's window is the
@@ -415,6 +524,7 @@ A `sources` entry for a TRACK source, or a `kinds` entry for a kind only TRACK s
 | Provenance | `fetch_log` rows that wrote nothing after 7 days, the others after `provenance` |
 | `seq_clock` | Minutes older than the largest window plus a day |
 | Other | Resolved or suppressed alerts after `alerts` (open alerts stay), usage minutes after `usage`, delivered or failed deliveries after 7 days, notifications after `notifications` |
+| Audit | Audit log entries after `audit` (default 90 days) |
 
 **Current state is kept while it is current** (FR-17 as amended). Versions follow the window, but a
 record that is still being observed keeps a version newer than a quarter of its window, so it never
@@ -467,8 +577,9 @@ in tiles.
 ### `/v1/system`
 
 Anonymous callers get `version`, `apiVersion`, `startedAt`, `uptimeSeconds`, `status`
-(`ok`, `degraded` or `down`), `features` and `limits`. Any valid token adds the database, records,
-sources, scheduler, writer, streams, notifications, history per tier, catch-up and `warnings`:
+(`ok`, `degraded` or `down`), `features` and `limits`. A token of at least the `read` scope adds the
+database, records, sources, scheduler, writer, streams, notifications, history per tier, catch-up
+and `warnings`:
 
 | Warning | Meaning |
 |---|---|
@@ -477,6 +588,8 @@ sources, scheduler, writer, streams, notifications, history per tier, catch-up a
 | `HISTORY_RATE_HIGH` | More than 20,000 versions per minute |
 | `PARTITION_HEADROOM_LOW` | A tier has less than one partition block attached ahead |
 | `RETENTION_CONSUMER_LAG` | The last retention run stopped waiting for a lagging consumer |
+| `PUBLIC_BASE_URL_INSECURE` | `publicBaseUrl` is `http://` on a host that is not loopback, private, 100.64/10 or `.local` |
+| `PUBLIC_BASE_URL_MISMATCH` | Requests arrive over HTTPS but `publicBaseUrl` is still `http://` |
 
 Compose passes `FORESIGNAL_BIND` into the container so the warning knows the published bind.
 
@@ -490,7 +603,8 @@ Compose passes `FORESIGNAL_BIND` into the container so the warning knows the pub
 ### Settings export and import
 
 `GET /v1/settings/export` returns every setting (sources without credentials, retention, CORS,
-notifications, the watchdog, trigger rules with their ids, channels without secrets).
+notifications, the watchdog, `security`, `server`, trigger rules with their ids, channels without
+secrets). Tokens, tickets and pairing codes are never exported.
 `PUT /v1/settings/import` applies such a bundle atomically: unknown sources are listed, a source
 that needs credentials you have not stored is imported disabled with a warning, rules and channels
 are upserted by id (channels keep their stored secrets), and any error rejects the whole bundle.
@@ -528,13 +642,15 @@ install is reachable only from the host itself.
 
 **Alternative: Caddy.** `docker/caddy/Caddyfile.example` reverse-proxies with automatic HTTPS (a
 public name pointing at the host, ports 80 and 443 open) or `tls internal` for a LAN-only name. It
-sets `flush_interval -1`, which SSE needs. Forwarded headers are trusted only once prompt 023's
-trusted-proxy setting names the proxy. Prompt 050 adds a Caddy compose profile.
+sets `flush_interval -1`, which SSE needs. Foresignal trusts its forwarded headers only when
+`FORESIGNAL_TRUSTED_PROXIES` matches the proxy's address (see [Trusted proxies](#trusted-proxies)).
+Prompt 050 adds a Caddy compose profile.
 
 Whichever you use:
 
-- set the `server` setting's `publicBaseUrl` to the HTTPS name, so notification links work from a
-  phone (`PUT /v1/settings/server` arrives in prompt 023);
+- set the `server` setting's `publicBaseUrl` to the HTTPS name with `PUT /v1/settings/server`, so
+  notification links and pairing QR codes work from a phone (an `http://` URL on a public host
+  answers with `PUBLIC_BASE_URL_INSECURE`);
 - **never expose port 5433**;
 - plain HTTP port forwarding from the internet is **unsupported**: the token would cross the network
   in clear text.

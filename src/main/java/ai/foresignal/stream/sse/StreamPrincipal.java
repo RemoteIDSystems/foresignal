@@ -2,6 +2,7 @@ package ai.foresignal.stream.sse;
 
 import ai.foresignal.security.Scope;
 import java.util.Objects;
+import java.util.UUID;
 
 /**
  * Who opened a stream, resolved once at connect by a {@link StreamPrincipalResolver}.
@@ -10,8 +11,8 @@ import java.util.Objects;
  * never on a raw token, so prompt 023's reconnect-aware stream tickets can resolve to the same
  * principal as the token that issued them.
  *
- * @param id the stable principal id: {@code token:<hash prefix>} for a token, {@code anon:<address>}
- *     for an anonymous caller
+ * @param id the stable principal id: {@code token:<token id>} for a token (a ticket resolves to its
+ *     parent token, prompt 023), {@code anon:<address>} for an anonymous caller
  * @param scope the token's scope, or null for an anonymous caller
  * @param remoteAddress the caller's remote address
  */
@@ -26,6 +27,16 @@ public record StreamPrincipal(String id, Scope scope, String remoteAddress) {
     public static StreamPrincipal anonymous(String remoteAddress) {
         String address = remoteAddress == null ? "unknown" : remoteAddress;
         return new StreamPrincipal("anon:" + address, null, address);
+    }
+
+    /** The principal of token {@code tokenId} with {@code scope}, connecting from {@code remoteAddress}. */
+    public static StreamPrincipal forToken(UUID tokenId, Scope scope, String remoteAddress) {
+        return new StreamPrincipal(tokenId(tokenId), Objects.requireNonNull(scope, "scope"), remoteAddress);
+    }
+
+    /** The principal id of token {@code tokenId}. */
+    public static String tokenId(UUID tokenId) {
+        return "token:" + tokenId;
     }
 
     /** True when no token was presented. */

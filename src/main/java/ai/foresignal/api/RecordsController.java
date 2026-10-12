@@ -178,7 +178,7 @@ public class RecordsController {
         ReadCaller caller = callers.resolve(request);
         Set<String> excluded = callers.excludedSources(caller);
         ResponseFormat fmt = ResponseFormat.negotiate(format, accept, LIST_FORMATS);
-        List<String> sources = knownSources(QueryParams.multi("source", source));
+        List<String> sources = knownSources(QueryParams.multi("source", source), excluded);
         List<String> kinds = QueryParams.multi("kind", kind);
         List<String> ids = QueryParams.multi("externalId", externalId);
         BboxFilter box = BboxParser.parse(bbox);
@@ -385,7 +385,7 @@ public class RecordsController {
         FieldSelection selection = FieldSelector.parse(fields);
         Set<String> includes = QueryParams.enumSet("include", include, List.of("observer"));
         HistoryQuery query = new HistoryQuery(
-                knownSources(QueryParams.multi("source", source)),
+                knownSources(QueryParams.multi("source", source), callers.excludedSources(caller)),
                 QueryParams.multi("kind", kind),
                 QueryParams.multi("externalId", externalId),
                 BboxParser.parse(bbox),
@@ -532,9 +532,16 @@ public class RecordsController {
     }
 
     /** {@code 404} for a source filter naming no registered source. */
-    private List<String> knownSources(List<String> sources) {
+    /**
+     * {@code sources}, each of which must be registered and visible to the caller: a private source
+     * named by a caller who may not see it is {@code 404}, like an unknown one (prompt 023).
+     */
+    private List<String> knownSources(List<String> sources, Set<String> excluded) {
         for (String id : sources) {
             registry.descriptor(id);
+            if (excluded.contains(id)) {
+                throw NotFoundException.of("Source", id);
+            }
         }
         return sources;
     }

@@ -1,5 +1,7 @@
 package ai.foresignal.stream.sse;
 
+import ai.foresignal.security.SourceVisibilityGate;
+import ai.foresignal.security.TokenRestrictions;
 import ai.foresignal.api.error.ValidationException;
 import ai.foresignal.notify.NotificationBus;
 import ai.foresignal.notify.NotificationJson;
@@ -67,16 +69,8 @@ abstract class AbstractNotificationTopic implements EventTopic<NotificationFilte
     }
 
     private Set<String> excludedSources(StreamPrincipal principal) {
-        if (!principal.anonymous()) {
-            return Set.of();
-        }
-        Set<String> excluded = new TreeSet<>();
-        for (SourceDescriptor descriptor : registry.descriptors()) {
-            if (descriptor.privateSource()) {
-                excluded.add(descriptor.id());
-            }
-        }
-        return excluded;
+        // Private sources: agent and admin tokens only (SourceVisibilityGate, prompt 023).
+        return SourceVisibilityGate.excludedSources(registry, principal.scope(), TokenRestrictions.NONE);
     }
 
     @Override

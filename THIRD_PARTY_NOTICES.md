@@ -62,3 +62,18 @@ No files have been ported yet. Later prompts add a row per ported file.
 
 | Foresignal file | GEV origin file |
 |---|---|
+
+---
+
+## Libraries
+
+Foresignal depends on libraries through Gradle; they are not copied into the source tree. This
+section lists dependencies a prompt asked to record here.
+
+### ZXing core
+
+- **Artifact:** `com.google.zxing:core` 3.5.4 (Maven Central), used unmodified.
+- **Use:** renders the SVG QR codes of device-pairing payloads
+  (`GET /v1/pairing-codes/{id}/qr.svg`, prompt 023). The tests use its QR reader to decode them.
+- **Licence:** Apache License, Version 2.0 (<https://www.apache.org/licenses/LICENSE-2.0>).
+- **Project:** <https://github.com/zxing/zxing>, Copyright the ZXing authors.

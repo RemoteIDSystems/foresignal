@@ -5,9 +5,10 @@
 # a public certificate automatically when the name resolves to this host and
 # ports 80 and 443 reach it.
 #
-# Forwarded headers (X-Forwarded-For, X-Forwarded-Proto) are only trusted by
-# Foresignal once prompt 023's trusted-proxy setting names this proxy. Until
-# then Foresignal sees every request as coming from the proxy's address.
+# Foresignal trusts forwarded headers (X-Forwarded-For, X-Forwarded-Proto) only
+# from addresses matching FORESIGNAL_TRUSTED_PROXIES (prompt 023; default loopback). Caddy on
+# the same host connects over loopback, so the default fits; a Caddy container
+# needs its Docker network trusted (see the Operator Guide, "Trusted proxies").
 #
 # Set the server setting publicBaseUrl to https://foresignal.example.com so
 # notification links point at the HTTPS name. Never publish port 5433.

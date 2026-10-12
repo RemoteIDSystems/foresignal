@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "79671620-982c-5d2e-874b-01ab26ee8e6e",
     "name": "Foresignal API",
-    "description": "All configuration is done through this API. The MCP server (streamable HTTP) is at `/mcp` and is not described here; it exposes the same data as tools. Reads of data are open on the local network; all writes and settings reads require the admin bearer token printed on first start. Errors are RFC 9457 problem+json. Timestamps are ISO-8601 UTC. `/v1` is additive-only once released.\n\n**Key-in-path carriers.** Header-less clients use keys in the path: feed keys (`fsf_`, 035) as `/v1/k/{key}/<any allowed GET/HEAD path>`, tile keys (`fsk_`, 050) as `/v1/k/{key}/products/...` and `/v1/k/{key}/tiles/...`, share links (`fss_`, 112) as `/v1/k/{key}`. These are transports for the documented operations, not separate operations. Device ingest URLs (039) and signed action links (033) use their own documented paths.\n\n**Status annotations.** Every operation has `x-foresignal-prompt` (the build prompt that implements it), optional `x-foresignal-extended-by`, and `x-foresignal-status` (`planned` until implemented). Clients can mock the whole API from this document and filter by status.\n\n**Outside this document:** the MCP server (`/mcp`, plus the legacy SSE transport when enabled), Actuator endpoints (`/actuator/**`), and sink listeners on their own ports (110).\n\nGenerated from docs/OpenAPI.json (v1.3.0). Every operation is included, grouped by tag. Admin operations use Bearer `{{adminToken}}`, agent operations `{{agentToken}}` (defaults to the admin token; set it to an agent-scope token to test scopes), ingest uses `X-Foresignal-Ingest-Key: {{ingestKey}}`, and reads use no auth (open while openReads is on). Test scripts capture ids into collection variables (ruleId, channelId, alertId, briefingId, threadId, ingestKey, externalId, lastSeq, cursor\u2026).",
+    "description": "All configuration is done through this API. The MCP server (streamable HTTP) is at `/mcp` and is not described here; it exposes the same data as tools. Reads of data are open on the local network; all writes and settings reads require the admin bearer token printed on first start. Errors are RFC 9457 problem+json. Timestamps are ISO-8601 UTC. `/v1` is additive-only once released.\n\n**Key-in-path carriers.** Header-less clients use keys in the path: feed keys (`fsf_`, 035) as `/v1/k/{key}/<any allowed GET/HEAD path>`, tile keys (`fsk_`, 050) as `/v1/k/{key}/products/...` and `/v1/k/{key}/tiles/...`, share links (`fss_`, 112) as `/v1/k/{key}`. These are transports for the documented operations, not separate operations. Device ingest URLs (039) and signed action links (033) use their own documented paths.\n\n**Status annotations.** Every operation has `x-foresignal-prompt` (the build prompt that implements it), optional `x-foresignal-extended-by`, and `x-foresignal-status` (`planned` until implemented). Clients can mock the whole API from this document and filter by status.\n\n**Outside this document:** the MCP server (`/mcp`, plus the legacy SSE transport when enabled), Actuator endpoints (`/actuator/**`), and sink listeners on their own ports (110).\n\nGenerated from docs/OpenAPI.json (v1.3.0). Every operation is included, grouped by tag. Admin operations use Bearer `{{adminToken}}`, agent operations `{{agentToken}}` (defaults to the admin token; set it to an agent-scope token to test scopes), always-authenticated read operations `{{readToken}}` (defaults to the admin token; claiming a pairing code stores a read token there), ingest uses `X-Foresignal-Ingest-Key: {{ingestKey}}`, and other reads use no auth (open while openReads is on). Test scripts capture ids into collection variables (ruleId, channelId, alertId, briefingId, threadId, ingestKey, externalId, lastSeq, cursor\u2026).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -42,7 +42,7 @@
               ],
               "query": []
             },
-            "description": "Anonymous callers get only version, apiVersion, startedAt, uptimeSeconds, status, features and limits; callers presenting any valid token get the full document (database, records, sources, scheduler, ingestWriter, streams, notifications, history per tier, catchUp and warnings).\n\n**Scope:** `open` (no token; a valid token returns the full document).\n\noperationId: `getSystem`",
+            "description": "Anonymous callers get only version, apiVersion, startedAt, uptimeSeconds, status, features and limits; callers presenting a valid token of at least the `read` scope get the full document (023; every valid token has at least `read`) (database, records, sources, scheduler, ingestWriter, streams, notifications, history per tier, catchUp and warnings, which include PUBLIC_BASE_URL_INSECURE and PUBLIC_BASE_URL_MISMATCH from 023).\n\n**Scope:** `open` (no token; a valid token returns the full document).\n\noperationId: `getSystem`",
             "auth": {
               "type": "noauth"
             }
@@ -1532,7 +1532,14 @@
             },
             "description": "Answers from Foresignal's data with the chat provider and the read tool catalogue (tools mode, \u2264 12 iterations, 120 s) or, when the model lacks tools, retrieval-only mode. Every citation is verified against tool output down to the persisted seq (`[source:externalId@seq]`); dropped citations and uncited claims are returned in `warnings`. Write actions are only proposed unless `allowActions` is true and the token has agent scope. A model refusal is answered (200) with a warning. Errors: 409 LLM_NOT_CONFIGURED, 429 LLM_BUDGET_EXCEEDED.\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).\n\noperationId: `ask`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             },
             "body": {
               "mode": "raw",
@@ -1700,7 +1707,14 @@
             },
             "description": "`text` ranks `websearch_to_tsquery` matches (plus `record_head.search_text` matches for records without documents) and always works; `semantic` embeds `q` with the active model (budgeted) and orders by cosine distance; `hybrid` (default) fuses both with reciprocal rank fusion (k = 60) and degrades to text with `degraded=true` when semantic search is unavailable (`semantic` then \u2192 409 SEMANTIC_UNAVAILABLE). Time filters apply to the effective time by default. Record hits carry the persisted `seq`. Private sources are excluded unless the caller may see them; results are clamped to the caller's restriction (035).\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).\n\noperationId: `search`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         }
@@ -1962,7 +1976,14 @@
             },
             "description": "Server-Sent Events: `progress` (tool activity), `delta` (unverified answer text), `citation`, `warning`, `action`, `done` (the full verified AskResponse, identical to the persisted message), `error`. Heartbeats and per-token stream limits as in 015.\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).\n\noperationId: `askStream`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             },
             "body": {
               "mode": "raw",
@@ -6920,7 +6941,14 @@
             },
             "description": "Answers from Foresignal's data with the chat provider and the read tool catalogue (tools mode, \u2264 12 iterations, 120 s) or, when the model lacks tools, retrieval-only mode. Every citation is verified against tool output down to the persisted seq (`[source:externalId@seq]`); dropped citations and uncited claims are returned in `warnings`. Write actions are only proposed unless `allowActions` is true and the token has agent scope. A model refusal is answered (200) with a warning. Errors: 409 LLM_NOT_CONFIGURED, 429 LLM_BUDGET_EXCEEDED.\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).\n\noperationId: `ask`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             },
             "body": {
               "mode": "raw",
@@ -6975,7 +7003,14 @@
             },
             "description": "Server-Sent Events: `progress` (tool activity), `delta` (unverified answer text), `citation`, `warning`, `action`, `done` (the full verified AskResponse, identical to the persisted message), `error`. Heartbeats and per-token stream limits as in 015.\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).\n\noperationId: `askStream`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             },
             "body": {
               "mode": "raw",
@@ -7036,7 +7071,14 @@
             },
             "description": "List Ask threads\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `listAskThreads`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -7076,7 +7118,14 @@
             },
             "description": "Get an Ask thread with messages\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getAskThread`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -10860,7 +10909,14 @@
             },
             "description": "Chronicles the caller owns or that are shared with them (access lists and TLP, 130).\n\n**Scope:** `read`.\n\noperationId: `listChronicles`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -11016,7 +11072,14 @@
             },
             "description": "Returns a chronicle with its layers. Unshared chronicles are invisible (404).\n\n**Scope:** `read`.\n\noperationId: `getChronicle`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -11635,7 +11698,14 @@
             },
             "description": "Projected rows and bytes per day for the current layers, against the size cap.\n\n**Scope:** `read`.\n\noperationId: `getChronicleEstimate`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -11760,7 +11830,14 @@
             },
             "description": "Chronological feed of notable items (alerts, findings, situation changes, hypothesis band changes, forecast resolutions, first appearances, layer edits, capture gaps), each with its envelope, plus the caller's unread count. Live updates: SSE topic `chronicle`.\n\n**Scope:** `read`.\n\noperationId: `getChronicleThread`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -11801,7 +11878,14 @@
             },
             "description": "Moves the caller's read cursor on the chronicle thread (033 pattern).\n\n**Scope:** `read`.\n\noperationId: `markChronicleThreadRead`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             },
             "body": {
               "mode": "raw",
@@ -11881,7 +11965,14 @@
             },
             "description": "State of every layer at `at` from chronicle storage only (no look-ahead), paged by layer.\n\n**Scope:** `read`.\n\noperationId: `getChronicleState`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -11937,7 +12028,14 @@
             },
             "description": "Mapbox Vector Tile at `at` over chronicle storage (016 machinery), so a globe replays without touching global history.\n\n**Scope:** `read`.\n\noperationId: `getChronicleTile`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -12002,7 +12100,14 @@
             },
             "description": "Counts and changed entities per step over chronicle storage.\n\n**Scope:** `read`.\n\noperationId: `getChronicleFrames`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -12063,7 +12168,14 @@
             },
             "description": "An entity's track from captured versions only (037 track shape).\n\n**Scope:** `read`.\n\noperationId: `getChronicleTrack`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -12122,7 +12234,14 @@
             },
             "description": "Captured series points and rollups for a series ref.\n\n**Scope:** `read`.\n\noperationId: `getChronicleSeries`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -12162,7 +12281,14 @@
             },
             "description": "Layer counts over time, top entities, situations, hypothesis sets, forecasts, storage and capture gaps.\n\n**Scope:** `read`.\n\noperationId: `getChronicleSummary`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -12227,7 +12353,14 @@
             },
             "description": "Links of this chronicle at the disclosure level the caller is allowed: full (both visible) or opaque (strength band, dimensions, time overlap; title and owner only if revealed).\n\n**Scope:** `read`.\n\noperationId: `listRelatedChronicles`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -12323,7 +12456,14 @@
             },
             "description": "Dismisses a link (owner of either side).\n\n**Scope:** `read`.\n\noperationId: `dismissChronicleLink`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -12368,7 +12508,14 @@
             },
             "description": "Sends the other chronicle's owner (locally, or through the peer channel) only the requester's handle, the message and an optional share offer. Limits: 10 per principal per day; repeats to a declining owner are suppressed for 30 days.\n\n**Scope:** `read`.\n\noperationId: `requestChronicleAccess`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             },
             "body": {
               "mode": "raw",
@@ -12429,7 +12576,14 @@
             },
             "description": "Clusters containing at least one chronicle the caller can see, as far as disclosure allows.\n\n**Scope:** `read`.\n\noperationId: `listChronicleClusters`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -12469,7 +12623,14 @@
             },
             "description": "A cluster with its members at the caller's disclosure level.\n\n**Scope:** `read`.\n\noperationId: `getChronicleCluster`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -12535,7 +12696,14 @@
             },
             "description": "Merges the visible members' threads, deduplicated by global evidence key; each item lists which visible chronicles hold it. Opaque members contribute nothing.\n\n**Scope:** `read`.\n\noperationId: `getChronicleClusterTimeline`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -12599,7 +12767,14 @@
             },
             "description": "Incoming and outgoing access requests of the caller.\n\n**Scope:** `read`.\n\noperationId: `listChronicleAccessRequests`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -12869,7 +13044,14 @@
             },
             "description": "Returns the principal behind the calling token, its token, effective scopes, groups and notification preferences.\n\n**Scope:** `read`.\n\noperationId: `getMe`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -12908,7 +13090,14 @@
             },
             "description": "The calling principal's notification preferences (event types, own channel, quiet hours).\n\n**Scope:** `read`.\n\noperationId: `listMyNotificationPreferences`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -12951,7 +13140,14 @@
             },
             "description": "Replaces the calling principal's notification preferences. Each preference owns a 018 channel definition (own ntfy topic, email, Matrix room, webhook\u2026); deliveries go through 018's worker. Channel URLs pass the 035 outbound URL policy (`URL_NOT_ALLOWED`).\n\n**Scope:** `read`.\n\noperationId: `replaceMyNotificationPreferences`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             },
             "body": {
               "mode": "raw",
@@ -13029,7 +13225,14 @@
             },
             "description": "Per-principal view of the 033 inbox: mentions, shares, received reports and packages, chronicle proposals and warnings, access requests, saved-search matches and assessments addressed to the caller, newest first. Reading here never acknowledges an alert.\n\n**Scope:** `read`.\n\noperationId: `listInbox`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -13092,7 +13295,14 @@
             },
             "description": "Handles, display names, kinds and avatars of enabled principals (for mentions, sharing and group pickers). Never returns emails or tokens.\n\n**Scope:** `read`.\n\noperationId: `listPrincipals`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -13189,7 +13399,14 @@
             },
             "description": "Returns the summary of a principal by id or handle; admins and the principal itself get the full `Principal`.\n\n**Scope:** `read`.\n\noperationId: `getPrincipal`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -13371,7 +13588,14 @@
             },
             "description": "Groups visible to the caller (all groups; members listed only in the detail view).\n\n**Scope:** `read`.\n\noperationId: `listGroups`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -13468,7 +13692,14 @@
             },
             "description": "Returns a group and its members.\n\n**Scope:** `read`.\n\noperationId: `getGroup`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -13722,7 +13953,14 @@
             },
             "description": "Owner, visibility, TLP and grants of a shareable object (owner or editor; admins see everything). Objects the caller cannot see are reported as not found, never forbidden.\n\n**Scope:** `read`.\n\noperationId: `getObjectAcl`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -13899,7 +14137,14 @@
             },
             "description": "Work products shared with the caller directly, through a group or with the instance, newest share first.\n\n**Scope:** `read`.\n\noperationId: `listSharedWithMe`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -13956,7 +14201,14 @@
             },
             "description": "Work products owned by the caller, most recently updated first.\n\n**Scope:** `read`.\n\noperationId: `listMyObjects`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -14019,7 +14271,14 @@
             },
             "description": "Shared tags visible to the caller plus the caller's personal tags.\n\n**Scope:** `read`.\n\noperationId: `listTags`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -14061,7 +14320,14 @@
             },
             "description": "Creates a personal or shared tag owned by the caller.\n\n**Scope:** `read`.\n\noperationId: `createTag`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             },
             "body": {
               "mode": "raw",
@@ -14109,7 +14375,14 @@
             },
             "description": "Returns a tag visible to the caller.\n\n**Scope:** `read`.\n\noperationId: `getTag`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -14152,7 +14425,14 @@
             },
             "description": "JSON merge patch (owner or editor).\n\n**Scope:** `read`.\n\noperationId: `updateTag`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             },
             "body": {
               "mode": "raw",
@@ -14195,7 +14475,14 @@
             },
             "description": "Deletes the tag and its assignments (owner only).\n\n**Scope:** `read`.\n\noperationId: `deleteTag`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -14239,7 +14526,14 @@
             },
             "description": "Assigns the tag to up to 500 object references at once. References the caller cannot see are skipped, not errors.\n\n**Scope:** `read`.\n\noperationId: `assignTag`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             },
             "body": {
               "mode": "raw",
@@ -14292,7 +14586,14 @@
             },
             "description": "Removes the tag from up to 500 object references.\n\n**Scope:** `read`.\n\noperationId: `unassignTag`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             },
             "body": {
               "mode": "raw",
@@ -14360,7 +14661,14 @@
             },
             "description": "Envelopes of the objects carrying the tag that the caller can see.\n\n**Scope:** `read`.\n\noperationId: `listTaggedObjects`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -14400,7 +14708,14 @@
             },
             "description": "The caller's visible tags on an object (personal and shared).\n\n**Scope:** `read`.\n\noperationId: `listObjectTags`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -14444,7 +14759,14 @@
             },
             "description": "Adds a reply under a root annotation. `@handle` mentions notify only principals who can see the target; others are dropped and listed in the reply's `droppedMentions` (a warning to the author).\n\n**Scope:** `read`.\n\noperationId: `replyToAnnotation`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             },
             "body": {
               "mode": "raw",
@@ -14497,7 +14819,14 @@
             },
             "description": "Marks a comment thread resolved (or reopens it with `resolved=false`). Commenters, editors and owners of the target may resolve.\n\n**Scope:** `read`.\n\noperationId: `resolveAnnotation`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             },
             "body": {
               "mode": "raw",
@@ -14548,7 +14877,14 @@
             },
             "description": "Multipart upload (\u2264 `collab.maxUploadMb`, default 50). Allowed: images (through 043 ImageGuard; EXIF stripped unless `collab.keepExif`), PDF, plain text, CSV, JSON, GeoJSON, KML, Markdown. Stored content-addressed (dedup by sha256); text is extracted for search. Files are data, never executed.\n\n**Scope:** `read`.\n\noperationId: `uploadAttachment`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             },
             "body": {
               "mode": "raw",
@@ -14596,7 +14932,14 @@
             },
             "description": "Metadata and extracted text of an attachment visible to the caller.\n\n**Scope:** `read`.\n\noperationId: `getAttachment`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -14630,7 +14973,14 @@
             },
             "description": "Deletes the attachment row (owner only); the media bytes are removed when no other attachment references them.\n\n**Scope:** `read`.\n\noperationId: `deleteAttachment`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -14670,7 +15020,14 @@
             },
             "description": "Serves the stored bytes with `Content-Disposition: attachment` (inline only for images), the stored safe content type and `X-Content-Type-Options: nosniff`. Never rendered as active content.\n\n**Scope:** `read`.\n\noperationId: `getAttachmentContent`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -14745,7 +15102,14 @@
             },
             "description": "Evidence items visible to the caller.\n\n**Scope:** `read`.\n\noperationId: `listEvidenceItems`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -14787,7 +15151,14 @@
             },
             "description": "Creates a graded evidence item (Admiralty source reliability A\u2013F, information credibility 1\u20136), embedded (027) with its attachments' text for search. Its originator is `operator:{principal}` unless it cites a catalogued source. Inherits the strictest TLP of its attachments.\n\n**Scope:** `read`.\n\noperationId: `createEvidenceItem`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             },
             "body": {
               "mode": "raw",
@@ -14835,7 +15206,14 @@
             },
             "description": "Returns an evidence item visible to the caller.\n\n**Scope:** `read`.\n\noperationId: `getEvidenceItem`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -14878,7 +15256,14 @@
             },
             "description": "JSON merge patch (owner or editor).\n\n**Scope:** `read`.\n\noperationId: `updateEvidenceItem`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             },
             "body": {
               "mode": "raw",
@@ -14921,7 +15306,14 @@
             },
             "description": "Deletes the evidence item (owner only).\n\n**Scope:** `read`.\n\noperationId: `deleteEvidenceItem`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -14972,7 +15364,14 @@
             },
             "description": "Saved searches visible to the caller.\n\n**Scope:** `read`.\n\noperationId: `listSavedSearches`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -15014,7 +15413,14 @@
             },
             "description": "Creates a saved search owned by the caller; with `notify`, new matches reach the owner's inbox at most hourly.\n\n**Scope:** `read`.\n\noperationId: `createSavedSearch`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             },
             "body": {
               "mode": "raw",
@@ -15062,7 +15468,14 @@
             },
             "description": "Returns a saved search visible to the caller.\n\n**Scope:** `read`.\n\noperationId: `getSavedSearch`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -15105,7 +15518,14 @@
             },
             "description": "JSON merge patch (owner or editor).\n\n**Scope:** `read`.\n\noperationId: `updateSavedSearch`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             },
             "body": {
               "mode": "raw",
@@ -15148,7 +15568,14 @@
             },
             "description": "Deletes the saved search (owner only).\n\n**Scope:** `read`.\n\noperationId: `deleteSavedSearch`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -15201,7 +15628,14 @@
             },
             "description": "Runs the saved search now (027 hybrid search plus structured filters over envelopes) and returns envelopes the caller can see.\n\n**Scope:** `read`.\n\noperationId: `runSavedSearch`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         }
@@ -16815,7 +17249,14 @@
             },
             "description": "Packages addressed to the caller (per ACL and TLP).\n\n**Scope:** `read`.\n\noperationId: `listReceivedPackages`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -16855,7 +17296,14 @@
             },
             "description": "A received package with sender, authors, signature status and TLP.\n\n**Scope:** `read`.\n\noperationId: `getReceivedPackage`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -16903,7 +17351,14 @@
             },
             "description": "The received report's stored rendition (HTML, Markdown) or JSON bundle, always marked with its origin.\n\n**Scope:** `read`.\n\noperationId: `getReceivedPackageRendition`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -16944,7 +17399,14 @@
             },
             "description": "Records the caller's acknowledgement and sends a receipt to the sender when the peer channel exists.\n\n**Scope:** `read`.\n\noperationId: `acknowledgeReceivedPackage`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -28137,7 +28599,14 @@
             },
             "description": "Newest first, keyset on id: `before` pages to older items, `after` returns only newer ones. Read state is per device (token device metadata, else the `Foresignal-Device-Id` header combined with the token id; else 400 DEVICE_ID_REQUIRED). Includes system events. Reading never acknowledges an alert.\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).\n\noperationId: `listNotifications`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -28182,7 +28651,14 @@
             },
             "description": "Adds `links` and `actions`: capability URLs minted for the calling device (12 h), so native apps never receive capabilities through Apple or Google.\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).\n\noperationId: `getNotification`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -28231,7 +28707,14 @@
             },
             "description": "Moves this device's read cursor (`upToId`) or records sparse reads (`ids`). Reading never acknowledges an alert. Other windows of the same device get a `badge` event.\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).\n\noperationId: `markNotificationsRead`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             },
             "body": {
               "mode": "raw",
@@ -28285,7 +28768,14 @@
             },
             "description": "Unread alert and system notifications for this device, counting alerts that are still firing. The same count feeds native `aps.badge`.\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).\n\noperationId: `getNotificationBadge`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -28333,7 +28823,14 @@
             },
             "description": "Server-Sent Events through the 015 channel: `notification` (id = notification id; replayed from the table after `Last-Event-ID`) and `badge` (when this device's cursor moves). An authenticated open stream counts as `background` presence.\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).\n\noperationId: `streamNotifications`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -28382,7 +28879,14 @@
             },
             "description": "Upserts this device's presence (`ttlSeconds` \u2264 300). While any desktop is `active`, non-critical alerts on channels with `deferWhileActiveSeconds` are deferred and suppressed if read or acknowledged meanwhile. Critical alerts and system events are never deferred; stale presence fails open.\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).\n\noperationId: `updatePresence`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             },
             "body": {
               "mode": "raw",
@@ -31818,7 +32322,14 @@
             },
             "description": "Filter by `kind` and `tag`. Places are sensitive: reads need a token even when `openReads` is on.\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).\n\noperationId: `listPlaces`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -31915,7 +32426,14 @@
             },
             "description": "404 UNKNOWN_PLACE. Places are sensitive: reads need a token even when `openReads` is on.\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).\n\noperationId: `getPlace`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -32061,7 +32579,14 @@
             },
             "description": "Union of place areas (each buffered to at least max(radiusKm, weather.aoiBufferKm)), its envelope and version; the default AOI when there are no places. Places are sensitive: reads need a token even when `openReads` is on.\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).\n\noperationId: `getPlacesAoi`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -32101,7 +32626,14 @@
             },
             "description": "The `place-weather` record (wx-places head) plus cached forecast series (GFS/HRRR, NWS from 053). Sections that are stale, failing or without coverage keep their previous values with a non-ok status; unknown is never clear.\n\n**Scope:** `read` (always authenticated).\n\noperationId: `getPlaceWeather`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         }
@@ -34600,7 +35132,14 @@
             },
             "description": "Registers a browser or UnifiedPush subscription as `pending` and immediately sends a `verify` push carrying a code; only after `POST \u2026/{subscriptionId}/verify` does it receive notifications. The endpoint must be https and every resolved address globally routable unless allowed by `push.allowedPrivateHosts` (400 URL_NOT_ALLOWED). Limits: \u2264 5 pending per token, \u2264 200 in total (409 PUSH_LIMIT_REACHED).\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).\n\noperationId: `createPushSubscription`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             },
             "body": {
               "mode": "raw",
@@ -34644,7 +35183,14 @@
             },
             "description": "Removes a subscription. Only the creating token or an admin; otherwise 404.\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).\n\noperationId: `deletePushSubscription`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -34689,7 +35235,14 @@
             },
             "description": "Echo of the code from the `verify` push; a match activates the subscription. Mismatch \u2192 400 VERIFY_FAILED (after 5 failures the row is deleted); pending rows expire after 10 minutes. Only the creating token.\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).\n\noperationId: `verifyPushSubscription`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             },
             "body": {
               "mode": "raw",
@@ -34946,7 +35499,14 @@
             },
             "description": "Admin sees all devices; read and agent tokens see only the devices they registered. Device tokens are never returned (`tokenSuffix` only).\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).\n\noperationId: `listPushDevices`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -34989,7 +35549,14 @@
             },
             "description": "Registers an APNs or FCM device token for the calling API token. Requires an enabled provider whose `appIds` contains `appId` (409 PUSH_PROVIDER_NOT_CONFIGURED) and, for APNs, a key environment covering `environment`. Upserts by (transport, token): re-registering moves the device to the calling token. Platform, app version and device name are copied from the token's device metadata (023) when present. Cap 20 devices per token (409 PUSH_LIMIT_REACHED).\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).\n\noperationId: `registerPushDevice`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             },
             "body": {
               "mode": "raw",
@@ -35042,7 +35609,14 @@
             },
             "description": "Changes name, filters, content level and language. Owner or admin; otherwise 404.\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).\n\noperationId: `updatePushDevice`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             },
             "body": {
               "mode": "raw",
@@ -35086,7 +35660,14 @@
             },
             "description": "Owner or admin; otherwise 404.\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).\n\noperationId: `deletePushDevice`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -35127,7 +35708,14 @@
             },
             "description": "Owner only; at most 5 per hour per device (429).\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).\n\noperationId: `testPushDevice`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         }
@@ -36175,7 +36763,14 @@
             },
             "description": "Reports the caller owns, authors or that are shared with them.\n\n**Scope:** `read`.\n\noperationId: `listReports`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -36217,7 +36812,14 @@
             },
             "description": "Creates a report owned by the caller in `draft`. TLP is raised to the strictest TLP of cited inputs.\n\n**Scope:** `read`.\n\noperationId: `createReport`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             },
             "body": {
               "mode": "raw",
@@ -36269,7 +36871,14 @@
             },
             "description": "Builds a deterministic draft (templates `situation-brief`, `investigation-summary`, `chronicle-recap`, `weekly-assessment`, `custom`) from a selection, tag, investigation, chronicle, situation or workspace and stores it as a `draft`. `narrative=true` adds a labelled LLM narrative block via the 028 tool loop with verified citations; it needs agent scope and LLM budget (026 budgets; `LLM_NOT_CONFIGURED`).\n\n**Scope:** `read`.\n\noperationId: `draftReport`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             },
             "body": {
               "mode": "raw",
@@ -36317,7 +36926,14 @@
             },
             "description": "Returns a report visible to the caller.\n\n**Scope:** `read`.\n\noperationId: `getReport`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -36366,7 +36982,14 @@
             },
             "description": "JSON merge patch (editors). Optimistic lock on the draft `version` (body `version` or `If-Match`); a stale version \u2192 409 `REPORT_VERSION_CONFLICT`. Published revisions never change.\n\n**Scope:** `read`.\n\noperationId: `updateReport`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             },
             "body": {
               "mode": "raw",
@@ -36409,7 +37032,14 @@
             },
             "description": "Deletes a report and its draft (owner only); sent revisions remain available to recipients until retracted.\n\n**Scope:** `read`.\n\noperationId: `deleteReport`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -36460,7 +37090,14 @@
             },
             "description": "Adds a block (editors), after `after` or at the end.\n\n**Scope:** `read`.\n\noperationId: `createReportBlock`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             },
             "body": {
               "mode": "raw",
@@ -36514,7 +37151,14 @@
             },
             "description": "JSON merge patch of one block (editors).\n\n**Scope:** `read`.\n\noperationId: `updateReportBlock`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             },
             "body": {
               "mode": "raw",
@@ -36559,7 +37203,14 @@
             },
             "description": "Removes a block (editors), including an LLM narrative block.\n\n**Scope:** `read`.\n\noperationId: `deleteReportBlock`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -36599,7 +37250,14 @@
             },
             "description": "Freezes an immutable revision: all refs pinned, maps and snapshots stored, renditions rendered (Markdown, HTML with the TLP banner on every page and the automated-analysis footer when any block is machine-generated, JSON bundle).\n\n**Scope:** `read`.\n\noperationId: `publishReport`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -36643,7 +37301,14 @@
             },
             "description": "Marks a revision withdrawn (owner) and notifies recipients (`report.retracted`).\n\n**Scope:** `read`.\n\noperationId: `retractReport`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             },
             "body": {
               "mode": "raw",
@@ -36705,7 +37370,14 @@
             },
             "description": "Published revisions, newest first.\n\n**Scope:** `read`.\n\noperationId: `listReportRevisions`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -36764,7 +37436,14 @@
             },
             "description": "Markdown, HTML (TLP banner) or the JSON bundle of a published revision (default latest); `draft=true` renders the current draft for preview.\n\n**Scope:** `read`.\n\noperationId: `getReportRendition`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -37415,7 +38094,14 @@
             },
             "description": "`text` ranks `websearch_to_tsquery` matches (plus `record_head.search_text` matches for records without documents) and always works; `semantic` embeds `q` with the active model (budgeted) and orders by cosine distance; `hybrid` (default) fuses both with reciprocal rank fusion (k = 60) and degrades to text with `degraded=true` when semantic search is unavailable (`semantic` then \u2192 409 SEMANTIC_UNAVAILABLE). Time filters apply to the effective time by default. Record hits carry the persisted `seq`. Private sources are excluded unless the caller may see them; results are clamped to the caller's restriction (035).\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).\n\noperationId: `search`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -38154,7 +38840,7 @@
               ],
               "query": []
             },
-            "description": "Set security settings\n\n**Scope:** `admin`.\n\noperationId: `updateSecuritySettings`",
+            "description": "Replaces `openReads` (required) and `exposeObserver`. Members later prompts own (`anonymous`, `metricsOpen` from 035, `exposeMlat` from 069) are refused with 400 until then, so a protection is never reported on that nothing enforces.\n\n**Scope:** `admin`.\n\noperationId: `updateSecuritySettings`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -38167,7 +38853,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"openReads\": true\n}",
+              "raw": "{\n  \"openReads\": true,\n  \"exposeObserver\": false\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -38259,7 +38945,7 @@
               ],
               "query": []
             },
-            "description": "Sets `publicBaseUrl`, `timezone`, `clientLinks` and `push` (031). The response carries `warnings` (PUBLIC_BASE_URL_INSECURE when `publicBaseUrl` is http:// and its host is not loopback, private, CGNAT or `.local`). `push.allowedPrivateHosts` entries are exact hostnames or CIDRs (IPv4 prefix \u2265 /8, IPv6 \u2265 /32).\n\n**Scope:** `admin`.\n\noperationId: `updateServerSettings`",
+            "description": "Sets `publicBaseUrl` (required; null means the request's own address), `timezone`, `clientLinks` (each template `foresignal://` or `https://`) and `push` (031; refused with 400 until then). The response carries `warnings` (PUBLIC_BASE_URL_INSECURE when `publicBaseUrl` is http:// and its host is not loopback, private, CGNAT or `.local`; PUBLIC_BASE_URL_MISMATCH when requests arrive over https while it is http://). `push.allowedPrivateHosts` entries are exact hostnames or CIDRs (IPv4 prefix \u2265 /8, IPv6 \u2265 /32).\n\n**Scope:** `admin`.\n\noperationId: `updateServerSettings`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -38272,7 +38958,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"publicBaseUrl\": \"http://foresignal.local:8080\"\n}",
+              "raw": "{\n  \"publicBaseUrl\": \"http://foresignal.local:8080\",\n  \"timezone\": \"UTC\",\n  \"clientLinks\": {\n    \"alert\": \"foresignal://alerts/{id}\",\n    \"pair\": \"foresignal://pair?u={publicBaseUrl}&c={code}\"\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -44309,7 +44995,7 @@
               ],
               "query": []
             },
-            "description": "Anonymous callers get only version, apiVersion, startedAt, uptimeSeconds, status, features and limits; callers presenting any valid token get the full document (database, records, sources, scheduler, ingestWriter, streams, notifications, history per tier, catchUp and warnings).\n\n**Scope:** `open` (no token; a valid token returns the full document).\n\noperationId: `getSystem`",
+            "description": "Anonymous callers get only version, apiVersion, startedAt, uptimeSeconds, status, features and limits; callers presenting a valid token of at least the `read` scope get the full document (023; every valid token has at least `read`) (database, records, sources, scheduler, ingestWriter, streams, notifications, history per tier, catchUp and warnings, which include PUBLIC_BASE_URL_INSECURE and PUBLIC_BASE_URL_MISMATCH from 023).\n\n**Scope:** `open` (no token; a valid token returns the full document).\n\noperationId: `getSystem`",
             "auth": {
               "type": "noauth"
             }
@@ -44717,7 +45403,7 @@
               ],
               "query": []
             },
-            "description": "Returns the token value (`fsr_` + 32 random bytes, base64url) exactly once. Optional `restrictions` (sources, kinds, bbox, endpoints; area and more from 035) are validated: endpoint patterns must match an operation the scope can reach, source ids and kinds must exist. Restrictions on admin tokens \u2192 400 RESTRICTION_NOT_ALLOWED (035).\n\n**Scope:** `admin`.\n\noperationId: `createToken`",
+            "description": "Returns the token value (`fsr_` + 32 random bytes, base64url) exactly once. Optional `restrictions` (sources, kinds, bbox, endpoints; area and more from 035) are validated: endpoint patterns must match an operation the scope can reach, source ids and kinds must exist; bbox within \u00b1180/\u00b190 with min < max. Restriction members later prompts enforce (`area`, `placeIds`, `excludePrivate`, `maxRequestsPerMinute` from 035, `federation`, `includeExercise` from 113) and `privateAccess: true` (039) are refused with 400 until then. Restrictions on admin tokens \u2192 400 RESTRICTION_NOT_ALLOWED (035).\n\n**Scope:** `admin`.\n\noperationId: `createToken`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -44731,6 +45417,67 @@
             "body": {
               "mode": "raw",
               "raw": "{\n  \"name\": \"openclaw-agent\",\n  \"scope\": \"agent\",\n  \"expiresAt\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Create an API token (restricted)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('tokenId', j.id); console.log('New token (shown once):', j.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/tokens",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "tokens"
+              ],
+              "query": []
+            },
+            "description": "Returns the token value (`fsr_` + 32 random bytes, base64url) exactly once. Optional `restrictions` (sources, kinds, bbox, endpoints; area and more from 035) are validated: endpoint patterns must match an operation the scope can reach, source ids and kinds must exist; bbox within \u00b1180/\u00b190 with min < max. Restriction members later prompts enforce (`area`, `placeIds`, `excludePrivate`, `maxRequestsPerMinute` from 035, `federation`, `includeExercise` from 113) and `privateAccess: true` (039) are refused with 400 until then. Restrictions on admin tokens \u2192 400 RESTRICTION_NOT_ALLOWED (035).\n\n**Scope:** `admin`.\n\noperationId: `createToken`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"dashboard-kiosk\",\n  \"scope\": \"read\",\n  \"expiresAt\": null,\n  \"restrictions\": {\n    \"endpoints\": [\n      \"GET /v1/records/**\",\n      \"GET /v1/tiles/**\",\n      \"GET /v1/tiles.json\"\n    ]\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -44788,7 +45535,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));"
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('ticket', j.ticket);",
+                  "}"
                 ]
               }
             }
@@ -44818,11 +45568,79 @@
             },
             "description": "For clients that cannot send an `Authorization` header (browser `EventSource`, map tile loaders). The ticket inherits the caller's token, scope and restrictions, never more, and is accepted only as `?ticket=` on its purpose's paths: stream tickets on `/v1/changes/stream`, `/v1/alerts/stream` and `/v1/events/stream` (first connect within 60 s; then reconnects up to 5 min after the last disconnect and 24 h total; one concurrent stream, counted against the parent token); tile tickets on `/v1/tiles/**` and TileJSON (reusable until expiry). Tickets are held in memory: mint again after a 401. Revoking the parent token invalidates its tickets and closes their streams.\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).\n\noperationId: `createStreamTicket`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"purpose\": \"stream\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Mint a stream or tile ticket (tiles)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('ticket', j.ticket);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/stream-tickets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "stream-tickets"
+              ],
+              "query": []
+            },
+            "description": "For clients that cannot send an `Authorization` header (browser `EventSource`, map tile loaders). The ticket inherits the caller's token, scope and restrictions, never more, and is accepted only as `?ticket=` on its purpose's paths: stream tickets on `/v1/changes/stream`, `/v1/alerts/stream` and `/v1/events/stream` (first connect within 60 s; then reconnects up to 5 min after the last disconnect and 24 h total; one concurrent stream, counted against the parent token); tile tickets on `/v1/tiles/**` and TileJSON (reusable until expiry). Tickets are held in memory: mint again after a 401. Revoking the parent token invalidates its tickets and closes their streams.\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).\n\noperationId: `createStreamTicket`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"purpose\": \"tiles\",\n  \"ttl\": \"10m\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -44871,11 +45689,18 @@
             },
             "description": "Sets device metadata on the calling token itself (`deviceName`, `platform`, `appVersion`) and stamps `reportedAt`. Push devices (032) and the inbox (033) use it to identify the device.\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).\n\noperationId: `updateCurrentTokenDevice`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"deviceName\": \"Pixel 9\",\n  \"platform\": \"android\",\n  \"appVersion\": \"1.0.0\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -44937,7 +45762,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));"
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('pairingCodeId', j.id); pm.collectionVariables.set('pairingCode', j.code);",
+                  "}"
                 ]
               }
             }
@@ -44978,7 +45806,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"name\": \"Phone\",\n  \"scope\": \"read\",\n  \"ttl\": \"10m\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -45062,7 +45890,7 @@
               ],
               "query": []
             },
-            "description": "SVG QR code (ZXing) encoding the code's `qrPayload`, for scanning with the app. Available while the code is unclaimed and unexpired.\n\n**Scope:** `admin`.\n\noperationId: `getPairingCodeQr`",
+            "description": "SVG QR code (ZXing) encoding the code's `qrPayload`, for scanning with the app. Available while the code is unclaimed and unexpired, and until a restart (the code is stored hashed; its payload is held in memory only).\n\n**Scope:** `admin`.\n\noperationId: `getPairingCodeQr`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -45083,7 +45911,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));"
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('readToken', j.token); console.log('Paired token stored in collection variable readToken');",
+                  "}"
                 ]
               }
             }
@@ -45118,7 +45949,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"code\": \"ABCD-EFGH\",\n  \"device\": {\n    \"deviceName\": \"Pixel 9\",\n    \"platform\": \"android\",\n    \"appVersion\": \"1.0.0\"\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -48533,6 +49364,10 @@
       "value": "{{adminToken}}"
     },
     {
+      "key": "readToken",
+      "value": "{{adminToken}}"
+    },
+    {
       "key": "ingestKey",
       "value": ""
     },
@@ -48590,6 +49425,18 @@
     },
     {
       "key": "cursor",
+      "value": ""
+    },
+    {
+      "key": "pairingCodeId",
+      "value": ""
+    },
+    {
+      "key": "pairingCode",
+      "value": ""
+    },
+    {
+      "key": "ticket",
       "value": ""
     },
     {

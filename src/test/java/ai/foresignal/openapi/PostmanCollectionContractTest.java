@@ -24,7 +24,17 @@ import ai.foresignal.notify.types.TeamsChannel;
 import ai.foresignal.notify.types.TelegramChannel;
 import ai.foresignal.notify.types.WebhookChannel;
 import ai.foresignal.notify.types.ZulipChannel;
+import ai.foresignal.api.error.FieldError;
+import ai.foresignal.security.AuthenticatedToken;
+import ai.foresignal.security.Scope;
+import ai.foresignal.security.TokenHasher;
+import ai.foresignal.security.TokenRestrictions;
+import ai.foresignal.security.TokenService;
+import ai.foresignal.security.pairing.PairingCodes;
+import ai.foresignal.security.ticket.TicketStore;
 import ai.foresignal.settings.CorsSettings;
+import ai.foresignal.settings.SecuritySettingsService;
+import ai.foresignal.settings.ServerSettingsService;
 import ai.foresignal.settings.DurationShorthandModule;
 import ai.foresignal.settings.WatchdogSettingsService;
 import ai.foresignal.testsupport.openapi.OpenApiSpec;
@@ -36,13 +46,16 @@ import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
+import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -62,7 +75,8 @@ import tools.jackson.databind.json.JsonMapper;
  *   <li>Every route operation appears in some request description as {@code operationId: `<id>`}.
  *       Webhooks are requests Foresignal sends, not ones it serves, so they are not in the
  *       collection.
- *   <li>Each request's auth follows the operation's {@code x-foresignal-scope}.
+ *   <li>Each request's auth follows the operation's {@code x-foresignal-scope}; always-authenticated
+ *       {@code read} operations use {@code {{readToken}}} (prompt 023).
  *   <li>Every example body of an implemented operation conforms to its spec request schema and
  *       passes the implemented validation: Jackson plus Bean Validation for typed DTOs, or the
  *       operation's own body parser. Operations whose validation needs the database (trigger rules,
@@ -110,7 +124,17 @@ class PostmanCollectionContractTest {
             Map.entry("snoozeAlert", body -> Snoozes.expiry(body, NOW, null)),
             Map.entry("snoozeTrigger", body -> Snoozes.expiry(body, NOW, Snoozes.MAX_RULE_SNOOZE)),
             Map.entry("createChannel", body -> channelParser().parse(body, null)),
-            Map.entry("updateChannel", body -> channelParser().parse(body, Map.of())));
+            Map.entry("updateChannel", body -> channelParser().parse(body, Map.of())),
+            Map.entry("updateSecuritySettings", SecuritySettingsService::parse),
+            Map.entry("updateServerSettings", ServerSettingsService::parse),
+            Map.entry("updateCurrentTokenDevice", body -> device(body, "")),
+            Map.entry("claimPairingCode", body -> {
+                device(body.get("device"), "device.");
+                assertThat(PairingCodes.normalize(body.get("code").asString())).as("pairing code").isNotNull();
+            }),
+            Map.entry("createStreamTicket", body -> new TicketStore(new TokenHasher(), null, Clock.fixed(NOW, ZoneOffset.UTC))
+                    .mint(new AuthenticatedToken(UUID.randomUUID(), "t", Scope.READ, TokenRestrictions.NONE, null,
+                            "01JA8Q3V7S2K9W4T6Y1B5N0M3C", false), body)));
 
     @BeforeAll
     static void startValidation() {
@@ -202,9 +226,11 @@ class PostmanCollectionContractTest {
             if (op == null) {
                 continue;
             }
+            boolean always = op.node().path("x-foresignal-always-authenticated").asBoolean(false);
             String expected = switch (op.scope()) {
                 case "admin" -> "bearer {{adminToken}}";
                 case "agent" -> "bearer {{agentToken}}";
+                case "read" -> always ? "bearer {{readToken}}" : "noauth";
                 default -> "noauth";
             };
             if ("ingestRecords".equals(op.operationId())) {
@@ -262,8 +288,11 @@ class PostmanCollectionContractTest {
     @Test
     @DisplayName("every implemented operation with a typed or parsed body has an implemented-validation entry or is schema-only by design")
     void validatorTableCoversTheParsedBodies() {
+        // createToken and createPairingCode validate restrictions against the registered sources and
+        // the spec operations, which need the application context; TokensControllerIT and PairingIT
+        // exercise them.
         Set<String> schemaOnly = Set.of("createTrigger", "updateTrigger", "updateRetention", "importSettings",
-                "updateEventStreamFilter");
+                "updateEventStreamFilter", "createToken", "createPairingCode");
         List<String> uncovered = OpenApiSpec.routes().stream()
                 .filter(SpecOperation::implemented)
                 .filter(op -> op.node().has("requestBody"))
@@ -293,6 +322,13 @@ class PostmanCollectionContractTest {
 
     private static ChannelInputParser channelParser() {
         return new ChannelInputParser(new ChannelTypeRegistry(CHANNEL_TYPES), DTO_JSON);
+    }
+
+    /** Parses a {@code DeviceInfo} with the production parser and fails on any error. */
+    private static void device(JsonNode node, String prefix) {
+        List<FieldError> errors = new ArrayList<>();
+        TokenService.parseDevice(node, prefix, errors);
+        assertThat(errors).as("DeviceInfo").isEmpty();
     }
 
     /** Deserializes {@code body} into {@code type} and runs Bean Validation on it. */

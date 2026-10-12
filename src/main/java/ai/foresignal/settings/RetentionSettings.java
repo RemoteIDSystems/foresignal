@@ -30,6 +30,7 @@ import java.util.TreeMap;
  * @param briefings how long briefing runs are kept (prompt 029 adds its step)
  * @param ask how long Ask threads are kept (prompt 028 adds its step)
  * @param kinds per-kind windows of STANDARD sources, first in the resolution order
+ * @param audit how long {@code audit_event} rows are kept (prompt 023)
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record RetentionSettings(
@@ -42,7 +43,8 @@ public record RetentionSettings(
         Duration notifications,
         Duration briefings,
         Duration ask,
-        Map<String, Duration> kinds) {
+        Map<String, Duration> kinds,
+        Duration audit) {
 
     public static final Duration DEFAULT_RETENTION = Duration.ofDays(7);
     public static final Duration DEFAULT_ALERTS = Duration.ofDays(90);
@@ -52,6 +54,7 @@ public record RetentionSettings(
     public static final Duration DEFAULT_NOTIFICATIONS = Duration.ofDays(90);
     public static final Duration DEFAULT_BRIEFINGS = Duration.ofDays(180);
     public static final Duration DEFAULT_ASK = Duration.ofDays(90);
+    public static final Duration DEFAULT_AUDIT = Duration.ofDays(90);
 
     /** Fills every missing window with its default and copies the maps (sorted, for stable output). */
     public RetentionSettings {
@@ -65,6 +68,36 @@ public record RetentionSettings(
         briefings = briefings == null ? DEFAULT_BRIEFINGS : briefings;
         ask = ask == null ? DEFAULT_ASK : ask;
         kinds = kinds == null ? Map.of() : java.util.Collections.unmodifiableMap(new TreeMap<>(kinds));
+        audit = audit == null ? DEFAULT_AUDIT : audit;
+    }
+
+    /**
+     * The 019 shape: every member except {@code audit}, which takes its default.
+     *
+     * @param defaultRetention see the canonical constructor
+     * @param alerts see the canonical constructor
+     * @param usage see the canonical constructor
+     * @param sources see the canonical constructor
+     * @param trackWindow see the canonical constructor
+     * @param provenance see the canonical constructor
+     * @param notifications see the canonical constructor
+     * @param briefings see the canonical constructor
+     * @param ask see the canonical constructor
+     * @param kinds see the canonical constructor
+     */
+    public RetentionSettings(
+            Duration defaultRetention,
+            Duration alerts,
+            Duration usage,
+            Map<String, Duration> sources,
+            Duration trackWindow,
+            Duration provenance,
+            Duration notifications,
+            Duration briefings,
+            Duration ask,
+            Map<String, Duration> kinds) {
+        this(defaultRetention, alerts, usage, sources, trackWindow, provenance, notifications, briefings, ask, kinds,
+                null);
     }
 
     /**
@@ -87,7 +120,7 @@ public record RetentionSettings(
 
     /** The shipped defaults: every window at its default, no per-source or per-kind overrides. */
     public static RetentionSettings defaults() {
-        return new RetentionSettings(null, null, null, null, null, null, null, null, null, null);
+        return new RetentionSettings(null, null, null, null, null, null, null, null, null, null, null);
     }
 
     /**
@@ -102,6 +135,6 @@ public record RetentionSettings(
     /** This value with {@code sources} replaced. */
     public RetentionSettings withSources(Map<String, Duration> newSources) {
         return new RetentionSettings(defaultRetention, alerts, usage, newSources, trackWindow, provenance,
-                notifications, briefings, ask, kinds);
+                notifications, briefings, ask, kinds, audit);
     }
 }
