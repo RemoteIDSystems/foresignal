@@ -289,6 +289,19 @@ class BudgetGovernorTest {
         }
 
         @Test
+        @DisplayName("once the meter holds the transfer, the advance charge is released, so bytes are not counted twice (046)")
+        void noDoubleCount() {
+            assertThat(governor.tryConsume(SOURCE, 600_000)).isTrue();
+            // The transfer happened and the meter recorded it.
+            when(usage.bytesToday(SOURCE)).thenReturn(600_000L);
+            governor.correctByteCharge(SOURCE, 600_000, 600_000);
+
+            // 1 MB - 600 KB leaves 448,576 bytes: 400 KB fits; counted twice it would not.
+            assertThat(governor.tryConsume(SOURCE, 400_000)).isTrue();
+            assertThat(governor.tryConsume(SOURCE, 100_000)).as("the 400 KB is charged in advance").isFalse();
+        }
+
+        @Test
         @DisplayName("status reports the byte budget and what has been used")
         void statusIncludesBytes() {
             when(usage.bytesToday(SOURCE)).thenReturn(512L * 1024);

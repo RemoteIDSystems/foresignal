@@ -164,6 +164,55 @@ section lists dependencies a prompt asked to record here.
 - **License:** Apache License, Version 2.0 (<https://www.apache.org/licenses/LICENSE-2.0>).
 - **Project:** <https://github.com/ben-manes/caffeine>, Copyright Ben Manes.
 
+### NetCDF-Java (GRIB2 and NetCDF4 decoders, prompt 046)
+
+- **Artifacts:** `edu.ucar:cdm-core` and `edu.ucar:grib` 5.11.0, versions from `edu.ucar:netcdf-java-bom` 5.11.0,
+  with their Unidata runtime modules `edu.ucar:httpservices`, `edu.ucar:udunits` and `edu.ucar:libaec-jna`
+  5.11.0. Fetched **only** from Unidata's repository <https://artifacts.unidata.ucar.edu/all/> (not on Maven
+  Central; the one exception to that rule, Architecture §2), checksum-pinned in `gradle/verification-metadata.xml`.
+  Used unmodified.
+- **Use:** `ai.foresignal.raster.decode`: GRIB2 messages through `Grib2RecordScanner` (MRMS, and the self-test's GFS
+  and ECMWF messages) and NetCDF4/HDF5 variables in enhanced mode (GOES-R ABI). The `netcdf4` module (native
+  netCDF-C) is not used.
+- **License:** BSD 3-Clause License (<https://github.com/Unidata/netcdf-java/blob/maint-5.x/LICENSE>), Copyright (c)
+  1998-2025, University Corporation for Atmospheric Research/Unidata.
+- **Project:** <https://github.com/Unidata/netcdf-java>.
+
+### libaec (native library)
+
+- **Artifact:** `edu.ucar.unidata:libaec-native` 1.1.7.0 (Unidata repository), used unmodified. The jar bundles the
+  libaec shared library per platform (linux-x86-64, linux-aarch64, darwin, win32) with its license file; JNA extracts
+  it to `jna.tmpdir` (`/data/tmp` in the container) and loads it.
+- **Use:** CCSDS/AEC decompression for GRIB2 data representation template 5.42 (ECMWF open data; the decoder
+  self-test's fixture).
+- **License:** BSD 2-Clause License, as shipped in the jar (`*/libaec-LICENSE.txt`): Copyright 2026 Mathis Rosenhauer,
+  Moritz Hanke, Joerg Behrens, Luis Kornblueh. (The artifact's pom names NetCDF-Java's BSD 3-Clause license for the
+  packaging.)
+- **Project:** <https://gitlab.dkrz.de/k202009/libaec>.
+
+### jj2000
+
+- **Artifact:** `edu.ucar:jj2000` 5.4 (Unidata repository), a runtime dependency of `edu.ucar:grib`, used unmodified.
+- **Use:** JPEG 2000 decoding of GRIB2 template 5.40. No Foresignal product uses template 5.40 yet; it is on the
+  classpath because NetCDF-Java's GRIB module declares it.
+- **License:** the JJ2000 copyright notice (<https://github.com/Unidata/jj2000/blob/master/COPYRIGHT>): permission to
+  use the module in products conforming to the JPEG 2000 standard (ISO/IEC 15444), with no license granted for
+  non-conforming products and a warning that use may infringe patents. Copyright (c) 1999/2000 JJ2000 Partners.
+
+### JNA
+
+- **Artifact:** `net.java.dev.jna:jna` 5.19.1 (Maven Central), a runtime dependency of `edu.ucar:libaec-jna`, used
+  unmodified.
+- **Use:** loads the libaec native library.
+- **License:** dual Apache License, Version 2.0 or LGPL 2.1 or later (`SPDX-License-Identifier: Apache-2.0 OR
+  LGPL-2.1-or-later`), at the user's choice; used under the Apache License, Version 2.0.
+- **Project:** <https://github.com/java-native-access/jna>.
+
+Other runtime dependencies NetCDF-Java brings from Maven Central, all used unmodified: Guava and `failureaccess`
+(Apache-2.0), `jsr305` (BSD-3-Clause), JCommander (Apache-2.0), Apache Commons Math 3 (Apache-2.0; only NetCDF-Java
+calls it), JDOM 2 (the JDOM license, Apache-style), Joda-Time (Apache-2.0), Protocol Buffers Java (BSD-3-Clause),
+Apache HttpClient, HttpCore and HttpMime 4 with Commons Logging and Commons Codec (Apache-2.0).
+
 ---
 
 ## Reference data (prompt 040)
@@ -195,6 +244,19 @@ Foresignal bundles two files generated from public datasets and downloads the re
 - **Attribution:** "Place names from GeoNames (https://www.geonames.org/), CC BY 4.0". It is shown in
   `GET /v1/reference` and in every response field derived from a nearest place (`RegionTags.attribution`,
   GeoJSON `properties.nearAttribution`).
+
+## Decoder self-test data (prompt 046)
+
+`src/main/resources/raster/selftest/` bundles four small upstream files (provenance in its `README.md`):
+
+- **ECMWF:** one message of the IFS open-data forecast of 2026-10-12 00z (land-sea mask). License: Creative Commons
+  Attribution 4.0 (<https://creativecommons.org/licenses/by/4.0/>). Attribution: "Copyright © 2026 European Centre for
+  Medium-Range Weather Forecasts (ECMWF). Source: www.ecmwf.int", unmodified.
+- **NOAA:** one GFS message (NOAA/NCEP), one MRMS field (NOAA/NSSL) and one GOES-19 ABI file (NOAA), all US public
+  domain, from the NOAA Open Data Dissemination buckets on AWS.
+
+The test fixtures under `src/test/resources/fixtures/mrms/` are NOAA MRMS files (US public domain); the GOES file the
+tests download is NOAA open data too.
 
 ## Color ramps of the raster styles (prompt 045)
 

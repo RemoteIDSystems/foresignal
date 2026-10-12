@@ -100,7 +100,7 @@ public class RasterPipeline implements RasterSinkFactory {
                     encoded.decoded());
             row = new RasterFrameRow(spec.id(), frameId, input.validTime(), input.referenceTime(), input.forecastStep(),
                     input.obsStart(), input.obsEnd(), gridId, stored.relativePath(), stored.bytes(), stored.sha256(),
-                    spec.dtype().wireValue(), encoded.header().codec(), encoded.stats(), input.upstreamKey(),
+                    spec.dtype().wireValue(), encoded.header().codec(), stats(encoded, input), input.upstreamKey(),
                     input.partial() ? RasterFrameRow.PARTIAL : RasterFrameRow.COMPLETE, false, false, now,
                     FrameThinning.initialExpiry(spec, input.validTime()));
             frames.upsert(row, encoded.footprint() == null ? null : encoded.footprint().toText());
@@ -193,6 +193,21 @@ public class RasterPipeline implements RasterSinkFactory {
         }
     }
 
+    /** The computed statistics plus the adapter's extra entries, which never override computed ones. */
+    static Map<String, Object> stats(EncodedFrame encoded, FrameInput input) {
+        if (input.extraStats().isEmpty()) {
+            return encoded.stats();
+        }
+        Map<String, Object> merged = new LinkedHashMap<>(encoded.stats());
+        input.extraStats().forEach(merged::putIfAbsent);
+        return merged;
+    }
+
+    /** True when {@code productId} is disabled by the decoder self-test (prompt 046). */
+    public boolean disabled(String productId) {
+        return status.disabled(productId).isPresent();
+    }
+
     /** The product bounds: the spec's, else the grid box. */
     public static List<Double> bounds(ProductSpec spec, GridDefinition grid) {
         List<Double> fromSpec = specBounds(spec);
@@ -230,6 +245,11 @@ public class RasterPipeline implements RasterSinkFactory {
         @Override
         public boolean probing() {
             return false;
+        }
+
+        @Override
+        public boolean disabled(String productId) {
+            return RasterPipeline.this.disabled(productId);
         }
     }
 
@@ -286,6 +306,11 @@ public class RasterPipeline implements RasterSinkFactory {
         @Override
         public boolean probing() {
             return true;
+        }
+
+        @Override
+        public boolean disabled(String productId) {
+            return RasterPipeline.this.disabled(productId);
         }
     }
 }

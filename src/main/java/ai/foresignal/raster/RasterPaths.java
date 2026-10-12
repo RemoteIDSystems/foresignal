@@ -52,8 +52,7 @@ public class RasterPaths {
     /** Creates every directory of the layout; existing ones are left alone. */
     public final void createLayout() {
         List<Path> dirs = List.of(tmp(), frames(), root.resolve("fields"), root.resolve("glm"),
-                root.resolve("satdump"), dataDir.resolve("media"), dataDir.resolve("cache").resolve("netcdf"),
-                dataDir.resolve("tmp"));
+                root.resolve("satdump"), selfTest(), dataDir.resolve("media"), netcdfCache(), dataDir.resolve("tmp"));
         for (Path dir : dirs) {
             try {
                 Files.createDirectories(dir);
@@ -72,6 +71,19 @@ public class RasterPaths {
     /** {@code rasters/tmp/}. */
     public Path tmp() {
         return root.resolve("tmp");
+    }
+
+    /**
+     * {@code rasters/selftest/}: where the decoder self-test (prompt 046) unpacks its bundled
+     * fixtures, the one directory besides {@link #tmp()} that {@code SafeNetcdf} opens files in.
+     */
+    public Path selfTest() {
+        return root.resolve("selftest");
+    }
+
+    /** {@code cache/netcdf/}: NetCDF-Java's pinned {@code DiskCache} and {@code DiskCache2} root (046). */
+    public Path netcdfCache() {
+        return dataDir.resolve("cache").resolve("netcdf");
     }
 
     /** {@code rasters/frames/}. */

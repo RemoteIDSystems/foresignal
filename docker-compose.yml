@@ -59,8 +59,10 @@ services:
       FORESIGNAL_PROFILE: ${FORESIGNAL_PROFILE:-small}
       # The frame store quota in GB (default 200); /v1/system degrades at 90 %.
       FORESIGNAL_RASTER_DISK_QUOTA_GB: ${FORESIGNAL_RASTER_DISK_QUOTA_GB:-200}
-      # The heap is set explicitly per profile; small: 4 GB with G1.
-      JAVA_TOOL_OPTIONS: ${FORESIGNAL_JAVA_TOOL_OPTIONS:--Xmx4g -XX:+UseG1GC}
+      # The heap is set explicitly per profile; small: 4 GB with G1. The temp directories (prompt 046)
+      # are always appended: java.io.tmpdir and jna.tmpdir on the data volume, where libaec's native
+      # library is extracted and loaded, so the volume must allow executables (named volumes do).
+      JAVA_TOOL_OPTIONS: ${FORESIGNAL_JAVA_TOOL_OPTIONS:--Xmx4g -XX:+UseG1GC} -Djava.io.tmpdir=/data/tmp -Djna.tmpdir=/data/tmp
     # The container limit per profile: 6g (small) or 11g (large).
     mem_limit: ${FORESIGNAL_MEM_LIMIT:-6g}
     volumes:

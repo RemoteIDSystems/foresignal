@@ -29,6 +29,8 @@ import java.util.Objects;
  *     excluded from aliases and lists unless asked for, and never produce a record version
  * @param upstreamKey the upstream object key, for provenance, or null
  * @param variable the upstream variable name, for probes and health reasons, or null
+ * @param extraStats adapter-supplied entries merged into the frame's {@code stats} (for example
+ *     {@code flagMissing}, prompt 046); never overrides the computed ones; empty when none
  */
 public record FrameInput(
         String productId,
@@ -43,7 +45,8 @@ public record FrameInput(
         RasterDecoder decoder,
         boolean partial,
         String upstreamKey,
-        String variable) {
+        String variable,
+        java.util.Map<String, Object> extraStats) {
 
     /** Checks the required parts and that exactly one data form is given. */
     public FrameInput {
@@ -61,6 +64,8 @@ public record FrameInput(
         if (forecastStep != null && forecastStep < 0) {
             throw new IllegalArgumentException("forecastStep must not be negative");
         }
+        extraStats = extraStats == null ? java.util.Map.of()
+                : java.util.Collections.unmodifiableMap(new java.util.LinkedHashMap<>(extraStats));
     }
 
     /** A builder for {@code productId}. */
@@ -89,6 +94,7 @@ public record FrameInput(
         private boolean partial;
         private String upstreamKey;
         private String variable;
+        private final java.util.Map<String, Object> extraStats = new java.util.LinkedHashMap<>();
 
         private Builder(String productId) {
             this.productId = productId;
@@ -152,10 +158,16 @@ public record FrameInput(
             return this;
         }
 
+        /** Adds an entry to the frame's {@code stats} (numbers, strings and booleans). */
+        public Builder stat(String key, Object value) {
+            this.extraStats.put(key, value);
+            return this;
+        }
+
         /** Builds the input. */
         public FrameInput build() {
             return new FrameInput(productId, validTime, referenceTime, forecastStep, obsStart, obsEnd, grid, bands,
-                    tempFile, decoder, partial, upstreamKey, variable);
+                    tempFile, decoder, partial, upstreamKey, variable, extraStats);
         }
     }
 }

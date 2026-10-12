@@ -85,6 +85,11 @@ public class UpstreamClient {
     private final ForesignalProperties properties;
     private final Clock clock;
 
+    /** Test-only property: a path-style S3 endpoint replacing {@code https://{bucket}.s3.amazonaws.com}. */
+    public static final String S3_ENDPOINT_PROPERTY = "foresignal.test.s3-endpoint";
+
+    private volatile String s3Endpoint;
+
     public UpstreamClient(
             BudgetGovernor budgets,
             BackoffRegistry backoff,
@@ -259,7 +264,25 @@ public class UpstreamClient {
      * listing at a local stub; production has exactly one implementation of it.
      */
     URI s3ListUri(String bucket, String query) {
+        if (s3Endpoint != null) {
+            return URI.create(s3Endpoint + "/" + bucket + "/" + query);
+        }
         return URI.create("https://" + bucket + ".s3.amazonaws.com/" + query);
+    }
+
+    /**
+     * Test-only: lists buckets path-style under {@code endpoint} instead of
+     * {@code https://{bucket}.s3.amazonaws.com}, so a Spring integration test can point the product
+     * sources (prompt 046) at WireMock. Set from {@value #S3_ENDPOINT_PROPERTY}; there is no operator
+     * setting, because the bucket list is code-reviewed (Architecture §4.2).
+     *
+     * @param endpoint the stub's base URL; blank keeps the real S3 endpoint
+     */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setS3Endpoint(@org.springframework.beans.factory.annotation.Value("${" + S3_ENDPOINT_PROPERTY + ":}")
+            String endpoint) {
+        String trimmed = endpoint == null ? "" : endpoint.trim();
+        this.s3Endpoint = trimmed.isEmpty() ? null : (trimmed.endsWith("/") ? trimmed.substring(0, trimmed.length() - 1) : trimmed);
     }
 
     /** Where {@link SourceHttp#download} writes, per Weather-Imagery-Design §2.2. */

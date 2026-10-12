@@ -60,4 +60,15 @@ public interface RasterSink {
 
     /** True during a probe: nothing is written and {@link #commit} returns a preview. */
     boolean probing();
+
+    /**
+     * True when {@code productId} is disabled (prompt 046: its decoder failed the startup self-test).
+     * An adapter skips a disabled product instead of spending budget on files nothing can decode.
+     *
+     * @param productId the product
+     * @return true when the product's frame endpoints answer {@code 503 PRODUCT_UNAVAILABLE}
+     */
+    default boolean disabled(String productId) {
+        return false;
+    }
 }

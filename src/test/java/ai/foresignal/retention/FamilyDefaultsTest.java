@@ -2,7 +2,10 @@ package ai.foresignal.retention;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import ai.foresignal.source.adapters.goes.GoesAbiAdapter;
+import ai.foresignal.source.adapters.mrms.MrmsAdapter;
 import ai.foresignal.source.adapters.system.SystemCanaryAdapter;
+import ai.foresignal.source.spi.ProductSpec;
 import ai.foresignal.source.adapters.usgs.UsgsEarthquakesAdapter;
 import ai.foresignal.source.spi.SourceDescriptor;
 import java.io.IOException;
@@ -46,12 +49,20 @@ class FamilyDefaultsTest {
     /**
      * Adapter class → (descriptor, analytic class). {@code system} marks Foresignal's own health
      * sources (the watchdog canary), which carry no analytic data and keep their own short window.
+     * {@code raster} (prompt 046) marks product sources: their only kind is {@code raster-frame}, kept
+     * 7 days by Weather-Imagery-Design §2.4 ("versions outlive frames"). The Conventions table has no
+     * class for frame records; the 042 report asked the owner which class they belong to.
      */
     record Entry(SourceDescriptor descriptor, String analyticClass) {}
 
     static final Map<String, Entry> CLASSES = Map.of(
             "UsgsEarthquakesAdapter", new Entry(new UsgsEarthquakesAdapter("").descriptor(), "event"),
-            "SystemCanaryAdapter", new Entry(new SystemCanaryAdapter().descriptor(), "system"));
+            "SystemCanaryAdapter", new Entry(new SystemCanaryAdapter().descriptor(), "system"),
+            "MrmsAdapter", new Entry(new MrmsAdapter(null, "").descriptor(), "raster"),
+            "GoesAbiAdapter", new Entry(new GoesAbiAdapter(null, "").descriptor(), "raster"));
+
+    /** The design's raster-frame record retention (Weather-Imagery-Design §2.4). */
+    static final Duration RASTER_FRAME_RETENTION = Duration.ofDays(7);
 
     /** Tables retention may delete from: versions and operational rows, never intelligence tables. */
     static final Set<String> RETENTION_TABLES =
@@ -66,6 +77,13 @@ class FamilyDefaultsTest {
             String analyticClass = entry.getValue().analyticClass();
             if (analyticClass.equals("system")) {
                 assertThat(descriptor.id()).as("only Foresignal's own sources are 'system'").startsWith("system-");
+                continue;
+            }
+            if (analyticClass.equals("raster")) {
+                assertThat(descriptor.kinds()).as("%s kinds", descriptor.id()).containsExactly(ProductSpec.RECORD_KIND);
+                assertThat(descriptor.products()).as("%s products", descriptor.id()).isNotEmpty();
+                assertThat(descriptor.kindRetention().get(ProductSpec.RECORD_KIND)).as("%s raster-frame retention",
+                        descriptor.id()).isGreaterThanOrEqualTo(RASTER_FRAME_RETENTION);
                 continue;
             }
             Duration minimum = CLASS_DEFAULTS.get(analyticClass);

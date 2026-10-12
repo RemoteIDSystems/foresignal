@@ -20,7 +20,8 @@ import org.springframework.stereotype.Component;
  * <p>For each of the source's products with frames: degraded when the newest frame is older than
  * {@code maxGap} (or {@code 3 × cadence} when the product declares no gap), via {@link FrameAgeRule}.
  * An outstanding silent format change of any of its products also degrades the source, with the
- * decoder's reason. The newest frame time across the products is reported as {@code newestFrameAt}
+ * decoder's reason, and so does a product the decoder self-test disabled (prompt 046), with its
+ * reason. The newest frame time across the products is reported as {@code newestFrameAt}
  * (and so {@code frameAgeSeconds}) in the health view.
  *
  * <p>Frame time is the newest complete valid time for observation products and the newest ingest
@@ -67,6 +68,12 @@ public class FrameAgeHealthRule implements HealthRule {
             Instant frameAt = newest.get(spec.id());
             if (frameAt != null && (newestOverall == null || frameAt.isAfter(newestOverall))) {
                 newestOverall = frameAt;
+            }
+            Optional<ProductStatusTracker.Report> off = status == null ? Optional.empty() : status.disabled(spec.id());
+            if (off.isPresent()) {
+                // Prompt 046: a product whose decoder failed the startup self-test is disabled.
+                worst = worse(worst, HealthVerdict.degraded(spec.id() + ": disabled: " + off.get().reason(), frameAt));
+                continue;
             }
             Optional<ProductStatusTracker.Report> change = status == null ? Optional.empty() : status.formatChange(spec.id());
             if (change.isPresent()) {

@@ -65,8 +65,16 @@ Foresignal is a single Spring Boot process backed by one PostgreSQL database wit
 | Build | Gradle 9.x, Kotlin DSL, wrapper committed | Single module |
 | Tests | JUnit 5, AssertJ, Mockito, Testcontainers 2.x, WireMock 3.x, JaCoCo | ≥ 90% line coverage gate |
 | Packaging | Multi-stage Dockerfile → `eclipse-temurin:21-jre`; Docker Compose | |
+| GRIB2 and NetCDF4 decoding | NetCDF-Java 5.11.0 (`edu.ucar:cdm-core`, `edu.ucar:grib`, BOM `netcdf-java-bom`) with `edu.ucar.unidata:libaec-native` 1.1.7.0 | Prompt 046. Resolved **only** from `https://artifacts.unidata.ucar.edu/all/`: the one exception to the Maven-Central rule, below. No `netcdf4` module (it needs the native netCDF-C library) |
 
 Exact dependency versions are pinned in `gradle/libs.versions.toml` and verified against Maven Central at implementation time.
+
+**The one exception to the Maven-Central rule (prompt 046).** NetCDF-Java is published only to Unidata's own repository. `build.gradle.kts` declares `https://artifacts.unidata.ucar.edu/all/` (named `unidata`) inside Gradle `exclusiveContent`, filtered to the groups `edu.ucar` and `edu.ucar.unidata`, so those groups resolve from there and nowhere else, and nothing else resolves from there. Three checks keep it that narrow:
+- `gradle/verification-metadata.xml` pins sha256 checksums for the `edu.ucar*` artifacts only (every other group is trusted with `<trust group="^(?!edu\.ucar).*" regex="true"/>`, so the rest of the build is unaffected);
+- `checkUnidataScope` (`gradle/unidata-scope.gradle.kts`, wired into `check`) walks the resolved `runtimeClasspath` and fails if any component from `unidata` has another group;
+- transitive dependencies of NetCDF-Java (Guava, JNA, jdom2, protobuf, Apache HttpClient 4 and others) still come from Maven Central.
+
+The old `/repository/unidata-all/` path 301-redirects and is not used. If the Unidata host is down, the Operator Guide describes a vendored file repository under `gradle/vendor-repo/`.
 
 ## 3. Package layout
 
@@ -99,6 +107,8 @@ ai.foresignal
 │                   (ElgCodec), GridStore, the raster pipeline behind ctx.rasters(), FrameResolver,
 │                   frame-age health, RasterRetentionStep (042); GridDef projections and the
 │                   external catalog with its DERIVED source external-catalogue (045)
+│   ├── decode      RasterDecoder SPI, Grib2Decoder, NetcdfDecoder (NetCDF-Java), SafeNetcdf,
+│   │               NetcdfRuntime, DecoderSelfTest (046)
 │   ├── render      TileRenderer, IndexMapCache, TileCache, RenderQueue, RasterCachePolicy,
 │   │               StyleRegistry, LegendService, LoopService, TileWarmer (045); MapRenderer (055)
 │   └── sample      Point and area sampling of frames (052)
@@ -137,7 +147,7 @@ ai.foresignal
 └── api             Controllers, DTOs, ProblemDetail handlers, pagination cursors
 ```
 
-Dependency rule: `api → (service packages) → store`. Adapters depend only on `source` SPI types and `collect.UpstreamClient`; they never touch the store, the scheduler or each other.
+Dependency rule: `api → (service packages) → store`. Adapters depend only on `source` SPI types and `collect.UpstreamClient`; they never touch the store, the scheduler or each other. Product adapters (046 on) may also use the decoders in `raster.decode`, which are stateless file readers like the shared parsers under `source.formats`; frames still reach the store only through `ctx.rasters()`.
 
 ## 4. Source adapter SPI
 
@@ -561,6 +571,10 @@ File-based configuration is limited to bootstrap concerns, all overridable by en
 | `FORESIGNAL_PROFILE` | `small` | Memory profile, `small` or `large` (§14): raster cache sizes, render pool, decode concurrency (042) |
 | `FORESIGNAL_RASTER_DISK_QUOTA_GB` | `200` | Raster frame store quota; oldest frames are evicted above it, `/v1/system` degrades at 90 % (042) |
 | `FORESIGNAL_RASTER_FRAME_CACHE_MB`, `…_TILE_CACHE_MB`, `…_INDEX_CACHE_MB`, `…_RENDER_POOL`, `…_DECODE_CONCURRENCY` | profile | Override one profile value each (042) |
+| `JAVA_TOOL_OPTIONS` `-Djava.io.tmpdir=/data/tmp -Djna.tmpdir=/data/tmp` | set by the Dockerfile and appended by compose | Temporary files, and the libaec native library JNA extracts and loads for GRIB2 template 5.42, go to `${FORESIGNAL_DATA_DIR}/tmp` on the data volume, which must allow executables (named volumes do); the application creates the directory at startup (046) |
+| `foresignal.raster.decoder-self-test.enabled` | `true` | The startup decoder self-test (046) |
+
+Directories the decoders use (046): downloads land in `${FORESIGNAL_DATA_DIR}/rasters/tmp/` (gzip inputs are inflated beside themselves and deleted after decoding); the self-test unpacks its fixtures into `rasters/selftest/`; NetCDF-Java's `DiskCache` and `DiskCache2` (and the GRIB index cache, which stays empty because no index is ever built) are pinned to `${FORESIGNAL_DATA_DIR}/cache/netcdf/`, never the user's home directory. `SafeNetcdf` opens nothing outside `rasters/tmp` and `rasters/selftest`.
 
 Everything else — sources, budgets, credentials, retention, triggers, channels, tokens, LLM providers, briefings, CORS — is stored in the database and managed through the API.
 
@@ -868,6 +882,8 @@ The Flutter apps receive **visible** alerts through APNs (iOS, iPadOS, macOS) an
 | MeshCore | MIT | Protocol reference for mesh sources and channels (`docs/companion_protocol.md`, `docs/payloads.md`); talk to companions through `meshcore_py` or the bridge script. |
 | MeshDTN | Owner's project (firmware and app are MIT forks of MeshCore and meshcore-open) | Foresignal's store-carry-forward mesh partner: the specifications define what Foresignal sends over mesh. |
 
+**Dependency repositories.** Libraries come from Maven Central, with one explicit exception: NetCDF-Java (`edu.ucar`, `edu.ucar.unidata`) from Unidata's repository under `exclusiveContent`, checksum-pinned and checked by `checkUnidataScope` (§2, prompt 046). Its licenses: NetCDF-Java BSD-3-Clause, libaec BSD-2-Clause, jj2000 its own permissive license, JNA taken under its Apache-2.0 option (`THIRD_PARTY_NOTICES.md`).
+
 ### What each project contributed
 
 - **God's Eye View:** the only project whose code is ported. It supplies the camera catalogues, transit, bikeshare, fire perimeters, radio and weather-model (GFS/HRRR wind, 051) sources. See `docs/Source-Catalog.md` (GEV).
@@ -925,3 +941,5 @@ Authoritative design: [Weather & Imagery Design](Weather-Imagery-Design.md) §0.
 - **Render queue** (`RenderQueue`): a platform pool of `foresignal.raster.render-pool` threads; priority warming > interactive > prefetch (`Foresignal-Prefetch: 1` or `?prefetch=1`); round-robin per client (token, else IP); single-flight per cache key; a caller waits at most 1.5 s, then `503 RENDER_BUSY` with `Retry-After: 1`. `/v1/system` `rasters.renderQueue` and `renderBusyLastHour` report it.
 - **Warming** (`TileWarmer`): each committed complete frame queues its tiles over the places-AOI envelope (036 `PlacesAoiService`, or `weather.defaultAoi`) from the min zoom to `maxZoomForAnimation`, at 1× and 2×, at most 512 per frame.
 - **External catalog**: `src/main/resources/raster/external-catalog.json` seeds `kind=external` products of the DERIVED source `external-catalogue` (GIBS WMTS and nowCOAST WMS; `externalTemplate`, tiling scheme, tile size, native max zoom, bounds, time dimension, attribution). Tile and image routes refuse them with `400 VALIDATION_FAILED`; nothing fetches them.
+- **Decoders (046):** `ai.foresignal.raster.decode`. `Grib2Decoder` reads GRIB2 messages one at a time with NetCDF-Java's `Grib2RecordScanner` and selects the field by discipline, category, number and level, never by message index; the latitude/longitude grid comes from the GDS octets. `NetcdfDecoder` reads NetCDF4 variables in enhanced mode and builds the `geos` grid from `goes_imager_projection` and the `x`/`y` scan angles. A missing field or variable is a silent format change: the source degrades and no frame is written. `SafeNetcdf` is the only call site of `NetcdfFiles.open` / `NetcdfDatasets.openDataset` and takes only paths under `rasters/tmp` or `rasters/selftest` (NetCDF-Java accepts URLs). `DecoderSelfTest` decodes bundled GRIB2 5.3, 5.41 and 5.42 messages and a NetCDF4 file at startup and disables the products whose decoding path failed (`503 PRODUCT_UNAVAILABLE`, with the reason in source health).
+- **First product sources (046):** `mrms` (reflectivity, precipitation rate with its flag band, 60-minute MESH; S3 listing of `noaa-mrms-pds` every 2 minutes) and `goes-east-abi` (GOES-19 ABI CMIPC band 13; `noaa-goes19` every 5 minutes).

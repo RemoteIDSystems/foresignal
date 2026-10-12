@@ -132,6 +132,34 @@ Types: STRING, INTEGER (integral), NUMBER (any finite number), BOOLEAN, TIMESTAM
 
 **Test base URL.** An adapter's upstream base URL is a constant, overridable only by a test property named `foresignal.test.adapters.<adapter>.base-url`, read with `@Value("${...:}")` in the adapter's single constructor (blank means the production URL). Unit tests pass the WireMock URL to the constructor; ITs register it with `@DynamicPropertySource`. It is never an operator setting: the feed list is code-reviewed, which is what keeps adapters from becoming an SSRF vector. USGS uses `foresignal.test.adapters.usgs.base-url`.
 
+### Raster fixtures (prompt 046)
+
+Product sources (`mrms`, `goes-east-abi`) decode binary files, which cannot be cropped without
+re-encoding, so their fixtures are whole real files.
+
+- **Capture** with `scripts/capture-raster-fixtures.sh [output-dir]`: it lists today's prefix of each
+  product anonymously over HTTPS (`https://{bucket}.s3.amazonaws.com/?list-type=2&prefix=…`), takes the
+  newest key (PrecipRate and PrecipFlag at the same timestamp) and downloads it unchanged with
+  `curl`, printing sizes and SHA-256s. With the AWS CLI, `aws s3 cp --no-sign-request
+  s3://<bucket>/<key> .` fetches the same objects.
+- **Commit** files under 3 MB in `src/test/resources/fixtures/mrms/` or `/goes/`, with a README
+  listing key, size, SHA-256 and what the file holds (for MRMS: the sentinels and their counts).
+  Include a no-coverage-heavy sample (the Hawaii MESH file is 41 % no coverage).
+- **Pin** larger files instead: add an entry (path, URL, SHA-256, size) to `pinnedFixtures` in
+  `build.gradle.kts`. `./gradlew downloadTestFixtures` fetches them into `build/test-fixtures/` and
+  verifies them; tests read them through `DecoderFixtures` and skip with a logged reason when the file
+  is absent. The GOES band 13 file (3.8 MB) is pinned this way.
+- **Self-test fixtures** (`src/main/resources/raster/selftest/`, each under 200 KB) are single GRIB2
+  messages cut by byte range from real files using the `.idx` (NCEP) or `.index` (ECMWF) offsets, and
+  one small real NetCDF4 file; their provenance is in that directory's README.
+
+Product adapter tests use `ProductAdapterHarness` (a hand-built `FetchContext` over the real
+`UpstreamClient` pointed at WireMock with `setS3Endpoint`, plus a recording `RasterSink`), and the
+ingest ITs (`ProductIngestSupport`) run the adapter through the real raster pipeline in 042's shared
+raster context and render a tile. The object base URLs follow the test base URL rule:
+`foresignal.test.adapters.mrms.base-url` and `foresignal.test.adapters.goes.base-url` (path-style,
+`{base}/{bucket}/{key}`); bucket listings follow `foresignal.test.s3-endpoint`.
+
 ## 9. Porting, families and other modes
 
 - **God's Eye View** (`~/Documents/GitLab/gods-eye-view`, MIT) may be ported to Java. Add a header comment naming the origin file and the MIT notice, and list it in `THIRD_PARTY_NOTICES.md`. The USGS adapter was written independently and ports nothing (GEV's earthquake layer filters to M2.5+ and rejects whole snapshots, which Foresignal does not want).

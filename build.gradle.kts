@@ -1,3 +1,7 @@
+import java.net.HttpURLConnection
+import java.net.URI
+import java.security.MessageDigest
+
 plugins {
     java
     alias(libs.plugins.spring.boot)
@@ -16,6 +20,21 @@ java {
 
 repositories {
     mavenCentral()
+    // The one explicit exception to the Maven-Central rule (Architecture §2 and §26, prompt 046):
+    // NetCDF-Java is published only to Unidata's own repository. exclusiveContent makes the edu.ucar
+    // groups resolve from there and nowhere else, and nothing else resolve from there;
+    // checkUnidataScope below fails the build if that ever stops being true. The old
+    // /repository/unidata-all/ path 301-redirects; do not use it. If the Unidata host is down, the
+    // Operator Guide describes a vendored file repository under gradle/vendor-repo/.
+    exclusiveContent {
+        forRepository {
+            maven("https://artifacts.unidata.ucar.edu/all/") { name = "unidata" }
+        }
+        filter {
+            includeGroup("edu.ucar")
+            includeGroup("edu.ucar.unidata")
+        }
+    }
 }
 
 dependencies {
@@ -42,6 +61,11 @@ dependencies {
     implementation(libs.owasp.java.html.sanitizer)
     implementation(libs.h3)
     implementation(libs.caffeine)
+    // GRIB2 and NetCDF4 decoding (046): cdm-core and grib only, versions from the NetCDF-Java BOM.
+    implementation(platform(libs.netcdf.java.bom))
+    implementation(libs.netcdf.cdm.core)
+    implementation(libs.netcdf.grib)
+    runtimeOnly(libs.libaec.native)
     runtimeOnly(libs.postgresql)
 
     testImplementation(platform(libs.testcontainers.bom))
@@ -53,6 +77,9 @@ dependencies {
     testImplementation(libs.wiremock.standalone)
     testImplementation(libs.awaitility)
     testImplementation(libs.greenmail)
+    // UnidataScopeBuildTest (prompt 046) runs checkUnidataScope in throwaway builds; TestKit ships
+    // with the Gradle distribution, so nothing is downloaded.
+    testImplementation(gradleTestKit())
 }
 
 tasks.withType<JavaCompile>().configureEach {
@@ -159,6 +186,73 @@ tasks.jacocoTestCoverageVerification {
 
 tasks.check {
     dependsOn(tasks.jacocoTestCoverageVerification)
+}
+
+// Raster fixtures too large to commit (prompt 046): fetched into build/test-fixtures/ with sha256
+// pins. Tests that need one skip with a logged reason when it is absent. Not wired to anything; run
+// ./gradlew downloadTestFixtures before a test run that should cover them. Anonymous HTTPS against the
+// public NOAA bucket, the same object scripts/capture-raster-fixtures.sh captured.
+data class PinnedFixture(val path: String, val url: String, val sha256: String, val bytes: Long)
+val pinnedFixtures = listOf(
+    PinnedFixture(
+        "goes/OR_ABI-L2-CMIPC-M6C13_G19_s20262851201170_e20262851203554_c20262851204053.nc",
+        "https://noaa-goes19.s3.amazonaws.com/ABI-L2-CMIPC/2026/285/12/" +
+            "OR_ABI-L2-CMIPC-M6C13_G19_s20262851201170_e20262851203554_c20262851204053.nc",
+        "bace11ee913a15467b047a76beb12d241589349431e74424a6fe6d09833cc556",
+        3_807_021L,
+    ),
+)
+tasks.register("downloadTestFixtures") {
+    group = "verification"
+    description = "Downloads the sha256-pinned raster fixtures too large to commit into build/test-fixtures/."
+    val root = layout.buildDirectory.dir("test-fixtures")
+    doLast {
+        val digest = { file: File ->
+            val md = MessageDigest.getInstance("SHA-256")
+            file.inputStream().use { input ->
+                val buffer = ByteArray(64 * 1024)
+                while (true) {
+                    val read = input.read(buffer)
+                    if (read < 0) break
+                    md.update(buffer, 0, read)
+                }
+            }
+            md.digest().joinToString("") { "%02x".format(it) }
+        }
+        for (fixture in pinnedFixtures) {
+            val target = root.get().file(fixture.path).asFile
+            if (target.isFile && digest(target) == fixture.sha256) {
+                logger.lifecycle("downloadTestFixtures: ${fixture.path} present")
+                continue
+            }
+            target.parentFile.mkdirs()
+            val part = File(target.parentFile, target.name + ".part")
+            val connection = URI.create(fixture.url).toURL().openConnection() as HttpURLConnection
+            connection.connectTimeout = 30_000
+            connection.readTimeout = 120_000
+            connection.instanceFollowRedirects = false
+            if (connection.responseCode != 200) {
+                throw GradleException("downloadTestFixtures: ${fixture.url} answered ${connection.responseCode}")
+            }
+            connection.inputStream.use { input -> part.outputStream().use { input.copyTo(it) } }
+            val actual = digest(part)
+            if (part.length() != fixture.bytes || actual != fixture.sha256) {
+                part.delete()
+                throw GradleException("downloadTestFixtures: ${fixture.path} has sha256 $actual (${part.length()} bytes); " +
+                    "expected ${fixture.sha256} (${fixture.bytes} bytes)")
+            }
+            if (!part.renameTo(target)) {
+                throw GradleException("downloadTestFixtures: could not move ${part} to ${target}")
+            }
+            logger.lifecycle("downloadTestFixtures: ${fixture.path} downloaded and verified")
+        }
+    }
+}
+
+// The Unidata repository may serve only the edu.ucar groups (prompt 046); see the script.
+apply(from = "gradle/unidata-scope.gradle.kts")
+tasks.check {
+    dependsOn("checkUnidataScope")
 }
 
 // ---------------------------------------------------------------------------

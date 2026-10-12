@@ -47,6 +47,23 @@ Roadmap prompts: `local-adsb-*` → 036, `transit-*` → 037, `gbfs-*` → 038, 
 
 **Raster products (prompts 042–052; Weather-Imagery-Design §5).** MRMS, GOES, GFS and HRRR (later ECMWF) are raster data, not records: enabled, budgeted sources store native-grid frames, and Foresignal renders them itself into tiles, images, loops and legends under `/v1/products` (prompt 045). Each complete frame or forecast run is one `raster-frame` record version. GIBS and nowCOAST layers are `kind=external` catalog entries of the DERIVED source `external-catalogue`: listed by `/v1/products?kind=external` with their tile templates, fetched by clients directly, never proxied.
 
+### Raster product sources (prompt 046)
+
+| Source id | Kind | Upstream | Protocol | Auth | Default interval · budget | Notes |
+|---|---|---|---|---|---|---|
+| `mrms` | raster-frame | `noaa-mrms-pds` (AWS Open Data), prefix `CONUS/{Product}/{YYYYMMDD}/`: `MergedReflectivityQCComposite_00.50` → `mrms-reflectivity` (u8), `PrecipRate_00.00` + `PrecipFlag_00.00` → `mrms-precip-rate` (u16, two bands), `MESH_Max_60min_00.50` → `mrms-mesh-60m` (u8) | S3 ListObjectsV2 (`start-after`) + GET of `.grib2.gz` (GRIB2 template 5.41) | none | 2 min (min 2 min) · 30/min, 12,000/day, **4,000 MB/day**; `maxResponseBytes` 8 MB | Tier STANDARD, policy ALL, TTL none, observedAtMode UPSTREAM (`valid_time` = the key's timestamp). Kinds `[raster-frame]`, `kindRetention{raster-frame: 7d}`, `zeroResultsNormal`. Every frame, no adaptive cadence, one access path (no NCEP `.latest`), at most 15 new frames per product per run, nothing older than 6 h. License US-PD (descriptor `licence`); terms https://registry.opendata.aws/noaa-mrms-pds/. **Verified 2026-10-12** against fixtures: grid 7000 × 3500 at 0.01°, first point 54.995° N, 230.005° E; sentinels reflectivity −999 (no coverage) and −99 (no echo), PrecipRate/PrecipFlag/MESH −3 (no coverage), MESH −1 (no hail). Ladder: every frame for 6 h, then 10-min frames to 48 h. |
+| `goes-east-abi` | raster-frame | `noaa-goes19`, prefix `ABI-L2-CMIPC/{YYYY}/{DOY}/{HH}/OR_ABI-L2-CMIPC-M`, keys `OR_ABI-L2-CMIPC-M\dC13_G19_s{start}_…` → `goes-east-ir` (u16, scale 0.01 K, offset 150 K) | S3 ListObjectsV2 (`start-after`) + GET of NetCDF4 | none | 5 min · 10/min, 2,000/day, **2,500 MB/day**; `maxResponseBytes` 8 MB | Tier STANDARD, policy ALL, TTL none, observedAtMode UPSTREAM (`valid_time` = `obs_start` = the key's `s` time; `obs_end` from `time_coverage_end`). Variable `CMI` (enhanced; `DQF` > 1 is missing) on the `goes_imager_projection` fixed grid, 2500 × 1500. Scan mode never hard-coded. License US-PD (descriptor `licence`); terms https://registry.opendata.aws/noaa-goes/. **Verified 2026-10-12:** files 3.7–3.9 MB. Ladder: 5-min frames for 24 h, then 30-min to 72 h. |
+
+**Corrections from Weather-Imagery-Design §1.4** (verified 2026-10-10; the bucket facts re-checked 2026-10-12):
+- NEXRAD Level II is at `unidata-nexrad-level2` (`noaa-nexrad-level2` answers AccessDenied to an anonymous listing, re-checked 2026-10-12); Level III at `unidata-nexrad-level3`.
+- GOES-East is GOES-19, bucket `noaa-goes19`.
+- NOAA-15 (19 Aug 2025), NOAA-18 (6 Jun 2025) and NOAA-19 (13 Aug 2025) are decommissioned: 137 MHz APT is gone.
+- MRMS ProbSevere v3 is at `noaa-mrms-pds/ProbSevere/` (about 0.25–0.27 MB per file); lightning probability at `CONUS/LightningProbabilityNext30minGrid_scale_1/` (both prefixes list objects, 2026-10-12).
+- HRRR `wrfsfcf01` is about 142 MB, so HRRR is read by `.idx` byte ranges only.
+- GFS: PNS 26-29 proposes GFSv17 in October 2026; PNS 26-30 removes GRIB1, goessimp/special files and the time-averaged CRAIN/CSNOW/CFRZR/CICEP fields. No evidence the 0.5° or 1° files are dropped; Foresignal uses `pgrb2.0p25` with configurable path templates and matches fields by `.idx` variable and level, never by message number.
+- ECMWF open data is CC BY 4.0 (the whole real-time catalog since 1 Oct 2025); the open subset is `ifs/0p25` plus `aifs-single` and `aifs-ens`.
+- AWC asks for at most 1 request/min per thread and 100/min overall; its cache file updates every minute, so a 5-minute poll complies.
+
 **Not ingested (client concerns):** Google 3D Tiles, Esri, OSM/OpenFreeMap tiles, NASA GIBS, Mapillary tiles, TomTom flow tiles, terrain, geocoding (Photon/Nominatim/Google), routing (OSRM), Open-Meteo point weather, Google News RSS. Frontends call these directly.
 
 ## Intelligence and specialist sources (re-implemented; SB is reference only)

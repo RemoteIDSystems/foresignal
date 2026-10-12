@@ -64,6 +64,26 @@ public interface SourceHttp {
     DownloadResult download(URI uri, Path target, long maxBytes) throws AdapterException;
 
     /**
+     * Streams a body to a file, charging a known size against the byte budget first
+     * (Weather-Imagery-Design §2.2, BudgetGovernor row).
+     *
+     * <p>{@code expectedBytes} normally comes from the S3 listing's {@code Size}. It is charged
+     * before anything is sent, so an object the day's {@code mbPerDay} cannot cover is refused
+     * without being paid for, and the charge is corrected to the bytes actually written afterwards.
+     * A relative {@code target} is resolved under {@code ${FORESIGNAL_DATA_DIR}/rasters/tmp}.
+     *
+     * <p>The default ignores {@code expectedBytes}; {@code UpstreamClient}'s implementation honors it
+     * (prompt 046).
+     *
+     * @param target where to write; the caller owns the file afterwards
+     * @param maxBytes cap for this download
+     * @param expectedBytes the known size to charge in advance, or 0 when unknown
+     */
+    default DownloadResult download(URI uri, Path target, long maxBytes, long expectedBytes) throws AdapterException {
+        return download(uri, target, maxBytes);
+    }
+
+    /**
      * Lists a public S3 bucket anonymously (ListObjectsV2).
      *
      * <p>No credentials and no SDK: the buckets Foresignal reads — NOAA's, NASA's — are public, and the

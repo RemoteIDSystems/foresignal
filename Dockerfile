@@ -24,7 +24,7 @@ RUN apt-get update \
 
 RUN groupadd --system --gid 1001 foresignal \
  && useradd --system --uid 1001 --gid foresignal --create-home --home-dir /home/foresignal foresignal \
- && mkdir -p /app /data \
+ && mkdir -p /app /data /data/tmp \
  && chown -R foresignal:foresignal /app /data
 
 COPY --from=build --chown=foresignal:foresignal /src/build/libs/foresignal.jar /app/foresignal.jar
@@ -35,5 +35,9 @@ VOLUME ["/data"]
 EXPOSE 8080
 
 ENV FORESIGNAL_DATA_DIR=/data
+# Prompt 046: temporary files (and libaec's native library, which JNA extracts and loads) go to the
+# data volume, not the container's /tmp; the volume must allow executables (named volumes do).
+# Compose appends the same flags to its own JAVA_TOOL_OPTIONS.
+ENV JAVA_TOOL_OPTIONS="-Djava.io.tmpdir=/data/tmp -Djna.tmpdir=/data/tmp"
 
 ENTRYPOINT ["java","-XX:MaxRAMPercentage=75","-jar","/app/foresignal.jar"]

@@ -48,6 +48,15 @@ owaspHtmlSanitizer = "20261011.1"
 # bundles the JNI library for linux-x64, linux-arm64, darwin-x64 and darwin-arm64 (and others), extracted
 # to java.io.tmpdir on first use.
 h3 = "4.5.0"
+# GRIB2 and NetCDF4/HDF5 decoding (046, Weather-Imagery-Design §0.1 and §3): NetCDF-Java, BSD-3-Clause.
+# NOT on Maven Central: resolved only from https://artifacts.unidata.ucar.edu/all/ under Gradle
+# exclusiveContent (build.gradle.kts), the one explicit exception to the Maven-Central rule
+# (Architecture §2 and §26). Verified there 2026-10-12: netcdf-java-bom, cdm-core and grib 5.11.0.
+# Modules used: cdm-core and grib only (no netcdf4 module, which needs the native netCDF-C library).
+netcdfJava = "5.11.0"
+# CCSDS/AEC (GRIB2 template 5.42) native library for NetCDF-Java's libaec-jna, BSD-2-Clause; verified
+# in the same repository 2026-10-12 (edu.ucar.unidata:libaec-native:1.1.7.0, also the BOM's version).
+libaec = "1.1.7.0"
 
 [libraries]
 # --- Versions managed by the Spring Boot BOM ---
@@ -105,6 +114,11 @@ commonmark-ext-gfm-tables = { module = "org.commonmark:commonmark-ext-gfm-tables
 owasp-java-html-sanitizer = { module = "com.googlecode.owasp-java-html-sanitizer:owasp-java-html-sanitizer", version.ref = "owaspHtmlSanitizer" }
 # Activity rollups and stats grids (038): lat/lng to H3 cell, parents and cell boundaries.
 h3 = { module = "com.uber:h3", version.ref = "h3" }
+# GRIB2 and NetCDF4 decoders (046); from the Unidata repository only (see the versions block).
+netcdf-java-bom = { module = "edu.ucar:netcdf-java-bom", version.ref = "netcdfJava" }
+netcdf-cdm-core = { module = "edu.ucar:cdm-core" }
+netcdf-grib = { module = "edu.ucar:grib" }
+libaec-native = { module = "edu.ucar.unidata:libaec-native", version.ref = "libaec" }
 
 # --- Test; versions from the Testcontainers BOM where unspecified ---
 testcontainers-bom = { module = "org.testcontainers:testcontainers-bom", version.ref = "testcontainers" }

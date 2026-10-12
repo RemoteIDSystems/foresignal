@@ -1968,6 +1968,64 @@ PUT /v1/settings/retention
 **How to disable it.** Set `"trackRawWindow": null`. Partitions that are already thinned stay as
 they are until retention drops them; nothing new is thinned.
 
+## Radar and satellite products
+
+Prompt 046 adds the first two product sources. Like every source they start disabled; enable them
+with `PUT /v1/sources/{id}` and `{"enabled": true}`.
+
+| Source | Products | Upstream | Poll | Default budget |
+|---|---|---|---|---|
+| `mrms` | `mrms-reflectivity`, `mrms-precip-rate` (band 2 is the PrecipFlag type code), `mrms-mesh-60m` | NOAA MRMS, bucket `noaa-mrms-pds`, anonymous | 2 min, every frame | 30/min, 12,000/day, 4,000 MB/day |
+| `goes-east-abi` | `goes-east-ir` (ABI band 13, clean IR) | GOES-19 CMIPC, bucket `noaa-goes19`, anonymous | 5 min | 10/min, 2,000/day, 2,500 MB/day |
+
+Expect about 1.7–3.4 GB a day of downloads for `mrms` and 1.0–1.1 GB for `goes-east-abi`, and a
+rolling disk of about 2 GB and 1.2 GB under the default retention ladders (MRMS: every frame for 6 h,
+then 10-minute frames to 48 h; GOES: 5-minute frames for 24 h, then 30-minute frames to 72 h). The
+`mbPerDay` budget is charged with each object's listed size **before** it is downloaded, so a day
+whose byte budget is spent stops fetching rather than overspending.
+
+**Health.** A source degrades when its newest frame is older than the product's `maxGap` (6 min for
+MRMS, 15 min for GOES), and when an upstream file arrives without the field or variable Foresignal
+expects ("field MergedReflectivityQCComposite missing at level 500 m", "variable CMI missing"): no
+frame is written for such a file, because an empty frame would read as clear weather.
+
+**The decoder self-test.** At startup Foresignal decodes four small bundled files, one per decoding
+path: GRIB2 complex packing (GFS), GRIB2 PNG (MRMS), GRIB2 CCSDS/AEC (ECMWF, through the native
+libaec library) and NetCDF4 (GOES). If a path fails, only the products that need it are disabled:
+their tile, image and frame endpoints answer `503 PRODUCT_UNAVAILABLE`, the adapter skips them, and
+the source's health shows `disabled: decoder self-test failed (…)`. The log line
+`Decoder self-test failed for …` names the cause. The usual one is the native library: JNA extracts
+libaec into `jna.tmpdir`, which the container sets to `/data/tmp` on the data volume. That directory
+must allow executables. A named Docker volume does; a bind mount from a `noexec` filesystem does
+not. Restart after fixing it. `foresignal.raster.decoder-self-test.enabled=false` turns the test off
+(products are then never disabled by it).
+
+**Files.** Downloads are staged in `${FORESIGNAL_DATA_DIR}/rasters/tmp/` and deleted after decoding.
+NetCDF-Java's caches live in `${FORESIGNAL_DATA_DIR}/cache/netcdf/` (normally empty). Foresignal
+never opens a NetCDF or GRIB file outside `rasters/tmp` and `rasters/selftest`.
+
+### Building when the Unidata repository is down
+
+NetCDF-Java is the one dependency not on Maven Central: Gradle fetches `edu.ucar` and
+`edu.ucar.unidata` only from `https://artifacts.unidata.ucar.edu/all/` (Architecture §2). A build
+host that has built Foresignal before already has the artifacts in its Gradle cache. To build
+without the Unidata host:
+
+1. Create `gradle/vendor-repo/` as a Maven repository layout and copy into it, from a machine that
+   has them, every `edu.ucar` and `edu.ucar.unidata` jar and pom listed in
+   `gradle/verification-metadata.xml` (for example from
+   `~/.gradle/caches/modules-2/files-2.1/edu.ucar/`, renamed to
+   `edu/ucar/<name>/<version>/<name>-<version>.{jar,pom}`).
+2. In `build.gradle.kts`, replace `maven("https://artifacts.unidata.ucar.edu/all/") { name = "unidata" }`
+   with `maven(uri("gradle/vendor-repo")) { name = "unidata" }`. Keep the name and the
+   `exclusiveContent` filter: `checkUnidataScope` and the checksums in
+   `gradle/verification-metadata.xml` keep applying, so a tampered or wrong file fails the build.
+3. Build. Revert the line once the host is back; the vendored files need not be committed.
+
+After a NetCDF-Java upgrade, regenerate the checksums with
+`./gradlew --write-verification-metadata sha256 help`, then trim the file back to the `edu.ucar`
+components and the `<trusted-artifacts>` rule.
+
 ## Operating the instance
 
 ### Probes and the compose healthcheck

@@ -87,6 +87,14 @@ public final class StartupOrder {
      */
     public static final int RASTER_PRODUCTS = 27;
 
+    /**
+     * The decoder self-test (prompt 046): starts its own thread, which decodes the bundled GRIB2 and
+     * NetCDF4 fixtures and disables the products whose decoding path failed. Queued before the
+     * scheduler so the first product fetches normally find the verdict in place; it never blocks
+     * startup.
+     */
+    public static final int DECODER_SELF_TEST = 28;
+
     /** The collector scheduler (prompt 010). */
     public static final int SCHEDULER = 30;
 

@@ -800,6 +800,52 @@ class UpstreamClientIT extends WireMockSupport {
 
             assertThat(backoff.isInBackoff(SOURCE)).isTrue();
         }
+
+        @Test
+        @DisplayName("a known size is charged against mbPerDay before sending; an object the day cannot cover is never requested (046)")
+        void chargesExpectedBytesInAdvance() throws Exception {
+            when(sources.effectiveBudget(anyString())).thenReturn(new Budget(10, 100, 1));
+            budgets = new BudgetGovernor(sources, usage, clock);
+            WIREMOCK.stubFor(com.github.tomakehurst.wiremock.client.WireMock.get(urlEqualTo("/raster"))
+                    .willReturn(aResponse().withStatus(200).withBody("x".repeat(2_000))));
+
+            assertThatThrownBy(() -> http().download(uri("/raster"), tempDir.resolve("big.bin"), 10_000_000, 2_000_000))
+                    .isInstanceOf(BudgetExceededException.class);
+            WIREMOCK.verify(0, getRequestedFor(urlEqualTo("/raster")));
+
+            DownloadResult result = http().download(uri("/raster"), tempDir.resolve("small.bin"), 10_000, 2_000);
+            assertThat(result.bytes()).isEqualTo(2_000);
+            assertThat(usage.bytesToday(SOURCE)).isEqualTo(2_000);
+            // The advance charge was released once the meter held the transfer: ~1 MB is still free.
+            assertThat(budgets.tryConsume(SOURCE, 1_000_000)).isTrue();
+        }
+
+        @Test
+        @DisplayName("a relative target lands under rasters/tmp, never the working directory (046)")
+        void relativeTargetUnderRasterTmp() throws Exception {
+            WIREMOCK.stubFor(com.github.tomakehurst.wiremock.client.WireMock.get(urlEqualTo("/raster"))
+                    .willReturn(aResponse().withStatus(200).withBody("ok")));
+
+            DownloadResult result = http().download(uri("/raster"), Path.of("relative-046.bin"), 1_000, 0);
+
+            assertThat(result.file()).isEqualTo(properties.dataDir().resolve("rasters").resolve("tmp").resolve("relative-046.bin"));
+            assertThat(Files.readString(result.file())).isEqualTo("ok");
+            Files.deleteIfExists(result.file());
+            assertThat(Path.of("relative-046.bin")).doesNotExist();
+        }
+
+        @Test
+        @DisplayName("a failed download releases its advance charge (046)")
+        void failedDownloadReleasesCharge() {
+            when(sources.effectiveBudget(anyString())).thenReturn(new Budget(10, 100, 1));
+            budgets = new BudgetGovernor(sources, usage, clock);
+            WIREMOCK.stubFor(com.github.tomakehurst.wiremock.client.WireMock.get(urlEqualTo("/raster"))
+                    .willReturn(aResponse().withStatus(500)));
+
+            assertThatThrownBy(() -> http().download(uri("/raster"), tempDir.resolve("x.bin"), 10_000, 900_000))
+                    .isInstanceOf(UpstreamHttpException.class);
+            assertThat(budgets.tryConsume(SOURCE, 900_000)).as("the 900 KB charge was released").isTrue();
+        }
     }
 
     // ---------- S3 listings ----------

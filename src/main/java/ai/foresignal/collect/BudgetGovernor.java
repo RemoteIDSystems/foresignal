@@ -105,15 +105,23 @@ public class BudgetGovernor {
     /**
      * Replaces an advance byte charge with the actual transferred size.
      *
-     * <p>Called after a transfer completes so the day's byte accounting reflects reality rather than
-     * the estimate; the authoritative figure remains what {@link UsageMeter} recorded.
+     * <p>Called after a transfer completes, once {@link UsageMeter} has recorded the bytes actually
+     * transferred, so the day's byte accounting reflects reality rather than the estimate. The advance
+     * charge is therefore released in full: the meter's figure is authoritative and already includes
+     * {@code actualBytes}. (Before prompt 046 the charge was adjusted to {@code actualBytes} instead,
+     * which counted every transfer twice, once in the meter and once here, and would have refused
+     * MRMS frames once half the day's {@code mbPerDay} had really been used.)
+     *
+     * @param expectedBytes the bytes charged in advance
+     * @param actualBytes the bytes transferred, already recorded by the meter; kept for the log
      */
     public void correctByteCharge(String sourceId, long expectedBytes, long actualBytes) {
         Entry entry = buckets.get(sourceId);
         if (entry == null) {
             return;
         }
-        entry.chargedBytes.add(actualBytes - expectedBytes);
+        entry.chargedBytes.add(-expectedBytes);
+        log.trace("{}: advance charge of {} bytes released; {} bytes transferred", sourceId, expectedBytes, actualBytes);
     }
 
     /**

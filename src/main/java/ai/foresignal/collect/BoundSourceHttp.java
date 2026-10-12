@@ -187,10 +187,25 @@ class BoundSourceHttp implements SourceHttp {
 
     @Override
     public DownloadResult download(URI uri, Path target, long maxBytes) throws AdapterException {
+        return download(uri, target, maxBytes, 0);
+    }
+
+    /**
+     * Streams a body to a file, charging {@code expectedBytes} against the byte budget in advance
+     * and correcting the charge to the bytes written (prompt 046). A relative {@code target} lands
+     * under {@code rasters/tmp}.
+     */
+    @Override
+    public DownloadResult download(URI uri, Path requestedTarget, long maxBytes, long expectedBytes)
+            throws AdapterException {
         Instant startedAt = parent.clock().instant();
         checkBackoff();
-        consumeBudget(0);
+        long charged = Math.max(0, expectedBytes);
+        consumeBudget(charged);
 
+        // A bare or relative name is a temporary file of the raster pipeline, never a path relative
+        // to the process's working directory.
+        Path target = requestedTarget.isAbsolute() ? requestedTarget : parent.rasterTempDir().resolve(requestedTarget);
         HttpRequest request = requestBuilder(uri, Map.of()).GET().build();
         try {
             Files.createDirectories(target.getParent() == null ? parent.rasterTempDir() : target.getParent());
@@ -198,6 +213,10 @@ class BoundSourceHttp implements SourceHttp {
                     parent.client(true).send(request, HttpResponse.BodyHandlers.ofInputStream());
 
             if (response.statusCode() >= 400) {
+                if (charged > 0) {
+                    // Nothing was transferred, so nothing stays charged.
+                    parent.budgets().correctByteCharge(sourceId, charged, 0);
+                }
                 handleErrorStatus(response, startedAt, "GET", uri, 0);
             }
 
@@ -214,6 +233,9 @@ class BoundSourceHttp implements SourceHttp {
             }
 
             parent.usage().record(sourceId, written, true);
+            if (charged > 0) {
+                parent.budgets().correctByteCharge(sourceId, charged, written);
+            }
             parent.backoff().onSuccess(sourceId);
             String contentType = response.headers().firstValue("content-type").orElse(null);
             String sha = HexFormat.of().formatHex(digest.digest());
@@ -234,6 +256,9 @@ class BoundSourceHttp implements SourceHttp {
             return new DownloadResult(target, written, contentType, sha);
         } catch (IOException e) {
             parent.usage().record(sourceId, 0, false);
+            if (charged > 0) {
+                parent.budgets().correctByteCharge(sourceId, charged, 0);
+            }
             throw UpstreamClient.io("Could not download " + redactedUrl(uri) + ": " + e.getMessage(), e);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();

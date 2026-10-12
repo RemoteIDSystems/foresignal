@@ -74,4 +74,17 @@ class FrameAgeHealthRuleTest {
     void noFrames() {
         assertThat(FrameAgeHealthRule.verdict(List.of(OBS), Map.of(), tracker, NOW)).isEmpty();
     }
+
+    @Test
+    @DisplayName("a product disabled by the decoder self-test degrades the source with its reason (046)")
+    void disabledProduct() {
+        tracker.disable(OBS.id(), OBS.sourceId(), "decoder self-test failed (GRIB2 template 5.41 (PNG): boom)", NOW);
+        Optional<HealthVerdict> v = FrameAgeHealthRule.verdict(List.of(OBS), Map.of(OBS.id(), NOW.minusSeconds(60)),
+                tracker, NOW);
+        assertThat(v.get().status()).isEqualTo(HealthStatus.DEGRADED);
+        assertThat(v.get().reason()).isEqualTo(OBS.id() + ": disabled: decoder self-test failed (GRIB2 template 5.41 (PNG): boom)");
+        tracker.enable(OBS.id(), OBS.sourceId());
+        assertThat(FrameAgeHealthRule.verdict(List.of(OBS), Map.of(OBS.id(), NOW.minusSeconds(60)), tracker, NOW)
+                .get().status()).isEqualTo(HealthStatus.HEALTHY);
+    }
 }

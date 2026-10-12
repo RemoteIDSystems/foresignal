@@ -2,7 +2,9 @@ package ai.foresignal.raster;
 
 /**
  * A {@code .fsg} frame file is not one this build can read: wrong magic, unknown version, non-zero
- * reserved bytes, a CRC32C mismatch, a short payload or an impossible header.
+ * reserved bytes, a CRC32C mismatch, a short payload or an impossible header. Since prompt 046 also
+ * thrown by the upstream decoders ({@code ai.foresignal.raster.decode}) for an unreadable GRIB2 or
+ * NetCDF file, or one outside the directories they may open.
  */
 public class RasterFormatException extends RuntimeException {
 
