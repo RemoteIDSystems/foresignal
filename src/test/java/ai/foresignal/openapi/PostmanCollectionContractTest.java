@@ -18,6 +18,7 @@ import ai.foresignal.notify.types.HomeAssistantChannel;
 import ai.foresignal.notify.types.MatrixChannel;
 import ai.foresignal.notify.types.MattermostChannel;
 import ai.foresignal.notify.types.NtfyChannel;
+import ai.foresignal.notify.push.device.PushDeviceService;
 import ai.foresignal.notify.types.PushoverChannel;
 import ai.foresignal.notify.types.SlackChannel;
 import ai.foresignal.notify.types.TeamsChannel;
@@ -145,6 +146,9 @@ class PostmanCollectionContractTest {
             Map.entry("updateExternalSourceManifest", InboundBodies::manifest),
             Map.entry("pushExternalItems", InboundBodies::batch),
             Map.entry("validateEdp", InboundBodies::validation),
+            // Prompt 032: the production parsers of device registration and update.
+            Map.entry("registerPushDevice", PushDeviceService::parse),
+            Map.entry("updatePushDevice", PushDeviceService::parseUpdate),
             Map.entry("createStreamTicket", body -> new TicketStore(new TokenHasher(), null, Clock.fixed(NOW, ZoneOffset.UTC))
                     .mint(new AuthenticatedToken(UUID.randomUUID(), "t", Scope.READ, TokenRestrictions.NONE, null,
                             "01JA8Q3V7S2K9W4T6Y1B5N0M3C", false), body)));
@@ -320,9 +324,12 @@ class PostmanCollectionContractTest {
         // exercise them.
         // 024: ntfyPublish and ntfyPublishPut carry a text body (the message); createRegistrationToken's
         // parser lives in a service that needs the database (EdpIngestIT covers it).
+        // 032: putPushProvider's example carries a placeholder key, which the key check rightly refuses
+        // (no real key is ever committed); PushProvidersIT covers the parser with keys generated at test
+        // time. testPushProvider's body is an optional device id.
         Set<String> schemaOnly = Set.of("createTrigger", "updateTrigger", "updateRetention", "importSettings",
                 "updateEventStreamFilter", "createToken", "createPairingCode", "ntfyPublish", "ntfyPublishPut",
-                "createRegistrationToken");
+                "createRegistrationToken", "putPushProvider", "testPushProvider");
         List<String> uncovered = OpenApiSpec.routes().stream()
                 .filter(SpecOperation::implemented)
                 .filter(op -> op.node().has("requestBody"))

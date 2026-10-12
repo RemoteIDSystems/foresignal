@@ -160,7 +160,7 @@ Open-source situational-awareness projects (ShadowBroker, God's Eye View, Veloci
 - **FR-29** Rules can be tested against existing data without creating alerts (`POST /v1/triggers/{id}/test`).
 
 ### 8.6 Notification channels
-- **FR-35** The operator can create, test and delete channels of types `webhook`, `slack`, `mattermost`, `discord`, `teams`, `google-chat`, `telegram`, `matrix`, `ntfy`, `gotify`, `pushover`, `email` and `webpush`. Secret settings are write-only and encrypted.
+- **FR-35** The operator can create, test and delete channels of types `webhook`, `slack`, `mattermost`, `discord`, `teams`, `google-chat`, `telegram`, `matrix`, `ntfy`, `gotify`, `pushover`, `email` and `webpush`. Secret settings are write-only and encrypted. The built-in `webpush` channel also reaches native apps through APNs and FCM, using push providers (the operator's own APNs key and Firebase service account) that the operator configures, tests and deletes; their keys are write-only and encrypted too.
 - **FR-36** Channels subscribe to events (`alert`, `briefing`, `system`), optionally filtered by rule and minimum severity, with optional title and body templates.
 - **FR-37** Messages are formatted natively per destination (Block Kit, Adaptive Cards, embeds, HTML, priorities). Generic webhooks are HMAC-signed.
 - **FR-38** Delivery is durable, with per-destination rate limits, `Retry-After` handling, a retry ladder and a delivery log per channel. Permanent failures raise a system event.
@@ -203,7 +203,7 @@ Open-source situational-awareness projects (ShadowBroker, God's Eye View, Veloci
 - **FR-52** Rules with `enrich=true` get an LLM context summary drawn from nearby records, the record's history and semantic neighbours. Channels can wait up to 60 s to include it. Enrichment never blocks delivery beyond that wait.
 
 ### 8.16 Web Push
-- **FR-53** Browsers can subscribe for push notifications using Foresignal's VAPID key, with event, rule, severity and tag filters. Native Android and Linux apps subscribe the same way through UnifiedPush, passing Foresignal's VAPID key to their distributor. A subscription receives notifications only after echoing a verification code. Delivery uses RFC 8291 encryption, and expired subscriptions are removed automatically.
+- **FR-53** Browsers can subscribe for push notifications using Foresignal's VAPID key, with event, rule, severity and tag filters. Native Android and Linux apps subscribe the same way through UnifiedPush, passing Foresignal's VAPID key to their distributor. A subscription receives notifications only after echoing a verification code. Delivery uses RFC 8291 encryption, and expired subscriptions are removed automatically. Native iOS, iPadOS, macOS and Android apps register their APNs or FCM device tokens with event, rule, severity and tag filters and receive visible alerts that carry only ids, the severity and a minimal (or, per device, a short) text; the app fetches the details from Foresignal itself. Dead device tokens are removed automatically, and revoking the registering token removes its devices.
 
 ### 8.17 Derived layers, products and provenance
 - **FR-54** Derived sources compute layers from stored records (GPS jamming cells, AIS gaps, loitering, rendezvous, deception checks, holding patterns) and publish them as ordinary records.

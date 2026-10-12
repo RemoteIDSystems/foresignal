@@ -13,11 +13,13 @@ PATH_VARS = {"sourceId": "sourceId", "externalId": "externalId", "ruleId": "rule
              "channelId": "channelId", "tokenId": "tokenId", "providerId": "providerId", "threadId": "threadId",
              "actionId": "actionId", "briefingId": "briefingId", "runId": "runId", "subscriptionId": "subscriptionId",
              "layer": "tileLayer", "z": "tileZ", "x": "tileX", "y": "tileY", "pairingCodeId": "pairingCodeId",
-             "topic": "sourceId", "format": "ingestFormat", "action": "ntfyAction"}
+             "topic": "sourceId", "format": "ingestFormat", "action": "ntfyAction", "deviceId": "pushDeviceId"}
 
 # Path variables that mean something else under a prefix (024): EDP sources and registration tokens.
 PATH_VARS_BY_PREFIX = [("/v1/external/sources/", {"sourceId": "edpSourceId"}),
-                       ("/v1/external/registration-tokens/", {"tokenId": "registrationTokenId"})]
+                       ("/v1/external/registration-tokens/", {"tokenId": "registrationTokenId"}),
+                       # Native push providers (032) are not the LLM providers of {{providerId}}.
+                       ("/v1/push/providers/", {"providerId": "pushProviderId"})]
 
 # The EDP manifest of docs/External-Data-Protocol.md §2 (024).
 EDP_MANIFEST = {
@@ -171,6 +173,18 @@ BODIES = {
                              "transportLabel": "browser", "payloadFormat": "foresignal", "lang": "en"},
   # Replace with the code the verify push delivered to the subscription.
   "verifyPushSubscription": {"code": "REPLACE_WITH_VERIFY_CODE"},
+  # Native push (032). The operator's own APNs key (.p8 PEM text) or Firebase service-account JSON; never commit them.
+  "putPushProvider": {"type": "apns", "appIds": ["ai.foresignal.app"],
+                      "config": {"teamId": "ABCDE12345", "keyId": "KEY1234567", "keyEnvironment": "production", "timeSensitive": False},
+                      "secrets": {"p8": "-----BEGIN PRIVATE KEY-----\nREPLACE_WITH_YOUR_P8_KEY\n-----END PRIVATE KEY-----\n"},
+                      "enabled": True},
+  "testPushProvider": {"deviceId": None},
+  # The token comes from the app: replace the all-zero placeholder with the APNs device token (64-200 hex characters).
+  "registerPushDevice": {"transport": "apns", "platform": "ios", "appId": "ai.foresignal.app", "environment": "production",
+                         "token": "0" * 64, "name": "My iPhone",
+                         "filters": {"events": ["alert", "briefing"], "minSeverity": "warning"}, "contentLevel": "minimal", "lang": "en"},
+  "updatePushDevice": {"name": "My iPhone", "filters": {"events": ["alert"], "minSeverity": "critical"}, "contentLevel": "short",
+                       "lang": "en"},
   "updateEventStreamFilter": {"changes": {"bbox": "-97.5,32.5,-96.5,33.2", "live": True}},
   "updateSecuritySettings": {"openReads": True, "exposeObserver": False},
   "updateServerSettings": {"publicBaseUrl": "http://foresignal.local:8080", "timezone": "UTC",
@@ -205,6 +219,7 @@ CAPTURE = {
   "createBriefing": "const j = pm.response.json(); pm.collectionVariables.set('briefingId', j.id);",
   "runBriefing": "const j = pm.response.json(); if (j.id) pm.collectionVariables.set('runId', j.id);",
   "createPushSubscription": "const j = pm.response.json(); pm.collectionVariables.set('subscriptionId', j.id);",
+  "registerPushDevice": "const j = pm.response.json(); pm.collectionVariables.set('pushDeviceId', j.id);",
   "listAlerts": "const j = pm.response.json(); if (j.items && j.items.length) pm.collectionVariables.set('alertId', j.items[0].id);",
   "listChanges": "const j = pm.response.json(); pm.collectionVariables.set('lastSeq', j.lastSeq);",
   "listRecords": "const j = pm.response.json(); const it = (j.items || j.features || [])[0]; if (it) { const ext = it.externalId || (it.properties && it.properties.externalId); pm.collectionVariables.set('externalId', ext); }\nif (j.nextCursor) pm.collectionVariables.set('cursor', j.nextCursor);",
@@ -247,6 +262,17 @@ VARIANTS = {
   ],
   "createStreamTicket": [
     ("tiles", {"purpose": "tiles", "ttl": "10m"}),
+  ],
+  # Native push (032): an FCM provider and an Android device.
+  "putPushProvider": [
+    ("FCM service account", {"type": "fcm", "appIds": ["ai.foresignal.app"],
+                             "config": {"projectId": "my-firebase-project", "clientEmail": "fcm-sender@my-firebase-project.iam.gserviceaccount.com",
+                                        "tokenUri": "https://oauth2.googleapis.com/token"},
+                             "secrets": {"serviceAccountJson": "REPLACE_WITH_THE_WHOLE_SERVICE_ACCOUNT_JSON"}, "enabled": True}),
+  ],
+  "registerPushDevice": [
+    ("Android via FCM", {"transport": "fcm", "platform": "android", "appId": "ai.foresignal.app",
+                         "token": "REPLACE_WITH_FCM_REGISTRATION_TOKEN", "name": "Pixel 9", "contentLevel": "minimal"}),
   ],
   "createChannel": [
     ("Discord (edits on resolve)", {"name": "Discord #alerts", "type": "discord", "config": {"username": "Foresignal"},
@@ -445,7 +471,7 @@ collection = {
       ("providerId", "ollama"), ("threadId", ""), ("actionId", ""), ("briefingId", ""), ("runId", ""), ("subscriptionId", ""),
       ("lastSeq", "0"), ("cursor", ""), ("pairingCodeId", ""), ("pairingCode", ""), ("ticket", ""),
       ("ingestFormat", "alertmanager"), ("ntfyAction", "publish"), ("edpSourceId", "ext-hormuz-transits"), ("edpIngestKey", ""),
-      ("registrationToken", ""), ("registrationTokenId", ""),
+      ("registrationToken", ""), ("registrationTokenId", ""), ("pushProviderId", "ios-apns"), ("pushDeviceId", ""),
       ("tileLayer", "earthquake"), ("tileZ", "0"), ("tileX", "0"), ("tileY", "0")]],
 }
 env = {"id": str(uuid.uuid5(uuid.NAMESPACE_URL, "https://foresignal.ai/postman/env/local")), "name": "Foresignal — Local",

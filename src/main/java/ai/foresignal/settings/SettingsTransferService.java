@@ -16,6 +16,7 @@ import ai.foresignal.llm.LlmSettings;
 import ai.foresignal.llm.LlmSettingsService;
 import ai.foresignal.notify.ChannelService;
 import ai.foresignal.notify.NotificationSettingsService;
+import ai.foresignal.notify.push.provider.PushProviderService;
 import ai.foresignal.retention.RetentionSettingsService;
 import ai.foresignal.source.SourceRegistry;
 import ai.foresignal.source.SourceService;
@@ -54,7 +55,9 @@ import tools.jackson.databind.node.ObjectNode;
  * security and server are applied when present. Prompt 026 adds {@code llmProviders} (exported without
  * keys, upserted by id; a provider without a key keeps a stored one) and {@code llmSettings}, applied
  * after the providers. Prompt 029 adds {@code briefings} (exported with their ids, upserted by id after
- * the triggers and channels they reference, with an {@code admin} owner). Any validation error is a 400 listing every error, and nothing is
+ * the triggers and channels they reference, with an {@code admin} owner). Prompt 032 adds
+ * {@code pushProviders} (exported without secrets; imported by id, an existing provider keeping its
+ * key and a new one stored disabled). Any validation error is a 400 listing every error, and nothing is
  * applied (the transaction rolls back).
  */
 @Service
@@ -62,7 +65,7 @@ public class SettingsTransferService {
 
     /** Sections handled by this version. */
     static final Set<String> HANDLED = Set.of("exportedAt", "foresignalVersion", "sources", "retention", "cors",
-            "notifications", "watchdog", "triggers", "channels", "security", "server", "llmProviders", "llmSettings", "briefings");
+            "notifications", "watchdog", "triggers", "channels", "security", "server", "llmProviders", "llmSettings", "briefings", "pushProviders");
 
     /** Channel members that are output only, dropped before a channel is upserted. */
     static final Set<String> CHANNEL_OUTPUT_ONLY = Set.of("id", "secretFields", "createdAt", "updatedAt",
@@ -88,6 +91,7 @@ public class SettingsTransferService {
     private final LlmSettingsService llmSettings;
     private final LlmMapper llmMapper;
     private final ObjectProvider<BriefingService> briefings;
+    private final ObjectProvider<PushProviderService> pushProviders;
 
     /** Creates the service. */
     public SettingsTransferService(SourceRegistry registry, SourceService sources, SourceMapper sourceMapper,
@@ -96,8 +100,9 @@ public class SettingsTransferService {
             ChannelService channels, ChannelMapper channelMapper, ForesignalVersion version,
             SecuritySettingsService security, ServerSettingsService server, JsonMapper json, Clock clock,
             LlmProviderService llmProviders, LlmSettingsService llmSettings, LlmMapper llmMapper,
-            ObjectProvider<BriefingService> briefings) {
+            ObjectProvider<BriefingService> briefings, ObjectProvider<PushProviderService> pushProviders) {
         this.briefings = briefings;
+        this.pushProviders = pushProviders;
         this.llmProviders = llmProviders;
         this.llmSettings = llmSettings;
         this.llmMapper = llmMapper;
@@ -167,6 +172,10 @@ public class SettingsTransferService {
         // Prompt 029: briefings with their ids.
         BriefingService briefingService = briefings.getIfAvailable();
         out.put("briefings", briefingService == null ? List.of() : briefingService.list());
+        // Prompt 032: native push providers without their keys.
+        PushProviderService pushProviderService = pushProviders.getIfAvailable();
+        out.put("pushProviders", pushProviderService == null ? List.of()
+                : pushProviderService.list().stream().map(PushProviderService::view).toList());
         return out;
     }
 
@@ -390,6 +399,31 @@ public class SettingsTransferService {
         if (llmProviderCount > 0) {
             warnings.add(llmProviderCount + " LLM provider(s) imported without API keys; set keys with"
                     + " PUT /v1/llm/providers/{id} where a provider needs one");
+        }
+
+        JsonNode pushProvidersNode = present(bundle, "pushProviders");
+        PushProviderService pushProviderService = pushProviders.getIfAvailable();
+        if (pushProvidersNode != null && pushProviderService != null) {
+            if (!pushProvidersNode.isArray()) {
+                errors.add(new FieldError("pushProviders", "must be an array of push providers"));
+            } else {
+                int keyless = 0;
+                for (int i = 0; i < pushProvidersNode.size(); i++) {
+                    try {
+                        // Upserted by id; an existing provider keeps its key, a new one is stored
+                        // disabled until an admin sets its key.
+                        if (pushProviderService.importProvider(pushProvidersNode.get(i))) {
+                            keyless++;
+                        }
+                    } catch (RuntimeException e) {
+                        errors.add("pushProviders[" + i + "]", e);
+                    }
+                }
+                if (keyless > 0) {
+                    warnings.add(keyless + " push provider(s) imported disabled without keys; set their keys with"
+                            + " PUT /v1/push/providers/{providerId}, then enable them");
+                }
+            }
         }
 
         if (!errors.list.isEmpty()) {

@@ -1,6 +1,7 @@
 package ai.foresignal.testsupport.push;
 
 import ai.foresignal.notify.push.PushHostResolver;
+import ai.foresignal.notify.push.NativePushTls;
 import ai.foresignal.notify.push.PushTls;
 import ai.foresignal.test.MutableClock;
 import java.net.Socket;
@@ -18,7 +19,8 @@ import org.springframework.context.annotation.Primary;
  * The shared configuration of the push integration tests (prompt 031): a {@link MutableClock}, a
  * {@link MutableResolver} in place of DNS, and a TLS context that accepts the WireMock push
  * service's self-signed certificate (test only; production checks the platform trust store and the
- * host name). Every push IT imports exactly this, so they share one cached context.
+ * host name). Every push IT imports exactly this, so they share one cached context. Prompt 032 adds
+ * the same trust for native push and {@link MutableNativeEndpoints} for the APNs and FCM hosts.
  */
 @TestConfiguration
 @Import(MutableClock.TestConfig.class)
@@ -40,6 +42,24 @@ public class PushTestConfig {
             context.init(null, new TrustManager[] {new TrustAll()}, null);
             return context;
         };
+    }
+
+    /** Accepts any certificate for APNs, FCM and the token endpoint: WireMock stand-ins (032). */
+    @Bean
+    @Primary
+    public NativePushTls testNativePushTls() {
+        return () -> {
+            SSLContext context = SSLContext.getInstance("TLS");
+            context.init(null, new TrustManager[] {new TrustAll()}, null);
+            return context;
+        };
+    }
+
+    /** APNs and FCM hosts set by each native push test (032). */
+    @Bean
+    @Primary
+    public MutableNativeEndpoints mutableNativeEndpoints() {
+        return new MutableNativeEndpoints();
     }
 
     /** Trusts every server certificate (tests only). */

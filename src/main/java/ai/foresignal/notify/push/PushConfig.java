@@ -29,6 +29,18 @@ public class PushConfig {
         };
     }
 
+    /** The TLS of APNs, FCM and the OAuth token endpoint: the platform default (prompt 032). */
+    @Bean
+    public NativePushTls nativePushTls() {
+        return NativePushHttp.platformTls();
+    }
+
+    /** The APNs and FCM hosts of {@code foresignal.push.native.*} (prompt 032). */
+    @Bean
+    public NativePushEndpoints nativePushEndpoints(NativePushProperties properties) {
+        return NativePushEndpoints.of(properties);
+    }
+
     /** The 3993-byte plaintext budget. */
     @Bean
     public PushPayloadBudget pushPayloadBudget(JsonMapper json) {

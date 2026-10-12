@@ -193,6 +193,19 @@ foresignal:
     per-host-rate: 20
     connect-timeout: 5s
     request-timeout: 15s
+    # Native push (032): APNs and FCM. Operators enter their own APNs key and Firebase service account
+    # at PUT /v1/push/providers/{providerId}; no credential is configured here. The hosts are Apple's
+    # and Google's (only tests change them).
+    native:
+      apns-production-url: https://api.push.apple.com
+      apns-sandbox-url: https://api.sandbox.push.apple.com
+      fcm-url: https://fcm.googleapis.com
+      # Test pushes one device may receive per hour (testPushDevice).
+      device-tests-per-hour: 5
+      # How often devices of expired, revoked or deleted tokens are removed.
+      expiry-sweep-interval: 1h
+      # How long a dispatch waits after a provider credential error before it is retried.
+      provider-retry: 15m
   enrichment:
     # Alert enrichment (030). Whether it runs is llm.enrichmentEnabled plus each rule's enrich flag;
     # these are mechanics. The worker subscribes to the alert bus at startup (off in tests).

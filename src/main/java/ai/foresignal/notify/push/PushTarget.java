@@ -2,10 +2,10 @@ package ai.foresignal.notify.push;
 
 /**
  * One device or browser a push can be sent to (prompt 031). Sealed so a {@link PushTransport} can
- * switch over the kinds exhaustively; prompt 032 adds {@code NativeDeviceTarget} to the permitted
- * list next to {@link WebPushTarget}.
+ * switch over the kinds exhaustively: {@link WebPushTarget} (031) and {@link NativeDeviceTarget}
+ * (APNs and FCM devices, 032).
  */
-public sealed interface PushTarget permits WebPushTarget {
+public sealed interface PushTarget permits WebPushTarget, NativeDeviceTarget {
 
     /** The {@code push_dispatch.target_type} of this kind ({@code webpush}, …). */
     String type();

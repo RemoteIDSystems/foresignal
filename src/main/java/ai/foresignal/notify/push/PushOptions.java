@@ -10,8 +10,13 @@ import java.util.Objects;
  * @param urgency the {@code Urgency} (§5.3)
  * @param topic the {@code Topic} (§5.4): an undelivered message with the same topic is replaced; or null
  * @param silent whether the notification should not make a sound (quiet-hours downgrade)
+ * @param downgraded whether quiet hours downgraded this push (APNs priority 5 and {@code passive},
+ *     FCM {@code NORMAL}; prompt 032)
+ * @param dispatchId the {@code push_dispatch} row being sent, or null outside the dispatch worker
+ *     (APNs {@code apns-id}; prompt 032)
  */
-public record PushOptions(Duration ttl, Urgency urgency, String topic, boolean silent) {
+public record PushOptions(Duration ttl, Urgency urgency, String topic, boolean silent, boolean downgraded,
+        Long dispatchId) {
 
     /** TTL of alerts. */
     public static final Duration ALERT_TTL = Duration.ofSeconds(86_400);
@@ -29,6 +34,16 @@ public record PushOptions(Duration ttl, Urgency urgency, String topic, boolean s
     public PushOptions {
         Objects.requireNonNull(ttl, "ttl");
         Objects.requireNonNull(urgency, "urgency");
+    }
+
+    /** Options without a downgrade flag or dispatch id (031 form). */
+    public PushOptions(Duration ttl, Urgency urgency, String topic, boolean silent) {
+        this(ttl, urgency, topic, silent, false, null);
+    }
+
+    /** These options for the dispatch row {@code id}. */
+    public PushOptions withDispatchId(Long id) {
+        return new PushOptions(ttl, urgency, topic, silent, downgraded, id);
     }
 
     /** The TTL of an event: alert 86400 s, briefing 43200 s, system 3600 s, verify 600 s. */
@@ -50,6 +65,7 @@ public record PushOptions(Duration ttl, Urgency urgency, String topic, boolean s
             return new PushOptions(VERIFY_TTL, Urgency.HIGH, null, false);
         }
         Urgency urgency = downgraded ? Urgency.VERY_LOW : Urgency.of(message.severity());
-        return new PushOptions(ttlOf(message.event()), urgency, message.topic(), downgraded || message.silent());
+        return new PushOptions(ttlOf(message.event()), urgency, message.topic(), downgraded || message.silent(),
+                downgraded, null);
     }
 }

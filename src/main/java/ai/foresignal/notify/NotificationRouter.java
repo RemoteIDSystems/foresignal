@@ -269,6 +269,29 @@ public class NotificationRouter implements AlertListener {
                 cascade ? c -> false : c -> !c.id().equals(failing));
     }
 
+    /**
+     * {@code system.push_provider_failed} when a native push provider's credentials stop working
+     * (prompt 032). Never routed to the built-in Push channel, which may be the very path that is
+     * failing.
+     *
+     * @param providerId the provider
+     * @param type {@code apns} or {@code fcm}
+     * @param error a short code-level description (no key, device token or alert text)
+     */
+    public void pushProviderFailed(String providerId, String type, String error) {
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("providerId", providerId);
+        data.put("type", type);
+        data.put("error", error);
+        system("system.push_provider_failed", "warning", "Push provider " + providerId + " is failing",
+                "Native push through " + MarkdownRenderer.escapeMarkdown(type) + " provider "
+                        + MarkdownRenderer.escapeMarkdown(providerId) + " failed"
+                        + (error == null ? "." : ": " + MarkdownRenderer.escapeMarkdown(error))
+                        + " Check its key at /v1/push/providers.",
+                baseUrl() + "/v1/push/providers", data,
+                c -> !ai.foresignal.notify.push.PushChannelType.ID.equals(c.type()));
+    }
+
     private void system(String subtype, String severity, String title, String body, String url,
             Map<String, Object> data, java.util.function.Predicate<NotificationChannel> filter) {
         try {

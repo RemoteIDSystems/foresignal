@@ -1,12 +1,3 @@
-listPushProviders 032
-putPushProvider 032
-deletePushProvider 032
-testPushProvider 032
-listPushDevices 032
-registerPushDevice 032
-updatePushDevice 032
-deletePushDevice 032
-testPushDevice 032
 getActionConfirm 033
 executeAction 033
 listNotifications 033

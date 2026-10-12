@@ -137,7 +137,8 @@ public class PushDispatchWorker {
                 return;
             }
             PushMessage message = PushMessage.fromMap(dispatch.getContent());
-            PushResult result = transport.get().send(target.get(), message, PushOptions.of(message, dispatch.isDowngraded()));
+            PushResult result = transport.get().send(target.get(), message, PushOptions.of(message, dispatch.isDowngraded())
+                    .withDispatchId(dispatch.getId()));
             apply(dispatch, result, now);
             source.get().onOutcome(target.get(), result, now);
         } catch (RuntimeException e) {

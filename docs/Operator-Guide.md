@@ -1152,13 +1152,111 @@ push services see, and `push.defaultLang` the payload language when a subscripti
 
 **Reach.** Web Push reaches Chrome, Edge and Firefox on desktop and Android while the browser runs,
 and Safari when a site is added to the Home Screen. It does not reach the native iOS app, and it does
-not wake a closed desktop browser on macOS or Windows. Use native push (APNs, FCM, prompt 032) or an
+not wake a closed desktop browser on macOS or Windows. Use native push (APNs and FCM, below) or an
 ntfy channel for those.
 
 **Delivery.** Each subscription gets its own send and retries (10 s, 1 min, 5 min, 30 min, 2 h), so a
 retry never repeats a push that already arrived. A push service answering 404 or 410 removes the
 subscription; 429 and 503 are retried after `Retry-After`. At most 20 pushes per second go to one push
 service host. The Push channel's delivery is delivered when at least one subscription received it.
+
+## Native push (APNs and FCM)
+
+The Flutter apps receive alerts on iOS, iPadOS and macOS through Apple Push Notification service
+(APNs) and on Android through Firebase Cloud Messaging (FCM). Both are further targets of the
+built-in Push channel, so its events, quiet-hours mode and retries apply unchanged.
+
+**The self-hosting constraint.** An APNs key belongs to the Apple developer team that signs the app,
+and a Firebase service account to the Firebase project compiled into the app. Foresignal can only
+push to an app built and signed with your own team and Firebase project (or through a publisher's
+relay, which Foresignal does not provide). Without that, use UnifiedPush (above) or an ntfy channel:
+neither needs an account.
+
+**Privacy.** A native push is a visible alert that carries only ids, the severity and a minimal
+text; full titles and bodies never leave the server through Apple or Google. Per device,
+`contentLevel` chooses the text:
+
+| `contentLevel` | Title | Body |
+|---|---|---|
+| `minimal` (default) | Foresignal | "Critical alert", "Briefing ready" or "System notice" |
+| `short` | Foresignal · critical | the alert's short title (at most 40 characters) |
+
+`short` lets Apple or Google see the rule name; choose it only where that is acceptable. The app's
+Notification Service Extension (iOS) or message handler (Android) replaces the text with the real
+title and body, which it fetches from Foresignal itself (see `docs/Client-Guide.md`).
+
+**Reachability for the rich text.** The extension fetches from your Foresignal over the phone's own
+network: on the LAN, over a VPN, or through Tailscale. It has about five seconds; when Foresignal is
+out of reach the minimal text is shown, and opening the notification fetches the details later.
+
+### Create an APNs key
+
+1. In your Apple Developer account, under Certificates, Identifiers & Profiles → Keys, create a key
+   with Apple Push Notifications service enabled. Apple's keys are environment-specific: choose
+   Sandbox (development builds) or Production (TestFlight and App Store); a team may hold two per
+   environment. Older keys that serve both environments still work. Topic-specific keys are tied to
+   one environment and a list of bundle ids.
+2. Download the `.p8` file (you can download it once), and note the Key ID and your Team ID.
+3. Configure the provider (the `.p8` text is the PEM; it is validated as an EC P-256 key, encrypted
+   and never shown again):
+
+```http
+PUT /v1/push/providers/ios-apns
+Authorization: Bearer <admin token>
+
+{"type": "apns", "appIds": ["com.example.foresignal"],
+ "config": {"teamId": "ABCDE12345", "keyId": "KEY1234567", "keyEnvironment": "production",
+            "timeSensitive": false},
+ "secrets": {"p8": "-----BEGIN PRIVATE KEY-----\n…\n-----END PRIVATE KEY-----\n"}}
+```
+
+`keyEnvironment` is `sandbox`, `production` or `both` (legacy keys). A device registers with its
+own environment, and registration is refused (409 `PUSH_PROVIDER_NOT_CONFIGURED`) when no key
+covers it: debug builds use `sandbox`, TestFlight and App Store builds `production`. Set
+`timeSensitive` only when the app has the Time Sensitive Notifications capability; critical alerts
+are then delivered as time-sensitive. Foresignal never sends Apple's `critical` level, which needs a
+special entitlement.
+
+### Create a Firebase service account
+
+1. In the Firebase console of the project the Android app uses, open Project settings → Service
+   accounts and generate a new private key. It downloads a JSON file.
+2. Configure the provider with the whole JSON (only its `private_key` is stored, encrypted;
+   `project_id` and `client_email` fill the config):
+
+```http
+PUT /v1/push/providers/android-fcm
+Authorization: Bearer <admin token>
+
+{"type": "fcm", "appIds": ["com.example.foresignal"], "config": {},
+ "secrets": {"serviceAccountJson": "<the downloaded JSON, as a string>"}}
+```
+
+Foresignal uses the FCM HTTP v1 API with an OAuth 2.0 token it mints from the service account
+(the legacy FCM APIs no longer exist). An iOS build that registers through FCM instead of APNs is
+also served: the message then carries an APNs block.
+
+### Test and monitor
+
+`POST /v1/push/providers/{providerId}/test` mints an APNs provider token or an FCM access token and
+reports whether it worked; with `{"deviceId": "…"}` it also sends that device a test notice. A
+device's owner can send itself a test with `POST /v1/push/devices/{deviceId}/test` (five per hour).
+
+When Apple or Google rejects the key (an invalid or revoked key, a key of the wrong environment, a
+Firebase permission problem), the provider's `lastError` shows the reason code, one
+`system.push_provider_failed` notification goes to your other channels (never to Push), and the
+pushes are retried after 15 minutes. `lastError` clears on the next success. Responses, logs and
+`lastError` never contain a key, a device token or alert text.
+
+### Devices
+
+The app registers each installation with `POST /v1/push/devices` using its own read token (a
+paired token from `foresignal://pair`). `GET /v1/push/devices` lists every device for an admin and
+only its own for a read token; device tokens are never shown, only their last six characters.
+A device whose token Apple or Google reports as gone (APNs 410, `BadDeviceToken`; FCM
+`UNREGISTERED`) is removed automatically, and revoking or expiring the API token that registered a
+device removes it too. Deleting or disabling a provider stops pushes to its apps' devices until a
+provider serves them again; the devices stay registered.
 
 ## Retention
 
@@ -1276,9 +1374,11 @@ Compose passes `FORESIGNAL_BIND` into the container so the warning knows the pub
 
 `GET /v1/settings/export` returns every setting (sources without credentials, retention, CORS,
 notifications, the watchdog, `security`, `server`, trigger rules with their ids, channels without
-secrets, LLM providers without their API keys, and the LLM roles). Tokens, tickets and pairing codes
-are never exported. An imported LLM provider keeps a key it already has here; set the key of a new
-one with `PUT /v1/llm/providers/{id}`.
+secrets, LLM providers without their API keys, the LLM roles, and native push providers without their
+keys). Tokens, tickets, pairing codes and push devices are never exported. An imported LLM provider
+keeps a key it already has here; set the key of a new one with `PUT /v1/llm/providers/{id}`. An
+imported push provider likewise keeps its key; a new one is imported disabled until you set its key
+with `PUT /v1/push/providers/{providerId}` and enable it.
 `PUT /v1/settings/import` applies such a bundle atomically: unknown sources are listed, a source
 that needs credentials you have not stored is imported disabled with a warning, rules and channels
 are upserted by id (channels keep their stored secrets), and any error rejects the whole bundle.

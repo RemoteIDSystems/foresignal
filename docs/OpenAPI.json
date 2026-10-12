@@ -122,6 +122,11 @@
         "version": "1.3.0",
         "date": "2026-10-12",
         "note": "031: getVapidPublicKey, listPushSubscriptions, createPushSubscription, verifyPushSubscription and deletePushSubscription are implemented; AccessPolicy already carried their rules (scope and always-authenticated flags match). Additive reconciliations: PushSubscription.status adds `disabled` (three consecutive failed send-time address rechecks); Problem lists PUSH_LIMIT_REACHED (409), VERIFY_FAILED (400) and URL_NOT_ALLOWED (400); createPushSubscription documents that a repeated endpoint replaces the earlier subscription and that a refused verification push leaves the row pending; verifyPushSubscription returns an already active subscription unchanged; getVapidPublicKey describes the key; ChannelInput.type documents the built-in webpush channel (not creatable, config.quietHoursMode defer|downgrade|drop); DeclarativePushPayload records the members checked against WebKit's documentation (app_badge lives inside notification there; dir exists; neither is sent). PushSubscriptionInput, PushFilters.tags, PushSettings, PushSubscriptionVerify and PushPayload were already specified."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-12",
+        "note": "032: listPushProviders, putPushProvider, deletePushProvider, testPushProvider (admin) and registerPushDevice, listPushDevices, updatePushDevice, deletePushDevice, testPushDevice (read, always authenticated) are implemented; AccessPolicy gains /v1/push/providers(/**) admin before /v1/push/devices(/**) read always-authenticated, matching each operation's x-foresignal-scope. Problem lists PUSH_PROVIDER_NOT_CONFIGURED (409). Additive reconciliations: registerPushDevice takes platform from the request (023 DeviceInfo has no ipados) and copies only deviceName and appVersion from the token's device metadata, requires environment and an Apple platform for APNs and ignores environment for FCM; testPushDevice documents 429 RATE_LIMITED with Retry-After and the id-0 system test notice; putPushProvider documents that a type change needs secrets, that the service-account JSON (string or object) fills projectId/clientEmail/tokenUri left out of config, and that output-only PushProvider members are ignored; FcmProviderConfig.tokenUri accepts http only for a local stand-in; deletePushProvider documents that devices stay registered; PushDevice.status disabled is reserved (dead tokens are deleted); NativePushPayload.fcm.message.data.c carries the category from 032 and message.token notes the v1 discovery document's deprecation in favor of fid; SettingsBundle.pushProviders documents its import; NotificationMessage.subtype lists system.push_provider_failed. NativePushPayload, PushProvider, PushProviderInput, PushDevice, PushDeviceInput, PushDeviceUpdate, PushProviderTestRequest and PushTestResult were already specified."
       }
     ]
   },
@@ -16324,7 +16329,7 @@
         },
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "032",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -16351,7 +16356,7 @@
         ],
         "operationId": "putPushProvider",
         "summary": "Create or replace a push provider",
-        "description": "Full replace; omitted `secrets` keep the stored ones. Validates that the APNs `.p8` parses as an EC P-256 PKCS#8 key and the FCM service-account JSON has a private key.\n\n**Scope:** `admin`.",
+        "description": "Full replace; omitted `secrets` keep the stored ones (a new provider, or a change of `type`, needs them). Validates that the APNs `.p8` parses as an EC P-256 PKCS#8 key and the FCM service-account JSON has an RSA `private_key`; the JSON's `project_id`, `client_email` and `token_uri` fill config members left out. Only the PEM key is stored, encrypted. Output-only members of a `PushProvider` (`id`, `secretFields`, `lastTestAt`, `lastError`, `updatedAt`) are accepted and ignored, so a listed provider can be sent back.\n\n**Scope:** `admin`.",
         "requestBody": {
           "required": true,
           "content": {
@@ -16434,7 +16439,7 @@
         },
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "032",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -16447,7 +16452,7 @@
         ],
         "operationId": "deletePushProvider",
         "summary": "Delete a push provider",
-        "description": "Devices served only by this provider stop receiving pushes.\n\n**Scope:** `admin`.",
+        "description": "Devices served only by this provider stop receiving pushes (they stay registered and resume when another provider serves their app).\n\n**Scope:** `admin`.",
         "responses": {
           "204": {
             "description": "Deleted"
@@ -16503,7 +16508,7 @@
         },
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "032",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -16603,7 +16608,7 @@
         },
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "032",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -16674,7 +16679,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "032",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true,
         "security": [
           {
@@ -16688,7 +16693,7 @@
         ],
         "operationId": "registerPushDevice",
         "summary": "Register a native push device",
-        "description": "Registers an APNs or FCM device token for the calling API token. Requires an enabled provider whose `appIds` contains `appId` (409 PUSH_PROVIDER_NOT_CONFIGURED) and, for APNs, a key environment covering `environment`. Upserts by (transport, token): re-registering moves the device to the calling token. Platform, app version and device name are copied from the token's device metadata (023) when present. Cap 20 devices per token (409 PUSH_LIMIT_REACHED).\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).",
+        "description": "Registers an APNs or FCM device token for the calling API token. Requires an enabled provider whose `appIds` contains `appId` (409 PUSH_PROVIDER_NOT_CONFIGURED) and, for APNs, a key environment covering `environment`. Upserts by (transport, token): re-registering moves the device to the calling token. App version and device name are copied from the token's device metadata (023) when present; `platform` is the request's (DeviceInfo has no `ipados`). APNs requires `environment` and an Apple platform (ios, ipados, macos); for FCM `environment` is ignored and stored as null. Cap 20 devices per token (409 PUSH_LIMIT_REACHED).\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).",
         "requestBody": {
           "required": true,
           "content": {
@@ -16781,7 +16786,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "032",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true,
         "security": [
           {
@@ -16892,7 +16897,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "032",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true,
         "security": [
           {
@@ -16962,7 +16967,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "032",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true,
         "security": [
           {
@@ -16990,7 +16995,7 @@
         ],
         "operationId": "testPushDevice",
         "summary": "Send a test push to a device",
-        "description": "Owner only; at most 5 per hour per device (429).\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).",
+        "description": "Owner only (others get 404); at most 5 per hour per device (429 RATE_LIMITED with Retry-After). Sends a minimal `system` test notice (id 0) through the provider that serves the device; a gone token deletes the device.\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).",
         "responses": {
           "200": {
             "description": "Result",
@@ -17053,7 +17058,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "032",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true,
         "security": [
           {
@@ -80724,6 +80729,7 @@
           "028",
           "029",
           "031",
+          "032",
           "135"
         ],
         "x-foresignal-error-codes": [
@@ -81011,6 +81017,11 @@
             "code": "URL_NOT_ALLOWED",
             "status": 400,
             "prompt": "031"
+          },
+          {
+            "code": "PUSH_PROVIDER_NOT_CONFIGURED",
+            "status": 409,
+            "prompt": "032"
           }
         ]
       },
@@ -87053,7 +87064,7 @@
             "items": {
               "$ref": "#/components/schemas/PushProvider"
             },
-            "description": "Without secrets (032)"
+            "description": "Without secrets (032). Import upserts by id: an existing provider keeps its key; a new one is stored disabled until an admin sets its key."
           },
           "places": {
             "type": "array",
@@ -93369,7 +93380,7 @@
           },
           "subtype": {
             "type": "string",
-            "description": "e.g. alert.fired, alert.acknowledged, alert.snoozed, alert.resolved, alert.digest (a quiet-hours, pause, backlog or grouping digest), system.source_failing, system.rule_storm, system.delivery_failed, briefing.run (029)",
+            "description": "e.g. alert.fired, alert.acknowledged, alert.snoozed, alert.resolved, alert.digest (a quiet-hours, pause, backlog or grouping digest), system.source_failing, system.rule_storm, system.delivery_failed, system.push_provider_failed (032), briefing.run (029)",
             "example": "alert.fired",
             "maxLength": 64
           },
@@ -95927,7 +95938,7 @@
       },
       "FcmProviderConfig": {
         "type": "object",
-        "description": "FCM HTTP v1 provider configuration (032)",
+        "description": "FCM HTTP v1 provider configuration (032). projectId and clientEmail may be omitted when the service-account JSON supplies them (project_id, client_email).",
         "properties": {
           "projectId": {
             "type": "string"
@@ -95939,7 +95950,8 @@
           "tokenUri": {
             "type": "string",
             "format": "uri",
-            "default": "https://oauth2.googleapis.com/token"
+            "default": "https://oauth2.googleapis.com/token",
+            "description": "OAuth 2.0 token endpoint (https; http is accepted only for a local stand-in)"
           }
         },
         "required": [
@@ -95988,7 +96000,7 @@
               "serviceAccountJson": {
                 "type": "string",
                 "writeOnly": true,
-                "description": "FCM service-account JSON; only private_key is stored, encrypted"
+                "description": "FCM service-account JSON, as a string or an object; only private_key is stored, encrypted"
               }
             }
           },
@@ -96313,7 +96325,8 @@
             "enum": [
               "active",
               "disabled"
-            ]
+            ],
+            "description": "032 never disables a device by itself: dead tokens are deleted. `disabled` is reserved."
           },
           "createdAt": {
             "type": "string",
@@ -96407,7 +96420,7 @@
                   "category": {
                     "type": "string",
                     "example": "FORESIGNAL_ALERT",
-                    "description": "FORESIGNAL_<EVENT>; FORESIGNAL_ALERT_ACTIONABLE for firing alerts with actions (033)"
+                    "description": "FORESIGNAL_<EVENT> (032); FORESIGNAL_ALERT_ACTIONABLE for firing alerts with actions (033)"
                   },
                   "badge": {
                     "type": "integer",
@@ -96430,7 +96443,8 @@
                   },
                   "id": {
                     "type": "integer",
-                    "format": "int64"
+                    "format": "int64",
+                    "description": "The notification id (0 for a test push)"
                   },
                   "a": {
                     "type": [
@@ -96477,7 +96491,8 @@
                 "description": "FCM message",
                 "properties": {
                   "token": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "The FCM registration token (the v1 API's discovery document marks `token` deprecated in favor of `fid` but still accepts it)"
                   },
                   "data": {
                     "type": "object",
@@ -96506,7 +96521,7 @@
                       },
                       "c": {
                         "type": "string",
-                        "description": "Category (033)"
+                        "description": "Category FORESIGNAL_<EVENT> (032; actionable categories arrive in 033)"
                       }
                     }
                   },

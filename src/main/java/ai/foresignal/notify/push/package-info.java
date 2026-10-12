@@ -16,6 +16,11 @@
  *   <li>Subscriptions with registration verification, an address policy re-checked at send time
  *       ({@link ai.foresignal.notify.push.PushAddressPolicy}) and connections pinned to the checked
  *       address ({@link ai.foresignal.notify.push.PushHttp}).
+ *   <li>Native push (prompt 032): APNs and FCM transports ({@code apns}, {@code fcm} subpackages)
+ *       for {@link ai.foresignal.notify.push.NativeDeviceTarget}s registered at
+ *       {@code /v1/push/devices} ({@code device}), with the operator's own keys ({@code provider}),
+ *       carrying only ids, severity and the minimal text of
+ *       {@link ai.foresignal.notify.push.NativeContent}.
  * </ul>
  */
 package ai.foresignal.notify.push;

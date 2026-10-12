@@ -42,11 +42,14 @@ class UpstreamClientIsTheOnlyHttpClientTest {
      * {@code LlmHttp}, where prompt 035 enforces the outbound URL policy. Web Push (prompt 031) sends
      * to push services through {@code PushHttp}, pinned to the address its push-endpoint policy
      * checked (prompt 035 swaps that check for {@code OutboundUrlPolicy} {@code PUSH_ENDPOINT}).
+     * Native push (prompt 032) reaches APNs, FCM and the OAuth token endpoint through
+     * {@code NativePushHttp}.
      */
     private static final List<Path> SANCTIONED_OUTBOUND =
             List.of(MAIN.resolve(Path.of("ai", "foresignal", "notify", "ChannelSender.java")),
                     MAIN.resolve(Path.of("ai", "foresignal", "llm", "LlmHttp.java")),
-                    MAIN.resolve(Path.of("ai", "foresignal", "notify", "push", "PushHttp.java")));
+                    MAIN.resolve(Path.of("ai", "foresignal", "notify", "push", "PushHttp.java")),
+                    MAIN.resolve(Path.of("ai", "foresignal", "notify", "push", "NativePushHttp.java")));
 
     /** The two ways to get an {@code HttpClient}. */
     private static final List<String> CONSTRUCTIONS =

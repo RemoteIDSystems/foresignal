@@ -178,7 +178,7 @@ public final class ErrorCodes {
     /** 409: a run of this briefing is already in progress (prompt 029). */
     public static final String BRIEFING_RUNNING = "BRIEFING_RUNNING";
 
-    /** 409: too many push subscriptions (5 pending per token, 200 in total) (prompt 031). */
+    /** 409: too many push subscriptions (5 pending per token, 200 in total; 031) or devices (20 per token; 032). */
     public static final String PUSH_LIMIT_REACHED = "PUSH_LIMIT_REACHED";
 
     /** 400: the echoed push verification code does not match (prompt 031). */
@@ -189,6 +189,12 @@ public final class ErrorCodes {
      * non-global address outside {@code push.allowedPrivateHosts} (prompt 031; 035 widens it).
      */
     public static final String URL_NOT_ALLOWED = "URL_NOT_ALLOWED";
+
+    /**
+     * 409: no enabled native push provider serves the app (or, for APNs, the device's environment)
+     * (prompt 032).
+     */
+    public static final String PUSH_PROVIDER_NOT_CONFIGURED = "PUSH_PROVIDER_NOT_CONFIGURED";
 
     private static final String TYPE_PREFIX = "https://foresignal.ai/problems/";
 

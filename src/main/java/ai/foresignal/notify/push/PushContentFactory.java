@@ -100,7 +100,7 @@ public class PushContentFactory {
         Instant created = message.createdAt() == null ? clock.instant() : message.createdAt();
         return new PushMessage(message.event(), id, message.alertId(), message.ruleId(), message.severity(),
                 message.title(), message.shortTitle(), body, message.url(), app, web, message.tags(), tag, topic, false,
-                created.toEpochMilli(), null, null);
+                created.toEpochMilli(), null, null, null, PushMessage.categoryOf(message.event()));
     }
 
     private static String cut(String text, int max) {

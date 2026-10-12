@@ -25333,7 +25333,7 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/v1/custom-sources/{{sourceId}}/devices/{{deviceId}}",
+              "raw": "{{baseUrl}}/v1/custom-sources/{{sourceId}}/devices/{{pushDeviceId}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -25342,7 +25342,7 @@
                 "custom-sources",
                 "{{sourceId}}",
                 "devices",
-                "{{deviceId}}"
+                "{{pushDeviceId}}"
               ],
               "query": []
             },
@@ -25381,7 +25381,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/custom-sources/{{sourceId}}/devices/{{deviceId}}/key/rotate",
+              "raw": "{{baseUrl}}/v1/custom-sources/{{sourceId}}/devices/{{pushDeviceId}}/key/rotate",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -25390,7 +25390,7 @@
                 "custom-sources",
                 "{{sourceId}}",
                 "devices",
-                "{{deviceId}}",
+                "{{pushDeviceId}}",
                 "key",
                 "rotate"
               ],
@@ -25435,7 +25435,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/custom-sources/{{sourceId}}/devices/{{deviceId}}/purge",
+              "raw": "{{baseUrl}}/v1/custom-sources/{{sourceId}}/devices/{{pushDeviceId}}/purge",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -25444,7 +25444,7 @@
                 "custom-sources",
                 "{{sourceId}}",
                 "devices",
-                "{{deviceId}}",
+                "{{pushDeviceId}}",
                 "purge"
               ],
               "query": []
@@ -36184,7 +36184,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/push/providers/{{providerId}}",
+              "raw": "{{baseUrl}}/v1/push/providers/{{pushProviderId}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -36192,11 +36192,11 @@
                 "v1",
                 "push",
                 "providers",
-                "{{providerId}}"
+                "{{pushProviderId}}"
               ],
               "query": []
             },
-            "description": "Full replace; omitted `secrets` keep the stored ones. Validates that the APNs `.p8` parses as an EC P-256 PKCS#8 key and the FCM service-account JSON has a private key.\n\n**Scope:** `admin`.\n\noperationId: `putPushProvider`",
+            "description": "Full replace; omitted `secrets` keep the stored ones (a new provider, or a change of `type`, needs them). Validates that the APNs `.p8` parses as an EC P-256 PKCS#8 key and the FCM service-account JSON has an RSA `private_key`; the JSON's `project_id`, `client_email` and `token_uri` fill config members left out. Only the PEM key is stored, encrypted. Output-only members of a `PushProvider` (`id`, `secretFields`, `lastTestAt`, `lastError`, `updatedAt`) are accepted and ignored, so a listed provider can be sent back.\n\n**Scope:** `admin`.\n\noperationId: `putPushProvider`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -36209,7 +36209,67 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"type\": \"apns\",\n  \"appIds\": [\n    \"ai.foresignal.app\"\n  ],\n  \"config\": {\n    \"teamId\": \"ABCDE12345\",\n    \"keyId\": \"KEY1234567\",\n    \"keyEnvironment\": \"production\",\n    \"timeSensitive\": false\n  },\n  \"secrets\": {\n    \"p8\": \"-----BEGIN PRIVATE KEY-----\\nREPLACE_WITH_YOUR_P8_KEY\\n-----END PRIVATE KEY-----\\n\"\n  },\n  \"enabled\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Create or replace a push provider (FCM service account)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200/201', () => pm.expect([200, 201]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/push/providers/{{pushProviderId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "push",
+                "providers",
+                "{{pushProviderId}}"
+              ],
+              "query": []
+            },
+            "description": "Full replace; omitted `secrets` keep the stored ones (a new provider, or a change of `type`, needs them). Validates that the APNs `.p8` parses as an EC P-256 PKCS#8 key and the FCM service-account JSON has an RSA `private_key`; the JSON's `project_id`, `client_email` and `token_uri` fill config members left out. Only the PEM key is stored, encrypted. Output-only members of a `PushProvider` (`id`, `secretFields`, `lastTestAt`, `lastError`, `updatedAt`) are accepted and ignored, so a listed provider can be sent back.\n\n**Scope:** `admin`.\n\noperationId: `putPushProvider`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"fcm\",\n  \"appIds\": [\n    \"ai.foresignal.app\"\n  ],\n  \"config\": {\n    \"projectId\": \"my-firebase-project\",\n    \"clientEmail\": \"fcm-sender@my-firebase-project.iam.gserviceaccount.com\",\n    \"tokenUri\": \"https://oauth2.googleapis.com/token\"\n  },\n  \"secrets\": {\n    \"serviceAccountJson\": \"REPLACE_WITH_THE_WHOLE_SERVICE_ACCOUNT_JSON\"\n  },\n  \"enabled\": true\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -36235,7 +36295,7 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/v1/push/providers/{{providerId}}",
+              "raw": "{{baseUrl}}/v1/push/providers/{{pushProviderId}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -36243,11 +36303,11 @@
                 "v1",
                 "push",
                 "providers",
-                "{{providerId}}"
+                "{{pushProviderId}}"
               ],
               "query": []
             },
-            "description": "Devices served only by this provider stop receiving pushes.\n\n**Scope:** `admin`.\n\noperationId: `deletePushProvider`",
+            "description": "Devices served only by this provider stop receiving pushes (they stay registered and resume when another provider serves their app).\n\n**Scope:** `admin`.\n\noperationId: `deletePushProvider`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -36286,7 +36346,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/push/providers/{{providerId}}/test",
+              "raw": "{{baseUrl}}/v1/push/providers/{{pushProviderId}}/test",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -36294,7 +36354,7 @@
                 "v1",
                 "push",
                 "providers",
-                "{{providerId}}",
+                "{{pushProviderId}}",
                 "test"
               ],
               "query": []
@@ -36312,7 +36372,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"deviceId\": null\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -36375,7 +36435,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 200/201', () => pm.expect([200, 201]).to.include(pm.response.code));"
+                  "pm.test('status is 200/201', () => pm.expect([200, 201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('pushDeviceId', j.id);",
+                  "}"
                 ]
               }
             }
@@ -36404,7 +36467,7 @@
               ],
               "query": []
             },
-            "description": "Registers an APNs or FCM device token for the calling API token. Requires an enabled provider whose `appIds` contains `appId` (409 PUSH_PROVIDER_NOT_CONFIGURED) and, for APNs, a key environment covering `environment`. Upserts by (transport, token): re-registering moves the device to the calling token. Platform, app version and device name are copied from the token's device metadata (023) when present. Cap 20 devices per token (409 PUSH_LIMIT_REACHED).\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).\n\noperationId: `registerPushDevice`",
+            "description": "Registers an APNs or FCM device token for the calling API token. Requires an enabled provider whose `appIds` contains `appId` (409 PUSH_PROVIDER_NOT_CONFIGURED) and, for APNs, a key environment covering `environment`. Upserts by (transport, token): re-registering moves the device to the calling token. App version and device name are copied from the token's device metadata (023) when present; `platform` is the request's (DeviceInfo has no `ipados`). APNs requires `environment` and an Apple platform (ios, ipados, macos); for FCM `environment` is ignored and stored as null. Cap 20 devices per token (409 PUSH_LIMIT_REACHED).\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).\n\noperationId: `registerPushDevice`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -36417,7 +36480,69 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"transport\": \"apns\",\n  \"platform\": \"ios\",\n  \"appId\": \"ai.foresignal.app\",\n  \"environment\": \"production\",\n  \"token\": \"0000000000000000000000000000000000000000000000000000000000000000\",\n  \"name\": \"My iPhone\",\n  \"filters\": {\n    \"events\": [\n      \"alert\",\n      \"briefing\"\n    ],\n    \"minSeverity\": \"warning\"\n  },\n  \"contentLevel\": \"minimal\",\n  \"lang\": \"en\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Register a native push device (Android via FCM)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200/201', () => pm.expect([200, 201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('pushDeviceId', j.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/push/devices",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "push",
+                "devices"
+              ],
+              "query": []
+            },
+            "description": "Registers an APNs or FCM device token for the calling API token. Requires an enabled provider whose `appIds` contains `appId` (409 PUSH_PROVIDER_NOT_CONFIGURED) and, for APNs, a key environment covering `environment`. Upserts by (transport, token): re-registering moves the device to the calling token. App version and device name are copied from the token's device metadata (023) when present; `platform` is the request's (DeviceInfo has no `ipados`). APNs requires `environment` and an Apple platform (ios, ipados, macos); for FCM `environment` is ignored and stored as null. Cap 20 devices per token (409 PUSH_LIMIT_REACHED).\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).\n\noperationId: `registerPushDevice`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"transport\": \"fcm\",\n  \"platform\": \"android\",\n  \"appId\": \"ai.foresignal.app\",\n  \"token\": \"REPLACE_WITH_FCM_REGISTRATION_TOKEN\",\n  \"name\": \"Pixel 9\",\n  \"contentLevel\": \"minimal\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -36452,7 +36577,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/push/devices/{{deviceId}}",
+              "raw": "{{baseUrl}}/v1/push/devices/{{pushDeviceId}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -36460,7 +36585,7 @@
                 "v1",
                 "push",
                 "devices",
-                "{{deviceId}}"
+                "{{pushDeviceId}}"
               ],
               "query": []
             },
@@ -36477,7 +36602,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"name\": \"My iPhone\",\n  \"filters\": {\n    \"events\": [\n      \"alert\"\n    ],\n    \"minSeverity\": \"critical\"\n  },\n  \"contentLevel\": \"short\",\n  \"lang\": \"en\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -36503,7 +36628,7 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/v1/push/devices/{{deviceId}}",
+              "raw": "{{baseUrl}}/v1/push/devices/{{pushDeviceId}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -36511,7 +36636,7 @@
                 "v1",
                 "push",
                 "devices",
-                "{{deviceId}}"
+                "{{pushDeviceId}}"
               ],
               "query": []
             },
@@ -36550,7 +36675,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/push/devices/{{deviceId}}/test",
+              "raw": "{{baseUrl}}/v1/push/devices/{{pushDeviceId}}/test",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -36558,12 +36683,12 @@
                 "v1",
                 "push",
                 "devices",
-                "{{deviceId}}",
+                "{{pushDeviceId}}",
                 "test"
               ],
               "query": []
             },
-            "description": "Owner only; at most 5 per hour per device (429).\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).\n\noperationId: `testPushDevice`",
+            "description": "Owner only (others get 404); at most 5 per hour per device (429 RATE_LIMITED with Retry-After). Sends a minimal `system` test notice (id 0) through the provider that serves the device; a gone token deletes the device.\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).\n\noperationId: `testPushDevice`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -50318,6 +50443,14 @@
     },
     {
       "key": "registrationTokenId",
+      "value": ""
+    },
+    {
+      "key": "pushProviderId",
+      "value": "ios-apns"
+    },
+    {
+      "key": "pushDeviceId",
       "value": ""
     },
     {

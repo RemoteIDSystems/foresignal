@@ -31,6 +31,8 @@ import java.util.UUID;
  * @param ts the creation time, epoch milliseconds
  * @param subscriptionId the subscription being verified ({@code verify} only)
  * @param code the verification code ({@code verify} only)
+ * @param badge the app badge (unread count), or null; filled by prompt 033
+ * @param category the native notification category ({@code FORESIGNAL_<EVENT>}), or null (032)
  */
 public record PushMessage(
         String event,
@@ -50,7 +52,9 @@ public record PushMessage(
         boolean silent,
         long ts,
         UUID subscriptionId,
-        String code) {
+        String code,
+        Integer badge,
+        String category) {
 
     /** The verification event. */
     public static final String VERIFY = "verify";
@@ -59,6 +63,19 @@ public record PushMessage(
     public PushMessage {
         Objects.requireNonNull(event, "event");
         tags = tags == null ? List.of() : List.copyOf(tags);
+    }
+
+    /** A message without a badge or category (the 031 form). */
+    public PushMessage(String event, Long id, Long alertId, UUID ruleId, String severity, String title,
+            String shortTitle, String body, String linkApi, String linkApp, String linkWeb, List<String> tags,
+            String tag, String topic, boolean silent, long ts, UUID subscriptionId, String code) {
+        this(event, id, alertId, ruleId, severity, title, shortTitle, body, linkApi, linkApp, linkWeb, tags, tag, topic,
+                silent, ts, subscriptionId, code, null, null);
+    }
+
+    /** The native category of an event: {@code FORESIGNAL_ALERT}, {@code FORESIGNAL_BRIEFING}, … */
+    public static String categoryOf(String event) {
+        return "FORESIGNAL_" + (event == null ? "SYSTEM" : event.toUpperCase(java.util.Locale.ROOT));
     }
 
     /**
@@ -92,6 +109,8 @@ public record PushMessage(
         out.put("topic", topic);
         out.put("silent", silent);
         out.put("ts", ts);
+        out.put("badge", badge);
+        out.put("category", category);
         return out;
     }
 
@@ -107,7 +126,8 @@ public record PushMessage(
                 text(map.get("title")), text(map.get("shortTitle")), text(map.get("body")), text(map.get("linkApi")),
                 text(map.get("linkApp")), text(map.get("linkWeb")), tags, text(map.get("tag")), text(map.get("topic")),
                 Boolean.TRUE.equals(map.get("silent")), number(map.get("ts")) == null ? 0 : number(map.get("ts")), null,
-                null);
+                null, number(map.get("badge")) == null ? null : number(map.get("badge")).intValue(),
+                text(map.get("category")));
     }
 
     private static Long number(Object value) {

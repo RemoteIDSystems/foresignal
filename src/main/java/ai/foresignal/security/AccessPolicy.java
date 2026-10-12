@@ -255,7 +255,14 @@ public class AccessPolicy {
                 rule(HttpMethod.GET, "/v1/push/subscriptions", AccessRequirement.ADMIN),
                 rule(HttpMethod.POST, "/v1/push/subscriptions", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
                 rule(HttpMethod.POST, "/v1/push/subscriptions/*/verify", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
-                rule(HttpMethod.DELETE, "/v1/push/subscriptions/*", AccessRequirement.READ_ALWAYS_AUTHENTICATED));
+                rule(HttpMethod.DELETE, "/v1/push/subscriptions/*", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+
+                // ---- Native push (032): providers are admin; devices are managed by their own token ----
+                rule(null, "/v1/push/providers", AccessRequirement.ADMIN),
+                rule(null, "/v1/push/providers/**", AccessRequirement.ADMIN),
+                // Registering makes the server push to a device: always authenticated (023, 032).
+                rule(null, "/v1/push/devices", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(null, "/v1/push/devices/**", AccessRequirement.READ_ALWAYS_AUTHENTICATED));
     }
 
     private static Rule rule(HttpMethod method, String pattern, AccessRequirement requirement) {
