@@ -179,6 +179,24 @@ foresignal:
     # A run-in-progress mark older than this is treated as abandoned (a crash mid-run).
     stale-run: 15m
     batch-size: 20
+  enrichment:
+    # Alert enrichment (030). Whether it runs is llm.enrichmentEnabled plus each rule's enrich flag;
+    # these are mechanics. The worker subscribes to the alert bus at startup (off in tests).
+    auto-start: true
+    # Alerts waiting for a summary; more are dropped and delivered without one.
+    queue-capacity: 256
+    # Summaries written at once.
+    concurrency: 4
+    # One LLM call may take this long before it counts as failed (never retried).
+    timeout: 20s
+    # Alerts that fired longer ago are not enriched (catch-up after downtime).
+    max-age: 10m
+    # The most context sent to the model, in bytes; the lowest-ranked items are left out first.
+    max-context-bytes: 24576
+    # The output cap of one summary, in tokens.
+    max-tokens: 600
+    # A message already sent may be edited to add the summary while it is younger than this.
+    edit-window: 1h
 
 management:
   endpoints:

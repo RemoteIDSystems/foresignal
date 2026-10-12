@@ -68,6 +68,23 @@ public class NotificationStore {
         }
     }
 
+    /**
+     * Replaces the title, body and data of a stored notification (prompt 030: the enrichment summary
+     * arrived). Nothing is republished; deliveries read the row when they send.
+     *
+     * @return true when the row exists
+     */
+    public boolean refresh(long id, String title, String body, Map<String, Object> data) {
+        Boolean found = tx.execute(status -> repository.findById(id).map(e -> {
+            e.setTitle(title);
+            e.setBodyMarkdown(body);
+            e.setData(data == null ? null : new LinkedHashMap<>(data));
+            repository.save(e);
+            return true;
+        }).orElse(false));
+        return Boolean.TRUE.equals(found);
+    }
+
     /** The notification with {@code id}, if any. */
     public Optional<NotificationMessage> find(long id) {
         return repository.findById(id).map(NotificationStore::toMessage);

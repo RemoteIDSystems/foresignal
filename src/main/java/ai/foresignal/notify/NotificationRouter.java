@@ -41,7 +41,9 @@ import tools.jackson.databind.json.JsonMapper;
  *       becomes {@code alert.fired}; {@code acknowledged}, {@code snoozed} and {@code resolved}
  *       become {@code alert.acknowledged}, {@code alert.snoozed} and {@code alert.resolved} updates of
  *       the fired notification, whose text shows the new state ("✅ Resolved 14:02 CDT — …", the old
- *       body struck through). {@code updated} (feedback, unsnooze) notifies nobody.
+ *       body struck through). {@code updated} (feedback, unsnooze) notifies nobody. {@code enriched}
+ *       (prompt 030) adds the summary to the stored notification, brings sends waiting for it forward
+ *       and edits messages already sent where the channel can ({@link EnrichmentDeliveries}).
  *   <li><b>System events:</b> a source turning {@code failing} ({@code system.source_failing}), a
  *       rule hitting its storm cap ({@code system.rule_storm}) and a delivery failing for good
  *       ({@code system.delivery_failed}, never sent to the channel that failed, and not routed at all
@@ -71,18 +73,21 @@ public class NotificationRouter implements AlertListener {
     private final NotificationStore store;
     private final ChannelService channels;
     private final TriggerRuleRepository rules;
+    private final EnrichmentDeliveries enrichment;
     private final JsonMapper json;
     private final Clock clock;
     private volatile Subscription subscription;
 
     /** Creates the router. */
     public NotificationRouter(AlertBus bus, NotificationService service, NotificationStore store,
-            ChannelService channels, TriggerRuleRepository rules, JsonMapper json, Clock clock) {
+            ChannelService channels, TriggerRuleRepository rules, EnrichmentDeliveries enrichment, JsonMapper json,
+            Clock clock) {
         this.bus = bus;
         this.service = service;
         this.store = store;
         this.channels = channels;
         this.rules = rules;
+        this.enrichment = enrichment;
         this.json = json;
         this.clock = clock;
     }
@@ -113,6 +118,7 @@ public class NotificationRouter implements AlertListener {
         switch (event.type()) {
             case AlertEvent.FIRED -> fired(event.alert());
             case AlertEvent.ACKNOWLEDGED, AlertEvent.SNOOZED, AlertEvent.RESOLVED -> lifecycle(event.type(), event.alert());
+            case AlertEvent.ENRICHED -> enriched(event.alert());
             default -> { }
         }
     }
@@ -140,6 +146,17 @@ public class NotificationRouter implements AlertListener {
                 .ruleId(alert.ruleId())
                 .build();
         return service.publish(message, null);
+    }
+
+    /**
+     * Applies an enrichment summary (prompt 030): the stored {@code alert.fired} notification gets the
+     * summary, waiting sends become due and messages already sent are edited where possible.
+     */
+    public EnrichmentDeliveries.Result enriched(AlertView alert) {
+        Map<String, Object> data = data(alert);
+        String url = alertUrl(alert.id());
+        AlertTemplates.Text text = AlertTemplates.render(null, null, data, url, channels.zone(null), clock.instant());
+        return enrichment.summaryArrived(alert, data, text.title(), text.body());
     }
 
     /** Publishes {@code alert.<type>} as an update of the fired notification. */
@@ -284,6 +301,19 @@ public class NotificationRouter implements AlertListener {
         data.put("resolvedBy", a.resolvedBy());
         data.put("snoozedUntil", a.snoozedUntil() == null ? null : a.snoozedUntil().toString());
         data.put("enrich", a.ruleId() != null && rules.findById(a.ruleId()).map(r -> r.isEnrich()).orElse(false));
+        if (a.summary() != null) {
+            data.put("summary", a.summary());
+            data.put("enrichedAt", a.enrichedAt() == null ? null : a.enrichedAt().toString());
+            Object citations = null;
+            if (a.summaryCitations() != null) {
+                try {
+                    citations = json.readValue(a.summaryCitations(), List.class);
+                } catch (RuntimeException e) {
+                    citations = null;
+                }
+            }
+            data.put("summaryCitations", citations);
+        }
         Object record = null;
         if (a.recordSnapshot() != null) {
             try {

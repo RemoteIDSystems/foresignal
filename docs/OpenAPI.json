@@ -112,6 +112,11 @@
         "version": "1.3.0",
         "date": "2026-10-12",
         "note": "029: listBriefings, createBriefing, previewBriefing, getBriefing, updateBriefing, deleteBriefing, runBriefing, listBriefingRuns, getBriefingRun, getLatestBriefingRun and getDigest are implemented. Additive reconciliations: createBriefing documents that a hidden private source is reported as unknown, that scope members of later prompts (placeIds, viewId, country, admin1, county, places, weatherProducts) and a non-null audio are refused with 400 until their prompts, that unknown or disabled channels are warnings too, and the owner scope (only admin-owned briefings list private records); updateBriefing ignores output-only Briefing members; runBriefing returns a still-running run after 120 s, and runBriefing and previewBriefing turn LLM failures, refusals and budget exhaustion into a fallback run rather than 429 LLM_BUDGET_EXCEEDED; listBriefingRuns documents 400 and keeps a deleted briefing's runs; getBriefingRun documents 400 (format) and its ETag and Content-Security-Policy headers; getLatestBriefingRun returns the latest completed run; getDigest documents 400 for a hidden source, an unknown kind and places (until 056); DigestStats.healthSnapshot is always true and DigestHealthItem.since null while health transitions are not stored; DigestActive.previous and DigestCount.previous.active are null until 038; NotificationMessage.subtype lists briefing.run; Problem lists BRIEFING_RUNNING (409). The MCP server adds list_briefings, get_briefing_run, get_digest, create_briefing and run_briefing (info.description). The Digest schema, BriefingRun.warnings, the text/html run renditions and AccessPolicy's GET /v1/digest read rule follow the spec as already written."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-12",
+        "note": "030: alert enrichment. No new operations; AccessPolicy is unchanged. Additive reconciliations: streamAlerts' alert.enriched event carries id = the alert's new rev (not the alert id), because the stream resumes by rev and enrichment bumps it like every other alert change; streamEvents' alert.enriched carries the composite cursor like the other alert events; streamAlerts documents alert.enriched as an upsert of the same alert. Alert.summary, enrichedAt and summaryCitations describe when they are null or empty; TriggerRuleInput.enrich documents that it is accepted without a provider. The Alert members, the alert.enriched schema (Alert) and the TriggerRuleInput bounds (enrichRadiusKm 1-1000, enrichWindow 10m-7d) follow the spec as already written."
       }
     ]
   },
@@ -4855,7 +4860,7 @@
         ],
         "operationId": "streamAlerts",
         "summary": "Live alert stream (SSE)",
-        "description": "Alert lifecycle as SSE: `alert` (fired), `alert.updated` and `alert.resolved`, data AlertEvent, `id:` = alert rev. Resume replays rows with rev > Last-Event-ID in their current state; clients upsert by alert id. A malformed Last-Event-ID is 400 INVALID_CURSOR. Anonymous callers never see alerts of private sources.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "Alert lifecycle as SSE: `alert` (fired), `alert.updated` and `alert.resolved`, data AlertEvent, `id:` = alert rev. Resume replays rows with rev > Last-Event-ID in their current state; clients upsert by alert id. A malformed Last-Event-ID is 400 INVALID_CURSOR. Anonymous callers never see alerts of private sources. `alert.enriched` (030, data Alert) is an update of the same alert with its enrichment summary; clients treat it as an upsert by alert id. A replay sends each alert once in its current state, summary included.\n\n**Scope:** `read` (open while `security.openReads` is on).",
         "parameters": [
           {
             "name": "Last-Event-ID",
@@ -5109,8 +5114,9 @@
               "$ref": "#/components/schemas/Alert"
             },
             "id": true,
-            "description": "Update of the same alert with summary and citations (030); id = alert id",
-            "prompt": "030"
+            "description": "Update of the same alert carrying its summary and summaryCitations (030); data is the full Alert, id = the alert's new rev like every alert event, so resuming is unchanged; clients upsert by alert id",
+            "prompt": "030",
+            "idValue": "alert rev"
           }
         },
         "x-foresignal-extended-by": [
@@ -11736,7 +11742,10 @@
               "$ref": "#/components/schemas/Alert"
             },
             "topic": "alerts",
-            "prompt": "030"
+            "prompt": "030",
+            "id": true,
+            "idValue": "composite cursor, e.g. c=1234;a=56;n=7",
+            "description": "Topic alerts: update of the same alert with its enrichment summary (030); data is the full Alert"
           },
           "badge": {
             "schema": {
@@ -85814,7 +85823,7 @@
           "enrich": {
             "type": "boolean",
             "default": false,
-            "description": "Add an LLM context summary to each alert (requires a chat provider)"
+            "description": "Add an LLM context summary to each alert (030). Accepted without a chat provider: the flag is stored and enrichment is skipped until one is assigned and llm.enrichmentEnabled is on"
           },
           "enrichRadiusKm": {
             "type": "number",
@@ -86387,14 +86396,15 @@
               "string",
               "null"
             ],
-            "description": "LLM context summary when the rule has enrich=true"
+            "description": "LLM context summary when the rule has enrich=true (030): at most about 120 words with [source:externalId@seq] and [alert:id] citations (unverifiable ones removed); null until enriched, and when enrichment was skipped or failed"
           },
           "enrichedAt": {
             "type": [
               "string",
               "null"
             ],
-            "format": "date-time"
+            "format": "date-time",
+            "description": "When the summary was stored (030); null until enriched"
           },
           "record": {
             "allOf": [
@@ -86521,7 +86531,7 @@
             "items": {
               "$ref": "#/components/schemas/AskCitation"
             },
-            "description": "Verified citations of the enrichment summary"
+            "description": "Verified citations of the enrichment summary (030); empty until enriched"
           },
           "sensitive": {
             "type": "boolean",

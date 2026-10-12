@@ -44,6 +44,11 @@ foresignal:
   # The briefing scheduler does not tick in tests; BriefingSchedulerIT calls BriefingScheduler.tick().
   briefing:
     scheduled: false
+  # The enrichment worker does not subscribe on its own in tests (EnrichmentWorkerIT starts it), and
+  # the LLM timeout is short so EnrichmentWorkerIT can provoke a timeout quickly.
+  enrichment:
+    auto-start: false
+    timeout: 2s
 
 logging:
   level:

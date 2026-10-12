@@ -991,6 +991,62 @@ sources never go to a non-local provider. Usage is recorded per run.
   deleted, and are searchable with `docType=briefing` when semantic search is on. MCP agents use
   `list_briefings`, `get_briefing_run`, `create_briefing` and `run_briefing`.
 
+## Alert enrichment
+
+With a chat provider assigned, a rule can ask for a short summary of what Foresignal knows around each
+of its alerts. Set `enrich: true` on the rule, optionally with `enrichRadiusKm` (1 to 1,000, default
+100) and `enrichWindow` (10m to 7d, default 24h):
+
+```json
+PUT /v1/triggers/{ruleId}
+{"name": "Big quakes", "sources": ["usgs-earthquakes"], "conditions": [{"path": "mag", "op": ">=", "value": 5}],
+ "enrich": true, "enrichRadiusKm": 150, "enrichWindow": "12h"}
+```
+
+`enrich: true` is accepted without a provider: it is stored and enrichment is skipped until a chat
+provider is assigned. `PUT /v1/llm/settings` with `"enrichmentEnabled": false` switches enrichment off
+everywhere. `testTrigger` reports `"enrich": true` without calling the model.
+
+**What the model reads.** Around the alert's observation time `T`, within the radius and `T ±
+enrichWindow`: the record and up to 10 of its earlier versions, records of any kind nearby (also ones
+that only moved, without a new version), up to 10 nearby alerts and, when semantic search is on, the
+5 best search matches for the alert message. A record without a location gets its history and the
+search matches only. The context is capped at 24 KB; the least relevant items are left out first.
+
+**What it writes.** At most about 120 words for the operator: what happened, what is nearby or
+related, and why it might matter, citing records as `[source:externalId@seq]` and alerts as
+`[alert:id]`. Citations are checked against what the model was given and the ones it invented are
+removed. "No notable related activity" means it found nothing relevant. The summary appears as
+`summary`, `enrichedAt` and `summaryCitations` on `GET /v1/alerts/{id}` and in lists, in MCP
+`get_alert`, and as an `alert.enriched` event on `/v1/alerts/stream` and the `alerts` topic of
+`/v1/events/stream` (the full alert; treat it as an update of the alert with the same id).
+
+**Waiting or editing, per channel.** Enrichment never holds a message back longer than the channel
+allows:
+
+| Channel | What happens |
+|---|---|
+| Any type with `waitForEnrichmentSeconds` > 0 (up to 60) | The alert waits up to that long. When the summary arrives the message is sent at once, with it; if it does not arrive in time, the message goes out without it. |
+| `discord`, `telegram`, `matrix` with `editInPlace` on (the default) | A message already sent without the summary is edited to add it, if it is less than an hour old. |
+| Every other type, wait 0 | The message goes out at once without the summary, and nothing more is sent: no follow-up message. |
+
+`{{summary}}` is in the default body; a custom `bodyTemplate` must include it to show the summary.
+Slack and Mattermost incoming webhooks cannot edit messages, so give those channels a wait (10 to 20
+seconds is usually enough) if you want the summary in them.
+
+**Cost per alert.** One call per enriched alert, never retried: up to about 6,000 input tokens (the
+24 KB context plus a fixed system prompt that providers can cache) and at most 600 output tokens, at
+effort `low`. A rule that fires often multiplies that; the LLM budget refuses calls once the day's
+tokens are spent, and those alerts go out without a summary. Alerts older than 10 minutes (catch-up
+after downtime) are not enriched. Usage shows under purpose `enrichment` in `GET /v1/llm/usage`, and
+`foresignal.enrichment.succeeded`, `.failed{reason}`, `.skipped{reason}`, `.dropped` and `.duration`
+are exported as metrics.
+
+**What leaves the box.** The context goes to the chat provider. Records of private sources are left
+out for a remote provider and sent only to a local one, and an alert on a private source is not
+enriched at all by a remote provider. Record text is treated as data: instructions hidden in a record
+are not followed, and the model is offered no tools, so it cannot change anything.
+
 ## Retention
 
 `GET /v1/settings/retention` shows every window; `PUT` replaces the whole object (every window at

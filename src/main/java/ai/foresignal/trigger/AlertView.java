@@ -34,6 +34,9 @@ import java.util.UUID;
  * @param suppressedReason {@code alert_snoozed} or {@code rule_snoozed}, or null
  * @param tags the rule's tags at fire time
  * @param recordSnapshot the record snapshot as JSON text, or null
+ * @param summary the enrichment summary (prompt 030), or null
+ * @param enrichedAt when the summary was stored, or null
+ * @param summaryCitations the summary's verified citations as a JSON array text, or null
  */
 public record AlertView(
         long id,
@@ -61,11 +64,30 @@ public record AlertView(
         boolean suppressed,
         String suppressedReason,
         List<String> tags,
-        String recordSnapshot) {
+        String recordSnapshot,
+        String summary,
+        Instant enrichedAt,
+        String summaryCitations) {
 
     /** Copies the tags. */
     public AlertView {
         tags = tags == null ? List.of() : List.copyOf(tags);
+    }
+
+    /** An alert that has not been enriched (no summary, no citations). */
+    public AlertView(long id, UUID ruleId, String ruleName, long seq, String sourceId, String externalId, String kind,
+            Instant firedAt, Instant observedAt, String message, String severity, String state, long rev,
+            Instant acknowledgedAt, String acknowledgedBy, Instant resolvedAt, String resolvedBy, Long resolvedSeq,
+            String feedback, Instant feedbackAt, String note, Instant snoozedUntil, boolean suppressed,
+            String suppressedReason, List<String> tags, String recordSnapshot) {
+        this(id, ruleId, ruleName, seq, sourceId, externalId, kind, firedAt, observedAt, message, severity, state, rev,
+                acknowledgedAt, acknowledgedBy, resolvedAt, resolvedBy, resolvedSeq, feedback, feedbackAt, note,
+                snoozedUntil, suppressed, suppressedReason, tags, recordSnapshot, null, null, null);
+    }
+
+    /** True when an enrichment summary is stored. */
+    public boolean enriched() {
+        return summary != null;
     }
 
     /** True when the alert is not resolved. */

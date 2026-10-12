@@ -44,7 +44,8 @@ public class AlertStore {
             "a.id, a.rule_id, r.name AS rule_name, a.seq, a.source_id, a.external_id, a.kind, a.fired_at, a.observed_at,"
                     + " a.message, a.severity, a.state, a.rev, a.acknowledged_at, a.acknowledged_by, a.resolved_at,"
                     + " a.resolved_by, a.resolved_seq, a.feedback, a.feedback_at, a.note, a.snoozed_until, a.suppressed,"
-                    + " a.suppressed_reason, a.tags::text AS tags, a.record_snapshot::text AS record_snapshot";
+                    + " a.suppressed_reason, a.tags::text AS tags, a.record_snapshot::text AS record_snapshot,"
+                    + " a.summary, a.enriched_at, a.summary_citations::text AS summary_citations";
 
     static final String FROM = " FROM alert a LEFT JOIN trigger_rule r ON r.id = a.rule_id";
 
@@ -90,6 +91,26 @@ public class AlertStore {
         List<AlertView> rows = jdbc.query(
                 "SELECT " + COLUMNS + FROM + " WHERE a.id = :id", new MapSqlParameterSource("id", id), mapper);
         return rows.stream().findFirst();
+    }
+
+    /** The alerts among {@code ids} that exist, in the order of {@code ids} (prompt 030). */
+    public List<AlertView> findAll(List<Long> ids) {
+        if (ids.isEmpty()) {
+            return List.of();
+        }
+        Map<Long, AlertView> byId = new HashMap<>();
+        for (AlertView view : jdbc.query("SELECT " + COLUMNS + FROM + " WHERE a.id = ANY(CAST(:ids AS bigint[]))",
+                new MapSqlParameterSource("ids", PgArrays.bigint(ids)), mapper)) {
+            byId.put(view.id(), view);
+        }
+        List<AlertView> out = new ArrayList<>(byId.size());
+        for (Long id : ids) {
+            AlertView view = byId.get(id);
+            if (view != null) {
+                out.add(view);
+            }
+        }
+        return out;
     }
 
     /**
@@ -408,7 +429,10 @@ public class AlertStore {
                 rs.getBoolean("suppressed"),
                 rs.getString("suppressed_reason"),
                 tags == null ? List.of() : json.readValue(tags, STRINGS),
-                rs.getString("record_snapshot"));
+                rs.getString("record_snapshot"),
+                rs.getString("summary"),
+                instant(rs, "enriched_at"),
+                rs.getString("summary_citations"));
     }
 
     static Instant instant(ResultSet rs, String label) throws SQLException {

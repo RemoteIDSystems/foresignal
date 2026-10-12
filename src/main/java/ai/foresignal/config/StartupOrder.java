@@ -38,6 +38,12 @@ public final class StartupOrder {
     /** The notification router's alert bus subscription, before the engine fires alerts (prompt 018). */
     public static final int NOTIFY_ROUTER = 18;
 
+    /**
+     * The enrichment worker's alert bus subscription (prompt 030), after the notification router and
+     * before the trigger engine fires alerts.
+     */
+    public static final int ENRICHMENT = 19;
+
     /** The trigger engine (prompt 017). */
     public static final int TRIGGER_ENGINE = 20;
 

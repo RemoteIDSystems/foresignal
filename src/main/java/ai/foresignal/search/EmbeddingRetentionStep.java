@@ -9,7 +9,9 @@ import org.springframework.stereotype.Component;
  * Retention for {@code embedding_document} (prompt 027, the 019 step mechanism): deletes record
  * documents whose head no longer exists (purged by retention or removed), in chunks. Runs after the
  * head purges (order 400); a head purged asynchronously by the writer after this step is cleaned on
- * the next run. Briefing and alert documents follow their own prompts (029, 030).
+ * the next run. Briefing documents follow their runs (029). Alert documents (enriched alerts, 030)
+ * whose alert no longer exists are deleted here too; alerts are deleted by the operational-tables
+ * step (order 700), so their documents go on the following run.
  */
 @Component
 public class EmbeddingRetentionStep implements RetentionStep {
@@ -24,6 +26,14 @@ public class EmbeddingRetentionStep implements RetentionStep {
                  AND NOT EXISTS (SELECT 1 FROM record_head h
                                   WHERE h.source_id = d.source_id
                                     AND h.external_id = substring(d.doc_id FROM char_length(d.source_id) + 2))
+               LIMIT :limit)
+            """;
+
+    static final String DELETE_ALERT_ORPHANS = """
+            DELETE FROM embedding_document WHERE (doc_type, doc_id) IN (
+              SELECT d.doc_type, d.doc_id FROM embedding_document d
+               WHERE d.doc_type = 'alert'
+                 AND NOT EXISTS (SELECT 1 FROM alert a WHERE a.id::text = d.doc_id)
                LIMIT :limit)
             """;
 
@@ -43,6 +53,10 @@ public class EmbeddingRetentionStep implements RetentionStep {
         int deleted;
         do {
             deleted = run.jdbc().update(DELETE_ORPHANS, new MapSqlParameterSource("limit", CHUNK));
+            total += deleted;
+        } while (deleted == CHUNK);
+        do {
+            deleted = run.jdbc().update(DELETE_ALERT_ORPHANS, new MapSqlParameterSource("limit", CHUNK));
             total += deleted;
         } while (deleted == CHUNK);
         run.deleted("embedding_document", total);

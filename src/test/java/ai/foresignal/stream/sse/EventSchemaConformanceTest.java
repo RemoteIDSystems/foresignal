@@ -90,6 +90,7 @@ class EventSchemaConformanceTest {
             entry("alert", () -> alertEvents("alert")),
             entry("alert.updated", () -> alertEvents("alert.updated")),
             entry("alert.resolved", () -> alertEvents("alert.resolved")),
+            entry("alert.enriched", EventSchemaConformanceTest::enrichedAlerts),
             entry("notification", () -> List.of(toTree(NotificationJson.toMap(NotifyFixtures.message())),
                     toTree(NotificationJson.toMap(NotifyFixtures.update("alert.resolved"))))),
             entry("system", () -> List.of(toTree(NotificationJson.toMap(systemMessage())))));
@@ -351,6 +352,27 @@ class EventSchemaConformanceTest {
             if (event.sseEvent().equals(sseName)) {
                 out.add(toTree(new AlertMapper().event(event)));
             }
+        }
+        return out;
+    }
+
+    /**
+     * {@code alert.enriched} payloads (prompt 030): the full {@code Alert} as {@link AlertsTopic} sends it,
+     * with a summary and its citations, and an alert whose rule was deleted.
+     */
+    private static List<JsonNode> enrichedAlerts() {
+        List<JsonNode> out = new ArrayList<>();
+        for (String ruleName : java.util.Arrays.asList("Quakes", null)) {
+            AlertView a = alert(AlertEvent.FIRED, ruleName);
+            AlertView enriched = new AlertView(a.id(), a.ruleId(), a.ruleName(), a.seq(), a.sourceId(), a.externalId(),
+                    a.kind(), a.firedAt(), a.observedAt(), a.message(), a.severity(), a.state(), a.rev() + 1,
+                    a.acknowledgedAt(), a.acknowledgedBy(), a.resolvedAt(), a.resolvedBy(), a.resolvedSeq(), a.feedback(),
+                    a.feedbackAt(), a.note(), a.snoozedUntil(), a.suppressed(), a.suppressedReason(), a.tags(),
+                    a.recordSnapshot(), "A M5.1 near Somewhere [usgs-earthquakes:us7000abcd@41] [alert:7].",
+                    T.plusSeconds(5), "[{\"id\":\"usgs-earthquakes:us7000abcd\",\"seq\":41,\"title\":\"M5.1\","
+                            + "\"type\":\"record\"},{\"id\":\"alert:7\",\"seq\":null,\"title\":\"Quakes\","
+                            + "\"type\":\"alert\"}]");
+            out.add(toTree(new AlertMapper().alert(enriched, null)));
         }
         return out;
     }

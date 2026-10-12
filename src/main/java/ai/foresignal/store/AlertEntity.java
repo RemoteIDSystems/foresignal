@@ -144,6 +144,20 @@ public class AlertEntity {
     @Column(name = "record_snapshot")
     private Map<String, Object> recordSnapshot;
 
+    /** The enrichment summary (prompt 030), or null until enriched. */
+    @Column(name = "summary", columnDefinition = "text")
+    private String summary;
+
+    /** When the enrichment summary was stored (prompt 030), or null. */
+    @JdbcTypeCode(SqlTypes.TIMESTAMP_UTC)
+    @Column(name = "enriched_at")
+    private Instant enrichedAt;
+
+    /** The verified citations of the summary ({@code AskCitation} objects, prompt 030), or null. */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "summary_citations")
+    private List<Map<String, Object>> summaryCitations;
+
     protected AlertEntity() {
         // for JPA
     }
@@ -323,5 +337,20 @@ public class AlertEntity {
     /** Sets the record snapshot. */
     public void setRecordSnapshot(Map<String, Object> recordSnapshot) {
         this.recordSnapshot = recordSnapshot;
+    }
+
+    /** The enrichment summary, or null. */
+    public String getSummary() {
+        return summary;
+    }
+
+    /** When the summary was stored, or null. */
+    public Instant getEnrichedAt() {
+        return enrichedAt;
+    }
+
+    /** The verified citations of the summary, or null. */
+    public List<Map<String, Object>> getSummaryCitations() {
+        return summaryCitations;
     }
 }

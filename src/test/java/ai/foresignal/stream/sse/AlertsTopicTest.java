@@ -109,6 +109,24 @@ class AlertsTopicTest {
     }
 
     @Test
+    @DisplayName("alert.enriched carries the full Alert with its summary, id = the alert's new rev (prompt 030)")
+    void enrichedFrame() {
+        AlertView a = alert(8, "firing", null, null);
+        AlertView enriched = new AlertView(a.id(), a.ruleId(), a.ruleName(), a.seq(), a.sourceId(), a.externalId(), a.kind(),
+                a.firedAt(), a.observedAt(), a.message(), a.severity(), a.state(), 9, null, null, null, null, null, null,
+                null, null, null, false, null, List.of(), a.recordSnapshot(), "Quiet nearby.", T, "[]");
+        FifoEvent frame = topic.event(AlertEvent.of(AlertEvent.ENRICHED, enriched));
+        assertThat(frame.event()).isEqualTo("alert.enriched");
+        assertThat(frame.cursor()).isEqualTo(9);
+        Map<String, Object> data = frame.data();
+        assertThat(data).containsEntry("id", 8L).containsEntry("summary", "Quiet nearby.").containsKey("summaryCitations")
+                .doesNotContainKey("type");
+        FifoEvent fired = topic.event(AlertEvent.of(AlertEvent.FIRED, a));
+        assertThat(fired.event()).isEqualTo("alert");
+        assertThat(fired.data()).containsKey("type");
+    }
+
+    @Test
     @DisplayName("replayed alerts are sent as their current state, in rev order, with id = rev")
     void replay() {
         when(store.afterRev(any(), anyLong(), anyInt())).thenReturn(List.of(

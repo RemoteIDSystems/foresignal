@@ -4,10 +4,15 @@ import ai.foresignal.api.support.RawJson;
 import ai.foresignal.trigger.AlertEvent;
 import ai.foresignal.trigger.AlertView;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import org.springframework.stereotype.Component;
 
-/** Maps alerts to the {@code Alert} and {@code AlertEvent} schemas (prompt 017). */
+/**
+ * Maps alerts to the {@code Alert} and {@code AlertEvent} schemas (prompt 017). Prompt 030 adds the
+ * enrichment members {@code summary}, {@code enrichedAt} and {@code summaryCitations} (an empty
+ * array until the alert is enriched).
+ */
 @Component
 public class AlertMapper {
 
@@ -45,6 +50,9 @@ public class AlertMapper {
         out.put("suppressedReason", alert.suppressedReason());
         out.put("tags", alert.tags());
         out.put("recordSnapshot", RawJson.of(alert.recordSnapshot()));
+        out.put("summary", alert.summary());
+        out.put("enrichedAt", alert.enrichedAt());
+        out.put("summaryCitations", alert.summaryCitations() == null ? List.of() : RawJson.of(alert.summaryCitations()));
         if (record != null) {
             out.put("record", record);
         }

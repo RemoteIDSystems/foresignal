@@ -34,7 +34,10 @@ import tools.jackson.databind.JsonNode;
  * {@code /v1/events/stream}.
  *
  * <p>Events: {@code alert} (fired), {@code alert.updated} and {@code alert.resolved}, each with an
- * {@code AlertEvent}. Live events come from one {@link AlertBus} subscription shared by every client.
+ * {@code AlertEvent}, and {@code alert.enriched} (prompt 030) with the full {@code Alert}: an update
+ * of the same alert carrying its summary, whose id is the alert's new {@code rev} like every other
+ * event, so resuming is unchanged. A replay sends the alert once in its current state, summary
+ * included. Live events come from one {@link AlertBus} subscription shared by every client.
  * A resume replays the alerts with {@code rev > cursor} in their <em>current</em> state, so a client
  * upserts by alert id; an alert changed several times while the client was away is replayed once.
  *
@@ -193,8 +196,10 @@ public class AlertsTopic implements EventTopic<AlertQuery>, AlertListener {
         return AlertEvent.of(type, alert);
     }
 
-    private FifoEvent event(AlertEvent event) {
-        Map<String, Object> data = mapper.event(event);
+    /** The frame of {@code event}: an {@code AlertEvent}, or the full {@code Alert} for {@code alert.enriched}. */
+    FifoEvent event(AlertEvent event) {
+        Map<String, Object> data = AlertEvent.ENRICHED.equals(event.type())
+                ? mapper.alert(event.alert(), null) : mapper.event(event);
         return new FifoEvent(NAME, event.alert().rev(), event.sseEvent(), data, null);
     }
 

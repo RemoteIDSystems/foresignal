@@ -10,8 +10,13 @@ import java.util.Objects;
  * under a snooze) are published too, flagged, so prompt 018 does not route them and the streams hide
  * them unless asked.
  *
- * @param type {@code fired}, {@code updated}, {@code acknowledged}, {@code snoozed} or
- *     {@code resolved}
+ * <p>{@link #ENRICHED} (prompt 030) is published when an enrichment summary is stored. The streams
+ * send it as {@code alert.enriched} with the full {@code Alert} as data (an update of the same
+ * alert); the notification router uses it to bring waiting deliveries forward and to edit messages
+ * already sent.
+ *
+ * @param type {@code fired}, {@code updated}, {@code acknowledged}, {@code snoozed},
+ *     {@code resolved} or {@code enriched}
  * @param alert the alert after the transition
  * @param suppressed true when the alert was suppressed by a snooze
  */
@@ -32,6 +37,9 @@ public record AlertEvent(String type, AlertView alert, boolean suppressed) {
     /** Resolved, by hand or automatically. */
     public static final String RESOLVED = "resolved";
 
+    /** The enrichment summary was stored (prompt 030). */
+    public static final String ENRICHED = "enriched";
+
     /** Requires a type and an alert. */
     public AlertEvent {
         Objects.requireNonNull(type, "type");
@@ -43,11 +51,15 @@ public record AlertEvent(String type, AlertView alert, boolean suppressed) {
         return new AlertEvent(type, alert, alert.suppressed());
     }
 
-    /** The SSE event name: {@code alert}, {@code alert.updated} or {@code alert.resolved}. */
+    /**
+     * The SSE event name: {@code alert}, {@code alert.updated}, {@code alert.resolved} or
+     * {@code alert.enriched}.
+     */
     public String sseEvent() {
         return switch (type) {
             case FIRED -> "alert";
             case RESOLVED -> "alert.resolved";
+            case ENRICHED -> "alert.enriched";
             default -> "alert.updated";
         };
     }

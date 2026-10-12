@@ -5,6 +5,8 @@ import ai.foresignal.store.DeliveryKind;
 import ai.foresignal.store.NotificationChannelEntity;
 import ai.foresignal.store.NotificationChannelRepository;
 import ai.foresignal.store.NotificationDeliveryEntity;
+import ai.foresignal.trigger.AlertStore;
+import ai.foresignal.trigger.AlertView;
 import java.io.IOException;
 import java.time.Clock;
 import java.time.Duration;
@@ -44,8 +46,15 @@ import org.springframework.stereotype.Component;
  *   <li>the channel's Bucket4j bucket must have a token, else it is rescheduled without counting an
  *       attempt;
  *   <li>the message is built (channel templates for a fired alert, a digest, or the stored update),
- *       rendered by the type, and sent.
+ *       rendered by the type, and sent. A fired alert is rendered from the <em>latest</em> alert's
+ *       enrichment summary (prompt 030), not the copy taken when it was routed, so a send that
+ *       waited for the summary includes it.
  * </ol>
+ *
+ * <p>An {@code update} delivery of an {@code alert.fired} notification itself (rather than of a
+ * lifecycle update naming it) is the enrichment edit of prompt 030: it edits the original message
+ * into the re-rendered one with the summary. When the edit cannot be made it is settled with a note
+ * and nothing is sent, so a channel never receives a second copy of the alert.
  *
  * <p>Outcomes: 2xx is delivered and the type's {@link ChannelType#extractRef} is stored; a partial
  * success (Apprise 424) is delivered with a warning and never retried; 429 honors
@@ -85,13 +94,14 @@ public class DeliveryWorker {
     private final NotificationService service;
     private final NotificationRouter router;
     private final NotifyProperties properties;
+    private final AlertStore alerts;
     private final Clock clock;
 
     /** Creates the worker. */
     public DeliveryWorker(DeliveryStore deliveries, NotificationStore notifications,
             NotificationChannelRepository channels, ChannelService channelService, ChannelTypeRegistry types,
             ChannelSender sender, ChannelRateLimiter limiter, NotificationService service, NotificationRouter router,
-            NotifyProperties properties, Clock clock) {
+            NotifyProperties properties, AlertStore alerts, Clock clock) {
         this.deliveries = deliveries;
         this.notifications = notifications;
         this.channels = channels;
@@ -102,6 +112,7 @@ public class DeliveryWorker {
         this.service = service;
         this.router = router;
         this.properties = properties;
+        this.alerts = alerts;
         this.clock = clock;
     }
 
@@ -222,7 +233,19 @@ public class DeliveryWorker {
         String kind = d.getKind();
         PreparedRequest request;
         boolean edited = false;
-        if (DeliveryKind.UPDATE.equals(kind) || DeliveryKind.FOLLOWUP.equals(kind)) {
+        boolean enrichmentEdit = DeliveryKind.UPDATE.equals(kind) && stored.updateOf() == null;
+        if (enrichmentEdit) {
+            String ref = originalRef(channel.getId(), stored.id());
+            Optional<PreparedRequest> update = channel.isEditInPlace() && ref != null
+                    ? type.renderUpdate(message, ref, settings) : Optional.empty();
+            if (update.isEmpty()) {
+                deliveries.delivered(d.getId(), kind, null, false,
+                        "the original message cannot be edited; the summary was not sent separately", now);
+                return;
+            }
+            request = update.get();
+            edited = true;
+        } else if (DeliveryKind.UPDATE.equals(kind) || DeliveryKind.FOLLOWUP.equals(kind)) {
             String ref = originalRef(channel.getId(), stored.updateOf());
             for (PreparedRequest pre : type.beforeUpdate(message, ref, settings)) {
                 try {
@@ -309,14 +332,38 @@ public class DeliveryWorker {
         return withTemplates(stored, channel, zone, now);
     }
 
-    private static NotificationMessage withTemplates(NotificationMessage m, NotificationChannelEntity channel, ZoneId zone,
+    private NotificationMessage withTemplates(NotificationMessage m, NotificationChannelEntity channel, ZoneId zone,
             Instant now) {
         if (!NotificationMessage.ALERT.equals(m.event()) || !"alert.fired".equals(m.subtype())) {
             return m;
         }
-        AlertTemplates.Text text = AlertTemplates.render(channel.getTitleTemplate(), channel.getBodyTemplate(), m.data(),
+        Map<String, Object> data = withLatestSummary(m);
+        AlertTemplates.Text text = AlertTemplates.render(channel.getTitleTemplate(), channel.getBodyTemplate(), data,
                 m.url(), zone, now);
         return m.withText(text.title(), text.body());
+    }
+
+    /**
+     * The notification's alert JSON with the alert's current enrichment summary (prompt 030), read at
+     * send time; the stored copy when the alert has none or is gone.
+     */
+    Map<String, Object> withLatestSummary(NotificationMessage m) {
+        if (m.alertId() == null) {
+            return m.data();
+        }
+        Optional<AlertView> alert;
+        try {
+            alert = alerts.find(m.alertId());
+        } catch (RuntimeException e) {
+            log.warn("Could not read alert {} for its summary: {}", m.alertId(), e.getMessage());
+            return m.data();
+        }
+        if (alert.isEmpty() || alert.get().summary() == null) {
+            return m.data();
+        }
+        Map<String, Object> data = m.data() == null ? new LinkedHashMap<>() : new LinkedHashMap<>(m.data());
+        data.put("summary", alert.get().summary());
+        return data;
     }
 
     private String originalRef(UUID channelId, Long originalNotificationId) {

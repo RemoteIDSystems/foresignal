@@ -66,7 +66,8 @@ public class AlertItems {
 
     /**
      * An alert with its record: the matching version loaded by seq while it is retained, otherwise
-     * the alert's {@code recordSnapshot} ({@code recordFrom} says which).
+     * the alert's {@code recordSnapshot} ({@code recordFrom} says which). Both forms carry the
+     * enrichment {@code summary}, {@code enrichedAt} and {@code summaryCitations} (prompt 030).
      */
     public ObjectNode withRecord(AlertView alert, Detail detail) {
         RecordRow row = queries.versionsBySeq(List.of(alert.seq())).get(alert.seq());
@@ -86,6 +87,13 @@ public class AlertItems {
         }
         if (detail == Detail.SHORT) {
             out.remove("recordSnapshot");
+            // The enrichment summary and its citations (prompt 030) are part of get_alert's short form.
+            for (String member : List.of("summary", "enrichedAt", "summaryCitations")) {
+                JsonNode value = full.get(member);
+                if (value != null && !value.isNull()) {
+                    out.set(member, value);
+                }
+            }
         }
         return out;
     }

@@ -1928,7 +1928,7 @@
                 }
               ]
             },
-            "description": "Alert lifecycle as SSE: `alert` (fired), `alert.updated` and `alert.resolved`, data AlertEvent, `id:` = alert rev. Resume replays rows with rev > Last-Event-ID in their current state; clients upsert by alert id. A malformed Last-Event-ID is 400 INVALID_CURSOR. Anonymous callers never see alerts of private sources.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `streamAlerts`",
+            "description": "Alert lifecycle as SSE: `alert` (fired), `alert.updated` and `alert.resolved`, data AlertEvent, `id:` = alert rev. Resume replays rows with rev > Last-Event-ID in their current state; clients upsert by alert id. A malformed Last-Event-ID is 400 INVALID_CURSOR. Anonymous callers never see alerts of private sources. `alert.enriched` (030, data Alert) is an update of the same alert with its enrichment summary; clients treat it as an upsert by alert id. A replay sends each alert once in its current state, summary included.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `streamAlerts`",
             "auth": {
               "type": "noauth"
             }
@@ -2218,7 +2218,7 @@
                 }
               ]
             },
-            "description": "Alert lifecycle as SSE: `alert` (fired), `alert.updated` and `alert.resolved`, data AlertEvent, `id:` = alert rev. Resume replays rows with rev > Last-Event-ID in their current state; clients upsert by alert id. A malformed Last-Event-ID is 400 INVALID_CURSOR. Anonymous callers never see alerts of private sources.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `streamAlerts`",
+            "description": "Alert lifecycle as SSE: `alert` (fired), `alert.updated` and `alert.resolved`, data AlertEvent, `id:` = alert rev. Resume replays rows with rev > Last-Event-ID in their current state; clients upsert by alert id. A malformed Last-Event-ID is 400 INVALID_CURSOR. Anonymous callers never see alerts of private sources. `alert.enriched` (030, data Alert) is an update of the same alert with its enrichment summary; clients treat it as an upsert by alert id. A replay sends each alert once in its current state, summary included.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `streamAlerts`",
             "auth": {
               "type": "noauth"
             }
