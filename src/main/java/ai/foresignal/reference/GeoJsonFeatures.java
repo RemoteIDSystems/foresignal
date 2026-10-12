@@ -13,6 +13,7 @@ import org.locationtech.jts.geom.PrecisionModel;
 import org.locationtech.jts.geom.util.GeometryFixer;
 import tools.jackson.core.JsonParser;
 import tools.jackson.core.JsonToken;
+import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -28,7 +29,15 @@ public final class GeoJsonFeatures {
     public static final int MAX_FEATURE_VERTICES = 5_000_000;
 
     private static final GeometryFactory WGS84 = new GeometryFactory(new PrecisionModel(), 4326);
-    private static final JsonMapper JSON = JsonMapper.builder().build();
+    /**
+     * Reads one feature tree at a time from a parser positioned inside the {@code features} array. Jackson 3
+     * enables {@code FAIL_ON_TRAILING_TOKENS} by default, which refuses a tree read that leaves the next
+     * feature behind it; streaming needs it off (checkpoint 041: every Natural Earth load failed with
+     * "Trailing token found after value").
+     */
+    private static final JsonMapper JSON = JsonMapper.builder()
+            .disable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS)
+            .build();
 
     private GeoJsonFeatures() {}
 

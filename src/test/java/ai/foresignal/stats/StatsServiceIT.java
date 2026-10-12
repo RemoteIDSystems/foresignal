@@ -152,7 +152,10 @@ class StatsServiceIT extends StatsItSupport {
         assertThat(grid.toMap()).containsEntry("type", "FeatureCollection");
         assertThatThrownBy(() -> stats.grid(List.of(POINTS), List.of(), BboxParser.parse("5,45,25,60"), T0, H1,
                 StatsMeasure.VERSIONS, 9, "rollup", null, Set.of(), ReadRestriction.NONE))
-                .isInstanceOf(ValidationException.class).hasMessageContaining("cellRes");
+                .isInstanceOf(ValidationException.class)
+                // The field error carries the reason; the exception message is the generic detail (checkpoint 041).
+                .satisfies(e -> assertThat(((ValidationException) e).getErrors()).singleElement()
+                        .satisfies(err -> assertThat(err.message()).contains("cellRes")));
         assertThatThrownBy(() -> stats.grid(List.of(POINTS), List.of(), null, T0, H1, StatsMeasure.VERSIONS, null,
                 "rollup", null, Set.of(), ReadRestriction.NONE)).isInstanceOf(ValidationException.class);
     }

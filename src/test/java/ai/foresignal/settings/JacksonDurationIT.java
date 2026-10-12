@@ -58,7 +58,8 @@ class JacksonDurationIT {
                         "{\"default\":\"7d\",\"alerts\":\"90d\",\"usage\":\"30d\","
                                 + "\"sources\":{\"usgs-earthquakes\":\"3650d\"},\"trackWindow\":\"3d\","
                                 + "\"provenance\":\"30d\",\"notifications\":\"90d\",\"briefings\":\"180d\","
-                                + "\"ask\":\"90d\",\"kinds\":{}}");
+                                + "\"ask\":\"90d\",\"kinds\":{},\"audit\":\"90d\",\"inbox\":\"30d\","
+                                + "\"stats\":{\"hourly\":\"35d\",\"daily\":\"1825d\"}}");
     }
 
     @Test

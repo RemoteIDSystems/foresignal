@@ -180,6 +180,19 @@ class PostmanCollectionContractTest {
                             .as("dataset %s", name).isPresent())),
             Map.entry("rebuildStatsRollup", body -> assertThat(Instant.parse(body.get("from").asString()))
                     .isBefore(Instant.parse(body.get("to").asString()))),
+            // 026: the production LLM provider parser (the path's {{providerId}} is the collection's ollama
+            // provider), with the offline outbound policy.
+            Map.entry("createLlmProvider", body -> new ai.foresignal.llm.LlmProviderValidator(
+                    ai.foresignal.testsupport.net.TestOutbound.offlinePolicy()).parse(body, null)),
+            Map.entry("updateLlmProvider", body -> new ai.foresignal.llm.LlmProviderValidator(
+                    ai.foresignal.testsupport.net.TestOutbound.offlinePolicy()).parse(body, "ollama")),
+            // 028: the production Ask request parser over a registry holding the USGS source.
+            Map.entry("ask", body -> ai.foresignal.ask.AskRequestParser.parse(body, usgsRegistry(), Set.of())),
+            Map.entry("askStream", body -> ai.foresignal.ask.AskRequestParser.parse(body, usgsRegistry(), Set.of())),
+            // 029: the production briefing validator; no trigger rule or channel exists in this unit test.
+            Map.entry("createBriefing", PostmanCollectionContractTest::briefing),
+            Map.entry("updateBriefing", PostmanCollectionContractTest::briefing),
+            Map.entry("previewBriefing", PostmanCollectionContractTest::briefing),
             Map.entry("createStreamTicket", body -> new TicketStore(new TokenHasher(), null, Clock.fixed(NOW, ZoneOffset.UTC))
                     .mint(new AuthenticatedToken(UUID.randomUUID(), "t", Scope.READ, TokenRestrictions.NONE, null,
                             "01JA8Q3V7S2K9W4T6Y1B5N0M3C", false), body)));
@@ -227,6 +240,10 @@ class PostmanCollectionContractTest {
         /** The value of header {@code name}, or null. */
         String header(String name) {
             for (JsonNode header : request.path("header")) {
+                // A disabled header is documentation of an optional header, not one that is sent (041).
+                if (header.path("disabled").asBoolean(false)) {
+                    continue;
+                }
                 if (name.equalsIgnoreCase(header.get("key").asString())) {
                     return header.get("value").asString();
                 }
@@ -363,10 +380,15 @@ class PostmanCollectionContractTest {
         // the spec operations, which need the application context; PathKeyFilterIT covers it.
         // 036: places derive their area with PostGIS and views check sources and places, so both need the
         // database (PlacesIT, SavedViewsIT); importWatchlist's example is a CSV text body (WatchlistsIT).
+        // 041: updateLlmSettings names stored providers for its roles (LlmControllersIT); createPushSubscription's
+        // parser is an instance method of PushSubscriptionService that checks the endpoint against the outbound
+        // policy (PushSubscriptionsIT); verifyPushSubscription's body is the code, compared with the stored row;
+        // ingestRecordsPathKey's body is read by the format named in the path (PersonalLocationIngestIT).
         Set<String> schemaOnly = Set.of("createTrigger", "updateTrigger", "updateRetention", "importSettings",
                 "updateEventStreamFilter", "createToken", "createPairingCode", "ntfyPublish", "ntfyPublishPut",
                 "createRegistrationToken", "putPushProvider", "testPushProvider", "executeAction", "createFeedKey",
-                "createPlace", "updatePlace", "createView", "updateView", "importWatchlist");
+                "createPlace", "updatePlace", "createView", "updateView", "importWatchlist",
+                "updateLlmSettings", "createPushSubscription", "verifyPushSubscription", "ingestRecordsPathKey");
         List<String> uncovered = OpenApiSpec.routes().stream()
                 .filter(SpecOperation::implemented)
                 .filter(op -> op.node().has("requestBody"))
@@ -392,12 +414,37 @@ class PostmanCollectionContractTest {
     private static boolean acceptsIngestKey(SpecOperation op) {
         for (JsonNode alternative : op.node().path("security")) {
             for (String scheme : alternative.propertyNames()) {
-                if (scheme.startsWith("ingestKey")) {
+                // ingestKeyPath (039) carries the device key in the URL path ({{deviceKey}}), not a header.
+                if (scheme.startsWith("ingestKey") && !scheme.equals("ingestKeyPath")) {
                     return true;
                 }
             }
         }
         return false;
+    }
+
+    /** A registry holding the USGS source, as the metric-settings entry builds it. */
+    private static ai.foresignal.source.SourceRegistry usgsRegistry() {
+        return new ai.foresignal.source.SourceRegistry(
+                List.of(new ai.foresignal.source.adapters.usgs.UsgsEarthquakesAdapter("")), List.of(), event -> { });
+    }
+
+    /** The production briefing validator (029) over the USGS registry, with no rules or channels stored. */
+    private static void briefing(JsonNode body) {
+        // The examples name the collection variable {{channelId}}; Postman substitutes the created channel's id.
+        body = OpenApiSpec.JSON.readTree(body.toString().replace("{{channelId}}", "6f1c2a7e-9b1d-4c3e-8a2f-0d4b5e6f7a81"));
+        try {
+            validateBriefing(body);
+        } catch (ai.foresignal.api.error.ValidationException e) {
+            throw new AssertionError(e.getMessage() + " " + e.getErrors(), e);
+        }
+    }
+
+    private static void validateBriefing(JsonNode body) {
+        new ai.foresignal.briefing.BriefingValidator(usgsRegistry(),
+                org.mockito.Mockito.mock(ai.foresignal.store.TriggerRuleRepository.class),
+                org.mockito.Mockito.mock(ai.foresignal.store.NotificationChannelRepository.class))
+                .validate(body, Set.of());
     }
 
     private static Map<String, SpecOperation> operationsById() {

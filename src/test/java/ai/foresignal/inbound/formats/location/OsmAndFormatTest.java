@@ -33,7 +33,7 @@ class OsmAndFormatTest {
     @Test
     @DisplayName("query parameters map every field; speed is knots")
     void queryMapping() {
-        ParsedIngest parsed = format.parse(query("id", "car-1", "lat", "45.5", "lon", "-73.6", "timestamp", "1760255970",
+        ParsedIngest parsed = format.parse(query("id", "car-1", "lat", "45.5", "lon", "-73.6", "timestamp", "1791791970",
                 "speed", "10", "bearing", "45", "altitude", "33", "accuracy", "8", "batt", "77", "charge", "true"),
                 source(), FormatOptions.empty());
 
@@ -51,7 +51,7 @@ class OsmAndFormatTest {
     }
 
     @ParameterizedTest(name = "timestamp {0}")
-    @CsvSource({"1760255970", "1760255970000", "2026-10-12T07:59:30Z", "2026-10-12 07:59:30"})
+    @CsvSource({"1791791970", "1791791970000", "2026-10-12T07:59:30Z", "2026-10-12 07:59:30"})
     @DisplayName("timestamps: epoch seconds, epoch milliseconds, ISO-8601 and yyyy-MM-dd HH:mm:ss UTC")
     void timestamps(String timestamp) {
         ParsedIngest parsed = format.parse(query("deviceid", "car-1", "lat", "45.5", "lon", "-73.6",
@@ -62,7 +62,7 @@ class OsmAndFormatTest {
     @Test
     @DisplayName("location=lat,lon and heading are accepted")
     void locationParameter() {
-        NormalizedRecord r = format.parse(query("id", "car-1", "location", "45.5,-73.6", "timestamp", "1760255970",
+        NormalizedRecord r = format.parse(query("id", "car-1", "location", "45.5,-73.6", "timestamp", "1791791970",
                 "heading", "200"), source(), FormatOptions.empty()).records().get(0);
         assertThat(r.geometry().getCoordinate().x).isEqualTo(-73.6);
         assertThat(r.payload()).containsEntry("courseDeg", 200.0);
@@ -98,17 +98,17 @@ class OsmAndFormatTest {
     @Test
     @DisplayName("valid=false, (0,0), low accuracy and a missing device id are rejected, not refused")
     void rejections() {
-        assertThat(reason(query("id", "car-1", "lat", "45.5", "lon", "-73.6", "timestamp", "1760255970", "valid", "false")))
+        assertThat(reason(query("id", "car-1", "lat", "45.5", "lon", "-73.6", "timestamp", "1791791970", "valid", "false")))
                 .isEqualTo(LocationRecords.INVALID_FIX);
-        assertThat(reason(query("id", "car-1", "lat", "0", "lon", "0", "timestamp", "1760255970")))
+        assertThat(reason(query("id", "car-1", "lat", "0", "lon", "0", "timestamp", "1791791970")))
                 .isEqualTo(LocationRecords.NULL_ISLAND);
-        assertThat(reason(query("id", "car-1", "lat", "45.5", "lon", "-73.6", "timestamp", "1760255970", "accuracy", "250")))
+        assertThat(reason(query("id", "car-1", "lat", "45.5", "lon", "-73.6", "timestamp", "1791791970", "accuracy", "250")))
                 .isEqualTo(LocationRecords.LOW_ACCURACY);
-        assertThat(reason(query("lat", "45.5", "lon", "-73.6", "timestamp", "1760255970")))
+        assertThat(reason(query("lat", "45.5", "lon", "-73.6", "timestamp", "1791791970")))
                 .isEqualTo(LocationRecords.EXTERNAL_ID_INVALID);
         assertThat(reason(query("id", "car-1", "lat", "45.5", "lon", "-73.6")))
                 .isEqualTo(LocationRecords.MISSING_OBSERVED_AT);
-        assertThat(reason(query("id", "car-1", "lat", "95", "lon", "-73.6", "timestamp", "1760255970")))
+        assertThat(reason(query("id", "car-1", "lat", "95", "lon", "-73.6", "timestamp", "1791791970")))
                 .isEqualTo(LocationRecords.INVALID_FIX);
         assertThat(reason(query("id", "car-1", "lat", "45.5", "lon", "-73.6", "timestamp", "yesterday")))
                 .isEqualTo(LocationRecords.INVALID_ITEM);
@@ -117,11 +117,11 @@ class OsmAndFormatTest {
     @Test
     @DisplayName("a device key forces its id; a different id in the request is 403 DEVICE_ENTITY_MISMATCH")
     void deviceBinding() {
-        ParsedIngest forced = format.parse(query("lat", "45.5", "lon", "-73.6", "timestamp", "1760255970")
+        ParsedIngest forced = format.parse(query("lat", "45.5", "lon", "-73.6", "timestamp", "1791791970")
                 .withBoundExternalId("dev-1"), source(), FormatOptions.empty());
         assertThat(forced.records().get(0).externalId()).isEqualTo("dev-1");
 
-        ParsedIngest same = format.parse(query("id", "dev-1", "lat", "45.5", "lon", "-73.6", "timestamp", "1760255970")
+        ParsedIngest same = format.parse(query("id", "dev-1", "lat", "45.5", "lon", "-73.6", "timestamp", "1791791970")
                 .withBoundExternalId("dev-1"), source(), FormatOptions.empty());
         assertThat(same.records()).hasSize(1);
 

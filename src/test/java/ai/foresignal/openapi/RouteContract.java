@@ -25,15 +25,23 @@ final class RouteContract {
      * invisible to it and is reported as {@code 200}. The ITs of each controller assert the real
      * status codes.
      */
-    static final Map<String, String> STATUS_EXCEPTIONS = Map.of(
+    static final Map<String, String> STATUS_EXCEPTIONS = Map.ofEntries(
             // ResponseEntity.created(...): 201 with a Location header (017).
-            "createTrigger", "ResponseEntity.created",
+            Map.entry("createTrigger", "ResponseEntity.created"),
             // ResponseEntity.noContent(): 204 (017).
-            "deleteTrigger", "ResponseEntity.noContent",
+            Map.entry("deleteTrigger", "ResponseEntity.noContent"),
             // ResponseEntity.created(...): 201 with a Location header (018).
-            "createChannel", "ResponseEntity.created",
+            Map.entry("createChannel", "ResponseEntity.created"),
             // ResponseEntity.noContent(): 204 (018).
-            "deleteChannel", "ResponseEntity.noContent");
+            Map.entry("deleteChannel", "ResponseEntity.noContent"),
+            // Checkpoint 041: the push controllers (031, 032) choose their statuses the same way;
+            // PushSubscriptionsIT, PushProvidersIT and PushDevicesIT assert the real codes.
+            Map.entry("createPushSubscription", "ResponseEntity.created"),
+            Map.entry("deletePushSubscription", "ResponseEntity.noContent"),
+            Map.entry("putPushProvider", "ResponseEntity: 201 when created, 200 when replaced"),
+            Map.entry("deletePushProvider", "ResponseEntity.noContent"),
+            Map.entry("registerPushDevice", "ResponseEntity: 201 when registered, 200 when re-registered"),
+            Map.entry("deletePushDevice", "ResponseEntity.noContent"));
 
     private RouteContract() {}
 

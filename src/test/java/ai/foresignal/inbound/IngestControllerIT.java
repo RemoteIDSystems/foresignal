@@ -234,7 +234,8 @@ class IngestControllerIT {
 
         InboundIt.Created received = source("received", ",'observedAtMode':'RECEIVED'");
         assertThat(body(push(received, feature("stamped", null, null, 1))).get("persisted").asInt()).isEqualTo(1);
-        assertThat(jdbc.queryForObject("select observed_at from record_head where source_id = ? and external_id = 'stamped'",
+        // record_head keeps persisted_observed_at; the latest observed_at lives on record_live (Core-Data-Model §8).
+        assertThat(jdbc.queryForObject("select observed_at from record_live where source_id = ? and external_id = 'stamped'",
                 java.sql.Timestamp.class, received.id()).toInstant()).isEqualTo(T);
     }
 

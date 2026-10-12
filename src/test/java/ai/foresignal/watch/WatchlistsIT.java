@@ -115,7 +115,8 @@ class WatchlistsIT {
         assertThat(values(id)).containsExactly("A1B2C3", "ADF7C8");
         send(get("/v1/watchlists/" + id), null).andExpect(jsonPath("$.itemCount").value(2))
                 .andExpect(jsonPath("$.normalize").value("upper"));
-        JsonNode items = json(send(get("/v1/watchlists/" + id + "/items?q=medevac"), null));
+        // q is a value or label prefix (OpenAPI listWatchlistItems.q); notes are not searched (checkpoint 041).
+        JsonNode items = json(send(get("/v1/watchlists/" + id + "/items?q=N456"), null));
         assertThat(items.get("items")).hasSize(1);
         assertThat(items.get("items").get(0).get("notes").asString()).isEqualTo("Medevac, county");
         assertThat(items.get("items").get(0).get("origin").asString()).isEqualTo("csv");
@@ -151,7 +152,9 @@ class WatchlistsIT {
         assertThat(imported.get("invalid").get(0).get("reason").asString()).contains("check digit");
         assertThat(values(imo)).containsExactly("9074729");
 
-        JsonNode removed = json(send(delete("/v1/watchlists/" + imo + "/items?value=IMO%209074729&value=1234567"), null)
+        // .param, not a pre-encoded query: MockMvc encodes the URI template again, so "%20" arrived as a literal
+        // "%20" (checkpoint 041).
+        JsonNode removed = json(send(delete("/v1/watchlists/" + imo + "/items").param("value", "IMO 9074729", "1234567"), null)
                 .andExpect(status().isOk()));
         assertThat(removed.get("removed").asInt()).isEqualTo(1);
         assertThat(removed.get("unchanged").asInt()).isEqualTo(1);

@@ -19,7 +19,6 @@ import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 import org.springframework.context.ApplicationContext;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.PlatformTransactionManager;
 
@@ -87,7 +86,7 @@ public final class ReferenceFixtures {
         return loader.loadNow(specs(context.getBean(ReferenceManifest.class), dir, names));
     }
 
-    /** A loader over the context's beans that reads files from {@code offlineDir}. */
+    /** A loader over the context's beans that reads files from {@code offlineDir}; the context itself publishes its events (it is not a bean). */
     public static ReferenceDataLoader loader(ApplicationContext context, Path offlineDir) {
         ReferenceProperties d = ReferenceProperties.defaults();
         ReferenceProperties properties = new ReferenceProperties(false, List.of(), offlineDir, null, Map.of(),
@@ -96,7 +95,7 @@ public final class ReferenceFixtures {
         return new ReferenceDataLoader(context.getBean(ReferenceManifest.class), properties,
                 context.getBean(ForesignalProperties.class), context.getBean(UpstreamClient.class),
                 context.getBean(JdbcTemplate.class), context.getBean(PlatformTransactionManager.class),
-                context.getBean(ApplicationEventPublisher.class), context.getBean(Clock.class));
+                context, context.getBean(Clock.class));
     }
 
     /** The manifest entries of {@code names} pinned to the fixture files in {@code dir}. */

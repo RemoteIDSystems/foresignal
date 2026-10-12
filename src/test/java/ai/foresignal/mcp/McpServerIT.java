@@ -232,7 +232,10 @@ class McpServerIT {
         List<String> write = toolNames(client(agent));
         assertThat(write).contains("query_records", "test_cost", "create_watch", "update_watch", "delete_watch",
                 "acknowledge_alert", "set_alert_status");
-        assertThat(write).hasSize(registry.size());
+        // Admin tools (039's purge_entity and export_entity) are never visible to an agent token (checkpoint 041).
+        assertThat(write).doesNotContain("purge_entity", "export_entity");
+        assertThat(write).hasSize((int) registry.tools().stream()
+                .filter(t -> t.requiredScope() != ai.foresignal.security.Scope.ADMIN).count());
     }
 
     @Test
@@ -288,7 +291,9 @@ class McpServerIT {
                 Map.of("source", STANDARD, "externalId", "h")));
         assertThat(out.get("items").size()).isEqualTo(2);
         assertThat(out.get("items").get(0).get("persistReason").asString()).isEqualTo("FIRST");
-        assertThat(out.get("items").get(1).get("persistReason").asString()).isEqualTo("CHANGE");
+        // A payload change on test-standard changes the static hash: SIGNIFICANT (Core-Data-Model §5 row 6 precedes
+        // the ALL row 7; IngestWriterIT asserts the same), not CHANGE (checkpoint 041).
+        assertThat(out.get("items").get(1).get("persistReason").asString()).isEqualTo("SIGNIFICANT");
         assertThat(out.get("items").get(1).get("version").asInt()).isEqualTo(2);
     }
 

@@ -387,7 +387,7 @@ class OutboundUrlPolicyTest {
     void denies() {
         answer("evil.test", "8.8.8.8");
         answer("x.bad.test", "8.8.8.8");
-        answer("bad.test", "8.8.8.8");
+        answer("bad.test", "8.8.8.3"); // inside denyCidrs 8.8.8.0/29 (8.8.8.8 is not; checkpoint 041)
         answer("dns.test", "8.8.8.5");
         overrides = new OutboundSettings(List.of("evil.test", "dns.test"), List.of("8.8.8.0/24"),
                 List.of("EVIL.test.", "*.bad.test"), List.of("8.8.8.0/29"));

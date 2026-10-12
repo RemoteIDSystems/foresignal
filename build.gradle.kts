@@ -74,6 +74,11 @@ tasks.test {
     // (UpstreamClient.allowHostHeaderForPinnedRequests). In the test JVM a test's own HttpClient can
     // initialize it first, so the property is set at JVM start, as production effectively does.
     systemProperty("jdk.httpclient.allowRestrictedHeaders", "host")
+    // Checkpoint 041: the suite caches one Spring context per test configuration (13+ by prompt 040),
+    // and since 040 each holds the bundled country polygons (prepared JTS geometries). Gradle's default
+    // 512 MB test heap ran out of memory (run 1). The production heap budget (NFR-1) is per process
+    // with one context, so the test JVM gets the same 2 GB as perfTest.
+    maxHeapSize = "2g"
     val runtimeClasspath = configurations.runtimeClasspath
     jvmArgumentProviders.add(CommandLineArgumentProvider {
         listOf("-Dforesignal.test.runtime-classpath=" + runtimeClasspath.get().asPath)

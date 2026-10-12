@@ -77,8 +77,11 @@ class GlanceServiceTest {
         when(readiness.ready()).thenReturn(true);
         ObjectProvider<IngestWriter> writer = mock(ObjectProvider.class);
         HealthService health = mock(HealthService.class);
-        when(health.all(any())).thenReturn(List.of(health("a", HealthStatus.HEALTHY), health("b", HealthStatus.FAILING),
-                health("c", HealthStatus.DEGRADED), health("hidden", HealthStatus.FAILING)));
+        // Built before stubbing: health(...) stubs its own mock, and Mockito refuses stubbing inside thenReturn's
+        // argument list (UnfinishedStubbingException, checkpoint 041).
+        List<SourceHealthView> views = List.of(health("a", HealthStatus.HEALTHY), health("b", HealthStatus.FAILING),
+                health("c", HealthStatus.DEGRADED), health("hidden", HealthStatus.FAILING));
+        when(health.all(any())).thenReturn(views);
         when(alerts.countBySeverity(any())).thenReturn(Map.of("critical", 2L, "warning", 1L));
         BriefingRunRepository runs = mock(BriefingRunRepository.class);
         when(runs.findTop10ByStatusInOrderByStartedAtDescIdDesc(any())).thenReturn(List.of());

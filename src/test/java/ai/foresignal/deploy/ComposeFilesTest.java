@@ -67,7 +67,8 @@ class ComposeFilesTest {
                 ((List<Object>) ports).forEach(p -> mappings.add(String.valueOf(p)));
             }
         });
-        assertThat(mappings).hasSize(2);
+        // foresignal, db and (026) the optional ollama service under its local-llm profile (checkpoint 041).
+        assertThat(mappings).hasSize(3);
         for (String mapping : mappings) {
             Matcher m = BIND.matcher(mapping);
             assertThat(m.matches()).as("port mapping %s carries a bind variable", mapping).isTrue();
@@ -75,6 +76,7 @@ class ComposeFilesTest {
         }
         assertThat(service(compose, "foresignal").get("ports").toString()).contains("FORESIGNAL_BIND").contains(":8080:8080");
         assertThat(service(compose, "db").get("ports").toString()).contains("FORESIGNAL_DB_BIND").contains(":5433:5432");
+        assertThat(service(compose, "ollama").get("ports").toString()).contains("FORESIGNAL_BIND").contains(":11434:11434");
     }
 
     @Test
@@ -94,9 +96,13 @@ class ComposeFilesTest {
         assertThat((Map<String, Object>) compose.get("volumes")).containsKey("tailscale-state");
 
         Map<String, Object> services = (Map<String, Object>) compose.get("services");
+        // Only the optional services carry a profile: tailscale, and (026) ollama under local-llm (checkpoint 041).
         services.forEach((name, s) -> {
-            if (!name.equals("tailscale")) {
-                assertThat(((Map<String, Object>) s).get("profiles")).as("profiles of %s", name).isNull();
+            Object profiles = ((Map<String, Object>) s).get("profiles");
+            switch (name) {
+                case "tailscale" -> { }
+                case "ollama" -> assertThat((List<Object>) profiles).as("profiles of ollama").containsExactly("local-llm");
+                default -> assertThat(profiles).as("profiles of %s", name).isNull();
             }
         });
     }

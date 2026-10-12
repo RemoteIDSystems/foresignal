@@ -146,7 +146,14 @@ public final class ToolLoop {
                 return new Result(last, conversation, iterations, terminal, usage);
             }
 
-            conversation.add(new ChatMessage.ToolResults(runTools(last.toolCalls(), deadline)));
+            java.util.concurrent.atomic.AtomicBoolean timedOut = new java.util.concurrent.atomic.AtomicBoolean();
+            conversation.add(new ChatMessage.ToolResults(runTools(last.toolCalls(), deadline, timedOut)));
+            if (timedOut.get()) {
+                // A tool was cut off at the deadline, so the deadline has passed. The timed wait is rounded to
+                // milliseconds and can return just before it, so the check at the top of the loop alone could make
+                // one more model call (checkpoint 041, ToolLoopTest.toolTimeout).
+                return new Result(last, conversation, iterations, StopCause.DEADLINE, usage);
+            }
 
             if (iterations >= limits.maxIterations()) {
                 return new Result(last, conversation, iterations, StopCause.MAX_ITERATIONS, usage);
@@ -154,8 +161,11 @@ public final class ToolLoop {
         }
     }
 
-    /** Runs every call in parallel on virtual threads; results keep the calls' order. */
-    List<ToolResult> runTools(List<ToolCall> calls, Instant deadline) {
+    /**
+     * Runs every call in parallel on virtual threads; results keep the calls' order. {@code timedOut} is set
+     * when a call did not finish before {@code deadline}.
+     */
+    List<ToolResult> runTools(List<ToolCall> calls, Instant deadline, java.util.concurrent.atomic.AtomicBoolean timedOut) {
         List<ToolResult> results = new ArrayList<>(calls.size());
         // Not try-with-resources: close() would wait for a tool that ignores interruption past the
         // deadline. shutdownNow() interrupts stragglers and returns at once.
@@ -176,6 +186,7 @@ public final class ToolLoop {
                     results.add(ToolResult.error(call, "Tool " + call.name() + " failed: " + describe(cause)));
                 } catch (java.util.concurrent.TimeoutException | CancellationException e) {
                     future.cancel(true);
+                    timedOut.set(true);
                     results.add(ToolResult.error(call, "Tool " + call.name() + " did not finish before the deadline"));
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();

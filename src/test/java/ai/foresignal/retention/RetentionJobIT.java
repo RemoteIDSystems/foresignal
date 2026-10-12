@@ -94,6 +94,7 @@ class RetentionJobIT extends RetentionItSupport {
         Instant marker = T0.plus(Duration.ofHours(1));
         ingestAt(STANDARD, marker, record("marker", STANDARD_KIND, marker, 1));
         Instant now = T0.plus(Duration.ofDays(8));
+        awaitTriggerCursor();
         clock.setInstant(now);
 
         AtomicBoolean burst = new AtomicBoolean(true);
@@ -114,10 +115,19 @@ class RetentionJobIT extends RetentionItSupport {
                 round++;
             }
         });
-        Thread.sleep(50);
-        RetentionRunResult result = runAt(now);
-        burst.set(false);
-        producer.join(60_000);
+        RetentionRunResult result;
+        try {
+            Thread.sleep(50);
+            // The consumers caught up with the old versions before the burst began (awaitTriggerCursor above);
+            // runAt would wait for them to catch up with an unbounded burst, which the region worker (040) never
+            // does while the producer runs. The job runs at once, during the burst (checkpoint 041).
+            result = job.run();
+        } finally {
+            // Always stop the producer: a failed run left it writing into the shared database for the rest of
+            // the suite (checkpoint 041, run 2).
+            burst.set(false);
+            producer.join(60_000);
+        }
 
         assertThat(failures).as("writer failures during the run").isEmpty();
         assertThat(result.skippedSources()).isEmpty();

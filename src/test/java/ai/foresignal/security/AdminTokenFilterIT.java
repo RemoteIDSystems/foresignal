@@ -25,7 +25,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -233,10 +232,12 @@ class AdminTokenFilterIT {
     }
 
     @Test
-    @DisplayName("ingest accepts an admin token")
+    @DisplayName("ingest accepts an admin token: the request reaches the real controller (404 for an unknown source)")
     void ingestAcceptsAdminToken() throws Exception {
+        // 024's IngestController serves this path, so the stub is gone (checkpoint 041): past the filter, an
+        // unknown source is the controller's 404, not the filter's 401 or 403.
         mvc.perform(post("/v1/ingest/custom-sdr").header(HttpHeaders.AUTHORIZATION, bearer()))
-                .andExpect(status().isOk());
+                .andExpect(status().isNotFound());
     }
 
     // ---------- deny by default ----------
@@ -250,16 +251,12 @@ class AdminTokenFilterIT {
     /**
      * Stub endpoints on policy paths no real controller serves yet. Prompt 022 removed the stubs for
      * {@code /v1/records}, {@code /v1/kinds}, {@code /v1/settings/retention}, {@code POST /v1/triggers}
-     * and {@code /v1/system}: their real controllers (014, 017, 019) made the mappings ambiguous.
+     * and {@code /v1/system}: their real controllers (014, 017, 019) made the mappings ambiguous. Checkpoint 041
+     * removed the {@code POST /v1/ingest/{sourceId}} stub for the same reason (024's IngestController).
      */
     @TestConfiguration
     @RestController
     static class StubEndpoints {
-
-        @PostMapping("/v1/ingest/{sourceId}")
-        String ingest() {
-            return "ingested";
-        }
 
         @DeleteMapping("/v1/records/{sourceId}/{externalId}")
         String deleteRecord() {

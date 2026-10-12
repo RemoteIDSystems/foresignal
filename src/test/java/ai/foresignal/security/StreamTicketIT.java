@@ -129,6 +129,23 @@ class StreamTicketIT {
     }
 
     @Test
+    @DisplayName("041: with openReads on, stream and tile tickets still authenticate, and an invalid ticket is 401")
+    void ticketsUnderOpenReads() throws Exception {
+        settings.put(SettingKeys.SECURITY, new SecuritySettings(true));
+        String stream = mint("{\"purpose\":\"stream\"}");
+        String tiles = mint("{\"purpose\":\"tiles\",\"ttl\":\"10m\"}");
+
+        assertThat(get("/v1/tiles.json")).isEqualTo(200);
+        assertThat(get("/v1/tiles.json?ticket=" + tiles)).isEqualTo(200);
+        // A ticket on a covered path is checked even where the path would be open without it (023 Issue 2).
+        assertThat(get("/v1/tiles.json?ticket=fst_" + "x".repeat(32))).isEqualTo(401);
+        SseTestClient client = stream("/v1/changes/stream", stream);
+        assertThat(client.status()).isEqualTo(200);
+        assertThat(hub.clients()).anySatisfy(c -> assertThat(c.principal().id())
+                .isEqualTo("token:" + reader.entity().getId()));
+    }
+
+    @Test
     @DisplayName("the first connect must come within 60 s of minting")
     void firstConnectWindow() throws Exception {
         String late = mint("{\"purpose\":\"stream\"}");

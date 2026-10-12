@@ -162,6 +162,16 @@
         "version": "1.3.0",
         "date": "2026-10-12",
         "note": "040: getReference, listReferenceCountries, reverseGeocode (read) and loadReference (admin, 202) are implemented; AccessPolicy gains GET /v1/reference and /v1/reference/** (read) and POST /v1/reference/load (admin). The country, admin1 and county filters are implemented on listRecords (and its GeoJSON), search, listAlerts, getStatsTimeseries, getStatsGrid and getStatsTop (stats with a region filter are served from raw rows) and BriefingScope; the region filters cannot be combined with asOf (400). include=region returns Record.region and GeoJSON properties.near (with properties.nearAttribution, the GeoNames credit). Alert.region is the region snapshot at fire time. TriggerRuleInput.geofenceRef is implemented; it cannot be combined with geofence, near or hysteresisMeters (400), and createTrigger/replaceTrigger gain 409 REFERENCE_DATA_MISSING. messageTemplate documents the region placeholders. Channel config gains units (metric | imperial) for {{near.text}}. listAlerts gains a 400 response. Problem lists UNKNOWN_REGION (400), REFERENCE_DATA_MISSING (409) and REFERENCE_CHECKSUM_MISMATCH (reported in ReferenceDataset.error, never an HTTP status). The MCP tool reverse_geocode (read) is added and short MCP record items gain near."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-12",
+        "note": "041: streamEvents' badge event (033) states that it carries no id: line, as InboxTopic sends it."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-12",
+        "note": "041: streamEvents' external.source.state event is gated on prompt 138, which owns the external SSE topic (its prompt text); 024 emits nothing on it."
       }
     ]
   },
@@ -11903,7 +11913,7 @@
             },
             "id": false,
             "topic": "external",
-            "prompt": "024"
+            "prompt": "138"
           },
           "external.binding.disabled": {
             "schema": {
@@ -11928,7 +11938,8 @@
               "$ref": "#/components/schemas/NotificationBadge"
             },
             "topic": "notifications",
-            "prompt": "033"
+            "prompt": "033",
+            "id": false
           },
           "intel.event.created": {
             "schema": {

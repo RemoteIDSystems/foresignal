@@ -108,6 +108,16 @@ public class SearchTestSources {
         return new TestPushAdapter(base(PLAIN, PLAIN_KIND).searchFields("name").build());
     }
 
+    /**
+     * DNS without the network (checkpoint 041): the search ITs' providers keep the default Ollama base URL, whose
+     * host the outbound URL policy would otherwise look up in real DNS.
+     */
+    @Bean
+    @Primary
+    public ai.foresignal.net.HostResolver offlineHostResolver() {
+        return ai.foresignal.testsupport.net.TestOutbound.offlineResolver();
+    }
+
     /** The fake provider clients. */
     @Bean
     @Primary

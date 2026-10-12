@@ -51,10 +51,35 @@ public class DatabaseCleaner {
         if (!tables.isEmpty()) {
             // One statement so CASCADE resolves foreign keys across the whole set at once.
             String joined = String.join(", ", tables);
-            jdbc.execute("TRUNCATE " + joined + " RESTART IDENTITY CASCADE");
+            truncate("TRUNCATE " + joined + " RESTART IDENTITY CASCADE");
         }
         resetRecordSequence();
         stateResets.orderedStream().forEach(IngestStateReset::resetState);
+    }
+
+    /**
+     * Runs the TRUNCATE, retrying when PostgreSQL picks it as a deadlock victim (40P01). Background workers of the
+     * cached contexts (the region tag worker of prompt 040, the trigger and embedding workers) read these tables
+     * between tests, and TRUNCATE's ACCESS EXCLUSIVE locks taken table by table can cycle with their share locks
+     * (checkpoint 041: an AskActionsIT clean failed with "deadlock detected").
+     */
+    private void truncate(String sql) {
+        for (int attempt = 1; ; attempt++) {
+            try {
+                jdbc.execute(sql);
+                return;
+            } catch (org.springframework.dao.PessimisticLockingFailureException e) {
+                if (attempt >= 5) {
+                    throw e;
+                }
+                try {
+                    Thread.sleep(50L * attempt);
+                } catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                    throw e;
+                }
+            }
+        }
     }
 
     /**

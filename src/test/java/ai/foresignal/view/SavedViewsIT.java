@@ -69,7 +69,10 @@ class SavedViewsIT {
     static final Instant T = Instant.parse("2026-05-01T12:00:00Z");
     static final JsonMapper JSON = JsonMapper.builder().build();
     static final String BIG = "{\"slug\":\"big-quakes\",\"name\":\"Big quakes\",\"sources\":[\"" + EVENTS + "\"],"
-            + "\"conditions\":[{\"path\":\"mag\",\"op\":\">=\",\"value\":5}],\"fields\":[\"title\",\"geometry\",\"payload.mag\"]}";
+            + "\"conditions\":[{\"path\":\"mag\",\"op\":\">=\",\"value\":5}],"
+            // externalId is projected too: the view's records carry only the listed members, and ids() reads it
+            // (checkpoint 041).
+            + "\"fields\":[\"externalId\",\"title\",\"geometry\",\"payload.mag\"]}";
 
     @Autowired MockMvc mvc;
     @Autowired AdminTokenService adminTokens;
@@ -117,9 +120,11 @@ class SavedViewsIT {
     }
 
     void seed() {
-        quake("q6", 6, 0, 0);
-        quake("q4", 4, 0.1, 0.1);
-        quake("q7", 7, 0.2, 0.2);
+        // Off (0,0): a source that does not allow Null Island drops that geometry (008), which hid q6 from every
+        // spatial filter (checkpoint 041).
+        quake("q6", 6, 0.01, 0.01);
+        quake("q4", 4, 0.11, 0.11);
+        quake("q7", 7, 0.21, 0.21);
     }
 
     @Test

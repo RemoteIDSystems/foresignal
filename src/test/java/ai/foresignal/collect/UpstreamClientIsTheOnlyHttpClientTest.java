@@ -31,41 +31,45 @@ class UpstreamClientIsTheOnlyHttpClientTest {
     private static final Path COLLECT = MAIN.resolve(Path.of("ai", "foresignal", "collect"));
 
     /**
-     * Outbound clients that are not upstream requests, each sanctioned by name. Invariant SRC-1
-     * covers <em>upstream</em> requests (source fetches). Notification deliveries are outbound
-     * traffic to operator-configured receivers: prompt 018 specifies their own dedicated
-     * {@code HttpClient} (no redirects, 5 s connect, 15 s request), and Architecture §17 says
-     * outbound traffic is not counted against source budgets. Prompt 035 adds the outbound URL policy
-     * to this sender. Prompt 022 narrowed the guard from "nothing outside collect" to this list.
-     * LLM provider calls (prompt 026) are not upstream fetches either: they are budgeted by
-     * {@code LlmBudgetGovernor}, and every provider client is built by the one factory
-     * {@code LlmHttp}, where prompt 035 enforces the outbound URL policy. Web Push (prompt 031) sends
-     * to push services through {@code PushHttp}, pinned to the address its push-endpoint policy
-     * checked (prompt 035 swaps that check for {@code OutboundUrlPolicy} {@code PUSH_ENDPOINT}).
-     * Native push (prompt 032) reaches APNs, FCM and the OAuth token endpoint through
-     * {@code NativePushHttp}. Prompt 035 moved the channel and LLM clients into {@code net.PinnedHttp},
-     * which connects them to the address the outbound URL policy checked.
+     * Outbound clients that are not upstream requests, each sanctioned by name with its reason.
+     * Invariant SRC-1 covers <em>upstream</em> requests (source fetches); Architecture §17 says other
+     * outbound traffic is not counted against source budgets. Prompt 022 narrowed the guard from
+     * "nothing outside collect" to an explicit list, and checkpoint 041 made the list exact: every
+     * entry must still construct an {@code HttpClient} (a stale entry fails), and any other file that
+     * constructs one fails. Channel sends ({@code notify/ChannelSender}, 018) and LLM provider calls
+     * ({@code llm/LlmHttp}, 026) no longer construct their own client: prompt 035 moved both onto
+     * {@code net/PinnedHttp}. Whether these senders should share one client is an owner decision
+     * (041 report).
      */
-    private static final List<Path> SANCTIONED_OUTBOUND =
-            List.of(MAIN.resolve(Path.of("ai", "foresignal", "notify", "ChannelSender.java")),
-                    MAIN.resolve(Path.of("ai", "foresignal", "llm", "LlmHttp.java")),
-                    MAIN.resolve(Path.of("ai", "foresignal", "net", "PinnedHttp.java")),
-                    MAIN.resolve(Path.of("ai", "foresignal", "notify", "push", "PushHttp.java")),
-                    MAIN.resolve(Path.of("ai", "foresignal", "notify", "push", "NativePushHttp.java")));
+    private static final Map<Path, String> SANCTIONED_OUTBOUND = Map.of(
+            // 035: the one pinned client for operator-supplied URLs (channels, LLM providers), connected to
+            // the address OutboundUrlPolicy checked.
+            MAIN.resolve(Path.of("ai", "foresignal", "net", "PinnedHttp.java")),
+            "operator-supplied URLs (channels, LLM providers), pinned by OutboundUrlPolicy (035)",
+            // 024: EDP provider pulls, pinned to the address EdpUrlGuard vetted (HTTPS with SNI and its own
+            // RFC 6125 name check, which UpstreamClient cannot do); still charged to BudgetGovernor.
+            MAIN.resolve(Path.of("ai", "foresignal", "inbound", "edp", "EdpHttpClient.java")),
+            "EDP provider URLs pinned to the EdpUrlGuard address, budgeted through BudgetGovernor (024)",
+            // 031: Web Push to push services, pinned to the address its PUSH_ENDPOINT policy checked.
+            MAIN.resolve(Path.of("ai", "foresignal", "notify", "push", "PushHttp.java")),
+            "Web Push deliveries to push services, pinned by the PUSH_ENDPOINT policy (031, 035)",
+            // 032: APNs (HTTP/2, one connection per provider), FCM and Google's OAuth token endpoint.
+            MAIN.resolve(Path.of("ai", "foresignal", "notify", "push", "NativePushHttp.java")),
+            "native push to APNs, FCM and the OAuth token endpoint (032)");
 
     /** The two ways to get an {@code HttpClient}. */
     private static final List<String> CONSTRUCTIONS =
             List.of("HttpClient.newHttpClient", "HttpClient.newBuilder");
 
     @Test
-    @DisplayName("only the collect package (and the sanctioned notification sender) constructs an HttpClient")
+    @DisplayName("only the collect package (and the sanctioned outbound senders) constructs an HttpClient")
     void onlyCollectBuildsAnHttpClient() throws IOException {
         Map<String, List<String>> offenders = new LinkedHashMap<>();
 
         for (Path file : javaSources()) {
             String source = Files.readString(file);
             List<String> found = CONSTRUCTIONS.stream().filter(source::contains).toList();
-            if (!found.isEmpty() && !file.startsWith(COLLECT) && !SANCTIONED_OUTBOUND.contains(file)) {
+            if (!found.isEmpty() && !file.startsWith(COLLECT) && !SANCTIONED_OUTBOUND.containsKey(file)) {
                 offenders.put(file.toString(), found);
             }
         }
@@ -88,8 +92,14 @@ class UpstreamClientIsTheOnlyHttpClientTest {
         String upstreamClient = Files.readString(COLLECT.resolve("UpstreamClient.java"));
 
         assertThat(upstreamClient).contains("HttpClient.newBuilder");
-        for (Path sanctioned : SANCTIONED_OUTBOUND) {
-            assertThat(sanctioned).as("a sanctioned outbound sender that no longer exists must leave the list").exists();
+        for (Map.Entry<Path, String> sanctioned : SANCTIONED_OUTBOUND.entrySet()) {
+            Path file = sanctioned.getKey();
+            assertThat(file).as("a sanctioned outbound sender that no longer exists must leave the list").exists();
+            String source = Files.readString(file);
+            assertThat(CONSTRUCTIONS.stream().anyMatch(source::contains))
+                    .as("%s (%s) no longer builds an HttpClient, so it must leave the list", file,
+                            sanctioned.getValue())
+                    .isTrue();
         }
     }
 

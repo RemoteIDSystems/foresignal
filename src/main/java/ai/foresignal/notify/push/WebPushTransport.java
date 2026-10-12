@@ -145,7 +145,10 @@ public class WebPushTransport implements PushTransport {
         Map<String, String> headers = new LinkedHashMap<>();
         try {
             String lang = web.lang() != null ? web.lang() : settings.defaultLang();
-            byte[] plaintext = budget.fit(message, web.payloadFormat(), lang);
+            // Quiet hours' downgrade (PushOptions.silent) reaches the payload too, not only the Urgency header: the
+            // stored content is built before the downgrade is decided (checkpoint 041, WebPushDeliveryIT).
+            PushMessage payload = options.silent() && !message.silent() ? message.withSilent(true) : message;
+            byte[] plaintext = budget.fit(payload, web.payloadFormat(), lang);
             body = WebPushCrypto.encrypt(plaintext, EcKeys.unb64(web.p256dh()), EcKeys.unb64(web.auth()));
             headers.put("Content-Encoding", "aes128gcm");
             headers.put("Content-Type", "application/octet-stream");

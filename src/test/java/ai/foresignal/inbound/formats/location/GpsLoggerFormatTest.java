@@ -66,7 +66,7 @@ class GpsLoggerFormatTest {
     @Test
     @DisplayName("an epoch time and the charging flag")
     void epochAndCharging() {
-        NormalizedRecord r = format.parse(query("lat", "45.5", "lon", "-73.6", "timestamp", "1760255970", "dev", "pixel-1",
+        NormalizedRecord r = format.parse(query("lat", "45.5", "lon", "-73.6", "timestamp", "1791791970", "dev", "pixel-1",
                 "ischarging", "true"), source(), FormatOptions.empty()).records().get(0);
         assertThat(r.observedAt()).isEqualTo(T);
         assertThat(r.payload()).containsEntry("charging", true);

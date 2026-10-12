@@ -52,6 +52,7 @@ class EmbeddingWorkerIT extends SearchItSupport {
         assertThat(a.getObservedAt()).isEqualTo(T);
         assertThat(a.getKind()).isEqualTo(NEWS_KIND);
         assertThat(a.getSourceId()).isEqualTo(NEWS);
+        // Region tagging is off for the search sources (SearchItSupport, checkpoint 041), so no region suffix.
         assertThat(a.getText()).isEqualTo(NEWS_KIND + " | Search test source " + NEWS + " | River flooding | Levees overtopped");
         assertThat(a.getTextHash()).isEqualTo(EmbeddingText.hash(a.getText()));
         assertThat(a.getSeq()).isPositive();

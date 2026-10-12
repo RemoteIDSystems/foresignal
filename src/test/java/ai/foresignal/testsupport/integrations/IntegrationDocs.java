@@ -176,6 +176,15 @@ public final class IntegrationDocs {
                 if (doc[i].isEmpty()) {
                     return false;
                 }
+            } else if (spec[i].contains("{")) {
+                // A segment with an embedded variable, such as {y}.mvt (checkpoint 041): the variable part matches
+                // any non-empty text, the rest literally.
+                String regex = java.util.Arrays.stream(spec[i].split("\\{[^}]+}", -1))
+                        .map(java.util.regex.Pattern::quote)
+                        .collect(java.util.stream.Collectors.joining(".+"));
+                if (!doc[i].matches(regex)) {
+                    return false;
+                }
             } else if (placeholder(doc[i]) || !doc[i].equals(spec[i])) {
                 return false;
             }

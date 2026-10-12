@@ -311,3 +311,11 @@ springdoc:
 # The default is ecs under the docker profile (structured JSON for log
 # shipping) and text otherwise. An explicit logging.structured.format.console
 # still wins.
+
+logging:
+  level:
+    # Secrets never reach the logs (invariants SRC-5, SEC-2), even when an operator turns on DEBUG: Spring MVC's
+    # body processors log every request and response body they read or write at DEBUG ("Read … to […]",
+    # "Writing […]"), which includes minted tokens, tickets, feed and ingest keys and credentials. They stay at INFO
+    # (checkpoint 041, StreamTicketIT).
+    org.springframework.web.servlet.mvc.method.annotation: info

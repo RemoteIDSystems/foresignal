@@ -146,7 +146,9 @@ public final class ReadRestriction {
      * or null when it restricts no data.
      */
     public TokenRestrictions toStored() {
-        if (!hasDataRestrictions() && !excludePrivate) {
+        // Request-scoped filters (036, 040) are never stored, so they do not make a restriction worth storing
+        // (checkpoint 041: a filter-only restriction stored an empty TokenRestrictions).
+        if (sources == null && kinds == null && bbox == null && area == null && !excludePrivate) {
             return null;
         }
         Map<String, Object> areaJson = area == null ? null

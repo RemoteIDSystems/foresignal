@@ -87,7 +87,7 @@ class LlmControllersIT extends WireMockSupport {
 
     String ollama(String id, int rpm) {
         return "{'id':'" + id + "','type':'ollama','baseUrl':'" + baseUrl() + "','chatModel':'qwen3:14b',"
-                + "'embeddingModel':'nomic-embed-text','embeddingDimensions':3,'requestsPerMinute':" + rpm + "}";
+                + "'embeddingModel':'nomic-embed-text','embeddingDimensions':8,'requestsPerMinute':" + rpm + "}";
     }
 
     void stubOllama() {
@@ -95,7 +95,7 @@ class LlmControllersIT extends WireMockSupport {
                 .willReturn(okJson("{\"model\":\"qwen3:14b\",\"message\":{\"role\":\"assistant\",\"content\":\"ok\"},"
                         + "\"done\":true,\"done_reason\":\"stop\",\"prompt_eval_count\":12,\"eval_count\":1}")));
         WIREMOCK.stubFor(com.github.tomakehurst.wiremock.client.WireMock.post(urlPathEqualTo("/api/embed"))
-                .willReturn(okJson("{\"model\":\"nomic-embed-text\",\"embeddings\":[[0.1,0.2,0.3]],"
+                .willReturn(okJson("{\"model\":\"nomic-embed-text\",\"embeddings\":[[0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8]],"
                         + "\"prompt_eval_count\":1}")));
     }
 
@@ -201,7 +201,7 @@ class LlmControllersIT extends WireMockSupport {
         send(post("/v1/llm/providers"), ollama("ollama", 30)).andExpect(status().isCreated());
         send(put("/v1/llm/settings"), "{'embeddingProvider':'ollama'}").andExpect(status().isOk());
 
-        EmbeddingModelSpec first = new EmbeddingModelSpec("ollama", "nomic-embed-text", 3);
+        EmbeddingModelSpec first = new EmbeddingModelSpec("ollama", "nomic-embed-text", 8);
         assertThat(events.stream(EmbeddingModelChangedEvent.class))
                 .containsExactly(new EmbeddingModelChangedEvent(null, first));
 
@@ -210,7 +210,7 @@ class LlmControllersIT extends WireMockSupport {
         assertThat(events.stream(EmbeddingModelChangedEvent.class)).last()
                 .isEqualTo(new EmbeddingModelChangedEvent(first,
                         new EmbeddingModelSpec("ollama", "mxbai-embed-large", 1024)));
-        assertThat(first.modelId()).isEqualTo("ollama:nomic-embed-text:3");
+        assertThat(first.modelId()).isEqualTo("ollama:nomic-embed-text:8");
 
         // A change that does not touch the embedding model publishes nothing.
         long before = events.stream(EmbeddingModelChangedEvent.class).count();
@@ -233,7 +233,7 @@ class LlmControllersIT extends WireMockSupport {
                 .andExpect(jsonPath("$.chat.inputTokens", is(12)))
                 .andExpect(jsonPath("$.chat.cachedTokens", is(0)))
                 .andExpect(jsonPath("$.chat.stopReason", is("end")))
-                .andExpect(jsonPath("$.embedding.dimensions", is(3)))
+                .andExpect(jsonPath("$.embedding.dimensions", is(8)))
                 .andExpect(jsonPath("$.error", nullValue()))
                 .andExpect(jsonPath("$.refusalCategory", nullValue()));
         JsonNode chat = JSON.readTree(WIREMOCK.findAll(com.github.tomakehurst.wiremock.client.WireMock

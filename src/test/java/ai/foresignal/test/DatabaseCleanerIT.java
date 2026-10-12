@@ -56,9 +56,10 @@ class DatabaseCleanerIT {
         // The cleaner's IngestStateReset beans run after the truncation, and the trigger engine
         // re-seeds its durable cursor (app_setting 'trigger.cursor', Core-Data-Model §13 consumer
         // clamp) when it reloads. So the leftover rows are gone, but app_setting is not empty
-        // (prompt 022: these assertions counted every row before 017 added the cursor).
+        // (prompt 022: these assertions counted every row before 017 added the cursor). Since 040 the region tag
+        // worker re-seeds 'region.cursor' the same way (checkpoint 041).
         assertThat(appSettings.findAll()).extracting(AppSettingEntity::getKey).doesNotContain("leftover")
-                .allMatch(key -> key.equals(SettingKeys.TRIGGER_CURSOR));
+                .allMatch(key -> key.equals(SettingKeys.TRIGGER_CURSOR) || key.equals(SettingKeys.REGION_CURSOR));
         assertThat(systemSecrets.count()).isZero();
     }
 
@@ -136,9 +137,9 @@ class DatabaseCleanerIT {
         cleaner.clean();
         cleaner.clean();
 
-        // Only the trigger engine's re-seeded cursor remains (see startsFromEmptyTables).
+        // Only the re-seeded trigger and region cursors remain (see startsFromEmptyTables).
         assertThat(appSettings.findAll()).extracting(AppSettingEntity::getKey)
-                .allMatch(key -> key.equals(SettingKeys.TRIGGER_CURSOR));
+                .allMatch(key -> key.equals(SettingKeys.TRIGGER_CURSOR) || key.equals(SettingKeys.REGION_CURSOR));
     }
 
     @Test

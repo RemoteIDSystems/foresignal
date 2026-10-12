@@ -100,6 +100,12 @@ public record PushMessage(
                 tags, tag, topic, silent, ts, subscriptionId, code, newBadge, category, actions, confirmUrl);
     }
 
+    /** A copy with another {@code silent} flag (a quiet-hours downgrade makes the payload silent, checkpoint 041). */
+    public PushMessage withSilent(boolean newSilent) {
+        return new PushMessage(event, id, alertId, ruleId, severity, title, shortTitle, body, linkApi, linkApp, linkWeb,
+                tags, tag, topic, newSilent, ts, subscriptionId, code, badge, category, actions, confirmUrl);
+    }
+
     /** A message without a badge or category (the 031 form). */
     public PushMessage(String event, Long id, Long alertId, UUID ruleId, String severity, String title,
             String shortTitle, String body, String linkApi, String linkApp, String linkWeb, List<String> tags,

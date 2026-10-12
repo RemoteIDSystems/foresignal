@@ -44,8 +44,8 @@ import tools.jackson.databind.json.JsonMapper;
 /**
  * Every MCP tool of prompt 025 declares a well-formed contract: a valid JSON Schema 2020-12 input
  * schema that is a closed object ({@code additionalProperties: false}) with described members and
- * existing required members, a description, and annotations consistent with its scope (write tools
- * are never {@code readOnlyHint}). {@link McpServerIT} applies {@link #assertWellFormed} to every
+ * existing required members, a description, and annotations consistent with its scope (read tools are
+ * {@code readOnlyHint}; agent and admin tools are not, unless the tool declares itself read-only). {@link McpServerIT} applies {@link #assertWellFormed} to every
  * registered bean, including later prompts' tools.
  */
 class McpToolSchemaTest {
@@ -182,6 +182,11 @@ class McpToolSchemaTest {
         if (tool.requiredScope() == Scope.READ) {
             assertThat(annotations.readOnlyHint()).as(tool.name() + " readOnlyHint").isTrue();
             assertThat(annotations.destructiveHint()).as(tool.name() + " destructiveHint").isFalse();
+        } else if (tool.readOnlyHint()) {
+            // An agent or admin tool that changes nothing (039's export_entity) says so; it is then never destructive.
+            // Scope is who may call a tool, not whether it writes (checkpoint 041).
+            assertThat(annotations.readOnlyHint()).as(tool.name() + " read-only tool readOnlyHint").isTrue();
+            assertThat(annotations.destructiveHint()).as(tool.name() + " read-only tool destructiveHint").isFalse();
         } else {
             assertThat(annotations.readOnlyHint()).as(tool.name() + " write tool readOnlyHint").isFalse();
         }

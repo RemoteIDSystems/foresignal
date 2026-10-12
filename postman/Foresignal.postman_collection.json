@@ -8809,7 +8809,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Morning brief (LLM)\",\n  \"enabled\": true,\n  \"schedule\": \"0 7 * * 1-5\",\n  \"timezone\": \"America/Chicago\",\n  \"scope\": {\n    \"kinds\": [\n      \"earthquake\",\n      \"aircraft\",\n      \"vessel\"\n    ],\n    \"includeHealth\": true\n  },\n  \"lookback\": \"24h\",\n  \"mode\": \"llm\",\n  \"instructions\": \"Lead with anything critical. Keep it under 250 words.\",\n  \"channelIds\": [\n    \"{{channelId}}\"\n  ]\n}",
+              "raw": "{\n  \"name\": \"Morning brief (LLM)\",\n  \"enabled\": true,\n  \"schedule\": \"0 7 * * 1-5\",\n  \"timezone\": \"America/Chicago\",\n  \"scope\": {\n    \"kinds\": [\n      \"earthquake\"\n    ],\n    \"includeHealth\": true\n  },\n  \"lookback\": \"24h\",\n  \"mode\": \"llm\",\n  \"instructions\": \"Lead with anything critical. Keep it under 250 words.\",\n  \"channelIds\": [\n    \"{{channelId}}\"\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -25736,7 +25736,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"_type\": \"location\",\n  \"lat\": 30.27,\n  \"lon\": -97.74,\n  \"tst\": 1760097600,\n  \"acc\": 12,\n  \"batt\": 81,\n  \"tid\": \"ph\"\n}",
               "options": {
                 "raw": {
                   "language": "json"

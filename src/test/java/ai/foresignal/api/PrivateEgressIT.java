@@ -154,7 +154,10 @@ class PrivateEgressIT extends StatsItSupport {
     @DisplayName("records: list, direct get, versions, track, asOf and count")
     void records(Caller caller) throws Exception {
         listed(caller, get("/v1/records").param("limit", "500"), SECRET);
-        listed(caller, get("/v1/records").param("asOf", AT.plusSeconds(90).toString()).param("limit", "500"), SECRET);
+        // asOf needs a source or kind filter (Core-Data-Model §12 step 1, 400 ASOF_FILTER_REQUIRED); both kinds
+        // are named so the private one is filtered by visibility, not by the request (checkpoint 041).
+        listed(caller, get("/v1/records").param("asOf", AT.plusSeconds(90).toString())
+                .param("kind", StatsTestSources.POINT_KIND, StatsTestSources.SECRET_KIND).param("limit", "500"), SECRET);
         direct(caller, get("/v1/records/" + SECRET + "/sec1"));
         direct(caller, get("/v1/records/" + SECRET + "/sec1/versions"));
         direct(caller, get("/v1/records/" + SECRET + "/sec1/track").param("from", T0.toString()));

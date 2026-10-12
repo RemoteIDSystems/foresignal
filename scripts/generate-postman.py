@@ -153,6 +153,9 @@ BODIES = {
                     "geometry": {"type": "Point", "coordinates": [-97.74, 30.27]},
                     "properties": {"kind": "sensor-reading", "observedAt": "2026-10-10T12:00:00Z", "name": "Garage temperature", "value": 31.5, "unit": "C"}}]},
   "ingestRecordsFormat": ALERTMANAGER,
+  # A device key in the path (039): an OwnTracks location message, the format the personal-location preset uses.
+  "ingestRecordsPathKey": {"_type": "location", "lat": 30.27, "lon": -97.74, "tst": 1760097600, "acc": 12, "batt": 81,
+                           "tid": "ph"},
   "ntfyPublishJson": {"topic": "{{sourceId}}", "message": "Monitor 'NAS' is down", "title": "Uptime Kuma", "priority": 4,
                       "tags": ["warning", "id=kuma-nas"], "click": "https://kuma.local/dashboard/1"},
   "gotifyPublish": {"title": "vzdump", "message": "Backup of VM 101 finished", "priority": 5,
@@ -177,8 +180,9 @@ BODIES = {
   "createBriefing": {"name": "Morning brief", "enabled": True, "schedule": "0 7 * * *", "timezone": "America/Chicago",
                      "scope": {"sources": [], "kinds": ["earthquake"], "includeHealth": True}, "lookback": "24h", "mode": "digest",
                      "instructions": None, "channelIds": ["{{channelId}}"], "maxItemsPerKind": 5},
+  # Kinds must belong to a registered source (BriefingValidator); aircraft and vessel adapters arrive later (041).
   "updateBriefing": {"name": "Morning brief (LLM)", "enabled": True, "schedule": "0 7 * * 1-5", "timezone": "America/Chicago",
-                     "scope": {"kinds": ["earthquake", "aircraft", "vessel"], "includeHealth": True}, "lookback": "24h", "mode": "llm",
+                     "scope": {"kinds": ["earthquake"], "includeHealth": True}, "lookback": "24h", "mode": "llm",
                      "instructions": "Lead with anything critical. Keep it under 250 words.", "channelIds": ["{{channelId}}"]},
   "previewBriefing": {"name": "Preview", "schedule": "0 7 * * *", "scope": {"kinds": ["earthquake"]}, "lookback": "24h", "mode": "digest"},
   "createPushSubscription": {"name": "Laptop browser", "subscription": {"endpoint": "https://push.example/REPLACE",

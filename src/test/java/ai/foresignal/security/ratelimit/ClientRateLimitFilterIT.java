@@ -164,9 +164,12 @@ class ClientRateLimitFilterIT {
     @DisplayName("expensive: search is charged to expensive, not read")
     void expensiveLimit() throws Exception {
         limits(100, 100, 100, 8, 1, 100, 100, null);
-        assertThat(get("/v1/search?q=quake").statusCode()).isNotEqualTo(429);
+        // Search is always authenticated (SEC-5): an anonymous call is 401 before the limiter, so a read token is used
+        // (checkpoint 041).
+        Map<String, String> reader = bearer(TestTokens.create(tokens, "rl-search-reader", Scope.READ));
+        assertThat(get("/v1/search?q=quake", reader).statusCode()).isNotEqualTo(429);
 
-        assertLimited(get("/v1/search?q=quake"), "expensive", 60);
+        assertLimited(get("/v1/search?q=quake", reader), "expensive", 60);
         assertThat(get("/v1/records").statusCode()).isEqualTo(200);
     }
 

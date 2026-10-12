@@ -94,5 +94,9 @@ class CookbookApiReferenceTest {
         assertThat(IntegrationDocs.matches("/v1/ingest/", "/v1/ingest/{sourceId}")).isTrue();
         assertThat(IntegrationDocs.matches("/v1/ingest/", "/v1/ingest")).isFalse();
         assertThat(IntegrationDocs.matches("/v1/nothing/", "/v1/ingest/{sourceId}")).isFalse();
+        // A segment with an embedded variable (checkpoint 041).
+        assertThat(IntegrationDocs.matches("/v1/tiles/{layer}/{z}/{x}/{y}.mvt", "/v1/tiles/{layer}/{z}/{x}/{y}.mvt")).isTrue();
+        assertThat(IntegrationDocs.matches("/v1/tiles/quakes/3/2/1.mvt", "/v1/tiles/{layer}/{z}/{x}/{y}.mvt")).isTrue();
+        assertThat(IntegrationDocs.matches("/v1/tiles/quakes/3/2/1.png", "/v1/tiles/{layer}/{z}/{x}/{y}.mvt")).isFalse();
     }
 }

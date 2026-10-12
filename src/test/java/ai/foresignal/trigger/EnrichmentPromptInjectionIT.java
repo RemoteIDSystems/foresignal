@@ -63,7 +63,10 @@ class EnrichmentPromptInjectionIT extends EnrichmentItSupport {
         assertThat(outcome.status()).isEqualTo(EnrichmentService.Outcome.SUCCEEDED);
         AlertView stored = alertStore.find(alert.id()).orElseThrow();
         assertThat(stored.summary()).contains(evilCite).doesNotContain("[evil:payload@1]");
-        assertThat(stored.summaryCitations()).doesNotContain("evil:payload");
+        // The invented citation is dropped; the real one stays, and its title is the record's own (injected) text,
+        // which quotes "[evil:payload@1]" as data (checkpoint 041: the old check matched that title).
+        assertThat(stored.summaryCitations()).doesNotContainPattern("\"id\":\\s*\"evil:payload")
+                .containsPattern("\"id\":\\s*\"" + STANDARD + ":v-evil\"");
         assertThat(ruleRepository.count()).as("no configuration changed").isEqualTo(rulesBefore);
         assertThat(llmSettings.get().enrichmentEnabled()).isTrue();
         assertThat(chat().requests()).as("one call, no tool loop").hasSize(1);

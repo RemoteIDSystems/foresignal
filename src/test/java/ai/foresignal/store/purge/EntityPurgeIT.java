@@ -207,6 +207,11 @@ class EntityPurgeIT extends RetentionItSupport {
         clock.setInstant(purgeAt);
         purges.purge(STANDARD, "p-head", false);
         assertThat(head(STANDARD, "p-head")).isTrue();
+        // cutoffSeq is the first seq of the latest seq_clock minute at or before the cutoff (Core-Data-Model §8): with
+        // the tombstone in the last minute that saw an ingest, the floor would land on it. A later marker minute lets
+        // the floor pass it, as RecordLifecycleIT does (022 report, deviation 6; checkpoint 041).
+        Instant marker = purgeAt.plus(Duration.ofDays(1));
+        ingestAt(STANDARD, marker, record("p-marker", STANDARD_KIND, marker, 1));
 
         runAt(purgeAt.plus(Duration.ofDays(400)));
 

@@ -171,6 +171,22 @@ class PathKeyFilterIT {
     }
 
     @Test
+    @DisplayName("041: with openReads on, the key still clamps reads to its sources and prefixes, and an invalid key is 401")
+    void keyUnderOpenReads() throws Exception {
+        settings.put(SettingKeys.SECURITY, new SecuritySettings(true));
+        records.ingestAt(SCHEMA_A, T0, NormalizedRecord.builder("a1", SCHEMA_KIND).observedAt(T0).point(1, 1).build());
+        records.ingestAt(SCHEMA_B, T0, NormalizedRecord.builder("b1", SCHEMA_KIND).observedAt(T0).point(1, 1).build());
+        String key = create().get("key").asString();
+
+        HttpResponse<String> ok = get("/v1/k/" + key + "/records?order=id");
+        assertThat(ok.statusCode()).as(ok.body()).isEqualTo(200);
+        assertThat(ok.body()).contains("a1").doesNotContain("b1");
+        assertThat(get("/v1/k/" + key + "/alerts").statusCode()).isEqualTo(403);
+        assertThat(get("/v1/k/fsf_unknown/records").statusCode()).isEqualTo(401);
+        assertThat(get("/v1/records").statusCode()).as("openReads is on").isEqualTo(200);
+    }
+
+    @Test
     @DisplayName("039: privateAccess is accepted and reflected; excludePrivate:false needs it")
     void privateAccess() throws Exception {
         Instant month = T0.plus(Duration.ofDays(30));

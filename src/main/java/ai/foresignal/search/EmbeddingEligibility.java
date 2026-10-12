@@ -86,7 +86,10 @@ public class EmbeddingEligibility implements IngestStateReset {
         cached = null;
         SourceView before = event.before();
         SourceView after = event.after();
-        if (before != null && after != null && before.embed() && !after.embed()) {
+        // before is null when this update created the settings row (SourceSettingsChangedEvent): the source was at
+        // its defaults, embedded when eligible, so turning embed off still deletes its documents (checkpoint 041:
+        // a source's first settings update to embed=false left them searchable).
+        if (after != null && !after.embed() && (before == null || before.embed())) {
             // The event is published after the settings commit: write in a transaction of our own.
             newTransaction.executeWithoutResult(status -> jdbc.update(
                     "DELETE FROM embedding_document WHERE doc_type = 'record' AND source_id = ?", event.sourceId()));

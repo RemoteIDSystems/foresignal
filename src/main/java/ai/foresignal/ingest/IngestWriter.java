@@ -515,7 +515,7 @@ public class IngestWriter implements IngestStateReset, DisposableBean {
                 }
                 if (state == WriterState.CLOCK_BEHIND) {
                     if (!recheckClock()) {
-                        sleepWhileRunning(settings.clockRecheck());
+                        sleepWhileClockBehind(settings.clockRecheck());
                     }
                     continue;
                 }
@@ -1632,6 +1632,26 @@ public class IngestWriter implements IngestStateReset, DisposableBean {
     private void sleepWhileRunning(Duration duration) {
         long deadline = System.nanoTime() + duration.toNanos();
         while (running) {
+            long left = deadline - System.nanoTime();
+            if (left <= 0) {
+                return;
+            }
+            try {
+                Thread.sleep(Duration.ofNanos(Math.min(left, POLL.toNanos())));
+            } catch (InterruptedException e) {
+                return;
+            }
+        }
+    }
+
+    /**
+     * Sleeps up to {@code duration} while the writer is held for its clock, returning as soon as another thread
+     * releases the hold ({@link #resetState()} re-applies the clock guard). Checkpoint 041: the writer slept out the
+     * whole 30 s recheck after a reload had already released it, so ingest stayed held for that long.
+     */
+    private void sleepWhileClockBehind(Duration duration) {
+        long deadline = System.nanoTime() + duration.toNanos();
+        while (running && state == WriterState.CLOCK_BEHIND) {
             long left = deadline - System.nanoTime();
             if (left <= 0) {
                 return;

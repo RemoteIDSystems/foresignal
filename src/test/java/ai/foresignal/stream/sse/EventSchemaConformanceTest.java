@@ -93,7 +93,10 @@ class EventSchemaConformanceTest {
             entry("alert.enriched", EventSchemaConformanceTest::enrichedAlerts),
             entry("notification", () -> List.of(toTree(NotificationJson.toMap(NotifyFixtures.message())),
                     toTree(NotificationJson.toMap(NotifyFixtures.update("alert.resolved"))))),
-            entry("system", () -> List.of(toTree(NotificationJson.toMap(systemMessage())))));
+            entry("system", () -> List.of(toTree(NotificationJson.toMap(systemMessage())))),
+            // 033: InboxTopic sends the device's badge as an id-less control event (checkpoint 041).
+            entry("badge", () -> List.of(toTree(new ai.foresignal.notify.inbox.InboxService.Badge(3, 1, 42L).toMap()),
+                    toTree(new ai.foresignal.notify.inbox.InboxService.Badge(0, 0, null).toMap()))));
 
     // ------------------------------------------------------------------------- the table
 

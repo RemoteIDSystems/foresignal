@@ -202,8 +202,11 @@ class TriggersControllerIT {
             send(post("/v1/triggers"), "{\"name\":\"v\",\"sources\":[\"" + VOLATILE + "\"],\"conditions\":"
                     + "[{\"path\":\"fetchedAt\",\"op\":\"exists\",\"value\":true}]}")
                     .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code", is("TRIGGER_PATH_VOLATILE")));
+            // Places exist since 036, so PLACES_UNAVAILABLE no longer applies; an unknown place is a field error
+            // (checkpoint 041).
             send(post("/v1/triggers"), "{\"name\":\"p\",\"near\":{\"placeId\":\"home\",\"radiusKm\":5}}")
-                    .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code", is("PLACES_UNAVAILABLE")));
+                    .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code", is("VALIDATION_FAILED")))
+                    .andExpect(jsonPath("$.errors[0].field", is("near.placeIds")));
             send(post("/v1/triggers"), "{\"name\":\"s\",\"source\":\"" + STANDARD + "\",\"sources\":[\"" + STANDARD + "\"]}")
                     .andExpect(status().isBadRequest());
             send(post("/v1/triggers"), "{\"name\":\"g\",\"geofence\":{\"type\":\"Polygon\",\"coordinates\":"

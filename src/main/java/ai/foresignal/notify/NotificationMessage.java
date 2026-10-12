@@ -98,8 +98,11 @@ public record NotificationMessage(
 
     /** A copy with another title and body (channel templates, digests). */
     public NotificationMessage withText(String newTitle, String newBody) {
-        return new NotificationMessage(id, event, subtype, newTitle, null, newBody, severity, url, links, data, tags,
-                attachments, updateOf, origin, createdAt, alertId, ruleId, briefingRunId);
+        // The short title is kept (the rule name for alerts, set by the router): a channel's title template changes
+        // the title, not what watches, mesh and push show (checkpoint 041; it was re-derived from the templated
+        // title, so a Web Push shortTitle read "[critical] Quakes" instead of "Quakes").
+        return new NotificationMessage(id, event, subtype, newTitle, shortTitle, newBody, severity, url, links, data,
+                tags, attachments, updateOf, origin, createdAt, alertId, ruleId, briefingRunId);
     }
 
     /** A new builder. */

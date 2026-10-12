@@ -254,7 +254,7 @@ class EnrichmentWorkerIT extends EnrichmentItSupport {
         assertThat(enrichment.enrich(alert).reason()).isEqualTo("provider");
         chat().then(FakeLlmClient.refusal("cyber"));
         assertThat(enrichment.enrich(alert).reason()).isEqualTo("refusal");
-        provider("tiny", "openai-compatible", 1L);
+        provider("tiny", "openai-compatible", 1_000L); // the spec minimum (LlmProviderInput.tokensPerDay), as AskServiceIT uses (checkpoint 041)
         assign("tiny");
         assertThat(enrichment.enrich(alert).reason()).isEqualTo("budget");
 

@@ -80,16 +80,23 @@ class MovingAnchorIT {
         clock.setInstant(now);
     }
 
+    /**
+     * Every point is moved 0.01° north (checkpoint 041): (0,0) is Null Island, whose geometry a source that does not
+     * allow it drops (008), so the phone at the origin had no position and no anchor. Longitude distances at this
+     * latitude are unchanged to the precision the assertions use.
+     */
+    static final double LAT_OFFSET = 0.01;
+
     void phone(double lon, double lat) {
         tick();
-        records.ingest(PHONE, NormalizedRecord.builder("pixel", PHONE_KIND).observedAt(now).point(lon, lat)
+        records.ingest(PHONE, NormalizedRecord.builder("pixel", PHONE_KIND).observedAt(now).point(lon, lat + LAT_OFFSET)
                 .put("name", "Pixel").build());
         settle();
     }
 
     void quake(String id, double lon, double lat) {
         tick();
-        records.ingest(EVENTS, NormalizedRecord.builder(id, EVENT_KIND).observedAt(now).point(lon, lat)
+        records.ingest(EVENTS, NormalizedRecord.builder(id, EVENT_KIND).observedAt(now).point(lon, lat + LAT_OFFSET)
                 .put("name", id).put("mag", 6).build());
         settle();
     }

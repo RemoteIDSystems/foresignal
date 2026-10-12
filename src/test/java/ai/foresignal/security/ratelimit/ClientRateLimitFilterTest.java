@@ -35,7 +35,14 @@ import tools.jackson.databind.json.JsonMapper;
  */
 class ClientRateLimitFilterTest {
 
-    static final JsonMapper JSON = JsonMapper.builder().build();
+    /**
+     * Serializes problems as the application mapper does: Spring's mixin flattens {@code ProblemDetail}'s properties
+     * (code, class) into the document (checkpoint 041; a plain mapper nested them under "properties").
+     */
+    static final JsonMapper JSON = JsonMapper.builder()
+            .addMixIn(org.springframework.http.ProblemDetail.class,
+                    org.springframework.http.converter.json.ProblemDetailJacksonMixin.class)
+            .build();
 
     MutableClock clock;
     RateLimitSettingsService settings;

@@ -61,7 +61,16 @@ public abstract class SearchItSupport {
         reindex.setBackgroundEnabled(false);
         worker.stop();
         clock.setInstant(T);
+        // Checkpoint 041: region tags (040) enter the embedding text only when the region worker tags a record before
+        // the embedding worker reads it, so these tests switch tagging off for their sources to stay deterministic.
+        for (String source : java.util.List.of(SearchTestSources.NEWS, SearchTestSources.BULLETIN,
+                SearchTestSources.OPT_OUT, SearchTestSources.PRIVATE_EMBED, SearchTestSources.PLAIN)) {
+            regionTagging.update(source, "off");
+        }
     }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    protected ai.foresignal.reference.RegionTaggingService regionTagging;
 
     /** Creates an Ollama-type provider {@code id} whose fake embeddings are {@code dimensions} wide. */
     protected void provider(String id, int dimensions) {

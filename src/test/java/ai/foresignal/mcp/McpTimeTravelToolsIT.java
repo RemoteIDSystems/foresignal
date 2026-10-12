@@ -74,7 +74,12 @@ class McpTimeTravelToolsIT {
 
     private static JsonNode structured(McpSchema.CallToolResult result) {
         assertThat(result.isError()).as(String.valueOf(result.content())).isFalse();
-        return JSON.valueToTree(result.structuredContent());
+        // structuredContent is set only for tools that declare an outputSchema (025, MCP); these tools return their
+        // JSON as the text block (checkpoint 041).
+        if (result.structuredContent() != null) {
+            return JSON.valueToTree(result.structuredContent());
+        }
+        return JSON.readTree(((McpSchema.TextContent) result.content().getFirst()).text());
     }
 
     private void ingest(Instant at, String source, NormalizedRecord... batch) {

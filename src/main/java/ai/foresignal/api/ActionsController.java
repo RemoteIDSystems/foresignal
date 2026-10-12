@@ -135,8 +135,14 @@ public class ActionsController {
         if (given.equals(configured)) {
             return true;
         }
-        String host = request.getHeader(HttpHeaders.HOST);
-        return host != null && given.equals(normalizeOrigin(request.getScheme() + "://" + host));
+        // The server name and port as Tomcat resolved them (behind trusted proxies, the forwarded host), not the raw
+        // Host header, which a forwarding proxy leaves as its own address (checkpoint 041: the documented rule).
+        String host = request.getServerName();
+        if (host == null || host.isBlank()) {
+            return false;
+        }
+        String authority = host.contains(":") && !host.startsWith("[") ? "[" + host + "]" : host;
+        return given.equals(normalizeOrigin(request.getScheme() + "://" + authority + ":" + request.getServerPort()));
     }
 
     /** {@code scheme://host[:port]} in lowercase, default ports dropped; null when not a URL origin. */
