@@ -51,13 +51,21 @@ public class TileJsonMapper {
 
     /** {@code GET /v1/tiles.json}: every visible layer with its TileJSON URL. */
     public Map<String, Object> index(List<TileLayer> layers, String baseUrl) {
+        return index(layers, baseUrl, null);
+    }
+
+    /**
+     * {@code GET /v1/tiles.json?asOf=}: the index whose TileJSON URLs carry the canonical
+     * {@code asOf} (prompt 037); a null {@code asOf} gives the current index.
+     */
+    public Map<String, Object> index(List<TileLayer> layers, String baseUrl, String asOf) {
         List<Map<String, Object>> entries = new ArrayList<>();
         for (TileLayer layer : layers) {
             Map<String, Object> entry = new LinkedHashMap<>();
             entry.put("id", layer.id());
             entry.put("type", layer.type().wireValue());
             entry.put("name", layer.name());
-            entry.put("tilejson", baseUrl + "/v1/tiles/" + layer.id() + ".json");
+            entry.put("tilejson", baseUrl + "/v1/tiles/" + layer.id() + ".json" + (asOf == null ? "" : "?asOf=" + asOf));
             entry.put("aggBelowZoom", layer.aggBelowZoom());
             entries.add(entry);
         }
@@ -70,6 +78,32 @@ public class TileJsonMapper {
     /** {@code GET /v1/tiles/{layer}.json}: the TileJSON 3.0.0 document of one layer. */
     public Map<String, Object> tileJson(TileLayer layer, String baseUrl) {
         return tileJson(layer, baseUrl, baseUrl + "/v1/tiles/" + layer.id() + "/{z}/{x}/{y}.mvt");
+    }
+
+    /**
+     * {@code GET /v1/tiles/{layer}.json?asOf=}: the TileJSON of the layer as known at {@code asOf}
+     * (prompt 037). The tile template is concrete, with the canonical {@code asOf} baked in, and
+     * {@code live} is not among the properties (asOf features come from stored versions);
+     * {@code foresignal:asOf} echoes the instant.
+     */
+    public Map<String, Object> asOfTileJson(TileLayer layer, String baseUrl, String asOf) {
+        Map<String, Object> body = tileJson(layer, baseUrl,
+                baseUrl + "/v1/tiles/" + layer.id() + "/{z}/{x}/{y}.mvt?asOf=" + asOf);
+        List<String> properties = new ArrayList<>(layer.properties());
+        properties.remove("live");
+        body.put("foresignal:properties", List.copyOf(properties));
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> vectorLayers = (List<Map<String, Object>>) body.get("vector_layers");
+        for (Map<String, Object> vectorLayer : vectorLayers) {
+            Object fields = vectorLayer.get("fields");
+            if (fields instanceof Map<?, ?> map) {
+                Map<Object, Object> copy = new LinkedHashMap<>(map);
+                copy.remove("live");
+                vectorLayer.put("fields", copy);
+            }
+        }
+        body.put("foresignal:asOf", asOf);
+        return body;
     }
 
     /**

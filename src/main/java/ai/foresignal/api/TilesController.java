@@ -1,6 +1,15 @@
 package ai.foresignal.api;
 
+import ai.foresignal.api.error.ErrorCodes;
+import ai.foresignal.api.error.ValidationException;
 import ai.foresignal.api.mapper.TileJsonMapper;
+import ai.foresignal.api.support.AsOfParam;
+import ai.foresignal.api.support.TimeTravelCache;
+import ai.foresignal.source.spi.SourceDescriptor;
+import ai.foresignal.store.history.AsOfPlan;
+import ai.foresignal.store.history.AsOfResolver;
+import ai.foresignal.store.tiles.AsOfTileQueryService;
+import java.time.Clock;
 import ai.foresignal.api.support.ETags;
 import ai.foresignal.api.support.ReadCaller;
 import ai.foresignal.api.support.ReadCallerResolver;
@@ -56,6 +65,15 @@ public class TilesController {
     /** Sent with {@code true} when a raw tile hit {@code foresignal.tiles.maxFeatures}. */
     public static final String TRUNCATED_HEADER = "Foresignal-Tile-Truncated";
 
+    /** The canonical {@code asOf} of an asOf tile (prompt 037). */
+    public static final String AS_OF_HEADER = "Foresignal-As-Of";
+
+    /** {@code S(t)} of an asOf tile. */
+    public static final String AS_OF_SEQ_HEADER = "Foresignal-As-Of-Seq";
+
+    /** {@code true} when an asOf tile is approximate (sampled sources or downsampled history). */
+    public static final String APPROXIMATE_HEADER = "Foresignal-Approximate";
+
     /** {@code max-age} of the TileJSON documents. */
     static final Duration TILEJSON_MAX_AGE = Duration.ofSeconds(300);
 
@@ -69,6 +87,9 @@ public class TilesController {
     private final AppSettingService settings;
     private final TileProperties properties;
     private final JsonMapper json;
+    private final AsOfTileQueryService asOfTiles;
+    private final AsOfResolver asOf;
+    private final Clock clock;
 
     /** Creates the controller. */
     public TilesController(
@@ -78,7 +99,10 @@ public class TilesController {
             ReadCallerResolver callers,
             AppSettingService settings,
             TileProperties properties,
-            JsonMapper json) {
+            JsonMapper json,
+            AsOfTileQueryService asOfTiles,
+            AsOfResolver asOf,
+            Clock clock) {
         this.layers = layers;
         this.tiles = tiles;
         this.tileJson = tileJson;
@@ -86,6 +110,9 @@ public class TilesController {
         this.settings = settings;
         this.properties = properties;
         this.json = json;
+        this.asOfTiles = asOfTiles;
+        this.asOf = asOf;
+        this.clock = clock;
     }
 
     /**
@@ -94,6 +121,11 @@ public class TilesController {
      * the bytes and {@code 304} on {@code If-None-Match}; {@code Cache-Control max-age} of
      * {@code rawMaxAge} (5 s) for raw tiles and {@code aggMaxAge} (60 s) for aggregated ones,
      * {@code public} while {@code openReads} is on, else {@code private}.
+     *
+     * <p>With {@code asOf} (prompt 037) the tile shows the layer as known at that instant
+     * ({@link AsOfTileQueryService}); other spellings of the instant are {@code 301} to the
+     * canonical URL, the response carries {@code Foresignal-As-Of}, {@code Foresignal-As-Of-Seq} and
+     * {@code Foresignal-Approximate}, and caching follows {@link TimeTravelCache}.
      */
     @GetMapping("/v1/tiles/{layer}/{z}/{x}/{y}.mvt")
     @Operation(operationId = "getTile", tags = "Tiles")
@@ -104,13 +136,22 @@ public class TilesController {
             @PathVariable String x,
             @PathVariable String y,
             @RequestParam(required = false) String agg,
+            @RequestParam(name = AsOfParam.NAME, required = false) String asOfText,
             @RequestHeader(value = HttpHeaders.IF_NONE_MATCH, required = false) String ifNoneMatch,
             HttpServletRequest request) {
         TileCoordinates coordinates = TileCoordinates.parse(z, x, y);
         AggMode mode = AggMode.parse(agg);
+        AsOfParam at = AsOfParam.parse(asOfText);
+        if (at != null && at.redirect()) {
+            return redirect(request, at);
+        }
         // place=, view= and inWatchlist= narrow the caller's restriction (prompt 036).
         ReadCaller caller = callers.resolveScoped(request);
-        TileLayer resolved = allowed(layers.resolve(layer, callers.excludedSources(caller)), caller.restriction());
+        Set<String> excluded = callers.excludedSources(caller);
+        TileLayer resolved = allowed(layers.resolve(layer, excluded), caller.restriction());
+        if (at != null) {
+            return asOfTile(resolved, coordinates, mode, at, caller, excluded, ifNoneMatch);
+        }
         TileResult result = tiles.render(resolved, coordinates, mode, caller.restriction());
 
         String etag = ETags.forBytes(result.mvt());
@@ -125,19 +166,66 @@ public class TilesController {
         return ResponseEntity.ok().headers(headers).contentType(MVT).body(result.mvt());
     }
 
+    /** The asOf branch of {@link #getTile}. */
+    private ResponseEntity<byte[]> asOfTile(TileLayer layer, TileCoordinates coordinates, AggMode mode, AsOfParam at,
+            ReadCaller caller, Set<String> excluded, String ifNoneMatch) {
+        AsOfPlan plan = asOf.plan(at.instant(), layer.sourceIds(), excluded);
+        TileResult result = asOfTiles.render(layer, coordinates, mode, plan, caller.restriction());
+        String etag = ETags.forBytes(result.mvt());
+        boolean immutable = TimeTravelCache.immutable(at.instant(), clock.instant(), plan.horizon(), asOf.settled(plan));
+        HttpHeaders headers = new HttpHeaders();
+        headers.setETag(etag);
+        headers.setCacheControl(TimeTravelCache.cacheControl(immutable, publicAsOf(caller, layer)));
+        headers.set(HttpHeaders.VARY, VARY);
+        headers.set(AS_OF_HEADER, at.canonical());
+        headers.set(AS_OF_SEQ_HEADER, Long.toString(plan.s()));
+        headers.set(APPROXIMATE_HEADER, Boolean.toString(plan.approximate()));
+        if (result.truncated()) {
+            headers.set(TRUNCATED_HEADER, "true");
+        }
+        if (ETags.matches(ifNoneMatch, etag)) {
+            return ResponseEntity.status(304).headers(headers).build();
+        }
+        return ResponseEntity.ok().headers(headers).contentType(MVT).body(result.mvt());
+    }
+
+    /**
+     * True when an asOf response may be {@code public}: {@code openReads} covers the path for this
+     * caller and the layer has no private source.
+     */
+    public static boolean publicAsOf(ReadCaller caller, TileLayer layer) {
+        return caller.publicCache() && layer.sources().stream().noneMatch(SourceDescriptor::privateSource);
+    }
+
+    /** {@code 301} to the canonical {@code asOf} spelling. */
+    static <T> ResponseEntity<T> redirect(HttpServletRequest request, AsOfParam at) {
+        return ResponseEntity.status(301)
+                .header(HttpHeaders.LOCATION, AsOfParam.redirectLocation(request, at.canonical()))
+                .build();
+    }
+
     /** {@code listTileLayers}: every source id and kind the caller can see, with its TileJSON URL. */
     @GetMapping("/v1/tiles.json")
     @Operation(operationId = "listTileLayers", tags = "Tiles")
     @RestrictedRead("layers outside the restriction's sources and kinds are left out")
     public ResponseEntity<String> listTileLayers(
+            @RequestParam(name = AsOfParam.NAME, required = false) String asOfText,
             @RequestHeader(value = HttpHeaders.IF_NONE_MATCH, required = false) String ifNoneMatch,
             HttpServletRequest request) {
+        AsOfParam at = AsOfParam.parse(asOfText);
+        if (at != null && at.redirect()) {
+            return redirect(request, at);
+        }
+        if (at != null && at.instant().isAfter(clock.instant())) {
+            throw new ValidationException(ErrorCodes.ASOF_INVALID, "asOf must not be in the future.", List.of());
+        }
         ReadCaller caller = callers.resolve(request);
         Set<String> excluded = callers.excludedSources(caller);
         List<TileLayer> visible = layers.layers(excluded).stream()
                 .filter(l -> layerAllowed(l, caller.restriction()))
                 .toList();
-        return document(tileJson.index(visible, baseUrl(request)), caller, ifNoneMatch);
+        return document(tileJson.index(visible, baseUrl(request), at == null ? null : at.canonical()), caller,
+                ifNoneMatch);
     }
 
     /** {@code getTileJson}: the TileJSON 3.0.0 document of one layer; {@code 404 UNKNOWN_LAYER}. */
@@ -146,10 +234,21 @@ public class TilesController {
     @RestrictedRead("a layer outside the restriction is UNKNOWN_LAYER")
     public ResponseEntity<String> getTileJson(
             @PathVariable String layer,
+            @RequestParam(name = AsOfParam.NAME, required = false) String asOfText,
             @RequestHeader(value = HttpHeaders.IF_NONE_MATCH, required = false) String ifNoneMatch,
             HttpServletRequest request) {
+        AsOfParam at = AsOfParam.parse(asOfText);
+        if (at != null && at.redirect()) {
+            return redirect(request, at);
+        }
         ReadCaller caller = callers.resolve(request);
-        TileLayer resolved = allowed(layers.resolve(layer, callers.excludedSources(caller)), caller.restriction());
+        Set<String> excluded = callers.excludedSources(caller);
+        TileLayer resolved = allowed(layers.resolve(layer, excluded), caller.restriction());
+        if (at != null) {
+            // Validates the instant against the layer's sources (future, retention horizon).
+            asOf.plan(at.instant(), resolved.sourceIds(), excluded);
+            return document(tileJson.asOfTileJson(resolved, baseUrl(request), at.canonical()), caller, ifNoneMatch);
+        }
         return document(tileJson.tileJson(resolved, baseUrl(request)), caller, ifNoneMatch);
     }
 

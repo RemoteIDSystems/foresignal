@@ -49,6 +49,9 @@ class AccessPolicyTest {
                 "/v1/kinds",
                 "/v1/kinds/earthquake/schema",
                 "/v1/history",
+                "/v1/history/frames",
+                "/v1/timeline",
+                "/v1/records/usgs-earthquakes/us7000abcd/track",
                 "/v1/changes",
                 "/v1/changes/stream",
                 "/v1/events/stream",
@@ -103,6 +106,8 @@ class AccessPolicyTest {
         "PATCH, /v1/events/stream/abc/filter/extra",
         "POST, /v1/tiles.json",
         "GET, /v1/tiles.jsonx",
+        "POST, /v1/timeline",
+        "GET, /v1/timelines",
     })
     @DisplayName("only GET /v1/kinds, GET /v1/kinds/{kind}/schema and the event-stream pair are reads; neighbors fail closed (014, 015, 016)")
     void kindSchemaRuleIsExact(String method, String path) {

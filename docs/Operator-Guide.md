@@ -751,6 +751,15 @@ response echoes `asOf` and reports `horizon`, the earliest time the involved sou
 supports; earlier times are `400 ASOF_BEYOND_RETENTION`. `asOfSeq` pins the same thing by seq, and
 `GET /v1/records/{source}/{id}/versions` lists every stored version.
 
+**Time travel.** The same transaction-axis replay serves paused maps (`asOf` on tiles and TileJSON),
+trails (`GET /v1/records/{source}/{id}/track`), playback (`GET /v1/history/frames`) and scrubber
+histograms (`GET /v1/timeline`). Past asOf tiles and tracks are sent with
+`Cache-Control: …, max-age=31536000, immutable` once their instant is at least 2 minutes old, at least
+1 hour after the retention horizon and not pending downsampling, so a caching proxy (Caddy, a CDN)
+may keep them; `public` is used only while `openReads` covers the path and no private source is
+involved. Chrome ignores `immutable` but honors the year-long `max-age`. The client recipe is in the
+Client Guide ("Time travel").
+
 ## Tokens, pairing and the audit log
 
 ### Tokens and scopes

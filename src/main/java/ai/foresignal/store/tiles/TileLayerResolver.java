@@ -190,6 +190,14 @@ public class TileLayerResolver {
                 built.sources(), built.tileProperties(), built.aggBelowZoom(), built.rankFields());
     }
 
+    /**
+     * The union of the valid {@code tileProperties} of {@code sources}, in first-seen order and
+     * without the base property names: the properties of history frame items (prompt 037).
+     */
+    public static List<String> tilePropertiesOf(Collection<SourceDescriptor> sources) {
+        return build("frames", TileLayerType.VIEW, new ArrayList<>(sources)).tileProperties();
+    }
+
     private static TileLayer build(String id, TileLayerType type, List<SourceDescriptor> matched) {
         List<SourceDescriptor> sources = new ArrayList<>(matched);
         sources.sort(Comparator.comparing(SourceDescriptor::id));

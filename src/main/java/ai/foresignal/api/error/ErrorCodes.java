@@ -53,6 +53,15 @@ public final class ErrorCodes {
     /** 503: a read query ran past {@code foresignal.api.query.statementTimeout}. */
     public static final String QUERY_TIMEOUT = "QUERY_TIMEOUT";
 
+    /** 400: a track window is larger than the source's retention window (prompt 037). */
+    public static final String TRACK_WINDOW_TOO_LARGE = "TRACK_WINDOW_TOO_LARGE";
+
+    /** 400: history frames would cover more than 20,000 entities or scan 2,000,000 rows (prompt 037). */
+    public static final String FRAMES_TOO_LARGE = "FRAMES_TOO_LARGE";
+
+    /** 400: a timeline would have more than 1,000 buckets (prompt 037). */
+    public static final String TIMELINE_TOO_LARGE = "TIMELINE_TOO_LARGE";
+
     /**
      * 503 (server-wide {@code maxClients}) or 429 (per-principal stream count, with
      * {@code Retry-After}): no further SSE stream may be opened now (prompt 015).

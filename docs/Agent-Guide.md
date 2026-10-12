@@ -202,6 +202,13 @@ which is true when a sampled source (SAMPLED or LATEST policy) is involved: thos
 only some observations, so positions between stored versions are not exact. For valid time (what
 was true at `T` according to the data itself), use `/v1/history`.
 
+The same transaction-axis replay is available as map tiles (`/v1/tiles/{layer}/{z}/{x}/{y}.mvt?asOf=`),
+as one entity's trail (`GET /v1/records/{source}/{id}/track`), as animation frames
+(`GET /v1/history/frames`) and as a density histogram (`GET /v1/timeline`); the client recipe is in
+the Client Guide ("Time travel"). Agents use the MCP tools `get_state_at` and `get_track`. A past
+answer never changes once its time has passed, except where retention removes history or prompt
+044's downsampling thins it; both are flagged (`horizon`, `approximate`, `downsampled`).
+
 ## Home Assistant
 
 Home Assistant's `geo_json_events` integration can show Foresignal records on its map. Add it in
@@ -324,8 +331,10 @@ Every tool takes `detail`: `short` (the default, compact items, the whole result
 | `get_watchlist` | agent | One watchlist with its first items (036). |
 | `add_to_watchlist` | agent | Add or update `items` (`{value, label, notes, tags}`), validated for the list's identity; effective on each entity's next observation (036). |
 | `remove_from_watchlist` | agent | Remove `values` from a watchlist (036). |
+| `get_state_at` | read | Records of a `source[]` or `kind[]` as Foresignal knew them at `asOf` (transaction time): an RFC 3339 time, `now`, or a duration back from now (`-PT2H`, `-2h`); optional `bbox`, `place[]` (needs a token), `limit` ≤ 200. Returns `asOf`, `watermarkSeq`, `approximate` and `horizon` (037). |
+| `get_track` | read | The simplified path of one entity (`sourceId`, `externalId`) between `from` and `to` (same time forms; default the last 6 h), `maxPoints` ≤ 500 (100 with `detail=short`, which stays within 4 KB): segments of `[lon, lat, epochSeconds]` plus a summary with `distanceKm`, `durationSeconds`, `bbox`, `maxSpeedKmh`, `segments` and `approximate` (037). |
 
-Later prompts add tools to the same registry: `get_state_at` and `get_track` (037), weather (052), `get_map_image` (055) and entities (098).
+Later prompts add tools to the same registry: weather (052), `get_map_image` (055) and entities (098).
 
 **Resources:** `foresignal://sources`, `foresignal://kinds` and `foresignal://places` (036: names, shapes and radii; coordinates only for agent tokens; always needs a token). **Prompt:** `situation-report` (arguments `bbox`, `since`) asks the model to brief on an area from `source_health`, `query_records` and `list_alerts`, citing every fact.
 

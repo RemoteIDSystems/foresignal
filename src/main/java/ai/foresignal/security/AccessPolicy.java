@@ -223,6 +223,10 @@ public class AccessPolicy {
                 // The /v1/kinds rule matches only the exact path (014).
                 rule(HttpMethod.GET, "/v1/kinds/*/schema", AccessRequirement.READ),
                 rule(HttpMethod.GET, "/v1/history", AccessRequirement.READ),
+                // History frames (037); /v1/records/** already covers the track.
+                rule(HttpMethod.GET, "/v1/history/**", AccessRequirement.READ),
+                // The event-density timeline (037).
+                rule(HttpMethod.GET, "/v1/timeline", AccessRequirement.READ),
                 rule(HttpMethod.GET, "/v1/tiles/**", AccessRequirement.READ),
                 // The TileJSON index; /v1/tiles/** does not match /v1/tiles.json (016).
                 rule(HttpMethod.GET, "/v1/tiles.json", AccessRequirement.READ),

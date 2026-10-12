@@ -142,6 +142,11 @@
         "version": "1.3.0",
         "date": "2026-10-12",
         "note": "036: listPlaces, createPlace, getPlace, updatePlace, deletePlace, getPlacesAoi (places reads are read and always authenticated, writes agent), listViews, createView, getView, updateView, deleteView, getViewRecords, getViewTile, getViewTileJson, streamView (read; writes agent) and listWatchlists, createWatchlist, getWatchlist, updateWatchlist, deleteWatchlist, listWatchlistItems, addWatchlistItems, removeWatchlistItems, importWatchlist, exportWatchlist (agent) are implemented; AccessPolicy gains /v1/places(/**), /v1/views(/**) and /v1/watchlists(/**). The place, view and inWatchlist parameters of records, history, changes, tiles, the streams and search narrow the read through RestrictionClamp. Reconciliations: Condition.path is optional for inWatchlist/notInWatchlist (identity paths from entityKeys) and the operators' truth-table semantics are documented; Problem lists UNKNOWN_PLACE, PLACE_IN_USE (with references), PLACE_EXISTS, UNKNOWN_VIEW, VIEW_EXISTS, UNKNOWN_WATCHLIST, WATCHLIST_TOO_LARGE and ANCHOR_STALE (a lastError, not a response); createPlace and createView name their 409 codes and updateView gains 409 VIEW_EXISTS; updateWatchlist documents that the normalization changes only on an empty list; AlertContext gains anchor {source, externalId, seq, distanceKm}; SettingsBundle gains warnings; EventStreamChangesFilter gains place, view and inWatchlist; ReadRestriction.placeIds is accepted for tokens (refused for the anonymous profile and feed keys)."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-12",
+        "note": "037: getRecordTrack, getHistoryFrames and getTimeline (read) are implemented; AccessPolicy gains GET /v1/history/** and GET /v1/timeline (read). asOf is implemented on getTile, listTileLayers and getTileJson: other spellings 301 to the whole-second canonical form (listTileLayers and getTileJson gain 301 and 400 responses), asOf tiles send Foresignal-As-Of, Foresignal-As-Of-Seq and Foresignal-Approximate and are immutable only for closed, settled instants at least 1 h after the horizon, asOf TileJSON bakes the canonical asOf into a concrete template and drops `live` from the properties. getHistoryFrames and getTimeline gain 404 for an unknown or hidden source; their 400 descriptions list the codes returned. Track geometry repeats a lone point so every segment is a valid LineString; HistoryFrame removals always carry `left`; Timeline.alerts is parallel to buckets. Problem lists QUERY_TIMEOUT (503, since 014), TRACK_WINDOW_TOO_LARGE, FRAMES_TOO_LARGE and TIMELINE_TOO_LARGE (400). A future asOf stays ASOF_INVALID (014's code) rather than VALIDATION_FAILED."
       }
     ]
   },
@@ -3684,7 +3689,7 @@
         ],
         "operationId": "getTile",
         "summary": "Vector tile of current records",
-        "description": "Mapbox Vector Tile of current live state (record_live ⋈ record_head): geometry and observedAt come from record_live, so a live position shows before any new version is persisted. `layer` is a source id (wins) or a kind declared by a visible source; anything else is 404 UNKNOWN_LAYER. Raw features carry `source`, `externalId`, `kind`, `title` (record_head.title), `observedAt` (epoch seconds, number), `version` (number), `live` (boolean, record_live.dirty) plus the layer sources' valid `tileProperties` (names matching `^[A-Za-z0-9_]{1,64}$`) read from the merged payload with their native JSON types; null values are omitted. Raw tiles are capped at foresignal.tiles.maxFeatures (default 50,000) newest-first, with `Foresignal-Tile-Truncated: true` when the cap was hit. Aggregated tiles (`agg=grid|hex`, or `auto` below the layer's aggBelowZoom, which is the lowest value its visible sources declare) carry one polygon per non-empty cell with `count`, `latestObservedAt` (epoch seconds), `kinds` (a JSON string, kind → count), `agg` (`grid` or `hex`) and `maxRank` only when every source of the layer declares a numeric rankField. Cells are built in EPSG:3857 with foresignal.tiles.cellsPerTile (default 32) cells across a tile; grid cells line up with tile edges. Each record is reduced to ST_PointOnSurface (a polygon counts once) and counted in exactly one tile (half-open tile envelope) and one cell; a hex cell that straddles a tile edge is drawn by both tiles, each counting the records on its own side. Private sources never appear in features or counts for anonymous callers. An empty tile is 200 with an empty body.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "Mapbox Vector Tile of current live state (record_live ⋈ record_head): geometry and observedAt come from record_live, so a live position shows before any new version is persisted. `layer` is a source id (wins) or a kind declared by a visible source; anything else is 404 UNKNOWN_LAYER. Raw features carry `source`, `externalId`, `kind`, `title` (record_head.title), `observedAt` (epoch seconds, number), `version` (number), `live` (boolean, record_live.dirty) plus the layer sources' valid `tileProperties` (names matching `^[A-Za-z0-9_]{1,64}$`) read from the merged payload with their native JSON types; null values are omitted. Raw tiles are capped at foresignal.tiles.maxFeatures (default 50,000) newest-first, with `Foresignal-Tile-Truncated: true` when the cap was hit. Aggregated tiles (`agg=grid|hex`, or `auto` below the layer's aggBelowZoom, which is the lowest value its visible sources declare) carry one polygon per non-empty cell with `count`, `latestObservedAt` (epoch seconds), `kinds` (a JSON string, kind → count), `agg` (`grid` or `hex`) and `maxRank` only when every source of the layer declares a numeric rankField. Cells are built in EPSG:3857 with foresignal.tiles.cellsPerTile (default 32) cells across a tile; grid cells line up with tile edges. Each record is reduced to ST_PointOnSurface (a polygon counts once) and counted in exactly one tile (half-open tile envelope) and one cell; a hex cell that straddles a tile edge is drawn by both tiles, each counting the records on its own side. Private sources never appear in features or counts for anonymous callers. An empty tile is 200 with an empty body. With `asOf` (037) the tile shows the layer as known at that instant (transaction axis, record_version): per entity the newest version with seq in [L, S(asOf)] that is not a tombstone, still inside the tile and valid at asOf (an entity that moved out is not drawn at its old position); raw features carry `source`, `externalId`, `kind`, `title` (from the version payload), `observedAt`, `version` and the tile properties, without `live`; the same cap and aggregation apply.\n\n**Scope:** `read` (open while `security.openReads` is on).",
         "parameters": [
           {
             "name": "layer",
@@ -3856,7 +3861,7 @@
                 }
               },
               "Cache-Control": {
-                "description": "`{public|private}, max-age=5` for raw tiles (foresignal.tiles.rawMaxAge) and `max-age=60` for aggregated tiles (foresignal.tiles.aggMaxAge); `private` when openReads is off. 037 adds `max-age=31536000, immutable` for closed past asOf instants",
+                "description": "`{public|private}, max-age=5` for raw tiles (foresignal.tiles.rawMaxAge) and `max-age=60` for aggregated tiles (foresignal.tiles.aggMaxAge); `private` when openReads is off. With asOf (037): `{public|private}, max-age=31536000, immutable` when asOf ≤ now − 2 min, history at asOf is settled (not pending downsampling, 044) and asOf is at least 1 h after the retention horizon; otherwise `max-age=300`. `public` only while openReads covers the path and the layer has no private source. Chrome ignores `immutable` but honors the max-age",
                 "schema": {
                   "type": "string"
                 }
@@ -3921,7 +3926,7 @@
             }
           },
           "400": {
-            "description": "Validation failed (VALIDATION_FAILED: z outside 0–16, x/y outside 0..2^z−1, or bad agg)",
+            "description": "Validation failed (VALIDATION_FAILED: z outside 0–16, x/y outside 0..2^z−1, or bad agg; with asOf: ASOF_INVALID for a future instant, ASOF_BEYOND_RETENTION with `horizon`)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4001,7 +4006,7 @@
             }
           },
           "503": {
-            "description": "Query timed out (QUERY_TIMEOUT)",
+            "description": "Query timed out (QUERY_TIMEOUT; asOf tiles run with a 15 s statement timeout and send Retry-After: 5)",
             "headers": {
               "Retry-After": {
                 "description": "Seconds to wait before retrying",
@@ -12306,7 +12311,7 @@
         ],
         "operationId": "listTileLayers",
         "summary": "Vector-tile layer index",
-        "description": "Every registered source id and every kind with at least one source the caller can see (private sources only for token callers; a kind spelled like a source id is left out because the name resolves to the source), each with its TileJSON URL (under `server.publicBaseUrl`, else the request's scheme, host and port) and aggBelowZoom (null = never aggregate). Strong ETag; `Cache-Control: public, max-age=300` (`private` when openReads is off).\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "Every registered source id and every kind with at least one source the caller can see (private sources only for token callers; a kind spelled like a source id is left out because the name resolves to the source), each with its TileJSON URL (under `server.publicBaseUrl`, else the request's scheme, host and port) and aggBelowZoom (null = never aggregate). Strong ETag; `Cache-Control: public, max-age=300` (`private` when openReads is off). With `asOf` (037) every TileJSON URL carries the canonical `asOf`.\n\n**Scope:** `read` (open while `security.openReads` is on).",
         "parameters": [
           {
             "name": "If-None-Match",
@@ -12401,6 +12406,27 @@
                 }
               }
             }
+          },
+          "301": {
+            "description": "Redirect to the canonical asOf form",
+            "headers": {
+              "Location": {
+                "description": "Canonical URL",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed (ASOF_INVALID for a future asOf; ASOF_BEYOND_RETENTION with `horizon` on a layer document)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
           }
         },
         "x-foresignal-scope": "read",
@@ -12436,7 +12462,7 @@
         ],
         "operationId": "getTileJson",
         "summary": "TileJSON for one layer",
-        "description": "TileJSON 3.0.0 for a source id or kind: `tilejson`, `name`, `description`, `version` (Foresignal version), `attribution` (distinct descriptor attributions joined with \" · \"), `scheme: xyz`, `tiles` under `server.publicBaseUrl` (else the request's scheme, host and port; X-Forwarded headers are not trusted until 023), `minzoom` 0, `maxzoom` 16, `bounds`, and one `vector_layers` entry whose `fields` describe every feature property (fieldSpecs label and unit, else String/Number/Boolean), plus the extension keys `foresignal:aggBelowZoom` (null = never) and `foresignal:properties`. Strong ETag; `Cache-Control: public, max-age=300`. Unknown layer, or a private source asked anonymously → 404 UNKNOWN_LAYER.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "TileJSON 3.0.0 for a source id or kind: `tilejson`, `name`, `description`, `version` (Foresignal version), `attribution` (distinct descriptor attributions joined with \" · \"), `scheme: xyz`, `tiles` under `server.publicBaseUrl` (else the request's scheme, host and port; X-Forwarded headers are not trusted until 023), `minzoom` 0, `maxzoom` 16, `bounds`, and one `vector_layers` entry whose `fields` describe every feature property (fieldSpecs label and unit, else String/Number/Boolean), plus the extension keys `foresignal:aggBelowZoom` (null = never) and `foresignal:properties`. Strong ETag; `Cache-Control: public, max-age=300`. Unknown layer, or a private source asked anonymously → 404 UNKNOWN_LAYER. With `asOf` (037) the document is the layer as known at that instant: the `tiles` template is concrete with the canonical `asOf` baked in, `live` is not among the properties, and `foresignal:asOf` echoes the instant.\n\n**Scope:** `read` (open while `security.openReads` is on).",
         "parameters": [
           {
             "name": "If-None-Match",
@@ -12534,6 +12560,27 @@
                 }
               }
             },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "301": {
+            "description": "Redirect to the canonical asOf form",
+            "headers": {
+              "Location": {
+                "description": "Canonical URL",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed (ASOF_INVALID for a future asOf; ASOF_BEYOND_RETENTION with `horizon` on a layer document)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -22098,7 +22145,7 @@
         ],
         "operationId": "getRecordTrack",
         "summary": "Simplified track of one entity",
-        "description": "Versions in [from, to] by seq (≤ 200,000 rows scanned, else `truncated`), POSITION_STALE carry-forwards skipped, new segment after a tombstone or a gap > `gap`, the live position appended when newer, Douglas–Peucker simplification keeping endpoints and FIRST/REAPPEAR/SIGNIFICANT/TRIGGER_EDGE points, split at the antimeridian. Window larger than the source's retention → 400 TRACK_WINDOW_TOO_LARGE. Caching as asOf tiles, keyed on `to`.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "Versions in [from, to] by seq (≤ 200,000 rows scanned, else `truncated`), POSITION_STALE carry-forwards skipped, new segment after a tombstone or a gap > `gap`, the live position appended when newer, Douglas–Peucker simplification keeping endpoints and FIRST/REAPPEAR/SIGNIFICANT/TRIGGER_EDGE points, split at the antimeridian. Window larger than the source's retention → 400 TRACK_WINDOW_TOO_LARGE. Caching as asOf tiles, keyed on `to`; a response with an appended live point is never immutable. Simplification is Douglas–Peucker with the synchronized Euclidean distance (each point against the time-interpolated position on the simplified segment, in meters on a local equirectangular projection); versions outside the caller's restriction break the track. A segment with a single point repeats it, so every segment is a valid LineString.\n\n**Scope:** `read` (open while `security.openReads` is on).",
         "parameters": [
           {
             "name": "from",
@@ -22231,7 +22278,13 @@
                 }
               },
               "Cache-Control": {
-                "description": "immutable only for closed past windows",
+                "description": "`{public|private}, max-age=31536000, immutable` when `to` ≤ now − 2 min, history at `to` is settled (not pending downsampling, 044) and `from` is at least 1 h after the retention horizon, with no live point appended; otherwise `{public|private}, max-age=300`. `public` only while openReads covers the path and the source is not private",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "description": "`Accept-Encoding, Authorization`",
                 "schema": {
                   "type": "string"
                 }
@@ -22242,7 +22295,7 @@
             "description": "Not modified"
           },
           "400": {
-            "description": "Validation failed (TRACK_WINDOW_TOO_LARGE)",
+            "description": "Validation failed (TRACK_WINDOW_TOO_LARGE; VALIDATION_FAILED for a bad window, future `to`, field name, `maxPoints`, `gap`, or `format=czml` before prompt 141)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -22252,7 +22305,7 @@
             }
           },
           "404": {
-            "description": "Unknown record",
+            "description": "Unknown source, a source the caller may not see, or an entity with neither a current record nor a version the caller may see",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -22320,7 +22373,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "037",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -22339,7 +22392,7 @@
         ],
         "operationId": "getHistoryFrames",
         "summary": "Keyframe and delta frames for playback",
-        "description": "Keyframe = asOf state at `from`; each frame holds upserts and removals (tombstone, expiry, leaving the bbox) for its interval, built in one ordered pass on the transaction axis. More than 20,000 entities or 2,000,000 scanned rows → 400 FRAMES_TOO_LARGE (narrow bbox or kind). ndjson sends the keyframe line first, then one line per frame.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "Keyframe = asOf state at `from`; each frame holds upserts and removals (tombstone, expiry, leaving the bbox) for its interval, built in one ordered pass on the transaction axis. More than 20,000 entities or 2,000,000 scanned rows → 400 FRAMES_TOO_LARGE (narrow bbox or kind). ndjson sends the keyframe line first (the envelope without `frames`), then one line per frame. Frame ends are t_i = min(from + i·step, to); (to − from)/step frames must not exceed maxFrames. With a bbox only entities with a version inside it in the range are read; the caller's restriction and `place` judge each version, and an entity whose newest version leaves them is a `left` removal.\n\n**Scope:** `read` (open while `security.openReads` is on).",
         "parameters": [
           {
             "name": "source",
@@ -22483,7 +22536,7 @@
             }
           },
           "400": {
-            "description": "Validation failed (FRAMES_TOO_LARGE, ASOF_FILTER_REQUIRED, ASOF_BEYOND_RETENTION)",
+            "description": "Validation failed (FRAMES_TOO_LARGE, ASOF_FILTER_REQUIRED, ASOF_BEYOND_RETENTION, ASOF_INVALID for a future `to`; VALIDATION_FAILED for a bad window, a step under 10 s, or more frames than maxFrames)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -22547,11 +22600,21 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Unknown source, or a private source the caller may not see",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
           }
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "037",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -22567,7 +22630,7 @@
         ],
         "operationId": "getTimeline",
         "summary": "Event-density timeline",
-        "description": "`date_bin` histogram over record versions (HEARTBEAT and KEYFRAME excluded unless `includeKeyframes`), optionally grouped and with alert counts. ≤ 1,000 buckets (400 TIMELINE_TOO_LARGE); 10 s timeout (503 QUERY_TIMEOUT). Not the same as /v1/products/timeline (051).\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "`date_bin` histogram over record versions (HEARTBEAT and KEYFRAME excluded unless `includeKeyframes`), optionally grouped and with alert counts. ≤ 1,000 buckets (400 TIMELINE_TOO_LARGE); 10 s timeout (503 QUERY_TIMEOUT). `bucket=auto` picks the smallest of 1m, 5m, 10m, 15m, 30m, 1h, 2h, 3h, 6h, 12h, 1d, 2d, 7d, 14d, 30d giving at most 200 buckets; buckets start at `from` and every bucket in range is returned, empty ones included. Without `source` or `kind`, every source the caller may see is counted. `timeField=ingested` is translated to seq bounds through seq_clock. `retainedFrom` is the latest of now − window over the involved sources. Not the same as /v1/products/timeline (051).\n\n**Scope:** `read` (open while `security.openReads` is on).",
         "parameters": [
           {
             "name": "source",
@@ -22731,7 +22794,7 @@
             }
           },
           "400": {
-            "description": "Validation failed (TIMELINE_TOO_LARGE)",
+            "description": "Validation failed (TIMELINE_TOO_LARGE; VALIDATION_FAILED for a bad window or bucket)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -22795,11 +22858,21 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Unknown source, or a private source the caller may not see",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
           }
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "037",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -85990,6 +86063,27 @@
             "status": null,
             "prompt": "036",
             "note": "Not a response: reported in TriggerRule.lastError and a system.anchor_stale notification while a moving-anchor rule is suspended"
+          },
+          {
+            "code": "QUERY_TIMEOUT",
+            "status": 503,
+            "prompt": "014",
+            "note": "A read query ran past its statement timeout; 037's asOf tiles (15 s) and timeline (10 s) add Retry-After: 5"
+          },
+          {
+            "code": "TRACK_WINDOW_TOO_LARGE",
+            "status": 400,
+            "prompt": "037"
+          },
+          {
+            "code": "FRAMES_TOO_LARGE",
+            "status": 400,
+            "prompt": "037"
+          },
+          {
+            "code": "TIMELINE_TOO_LARGE",
+            "status": 400,
+            "prompt": "037"
           }
         ]
       },
@@ -103159,7 +103253,7 @@
                 "type": "null"
               }
             ],
-            "description": "MultiLineString; segments split at gaps, tombstones and the antimeridian"
+            "description": "MultiLineString; segments split at gaps, tombstones, versions outside the caller's restriction and the antimeridian; a lone point is repeated; null when the window holds no position"
           },
           "properties": {
             "type": "object",
@@ -103356,7 +103450,8 @@
               },
               "required": [
                 "id",
-                "reason"
+                "reason",
+                "left"
               ]
             }
           }
@@ -103507,7 +103602,8 @@
               "required": [
                 "t"
               ]
-            }
+            },
+            "description": "Alert counts per bucket by severity, parallel to `buckets` (only with includeAlerts)"
           },
           "maxBucket": {
             "type": "integer",

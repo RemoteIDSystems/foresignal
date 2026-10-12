@@ -1,6 +1,3 @@
-getRecordTrack 037
-getHistoryFrames 037
-getTimeline 037
 getStatsTimeseries 038
 getStatsGrid 038
 getStatsTop 038

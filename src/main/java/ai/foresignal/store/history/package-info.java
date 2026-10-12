@@ -5,5 +5,10 @@
  *
  * <p>Nothing here depends on JPA: these classes run before the {@code EntityManagerFactory} is
  * built, and their DDL is moved into the Flyway baseline by prompt 144.
+ *
+ * <p>Prompt 037 adds the shared asOf planning on the transaction axis
+ * ({@link ai.foresignal.store.history.AsOfResolver}, {@link ai.foresignal.store.history.AsOfPlan})
+ * and the downsampling hook {@link ai.foresignal.store.history.HistoryFidelity}; those are ordinary
+ * read-side beans and run after startup.
  */
 package ai.foresignal.store.history;

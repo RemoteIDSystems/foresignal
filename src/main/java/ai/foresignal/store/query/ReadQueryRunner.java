@@ -4,9 +4,11 @@ import ai.foresignal.api.error.ErrorCodes;
 import ai.foresignal.api.error.ForesignalException;
 import ai.foresignal.api.support.ApiProperties;
 import java.sql.SQLException;
+import java.time.Duration;
 import java.util.function.Function;
 import javax.sql.DataSource;
 import org.springframework.dao.DataAccessException;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -31,6 +33,9 @@ public class ReadQueryRunner {
     public static final int STREAM_FETCH_SIZE = 1000;
 
     private static final String QUERY_CANCELED = "57014";
+
+    /** The {@code Retry-After} of a timeout under an explicit statement timeout (prompt 037). */
+    static final String RETRY_AFTER_SECONDS = "5";
 
     private final NamedParameterJdbcTemplate jdbc;
     private final NamedParameterJdbcTemplate streaming;
@@ -63,24 +68,43 @@ public class ReadQueryRunner {
         return run(streaming, work);
     }
 
+    /**
+     * Like {@link #read}, with its own statement timeout (prompt 037: 15 s for asOf tiles, 10 s for
+     * the timeline). A timeout becomes {@code 503 QUERY_TIMEOUT} with {@code Retry-After: 5}.
+     */
+    public <T> T read(Duration timeout, Function<NamedParameterJdbcTemplate, T> work) {
+        return run(jdbc, timeout.toMillis(), work, true);
+    }
+
+    /** {@link #stream} with its own statement timeout, as {@link #read(Duration, Function)}. */
+    public <T> T stream(Duration timeout, Function<NamedParameterJdbcTemplate, T> work) {
+        return run(streaming, timeout.toMillis(), work, true);
+    }
+
     /** The configured timeout in milliseconds. */
     public long timeoutMillis() {
         return timeoutMillis;
     }
 
     private <T> T run(NamedParameterJdbcTemplate template, Function<NamedParameterJdbcTemplate, T> work) {
+        return run(template, timeoutMillis, work, false);
+    }
+
+    private <T> T run(NamedParameterJdbcTemplate template, long millis, Function<NamedParameterJdbcTemplate, T> work,
+            boolean retryAfter) {
         try {
             return transactions.execute(status -> {
-                template.getJdbcTemplate().execute("SET LOCAL statement_timeout = " + timeoutMillis);
+                template.getJdbcTemplate().execute("SET LOCAL statement_timeout = " + millis);
                 return work.apply(template);
             });
         } catch (DataAccessException e) {
             if (isQueryCanceled(e)) {
-                throw new ForesignalException(
+                ForesignalException timeout = new ForesignalException(
                         HttpStatus.SERVICE_UNAVAILABLE,
                         ErrorCodes.QUERY_TIMEOUT,
-                        "The query ran longer than " + timeoutMillis + " ms; narrow the filters or retry.",
+                        "The query ran longer than " + millis + " ms; narrow the filters or retry.",
                         e);
+                throw retryAfter ? timeout.withHeader(HttpHeaders.RETRY_AFTER, RETRY_AFTER_SECONDS) : timeout;
             }
             throw e;
         }

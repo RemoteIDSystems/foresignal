@@ -60,7 +60,7 @@ public class TileQueryService {
      * The geometry clipped to the latitudes Web Mercator can show, so a polar vertex can never make
      * {@code ST_Transform(…, 3857)} fail; tiles only cover ±85.0511° anyway.
      */
-    static final String CLIPPED_GEOM = "ST_ClipByBox2D(l.geom, ST_MakeEnvelope(-180, -85.06, 180, 85.06, 4326))";
+    static final String CLIPPED_GEOM = clipped("l.geom");
 
     private static final String MERGED = " CROSS JOIN LATERAL (SELECT jsonb_strip_nulls(h.payload || l.kinematic) AS m) mp";
 
@@ -141,22 +141,37 @@ public class TileQueryService {
         if (!shape.aggregated()) {
             throw new IllegalArgumentException("not an aggregate shape: " + shape);
         }
-        int cells = properties.cellsPerTile();
         SqlParams p = new SqlParams();
         String env = envelope(coordinates, p);
+        String pts = "pts AS (SELECT h.source_id, h.external_id, h.kind, l.observed_at, "
+                + rankExpression(layer, p) + " AS rank,"
+                + " ST_Transform(ST_PointOnSurface(" + CLIPPED_GEOM + "), 3857) AS pt"
+                + FROM
+                + (layer.rankable() ? MERGED : "")
+                + " CROSS JOIN bounds"
+                + " WHERE " + commonFilter(layer, p, restriction)
+                + " AND l.geom IS NOT NULL AND l.geom && ST_Transform(bounds.env, 4326))";
+        String statement = aggregationSql(env, pts, layer, coordinates, shape, properties.cellsPerTile(), p);
+        return runner.read(jdbc -> new TileResult(
+                jdbc.queryForObject(statement, p.source(), byte[].class), false, shape));
+    }
+
+    /**
+     * The aggregated-tile statement over a {@code pts} CTE (columns {@code source_id, external_id,
+     * kind, observed_at, rank, pt}, with {@code pt} a point in EPSG:3857), shared by current tiles and
+     * asOf tiles (prompt 037). {@code ptsCte} may reference the {@code bounds} CTE.
+     *
+     * @param env the bound tile envelope expression
+     * @param ptsCte {@code pts AS (…)}, without a trailing comma
+     */
+    static String aggregationSql(String env, String ptsCte, TileLayer layer, TileCoordinates coordinates,
+            TileShape shape, int cells, SqlParams p) {
         String size = p.dbl(coordinates.cellSize(cells));
         String layerName = p.text(layer.id());
         String agg = p.text(shape.aggValue());
 
-        StringBuilder sql = new StringBuilder("WITH bounds AS (SELECT ").append(env).append(" AS env),")
-                .append(" pts AS (SELECT h.source_id, h.external_id, h.kind, l.observed_at, ")
-                .append(rankExpression(layer, p)).append(" AS rank,")
-                .append(" ST_Transform(ST_PointOnSurface(").append(CLIPPED_GEOM).append("), 3857) AS pt")
-                .append(FROM)
-                .append(layer.rankable() ? MERGED : "")
-                .append(" CROSS JOIN bounds")
-                .append(" WHERE ").append(commonFilter(layer, p, restriction))
-                .append(" AND l.geom IS NOT NULL AND l.geom && ST_Transform(bounds.env, 4326)),")
+        StringBuilder sql = new StringBuilder("WITH bounds AS (SELECT ").append(env).append(" AS env), ")
+                .append(ptsCte).append(",")
                 // Half-open tile membership: a point on a shared edge belongs to one tile only.
                 .append(" inside AS (SELECT pts.* FROM pts CROSS JOIN bounds")
                 .append(" WHERE ST_X(pts.pt) >= ST_XMin(bounds.env) AND ST_X(pts.pt) < ST_XMax(bounds.env)")
@@ -202,13 +217,16 @@ public class TileQueryService {
                 // A fixed feature order keeps the bytes, and so the ETag, stable for unchanged data.
                 .append(" ORDER BY a.i, a.j) cell")
                 .append(" WHERE cell.geom IS NOT NULL) t");
-        String statement = sql.toString();
-        return runner.read(jdbc -> new TileResult(
-                jdbc.queryForObject(statement, p.source(), byte[].class), false, shape));
+        return sql.toString();
+    }
+
+    /** {@code column} clipped to the latitudes Web Mercator can show (see {@link #CLIPPED_GEOM}). */
+    static String clipped(String column) {
+        return "ST_ClipByBox2D(" + column + ", ST_MakeEnvelope(-180, -85.06, 180, 85.06, 4326))";
     }
 
     /** {@code ST_TileEnvelope(z, x, y)} with bound integers. */
-    private static String envelope(TileCoordinates c, SqlParams p) {
+    static String envelope(TileCoordinates c, SqlParams p) {
         return "ST_TileEnvelope(CAST(" + p.add(c.z()) + " AS integer), CAST(" + p.add(c.x())
                 + " AS integer), CAST(" + p.add(c.y()) + " AS integer))";
     }

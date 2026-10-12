@@ -259,3 +259,55 @@ Notification Service Extension above caches the `actions` of `GET /v1/notificati
 POSTs its `url`. When the cache is empty (the extension timed out), fetch `GET /v1/notifications/{id}`
 first with the app's token.
 
+
+## Time travel
+
+A history scrubber has four parts, all on the **transaction axis**: an answer for time `T` is what
+Foresignal had *stored* by `T` (to the granularity of one ingest batch), never a correction that
+arrived later. A past answer therefore never changes once `T` has passed, except where retention has
+removed history or prompt 044's downsampling has thinned it; both cases are flagged.
+
+1. **The scrubber histogram: `GET /v1/timeline`.**
+   `?kind=aircraft&from=…&to=…&bucket=auto` returns one bucket per step (empty buckets included),
+   each with `total` and, with `groupBy=kind|source`, per-group `counts`. `bucket=auto` picks a width
+   giving at most 200 buckets; an explicit width may give up to 1,000 (`400 TIMELINE_TOO_LARGE`).
+   HEARTBEAT and KEYFRAME versions are left out unless `includeKeyframes=true`, so the density shows
+   real change. `measure=entities` counts distinct entities instead of versions, `includeAlerts=true`
+   adds alert counts per severity, and `timeField` chooses the axis (`observed` by default). Draw
+   `retainedFrom` as the start of reliable history; earlier buckets may be incomplete.
+2. **Playback: `GET /v1/history/frames`.** `?kind=aircraft&bbox=…&from=…&to=…&step=1m` returns a
+   `keyframe` (the state at `from`) and one frame per step with `upserts` (the newest version of each
+   entity that appeared or changed) and `removals` (`tombstone`, `expired`, or `left` when the entity
+   left the bbox or your filter). Apply the frames in order: after frame `i` your state equals the
+   asOf state at `frames[i].t` exactly. `format=ndjson` streams the keyframe line first, then one line
+   per frame. Use `geometry=point` (centroids, the default) for markers and `geometry=full` for
+   shapes. At most 240 frames, 20,000 entities and 2,000,000 scanned rows (`400 FRAMES_TOO_LARGE`:
+   narrow `bbox` or `kind`).
+3. **The paused map: asOf tiles.** Fetch `GET /v1/tiles/{layer}.json?asOf=<T>` and use its concrete
+   `tiles` template, which already carries the canonical `asOf` (never build the time string
+   yourself; other spellings are answered `301` to the canonical whole-second form). The tiles show
+   each entity at the version stored by `T` and still valid then, with `Foresignal-As-Of`,
+   `Foresignal-As-Of-Seq` and `Foresignal-Approximate` headers. A tile for an instant at least
+   2 minutes old, 1 hour inside retention and not pending downsampling is sent as
+   `max-age=31536000, immutable`, so the browser or flutter_map's caching provider keeps it for good
+   (Chrome ignores `immutable` but honors the `max-age`). Otherwise `max-age=300`.
+4. **Trails: `GET /v1/records/{source}/{id}/track`.** A GeoJSON `Feature` with a `MultiLineString`:
+   one line per segment (split at gaps longer than `gap`, default `max(ttl, 10 min)`, at tombstones
+   and at the antimeridian), with `times` (epoch ms) and optional `values` (`fields=alt_baro,gs`, up to
+   four numeric fields) parallel to each segment. `maxPoints` (default 2,000) caps the points through
+   Douglas–Peucker simplification that always keeps segment ends and significant versions;
+   `includeLive=true` (the default) appends the current position with `live: true`. Cached like asOf
+   tiles, keyed on `to`; omit `to` for a live trail.
+
+**Flags to show the user.**
+- `approximate: true`: a source stores only some observations (SAMPLED or LATEST policy), or a range
+  is downsampled, so positions between stored versions are not exact.
+- `horizon`: the earliest instant every involved source's retention still supports. Earlier asOf
+  requests are `400 ASOF_BEYOND_RETENTION` (the problem carries `horizon`); clamp the scrubber there.
+- `watermarkSeq`: the last seq known at the instant; pass it to `/v1/changes?after=` to continue live
+  from a replayed state.
+
+All four endpoints need the `read` scope, honor restricted tokens and feed keys
+(`/v1/k/{key}/history/frames`, `/v1/k/{key}/timeline`, `/v1/k/{key}/records/…/track` and asOf tiles
+when the key's prefixes allow them) and accept `place=` (with a token); asOf tiles also accept tile
+tickets.
