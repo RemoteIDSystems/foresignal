@@ -29,10 +29,12 @@ import tools.jackson.databind.JsonNode;
  *   <li>{@code clientLinks}: deep-link templates ({@code alert}, {@code record},
  *       {@code briefingRun}, {@code pair}); each must use the {@code foresignal://} scheme or a
  *       verified {@code https://} link.
+ *   <li>{@code push} (prompt 031): {@link PushSettings} — the VAPID contact, the private-host
+ *       allowlist for push endpoints and the default payload language.
  * </ul>
  *
- * <p>Responses carry {@code warnings} ({@link PublicBaseUrlWarnings}). {@code push} belongs to
- * prompt 031 and is refused until then; {@code warnings} in a request are ignored (read-only).
+ * <p>Responses carry {@code warnings} ({@link PublicBaseUrlWarnings}); {@code warnings} in a
+ * request are ignored (read-only).
  */
 @Service
 public class ServerSettingsService {
@@ -56,8 +58,10 @@ public class ServerSettingsService {
      * @param timezone the timezone (UTC when unset)
      * @param clientLinks the templates in force
      * @param warnings the warnings that apply
+     * @param push the push settings in force (031)
      */
-    public record View(String publicBaseUrl, String timezone, ClientLinks clientLinks, List<Warning> warnings) {}
+    public record View(String publicBaseUrl, String timezone, ClientLinks clientLinks, List<Warning> warnings,
+            PushSettings push) {}
 
     private final AppSettingService settings;
     private final SecureRequestMonitor secureRequests;
@@ -85,7 +89,7 @@ public class ServerSettingsService {
             warnings.add(new Warning(w.code(), w.message()));
         }
         return new View(value.publicBaseUrl(), value.timezone() == null ? ServerSettings.DEFAULT_TIMEZONE : value.timezone(),
-                value.effectiveClientLinks(), warnings);
+                value.effectiveClientLinks(), warnings, value.effectivePush());
     }
 
     /**
@@ -119,10 +123,7 @@ public class ServerSettingsService {
                 errors.add(new FieldError(member, "is not a ServerSettings member"));
             }
         }
-        JsonNode push = body.get("push");
-        if (push != null && !push.isNull()) {
-            errors.add(new FieldError("push", "Web Push settings arrive in prompt 031 and cannot be set yet"));
-        }
+        PushSettings push = PushSettings.parse(body.get("push"), errors);
         String base = null;
         if (!body.has("publicBaseUrl")) {
             errors.add(new FieldError("publicBaseUrl", "is required (null for the request's own address)"));
@@ -151,7 +152,7 @@ public class ServerSettingsService {
         if (!errors.isEmpty()) {
             throw new ValidationException(ErrorCodes.VALIDATION_FAILED, "The server settings are not valid.", errors);
         }
-        return new ServerSettings(base, timezone, links);
+        return new ServerSettings(base, timezone, links, push);
     }
 
     private static String baseUrl(String raw, List<FieldError> errors) {

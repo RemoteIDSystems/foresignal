@@ -35895,7 +35895,7 @@
               ],
               "query": []
             },
-            "description": "VAPID public key for Web Push subscriptions\n\noperationId: `getVapidPublicKey`",
+            "description": "VAPID public key for Web Push subscriptions: the base64url uncompressed P-256 point (87 characters) Foresignal generated on first start. Browsers pass it as `applicationServerKey` to `pushManager.subscribe`; UnifiedPush apps pass it to `registerApp(vapid: \u2026)`.\n\noperationId: `getVapidPublicKey`",
             "auth": {
               "type": "noauth"
             }
@@ -35987,7 +35987,7 @@
               ],
               "query": []
             },
-            "description": "Registers a browser or UnifiedPush subscription as `pending` and immediately sends a `verify` push carrying a code; only after `POST \u2026/{subscriptionId}/verify` does it receive notifications. The endpoint must be https and every resolved address globally routable unless allowed by `push.allowedPrivateHosts` (400 URL_NOT_ALLOWED). Limits: \u2264 5 pending per token, \u2264 200 in total (409 PUSH_LIMIT_REACHED).\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).\n\noperationId: `createPushSubscription`",
+            "description": "Registers a browser or UnifiedPush subscription as `pending` and immediately sends a `verify` push carrying a code; only after `POST \u2026/{subscriptionId}/verify` does it receive notifications. The endpoint must be https and every resolved address globally routable unless allowed by `push.allowedPrivateHosts` (400 URL_NOT_ALLOWED). Limits: \u2264 5 pending per token, \u2264 200 in total (409 PUSH_LIMIT_REACHED). A subscription to an endpoint that is already registered replaces it. The response never contains the endpoint, only `endpointHost`; a verification push that the push service refuses leaves the row pending (it then expires).\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).\n\noperationId: `createPushSubscription`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -36000,7 +36000,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Laptop browser\",\n  \"subscription\": {\n    \"endpoint\": \"https://push.example/REPLACE\",\n    \"keys\": {\n      \"p256dh\": \"REPLACE\",\n      \"auth\": \"REPLACE\"\n    }\n  },\n  \"filters\": {\n    \"events\": [\n      \"alert\"\n    ],\n    \"minSeverity\": \"warning\"\n  }\n}",
+              "raw": "{\n  \"name\": \"Laptop browser\",\n  \"subscription\": {\n    \"endpoint\": \"https://push.example/REPLACE\",\n    \"keys\": {\n      \"p256dh\": \"REPLACE\",\n      \"auth\": \"REPLACE\"\n    }\n  },\n  \"filters\": {\n    \"events\": [\n      \"alert\"\n    ],\n    \"minSeverity\": \"warning\"\n  },\n  \"transportLabel\": \"browser\",\n  \"payloadFormat\": \"foresignal\",\n  \"lang\": \"en\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -36090,7 +36090,7 @@
               ],
               "query": []
             },
-            "description": "Echo of the code from the `verify` push; a match activates the subscription. Mismatch \u2192 400 VERIFY_FAILED (after 5 failures the row is deleted); pending rows expire after 10 minutes. Only the creating token.\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).\n\noperationId: `verifyPushSubscription`",
+            "description": "Echo of the code from the `verify` push; a match activates the subscription. Mismatch \u2192 400 VERIFY_FAILED (after 5 failures the row is deleted); pending rows expire after 10 minutes. Only the creating token. Verifying an already active subscription returns it unchanged.\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).\n\noperationId: `verifyPushSubscription`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -36103,7 +36103,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"code\": \"REPLACE_WITH_VERIFY_CODE\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -39815,7 +39815,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"publicBaseUrl\": \"http://foresignal.local:8080\",\n  \"timezone\": \"UTC\",\n  \"clientLinks\": {\n    \"alert\": \"foresignal://alerts/{id}\",\n    \"pair\": \"foresignal://pair?u={publicBaseUrl}&c={code}\"\n  }\n}",
+              "raw": "{\n  \"publicBaseUrl\": \"http://foresignal.local:8080\",\n  \"timezone\": \"UTC\",\n  \"clientLinks\": {\n    \"alert\": \"foresignal://alerts/{id}\",\n    \"pair\": \"foresignal://pair?u={publicBaseUrl}&c={code}\"\n  },\n  \"push\": {\n    \"contact\": \"mailto:admin@localhost\",\n    \"allowedPrivateHosts\": [],\n    \"defaultLang\": \"en\"\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"

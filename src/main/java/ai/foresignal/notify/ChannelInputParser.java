@@ -37,8 +37,14 @@ import tools.jackson.databind.json.JsonMapper;
 public class ChannelInputParser {
 
     /** Types the spec lists that later prompts implement. */
-    static final Map<String, String> LATER_TYPES = Map.of("webpush", "031", "mqtt", "060", "meshtastic", "084",
-            "meshcore", "084");
+    static final Map<String, String> LATER_TYPES = Map.of("mqtt", "060", "meshtastic", "084", "meshcore", "084");
+
+    /**
+     * Built-in types with exactly one channel, created at startup (031: the "Push" channel); they can
+     * be updated but not created.
+     */
+    static final Map<String, String> BUILT_IN_TYPES = Map.of("webpush",
+            "is the built-in Push channel, created at startup; update it instead (subscriptions are managed under /v1/push)");
 
     /** Top-level members of the body. */
     static final Set<String> FIELDS = Set.of("name", "type", "config", "secrets", "events", "ruleIds", "minSeverity",
@@ -90,6 +96,8 @@ public class ChannelInputParser {
         ChannelType type = null;
         if (typeId == null) {
             errors.add(new FieldError("type", "is required"));
+        } else if (BUILT_IN_TYPES.containsKey(typeId) && storedSecrets == null) {
+            errors.add(new FieldError("type", "'" + typeId + "' " + BUILT_IN_TYPES.get(typeId)));
         } else if (LATER_TYPES.containsKey(typeId)) {
             errors.add(new FieldError("type", "'" + typeId + "' is not available yet (prompt " + LATER_TYPES.get(typeId) + ")"));
         } else {

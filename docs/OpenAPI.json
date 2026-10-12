@@ -117,6 +117,11 @@
         "version": "1.3.0",
         "date": "2026-10-12",
         "note": "030: alert enrichment. No new operations; AccessPolicy is unchanged. Additive reconciliations: streamAlerts' alert.enriched event carries id = the alert's new rev (not the alert id), because the stream resumes by rev and enrichment bumps it like every other alert change; streamEvents' alert.enriched carries the composite cursor like the other alert events; streamAlerts documents alert.enriched as an upsert of the same alert. Alert.summary, enrichedAt and summaryCitations describe when they are null or empty; TriggerRuleInput.enrich documents that it is accepted without a provider. The Alert members, the alert.enriched schema (Alert) and the TriggerRuleInput bounds (enrichRadiusKm 1-1000, enrichWindow 10m-7d) follow the spec as already written."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-12",
+        "note": "031: getVapidPublicKey, listPushSubscriptions, createPushSubscription, verifyPushSubscription and deletePushSubscription are implemented; AccessPolicy already carried their rules (scope and always-authenticated flags match). Additive reconciliations: PushSubscription.status adds `disabled` (three consecutive failed send-time address rechecks); Problem lists PUSH_LIMIT_REACHED (409), VERIFY_FAILED (400) and URL_NOT_ALLOWED (400); createPushSubscription documents that a repeated endpoint replaces the earlier subscription and that a refused verification push leaves the row pending; verifyPushSubscription returns an already active subscription unchanged; getVapidPublicKey describes the key; ChannelInput.type documents the built-in webpush channel (not creatable, config.quietHoursMode defer|downgrade|drop); DeclarativePushPayload records the members checked against WebKit's documentation (app_badge lives inside notification there; dir exists; neither is sent). PushSubscriptionInput, PushFilters.tags, PushSettings, PushSubscriptionVerify and PushPayload were already specified."
       }
     ]
   },
@@ -10344,7 +10349,7 @@
         ],
         "operationId": "getVapidPublicKey",
         "summary": "VAPID public key for Web Push subscriptions",
-        "description": "VAPID public key for Web Push subscriptions",
+        "description": "VAPID public key for Web Push subscriptions: the base64url uncompressed P-256 point (87 characters) Foresignal generated on first start. Browsers pass it as `applicationServerKey` to `pushManager.subscribe`; UnifiedPush apps pass it to `registerApp(vapid: …)`.",
         "responses": {
           "200": {
             "description": "Key",
@@ -10379,7 +10384,7 @@
         "x-foresignal-scope": "open",
         "security": [],
         "x-foresignal-prompt": "031",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/push/subscriptions": {
@@ -10432,7 +10437,7 @@
           }
         ],
         "x-foresignal-prompt": "031",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       },
       "post": {
         "tags": [
@@ -10440,7 +10445,7 @@
         ],
         "operationId": "createPushSubscription",
         "summary": "Register a browser push subscription",
-        "description": "Registers a browser or UnifiedPush subscription as `pending` and immediately sends a `verify` push carrying a code; only after `POST …/{subscriptionId}/verify` does it receive notifications. The endpoint must be https and every resolved address globally routable unless allowed by `push.allowedPrivateHosts` (400 URL_NOT_ALLOWED). Limits: ≤ 5 pending per token, ≤ 200 in total (409 PUSH_LIMIT_REACHED).\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).",
+        "description": "Registers a browser or UnifiedPush subscription as `pending` and immediately sends a `verify` push carrying a code; only after `POST …/{subscriptionId}/verify` does it receive notifications. The endpoint must be https and every resolved address globally routable unless allowed by `push.allowedPrivateHosts` (400 URL_NOT_ALLOWED). Limits: ≤ 5 pending per token, ≤ 200 in total (409 PUSH_LIMIT_REACHED). A subscription to an endpoint that is already registered replaces it. The response never contains the endpoint, only `endpointHost`; a verification push that the push service refuses leaves the row pending (it then expires).\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).",
         "requestBody": {
           "required": true,
           "content": {
@@ -10501,7 +10506,7 @@
         ],
         "x-foresignal-prompt": "031",
         "x-foresignal-always-authenticated": true,
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/push/subscriptions/{subscriptionId}": {
@@ -10557,7 +10562,7 @@
         ],
         "x-foresignal-prompt": "031",
         "x-foresignal-always-authenticated": true,
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/sources/{sourceId}/fetches": {
@@ -16164,7 +16169,7 @@
         ],
         "operationId": "verifyPushSubscription",
         "summary": "Verify a push subscription",
-        "description": "Echo of the code from the `verify` push; a match activates the subscription. Mismatch → 400 VERIFY_FAILED (after 5 failures the row is deleted); pending rows expire after 10 minutes. Only the creating token.\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).",
+        "description": "Echo of the code from the `verify` push; a match activates the subscription. Mismatch → 400 VERIFY_FAILED (after 5 failures the row is deleted); pending rows expire after 10 minutes. Only the creating token. Verifying an already active subscription returns it unchanged.\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).",
         "requestBody": {
           "required": true,
           "content": {
@@ -16247,7 +16252,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "031",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true,
         "security": [
           {
@@ -80718,6 +80723,7 @@
           "026",
           "028",
           "029",
+          "031",
           "135"
         ],
         "x-foresignal-error-codes": [
@@ -80990,6 +80996,21 @@
             "code": "BRIEFING_RUNNING",
             "status": 409,
             "prompt": "029"
+          },
+          {
+            "code": "PUSH_LIMIT_REACHED",
+            "status": 409,
+            "prompt": "031"
+          },
+          {
+            "code": "VERIFY_FAILED",
+            "status": 400,
+            "prompt": "031"
+          },
+          {
+            "code": "URL_NOT_ALLOWED",
+            "status": 400,
+            "prompt": "031"
           }
         ]
       },
@@ -88586,7 +88607,7 @@
               "meshtastic",
               "meshcore"
             ],
-            "description": "teams accepts only Power Automate Workflows URLs (Office 365 connector URLs → 400)"
+            "description": "teams accepts only Power Automate Workflows URLs (Office 365 connector URLs → 400); webpush is the built-in Push channel (031): created at startup with a fixed id, updatable but not creatable (400); its config takes quietHoursMode (defer|downgrade|drop)"
           },
           "config": {
             "type": "object",
@@ -90950,8 +90971,10 @@
             "type": "string",
             "enum": [
               "pending",
-              "active"
-            ]
+              "active",
+              "disabled"
+            ],
+            "description": "pending until the verification code is echoed; active receives notifications; disabled after three consecutive failed send-time address rechecks (URL_NOT_ALLOWED)"
           },
           "transportLabel": {
             "type": "string",
@@ -95817,7 +95840,7 @@
       },
       "DeclarativePushPayload": {
         "type": "object",
-        "description": "WebKit Declarative Web Push payload (Safari 18.4+, `payloadFormat=declarative`) (031); `app_badge` omitted",
+        "description": "WebKit Declarative Web Push payload (Safari 18.4+, `payloadFormat=declarative`) (031). Members checked against WebKit's 'Meet Declarative Web Push' (2025): required `web_push: 8030`, `notification.title` and `notification.navigate`; optional `body`, `lang`, `dir`, `silent`, `tag`, `data` and other NotificationOptions members, and `notification.app_badge`. Foresignal never sends `app_badge` (a crash was reported in Safari 18.5) or `dir`. The verification push of a declarative subscription is a declarative notification whose body carries the code and whose `data` is the verify payload.",
         "properties": {
           "web_push": {
             "type": "integer",

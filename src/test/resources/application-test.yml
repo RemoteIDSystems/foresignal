@@ -41,6 +41,12 @@ foresignal:
   # The notification delivery worker does not poll in tests; they call DeliveryWorker.runOnce().
   notify:
     scheduled: false
+  # The push dispatch worker and sweeper do not run in tests (they call PushDispatchWorker.runOnce() and
+  # PushSubscriptionService.sweep()), and the built-in Push channel is not created on startup, so other
+  # notification tests see only their own channels; the push ITs create it with PushBootstrap.
+  push:
+    scheduled: false
+    builtin-channel: false
   # The briefing scheduler does not tick in tests; BriefingSchedulerIT calls BriefingScheduler.tick().
   briefing:
     scheduled: false

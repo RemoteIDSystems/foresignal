@@ -35,6 +35,12 @@ public final class StartupOrder {
     /** The SSE hub's bus subscriptions (prompt 015). */
     public static final int SSE_HUB = 15;
 
+    /**
+     * Push setup (prompt 031): the VAPID key pair and the built-in Push channel, before the
+     * notification router routes the first alert.
+     */
+    public static final int PUSH = 17;
+
     /** The notification router's alert bus subscription, before the engine fires alerts (prompt 018). */
     public static final int NOTIFY_ROUTER = 18;
 

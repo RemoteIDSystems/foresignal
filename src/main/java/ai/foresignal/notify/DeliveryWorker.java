@@ -56,6 +56,12 @@ import org.springframework.stereotype.Component;
  * into the re-rendered one with the summary. When the edit cannot be made it is settled with a note
  * and nothing is sent, so a channel never receives a second copy of the alert.
  *
+ * <p>A channel whose type fans out ({@link ChannelCapabilities#fanOut()}, the built-in Push channel
+ * of prompt 031) is handed to its {@link FanOutDelivery} after the deferral check, instead of being
+ * rendered and rate-limited here. Quiet hours on such a channel follow its
+ * {@link QuietHoursMode}: defer (as above), downgrade (sent now, flagged) or drop (settled with a
+ * note).
+ *
  * <p>Outcomes: 2xx is delivered and the type's {@link ChannelType#extractRef} is stored; a partial
  * success (Apprise 424) is delivered with a warning and never retried; 429 honors
  * {@code Retry-After} and counts as an attempt at most once per 10 minutes; any other failure
@@ -95,13 +101,14 @@ public class DeliveryWorker {
     private final NotificationRouter router;
     private final NotifyProperties properties;
     private final AlertStore alerts;
+    private final List<FanOutDelivery> fanOuts;
     private final Clock clock;
 
     /** Creates the worker. */
     public DeliveryWorker(DeliveryStore deliveries, NotificationStore notifications,
             NotificationChannelRepository channels, ChannelService channelService, ChannelTypeRegistry types,
             ChannelSender sender, ChannelRateLimiter limiter, NotificationService service, NotificationRouter router,
-            NotifyProperties properties, AlertStore alerts, Clock clock) {
+            NotifyProperties properties, AlertStore alerts, List<FanOutDelivery> fanOuts, Clock clock) {
         this.deliveries = deliveries;
         this.notifications = notifications;
         this.channels = channels;
@@ -113,6 +120,7 @@ public class DeliveryWorker {
         this.router = router;
         this.properties = properties;
         this.alerts = alerts;
+        this.fanOuts = fanOuts == null ? List.of() : List.copyOf(fanOuts);
         this.clock = clock;
     }
 
@@ -220,8 +228,29 @@ public class DeliveryWorker {
         NotificationMessage message = message(d, stored, channel, zone, now);
         Optional<Deferral.Decision> deferral = Deferral.check(message.severity(),
                 QuietHours.fromMap(channel.getQuietHours()), zone, service.pause(), now);
+        FanOutDelivery fanOut = type.capabilities().fanOut() ? fanOutFor(channel.getType()) : null;
+        boolean downgrade = false;
+        if (deferral.isPresent() && fanOut != null && DeferredReason.QUIET_HOURS.equals(deferral.get().reason())) {
+            String mode = QuietHoursMode.of(channel.getConfig());
+            if (QuietHoursMode.DROP.equals(mode)) {
+                deliveries.delivered(d.getId(), d.getKind(), null, false, "dropped during quiet hours", now);
+                return;
+            }
+            if (QuietHoursMode.DOWNGRADE.equals(mode)) {
+                downgrade = true;
+                deferral = Optional.empty();
+            }
+        }
         if (deferral.isPresent()) {
             deliveries.defer(d.getId(), deferral.get().until(), deferral.get().reason());
+            return;
+        }
+        if (fanOut != null) {
+            fanOut.fanOut(d, message, channel, downgrade, now);
+            return;
+        }
+        if (type.capabilities().fanOut()) {
+            deliveries.fail(d.getId(), "no fan-out handler for channel type " + channel.getType());
             return;
         }
         Duration wait = limiter.tryAcquire(channel.getId(), type.rateLimit());
@@ -312,6 +341,15 @@ public class DeliveryWorker {
                     : "HTTP " + response.status();
             failed(d, channel, settings, status + ": " + response.body(), now);
         }
+    }
+
+    private FanOutDelivery fanOutFor(String channelType) {
+        for (FanOutDelivery handler : fanOuts) {
+            if (handler.handles(channelType)) {
+                return handler;
+            }
+        }
+        return null;
     }
 
     /** The message to send for {@code d}: a digest, a fired alert with the channel's templates, or as stored. */

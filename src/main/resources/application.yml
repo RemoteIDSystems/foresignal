@@ -179,6 +179,20 @@ foresignal:
     # A run-in-progress mark older than this is treated as abandoned (a crash mid-run).
     stale-run: 15m
     batch-size: 20
+  push:
+    # Web Push and UnifiedPush (031). The VAPID key and the built-in Push channel are created on first
+    # start; these are mechanics. Off in tests.
+    scheduled: true
+    builtin-channel: true
+    # How often due per-target pushes are sent, and how often expired pending subscriptions are deleted.
+    poll-interval: 2s
+    sweep-interval: 60s
+    batch-size: 100
+    lease: 60s
+    # Pushes per second to one push-service host.
+    per-host-rate: 20
+    connect-timeout: 5s
+    request-timeout: 15s
   enrichment:
     # Alert enrichment (030). Whether it runs is llm.enrichmentEnabled plus each rule's enrich flag;
     # these are mechanics. The worker subscribes to the alert bus at startup (off in tests).

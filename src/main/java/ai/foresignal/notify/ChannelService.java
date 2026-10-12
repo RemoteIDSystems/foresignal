@@ -115,6 +115,27 @@ public class ChannelService {
         return new View(view(e), stats(List.of(id)).getOrDefault(id, new Stats(null, 0)));
     }
 
+    /**
+     * Creates the channel {@code id} of a built-in type if it is missing (prompt 031's Push channel),
+     * enabled, with {@code events}; an existing row is left as the operator configured it.
+     *
+     * @return true when it was created
+     */
+    @Transactional
+    public boolean ensureBuiltIn(UUID id, String name, String type, List<String> events) {
+        if (channels.existsById(id)) {
+            return false;
+        }
+        NotificationChannelEntity e = new NotificationChannelEntity(id, name, type);
+        Instant now = clock.instant();
+        e.setCreatedAt(now);
+        e.setUpdatedAt(now);
+        e.setEvents(new ArrayList<>(events));
+        e.setEnabled(true);
+        channels.saveAndFlush(e);
+        return true;
+    }
+
     /** Creates a channel from a {@code ChannelInput} body. */
     @Transactional
     public View create(JsonNode body) {
@@ -186,6 +207,10 @@ public class ChannelService {
         Instant now = clock.instant();
         ChannelSettings s = settingsFor(e, 0, now);
         ChannelType type = types.get(e.getType());
+        if (type.capabilities().fanOut()) {
+            return new TestResult(false, null, 0, "The " + e.getName() + " channel fans out to its subscriptions and has"
+                    + " no single destination to test; register a subscription and send an alert instead.");
+        }
         NotificationMessage message = NotificationMessage.builder(NotificationMessage.TEST, "test", TEST_TITLE, "info")
                 .body("If you can read this, the **" + MarkdownRenderer.escapeMarkdown(e.getName())
                         + "** channel works.")

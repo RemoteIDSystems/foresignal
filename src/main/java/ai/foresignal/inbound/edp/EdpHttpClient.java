@@ -215,6 +215,14 @@ public class EdpHttpClient {
         }
     }
 
+    /**
+     * The platform trust store's {@link X509ExtendedTrustManager}. Shared with the Web Push sender
+     * (prompt 031), which pins addresses the same way.
+     */
+    public static X509ExtendedTrustManager platformTrustManager() throws GeneralSecurityException {
+        return defaultTrustManager();
+    }
+
     private static X509ExtendedTrustManager defaultTrustManager() throws GeneralSecurityException {
         TrustManagerFactory factory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
         factory.init((KeyStore) null);
@@ -312,14 +320,16 @@ public class EdpHttpClient {
 
     /**
      * Validates the chain with the platform trust manager, then the leaf's names against the
-     * original host (the connection itself targets the pinned address).
+     * original host (the connection itself targets the pinned address). Public so the Web Push
+     * sender (prompt 031) can pin addresses the same way.
      */
-    static final class HostCheckingTrustManager extends X509ExtendedTrustManager {
+    public static final class HostCheckingTrustManager extends X509ExtendedTrustManager {
 
         private final X509TrustManager delegate;
         private final String host;
 
-        HostCheckingTrustManager(X509TrustManager delegate, String host) {
+        /** Checks chains with {@code delegate} and leaf names against {@code host}. */
+        public HostCheckingTrustManager(X509TrustManager delegate, String host) {
             this.delegate = delegate;
             this.host = host;
         }
@@ -327,7 +337,7 @@ public class EdpHttpClient {
         private void checkServer(X509Certificate[] chain, String authType) throws CertificateException {
             delegate.checkServerTrusted(chain, authType);
             if (chain == null || chain.length == 0 || !certificateMatches(chain[0], host)) {
-                throw new CertificateException("The provider's certificate does not name " + host);
+                throw new CertificateException("The server's certificate does not name " + host);
             }
         }
 

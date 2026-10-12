@@ -113,7 +113,9 @@ class ChannelsControllerIT extends WireMockSupport {
     void validation() throws Exception {
         send(post("/v1/channels"), "{'name':'x','type':'carrier-pigeon'}").andExpect(status().isBadRequest());
         send(post("/v1/channels"), "{'name':'x','type':'webpush'}").andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errors[0].message", containsString("031")));
+                .andExpect(jsonPath("$.errors[0].message", containsString("built-in Push channel")));
+        send(post("/v1/channels"), "{'name':'x','type':'mqtt'}").andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].message", containsString("060")));
         send(post("/v1/channels"), "{'name':'x','type':'slack'}").andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors[0].field", is("secrets.webhookUrl")));
         send(post("/v1/channels"), "{'name':'x','type':'ntfy','config':{'topic':'t'},'timezone':'Mars/Olympus',"
@@ -160,14 +162,18 @@ class ChannelsControllerIT extends WireMockSupport {
     }
 
     @Test
-    @DisplayName("the type catalog lists all fifteen types with fields and capabilities")
+    @DisplayName("the type catalog lists all sixteen types (with 031's webpush) with fields and capabilities")
     void types() throws Exception {
         String body = mvc.perform(auth(get("/v1/channels/types"))).andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(15))).andReturn().getResponse().getContentAsString();
+                .andExpect(jsonPath("$", hasSize(16))).andReturn().getResponse().getContentAsString();
         JsonNode types = JSON.readTree(body);
         assertThat(types.findValuesAsString("id")).contains("webhook", "slack", "mattermost", "discord", "teams", "google-chat",
-                "telegram", "matrix", "ntfy", "gotify", "pushover", "email", "homeassistant", "apprise", "zulip");
+                "telegram", "matrix", "ntfy", "gotify", "pushover", "email", "homeassistant", "apprise", "zulip", "webpush");
         for (JsonNode type : types) {
+            if (type.get("id").asString().equals("webpush")) {
+                assertThat(type.get("capabilities").get("fanOut").asBoolean()).isTrue();
+                assertThat(type.get("configFields").get(0).get("name").asString()).isEqualTo("quietHoursMode");
+            }
             if (type.get("id").asString().equals("discord")) {
                 assertThat(type.get("capabilities").get("editInPlace").asBoolean()).isTrue();
                 assertThat(type.get("secretFields").get(0).get("name").asString()).isEqualTo("webhookUrl");

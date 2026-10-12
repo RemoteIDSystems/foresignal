@@ -1047,6 +1047,119 @@ out for a remote provider and sent only to a local one, and an alert on a privat
 enriched at all by a remote provider. Record text is treated as data: instructions hidden in a record
 are not followed, and the model is offered no tools, so it cannot change anything.
 
+## Web Push and UnifiedPush
+
+Foresignal pushes alerts, briefings and system events to browsers (a PWA, the operator console) and
+to native Android and Linux apps through [UnifiedPush](https://unifiedpush.org), which speaks the same
+Web Push protocol (RFC 8030 with RFC 8291 encryption). Foresignal holds its own VAPID key, generated on
+first start, so no push account is needed.
+
+**The Push channel.** One built-in channel named "Push" (type `webpush`) is created at startup and
+fans out to every verified subscription. Its events (alert, briefing, system), rule filter, minimum
+severity, quiet hours and the global pause apply as for any channel (`PUT /v1/channels/{id}`); it
+cannot be created or tested like the others. Its `config.quietHoursMode` decides what quiet hours do:
+`defer` (default, as for every channel), `downgrade` (sent at once with `Urgency: very-low` and
+`silent: true`) or `drop`. Messages at or above the quiet hours' `bypassSeverity` (critical by
+default) always go out. Each subscription adds its own filters (`events`, `ruleIds`, `minSeverity`,
+`tags`).
+
+**Subscribing.** A client needs a token (read scope is enough; a token is required even with open
+reads). It fetches `GET /v1/push/vapid-public-key`, subscribes, and POSTs the subscription to
+`/v1/push/subscriptions`. The new subscription is `pending`: Foresignal immediately sends it a
+verification push `{"v":1,"event":"verify","subscriptionId":"…","code":"…"}`, and the client echoes the
+code to `POST /v1/push/subscriptions/{id}/verify` within 10 minutes (five wrong codes delete it). Only
+verified subscriptions receive notifications. Limits: 5 pending per token, 200 in total. Revoking the
+token deletes its subscriptions. `GET /v1/push/subscriptions` (admin) lists them with their host,
+status and failure count, never the endpoint.
+
+A service worker for a browser client:
+
+```js
+// page: register the worker and subscribe
+const reg = await navigator.serviceWorker.register('/sw.js');
+const { publicKey } = await (await fetch(`${FS}/v1/push/vapid-public-key`)).json();
+const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: publicKey });
+await fetch(`${FS}/v1/push/subscriptions`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${TOKEN}` },
+  body: JSON.stringify({ name: 'Laptop', subscription: sub.toJSON(), filters: { minSeverity: 'warning' } }),
+});
+
+// sw.js
+self.addEventListener('push', (event) => {
+  const msg = event.data.json();
+  if (msg.event === 'verify') {
+    event.waitUntil(fetch(`${FS}/v1/push/subscriptions/${msg.subscriptionId}/verify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${TOKEN}` },
+      body: JSON.stringify({ code: msg.code }),
+    }));
+    return;
+  }
+  event.waitUntil(self.registration.showNotification(msg.title, {
+    body: msg.body, tag: msg.tag, lang: msg.lang, silent: msg.silent, data: msg,
+  }));
+});
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const links = event.notification.data.links || {};
+  event.waitUntil(clients.openWindow(links.web || links.api));
+});
+```
+
+The payload is `{v, event, id, alertId, ruleId, severity, title, shortTitle, body, url, links {api,
+app, web}, tags, lang, tag, silent, ts}` (absent members omitted), at most 3,993 bytes; long bodies
+are cut first. `tag` is `foresignal-alert-<alertId>`, so a resolve replaces the fired notification.
+`links.app` and `links.web` come from the server setting `clientLinks`. Safari 18.4 and later can use
+`payloadFormat: "declarative"` (WebKit Declarative Web Push, no service worker needed); the
+notification then opens `links.web`, or `links.api` when there is none.
+
+A Flutter app with the [`unifiedpush`](https://pub.dev/packages/unifiedpush) package passes the
+VAPID key to `registerApp` and gets an already decrypted message:
+
+```dart
+await UnifiedPush.initialize(
+  onNewEndpoint: (PushEndpoint endpoint, String instance) async {
+    final keys = endpoint.pubKeySet!;
+    await api.post('/v1/push/subscriptions', {
+      'name': 'Pixel', 'transportLabel': 'unifiedpush',
+      'subscription': {'endpoint': endpoint.url, 'keys': {'p256dh': keys.pubKey, 'auth': keys.auth}},
+    });
+  },
+  onMessage: (PushMessage message, String instance) async {
+    final msg = jsonDecode(utf8.decode(message.content));
+    if (msg['event'] == 'verify') {
+      await api.post('/v1/push/subscriptions/${msg['subscriptionId']}/verify', {'code': msg['code']});
+    } else {
+      showLocalNotification(msg['title'], msg['body'], tag: msg['tag']);
+    }
+  },
+);
+final vapid = (await api.get('/v1/push/vapid-public-key'))['publicKey'];
+if (await UnifiedPush.tryUseCurrentOrDefaultDistributor()) {
+  await UnifiedPush.registerApp('default', vapid: vapid);
+}
+```
+
+**A distributor on the LAN.** Endpoints must be `https` and every address the host resolves to must
+be globally routable; loopback, private, CGNAT, link-local, unique-local, NAT64, 6to4 and metadata
+addresses are refused. A self-hosted UnifiedPush distributor (for example ntfy) on the LAN is allowed
+by listing it in the server setting `push.allowedPrivateHosts`, as an exact host name or a CIDR (IPv4
+/8 or longer, IPv6 /32 or longer; no wildcards). It still needs https. The address is checked again
+before every send and the connection goes to the checked address; three failed rechecks in a row
+disable the subscription. `push.contact` (default `mailto:admin@localhost`) is the VAPID contact the
+push services see, and `push.defaultLang` the payload language when a subscription sets none.
+
+**Reach.** Web Push reaches Chrome, Edge and Firefox on desktop and Android while the browser runs,
+and Safari when a site is added to the Home Screen. It does not reach the native iOS app, and it does
+not wake a closed desktop browser on macOS or Windows. Use native push (APNs, FCM, prompt 032) or an
+ntfy channel for those.
+
+**Delivery.** Each subscription gets its own send and retries (10 s, 1 min, 5 min, 30 min, 2 h), so a
+retry never repeats a push that already arrived. A push service answering 404 or 410 removes the
+subscription; 429 and 503 are retried after `Retry-After`. At most 20 pushes per second go to one push
+service host. The Push channel's delivery is delivered when at least one subscription received it.
+
 ## Retention
 
 `GET /v1/settings/retention` shows every window; `PUT` replaces the whole object (every window at

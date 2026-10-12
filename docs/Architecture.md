@@ -57,7 +57,7 @@ Foresignal is a single Spring Boot process backed by one PostgreSQL database wit
 | LLM: Anthropic | Official Anthropic Java SDK `com.anthropic:anthropic-java` | Default model `claude-opus-5-5` (§19) |
 | LLM: others | `java.net.http` clients for OpenAI-compatible APIs and Ollama | Local or alternative providers (§19) |
 | Email | Jakarta Mail via `spring-boot-starter-mail` | Email notification channel (§17) |
-| Web Push | JDK crypto (ECDH P-256, HKDF, AES-128-GCM, ES256 VAPID) | Browser push (§24) |
+| Web Push | JDK crypto (ECDH P-256, HKDF, AES-128-GCM, ES256 VAPID) | Browser and UnifiedPush push (§24) |
 | OpenAPI | Authored `docs/OpenAPI.json` served at `/v1/openapi.json`; springdoc-openapi (Boot 4-compatible line) for Swagger UI at `/docs` and drift testing | See §10 |
 | Metrics | Micrometer + Prometheus registry | `/actuator/prometheus` |
 | Build | Gradle 9.x, Kotlin DSL, wrapper committed | Single module |
@@ -319,7 +319,9 @@ Unique (`source_id`, `external_id`, `version`); index (`ingested_at`); index (`s
 
 **`custom_source`** (§16): `id` PK (`custom-…`) · `name` · `description` · `kinds` jsonb · `attribution` · `record_ttl` · `tile_properties` jsonb · `search_fields` jsonb · `embed_fields` jsonb · `ingest_key_hash` · `created_at`
 
-**`push_subscription`** (§24): `id` uuid PK · `name` · `endpoint` · `p256dh` · `auth` · `filters` jsonb · `token_id` null · `created_at` · `last_success_at`
+**`push_subscription`** (§24): `id` uuid PK · `name` · `endpoint` · `p256dh` · `auth` · `filters` jsonb · `token_id` null · `created_at` · `last_success_at` · `status` (`pending|active|disabled`) · `verify_code_hash` · `verify_expires_at` · `verify_attempts` · `endpoint_host` · `transport_label` · `payload_format` · `lang` · `failure_count` · `last_failure_at` · `last_status` · `recheck_failures` (031)
+
+**`push_dispatch`** (§24.4, 031): `id` bigint PK · `delivery_id` · `target_type` · `target_id` · `status` (`pending|sent|gone|failed`) · `attempts` · `next_attempt_at` · `last_status` · `last_error` (≤ 500, endpoint redacted) · `downgraded` · `content` jsonb · `leased_until` · `sent_at` · `created_at`
 
 **`llm_provider`** (§19): `id` slug PK · `type` (`anthropic`/`openai-compatible`/`ollama`) · `base_url` · `chat_model` · `embedding_model` null · `embedding_dimensions` null · `options` jsonb · `secret_ciphertext` / `secret_nonce` · `requests_per_minute` · `tokens_per_day` · `enabled` · `updated_at`
 
@@ -529,7 +531,7 @@ One delivery system serves alerts, briefings and system events across many desti
 | `gotify` | `serverUrl` | `appToken` | Priority from severity |
 | `pushover` | — | `appToken`, `userKey` | Priority from severity |
 | `email` | `smtpHost`, `smtpPort`, `tls` (`starttls`/`ssl`/`none`), `from`, `to[]` | `username`, `password` | Multipart text + HTML |
-| `webpush` | — (one built-in channel) | — | Browser push to subscriptions (§24) |
+| `webpush` | `quietHoursMode` (`defer`/`downgrade`/`drop`); one built-in channel "Push" | — | Fans out to Web Push and UnifiedPush subscriptions (§24) |
 
 - **Message model:** every event becomes a `NotificationMessage`: `event` (`alert`/`briefing`/`system`/`test`), `title`, `body` (markdown), `severity` (`info`/`warning`/`critical`), `url` (API link to the record, alert or run), `data` (the full alert or briefing-run JSON). A formatter per type converts markdown to the destination's format and escapes it correctly (for example Telegram HTML, Slack mrkdwn, Matrix HTML).
 - **Routing:** a channel subscribes to events, optionally limited by `rule_ids` and `min_severity`.
@@ -640,12 +642,32 @@ Optional. Without a configured provider, Foresignal is fully functional: briefin
 - **Channels:** delivery includes the summary when the channel's `wait_for_enrichment_seconds` allows. Otherwise the alert is sent immediately without it.
 - **Failure:** an enrichment failure never blocks or delays alert delivery beyond the channel's wait.
 
-## 24. Web Push
+## 24. Push
 
-- **Keys:** a VAPID key pair (P-256) is generated on first start. The private key is stored encrypted in `system_secret`. `GET /v1/push/vapid-public-key` is open.
-- **Subscriptions:** `POST /v1/push/subscriptions` takes `{name, subscription: {endpoint, keys: {p256dh, auth}}, filters: {events, ruleIds, minSeverity}}` and requires `read` scope (or open reads). `DELETE /v1/push/subscriptions/{id}` removes one, and `GET` lists them (admin).
-- **Delivery:** the built-in `webpush` channel encrypts payloads per RFC 8291 (`aes128gcm`) and signs a VAPID JWT (ES256, RFC 8292) using JDK crypto only. A `404` or `410` from the push service deletes the subscription.
-- **Payload:** `{title, body, severity, url, event, id}`. Frontends (a PWA or the operator console) register a service worker and subscribe.
+Foresignal pushes notifications itself, without a third-party push account for the web: it holds its own VAPID key. All push transports share one SPI and one fan-out (prompt 031), so native push (032) adds transports and target sources without changing the rest.
+
+### 24.1 Web Push
+
+- **Keys:** a VAPID key pair (P-256) is generated on first start: the public point (base64url, 87 characters) in `system_secret` `push.vapid.public`, the PKCS#8 private key encrypted with `CredentialCipher` in `push.vapid.private`. `GET /v1/push/vapid-public-key` is open.
+- **Crypto (JDK only):** RFC 8291 message encryption in the RFC 8188 `aes128gcm` coding (ephemeral ECDH P-256 key and random salt per message, HKDF-SHA-256 per RFC 5869, one record with the `0x02` delimiter, body `salt ‖ rs 4096 ‖ idlen 65 ‖ as_public ‖ ciphertext`). Java 21 has no HKDF API, so `Hkdf` implements it on `HmacSHA256`. VAPID (RFC 8292): an ES256 JWT `{aud: origin(endpoint), exp: now + 12 h, sub: push.contact}`, DER signatures converted to raw `R ‖ S`, cached per origin for 11 h, sent as `Authorization: vapid t=<jwt>, k=<publicKey>`.
+- **Request:** `Content-Encoding: aes128gcm`, `Content-Type: application/octet-stream`, `TTL` (alert 86400, briefing 43200, system 3600, verification 600), `Urgency` (critical `high`, warning `normal`, info `low`, quiet-hours downgrade `very-low`) and `Topic` = `base64url(SHA-256(key))[0:32]` with key `alert:<ruleId>:<source>:<externalId>`, `briefing:<briefingId>` or `system:<code>`, so the push service replaces an undelivered message about the same entity.
+- **Payload:** `{v:1, event, id, alertId?, ruleId?, severity, title, shortTitle, body, url, links {api, app, web}, tags, lang, tag, silent, ts}` (format `foresignal`), or the WebKit declarative wrapper `{web_push: 8030, notification: {title, body, navigate, lang, tag, silent, data}}` (format `declarative`, Safari 18.4+). The plaintext is at most 3,993 bytes; `PushPayloadBudget` shrinks body, then `links.api`, then tags (5), then the title (120 characters), with a minimal `{v, event, id, severity, shortTitle}` fallback.
+- **Subscriptions:** `POST /v1/push/subscriptions` (read scope, always authenticated) validates an https endpoint (≤ 1000 bytes, no user info), a 65-byte `p256dh` on the curve and a 16-byte `auth`, and the address policy; caps are 5 pending per token and 200 in total. A new row is `pending` and receives a verification push with a random code; the creating token echoes it (`POST …/{id}/verify`) to make it `active`. Pending rows expire after 10 minutes. Only active rows receive notifications, so a read token cannot use Foresignal as a push amplifier. `DELETE` is for the creating token or an admin; `GET` (admin) lists `endpointHost`, never endpoints. Revoking a token deletes its subscriptions.
+- **Address policy:** every address the endpoint host resolves to must be globally routable (no loopback, RFC 1918, CGNAT, link-local, ULA, IPv4-mapped or -compatible IPv6, NAT64, 6to4, Teredo, multicast, reserved, documentation or metadata addresses) unless the host, or every address, matches `push.allowedPrivateHosts` (exact host names or CIDRs, IPv4 ≥ /8, IPv6 ≥ /32). The check runs again before every send and the connection goes to the checked address with the original Host and SNI, never following redirects; three failed rechecks in a row disable a subscription. Prompt 035 replaces the check with `OutboundUrlPolicy` profile `PUSH_ENDPOINT`.
+
+### 24.2 UnifiedPush
+
+Native Android and Linux apps receive through a UnifiedPush distributor, which exposes an RFC 8030 endpoint and decrypts RFC 8291 messages: to Foresignal it is an ordinary Web Push subscription with `transportLabel: unifiedpush` (display and filtering only). The app passes Foresignal's VAPID public key to the distributor (`registerApp(vapid: …)`). A self-hosted distributor on the LAN is reached through `push.allowedPrivateHosts`; https is still required.
+
+### 24.3 Native push (032)
+
+APNs and FCM arrive as further `PushTransport` beans with a `NativeDeviceTargetSource` and a `NativeDeviceTarget`, reusing the fan-out, `push_dispatch`, filters, TTL, urgency and quiet-hours handling below.
+
+### 24.4 SPI and delivery
+
+- **SPI:** `PushTarget` (sealed; `WebPushTarget(subscriptionId, endpoint, p256dh, auth, payloadFormat, lang)`), `PushTransport` (`id`, `supports(target)`, `send(target, message, options)`), `PushResult` (`SENT | GONE | RETRY(after) | REJECTED(reason) | FAILED(reason)`), `PushTargetSource` (active targets matching a notification by `PushFilters` `events`, `ruleIds`, `minSeverity` and any-of `tags`; lookup by id; outcome hook).
+- **Fan-out:** the built-in channel "Push" (type `webpush`, events alert/briefing/system, created at startup, enabled) renders nothing itself. When its `notification_delivery` row is claimed, `PushFanout` inserts one `push_dispatch` row per matching target with the transport-neutral message, and parks the parent (pending, not due). Channel quiet hours follow `config.quietHoursMode`: `defer`, `downgrade` (very-low urgency, silent) or `drop`.
+- **Dispatch:** `PushDispatchWorker` polls every 2 s, claims with `FOR UPDATE SKIP LOCKED` and a lease, and sends each row on a virtual thread with the 018 retry ladder per target, so a retry never re-sends to targets that already succeeded. 2xx → `sent` and `last_success_at`; 404/410 → `gone` and the subscription is deleted; 429/503 → retry after `Retry-After`; 413 and other 4xx → `failed`; 5xx and I/O → ladder. A per-host Bucket4j limit (20/s) applies. The parent is `delivered` when every dispatch is terminal and at least one was sent (or there were no targets, or all were gone), `failed` when none was sent and at least one failed.
 
 ## 25. Production hardening (prompt 063)
 

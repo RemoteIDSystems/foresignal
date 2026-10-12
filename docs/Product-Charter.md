@@ -203,7 +203,7 @@ Open-source situational-awareness projects (ShadowBroker, God's Eye View, Veloci
 - **FR-52** Rules with `enrich=true` get an LLM context summary drawn from nearby records, the record's history and semantic neighbours. Channels can wait up to 60 s to include it. Enrichment never blocks delivery beyond that wait.
 
 ### 8.16 Web Push
-- **FR-53** Browsers can subscribe for push notifications using Foresignal's VAPID key, with event, rule and severity filters. Delivery uses RFC 8291 encryption, and expired subscriptions are removed automatically.
+- **FR-53** Browsers can subscribe for push notifications using Foresignal's VAPID key, with event, rule, severity and tag filters. Native Android and Linux apps subscribe the same way through UnifiedPush, passing Foresignal's VAPID key to their distributor. A subscription receives notifications only after echoing a verification code. Delivery uses RFC 8291 encryption, and expired subscriptions are removed automatically.
 
 ### 8.17 Derived layers, products and provenance
 - **FR-54** Derived sources compute layers from stored records (GPS jamming cells, AIS gaps, loitering, rendezvous, deception checks, holding patterns) and publish them as ordinary records.

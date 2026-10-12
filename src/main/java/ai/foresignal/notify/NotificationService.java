@@ -168,8 +168,8 @@ public class NotificationService {
                 reason = DeferredReason.GROUPING;
             }
         }
-        Optional<Deferral.Decision> deferral = Deferral.check(m.severity(), channel.quietHours(),
-                channelService.zone(entity.getTimezone()), pause, due);
+        Optional<Deferral.Decision> deferral = quietHoursOverride(entity, Deferral.check(m.severity(),
+                channel.quietHours(), channelService.zone(entity.getTimezone()), pause, due));
         if (deferral.isPresent() && deferral.get().until().isAfter(due)) {
             due = deferral.get().until();
             reason = deferral.get().reason();
@@ -191,8 +191,8 @@ public class NotificationService {
         d.setKind(edit ? DeliveryKind.UPDATE : DeliveryKind.FOLLOWUP);
         Instant due = now;
         String reason = null;
-        Optional<Deferral.Decision> deferral = Deferral.check(m.severity(), QuietHours.fromMap(entity.getQuietHours()),
-                channelService.zone(entity.getTimezone()), pause, now);
+        Optional<Deferral.Decision> deferral = quietHoursOverride(entity, Deferral.check(m.severity(),
+                QuietHours.fromMap(entity.getQuietHours()), channelService.zone(entity.getTimezone()), pause, now));
         if (deferral.isPresent()) {
             due = deferral.get().until();
             reason = deferral.get().reason();
@@ -200,6 +200,22 @@ public class NotificationService {
         d.setNextAttemptAt(due);
         d.setDeferredReason(reason);
         deliveries.save(d);
+    }
+
+    /**
+     * Drops a quiet-hours deferral on a fan-out channel whose {@link QuietHoursMode} is not
+     * {@code defer} (prompt 031): the worker then downgrades or drops the send when it is claimed.
+     */
+    private Optional<Deferral.Decision> quietHoursOverride(NotificationChannelEntity entity,
+            Optional<Deferral.Decision> deferral) {
+        if (deferral.isEmpty() || !DeferredReason.QUIET_HOURS.equals(deferral.get().reason())) {
+            return deferral;
+        }
+        boolean fanOut = types.find(entity.getType()).map(t -> t.capabilities().fanOut()).orElse(false);
+        if (fanOut && !QuietHoursMode.DEFER.equals(QuietHoursMode.of(entity.getConfig()))) {
+            return Optional.empty();
+        }
+        return deferral;
     }
 
     private static NotificationDeliveryEntity delivery(NotificationChannelEntity entity, NotificationMessage m,

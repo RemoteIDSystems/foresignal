@@ -1,8 +1,3 @@
-getVapidPublicKey 031
-listPushSubscriptions 031
-createPushSubscription 031
-deletePushSubscription 031
-verifyPushSubscription 031
 listPushProviders 032
 putPushProvider 032
 deletePushProvider 032

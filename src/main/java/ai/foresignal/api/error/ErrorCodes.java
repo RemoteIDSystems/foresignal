@@ -178,6 +178,18 @@ public final class ErrorCodes {
     /** 409: a run of this briefing is already in progress (prompt 029). */
     public static final String BRIEFING_RUNNING = "BRIEFING_RUNNING";
 
+    /** 409: too many push subscriptions (5 pending per token, 200 in total) (prompt 031). */
+    public static final String PUSH_LIMIT_REACHED = "PUSH_LIMIT_REACHED";
+
+    /** 400: the echoed push verification code does not match (prompt 031). */
+    public static final String VERIFY_FAILED = "VERIFY_FAILED";
+
+    /**
+     * 400: an outbound URL is not allowed: a push endpoint that is not https or resolves to a
+     * non-global address outside {@code push.allowedPrivateHosts} (prompt 031; 035 widens it).
+     */
+    public static final String URL_NOT_ALLOWED = "URL_NOT_ALLOWED";
+
     private static final String TYPE_PREFIX = "https://foresignal.ai/problems/";
 
     private ErrorCodes() {}
