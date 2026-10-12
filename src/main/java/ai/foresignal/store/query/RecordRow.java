@@ -35,6 +35,8 @@ import java.time.Instant;
  * @param historyTier the stored tier code
  * @param batchId the {@code fetch_log} id of the batch
  * @param bbox {@code [minX, minY, maxX, maxY]} of the geometry, for changes; null otherwise
+ * @param prevBbox {@code [minX, minY, maxX, maxY]} of the previous version's geometry, selected only
+ *     by the SSE replay ({@code ChangesQuery.prevBoxes}); null otherwise
  */
 public record RecordRow(
         String sourceId,
@@ -63,7 +65,8 @@ public record RecordRow(
         Long prevSeq,
         Short historyTier,
         Long batchId,
-        double[] bbox) {
+        double[] bbox,
+        double[] prevBbox) {
 
     /** {@code <source>:<externalId>}. */
     public String id() {
@@ -74,6 +77,7 @@ public record RecordRow(
     public RecordRow withPayload(String newPayload) {
         return new RecordRow(sourceId, externalId, kind, version, seq, observedAt, persistedObservedAt, eventTime,
                 validFrom, validUntil, tombstone, title, geometry, newPayload, titlePayload, quality, live, qaFlags,
-                distanceMeters, observer, ingestedAt, receivedAt, persistReason, prevSeq, historyTier, batchId, bbox);
+                distanceMeters, observer, ingestedAt, receivedAt, persistReason, prevSeq, historyTier, batchId, bbox,
+                prevBbox);
     }
 }

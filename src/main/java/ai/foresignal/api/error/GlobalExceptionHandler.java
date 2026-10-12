@@ -54,7 +54,9 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     public ResponseEntity<Object> handleForesignal(ForesignalException e, WebRequest request) {
         ProblemDetail problem = problem(e.getStatus(), e.getCode(), e.getMessage());
         e.getProperties().forEach(problem::setProperty);
-        return handleExceptionInternal(e, problem, new HttpHeaders(), e.getStatus(), request);
+        HttpHeaders headers = new HttpHeaders();
+        e.getHeaders().forEach(headers::set);
+        return handleExceptionInternal(e, problem, headers, e.getStatus(), request);
     }
 
     // ---------- Validation from the framework ----------

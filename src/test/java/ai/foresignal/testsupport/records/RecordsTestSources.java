@@ -122,6 +122,7 @@ public class RecordsTestSources {
         private final RetentionState delegate;
         private final Map<String, Long> purgeSeqs = new ConcurrentHashMap<>();
         private final Map<String, Duration> windows = new ConcurrentHashMap<>();
+        private volatile long lowestRetainedSeq = -1;
 
         StubRetentionState(RetentionState delegate) {
             this.delegate = delegate;
@@ -137,10 +138,16 @@ public class RecordsTestSources {
             windows.put(sourceId, window);
         }
 
+        /** Overrides {@link #lowestRetainedSeq} for every source set (prompt 015's resume floor). */
+        public void setLowestRetainedSeq(long seq) {
+            lowestRetainedSeq = seq;
+        }
+
         /** Clears every override. */
         public void reset() {
             purgeSeqs.clear();
             windows.clear();
+            lowestRetainedSeq = -1;
         }
 
         @Override
@@ -150,7 +157,8 @@ public class RecordsTestSources {
 
         @Override
         public long lowestRetainedSeq(Set<String> sources) {
-            return delegate.lowestRetainedSeq(sources);
+            long override = lowestRetainedSeq;
+            return override >= 0 ? override : delegate.lowestRetainedSeq(sources);
         }
 
         @Override

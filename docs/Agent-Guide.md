@@ -45,7 +45,7 @@ that watermark, and a rule for applying events.
    keeps the same pin, so the pages form one consistent snapshot even while data changes underneath
    it. Entities that change after the pin are left out of the remaining pages.
 2. **Catch up.** Replay `GET /v1/changes?after=<watermarkSeq>` (or open the SSE stream with
-   `after=<watermarkSeq>`, prompt 015). This delivers every version committed after the pin,
+   `after=<watermarkSeq>`; see "Streaming"). This delivers every version committed after the pin,
    including the entities the snapshot left out. Store `lastSeq` and pass it as `after` next time.
    `seq` has gaps but strictly increases in commit order, so `after=<lastSeq>` never misses a
    change. When a page is the last one (`hasMore: false`), `lastSeq` is at least the watermark, so a
@@ -61,6 +61,87 @@ that watermark, and a rule for applying events.
 
 `raster-frame` changes always include their payload, even with `payload=false`, because the frame
 description is small and a client needs it to fetch tiles.
+
+## Streaming
+
+Two Server-Sent Events endpoints push changes as they are committed (typically within a second):
+
+- `GET /v1/changes/stream` carries the `changes` topic only. Filters: `source`, `kind`,
+  `externalId`, `bbox` (a box with `minLon > maxLon` crosses the antimeridian), `near` +
+  `radiusKm`, `payload` (default false), `live` (default true) and `touches` (default false).
+- `GET /v1/events/stream` multiplexes topics on one connection: `topics=changes` today, `alerts`,
+  `notifications` and `system` as later releases add them. Filters take the topic as a prefix
+  (`changes.bbox=…`, `changes.live=false`). The first event is `hello {streamId, topics,
+  watermarkSeq, filterVersion}`. The filter can be swapped without reconnecting (below).
+
+Send the token in the `Authorization` header; tokens are never accepted in the query string.
+Responses are never compressed, and carry `X-Accel-Buffering: no` so a reverse proxy does not
+buffer them.
+
+### Two lanes
+
+- **`change` events are lossless.** Each is one persisted version (the `Change` shape of
+  `/v1/changes`, plus `prevPersistedBbox`, `prevLiveBbox` and `leftFilter`) and carries
+  `id: <seq>`. Reconnect with `Last-Event-ID` (browsers do this automatically) or `after=<seq>`, and
+  the stream replays exactly what you missed before going live: no gap, no duplicate. A replay is
+  capped at 10,000 events; beyond that you get `reset {reason: "replay_cap", resumeAfter}`, and you
+  reconnect from `resumeAfter`. Without a resume point the stream starts live from now.
+- **`live` and `touch` events are conflated and not stored.** A moving aircraft produces many
+  positions that are not persisted as versions; the stream keeps only the newest one per entity
+  and sends it about once a second. A `touch` says an entity was seen again unchanged (only with
+  `touches=true`). These events have **no `id:`**, on purpose: they cannot be replayed, so
+  `Last-Event-ID` always names a `change` and a reconnect never skips a persisted version.
+  Control events (`resync`, `reset`, `heartbeat`, `hello`, `filter-applied`) have no id either.
+
+`heartbeat` arrives every 15 s as a named event with data `{}`; treat a missing heartbeat as a dead
+connection.
+
+### Client contract
+
+1. **Areas.** With `bbox` or `near`, a change is delivered when its new box *or* one of its
+   previous boxes intersects the area. When only a previous box does, the event carries
+   `leftFilter: true`: the entity has left your view, so remove it. Tombstones are delivered the
+   same way.
+2. **Order.** Apply an event only if its `observedAt` is at least the one you stored.
+3. **`resync`** (`reason`: `gap`, `live_cap`, `live_dropped`) means some live updates were lost.
+   Keep the stream open and re-fetch the current state of your view with
+   `GET /v1/records?order=id&bbox=…` (or reload tiles).
+4. **`reset`** is followed by the server closing the stream. For `buffer_overflow` and
+   `replay_cap`, reconnect from `resumeAfter` (or your last received id). For `resync_required`,
+   the history you asked for is gone: take a new snapshot ("Keeping a mirror", step 1) and
+   reconnect from its `watermarkSeq`.
+5. `raster-frame` changes always carry their payload; other changes only with `payload=true`.
+
+### Panning a map without reconnecting
+
+On `/v1/events/stream`, change the area in place:
+
+```
+PATCH /v1/events/stream/{streamId}/filter
+{"changes": {"bbox": "-97.5,32.5,-96.5,33.2", "live": true}}
+```
+
+- **Debounce** pans and zooms by 300–500 ms and send one PATCH, rather than one per frame.
+- The body is validated whole before anything changes. Omitted topic blocks are unchanged; a
+  present block replaces that topic's filter (omitted fields take their defaults). `topics` adds
+  or removes topics; an added topic starts live from now.
+- The stream emits `filter-applied {atSeq, filterVersion}`; every event after it uses the new
+  filter. `atSeq` is the last change delivered under the old one.
+- Nothing is replayed for the newly exposed area: load it with `GET /v1/records?bbox=…` (or tiles)
+  and merge by `observedAt`.
+- Only the caller who opened the stream may patch it; anyone else gets 404. Anonymous callers send
+  the `streamKey` from `hello` as `Foresignal-Stream-Key`.
+
+On `/v1/events/stream`, ids are composite (`c=1234;a=56;n=7`, one cursor per subscribed topic) and
+`Last-Event-ID` resumes every topic at once. Browsers cannot set headers on the first `EventSource`
+connect, so the same value is accepted as `?lastEventId=`; the header wins when both are present.
+
+### Limits
+
+At most 100 open streams per server (`503 STREAM_LIMIT`), 8 per token and 4 per anonymous address
+(`429 STREAM_LIMIT` with `Retry-After: 5`). Each client may have 1,000 undelivered changes queued;
+a client that cannot keep up gets `reset {reason: "buffer_overflow"}`. The operator can change these
+in the `stream.limits` setting.
 
 ## Replaying the past (asOf)
 

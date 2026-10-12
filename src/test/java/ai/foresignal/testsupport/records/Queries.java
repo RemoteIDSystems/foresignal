@@ -134,6 +134,8 @@ public final class Queries {
         public FieldSelection fields = FieldSelection.ALL;
         public GeometryEncoding encoding = GeometryEncoding.GEOJSON;
         public Set<String> excluded = Set.of();
+        public NearFilter near;
+        public boolean prevBoxes;
 
         public Changes sources(String... ids) { sources = List.of(ids); return this; }
         public Changes kinds(String... values) { kinds = List.of(values); return this; }
@@ -144,11 +146,13 @@ public final class Queries {
         public Changes fields(FieldSelection value) { fields = value; return this; }
         public Changes encoding(GeometryEncoding value) { encoding = value; return this; }
         public Changes excluded(String... ids) { excluded = Set.of(ids); return this; }
+        public Changes near(NearFilter value) { near = value; return this; }
+        public Changes prevBoxes(boolean value) { prevBoxes = value; return this; }
 
         /** The query. */
         public ChangesQuery build() {
             return new ChangesQuery(after, sources, kinds, externalIds, bbox, payload, limit, fields,
-                    GeometryOptions.DEFAULT, encoding, excluded);
+                    GeometryOptions.DEFAULT, encoding, excluded, near, prevBoxes);
         }
     }
 }

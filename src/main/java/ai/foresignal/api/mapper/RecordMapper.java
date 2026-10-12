@@ -8,6 +8,8 @@ import ai.foresignal.source.SourceRegistry;
 import ai.foresignal.source.spi.HistoryTier;
 import ai.foresignal.source.spi.SourceDescriptor;
 import ai.foresignal.store.query.RecordRow;
+import ai.foresignal.stream.Bbox;
+import ai.foresignal.stream.ChangeSummary;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -141,6 +143,63 @@ public class RecordMapper {
         all.put("persistReason", persistReason(row));
         all.put("bbox", row.bbox() == null ? null : List.of(row.bbox()[0], row.bbox()[1], row.bbox()[2], row.bbox()[3]));
         return project(all, fields);
+    }
+
+    /**
+     * An SSE {@code change} event (prompt 015): the whole {@link #change} item plus the SSE-only
+     * {@code prevPersistedBbox}, {@code prevLiveBbox} and {@code leftFilter}.
+     *
+     * @param row the change row; its payload is present only when it was loaded
+     * @param prevPersisted the box of the previously persisted geometry, or null
+     * @param prevLive the box of the live geometry before this version, or null
+     * @param leftFilter true when only a previous box matched the client's spatial filter
+     */
+    public Map<String, Object> streamChange(RecordRow row, Bbox prevPersisted, Bbox prevLive, boolean leftFilter) {
+        Map<String, Object> item = change(row, FieldSelection.ALL);
+        item.put("prevPersistedBbox", box(prevPersisted));
+        item.put("prevLiveBbox", box(prevLive));
+        item.put("leftFilter", leftFilter);
+        return item;
+    }
+
+    /**
+     * An SSE {@code change} event built from the bus summary alone, for a version that could not be
+     * loaded (retention removed it between commit and delivery): no geometry and no payload.
+     *
+     * @param summary the bus summary
+     * @param leftFilter true when only a previous box matched the client's spatial filter
+     */
+    public Map<String, Object> streamChange(ChangeSummary summary, boolean leftFilter) {
+        Map<String, Object> item = new LinkedHashMap<>();
+        item.put("seq", summary.seq());
+        item.put("source", summary.sourceId());
+        item.put("externalId", summary.externalId());
+        item.put("kind", summary.kind());
+        item.put("version", summary.version());
+        item.put("observedAt", summary.observedAt());
+        item.put("eventTime", summary.eventTime());
+        item.put("validUntil", summary.validUntil());
+        item.put("tombstone", summary.tombstone());
+        item.put("qaFlags", summary.qaFlags());
+        item.put("geometry", null);
+        item.put("prevSeq", summary.prevSeq());
+        item.put("historyTier", summary.historyTier() == null ? null : summary.historyTier().name());
+        item.put("persistReason", summary.persistReason() == null ? null : summary.persistReason().name());
+        item.put("bbox", box(summary.bbox()));
+        item.put("prevPersistedBbox", box(summary.prevPersistedBbox()));
+        item.put("prevLiveBbox", box(summary.prevLiveBbox()));
+        item.put("leftFilter", leftFilter);
+        return item;
+    }
+
+    /** {@code [minX, minY, maxX, maxY]}, or null. */
+    public static List<Double> box(Bbox bbox) {
+        return bbox == null ? null : List.of(bbox.minX(), bbox.minY(), bbox.maxX(), bbox.maxY());
+    }
+
+    /** {@code [minX, minY, maxX, maxY]} of a selected box array, or null. */
+    public static Bbox bbox(double[] values) {
+        return values == null ? null : new Bbox(values[0], values[1], values[2], values[3]);
     }
 
     /**

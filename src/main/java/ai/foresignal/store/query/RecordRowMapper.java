@@ -54,6 +54,10 @@ public final class RecordRowMapper implements RowMapper<RecordRow> {
         m.put("by1", "double precision");
         m.put("bx2", "double precision");
         m.put("by2", "double precision");
+        m.put("pbx1", "double precision");
+        m.put("pby1", "double precision");
+        m.put("pbx2", "double precision");
+        m.put("pby2", "double precision");
         return java.util.Collections.unmodifiableMap(m);
     }
 
@@ -61,6 +65,9 @@ public final class RecordRowMapper implements RowMapper<RecordRow> {
     public RecordRow mapRow(ResultSet rs, int rowNum) throws SQLException {
         Double bx1 = dbl(rs, "bx1");
         double[] bbox = bx1 == null ? null : new double[] {bx1, dbl(rs, "by1"), dbl(rs, "bx2"), dbl(rs, "by2")};
+        Double pbx1 = dbl(rs, "pbx1");
+        double[] prevBbox =
+                pbx1 == null ? null : new double[] {pbx1, dbl(rs, "pby1"), dbl(rs, "pbx2"), dbl(rs, "pby2")};
         return new RecordRow(
                 rs.getString("source_id"),
                 rs.getString("external_id"),
@@ -88,7 +95,8 @@ public final class RecordRowMapper implements RowMapper<RecordRow> {
                 lng(rs, "prev_seq"),
                 shrt(rs, "history_tier"),
                 lng(rs, "batch_id"),
-                bbox);
+                bbox,
+                prevBbox);
     }
 
     static Instant instant(ResultSet rs, String label) throws SQLException {

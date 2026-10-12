@@ -49,6 +49,7 @@ class AccessPolicyTest {
                 "/v1/history",
                 "/v1/changes",
                 "/v1/changes/stream",
+                "/v1/events/stream",
                 "/v1/sources",
                 "/v1/sources/health",
                 "/v1/sources/usgs-earthquakes",
@@ -79,6 +80,7 @@ class AccessPolicyTest {
         "POST, /v1/ask/stream",
         "POST, /v1/push/subscriptions",
         "DELETE, /v1/push/subscriptions/abc123",
+        "PATCH, /v1/events/stream/AbCdEfGhIjKlMnOpQrStUv/filter",
     })
     @DisplayName("a few writes need only read, because they act on the caller's own behalf")
     void someWritesRequireOnlyRead(String method, String path) {
@@ -90,8 +92,11 @@ class AccessPolicyTest {
         "GET, /v1/kinds/earthquake",
         "GET, /v1/kinds/earthquake/schema/extra",
         "PUT, /v1/kinds/earthquake/schema",
+        "PATCH, /v1/events/stream",
+        "POST, /v1/events/stream/abc/filter",
+        "PATCH, /v1/events/stream/abc/filter/extra",
     })
-    @DisplayName("only GET /v1/kinds and GET /v1/kinds/{kind}/schema are reads; neighbors fail closed (014)")
+    @DisplayName("only GET /v1/kinds, GET /v1/kinds/{kind}/schema and the event-stream pair are reads; neighbors fail closed (014, 015)")
     void kindSchemaRuleIsExact(String method, String path) {
         assertScope(method, path, Scope.ADMIN);
     }

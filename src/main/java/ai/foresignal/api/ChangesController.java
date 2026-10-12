@@ -36,7 +36,7 @@ import tools.jackson.databind.json.JsonMapper;
 
 /**
  * The ordered change feed (OpenAPI tag {@code Changes}): {@code GET /v1/changes}. The SSE stream
- * ({@code /v1/changes/stream}) is prompt 015.
+ * ({@code /v1/changes/stream}) is {@link StreamController} (prompt 015).
  *
  * <p>Every new version in commit order ({@code seq > after}); seq is gap-tolerant but strictly
  * increasing in commit order, so {@code after=<lastSeq>} never misses a change. Each change carries

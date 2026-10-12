@@ -3,6 +3,7 @@ package ai.foresignal.store.query;
 import ai.foresignal.api.support.BboxFilter;
 import ai.foresignal.api.support.FieldSelection;
 import ai.foresignal.api.support.GeometryOptions;
+import ai.foresignal.api.support.NearFilter;
 import java.util.List;
 import java.util.Set;
 
@@ -20,6 +21,10 @@ import java.util.Set;
  * @param geometry geometry output options
  * @param encoding geometry text encoding
  * @param excludedSources sources the caller may not see
+ * @param near radius filter on the version's geometry, or null (prompt 015)
+ * @param prevBoxes also match the spatial filter on the previous version's geometry
+ *     ({@code LEFT JOIN record_version p ON p.seq = v.prev_seq}) and select its box, so the SSE
+ *     replay can flag entities that left the area ({@code leftFilter}, prompt 015)
  */
 public record ChangesQuery(
         long after,
@@ -32,7 +37,26 @@ public record ChangesQuery(
         FieldSelection fields,
         GeometryOptions geometry,
         GeometryEncoding encoding,
-        Set<String> excludedSources) {
+        Set<String> excludedSources,
+        NearFilter near,
+        boolean prevBoxes) {
+
+    /** The change-feed query of prompt 014: no radius filter, no previous boxes. */
+    public ChangesQuery(
+            long after,
+            List<String> sources,
+            List<String> kinds,
+            List<String> externalIds,
+            BboxFilter bbox,
+            boolean includePayload,
+            int limit,
+            FieldSelection fields,
+            GeometryOptions geometry,
+            GeometryEncoding encoding,
+            Set<String> excludedSources) {
+        this(after, sources, kinds, externalIds, bbox, includePayload, limit, fields, geometry, encoding,
+                excludedSources, null, false);
+    }
 
     /** Normalizes nulls. */
     public ChangesQuery {

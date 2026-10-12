@@ -18,6 +18,7 @@ public class ForesignalException extends RuntimeException {
     private final HttpStatus status;
     private final String code;
     private final transient Map<String, Object> properties = new LinkedHashMap<>();
+    private final transient Map<String, String> headers = new LinkedHashMap<>();
 
     public ForesignalException(HttpStatus status, String code, String detail) {
         this(status, code, detail, null);
@@ -53,5 +54,23 @@ public class ForesignalException extends RuntimeException {
     /** The problem extension members added with {@link #withProperty}, in insertion order. */
     public Map<String, Object> getProperties() {
         return Collections.unmodifiableMap(properties);
+    }
+
+    /**
+     * Adds a response header to the problem response, for example {@code Retry-After} on
+     * {@code 429 STREAM_LIMIT}.
+     *
+     * @param name the header name
+     * @param value the header value
+     * @return this exception
+     */
+    public ForesignalException withHeader(String name, String value) {
+        headers.put(name, value);
+        return this;
+    }
+
+    /** The response headers added with {@link #withHeader}, in insertion order. */
+    public Map<String, String> getHeaders() {
+        return Collections.unmodifiableMap(headers);
     }
 }

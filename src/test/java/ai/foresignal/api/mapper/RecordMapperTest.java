@@ -42,7 +42,7 @@ class RecordMapperTest {
     private static RecordRow row(String source, String title, String payload, String titlePayload, Boolean live) {
         return new RecordRow(source, "e1", "quake", 3, 42L, T, T.minusSeconds(5), T.minusSeconds(60), null, T.plusSeconds(600),
                 false, title, POINT, payload, titlePayload, "{\"confidence\":0.5}", live, 1, null, null,
-                T.plusSeconds(1), T, (short) 1, null, (short) 0, 7L, new double[] {1.5, 2.5, 1.5, 2.5});
+                T.plusSeconds(1), T, (short) 1, null, (short) 0, 7L, new double[] {1.5, 2.5, 1.5, 2.5}, null);
     }
 
     @Test
@@ -123,7 +123,7 @@ class RecordMapperTest {
         assertThat(columns).containsExactly("externalId", "quality", "geometry", "payload.mag");
         RecordRow wkt = new RecordRow("src", "e1", "quake", 1, 1L, T, T, null, null, null, false, "t", "POINT(1 2)",
                 "{\"mag\":4.5}", null, "{\"confidence\":0.5}", false, 0, null, null, null, null, null, null, null, null,
-                null);
+                null, null);
         Map<String, Object> csv = mapper.csvRow(mapper.record(wkt, fields, RecordMapper.Shape.CURRENT), columns);
         assertThat(csv).containsEntry("externalId", "e1").containsEntry("geometry", "POINT(1 2)")
                 .containsEntry("payload.mag", "4.5").containsEntry("quality", "{\"confidence\":0.5}");

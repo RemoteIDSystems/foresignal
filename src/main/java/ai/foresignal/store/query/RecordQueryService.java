@@ -297,7 +297,7 @@ public class RecordQueryService {
         Set<String> inline = Set.copyOf(properties.changes().inlinePayloadKinds());
         List<RecordRow> rows = runner.read(jdbc -> {
             SqlParams p = new SqlParams();
-            String sql = "SELECT " + changeSelect(q, p, false, inline) + " FROM record_version v"
+            String sql = "SELECT " + changeSelect(q, p, false, inline) + changesFrom(q)
                     + where(changesWhere(q, p)) + " ORDER BY v.seq LIMIT " + (q.limit() + 1);
             List<RecordRow> found = jdbc.query(sql, p.source(), RecordRowMapper.INSTANCE);
             boolean wantsPayload = q.fields().includes("payload");
@@ -340,11 +340,11 @@ public class RecordQueryService {
         Set<String> inline = Set.copyOf(properties.changes().inlinePayloadKinds());
         runner.stream(jdbc -> {
             SqlParams countParams = new SqlParams();
-            String countSql = "SELECT count(*) FROM (SELECT 1 FROM record_version v"
+            String countSql = "SELECT count(*) FROM (SELECT 1" + changesFrom(q)
                     + where(changesWhere(q, countParams)) + " LIMIT " + (cap + 1L) + ") c";
             checkCap(jdbc.queryForObject(countSql, countParams.source(), Long.class), cap);
             SqlParams p = new SqlParams();
-            String sql = "SELECT " + changeSelect(q, p, true, inline) + " FROM record_version v"
+            String sql = "SELECT " + changeSelect(q, p, true, inline) + changesFrom(q)
                     + where(changesWhere(q, p)) + " ORDER BY v.seq LIMIT " + cap;
             sink.begin(watermark);
             jdbc.query(sql, p.source(), rowCallback(sink));
@@ -360,6 +360,40 @@ public class RecordQueryService {
             horizon = Math.max(horizon, retention.purgeSeq(id));
         }
         return horizon;
+    }
+
+    /**
+     * The change rows of {@code seqs} ({@code WHERE seq = ANY(?)}, runtime pruning to one leaf per
+     * tier), with GeoJSON geometry and box but no payload, keyed by seq. The SSE hub loads each
+     * published batch once with it (prompt 015). Seqs no longer stored are absent.
+     */
+    public Map<Long, RecordRow> changesBySeq(Collection<Long> seqs) {
+        if (seqs.isEmpty()) {
+            return Map.of();
+        }
+        ChangesQuery shape = new ChangesQuery(0L, List.of(), List.of(), List.of(), null, false, 1,
+                FieldSelection.ALL, GeometryOptions.DEFAULT, GeometryEncoding.GEOJSON, Set.of());
+        return runner.read(jdbc -> {
+            SqlParams p = new SqlParams();
+            String sql = "SELECT " + changeSelect(shape, p, false, Set.of()) + " FROM record_version v WHERE v.seq = ANY("
+                    + p.bigintArray(new ArrayList<>(seqs)) + ")";
+            Map<Long, RecordRow> rows = new HashMap<>();
+            for (RecordRow row : jdbc.query(sql, p.source(), RecordRowMapper.INSTANCE)) {
+                rows.put(row.seq(), row);
+            }
+            return rows;
+        });
+    }
+
+    /**
+     * The whole payloads of {@code seqs} as JSON text ({@code WHERE seq = ANY(?)}), keyed by seq.
+     * The SSE sender threads load {@code payload=true} payloads in small batches with it (prompt 015).
+     */
+    public Map<Long, String> payloadsBySeq(Collection<Long> seqs) {
+        if (seqs.isEmpty()) {
+            return Map.of();
+        }
+        return runner.read(jdbc -> loadPayloads(jdbc, new ArrayList<>(seqs), FieldSelection.ALL));
     }
 
     // =====================================================================================
@@ -620,6 +654,12 @@ public class RecordQueryService {
                 .put("by1", "ST_YMin(v.geom)")
                 .put("bx2", "ST_XMax(v.geom)")
                 .put("by2", "ST_YMax(v.geom)");
+        if (q.prevBoxes()) {
+            select.put("pbx1", "ST_XMin(p.geom)")
+                    .put("pby1", "ST_YMin(p.geom)")
+                    .put("pbx2", "ST_XMax(p.geom)")
+                    .put("pby2", "ST_YMax(p.geom)");
+        }
         if (q.fields().includesGeometry()) {
             select.put("geom_out", geometryExpression("v.geom", q.geometry(), q.encoding(), p));
         }
@@ -643,9 +683,26 @@ public class RecordQueryService {
         addIn(where, "v.kind", q.kinds(), p);
         addIn(where, "v.external_id", q.externalIds(), p);
         if (q.bbox() != null) {
-            where.add(bboxClause("v.geom", q.bbox(), p));
+            where.add(q.prevBoxes()
+                    ? "(" + bboxClause("v.geom", q.bbox(), p) + " OR " + bboxClause("p.geom", q.bbox(), p) + ")"
+                    : bboxClause("v.geom", q.bbox(), p));
+        }
+        if (q.near() != null) {
+            where.add(q.prevBoxes()
+                    ? "(" + nearClause("v.geom", q.near(), p) + " OR " + nearClause("p.geom", q.near(), p) + ")"
+                    : nearClause("v.geom", q.near(), p));
         }
         return where;
+    }
+
+    /**
+     * The FROM clause of a change query: {@code record_version v}, joined to the previous version by
+     * seq alone (one leaf per tier after runtime pruning) when the query wants previous boxes.
+     */
+    private static String changesFrom(ChangesQuery q) {
+        return q.prevBoxes()
+                ? " FROM record_version v LEFT JOIN record_version p ON p.seq = v.prev_seq"
+                : " FROM record_version v";
     }
 
     private Map<Long, String> loadPayloads(NamedParameterJdbcTemplate jdbc, List<Long> seqs, FieldSelection fields) {

@@ -118,6 +118,9 @@ public class AccessPolicy {
                 // ---- Records, changes, tiles, kinds, history: data reads ----
                 rule(HttpMethod.GET, "/v1/records/**", AccessRequirement.READ),
                 rule(HttpMethod.GET, "/v1/changes/**", AccessRequirement.READ),
+                // The multiplexed event stream and its filter swap; ownership is enforced in code (015).
+                rule(HttpMethod.GET, "/v1/events/stream", AccessRequirement.READ),
+                rule(HttpMethod.PATCH, "/v1/events/stream/*/filter", AccessRequirement.READ),
                 rule(HttpMethod.GET, "/v1/kinds", AccessRequirement.READ),
                 // The /v1/kinds rule matches only the exact path (014).
                 rule(HttpMethod.GET, "/v1/kinds/*/schema", AccessRequirement.READ),

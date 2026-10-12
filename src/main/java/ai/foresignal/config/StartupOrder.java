@@ -14,6 +14,9 @@ public final class StartupOrder {
     /** The single ingest writer (prompt 009). */
     public static final int WRITER = 10;
 
+    /** The SSE hub's bus subscriptions (prompt 015). */
+    public static final int SSE_HUB = 15;
+
     /** The trigger engine (prompt 017). */
     public static final int TRIGGER_ENGINE = 20;
 

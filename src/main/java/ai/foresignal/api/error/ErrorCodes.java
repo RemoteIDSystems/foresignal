@@ -53,6 +53,15 @@ public final class ErrorCodes {
     /** 503: a read query ran past {@code foresignal.api.query.statementTimeout}. */
     public static final String QUERY_TIMEOUT = "QUERY_TIMEOUT";
 
+    /**
+     * 503 (server-wide {@code maxClients}) or 429 (per-principal stream count, with
+     * {@code Retry-After}): no further SSE stream may be opened now (prompt 015).
+     */
+    public static final String STREAM_LIMIT = "STREAM_LIMIT";
+
+    /** 400: an event-stream topic that is unknown or not registered yet (prompt 015). */
+    public static final String UNKNOWN_TOPIC = "UNKNOWN_TOPIC";
+
     private static final String TYPE_PREFIX = "https://foresignal.ai/problems/";
 
     private ErrorCodes() {}

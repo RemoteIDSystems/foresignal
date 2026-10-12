@@ -54,6 +54,7 @@ BODIES = {
   "previewBriefing": {"name": "Preview", "schedule": "0 7 * * *", "scope": {"kinds": ["earthquake"]}, "lookback": "24h", "mode": "digest"},
   "createPushSubscription": {"name": "Laptop browser", "subscription": {"endpoint": "https://push.example/REPLACE",
                              "keys": {"p256dh": "REPLACE", "auth": "REPLACE"}}, "filters": {"events": ["alert"], "minSeverity": "warning"}},
+  "updateEventStreamFilter": {"changes": {"bbox": "-97.5,32.5,-96.5,33.2", "live": True}},
   "updateSecuritySettings": {"openReads": True},
   "updateServerSettings": {"publicBaseUrl": "http://foresignal.local:8080"},
   "updateRetention": {"default": "7d", "alerts": "90d", "usage": "30d", "briefings": "180d", "ask": "90d", "sources": {"usgs-earthquakes": "3650d"}},
