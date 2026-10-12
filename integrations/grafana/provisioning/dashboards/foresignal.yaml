@@ -1,0 +1,11 @@
+# Loads the Foresignal dashboards from the mounted dashboards folder.
+apiVersion: 1
+
+providers:
+  - name: foresignal
+    folder: Foresignal
+    type: file
+    disableDeletion: false
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards/foresignal

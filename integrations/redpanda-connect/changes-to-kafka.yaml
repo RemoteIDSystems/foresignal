@@ -1,0 +1,83 @@
+# Redpanda Connect: Foresignal /v1/changes -> Kafka / Redpanda
+# Cookbook: docs/cookbooks/event-bus-bridges.md
+#
+#   FORESIGNAL_URL=http://foresignal.local:8080 FORESIGNAL_TOKEN=fsr_your_read_token \
+#     rpk connect run changes-to-kafka.yaml        # or: redpanda-connect run changes-to-kafka.yaml
+#
+# Polls /v1/changes after a durable cursor (the last delivered seq, kept in the
+# "cursor" cache) and fans each change out. Delivery is at least once: a crash
+# or an overlapping poll can repeat changes, so consumers dedupe on seq.
+# Components: generate, cache (processor and output), http, catch, log, mapping,
+# unarchive, broker and the memory/file caches are Benthos core (MIT); kafka_franz (deprecated in favor of the redpanda output, same fields) is Apache-2.0.
+# None is under the Redpanda Community License (enterprise).
+
+cache_resources:
+  - label: cursor
+    file:
+      directory: ${FORESIGNAL_CURSOR_DIR:./foresignal-cursor}
+
+input:
+  generate:
+    interval: 5s
+    mapping: root = {}
+
+pipeline:
+  threads: 1
+  processors:
+    # The cursor, or FORESIGNAL_START_SEQ (default 0, everything retained) on the first run.
+    - cache:
+        resource: cursor
+        operator: get
+        key: foresignal-changes
+    - catch:
+        - mapping: root = env("FORESIGNAL_START_SEQ").or("0")
+    # One page of changes after the cursor. Add &kind=...&payload=true to carry
+    # payloads for the kinds you need; changes carry no payload by default.
+    - http:
+        url: '${FORESIGNAL_URL}/v1/changes?after=${! content() }&limit=1000'
+        verb: GET
+        headers:
+          Authorization: Bearer ${FORESIGNAL_TOKEN}
+          Accept: application/json
+        timeout: 30s
+    # Errors (including 410 RESYNC_REQUIRED: the cursor is older than retention
+    # kept) are logged and this tick is dropped; see the cookbook for resync.
+    - catch:
+        - log:
+            level: ERROR
+            message: 'Foresignal /v1/changes failed: ${! error() }'
+        - mapping: root = deleted()
+    - mapping: root = this.items
+    - unarchive:
+        format: json_array
+    - mapping: |
+        root = this
+        meta seq = this.seq.string()
+        meta key = this.source + ":" + this.externalId
+
+output:
+  broker:
+    pattern: fan_out_sequential
+    outputs:
+      # Change log: every version, keyed by seq. Keep this topic NON-compacted
+      # (cleanup.policy=delete with the retention you want): compaction would
+      # keep only the newest message per key.
+      - kafka_franz:
+          seed_brokers: [ '${KAFKA_BROKERS:localhost:9092}' ]
+          topic: foresignal.changes
+          key: '${! meta("seq") }'
+          max_in_flight: 1
+      # Current state: keyed by source:externalId on a compacted topic
+      # (cleanup.policy=compact); tombstone changes keep their tombstone flag.
+      - kafka_franz:
+          seed_brokers: [ '${KAFKA_BROKERS:localhost:9092}' ]
+          topic: foresignal.current
+          key: '${! meta("key") }'
+          max_in_flight: 1
+      # Last: advance the cursor only after the outputs above accepted the change.
+      - cache:
+          target: cursor
+          key: foresignal-changes
+          max_in_flight: 1
+        processors:
+          - mapping: root = meta("seq")

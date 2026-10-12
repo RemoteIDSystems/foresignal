@@ -1,0 +1,284 @@
+[
+  {
+    "id": "fs034tab0000001",
+    "type": "tab",
+    "label": "Foresignal",
+    "disabled": false,
+    "info": "Foresignal cookbook flows (docs/cookbooks/node-red.md): alert stream consumer, signed webhook receiver, ingest."
+  },
+  {
+    "id": "fs034cmt0000001",
+    "type": "comment",
+    "z": "fs034tab0000001",
+    "name": "1. Alert stream (SSE) with Last-Event-ID resume",
+    "info": "Needs @parasaurolophus/node-red-eventsource 3.0.0 (MIT) for the EventSource Client node.",
+    "x": 170,
+    "y": 40,
+    "wires": []
+  },
+  {
+    "id": "fs034inj0000001",
+    "type": "inject",
+    "z": "fs034tab0000001",
+    "name": "start",
+    "props": [],
+    "repeat": "",
+    "crontab": "",
+    "once": true,
+    "onceDelay": "2",
+    "topic": "",
+    "x": 150,
+    "y": 80,
+    "wires": [
+      [
+        "fs034fnc0000001"
+      ]
+    ]
+  },
+  {
+    "id": "fs034fnc0000001",
+    "type": "function",
+    "z": "fs034tab0000001",
+    "name": "stream options",
+    "func": "// Builds the EventSource Client options for /v1/alerts/stream and resumes\n// from the last alert rev seen (persisted in flow context; configure a\n// persistent context store in settings.js so it survives restarts).\nconst base = env.get('FORESIGNAL_URL');          // e.g. http://foresignal.local:8080\nconst token = env.get('FORESIGNAL_TOKEN');       // a read token\nif (!base || !token) {\n    node.error('Set FORESIGNAL_URL and FORESIGNAL_TOKEN in the Node-RED environment');\n    return null;\n}\nconst options = {\n    url: base + '/v1/alerts/stream?minSeverity=warning',\n    headers: { Authorization: 'Bearer ' + token }\n};\nconst last = flow.get('foresignal_alert_rev');\nif (last) {\n    options.initialLastEventId = String(last);\n}\nmsg.payload = options;\nreturn msg;\n",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 360,
+    "y": 80,
+    "wires": [
+      [
+        "fs034esc0000001"
+      ]
+    ]
+  },
+  {
+    "id": "fs034esc0000001",
+    "type": "EventSource Client",
+    "z": "fs034tab0000001",
+    "name": "alerts stream",
+    "options": "{}",
+    "optionsType": "json",
+    "x": 580,
+    "y": 80,
+    "wires": [
+      [
+        "fs034fnc0000002"
+      ]
+    ]
+  },
+  {
+    "id": "fs034fnc0000002",
+    "type": "function",
+    "z": "fs034tab0000001",
+    "name": "alert event",
+    "func": "// One server-sent event from /v1/alerts/stream: {event, id, data}.\n// alert, alert.updated and alert.resolved carry id = the alert rev; heartbeat\n// and other control events have no id.\nconst ev = msg.payload || {};\nif (ev.id) {\n    flow.set('foresignal_alert_rev', ev.id);\n}\nif (!['alert', 'alert.updated', 'alert.resolved'].includes(ev.event)) {\n    return null;\n}\nlet data;\ntry {\n    data = JSON.parse(ev.data);\n} catch (e) {\n    node.warn('Unparseable alert event: ' + e.message);\n    return null;\n}\n// Upsert by alert id: a resume replays alerts in their current state.\nmsg.topic = ev.event;\nmsg.payload = data;\nreturn msg;\n",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 790,
+    "y": 80,
+    "wires": [
+      [
+        "fs034dbg0000001"
+      ]
+    ]
+  },
+  {
+    "id": "fs034dbg0000001",
+    "type": "debug",
+    "z": "fs034tab0000001",
+    "name": "alert",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "payload",
+    "targetType": "msg",
+    "statusVal": "",
+    "statusType": "auto",
+    "x": 990,
+    "y": 80,
+    "wires": []
+  },
+  {
+    "id": "fs034cmt0000002",
+    "type": "comment",
+    "z": "fs034tab0000001",
+    "name": "2. Signed webhook receiver (POST /foresignal/webhook)",
+    "info": "",
+    "x": 170,
+    "y": 160,
+    "wires": []
+  },
+  {
+    "id": "fs034hin0000001",
+    "type": "http in",
+    "z": "fs034tab0000001",
+    "name": "Foresignal webhook",
+    "url": "/foresignal/webhook",
+    "method": "post",
+    "upload": false,
+    "skipBodyParsing": true,
+    "swaggerDoc": "",
+    "x": 170,
+    "y": 200,
+    "wires": [
+      [
+        "fs034fnc0000003"
+      ]
+    ]
+  },
+  {
+    "id": "fs034fnc0000003",
+    "type": "function",
+    "z": "fs034tab0000001",
+    "name": "verify HMAC",
+    "func": "// Verifies X-Foresignal-Signature over the raw body (the http in node has\n// \"Do not parse request body\" on, so msg.payload is a Buffer).\n// sha256=<hex HMAC-SHA256(secret, \"<X-Foresignal-Timestamp>.<body>\")>\nconst secret = env.get('FORESIGNAL_WEBHOOK_SECRET');\nconst ts = msg.req.headers['x-foresignal-timestamp'];\nconst sig = msg.req.headers['x-foresignal-signature'] || '';\nconst body = Buffer.isBuffer(msg.payload) ? msg.payload : Buffer.from(String(msg.payload || ''), 'utf8');\nconst age = Math.abs(Date.now() / 1000 - Number(ts));\nlet ok = Boolean(secret) && Boolean(ts) && Number.isFinite(age) && age <= 300;\nif (ok) {\n    const mac = crypto.createHmac('sha256', secret);\n    mac.update(ts + '.');\n    mac.update(body);\n    const expected = Buffer.from('sha256=' + mac.digest('hex'));\n    const given = Buffer.from(sig);\n    ok = expected.length === given.length && crypto.timingSafeEqual(expected, given);\n}\n// Output 1: the verified notification. Output 2: the HTTP reply (always).\nconst reply = { req: msg.req, res: msg.res, statusCode: ok ? 204 : 401, payload: '' };\nif (!ok) {\n    return [null, reply];\n}\nconst out = { payload: JSON.parse(body.toString('utf8')) };\nout.topic = out.payload.subtype;   // alert.fired, alert.acknowledged, ...\nreturn [out, reply];\n",
+    "outputs": 2,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [
+      {
+        "var": "crypto",
+        "module": "crypto"
+      }
+    ],
+    "x": 400,
+    "y": 200,
+    "wires": [
+      [
+        "fs034dbg0000002"
+      ],
+      [
+        "fs034hrs0000001"
+      ]
+    ]
+  },
+  {
+    "id": "fs034dbg0000002",
+    "type": "debug",
+    "z": "fs034tab0000001",
+    "name": "verified notification",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "payload",
+    "targetType": "msg",
+    "statusVal": "",
+    "statusType": "auto",
+    "x": 640,
+    "y": 180,
+    "wires": []
+  },
+  {
+    "id": "fs034hrs0000001",
+    "type": "http response",
+    "z": "fs034tab0000001",
+    "name": "reply",
+    "statusCode": "",
+    "headers": {},
+    "x": 630,
+    "y": 230,
+    "wires": []
+  },
+  {
+    "id": "fs034cmt0000003",
+    "type": "comment",
+    "z": "fs034tab0000001",
+    "name": "3. Push a record to a custom source",
+    "info": "",
+    "x": 170,
+    "y": 300,
+    "wires": []
+  },
+  {
+    "id": "fs034inj0000002",
+    "type": "inject",
+    "z": "fs034tab0000001",
+    "name": "every 5 min",
+    "props": [],
+    "repeat": "300",
+    "crontab": "",
+    "once": false,
+    "onceDelay": "0.1",
+    "topic": "",
+    "x": 150,
+    "y": 340,
+    "wires": [
+      [
+        "fs034fnc0000004"
+      ]
+    ]
+  },
+  {
+    "id": "fs034fnc0000004",
+    "type": "function",
+    "z": "fs034tab0000001",
+    "name": "build record",
+    "func": "// Builds one record for POST /v1/ingest/{sourceId} (native format).\n// The source and its ingest key come from the environment; the key can only\n// write to that source.\nconst base = env.get('FORESIGNAL_URL');\nconst sourceId = env.get('FORESIGNAL_INGEST_SOURCE');  // e.g. custom-nodered\nconst key = env.get('FORESIGNAL_INGEST_KEY');           // eik_...\nmsg.method = 'POST';\nmsg.url = base + '/v1/ingest/' + encodeURIComponent(sourceId);\nmsg.headers = { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' };\nmsg.payload = {\n    records: [{\n        externalId: 'nodered-demo',\n        kind: 'sensor-reading',\n        observedAt: new Date().toISOString(),\n        geometry: { type: 'Point', coordinates: [-95.99, 36.15] },\n        payload: { value: Math.round(Math.random() * 1000) / 10, unit: 'C' }\n    }]\n};\nreturn msg;\n",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 360,
+    "y": 340,
+    "wires": [
+      [
+        "fs034hrq0000001"
+      ]
+    ]
+  },
+  {
+    "id": "fs034hrq0000001",
+    "type": "http request",
+    "z": "fs034tab0000001",
+    "name": "POST to Foresignal ingest",
+    "method": "use",
+    "ret": "obj",
+    "paytoqs": "ignore",
+    "url": "",
+    "tls": "",
+    "persist": false,
+    "proxy": "",
+    "insecureHTTPParser": false,
+    "authType": "",
+    "senderr": false,
+    "headers": [],
+    "x": 580,
+    "y": 340,
+    "wires": [
+      [
+        "fs034dbg0000003"
+      ]
+    ]
+  },
+  {
+    "id": "fs034dbg0000003",
+    "type": "debug",
+    "z": "fs034tab0000001",
+    "name": "ingest outcome",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "true",
+    "targetType": "full",
+    "statusVal": "",
+    "statusType": "auto",
+    "x": 790,
+    "y": 340,
+    "wires": []
+  }
+]

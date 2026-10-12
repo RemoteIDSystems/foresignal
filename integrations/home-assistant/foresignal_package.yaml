@@ -1,0 +1,156 @@
+# Foresignal package for Home Assistant (docs/cookbooks/home-assistant.md).
+#
+# 1. In configuration.yaml:
+#      homeassistant:
+#        packages: !include_dir_named packages
+# 2. Copy this file to /config/packages/foresignal_package.yaml and replace
+#    foresignal.local:8080 with your broker's address (every URL below).
+# 3. Add to /config/secrets.yaml (placeholders; never commit real values):
+#      foresignal_read_auth: "Bearer fsr_your_read_token"
+#      foresignal_device_id: "5f0c6a52-0000-4000-8000-000000000000"   # any UUID, one per hub
+#      foresignal_ingest_auth: "Bearer eik_your_ingest_key"
+#      foresignal_webhook_id: "a-long-random-unguessable-id"
+# 4. Restart Home Assistant.
+#
+# No admin token lives in Home Assistant: the sensors use a read token, the
+# ingest command a source-bound ingest key, and acknowledgements the one-time
+# capability URLs Foresignal puts in its webhook body.
+
+input_text:
+  foresignal_ack_url:
+    name: Foresignal last acknowledge URL
+    max: 255
+
+rest:
+  # Unread notifications for this hub (the inbox badge).
+  - resource: http://foresignal.local:8080/v1/notifications/badge
+    scan_interval: 60
+    timeout: 10
+    headers:
+      Authorization: !secret foresignal_read_auth
+      Foresignal-Device-Id: !secret foresignal_device_id
+    sensor:
+      - name: Foresignal unread
+        unique_id: foresignal_unread
+        value_template: "{{ value_json.unread }}"
+        json_attributes:
+          - unreadCritical
+          - latestId
+
+  # The five newest firing alerts.
+  - resource: http://foresignal.local:8080/v1/alerts?state=firing&limit=5
+    scan_interval: 60
+    timeout: 10
+    headers:
+      Authorization: !secret foresignal_read_auth
+    sensor:
+      - name: Foresignal firing alerts
+        unique_id: foresignal_firing_alerts
+        # "items" in brackets: value_json.items would be the dict method.
+        value_template: "{{ value_json['items'] | length }}"
+        json_attributes:
+          - items
+
+  # Sources that are failing (a JSON array).
+  - resource: http://foresignal.local:8080/v1/sources/health?status=failing
+    scan_interval: 300
+    timeout: 10
+    headers:
+      Authorization: !secret foresignal_read_auth
+    sensor:
+      - name: Foresignal failing sources
+        unique_id: foresignal_failing_sources
+        value_template: "{{ value_json | length }}"
+      - name: Foresignal failing source ids
+        unique_id: foresignal_failing_source_ids
+        value_template: "{{ (value_json | map(attribute='sourceId') | join(', '))[:250] or 'none' }}"
+
+rest_command:
+  # POSTs one capability URL (acknowledge, snooze or mute) from a webhook body.
+  foresignal_action:
+    url: "{{ url }}"
+    method: post
+    headers:
+      Accept: application/json
+    timeout: 10
+
+  # Home Assistant -> Foresignal: one entity's state into a custom source.
+  # Create the source once with the admin token (see the cookbook); the key
+  # in secrets.yaml can only write to that source.
+  foresignal_ingest:
+    url: http://foresignal.local:8080/v1/ingest/custom-home
+    method: post
+    headers:
+      Authorization: !secret foresignal_ingest_auth
+    content_type: application/json
+    payload: >-
+      {"records": [{"externalId": {{ entity_id | tojson }}, "kind": "ha-state",
+      "observedAt": {{ now().isoformat() | tojson }},
+      "payload": {"state": {{ state | tojson }}, "name": {{ name | default(entity_id) | tojson }}}}]}
+    timeout: 10
+
+script:
+  foresignal_acknowledge_last:
+    alias: Acknowledge the last Foresignal alert
+    sequence:
+      - condition: template
+        value_template: >-
+          {{ states('input_text.foresignal_ack_url').startswith('http://foresignal.local:8080/v1/actions/') }}
+      - action: rest_command.foresignal_action
+        data:
+          url: "{{ states('input_text.foresignal_ack_url') }}"
+      - action: input_text.set_value
+        target:
+          entity_id: input_text.foresignal_ack_url
+        data:
+          value: ""
+
+automation:
+  # Foresignal -> Home Assistant: a webhook channel (type webhook or homeassistant)
+  # posts here. Home Assistant cannot verify Foresignal's HMAC signature: the
+  # unguessable webhook_id and local_only are the only protection.
+  - id: foresignal_alert_webhook
+    alias: Foresignal alert received
+    mode: queued
+    triggers:
+      - trigger: webhook
+        webhook_id: !secret foresignal_webhook_id
+        allowed_methods:
+          - POST
+        local_only: true
+    conditions:
+      - condition: template
+        value_template: "{{ trigger.json is defined and trigger.json.subtype == 'alert.fired' }}"
+    actions:
+      - variables:
+          ack_url: >-
+            {{ (trigger.json.actions | default([]) | selectattr('action', 'eq', 'ack')
+                | map(attribute='url') | list + [''])[0] }}
+      - action: persistent_notification.create
+        data:
+          title: "{{ trigger.json.message.title }}"
+          message: "{{ trigger.json.message.bodyMarkdown }}"
+          notification_id: "foresignal_{{ trigger.json.data.alertId }}"
+      - if:
+          - condition: template
+            value_template: "{{ ack_url != '' }}"
+        then:
+          - action: input_text.set_value
+            target:
+              entity_id: input_text.foresignal_ack_url
+            data:
+              value: "{{ ack_url }}"
+
+  # Example: push one sensor's state to Foresignal whenever it changes.
+  - id: foresignal_push_front_door
+    alias: Foresignal push front door state
+    mode: queued
+    triggers:
+      - trigger: state
+        entity_id: binary_sensor.front_door
+    actions:
+      - action: rest_command.foresignal_ingest
+        data:
+          entity_id: "{{ trigger.entity_id }}"
+          state: "{{ trigger.to_state.state }}"
+          name: "{{ trigger.to_state.name }}"

@@ -1,0 +1,7 @@
+# TAK bridge (docs/cookbooks/tak-bridge.md). Versions verified on PyPI 2026-10-12.
+# pytak: Apache-2.0. takproto (TAK Protocol v1, used only with TAK_PROTO): MIT.
+# defusedxml: PSF License. aiohttp: Apache-2.0 AND MIT. Python 3.10 or later.
+pytak==7.6.1
+takproto==3.0.1
+defusedxml==0.7.1
+aiohttp==3.14.5

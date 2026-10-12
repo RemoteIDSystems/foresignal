@@ -1,0 +1,20 @@
+{
+  "mcpServers": {
+    "foresignal": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote@0.14.3",
+        "http://foresignal.local:8080/mcp",
+        "--transport",
+        "http-only",
+        "--allow-http",
+        "--header",
+        "Authorization:${AUTH_HEADER}"
+      ],
+      "env": {
+        "AUTH_HEADER": "Bearer fsr_your_agent_token"
+      }
+    }
+  }
+}

@@ -1,0 +1,101 @@
+{
+  "name": "Foresignal: IMAP to ingest",
+  "nodes": [
+    {
+      "parameters": {
+        "mailbox": "INBOX",
+        "postProcessAction": "read",
+        "format": "resolved",
+        "dataPropertyAttachmentsPrefixName": "attachment_",
+        "options": {
+          "customEmailConfig": "[\"UNSEEN\"]"
+        }
+      },
+      "id": "4f5b9a50-0340-4c1e-9d10-000000000001",
+      "name": "Email Trigger (IMAP)",
+      "type": "n8n-nodes-base.emailReadImap",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        0
+      ],
+      "credentials": {
+        "imap": {
+          "id": "REPLACE_WITH_YOUR_IMAP_CREDENTIAL_ID",
+          "name": "Foresignal mailbox"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Foresignal mail gate (docs/cookbooks/n8n-imap.md). Runs once for all items.\n// Keeps a message only when the sender is allowlisted AND this mailbox's own\n// mail server recorded dkim=pass and dmarc=pass for it; everything else is dropped.\n// Mail text is untrusted: nothing here follows links or loads remote content.\nconst ALLOWED_SENDERS = ['alerts@example.org', 'noreply@status.example.com'];  // edit\nconst AUTHSERV_ID = 'mx.example.net';   // the authserv-id your receiving server writes (edit)\n\nfunction stripHtml(html) {\n  return String(html || '')\n    .replace(/<(script|style|head)[\\s\\S]*?<\\/\\1>/gi, ' ')\n    .replace(/<[^>]+>/g, ' ')\n    .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')\n    .replace(/&quot;/g, '\"').replace(/&#39;/g, \"'\");\n}\n\nconst out = [];\nfor (const item of $input.all()) {\n  const mail = item.json;\n  const from = String(mail.from?.value?.[0]?.address || '').toLowerCase();\n  if (!ALLOWED_SENDERS.includes(from)) continue;\n  // headers maps a lowercase name to its full line; with repeated headers only\n  // one survives, so a message carrying a second Authentication-Results fails closed.\n  const line = String(mail.headers?.['authentication-results'] || '');\n  const value = line.replace(/^authentication-results:\\s*/i, '').trim();\n  if (!value.toLowerCase().startsWith(AUTHSERV_ID.toLowerCase())) continue;\n  if (!/\\bdkim=pass\\b/i.test(value) || !/\\bdmarc=pass\\b/i.test(value)) continue;\n\n  const text = (mail.text ? String(mail.text) : stripHtml(mail.html)).replace(/\\s+/g, ' ').trim();\n  const link = (text.match(/https?:\\/\\/[^\\s<>\"')\\]]+/) || [null])[0];\n  const subject = String(mail.subject || '(no subject)').slice(0, 300);\n  const messageId = String(mail.messageId || '').replace(/[<>]/g, '').slice(0, 200)\n    || (from + ':' + subject + ':' + String(mail.date || '')).slice(0, 200);\n  const sent = mail.date ? new Date(mail.date) : null;\n\n  out.push({ json: { record: {\n    externalId: messageId,\n    kind: 'mail-notice',\n    eventTime: sent && !isNaN(sent) ? sent.toISOString() : null,\n    payload: { subject, from, link, excerpt: text.slice(0, 280) }\n  } } });\n}\nreturn out;\n"
+      },
+      "id": "4f5b9a50-0340-4c1e-9d10-000000000002",
+      "name": "Allowlist and DKIM/DMARC gate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        260,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://foresignal.local:8080/v1/ingest/custom-mail",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ records: [ $json.record ] }) }}",
+        "options": {}
+      },
+      "id": "4f5b9a50-0340-4c1e-9d10-000000000003",
+      "name": "POST to Foresignal",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        520,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_WITH_YOUR_HEADER_CREDENTIAL_ID",
+          "name": "Foresignal ingest key"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Email Trigger (IMAP)": {
+      "main": [
+        [
+          {
+            "node": "Allowlist and DKIM/DMARC gate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Allowlist and DKIM/DMARC gate": {
+      "main": [
+        [
+          {
+            "node": "POST to Foresignal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}

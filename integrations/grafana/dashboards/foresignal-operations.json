@@ -1,0 +1,492 @@
+{
+  "uid": "foresignal-operations",
+  "title": "Foresignal Operations",
+  "description": "Broker health from /actuator/prometheus (scraped on the internal network only).",
+  "tags": [
+    "foresignal"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 42,
+  "version": 1,
+  "editable": true,
+  "refresh": "1m",
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "templating": {
+    "list": []
+  },
+  "annotations": {
+    "list": []
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Current records",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "foresignal-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "foresignal-prometheus"
+          },
+          "expr": "foresignal_records_current",
+          "legendFormat": "",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {},
+      "description": "Non-tombstoned records (foresignal.records.current)."
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Unresolved alerts",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "foresignal-prometheus"
+      },
+      "gridPos": {
+        "x": 4,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "foresignal-prometheus"
+          },
+          "expr": "sum by (severity) (foresignal_alerts_active)",
+          "legendFormat": "{{severity}}",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {},
+      "description": "Firing or acknowledged, not suppressed (foresignal.alerts.active)."
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Ingest queue depth",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "foresignal-prometheus"
+      },
+      "gridPos": {
+        "x": 10,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "foresignal-prometheus"
+          },
+          "expr": "foresignal_ingest_queue_depth",
+          "legendFormat": "",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {},
+      "description": "Batches waiting for the writer (foresignal.ingest.queue.depth)."
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Writer state",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "foresignal-prometheus"
+      },
+      "gridPos": {
+        "x": 14,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "foresignal-prometheus"
+          },
+          "expr": "foresignal_ingest_writer_state",
+          "legendFormat": "",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {},
+      "description": "The writer state code (foresignal.ingest.writer.state)."
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Open SSE clients",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "foresignal-prometheus"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "foresignal-prometheus"
+          },
+          "expr": "foresignal_sse_clients{stream=\"all\"}",
+          "legendFormat": "",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {},
+      "description": "foresignal.sse.clients"
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Persisted versions per second, by source",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "foresignal-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "foresignal-prometheus"
+          },
+          "expr": "sum by (source) (rate(foresignal_ingest_records_persisted_total[5m]))",
+          "legendFormat": "{{source}}",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "options": {},
+      "description": "foresignal.ingest.records.persisted (appears once a source has ingested)."
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Records seen and rejected per second",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "foresignal-prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 4,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "foresignal-prometheus"
+          },
+          "expr": "sum(rate(foresignal_ingest_records_seen_total[5m]))",
+          "legendFormat": "seen",
+          "range": true
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "foresignal-prometheus"
+          },
+          "expr": "sum(rate(foresignal_ingest_records_rejected_total[5m]))",
+          "legendFormat": "rejected",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "options": {},
+      "description": "foresignal.ingest.records.seen and .rejected."
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Writer batch time by phase (mean)",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "foresignal-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 12,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "foresignal-prometheus"
+          },
+          "expr": "sum by (phase) (rate(foresignal_ingest_batch_duration_seconds_sum[5m])) / sum by (phase) (rate(foresignal_ingest_batch_duration_seconds_count[5m]))",
+          "legendFormat": "{{phase}}",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "options": {},
+      "description": "foresignal.ingest.batch.duration"
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Fetch time by source (mean)",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "foresignal-prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 12,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "foresignal-prometheus"
+          },
+          "expr": "sum by (source) (rate(foresignal_fetch_duration_seconds_sum[15m])) / sum by (source) (rate(foresignal_fetch_duration_seconds_count[15m]))",
+          "legendFormat": "{{source}}",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "options": {},
+      "description": "foresignal.fetch.duration (appears after the first fetch)."
+    },
+    {
+      "id": 10,
+      "type": "table",
+      "title": "Source data age",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "foresignal-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 20,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "foresignal-prometheus"
+          },
+          "expr": "foresignal_source_data_age_seconds",
+          "legendFormat": "{{source}}",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true
+      },
+      "description": "Seconds since each source last delivered records (foresignal.source.data_age_seconds)."
+    },
+    {
+      "id": 11,
+      "type": "table",
+      "title": "Failing or degraded sources",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "foresignal-prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 20,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "foresignal-prometheus"
+          },
+          "expr": "foresignal_source_status{status=~\"failing|degraded\"} == 1",
+          "legendFormat": "{{source}} {{status}}",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true
+      },
+      "description": "foresignal.source.status (1 when the source is in that state)."
+    },
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "Partition headroom by tier",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "foresignal-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 28,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "foresignal-prometheus"
+          },
+          "expr": "foresignal_history_partition_headroom",
+          "legendFormat": "{{tier}}",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {},
+      "description": "Seq values covered by attached partitions ahead of the allocator."
+    },
+    {
+      "id": 13,
+      "type": "timeseries",
+      "title": "JVM heap used",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "foresignal-prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 28,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "foresignal-prometheus"
+          },
+          "expr": "sum(jvm_memory_used_bytes{area=\"heap\"})",
+          "legendFormat": "heap",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "options": {},
+      "description": "Spring Boot's JVM metrics."
+    }
+  ]
+}

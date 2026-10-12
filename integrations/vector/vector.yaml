@@ -1,0 +1,95 @@
+# Vector: Foresignal change stream -> Kafka, NATS JetStream, Redis, ClickHouse, S3.
+# Cookbook: docs/cookbooks/event-bus-bridges.md
+#
+#   FORESIGNAL_URL=http://foresignal.local:8080 FORESIGNAL_TOKEN=fsr_your_read_token \
+#     vector --config vector.yaml
+#
+# Vector's http_client source re-sends one fixed request (VRL is allowed in
+# query parameters, but it cannot carry a cursor from the previous response),
+# so the change feed is read by foresignal_sse.py through an exec source: it
+# holds /v1/changes/stream open, resumes with Last-Event-ID from a cursor file
+# and prints one change per line. Delete the sinks you do not use.
+
+sources:
+  foresignal_changes:
+    type: exec
+    mode: streaming
+    command: [ "python3", "/etc/vector/foresignal_sse.py" ]
+    streaming:
+      respawn_on_exit: true
+      respawn_interval_secs: 5
+    environment:
+      FORESIGNAL_URL: "${FORESIGNAL_URL}"
+      FORESIGNAL_TOKEN: "${FORESIGNAL_TOKEN}"
+      FORESIGNAL_CURSOR_FILE: "/var/lib/vector/foresignal-sse.cursor"
+    decoding:
+      codec: json
+
+transforms:
+  foresignal_keyed:
+    type: remap
+    inputs: [ foresignal_changes ]
+    source: |
+      .key = string!(.source) + ":" + string!(.externalId)
+      .seq_key = to_string!(.seq)
+
+sinks:
+  # Change log keyed by seq on a NON-compacted topic.
+  kafka_changes:
+    type: kafka
+    inputs: [ foresignal_keyed ]
+    bootstrap_servers: "${KAFKA_BROKERS:-localhost:9092}"
+    topic: foresignal.changes
+    key_field: seq_key
+    encoding:
+      codec: json
+
+  # Current state keyed by source:externalId on a compacted topic.
+  kafka_current:
+    type: kafka
+    inputs: [ foresignal_keyed ]
+    bootstrap_servers: "${KAFKA_BROKERS:-localhost:9092}"
+    topic: foresignal.current
+    key_field: key
+    encoding:
+      codec: json
+
+  # JetStream: the subject must belong to an existing stream. Consumers dedupe on seq.
+  nats_changes:
+    type: nats
+    inputs: [ foresignal_keyed ]
+    url: "${NATS_URL:-nats://localhost:4222}"
+    subject: "foresignal.changes.{{ kind }}"
+    jetstream:
+      enabled: true
+    encoding:
+      codec: json
+
+  # Vector's redis sink writes lists, sorted sets or pub/sub channels, not
+  # Streams; for Redis/Valkey Streams use integrations/redpanda-connect/changes-to-redis.yaml.
+  redis_changes:
+    type: redis
+    inputs: [ foresignal_keyed ]
+    endpoint: "${REDIS_URL:-redis://localhost:6379}"
+    key: "foresignal:changes"
+    data_type: list
+    encoding:
+      codec: json
+
+  clickhouse_changes:
+    type: clickhouse
+    inputs: [ foresignal_keyed ]
+    endpoint: "${CLICKHOUSE_URL:-http://localhost:8123}"
+    database: default
+    table: foresignal_changes_raw
+    skip_unknown_fields: true
+    date_time_best_effort: true
+
+  s3_changes:
+    type: aws_s3
+    inputs: [ foresignal_keyed ]
+    bucket: "${S3_BUCKET:-foresignal-archive}"
+    key_prefix: "foresignal/changes/date=%F/"
+    compression: gzip
+    encoding:
+      codec: json

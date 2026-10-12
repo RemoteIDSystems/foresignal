@@ -1,0 +1,266 @@
+{
+  "uid": "foresignal-live-map",
+  "title": "Foresignal Live map",
+  "description": "Current records on a Geomap through the Infinity data source (read token).",
+  "tags": [
+    "foresignal"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 42,
+  "version": 1,
+  "editable": true,
+  "refresh": "1m",
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "type": "textbox",
+        "name": "kind",
+        "label": "Kind",
+        "query": "earthquake",
+        "current": {
+          "text": "earthquake",
+          "value": "earthquake"
+        }
+      },
+      {
+        "type": "textbox",
+        "name": "bbox",
+        "label": "Bounding box (minLon,minLat,maxLon,maxLat)",
+        "query": "-180,-85,180,85",
+        "current": {
+          "text": "-180,-85,180,85",
+          "value": "-180,-85,180,85"
+        }
+      }
+    ]
+  },
+  "annotations": {
+    "list": []
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "geomap",
+      "title": "Records ($kind)",
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "foresignal-infinity"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 18
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "foresignal-infinity"
+          },
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "parser": "backend",
+          "url": "http://foresignal:8080/v1/records",
+          "url_options": {
+            "method": "GET",
+            "params": [
+              {
+                "key": "format",
+                "value": "geojson"
+              },
+              {
+                "key": "kind",
+                "value": "$kind"
+              },
+              {
+                "key": "bbox",
+                "value": "$bbox"
+              },
+              {
+                "key": "limit",
+                "value": "2000"
+              }
+            ]
+          },
+          "root_selector": "features[geometry.type = \"Point\"].{\"lon\": geometry.coordinates[0], \"lat\": geometry.coordinates[1], \"title\": properties.title, \"source\": properties.source, \"externalId\": properties.externalId, \"observedAt\": properties.observedAt}",
+          "columns": [
+            {
+              "selector": "lat",
+              "text": "lat",
+              "type": "number"
+            },
+            {
+              "selector": "lon",
+              "text": "lon",
+              "type": "number"
+            },
+            {
+              "selector": "title",
+              "text": "title",
+              "type": "string"
+            },
+            {
+              "selector": "source",
+              "text": "source",
+              "type": "string"
+            },
+            {
+              "selector": "externalId",
+              "text": "externalId",
+              "type": "string"
+            },
+            {
+              "selector": "observedAt",
+              "text": "observedAt",
+              "type": "timestamp"
+            }
+          ]
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "view": {
+          "id": "fit",
+          "lat": 0,
+          "lon": 0,
+          "zoom": 2
+        },
+        "controls": {
+          "showZoom": true,
+          "mouseWheelZoom": true
+        },
+        "basemap": {
+          "type": "default",
+          "name": "Basemap"
+        },
+        "layers": [
+          {
+            "type": "markers",
+            "name": "Records",
+            "location": {
+              "mode": "coords",
+              "latitude": "lat",
+              "longitude": "lon"
+            },
+            "tooltip": true,
+            "config": {
+              "showLegend": false,
+              "style": {
+                "size": {
+                  "fixed": 5
+                },
+                "color": {
+                  "fixed": "red"
+                }
+              }
+            }
+          }
+        ],
+        "tooltip": {
+          "mode": "details"
+        }
+      },
+      "description": "Point records of one kind in a bounding box, at most 2000 (GET /v1/records?format=geojson). Lines and polygons are skipped."
+    },
+    {
+      "id": 2,
+      "type": "table",
+      "title": "Records",
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "foresignal-infinity"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 18,
+        "w": 24,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "foresignal-infinity"
+          },
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "parser": "backend",
+          "url": "http://foresignal:8080/v1/records",
+          "url_options": {
+            "method": "GET",
+            "params": [
+              {
+                "key": "format",
+                "value": "geojson"
+              },
+              {
+                "key": "kind",
+                "value": "$kind"
+              },
+              {
+                "key": "bbox",
+                "value": "$bbox"
+              },
+              {
+                "key": "limit",
+                "value": "2000"
+              }
+            ]
+          },
+          "root_selector": "features[geometry.type = \"Point\"].{\"lon\": geometry.coordinates[0], \"lat\": geometry.coordinates[1], \"title\": properties.title, \"source\": properties.source, \"externalId\": properties.externalId, \"observedAt\": properties.observedAt}",
+          "columns": [
+            {
+              "selector": "lat",
+              "text": "lat",
+              "type": "number"
+            },
+            {
+              "selector": "lon",
+              "text": "lon",
+              "type": "number"
+            },
+            {
+              "selector": "title",
+              "text": "title",
+              "type": "string"
+            },
+            {
+              "selector": "source",
+              "text": "source",
+              "type": "string"
+            },
+            {
+              "selector": "externalId",
+              "text": "externalId",
+              "type": "string"
+            },
+            {
+              "selector": "observedAt",
+              "text": "observedAt",
+              "type": "timestamp"
+            }
+          ]
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true
+      }
+    }
+  ]
+}

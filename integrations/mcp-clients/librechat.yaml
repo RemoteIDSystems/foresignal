@@ -1,0 +1,18 @@
+# LibreChat: merge into librechat.yaml (docs/cookbooks/ai-chat-hosts.md).
+# FORESIGNAL_TOKEN is read from the LibreChat server's environment (.env);
+# servers created in the LibreChat UI cannot use server environment variables.
+mcpSettings:
+  # LibreChat blocks MCP servers on private addresses and local domains unless
+  # they are allowed here. Use your broker's host name or address.
+  allowedDomains:
+    - "foresignal.local"
+
+mcpServers:
+  foresignal:
+    type: streamable-http
+    url: http://foresignal.local:8080/mcp
+    headers:
+      Authorization: "Bearer ${FORESIGNAL_TOKEN}"
+    timeout: 60000
+    initTimeout: 10000
+    serverInstructions: true

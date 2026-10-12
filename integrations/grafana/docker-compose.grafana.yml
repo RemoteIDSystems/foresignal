@@ -1,0 +1,37 @@
+# Optional Grafana and Prometheus next to the broker (docs/cookbooks/grafana.md).
+#
+#   FORESIGNAL_GRAFANA_TOKEN=fsr_your_read_token \
+#     docker compose -f docker-compose.yml -f integrations/grafana/docker-compose.grafana.yml up -d
+#
+# Run it from the repository root: relative paths in an override resolve
+# against the first compose file's folder. Prometheus publishes no port, so
+# the unauthenticated /actuator/prometheus stays on the compose network.
+services:
+  prometheus:
+    image: prom/prometheus:v3.15.0
+    volumes:
+      - ./integrations/grafana/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    depends_on:
+      - foresignal
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:13.2.3
+    environment:
+      # Pinned and installed before Grafana starts, so provisioning finds it.
+      GF_PLUGINS_PREINSTALL_SYNC: yesoreyeram-infinity-datasource@4.1.1
+      FORESIGNAL_GRAFANA_TOKEN: ${FORESIGNAL_GRAFANA_TOKEN:?set FORESIGNAL_GRAFANA_TOKEN to a read token}
+    volumes:
+      - ./integrations/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./integrations/grafana/dashboards:/var/lib/grafana/dashboards/foresignal:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "${FORESIGNAL_BIND:-127.0.0.1}:3000:3000"
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+volumes:
+  prometheus-data:
+  grafana-data:

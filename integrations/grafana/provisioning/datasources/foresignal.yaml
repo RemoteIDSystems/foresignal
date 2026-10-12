@@ -1,0 +1,33 @@
+# Grafana data source provisioning for Foresignal (docs/cookbooks/grafana.md).
+# No PostgreSQL data source on purpose: it would bypass token scopes, private
+# sources and license filtering, and tie dashboards to internal tables.
+apiVersion: 1
+
+datasources:
+  # Prometheus scrapes /actuator/prometheus over the compose network. That
+  # endpoint needs no token, so never publish it outside the internal network.
+  - name: Foresignal Prometheus
+    uid: foresignal-prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    jsonData:
+      httpMethod: POST
+      timeInterval: 30s
+
+  # Infinity (yesoreyeram-infinity-datasource, >= 3.4.1 for CVE-2025-8341)
+  # calls the REST API with a READ token. allowedHosts stops dashboards from
+  # sending the token anywhere else.
+  - name: Foresignal API
+    uid: foresignal-infinity
+    type: yesoreyeram-infinity-datasource
+    jsonData:
+      auth_method: bearerToken
+      allowedHosts:
+        - http://foresignal:8080
+      customHealthCheckEnabled: true
+      customHealthCheckUrl: http://foresignal:8080/v1/system
+      timeoutInSeconds: 30
+    secureJsonData:
+      bearerToken: $FORESIGNAL_GRAFANA_TOKEN

@@ -1,0 +1,277 @@
+{
+  "uid": "foresignal-alerts",
+  "title": "Foresignal Alerts",
+  "description": "Alerts from /v1/alerts as a table and as annotations (read token).",
+  "tags": [
+    "foresignal"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 42,
+  "version": 1,
+  "editable": true,
+  "refresh": "1m",
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "templating": {
+    "list": []
+  },
+  "annotations": {
+    "list": [
+      {
+        "name": "Foresignal alerts",
+        "enable": true,
+        "iconColor": "red",
+        "datasource": {
+          "type": "yesoreyeram-infinity-datasource",
+          "uid": "foresignal-infinity"
+        },
+        "target": {
+          "refId": "Anno",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "foresignal-infinity"
+          },
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "parser": "backend",
+          "url": "http://foresignal:8080/v1/alerts",
+          "url_options": {
+            "method": "GET",
+            "params": [
+              {
+                "key": "since",
+                "value": "${__from:date:iso}"
+              },
+              {
+                "key": "limit",
+                "value": "500"
+              }
+            ]
+          },
+          "root_selector": "items.{\"time\": firedAt, \"text\": message, \"title\": ruleName, \"tags\": severity}",
+          "columns": [
+            {
+              "selector": "time",
+              "text": "time",
+              "type": "timestamp"
+            },
+            {
+              "selector": "title",
+              "text": "title",
+              "type": "string"
+            },
+            {
+              "selector": "text",
+              "text": "text",
+              "type": "string"
+            },
+            {
+              "selector": "tags",
+              "text": "tags",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Firing alerts",
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "foresignal-infinity"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "foresignal-infinity"
+          },
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "parser": "backend",
+          "url": "http://foresignal:8080/v1/alerts",
+          "url_options": {
+            "method": "GET",
+            "params": [
+              {
+                "key": "state",
+                "value": "firing"
+              },
+              {
+                "key": "limit",
+                "value": "500"
+              }
+            ]
+          },
+          "root_selector": "items",
+          "columns": [
+            {
+              "selector": "firedAt",
+              "text": "firedAt",
+              "type": "timestamp"
+            },
+            {
+              "selector": "severity",
+              "text": "severity",
+              "type": "string"
+            },
+            {
+              "selector": "state",
+              "text": "state",
+              "type": "string"
+            },
+            {
+              "selector": "ruleName",
+              "text": "rule",
+              "type": "string"
+            },
+            {
+              "selector": "message",
+              "text": "message",
+              "type": "string"
+            },
+            {
+              "selector": "source",
+              "text": "source",
+              "type": "string"
+            },
+            {
+              "selector": "externalId",
+              "text": "externalId",
+              "type": "string"
+            },
+            {
+              "selector": "id",
+              "text": "id",
+              "type": "number"
+            }
+          ]
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "count"
+          ],
+          "fields": "/^id$/",
+          "values": false
+        }
+      },
+      "description": "Alerts in state firing (at most 500)."
+    },
+    {
+      "id": 2,
+      "type": "table",
+      "title": "Alerts in the time range",
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "foresignal-infinity"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 24,
+        "h": 16
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "foresignal-infinity"
+          },
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "parser": "backend",
+          "url": "http://foresignal:8080/v1/alerts",
+          "url_options": {
+            "method": "GET",
+            "params": [
+              {
+                "key": "since",
+                "value": "${__from:date:iso}"
+              },
+              {
+                "key": "limit",
+                "value": "500"
+              }
+            ]
+          },
+          "root_selector": "items",
+          "columns": [
+            {
+              "selector": "firedAt",
+              "text": "firedAt",
+              "type": "timestamp"
+            },
+            {
+              "selector": "severity",
+              "text": "severity",
+              "type": "string"
+            },
+            {
+              "selector": "state",
+              "text": "state",
+              "type": "string"
+            },
+            {
+              "selector": "ruleName",
+              "text": "rule",
+              "type": "string"
+            },
+            {
+              "selector": "message",
+              "text": "message",
+              "type": "string"
+            },
+            {
+              "selector": "source",
+              "text": "source",
+              "type": "string"
+            },
+            {
+              "selector": "externalId",
+              "text": "externalId",
+              "type": "string"
+            },
+            {
+              "selector": "id",
+              "text": "id",
+              "type": "number"
+            }
+          ]
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true
+      },
+      "description": "GET /v1/alerts?since=<dashboard start>, newest first."
+    }
+  ]
+}
