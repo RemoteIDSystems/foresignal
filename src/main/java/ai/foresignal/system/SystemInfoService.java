@@ -290,6 +290,8 @@ public class SystemInfoService {
             m.put("bytes", t.bytes());
             m.put("headroomSeq", t.headroomSeq());
             m.put("windowDays", t.windowDays());
+            m.put("downsampledLeaves", t.downsampledLeaves());
+            m.put("downsampledRows", t.downsampledRows());
             return m;
         }).toList());
         out.put("versionsPerMinute", snapshot.versionsPerMinute());

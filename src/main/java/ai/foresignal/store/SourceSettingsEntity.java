@@ -5,6 +5,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -65,6 +66,14 @@ public class SourceSettingsEntity {
      */
     @Column(name = "embed")
     private Boolean embed;
+
+    /**
+     * Per-source override of the history downsample interval (prompt 044), TRACK sources only; null
+     * means {@code retention.trackDownsampleInterval}. A PostgreSQL {@code interval}.
+     */
+    @JdbcTypeCode(SqlTypes.INTERVAL_SECOND)
+    @Column(name = "downsample_interval")
+    private Duration downsampleInterval;
 
     @JdbcTypeCode(SqlTypes.TIMESTAMP_UTC)
     @Column(name = "updated_at", nullable = false)
@@ -155,6 +164,16 @@ public class SourceSettingsEntity {
     /** Sets the {@code embed} override; null reverts to the default. */
     public void setEmbed(Boolean embed) {
         this.embed = embed;
+    }
+
+    /** The downsample interval override (prompt 044), or null for the global interval. */
+    public Duration getDownsampleInterval() {
+        return downsampleInterval;
+    }
+
+    /** Sets the downsample interval override; null reverts to the global interval. */
+    public void setDownsampleInterval(Duration downsampleInterval) {
+        this.downsampleInterval = downsampleInterval;
     }
 
     public Instant getUpdatedAt() {

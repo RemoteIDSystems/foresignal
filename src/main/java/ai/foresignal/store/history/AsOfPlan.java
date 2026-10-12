@@ -23,16 +23,17 @@ import java.util.Map;
  *
  * @param t the requested transaction time
  * @param s {@code S(t)}: the newest seq ingested at or before {@code t}
- * @param lByTier the lower seq bound per involved tier: TRACK {@code S(t − ttl − widening − 2 min)}
- *     (the smallest over the tier's sources), STANDARD 0
+ * @param lByTier the lower seq bound per involved tier: TRACK {@code S(t − validity − 2 min)} (the
+ *     smallest over the tier's sources), STANDARD 0
  * @param horizon the earliest supported {@code t} over the involved sources (the latest of their
  *     horizons), or null when no source is involved
  * @param approximate true when an involved source is SAMPLED or LATEST, or a range is downsampled
  * @param watermarkSeq the response's {@code watermarkSeq}; equal to {@code s} (Core-Data-Model §12
  *     step 5)
  * @param sources the involved sources after private exclusion, sorted by id, grouped per tier
- * @param validity per source, its TTL plus {@link HistoryFidelity#validityWidening}; a source
- *     without a TTL maps to null (its versions never expire by TTL)
+ * @param validity per source, its TTL, plus {@link HistoryFidelity#validityWidening} when its tier's
+ *     range is downsampled (prompt 044); a source without a TTL maps to null (its versions never
+ *     expire by TTL)
  * @param downsampled true when an involved tier range {@code [L, S]} is downsampled
  */
 public record AsOfPlan(

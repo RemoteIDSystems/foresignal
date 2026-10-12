@@ -32,6 +32,13 @@ public final class StartupOrder {
      */
     public static final int RETENTION_STATE = 12;
 
+    /**
+     * History downsampling's startup recovery (prompt 044): an interrupted rewrite is rolled back or
+     * finished, and the thinned ranges are reloaded, after the retention state and before the read
+     * paths and the trigger engine depend on them.
+     */
+    public static final int HISTORY_DOWNSAMPLE = 13;
+
     /** The SSE hub's bus subscriptions (prompt 015). */
     public static final int SSE_HUB = 15;
 

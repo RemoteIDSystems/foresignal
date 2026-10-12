@@ -39530,7 +39530,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"default\": \"7d\",\n  \"trackWindow\": \"3d\",\n  \"provenance\": \"30d\",\n  \"alerts\": \"90d\",\n  \"usage\": \"30d\",\n  \"notifications\": \"90d\",\n  \"briefings\": \"180d\",\n  \"ask\": \"90d\",\n  \"kinds\": {\n    \"earthquake\": \"3650d\"\n  },\n  \"sources\": {\n    \"usgs-earthquakes\": \"1825d\"\n  }\n}",
+              "raw": "{\n  \"default\": \"7d\",\n  \"trackWindow\": \"3d\",\n  \"provenance\": \"30d\",\n  \"alerts\": \"90d\",\n  \"usage\": \"30d\",\n  \"notifications\": \"90d\",\n  \"briefings\": \"180d\",\n  \"ask\": \"90d\",\n  \"kinds\": {\n    \"earthquake\": \"3650d\"\n  },\n  \"sources\": {\n    \"usgs-earthquakes\": \"1825d\"\n  },\n  \"trackRawWindow\": \"24h\",\n  \"trackDownsampleInterval\": \"5m\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -44207,7 +44207,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"enabled\": true,\n  \"interval\": \"60s\",\n  \"params\": {\n    \"feed\": \"all_day\"\n  },\n  \"budget\": {\n    \"perMinute\": 4,\n    \"perDay\": 2000\n  },\n  \"retention\": \"365d\",\n  \"ingestPolicy\": {\n    \"mode\": \"SAMPLED\",\n    \"minInterval\": \"60s\",\n    \"keyframe\": \"240s\",\n    \"minDeviationMeters\": 1000,\n    \"thresholds\": true,\n    \"edgeMinInterval\": \"30s\"\n  }\n}",
+              "raw": "{\n  \"enabled\": true,\n  \"interval\": \"60s\",\n  \"params\": {\n    \"feed\": \"all_day\"\n  },\n  \"budget\": {\n    \"perMinute\": 4,\n    \"perDay\": 2000\n  },\n  \"retention\": \"365d\",\n  \"ingestPolicy\": {\n    \"mode\": \"SAMPLED\",\n    \"minInterval\": \"60s\",\n    \"keyframe\": \"240s\",\n    \"minDeviationMeters\": 1000,\n    \"thresholds\": true,\n    \"edgeMinInterval\": \"30s\"\n  },\n  \"downsampleInterval\": null\n}",
               "options": {
                 "raw": {
                   "language": "json"

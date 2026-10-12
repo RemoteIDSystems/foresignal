@@ -1,5 +1,6 @@
 package ai.foresignal.system;
 
+import ai.foresignal.retention.DownsampleRanges;
 import ai.foresignal.retention.RetentionResolver;
 import ai.foresignal.settings.RetentionSettings;
 import ai.foresignal.source.SourceRegistry;
@@ -54,9 +55,11 @@ public class HistoryStats {
      * @param headroomSeq seq values covered ahead of the allocator, or null before the first read
      * @param windowDays the tier's retention window in days
      * @param versionsPerMinute versions written per minute over the last hour
+     * @param downsampledLeaves leaves thinned by history downsampling (prompt 044)
+     * @param downsampledRows rows those leaves kept
      */
     public record Tier(HistoryTier tier, int partitions, long rows, long bytes, Long headroomSeq, double windowDays,
-            double versionsPerMinute) {}
+            double versionsPerMinute, int downsampledLeaves, long downsampledRows) {}
 
     /**
      * A snapshot.
@@ -78,16 +81,18 @@ public class HistoryStats {
     private final PartitionManager partitions;
     private final RetentionResolver resolver;
     private final SourceRegistry registry;
+    private final DownsampleRanges downsampled;
     private final Clock clock;
     private volatile Snapshot cached;
 
     /** Creates the component. */
     public HistoryStats(JdbcTemplate jdbc, PartitionManager partitions, RetentionResolver resolver,
-            SourceRegistry registry, Clock clock) {
+            SourceRegistry registry, DownsampleRanges downsampled, Clock clock) {
         this.jdbc = jdbc;
         this.partitions = partitions;
         this.resolver = resolver;
         this.registry = registry;
+        this.downsampled = downsampled;
         this.clock = clock;
     }
 
@@ -146,8 +151,9 @@ public class HistoryStats {
             double headroom = partitions.headroom(tier);
             Duration window = tier == HistoryTier.TRACK ? settings.trackWindow() : standardWindow;
             double rate = rates.get(tier);
+            DownsampleRanges.Summary thinned = downsampled.summary(tier);
             tiers.add(new Tier(tier, (int) s[0], s[1], s[2], Double.isNaN(headroom) ? null : (long) headroom,
-                    window.toMinutes() / 1440.0, rate));
+                    window.toMinutes() / 1440.0, rate, thinned.leaves(), thinned.rows()));
             totalRate += rate;
             if (s[1] > 0) {
                 projected += (double) s[2] / s[1] * rate * window.toMinutes();

@@ -17,6 +17,14 @@
  * operational tables. Every cutoff is clamped by the registered
  * {@link ai.foresignal.retention.RetentionConsumer}s.
  *
+ * <h2>Downsampling (prompt 044)</h2>
+ *
+ * <p>{@link ai.foresignal.retention.HistoryDownsampler} (order 150, right after the TRACK leaf drops)
+ * rewrites one TRACK leaf older than {@code retention.trackRawWindow} per run into a thinned copy and
+ * swaps it in under the {@code PartitionManager} lock; {@code history_downsample} records each leaf, and
+ * {@link ai.foresignal.retention.DownsampleRanges} caches the thinned ranges for the read paths through
+ * {@link ai.foresignal.retention.DownsampleFidelity}.
+ *
  * <h2>Concurrency</h2>
  *
  * <ul>

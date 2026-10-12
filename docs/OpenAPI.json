@@ -182,6 +182,11 @@
         "version": "1.3.0",
         "date": "2026-10-12",
         "note": "043: getMedia, getMediaThumbnail and getMediaMeta are implemented. The problem-code registry gains UNKNOWN_MEDIA (404), MEDIA_EXPIRED (410) and MEDIA_TOO_LARGE (413). Problem gains reason (an ImageGuard refusal behind VALIDATION_FAILED). SystemRasters.mediaBytes is filled and counts against the disk quota."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-12",
+        "note": "044: history downsampling. SystemInfo.history.tiers[] gains downsampledLeaves and downsampledRows. RecordVersion.downsampled, RetentionSettings.trackRawWindow/trackDownsampleInterval, SourceSettings/SourceSettingsUpdate.downsampleInterval and TriggerTestResult.warnings (DOWNSAMPLED_RANGE) are now filled. No new operations."
       }
     ]
   },
@@ -92811,6 +92816,17 @@
                     },
                     "windowDays": {
                       "type": "number"
+                    },
+                    "downsampledLeaves": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "description": "TRACK leaves thinned by history downsampling (044); 0 for STANDARD"
+                    },
+                    "downsampledRows": {
+                      "type": "integer",
+                      "format": "int64",
+                      "minimum": 0,
+                      "description": "Rows the downsampled leaves kept (044)"
                     }
                   },
                   "required": [

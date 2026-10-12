@@ -29,6 +29,8 @@ public class SourceSettingsUpdate {
     private Boolean statsIncludePrivate;
     private Boolean privateSource;
     private String regionTagging;
+    private String downsampleInterval;
+    private boolean downsampleIntervalPresent;
 
     /** Whether the source should be collected; null leaves it unchanged. */
     public Boolean getEnabled() {
@@ -110,6 +112,22 @@ public class SourceSettingsUpdate {
     /** Sets {@link #getEmbed()}. */
     public void setEmbed(Boolean embed) {
         this.embed = embed;
+    }
+
+    /** The history downsample interval override (prompt 044); see {@link #isDownsampleIntervalPresent()}. */
+    public String getDownsampleInterval() {
+        return downsampleInterval;
+    }
+
+    /** Sets {@link #getDownsampleInterval()} and records that the key was present. */
+    public void setDownsampleInterval(String downsampleInterval) {
+        this.downsampleInterval = downsampleInterval;
+        this.downsampleIntervalPresent = true;
+    }
+
+    /** True when the body named {@code downsampleInterval}, even as null (null clears the override). */
+    public boolean isDownsampleIntervalPresent() {
+        return downsampleIntervalPresent;
     }
 
     /** {@code eager}, {@code lazy} or {@code off} (prompt 040); null leaves it unchanged. */

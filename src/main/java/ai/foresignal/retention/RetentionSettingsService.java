@@ -41,8 +41,12 @@ import tools.jackson.databind.JsonNode;
  *
  * <p>{@code audit} (prompt 023), {@code inbox} (prompt 033) and {@code stats.hourly}/{@code stats.daily}
  * (prompt 038) are stored with the rest. Members owned by later prompts ({@code stats.regionHourly} and
- * {@code stats.regionDaily} 119, {@code trackRawWindow} and {@code trackDownsampleInterval} 044,
- * {@code social} 135) are accepted and not stored until those prompts.
+ * {@code stats.regionDaily} 119, {@code social} 135) are accepted and not stored until those prompts.
+ *
+ * <p><strong>Downsampling (prompt 044).</strong> {@code trackRawWindow} (default 24 h; {@code null}
+ * disables downsampling) must be shorter than {@code trackWindow}, and {@code trackDownsampleInterval}
+ * (default 5 min) must lie in {@code [30s, trackRawWindow]}. Both are checked against the values in
+ * force after the PUT, so an omitted member is checked at its default.
  */
 @Service
 public class RetentionSettingsService {
@@ -53,8 +57,10 @@ public class RetentionSettingsService {
     static final Set<String> DURATION_FIELDS = Set.of(
             "default", "alerts", "usage", "briefings", "ask", "trackWindow", "provenance", "notifications", "audit", "inbox");
 
-    static final Set<String> LATER_FIELDS = Set.of(
-            "trackRawWindow", "trackDownsampleInterval", "social");
+    static final Set<String> LATER_FIELDS = Set.of("social");
+
+    /** The shortest {@code trackDownsampleInterval} accepted (prompt 044). */
+    public static final Duration MIN_DOWNSAMPLE_INTERVAL = Duration.ofSeconds(30);
 
     /** {@code stats} members stored now (prompt 038). */
     static final Set<String> STATS_FIELDS = Set.of("hourly", "daily");
@@ -139,6 +145,7 @@ public class RetentionSettingsService {
                     values.put(field, value);
                 }
             } else if (!field.equals("sources") && !field.equals("kinds") && !field.equals("stats")
+                    && !field.equals("trackRawWindow") && !field.equals("trackDownsampleInterval")
                     && !LATER_FIELDS.contains(field)) {
                 errors.add(new FieldError(field, "is not a RetentionSettings member"));
             }
@@ -212,6 +219,8 @@ public class RetentionSettingsService {
         }
 
         RetentionSettings.Stats stats = stats(body.get("stats"), errors);
+        Duration trackWindow = values.getOrDefault("trackWindow", RetentionSettings.DEFAULT_TRACK_WINDOW);
+        Duration[] downsampling = downsampling(body, trackWindow, errors);
 
         if (!errors.isEmpty()) {
             String code = tierFixed ? ErrorCodes.RETENTION_TIER_FIXED : ErrorCodes.VALIDATION_FAILED;
@@ -230,7 +239,67 @@ public class RetentionSettingsService {
                 perKind,
                 values.get("audit"),
                 values.get("inbox"),
-                stats);
+                stats,
+                downsampling[0],
+                downsampling[1]);
+    }
+
+    /**
+     * {@code trackRawWindow} and {@code trackDownsampleInterval} (prompt 044), validated against each
+     * other and against {@code trackWindow}.
+     *
+     * @return {raw window or null for the default or {@link RetentionSettings#DOWNSAMPLING_DISABLED},
+     *     interval or null for the default}
+     */
+    static Duration[] downsampling(JsonNode body, Duration trackWindow, List<FieldError> errors) {
+        Duration raw = null;
+        boolean rawValid = true;
+        JsonNode rawNode = body.get("trackRawWindow");
+        if (rawNode != null) {
+            if (rawNode.isNull()) {
+                raw = RetentionSettings.DOWNSAMPLING_DISABLED;
+            } else {
+                raw = positive(rawNode, "trackRawWindow", errors);
+                rawValid = raw != null;
+            }
+        }
+        Duration interval = null;
+        boolean intervalValid = true;
+        JsonNode intervalNode = body.get("trackDownsampleInterval");
+        if (intervalNode != null && !intervalNode.isNull()) {
+            interval = positive(intervalNode, "trackDownsampleInterval", errors);
+            intervalValid = interval != null;
+        }
+        Duration effectiveRaw = raw == null ? RetentionSettings.DEFAULT_TRACK_RAW_WINDOW : raw;
+        Duration effectiveInterval = interval == null ? RetentionSettings.DEFAULT_TRACK_DOWNSAMPLE_INTERVAL : interval;
+        boolean enabled = !effectiveRaw.isZero();
+        if (rawValid && enabled && effectiveRaw.compareTo(trackWindow) >= 0) {
+            errors.add(new FieldError("trackRawWindow", "must be shorter than trackWindow ("
+                    + Durations.format(trackWindow) + "), but was " + Durations.format(effectiveRaw)
+                    + "; set it to null to disable downsampling"));
+        }
+        if (intervalValid) {
+            if (effectiveInterval.compareTo(MIN_DOWNSAMPLE_INTERVAL) < 0) {
+                errors.add(new FieldError("trackDownsampleInterval", "must be at least 30s"));
+            } else if (rawValid && enabled && effectiveInterval.compareTo(effectiveRaw) > 0) {
+                errors.add(new FieldError("trackDownsampleInterval", "must not be longer than trackRawWindow ("
+                        + Durations.format(effectiveRaw) + ")"));
+            }
+        }
+        return new Duration[] {raw, interval};
+    }
+
+    private static Duration positive(JsonNode node, String field, List<FieldError> errors) {
+        if (!node.isString()) {
+            errors.add(new FieldError(field, "must be a duration such as 24h or PT24H"));
+            return null;
+        }
+        try {
+            return Durations.parsePositive(node.asString());
+        } catch (InvalidInputException e) {
+            errors.add(new FieldError(field, e.getMessage()));
+            return null;
+        }
     }
 
     /** The {@code stats} object (prompt 038): {@code hourly} and {@code daily} windows, each at least 1 h. */

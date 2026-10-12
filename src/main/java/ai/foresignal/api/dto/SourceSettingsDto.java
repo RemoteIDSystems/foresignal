@@ -26,6 +26,8 @@ import java.util.Map;
  *     private or the operator tightened it; a private source is never embedded ({@code embed} false)
  * @param regionTagging {@code eager}, {@code lazy} or {@code off} (prompt 040; default eager for STANDARD,
  *     lazy for TRACK)
+ * @param downsampleInterval the operator's history downsample interval override (prompt 044, TRACK
+ *     sources only), or null for {@code retention.trackDownsampleInterval}
  */
 public record SourceSettingsDto(
         boolean enabled,
@@ -42,7 +44,18 @@ public record SourceSettingsDto(
         boolean statsEnabled,
         boolean statsIncludePrivate,
         @com.fasterxml.jackson.annotation.JsonProperty("private") boolean privateSource,
-        String regionTagging) {
+        String regionTagging,
+        Duration downsampleInterval) {
+
+    /** Settings without a downsample interval override (the shape before prompt 044). */
+    public SourceSettingsDto(boolean enabled, Duration interval, Map<String, Object> params, BudgetDto budget,
+            Duration retention, boolean embed, boolean credentialsSet, Instant updatedAt, IngestPolicyDto ingestPolicy,
+            IngestPolicyDto effectiveIngestPolicy, Duration effectiveRetention, boolean statsEnabled,
+            boolean statsIncludePrivate, boolean privateSource, String regionTagging) {
+        this(enabled, interval, params, budget, retention, embed, credentialsSet, updatedAt, ingestPolicy,
+                effectiveIngestPolicy, effectiveRetention, statsEnabled, statsIncludePrivate, privateSource,
+                regionTagging, null);
+    }
 
     /** Settings without a region tagging mode (the shape before prompt 040). */
     public SourceSettingsDto(boolean enabled, Duration interval, Map<String, Object> params, BudgetDto budget,
@@ -50,6 +63,7 @@ public record SourceSettingsDto(
             IngestPolicyDto effectiveIngestPolicy, Duration effectiveRetention, boolean statsEnabled,
             boolean statsIncludePrivate, boolean privateSource) {
         this(enabled, interval, params, budget, retention, embed, credentialsSet, updatedAt, ingestPolicy,
-                effectiveIngestPolicy, effectiveRetention, statsEnabled, statsIncludePrivate, privateSource, null);
+                effectiveIngestPolicy, effectiveRetention, statsEnabled, statsIncludePrivate, privateSource,
+                (String) null);
     }
 }

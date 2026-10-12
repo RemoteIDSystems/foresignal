@@ -180,23 +180,41 @@ class AsOfResolverTest {
     }
 
     @Test
-    @DisplayName("a stub fidelity widens validity and the TRACK lower bound, and flags downsampled ranges")
+    @DisplayName("the widening applies only when the widened range is downsampled (prompt 044)")
     void fidelityHook() {
         Instant t = NOW.minus(Duration.ofHours(1));
         fidelity.widening = Duration.ofMinutes(10);
         when(seqClock.seqAt(any(), eq(t))).thenReturn(500L);
         when(seqClock.seqAt(any(), eq(t.minus(Duration.ofMinutes(20)).minus(AsOfResolver.TRACK_LOWER_MARGIN))))
                 .thenReturn(200L);
-        AsOfPlan plan = resolver.plan(t, Set.of("trk-all"));
-        assertThat(plan.validity("trk-all")).as("ttl 10 min + widening 10 min").isEqualTo(Duration.ofMinutes(20));
-        assertThat(plan.lower(HistoryTier.TRACK)).isEqualTo(200L);
-        assertThat(plan.approximate()).isFalse();
+        when(seqClock.seqAt(any(), eq(t.minus(Duration.ofMinutes(10)).minus(AsOfResolver.TRACK_LOWER_MARGIN))))
+                .thenReturn(350L);
 
-        fidelity.widening = Duration.ZERO;
+        AsOfPlan raw = resolver.plan(t, Set.of("trk-all"));
+        assertThat(raw.validity("trk-all")).as("raw history: the plain TTL").isEqualTo(Duration.ofMinutes(10));
+        assertThat(raw.lower(HistoryTier.TRACK)).isEqualTo(350L);
+        assertThat(raw.approximate()).isFalse();
+        assertThat(raw.downsampled()).isFalse();
+        assertThat(fidelity.lastRange).as("checked over the widened range").containsExactly(200L, 500L);
+
+        fidelity.downsampled = true;
+        AsOfPlan thinned = resolver.plan(t, Set.of("trk-all"));
+        assertThat(thinned.validity("trk-all")).as("ttl 10 min + widening 10 min").isEqualTo(Duration.ofMinutes(20));
+        assertThat(thinned.lower(HistoryTier.TRACK)).isEqualTo(200L);
+        assertThat(thinned.downsampled()).isTrue();
+        assertThat(thinned.approximate()).isTrue();
+    }
+
+    @Test
+    @DisplayName("without a widening the downsampled flag still marks the plan approximate")
+    void downsampledWithoutWidening() {
+        Instant t = NOW.minus(Duration.ofHours(1));
+        when(seqClock.seqAt(any(), eq(t))).thenReturn(500L);
         fidelity.downsampled = true;
         AsOfPlan thinned = resolver.plan(t, Set.of("trk-all"));
         assertThat(thinned.downsampled()).isTrue();
         assertThat(thinned.approximate()).isTrue();
+        assertThat(thinned.validity("trk-all")).isEqualTo(Duration.ofMinutes(10));
         assertThat(fidelity.lastRange).containsExactly(0L, 500L);
     }
 
@@ -236,7 +254,6 @@ class AsOfResolverTest {
         assertThat(raw.downsampled(HistoryTier.TRACK, 0, Long.MAX_VALUE)).isFalse();
         assertThat(raw.validityWidening("x")).isZero();
         assertThat(raw.finalBefore(HistoryTier.STANDARD)).isEqualTo(Instant.MAX);
-        assertThat(new HistoryFidelityConfiguration().rawHistoryFidelity()).isInstanceOf(RawHistoryFidelity.class);
     }
 
     /** A settable fidelity. */

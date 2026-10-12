@@ -44,8 +44,10 @@ import org.springframework.stereotype.Component;
  *   <li>{@code horizon(source) = now − window + effectiveKeyframe + 1 h}; {@code t} before the
  *       latest horizon of any involved source is {@code 400 ASOF_BEYOND_RETENTION} with
  *       {@code horizon}.
- *   <li>{@code S = S(t)} from {@code seq_clock}; TRACK {@code L = S(t − ttl − widening − 2 min)},
- *       STANDARD {@code L = 0}.
+ *   <li>{@code S = S(t)} from {@code seq_clock}; TRACK {@code L = S(t − validity − 2 min)}, STANDARD
+ *       {@code L = 0}. A tier's validity is {@code ttl + widening} when its widened range
+ *       {@code [L, S]} is {@link HistoryFidelity#downsampled downsampled} (prompt 044: TRACK validity
+ *       becomes {@code max(ttl, downsampleInterval)} over thinned history), else the plain TTL.
  *   <li>{@code approximate} = any involved source is SAMPLED or LATEST, or
  *       {@link HistoryFidelity#downsampled} reports a tier range {@code [L, S]}.
  * </ol>
@@ -211,6 +213,7 @@ public class AsOfResolver {
         boolean approximate = false;
         Map<HistoryTier, List<SourceDescriptor>> byTier = new EnumMap<>(HistoryTier.class);
         Map<String, Duration> validity = new LinkedHashMap<>();
+        Map<String, Duration> widened = new LinkedHashMap<>();
         for (SourceDescriptor descriptor : involved) {
             Instant h = horizon(descriptor.id(), now);
             if (horizon == null || h.isAfter(horizon)) {
@@ -220,41 +223,59 @@ public class AsOfResolver {
             byTier.computeIfAbsent(descriptor.historyTier(), k -> new ArrayList<>()).add(descriptor);
             Duration ttl = descriptor.recordTtl();
             Duration widening = fidelity.validityWidening(descriptor.id());
-            validity.put(descriptor.id(), ttl == null ? null : ttl.plus(widening == null ? Duration.ZERO : widening));
+            validity.put(descriptor.id(), ttl);
+            widened.put(descriptor.id(), ttl == null ? null : ttl.plus(widening == null ? Duration.ZERO : widening));
         }
         if (horizon != null && t.isBefore(horizon)) {
             throw new ValidationException(ErrorCodes.ASOF_BEYOND_RETENTION,
                             "asOf " + t + " is before the retention horizon " + horizon + ".", List.of())
                     .withProperty("horizon", horizon.toString());
         }
-        return new Prepared(t, byTier, validity, horizon, approximate);
+        return new Prepared(t, byTier, validity, widened, horizon, approximate);
     }
 
     private AsOfPlan finish(NamedParameterJdbcTemplate jdbc, Prepared p) {
         long s = seqClock.seqAt(jdbc, p.t());
         Map<HistoryTier, Long> lower = new EnumMap<>(HistoryTier.class);
+        Map<String, Duration> validity = new LinkedHashMap<>(p.validity());
         boolean downsampled = false;
         for (Map.Entry<HistoryTier, List<SourceDescriptor>> tier : p.byTier().entrySet()) {
-            long l = 0L;
-            if (tier.getKey() == HistoryTier.TRACK) {
-                l = Long.MAX_VALUE;
-                for (SourceDescriptor descriptor : tier.getValue()) {
-                    Duration validity = p.validity().get(descriptor.id());
-                    long candidate = validity == null
-                            ? 0L
-                            : seqClock.seqAt(jdbc, p.t().minus(validity).minus(TRACK_LOWER_MARGIN));
-                    l = Math.min(l, candidate);
+            List<SourceDescriptor> descriptors = tier.getValue();
+            long wide = lowerBound(jdbc, p.t(), tier.getKey(), descriptors, p.widened());
+            if (fidelity.downsampled(tier.getKey(), wide, s)) {
+                // Thinned history in range: bridge its gaps with the widened validity (prompt 044).
+                downsampled = true;
+                lower.put(tier.getKey(), wide);
+                for (SourceDescriptor descriptor : descriptors) {
+                    validity.put(descriptor.id(), p.widened().get(descriptor.id()));
                 }
+            } else {
+                boolean same = descriptors.stream().allMatch(
+                        d -> java.util.Objects.equals(p.validity().get(d.id()), p.widened().get(d.id())));
+                lower.put(tier.getKey(), same ? wide : lowerBound(jdbc, p.t(), tier.getKey(), descriptors, p.validity()));
             }
-            lower.put(tier.getKey(), l);
-            downsampled |= fidelity.downsampled(tier.getKey(), l, s);
         }
-        return new AsOfPlan(p.t(), s, lower, p.horizon(), p.approximate() || downsampled, s, p.byTier(), p.validity(),
+        return new AsOfPlan(p.t(), s, lower, p.horizon(), p.approximate() || downsampled, s, p.byTier(), validity,
                 downsampled);
     }
 
+    /** TRACK: {@code S(t − validity − 2 min)}, the smallest over the tier's sources; STANDARD: 0. */
+    private long lowerBound(NamedParameterJdbcTemplate jdbc, Instant t, HistoryTier tier,
+            List<SourceDescriptor> descriptors, Map<String, Duration> validity) {
+        if (tier != HistoryTier.TRACK) {
+            return 0L;
+        }
+        long l = Long.MAX_VALUE;
+        for (SourceDescriptor descriptor : descriptors) {
+            Duration v = validity.get(descriptor.id());
+            long candidate = v == null ? 0L : seqClock.seqAt(jdbc, t.minus(v).minus(TRACK_LOWER_MARGIN));
+            l = Math.min(l, candidate);
+        }
+        return l;
+    }
+
     private record Prepared(Instant t, Map<HistoryTier, List<SourceDescriptor>> byTier,
-            Map<String, Duration> validity, Instant horizon, boolean approximate) {}
+            Map<String, Duration> validity, Map<String, Duration> widened, Instant horizon, boolean approximate) {}
 
     /** Injects the shared private-source visibility (prompt 039). */
     @org.springframework.beans.factory.annotation.Autowired(required = false)

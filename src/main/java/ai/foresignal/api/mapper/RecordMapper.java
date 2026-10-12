@@ -56,10 +56,19 @@ public class RecordMapper {
     private final SourceRegistry registry;
     private final JsonMapper json;
 
+    /** Answers {@code downsampled} on version items (prompt 044); null in hand-built mappers (always false). */
+    private volatile ai.foresignal.store.history.HistoryFidelity fidelity;
+
     /** Creates the mapper. */
     public RecordMapper(SourceRegistry registry, JsonMapper json) {
         this.registry = registry;
         this.json = json;
+    }
+
+    /** Injects the history fidelity hook that decides {@code downsampled} (prompt 044). */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setFidelity(ai.foresignal.store.history.HistoryFidelity fidelity) {
+        this.fidelity = fidelity;
     }
 
     /** What a {@code Record} item carries beyond the base fields. */
@@ -112,7 +121,7 @@ public class RecordMapper {
             all.put("historyTier", historyTier(row));
             all.put("receivedAt", row.receivedAt());
             all.put("batchId", row.batchId());
-            all.put("downsampled", false);
+            all.put("downsampled", downsampled(row));
         }
         if (row.observer() != null) {
             all.put("observer", RawJson.of(row.observer()));
@@ -370,6 +379,19 @@ public class RecordMapper {
 
     private static String persistReason(RecordRow row) {
         return row.persistReason() == null ? null : PersistReason.fromCode(row.persistReason()).name();
+    }
+
+    /**
+     * True when the version's seq lies in a leaf thinned by history downsampling (prompt 044). Its
+     * {@code prevSeq} may then name a version that no longer exists ("predecessor removed by
+     * downsampling"); it is returned as stored.
+     */
+    private boolean downsampled(RecordRow row) {
+        ai.foresignal.store.history.HistoryFidelity hook = fidelity;
+        if (hook == null || row.historyTier() == null) {
+            return false;
+        }
+        return hook.downsampled(HistoryTier.fromCode(row.historyTier()), row.seq(), row.seq());
     }
 
     private static String historyTier(RecordRow row) {

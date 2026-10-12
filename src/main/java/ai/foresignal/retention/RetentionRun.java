@@ -137,6 +137,28 @@ public final class RetentionRun {
         return Math.max(0L, cutoff);
     }
 
+    /**
+     * {@code min(cursor) + 1} over the consumers that report a cursor, without the lag release of
+     * {@link #clamp}: every seq below the result has been processed by every such consumer. History
+     * downsampling (prompt 044) rewrites only below it, so live triggers never see a thinned range.
+     * {@link Long#MAX_VALUE} when no consumer reports a cursor.
+     */
+    public long consumerBound() {
+        long bound = Long.MAX_VALUE;
+        for (RetentionConsumer consumer : consumers) {
+            OptionalLong cursor;
+            try {
+                cursor = consumer.cursorSeq();
+            } catch (RuntimeException e) {
+                return 0L;
+            }
+            if (cursor.isPresent()) {
+                bound = Math.min(bound, Math.max(0L, cursor.getAsLong() + 1));
+            }
+        }
+        return bound;
+    }
+
     /** Adds {@code count} to the deleted rows of {@code table}. */
     public void deleted(String table, long count) {
         deletedByTable.merge(table, count, Long::sum);

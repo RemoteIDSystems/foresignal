@@ -199,6 +199,24 @@ public class SourceMapper {
             Optional<IngestPolicy> policyOverride,
             Optional<Duration> retentionOverride,
             Optional<Duration> sourceRetention) {
+        return settings(view, policyOverride, retentionOverride, sourceRetention, Optional.empty());
+    }
+
+    /**
+     * The settings of one source, with its downsample interval override (prompt 044).
+     *
+     * @param view the effective view ({@link ai.foresignal.source.SourceService#view(String)})
+     * @param policyOverride the stored ingest-policy override, if any
+     * @param retentionOverride the stored retention override, if any
+     * @param sourceRetention {@link ai.foresignal.source.SourceService#effectiveRetention(String)}
+     * @param downsampleOverride {@link ai.foresignal.source.SourceService#downsampleIntervalOverride(String)}
+     */
+    public SourceSettingsDto settings(
+            SourceView view,
+            Optional<IngestPolicy> policyOverride,
+            Optional<Duration> retentionOverride,
+            Optional<Duration> sourceRetention,
+            Optional<Duration> downsampleOverride) {
         return new SourceSettingsDto(
                 view.enabled(),
                 view.interval(),
@@ -214,7 +232,8 @@ public class SourceMapper {
                 statsSettings().enabled(view.id()),
                 statsSettings().includePrivate(view.id()),
                 effectivePrivate(view),
-                regionTagging(view.descriptor()));
+                regionTagging(view.descriptor()),
+                downsampleOverride.orElse(null));
     }
 
     /** The source's region tagging mode (prompt 040): the operator's choice, else its tier's default. */
@@ -422,6 +441,16 @@ public class SourceMapper {
             }
         }
 
+        Duration downsampleInterval = null;
+        boolean clearDownsampleInterval = false;
+        if (body.isDownsampleIntervalPresent()) {
+            if (body.getDownsampleInterval() == null) {
+                clearDownsampleInterval = true;
+            } else {
+                downsampleInterval = parseDuration(errors, "downsampleInterval", body.getDownsampleInterval());
+            }
+        }
+
         Budget budget = null;
         if (body.getBudget() != null) {
             BudgetDto b = body.getBudget();
@@ -464,7 +493,7 @@ public class SourceMapper {
         }
         return new SourceSettingsUpdate(
                 body.getEnabled(), interval, params, budget, retention, clearRetention, policy, clearPolicy,
-                body.getEmbed());
+                body.getEmbed(), downsampleInterval, clearDownsampleInterval);
     }
 
     private static Duration parseDuration(List<FieldError> errors, String field, String value) {

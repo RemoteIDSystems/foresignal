@@ -132,7 +132,14 @@ public class TriggersController {
         out.put("wouldSuppress", result.wouldSuppress());
         out.put("truncatedByRetention", result.truncatedByRetention());
         out.put("enrich", result.enrich());
-        out.put("warnings", List.of());
+        List<Map<String, Object>> warnings = new ArrayList<>();
+        for (TriggerBacktester.Warning warning : result.warnings()) {
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("code", warning.code());
+            item.put("message", warning.message());
+            warnings.add(item);
+        }
+        out.put("warnings", warnings);
         return out;
     }
 

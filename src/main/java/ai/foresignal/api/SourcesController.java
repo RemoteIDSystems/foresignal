@@ -175,7 +175,8 @@ public class SourcesController {
 
     /**
      * {@code updateSource}: a partial settings change. Omitted fields are unchanged; explicit
-     * {@code null} for {@code retention} or {@code ingestPolicy} clears that override.
+     * {@code null} for {@code retention}, {@code ingestPolicy} or {@code downsampleInterval} (prompt
+     * 044, TRACK sources only) clears that override.
      *
      * <p>400 {@code VALIDATION_FAILED}, {@code INGEST_POLICY_INVALID} or {@code RETENTION_TIER_FIXED};
      * 409 {@code CREDENTIALS_REQUIRED}.
@@ -332,7 +333,8 @@ public class SourcesController {
                         view,
                         sources.ingestPolicyOverride(sourceId),
                         sources.retentionOverride(sourceId),
-                        sources.effectiveRetention(sourceId)),
+                        sources.effectiveRetention(sourceId),
+                        sources.downsampleIntervalOverride(sourceId)),
                 HealthMapper.health(health.health(sourceId)));
     }
 

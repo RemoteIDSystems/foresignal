@@ -115,8 +115,10 @@ EXTRA_HEADERS = {
 }
 
 BODIES = {
+  # downsampleInterval: TRACK sources only (STANDARD -> 400); null clears the override and is accepted for any source.
   "updateSource": {"enabled": True, "interval": "60s", "params": {"feed": "all_day"}, "budget": {"perMinute": 4, "perDay": 2000}, "retention": "365d",
-                   "ingestPolicy": {"mode": "SAMPLED", "minInterval": "60s", "keyframe": "240s", "minDeviationMeters": 1000, "thresholds": True, "edgeMinInterval": "30s"}},
+                   "ingestPolicy": {"mode": "SAMPLED", "minInterval": "60s", "keyframe": "240s", "minDeviationMeters": 1000, "thresholds": True, "edgeMinInterval": "30s"},
+                   "downsampleInterval": None},
   "setSourceCredentials": {"values": {"apiKey": "REPLACE_ME"}},
   "createTrigger": {"name": "Watched tails on the corridor", "enabled": True, "kinds": ["aircraft"],
                     "conditions": [{"path": "callsign", "op": "in", "value": ["N123AB", "N456CD"]}],
@@ -246,7 +248,8 @@ BODIES = {
   "claimPairingCode": {"code": "ABCD-EFGH", "device": {"deviceName": "Pixel 9", "platform": "android", "appVersion": "1.0.0"}},
   "updateRetention": {"default": "7d", "trackWindow": "3d", "provenance": "30d", "alerts": "90d", "usage": "30d",
                       "notifications": "90d", "briefings": "180d", "ask": "90d",
-                      "kinds": {"earthquake": "3650d"}, "sources": {"usgs-earthquakes": "1825d"}},
+                      "kinds": {"earthquake": "3650d"}, "sources": {"usgs-earthquakes": "1825d"},
+                      "trackRawWindow": "24h", "trackDownsampleInterval": "5m"},
   "updateWatchdogSettings": {"heartbeatUrl": "https://hc-ping.com/REPLACE-WITH-CHECK-UUID",
                              "failUrl": "https://hc-ping.com/REPLACE-WITH-CHECK-UUID/fail", "interval": "60s",
                              "method": "GET", "canary": {"enabled": False, "interval": "1h"}},

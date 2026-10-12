@@ -1918,6 +1918,56 @@ falls more than two windows behind, retention stops waiting for it, counts
 an SSE stream resumed below the retained floor gets `reset`. Routine version deletes never force a
 resync.
 
+### History downsampling
+
+TRACK history (aircraft, vessels, other moving things) is kept at full detail for
+`trackRawWindow` (24 hours by default). After that, the retention job thins one track partition per
+hourly run, oldest first, until the partition reaches the end of `trackWindow` and is dropped.
+
+**What is kept** in a thinned partition:
+
+- every version that matters on its own: the first sighting, a reappearance, a significant change
+  (callsign, squawk and the like), a tombstone and every trigger edge;
+- the newest version of each entity in the partition;
+- every version a current record or an alert points at;
+- of the remaining positions, one per entity per `trackDownsampleInterval` (5 minutes by default).
+
+So alerts, trigger edges and current records always resolve. What goes is the dense run of ordinary
+position samples in between.
+
+**Storage effect.** A thinned partition keeps at most one ordinary sample per entity per interval.
+For an entity sampled once a minute at the default 5-minute interval, that is at most one ordinary
+sample in five, plus the versions above. How much TRACK storage that saves depends on how many of
+your versions are edges and keyframes. `/v1/system` `history.tiers[]` shows `downsampledLeaves` and
+`downsampledRows`, and the `foresignal.history.downsample.*` metrics count the rows before and after.
+
+**Reading thinned history.**
+
+- `/versions` items inside a thinned partition say `downsampled: true`. Their `prevSeq` may name a
+  version that downsampling removed.
+- An asOf read over thinned history treats each surviving position as valid for
+  `max(ttl, interval)`, so a stationary aircraft stays on the map between survivors. The answer says
+  `approximate: true`.
+- A trigger backtest (`POST /v1/triggers/{id}/test`) over thinned history warns `DOWNSAMPLED_RANGE`.
+  Match-mode counts there are lower than they were live; edge rules are unaffected. Live triggers
+  never see thinned data.
+
+**Settings.**
+
+```json
+PUT /v1/settings/retention
+{"default": "7d", "trackWindow": "3d", "trackRawWindow": "24h", "trackDownsampleInterval": "5m"}
+```
+
+- `trackRawWindow` must be shorter than `trackWindow`.
+- `trackDownsampleInterval` must be between `30s` and `trackRawWindow`.
+- A TRACK source can use its own interval: `PUT /v1/sources/{id}` with
+  `{"downsampleInterval": "1m"}`, and `{"downsampleInterval": null}` to go back to the global one.
+  A STANDARD source is refused with `400 VALIDATION_FAILED`, because its history is never thinned.
+
+**How to disable it.** Set `"trackRawWindow": null`. Partitions that are already thinned stay as
+they are until retention drops them; nothing new is thinned.
+
 ## Operating the instance
 
 ### Probes and the compose healthcheck

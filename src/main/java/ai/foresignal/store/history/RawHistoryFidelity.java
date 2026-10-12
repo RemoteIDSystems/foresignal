@@ -6,8 +6,9 @@ import java.time.Instant;
 
 /**
  * The {@link HistoryFidelity} of raw, never-downsampled history: nothing is downsampled, validity
- * is never widened and every instant is final. Registered by {@link HistoryFidelityConfiguration}
- * only while no other {@link HistoryFidelity} bean exists; prompt 044 replaces it.
+ * is never widened and every instant is final. Not a bean: since prompt 044 the application uses
+ * {@code ai.foresignal.retention.DownsampleFidelity}; this stays for unit tests and hand-built
+ * resolvers.
  */
 public class RawHistoryFidelity implements HistoryFidelity {
 

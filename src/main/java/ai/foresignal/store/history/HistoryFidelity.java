@@ -10,11 +10,12 @@ import java.time.Instant;
  * <p>History downsampling (Core-Data-Model §13, prompt 044) rewrites old track leaves and keeps only
  * some versions. Every reader of the transaction axis (asOf records and tiles, tracks, frames, the
  * timeline) asks this hook whether a seq range was thinned, how far TTL validity must be widened to
- * bridge the gaps, and before which instant history is final. Until 044 ships,
- * {@link RawHistoryFidelity} answers "raw everywhere".
+ * bridge the gaps, and before which instant history is final.
  *
- * <p><strong>Prompt 044 must implement this interface</strong> (a bean of this type replaces
- * {@link RawHistoryFidelity}, which is registered only when no other bean exists).
+ * <p>The application's implementation is {@code ai.foresignal.retention.DownsampleFidelity} (prompt
+ * 044). {@link RawHistoryFidelity} remains as the "raw everywhere" answer for unit tests and hand-built
+ * resolvers. The asOf resolver applies {@link #validityWidening} only to a tier whose widened range
+ * {@code [L, S]} is {@link #downsampled}.
  */
 public interface HistoryFidelity {
 

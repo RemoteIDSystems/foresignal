@@ -5,6 +5,8 @@ import ai.foresignal.retention.RetentionState;
 import ai.foresignal.settings.AppSettingService;
 import ai.foresignal.settings.SettingKeys;
 import ai.foresignal.settings.TriggerSettings;
+import ai.foresignal.source.spi.HistoryTier;
+import ai.foresignal.store.history.HistoryFidelity;
 import ai.foresignal.store.query.ReadQueryRunner;
 import ai.foresignal.store.query.RecordQueryService;
 import ai.foresignal.store.query.RecordRow;
@@ -28,6 +30,10 @@ import org.springframework.stereotype.Service;
  * cooldown seed. Without {@code simulate}, every raw match counts. With it, {@link AlertPass} runs in
  * seq order from a fresh state, applying cooldown, active windows, hysteresis and the storm cap (on
  * {@code observed_at}); snoozes are not simulated.
+ *
+ * <p>When the tested range overlaps TRACK history thinned by downsampling (prompt 044), the result
+ * carries the warning {@value #DOWNSAMPLED_RANGE}: match counts under-count there, while edge versions
+ * (TRIGGER_EDGE and the other kept reasons) are preserved.
  */
 @Service
 public class TriggerBacktester {
@@ -41,6 +47,13 @@ public class TriggerBacktester {
     /** The most matches returned. */
     public static final int MAX_LIMIT = 1_000;
 
+    /** The warning code for a range that overlaps downsampled history (prompt 044). */
+    public static final String DOWNSAMPLED_RANGE = "DOWNSAMPLED_RANGE";
+
+    /** Its message. */
+    public static final String DOWNSAMPLED_RANGE_MESSAGE =
+            "match-mode results over downsampled history under-count; edge reasons are preserved";
+
     private final TriggerRuleService rules;
     private final RuleSpecs specs;
     private final ReadQueryRunner reads;
@@ -49,6 +62,7 @@ public class TriggerBacktester {
     private final RetentionState retention;
     private final ChangeBus changeBus;
     private final AppSettingService settings;
+    private final HistoryFidelity fidelity;
     private final Clock clock;
 
     /** Creates the backtester. */
@@ -61,6 +75,7 @@ public class TriggerBacktester {
             RetentionState retention,
             ChangeBus changeBus,
             AppSettingService settings,
+            HistoryFidelity fidelity,
             Clock clock) {
         this.rules = rules;
         this.specs = specs;
@@ -70,6 +85,7 @@ public class TriggerBacktester {
         this.retention = retention;
         this.changeBus = changeBus;
         this.settings = settings;
+        this.fidelity = fidelity;
         this.clock = clock;
     }
 
@@ -86,6 +102,14 @@ public class TriggerBacktester {
     public record Request(Long fromSeq, Long toSeq, Instant since, Instant until, int limit, boolean simulate) {}
 
     /**
+     * A non-fatal finding about a backtest ({@code TriggerTestResult.warnings}).
+     *
+     * @param code a stable code, for example {@value #DOWNSAMPLED_RANGE}
+     * @param message a human explanation
+     */
+    public record Warning(String code, String message) {}
+
+    /**
      * The outcome.
      *
      * @param ruleId the rule
@@ -100,6 +124,7 @@ public class TriggerBacktester {
      * @param wouldSuppress with {@code simulate}, the matches cooldown, windows and the cap would drop
      * @param truncatedByRetention true when {@code fromSeq} is below the retained floor
      * @param enrich true when the rule would enrich (no LLM is called)
+     * @param warnings non-fatal findings, for example {@value #DOWNSAMPLED_RANGE}
      */
     public record Result(
             UUID ruleId,
@@ -113,7 +138,14 @@ public class TriggerBacktester {
             Long wouldFire,
             Long wouldSuppress,
             boolean truncatedByRetention,
-            boolean enrich) {}
+            boolean enrich,
+            List<Warning> warnings) {
+
+        /** Copies the warnings. */
+        public Result {
+            warnings = warnings == null ? List.of() : List.copyOf(warnings);
+        }
+    }
 
     /**
      * Runs a backtest.
@@ -195,6 +227,17 @@ public class TriggerBacktester {
         long floor = retention.lowestRetainedSeq(rule.sources());
         return new Result(ruleId, evaluatedFrom, matches, matchCount > kept.size(), from, to, matchCount,
                 request.simulate(), request.simulate() ? wouldFire : null, request.simulate() ? wouldSuppress : null,
-                from < floor, rule.enrich());
+                from < floor, rule.enrich(), warnings(fidelity, from, to));
+    }
+
+    /**
+     * The warnings of a backtest over {@code (from, to]}: {@value #DOWNSAMPLED_RANGE} when the range
+     * overlaps downsampled TRACK history.
+     */
+    public static List<Warning> warnings(HistoryFidelity fidelity, long from, long to) {
+        if (fidelity != null && to > from && fidelity.downsampled(HistoryTier.TRACK, from + 1, to)) {
+            return List.of(new Warning(DOWNSAMPLED_RANGE, DOWNSAMPLED_RANGE_MESSAGE));
+        }
+        return List.of();
     }
 }

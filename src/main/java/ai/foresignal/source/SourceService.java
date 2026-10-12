@@ -58,6 +58,12 @@ public class SourceService implements ApplicationRunner {
     /** Returned when an operator tries to set retention on a TRACK source. */
     public static final String RETENTION_TIER_FIXED = ErrorCodes.RETENTION_TIER_FIXED;
 
+    /** The field every downsample-interval problem is reported under (prompt 044). */
+    static final String DOWNSAMPLE_FIELD = "downsampleInterval";
+
+    /** The shortest per-source downsample interval (prompt 044). */
+    public static final Duration MIN_DOWNSAMPLE_INTERVAL = Duration.ofSeconds(30);
+
     /** Returned when an ingest-policy override breaks a Core-Data-Model §5.1 rule. */
     public static final String INGEST_POLICY_INVALID = ErrorCodes.INGEST_POLICY_INVALID;
 
@@ -384,6 +390,7 @@ public class SourceService implements ApplicationRunner {
         }
 
         applyRetention(descriptor, update, row, errors);
+        applyDownsampleInterval(descriptor, update, row, errors);
         applyIngestPolicy(descriptor, update, row, policyErrors);
         applyEmbed(descriptor, update, row, errors);
 
@@ -453,6 +460,39 @@ public class SourceService implements ApplicationRunner {
             return;
         }
         row.setRetention(Durations.format(retention));
+    }
+
+    /**
+     * The history downsample interval override (prompt 044). Accepted only for a TRACK source (a
+     * STANDARD source's history is never downsampled), at least 30 s and, while downsampling is
+     * enabled, no longer than {@code retention.trackRawWindow}. Clearing is accepted for any source.
+     */
+    private void applyDownsampleInterval(
+            SourceDescriptor descriptor, SourceSettingsUpdate update, SourceSettingsEntity row, List<FieldError> errors) {
+        if (update.clearDownsampleInterval()) {
+            row.setDownsampleInterval(null);
+            return;
+        }
+        Duration value = update.downsampleInterval();
+        if (value == null) {
+            return;
+        }
+        if (!descriptor.isTrack()) {
+            errors.add(new FieldError(DOWNSAMPLE_FIELD, descriptor.id()
+                    + " is a STANDARD source; only TRACK history is downsampled"));
+            return;
+        }
+        if (value.compareTo(MIN_DOWNSAMPLE_INTERVAL) < 0) {
+            errors.add(new FieldError(DOWNSAMPLE_FIELD, "must be at least 30s"));
+            return;
+        }
+        ai.foresignal.settings.RetentionSettings global = retention.settings();
+        if (global.downsamplingEnabled() && value.compareTo(global.trackRawWindow()) > 0) {
+            errors.add(new FieldError(DOWNSAMPLE_FIELD, "must not be longer than retention.trackRawWindow ("
+                    + Durations.format(global.trackRawWindow()) + ")"));
+            return;
+        }
+        row.setDownsampleInterval(value);
     }
 
     /**
@@ -700,6 +740,31 @@ public class SourceService implements ApplicationRunner {
                 .map(SourceSettingsEntity::getRetention)
                 .filter(value -> !value.isBlank())
                 .map(Durations::parse);
+    }
+
+    /**
+     * The operator's downsample interval override (prompt 044), or empty when the global
+     * {@code retention.trackDownsampleInterval} applies. Always empty for a STANDARD source.
+     */
+    @Transactional(readOnly = true)
+    public Optional<Duration> downsampleIntervalOverride(String id) {
+        SourceDescriptor descriptor = registry.descriptor(id);
+        if (!descriptor.isTrack()) {
+            return Optional.empty();
+        }
+        return settings.findById(id).map(SourceSettingsEntity::getDownsampleInterval);
+    }
+
+    /**
+     * The history downsample interval of {@code sourceId} (prompt 044): its override, else
+     * {@code retention.trackDownsampleInterval}. A STANDARD source answers the global interval too,
+     * though its history is never downsampled.
+     *
+     * @throws ai.foresignal.api.error.NotFoundException when the source is not registered
+     */
+    @Transactional(readOnly = true)
+    public Duration effectiveDownsampleInterval(String sourceId) {
+        return downsampleIntervalOverride(sourceId).orElseGet(() -> retention.settings().trackDownsampleInterval());
     }
 
     /**

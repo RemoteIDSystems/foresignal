@@ -456,9 +456,52 @@ public class PartitionManager {
         return empty;
     }
 
-    /** Work run on the manager's connection. */
+    /**
+     * Runs {@code work} under the manager lock on a fresh autocommit connection with
+     * {@code lock_timeout = '3s'}, <em>without</em> the automatic lock-timeout retry of the other
+     * operations: the caller decides how to retry and what to undo (history downsampling, prompt
+     * 044, retries only its swap transaction and must clean up its copy when it gives up). Session
+     * settings are reset before the connection returns to the pool. The in-memory leaf map is
+     * reloaded afterwards, whatever the outcome.
+     *
+     * @throws SQLException whatever {@code work} throws, unchanged
+     * @throws IllegalStateException when called inside a Spring transaction
+     */
+    public <T> T exclusive(ConnectionWork<T> work) throws SQLException {
+        if (TransactionSynchronizationManager.isActualTransactionActive()) {
+            throw new IllegalStateException("PartitionManager.exclusive must not run inside a transaction");
+        }
+        lock.lock();
+        try {
+            try (Connection connection = dataSource.getConnection()) {
+                boolean autoCommit = connection.getAutoCommit();
+                connection.setAutoCommit(true);
+                try {
+                    execute(connection, "SET lock_timeout = '3s'");
+                    return work.run(connection);
+                } finally {
+                    resetSession(connection, autoCommit);
+                    try {
+                        loadLeaves(connection);
+                    } catch (SQLException e) {
+                        log.debug("Could not reload the history leaves after exclusive work", e);
+                    }
+                }
+            }
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    /**
+     * Work run on the manager's connection.
+     *
+     * @param <T> the result type
+     */
     @FunctionalInterface
-    interface ConnectionWork<T> {
+    public interface ConnectionWork<T> {
+
+        /** Runs on {@code connection}, an autocommit connection with {@code lock_timeout = '3s'}. */
         T run(Connection connection) throws SQLException;
     }
 

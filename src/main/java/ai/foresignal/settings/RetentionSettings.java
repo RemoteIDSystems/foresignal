@@ -1,10 +1,20 @@
 package ai.foresignal.settings;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.Duration;
 import java.util.Map;
 import java.util.TreeMap;
+import tools.jackson.core.JsonGenerator;
+import tools.jackson.core.JsonParser;
+import tools.jackson.core.JsonToken;
+import tools.jackson.databind.DeserializationContext;
+import tools.jackson.databind.SerializationContext;
+import tools.jackson.databind.ValueDeserializer;
+import tools.jackson.databind.ValueSerializer;
+import tools.jackson.databind.annotation.JsonDeserialize;
+import tools.jackson.databind.annotation.JsonSerialize;
 
 /**
  * How long Foresignal keeps what it collects (Core-Data-Model §13, prompt 019), stored under
@@ -34,6 +44,12 @@ import java.util.TreeMap;
  * @param inbox how long notifications stay in the inbox (prompt 033; default 30 d), separate from
  *     {@code notifications}
  * @param stats how long activity rollups are kept (prompt 038): hourly rows 35 d, daily rows 1825 d
+ * @param trackRawWindow TRACK history older than this is downsampled (prompt 044; default 24 h). The
+ *     API's {@code null} disables downsampling; it is held as {@link Duration#ZERO} here so that "disabled"
+ *     survives the round trip through {@code app_setting}, where an absent member means "default"
+ *     ({@link RawWindowDeserializer}). Use {@link #downsamplingEnabled()} rather than testing the value.
+ * @param trackDownsampleInterval one sample per entity per this interval is kept in a downsampled leaf
+ *     (prompt 044; default 5 min); a TRACK source may override it ({@code SourceSettings.downsampleInterval})
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record RetentionSettings(
@@ -49,7 +65,11 @@ public record RetentionSettings(
         Map<String, Duration> kinds,
         Duration audit,
         Duration inbox,
-        Stats stats) {
+        Stats stats,
+        @JsonSerialize(using = RetentionSettings.RawWindowSerializer.class)
+        @JsonDeserialize(using = RetentionSettings.RawWindowDeserializer.class)
+        Duration trackRawWindow,
+        Duration trackDownsampleInterval) {
 
     public static final Duration DEFAULT_RETENTION = Duration.ofDays(7);
     public static final Duration DEFAULT_ALERTS = Duration.ofDays(90);
@@ -61,6 +81,11 @@ public record RetentionSettings(
     public static final Duration DEFAULT_ASK = Duration.ofDays(90);
     public static final Duration DEFAULT_AUDIT = Duration.ofDays(90);
     public static final Duration DEFAULT_INBOX = Duration.ofDays(30);
+    public static final Duration DEFAULT_TRACK_RAW_WINDOW = Duration.ofHours(24);
+    public static final Duration DEFAULT_TRACK_DOWNSAMPLE_INTERVAL = Duration.ofMinutes(5);
+
+    /** The {@code trackRawWindow} value that means "downsampling disabled" (the API's {@code null}). */
+    public static final Duration DOWNSAMPLING_DISABLED = Duration.ZERO;
 
     /** Fills every missing window with its default and copies the maps (sorted, for stable output). */
     public RetentionSettings {
@@ -77,6 +102,51 @@ public record RetentionSettings(
         audit = audit == null ? DEFAULT_AUDIT : audit;
         inbox = inbox == null ? DEFAULT_INBOX : inbox;
         stats = stats == null ? Stats.defaults() : stats;
+        trackRawWindow = trackRawWindow == null ? DEFAULT_TRACK_RAW_WINDOW : trackRawWindow;
+        trackDownsampleInterval =
+                trackDownsampleInterval == null ? DEFAULT_TRACK_DOWNSAMPLE_INTERVAL : trackDownsampleInterval;
+    }
+
+    /**
+     * The 038 shape: every member except {@code trackRawWindow} and {@code trackDownsampleInterval},
+     * which take their defaults.
+     *
+     * @param defaultRetention see the canonical constructor
+     * @param alerts see the canonical constructor
+     * @param usage see the canonical constructor
+     * @param sources see the canonical constructor
+     * @param trackWindow see the canonical constructor
+     * @param provenance see the canonical constructor
+     * @param notifications see the canonical constructor
+     * @param briefings see the canonical constructor
+     * @param ask see the canonical constructor
+     * @param kinds see the canonical constructor
+     * @param audit see the canonical constructor
+     * @param inbox see the canonical constructor
+     * @param stats see the canonical constructor
+     */
+    public RetentionSettings(
+            Duration defaultRetention,
+            Duration alerts,
+            Duration usage,
+            Map<String, Duration> sources,
+            Duration trackWindow,
+            Duration provenance,
+            Duration notifications,
+            Duration briefings,
+            Duration ask,
+            Map<String, Duration> kinds,
+            Duration audit,
+            Duration inbox,
+            Stats stats) {
+        this(defaultRetention, alerts, usage, sources, trackWindow, provenance, notifications, briefings, ask, kinds,
+                audit, inbox, stats, null, null);
+    }
+
+    /** True unless {@code trackRawWindow} was set to {@code null} (prompt 044). */
+    @JsonIgnore
+    public boolean downsamplingEnabled() {
+        return trackRawWindow != null && !trackRawWindow.isZero();
     }
 
     /**
@@ -218,7 +288,8 @@ public record RetentionSettings(
 
     /** The shipped defaults: every window at its default, no per-source or per-kind overrides. */
     public static RetentionSettings defaults() {
-        return new RetentionSettings(null, null, null, null, null, null, null, null, null, null, null, null, null);
+        return new RetentionSettings(
+                null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
     }
 
     /**
@@ -233,6 +304,49 @@ public record RetentionSettings(
     /** This value with {@code sources} replaced. */
     public RetentionSettings withSources(Map<String, Duration> newSources) {
         return new RetentionSettings(defaultRetention, alerts, usage, newSources, trackWindow, provenance,
-                notifications, briefings, ask, kinds, audit, inbox, stats);
+                notifications, briefings, ask, kinds, audit, inbox, stats, trackRawWindow, trackDownsampleInterval);
+    }
+
+    /**
+     * Writes {@code trackRawWindow}: {@code null} when downsampling is disabled, else shorthand.
+     */
+    public static final class RawWindowSerializer extends ValueSerializer<Duration> {
+
+        @Override
+        public void serialize(Duration value, JsonGenerator gen, SerializationContext ctx) {
+            if (value == null || value.isZero()) {
+                gen.writeNull();
+            } else {
+                gen.writeString(Durations.format(value));
+            }
+        }
+    }
+
+    /**
+     * Reads {@code trackRawWindow}: an explicit {@code null} is "disabled"
+     * ({@link #DOWNSAMPLING_DISABLED}); an absent member stays null, so the canonical constructor
+     * fills the 24 h default (settings stored before prompt 044).
+     */
+    public static final class RawWindowDeserializer extends ValueDeserializer<Duration> {
+
+        @Override
+        public Duration deserialize(JsonParser parser, DeserializationContext ctx) {
+            if (parser.currentToken() == JsonToken.VALUE_NUMBER_INT) {
+                return Duration.ofSeconds(Math.max(0, parser.getLongValue()));
+            }
+            return Durations.parse(parser.getString());
+        }
+
+        /** An explicit JSON {@code null}: downsampling disabled. */
+        @Override
+        public Duration getNullValue(DeserializationContext ctx) {
+            return DOWNSAMPLING_DISABLED;
+        }
+
+        /** An absent member: null, which the record turns into the default. */
+        @Override
+        public Duration getAbsentValue(DeserializationContext ctx) {
+            return null;
+        }
     }
 }

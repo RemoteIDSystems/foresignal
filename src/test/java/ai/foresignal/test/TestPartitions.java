@@ -53,8 +53,8 @@ public final class TestPartitions {
 
     /**
      * Detaches (plainly, not concurrently) and drops every leaf of both tiers, plus any leaf-named
-     * table left unattached by an interrupted create. Meant for empty test tables; the tier parents
-     * stay.
+     * table left unattached by an interrupted create or downsampling copy ({@code rv_t_<start>_ds},
+     * prompt 044). Meant for empty test tables; the tier parents stay.
      */
     public static void dropAllLeaves(JdbcTemplate jdbc) {
         for (HistoryTier tier : HistoryTier.values()) {
@@ -74,7 +74,7 @@ public final class TestPartitions {
                 select c.relname from pg_class c
                   join pg_namespace n on n.oid = c.relnamespace
                  where n.nspname = current_schema() and c.relkind = 'r'
-                   and c.relname ~ '^rv_[st]_[0-9]+$'
+                   and c.relname ~ '^rv_[st]_[0-9]+(_ds)?$'
                    and not exists (select 1 from pg_inherits i where i.inhrelid = c.oid)
                 """,
                 String.class);

@@ -25,6 +25,9 @@ import java.util.Map;
  * @param clearIngestPolicy true to revert to the descriptor's default policy
  * @param embed whether the source's records are embedded for semantic search (prompt 027); null
  *     leaves it unchanged
+ * @param downsampleInterval the history downsample interval override (prompt 044, TRACK sources only);
+ *     null leaves it unchanged
+ * @param clearDownsampleInterval true to revert to {@code retention.trackDownsampleInterval}
  */
 public record SourceSettingsUpdate(
         Boolean enabled,
@@ -35,10 +38,27 @@ public record SourceSettingsUpdate(
         boolean clearRetention,
         IngestPolicy ingestPolicy,
         boolean clearIngestPolicy,
-        Boolean embed) {
+        Boolean embed,
+        Duration downsampleInterval,
+        boolean clearDownsampleInterval) {
 
     public SourceSettingsUpdate {
         params = params == null ? null : Map.copyOf(params);
+    }
+
+    /** An update that leaves the downsample interval unchanged (the members before prompt 044). */
+    public SourceSettingsUpdate(
+            Boolean enabled,
+            Duration interval,
+            Map<String, Object> params,
+            Budget budget,
+            Duration retention,
+            boolean clearRetention,
+            IngestPolicy ingestPolicy,
+            boolean clearIngestPolicy,
+            Boolean embed) {
+        this(enabled, interval, params, budget, retention, clearRetention, ingestPolicy, clearIngestPolicy, embed,
+                null, false);
     }
 
     /** An update that leaves {@code embed} unchanged (the members before prompt 027). */
@@ -94,16 +114,32 @@ public record SourceSettingsUpdate(
         return new SourceSettingsUpdate(null, null, null, null, null, true, null, false);
     }
 
+    /** Only the downsample interval (prompt 044). */
+    public static SourceSettingsUpdate downsampleInterval(Duration value) {
+        return empty().withDownsampleInterval(value);
+    }
+
+    /** Reverts the downsample interval to {@code retention.trackDownsampleInterval} (prompt 044). */
+    public static SourceSettingsUpdate clearingDownsampleInterval() {
+        return new SourceSettingsUpdate(null, null, null, null, null, false, null, false, null, null, true);
+    }
+
     /** This update with {@code retention} set. */
     public SourceSettingsUpdate withRetention(Duration value) {
-        return new SourceSettingsUpdate(
-                enabled, interval, params, budget, value, false, ingestPolicy, clearIngestPolicy, embed);
+        return new SourceSettingsUpdate(enabled, interval, params, budget, value, false, ingestPolicy,
+                clearIngestPolicy, embed, downsampleInterval, clearDownsampleInterval);
     }
 
     /** This update with {@code enabled} set. */
     public SourceSettingsUpdate withEnabled(boolean value) {
-        return new SourceSettingsUpdate(
-                value, interval, params, budget, retention, clearRetention, ingestPolicy, clearIngestPolicy, embed);
+        return new SourceSettingsUpdate(value, interval, params, budget, retention, clearRetention, ingestPolicy,
+                clearIngestPolicy, embed, downsampleInterval, clearDownsampleInterval);
+    }
+
+    /** This update with {@code downsampleInterval} set (prompt 044). */
+    public SourceSettingsUpdate withDownsampleInterval(Duration value) {
+        return new SourceSettingsUpdate(enabled, interval, params, budget, retention, clearRetention, ingestPolicy,
+                clearIngestPolicy, embed, value, false);
     }
 
     /** True when nothing would change. */
@@ -116,6 +152,8 @@ public record SourceSettingsUpdate(
                 && !clearRetention
                 && ingestPolicy == null
                 && !clearIngestPolicy
-                && embed == null;
+                && embed == null
+                && downsampleInterval == null
+                && !clearDownsampleInterval;
     }
 }

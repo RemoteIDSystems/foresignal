@@ -59,7 +59,8 @@ class JacksonDurationIT {
                                 + "\"sources\":{\"usgs-earthquakes\":\"3650d\"},\"trackWindow\":\"3d\","
                                 + "\"provenance\":\"30d\",\"notifications\":\"90d\",\"briefings\":\"180d\","
                                 + "\"ask\":\"90d\",\"kinds\":{},\"audit\":\"90d\",\"inbox\":\"30d\","
-                                + "\"stats\":{\"hourly\":\"35d\",\"daily\":\"1825d\"}}");
+                                + "\"stats\":{\"hourly\":\"35d\",\"daily\":\"1825d\"},"
+                                + "\"trackRawWindow\":\"1d\",\"trackDownsampleInterval\":\"5m\"}");
     }
 
     @Test
@@ -69,6 +70,24 @@ class JacksonDurationIT {
         String json = jsonMapper.writeValueAsString(original);
 
         assertThat(jsonMapper.readValue(json, RetentionSettings.class)).isEqualTo(original);
+    }
+
+    @Test
+    @DisplayName("a disabled trackRawWindow is written as null and read back as disabled; an absent one is the default")
+    void disabledRawWindowRoundTrips() {
+        RetentionSettings disabled = new RetentionSettings(null, null, null, null, null, null, null, null, null, null,
+                null, null, null, RetentionSettings.DOWNSAMPLING_DISABLED, Duration.ofMinutes(2));
+
+        String json = jsonMapper.writeValueAsString(disabled);
+
+        assertThat(json).contains("\"trackRawWindow\":null").contains("\"trackDownsampleInterval\":\"2m\"");
+        RetentionSettings back = jsonMapper.readValue(json, RetentionSettings.class);
+        assertThat(back.downsamplingEnabled()).isFalse();
+        assertThat(back).isEqualTo(disabled);
+        RetentionSettings absent = jsonMapper.readValue("{\"default\":\"7d\"}", RetentionSettings.class);
+        assertThat(absent.trackRawWindow()).isEqualTo(Duration.ofHours(24));
+        assertThat(absent.trackDownsampleInterval()).isEqualTo(Duration.ofMinutes(5));
+        assertThat(absent.downsamplingEnabled()).isTrue();
     }
 
     @Test
