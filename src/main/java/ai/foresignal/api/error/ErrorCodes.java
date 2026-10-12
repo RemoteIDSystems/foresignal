@@ -286,6 +286,24 @@ public final class ErrorCodes {
     /** A reference dataset's file does not have its pinned SHA-256; it was not loaded (prompt 040). */
     public static final String REFERENCE_CHECKSUM_MISMATCH = "REFERENCE_CHECKSUM_MISMATCH";
 
+    /** 404: no product has this id (prompt 042). */
+    public static final String UNKNOWN_PRODUCT = "UNKNOWN_PRODUCT";
+
+    /**
+     * 404: the frame does not exist, or its {@code sha8} is stale (a reprocessed frame; a {@code Link}
+     * header points to the current key), or no frame exists yet (prompt 042).
+     */
+    public static final String UNKNOWN_FRAME = "UNKNOWN_FRAME";
+
+    /** 410: retention removed the frame (prompt 042). */
+    public static final String FRAME_EXPIRED = "FRAME_EXPIRED";
+
+    /** 400: a concrete forecast time was asked for without {@code run} (prompt 042). */
+    public static final String RUN_REQUIRED = "RUN_REQUIRED";
+
+    /** 503: the product is disabled, for example by the decoder self-test (prompt 042; 046 sets it). */
+    public static final String PRODUCT_UNAVAILABLE = "PRODUCT_UNAVAILABLE";
+
     private static final String TYPE_PREFIX = "https://foresignal.ai/problems/";
 
     private ErrorCodes() {}

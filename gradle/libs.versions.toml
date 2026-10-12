@@ -68,6 +68,11 @@ hibernate-spatial = { module = "org.hibernate.orm:hibernate-spatial" }
 # jts-core arrives through hibernate-spatial.
 postgresql = { module = "org.postgresql:postgresql" }
 micrometer-registry-prometheus = { module = "io.micrometer:micrometer-registry-prometheus" }
+# The raster frame cache (042) and, from 045, the tile and index-map caches: Caffeine with byte
+# weighers, Apache-2.0. Version from the Spring Boot 4.1.1 BOM (caffeine.version 3.2.4, verified on
+# Maven Central 2026-10-12); its runtime dependencies are org.jspecify:jspecify (Apache-2.0) and
+# com.google.errorprone:error_prone_annotations (Apache-2.0).
+caffeine = { module = "com.github.ben-manes.caffeine:caffeine" }
 # CSV output for the streaming formats (014); Jackson 3, version from the Jackson BOM that
 # Spring Boot imports (3.1.5 with Boot 4.1.1), Apache-2.0.
 jackson-dataformat-csv = { module = "tools.jackson.dataformat:jackson-dataformat-csv" }

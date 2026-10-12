@@ -62,7 +62,9 @@ import java.util.Set;
  *     <strong>Not for browser spoofing.</strong> It exists for the rare upstream that rejects
  *     anything but a specific format, and using it costs the accountability that the standard
  *     User-Agent provides
- * @param products raster or field products this source publishes
+ * @param products raster, field or external products this source publishes; a source with
+ *     products lists {@code raster-frame} in its kinds and, through the builder, defaults to
+ *     {@code zeroResultsNormal=true}
  * @param titleField the top-level payload key whose value is the record title; null means the
  *     resolver's fallbacks ({@code title}, {@code name}, {@code callsign}, {@code place})
  * @param entityKeys entity key type (for example {@code icao24}, {@code mmsi}) to the top-level
@@ -153,6 +155,12 @@ public record SourceDescriptor(
 
     public static final Duration DEFAULT_FETCH_TIMEOUT = Duration.ofSeconds(60);
     public static final int DEFAULT_MAX_RESPONSE_BYTES = 32 * 1024 * 1024;
+
+    /** The volatile payload field of {@code raster-frame} records (prompt 042). */
+    public static final String RASTER_EXPIRES_AT_FIELD = "expiresAt";
+
+    /** The default retention of {@code raster-frame} versions (Weather-Imagery-Design §2.4). */
+    public static final Duration RASTER_FRAME_RETENTION = Duration.ofDays(7);
 
     /** How far ahead of {@code receivedAt} an {@code observedAt} may drift silently. */
     public static final Duration DEFAULT_SKEW_TOLERANCE = Duration.ofMinutes(2);
@@ -270,6 +278,7 @@ public record SourceDescriptor(
         private ObservedAtMode observedAtMode = ObservedAtMode.UPSTREAM;
         private HistoryTier historyTier = HistoryTier.STANDARD;
         private boolean zeroResultsNormal;
+        private boolean zeroResultsNormalSet;
         private List<String> searchFields = DEFAULT_SEARCH_FIELDS;
         private String rankField;
         private IngestPolicy defaultIngestPolicy;
@@ -403,6 +412,7 @@ public record SourceDescriptor(
 
         public Builder zeroResultsNormal(boolean zeroResultsNormal) {
             this.zeroResultsNormal = zeroResultsNormal;
+            this.zeroResultsNormalSet = true;
             return this;
         }
 
@@ -588,7 +598,26 @@ public record SourceDescriptor(
             return this;
         }
 
+        /**
+         * Builds the descriptor.
+         *
+         * <p>A source that declares {@linkplain #product products} and the {@code raster-frame} kind
+         * gets the raster defaults of prompt 042 unless it says otherwise: {@code zeroResultsNormal=true} (a fetch with no new
+         * frame is normal), {@code expiresAt} as a volatile field (it changes when retention thins a
+         * frame) and, for a STANDARD source, {@code kindRetention[raster-frame] = 7d}.
+         */
         public SourceDescriptor build() {
+            if (!products.isEmpty() && kinds.contains(ProductSpec.RECORD_KIND)) {
+                if (!zeroResultsNormalSet) {
+                    zeroResultsNormal = true;
+                }
+                if (!volatileFields.contains(RASTER_EXPIRES_AT_FIELD)) {
+                    volatileFields.add(RASTER_EXPIRES_AT_FIELD);
+                }
+                if (historyTier != HistoryTier.TRACK) {
+                    kindRetention.putIfAbsent(ProductSpec.RECORD_KIND, RASTER_FRAME_RETENTION);
+                }
+            }
             return new SourceDescriptor(
                     id,
                     name,

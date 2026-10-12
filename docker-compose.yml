@@ -51,6 +51,18 @@ services:
       # loopback only by default. The tailscale profile proxies over this compose
       # network: set e.g. 172\.(1[6-9]|2[0-9]|3[01])\.\d{1,3}\.\d{1,3}
       FORESIGNAL_TRUSTED_PROXIES: '${FORESIGNAL_TRUSTED_PROXIES:-127\.0\.0\.1|0:0:0:0:0:0:0:1|::1}'
+      # Memory profile (042, Weather-Imagery-Design §2.6): small for a 32 GB host, large for 64 GB.
+      # It sets the raster cache sizes and decode concurrency. For large, also set in .env:
+      #   FORESIGNAL_PROFILE=large
+      #   FORESIGNAL_JAVA_TOOL_OPTIONS=-Xmx8g -XX:+UseZGC -XX:+ZGenerational
+      #   FORESIGNAL_MEM_LIMIT=11g
+      FORESIGNAL_PROFILE: ${FORESIGNAL_PROFILE:-small}
+      # The frame store quota in GB (default 200); /v1/system degrades at 90 %.
+      FORESIGNAL_RASTER_DISK_QUOTA_GB: ${FORESIGNAL_RASTER_DISK_QUOTA_GB:-200}
+      # The heap is set explicitly per profile; small: 4 GB with G1.
+      JAVA_TOOL_OPTIONS: ${FORESIGNAL_JAVA_TOOL_OPTIONS:--Xmx4g -XX:+UseG1GC}
+    # The container limit per profile: 6g (small) or 11g (large).
+    mem_limit: ${FORESIGNAL_MEM_LIMIT:-6g}
     volumes:
       - foresignal-data:/data
     # Localhost only by default; set FORESIGNAL_BIND=0.0.0.0 for LAN access.

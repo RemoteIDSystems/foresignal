@@ -4,6 +4,7 @@ import ai.foresignal.source.CredentialsAccess;
 import ai.foresignal.source.spi.AdapterStateStore;
 import ai.foresignal.source.spi.FetchContext;
 import ai.foresignal.source.spi.Mode;
+import ai.foresignal.source.spi.RasterSink;
 import ai.foresignal.source.spi.SourceDescriptor;
 import ai.foresignal.source.spi.SourceHttp;
 import ai.foresignal.source.spi.ValidatedParams;
@@ -40,7 +41,9 @@ public class DefaultFetchContext implements FetchContext {
     private final Supplier<Optional<Instant>> lastSuccessAt;
     private final AdapterStateStore state;
 
+    private Supplier<RasterSink> rasterSink;
     private SourceHttp http;
+    private RasterSink rasters;
     private ValidatedParams resolvedParams;
     private Map<String, String> resolvedCredentials;
     private Optional<Instant> resolvedLastSuccess;
@@ -132,6 +135,31 @@ public class DefaultFetchContext implements FetchContext {
     @Override
     public AdapterStateStore state() {
         return state;
+    }
+
+    /**
+     * Sets where {@link #rasters()} comes from (prompt 042); the factory calls it when a raster
+     * pipeline is installed.
+     */
+    public void rasterSink(Supplier<RasterSink> supplier) {
+        this.rasterSink = supplier;
+    }
+
+    /**
+     * The raster pipeline for this fetch, created on first use; probing when this context records a
+     * probe.
+     *
+     * @throws UnsupportedOperationException when no raster pipeline is installed
+     */
+    @Override
+    public synchronized RasterSink rasters() {
+        if (rasters == null) {
+            if (rasterSink == null) {
+                return FetchContextDefaults.noRasters(sourceId);
+            }
+            rasters = rasterSink.get();
+        }
+        return rasters;
     }
 
     /** The probe recorder, or null. */

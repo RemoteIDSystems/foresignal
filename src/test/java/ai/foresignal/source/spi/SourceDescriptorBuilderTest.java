@@ -194,7 +194,7 @@ class SourceDescriptorBuilderTest {
                         .allowNullIsland(true)
                         .fetchTimeout(Duration.ofSeconds(30))
                         .maxResponseBytes(1024)
-                        .product(new ProductSpec("ais-density", "AIS density", "raster-frame"))
+                        .product(new ProductSpec("ais-density", "AIS density", ProductSpec.KIND_RASTER))
                         .build();
 
         assertThat(descriptor.name()).isEqualTo("AISStream");

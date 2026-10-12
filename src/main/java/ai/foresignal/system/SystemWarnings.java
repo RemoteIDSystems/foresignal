@@ -57,6 +57,7 @@ public class SystemWarnings {
     private final RetentionJob retention;
     private final String advertisedBind;
     private final SecureRequestMonitor secureRequests;
+    private org.springframework.beans.factory.ObjectProvider<SystemWarningContributor> contributors;
 
     /** Creates the component without a request monitor (no {@code PUBLIC_BASE_URL_MISMATCH}). */
     public SystemWarnings(AppSettingService settings, PartitionManager partitions, RetentionJob retention,
@@ -74,6 +75,15 @@ public class SystemWarnings {
         this.retention = retention;
         this.advertisedBind = advertisedBind == null ? "" : advertisedBind.strip();
         this.secureRequests = secureRequests;
+    }
+
+    /**
+     * Sets the contributed warnings (prompt 042: the raster disk quota), resolved lazily when the
+     * warnings are built.
+     */
+    @Autowired(required = false)
+    public void setContributors(org.springframework.beans.factory.ObjectProvider<SystemWarningContributor> contributors) {
+        this.contributors = contributors;
     }
 
     /** The bind the container publishes the port on ({@code FORESIGNAL_BIND}). */
@@ -123,6 +133,16 @@ public class SystemWarnings {
             out.add(new Warning("RETENTION_CONSUMER_LAG", "warning",
                     "Retention consumer " + lag.consumer() + " (cursor " + lag.cursorSeq()
                             + ") is older than twice the retention window; its clamp was released."));
+        }
+        if (contributors != null) {
+            contributors.orderedStream().forEach(contributor -> {
+                try {
+                    out.addAll(contributor.warnings());
+                } catch (RuntimeException e) {
+                    org.slf4j.LoggerFactory.getLogger(SystemWarnings.class)
+                            .warn("Warning contributor {} failed", contributor.getClass().getName(), e);
+                }
+            });
         }
         return out;
     }

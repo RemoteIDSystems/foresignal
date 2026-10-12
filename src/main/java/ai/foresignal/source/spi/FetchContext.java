@@ -46,6 +46,21 @@ public interface FetchContext {
     AdapterStateStore state();
 
     /**
+     * The raster pipeline (Weather-Imagery-Design §2.1): the only way an adapter stores raster
+     * frames. Adapters never touch the frame store directly.
+     *
+     * <p>Inherited by {@link StreamContext}. During a probe the returned sink is
+     * {@linkplain RasterSink#probing() probing} and writes nothing.
+     *
+     * @throws UnsupportedOperationException when no raster pipeline is installed (a hand-built
+     *     context in a unit test)
+     */
+    default RasterSink rasters() {
+        throw new UnsupportedOperationException(
+                "No raster pipeline is available to " + sourceId() + " in this context.");
+    }
+
+    /**
      * The logger for this source, named {@code foresignal.source.<id>}, so an operator can raise
      * one source's log level without touching the rest.
      */

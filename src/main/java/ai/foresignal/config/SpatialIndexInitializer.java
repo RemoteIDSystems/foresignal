@@ -39,7 +39,8 @@ public class SpatialIndexInitializer implements ApplicationRunner {
      * (prompt 027) is listed in {@code EmbeddingSchemaManager} ({@code BASE_STATEMENTS} and
      * {@code slotStatements}), which 144 moves into the baseline alongside these. Prompt 040 adds the GiST
      * indexes of the reference tables and {@code gazetteer_place.geog}, and the {@code record_region}
-     * indexes {@code (iso2)} and {@code (iso2, admin1)}.
+     * indexes {@code (iso2)} and {@code (iso2, admin1)}. Prompt 042 adds {@code raster_frame}'s
+     * {@code (product_id, valid_time DESC)} index and the GiST index on its {@code footprint}.
      */
     static final List<String> STATEMENTS = List.of(
             "DROP INDEX IF EXISTS record_head_geom_gist",
@@ -65,7 +66,10 @@ public class SpatialIndexInitializer implements ApplicationRunner {
             "CREATE INDEX IF NOT EXISTS ref_sea_geom_gist ON ref_sea USING GIST (geom)",
             "CREATE INDEX IF NOT EXISTS gazetteer_place_geog_gist ON gazetteer_place USING GIST (geog)",
             "CREATE INDEX IF NOT EXISTS record_region_iso2_idx ON record_region (iso2)",
-            "CREATE INDEX IF NOT EXISTS record_region_iso2_admin1_idx ON record_region (iso2, admin1)");
+            "CREATE INDEX IF NOT EXISTS record_region_iso2_admin1_idx ON record_region (iso2, admin1)",
+            // Raster frames (prompt 042): aliases read the newest frame first; footprints are searched spatially.
+            "CREATE INDEX IF NOT EXISTS raster_frame_product_valid_idx ON raster_frame (product_id, valid_time DESC)",
+            "CREATE INDEX IF NOT EXISTS raster_frame_footprint_gist ON raster_frame USING GIST (footprint)");
 
     private final DataSource dataSource;
 

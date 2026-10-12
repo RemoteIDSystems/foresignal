@@ -1,7 +1,3 @@
-listProducts 042
-getProduct 042
-listProductFrames 042
-getLatestProductFrame 042
 getMedia 043
 getMediaThumbnail 043
 getMediaMeta 043

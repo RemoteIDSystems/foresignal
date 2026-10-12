@@ -172,6 +172,11 @@
         "version": "1.3.0",
         "date": "2026-10-12",
         "note": "041: streamEvents' external.source.state event is gated on prompt 138, which owns the external SSE topic (its prompt text); 024 emits nothing on it."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-12",
+        "note": "042: listProducts, getProduct, listProductFrames and getLatestProductFrame are implemented. ProductTemporal.retention gains maxAge (the age past which observation frames are deleted, which the ladder rungs alone cannot express, e.g. MRMS '10-min frames to 48 h'). SystemInfo warnings gain RASTER_DISK_QUOTA. The problem-code registry gains UNKNOWN_PRODUCT, UNKNOWN_FRAME, FRAME_EXPIRED, RUN_REQUIRED, PRODUCT_UNAVAILABLE and PRODUCT_EXISTS (409, dynamic product registration)."
       }
     ]
   },
@@ -26043,7 +26048,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "042",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -26171,7 +26176,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "042",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -26345,7 +26350,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "042",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -26516,7 +26521,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "042",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -86294,6 +86299,36 @@
             "status": 202,
             "prompt": "040",
             "note": "Never an HTTP error: reported in ReferenceDataset.error after an asynchronous load"
+          },
+          {
+            "code": "UNKNOWN_PRODUCT",
+            "status": 404,
+            "prompt": "042"
+          },
+          {
+            "code": "UNKNOWN_FRAME",
+            "status": 404,
+            "prompt": "042"
+          },
+          {
+            "code": "FRAME_EXPIRED",
+            "status": 410,
+            "prompt": "042"
+          },
+          {
+            "code": "RUN_REQUIRED",
+            "status": 400,
+            "prompt": "042"
+          },
+          {
+            "code": "PRODUCT_UNAVAILABLE",
+            "status": 503,
+            "prompt": "042"
+          },
+          {
+            "code": "PRODUCT_EXISTS",
+            "status": 409,
+            "prompt": "042"
           }
         ]
       },
@@ -92823,7 +92858,7 @@
               "properties": {
                 "code": {
                   "type": "string",
-                  "description": "OPEN_READS_EXPOSED, OPEN_READS_ALL_INTERFACES, HISTORY_RATE_HIGH, PARTITION_HEADROOM_LOW, RETENTION_CONSUMER_LAG (open set)"
+                  "description": "OPEN_READS_EXPOSED, OPEN_READS_ALL_INTERFACES, HISTORY_RATE_HIGH, PARTITION_HEADROOM_LOW, RETENTION_CONSUMER_LAG, RASTER_DISK_QUOTA (042: the raster store is at 90 % of its quota or more) (open set)"
                 },
                 "severity": {
                   "type": "string",
@@ -105145,6 +105180,14 @@
                   ]
                 },
                 "description": "Thinning rungs, ascending"
+              },
+              "maxAge": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Frames older than this are deleted (observation products); null keeps them until the disk quota evicts them. ISO-8601 duration (P7D, PT15M) or shorthand (7d, 15m, 12h)",
+                "example": "48h"
               },
               "runs": {
                 "type": [

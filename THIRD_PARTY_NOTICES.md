@@ -155,6 +155,15 @@ section lists dependencies a prompt asked to record here.
   both the Java binding and the bundled H3 core library.
 - **Project:** <https://github.com/uber/h3-java>, Copyright Uber Technologies, Inc.
 
+### Caffeine
+
+- **Artifact:** `com.github.ben-manes.caffeine:caffeine` 3.2.4 (Maven Central; the version the Spring Boot 4.1.1 BOM
+  manages), used unmodified. Runtime dependencies: `org.jspecify:jspecify` and
+  `com.google.errorprone:error_prone_annotations` (both Apache License, Version 2.0).
+- **Use:** the raster frame cache with a byte weigher (prompt 042); prompt 045 adds the tile and index-map caches.
+- **License:** Apache License, Version 2.0 (<https://www.apache.org/licenses/LICENSE-2.0>).
+- **Project:** <https://github.com/ben-manes/caffeine>, Copyright Ben Manes.
+
 ---
 
 ## Reference data (prompt 040)

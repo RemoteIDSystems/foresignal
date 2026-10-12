@@ -93,6 +93,15 @@ ai.foresignal
 ├── ask             Ask Foresignal: tool loop, threads, proposed actions
 ├── briefing        Briefing definitions, scheduler, digest and LLM renderers
 ├── retention       RetentionSettings, RetentionJob
+├── raster          Product catalog (ProductSpec, ProductRegistry), FrameStore and the .fsg codec
+│                   (ElgCodec), GridStore, the raster pipeline behind ctx.rasters(), FrameResolver,
+│                   frame-age health, RasterRetentionStep (042)
+│   ├── render      TileRenderer, IndexMapCache, RenderQueue, StyleRegistry, LegendService,
+│   │               LoopService, MapRenderer (045)
+│   └── sample      Point and area sampling of frames (052)
+├── place           Named places, the area of interest, moving anchors (036)
+├── derive          The DERIVED-source runtime: generators fed by the change bus or frame events,
+│                   explicit tombstones, startup reconciliation (052; 099 reuses it)
 ├── settings        AppSettingService (typed key/value), export/import
 ├── system          SystemInfoService
 ├── evidence        Originators, canonical events, evidence groups (116)
@@ -117,7 +126,8 @@ ai.foresignal
 ├── chronicle       Chronicles: capture, partitioned history, thread, replay (131);
 │                   network: fingerprints, discovery, access requests (134)
 ├── report          Reports, renditions, signed intelligence packages (132)
-├── media           News articles, stories, outlet registry, rating providers, coverage (133)
+├── media           MediaStore, ImageGuard, ThumbnailService for images and maps (043); news
+│                   articles, stories, outlet registry, rating providers, coverage (133)
 ├── social          Platform adapters, posts, term index, volume series and baselines (135);
 │                   narratives, claims, media fingerprints, propagation, coordination (136);
 │                   social–physical comparisons, attention gaps, cues, lead times (137)
@@ -345,6 +355,12 @@ Unique (`source_id`, `external_id`, `version`); index (`ingested_at`); index (`s
 
 `trigger_rule` also carries `severity` (`info`/`warning`/`critical`, default `warning`), `enrich` bool, `enrich_radius_km`, and `last_error` / `last_error_at`. `alert` also carries `severity`, `summary` null and `enriched_at` null.
 
+**`raster_product`** (042, Weather-Imagery-Design §2.3): `id` PK (kebab) · `source_id` · `category` (radar, satellite, model, lightning, imagery) · `kind` (raster | field | external) · `spec` jsonb (the `ProductSpec`) · `dynamic` · `created_at` · `updated_at`. A durable mirror of the in-memory `ProductRegistry`, upserted at startup and on every dynamic registration.
+
+**`raster_grid`** (042): `id` = SHA-256 of the canonical definition JSON · `type` (latlon | geos | lcc | affine) · `definition` jsonb · `nx` · `ny` · `bbox` geometry(Polygon,4326). Frames on the same grid share one row.
+
+**`raster_frame`** (042): PK (`product_id`, `frame_id`) · `valid_time` · `reference_time` · `forecast_step` · `obs_start` · `obs_end` · `grid_id` · `path` (relative to `rasters/`) · `bytes` · `sha256` (of the decoded content; its first 8 hex characters are the URL token `sha8`) · `dtype` · `codec` · `stats` jsonb · `footprint` geometry(MultiPolygon,4326) · `upstream_key` · `status` (partial | complete) · `thinned` · `run_complete` · `ingested_at` · `expires_at`. Indexes: (`product_id`, `valid_time` DESC) and GiST (`footprint`) from `SpatialIndexInitializer`; (`product_id`, `reference_time`, `forecast_step`). `frame_id` is time-based and immutable: `20261010T143240Z` for an observation, `2026101012Z-f006` for a forecast step. The frame files live under `${FORESIGNAL_DATA_DIR}/rasters/frames/{productId}/{yyyy}/{mm}/{dd}/{frameId}.fsg`; each complete observation frame and each completed forecast run is also one `raster-frame` record version.
+
 **`app_setting`**: `key` PK · `value` jsonb · `updated_at`. Keys include `retention`, `cors`, `trigger.cursor`, `stream.limits`.
 
 **`system_secret`**: `key` PK · `value` bytea. Holds the VAPID key pair (private key encrypted). The bootstrap admin token became an `api_token` row in §15.
@@ -479,7 +495,14 @@ Free-text `q` matches `ILIKE` on a generated text column of selected payload fie
 2. Delete `record_head` rows whose `observed_at < now() - window` (current but stale), then delete `record_version` rows with `ingested_at < now() - window` and `seq` not referenced by any head. Work in chunks of 10,000 rows per transaction to avoid long locks.
 3. Delete `alert` older than `alerts` retention (default `90d`), `source_usage` and `llm_usage` older than `usage` retention (default `30d`), delivered or failed `notification_delivery` older than 7 days, `briefing_run` and `ask_thread` older than `briefings` / `ask` retention (default `180d` / `90d`), and `embedding_document` rows whose record no longer exists.
 
-Retention settings shape: `{"default":"7d","alerts":"90d","usage":"30d","briefings":"180d","ask":"90d","sources":{"usgs-earthquakes":"3650d"}}`.
+Retention settings shape: `{"default":"7d","alerts":"90d","usage":"30d","briefings":"180d","ask":"90d","kinds":{"satellite-pass":"365d"},"sources":{"usgs-earthquakes":"3650d"}}`.
+
+**Per-kind windows (019, 042).** A STANDARD record's window resolves in order: `retention.kinds.{kind}` → `retention.sources.{id}` → the descriptor's `kindRetention[kind]` → its `defaultRetention` → `retention.default`. The job runs per (source, kind) pair. A source that declares products defaults to `kindRetention[raster-frame] = 7d`; versions outlive frames, and a removed frame answers `410 FRAME_EXPIRED`.
+
+**Raster frames (042).** `RasterRetentionStep` runs on the job's `RetentionStep` extension point after the record steps, not `@Transactional`; it deletes a row and then unlinks its file:
+- **Ladders** (`ProductSpec.retention`): every frame until the first rung's `olderThan`, then only the frame nearest each `keepEvery` boundary (marked `thinned`, `expires_at` recomputed), nothing past `maxAge`. Defaults: MRMS every frame for 6 h, then 10-min frames to 48 h; GOES C13 5-min frames for 24 h, then 30-min to 72 h; models the current and previous complete run; SatDump geostationary 72 h.
+- **Quota**: `foresignal.raster.disk-quota-gb` (default 200) evicts the oldest frames; at 90 % `/v1/system` degrades (`RASTER_DISK_QUOTA`).
+- **Orphan sweep** (hourly, with the job): removes files with no row and rows with no file, and re-emits the `raster-frame` record of any complete frame newer than its record head (a crash between commit and enqueue) as a `MANUAL` fetch-log row with principal `system:raster-sweeper`.
 
 ## 12. Testing strategy
 
@@ -510,6 +533,9 @@ File-based configuration is limited to bootstrap concerns, all overridable by en
 | `FORESIGNAL_PORT` | `8080` | HTTP port |
 | `FORESIGNAL_DATA_DIR` | `./data` | Secret key file location |
 | `FORESIGNAL_RESET_ADMIN_TOKEN` | `false` | Regenerate admin token on start |
+| `FORESIGNAL_PROFILE` | `small` | Memory profile, `small` or `large` (§14): raster cache sizes, render pool, decode concurrency (042) |
+| `FORESIGNAL_RASTER_DISK_QUOTA_GB` | `200` | Raster frame store quota; oldest frames are evicted above it, `/v1/system` degrades at 90 % (042) |
+| `FORESIGNAL_RASTER_FRAME_CACHE_MB`, `…_TILE_CACHE_MB`, `…_INDEX_CACHE_MB`, `…_RENDER_POOL`, `…_DECODE_CONCURRENCY` | profile | Override one profile value each (042) |
 
 Everything else — sources, budgets, credentials, retention, triggers, channels, tokens, LLM providers, briefings, CORS — is stored in the database and managed through the API.
 
@@ -525,6 +551,18 @@ docker-compose.yml
 - `docker compose up -d` serves both the always-on bench server and occasional use.
 - The JAR also runs standalone (`java -jar foresignal.jar`) against any Postgres 15+ with PostGIS. pgvector is optional.
 - For internet exposure, put it behind a reverse proxy with TLS. Documentation will include a Caddy example.
+
+**Memory profiles (042, Weather-Imagery-Design §2.6).** `FORESIGNAL_PROFILE` selects one; it is never derived from `MaxRAMPercentage`, and every value can be overridden on its own (§13, `.env`).
+
+| | Small (32 GB host, default) | Large (64 GB host) |
+|---|---|---|
+| JVM (`FORESIGNAL_JAVA_TOOL_OPTIONS` → `JAVA_TOOL_OPTIONS`) | `-Xmx4g -XX:+UseG1GC` | `-Xmx8g -XX:+UseZGC -XX:+ZGenerational` |
+| Container limit (`FORESIGNAL_MEM_LIMIT` → `mem_limit`) | 6 GB | 11 GB |
+| Frame / tile / index-map cache | 768 / 128 / 64 MB | 1536 / 256 / 128 MB |
+| Render pool (045) | min(cores − 2, 6) | cores − 2 |
+| Decode concurrency | 1 | 2 |
+
+Ollama (8–20 GB) plus Postgres plus the small profile is the limit of a 32 GB host. The `/v1/system` `rasters` block reports the profile, the store, the quota and each cache's hit and eviction rates, so the sizes can be tuned from evidence.
 
 ## 15. Access tokens and scopes
 

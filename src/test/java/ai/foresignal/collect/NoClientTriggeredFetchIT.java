@@ -43,6 +43,11 @@ class NoClientTriggeredFetchIT {
             "/v1/records",
             "/v1/changes",
             "/v1/openapi.json",
+            // The raster product catalog and frames (prompt 042).
+            "/v1/products",
+            "/v1/products/test-synth-obs",
+            "/v1/products/test-synth-obs/frames",
+            "/v1/products/test-synth-obs/frames/latest",
             "/actuator/health");
 
     @Autowired private MockMvc mvc;

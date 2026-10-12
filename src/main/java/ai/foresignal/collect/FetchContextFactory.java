@@ -8,6 +8,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
@@ -24,8 +25,9 @@ public class FetchContextFactory {
     private final UsageMeter usage;
     private final JdbcTemplate jdbc;
     private final Clock clock;
+    private final ObjectProvider<RasterSinkFactory> rasters;
 
-    /** Creates the factory. */
+    /** Creates the factory without a raster pipeline ({@code ctx.rasters()} throws). */
     public FetchContextFactory(
             UpstreamClient upstream,
             SourceService sources,
@@ -33,12 +35,45 @@ public class FetchContextFactory {
             UsageMeter usage,
             JdbcTemplate jdbc,
             Clock clock) {
+        this(upstream, sources, credentials, usage, jdbc, clock, null);
+    }
+
+    /**
+     * Creates the factory.
+     *
+     * @param rasters the raster pipeline behind {@code ctx.rasters()} (prompt 042), resolved lazily;
+     *     null for none
+     */
+    @org.springframework.beans.factory.annotation.Autowired
+    public FetchContextFactory(
+            UpstreamClient upstream,
+            SourceService sources,
+            CredentialsAccess credentials,
+            UsageMeter usage,
+            JdbcTemplate jdbc,
+            Clock clock,
+            ObjectProvider<RasterSinkFactory> rasters) {
         this.upstream = upstream;
         this.sources = sources;
         this.credentials = credentials;
         this.usage = usage;
         this.jdbc = jdbc;
         this.clock = clock;
+        this.rasters = rasters;
+    }
+
+    /** Wires {@code ctx.rasters()} to the pipeline, probing when the context records a probe. */
+    private <T extends DefaultFetchContext> T withRasters(T ctx, SourceDescriptor descriptor, boolean probing) {
+        if (rasters != null) {
+            ctx.rasterSink(() -> {
+                RasterSinkFactory factory = rasters.getIfAvailable();
+                if (factory == null) {
+                    return FetchContextDefaults.noRasters(descriptor.id());
+                }
+                return factory.forSource(descriptor, probing);
+            });
+        }
+        return ctx;
     }
 
     /**
@@ -48,7 +83,7 @@ public class FetchContextFactory {
      */
     public DefaultFetchContext forFetch(SourceDescriptor descriptor, RequestRecorder recorder) {
         String id = descriptor.id();
-        return new DefaultFetchContext(
+        return withRasters(new DefaultFetchContext(
                 descriptor,
                 upstream,
                 recorder,
@@ -56,7 +91,7 @@ public class FetchContextFactory {
                 credentials,
                 clock,
                 () -> lastSuccessAt(id),
-                upstream.stateStore(id));
+                upstream.stateStore(id)), descriptor, recorder != null);
     }
 
     /**
@@ -68,7 +103,7 @@ public class FetchContextFactory {
     public DefaultStreamContext forStream(
             SourceDescriptor descriptor, RequestRecorder recorder, DefaultStreamContext.Callbacks callbacks) {
         String id = descriptor.id();
-        return new DefaultStreamContext(
+        return withRasters(new DefaultStreamContext(
                 descriptor,
                 upstream,
                 recorder,
@@ -78,7 +113,7 @@ public class FetchContextFactory {
                 () -> lastSuccessAt(id),
                 upstream.stateStore(id),
                 usage,
-                callbacks);
+                callbacks), descriptor, recorder != null);
     }
 
     /** {@code source_health.last_success_at}, or empty when the source has never succeeded. */

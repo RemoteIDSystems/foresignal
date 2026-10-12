@@ -86,6 +86,22 @@ foresignal:
   inbox-dir: ${FORESIGNAL_INBOX_DIR:${FORESIGNAL_DATA_DIR:./data}/inbox}
   reset-admin-token: ${FORESIGNAL_RESET_ADMIN_TOKEN:false}
   version: ${spring.application.version:unknown}
+  # Memory profile (042, Weather-Imagery-Design §2.6): small (32 GB host) or large (64 GB host).
+  # Selects the raster defaults below; never derived from MaxRAMPercentage.
+  profile: ${FORESIGNAL_PROFILE:small}
+  raster:
+    # Each value is optional; empty means the profile's default (small / large):
+    # frame cache 768 / 1536 MB, tile cache 128 / 256 MB (045), index cache 64 / 128 MB (045),
+    # render pool min(cores-2, 6) / cores-2 (045), decode concurrency 1 / 2.
+    frame-cache-mb: ${FORESIGNAL_RASTER_FRAME_CACHE_MB:}
+    tile-cache-mb: ${FORESIGNAL_RASTER_TILE_CACHE_MB:}
+    index-cache-mb: ${FORESIGNAL_RASTER_INDEX_CACHE_MB:}
+    render-pool: ${FORESIGNAL_RASTER_RENDER_POOL:}
+    decode-concurrency: ${FORESIGNAL_RASTER_DECODE_CONCURRENCY:}
+    # The frame store quota; retention evicts the oldest frames above it, /v1/system degrades at 90 %.
+    disk-quota-gb: ${FORESIGNAL_RASTER_DISK_QUOTA_GB:200}
+    # Orphan files and rows younger than this are left alone by the hourly sweep (a commit in flight).
+    orphan-grace: 10m
   # The bind the container's port is published on (compose passes FORESIGNAL_BIND).
   # /v1/system warns when openReads is on and this is not local (019).
   advertised-bind: ${FORESIGNAL_BIND:127.0.0.1}

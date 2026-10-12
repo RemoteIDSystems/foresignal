@@ -36,6 +36,8 @@ import org.springframework.util.AntPathMatcher;
  * <p>Prompt 036 adds the places (reads {@code read}, always authenticated; writes {@code agent}),
  * saved views ({@code read}/{@code agent}) and watchlists ({@code agent}).
  *
+ * <p>Prompt 042 adds {@code GET /v1/products/**} and {@code GET /v1/styles/**} as {@code read}.
+ *
  * <p>Prompt 025 adds {@code /mcp} and {@code /mcp/**} (the MCP server, also outside {@code /v1}):
  * {@code read}, with per-tool scope checks inside the server ({@code McpToolRegistry}).
  */
@@ -246,6 +248,12 @@ public class AccessPolicy {
                 rule(HttpMethod.GET, "/v1/tiles/**", AccessRequirement.READ),
                 // The TileJSON index; /v1/tiles/** does not match /v1/tiles.json (016).
                 rule(HttpMethod.GET, "/v1/tiles.json", AccessRequirement.READ),
+
+                // ---- Raster products and styles (042, Weather-Imagery-Design §6.11): reads ----
+                rule(HttpMethod.GET, "/v1/products", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/products/**", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/styles", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/styles/**", AccessRequirement.READ),
 
                 // ---- Places (036): a home location is sensitive, so reads are always authenticated ----
                 rule(HttpMethod.GET, "/v1/places", AccessRequirement.READ_ALWAYS_AUTHENTICATED),

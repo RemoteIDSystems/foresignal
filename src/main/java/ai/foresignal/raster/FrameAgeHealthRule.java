@@ -1,0 +1,99 @@
+package ai.foresignal.raster;
+
+import ai.foresignal.collect.FrameAgeRule;
+import ai.foresignal.collect.HealthRule;
+import ai.foresignal.collect.HealthRuleContext;
+import ai.foresignal.collect.HealthVerdict;
+import ai.foresignal.source.HealthStatus;
+import ai.foresignal.source.spi.ProductSpec;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import org.springframework.stereotype.Component;
+
+/**
+ * Frame-age health for product sources (prompt 042 on the prompt 006 {@link HealthRule} SPI;
+ * Weather-Imagery-Design §2.2, Health row).
+ *
+ * <p>For each of the source's products with frames: degraded when the newest frame is older than
+ * {@code maxGap} (or {@code 3 × cadence} when the product declares no gap), via {@link FrameAgeRule}.
+ * An outstanding silent format change of any of its products also degrades the source, with the
+ * decoder's reason. The newest frame time across the products is reported as {@code newestFrameAt}
+ * (and so {@code frameAgeSeconds}) in the health view.
+ *
+ * <p>Frame time is the newest complete valid time for observation products and the newest ingest
+ * time for forecast products, whose valid times lie in the future. A source with products but no
+ * frame yet gets no frame-age verdict.
+ */
+@Component
+public class FrameAgeHealthRule implements HealthRule {
+
+    private final ProductRegistry registry;
+    private final RasterFrameQueries frames;
+    private final ProductStatusTracker status;
+
+    /** Creates the rule. */
+    public FrameAgeHealthRule(ProductRegistry registry, RasterFrameQueries frames, ProductStatusTracker status) {
+        this.registry = registry;
+        this.frames = frames;
+        this.status = status;
+    }
+
+    @Override
+    public Optional<HealthVerdict> evaluate(HealthRuleContext context) {
+        List<ProductRegistry.Registered> products = registry.forSource(context.sourceId()).stream()
+                .filter(p -> !p.spec().isExternal()).toList();
+        if (products.isEmpty()) {
+            return Optional.empty();
+        }
+        List<String> observations = new ArrayList<>();
+        List<String> forecasts = new ArrayList<>();
+        for (ProductRegistry.Registered p : products) {
+            (p.spec().isForecast() ? forecasts : observations).add(p.id());
+        }
+        Map<String, Instant> newest = frames.newestFrameTimes(observations, forecasts);
+        return verdict(products, newest, status, context.now());
+    }
+
+    /** The combined verdict over {@code products} (pure, for tests). */
+    static Optional<HealthVerdict> verdict(List<ProductRegistry.Registered> products, Map<String, Instant> newest,
+            ProductStatusTracker status, Instant now) {
+        Instant newestOverall = null;
+        HealthVerdict worst = null;
+        for (ProductRegistry.Registered product : products) {
+            ProductSpec spec = product.spec();
+            Instant frameAt = newest.get(spec.id());
+            if (frameAt != null && (newestOverall == null || frameAt.isAfter(newestOverall))) {
+                newestOverall = frameAt;
+            }
+            Optional<ProductStatusTracker.Report> change = status == null ? Optional.empty() : status.formatChange(spec.id());
+            if (change.isPresent()) {
+                worst = worse(worst, HealthVerdict.degraded(spec.id() + ": upstream format changed: "
+                        + change.get().reason(), frameAt));
+                continue;
+            }
+            if (spec.temporal() == null) {
+                continue;
+            }
+            Optional<HealthVerdict> age = FrameAgeRule.verdict(frameAt, spec.temporal().cadence(), spec.temporal().maxGap(),
+                    now);
+            if (age.isPresent() && age.get().status() != HealthStatus.HEALTHY) {
+                worst = worse(worst, HealthVerdict.degraded(spec.id() + ": " + age.get().reason(), frameAt));
+            }
+        }
+        if (worst != null) {
+            return Optional.of(new HealthVerdict(worst.status(), worst.reason(), newestOverall));
+        }
+        return newestOverall == null ? Optional.empty() : Optional.of(HealthVerdict.healthy(newestOverall));
+    }
+
+    private static HealthVerdict worse(HealthVerdict current, HealthVerdict candidate) {
+        if (current == null) {
+            return candidate;
+        }
+        return candidate.status().worse(current.status()) == candidate.status() && candidate.status() != current.status()
+                ? candidate : current;
+    }
+}

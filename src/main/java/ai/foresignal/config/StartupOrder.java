@@ -74,6 +74,12 @@ public final class StartupOrder {
     /** The ingest canary's change-bus subscription (prompt 019). */
     public static final int CANARY = 25;
 
+    /**
+     * Mirroring the product catalog into {@code raster_product} (prompt 042), before the scheduler
+     * starts the first product fetch.
+     */
+    public static final int RASTER_PRODUCTS = 27;
+
     /** The collector scheduler (prompt 010). */
     public static final int SCHEDULER = 30;
 
