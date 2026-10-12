@@ -239,6 +239,8 @@ public class AccessPolicy {
                 rule(HttpMethod.POST, "/v1/briefings/preview", AccessRequirement.AGENT_ALWAYS_AUTHENTICATED),
                 rule(HttpMethod.POST, "/v1/briefings/*/run", AccessRequirement.AGENT_ALWAYS_AUTHENTICATED),
                 rule(null, "/v1/briefings/**", AccessRequirement.AGENT),
+                // The catch-up digest is a data read (029).
+                rule(HttpMethod.GET, "/v1/digest", AccessRequirement.READ),
 
                 // ---- Ask: asking is a read; confirming an action is not ----
                 rule(HttpMethod.POST, "/v1/ask/actions/**", AccessRequirement.AGENT),

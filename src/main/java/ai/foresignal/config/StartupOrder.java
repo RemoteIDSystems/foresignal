@@ -53,5 +53,8 @@ public final class StartupOrder {
     /** The collector scheduler (prompt 010). */
     public static final int SCHEDULER = 30;
 
+    /** The briefing scheduler (prompt 029), after the collector scheduler. */
+    public static final int BRIEFINGS = 35;
+
     private StartupOrder() {}
 }

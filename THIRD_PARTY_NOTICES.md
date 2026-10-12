@@ -123,3 +123,23 @@ section lists dependencies a prompt asked to record here.
   test calls Anthropic.
 - **Licence:** MIT License (<https://github.com/anthropics/anthropic-sdk-java/blob/main/LICENSE>).
 - **Project:** <https://github.com/anthropics/anthropic-sdk-java>, Copyright Anthropic.
+
+### commonmark-java
+
+- **Artifacts:** `org.commonmark:commonmark` and `org.commonmark:commonmark-ext-gfm-tables` 0.30.1 (Maven
+  Central), used unmodified; no runtime dependencies.
+- **Use:** converts briefing runs' markdown to HTML for their HTML renditions (prompt 029), with raw HTML
+  escaped rather than passed through and unsafe link targets dropped.
+- **License:** BSD 2-Clause License (<https://github.com/commonmark/commonmark-java/blob/main/LICENSE.txt>).
+- **Project:** <https://github.com/commonmark/commonmark-java>, Copyright (c) 2015, Robin Stocker.
+
+### OWASP Java HTML Sanitizer
+
+- **Artifact:** `com.googlecode.owasp-java-html-sanitizer:owasp-java-html-sanitizer` 20261011.1 (Maven
+  Central), used unmodified; no runtime dependencies (its SpotBugs annotations are provided-scope).
+- **Use:** the allowlist applied to every briefing HTML rendition (prompt 029): headings, lists, tables,
+  links with `rel="noopener nofollow"`, code and emphasis only.
+- **License:** dual Apache License, Version 2.0 or BSD 2-Clause License, at the user's choice; used under
+  the Apache License, Version 2.0 (<https://github.com/OWASP/java-html-sanitizer/blob/main/COPYING>).
+- **Project:** <https://github.com/OWASP/java-html-sanitizer>, Copyright (c) 2011, Mike Samuel.
+

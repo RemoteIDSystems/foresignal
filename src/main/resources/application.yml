@@ -169,6 +169,16 @@ foresignal:
     request-timeout: 60s
     # The largest JSON-RPC message accepted.
     max-request-bytes: 1048576
+  briefing:
+    # Scheduled briefings (029). Schedules are per briefing; these are mechanics. Off in tests.
+    scheduled: true
+    # How often due briefings are looked for.
+    poll-interval: 30s
+    # How long runBriefing waits before answering with the run still running.
+    run-timeout: 120s
+    # A run-in-progress mark older than this is treated as abandoned (a crash mid-run).
+    stale-run: 15m
+    batch-size: 20
 
 management:
   endpoints:

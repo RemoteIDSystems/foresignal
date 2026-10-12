@@ -35,6 +35,14 @@ mcp = "2.0.1"
 # and OkHttp (Apache-2.0). Only provider type `anthropic` uses it; the OpenAI-compatible and Ollama
 # clients use java.net.http.
 anthropic = "2.71.0"
+# Briefing HTML renditions (029): CommonMark with GFM tables, BSD-2-Clause, no runtime dependencies.
+# Verified on Maven Central 2026-10-12: 0.30.1 is the latest release of org.commonmark:commonmark and
+# commonmark-ext-gfm-tables (Java 11 bytecode). Raw HTML in the markdown is escaped, not passed through.
+commonmark = "0.30.1"
+# The allowlist sanitizer applied to every briefing HTML rendition (029): OWASP Java HTML Sanitizer,
+# Apache-2.0 or BSD-2-Clause (dual), no runtime dependencies (spotbugs annotations are provided-scope).
+# Verified on Maven Central 2026-10-12: 20261011.1 is the latest release.
+owaspHtmlSanitizer = "20261011.1"
 
 [libraries]
 # --- Versions managed by the Spring Boot BOM ---
@@ -81,6 +89,10 @@ mcp-core = { module = "io.modelcontextprotocol.sdk:mcp-core", version.ref = "mcp
 mcp-json-jackson3 = { module = "io.modelcontextprotocol.sdk:mcp-json-jackson3", version.ref = "mcp" }
 # LLM provider type `anthropic` (026): messages, streaming, models; pointed at WireMock in tests.
 anthropic-java = { module = "com.anthropic:anthropic-java", version.ref = "anthropic" }
+# Briefing HTML renditions (029): markdown to HTML, then allowlist sanitizing.
+commonmark = { module = "org.commonmark:commonmark", version.ref = "commonmark" }
+commonmark-ext-gfm-tables = { module = "org.commonmark:commonmark-ext-gfm-tables", version.ref = "commonmark" }
+owasp-java-html-sanitizer = { module = "com.googlecode.owasp-java-html-sanitizer:owasp-java-html-sanitizer", version.ref = "owaspHtmlSanitizer" }
 
 # --- Test; versions from the Testcontainers BOM where unspecified ---
 testcontainers-bom = { module = "org.testcontainers:testcontainers-bom", version.ref = "testcontainers" }

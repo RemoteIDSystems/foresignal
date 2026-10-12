@@ -37,6 +37,9 @@ dependencies {
     implementation(libs.mcp.core)
     implementation(libs.mcp.json.jackson3)
     implementation(libs.anthropic.java)
+    implementation(libs.commonmark)
+    implementation(libs.commonmark.ext.gfm.tables)
+    implementation(libs.owasp.java.html.sanitizer)
     runtimeOnly(libs.postgresql)
 
     testImplementation(platform(libs.testcontainers.bom))

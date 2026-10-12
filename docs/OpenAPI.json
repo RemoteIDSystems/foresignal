@@ -4,7 +4,7 @@
     "title": "Foresignal API",
     "version": "1.3.0",
     "summary": "Headless intelligence broker: ingest, version and re-serve public telemetry.",
-    "description": "All configuration is done through this API. The MCP server is at `/mcp` (MCP streamable HTTP, protocol versions 2024-11-05 to 2025-11-25) and is not an OpenAPI operation; it exposes the same data, the alert lifecycle and watch management as MCP tools, resources (`foresignal://sources`, `foresignal://kinds`) and the `situation-report` prompt (025, docs/Agent-Guide.md), plus the cost-bearing `search` tool (027). It takes the same bearer tokens: `/mcp/**` needs `read` (open while `openReads` is on), tools are listed by the caller's scope and each checks its own (`read` tools; `agent` for writes such as `create_watch` and `set_alert_status`; cost-bearing tools always need a token), a session is bound to the token that opened it, and every tool call is audited (argument names only). The older HTTP+SSE transport (protocol 2024-11-05) is served at `/mcp/sse` with messages at `/mcp/message` only when `foresignal.mcp.legacy-sse.enabled=true`, for older clients. `GET /v1/system` reports its state under `mcp`. Reads of data are open on the local network; all writes and settings reads require the admin bearer token printed on first start. Errors are RFC 9457 problem+json. Timestamps are ISO-8601 UTC. `/v1` is additive-only once released.\n\n**Key-in-path carriers.** Header-less clients use keys in the path: feed keys (`fsf_`, 035) as `/v1/k/{key}/<any allowed GET/HEAD path>`, tile keys (`fsk_`, 050) as `/v1/k/{key}/products/...` and `/v1/k/{key}/tiles/...`, share links (`fss_`, 112) as `/v1/k/{key}`. These are transports for the documented operations, not separate operations. Device ingest URLs (039) and signed action links (033) use their own documented paths.\n\n**Status annotations.** Every operation has `x-foresignal-prompt` (the build prompt that implements it), optional `x-foresignal-extended-by`, and `x-foresignal-status` (`planned` until implemented). Clients can mock the whole API from this document and filter by status.\n\n**Outside this document:** the MCP server (`/mcp`, plus the legacy SSE transport when enabled), Actuator endpoints (`/actuator/**`), and sink listeners on their own ports (110).",
+    "description": "All configuration is done through this API. The MCP server is at `/mcp` (MCP streamable HTTP, protocol versions 2024-11-05 to 2025-11-25) and is not an OpenAPI operation; it exposes the same data, the alert lifecycle and watch management as MCP tools, resources (`foresignal://sources`, `foresignal://kinds`) and the `situation-report` prompt (025, docs/Agent-Guide.md), plus the cost-bearing `search` tool (027) and the briefing tools `list_briefings`, `get_briefing_run`, `get_digest` (read), `create_briefing` and the cost-bearing `run_briefing` (agent) (029). It takes the same bearer tokens: `/mcp/**` needs `read` (open while `openReads` is on), tools are listed by the caller's scope and each checks its own (`read` tools; `agent` for writes such as `create_watch` and `set_alert_status`; cost-bearing tools always need a token), a session is bound to the token that opened it, and every tool call is audited (argument names only). The older HTTP+SSE transport (protocol 2024-11-05) is served at `/mcp/sse` with messages at `/mcp/message` only when `foresignal.mcp.legacy-sse.enabled=true`, for older clients. `GET /v1/system` reports its state under `mcp`. Reads of data are open on the local network; all writes and settings reads require the admin bearer token printed on first start. Errors are RFC 9457 problem+json. Timestamps are ISO-8601 UTC. `/v1` is additive-only once released.\n\n**Key-in-path carriers.** Header-less clients use keys in the path: feed keys (`fsf_`, 035) as `/v1/k/{key}/<any allowed GET/HEAD path>`, tile keys (`fsk_`, 050) as `/v1/k/{key}/products/...` and `/v1/k/{key}/tiles/...`, share links (`fss_`, 112) as `/v1/k/{key}`. These are transports for the documented operations, not separate operations. Device ingest URLs (039) and signed action links (033) use their own documented paths.\n\n**Status annotations.** Every operation has `x-foresignal-prompt` (the build prompt that implements it), optional `x-foresignal-extended-by`, and `x-foresignal-status` (`planned` until implemented). Clients can mock the whole API from this document and filter by status.\n\n**Outside this document:** the MCP server (`/mcp`, plus the legacy SSE transport when enabled), Actuator endpoints (`/actuator/**`), and sink listeners on their own ports (110).",
     "license": {
       "name": "MIT",
       "identifier": "MIT"
@@ -107,6 +107,11 @@
         "version": "1.3.0",
         "date": "2026-10-12",
         "note": "028: ask, askStream, listAskThreads, getAskThread, deleteAskThread, confirmAskAction and rejectAskAction are implemented. Additive reconciliations: ask and askStream document 400 (unknown members, scope; scope.placeIds and scope.viewId are refused until prompt 036) and 404 (threadId of another caller); askStream's 429 also covers STREAM_LIMIT (per-principal Ask stream limit), and a budget refusal after the stream opened is an `error` event; listAskThreads and getAskThread are described as always authenticated, matching their x-foresignal-always-authenticated flag; confirmAskAction documents that a failed execution is returned as status `failed` with result.error (200); Problem lists LLM_NOT_CONFIGURED (409) and ACTION_NOT_PENDING (409). AskScope.placeIds, AskMessage.citations/warnings, the stream `warning` event and AskAction.type `alert_status` were already specified."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-12",
+        "note": "029: listBriefings, createBriefing, previewBriefing, getBriefing, updateBriefing, deleteBriefing, runBriefing, listBriefingRuns, getBriefingRun, getLatestBriefingRun and getDigest are implemented. Additive reconciliations: createBriefing documents that a hidden private source is reported as unknown, that scope members of later prompts (placeIds, viewId, country, admin1, county, places, weatherProducts) and a non-null audio are refused with 400 until their prompts, that unknown or disabled channels are warnings too, and the owner scope (only admin-owned briefings list private records); updateBriefing ignores output-only Briefing members; runBriefing returns a still-running run after 120 s, and runBriefing and previewBriefing turn LLM failures, refusals and budget exhaustion into a fallback run rather than 429 LLM_BUDGET_EXCEEDED; listBriefingRuns documents 400 and keeps a deleted briefing's runs; getBriefingRun documents 400 (format) and its ETag and Content-Security-Policy headers; getLatestBriefingRun returns the latest completed run; getDigest documents 400 for a hidden source, an unknown kind and places (until 056); DigestStats.healthSnapshot is always true and DigestHealthItem.since null while health transitions are not stored; DigestActive.previous and DigestCount.previous.active are null until 038; NotificationMessage.subtype lists briefing.run; Problem lists BRIEFING_RUNNING (409). The MCP server adds list_briefings, get_briefing_run, get_digest, create_briefing and run_briefing (info.description). The Digest schema, BriefingRun.warnings, the text/html run renditions and AccessPolicy's GET /v1/digest read rule follow the spec as already written."
       }
     ]
   },
@@ -9548,7 +9553,7 @@
         "x-foresignal-extended-by": [
           "035"
         ],
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       },
       "post": {
         "tags": [
@@ -9556,7 +9561,7 @@
         ],
         "operationId": "createBriefing",
         "summary": "Create a scheduled briefing",
-        "description": "Creates a scheduled briefing. Validation: 5-field cron no more frequent than every 15 minutes, valid IANA `timezone`, existing scope ids, `lookback` 1h–7d; channels not subscribed to `briefing` produce `warnings`, not failures; `mode=llm` is accepted without a provider (checked at run time).\n\n**Scope:** `agent`.",
+        "description": "Creates a scheduled briefing. Validation: 5-field cron no more frequent than every 15 minutes, valid IANA `timezone`, existing scope ids (a private source the caller may not see is reported as unknown), `lookback` 1h–7d; scope members of later prompts (`placeIds`, `viewId`, `country`, `admin1`, `county`, `places`, `weatherProducts`) are refused with 400 until their prompt while non-empty, and a non-null `audio` until 141; channels that do not exist, are disabled or are not subscribed to `briefing` produce `warnings`, not failures; `mode=llm` is accepted without a provider (checked at run time). The creating token's scope is the briefing's owner scope: only an `admin`-owned briefing lists records of private sources, any other counts them only.\n\n**Scope:** `agent`.",
         "requestBody": {
           "required": true,
           "content": {
@@ -9616,7 +9621,7 @@
           }
         ],
         "x-foresignal-prompt": "029",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/briefings/preview": {
@@ -9626,7 +9631,7 @@
         ],
         "operationId": "previewBriefing",
         "summary": "Render a briefing without storing or delivering it",
-        "description": "Render a briefing without storing or delivering it\n\n**Scope:** `agent` or `admin`.",
+        "description": "Render a briefing without storing or delivering it and without changing any schedule (`id` and `briefingId` are null). The period is `lookback` back, or 24 h. LLM failures, refusals and budget exhaustion produce a `fallback` rendition, not an error. Private records are listed only for an `admin` caller.\n\n**Scope:** `agent` or `admin`.",
         "requestBody": {
           "required": true,
           "content": {
@@ -9679,7 +9684,7 @@
             }
           },
           "429": {
-            "description": "Rate limited (RATE_LIMITED) or LLM budget exhausted (LLM_BUDGET_EXCEEDED)",
+            "description": "Rate limited (RATE_LIMITED); honour Retry-After. LLM budget exhaustion produces a `fallback` rendition instead",
             "headers": {
               "Retry-After": {
                 "description": "Seconds to wait before retrying",
@@ -9705,7 +9710,7 @@
         ],
         "x-foresignal-prompt": "029",
         "x-foresignal-always-authenticated": true,
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/briefings/{briefingId}": {
@@ -9799,7 +9804,7 @@
         "x-foresignal-extended-by": [
           "035"
         ],
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       },
       "put": {
         "tags": [
@@ -9807,7 +9812,7 @@
         ],
         "operationId": "updateBriefing",
         "summary": "Replace a briefing",
-        "description": "Replace a briefing\n\n**Scope:** `agent` or `admin`.",
+        "description": "Replace a briefing whole (validated as `createBriefing`; output-only `Briefing` members are ignored, so a read briefing can be sent back). `next_run_at` is recomputed; past runs are kept. The replacing token becomes the owner.\n\n**Scope:** `agent` or `admin`.",
         "requestBody": {
           "required": true,
           "content": {
@@ -9877,7 +9882,7 @@
           }
         ],
         "x-foresignal-prompt": "029",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       },
       "delete": {
         "tags": [
@@ -9928,7 +9933,7 @@
           }
         ],
         "x-foresignal-prompt": "029",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/briefings/{briefingId}/run": {
@@ -9950,7 +9955,7 @@
         ],
         "operationId": "runBriefing",
         "summary": "Run a briefing now",
-        "description": "Runs synchronously (up to 120 s), stores the run and delivers it to the briefing's channels.\n\n**Scope:** `agent` or `admin`.",
+        "description": "Runs synchronously (up to 120 s), stores the run and delivers it to the briefing's channels. A run still going after 120 s is returned with status `running` and completes in the background. In LLM mode any model failure, refusal or exhausted LLM budget produces a `fallback` run (the digest, with the reason in `error` and `warnings`), not an error.\n\n**Scope:** `agent` or `admin`.",
         "responses": {
           "200": {
             "description": "Run",
@@ -10003,7 +10008,7 @@
             }
           },
           "429": {
-            "description": "Rate limited (RATE_LIMITED) or LLM budget exhausted (LLM_BUDGET_EXCEEDED)",
+            "description": "Rate limited (RATE_LIMITED); honour Retry-After. LLM budget exhaustion produces a `fallback` run instead",
             "headers": {
               "Retry-After": {
                 "description": "Seconds to wait before retrying",
@@ -10029,7 +10034,7 @@
         ],
         "x-foresignal-prompt": "029",
         "x-foresignal-always-authenticated": true,
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/briefings/{briefingId}/runs": {
@@ -10051,7 +10056,7 @@
         ],
         "operationId": "listBriefingRuns",
         "summary": "List runs of a briefing",
-        "description": "List runs of a briefing\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "List runs of a briefing, newest first. The runs of a deleted briefing stay listed until retention removes them.\n\n**Scope:** `read` (open while `security.openReads` is on).",
         "parameters": [
           {
             "name": "cursor",
@@ -10133,6 +10138,16 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Invalid cursor (INVALID_CURSOR) or limit",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
           }
         },
         "x-foresignal-scope": "read",
@@ -10146,7 +10161,7 @@
         "x-foresignal-extended-by": [
           "035"
         ],
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/briefings/{briefingId}/runs/{runId}": {
@@ -10197,6 +10212,18 @@
             "headers": {
               "Foresignal-Signature": {
                 "description": "Detached JWS over the rendition's bytes (markdown and HTML renditions signed separately)",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "ETag": {
+                "description": "Per-run ETag (differs between the JSON and HTML renditions)",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Content-Security-Policy": {
+                "description": "HTML only: default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:",
                 "schema": {
                   "type": "string"
                 }
@@ -10253,6 +10280,16 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Invalid `format`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
           }
         },
         "x-foresignal-scope": "read",
@@ -10291,7 +10328,7 @@
           "035",
           "109"
         ],
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/push/vapid-public-key": {
@@ -15778,7 +15815,7 @@
         ],
         "operationId": "getLatestBriefingRun",
         "summary": "Get the latest run of a briefing",
-        "description": "The most recent stored run, as JSON or sanitized HTML (`Accept: text/html` or `?format=html`), with the same CSP and ETag rules as `getBriefingRun`. 404 when the briefing has no runs yet.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "The most recent completed run (not one still `running`), as JSON or sanitized HTML (`Accept: text/html` or `?format=html`), with the same CSP and ETag rules as `getBriefingRun`. 404 when the briefing has no runs yet.\n\n**Scope:** `read` (open while `security.openReads` is on).",
         "parameters": [
           {
             "name": "format",
@@ -15883,11 +15920,21 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Invalid `format`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
           }
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "029",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -15903,7 +15950,7 @@
         ],
         "operationId": "getDigest",
         "summary": "Catch-up digest since a cursor",
-        "description": "Counts by persist reason since `sinceSeq` (new, changed, removed, edges; routine reported separately), entities active from `record_live`, alerts since `sinceAlertId`, notable records with persisted seqs and source health. `gap=true` when `sinceSeq` is below the retention floor (counts incomplete). Pass `next.sinceSeq`/`next.sinceAlertId` on the following call. ETag on (toSeq, untilAlertId, params); 304 support. Private sources appear only as counts unless the caller may see them.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "Counts by persist reason since `sinceSeq` (new, changed, removed, edges; routine reported separately), entities active from `record_live`, alerts since `sinceAlertId`, notable records with persisted seqs and source health. `gap=true` when `sinceSeq` is below the retention floor (counts incomplete). Pass `next.sinceSeq`/`next.sinceAlertId` on the following call. ETag on (toSeq, untilAlertId, params); 304 support. Private sources appear only as counts unless the caller may see them; naming one the caller may not see is a 400 (unknown source), as is an unknown kind. `places` is refused with 400 until prompt 056.\n\n**Scope:** `read` (open while `security.openReads` is on).",
         "parameters": [
           {
             "name": "sinceSeq",
@@ -15998,7 +16045,7 @@
             "name": "places",
             "in": "query",
             "required": false,
-            "description": "Place ids: adds the \"Weather at places\" section (`Digest.weatherAtPlaces`)",
+            "description": "Place ids: adds the \"Weather at places\" section (`Digest.weatherAtPlaces`, prompt 056; refused with 400 until then)",
             "schema": {
               "type": "array",
               "items": {
@@ -16080,7 +16127,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "029",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -80661,6 +80708,7 @@
           "024",
           "026",
           "028",
+          "029",
           "135"
         ],
         "x-foresignal-error-codes": [
@@ -80928,6 +80976,11 @@
             "code": "ACTION_NOT_PENDING",
             "status": 409,
             "prompt": "028"
+          },
+          {
+            "code": "BRIEFING_RUNNING",
+            "status": 409,
+            "prompt": "029"
           }
         ]
       },
@@ -90652,7 +90705,8 @@
             }
           },
           "stats": {
-            "$ref": "#/components/schemas/DigestStats"
+            "$ref": "#/components/schemas/DigestStats",
+            "description": "DigestStats of the run: version counts by persist reason (new, changed, removed, edges; routine separately), active entities from record_live, alerts keyed by id, notable records with persisted seqs, health and contributor sections"
           },
           "error": {
             "type": [
@@ -93282,7 +93336,7 @@
           },
           "subtype": {
             "type": "string",
-            "description": "e.g. alert.fired, alert.acknowledged, alert.snoozed, alert.resolved, alert.digest (a quiet-hours, pause, backlog or grouping digest), system.source_failing, system.rule_storm, system.delivery_failed",
+            "description": "e.g. alert.fired, alert.acknowledged, alert.snoozed, alert.resolved, alert.digest (a quiet-hours, pause, backlog or grouping digest), system.source_failing, system.rule_storm, system.delivery_failed, briefing.run (029)",
             "example": "alert.fired",
             "maxLength": 64
           },
@@ -95166,7 +95220,8 @@
                 "type": "integer"
               },
               "active": {
-                "type": "integer"
+                "type": "integer",
+                "description": "null until 038's rollups (record_live keeps only the latest receipt)"
               }
             }
           }
@@ -95196,7 +95251,8 @@
             "type": [
               "integer",
               "null"
-            ]
+            ],
+            "description": "The previous period's count; null (record_live keeps only the latest receipt, so it is not known until 038's rollups)"
           }
         },
         "required": [
@@ -95365,7 +95421,8 @@
               "string",
               "null"
             ],
-            "format": "date-time"
+            "format": "date-time",
+            "description": "Since when the source has been in this state; null while health transitions are not stored"
           },
           "lastError": {
             "type": [
@@ -95450,7 +95507,7 @@
           },
           "healthSnapshot": {
             "type": "boolean",
-            "description": "True when health is the current snapshot rather than stored transitions"
+            "description": "True when health is the current snapshot rather than stored transitions (always true until health transitions are stored)"
           },
           "sections": {
             "type": "object",

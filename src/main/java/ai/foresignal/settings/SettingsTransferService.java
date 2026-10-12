@@ -9,6 +9,7 @@ import ai.foresignal.api.mapper.ChannelMapper;
 import ai.foresignal.api.mapper.LlmMapper;
 import ai.foresignal.api.mapper.SourceMapper;
 import ai.foresignal.api.mapper.TriggerMapper;
+import ai.foresignal.briefing.BriefingService;
 import ai.foresignal.config.ForesignalVersion;
 import ai.foresignal.llm.LlmProviderService;
 import ai.foresignal.llm.LlmSettings;
@@ -30,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.JsonNode;
@@ -51,7 +53,8 @@ import tools.jackson.databind.node.ObjectNode;
  * channel without secrets keeps the ones it has). Retention, CORS, notifications, the watchdog,
  * security and server are applied when present. Prompt 026 adds {@code llmProviders} (exported without
  * keys, upserted by id; a provider without a key keeps a stored one) and {@code llmSettings}, applied
- * after the providers. Any validation error is a 400 listing every error, and nothing is
+ * after the providers. Prompt 029 adds {@code briefings} (exported with their ids, upserted by id after
+ * the triggers and channels they reference, with an {@code admin} owner). Any validation error is a 400 listing every error, and nothing is
  * applied (the transaction rolls back).
  */
 @Service
@@ -59,7 +62,7 @@ public class SettingsTransferService {
 
     /** Sections handled by this version. */
     static final Set<String> HANDLED = Set.of("exportedAt", "foresignalVersion", "sources", "retention", "cors",
-            "notifications", "watchdog", "triggers", "channels", "security", "server", "llmProviders", "llmSettings");
+            "notifications", "watchdog", "triggers", "channels", "security", "server", "llmProviders", "llmSettings", "briefings");
 
     /** Channel members that are output only, dropped before a channel is upserted. */
     static final Set<String> CHANNEL_OUTPUT_ONLY = Set.of("id", "secretFields", "createdAt", "updatedAt",
@@ -84,6 +87,7 @@ public class SettingsTransferService {
     private final LlmProviderService llmProviders;
     private final LlmSettingsService llmSettings;
     private final LlmMapper llmMapper;
+    private final ObjectProvider<BriefingService> briefings;
 
     /** Creates the service. */
     public SettingsTransferService(SourceRegistry registry, SourceService sources, SourceMapper sourceMapper,
@@ -91,7 +95,9 @@ public class SettingsTransferService {
             WatchdogSettingsService watchdog, TriggerRuleService triggers, TriggerMapper triggerMapper,
             ChannelService channels, ChannelMapper channelMapper, ForesignalVersion version,
             SecuritySettingsService security, ServerSettingsService server, JsonMapper json, Clock clock,
-            LlmProviderService llmProviders, LlmSettingsService llmSettings, LlmMapper llmMapper) {
+            LlmProviderService llmProviders, LlmSettingsService llmSettings, LlmMapper llmMapper,
+            ObjectProvider<BriefingService> briefings) {
+        this.briefings = briefings;
         this.llmProviders = llmProviders;
         this.llmSettings = llmSettings;
         this.llmMapper = llmMapper;
@@ -120,10 +126,11 @@ public class SettingsTransferService {
      * @param sourcesUnknown source ids that are not registered here
      * @param triggersUpserted rules created or replaced
      * @param channelsUpserted channels created or replaced
+     * @param briefingsUpserted briefings created or replaced (029)
      * @param warnings human-readable warnings
      */
     public record ImportReport(List<String> sourcesApplied, List<String> sourcesUnknown, int triggersUpserted,
-            int channelsUpserted, List<String> warnings) {}
+            int channelsUpserted, int briefingsUpserted, List<String> warnings) {}
 
     /** The bundle of every exportable setting; never a secret or a credential. */
     @Transactional(readOnly = true)
@@ -157,6 +164,9 @@ public class SettingsTransferService {
         // Prompt 026: providers without their keys, and the roles.
         out.put("llmProviders", llmProviders.list().stream().map(llmMapper::providerInput).toList());
         out.put("llmSettings", LlmMapper.settings(llmSettings.get()));
+        // Prompt 029: briefings with their ids.
+        BriefingService briefingService = briefings.getIfAvailable();
+        out.put("briefings", briefingService == null ? List.of() : briefingService.list());
         return out;
     }
 
@@ -328,6 +338,29 @@ public class SettingsTransferService {
             }
         }
 
+        int briefingCount = 0;
+        JsonNode briefingsNode = present(bundle, "briefings");
+        BriefingService briefingService = briefings.getIfAvailable();
+        if (briefingsNode != null && briefingService != null) {
+            if (!briefingsNode.isArray()) {
+                errors.add(new FieldError("briefings", "must be an array of briefings"));
+            } else {
+                for (int i = 0; i < briefingsNode.size(); i++) {
+                    JsonNode briefing = briefingsNode.get(i);
+                    UUID id = id(briefing, "briefings[" + i + "]", errors);
+                    if (id == null) {
+                        continue;
+                    }
+                    try {
+                        briefingService.upsert(id, briefing);
+                        briefingCount++;
+                    } catch (RuntimeException e) {
+                        errors.add("briefings[" + i + "]", e);
+                    }
+                }
+            }
+        }
+
         int llmProviderCount = 0;
         JsonNode llmProvidersNode = present(bundle, "llmProviders");
         if (llmProvidersNode != null) {
@@ -363,7 +396,7 @@ public class SettingsTransferService {
             throw new ValidationException(errors.code(), "The settings bundle is not valid; nothing was applied.",
                     errors.list);
         }
-        return new ImportReport(applied, unknown, triggerCount, channelCount, warnings);
+        return new ImportReport(applied, unknown, triggerCount, channelCount, briefingCount, warnings);
     }
 
     private static JsonNode present(JsonNode bundle, String field) {

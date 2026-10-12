@@ -1,14 +1,3 @@
-listBriefings 029
-createBriefing 029
-previewBriefing 029
-getBriefing 029
-updateBriefing 029
-deleteBriefing 029
-runBriefing 029
-listBriefingRuns 029
-getBriefingRun 029
-getLatestBriefingRun 029
-getDigest 029
 getVapidPublicKey 031
 listPushSubscriptions 031
 createPushSubscription 031

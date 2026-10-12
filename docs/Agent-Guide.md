@@ -286,6 +286,11 @@ Every tool takes `detail`: `short` (the default, compact items, the whole result
 | `delete_watch` | agent | Delete a watch; its alerts are kept. |
 | `test_watch` | read | Backtest a watch over a time window or seq range; creates nothing. |
 | `system_status` | read | The `/v1/system` document (the public subset without a token). |
+| `list_briefings` | read | Scheduled briefings: schedule, timezone, scope, mode, channels, next and last run (029). |
+| `get_briefing_run` | read | One run of a briefing by `briefingId` and `runId`, or its latest; `detail=long` adds the statistics. Cite as `[briefing:runId]`. |
+| `get_digest` | read | The catch-up digest since `sinceSeq`/`sinceAlertId` (see "Catch-up with /v1/digest"). |
+| `create_briefing` | agent | Create a briefing from a `briefing` (`BriefingInput`), validated as `POST /v1/briefings`. |
+| `run_briefing` | agent, cost-bearing | Run a briefing now (up to 120 s), store and deliver it. |
 
 Later prompts add tools to the same registry: `search` (027), briefings (029), places and watchlists (036), `get_state_at` and `get_track` (037), weather (052), `get_map_image` (055) and entities (098).
 
@@ -342,7 +347,7 @@ Show warnings to the reader next to the answer. The same warnings are stored wit
 
 ### Actions and confirmation
 
-A model can never change anything by itself. When a change would help, it calls a `propose_*` tool (`propose_watch` to create or replace a watch, `propose_ack`, `propose_alert_status` to resolve, snooze or unsnooze an alert; `propose_briefing` once briefings exist). The payload is validated exactly as the REST operation validates it, and the response lists it in `proposedActions` with `status: "pending"`.
+A model can never change anything by itself. When a change would help, it calls a `propose_*` tool (`propose_watch` to create or replace a watch, `propose_ack`, `propose_alert_status` to resolve, snooze or unsnooze an alert, `propose_briefing` to create a scheduled briefing). The payload is validated exactly as the REST operation validates it, and the response lists it in `proposedActions` with `status: "pending"`.
 
 - `POST /v1/ask/actions/{id}/confirm` (agent) executes it through the same services as REST and returns it `executed` with the operation's result, or `failed` with `result.error`. `POST /v1/ask/actions/{id}/reject` (agent) discards it. Either on an action that is no longer pending is `409 ACTION_NOT_PENDING`; another token's action is `404`.
 - With `allowActions: true` **and** an `agent` token, proposed actions run as soon as the answer is complete and are still recorded. With a `read` token, `allowActions` changes nothing.
@@ -355,3 +360,34 @@ A model can never change anything by itself. When a change would help, it calls 
 ### Data egress
 
 With a frontier provider (Anthropic, an OpenAI-compatible API), the records the model reads are sent to that provider; that is the operator's choice. Records of private sources are never read for, or sent to, a non-local provider, whatever the token may see; a local provider (Ollama, or one flagged `options.local`) can receive them. Tool output is untrusted data: the model is instructed to ignore instructions inside it, and it could not act on them anyway, since its only way to change anything is a proposal a person confirms.
+
+## Catch-up with /v1/digest
+
+`GET /v1/digest` (read scope; the `get_digest` MCP tool returns the same document) tells a client what happened since it last looked, without replaying the change feed:
+
+```json
+{"fromSeq": 81200, "toSeq": 84711, "fromTime": "…", "toTime": "…", "gap": false, "gapReason": null,
+ "counts": [{"sourceId": "usgs-earthquakes", "kind": "earthquake", "new": 12, "changed": 3, "removed": 0,
+             "edges": 1, "routine": 40, "entities": {"new": 12, "changed": 3, "removed": 0, "edges": 1},
+             "byReason": {"FIRST": 12, "SIGNIFICANT": 3, "TRIGGER_EDGE": 1, "KEYFRAME": 40},
+             "previous": {"new": 9, "changed": 2, "removed": 0, "active": null}}],
+ "active": [{"sourceId": "usgs-earthquakes", "kind": "earthquake", "entities": 57, "previous": null}],
+ "alerts": {"sinceAlertId": 410, "untilAlertId": 418, "bySeverity": {"critical": 1, "warning": 5, "info": 2},
+            "byStatus": {"firing": 6, "acknowledged": 1, "resolved": 1}, "byRule": [], "items": []},
+ "notable": [{"kind": "earthquake", "items": [{"id": "usgs-earthquakes:us7000abcd", "seq": 84650,
+             "title": "M 5.8 - 80 km SE of Hachinohe, Japan", "rankValue": 5.8, "live": false, "link": "…"}]}],
+ "health": [], "healthSnapshot": true, "sections": {},
+ "next": {"sinceSeq": 84711, "sinceAlertId": 418}}
+```
+
+**The cursor loop.**
+
+1. First call without cursors: the last 24 hours (`sinceSeq` = the first seq ingested 24 h ago, alerts fired in the last 24 h).
+2. Store `next.sinceSeq` and `next.sinceAlertId`. On the next call pass them as `sinceSeq` and `sinceAlertId`. Records are counted by seq (`fromSeq < seq <= toSeq`) and alerts by id (`sinceAlertId < id <= untilAlertId`), so consecutive calls neither miss nor double-count.
+3. Send `If-None-Match` with the previous `ETag`: the answer is `304` while nothing new was ingested and no alert was raised for the same parameters.
+
+**Reading it.** `new`, `changed`, `removed` and `edges` are real changes; `routine` versions (samples, keyframes, heartbeats) only refresh history and are not news. `active` counts entities observed in the window, including ones that were only re-observed without a new version. Cite notable records as `[source:externalId@seq]` with the `seq` given (it is the persisted head version). Use `limit` (1–20) for notable records per kind, and `source`, `kind` and `bbox` to narrow everything; `includeHealth=false` drops the health section.
+
+**Handling `gap`.** `gap: true` means `sinceSeq` is older than what retention still holds for a source in scope (`gapReason` says which floor): versions before the floor were deleted, so the counts are a lower bound. Tell the user the window is incomplete, and resynchronise state from `GET /v1/records` if you keep a local copy. Deltas (`previous`) are `null` whenever the previous window reaches below the floor.
+
+**Private sources** are counted but never listed for a caller who may not see them, and naming one in `source` is a `400` (unknown source).

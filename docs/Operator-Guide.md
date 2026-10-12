@@ -925,6 +925,72 @@ for sources that declare `embedFields`. Turning it off stops embedding the sourc
 documents. Turning it back on embeds new versions; run `POST /v1/search/reindex` to embed the
 records it already has.
 
+## Briefings
+
+A briefing is a scheduled summary ("morning brief", "weekly maritime summary") delivered to your
+channels. It needs no LLM: the default `digest` mode is deterministic markdown. With a chat provider
+assigned, `llm` mode writes a cited narrative from the same data instead.
+
+```json
+POST /v1/briefings
+{"name": "Morning brief", "schedule": "0 7 * * *", "timezone": "America/Chicago",
+ "scope": {"kinds": ["earthquake"], "bbox": "-125,24,-66,50", "ruleIds": [], "includeHealth": true},
+ "lookback": "24h", "mode": "digest", "channelIds": ["…"], "maxItemsPerKind": 5}
+```
+
+- **Schedule.** A standard 5-field cron (`minute hour day-of-month month day-of-week`) in the
+  briefing's IANA `timezone` (default `UTC`), so `0 7 * * *` stays at 07:00 local time across DST
+  changes. Briefings may run at most every 15 minutes. The scheduler checks every 30 s; runs missed
+  while Foresignal was down run once when it is back, never once per missed slot.
+- **Period.** `lookback` (1h to 7d) back from the run; without one, since the previous run (capped at
+  7 days), or 24 hours for the first run.
+- **Scope.** `sources`, `kinds` and `bbox` limit the records; `ruleIds` limits the alert section;
+  `includeHealth` adds the source health section. Empty lists mean everything.
+- **Channels.** The run is published as a `briefing` notification to `channelIds`, or to every
+  channel subscribed to `briefing` when the list is empty. A channel that does not exist, is disabled
+  or is not subscribed to `briefing` is reported in `warnings` when you save the briefing; it is not
+  an error. The message links to the HTML rendition ("Read more").
+
+### What a digest contains
+
+- **Alerts** in the period, critical first, with counts per severity and state.
+- **Activity**, per kind: versions that are `new` (first seen or reappeared), `changed` and
+  `removed`, entities `active` in the period (including ones only re-observed, never re-versioned),
+  and the delta against the previous period of the same length. Routine versions (samples,
+  keyframes, heartbeats) are listed separately and never counted as change.
+- **Notable** records per kind, ranked by the source's `rankField` (for example magnitude), else by
+  time, each linked to `publicBaseUrl/v1/records/{source}/{externalId}`. Set `publicBaseUrl` in
+  `PUT /v1/settings/server` so links work outside the box.
+- **Source health**: sources currently degraded or failing (Foresignal does not keep a history of
+  health changes yet, so this is the state at run time).
+- A **"Counts incomplete (retention)"** note when the period reaches back past what retention kept.
+
+Private sources are counted but their records are not listed, unless the briefing was created or
+last saved with the admin token.
+
+### LLM mode
+
+`mode: "llm"` with `instructions` (focus, length, tone; up to 4,000 characters). The model gets the
+digest statistics, the notable records and, when semantic search is available, a search on your
+instructions within the scope, and must cite `[source:externalId@seq]`. Citations are verified as in
+Ask; problems go to the run's `warnings`. If the model fails, refuses, or the LLM budget is spent,
+the run falls back to the digest with status `fallback` and the reason in `error`. Records of private
+sources never go to a non-local provider. Usage is recorded per run.
+
+### Runs
+
+- `POST /v1/briefings/{id}/run` runs now (agent token) and returns the run, waiting up to 120 s; a
+  second run while one is going is `409 BRIEFING_RUNNING`. `POST /v1/briefings/preview` renders a
+  definition without storing, delivering or scheduling anything.
+- `GET /v1/briefings/{id}/runs` lists runs, newest first; `GET /v1/briefings/{id}/runs/latest` and
+  `/runs/{runId}` return one as JSON, or as a self-contained HTML page with `Accept: text/html` or
+  `?format=html`. The page is sanitized (no scripts, styles attributes or frames survive, even from
+  record titles), follows the browser's light or dark theme, and is served with a strict
+  Content-Security-Policy.
+- Runs are kept for the `briefings` retention (default 180 days), even after the briefing is
+  deleted, and are searchable with `docType=briefing` when semantic search is on. MCP agents use
+  `list_briefings`, `get_briefing_run`, `create_briefing` and `run_briefing`.
+
 ## Retention
 
 `GET /v1/settings/retention` shows every window; `PUT` replaces the whole object (every window at

@@ -71,6 +71,8 @@ class AccessPolicyTest {
                 "/v1/briefings/9f1e",
                 "/v1/briefings/9f1e/runs",
                 "/v1/briefings/9f1e/runs/7",
+                "/v1/briefings/9f1e/runs/latest",
+                "/v1/digest",
                 "/v1/ask/threads",
                 "/v1/ask/threads/9f1e",
             })

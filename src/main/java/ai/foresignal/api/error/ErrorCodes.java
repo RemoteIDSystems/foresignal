@@ -175,6 +175,9 @@ public final class ErrorCodes {
     /** 409: the proposed Ask action was already executed, rejected or failed (prompt 028). */
     public static final String ACTION_NOT_PENDING = "ACTION_NOT_PENDING";
 
+    /** 409: a run of this briefing is already in progress (prompt 029). */
+    public static final String BRIEFING_RUNNING = "BRIEFING_RUNNING";
+
     private static final String TYPE_PREFIX = "https://foresignal.ai/problems/";
 
     private ErrorCodes() {}

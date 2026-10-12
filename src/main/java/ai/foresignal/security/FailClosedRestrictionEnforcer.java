@@ -14,13 +14,15 @@ import org.springframework.util.AntPathMatcher;
  *
  * <p>A data-read path is a {@code GET} or {@code HEAD} whose requirement is the {@code read} scope
  * (records, changes, streams, tiles, kinds, history, sources, alerts, triggers, briefings,
- * search), plus Ask, which reads data into an LLM context.
+ * search, the digest), plus Ask and running or previewing a briefing (029), which read data into an LLM
+ * context or a delivered document.
  */
 @Component
 public class FailClosedRestrictionEnforcer implements RestrictionEnforcer {
 
     /** Non-GET operations that read data on the caller's behalf. */
-    static final Set<String> DATA_READ_POSTS = Set.of("/v1/ask", "/v1/ask/stream");
+    static final Set<String> DATA_READ_POSTS = Set.of("/v1/ask", "/v1/ask/stream", "/v1/briefings/preview",
+            "/v1/briefings/*/run");
 
     private final AntPathMatcher matcher = new AntPathMatcher();
 

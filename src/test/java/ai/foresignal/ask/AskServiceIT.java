@@ -104,9 +104,9 @@ class AskServiceIT extends AskItSupport {
         assertThat(((ChatMessage.User) first.messages().getLast()).text()).contains("Today is 2026-10-12");
         assertThat(first.tools()).extracting(t -> t.name())
                 .contains("query_records", "get_record", "list_alerts", "propose_watch", "propose_ack",
-                        "propose_alert_status")
+                        "propose_alert_status", "propose_briefing", "list_briefings", "get_briefing_run", "get_digest")
                 .doesNotContain("create_watch", "delete_watch", "acknowledge_alert", "set_alert_status",
-                        "update_watch", "propose_briefing");
+                        "update_watch", "create_briefing", "run_briefing");
         ToolResult result = toolResults(requests.get(1)).getFirst();
         assertThat(JSON.readTree(result.content()).get("tool").asString()).isEqualTo("query_records");
     }

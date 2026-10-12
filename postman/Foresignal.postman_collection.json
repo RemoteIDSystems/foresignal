@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "79671620-982c-5d2e-874b-01ab26ee8e6e",
     "name": "Foresignal API",
-    "description": "All configuration is done through this API. The MCP server is at `/mcp` (MCP streamable HTTP, protocol versions 2024-11-05 to 2025-11-25) and is not an OpenAPI operation; it exposes the same data, the alert lifecycle and watch management as MCP tools, resources (`foresignal://sources`, `foresignal://kinds`) and the `situation-report` prompt (025, docs/Agent-Guide.md), plus the cost-bearing `search` tool (027). It takes the same bearer tokens: `/mcp/**` needs `read` (open while `openReads` is on), tools are listed by the caller's scope and each checks its own (`read` tools; `agent` for writes such as `create_watch` and `set_alert_status`; cost-bearing tools always need a token), a session is bound to the token that opened it, and every tool call is audited (argument names only). The older HTTP+SSE transport (protocol 2024-11-05) is served at `/mcp/sse` with messages at `/mcp/message` only when `foresignal.mcp.legacy-sse.enabled=true`, for older clients. `GET /v1/system` reports its state under `mcp`. Reads of data are open on the local network; all writes and settings reads require the admin bearer token printed on first start. Errors are RFC 9457 problem+json. Timestamps are ISO-8601 UTC. `/v1` is additive-only once released.\n\n**Key-in-path carriers.** Header-less clients use keys in the path: feed keys (`fsf_`, 035) as `/v1/k/{key}/<any allowed GET/HEAD path>`, tile keys (`fsk_`, 050) as `/v1/k/{key}/products/...` and `/v1/k/{key}/tiles/...`, share links (`fss_`, 112) as `/v1/k/{key}`. These are transports for the documented operations, not separate operations. Device ingest URLs (039) and signed action links (033) use their own documented paths.\n\n**Status annotations.** Every operation has `x-foresignal-prompt` (the build prompt that implements it), optional `x-foresignal-extended-by`, and `x-foresignal-status` (`planned` until implemented). Clients can mock the whole API from this document and filter by status.\n\n**Outside this document:** the MCP server (`/mcp`, plus the legacy SSE transport when enabled), Actuator endpoints (`/actuator/**`), and sink listeners on their own ports (110).\n\nGenerated from docs/OpenAPI.json (v1.3.0). Every operation is included, grouped by tag. Admin operations use Bearer `{{adminToken}}`, agent operations `{{agentToken}}` (defaults to the admin token; set it to an agent-scope token to test scopes), always-authenticated read operations `{{readToken}}` (defaults to the admin token; claiming a pairing code stores a read token there), ingest uses `X-Foresignal-Ingest-Key: {{ingestKey}}` (EDP pushes `{{edpIngestKey}}`, Gotify `X-Gotify-Key`), and other reads use no auth (open while openReads is on). Test scripts capture ids into collection variables (ruleId, channelId, alertId, briefingId, threadId, ingestKey, externalId, lastSeq, cursor\u2026).",
+    "description": "All configuration is done through this API. The MCP server is at `/mcp` (MCP streamable HTTP, protocol versions 2024-11-05 to 2025-11-25) and is not an OpenAPI operation; it exposes the same data, the alert lifecycle and watch management as MCP tools, resources (`foresignal://sources`, `foresignal://kinds`) and the `situation-report` prompt (025, docs/Agent-Guide.md), plus the cost-bearing `search` tool (027) and the briefing tools `list_briefings`, `get_briefing_run`, `get_digest` (read), `create_briefing` and the cost-bearing `run_briefing` (agent) (029). It takes the same bearer tokens: `/mcp/**` needs `read` (open while `openReads` is on), tools are listed by the caller's scope and each checks its own (`read` tools; `agent` for writes such as `create_watch` and `set_alert_status`; cost-bearing tools always need a token), a session is bound to the token that opened it, and every tool call is audited (argument names only). The older HTTP+SSE transport (protocol 2024-11-05) is served at `/mcp/sse` with messages at `/mcp/message` only when `foresignal.mcp.legacy-sse.enabled=true`, for older clients. `GET /v1/system` reports its state under `mcp`. Reads of data are open on the local network; all writes and settings reads require the admin bearer token printed on first start. Errors are RFC 9457 problem+json. Timestamps are ISO-8601 UTC. `/v1` is additive-only once released.\n\n**Key-in-path carriers.** Header-less clients use keys in the path: feed keys (`fsf_`, 035) as `/v1/k/{key}/<any allowed GET/HEAD path>`, tile keys (`fsk_`, 050) as `/v1/k/{key}/products/...` and `/v1/k/{key}/tiles/...`, share links (`fss_`, 112) as `/v1/k/{key}`. These are transports for the documented operations, not separate operations. Device ingest URLs (039) and signed action links (033) use their own documented paths.\n\n**Status annotations.** Every operation has `x-foresignal-prompt` (the build prompt that implements it), optional `x-foresignal-extended-by`, and `x-foresignal-status` (`planned` until implemented). Clients can mock the whole API from this document and filter by status.\n\n**Outside this document:** the MCP server (`/mcp`, plus the legacy SSE transport when enabled), Actuator endpoints (`/actuator/**`), and sink listeners on their own ports (110).\n\nGenerated from docs/OpenAPI.json (v1.3.0). Every operation is included, grouped by tag. Admin operations use Bearer `{{adminToken}}`, agent operations `{{agentToken}}` (defaults to the admin token; set it to an agent-scope token to test scopes), always-authenticated read operations `{{readToken}}` (defaults to the admin token; claiming a pairing code stores a read token there), ingest uses `X-Foresignal-Ingest-Key: {{ingestKey}}` (EDP pushes `{{edpIngestKey}}`, Gotify `X-Gotify-Key`), and other reads use no auth (open while openReads is on). Test scripts capture ids into collection variables (ruleId, channelId, alertId, briefingId, threadId, ingestKey, externalId, lastSeq, cursor\u2026).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -1237,7 +1237,7 @@
               ],
               "query": []
             },
-            "description": "Creates a scheduled briefing. Validation: 5-field cron no more frequent than every 15 minutes, valid IANA `timezone`, existing scope ids, `lookback` 1h\u20137d; channels not subscribed to `briefing` produce `warnings`, not failures; `mode=llm` is accepted without a provider (checked at run time).\n\n**Scope:** `agent`.\n\noperationId: `createBriefing`",
+            "description": "Creates a scheduled briefing. Validation: 5-field cron no more frequent than every 15 minutes, valid IANA `timezone`, existing scope ids (a private source the caller may not see is reported as unknown), `lookback` 1h\u20137d; scope members of later prompts (`placeIds`, `viewId`, `country`, `admin1`, `county`, `places`, `weatherProducts`) are refused with 400 until their prompt while non-empty, and a non-null `audio` until 141; channels that do not exist, are disabled or are not subscribed to `briefing` produce `warnings`, not failures; `mode=llm` is accepted without a provider (checked at run time). The creating token's scope is the briefing's owner scope: only an `admin`-owned briefing lists records of private sources, any other counts them only.\n\n**Scope:** `agent`.\n\noperationId: `createBriefing`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -1296,7 +1296,7 @@
               ],
               "query": []
             },
-            "description": "Runs synchronously (up to 120 s), stores the run and delivers it to the briefing's channels.\n\n**Scope:** `agent` or `admin`.\n\noperationId: `runBriefing`",
+            "description": "Runs synchronously (up to 120 s), stores the run and delivers it to the briefing's channels. A run still going after 120 s is returned with status `running` and completes in the background. In LLM mode any model failure, refusal or exhausted LLM budget produces a `fallback` run (the digest, with the reason in `error` and `warnings`), not an error.\n\n**Scope:** `agent` or `admin`.\n\noperationId: `runBriefing`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -8584,7 +8584,7 @@
               ],
               "query": []
             },
-            "description": "Creates a scheduled briefing. Validation: 5-field cron no more frequent than every 15 minutes, valid IANA `timezone`, existing scope ids, `lookback` 1h\u20137d; channels not subscribed to `briefing` produce `warnings`, not failures; `mode=llm` is accepted without a provider (checked at run time).\n\n**Scope:** `agent`.\n\noperationId: `createBriefing`",
+            "description": "Creates a scheduled briefing. Validation: 5-field cron no more frequent than every 15 minutes, valid IANA `timezone`, existing scope ids (a private source the caller may not see is reported as unknown), `lookback` 1h\u20137d; scope members of later prompts (`placeIds`, `viewId`, `country`, `admin1`, `county`, `places`, `weatherProducts`) are refused with 400 until their prompt while non-empty, and a non-null `audio` until 141; channels that do not exist, are disabled or are not subscribed to `briefing` produce `warnings`, not failures; `mode=llm` is accepted without a provider (checked at run time). The creating token's scope is the briefing's owner scope: only an `admin`-owned briefing lists records of private sources, any other counts them only.\n\n**Scope:** `agent`.\n\noperationId: `createBriefing`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -8643,7 +8643,7 @@
               ],
               "query": []
             },
-            "description": "Render a briefing without storing or delivering it\n\n**Scope:** `agent` or `admin`.\n\noperationId: `previewBriefing`",
+            "description": "Render a briefing without storing or delivering it and without changing any schedule (`id` and `briefingId` are null). The period is `lookback` back, or 24 h. LLM failures, refusals and budget exhaustion produce a `fallback` rendition, not an error. Private records are listed only for an `admin` caller.\n\n**Scope:** `agent` or `admin`.\n\noperationId: `previewBriefing`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -8741,7 +8741,7 @@
               ],
               "query": []
             },
-            "description": "Replace a briefing\n\n**Scope:** `agent` or `admin`.\n\noperationId: `updateBriefing`",
+            "description": "Replace a briefing whole (validated as `createBriefing`; output-only `Briefing` members are ignored, so a read briefing can be sent back). `next_run_at` is recomputed; past runs are kept. The replacing token becomes the owner.\n\n**Scope:** `agent` or `admin`.\n\noperationId: `updateBriefing`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -8841,7 +8841,7 @@
               ],
               "query": []
             },
-            "description": "Runs synchronously (up to 120 s), stores the run and delivers it to the briefing's channels.\n\n**Scope:** `agent` or `admin`.\n\noperationId: `runBriefing`",
+            "description": "Runs synchronously (up to 120 s), stores the run and delivers it to the briefing's channels. A run still going after 120 s is returned with status `running` and completes in the background. In LLM mode any model failure, refusal or exhausted LLM budget produces a `fallback` run (the digest, with the reason in `error` and `warnings`), not an error.\n\n**Scope:** `agent` or `admin`.\n\noperationId: `runBriefing`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -8901,7 +8901,7 @@
                 }
               ]
             },
-            "description": "List runs of a briefing\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `listBriefingRuns`",
+            "description": "List runs of a briefing, newest first. The runs of a deleted briefing stay listed until retention removes them.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `listBriefingRuns`",
             "auth": {
               "type": "noauth"
             }
@@ -9009,7 +9009,7 @@
                 }
               ]
             },
-            "description": "The most recent stored run, as JSON or sanitized HTML (`Accept: text/html` or `?format=html`), with the same CSP and ETag rules as `getBriefingRun`. 404 when the briefing has no runs yet.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getLatestBriefingRun`",
+            "description": "The most recent completed run (not one still `running`), as JSON or sanitized HTML (`Accept: text/html` or `?format=html`), with the same CSP and ETag rules as `getBriefingRun`. 404 when the briefing has no runs yet.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getLatestBriefingRun`",
             "auth": {
               "type": "noauth"
             }
@@ -9097,12 +9097,12 @@
                 {
                   "key": "places",
                   "value": "",
-                  "description": "Place ids: adds the \"Weather at places\" section (`Digest.weatherAtPlaces`)",
+                  "description": "Place ids: adds the \"Weather at places\" section (`Digest.weatherAtPlaces`, prompt 056; refused with 400 until then)",
                   "disabled": true
                 }
               ]
             },
-            "description": "Counts by persist reason since `sinceSeq` (new, changed, removed, edges; routine reported separately), entities active from `record_live`, alerts since `sinceAlertId`, notable records with persisted seqs and source health. `gap=true` when `sinceSeq` is below the retention floor (counts incomplete). Pass `next.sinceSeq`/`next.sinceAlertId` on the following call. ETag on (toSeq, untilAlertId, params); 304 support. Private sources appear only as counts unless the caller may see them.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getDigest`",
+            "description": "Counts by persist reason since `sinceSeq` (new, changed, removed, edges; routine reported separately), entities active from `record_live`, alerts since `sinceAlertId`, notable records with persisted seqs and source health. `gap=true` when `sinceSeq` is below the retention floor (counts incomplete). Pass `next.sinceSeq`/`next.sinceAlertId` on the following call. ETag on (toSeq, untilAlertId, params); 304 support. Private sources appear only as counts unless the caller may see them; naming one the caller may not see is a 400 (unknown source), as is an unknown kind. `places` is refused with 400 until prompt 056.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getDigest`",
             "auth": {
               "type": "noauth"
             }
