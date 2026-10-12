@@ -67,6 +67,11 @@
         "version": "1.3.0",
         "date": "2026-10-11",
         "note": "019: getRetention, updateRetention, runRetention, getCors, updateCors, exportSettings, importSettings, getSystem, rotateAdminToken, getWatchdogSettings and updateWatchdogSettings are implemented. Additive reconciliations: RetentionSettings.notifications belongs to 019 (notification rows; the inbox is 033's `inbox`), its description states the resolution order and that later members are accepted and not stored; SettingsBundle.channels items carry the channel id (ChannelInput plus id) because import upserts by id; SettingsBundle.triggers documents that ids are kept."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-11",
+        "note": "020: getOpenApiDocument is implemented (served by a controller, byte-identical to docs/OpenAPI.json), and the notification and watchdogHeartbeat webhooks are marked implemented (018, 019). Additive reconciliations: every SSE operation's text/event-stream schema is an anyOf of the event schemas named in x-foresignal-sse-events (was a bare string; anyOf because the SSE event name, not the data, selects the schema); every webhook operation declares security [] (outbound; the receiver authenticates it by the documented signature); getOpenApiDocument, getSystem, getVapidPublicKey, getJwks, getSystemJwks and getEdpProtocol document a 4XX problem response, as the lint requires. Alert.ruleName is nullable (null once the rule is deleted, as 017 implements). streamAlerts' alert.enriched event carries prompt 030, like the same event on streamEvents."
       }
     ]
   },
@@ -3451,7 +3456,27 @@
             "content": {
               "text/event-stream": {
                 "schema": {
-                  "type": "string"
+                  "description": "The `data:` line of each event is one JSON object. The `event:` line, not the data, selects its schema as mapped in `x-foresignal-sse-events`, so this is `anyOf` (heartbeat `{}` and other small payloads match several); clients ignore unknown event names.",
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/ChangeEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/LiveEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/TouchEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ResyncEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ResetEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/HeartbeatEvent"
+                    }
+                  ]
                 }
               }
             }
@@ -4907,7 +4932,21 @@
             "content": {
               "text/event-stream": {
                 "schema": {
-                  "type": "string"
+                  "description": "The `data:` line of each event is one JSON object. The `event:` line, not the data, selects its schema as mapped in `x-foresignal-sse-events`, so this is `anyOf` (heartbeat `{}` and other small payloads match several); clients ignore unknown event names.",
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AlertEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ResetEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/HeartbeatEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Alert"
+                    }
+                  ]
                 }
               }
             }
@@ -5030,7 +5069,8 @@
               "$ref": "#/components/schemas/Alert"
             },
             "id": true,
-            "description": "Update of the same alert with summary and citations (030); id = alert id"
+            "description": "Update of the same alert with summary and citations (030); id = alert id",
+            "prompt": "030"
           }
         },
         "x-foresignal-extended-by": [
@@ -5688,6 +5728,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/SystemInfo"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Client error (RFC 9457 problem), for example 406 for an unsupported Accept header",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
                 }
               }
             }
@@ -8835,7 +8885,30 @@
             "content": {
               "text/event-stream": {
                 "schema": {
-                  "type": "string"
+                  "description": "The `data:` line of each event is one JSON object. The `event:` line, not the data, selects its schema as mapped in `x-foresignal-sse-events`, so this is `anyOf` (heartbeat `{}` and other small payloads match several); clients ignore unknown event names.",
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AskProgressEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AskDeltaEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AskCitation"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AskWarningEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AskAction"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AskResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Problem"
+                    }
+                  ]
                 }
               }
             }
@@ -10155,6 +10228,16 @@
                 }
               }
             }
+          },
+          "4XX": {
+            "description": "Client error (RFC 9457 problem), for example 404 while Web Push is not configured or 406 for an unsupported Accept header",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
           }
         },
         "x-foresignal-scope": "open",
@@ -10963,7 +11046,165 @@
             "content": {
               "text/event-stream": {
                 "schema": {
-                  "type": "string"
+                  "description": "The `data:` line of each event is one JSON object. The `event:` line, not the data, selects its schema as mapped in `x-foresignal-sse-events`, so this is `anyOf` (heartbeat `{}` and other small payloads match several); clients ignore unknown event names.",
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/HelloEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ChangeEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/LiveEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/TouchEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ResyncEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AlertEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/NotificationMessage"
+                    },
+                    {
+                      "$ref": "#/components/schemas/FilterAppliedEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ResetEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/HeartbeatEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/EvidenceEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ShareReceivedEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/CommentEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/SavedSearchMatchesEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ReportEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/PackageReceivedEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ChronicleLinkFoundEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ChronicleAccessEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ChronicleThreadItem"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ChronicleStatusEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/SocialVelocityEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/SocialPlatformStateEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/NarrativeEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ClaimExtractedEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/MediaReuseEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/CoordinationDetectedEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/SocialComparisonEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/SocialCueEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AttentionGapEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ExternalSourceStateEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ExternalBindingEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Alert"
+                    },
+                    {
+                      "$ref": "#/components/schemas/NotificationBadge"
+                    },
+                    {
+                      "$ref": "#/components/schemas/IntelEventStreamEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AnalystNoteEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AnalystProposalEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/SituationEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/FindingEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/PrecursorEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ForecastQuestionEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ForecastSubmittedEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/HypothesisSetEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/IndicatorEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/KeyAssumptionEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/OutlookPublishedEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/IndexChangedEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/IndexWeightsProposedEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ImpactProjectionEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AssessmentPublishedEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/CycleRunFailedEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ContextPatchEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/PresenceEvent"
+                    }
+                  ]
                 }
               }
             }
@@ -12740,11 +12981,21 @@
                 }
               }
             }
+          },
+          "4XX": {
+            "description": "Client error (RFC 9457 problem), for example 406 when the Accept header excludes application/json",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
           }
         },
         "x-foresignal-scope": "open",
         "x-foresignal-prompt": "020",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": []
       }
     },
@@ -17375,7 +17626,18 @@
             "content": {
               "text/event-stream": {
                 "schema": {
-                  "type": "string"
+                  "description": "The `data:` line of each event is one JSON object. The `event:` line, not the data, selects its schema as mapped in `x-foresignal-sse-events`, so this is `anyOf` (heartbeat `{}` and other small payloads match several); clients ignore unknown event names.",
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/Notification"
+                    },
+                    {
+                      "$ref": "#/components/schemas/NotificationBadge"
+                    },
+                    {
+                      "$ref": "#/components/schemas/HeartbeatEvent"
+                    }
+                  ]
                 }
               }
             }
@@ -20343,7 +20605,27 @@
             "content": {
               "text/event-stream": {
                 "schema": {
-                  "type": "string"
+                  "description": "The `data:` line of each event is one JSON object. The `event:` line, not the data, selects its schema as mapped in `x-foresignal-sse-events`, so this is `anyOf` (heartbeat `{}` and other small payloads match several); clients ignore unknown event names.",
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/Change"
+                    },
+                    {
+                      "$ref": "#/components/schemas/LiveEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/TouchEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ResyncEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ResetEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/HeartbeatEvent"
+                    }
+                  ]
                 }
               }
             }
@@ -43187,6 +43469,16 @@
                 }
               }
             }
+          },
+          "4XX": {
+            "description": "Client error (RFC 9457 problem), for example 406 for an unsupported Accept header",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
           }
         },
         "x-foresignal-scope": "open",
@@ -43218,6 +43510,16 @@
                 "description": "public, max-age=3600",
                 "schema": {
                   "type": "string"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Client error (RFC 9457 problem), for example 406 for an unsupported Accept header",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
                 }
               }
             }
@@ -46912,7 +47214,24 @@
             "content": {
               "text/event-stream": {
                 "schema": {
-                  "type": "string"
+                  "description": "The `data:` line of each event is one JSON object. The `event:` line, not the data, selects its schema as mapped in `x-foresignal-sse-events`, so this is `anyOf` (heartbeat `{}` and other small payloads match several); clients ignore unknown event names.",
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/FederationItem"
+                    },
+                    {
+                      "$ref": "#/components/schemas/LiveEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/HeartbeatEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ResyncEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ResetEvent"
+                    }
+                  ]
                 }
               }
             }
@@ -77897,6 +78216,16 @@
                 }
               }
             }
+          },
+          "4XX": {
+            "description": "Client error (RFC 9457 problem), for example 406 for an unsupported Accept header",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
           }
         },
         "x-foresignal-scope": "open",
@@ -85581,7 +85910,11 @@
             "format": "uuid"
           },
           "ruleName": {
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The rule's current name; null when the rule was deleted (its alerts are kept)"
           },
           "seq": {
             "type": "integer",
@@ -156947,10 +157280,11 @@
         },
         "x-foresignal-scope": "open",
         "x-foresignal-prompt": "018",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-extended-by": [
           "115"
-        ]
+        ],
+        "security": []
       }
     },
     "watchdogHeartbeat": {
@@ -156968,7 +157302,8 @@
         },
         "x-foresignal-scope": "open",
         "x-foresignal-prompt": "019",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented",
+        "security": []
       },
       "post": {
         "tags": [
@@ -156984,7 +157319,8 @@
         },
         "x-foresignal-scope": "open",
         "x-foresignal-prompt": "019",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented",
+        "security": []
       }
     },
     "sinkCloudEvent": {
@@ -157040,7 +157376,8 @@
         },
         "x-foresignal-scope": "open",
         "x-foresignal-prompt": "110",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "planned",
+        "security": []
       }
     },
     "edpProviderItems": {
@@ -157086,7 +157423,8 @@
         },
         "x-foresignal-scope": "open",
         "x-foresignal-prompt": "024",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "planned",
+        "security": []
       }
     },
     "edpProviderSearch": {
@@ -157170,7 +157508,8 @@
         },
         "x-foresignal-scope": "open",
         "x-foresignal-prompt": "024",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "planned",
+        "security": []
       }
     }
   }

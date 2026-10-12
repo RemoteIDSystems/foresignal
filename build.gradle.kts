@@ -42,6 +42,7 @@ dependencies {
     testImplementation(libs.wiremock.standalone)
     testImplementation(libs.awaitility)
     testImplementation(libs.greenmail)
+    testImplementation(libs.json.schema.validator)
 }
 
 tasks.withType<JavaCompile>().configureEach {
@@ -63,12 +64,13 @@ tasks.test {
     })
 }
 
-// The authored OpenAPI document is the contract. Serving it from the classpath
-// lets /v1/openapi.json return the authored spec (prompt 017) rather than the
-// springdoc-generated one, which is used only for drift detection.
+// The authored OpenAPI document is the contract. It is copied byte for byte onto
+// the classpath (outside static/) and served at /v1/openapi.json by
+// OpenApiController (getOpenApiDocument, prompt 020); the springdoc-generated
+// document at /v1/openapi-generated.json exists only for drift detection.
 tasks.processResources {
     from(layout.projectDirectory.file("docs/OpenAPI.json")) {
-        into("static/v1")
+        into("openapi")
         rename { "openapi.json" }
     }
 }
@@ -112,4 +114,88 @@ tasks.jacocoTestCoverageVerification {
 
 tasks.check {
     dependsOn(tasks.jacocoTestCoverageVerification)
+}
+
+// ---------------------------------------------------------------------------
+// API tooling (prompt 020). None of these tasks is wired to compileJava or test.
+// ---------------------------------------------------------------------------
+
+/** True when `command` resolves on the PATH (for a helpful failure instead of a raw exec error). */
+fun onPath(command: String): Boolean =
+    System.getenv("PATH").orEmpty().split(File.pathSeparator).any { dir ->
+        File(dir, command).canExecute() || File(dir, "$command.cmd").canExecute()
+    }
+
+// Regenerates the Postman collection and environment from the authored spec
+// (Roadmap §6). Run it after every docs/OpenAPI.json change; the collection is
+// never hand-edited. Python 3 standard library only.
+tasks.register<Exec>("generatePostman") {
+    group = "api"
+    description = "Regenerates postman/ from docs/OpenAPI.json with scripts/generate-postman.py."
+    workingDir = layout.projectDirectory.asFile
+    commandLine("python3", "scripts/generate-postman.py", "docs/OpenAPI.json", "postman")
+}
+
+// Lints the authored spec with Redocly CLI (redocly.yaml: recommended plus the
+// project rules; .redocly.lint-ignore.yaml lists the deliberate exceptions).
+// Required: wired into `check`. Needs Node.js >= 20.19 with npx on the PATH, or
+// -PskipOpenApiLint=true to skip it explicitly.
+val redoclyCli = "@redocly/cli@2.62.1"
+val skipOpenApiLint = providers.gradleProperty("skipOpenApiLint").map { it.toBoolean() }.orElse(false)
+val lintOpenApi = tasks.register<Exec>("lintOpenApi") {
+    group = "verification"
+    description = "Lints docs/OpenAPI.json with $redoclyCli (pass -PskipOpenApiLint=true to skip)."
+    workingDir = layout.projectDirectory.asFile
+    inputs.files("docs/OpenAPI.json", "redocly.yaml", ".redocly.lint-ignore.yaml")
+    onlyIf("-PskipOpenApiLint=true was not passed") { !skipOpenApiLint.get() }
+    commandLine("npx", "--yes", redoclyCli, "lint", "docs/OpenAPI.json")
+    doFirst {
+        if (!onPath("npx")) {
+            throw GradleException(
+                "lintOpenApi needs npx (Node.js >= 20.19, https://nodejs.org/). " +
+                    "Install Node.js, or pass -PskipOpenApiLint=true to skip the OpenAPI lint."
+            )
+        }
+    }
+}
+tasks.check {
+    dependsOn(lintOpenApi)
+}
+
+// Optional SDK smoke test (not wired to anything): generates typescript-fetch
+// and dart-dio clients from the authored spec into build/sdk-check and fails on
+// generator errors. The npm wrapper and the generator jar are both pinned; the
+// jar version is written to build/sdk-check/openapitools.json, which the wrapper
+// reads from its working directory. Needs npx and a Java runtime.
+val openApiGeneratorCli = "@openapitools/openapi-generator-cli@2.41.0"
+val openApiGeneratorVersion = "7.26.0"
+val sdkCheckDir = layout.buildDirectory.dir("sdk-check")
+val sdkCheckTasks = listOf("typescript-fetch", "dart-dio").map { generator ->
+    tasks.register<Exec>("checkSdkGeneration-$generator") {
+        group = "api"
+        description = "Generates a $generator client from docs/OpenAPI.json into build/sdk-check/$generator."
+        val specFile = layout.projectDirectory.file("docs/OpenAPI.json").asFile
+        workingDir = sdkCheckDir.get().asFile
+        commandLine(
+            "npx", "--yes", openApiGeneratorCli, "generate",
+            "-i", specFile.absolutePath,
+            "-g", generator,
+            "-o", sdkCheckDir.get().dir(generator).asFile.absolutePath,
+        )
+        doFirst {
+            if (!onPath("npx")) {
+                throw GradleException("checkSdkGeneration needs npx (Node.js >= 20.19) and a Java runtime.")
+            }
+            val dir = sdkCheckDir.get().asFile
+            dir.mkdirs()
+            File(dir, "openapitools.json").writeText(
+                """{"spaces": 2, "generator-cli": {"version": "$openApiGeneratorVersion"}}""" + "\n"
+            )
+        }
+    }
+}
+tasks.register("checkSdkGeneration") {
+    group = "api"
+    description = "Optional: generates typescript-fetch and dart-dio clients from docs/OpenAPI.json (prompt 141 owns the real SDKs)."
+    dependsOn(sdkCheckTasks)
 }

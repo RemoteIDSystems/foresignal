@@ -11,7 +11,8 @@ import tools.jackson.databind.json.JsonMapper;
 
 /**
  * The API contract version: {@code info.version} of the authored OpenAPI document, which the build
- * copies onto the classpath as {@code static/v1/openapi.json} (prompt 017). Read once at startup;
+ * copies onto the classpath as {@value #RESOURCE} (prompt 020; {@code OpenApiController} serves the
+ * same resource at {@code /v1/openapi.json}). Read once at startup;
  * {@value #UNKNOWN} when the document is missing (a test classpath without resources).
  */
 @Component
@@ -22,8 +23,11 @@ public class ApiVersion {
     /** Reported when the document cannot be read. */
     public static final String UNKNOWN = "unknown";
 
-    /** Where the build puts the authored document. */
-    static final String RESOURCE = "static/v1/openapi.json";
+    /**
+     * Where the build puts the authored document: outside {@code static/}, so the only route to it
+     * is the documented {@code getOpenApiDocument} operation.
+     */
+    public static final String RESOURCE = "openapi/openapi.json";
 
     private final String version;
 

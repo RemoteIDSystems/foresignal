@@ -8,6 +8,8 @@ import ai.foresignal.api.support.QueryParams;
 import ai.foresignal.store.query.RecordRow;
 import ai.foresignal.trigger.TriggerBacktester;
 import ai.foresignal.trigger.TriggerRuleService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -36,6 +38,7 @@ import tools.jackson.databind.JsonNode;
  * reported in one {@code 400} with field errors. A rule id that is not a UUID is simply not found.
  */
 @RestController
+@Tag(name = "Triggers")
 @RequestMapping("/v1/triggers")
 public class TriggersController {
 
@@ -55,6 +58,7 @@ public class TriggersController {
 
     /** {@code listTriggers}. */
     @GetMapping
+    @Operation(operationId = "listTriggers", tags = "Triggers")
     public List<Map<String, Object>> listTriggers(
             @RequestParam(required = false) String tag, @RequestParam(required = false) String enabled) {
         Boolean enabledFilter = enabled == null ? null : QueryParams.bool("enabled", enabled, true);
@@ -63,12 +67,14 @@ public class TriggersController {
 
     /** {@code getTrigger}. */
     @GetMapping("/{ruleId}")
+    @Operation(operationId = "getTrigger", tags = "Triggers")
     public Map<String, Object> getTrigger(@PathVariable String ruleId) {
         return mapper.rule(rules.get(id(ruleId)));
     }
 
     /** {@code createTrigger}: 201 with {@code Location}. */
     @PostMapping
+    @Operation(operationId = "createTrigger", tags = "Triggers")
     public ResponseEntity<Map<String, Object>> createTrigger(@RequestBody JsonNode body) {
         TriggerRuleService.RuleView view = rules.create(body);
         return ResponseEntity.created(URI.create("/v1/triggers/" + view.rule().getId())).body(mapper.rule(view));
@@ -76,12 +82,14 @@ public class TriggersController {
 
     /** {@code updateTrigger}: a full replace. */
     @PutMapping("/{ruleId}")
+    @Operation(operationId = "updateTrigger", tags = "Triggers")
     public Map<String, Object> updateTrigger(@PathVariable String ruleId, @RequestBody JsonNode body) {
         return mapper.rule(rules.update(id(ruleId), body));
     }
 
     /** {@code deleteTrigger}: 204; the rule's alerts are kept. */
     @DeleteMapping("/{ruleId}")
+    @Operation(operationId = "deleteTrigger", tags = "Triggers")
     public ResponseEntity<Void> deleteTrigger(@PathVariable String ruleId) {
         rules.delete(id(ruleId));
         return ResponseEntity.noContent().build();
@@ -89,6 +97,7 @@ public class TriggersController {
 
     /** {@code testTrigger}: a backtest that creates nothing. */
     @PostMapping("/{ruleId}/test")
+    @Operation(operationId = "testTrigger", tags = "Triggers")
     public Map<String, Object> testTrigger(
             @PathVariable String ruleId,
             @RequestParam(required = false) String since,
@@ -128,12 +137,14 @@ public class TriggersController {
 
     /** {@code snoozeTrigger}: {@code until} or {@code for}, at most 7 days. */
     @PostMapping("/{ruleId}/snooze")
+    @Operation(operationId = "snoozeTrigger", tags = "Triggers")
     public Map<String, Object> snoozeTrigger(@PathVariable String ruleId, @RequestBody JsonNode body) {
         return mapper.rule(rules.snooze(id(ruleId), body));
     }
 
     /** {@code unsnoozeTrigger}: idempotent. */
     @DeleteMapping("/{ruleId}/snooze")
+    @Operation(operationId = "unsnoozeTrigger", tags = "Triggers")
     public Map<String, Object> unsnoozeTrigger(@PathVariable String ruleId) {
         return mapper.rule(rules.unsnooze(id(ruleId)));
     }

@@ -18,6 +18,8 @@ import ai.foresignal.store.query.GeometryEncoding;
 import ai.foresignal.store.query.RecordQueryService;
 import ai.foresignal.store.query.RecordRow;
 import ai.foresignal.store.query.Slices;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -48,6 +50,7 @@ import tools.jackson.databind.json.JsonMapper;
  * <p>Needs the {@code read} scope, open while {@code security.openReads} is on.
  */
 @RestController
+@Tag(name = "Changes")
 public class ChangesController {
 
     /** Default page size. */
@@ -84,6 +87,7 @@ public class ChangesController {
 
     /** {@code listChanges}. */
     @GetMapping("/v1/changes")
+    @Operation(operationId = "listChanges", tags = "Changes")
     public ResponseEntity<Object> listChanges(
             @RequestParam(required = false) String after,
             @RequestParam(required = false) List<String> source,

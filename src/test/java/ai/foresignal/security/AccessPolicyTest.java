@@ -211,6 +211,7 @@ class AccessPolicyTest {
                 "/v1/push/vapid-public-key",
                 "/v1/openapi.json",
                 "/v1/openapi-generated.json",
+                "/v1/openapi-generated.json/swagger-config",
                 "/docs",
                 "/docs/index.html",
                 "/actuator/health",

@@ -86,6 +86,18 @@ the database and is managed through the API.
 - **Clock.** NTP must be synced before Foresignal starts. Otherwise the ingest
   writer's clock guard holds ingest until the clock is sane.
 
+## Development
+
+- `./gradlew compileJava compileTestJava` compiles; `./gradlew check` runs the tests, the coverage
+  gate and the OpenAPI lint.
+- `docs/OpenAPI.json` is the authored API contract, served byte for byte at `/v1/openapi.json`
+  (Swagger UI at `/docs`). Changes follow the API evolution rules in
+  [Architecture §10.1](docs/Architecture.md#101-api-evolution): `/v1` is additive only.
+- After changing the spec, run `./gradlew generatePostman` and `./gradlew lintOpenApi` (Node.js
+  ≥ 20.19 with `npx`; pass `-PskipOpenApiLint=true` to skip the lint where Node.js is missing).
+- `./gradlew checkSdkGeneration` optionally generates TypeScript and Dart clients into
+  `build/sdk-check` as a smoke test.
+
 ## Documentation
 
 - [Executive Summary](docs/Executive-Summary.md) — what Foresignal is and why

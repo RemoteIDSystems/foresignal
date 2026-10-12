@@ -175,12 +175,21 @@ management:
 
 springdoc:
   api-docs:
-    # The springdoc-generated document is served separately; it is used for
-    # drift detection against the authored contract (prompt 017).
+    # The springdoc-generated document is internal: OpenApiContractIT compares it
+    # with the authored contract docs/OpenAPI.json (prompt 020). Swagger UI never
+    # shows it.
     path: /v1/openapi-generated.json
+  # Only the API is scanned: /v1 plus the protocol paths the spec defines outside
+  # it (compatibility shims, TAXII, well-known documents, FDSN). /v1/openapi.json
+  # is a controller (getOpenApiDocument) and appears like every other operation;
+  # the generated document itself and its swagger-config are springdoc endpoints.
+  paths-to-match: /v1/**, /compat/**, /taxii2/**, /.well-known/**, /fdsnws/**
+  paths-to-exclude: /v1/openapi-generated.json, /v1/openapi-generated.json/**
   swagger-ui:
+    # /docs serves Swagger UI over the authored document only.
     path: /docs
     url: /v1/openapi.json
+    disable-swagger-default-url: true
 
 # Log format (019): FORESIGNAL_LOG_FORMAT=ecs|gelf|logstash|text selects
 # logging.structured.format.console through LogFormatEnvironmentPostProcessor.

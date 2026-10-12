@@ -2,6 +2,8 @@ package ai.foresignal.api;
 
 import ai.foresignal.notify.NotificationSettingsService;
 import ai.foresignal.settings.NotificationSettings;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.Map;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -17,6 +19,7 @@ import tools.jackson.databind.JsonNode;
  * which the settings import (prompt 019) shares.
  */
 @RestController
+@Tag(name = "Settings")
 public class NotificationSettingsController {
 
     private final NotificationSettingsService service;
@@ -28,12 +31,14 @@ public class NotificationSettingsController {
 
     /** {@code getNotificationSettings}. */
     @GetMapping("/v1/settings/notifications")
+    @Operation(operationId = "getNotificationSettings", tags = "Settings")
     public Map<String, Object> getNotificationSettings() {
         return NotificationSettingsService.body(service.get());
     }
 
     /** {@code updateNotificationSettings}. */
     @PutMapping("/v1/settings/notifications")
+    @Operation(operationId = "updateNotificationSettings", tags = "Settings")
     public Map<String, Object> updateNotificationSettings(@RequestBody JsonNode body) {
         NotificationSettings value = service.apply(NotificationSettingsService.parse(body));
         return NotificationSettingsService.body(value);

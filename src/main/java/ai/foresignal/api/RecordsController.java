@@ -36,6 +36,8 @@ import ai.foresignal.store.query.RecordRow;
 import ai.foresignal.store.query.Slices;
 import ai.foresignal.stream.ChangeBus;
 import ai.foresignal.stream.LiveBus;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -70,6 +72,7 @@ import tools.jackson.databind.json.JsonMapper;
  * is on. Anonymous callers never see private sources.
  */
 @RestController
+@Tag(name = "Records")
 public class RecordsController {
 
     /** Default page size of {@code listRecords} and {@code listRecordVersions}. */
@@ -143,6 +146,7 @@ public class RecordsController {
      * least the stored one.
      */
     @GetMapping("/v1/records")
+    @Operation(operationId = "listRecords", tags = "Records")
     public ResponseEntity<Object> listRecords(
             @RequestParam(required = false) List<String> source,
             @RequestParam(required = false) List<String> kind,
@@ -277,6 +281,7 @@ public class RecordsController {
      * {@code "<version>.<observedAt epoch ms>"}.
      */
     @GetMapping("/v1/records/{sourceId}/{externalId}")
+    @Operation(operationId = "getRecord", tags = "Records")
     public ResponseEntity<Object> getRecord(
             @PathVariable String sourceId,
             @PathVariable String externalId,
@@ -313,6 +318,7 @@ public class RecordsController {
 
     /** {@code listRecordVersions}: versions of one record ordered by seq. */
     @GetMapping("/v1/records/{sourceId}/{externalId}/versions")
+    @Operation(operationId = "listRecordVersions", tags = "Records")
     public RecordVersionPage listRecordVersions(
             @PathVariable String sourceId,
             @PathVariable String externalId,
@@ -341,6 +347,7 @@ public class RecordsController {
 
     /** {@code queryHistory}: every version in a range, keyset on the selected time axis and seq. */
     @GetMapping("/v1/history")
+    @Operation(operationId = "queryHistory", tags = "Records")
     public ResponseEntity<Object> queryHistory(
             @RequestParam(required = false) List<String> source,
             @RequestParam(required = false) List<String> kind,
@@ -410,6 +417,7 @@ public class RecordsController {
 
     /** {@code listKinds}: kinds currently present, with counts, sources and the declared display block. */
     @GetMapping("/v1/kinds")
+    @Operation(operationId = "listKinds", tags = "Records")
     public ResponseEntity<Object> listKinds(
             @RequestHeader(value = HttpHeaders.IF_NONE_MATCH, required = false) String ifNoneMatch,
             @RequestHeader(value = HttpHeaders.ACCEPT, required = false) String accept,
@@ -431,6 +439,7 @@ public class RecordsController {
 
     /** {@code getKindSchema}: the merged JSON Schema of one kind. 404 when no source emits it. */
     @GetMapping("/v1/kinds/{kind}/schema")
+    @Operation(operationId = "getKindSchema", tags = "Records")
     public ResponseEntity<Object> getKindSchema(
             @PathVariable String kind,
             @RequestHeader(value = HttpHeaders.IF_NONE_MATCH, required = false) String ifNoneMatch,

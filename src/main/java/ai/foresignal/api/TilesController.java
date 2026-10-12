@@ -14,6 +14,8 @@ import ai.foresignal.store.tiles.TileLayerResolver;
 import ai.foresignal.store.tiles.TileProperties;
 import ai.foresignal.store.tiles.TileQueryService;
 import ai.foresignal.store.tiles.TileResult;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -42,6 +44,7 @@ import tools.jackson.databind.json.JsonMapper;
  * private sources are invisible to anonymous callers. CORS read rules apply (all three are GETs).
  */
 @RestController
+@Tag(name = "Tiles")
 public class TilesController {
 
     /** The Mapbox Vector Tile media type. */
@@ -90,6 +93,7 @@ public class TilesController {
      * {@code public} while {@code openReads} is on, else {@code private}.
      */
     @GetMapping("/v1/tiles/{layer}/{z}/{x}/{y}.mvt")
+    @Operation(operationId = "getTile", tags = "Tiles")
     public ResponseEntity<byte[]> getTile(
             @PathVariable String layer,
             @PathVariable String z,
@@ -118,6 +122,7 @@ public class TilesController {
 
     /** {@code listTileLayers}: every source id and kind the caller can see, with its TileJSON URL. */
     @GetMapping("/v1/tiles.json")
+    @Operation(operationId = "listTileLayers", tags = "Tiles")
     public ResponseEntity<String> listTileLayers(
             @RequestHeader(value = HttpHeaders.IF_NONE_MATCH, required = false) String ifNoneMatch,
             HttpServletRequest request) {
@@ -128,6 +133,7 @@ public class TilesController {
 
     /** {@code getTileJson}: the TileJSON 3.0.0 document of one layer; {@code 404 UNKNOWN_LAYER}. */
     @GetMapping("/v1/tiles/{layer}.json")
+    @Operation(operationId = "getTileJson", tags = "Tiles")
     public ResponseEntity<String> getTileJson(
             @PathVariable String layer,
             @RequestHeader(value = HttpHeaders.IF_NONE_MATCH, required = false) String ifNoneMatch,

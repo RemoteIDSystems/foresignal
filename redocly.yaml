@@ -1,0 +1,29 @@
+# Redocly CLI configuration for `./gradlew lintOpenApi` (prompt 020).
+#
+# The authored contract docs/OpenAPI.json is linted with the `recommended` ruleset plus the
+# project's own rules. Errors fail the `check` task; warnings are reported only.
+extends:
+  - recommended
+
+rules:
+  operation-operationId-unique: error
+  operation-4xx-response: error
+  no-unused-components: warn
+
+  # Every operation (paths and webhooks) declares who may call it. AccessPolicy transcribes the
+  # paths from this extension; webhooks are outbound and are marked `open`. `peer` is the
+  # federation peer credential (fsp_, prompts 113, 132, 134), a scope the spec already uses.
+  rule/operation-foresignal-scope:
+    subject:
+      type: Operation
+      property: x-foresignal-scope
+    assertions:
+      defined: true
+      enum:
+        - open
+        - read
+        - agent
+        - admin
+        - peer
+    message: Every operation needs x-foresignal-scope (open, read, agent, admin or peer).
+    severity: error

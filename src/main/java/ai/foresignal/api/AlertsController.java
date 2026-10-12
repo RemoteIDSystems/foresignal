@@ -28,6 +28,8 @@ import ai.foresignal.trigger.AlertState;
 import ai.foresignal.trigger.AlertView;
 import ai.foresignal.trigger.Feedback;
 import ai.foresignal.trigger.Severity;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.time.Instant;
@@ -63,6 +65,7 @@ import tools.jackson.databind.JsonNode;
  * lists and streams and are {@code 404} by id. An alert id that is not a number is not found.
  */
 @RestController
+@Tag(name = "Alerts")
 @RequestMapping("/v1/alerts")
 public class AlertsController {
 
@@ -103,6 +106,7 @@ public class AlertsController {
 
     /** {@code listAlerts}: newest first, keyset on id. */
     @GetMapping
+    @Operation(operationId = "listAlerts", tags = "Alerts")
     public Map<String, Object> listAlerts(
             @RequestParam(required = false) String ruleId,
             @RequestParam(required = false) List<String> source,
@@ -149,6 +153,7 @@ public class AlertsController {
 
     /** {@code getAlert}: with {@code record} loaded by seq while the version is retained. */
     @GetMapping("/{alertId}")
+    @Operation(operationId = "getAlert", tags = "Alerts")
     public Map<String, Object> getAlert(@PathVariable String alertId, HttpServletRequest request) {
         AlertView alert = visible(alertId, request);
         RecordRow row = queries.versionsBySeq(List.of(alert.seq())).get(alert.seq());
@@ -158,6 +163,7 @@ public class AlertsController {
 
     /** {@code acknowledgeAlert}: optional note and feedback; idempotent; a no-op on resolved alerts. */
     @PostMapping("/{alertId}/ack")
+    @Operation(operationId = "acknowledgeAlert", tags = "Alerts")
     public Map<String, Object> acknowledgeAlert(
             @PathVariable String alertId, @RequestBody(required = false) JsonNode body, HttpServletRequest request) {
         AlertService.Transition transition = AlertService.transition(body, false);
@@ -166,6 +172,7 @@ public class AlertsController {
 
     /** {@code resolveAlert}: optional note and feedback; idempotent on a resolved alert. */
     @PostMapping("/{alertId}/resolve")
+    @Operation(operationId = "resolveAlert", tags = "Alerts")
     public Map<String, Object> resolveAlert(
             @PathVariable String alertId, @RequestBody(required = false) JsonNode body, HttpServletRequest request) {
         AlertService.Transition transition = AlertService.transition(body, false);
@@ -174,18 +181,21 @@ public class AlertsController {
 
     /** {@code snoozeAlert}: {@code until} or {@code for}. */
     @PostMapping("/{alertId}/snooze")
+    @Operation(operationId = "snoozeAlert", tags = "Alerts")
     public Map<String, Object> snoozeAlert(@PathVariable String alertId, @RequestBody JsonNode body) {
         return mapper.alert(alerts.snooze(id(alertId), body), null);
     }
 
     /** {@code unsnoozeAlert}: idempotent. */
     @DeleteMapping("/{alertId}/snooze")
+    @Operation(operationId = "unsnoozeAlert", tags = "Alerts")
     public Map<String, Object> unsnoozeAlert(@PathVariable String alertId) {
         return mapper.alert(alerts.unsnooze(id(alertId)), null);
     }
 
     /** {@code setAlertFeedback}: in any state. */
     @PutMapping("/{alertId}/feedback")
+    @Operation(operationId = "setAlertFeedback", tags = "Alerts")
     public Map<String, Object> setAlertFeedback(@PathVariable String alertId, @RequestBody(required = false) JsonNode body) {
         AlertService.Transition transition = AlertService.transition(body, true);
         return mapper.alert(alerts.setFeedback(id(alertId), transition), null);
@@ -193,6 +203,7 @@ public class AlertsController {
 
     /** {@code streamAlerts}: SSE with {@code id:} = alert rev. */
     @GetMapping("/stream")
+    @Operation(operationId = "streamAlerts", tags = "Alerts")
     public SseEmitter streamAlerts(
             @RequestHeader(value = StreamController.LAST_EVENT_ID, required = false) String lastEventId,
             HttpServletRequest request,

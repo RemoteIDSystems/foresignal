@@ -2,6 +2,8 @@ package ai.foresignal.api;
 
 import ai.foresignal.security.AdminTokenService;
 import ai.foresignal.system.SystemInfoService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Map;
 import org.springframework.http.HttpHeaders;
@@ -19,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
  * treated as anonymous rather than rejected, because the endpoint is open.
  */
 @RestController
+@Tag(name = "System")
 public class SystemController {
 
     private static final String BEARER = "Bearer ";
@@ -34,12 +37,14 @@ public class SystemController {
 
     /** {@code getSystem}. */
     @GetMapping("/v1/system")
+    @Operation(operationId = "getSystem", tags = "System")
     public Map<String, Object> getSystem(HttpServletRequest request) {
         return system.build(hasValidToken(request));
     }
 
     /** {@code rotateAdminToken}: the new token, shown once; the old one stops working immediately. */
     @PostMapping("/v1/system/admin-token/rotate")
+    @Operation(operationId = "rotateAdminToken", tags = "System")
     public Map<String, String> rotateAdminToken() {
         return Map.of("token", adminTokens.rotate());
     }

@@ -410,6 +410,19 @@ Free-text `q` matches `ILIKE` on a generated text column of selected payload fie
 - **CORS:** allowed origins come from `app_setting.cors` (default `*` for GET/HEAD/OPTIONS; writes require an explicit origin list).
 - **The spec is authored, not generated.** `docs/OpenAPI.json` is copied onto the classpath at build time and served verbatim at `/v1/openapi.json`; Swagger UI at `/docs` points to it. springdoc generates a spec from the code at the internal path `/v1/openapi-generated.json`, which exists only so a contract test can assert the implementation matches the authored spec (same paths, methods and operationIds). See §12.
 
+### 10.1 API evolution
+
+`/v1` is **additive only** (NFR-10). Prompt 020 wrote these rules down; `OpenApiContractIT`, `SpecAnnotationsTest`, `PostmanCollectionContractTest` and `./gradlew lintOpenApi` enforce the parts a machine can check.
+
+- **Allowed in `/v1`:** new operations, new optional request fields, new response fields, new enum values, new error codes and new SSE event types.
+- **Clients must be tolerant:** they ignore unknown fields, unknown enum values and unknown SSE event names. The generated SDKs (prompt 141) must be configured to do the same, for example without strict enum deserialization.
+- **Never in `/v1`:** removing or renaming a field, changing a field's type, tightening the validation of an existing field, or adding a required request field. Such a change goes to `/v2`.
+- **Deprecation:** mark the operation or field `deprecated: true` in the spec, and send the `Deprecation` (RFC 9745) and `Sunset` (RFC 8594) response headers. It stays for at least one minor release before it is removed in `/v2`.
+- **Every spec change** regenerates Postman (`./gradlew generatePostman`), passes `./gradlew lintOpenApi`, is recorded in `info.x-foresignal-changelog`, and bumps `info.version` by a minor version when it adds to the API. After v1.0.0, prompt 144 adds oasdiff breaking-change checks in CI.
+- **Every operation** carries `x-foresignal-scope` (`open`, `read`, `agent`, `admin` or `peer`), `x-foresignal-prompt` and `x-foresignal-status`. An operation stays on `src/test/resources/openapi/pending-operations.txt` until it is implemented.
+- **Error codes** are stable identifiers in `ErrorCodes`; a code is never reused for a different condition.
+- **Events:** SSE payloads are described in the spec, and each SSE operation maps its `event:` names to schemas in `x-foresignal-sse-events`. Outbound requests (the notification webhook, the watchdog ping) are described in the top-level `webhooks` object.
+
 ## 11. Retention
 
 `RetentionJob` runs every hour (and on demand via `POST /v1/settings/retention/run`):

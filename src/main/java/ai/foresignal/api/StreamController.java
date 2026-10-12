@@ -17,6 +17,8 @@ import ai.foresignal.stream.sse.StreamFilter;
 import ai.foresignal.stream.sse.StreamPrincipal;
 import ai.foresignal.stream.sse.StreamPrincipalResolver;
 import ai.foresignal.stream.sse.TopicParams;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.util.ArrayList;
@@ -54,6 +56,7 @@ import tools.jackson.databind.JsonNode;
  * <p>Needs the {@code read} scope, open while {@code security.openReads} is on.
  */
 @RestController
+@Tag(name = "Events")
 public class StreamController {
 
     /** Header naming the anonymous stream key on a PATCH. */
@@ -77,6 +80,7 @@ public class StreamController {
 
     /** {@code streamChanges}. */
     @GetMapping("/v1/changes/stream")
+    @Operation(operationId = "streamChanges", tags = "Changes")
     public SseEmitter streamChanges(
             @RequestHeader(value = LAST_EVENT_ID, required = false) String lastEventId,
             @RequestParam(required = false) String after,
@@ -95,6 +99,7 @@ public class StreamController {
 
     /** {@code streamEvents}. */
     @GetMapping("/v1/events/stream")
+    @Operation(operationId = "streamEvents", tags = "Events")
     public SseEmitter streamEvents(
             @RequestHeader(value = LAST_EVENT_ID, required = false) String lastEventIdHeader,
             @RequestParam(required = false) List<String> topics,
@@ -127,6 +132,7 @@ public class StreamController {
 
     /** {@code updateEventStreamFilter}. */
     @PatchMapping(value = "/v1/events/stream/{streamId}/filter", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(operationId = "updateEventStreamFilter", tags = "Events")
     public ResponseEntity<JsonNode> updateEventStreamFilter(
             @PathVariable String streamId,
             @RequestHeader(value = STREAM_KEY_HEADER, required = false) String streamKey,

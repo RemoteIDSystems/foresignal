@@ -35,6 +35,8 @@ public class AccessPolicy {
             List.of(
                     "/v1/openapi.json",
                     "/v1/openapi-generated.json",
+                    // springdoc's swagger-config, fetched by Swagger UI at /docs (020).
+                    "/v1/openapi-generated.json/**",
                     "/docs",
                     "/docs/**",
                     "/swagger-ui/**",

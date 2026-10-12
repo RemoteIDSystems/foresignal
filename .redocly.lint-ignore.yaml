@@ -1,0 +1,12 @@
+# Lint findings that are deliberate (prompt 020). Each entry says why; never add one to silence a
+# real defect.
+#
+# TAXII 2.1 (OASIS) endpoint URLs end with a slash, as the spec's TAXII operations document, so
+# these paths keep their trailing slash (prompt 111).
+docs/OpenAPI.json:
+  no-path-trailing-slash:
+    - '#/paths/~1taxii2~1'
+    - '#/paths/~1taxii2~1foresignal~1'
+    - '#/paths/~1taxii2~1foresignal~1collections~1'
+    - '#/paths/~1taxii2~1foresignal~1collections~1{collectionId}~1'
+    - '#/paths/~1taxii2~1foresignal~1collections~1{collectionId}~1objects~1'

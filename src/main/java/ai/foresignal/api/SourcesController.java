@@ -29,6 +29,8 @@ import ai.foresignal.source.spi.SourceDescriptor;
 import ai.foresignal.store.FetchStatus;
 import ai.foresignal.store.FetchTrigger;
 import ai.foresignal.store.query.FetchLogQuery;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.time.Clock;
 import java.time.Duration;
@@ -76,6 +78,7 @@ import org.springframework.web.bind.annotation.RestController;
  * <p>Credential values are accepted by {@code setSourceCredentials} and appear in no response.
  */
 @RestController
+@Tag(name = "Sources")
 @RequestMapping("/v1/sources")
 public class SourcesController {
 
@@ -119,6 +122,7 @@ public class SourcesController {
 
     /** {@code listSources}: every source, sorted by id. */
     @GetMapping
+    @Operation(operationId = "listSources", tags = "Sources")
     public List<SourceSummary> listSources() {
         return sources.list().stream()
                 .sorted(Comparator.comparing(SourceView::id))
@@ -131,6 +135,7 @@ public class SourcesController {
      * comma-separated). Mapped as a literal path, which Spring prefers over {@code /{sourceId}}.
      */
     @GetMapping("/health")
+    @Operation(operationId = "listSourceHealth", tags = "Sources")
     public List<SourceHealthDto> listSourceHealth(@RequestParam(name = "status", required = false) List<String> status) {
         Set<HealthStatus> wanted = parseAll(status, "status", HealthStatus.class, HealthStatus::fromValue);
         Optional<Set<HealthStatus>> filter = wanted.isEmpty() ? Optional.empty() : Optional.of(wanted);
@@ -142,6 +147,7 @@ public class SourcesController {
 
     /** {@code getSource}: descriptor, settings and health; 404 for an unknown id. */
     @GetMapping("/{sourceId}")
+    @Operation(operationId = "getSource", tags = "Sources")
     public SourceDetail getSource(@PathVariable String sourceId) {
         return detail(sourceId);
     }
@@ -154,6 +160,7 @@ public class SourcesController {
      * 409 {@code CREDENTIALS_REQUIRED}.
      */
     @PutMapping("/{sourceId}")
+    @Operation(operationId = "updateSource", tags = "Sources")
     public SourceDetail updateSource(
             @PathVariable String sourceId, @Valid @RequestBody SourceSettingsUpdate body) {
         SourceDescriptor descriptor = registry.descriptor(sourceId);
@@ -163,6 +170,7 @@ public class SourcesController {
 
     /** {@code setSourceCredentials}: stores credentials, encrypted; 204. */
     @PutMapping("/{sourceId}/credentials")
+    @Operation(operationId = "setSourceCredentials", tags = "Sources")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void setSourceCredentials(
             @PathVariable String sourceId, @Valid @RequestBody CredentialsUpdate body) {
@@ -171,6 +179,7 @@ public class SourcesController {
 
     /** {@code deleteSourceCredentials}: removes credentials (and disables a source needing them); 204. */
     @DeleteMapping("/{sourceId}/credentials")
+    @Operation(operationId = "deleteSourceCredentials", tags = "Sources")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteSourceCredentials(@PathVariable String sourceId) {
         sources.deleteCredentials(sourceId);
@@ -178,6 +187,7 @@ public class SourcesController {
 
     /** {@code fetchSourceNow}: one MANUAL fetch, ingested normally; 409 and 429 as in prompt 010. */
     @PostMapping("/{sourceId}/fetch")
+    @Operation(operationId = "fetchSourceNow", tags = "Sources")
     public FetchOutcomeDto fetchSourceNow(@PathVariable String sourceId) {
         return FetchOutcomeMapper.outcome(manualFetch.fetchNow(sourceId));
     }
@@ -188,6 +198,7 @@ public class SourcesController {
      * {@link ProbeService}.
      */
     @PostMapping("/{sourceId}/probe")
+    @Operation(operationId = "probeSource", tags = "Sources")
     public ProbeResultDto probeSource(
             @PathVariable String sourceId,
             @RequestParam(name = "maxBytes", required = false) Integer maxBytes,
@@ -197,6 +208,7 @@ public class SourcesController {
 
     /** {@code getSourceHealth}: health of one source. */
     @GetMapping("/{sourceId}/health")
+    @Operation(operationId = "getSourceHealth", tags = "Sources")
     public SourceHealthDto getSourceHealth(@PathVariable String sourceId) {
         return HealthMapper.health(health.health(sourceId));
     }
@@ -207,6 +219,7 @@ public class SourcesController {
      * resolution, or a {@code from} not before {@code to}, is 400.
      */
     @GetMapping("/{sourceId}/usage")
+    @Operation(operationId = "getSourceUsage", tags = "Sources")
     public UsageSeries getSourceUsage(
             @PathVariable String sourceId,
             @RequestParam(name = "from", required = false) String from,
@@ -233,6 +246,7 @@ public class SourcesController {
      * comma-separated.
      */
     @GetMapping("/{sourceId}/fetches")
+    @Operation(operationId = "listSourceFetches", tags = "Sources")
     public FetchPage listSourceFetches(
             @PathVariable String sourceId,
             @RequestParam(name = "after", required = false) Long after,

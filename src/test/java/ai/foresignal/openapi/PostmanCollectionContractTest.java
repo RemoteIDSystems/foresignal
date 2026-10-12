@@ -1,0 +1,324 @@
+package ai.foresignal.openapi;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import ai.foresignal.api.dto.CredentialsUpdate;
+import ai.foresignal.api.dto.SourceSettingsUpdate;
+import ai.foresignal.notify.ChannelInputParser;
+import ai.foresignal.notify.ChannelType;
+import ai.foresignal.notify.ChannelTypeRegistry;
+import ai.foresignal.notify.NotificationSettingsService;
+import ai.foresignal.notify.types.AppriseChannel;
+import ai.foresignal.notify.types.DiscordChannel;
+import ai.foresignal.notify.types.EmailChannel;
+import ai.foresignal.notify.types.GoogleChatChannel;
+import ai.foresignal.notify.types.GotifyChannel;
+import ai.foresignal.notify.types.HomeAssistantChannel;
+import ai.foresignal.notify.types.MatrixChannel;
+import ai.foresignal.notify.types.MattermostChannel;
+import ai.foresignal.notify.types.NtfyChannel;
+import ai.foresignal.notify.types.PushoverChannel;
+import ai.foresignal.notify.types.SlackChannel;
+import ai.foresignal.notify.types.TeamsChannel;
+import ai.foresignal.notify.types.TelegramChannel;
+import ai.foresignal.notify.types.WebhookChannel;
+import ai.foresignal.notify.types.ZulipChannel;
+import ai.foresignal.settings.CorsSettings;
+import ai.foresignal.settings.DurationShorthandModule;
+import ai.foresignal.settings.WatchdogSettingsService;
+import ai.foresignal.testsupport.openapi.OpenApiSpec;
+import ai.foresignal.testsupport.openapi.OpenApiSpec.SpecOperation;
+import ai.foresignal.testsupport.openapi.SpecSchemas;
+import ai.foresignal.trigger.AlertService;
+import ai.foresignal.trigger.Snoozes;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.Validation;
+import jakarta.validation.Validator;
+import jakarta.validation.ValidatorFactory;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Consumer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
+
+/**
+ * The generated Postman collection ({@code postman/Foresignal.postman_collection.json}) against the
+ * authored spec (prompt 020, Roadmap §6). Unit test, no Spring.
+ *
+ * <ul>
+ *   <li>Every route operation appears in some request description as {@code operationId: `<id>`}.
+ *       Webhooks are requests Foresignal sends, not ones it serves, so they are not in the
+ *       collection.
+ *   <li>Each request's auth follows the operation's {@code x-foresignal-scope}.
+ *   <li>Every example body of an implemented operation conforms to its spec request schema and
+ *       passes the implemented validation: Jackson plus Bean Validation for typed DTOs, or the
+ *       operation's own body parser. Operations whose validation needs the database (trigger rules,
+ *       retention, settings import, event-stream filters) are checked against the schema only; their
+ *       controller ITs exercise the rest. Pending operations are skipped until their DTO exists.
+ * </ul>
+ */
+class PostmanCollectionContractTest {
+
+    private static final Pattern OPERATION_ID = Pattern.compile("operationId: `([^`]+)`");
+
+    /** The moment the snooze examples are judged at; relative examples ({@code for}) never expire. */
+    private static final Instant NOW = Instant.parse("2026-10-11T00:00:00Z");
+
+    /** The production mapper's relevant configuration, strict about unknown members. */
+    private static final JsonMapper DTO_JSON = JsonMapper.builder()
+            .addModule(new DurationShorthandModule())
+            .enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+            .build();
+
+    private static final List<ChannelType> CHANNEL_TYPES = List.of(new AppriseChannel(), new DiscordChannel(),
+            new EmailChannel(), new GoogleChatChannel(), new GotifyChannel(), new HomeAssistantChannel(),
+            new MatrixChannel(), new MattermostChannel(), new NtfyChannel(), new PushoverChannel(), new SlackChannel(),
+            new TeamsChannel(), new TelegramChannel(), new WebhookChannel(), new ZulipChannel());
+
+    private static ValidatorFactory validatorFactory;
+    private static Validator validator;
+
+    private final JsonNode collection = OpenApiSpec.readJson(OpenApiSpec.POSTMAN);
+    private final List<Request> requests = requests(collection);
+
+    /**
+     * Implemented validation per operation, beyond the spec schema. Each entry throws (or fails an
+     * assertion) when the body would be rejected.
+     */
+    private final Map<String, Consumer<JsonNode>> validators = Map.ofEntries(
+            Map.entry("updateSource", body -> bean(body, SourceSettingsUpdate.class)),
+            Map.entry("setSourceCredentials", body -> bean(body, CredentialsUpdate.class)),
+            Map.entry("updateCors", body -> bean(body, CorsSettings.class)),
+            Map.entry("updateNotificationSettings", NotificationSettingsService::parse),
+            Map.entry("updateWatchdogSettings", WatchdogSettingsService::parse),
+            Map.entry("acknowledgeAlert", body -> AlertService.transition(body, false)),
+            Map.entry("resolveAlert", body -> AlertService.transition(body, false)),
+            Map.entry("setAlertFeedback", body -> AlertService.transition(body, true)),
+            Map.entry("snoozeAlert", body -> Snoozes.expiry(body, NOW, null)),
+            Map.entry("snoozeTrigger", body -> Snoozes.expiry(body, NOW, Snoozes.MAX_RULE_SNOOZE)),
+            Map.entry("createChannel", body -> channelParser().parse(body, null)),
+            Map.entry("updateChannel", body -> channelParser().parse(body, Map.of())));
+
+    @BeforeAll
+    static void startValidation() {
+        validatorFactory = Validation.buildDefaultValidatorFactory();
+        validator = validatorFactory.getValidator();
+    }
+
+    @AfterAll
+    static void stopValidation() {
+        validatorFactory.close();
+    }
+
+    /**
+     * One request of the collection.
+     *
+     * @param name the item name
+     * @param operationId the operation it calls
+     * @param request the Postman request object
+     */
+    record Request(String name, String operationId, JsonNode request) {
+
+        /** The auth type: {@code bearer} or {@code noauth}. */
+        String authType() {
+            JsonNode auth = request.get("auth");
+            return auth == null ? null : auth.get("type").asString();
+        }
+
+        /** The bearer token value, or null. */
+        String bearerToken() {
+            JsonNode auth = request.get("auth");
+            if (auth == null || auth.get("bearer") == null) {
+                return null;
+            }
+            for (JsonNode entry : auth.get("bearer")) {
+                if ("token".equals(entry.get("key").asString())) {
+                    return entry.get("value").asString();
+                }
+            }
+            return null;
+        }
+
+        /** The value of header {@code name}, or null. */
+        String header(String name) {
+            for (JsonNode header : request.path("header")) {
+                if (name.equalsIgnoreCase(header.get("key").asString())) {
+                    return header.get("value").asString();
+                }
+            }
+            return null;
+        }
+
+        /** The raw JSON body, or null. */
+        JsonNode body() {
+            JsonNode body = request.get("body");
+            return body == null ? null : OpenApiSpec.JSON.readTree(body.get("raw").asString());
+        }
+    }
+
+    @Test
+    @DisplayName("every route operation of the spec appears in the collection as operationId: `<id>`")
+    void everyOperationIsInTheCollection() {
+        Set<String> inCollection = new LinkedHashSet<>();
+        requests.forEach(r -> inCollection.add(r.operationId()));
+        List<String> missing = OpenApiSpec.routes().stream()
+                .map(SpecOperation::operationId)
+                .filter(id -> !inCollection.contains(id))
+                .toList();
+
+        assertThat(missing).as("operations missing from the Postman collection (run ./gradlew generatePostman)").isEmpty();
+    }
+
+    @Test
+    @DisplayName("every request names an operation that exists in the spec")
+    void noRequestForAnUnknownOperation() {
+        Set<String> ids = new LinkedHashSet<>();
+        OpenApiSpec.routes().forEach(op -> ids.add(op.operationId()));
+        List<String> unknown = requests.stream().map(Request::operationId).filter(id -> !ids.contains(id)).toList();
+
+        assertThat(unknown).isEmpty();
+    }
+
+    @Test
+    @DisplayName("auth follows x-foresignal-scope: admin and agent bearer tokens, the ingest key header, no auth otherwise")
+    void authFollowsScope() {
+        Map<String, SpecOperation> byId = operationsById();
+        List<String> problems = new ArrayList<>();
+        for (Request request : requests) {
+            SpecOperation op = byId.get(request.operationId());
+            if (op == null) {
+                continue;
+            }
+            String expected = switch (op.scope()) {
+                case "admin" -> "bearer {{adminToken}}";
+                case "agent" -> "bearer {{agentToken}}";
+                default -> "noauth";
+            };
+            if ("ingestRecords".equals(op.operationId())) {
+                expected = "noauth";
+                if (!"{{ingestKey}}".equals(request.header("X-Foresignal-Ingest-Key"))) {
+                    problems.add(request.name() + ": ingestRecords needs X-Foresignal-Ingest-Key: {{ingestKey}}");
+                }
+            }
+            String actual = "bearer".equals(request.authType())
+                    ? "bearer " + request.bearerToken()
+                    : String.valueOf(request.authType());
+            if (!expected.equals(actual)) {
+                problems.add(request.name() + " (" + op.operationId() + ", scope " + op.scope() + "): expected "
+                        + expected + ", got " + actual);
+            }
+        }
+        assertThat(problems).isEmpty();
+    }
+
+    @Test
+    @DisplayName("every example body of an implemented operation conforms to its request schema and passes validation")
+    void bodiesAreValid() {
+        Map<String, SpecOperation> byId = operationsById();
+        Set<String> pending = OpenApiSpec.pending().keySet();
+        SpecSchemas schemas = new SpecSchemas();
+        List<String> problems = new ArrayList<>();
+        int checked = 0;
+        for (Request request : requests) {
+            SpecOperation op = byId.get(request.operationId());
+            JsonNode body = request.body();
+            if (op == null || body == null || pending.contains(op.operationId()) || !op.implemented()) {
+                continue;
+            }
+            JsonNode schema = op.node().path("requestBody").path("content").path("application/json").get("schema");
+            if (schema == null) {
+                continue;
+            }
+            checked++;
+            for (String error : schemas.validateInline(schema, body)) {
+                problems.add(request.name() + " (" + op.operationId() + ") schema: " + error);
+            }
+            Consumer<JsonNode> check = validators.get(op.operationId());
+            if (check != null) {
+                try {
+                    check.accept(body);
+                } catch (RuntimeException | AssertionError e) {
+                    problems.add(request.name() + " (" + op.operationId() + ") validation: " + e);
+                }
+            }
+        }
+        assertThat(checked).as("implemented bodies checked").isPositive();
+        assertThat(problems).isEmpty();
+    }
+
+    @Test
+    @DisplayName("every implemented operation with a typed or parsed body has an implemented-validation entry or is schema-only by design")
+    void validatorTableCoversTheParsedBodies() {
+        Set<String> schemaOnly = Set.of("createTrigger", "updateTrigger", "updateRetention", "importSettings",
+                "updateEventStreamFilter");
+        List<String> uncovered = OpenApiSpec.routes().stream()
+                .filter(SpecOperation::implemented)
+                .filter(op -> op.node().has("requestBody"))
+                .map(SpecOperation::operationId)
+                .filter(id -> !validators.containsKey(id) && !schemaOnly.contains(id))
+                .toList();
+
+        assertThat(uncovered).as("add a validator entry or justify schema-only").isEmpty();
+    }
+
+    @Test
+    @DisplayName("a body the implementation rejects is reported, so a pass means something")
+    void rejectedBodyIsDetected() {
+        assertThatThrownBy(() -> validators.get("setAlertFeedback").accept(OpenApiSpec.JSON.readTree("{}")))
+                .isInstanceOf(RuntimeException.class);
+        assertThatThrownBy(() -> bean(OpenApiSpec.JSON.readTree("{\"budget\":{\"perMinute\":-1,\"perDay\":5}}"),
+                SourceSettingsUpdate.class)).isInstanceOf(AssertionError.class);
+    }
+
+    // ------------------------------------------------------------------------- helpers
+
+    private static Map<String, SpecOperation> operationsById() {
+        Map<String, SpecOperation> out = new HashMap<>();
+        OpenApiSpec.routes().forEach(op -> out.put(op.operationId(), op));
+        return out;
+    }
+
+    private static ChannelInputParser channelParser() {
+        return new ChannelInputParser(new ChannelTypeRegistry(CHANNEL_TYPES), DTO_JSON);
+    }
+
+    /** Deserializes {@code body} into {@code type} and runs Bean Validation on it. */
+    private static <T> void bean(JsonNode body, Class<T> type) {
+        T value = DTO_JSON.treeToValue(body, type);
+        Set<ConstraintViolation<T>> violations = validator.validate(value);
+        assertThat(violations).as(type.getSimpleName()).isEmpty();
+    }
+
+    /** Every request item, recursively through folders. */
+    private static List<Request> requests(JsonNode collection) {
+        List<Request> out = new ArrayList<>();
+        collect(collection.get("item"), out);
+        return out;
+    }
+
+    private static void collect(JsonNode items, List<Request> out) {
+        for (JsonNode item : items) {
+            if (item.has("item")) {
+                collect(item.get("item"), out);
+                continue;
+            }
+            JsonNode request = item.get("request");
+            Matcher m = OPERATION_ID.matcher(request.path("description").asString());
+            assertThat(m.find()).as("request " + item.get("name") + " names its operationId").isTrue();
+            out.add(new Request(item.get("name").asString(), m.group(1), request));
+        }
+    }
+}

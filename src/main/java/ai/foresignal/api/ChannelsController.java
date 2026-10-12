@@ -9,6 +9,8 @@ import ai.foresignal.notify.ChannelService;
 import ai.foresignal.store.DeliveryStatus;
 import ai.foresignal.store.NotificationDeliveryEntity;
 import ai.foresignal.store.NotificationDeliveryRepository;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -36,6 +38,7 @@ import tools.jackson.databind.JsonNode;
  * ({@code /v1/channels/**} in {@code AccessPolicy}); responses never include secret values.
  */
 @RestController
+@Tag(name = "Channels")
 @RequestMapping("/v1/channels")
 public class ChannelsController {
 
@@ -58,18 +61,21 @@ public class ChannelsController {
 
     /** {@code listChannelTypes}. */
     @GetMapping("/types")
+    @Operation(operationId = "listChannelTypes", tags = "Channels")
     public List<Map<String, Object>> listChannelTypes() {
         return channels.types().stream().map(mapper::type).toList();
     }
 
     /** {@code listChannels}: oldest first. */
     @GetMapping
+    @Operation(operationId = "listChannels", tags = "Channels")
     public List<Map<String, Object>> listChannels() {
         return channels.list().stream().map(mapper::channel).toList();
     }
 
     /** {@code createChannel}: 201 with {@code Location}. */
     @PostMapping
+    @Operation(operationId = "createChannel", tags = "Channels")
     public ResponseEntity<Map<String, Object>> createChannel(@RequestBody JsonNode body) {
         ChannelService.View view = channels.create(body);
         return ResponseEntity.created(URI.create("/v1/channels/" + view.channel().id())).body(mapper.channel(view));
@@ -77,18 +83,21 @@ public class ChannelsController {
 
     /** {@code getChannel}. */
     @GetMapping("/{channelId}")
+    @Operation(operationId = "getChannel", tags = "Channels")
     public Map<String, Object> getChannel(@PathVariable String channelId) {
         return mapper.channel(channels.get(id(channelId)));
     }
 
     /** {@code updateChannel}: a full replace; omitted {@code secrets} keep the stored ones. */
     @PutMapping("/{channelId}")
+    @Operation(operationId = "updateChannel", tags = "Channels")
     public Map<String, Object> updateChannel(@PathVariable String channelId, @RequestBody JsonNode body) {
         return mapper.channel(channels.replace(id(channelId), body));
     }
 
     /** {@code deleteChannel}: 204; pending deliveries fail with "channel deleted". */
     @DeleteMapping("/{channelId}")
+    @Operation(operationId = "deleteChannel", tags = "Channels")
     public ResponseEntity<Void> deleteChannel(@PathVariable String channelId) {
         channels.delete(id(channelId));
         return ResponseEntity.noContent().build();
@@ -96,6 +105,7 @@ public class ChannelsController {
 
     /** {@code testChannel}: synchronous; persists nothing. */
     @PostMapping("/{channelId}/test")
+    @Operation(operationId = "testChannel", tags = "Channels")
     public Map<String, Object> testChannel(@PathVariable String channelId) {
         ChannelService.TestResult result = channels.test(id(channelId));
         Map<String, Object> out = new LinkedHashMap<>();
@@ -108,6 +118,7 @@ public class ChannelsController {
 
     /** {@code listChannelDeliveries}: newest first, keyset on id, optional {@code status}. */
     @GetMapping("/{channelId}/deliveries")
+    @Operation(operationId = "listChannelDeliveries", tags = "Channels")
     public Map<String, Object> listChannelDeliveries(
             @PathVariable String channelId,
             @RequestParam(required = false) String status,

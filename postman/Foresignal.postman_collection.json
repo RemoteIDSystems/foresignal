@@ -2293,7 +2293,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"note\": \"Looking into it\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2413,7 +2413,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"until\": \"2026-10-12T06:00:00Z\"\n}",
+              "raw": "{\n  \"for\": \"8h\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
