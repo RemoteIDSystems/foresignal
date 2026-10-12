@@ -28,6 +28,11 @@ public interface ForesignalMcpResource {
         return Scope.READ;
     }
 
+    /** True when it always needs a token, even while {@code openReads} is on (prompt 036: places). */
+    default boolean alwaysAuthenticated() {
+        return false;
+    }
+
     /** The resource's current text, as {@code context}'s caller may see it. */
     String read(ToolContext context);
 }

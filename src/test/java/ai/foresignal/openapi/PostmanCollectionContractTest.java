@@ -133,6 +133,11 @@ class PostmanCollectionContractTest {
             Map.entry("updateOutboundSettings", ai.foresignal.settings.OutboundSettingsService::parse),
             // 035: the per-class rate limits.
             Map.entry("updateRateLimits", ai.foresignal.security.ratelimit.RateLimitSettingsService::parse),
+            // 036: watchlists and their items (validated per identity: icao24 here).
+            Map.entry("createWatchlist", body -> ai.foresignal.watch.WatchlistService.parse(body, null)),
+            Map.entry("updateWatchlist", body -> ai.foresignal.watch.WatchlistService.parse(body, null)),
+            Map.entry("addWatchlistItems", body -> assertThat(ai.foresignal.watch.WatchlistService
+                    .parseJsonItems(icao24List(), body.get("items")).invalid()).as("invalid items").isEmpty()),
             Map.entry("updateCurrentTokenDevice", body -> device(body, "")),
             Map.entry("claimPairingCode", body -> {
                 device(body.get("device"), "device.");
@@ -340,9 +345,12 @@ class PostmanCollectionContractTest {
         // 033: executeAction's body is empty (a form post or {}); nothing in it is read.
         // 035: createFeedKey validates its restriction and prefixes against the registered sources and
         // the spec operations, which need the application context; PathKeyFilterIT covers it.
+        // 036: places derive their area with PostGIS and views check sources and places, so both need the
+        // database (PlacesIT, SavedViewsIT); importWatchlist's example is a CSV text body (WatchlistsIT).
         Set<String> schemaOnly = Set.of("createTrigger", "updateTrigger", "updateRetention", "importSettings",
                 "updateEventStreamFilter", "createToken", "createPairingCode", "ntfyPublish", "ntfyPublishPut",
-                "createRegistrationToken", "putPushProvider", "testPushProvider", "executeAction", "createFeedKey");
+                "createRegistrationToken", "putPushProvider", "testPushProvider", "executeAction", "createFeedKey",
+                "createPlace", "updatePlace", "createView", "updateView", "importWatchlist");
         List<String> uncovered = OpenApiSpec.routes().stream()
                 .filter(SpecOperation::implemented)
                 .filter(op -> op.node().has("requestBody"))
@@ -385,6 +393,14 @@ class PostmanCollectionContractTest {
     private static ChannelInputParser channelParser() {
         return new ChannelInputParser(new ChannelTypeRegistry(CHANNEL_TYPES), DTO_JSON,
                 ai.foresignal.testsupport.net.TestOutbound.offlinePolicy());
+    }
+
+    /** An icao24 watchlist with the default normalization, for item validation (036). */
+    private static ai.foresignal.watch.WatchListEntity icao24List() {
+        ai.foresignal.watch.WatchListEntity list = new ai.foresignal.watch.WatchListEntity(UUID.randomUUID());
+        list.setIdentity("icao24");
+        list.setNormalize("upper");
+        return list;
     }
 
     /** Parses a {@code DeviceInfo} with the production parser and fails on any error. */

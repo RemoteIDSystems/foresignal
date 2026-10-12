@@ -29,6 +29,18 @@ import tools.jackson.databind.json.JsonMapper;
  *
  * <p>{@link RestrictionClamp} is the one place that turns a restriction into query predicates and
  * in-memory tests; nothing else interprets these members.
+ *
+ * <p>Prompt 036 adds two members that are never stored with a token:
+ *
+ * <ul>
+ *   <li>{@link #filter()}: a request-scoped {@link RecordFilter} ({@code place=}, {@code view=},
+ *       {@code inWatchlist=}) intersected with everything else ({@link #withFilter});
+ *   <li>{@link #excludeSensitive()}: sensitive alerts (from rules referencing a watchlist) are hidden,
+ *       set for anonymous callers and feed keys.
+ * </ul>
+ *
+ * <p>A stored restriction's {@code placeIds} are resolved into {@link #area()} by {@link #of}
+ * through {@link PlaceAreas}.
  */
 public final class ReadRestriction {
 
@@ -50,6 +62,8 @@ public final class ReadRestriction {
     private final Integer maxRequestsPerMinute;
     private final Geometry region;
     private final PreparedGeometry preparedRegion;
+    private final RecordFilter filter;
+    private final boolean excludeSensitive;
 
     /**
      * A restriction.
@@ -65,6 +79,14 @@ public final class ReadRestriction {
      */
     public ReadRestriction(Collection<String> sources, Collection<String> kinds, List<Double> bbox, Geometry area,
             List<String> endpoints, boolean excludePrivate, Integer maxRequestsPerMinute) {
+        this(sources, kinds, bbox, area, endpoints, excludePrivate, maxRequestsPerMinute, null, false);
+    }
+
+    private ReadRestriction(Collection<String> sources, Collection<String> kinds, List<Double> bbox, Geometry area,
+            List<String> endpoints, boolean excludePrivate, Integer maxRequestsPerMinute, RecordFilter filter,
+            boolean excludeSensitive) {
+        this.filter = filter;
+        this.excludeSensitive = excludeSensitive;
         this.sources = sources == null ? null : Set.copyOf(new TreeSet<>(sources));
         this.kinds = kinds == null ? null : Set.copyOf(new TreeSet<>(kinds));
         this.bbox = bbox == null ? null : List.copyOf(bbox);
@@ -85,7 +107,18 @@ public final class ReadRestriction {
     public static ReadRestriction of(TokenRestrictions r, boolean defaultExcludePrivate) {
         TokenRestrictions t = TokenRestrictions.orNone(r);
         boolean exclude = t.excludePrivate() == null ? defaultExcludePrivate : t.excludePrivate();
-        return new ReadRestriction(t.sources(), t.kinds(), t.bbox(), area(t.area()), t.endpoints(), exclude,
+        Geometry area = area(t.area());
+        if (t.placeIds() != null) {
+            // Prompt 036: the places' areas bound the restriction; unknown places fail closed (empty).
+            Geometry places = PlaceAreas.resolve(t.placeIds());
+            if (area == null) {
+                area = places;
+            } else {
+                area = area.intersection(places);
+                area.setSRID(4326);
+            }
+        }
+        return new ReadRestriction(t.sources(), t.kinds(), t.bbox(), area, t.endpoints(), exclude,
                 t.maxRequestsPerMinute());
     }
 
@@ -191,9 +224,39 @@ public final class ReadRestriction {
         return region == null ? null : region.getEnvelopeInternal();
     }
 
-    /** True when a source, kind or spatial restriction narrows what is read. */
+    /** True when a source, kind, spatial or request filter narrows what is read. */
     public boolean hasDataRestrictions() {
-        return sources != null || kinds != null || region != null;
+        return sources != null || kinds != null || region != null || filter != null;
+    }
+
+    /** The request-scoped filter (prompt 036), or null. */
+    public RecordFilter filter() {
+        return filter;
+    }
+
+    /** True when sensitive alerts are hidden from this principal (anonymous callers and feed keys, 036). */
+    public boolean excludeSensitive() {
+        return excludeSensitive;
+    }
+
+    /**
+     * This restriction further narrowed by {@code value} (prompt 036): an existing filter and
+     * {@code value} must both pass. A null {@code value} returns this restriction.
+     */
+    public ReadRestriction withFilter(RecordFilter value) {
+        if (value == null) {
+            return this;
+        }
+        RecordFilter combined = filter == null ? value : RecordFilters.and(filter, value);
+        return new ReadRestriction(sources, kinds, bbox, area, endpoints, excludePrivate, maxRequestsPerMinute,
+                combined, excludeSensitive);
+    }
+
+    /** This restriction with {@code excludeSensitive} replaced (prompt 036). */
+    public ReadRestriction withExcludeSensitive(boolean value) {
+        return value == excludeSensitive ? this
+                : new ReadRestriction(sources, kinds, bbox, area, endpoints, excludePrivate, maxRequestsPerMinute,
+                        filter, value);
     }
 
     /** True when nothing at all is restricted, private exclusion included. */
@@ -235,12 +298,14 @@ public final class ReadRestriction {
     /** This restriction with {@code excludePrivate} replaced. */
     public ReadRestriction withExcludePrivate(boolean value) {
         return value == excludePrivate ? this
-                : new ReadRestriction(sources, kinds, bbox, area, endpoints, value, maxRequestsPerMinute);
+                : new ReadRestriction(sources, kinds, bbox, area, endpoints, value, maxRequestsPerMinute, filter,
+                        excludeSensitive);
     }
 
     /** This restriction with {@code endpoints} replaced. */
     public ReadRestriction withEndpoints(List<String> value) {
-        return new ReadRestriction(sources, kinds, bbox, area, value, excludePrivate, maxRequestsPerMinute);
+        return new ReadRestriction(sources, kinds, bbox, area, value, excludePrivate, maxRequestsPerMinute, filter,
+                excludeSensitive);
     }
 
     /**
@@ -256,6 +321,12 @@ public final class ReadRestriction {
         parts.add("k=" + (kinds == null ? "*" : String.join(",", new TreeSet<>(kinds))));
         parts.add("r=" + (region == null ? "*" : Integer.toHexString(region.toText().hashCode())));
         parts.add("p=" + excludePrivate);
+        if (filter != null) {
+            parts.add("f=" + Integer.toHexString(filter.canonical().hashCode()));
+        }
+        if (excludeSensitive) {
+            parts.add("x=true");
+        }
         return String.join(";", parts);
     }
 
@@ -268,6 +339,9 @@ public final class ReadRestriction {
             return false;
         }
         return excludePrivate == other.excludePrivate
+                && excludeSensitive == other.excludeSensitive
+                && Objects.equals(filter == null ? null : filter.canonical(),
+                        other.filter == null ? null : other.filter.canonical())
                 && Objects.equals(sources, other.sources)
                 && Objects.equals(kinds, other.kinds)
                 && Objects.equals(bbox, other.bbox)
@@ -279,7 +353,7 @@ public final class ReadRestriction {
     @Override
     public int hashCode() {
         return Objects.hash(sources, kinds, bbox, area == null ? null : area.toText(), endpoints, excludePrivate,
-                maxRequestsPerMinute);
+                maxRequestsPerMinute, filter == null ? null : filter.canonical(), excludeSensitive);
     }
 
     @Override

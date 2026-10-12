@@ -7,7 +7,7 @@ import java.util.Map;
 import tools.jackson.databind.JsonNode;
 
 /** Converts Jackson trees from request bodies into plain JSON-like Java values. */
-final class JsonTrees {
+public final class JsonTrees {
 
     private JsonTrees() {}
 
@@ -15,7 +15,7 @@ final class JsonTrees {
      * {@code node} as Java: objects as {@code LinkedHashMap}, arrays as {@code List}, numbers as
      * {@code BigDecimal}, strings, booleans, and null for JSON null or a missing node.
      */
-    static Object toJava(JsonNode node) {
+    public static Object toJava(JsonNode node) {
         if (node == null || node.isNull() || node.isMissingNode()) {
             return null;
         }
@@ -46,7 +46,7 @@ final class JsonTrees {
     }
 
     /** True when {@code body} has {@code field} with a value other than JSON null. */
-    static boolean present(JsonNode body, String field) {
+    public static boolean present(JsonNode body, String field) {
         JsonNode node = body.get(field);
         return node != null && !node.isNull() && !node.isMissingNode();
     }

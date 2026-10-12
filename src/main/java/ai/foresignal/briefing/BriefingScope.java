@@ -10,7 +10,8 @@ import java.util.UUID;
  * What a briefing covers (OpenAPI {@code BriefingScope}, prompt 029): sources, kinds, a bbox, trigger
  * rules for the alert section, and whether source health is included. Empty lists mean "all".
  *
- * <p>The spec's later members ({@code placeIds}, {@code viewId} from 036, {@code country},
+ * <p>Prompt 036 adds {@code placeIds} (the places' areas bound the scope and the digest heading names
+ * them) and {@code viewId} (a saved view's predicate). The spec's later members ({@code country},
  * {@code admin1}, {@code county} from 040, {@code places}, {@code weatherProducts} from 056) are not
  * part of this record yet; {@link BriefingValidator} refuses them when non-empty, and
  * {@link ScopeResolver} is the hook those prompts extend.
@@ -20,9 +21,17 @@ import java.util.UUID;
  * @param bbox {@code minLon,minLat,maxLon,maxLat}, or null
  * @param ruleIds trigger rules whose alerts the briefing reports; empty for all rules in scope
  * @param includeHealth whether the source health section is included (default true)
+ * @param placeIds places whose areas bound the scope (prompt 036); empty for none
+ * @param viewId a saved view id or slug (prompt 036), or null
  */
 public record BriefingScope(List<String> sources, List<String> kinds, String bbox, List<UUID> ruleIds,
-        boolean includeHealth) {
+        boolean includeHealth, List<String> placeIds, String viewId) {
+
+    /** A scope without places or a view. */
+    public BriefingScope(List<String> sources, List<String> kinds, String bbox, List<UUID> ruleIds,
+            boolean includeHealth) {
+        this(sources, kinds, bbox, ruleIds, includeHealth, List.of(), null);
+    }
 
     /** Copies the lists. */
     public BriefingScope {
@@ -30,6 +39,8 @@ public record BriefingScope(List<String> sources, List<String> kinds, String bbo
         kinds = kinds == null ? List.of() : List.copyOf(kinds);
         ruleIds = ruleIds == null ? List.of() : List.copyOf(ruleIds);
         bbox = bbox == null || bbox.isBlank() ? null : bbox.strip();
+        placeIds = placeIds == null ? List.of() : List.copyOf(placeIds);
+        viewId = viewId == null || viewId.isBlank() ? null : viewId.strip();
     }
 
     /** Everything, with health. */
@@ -45,6 +56,8 @@ public record BriefingScope(List<String> sources, List<String> kinds, String bbo
         out.put("bbox", bbox);
         out.put("ruleIds", ruleIds.stream().map(UUID::toString).toList());
         out.put("includeHealth", includeHealth);
+        out.put("placeIds", placeIds);
+        out.put("viewId", viewId);
         return out;
     }
 
@@ -63,8 +76,10 @@ public record BriefingScope(List<String> sources, List<String> kinds, String bbo
         }
         Object health = map.get("includeHealth");
         Object bbox = map.get("bbox");
+        Object view = map.get("viewId");
         return new BriefingScope(strings(map.get("sources")), strings(map.get("kinds")),
-                bbox == null ? null : bbox.toString(), rules, !(health instanceof Boolean b) || b);
+                bbox == null ? null : bbox.toString(), rules, !(health instanceof Boolean b) || b,
+                strings(map.get("placeIds")), view == null ? null : view.toString());
     }
 
     private static List<String> strings(Object value) {

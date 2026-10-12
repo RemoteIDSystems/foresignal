@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.locationtech.jts.geom.MultiPolygon;
+import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.io.WKBWriter;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
@@ -40,7 +41,15 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
  * scope, the entity) whose {@code observed_at} is within the cooldown of {@code v.observed_at};
  * {@link AlertPass} then applies the exact per-entity cooldown in seq order.
  *
- * <p>Operators come from the registry; every path and value is a bound parameter.
+ * <p>Operators come from the registry; every path and value is a bound parameter. Conditions are
+ * rendered by {@link RecordPredicate#conditionParts}, the renderer saved views share (prompt 036).
+ *
+ * <p><b>Moving anchors</b> (prompt 036): an anchored rule's spatial part is
+ * {@code x.geom && ST_Expand(:anchor, :dLon, :dLat) AND ST_DWithin(x.geom::geography,
+ * :anchor::geography, :m)} ({@code ST_Intersects(x.geom, :anchor)} with radius 0), where
+ * {@code :anchor} is the anchor's <em>current</em> position, used identically for {@code v} and
+ * {@code p}. Without a current position (a stale anchor) the predicate is {@code FALSE}, which
+ * suspends the rule.
  */
 public final class RuleSqlBuilder {
 
@@ -94,7 +103,17 @@ public final class RuleSqlBuilder {
      * @param cooldownSeed whether to add the cooldown {@code NOT EXISTS} (false for backtests)
      */
     public static RuleSql matches(RuleSpec rule, long fromSeq, long toSeq, Instant evalTime, boolean cooldownSeed) {
+        return matches(rule, fromSeq, toSeq, evalTime, cooldownSeed, null);
+    }
+
+    /**
+     * {@link #matches(RuleSpec, long, long, Instant, boolean)} for an anchored rule, with the anchor's
+     * current position ({@code null} suspends the rule: nothing matches).
+     */
+    public static RuleSql matches(RuleSpec rule, long fromSeq, long toSeq, Instant evalTime, boolean cooldownSeed,
+            Point anchor) {
         Params b = new Params();
+        b.anchor = anchor;
         List<String> where = baseWhere(rule, fromSeq, toSeq, b);
         if (rule.onlyNew()) {
             where.add("v.version = 1");
@@ -147,8 +166,14 @@ public final class RuleSqlBuilder {
      * tombstone}.
      */
     public static RuleSql inverse(RuleSpec rule, long fromSeq, long toSeq) {
+        return inverse(rule, fromSeq, toSeq, null);
+    }
+
+    /** {@link #inverse(RuleSpec, long, long)} for an anchored rule, with the anchor's current position. */
+    public static RuleSql inverse(RuleSpec rule, long fromSeq, long toSeq, Point anchor) {
         AutoResolve auto = rule.autoResolve();
         Params b = new Params();
+        b.anchor = anchor;
         List<String> where = baseWhere(rule, fromSeq, toSeq, b);
         FenceSide side = rule.hysteresis() ? FenceSide.OUTER : FenceSide.MAIN;
         where.add("NOT p.tombstone AND " + predicate(rule, "p", side, b)
@@ -197,12 +222,10 @@ public final class RuleSqlBuilder {
 
     /** {@code COALESCE(conditions AND fence, false)} for {@code alias}; {@code true} when empty. */
     static String predicate(RuleSpec rule, String alias, FenceSide side, Params b) {
-        List<String> parts = new ArrayList<>();
-        List<RuleCondition> conditions = rule.conditions();
-        for (int i = 0; i < conditions.size(); i++) {
-            RuleCondition condition = conditions.get(i);
-            Term term = new Term(i, alias, condition, b);
-            parts.add("(" + condition.operator().sql(term, condition.value()) + ")");
+        List<String> parts = new ArrayList<>(RecordPredicate.conditionParts(rule.conditions(), alias + ".source_id",
+                alias + ".payload", b.binder()));
+        if (rule.anchored()) {
+            parts.add(anchorClause(rule.anchor(), alias + ".geom", b));
         }
         MultiPolygon fence = switch (side) {
             case MAIN -> rule.fence();
@@ -231,47 +254,61 @@ public final class RuleSqlBuilder {
                 + " - make_interval(secs => CAST(:cooldown AS double precision)))";
     }
 
+    /**
+     * The anchor clause over {@code geom}: within the radius of the anchor's current position (or
+     * containing it, with radius 0); {@code FALSE} without a position.
+     */
+    static String anchorClause(NearAnchor anchor, String geom, Params b) {
+        if (b.anchor == null) {
+            return "FALSE";
+        }
+        b.put("anchor", new WKBWriter(2).write(b.anchor));
+        String point = "ST_GeomFromWKB(CAST(:anchor AS bytea), 4326)";
+        if (anchor.inside()) {
+            return "(" + geom + " IS NOT NULL AND ST_Intersects(" + geom + ", " + point + "))";
+        }
+        double meters = anchor.radiusMeters();
+        double[] degrees = expandDegrees(b.anchor.getY(), meters);
+        b.put("anchorDLon", degrees[0]);
+        b.put("anchorDLat", degrees[1]);
+        b.put("anchorM", meters);
+        return "(" + geom + " IS NOT NULL AND " + geom + " && ST_Expand(" + point
+                + ", CAST(:anchorDLon AS double precision), CAST(:anchorDLat AS double precision))"
+                + " AND ST_DWithin(" + geom + "::geography, " + point + "::geography, CAST(:anchorM AS double precision)))";
+    }
+
+    /**
+     * The degree prefilter of a radius around latitude {@code lat}: {@code [dLon, dLat]}, with
+     * {@code dLat = m / 111,320} and {@code dLon = m / 111,320 / cos(lat)}, padded by 1% and clamped
+     * to the globe.
+     */
+    public static double[] expandDegrees(double lat, double meters) {
+        double dLat = Math.min(180, meters / 111_320.0 * 1.01 + 1e-6);
+        double cos = Math.cos(Math.toRadians(Math.min(89.9, Math.abs(lat) + dLat)));
+        double dLon = cos <= 1e-6 ? 360 : Math.min(360, meters / 111_320.0 / cos * 1.01 + 1e-6);
+        return new double[] {dLon, dLat};
+    }
+
     /** The parameters of one statement; a name bound twice keeps its first value. */
     static final class Params {
 
         final MapSqlParameterSource source = new MapSqlParameterSource();
+
+        /** The anchor's current position for an anchored rule, or null. */
+        Point anchor;
 
         void put(String name, Object value) {
             if (!source.hasValue(name)) {
                 source.addValue(name, value);
             }
         }
-    }
 
-    /** The path expressions of condition {@code index} over {@code alias}. */
-    private record Term(int index, String alias, RuleCondition condition, Params b) implements SqlTerm {
-
-        private String pathParam() {
-            String name = "c" + index + "p";
-            b.put(name, PgArrays.text(condition.steps()));
-            return "CAST(:" + name + " AS text[])";
-        }
-
-        @Override
-        public String json() {
-            return alias + ".payload #> " + pathParam();
-        }
-
-        @Override
-        public String text() {
-            return alias + ".payload #>> " + pathParam();
-        }
-
-        @Override
-        public String typeof() {
-            return "jsonb_typeof(" + json() + ")";
-        }
-
-        @Override
-        public String bind(String suffix, Object value, String sqlType) {
-            String name = "c" + index + suffix;
-            b.put(name, value);
-            return "CAST(:" + name + " AS " + sqlType + ")";
+        /** Binds condition values under their own names ({@code c0p}, {@code c0v}). */
+        RecordPredicate.Binder binder() {
+            return (key, value, sqlType) -> {
+                put(key, value);
+                return "CAST(:" + key + " AS " + sqlType + ")";
+            };
         }
     }
 }

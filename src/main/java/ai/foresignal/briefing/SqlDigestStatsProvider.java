@@ -137,8 +137,9 @@ public class SqlDigestStatsProvider implements DigestStatsProvider {
             where.add("a.rule_id = ANY(CAST(" + p.add(uuidArray(filter.ruleIds())) + " AS uuid[]))");
         }
         scope(where, filter, "a.source_id", "a.kind", null, p);
+        // A view's conditions (prompt 036) are judged on the alert's record snapshot payload.
         RestrictionClamp.addTo(where, "a.source_id", "a.kind", RestrictionClamp.ALERT_GEOMETRY_SQL,
-                filter.restriction(), p);
+                "(a.record_snapshot -> 'payload')", filter.restriction(), p);
         if (filter.bbox() != null) {
             String geom = "(CASE WHEN jsonb_typeof(a.record_snapshot -> 'geometry') = 'object' THEN"
                     + " ST_SetSRID(ST_GeomFromGeoJSON((a.record_snapshot -> 'geometry')::text), 4326) END)";
@@ -209,7 +210,9 @@ public class SqlDigestStatsProvider implements DigestStatsProvider {
         }
         if (geomColumn != null) {
             // The caller's read restriction (prompt 035); alerts add theirs with the snapshot geometry.
-            RestrictionClamp.addTo(where, sourceColumn, kindColumn, geomColumn, filter.restriction(), p);
+            // A view's conditions (prompt 036) read the version's or the merged current payload.
+            String payload = "v.geom".equals(geomColumn) ? "v.payload" : "jsonb_strip_nulls(h.payload || l.kinematic)";
+            RestrictionClamp.addTo(where, sourceColumn, kindColumn, geomColumn, payload, filter.restriction(), p);
         }
     }
 

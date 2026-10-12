@@ -69,6 +69,14 @@ public class TileJsonMapper {
 
     /** {@code GET /v1/tiles/{layer}.json}: the TileJSON 3.0.0 document of one layer. */
     public Map<String, Object> tileJson(TileLayer layer, String baseUrl) {
+        return tileJson(layer, baseUrl, baseUrl + "/v1/tiles/" + layer.id() + "/{z}/{x}/{y}.mvt");
+    }
+
+    /**
+     * The TileJSON 3.0.0 document of one layer with an explicit tile template (prompt 036: a saved
+     * view's template carries the view version, so caches key on it).
+     */
+    public Map<String, Object> tileJson(TileLayer layer, String baseUrl, String tilesTemplate) {
         Map<String, String> fields = new LinkedHashMap<>();
         for (String property : layer.properties()) {
             fields.put(property, fieldDescription(property, layer.sources()));
@@ -90,7 +98,7 @@ public class TileJsonMapper {
             body.put("attribution", attribution);
         }
         body.put("scheme", "xyz");
-        body.put("tiles", List.of(baseUrl + "/v1/tiles/" + layer.id() + "/{z}/{x}/{y}.mvt"));
+        body.put("tiles", List.of(tilesTemplate));
         body.put("minzoom", 0);
         body.put("maxzoom", TileCoordinates.MAX_ZOOM);
         body.put("bounds", BOUNDS);

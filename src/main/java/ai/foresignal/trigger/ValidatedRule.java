@@ -105,6 +105,7 @@ public record ValidatedRule(
         rule.setGeofenceInner(geofenceInner);
         rule.setGeofenceOuter(geofenceOuter);
         rule.setNear(near);
+        rule.setGeofenceOrigin(geofence == null ? null : near != null ? "near" : "inline");
         rule.setMode(mode);
         rule.setOnlyNew(onlyNew);
         rule.setReappearAsEnter(reappearAsEnter);

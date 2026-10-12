@@ -32,6 +32,11 @@ import tools.jackson.databind.json.JsonMapper;
  *
  * <p>Spatial restrictions use the {@linkplain ReadRestriction#region() region}: the SQL form is a
  * bbox {@code &&} prefilter followed by {@code ST_Intersects}; a row without a geometry fails.
+ *
+ * <p>Prompt 036 adds the request filter ({@link ReadRestriction#filter()}: places, saved views and
+ * watchlists), rendered with the payload expression of the path when the caller passes one (a
+ * filter with payload conditions fails closed without it), and {@code NOT a.sensitive} on alert
+ * rows ({@link #ALERT_GEOMETRY_SQL}) for principals that exclude sensitive alerts.
  */
 public final class RestrictionClamp {
 
@@ -100,7 +105,7 @@ public final class RestrictionClamp {
      * {@code geom}), or empty when {@code r} restricts no data.
      */
     public static Optional<String> sqlPredicate(String alias, ReadRestriction r, SqlParams p) {
-        return sqlPredicate(alias + ".source_id", alias + ".kind", alias + ".geom", r, p::add);
+        return sqlPredicate(alias + ".source_id", alias + ".kind", alias + ".geom", null, r, p::add);
     }
 
     /**
@@ -109,7 +114,16 @@ public final class RestrictionClamp {
      */
     public static Optional<String> sqlPredicate(String sourceColumn, String kindColumn, String geomColumn,
             ReadRestriction r, SqlParams p) {
-        return sqlPredicate(sourceColumn, kindColumn, geomColumn, r, p::add);
+        return sqlPredicate(sourceColumn, kindColumn, geomColumn, null, r, p::add);
+    }
+
+    /**
+     * The SQL predicate over explicit columns and the row's payload expression (prompt 036), so a
+     * request filter with payload conditions can be rendered; binding through {@code p}.
+     */
+    public static Optional<String> sqlPredicate(String sourceColumn, String kindColumn, String geomColumn,
+            String payloadExpression, ReadRestriction r, SqlParams p) {
+        return sqlPredicate(sourceColumn, kindColumn, geomColumn, payloadExpression, r, p::add);
     }
 
     /**
@@ -119,7 +133,7 @@ public final class RestrictionClamp {
     public static Optional<String> sqlPredicate(String sourceColumn, String kindColumn, String geomColumn,
             ReadRestriction r, MapSqlParameterSource params, String prefix) {
         int[] n = {0};
-        return sqlPredicate(sourceColumn, kindColumn, geomColumn, r, value -> {
+        return sqlPredicate(sourceColumn, kindColumn, geomColumn, null, r, value -> {
             String name = prefix + n[0]++;
             params.addValue(name, value);
             return ":" + name;
@@ -127,11 +141,15 @@ public final class RestrictionClamp {
     }
 
     private static Optional<String> sqlPredicate(String sourceColumn, String kindColumn, String geomColumn,
-            ReadRestriction r, Function<Object, String> bind) {
-        if (r == null || !r.hasDataRestrictions()) {
+            String payloadExpression, ReadRestriction r, Function<Object, String> bind) {
+        boolean sensitive = r != null && r.excludeSensitive() && ALERT_GEOMETRY_SQL.equals(geomColumn);
+        if (r == null || (!r.hasDataRestrictions() && !sensitive)) {
             return Optional.empty();
         }
         List<String> and = new ArrayList<>();
+        if (sensitive) {
+            and.add("NOT a.sensitive");
+        }
         if (r.sources() != null && sourceColumn != null) {
             and.add(sourceColumn + " = ANY(CAST(" + bind.apply(PgArrays.text(new TreeSet<>(r.sources())))
                     + " AS text[]))");
@@ -141,7 +159,7 @@ public final class RestrictionClamp {
                     + " AS text[]))");
         }
         if (r.region() != null) {
-            if (geomColumn == null) {
+            if (geomColumn == null || r.region().isEmpty()) {
                 and.add("FALSE");
             } else {
                 Envelope e = r.regionEnvelope();
@@ -152,6 +170,9 @@ public final class RestrictionClamp {
                         + " AS bytea), 4326)";
                 and.add("(" + geomColumn + " && " + envelope + " AND ST_Intersects(" + geomColumn + ", " + area + "))");
             }
+        }
+        if (r.filter() != null) {
+            r.filter().sql(sourceColumn, kindColumn, geomColumn, payloadExpression, bind).ifPresent(and::add);
         }
         return and.isEmpty() ? Optional.empty() : Optional.of("(" + String.join(" AND ", and) + ")");
     }
@@ -167,6 +188,15 @@ public final class RestrictionClamp {
         sqlPredicate(sourceColumn, kindColumn, geomColumn, r, p).ifPresent(where::add);
     }
 
+    /**
+     * {@link #sqlPredicate(String, String, String, String, ReadRestriction, SqlParams)} added to
+     * {@code where} (prompt 036: with the row's payload expression).
+     */
+    public static void addTo(List<String> where, String sourceColumn, String kindColumn, String geomColumn,
+            String payloadExpression, ReadRestriction r, SqlParams p) {
+        sqlPredicate(sourceColumn, kindColumn, geomColumn, payloadExpression, r, p).ifPresent(where::add);
+    }
+
     // ------------------------------------------------------------------------- in memory
 
     /**
@@ -178,6 +208,9 @@ public final class RestrictionClamp {
             return true;
         }
         if (!r.allowsSource(sourceId) || !r.allowsKind(kind)) {
+            return false;
+        }
+        if (r.filter() != null && !r.filter().testShape(sourceId, kind, geometry)) {
             return false;
         }
         if (r.region() == null) {
@@ -196,6 +229,9 @@ public final class RestrictionClamp {
             return true;
         }
         if (!r.allowsSource(sourceId) || !r.allowsKind(kind)) {
+            return false;
+        }
+        if (r.filter() != null && !r.filter().testShape(sourceId, kind, box == null ? null : toGeometry(box))) {
             return false;
         }
         if (r.region() == null) {
@@ -218,7 +254,21 @@ public final class RestrictionClamp {
 
     /**
      * {@link #test(ReadRestriction, String, String, Geometry)} for an alert, whose geometry is the
-     * one in its record snapshot (JSON text, may be null).
+     * one in its record snapshot (JSON text, may be null); a {@code sensitive} alert (prompt 036)
+     * fails for a principal that excludes sensitive alerts.
+     */
+    public static boolean testSnapshot(ReadRestriction r, String sourceId, String kind, String snapshotJson,
+            boolean sensitive) {
+        if (sensitive && r != null && r.excludeSensitive()) {
+            return false;
+        }
+        return testSnapshot(r, sourceId, kind, snapshotJson);
+    }
+
+    /**
+     * {@link #test(ReadRestriction, String, String, Geometry)} for an alert, whose geometry is the
+     * one in its record snapshot (JSON text, may be null), ignoring its sensitive flag; use the
+     * overload with {@code sensitive} for alerts read by a principal (prompt 036).
      */
     public static boolean testSnapshot(ReadRestriction r, String sourceId, String kind, String snapshotJson) {
         if (r == null || !r.hasDataRestrictions()) {

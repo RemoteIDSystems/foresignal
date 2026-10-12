@@ -330,7 +330,7 @@ class AskServiceIT extends AskItSupport {
     }
 
     @Test
-    @DisplayName("validation: unknown members, question length, unknown scope source, placeIds before 036")
+    @DisplayName("validation: unknown members, question length, unknown scope source, unknown place")
     void validation() throws Exception {
         ask(reader, "{\"question\":\"x\",\"allowAction\":true}", 400);
         ask(reader, "{\"question\":\"" + "x".repeat(4001) + "\"}", 400);

@@ -17,7 +17,9 @@ PATH_VARS = {"sourceId": "sourceId", "externalId": "externalId", "ruleId": "rule
              # 033: action capabilities, inbox items and escalation policies.
              "token": "actionToken", "notificationId": "notificationId", "policyId": "escalationPolicyId",
              # 035: feed keys.
-             "feedKeyId": "feedKeyId"}
+             "feedKeyId": "feedKeyId",
+             # 036: places, saved views and watchlists.
+             "placeId": "placeId", "viewId": "viewId", "watchlistId": "watchlistId"}
 
 # Path variables that mean something else under a prefix (024): EDP sources and registration tokens.
 PATH_VARS_BY_PREFIX = [("/v1/external/sources/", {"sourceId": "edpSourceId"}),
@@ -97,6 +99,9 @@ CAP_ALERT = """<?xml version="1.0" encoding="UTF-8"?>
 RAW_BODIES = {
   "ntfyPublish": ("text/plain", "Backup finished on pve1", "text"),
   "ntfyPublishPut": ("text/plain", "Disk usage above 90% on nas", "text"),
+  # 036: a watchlist CSV import (header value[,label,notes,tags]; tags separated by ;).
+  "importWatchlist": ("text/csv", "value,label,notes,tags\nA1B2C3,N123AB,Survey aircraft,survey;local\n"
+                      "ADF7C8,N456CD,\"Medevac, county\",medical\n", "text"),
 }
 
 # Request headers for operations that need more than the generic ones (024).
@@ -208,6 +213,21 @@ BODIES = {
   "updateRateLimits": {"read": 600, "tiles": 1200, "stream": {"opensPerMinute": 30, "concurrent": 8}, "expensive": 20,
                        "write": 120, "anonymous": 120, "metricsPerMinute": None},
   "updateOutboundSettings": {"allowHosts": ["ollama"], "allowCidrs": [], "denyHosts": [], "denyCidrs": ["192.168.50.0/24"]},
+  # 036: places, saved views and watchlists.
+  "createPlace": {"id": "home", "name": "Home", "shape": "point", "geometry": {"type": "Point", "coordinates": [-97.74, 30.27]},
+                  "radiusKm": 25, "timezone": "America/Chicago", "kind": "user", "tags": ["family"], "sensitive": True},
+  "updatePlace": {"id": "home", "name": "Home", "shape": "point", "geometry": {"type": "Point", "coordinates": [-97.74, 30.27]},
+                  "radiusKm": 40, "timezone": "America/Chicago", "kind": "user", "tags": ["family"], "sensitive": True},
+  "createView": {"slug": "quakes-near-home", "name": "Quakes near home", "kinds": ["earthquake"], "placeIds": ["home"],
+                 "conditions": [{"path": "mag", "op": ">=", "value": 2.5}], "timeField": "effective",
+                 "fields": ["title", "observedAt", "geometry", "payload.mag"]},
+  "updateView": {"slug": "quakes-near-home", "name": "Quakes near home (M3+)", "kinds": ["earthquake"], "placeIds": ["home"],
+                 "conditions": [{"path": "mag", "op": ">=", "value": 3}]},
+  "createWatchlist": {"name": "Tails to watch", "identity": "icao24", "description": "Aircraft followed across every source"},
+  "updateWatchlist": {"name": "Tails to watch", "identity": "icao24", "normalize": "upper",
+                      "description": "Aircraft followed across every source"},
+  "addWatchlistItems": {"items": [{"value": "a1b2c3", "label": "N123AB", "notes": "Survey aircraft", "tags": ["survey"]},
+                                  {"value": "ADF7C8", "label": "N456CD", "tags": ["medical"]}]},
   "updateServerSettings": {"publicBaseUrl": "http://foresignal.local:8080", "timezone": "UTC",
                            "clientLinks": {"alert": "foresignal://alerts/{id}", "pair": "foresignal://pair?u={publicBaseUrl}&c={code}"},
                            "push": {"contact": "mailto:admin@localhost", "allowedPrivateHosts": [], "defaultLang": "en"}},
@@ -245,6 +265,9 @@ CAPTURE = {
   "getNotification": "const j = pm.response.json(); if (j.actions && j.actions.length) pm.collectionVariables.set('actionToken', j.actions[0].url.split('/v1/actions/')[1]);",
   "createEscalationPolicy": "const j = pm.response.json(); pm.collectionVariables.set('escalationPolicyId', j.id);",
   "createFeedKey": "const j = pm.response.json(); pm.collectionVariables.set('feedKeyId', j.id); console.log('New feed key URLs (shown once):', j.urls);",
+  "createPlace": "const j = pm.response.json(); pm.collectionVariables.set('placeId', j.id);",
+  "createView": "const j = pm.response.json(); pm.collectionVariables.set('viewId', j.id);",
+  "createWatchlist": "const j = pm.response.json(); pm.collectionVariables.set('watchlistId', j.id);",
   "listAlerts": "const j = pm.response.json(); if (j.items && j.items.length) pm.collectionVariables.set('alertId', j.items[0].id);",
   "listChanges": "const j = pm.response.json(); pm.collectionVariables.set('lastSeq', j.lastSeq);",
   "listRecords": "const j = pm.response.json(); const it = (j.items || j.features || [])[0]; if (it) { const ext = it.externalId || (it.properties && it.properties.externalId); pm.collectionVariables.set('externalId', ext); }\nif (j.nextCursor) pm.collectionVariables.set('cursor', j.nextCursor);",
@@ -506,6 +529,7 @@ collection = {
       ("ingestFormat", "alertmanager"), ("ntfyAction", "publish"), ("edpSourceId", "ext-hormuz-transits"), ("edpIngestKey", ""),
       ("registrationToken", ""), ("registrationTokenId", ""), ("pushProviderId", "ios-apns"), ("pushDeviceId", ""),
       ("notificationId", ""), ("actionToken", ""), ("escalationPolicyId", ""), ("feedKeyId", ""),
+      ("placeId", "home"), ("viewId", ""), ("watchlistId", ""),
       ("tileLayer", "earthquake"), ("tileZ", "0"), ("tileX", "0"), ("tileY", "0")]],
 }
 env = {"id": str(uuid.uuid5(uuid.NAMESPACE_URL, "https://foresignal.ai/postman/env/local")), "name": "Foresignal — Local",

@@ -44,6 +44,9 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Supplier;
 import org.springframework.stereotype.Component;
+import ai.foresignal.security.restrict.ReadRestriction;
+import ai.foresignal.security.restrict.ReadScope;
+import ai.foresignal.security.restrict.ReadScopes;
 import tools.jackson.databind.JsonNode;
 
 /**
@@ -61,6 +64,11 @@ import tools.jackson.databind.JsonNode;
  * replaying a resume point it checks the floor: {@code after < max(lowestRetainedSeq, max purgeSeq)}
  * over the filtered sources means the client must re-snapshot ({@code reset {reason:
  * resync_required}}).
+ *
+ * <p><b>Places, views and watchlists (prompt 036):</b> {@code place}, {@code view} and
+ * {@code inWatchlist} (and the same fields in a PATCH block) narrow the filter's restriction through
+ * {@link ReadScopes}; a payload filter's conditions are judged on each version's payload, loaded once
+ * per batch only while such a client is connected.
  *
  * <p><b>Gaps:</b> a {@code ChangeBus} overflow ({@code onGap}) makes every client replay from its
  * last delivered seq, and clients with {@code live=true} also get {@code resync {reason: gap}}; a
@@ -86,8 +94,8 @@ public class ChangesTopic implements EventTopic<ChangeFilter>, ChangeListener, L
     static final int BUS_QUEUE = 1_024;
 
     /** The PATCH block fields. */
-    static final Set<String> JSON_FIELDS =
-            Set.of("source", "kind", "externalId", "bbox", "near", "radiusKm", "live", "touches", "payload");
+    static final Set<String> JSON_FIELDS = Set.of("source", "kind", "externalId", "bbox", "near", "radiusKm", "live",
+            "touches", "payload", "place", "view", "inWatchlist");
 
     private final RecordQueryService queries;
     private final RecordMapper mapper;
@@ -96,9 +104,18 @@ public class ChangesTopic implements EventTopic<ChangeFilter>, ChangeListener, L
     private final RetentionState retention;
     private final SourceRegistry registry;
     private final ApiProperties properties;
+    private final org.springframework.beans.factory.ObjectProvider<ReadScopes> scopes;
+    private final tools.jackson.databind.json.JsonMapper json = tools.jackson.databind.json.JsonMapper.builder().build();
     private volatile SseHub hub;
 
+    /** Creates the topic without request scopes (tests). */
+    public ChangesTopic(RecordQueryService queries, RecordMapper mapper, ChangeBus changeBus, LiveBus liveBus,
+            RetentionState retention, SourceRegistry registry, ApiProperties properties) {
+        this(queries, mapper, changeBus, liveBus, retention, registry, properties, null);
+    }
+
     /** Creates the topic. */
+    @org.springframework.beans.factory.annotation.Autowired
     public ChangesTopic(
             RecordQueryService queries,
             RecordMapper mapper,
@@ -106,7 +123,9 @@ public class ChangesTopic implements EventTopic<ChangeFilter>, ChangeListener, L
             LiveBus liveBus,
             RetentionState retention,
             SourceRegistry registry,
-            ApiProperties properties) {
+            ApiProperties properties,
+            org.springframework.beans.factory.ObjectProvider<ReadScopes> scopes) {
+        this.scopes = scopes;
         this.queries = queries;
         this.mapper = mapper;
         this.changeBus = changeBus;
@@ -150,7 +169,14 @@ public class ChangesTopic implements EventTopic<ChangeFilter>, ChangeListener, L
         List<String> sources = params.multi("source");
         checkSources(sources);
         BboxFilter bbox = prefixed(params.prefix(), () -> BboxParser.parse(params.single("bbox")));
-        NearFilter near = prefixed(params.prefix(), () -> NearParser.parse(params.single("near"), params.single("radiusKm")));
+        List<String> places = params.multi("place");
+        boolean placeRadius = !places.isEmpty() && blank(params.single("near"));
+        NearFilter near = prefixed(params.prefix(), () -> NearParser.parse(params.single("near"),
+                placeRadius ? null : params.single("radiusKm")));
+        ReadScope scope = new ReadScope(places, placeRadius
+                ? QueryParams.doubleInRange(params.field("radiusKm"), params.single("radiusKm"), 0, NearParser.MAX_RADIUS_KM)
+                : null, params.single("view"), params.single("inWatchlist"));
+        ReadRestriction restriction = narrow(principal, scope);
         return new ChangeFilter(
                 sources,
                 params.multi("kind"),
@@ -161,7 +187,24 @@ public class ChangesTopic implements EventTopic<ChangeFilter>, ChangeListener, L
                 QueryParams.bool(params.field("live"), params.single("live"), true),
                 QueryParams.bool(params.field("touches"), params.single("touches"), false),
                 excludedSources(principal),
-                principal.restriction());
+                restriction);
+    }
+
+    /** {@code principal}'s restriction narrowed by {@code scope} (prompt 036). */
+    private ReadRestriction narrow(StreamPrincipal principal, ReadScope scope) {
+        if (scope.isEmpty()) {
+            return principal.restriction();
+        }
+        ReadScopes resolver = scopes == null ? null : scopes.getIfAvailable();
+        if (resolver == null) {
+            return principal.restriction();
+        }
+        boolean token = principal.scope() != null && !principal.id().startsWith("feed:");
+        return resolver.narrow(principal.restriction(), scope, token);
+    }
+
+    private static boolean blank(String value) {
+        return value == null || value.isBlank();
     }
 
     @Override
@@ -183,8 +226,14 @@ public class ChangesTopic implements EventTopic<ChangeFilter>, ChangeListener, L
         String bboxText = text(block, "bbox", prefix);
         String nearText = text(block, "near", prefix);
         String radius = number(block, "radiusKm", prefix);
+        List<String> places = strings(block, "place", prefix);
+        boolean placeRadius = !places.isEmpty() && blank(nearText);
         BboxFilter bbox = prefixed(prefix, () -> BboxParser.parse(bboxText));
-        NearFilter near = prefixed(prefix, () -> NearParser.parse(nearText, radius));
+        NearFilter near = prefixed(prefix, () -> NearParser.parse(nearText, placeRadius ? null : radius));
+        ReadScope scope = new ReadScope(places, placeRadius
+                ? QueryParams.doubleInRange(prefix + "radiusKm", radius, 0, NearParser.MAX_RADIUS_KM) : null,
+                text(block, "view", prefix), text(block, "inWatchlist", prefix));
+        ReadRestriction restriction = narrow(principal, scope);
         return new ChangeFilter(
                 sources,
                 strings(block, "kind", prefix),
@@ -195,7 +244,7 @@ public class ChangesTopic implements EventTopic<ChangeFilter>, ChangeListener, L
                 bool(block, "live", prefix, true),
                 bool(block, "touches", prefix, false),
                 excludedSources(principal),
-                principal.restriction());
+                restriction);
     }
 
     private void checkSources(List<String> sources) {
@@ -250,6 +299,7 @@ public class ChangesTopic implements EventTopic<ChangeFilter>, ChangeListener, L
                 if (!match.delivered()) {
                     continue;
                 }
+                filter.rememberReplayed(row.sourceId(), row.externalId(), row.tombstone());
                 Map<String, Object> data =
                         mapper.streamChange(row, RecordMapper.bbox(row.prevBbox()), null, match == FilterMatch.LEFT);
                 if (!sink.emit(new FifoEvent(NAME, row.seq(), EVENT, data, null))) {
@@ -306,16 +356,42 @@ public class ChangesTopic implements EventTopic<ChangeFilter>, ChangeListener, L
             return;
         }
         Map<Long, RecordRow> rows = queries.changesBySeq(wanted.stream().map(ChangeSummary::seq).toList());
+        Map<Long, Map<String, Object>> payloads = target.anyChangesClient(ChangeFilter::needsPayload)
+                ? parsedPayloads(wanted) : Map.of();
         Set<String> inline = Set.copyOf(properties.changes().inlinePayloadKinds());
         for (ChangeSummary summary : wanted) {
             RecordRow row = rows.get(summary.seq());
-            target.publish(NAME, topicFilter -> render((ChangeFilter) topicFilter, summary, row, inline));
+            Map<String, Object> payload = payloads.get(summary.seq());
+            target.publish(NAME, topicFilter -> render((ChangeFilter) topicFilter, summary, row, inline, payload));
         }
+    }
+
+    /** The payloads of {@code changes} as maps (prompt 036: payload filters), keyed by seq. */
+    private Map<Long, Map<String, Object>> parsedPayloads(List<ChangeSummary> changes) {
+        Map<Long, String> texts = queries.payloadsBySeq(changes.stream().filter(c -> !c.tombstone())
+                .map(ChangeSummary::seq).toList());
+        Map<Long, Map<String, Object>> out = new java.util.HashMap<>();
+        for (Map.Entry<Long, String> entry : texts.entrySet()) {
+            if (entry.getValue() != null) {
+                out.put(entry.getKey(), json.readValue(entry.getValue(),
+                        new tools.jackson.core.type.TypeReference<Map<String, Object>>() {}));
+            }
+        }
+        return out;
     }
 
     /** One client's {@code change} event for {@code summary}, or null when its filter rejects it. */
     FifoEvent render(ChangeFilter filter, ChangeSummary summary, RecordRow row, Set<String> inline) {
-        FilterMatch match = filter.matchChange(summary);
+        return render(filter, summary, row, inline, null);
+    }
+
+    /**
+     * One client's {@code change} event for {@code summary}, judging a payload filter on
+     * {@code payload} (prompt 036), or null when its filter rejects it.
+     */
+    FifoEvent render(ChangeFilter filter, ChangeSummary summary, RecordRow row, Set<String> inline,
+            Map<String, Object> payload) {
+        FilterMatch match = filter.matchChange(summary, payload);
         if (!match.delivered()) {
             return null;
         }
@@ -323,8 +399,8 @@ public class ChangesTopic implements EventTopic<ChangeFilter>, ChangeListener, L
         Map<String, Object> data = row != null
                 ? mapper.streamChange(row, summary.prevPersistedBbox(), summary.prevLiveBbox(), left)
                 : mapper.streamChange(summary, left);
-        boolean payload = row != null && (filter.payload() || inline.contains(summary.kind()));
-        return new FifoEvent(NAME, summary.seq(), EVENT, data, payload ? summary.seq() : null);
+        boolean withPayload = row != null && (filter.payload() || inline.contains(summary.kind()));
+        return new FifoEvent(NAME, summary.seq(), EVENT, data, withPayload ? summary.seq() : null);
     }
 
     @Override

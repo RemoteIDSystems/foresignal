@@ -39,6 +39,11 @@ import org.locationtech.jts.geom.MultiPolygon;
  * @param messageTemplate the message template, or null for the default
  * @param snoozedUntil the rule snooze expiry, or null
  * @param enrich whether prompt 030 enriches its alerts
+ * @param anchor the moving anchor of a "near me" rule (prompt 036), or null; its fence is the anchor's
+ *     current position, so {@code fence} is null
+ * @param near the stored {@code near} clause (prompt 036: places with their versions, a point, or an
+ *     anchor), for the alert context; null without one
+ * @param sensitive true when the rule references a watchlist: its alerts are sensitive (prompt 036)
  */
 public record RuleSpec(
         UUID id,
@@ -67,7 +72,23 @@ public record RuleSpec(
         Duration forecastHorizon,
         String messageTemplate,
         Instant snoozedUntil,
-        boolean enrich) {
+        boolean enrich,
+        NearAnchor anchor,
+        java.util.Map<String, Object> near,
+        boolean sensitive) {
+
+    /** A rule without the prompt 036 members (no anchor, no near context, not sensitive). */
+    public RuleSpec(UUID id, String name, boolean enabled, Set<String> sources, Set<String> kinds, List<String> tags,
+            List<RuleCondition> conditions, MultiPolygon fence, MultiPolygon fenceInner, MultiPolygon fenceOuter,
+            double hysteresisMeters, TriggerMode mode, boolean onlyNew, boolean reappearAsEnter, Duration cooldown,
+            CooldownScope cooldownScope, Severity severity, AutoResolve autoResolve, Integer maxAlertsPerHour,
+            boolean autoDisableOnStorm, Instant activeFrom, Instant activeUntil, ActiveWindow activeWindow,
+            Duration forecastHorizon, String messageTemplate, Instant snoozedUntil, boolean enrich) {
+        this(id, name, enabled, sources, kinds, tags, conditions, fence, fenceInner, fenceOuter, hysteresisMeters, mode,
+                onlyNew, reappearAsEnter, cooldown, cooldownScope, severity, autoResolve, maxAlertsPerHour,
+                autoDisableOnStorm, activeFrom, activeUntil, activeWindow, forecastHorizon, messageTemplate, snoozedUntil,
+                enrich, null, null, false);
+    }
 
     /** Copies the collections and fills defaults. */
     public RuleSpec {
@@ -79,11 +100,30 @@ public record RuleSpec(
         cooldown = cooldown == null ? Duration.ZERO : cooldown;
         cooldownScope = cooldownScope == null ? CooldownScope.RECORD : cooldownScope;
         severity = severity == null ? Severity.WARNING : severity;
+        near = near == null ? null : java.util.Collections.unmodifiableMap(new java.util.LinkedHashMap<>(near));
     }
 
-    /** True when the rule has a geofence. */
+    /** True for a moving-anchor ("near me") rule (prompt 036). */
+    public boolean anchored() {
+        return anchor != null;
+    }
+
+    /** This rule with {@code value} as its anchor (tests and tools). */
+    public RuleSpec withAnchor(NearAnchor value) {
+        return new RuleSpec(id, name, enabled, sources, kinds, tags, conditions, fence, fenceInner, fenceOuter,
+                hysteresisMeters, mode, onlyNew, reappearAsEnter, cooldown, cooldownScope, severity, autoResolve,
+                maxAlertsPerHour, autoDisableOnStorm, activeFrom, activeUntil, activeWindow, forecastHorizon,
+                messageTemplate, snoozedUntil, enrich, value, near, sensitive);
+    }
+
+    /** True when the rule has a geofence (a static one; an anchor rule's fence moves). */
     public boolean hasFence() {
         return fence != null;
+    }
+
+    /** True when the rule's predicate depends on the geometry (a fence or an anchor). */
+    public boolean spatial() {
+        return fence != null || anchor != null;
     }
 
     /**

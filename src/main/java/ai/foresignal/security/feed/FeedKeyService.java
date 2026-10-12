@@ -127,6 +127,10 @@ public class FeedKeyService implements PathKeyResolver {
                 errors.add(new FieldError("restrictions.endpoints",
                         "is not used on feed keys; the prefixes are the endpoint restriction"));
             }
+            if (parsed.placeIds() != null) {
+                // A feed key is an unauthenticated URL; places are never anonymous (prompt 036).
+                errors.add(new FieldError("restrictions.placeIds", "feed keys cannot be restricted by place"));
+            }
             if (Boolean.FALSE.equals(parsed.excludePrivate())) {
                 errors.add(new FieldError("restrictions.excludePrivate",
                         "feed keys never read private sources until prompt 039 adds privateAccess"));
@@ -217,7 +221,7 @@ public class FeedKeyService implements PathKeyResolver {
         }
         tokenService.recordUse(entity.getId());
         ReadRestriction restriction = ReadRestriction.of(entity.getRestrictions(), true).withExcludePrivate(true)
-                .withEndpoints(null);
+                .withEndpoints(null).withExcludeSensitive(true);
         RequestPrincipal principal = new RequestPrincipal(RequestPrincipal.Kind.FEED_KEY, entity.getId(),
                 entity.getName(), Scope.READ, restriction);
         List<String> prefixes = entity.getPrefixes() == null ? List.of() : entity.getPrefixes();

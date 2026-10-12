@@ -104,6 +104,10 @@ public class SecuritySettingsService {
         if (anonymous.excludePrivate() != null && !anonymous.excludePrivate()) {
             errors.add(new FieldError("anonymous.excludePrivate", "private sources are never served anonymously"));
         }
+        if (anonymous.placeIds() != null) {
+            // Places are sensitive and never used for anonymous callers (prompt 036).
+            errors.add(new FieldError("anonymous.placeIds", "places are never used for anonymous callers"));
+        }
         if (!errors.isEmpty()) {
             throw new ValidationException(ErrorCodes.VALIDATION_FAILED, "The security settings are not valid.", errors);
         }

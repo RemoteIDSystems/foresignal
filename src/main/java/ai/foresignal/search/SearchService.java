@@ -287,7 +287,7 @@ public class SearchService {
         if (!excluded.isEmpty()) {
             where.add("NOT (h.source_id = ANY(" + p.textArray(excluded) + "))");
         }
-        RestrictionClamp.addTo(where, "h.source_id", "h.kind", "l.geom", r, p);
+        RestrictionClamp.addTo(where, "h.source_id", "h.kind", "l.geom", "jsonb_strip_nulls(h.payload || l.kinematic)", r, p);
         if (request.bbox() != null) {
             where.add(RecordQueryService.bboxClause("l.geom", request.bbox(), p));
         }
@@ -350,7 +350,9 @@ public class SearchService {
         }
         if (r.hasDataRestrictions()) {
             where.add("d.source_id IS NOT NULL");
-            RestrictionClamp.addTo(where, "d", r, p);
+            // A request filter with conditions reads the embedded version's payload (prompt 036).
+            RestrictionClamp.addTo(where, "d.source_id", "d.kind", "d.geom",
+                    "(SELECT dv.payload FROM record_version dv WHERE dv.seq = d.seq)", r, p);
         }
         if (request.bbox() != null) {
             where.add(RecordQueryService.bboxClause("d.geom", request.bbox(), p));

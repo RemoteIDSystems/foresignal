@@ -64,6 +64,9 @@ public class TileQueryService {
 
     private static final String MERGED = " CROSS JOIN LATERAL (SELECT jsonb_strip_nulls(h.payload || l.kinematic) AS m) mp";
 
+    /** The merged payload as an expression, for the request filter of prompt 036 (views, watchlists). */
+    static final String MERGED_PAYLOAD = "jsonb_strip_nulls(h.payload || l.kinematic)";
+
     private final ReadQueryRunner runner;
     private final TileProperties properties;
     private final Clock clock;
@@ -213,7 +216,7 @@ public class TileQueryService {
     /** Layer filter, tombstones and expiry. */
     private String commonFilter(TileLayer layer, SqlParams p, ReadRestriction restriction) {
         return layer.filterSql(p)
-                + RestrictionClamp.sqlPredicate("h.source_id", "h.kind", "l.geom", restriction, p)
+                + RestrictionClamp.sqlPredicate("h.source_id", "h.kind", "l.geom", MERGED_PAYLOAD, restriction, p)
                         .map(w -> " AND " + w).orElse("")
                 + " AND NOT h.tombstone"
                 + " AND (l.valid_until IS NULL OR l.valid_until > " + p.instant(clock.instant()) + ")";

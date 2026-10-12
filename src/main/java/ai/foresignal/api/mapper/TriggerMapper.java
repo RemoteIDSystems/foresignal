@@ -36,7 +36,10 @@ public class TriggerMapper {
         List<Map<String, Object>> conditions = new ArrayList<>();
         for (TriggerCondition condition : r.getConditions()) {
             Map<String, Object> c = new LinkedHashMap<>();
-            c.put("path", condition.path());
+            if (condition.path() != null) {
+                // An identity condition (inWatchlist without a path, prompt 036) has none.
+                c.put("path", condition.path());
+            }
             c.put("op", condition.op());
             c.put("value", condition.value());
             conditions.add(c);
@@ -46,7 +49,7 @@ public class TriggerMapper {
         out.put("geofenceRoute", r.getGeofenceRoute());
         out.put("bufferMeters", r.getBufferMeters());
         out.put("hysteresisMeters", r.getHysteresisMeters());
-        out.put("near", r.getNear());
+        out.put("near", near(r.getNear()));
         out.put("mode", r.getMode().wireValue());
         out.put("onlyNew", r.isOnlyNew());
         out.put("reappearAsEnter", r.isReappearAsEnter());
@@ -80,6 +83,19 @@ public class TriggerMapper {
         out.put("feedbackCounts", stats.feedbackCounts());
         out.put("lastError", r.getLastError());
         out.put("lastErrorAt", r.getLastErrorAt());
+        return out;
+    }
+
+    /**
+     * The {@code Near} object of a stored near clause: the stored form without the internal
+     * {@code placeVersions} (prompt 036), which the alert context reports instead.
+     */
+    static java.util.Map<String, Object> near(java.util.Map<String, Object> stored) {
+        if (stored == null || !stored.containsKey(ai.foresignal.trigger.RuleValidator.PLACE_VERSIONS)) {
+            return stored;
+        }
+        java.util.Map<String, Object> out = new java.util.LinkedHashMap<>(stored);
+        out.remove(ai.foresignal.trigger.RuleValidator.PLACE_VERSIONS);
         return out;
     }
 }

@@ -413,7 +413,9 @@ public class TokenFilter extends OncePerRequestFilter implements Ordered {
 
     /** The anonymous principal under the {@code security.anonymous} profile in force. */
     RequestPrincipal anonymousPrincipal() {
-        return RequestPrincipal.anonymous(ReadRestriction.of(security().effectiveAnonymous(), true));
+        // Sensitive alerts (rules referencing a watchlist, prompt 036) are never shown anonymously.
+        return RequestPrincipal.anonymous(ReadRestriction.of(security().effectiveAnonymous(), true)
+                .withExcludeSensitive(true));
     }
 
     /**

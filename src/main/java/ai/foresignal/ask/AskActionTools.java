@@ -38,6 +38,8 @@ import tools.jackson.databind.node.ObjectNode;
  *   <li>{@code propose_ack}: acknowledge an alert;
  *   <li>{@code propose_alert_status}: resolve, snooze or unsnooze an alert;
  *   <li>{@code propose_snooze}: snooze an alert (prompt 033, offered once a {@code snooze_alert}
+ *       handler exists);
+ *   <li>{@code propose_view}: create a saved view (prompt 036, offered once a {@code create_view}
  *       handler exists).
  * </ul>
  * These tools are never MCP tools: an MCP agent with {@code agent} scope calls the write tools
@@ -84,6 +86,10 @@ public class AskActionTools {
             "for", string("How long, for example 1h or PT30M. Give until or for.", 1, 40),
             "reason", string(REASON_NOTE, 1, 300)), "alertId");
 
+    private static final Map<String, Object> PROPOSE_VIEW = object(props(
+            "view", ai.foresignal.mcp.tools.CreateViewTool.VIEW_SCHEMA,
+            "reason", string(REASON_NOTE, 1, 300)), "view");
+
     private static final String CONFIRM_NOTE = " Nothing changes now: the proposal is shown to the person, who confirms"
             + " or rejects it. Returns {actionId, status}.";
 
@@ -126,6 +132,10 @@ public class AskActionTools {
                 PROPOSE_ACK));
         out.add(spec("propose_alert_status", "Proposes resolving, snoozing or unsnoozing an alert." + CONFIRM_NOTE,
                 PROPOSE_ALERT_STATUS));
+        if (handlers.containsKey("create_view")) {
+            out.add(spec("propose_view", "Proposes a saved view: a named record filter (sources, kinds, places,"
+                    + " conditions) that records, map tiles and streams render." + CONFIRM_NOTE, PROPOSE_VIEW));
+        }
         if (handlers.containsKey("snooze_alert")) {
             out.add(spec("propose_snooze", "Proposes snoozing an alert until a time or for a while, which also stops"
                     + " its escalation." + CONFIRM_NOTE, PROPOSE_SNOOZE));
@@ -151,7 +161,8 @@ public class AskActionTools {
     public ProposedAction propose(String tool, JsonNode args, AskCaller caller) {
         Map<String, Object> schema = schema(tool);
         if (schema == null || (tool.equals("propose_briefing") && !handlers.containsKey("create_briefing"))
-                || (tool.equals("propose_snooze") && !handlers.containsKey("snooze_alert"))) {
+                || (tool.equals("propose_snooze") && !handlers.containsKey("snooze_alert"))
+                || (tool.equals("propose_view") && !handlers.containsKey("create_view"))) {
             throw new McpToolException("Unknown tool: " + tool);
         }
         JsonNode arguments = args == null || args.isNull() ? json.createObjectNode() : args;
@@ -174,6 +185,11 @@ public class AskActionTools {
             }
             case "propose_ack" -> type = "acknowledge_alert";
             case "propose_snooze" -> type = "snooze_alert";
+            case "propose_view" -> {
+                type = "create_view";
+                JsonNode view = payload.get("view");
+                payload = view instanceof ObjectNode object ? object.deepCopy() : json.createObjectNode();
+            }
             default -> type = "alert_status";
         }
         AskActionHandler handler = handlers.get(type);
@@ -196,6 +212,7 @@ public class AskActionTools {
             case "propose_ack" -> PROPOSE_ACK;
             case "propose_alert_status" -> PROPOSE_ALERT_STATUS;
             case "propose_snooze" -> PROPOSE_SNOOZE;
+            case "propose_view" -> PROPOSE_VIEW;
             default -> null;
         };
     }

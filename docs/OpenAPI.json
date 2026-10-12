@@ -137,6 +137,11 @@
         "version": "1.3.0",
         "date": "2026-10-12",
         "note": "035: listFeedKeys, createFeedKey, revokeFeedKey, getRateLimits, updateRateLimits, getOutboundSettings and updateOutboundSettings (admin) are implemented; AccessPolicy gains /v1/feed-keys(/*) admin (the settings paths fall under /v1/settings/**). Read restrictions are enforced on every read path by RestrictionClamp: ApiTokenInput/ApiToken restrictions accept area, excludePrivate and maxRequestsPerMinute (placeIds, federation, includeExercise stay refused), restrictions on admin tokens are 400 RESTRICTION_NOT_ALLOWED, and RESTRICTION_NOT_ENFORCED is no longer returned. SecuritySettings accepts anonymous (excludePrivate false refused) and metricsOpen (false makes /actuator/prometheus admin-only); SystemInfo.security reports ANONYMOUS_UNRESTRICTED. Feed keys travel as /v1/k/{key}/... (documented in info.description and the feedKey security scheme, which no operation lists because OpenAPI has no path-segment API key); FeedKeyInput.restrictions also accepts bbox as the spatial member. Problem lists RESTRICTED (403), RESTRICTION_NOT_ALLOWED (400), INVALID_FEED_KEY (401) and FEED_KEY_GONE (410, expired or revoked feed key), and the RATE_LIMITED problem carries class and retryAfterSeconds; every read operation documents 429 RATE_LIMITED with Retry-After. Every operator-supplied outbound URL (channel URLs and SMTP host, LLM baseUrl, Web Push endpoints, FCM tokenUri, LAN_URL params, EDP provider URLs, watchdog URLs) passes OutboundUrlPolicy on save (400 URL_NOT_ALLOWED with field) and on every send (delivery failure); link-local, cloud metadata and the other not-forwardable special-purpose addresses are always refused. OutboundSettings members gain maxItems 500."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-12",
+        "note": "036: listPlaces, createPlace, getPlace, updatePlace, deletePlace, getPlacesAoi (places reads are read and always authenticated, writes agent), listViews, createView, getView, updateView, deleteView, getViewRecords, getViewTile, getViewTileJson, streamView (read; writes agent) and listWatchlists, createWatchlist, getWatchlist, updateWatchlist, deleteWatchlist, listWatchlistItems, addWatchlistItems, removeWatchlistItems, importWatchlist, exportWatchlist (agent) are implemented; AccessPolicy gains /v1/places(/**), /v1/views(/**) and /v1/watchlists(/**). The place, view and inWatchlist parameters of records, history, changes, tiles, the streams and search narrow the read through RestrictionClamp. Reconciliations: Condition.path is optional for inWatchlist/notInWatchlist (identity paths from entityKeys) and the operators' truth-table semantics are documented; Problem lists UNKNOWN_PLACE, PLACE_IN_USE (with references), PLACE_EXISTS, UNKNOWN_VIEW, VIEW_EXISTS, UNKNOWN_WATCHLIST, WATCHLIST_TOO_LARGE and ANCHOR_STALE (a lastError, not a response); createPlace and createView name their 409 codes and updateView gains 409 VIEW_EXISTS; updateWatchlist documents that the normalization changes only on an empty list; AlertContext gains anchor {source, externalId, seq, distanceKm}; SettingsBundle gains warnings; EventStreamChangesFilter gains place, view and inWatchlist; ReadRestriction.placeIds is accepted for tokens (refused for the anonymous profile and feed keys)."
       }
     ]
   },
@@ -19579,7 +19584,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "036",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true,
         "security": [
           {
@@ -19626,7 +19631,7 @@
             }
           },
           "409": {
-            "description": "Place id already exists",
+            "description": "Place id already exists (PLACE_EXISTS)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -19676,7 +19681,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "036",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -19767,7 +19772,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "036",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true,
         "security": [
           {
@@ -19864,7 +19869,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "036",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -19905,7 +19910,7 @@
             }
           },
           "409": {
-            "description": "Referenced (PLACE_IN_USE)",
+            "description": "Referenced (PLACE_IN_USE); the problem lists them in references",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -19955,7 +19960,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "036",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -20023,7 +20028,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "036",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true,
         "security": [
           {
@@ -20115,7 +20120,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "036",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -20162,7 +20167,7 @@
             }
           },
           "409": {
-            "description": "Slug already exists",
+            "description": "Slug already exists (VIEW_EXISTS)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -20212,7 +20217,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "036",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -20301,7 +20306,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "036",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -20394,11 +20399,21 @@
                 }
               }
             }
+          },
+          "409": {
+            "description": "Slug already exists (VIEW_EXISTS)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
           }
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "036",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -20467,7 +20482,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "036",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -20625,7 +20640,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "036",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -20769,7 +20784,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "036",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -20871,7 +20886,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "036",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -21012,7 +21027,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "036",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-sse-events": {
           "change": {
             "schema": {
@@ -21142,7 +21157,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "036",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -21228,7 +21243,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "036",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -21318,7 +21333,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "036",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -21331,7 +21346,7 @@
         ],
         "operationId": "updateWatchlist",
         "summary": "Replace a watchlist",
-        "description": "Name, normalisation and description. Every edit is audited.\n\n**Scope:** `agent`.",
+        "description": "Name, normalisation and description. The identity is fixed, and the normalization can change only while the list is empty (its values are stored normalized). Every edit is audited.\n\n**Scope:** `agent`.",
         "requestBody": {
           "required": true,
           "content": {
@@ -21414,7 +21429,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "036",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -21483,7 +21498,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "036",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -21605,7 +21620,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "036",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -21701,7 +21716,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "036",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -21794,7 +21809,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "036",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -21958,7 +21973,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "036",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -22048,7 +22063,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "036",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -85559,6 +85574,36 @@
               "null"
             ],
             "description": "RATE_LIMITED: seconds to wait, as in Retry-After (035)"
+          },
+          "references": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "PLACE_IN_USE (036): the rules, views and briefings that reference the place",
+            "properties": {
+              "rules": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "views": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "briefings": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           }
         },
         "required": [
@@ -85576,6 +85621,7 @@
           "032",
           "033",
           "035",
+          "036",
           "135"
         ],
         "x-foresignal-error-codes": [
@@ -85903,6 +85949,47 @@
             "code": "FEED_KEY_GONE",
             "status": 410,
             "prompt": "035"
+          },
+          {
+            "code": "UNKNOWN_PLACE",
+            "status": 404,
+            "prompt": "036"
+          },
+          {
+            "code": "PLACE_IN_USE",
+            "status": 409,
+            "prompt": "036"
+          },
+          {
+            "code": "PLACE_EXISTS",
+            "status": 409,
+            "prompt": "036"
+          },
+          {
+            "code": "UNKNOWN_VIEW",
+            "status": 404,
+            "prompt": "036"
+          },
+          {
+            "code": "VIEW_EXISTS",
+            "status": 409,
+            "prompt": "036"
+          },
+          {
+            "code": "UNKNOWN_WATCHLIST",
+            "status": 404,
+            "prompt": "036"
+          },
+          {
+            "code": "WATCHLIST_TOO_LARGE",
+            "status": 400,
+            "prompt": "036"
+          },
+          {
+            "code": "ANCHOR_STALE",
+            "status": null,
+            "prompt": "036",
+            "note": "Not a response: reported in TriggerRule.lastError and a system.anchor_stale notification while a moving-anchor rule is suspended"
           }
         ]
       },
@@ -90579,7 +90666,7 @@
         "properties": {
           "path": {
             "type": "string",
-            "description": "Dot path into payload",
+            "description": "Dot path into payload. Required for every operator except inWatchlist and notInWatchlist, which without a path read each source's declared identity field (descriptor entityKeys, 036); a source that does not declare the watchlist's identity never matches",
             "pattern": "^[A-Za-z0-9_]+(\\.[A-Za-z0-9_]+)*$",
             "example": "mag"
           },
@@ -90600,7 +90687,7 @@
               "inWatchlist",
               "notInWatchlist"
             ],
-            "description": "Comparison ops take numbers (== and != also strings and booleans); in/notIn a non-empty homogeneous scalar array (≤ 1000); exists a boolean; startsWith a string ≤ 256; matches a Java regex ≤ 256 without backreferences, lookaround or nested quantifiers (only (?:…) groups and the escapes \\d \\D \\w \\W \\s \\S \\n \\t \\r \\f, so PostgreSQL reads it the same way). A value of another JSON type than the operator expects, a missing path or JSON null never matches (except exists); string operators need a JSON string (the number 5 does not equal \"5\"); != and notIn need the value present."
+            "description": "Comparison ops take numbers (== and != also strings and booleans); in/notIn a non-empty homogeneous scalar array (≤ 1000); exists a boolean; startsWith a string ≤ 256; matches a Java regex ≤ 256 without backreferences, lookaround or nested quantifiers (only (?:…) groups and the escapes \\d \\D \\w \\W \\s \\S \\n \\t \\r \\f, so PostgreSQL reads it the same way). A value of another JSON type than the operator expects, a missing path or JSON null never matches (except exists); string operators need a JSON string (the number 5 does not equal \"5\"); != and notIn need the value present. inWatchlist/notInWatchlist (036) take a watchlist id; the payload value must be a JSON string or number (compared by its JSON text after the list's normalization); anything else, a missing path or JSON null never matches either operator."
           },
           "value": {
             "oneOf": [
@@ -90635,7 +90722,6 @@
           }
         },
         "required": [
-          "path",
           "op",
           "value"
         ],
@@ -91979,6 +92065,13 @@
               }
             },
             "description": "Only with includeWatchlists=true (036)"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Export warnings (036): places reveal locations; watchlists identify what is followed"
           }
         },
         "required": [
@@ -97582,6 +97675,30 @@
             "type": "boolean",
             "description": "Include payloads on `change` events",
             "default": false
+          },
+          "place": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+            },
+            "maxItems": 100,
+            "description": "Place ids (036): their areas (buffered by radiusKm when near is absent); needs a token"
+          },
+          "view": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Saved view id or slug (036); a view referencing a place or watchlist needs a token"
+          },
+          "inWatchlist": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "Watchlist id (036); needs a token"
           }
         }
       },
@@ -98638,7 +98755,7 @@
                 "items": {
                   "type": "string"
                 },
-                "description": "Places (036) resolved to their areas"
+                "description": "Places (036) whose areas, unioned, bound what may be read (intersected with area and bbox); unknown places fail closed. Refused for the anonymous profile and feed keys (places are never anonymous)"
               },
               "excludePrivate": {
                 "type": "boolean",
@@ -102484,7 +102601,7 @@
         ]
       },
       "Near": {
-        "description": "Near clause of a trigger rule (036): places, a fixed point, or a moving anchor record",
+        "description": "Near clause of a trigger rule (036): places, a fixed point, or a moving anchor record. Places: the stored fence is re-materialized in the same transaction when a place is edited, so stationary entities never fire edges. Anchor: the fence is the anchor's current live position, evaluated on both sides (targets moving and the anchor moving); the rule is suspended while the anchor is stale.",
         "oneOf": [
           {
             "type": "object",
@@ -108548,7 +108665,7 @@
           },
           "near": {
             "type": "object",
-            "description": "Places a near rule matched (036)",
+            "description": "Places a near rule matched (036): their ids and the versions its fence was materialized from",
             "properties": {
               "placeIds": {
                 "type": "array",
@@ -108574,6 +108691,31 @@
               }
             ],
             "description": "Anomaly rule alerts: the evaluated bucket (100)"
+          },
+          "anchor": {
+            "type": "object",
+            "description": "Moving-anchor (\"near me\") rules (036): the anchor record, its seq and the km-rounded distance to the target (never coordinates)",
+            "properties": {
+              "source": {
+                "type": "string"
+              },
+              "externalId": {
+                "type": "string"
+              },
+              "seq": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "format": "int64"
+              },
+              "distanceKm": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              }
+            }
           }
         },
         "additionalProperties": true

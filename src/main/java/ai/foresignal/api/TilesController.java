@@ -108,7 +108,8 @@ public class TilesController {
             HttpServletRequest request) {
         TileCoordinates coordinates = TileCoordinates.parse(z, x, y);
         AggMode mode = AggMode.parse(agg);
-        ReadCaller caller = callers.resolve(request);
+        // place=, view= and inWatchlist= narrow the caller's restriction (prompt 036).
+        ReadCaller caller = callers.resolveScoped(request);
         TileLayer resolved = allowed(layers.resolve(layer, callers.excludedSources(caller)), caller.restriction());
         TileResult result = tiles.render(resolved, coordinates, mode, caller.restriction());
 

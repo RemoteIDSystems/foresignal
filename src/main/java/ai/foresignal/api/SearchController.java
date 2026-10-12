@@ -104,7 +104,8 @@ public class SearchController {
         SearchRequest query = new SearchRequest(q.strip(), SearchRequest.Mode.of(modeValue), types, sources,
                 QueryParams.multi("kind", kind), BboxParser.parse(bbox), sinceAt, untilAt, "observed".equals(axis),
                 size);
-        return search.search(query, excluded, callers.restriction(request));
+        // place=, view= and inWatchlist= narrow the caller's restriction (prompt 036).
+        return search.search(query, excluded, callers.resolveScoped(request).restriction());
     }
 
     /** {@code getSearchStatus}. */

@@ -180,7 +180,46 @@ public class RecordsController {
             HttpServletRequest request,
             HttpServletResponse response)
             throws IOException {
-        ReadCaller caller = callers.resolve(request);
+        return listRecords(ReadCallerResolver.scopeOf(request, ""), source, kind, externalId, bbox, near, radiusKm,
+                since, until, timeField, q, includeExpired, order, sort, asOfSeq, asOf, include, fields, precision,
+                simplify, format, cursor, limit, accept, ifNoneMatch, request, response);
+    }
+
+    /**
+     * {@code listRecords} narrowed by {@code scope} (prompt 036): the request's own
+     * {@code place}/{@code view}/{@code inWatchlist}, or a saved view's ({@code getViewRecords}).
+     */
+    public ResponseEntity<Object> listRecords(
+            ai.foresignal.security.restrict.ReadScope scope,
+            List<String> source,
+            List<String> kind,
+            List<String> externalId,
+            String bbox,
+            String near,
+            String radiusKm,
+            String since,
+            String until,
+            String timeField,
+            String q,
+            String includeExpired,
+            String order,
+            String sort,
+            String asOfSeq,
+            String asOf,
+            List<String> include,
+            String fields,
+            String precision,
+            String simplify,
+            String format,
+            String cursor,
+            String limit,
+            String accept,
+            String ifNoneMatch,
+            HttpServletRequest request,
+            HttpServletResponse response)
+            throws IOException {
+        // place=, view= and inWatchlist= narrow the caller's restriction (prompt 036).
+        ReadCaller caller = callers.resolveScoped(request, scope);
         Set<String> excluded = callers.excludedSources(caller);
         ReadRestriction restriction = caller.restriction();
         ResponseFormat fmt = ResponseFormat.negotiate(format, accept, LIST_FORMATS);
@@ -188,7 +227,7 @@ public class RecordsController {
         List<String> kinds = QueryParams.multi("kind", kind);
         List<String> ids = QueryParams.multi("externalId", externalId);
         BboxFilter box = BboxParser.parse(bbox);
-        NearFilter nearFilter = NearParser.parse(near, radiusKm);
+        NearFilter nearFilter = NearParser.parse(near, ReadCallerResolver.radiusForNear(request, near, radiusKm));
         Instant sinceAt = QueryParams.instant("since", since);
         Instant untilAt = QueryParams.instant("until", until);
         TimeField axis = TimeField.parse(timeField, TimeField.EFFECTIVE);
@@ -386,7 +425,7 @@ public class RecordsController {
             HttpServletRequest request,
             HttpServletResponse response)
             throws IOException {
-        ReadCaller caller = callers.resolve(request);
+        ReadCaller caller = callers.resolveScoped(request);
         if (format != null && "czml".equalsIgnoreCase(format.strip())) {
             throw ValidationException.forField("format", "czml is not available yet (prompt 141)");
         }
@@ -406,7 +445,7 @@ public class RecordsController {
                 QueryParams.multi("kind", kind),
                 QueryParams.multi("externalId", externalId),
                 BboxParser.parse(bbox),
-                NearParser.parse(near, radiusKm),
+                NearParser.parse(near, ReadCallerResolver.radiusForNear(request, near, radiusKm)),
                 sinceAt,
                 untilAt,
                 TimeField.parse(timeField, TimeField.OBSERVED),

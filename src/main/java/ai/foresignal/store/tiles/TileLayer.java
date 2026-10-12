@@ -85,6 +85,9 @@ public record TileLayer(
         if (type == TileLayerType.SOURCE) {
             return "h.source_id = " + params.text(id);
         }
+        if (type == TileLayerType.VIEW) {
+            return "h.source_id = ANY(" + params.textArray(sourceIds()) + ")";
+        }
         return "(h.kind = " + params.text(id) + " AND h.source_id = ANY(" + params.textArray(sourceIds()) + "))";
     }
 }

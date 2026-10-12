@@ -152,7 +152,7 @@ public class McpToolRegistry {
     /** True when {@code tool} appears in {@code caller}'s tool list. */
     static boolean listed(ForesignalMcpTool tool, McpCaller caller) {
         if (caller.anonymous()) {
-            return caller.openReads() && tool.requiredScope() == Scope.READ && !tool.costBearing();
+            return caller.openReads() && tool.requiredScope() == Scope.READ && !tool.alwaysAuthenticated();
         }
         return caller.scope().includes(tool.requiredScope());
     }
@@ -171,6 +171,10 @@ public class McpToolRegistry {
             }
             if (tool.costBearing()) {
                 return Optional.of("The tool " + tool.name() + " spends a budget and always requires a token, even"
+                        + " while open reads are on. Connect with an Authorization: Bearer header.");
+            }
+            if (tool.alwaysAuthenticated()) {
+                return Optional.of("The tool " + tool.name() + " reveals places and always requires a token, even"
                         + " while open reads are on. Connect with an Authorization: Bearer header.");
             }
             if (!caller.openReads()) {

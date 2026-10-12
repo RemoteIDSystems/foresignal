@@ -24,10 +24,12 @@ import java.util.Map;
  * @param excludePrivate hide private sources; null for the default (true for read tokens, feed keys
  *     and anonymous callers) (035)
  * @param maxRequestsPerMinute overrides the {@code read} rate-limit class, or null (035)
+ * @param placeIds places whose areas bound what may be read, or null (036); resolved through
+ *     {@link ai.foresignal.security.restrict.PlaceAreas} into the area of the effective restriction
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record TokenRestrictions(List<String> sources, List<String> kinds, List<Double> bbox, List<String> endpoints,
-        Map<String, Object> area, Boolean excludePrivate, Integer maxRequestsPerMinute) {
+        Map<String, Object> area, Boolean excludePrivate, Integer maxRequestsPerMinute, List<String> placeIds) {
 
     /** No restriction at all. */
     public static final TokenRestrictions NONE = new TokenRestrictions(null, null, null, null);
@@ -39,11 +41,18 @@ public record TokenRestrictions(List<String> sources, List<String> kinds, List<D
         bbox = bbox == null ? null : List.copyOf(bbox);
         endpoints = endpoints == null ? null : List.copyOf(endpoints);
         area = area == null ? null : java.util.Collections.unmodifiableMap(new LinkedHashMap<>(area));
+        placeIds = placeIds == null ? null : List.copyOf(placeIds);
+    }
+
+    /** The 035 members, without places. */
+    public TokenRestrictions(List<String> sources, List<String> kinds, List<Double> bbox, List<String> endpoints,
+            Map<String, Object> area, Boolean excludePrivate, Integer maxRequestsPerMinute) {
+        this(sources, kinds, bbox, endpoints, area, excludePrivate, maxRequestsPerMinute, null);
     }
 
     /** The 023 members only: sources, kinds, bbox and endpoints. */
     public TokenRestrictions(List<String> sources, List<String> kinds, List<Double> bbox, List<String> endpoints) {
-        this(sources, kinds, bbox, endpoints, null, null, null);
+        this(sources, kinds, bbox, endpoints, null, null, null, null);
     }
 
     /** {@code restrictions}, or {@link #NONE} when null. */
@@ -51,10 +60,10 @@ public record TokenRestrictions(List<String> sources, List<String> kinds, List<D
         return restrictions == null ? NONE : restrictions;
     }
 
-    /** True when a source, kind, bbox or area restriction is set (enforced from prompt 035). */
+    /** True when a source, kind, bbox, area or place restriction is set (enforced from prompts 035 and 036). */
     @JsonIgnore
     public boolean hasDataRestrictions() {
-        return sources != null || kinds != null || bbox != null || area != null;
+        return sources != null || kinds != null || bbox != null || area != null || placeIds != null;
     }
 
     /** True when an endpoint restriction is set. */

@@ -168,6 +168,28 @@ public class TileLayerResolver {
         return ids;
     }
 
+    /**
+     * The tile layer of a saved view (prompt 036): the visible sources among {@code viewSources}
+     * (every visible source when empty), named after the view.
+     *
+     * @param id the layer id (the view slug)
+     * @param name the view name
+     * @param viewSources the view's sources; empty for all
+     * @param excluded sources the caller may not see
+     * @return the layer; its source list may be empty (the tile is then empty)
+     */
+    public TileLayer viewLayer(String id, String name, Collection<String> viewSources, Set<String> excluded) {
+        List<SourceDescriptor> matched = new ArrayList<>();
+        for (SourceDescriptor descriptor : visible()) {
+            if (!excluded.contains(descriptor.id()) && (viewSources.isEmpty() || viewSources.contains(descriptor.id()))) {
+                matched.add(descriptor);
+            }
+        }
+        TileLayer built = build(id, TileLayerType.VIEW, matched);
+        return new TileLayer(id, TileLayerType.VIEW, name, "Current records of the saved view " + name,
+                built.sources(), built.tileProperties(), built.aggBelowZoom(), built.rankFields());
+    }
+
     private static TileLayer build(String id, TileLayerType type, List<SourceDescriptor> matched) {
         List<SourceDescriptor> sources = new ArrayList<>(matched);
         sources.sort(Comparator.comparing(SourceDescriptor::id));
@@ -201,7 +223,7 @@ public class TileLayerResolver {
 
         String name;
         String description;
-        if (type == TileLayerType.SOURCE) {
+        if (type == TileLayerType.SOURCE && !sources.isEmpty()) {
             SourceDescriptor source = sources.getFirst();
             name = source.name() == null || source.name().isBlank() ? source.id() : source.name();
             description = source.description() == null || source.description().isBlank()

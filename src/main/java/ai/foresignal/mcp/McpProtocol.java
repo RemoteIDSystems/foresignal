@@ -181,7 +181,7 @@ public class McpProtocol {
     List<McpSchema.Resource> listResources(McpCaller caller) {
         List<McpSchema.Resource> out = new ArrayList<>();
         for (ForesignalMcpResource resource : resources) {
-            if (allowed(resource.requiredScope(), caller)) {
+            if (allowed(resource, caller)) {
                 out.add(McpSchema.Resource.builder(resource.uri(), resource.name())
                         .description(resource.description())
                         .mimeType(resource.mimeType())
@@ -201,7 +201,7 @@ public class McpProtocol {
                 .orElseThrow(() -> McpError.builder(McpSchema.ErrorCodes.RESOURCE_NOT_FOUND)
                         .message("Resource not found: " + request.uri())
                         .build());
-        if (!allowed(resource.requiredScope(), caller)) {
+        if (!allowed(resource, caller)) {
             throw McpError.builder(McpSchema.ErrorCodes.INVALID_REQUEST)
                     .message("The resource " + resource.uri() + " needs the " + resource.requiredScope().wireValue()
                             + " scope.")
@@ -260,6 +260,14 @@ public class McpProtocol {
     }
 
     /** True when {@code caller} reaches {@code required} (anonymous: {@code read} under open reads). */
+    /** True when {@code caller} may read {@code resource} (always-authenticated resources need a token). */
+    static boolean allowed(ForesignalMcpResource resource, McpCaller caller) {
+        if (caller.anonymous() && resource.alwaysAuthenticated()) {
+            return false;
+        }
+        return allowed(resource.requiredScope(), caller);
+    }
+
     static boolean allowed(Scope required, McpCaller caller) {
         if (caller.anonymous()) {
             return required == Scope.READ && caller.openReads();

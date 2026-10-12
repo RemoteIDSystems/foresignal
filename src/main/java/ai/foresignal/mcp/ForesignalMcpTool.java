@@ -57,6 +57,14 @@ public interface ForesignalMcpTool {
         return false;
     }
 
+    /**
+     * True when the tool always needs a token, even while {@code openReads} is on: cost-bearing tools
+     * (invariant SEC-5) and tools that reveal places (prompt 036: a home location is sensitive).
+     */
+    default boolean alwaysAuthenticated() {
+        return costBearing();
+    }
+
     /** True when the tool changes nothing. Defaults to true for {@code read} tools. */
     default boolean readOnlyHint() {
         return requiredScope() == Scope.READ;

@@ -47,15 +47,17 @@ public class AlertStore {
                     + " a.message, a.severity, a.state, a.rev, a.acknowledged_at, a.acknowledged_by, a.resolved_at,"
                     + " a.resolved_by, a.resolved_seq, a.feedback, a.feedback_at, a.note, a.snoozed_until, a.suppressed,"
                     + " a.suppressed_reason, a.tags::text AS tags, a.record_snapshot::text AS record_snapshot,"
-                    + " a.summary, a.enriched_at, a.summary_citations::text AS summary_citations";
+                    + " a.summary, a.enriched_at, a.summary_citations::text AS summary_citations,"
+                    + " a.sensitive, a.context::text AS context";
 
     static final String FROM = " FROM alert a LEFT JOIN trigger_rule r ON r.id = a.rule_id";
 
     static final String INSERT =
             "INSERT INTO alert (rule_id, seq, source_id, external_id, kind, fired_at, observed_at, message, severity, state,"
-                    + " suppressed, suppressed_reason, tags, record_snapshot, rev)"
+                    + " suppressed, suppressed_reason, tags, record_snapshot, rev, sensitive, context)"
                     + " VALUES (:rule, :seq, :source, :externalId, :kind, :firedAt, :observedAt, :message, :severity, 'firing',"
-                    + " :suppressed, CAST(:reason AS text), CAST(:tags AS jsonb), CAST(:snapshot AS jsonb), nextval('alert_rev'))"
+                    + " :suppressed, CAST(:reason AS text), CAST(:tags AS jsonb), CAST(:snapshot AS jsonb), nextval('alert_rev'),"
+                    + " :sensitive, CAST(:context AS jsonb))"
                     + " RETURNING id";
 
     static final String RESOLVE_OPEN =
@@ -253,9 +255,18 @@ public class AlertStore {
      * @param message the rendered message
      * @param snapshot the record snapshot as JSON text
      * @param suppressedReason {@code alert_snoozed}, {@code rule_snoozed} or null
+     * @param context the computed {@code AlertContext} as JSON text, or null (prompt 036)
      */
     public record NewAlert(
-            RuleSpec rule, MatchRow row, Instant firedAt, String message, String snapshot, String suppressedReason) {}
+            RuleSpec rule, MatchRow row, Instant firedAt, String message, String snapshot, String suppressedReason,
+            String context) {
+
+        /** An alert without a computed context. */
+        public NewAlert(RuleSpec rule, MatchRow row, Instant firedAt, String message, String snapshot,
+                String suppressedReason) {
+            this(rule, row, firedAt, message, snapshot, suppressedReason, null);
+        }
+    }
 
     /** The operations available inside {@link #write}; events are published after commit. */
     public final class Writer {
@@ -288,7 +299,9 @@ public class AlertStore {
                     .addValue("suppressed", alert.suppressedReason() != null)
                     .addValue("reason", alert.suppressedReason())
                     .addValue("tags", json.writeValueAsString(alert.rule().tags()))
-                    .addValue("snapshot", alert.snapshot());
+                    .addValue("snapshot", alert.snapshot())
+                    .addValue("sensitive", alert.rule().sensitive())
+                    .addValue("context", alert.context());
             Long id = jdbc.queryForObject(INSERT, p, Long.class);
             AlertView view = find(id).orElseThrow();
             events.add(AlertEvent.of(AlertEvent.FIRED, view));
@@ -436,7 +449,9 @@ public class AlertStore {
                 rs.getString("record_snapshot"),
                 rs.getString("summary"),
                 instant(rs, "enriched_at"),
-                rs.getString("summary_citations"));
+                rs.getString("summary_citations"),
+                rs.getBoolean("sensitive"),
+                rs.getString("context"));
     }
 
     static Instant instant(ResultSet rs, String label) throws SQLException {

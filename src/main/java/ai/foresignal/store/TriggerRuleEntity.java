@@ -82,10 +82,18 @@ public class TriggerRuleEntity {
     @Column(name = "geofence_outer", columnDefinition = "geometry(MultiPolygon,4326)")
     private MultiPolygon geofenceOuter;
 
-    /** The {@code near} clause as given ({@code point}/{@code placeId} and {@code radiusKm}). */
+    /**
+     * The {@code near} clause as given: {@code point} and {@code radiusKm}, {@code placeIds} with
+     * {@code radiusKm} and the {@code placeVersions} the fence was materialized from (prompt 036),
+     * or a moving {@code anchor}.
+     */
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "near")
     private Map<String, Object> near;
+
+    /** Where {@code geofence} came from (prompt 036): {@code inline} or {@code near}; null without a fence. */
+    @Column(name = "geofence_origin", length = 8)
+    private String geofenceOrigin;
 
     // The default is declared with @ColumnDefault rather than inside columnDefinition. With
     // "varchar(8) default 'match'" as the definition, Hibernate's schema update saw a type mismatch
@@ -358,6 +366,16 @@ public class TriggerRuleEntity {
     /** Sets the near clause. */
     public void setNear(Map<String, Object> near) {
         this.near = near;
+    }
+
+    /** {@code inline}, {@code near} or null (prompt 036). */
+    public String getGeofenceOrigin() {
+        return geofenceOrigin;
+    }
+
+    /** Sets where the geofence came from. */
+    public void setGeofenceOrigin(String geofenceOrigin) {
+        this.geofenceOrigin = geofenceOrigin;
     }
 
     /** The edge mode. */

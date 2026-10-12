@@ -253,7 +253,7 @@ public class AlertsController {
         ReadCaller caller = callers.resolve(request);
         if (callers.excludedSources(caller).contains(alert.sourceId())
                 || !RestrictionClamp.testSnapshot(caller.restriction(), alert.sourceId(), alert.kind(),
-                        alert.recordSnapshot())) {
+                        alert.recordSnapshot(), alert.sensitive())) {
             // Outside what the caller may read: reported like an unknown alert (023, 035).
             throw NotFoundException.of("Alert", alertId);
         }

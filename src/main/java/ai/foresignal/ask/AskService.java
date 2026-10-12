@@ -200,9 +200,10 @@ public class AskService {
      *
      * @return the prepared question
      */
-    public Prepared prepare(AskInput input, AskCaller caller) {
+    public Prepared prepare(AskInput input, AskCaller asker) {
         LlmSettings settings = requireConfigured();
         AskScope scope = resolveScope(input.scope());
+        AskCaller caller = narrowed(asker, input.scope());
         UUID threadId = input.threadId();
         List<ChatMessage> history = List.of();
         if (threadId != null) {
@@ -567,6 +568,28 @@ public class AskService {
     }
 
     // ------------------------------------------------------------------------- helpers
+
+    /**
+     * {@code caller} with its restriction narrowed by the scope's places and view (prompt 036), so the
+     * tool loop and retrieval read inside them.
+     */
+    private AskCaller narrowed(AskCaller caller, AskScope scope) {
+        if (scope.placeIds().isEmpty() && scope.viewId() == null) {
+            return caller;
+        }
+        AskScopeResolver resolver = scopeResolvers.getIfAvailable();
+        if (resolver == null) {
+            return caller;
+        }
+        ai.foresignal.security.restrict.ReadRestriction narrowed = resolver.restriction(scope, caller.restriction());
+        if (narrowed == caller.restriction()) {
+            return caller;
+        }
+        ai.foresignal.mcp.McpCaller mcp = caller.mcp();
+        ai.foresignal.api.support.ReadCaller read = mcp.readCaller();
+        return new AskCaller(new ai.foresignal.mcp.McpCaller(mcp.token(), new ai.foresignal.api.support.ReadCaller(
+                read.scope(), read.exposeObserver(), read.openReads(), narrowed), mcp.excludedSources(), mcp.remoteIp()));
+    }
 
     private AskScope resolveScope(AskScope scope) {
         if (scope.placeIds().isEmpty() && scope.viewId() == null) {

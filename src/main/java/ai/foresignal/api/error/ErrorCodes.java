@@ -65,6 +65,30 @@ public final class ErrorCodes {
     /** 404: a tile layer that is neither a registered source id nor a kind of a visible source (016). */
     public static final String UNKNOWN_LAYER = "UNKNOWN_LAYER";
 
+    /** 404: no place has this id (prompt 036). */
+    public static final String UNKNOWN_PLACE = "UNKNOWN_PLACE";
+
+    /** 409: a place is referenced by rules, views or briefings and {@code force} was not given (036). */
+    public static final String PLACE_IN_USE = "PLACE_IN_USE";
+
+    /** 409: a place with this id already exists (prompt 036). */
+    public static final String PLACE_EXISTS = "PLACE_EXISTS";
+
+    /** 409: a saved view with this slug already exists (prompt 036). */
+    public static final String VIEW_EXISTS = "VIEW_EXISTS";
+
+    /** 404: no saved view has this id or slug (prompt 036). */
+    public static final String UNKNOWN_VIEW = "UNKNOWN_VIEW";
+
+    /** 404: no watchlist has this id (prompt 036). */
+    public static final String UNKNOWN_WATCHLIST = "UNKNOWN_WATCHLIST";
+
+    /** 400: a watchlist would hold more than 100,000 items (prompt 036). */
+    public static final String WATCHLIST_TOO_LARGE = "WATCHLIST_TOO_LARGE";
+
+    /** A moving anchor is stale and its rule is suspended (prompt 036; reported in {@code lastError}). */
+    public static final String ANCHOR_STALE = "ANCHOR_STALE";
+
     /** 400: a trigger condition reads a field the source declares volatile (prompt 017). */
     public static final String TRIGGER_PATH_VOLATILE = "TRIGGER_PATH_VOLATILE";
 

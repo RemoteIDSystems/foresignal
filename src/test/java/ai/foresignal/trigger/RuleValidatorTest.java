@@ -323,11 +323,31 @@ class RuleValidatorTest {
         }
 
         @Test
-        @DisplayName("near a place without Places is PLACES_UNAVAILABLE; a moving anchor is FEATURE_UNAVAILABLE")
+        @DisplayName("near a place without Places is PLACES_UNAVAILABLE")
         void nearPlace() {
             assertThat(invalid("{'name':'x','near':{'placeId':'home','radiusKm':5}}").getCode()).isEqualTo("PLACES_UNAVAILABLE");
-            assertThat(invalid("{'name':'x','near':{'anchor':{'source':'a','externalId':'b'},'radiusKm':5}}").getCode())
-                    .isEqualTo("FEATURE_UNAVAILABLE");
+        }
+
+        @Test
+        @DisplayName("a moving anchor (prompt 036) stores no fence; its source must exist and its fields are checked")
+        void nearAnchor() {
+            ValidatedRule rule = valid("{'name':'x','mode':'enter','near':{'anchor':{'source':'quakes','externalId':'phone'},"
+                    + "'radiusKm':150}}");
+            assertThat(rule.geofence()).isNull();
+            assertThat(rule.near()).containsKey("anchor").containsEntry("radiusKm", 150.0)
+                    .containsEntry("maxAnchorAge", "PT30M").containsEntry("minMoveMeters", 200.0);
+            hasField(invalid("{'name':'x','near':{'anchor':{'source':'a','externalId':'b'},'radiusKm':5}}"),
+                    "near.anchor.source");
+            hasField(invalid("{'name':'x','near':{'anchor':{'source':'quakes'},'radiusKm':5}}"), "near.anchor");
+            hasField(invalid("{'name':'x','near':{'anchor':{'source':'quakes','externalId':'p'},'radiusKm':2001}}"),
+                    "near.radiusKm");
+            hasField(invalid("{'name':'x','near':{'anchor':{'source':'quakes','externalId':'p'},'radiusKm':5,"
+                    + "'maxAnchorAge':'soon'}}"), "near.maxAnchorAge");
+            hasField(invalid("{'name':'x','near':{'anchor':{'source':'quakes','externalId':'p'},'radiusKm':5,"
+                    + "'minMoveMeters':-1}}"), "near.minMoveMeters");
+            hasField(invalid("{'name':'x','mode':'enter','hysteresisMeters':50,'near':{'anchor':{'source':'quakes',"
+                    + "'externalId':'p'},'radiusKm':5}}"), "hysteresisMeters");
+            valid("{'name':'x','near':{'anchor':{'source':'quakes','externalId':'p'},'radiusKm':0}}");
         }
 
         @Test
@@ -337,7 +357,36 @@ class RuleValidatorTest {
             when(places.getIfAvailable()).thenReturn(lookup);
             valid("{'name':'x','near':{'placeId':'home','radiusKm':5}}");
             verify(geofences).bufferPoint(1.0, 2.0, 5_000.0);
-            hasField(invalid("{'name':'x','near':{'placeId':'away','radiusKm':5}}"), "near.placeId");
+            hasField(invalid("{'name':'x','near':{'placeId':'away','radiusKm':5}}"), "near.placeIds");
+        }
+
+        @Test
+        @DisplayName("near several places (prompt 036) unions their areas, buffered by radiusKm, and keeps their versions")
+        void nearPlaces() {
+            PlaceLookup lookup = new PlaceLookup() {
+                @Override
+                public Optional<org.locationtech.jts.geom.Geometry> geometry(String id) {
+                    return switch (id) {
+                        case "home" -> Optional.of(box(0, 0, 1, 1));
+                        case "work" -> Optional.of(box(2, 2, 3, 3));
+                        default -> Optional.empty();
+                    };
+                }
+
+                @Override
+                public Optional<Integer> version(String id) {
+                    return Optional.of("home".equals(id) ? 3 : 7);
+                }
+            };
+            when(places.getIfAvailable()).thenReturn(lookup);
+            ValidatedRule rule = valid("{'name':'x','near':{'placeIds':['home','work'],'radiusKm':2}}");
+            verify(geofences, org.mockito.Mockito.atLeastOnce()).offset(any(), eq(2_000.0));
+            assertThat(rule.near()).containsEntry("placeIds", List.of("home", "work"))
+                    .containsEntry(RuleValidator.PLACE_VERSIONS, List.of(3, 7));
+            valid("{'name':'x','near':{'placeId':'home'}}");
+            hasField(invalid("{'name':'x','near':{'placeIds':[]}}"), "near.placeIds");
+            hasField(invalid("{'name':'x','near':{'placeIds':['home'],'radiusKm':-1}}"), "near.radiusKm");
+            hasField(invalid("{'name':'x','near':{'placeIds':['home'],'extra':1}}"), "near.extra");
         }
     }
 

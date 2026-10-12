@@ -29,6 +29,7 @@ import org.locationtech.jts.geom.PrecisionModel;
  * {@code exclude_private}, {@code max_requests_per_minute}) and the row {@code type}: {@code token}
  * (null on rows written before 035), or {@code feed_key} for a path-bound feed key ({@code fsf_},
  * scope {@code read}, with its allowed path {@code prefixes}); prompt 050 adds {@code tile_key}.
+ * Prompt 036 adds {@code allowed_place_ids}, the {@code placeIds} restriction member.
  */
 @Entity
 @Table(name = "api_token", indexes = @Index(name = "api_token_hash_idx", columnList = "token_hash", unique = true))
@@ -103,6 +104,11 @@ public class ApiTokenEntity {
 
     @Column(name = "max_requests_per_minute")
     private Integer maxRequestsPerMinute;
+
+    /** Places whose areas bound what the token reads (prompt 036). */
+    @JdbcTypeCode(SqlTypes.ARRAY)
+    @Column(name = "allowed_place_ids", columnDefinition = "text[]")
+    private String[] allowedPlaceIds;
 
     @Column(name = "type", length = 16)
     private String type;
@@ -249,7 +255,7 @@ public class ApiTokenEntity {
         java.util.Map<String, Object> area = allowedArea == null ? null
                 : new ai.foresignal.source.formats.geojson.GeoJsonWriter().write(allowedArea);
         return new TokenRestrictions(list(allowedSources), list(allowedKinds), bbox, list(allowedEndpoints), area,
-                excludePrivate, maxRequestsPerMinute);
+                excludePrivate, maxRequestsPerMinute, list(allowedPlaceIds));
     }
 
     /** Stores {@code restrictions}; a validated bbox becomes a WGS84 polygon. */
@@ -262,6 +268,7 @@ public class ApiTokenEntity {
         this.allowedArea = ai.foresignal.security.restrict.ReadRestriction.area(r.area());
         this.excludePrivate = r.excludePrivate();
         this.maxRequestsPerMinute = r.maxRequestsPerMinute();
+        this.allowedPlaceIds = array(r.placeIds());
     }
 
     /** {@value #TYPE_TOKEN} or {@value #TYPE_FEED_KEY} (prompt 035); a null stored type reads as a token. */

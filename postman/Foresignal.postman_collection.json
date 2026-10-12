@@ -33262,7 +33262,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));"
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('placeId', j.id);",
+                  "}"
                 ]
               }
             }
@@ -33303,7 +33306,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"id\": \"home\",\n  \"name\": \"Home\",\n  \"shape\": \"point\",\n  \"geometry\": {\n    \"type\": \"Point\",\n    \"coordinates\": [\n      -97.74,\n      30.27\n    ]\n  },\n  \"radiusKm\": 25,\n  \"timezone\": \"America/Chicago\",\n  \"kind\": \"user\",\n  \"tags\": [\n    \"family\"\n  ],\n  \"sensitive\": true\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -33408,7 +33411,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"id\": \"home\",\n  \"name\": \"Home\",\n  \"shape\": \"point\",\n  \"geometry\": {\n    \"type\": \"Point\",\n    \"coordinates\": [\n      -97.74,\n      30.27\n    ]\n  },\n  \"radiusKm\": 40,\n  \"timezone\": \"America/Chicago\",\n  \"kind\": \"user\",\n  \"tags\": [\n    \"family\"\n  ],\n  \"sensitive\": true\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -48880,7 +48883,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));"
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('viewId', j.id);",
+                  "}"
                 ]
               }
             }
@@ -48921,7 +48927,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"slug\": \"quakes-near-home\",\n  \"name\": \"Quakes near home\",\n  \"kinds\": [\n    \"earthquake\"\n  ],\n  \"placeIds\": [\n    \"home\"\n  ],\n  \"conditions\": [\n    {\n      \"path\": \"mag\",\n      \"op\": \">=\",\n      \"value\": 2.5\n    }\n  ],\n  \"timeField\": \"effective\",\n  \"fields\": [\n    \"title\",\n    \"observedAt\",\n    \"geometry\",\n    \"payload.mag\"\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -49019,7 +49025,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"slug\": \"quakes-near-home\",\n  \"name\": \"Quakes near home (M3+)\",\n  \"kinds\": [\n    \"earthquake\"\n  ],\n  \"placeIds\": [\n    \"home\"\n  ],\n  \"conditions\": [\n    {\n      \"path\": \"mag\",\n      \"op\": \">=\",\n      \"value\": 3\n    }\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -49346,7 +49352,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));"
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('watchlistId', j.id);",
+                  "}"
                 ]
               }
             }
@@ -49387,7 +49396,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"name\": \"Tails to watch\",\n  \"identity\": \"icao24\",\n  \"description\": \"Aircraft followed across every source\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -49479,7 +49488,7 @@
               ],
               "query": []
             },
-            "description": "Name, normalisation and description. Every edit is audited.\n\n**Scope:** `agent`.\n\noperationId: `updateWatchlist`",
+            "description": "Name, normalisation and description. The identity is fixed, and the normalization can change only while the list is empty (its values are stored normalized). Every edit is audited.\n\n**Scope:** `agent`.\n\noperationId: `updateWatchlist`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -49492,7 +49501,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"name\": \"Tails to watch\",\n  \"identity\": \"icao24\",\n  \"normalize\": \"upper\",\n  \"description\": \"Aircraft followed across every source\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -49659,7 +49668,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"items\": [\n    {\n      \"value\": \"a1b2c3\",\n      \"label\": \"N123AB\",\n      \"notes\": \"Survey aircraft\",\n      \"tags\": [\n        \"survey\"\n      ]\n    },\n    {\n      \"value\": \"ADF7C8\",\n      \"label\": \"N456CD\",\n      \"tags\": [\n        \"medical\"\n      ]\n    }\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -49744,7 +49753,7 @@
               },
               {
                 "key": "Content-Type",
-                "value": "application/json"
+                "value": "text/csv"
               }
             ],
             "url": {
@@ -49786,10 +49795,10 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "value,label,notes,tags\nA1B2C3,N123AB,Survey aircraft,survey;local\nADF7C8,N456CD,\"Medevac, county\",medical\n",
               "options": {
                 "raw": {
-                  "language": "json"
+                  "language": "text"
                 }
               }
             }
@@ -50654,6 +50663,18 @@
     },
     {
       "key": "feedKeyId",
+      "value": ""
+    },
+    {
+      "key": "placeId",
+      "value": "home"
+    },
+    {
+      "key": "viewId",
+      "value": ""
+    },
+    {
+      "key": "watchlistId",
       "value": ""
     },
     {

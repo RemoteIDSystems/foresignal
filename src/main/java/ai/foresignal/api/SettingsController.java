@@ -70,15 +70,15 @@ public class SettingsController {
     }
 
     /**
-     * {@code exportSettings}. {@code includePlaces} and {@code includeWatchlists} belong to prompt 036
-     * and change nothing yet.
+     * {@code exportSettings}. {@code includePlaces} adds places and saved views, {@code includeWatchlists}
+     * watchlists with their items (prompt 036); either adds a {@code warnings} member.
      */
     @GetMapping("/v1/settings/export")
     @Operation(operationId = "exportSettings", tags = "Settings")
     public Map<String, Object> exportSettings(
             @RequestParam(name = "includePlaces", required = false) Boolean includePlaces,
             @RequestParam(name = "includeWatchlists", required = false) Boolean includeWatchlists) {
-        return transfer.export();
+        return transfer.export(Boolean.TRUE.equals(includePlaces), Boolean.TRUE.equals(includeWatchlists));
     }
 
     /** {@code importSettings}: atomic; 400 with every error and nothing applied. */

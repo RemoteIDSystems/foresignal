@@ -389,10 +389,43 @@ An in-process publisher (`ApplicationEventPublisher` or a small listener registr
 - **Durable cursor:** after processing a batch, the engine stores `trigger.cursor = toSeq` in `app_setting`. On startup it catches up from the cursor to the current max `seq` in chunks before subscribing live.
 - Message templates support `{{name}}`, `{{source}}`, `{{externalId}}`, `{{kind}}`, `{{observedAt}}` and `{{payload.<path>}}`. Default: `"{{name}}: {{source}}/{{externalId}}"`.
 - `POST /v1/triggers/{id}/test` runs the same SQL over a recent window (default the last 24 h, `?since=`) and returns matches without inserting alerts.
+- **Prompt 036.** Conditions are rendered by `RecordPredicate` (shared with saved views); `inWatchlist`/`notInWatchlist` without a path switch on `v.source_id` to each source's identity field. `near` adds places (`near.placeIds`, re-materialized when a place changes; `geofence_origin = near`) and moving anchors (`near.anchor`: the anchor's current position is the fence, evaluated from both sides; see §8.8). Alerts carry `context.near` and `context.anchor`, and alerts of rules referencing a watchlist are `sensitive`.
 
 ### 8.4 Notification delivery
 
 See §17. Outbound webhooks are one channel type among many.
+
+### 8.5 Places and the area of interest (036)
+
+- **`place`** (`ai.foresignal.place`): a slug id, a name, a shape (`point` + `radius_km`, `polygon`, `route` + `buffer_m`), its geometry, and a derived **`area`** (MultiPolygon, SRID 4326) computed on every save: the geography buffer of a point or route, the fixed polygon itself, split at the antimeridian, at most 10,000 vertices (GiST-indexed). Every save bumps `version` and, after commit, publishes `PlaceChangedEvent`.
+- **Rules** that name a place are re-materialized in the save's own transaction (fence, hysteresis band and recorded place versions). The persist gate compares persisted state under the current fence, so editing a place never fires edges for stationary entities; an entity that moves afterwards converges on its next observation.
+- **Deleting** a referenced place is `409 PLACE_IN_USE` (listing the rules, views and briefings) unless `force=true`, which disables the rules. Views and briefings that still name it match nothing there (fail closed). Tombstoned place-weather records (052) can still fire exit rules.
+- **Places AOI** (`PlacesAoiService`): the union over places of each buffered to at least `max(radiusKm, foresignal.weather.aoi-buffer-km)` (150 km), its envelope and a version (`PlacesAoiChangedEvent`). With no places it is `foresignal.weather.default-aoi` (the Texas box) and AOI-consuming sources report a health warning (`HealthRule`). Weather sources (047–049, 052) and render warming (045) read it.
+- **Filters:** `place=<id>[,<id>]` (plus `radiusKm` as an extra buffer where the endpoint has no `near`) on records, history, changes, tiles, the streams and search resolves to the union area and is intersected (`&&` prefilter, then `ST_Intersects`). Places are never anonymous: the filter needs a token. A token's `placeIds` restriction resolves through the same service (`PlaceAreas`).
+- **Privacy:** place reads are always authenticated; templates get `{{place.name}}` and `{{place.distanceKm}}`, never coordinates; MCP returns coordinates only with `detail=long` to agent tokens.
+
+### 8.6 Saved views (036)
+
+- A **saved view** (`saved_view`) is a named `RecordPredicate`: sources, kinds, places, a bbox and an area (intersected), up to 20 conditions in the 017 grammar with `inWatchlist`, a time axis, the expiry choice and a projection of up to 50 fields. `version` is bumped on every save.
+- **One predicate, three renderings:** `GET /v1/views/{id}/records` (every 014 format, keyset pages, the projection as bound `payload #> :path`), `/v1/views/{id}/tiles/{z}/{x}/{y}.mvt` and `/tiles.json` (the template carries `?v=<version>`, and the tile ETag includes it) and `/v1/views/{id}/stream` (015 semantics). Each runs the predicate as a request filter (`RecordFilter`) through the caller's restriction, so `RestrictionClamp` intersects it with the 035 restriction on every path. `view=` applies the same filter to records, changes, the streams and search.
+- **Streams:** persisted changes are judged with their payload (loaded once per batch while such a client is connected); a version that stops matching is sent with `leftFilter: true`. The filter remembers which entities match, and live updates and touches are delivered only for those.
+- A view that references a place or a watchlist needs a token to render; definitions follow the normal `read` rules.
+
+### 8.7 Watchlists (036)
+
+- **`watch_list`** (identity `icao24 | registration | callsign | mmsi | imo | custom`, normalization `upper | lower | digits | none`) and **`watch_list_item`** (normalized value, label, notes, tags, origin), unique per list, at most 100,000 items. CSV/JSON import (`merge`/`replace`, `dryRun`, ≤ 5 MB) and CSV export round-trip. Every REST write is audited by the token filter.
+- **Identity paths:** `IdentityResolver` maps (source, identity) to the payload field the descriptor declares in `entityKeys`. `inWatchlist` without a path renders `EXISTS (SELECT 1 FROM watch_list_item w WHERE w.list_id = :list AND w.value = norm(CASE v.source_id WHEN :s1 THEN v.payload #>> :p1 … END))`; sources without the identity never match (validation warns).
+- **Gate:** the Java side reads the in-memory `WatchlistSnapshot`, refreshed on `WatchlistChangedEvent`. List edits converge on each entity's next observation; nothing fires retroactively.
+- **Privacy:** alerts of rules referencing a watchlist are `sensitive` and hidden from anonymous callers and feed keys by `RestrictionClamp`. `inWatchlist=` filters need a token.
+
+### 8.8 Moving anchors (036)
+
+- `near: {anchor: {source, externalId}, radiusKm (0–2000; 0 = the anchor inside the target), maxAnchorAge (PT30M), minMoveMeters (200)}`. The anchor is an ordinary record (a phone through a custom or OwnTracks source).
+- **Target side:** `x.geom && ST_Expand(:anchor, :dLon, :dLat) AND ST_DWithin(x.geom::geography, :anchor::geography, :m)` (`ST_Intersects` with radius 0), with `:anchor` the anchor's **current** position (`AnchorPositions`, fed from the change and live lanes), used identically for `v` and `p`. Durable-cursor catch-up after a restart uses the current anchor position.
+- **Anchor side:** `AnchorEvaluator` runs after each engine batch and every 5 s. When an anchor moved at least `minMoveMeters` from `trigger_anchor_state.eval_geom`, current targets (`record_head ⋈ record_live`, the rule's sources, kinds and conditions over the merged payload) fire `enter` = near(new) ∧ ¬near(old) and `exit` = near(old) ∧ ¬near(new) for edge rules, through the same `AlertPass`; these alerts reference the target's head seq and write no versions. `context.anchor = {source, externalId, seq, distanceKm}`.
+- **Staleness:** an anchor older than `maxAnchorAge`, tombstoned or expired suspends the rule (`status = stale`, `lastError` `ANCHOR_STALE…`, one `system.anchor_stale` notification per transition) until a fresh observation.
+- **Gate:** the persist gate compares both sides against the same current anchor; its Java distance is approximate, so a target near the radius counts as ambiguous and is persisted when its geometry changed.
+- **Privacy:** anchor coordinates never appear in templates (`{{anchor.distanceKm}}` only), notifications, embeddings or LLM prompts.
 
 ## 9. Query paths
 
@@ -403,6 +436,8 @@ See §17. Outbound webhooks are one channel type among many.
 | `GET /v1/history` | `record_version` by time range and bbox, ordered by `observed_at`, paginated; capped at 50,000 per page. |
 | `GET /v1/changes` | `record_version WHERE seq > :after ORDER BY seq LIMIT :n`. |
 | `GET /v1/tiles/{layer}/{z}/{x}/{y}.mvt` | `ST_AsMVT` over `record_head` where `geom && ST_TileEnvelope(z,x,y)`, current only; `layer` matches a kind or a source id; feature properties = `source, externalId, kind, observedAt` plus the descriptor's `tileProperties`. `Cache-Control: max-age=5`. Zoom 0–16. |
+
+| `GET /v1/views/{id}/records`, `/tiles/…`, `/stream` (036) | The view's `RecordPredicate` as a request filter ANDed into the same SQL as `/v1/records`, `/v1/tiles` and `/v1/changes/stream` through `RestrictionClamp`; `place=`, `view=` and `inWatchlist=` on the other read paths do the same. |
 
 Free-text `q` matches `ILIKE` on a generated text column of selected payload fields (`title`, `name`, `callsign`, `place`). The descriptor may declare which fields feed it; in v1 it is computed in the writer into a `search_text` column on `record_head`.
 

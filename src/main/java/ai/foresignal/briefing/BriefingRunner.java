@@ -175,7 +175,8 @@ public class BriefingRunner {
         try {
             scope = scopes.resolve(input.scope());
             stats = statsService.compute(new DigestStatsService.Request(null, plan.periodFrom(), plan.periodTo(), null,
-                    scope, input.maxItemsPerKind(), plan.hiddenSources(), zone, input.scope(), plan.restriction()));
+                    scope, input.maxItemsPerKind(), plan.hiddenSources(), zone, input.scope(),
+                    scope.narrow(plan.restriction())));
         } catch (RuntimeException e) {
             log.warn("Briefing '{}' could not compute its statistics", plan.name(), e);
             return new Outcome(BriefingRunEntity.FAILED, input.mode(), started, clock.instant(), plan.periodFrom(),
@@ -183,7 +184,10 @@ public class BriefingRunner {
                     "the digest statistics could not be computed: " + e.getMessage());
         }
         Map<String, Object> statsJson = plain(stats.toMap());
-        DigestRenderer.Rendered digest = renderer.render(plan.name(), stats, zone, plan.periodFrom(), plan.periodTo());
+        // Prompt 036: the digest heading names the scope's places ({place}), never their coordinates.
+        String heading = scope.placeNames().isEmpty() ? plan.name()
+                : plan.name() + " · " + String.join(", ", scope.placeNames());
+        DigestRenderer.Rendered digest = renderer.render(heading, stats, zone, plan.periodFrom(), plan.periodTo());
         if (!BriefingInput.LLM.equals(input.mode())) {
             return new Outcome(BriefingRunEntity.SUCCEEDED, input.mode(), started, clock.instant(), plan.periodFrom(),
                     plan.periodTo(), digest.markdown(), citations(digest.citations()), statsJson, List.of(), null, null);
@@ -191,7 +195,7 @@ public class BriefingRunner {
         try {
             LlmBriefingWriter.Result result = writer.write(new LlmBriefingWriter.Request(plan.name(),
                     input.instructions(), stats, scope, plan.hiddenSources(), zone, plan.periodFrom(), plan.periodTo(),
-                    plan.restriction()));
+                    scope.narrow(plan.restriction())));
             return new Outcome(BriefingRunEntity.SUCCEEDED, input.mode(), started, clock.instant(), plan.periodFrom(),
                     plan.periodTo(), result.markdown(), citations(result.citations()), statsJson, result.warnings(),
                     result.usage(), null);

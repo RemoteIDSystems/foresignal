@@ -236,6 +236,104 @@ POST /v1/triggers
 with the alert's `rev` as its id, so a client resumes with `Last-Event-ID`. Every lifecycle change
 also goes to the notification channels below.
 
+### Places
+
+A place is a named area used everywhere a "where" is needed: rules, saved views, briefings, Ask, the
+`place=` filter of the read endpoints, and the weather area of interest.
+
+```json
+POST /v1/places
+{"id": "home", "name": "Home", "shape": "point", "geometry": {"type": "Point", "coordinates": [-97.74, 30.27]},
+ "radiusKm": 25, "timezone": "America/Chicago"}
+```
+
+- **Shapes:** a `point` with `radiusKm` (0.1–500, default 20), a `polygon` (fixed automatically; a ring
+  that crosses the antimeridian is split), or a `route` (a LineString) with `bufferM` (10–50,000). The
+  place's `area` is derived on every save (at most 10,000 vertices) and its `version` goes up.
+- **Rules:** `"near": {"placeIds": ["home"], "radiusKm": 10}` fires inside the places' areas, grown by
+  `radiusKm`. Editing a place moves its rules at once; a record that does not move never fires because
+  of the edit, and one that moves afterwards is judged against the new area on its next observation.
+  Alerts record `context.near` (place ids and versions).
+- **Deleting** a place that rules, views or briefings use answers `409 PLACE_IN_USE` with the list;
+  `?force=true` deletes it and disables those rules (their `lastError` says why). Views and briefings
+  that still name it match nothing there. Exit rules on place-weather records can still fire when
+  those records are tombstoned.
+- **Privacy:** a home location is sensitive. Reading places always needs a token, even with
+  `openReads`; `place=` filters do too. Notifications and the LLM get place names and rounded
+  distances (`{{place.name}}`, `{{place.distanceKm}}`), never coordinates, and MCP returns coordinates
+  only to agent tokens that ask for `detail=long`.
+- **Weather AOI:** `GET /v1/places/aoi` is the union of the places, each grown to at least 150 km
+  (`foresignal.weather.aoi-buffer-km`). With no places, weather sources use
+  `foresignal.weather.default-aoi` (a Texas box) and report a health warning until a place exists.
+
+### Saved views
+
+A saved view is a named filter that the records API, map tiles and the stream render identically:
+
+```json
+POST /v1/views
+{"slug": "quakes-near-home", "name": "Quakes near home", "kinds": ["earthquake"], "placeIds": ["home"],
+ "conditions": [{"path": "mag", "op": ">=", "value": 2.5}], "fields": ["title", "observedAt", "payload.mag"]}
+```
+
+`GET /v1/views/quakes-near-home/records`, `/tiles.json` (its tile URLs carry the view's version) and
+`/stream`; or `view=quakes-near-home` on `/v1/records`, `/v1/changes`, the streams and `/v1/search`,
+combined with any other filter. A view that uses a place or a watchlist needs a token to render.
+
+### Watchlists
+
+A watchlist is a list of identifiers that rules and views match with
+`{"op": "inWatchlist", "value": "<watchlist id>"}`: every source that declares the identity takes part.
+
+```text
+POST /v1/watchlists                       {"name": "Tails", "identity": "icao24"}
+POST /v1/watchlists/{id}/import?dryRun=true   (Content-Type: text/csv)
+value,label,notes,tags
+a1b2c3,N123AB,Survey aircraft,survey;local
+GET  /v1/watchlists/{id}/export
+```
+
+- **Identities:** `icao24` (six hex digits), `registration`, `callsign`, `mmsi` (nine digits), `imo`
+  (seven digits with a valid check digit) and `custom` (rules must then give a `path`). Values are
+  normalized (upper case for aircraft identifiers, digits only for MMSI and IMO) and validated; an
+  import reports invalid rows and changes nothing with `dryRun=true`. `mode=replace` also removes what
+  the file does not list. At most 100,000 items per list and 5 MB per import.
+- **Identifier quality:** prefer ICAO 24-bit addresses for aircraft and IMO numbers for ships.
+  Registrations move between airframes; MMSIs are reused, mistyped and spoofed, so an MMSI match is a
+  lead, not proof.
+- **PIA and LADD:** aircraft in the FAA's Privacy ICAO Address program fly under temporary addresses,
+  and LADD-listed aircraft are blocked from many feeds; a watchlist cannot and should not get around
+  either. Respect the operators' choice.
+- **Policy:** watchlists are for aircraft, vessels and assets of public or professional interest. Do
+  not use Foresignal to track private individuals.
+- **Effect:** list edits take effect on each entity's next observation; nothing fires for the past.
+  Alerts of watchlist rules are sensitive: anonymous readers and feed keys never see them.
+
+### "Near me" rules
+
+A rule can follow a moving record, for example a phone that reports its position through a custom
+push source (keep that source private):
+
+```json
+POST /v1/triggers
+{"name": "Quake near me", "kinds": ["earthquake"], "mode": "enter",
+ "conditions": [{"path": "mag", "op": ">=", "value": 5}],
+ "near": {"anchor": {"source": "my-phone", "externalId": "pixel"}, "radiusKm": 150, "maxAnchorAge": "PT1H"}}
+```
+
+It fires when a quake appears near the phone's current position and when the phone moves near a quake
+that is still current (re-checked when the phone has moved `minMoveMeters`, default 200 m).
+`radiusKm: 0` means "the phone is inside the record's polygon", for warning areas. While the phone has
+not reported for `maxAnchorAge` (default 30 minutes), or its record is gone, the rule is paused, its
+`lastError` starts with `ANCHOR_STALE`, and one system notification says so; it resumes on the next
+position. Templates get `{{anchor.distanceKm}}`; the phone's coordinates never leave the server.
+
+### Settings export with places and watchlists
+
+`GET /v1/settings/export?includePlaces=true&includeWatchlists=true` adds places, saved views and
+watchlists with their items (both default false); the bundle then carries a `warnings` list, because
+places reveal locations. `PUT /v1/settings/import` restores them before the rules that use them.
+
 ## Notification channels
 
 A channel delivers alerts, briefings and system events to one destination, formatted natively for
@@ -695,8 +793,10 @@ POST /v1/tokens
   narrow every read: records, history, changes, tiles, streams, search, alerts, the inbox, the digest,
   briefings, MCP tools and Ask. A request filter is intersected with the restriction, and a record
   outside it answers `404`. `excludePrivate: true` hides private sources even from an agent token,
-  and `maxRequestsPerMinute` sets the token's own read rate. `placeIds` (036) and the federation
-  members (113) are refused until their prompts. Admin tokens cannot carry restrictions
+  and `maxRequestsPerMinute` sets the token's own read rate. `placeIds` (036) limits the token to
+  the union of those places' areas (an unknown or deleted place lets nothing through); it is refused
+  for the anonymous profile and feed keys, because places are never anonymous. The federation
+  members (113) are refused until their prompt. Admin tokens cannot carry restrictions
   (`400 RESTRICTION_NOT_ALLOWED`); an admin can mint any token anyway.
 
 See "Exposing Foresignal" below for kiosks, family phones, feed keys and limits.

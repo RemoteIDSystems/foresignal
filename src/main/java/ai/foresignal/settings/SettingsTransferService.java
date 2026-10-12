@@ -65,7 +65,16 @@ public class SettingsTransferService {
 
     /** Sections handled by this version. */
     static final Set<String> HANDLED = Set.of("exportedAt", "foresignalVersion", "sources", "retention", "cors",
-            "notifications", "watchdog", "triggers", "channels", "security", "server", "llmProviders", "llmSettings", "briefings", "pushProviders");
+            "notifications", "watchdog", "triggers", "channels", "security", "server", "llmProviders", "llmSettings",
+            "briefings", "pushProviders", "places", "views", "watchlists", "warnings");
+
+    /** The export warning when places are included (prompt 036). */
+    public static final String PLACES_WARNING = "This export includes places, which reveal locations (a home, a route);"
+            + " store and share it accordingly.";
+
+    /** The export warning when watchlists are included (prompt 036). */
+    public static final String WATCHLISTS_WARNING = "This export includes watchlists, which identify the aircraft and"
+            + " vessels being followed.";
 
     /** Channel members that are output only, dropped before a channel is upserted. */
     static final Set<String> CHANNEL_OUTPUT_ONLY = Set.of("id", "secretFields", "createdAt", "updatedAt",
@@ -92,6 +101,31 @@ public class SettingsTransferService {
     private final LlmMapper llmMapper;
     private final ObjectProvider<BriefingService> briefings;
     private final ObjectProvider<PushProviderService> pushProviders;
+    private ObjectProvider<ai.foresignal.place.PlaceService> places;
+    private ObjectProvider<ai.foresignal.place.PlaceMapper> placeMapper;
+    private ObjectProvider<ai.foresignal.view.SavedViewService> views;
+    private ObjectProvider<ai.foresignal.view.SavedViewMapper> viewMapper;
+    private ObjectProvider<ai.foresignal.watch.WatchlistService> watchlists;
+    private ObjectProvider<ai.foresignal.watch.WatchlistMapper> watchlistMapper;
+
+    /**
+     * Wires the places, saved views and watchlists of prompt 036 (optional, so the settings layer does
+     * not depend on them at construction).
+     */
+    @org.springframework.beans.factory.annotation.Autowired
+    public void setPlacesAndWatchlists(ObjectProvider<ai.foresignal.place.PlaceService> places,
+            ObjectProvider<ai.foresignal.place.PlaceMapper> placeMapper,
+            ObjectProvider<ai.foresignal.view.SavedViewService> views,
+            ObjectProvider<ai.foresignal.view.SavedViewMapper> viewMapper,
+            ObjectProvider<ai.foresignal.watch.WatchlistService> watchlists,
+            ObjectProvider<ai.foresignal.watch.WatchlistMapper> watchlistMapper) {
+        this.places = places;
+        this.placeMapper = placeMapper;
+        this.views = views;
+        this.viewMapper = viewMapper;
+        this.watchlists = watchlists;
+        this.watchlistMapper = watchlistMapper;
+    }
 
     /** Creates the service. */
     public SettingsTransferService(SourceRegistry registry, SourceService sources, SourceMapper sourceMapper,
@@ -137,9 +171,44 @@ public class SettingsTransferService {
     public record ImportReport(List<String> sourcesApplied, List<String> sourcesUnknown, int triggersUpserted,
             int channelsUpserted, int briefingsUpserted, List<String> warnings) {}
 
-    /** The bundle of every exportable setting; never a secret or a credential. */
+    /** The bundle of every exportable setting without places, views or watchlists. */
     @Transactional(readOnly = true)
     public Map<String, Object> export() {
+        return export(false, false);
+    }
+
+    /**
+     * The bundle of every exportable setting; never a secret or a credential. Places and saved views
+     * are included with {@code includePlaces}, watchlists and their items with
+     * {@code includeWatchlists} (prompt 036); the bundle then carries {@code warnings}.
+     */
+    @Transactional(readOnly = true)
+    public Map<String, Object> export(boolean includePlaces, boolean includeWatchlists) {
+        Map<String, Object> out = baseExport();
+        List<String> warnings = new ArrayList<>();
+        ai.foresignal.place.PlaceService placeService = places == null ? null : places.getIfAvailable();
+        if (includePlaces && placeService != null) {
+            ai.foresignal.place.PlaceMapper pm = placeMapper.getObject();
+            out.put("places", placeService.all().stream().map(pm::place).toList());
+            ai.foresignal.view.SavedViewService viewService = views.getIfAvailable();
+            if (viewService != null) {
+                ai.foresignal.view.SavedViewMapper vm = viewMapper.getObject();
+                out.put("views", viewService.all().stream().map(vm::view).toList());
+            }
+            warnings.add(PLACES_WARNING);
+        }
+        ai.foresignal.watch.WatchlistService watchlistService = watchlists == null ? null : watchlists.getIfAvailable();
+        if (includeWatchlists && watchlistService != null) {
+            out.put("watchlists", watchlistService.exportAll(watchlistMapper.getObject()));
+            warnings.add(WATCHLISTS_WARNING);
+        }
+        if (!warnings.isEmpty()) {
+            out.put("warnings", warnings);
+        }
+        return out;
+    }
+
+    private Map<String, Object> baseExport() {
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("exportedAt", clock.instant().toString());
         out.put("foresignalVersion", version.version());
@@ -177,6 +246,64 @@ public class SettingsTransferService {
         out.put("pushProviders", pushProviderService == null ? List.of()
                 : pushProviderService.list().stream().map(PushProviderService::view).toList());
         return out;
+    }
+
+    /**
+     * Imports places, saved views and watchlists (prompt 036), before the triggers that may refer to
+     * them: places and views upsert by id, watchlists by id with their items replaced.
+     */
+    private void importPlacesAndWatchlists(JsonNode bundle, Errors errors, List<String> warnings) {
+        JsonNode placesNode = present(bundle, "places");
+        ai.foresignal.place.PlaceService placeService = places == null ? null : places.getIfAvailable();
+        if (placesNode != null) {
+            if (!placesNode.isArray() || placeService == null) {
+                errors.add(new FieldError("places", "must be an array of places"));
+            } else {
+                for (int i = 0; i < placesNode.size(); i++) {
+                    JsonNode place = placesNode.get(i);
+                    try {
+                        placeService.upsert(place.path("id").asString(""), place);
+                    } catch (RuntimeException e) {
+                        errors.add("places[" + i + "]", e);
+                    }
+                }
+            }
+        }
+        JsonNode viewsNode = present(bundle, "views");
+        ai.foresignal.view.SavedViewService viewService = views == null ? null : views.getIfAvailable();
+        if (viewsNode != null) {
+            if (!viewsNode.isArray() || viewService == null) {
+                errors.add(new FieldError("views", "must be an array of saved views"));
+            } else {
+                for (int i = 0; i < viewsNode.size(); i++) {
+                    JsonNode view = viewsNode.get(i);
+                    UUID id = id(view, "views[" + i + "]", errors);
+                    if (id == null) {
+                        continue;
+                    }
+                    try {
+                        viewService.upsert(id, view);
+                    } catch (RuntimeException e) {
+                        errors.add("views[" + i + "]", e);
+                    }
+                }
+            }
+        }
+        JsonNode watchlistsNode = present(bundle, "watchlists");
+        ai.foresignal.watch.WatchlistService watchlistService = watchlists == null ? null : watchlists.getIfAvailable();
+        if (watchlistsNode != null) {
+            if (!watchlistsNode.isArray() || watchlistService == null) {
+                errors.add(new FieldError("watchlists", "must be an array of {watchlist, items}"));
+            } else {
+                for (int i = 0; i < watchlistsNode.size(); i++) {
+                    try {
+                        watchlistService.importEntry(watchlistsNode.get(i));
+                    } catch (RuntimeException e) {
+                        errors.add("watchlists[" + i + "]", e);
+                    }
+                }
+            }
+        }
     }
 
     private Map<String, Object> source(SourceView view) {
@@ -304,6 +431,7 @@ public class SettingsTransferService {
                 errors.add("server", e);
             }
         }
+        importPlacesAndWatchlists(bundle, errors, warnings);
         JsonNode triggersNode = present(bundle, "triggers");
         if (triggersNode != null) {
             if (!triggersNode.isArray()) {

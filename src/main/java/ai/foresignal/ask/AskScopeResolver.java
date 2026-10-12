@@ -18,4 +18,16 @@ public interface AskScopeResolver {
      * @throws ai.foresignal.api.error.ValidationException when a place or view is unknown
      */
     AskScope resolve(AskScope scope);
+
+    /**
+     * The tool caller's restriction narrowed by the scope's places and view (prompt 036), so every
+     * read tool of the question runs inside them through {@code RestrictionClamp}.
+     *
+     * @param scope the requested scope
+     * @param base the caller's restriction
+     */
+    default ai.foresignal.security.restrict.ReadRestriction restriction(AskScope scope,
+            ai.foresignal.security.restrict.ReadRestriction base) {
+        return base;
+    }
 }

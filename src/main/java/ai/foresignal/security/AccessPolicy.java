@@ -33,6 +33,9 @@ import org.springframework.util.AntPathMatcher;
  * in the controller), the inbox and presence paths (read, always authenticated; {@code GET
  * /v1/clients} admin) and the escalation policies (agent).
  *
+ * <p>Prompt 036 adds the places (reads {@code read}, always authenticated; writes {@code agent}),
+ * saved views ({@code read}/{@code agent}) and watchlists ({@code agent}).
+ *
  * <p>Prompt 025 adds {@code /mcp} and {@code /mcp/**} (the MCP server, also outside {@code /v1}):
  * {@code read}, with per-tool scope checks inside the server ({@code McpToolRegistry}).
  */
@@ -223,6 +226,22 @@ public class AccessPolicy {
                 rule(HttpMethod.GET, "/v1/tiles/**", AccessRequirement.READ),
                 // The TileJSON index; /v1/tiles/** does not match /v1/tiles.json (016).
                 rule(HttpMethod.GET, "/v1/tiles.json", AccessRequirement.READ),
+
+                // ---- Places (036): a home location is sensitive, so reads are always authenticated ----
+                rule(HttpMethod.GET, "/v1/places", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.GET, "/v1/places/**", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(null, "/v1/places", AccessRequirement.AGENT),
+                rule(null, "/v1/places/**", AccessRequirement.AGENT),
+
+                // ---- Saved views (036): definitions and renderings read, writes agent ----
+                rule(HttpMethod.GET, "/v1/views", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/views/**", AccessRequirement.READ),
+                rule(null, "/v1/views", AccessRequirement.AGENT),
+                rule(null, "/v1/views/**", AccessRequirement.AGENT),
+
+                // ---- Watchlists (036): agent for reads and writes ----
+                rule(null, "/v1/watchlists", AccessRequirement.AGENT),
+                rule(null, "/v1/watchlists/**", AccessRequirement.AGENT),
 
                 // ---- Search: read, except reindex ----
                 rule(HttpMethod.POST, "/v1/search/reindex", AccessRequirement.ADMIN_ALWAYS_AUTHENTICATED),

@@ -37,6 +37,10 @@ import java.util.UUID;
  * @param summary the enrichment summary (prompt 030), or null
  * @param enrichedAt when the summary was stored, or null
  * @param summaryCitations the summary's verified citations as a JSON array text, or null
+ * @param sensitive true for an alert of a rule referencing a watchlist (prompt 036): hidden from
+ *     anonymous callers and feed keys
+ * @param context the computed alert context ({@code AlertContext}) as JSON text, or null (prompt 036:
+ *     {@code near}, {@code anchor})
  */
 public record AlertView(
         long id,
@@ -67,11 +71,26 @@ public record AlertView(
         String recordSnapshot,
         String summary,
         Instant enrichedAt,
-        String summaryCitations) {
+        String summaryCitations,
+        boolean sensitive,
+        String context) {
 
     /** Copies the tags. */
     public AlertView {
         tags = tags == null ? List.of() : List.copyOf(tags);
+    }
+
+    /** An alert without the prompt 036 members: not sensitive, no context. */
+    public AlertView(long id, UUID ruleId, String ruleName, long seq, String sourceId, String externalId, String kind,
+            Instant firedAt, Instant observedAt, String message, String severity, String state, long rev,
+            Instant acknowledgedAt, String acknowledgedBy, Instant resolvedAt, String resolvedBy, Long resolvedSeq,
+            String feedback, Instant feedbackAt, String note, Instant snoozedUntil, boolean suppressed,
+            String suppressedReason, List<String> tags, String recordSnapshot, String summary, Instant enrichedAt,
+            String summaryCitations) {
+        this(id, ruleId, ruleName, seq, sourceId, externalId, kind, firedAt, observedAt, message, severity, state, rev,
+                acknowledgedAt, acknowledgedBy, resolvedAt, resolvedBy, resolvedSeq, feedback, feedbackAt, note,
+                snoozedUntil, suppressed, suppressedReason, tags, recordSnapshot, summary, enrichedAt, summaryCitations,
+                false, null);
     }
 
     /** An alert that has not been enriched (no summary, no citations). */

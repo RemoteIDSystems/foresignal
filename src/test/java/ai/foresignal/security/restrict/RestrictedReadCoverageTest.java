@@ -34,10 +34,11 @@ class RestrictedReadCoverageTest {
 
     /** Path prefixes whose GET operations return records or alerts. */
     static final List<String> READ_PREFIXES = List.of("/v1/records", "/v1/history", "/v1/changes", "/v1/kinds",
-            "/v1/tiles", "/v1/events", "/v1/alerts", "/v1/search", "/v1/notifications", "/v1/digest", "/v1/briefings");
+            "/v1/tiles", "/v1/events", "/v1/alerts", "/v1/search", "/v1/notifications", "/v1/digest", "/v1/briefings",
+            "/v1/views");
 
     /** GET operations under those prefixes that return no records or alerts. */
-    static final Set<String> EXEMPT = Set.of("getSearchStatus", "getAlertEscalation");
+    static final Set<String> EXEMPT = Set.of("getSearchStatus", "getAlertEscalation", "listViews", "getView");
 
     /** Non-GET operations that read records or alerts on the caller's behalf. */
     static final Set<String> REQUIRED = Set.of("ask", "askStream", "previewBriefing", "runBriefing",
@@ -45,7 +46,11 @@ class RestrictedReadCoverageTest {
 
     /** MCP tools and resources that return no records or alerts. */
     static final Set<String> EXEMPT_TOOLS = Set.of("create_watch", "update_watch", "delete_watch", "list_watches",
-            "mute_watch", "system_status", "list_escalation_policies", "create_briefing");
+            "mute_watch", "system_status", "list_escalation_policies", "create_briefing",
+            // 036: places, view definitions and watchlists are not records.
+            "list_places", "get_place", "create_place", "update_place", "delete_place", "PlacesResource",
+            "list_views", "create_view", "list_watchlists", "get_watchlist", "add_to_watchlist",
+            "remove_from_watchlist");
 
     @Test
     @DisplayName("every record- or alert-returning controller method carries @RestrictedRead")

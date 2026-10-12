@@ -61,7 +61,7 @@ public class AlertItems {
     public AlertView visible(long id, Set<String> excluded, ai.foresignal.security.restrict.ReadRestriction restriction) {
         AlertView alert = alerts.get(id);
         if (excluded.contains(alert.sourceId()) || !ai.foresignal.security.restrict.RestrictionClamp.testSnapshot(
-                restriction, alert.sourceId(), alert.kind(), alert.recordSnapshot())) {
+                restriction, alert.sourceId(), alert.kind(), alert.recordSnapshot(), alert.sensitive())) {
             throw NotFoundException.of("Alert", id);
         }
         return alert;

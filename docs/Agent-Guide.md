@@ -245,9 +245,9 @@ The MCP server takes the same bearer tokens as the REST API (`Authorization: Bea
 
 | Caller | Sees and may call |
 |---|---|
-| No token | The `read` tools, only while `security.openReads` is on (otherwise `/mcp` answers 401). Cost-bearing tools are hidden and refused. |
+| No token | The `read` tools, only while `security.openReads` is on (otherwise `/mcp` answers 401). Cost-bearing and place tools (always authenticated) are hidden and refused. |
 | `read` token | Every `read` tool, including cost-bearing ones. |
-| `agent` token | Everything a `read` token can, plus the write tools (`acknowledge_alert`, `set_alert_status`, `snooze_alert`, `create_watch`, `update_watch`, `delete_watch`, `mute_watch`, `create_briefing`, `run_briefing`). |
+| `agent` token | Everything a `read` token can, plus the write tools (`acknowledge_alert`, `set_alert_status`, `snooze_alert`, `create_watch`, `update_watch`, `delete_watch`, `mute_watch`, `create_briefing`, `run_briefing`, `create_place`, `update_place`, `delete_place`, `create_view`) and the watchlist tools (036). |
 | `admin` token | The same as `agent`; MCP has no admin tools. Prefer an `agent` token for agents. |
 
 - **Tool errors, not silence.** A call above the caller's scope returns a tool error that names the scope needed, so the agent can tell its operator.
@@ -311,10 +311,23 @@ Every tool takes `detail`: `short` (the default, compact items, the whole result
 | `snooze_alert` | agent | Snooze an alert (`until` or `for`); repeats are recorded but not notified and its escalation stops (033). |
 | `mute_watch` | agent | Mute a watch for 1 h to 7 d (`until` or `for`): alerts are recorded but notify nobody, and escalations stop (033). |
 | `list_escalation_policies` | read | Escalation policies with steps, repeat, stop conditions and how many watches use each (033). |
+| `list_places` | read, always authenticated | Named places (id, name, shape, radius or buffer, kind, tags); coordinates only with `detail=long` to an agent token (036). |
+| `get_place` | read, always authenticated | One place by `placeId`, under the same coordinate rule (036). |
+| `records_near_place` | read, always authenticated | Current records inside one or more places' areas (`placeIds`, optional `radiusKm` buffer, `kind`, `source`, `limit`); returns the place names, never their coordinates (036). |
+| `create_place` | agent | Create a place from a `place` (`PlaceInput`): a point with `radiusKm`, a polygon, or a route with `bufferM` (036). |
+| `update_place` | agent | Replace a place (`placeId`, `place`); watches near it follow at once without firing for records that did not move (036). |
+| `delete_place` | agent | Delete a place; `PLACE_IN_USE` lists its watches, views and briefings unless `force` disables the watches (036). |
+| `list_views` | read | Saved views (named record filters); `detail=long` adds their conditions and projection (036). |
+| `get_view_records` | read | The current records of a saved view by `viewId` or slug; a view that names a place or watchlist needs a token (036). |
+| `create_view` | agent | Create a saved view from a `view` (`SavedViewInput`) (036). |
+| `list_watchlists` | agent | Watchlists with identity (`icao24`, `registration`, `callsign`, `mmsi`, `imo`, `custom`) and item counts (036). |
+| `get_watchlist` | agent | One watchlist with its first items (036). |
+| `add_to_watchlist` | agent | Add or update `items` (`{value, label, notes, tags}`), validated for the list's identity; effective on each entity's next observation (036). |
+| `remove_from_watchlist` | agent | Remove `values` from a watchlist (036). |
 
-Later prompts add tools to the same registry: places and watchlists (036), `get_state_at` and `get_track` (037), weather (052), `get_map_image` (055) and entities (098).
+Later prompts add tools to the same registry: `get_state_at` and `get_track` (037), weather (052), `get_map_image` (055) and entities (098).
 
-**Resources:** `foresignal://sources` and `foresignal://kinds`. **Prompt:** `situation-report` (arguments `bbox`, `since`) asks the model to brief on an area from `source_health`, `query_records` and `list_alerts`, citing every fact.
+**Resources:** `foresignal://sources`, `foresignal://kinds` and `foresignal://places` (036: names, shapes and radii; coordinates only for agent tokens; always needs a token). **Prompt:** `situation-report` (arguments `bbox`, `since`) asks the model to brief on an area from `source_health`, `query_records` and `list_alerts`, citing every fact.
 
 ### Vocabulary
 
@@ -426,6 +439,7 @@ OpenClaw skill in `integrations/openclaw/foresignal/` packages the same knowledg
 | `search`, Ask (cost-bearing: always a token, even under `openReads`) | `read` | an LLM or embedding provider (admin) |
 | Create, change, test, delete or mute watches | `agent` (`test_watch`: `read`) | |
 | Create and run briefings | `agent` | |
+| Read places (always a token, even under `openReads`); create, change or delete places and views; watchlists | `read` / `agent` (watchlists: `agent`) | |
 | Acknowledge, resolve, snooze alerts | `agent`, or a capability URL from a notification | |
 | Push records into a custom source | the source's ingest key (`eik_…`) | the source (admin) |
 | Channels, sources, credentials, LLM providers, tokens, settings | `admin` | never an agent |
@@ -558,6 +572,48 @@ snooze_alert {"alertId": 419, "for": "1h"}
 - `acknowledge_alert` stops escalation and updates the delivered messages in place; `snooze_alert`
   records repeats as suppressed without notifying, until the snooze ends. Both return the alert
   (`state`, `acknowledgedBy` or `snoozedUntil`).
+
+### 7. Track these 40 tails across every aircraft source
+
+Scope: `agent`. Aircraft sources that declare `entityKeys` (`icao24`, `registration`, `callsign`) all
+take part; one watch covers them.
+
+```mcp
+list_watchlists {}
+add_to_watchlist {"watchlistId": "<id of an icao24 list>", "items": [{"value": "a1b2c3", "label": "N123AB"}, {"value": "adf7c8", "label": "N456CD"}]}
+create_watch {"rule": {"name": "Tails seen", "kinds": ["aircraft"], "conditions": [{"op": "inWatchlist", "value": "<watchlist id>"}], "mode": "enter", "cooldown": "6h", "severity": "info", "tags": ["tails"]}}
+```
+
+- Create the list once with the REST API (`POST /v1/watchlists {"name": "Tails", "identity":
+  "icao24"}`) and import the 40 tails as CSV (`POST /v1/watchlists/{id}/import?mode=merge`, header
+  `value,label,notes,tags`; `dryRun=true` first shows invalid rows). ICAO addresses and IMO numbers
+  are stable identifiers; registrations change hands and MMSIs are reused.
+- Without a `path`, `inWatchlist` reads each source's declared identity field, so the watch fires for
+  a listed tail whichever aircraft source reports it; a source without the identity never matches
+  (the validation warning names it).
+- Adding a tail takes effect on that aircraft's next observation; nothing fires for the past. Alerts
+  of watchlist watches are sensitive: anonymous readers and feed keys never see them.
+- A saved view renders the same set on a map: `create_view {"view": {"slug": "tails", "name":
+  "Tails", "kinds": ["aircraft"], "conditions": [{"op": "inWatchlist", "value": "<watchlist id>"}]}}`,
+  then `/v1/views/tails/tiles.json` and `/v1/views/tails/stream`.
+
+### 8. Alert me when an M5+ quake is within 150 km of my phone
+
+Scope: `agent`. The phone posts its position as an ordinary record (a custom push source, or the
+OwnTracks source of prompt 039), for example source `my-phone`, entity `pixel`.
+
+```mcp
+create_watch {"rule": {"name": "Big quake near me", "kinds": ["earthquake"], "conditions": [{"path": "mag", "op": ">=", "value": 5}], "near": {"anchor": {"source": "my-phone", "externalId": "pixel"}, "radiusKm": 150, "maxAnchorAge": "PT2H", "minMoveMeters": 500}, "mode": "enter", "severity": "critical", "messageTemplate": "M{{payload.mag}} {{anchor.distanceKm}} km from you"}}
+```
+
+- The watch fires when a quake appears within 150 km of the phone's current position, and also when
+  the phone moves to within 150 km of a quake that is still current.
+- While the phone has not reported for `maxAnchorAge`, the watch is paused, its `lastError` says
+  `ANCHOR_STALE` and one system notification says so; it resumes on the next position.
+- Templates get `{{anchor.distanceKm}}`, never the phone's coordinates; the LLM never sees them
+  either. Keep the phone's source private.
+- For a fixed place instead, name it once (`create_place`) and use `"near": {"placeIds": ["home"],
+  "radiusKm": 150}`; editing the place moves the watch.
 
 ### Security
 

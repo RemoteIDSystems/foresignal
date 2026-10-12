@@ -106,7 +106,8 @@ public class ChangesController {
             HttpServletRequest request,
             HttpServletResponse response)
             throws IOException {
-        ReadCaller caller = callers.resolve(request);
+        // place=, view= and inWatchlist= narrow the caller's restriction (prompt 036).
+        ReadCaller caller = callers.resolveScoped(request);
         ResponseFormat fmt = ResponseFormat.negotiate(format, accept, FORMATS);
         Long afterSeq = QueryParams.nonNegativeLong("after", after);
         List<String> sources = QueryParams.multi("source", source);

@@ -60,14 +60,16 @@ public class WatchItems {
 
     private static Map<String, Object> rule() {
         Map<String, Object> condition = JsonSchemas.openObject("One payload condition", JsonSchemas.props(
-                "path", JsonSchemas.string("Dot path into the record payload, for example mag or properties.depth."),
+                "path", JsonSchemas.string("Dot path into the record payload, for example mag or properties.depth."
+                        + " Omit it for inWatchlist/notInWatchlist to match each source's identity field (icao24, mmsi…)."),
                 "op", JsonSchemas.enumeration("Comparison: > >= < <= take numbers; == and != also strings and booleans;"
                         + " in/notIn a non-empty array; exists a boolean; startsWith a string; matches a simple Java"
-                        + " regex (no backreferences or lookaround).", null,
+                        + " regex (no backreferences or lookaround); inWatchlist/notInWatchlist a watchlist id (from"
+                        + " list_watchlists).", null,
                         ">", ">=", "<", "<=", "==", "!=", "in", "notIn", "exists", "startsWith", "matches",
                         "inWatchlist", "notInWatchlist"),
                 "value", Map.of("description", "The operand: a number, string, boolean or array as op requires.")),
-                "path", "op", "value");
+                "op", "value");
         Map<String, Object> window = JsonSchemas.openObject("Recurring local-time windows in which the watch is active",
                 JsonSchemas.props(
                         "timezone", JsonSchemas.string("IANA timezone, for example America/Chicago."),
@@ -87,6 +89,10 @@ public class WatchItems {
                 "match", "match", "enter", "exit"));
         props.put("geofence", Map.of("type", "object", "description", "A GeoJSON Polygon or MultiPolygon (or a"
                 + " LineString with bufferMeters) in WGS84; records inside it match."));
+        props.put("near", JsonSchemas.openObject("Instead of a geofence: near named places {placeIds: [..],"
+                + " radiusKm?}, a point {point: [lon, lat], radiusKm}, or a moving record {anchor: {source,"
+                + " externalId}, radiusKm (0 = the anchor inside the record's polygon), maxAnchorAge?, minMoveMeters?}"
+                + " such as a phone (\"near me\"); the watch pauses while the anchor is stale.", Map.of()));
         props.put("bufferMeters", JsonSchemas.number("Corridor half-width when geofence is a line, in meters.", 1, 50_000));
         props.put("hysteresisMeters", JsonSchemas.number("Edge band in meters for enter/exit, so jitter along the"
                 + " boundary does not fire (0–5000).", 0, 5_000));
@@ -102,7 +108,7 @@ public class WatchItems {
         props.put("activeUntil", JsonSchemas.dateTime("The watch disables itself after this time."));
         props.put("activeWindow", window);
         return JsonSchemas.openObject("A watch (trigger rule), as TriggerRuleInput in /v1/openapi.json. Required: name,"
-                + " and at least one of sources, kinds, conditions or geofence to narrow it. Validated exactly as"
+                + " and at least one of sources, kinds, conditions, geofence or near to narrow it. Validated exactly as"
                 + " POST /v1/triggers; every problem is reported at once.", props, "name");
     }
 }

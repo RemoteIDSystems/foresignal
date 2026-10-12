@@ -75,10 +75,11 @@ public class BriefingValidator {
             "lastRunStatus", "warnings");
 
     /** Scope members this prompt implements. */
-    static final Set<String> SCOPE_MEMBERS = Set.of("sources", "kinds", "bbox", "ruleIds", "includeHealth");
+    static final Set<String> SCOPE_MEMBERS = Set.of("sources", "kinds", "bbox", "ruleIds", "includeHealth", "placeIds",
+            "viewId");
 
     /** Scope members of later prompts: accepted only when empty. */
-    static final Map<String, String> LATER_SCOPE_MEMBERS = Map.of("placeIds", "036", "viewId", "036", "country", "040",
+    static final Map<String, String> LATER_SCOPE_MEMBERS = Map.of("country", "040",
             "admin1", "040", "county", "040", "places", "056", "weatherProducts", "056");
 
     /** The window over which the frequency floor is checked. */
@@ -90,13 +91,32 @@ public class BriefingValidator {
     private final SourceRegistry registry;
     private final TriggerRuleRepository rules;
     private final NotificationChannelRepository channels;
+    private final java.util.function.Predicate<String> placeExists;
+    private final java.util.function.Predicate<String> viewExists;
 
-    /** Creates the validator. */
+    /** Creates the validator with the place and saved-view checks of prompt 036. */
+    @org.springframework.beans.factory.annotation.Autowired
     public BriefingValidator(SourceRegistry registry, TriggerRuleRepository rules,
-            NotificationChannelRepository channels) {
+            NotificationChannelRepository channels,
+            org.springframework.beans.factory.ObjectProvider<ai.foresignal.trigger.PlaceLookup> places,
+            org.springframework.beans.factory.ObjectProvider<ai.foresignal.view.SavedViewService> views) {
         this.registry = registry;
         this.rules = rules;
         this.channels = channels;
+        this.placeExists = id -> {
+            ai.foresignal.trigger.PlaceLookup lookup = places == null ? null : places.getIfAvailable();
+            return lookup != null && lookup.geometry(id).isPresent();
+        };
+        this.viewExists = id -> {
+            ai.foresignal.view.SavedViewService service = views == null ? null : views.getIfAvailable();
+            return service != null && service.find(id).isPresent();
+        };
+    }
+
+    /** Creates the validator without places or views (every place and view id is then unknown). */
+    public BriefingValidator(SourceRegistry registry, TriggerRuleRepository rules,
+            NotificationChannelRepository channels) {
+        this(registry, rules, channels, null, null);
     }
 
     /**
@@ -320,7 +340,24 @@ public class BriefingValidator {
             i++;
         }
         boolean includeHealth = bool(node, "includeHealth", true, errors, "scope.");
-        return new BriefingScope(dedupe(sources), dedupe(kinds), bbox, ruleIds, includeHealth);
+        List<String> placeIds = strings(node, "placeIds", errors);
+        for (String placeId : placeIds) {
+            if (!placeExists.test(placeId)) {
+                errors.add(new FieldError("scope.placeIds", "unknown place: " + placeId));
+            }
+        }
+        String viewId = null;
+        JsonNode viewNode = node.get("viewId");
+        if (viewNode != null && !viewNode.isNull()) {
+            if (!viewNode.isString() || viewNode.asString().isBlank()) {
+                errors.add(new FieldError("scope.viewId", "must be a saved view id or slug"));
+            } else if (!viewExists.test(viewNode.asString().strip())) {
+                errors.add(new FieldError("scope.viewId", "unknown view: " + viewNode.asString().strip()));
+            } else {
+                viewId = viewNode.asString().strip();
+            }
+        }
+        return new BriefingScope(dedupe(sources), dedupe(kinds), bbox, ruleIds, includeHealth, dedupe(placeIds), viewId);
     }
 
     // ------------------------------------------------------------------------- schedule helpers

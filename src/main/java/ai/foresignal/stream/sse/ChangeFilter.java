@@ -39,6 +39,12 @@ import org.locationtech.jts.geom.Envelope;
  *     {@code RestrictionClamp}; a client's PATCHed filter keeps it, so it can never be widened. An
  *     entity that moves out of the restricted region simply stops matching (it is never reported as
  *     {@code LEFT}, which would carry its new position)
+ *
+ * <p><b>Payload filters (prompt 036).</b> When the restriction carries a request filter with payload
+ * conditions ({@code view=}, {@code inWatchlist=}), a persisted change is judged with its payload
+ * ({@link #matchChange(ChangeSummary, Map)}): a version that stops matching is delivered as
+ * {@code LEFT} when its entity matched before. The filter remembers which entities match, and live
+ * updates and touches (which carry no payload) are delivered only for those.
  */
 public record ChangeFilter(
         List<String> sources,
@@ -95,10 +101,49 @@ public record ChangeFilter(
         return matchBoxes(change.bbox(), change.prevPersistedBbox(), change.prevLiveBbox());
     }
 
+    /** True when the restriction carries a request filter that needs payloads (prompt 036). */
+    public boolean needsPayload() {
+        return restriction.filter() != null && restriction.filter().needsPayload();
+    }
+
+    /**
+     * How a persisted change relates to this filter, judging a payload filter's conditions on
+     * {@code payload} (the version's payload, or null when it was not loaded) and keeping the
+     * filter's membership memory (prompt 036).
+     */
+    public FilterMatch matchChange(ChangeSummary change, java.util.Map<String, Object> payload) {
+        FilterMatch base = matchChange(change);
+        if (!needsPayload()) {
+            return base;
+        }
+        ai.foresignal.security.restrict.RecordFilter filter = restriction.filter();
+        boolean was = filter.remembered(change.sourceId(), change.externalId());
+        if (change.tombstone()) {
+            filter.remember(change.sourceId(), change.externalId(), false);
+            return was ? base : FilterMatch.NONE;
+        }
+        boolean holds = payload != null && filter.testPayload(change.sourceId(), payload);
+        filter.remember(change.sourceId(), change.externalId(), holds && base == FilterMatch.MATCH);
+        if (holds) {
+            return base;
+        }
+        return was && base != FilterMatch.NONE ? FilterMatch.LEFT : FilterMatch.NONE;
+    }
+
+    /** Records that a replayed change of an entity matched (its SQL already applied the filter). */
+    public void rememberReplayed(String sourceId, String externalId, boolean tombstone) {
+        if (needsPayload()) {
+            restriction.filter().remember(sourceId, externalId, !tombstone);
+        }
+    }
+
     /** How a live update relates to this filter, ignoring {@link #live} itself. */
     public FilterMatch matchLive(LiveUpdate update) {
         if (!matchesEntity(update.sourceId(), update.kind(), update.externalId())
                 || !RestrictionClamp.test(restriction, update.sourceId(), update.kind(), update.bbox())) {
+            return FilterMatch.NONE;
+        }
+        if (needsPayload() && !restriction.filter().remembered(update.sourceId(), update.externalId())) {
             return FilterMatch.NONE;
         }
         return matchBoxes(update.bbox(), update.prevBbox(), null);
@@ -117,6 +162,9 @@ public record ChangeFilter(
             return FilterMatch.NONE;
         }
         if (!touchAllowed(touch, possibleKinds)) {
+            return FilterMatch.NONE;
+        }
+        if (needsPayload() && !restriction.filter().remembered(touch.sourceId(), touch.externalId())) {
             return FilterMatch.NONE;
         }
         return matchBoxes(touch.bbox(), null, null);

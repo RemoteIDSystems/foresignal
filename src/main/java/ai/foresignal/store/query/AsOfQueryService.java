@@ -323,7 +323,7 @@ public class AsOfQueryService {
                     + "c.ingested_at + c.asof_ttl > " + at + ")))");
         }
         RecordQueryService.addIn(outer, "c.kind", q.kinds(), p);
-        RestrictionClamp.addTo(outer, "c", q.restriction(), p);
+        RestrictionClamp.addTo(outer, "c.source_id", "c.kind", "c.geom", "c.payload", q.restriction(), p);
         if (q.bbox() != null) {
             outer.add(RecordQueryService.bboxClause("c.geom", q.bbox(), p));
         }

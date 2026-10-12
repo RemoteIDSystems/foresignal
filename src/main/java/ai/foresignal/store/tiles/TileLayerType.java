@@ -5,7 +5,12 @@ public enum TileLayerType {
     /** A registered source id: {@code source_id = layer}. */
     SOURCE("source"),
     /** A kind declared by at least one registered source: {@code kind = layer}. */
-    KIND("kind");
+    KIND("kind"),
+    /**
+     * A saved view (prompt 036): the view's sources (or every visible source); its predicate is
+     * applied through the caller's restriction filter. Never listed in the TileJSON index.
+     */
+    VIEW("view");
 
     private final String wireValue;
 

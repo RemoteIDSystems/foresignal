@@ -210,6 +210,12 @@ Open-source situational-awareness projects (ShadowBroker, God's Eye View, Veloci
 - **FR-83** Every client keeps a notification inbox in sync with per-device read state and badge counts (listing, cursor and sparse reads, a live stream); reading never acknowledges an alert. Phone channels can hold non-critical alerts back while a desktop client is active and drop them if they were read or acknowledged meanwhile; critical alerts always go immediately.
 - **FR-84** Escalation policies send an unacknowledged alert to further channels after set delays, with an optional repeat, until it is acknowledged (always) or resolved or snoozed (per policy); muting a rule stops its escalations.
 
+### 8.16b Places, views and watchlists (036)
+- **FR-85** The operator or an agent can name places (a point with a radius, a polygon, or a route with a buffer) once and use them everywhere: as `place=` filters on records, history, changes, tiles, streams and search; in rules (`near.placeIds`), views, briefings and Ask scopes; and as the weather area of interest. Places are sensitive: reading them always needs a token, and the LLM, notifications and anonymous readers never see their coordinates. Editing a place moves every rule that uses it without firing edges for records that did not move.
+- **FR-86** Saved views give a named filter (sources, kinds, places, an area, conditions, a field projection) that records, map tiles and the SSE stream render identically, and that `view=` applies to the other read paths.
+- **FR-87** Watchlists hold up to 100,000 identifiers (ICAO 24-bit addresses, registrations, callsigns, MMSIs, IMO numbers or custom values), imported from CSV or JSON with a dry run and exported as CSV. One `inWatchlist` condition matches the same entities across every source that declares the identity; alerts of such rules are sensitive and hidden from anonymous readers and feed keys.
+- **FR-88** "Near me" rules follow a moving anchor record (a phone): they fire when a target comes near the anchor and when the anchor moves near a target, and they pause, with a system notification, while the anchor is stale.
+
 ### 8.17 Derived layers, products and provenance
 - **FR-54** Derived sources compute layers from stored records (GPS jamming cells, AIS gaps, loitering, rendezvous, deception checks, holding patterns) and publish them as ordinary records.
 - **FR-55** Gridded weather products (GFS/ECMWF wind) are fetched by GRIB2 byte range and served through a products API.

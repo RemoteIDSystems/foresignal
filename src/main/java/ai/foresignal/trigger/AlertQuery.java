@@ -102,6 +102,7 @@ public record AlertQuery(
             return false;
         }
         return !excludedSources.contains(alert.sourceId())
-                && RestrictionClamp.testSnapshot(restriction, alert.sourceId(), alert.kind(), alert.recordSnapshot());
+                && RestrictionClamp.testSnapshot(restriction, alert.sourceId(), alert.kind(), alert.recordSnapshot(),
+                        alert.sensitive());
     }
 }

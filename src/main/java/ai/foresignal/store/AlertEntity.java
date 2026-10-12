@@ -158,6 +158,18 @@ public class AlertEntity {
     @Column(name = "summary_citations")
     private List<Map<String, Object>> summaryCitations;
 
+    /**
+     * True for an alert of a rule referencing a watchlist (prompt 036): hidden from anonymous callers
+     * and feed keys.
+     */
+    @Column(name = "sensitive", nullable = false, columnDefinition = "boolean default false")
+    private boolean sensitive;
+
+    /** The computed alert context ({@code AlertContext}: {@code near}, {@code anchor}; prompt 036), or null. */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "context")
+    private Map<String, Object> context;
+
     protected AlertEntity() {
         // for JPA
     }

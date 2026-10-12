@@ -58,6 +58,15 @@ import tools.jackson.databind.json.JsonMapper;
  * inserts the alerts, resolves the inverse edges, updates storm counters and advances the cursor, so
  * every (rule, version) is evaluated exactly once, including across restarts. Events are published
  * after commit; storm events go out as {@link RuleStormEvent}s.
+ *
+ * <p><b>Prompt 036.</b> Anchored ("near me") rules evaluate their target side with the anchor's
+ * current position from {@link AnchorPositions} (a stale anchor suspends them), and after each batch
+ * and on a 5 s tick the {@link AnchorEvaluator} runs their anchor side; those alerts go through the
+ * same {@link AlertPass} but advance no cursor and write no record versions. Durable-cursor catch-up
+ * after a restart uses the current anchor position. Alerts carry {@code context.near} (place ids and
+ * versions) and {@code context.anchor} (anchor seq and km-rounded distance); templates get
+ * {@code {{place.name}}}, {@code {{place.distanceKm}}} and {@code {{anchor.distanceKm}}}, never
+ * coordinates.
  */
 @Component
 public class TriggerEngine implements ChangeListener, IngestStateReset {
@@ -85,6 +94,9 @@ public class TriggerEngine implements ChangeListener, IngestStateReset {
     private final JdbcTemplate jdbc;
     private final JsonMapper json;
     private final Clock clock;
+    private final AnchorPositions anchors;
+    private final AnchorEvaluator anchorEvaluator;
+    private final org.springframework.beans.factory.ObjectProvider<PlaceLookup> places;
     private final Map<UUID, AlertPass.State> states = new ConcurrentHashMap<>();
     private volatile List<RuleSpec> rules = List.of();
     private volatile Subscription subscription;
@@ -102,7 +114,13 @@ public class TriggerEngine implements ChangeListener, IngestStateReset {
             ApplicationEventPublisher events,
             JdbcTemplate jdbc,
             JsonMapper json,
-            Clock clock) {
+            Clock clock,
+            AnchorPositions anchors,
+            AnchorEvaluator anchorEvaluator,
+            org.springframework.beans.factory.ObjectProvider<PlaceLookup> places) {
+        this.anchors = anchors;
+        this.anchorEvaluator = anchorEvaluator;
+        this.places = places;
         this.changeBus = changeBus;
         this.repository = repository;
         this.specs = specs;
@@ -182,17 +200,20 @@ public class TriggerEngine implements ChangeListener, IngestStateReset {
             }
         }
         rules = List.copyOf(compiled);
+        anchors.watch(compiled.stream().filter(RuleSpec::anchored).map(RuleSpec::anchor).toList());
     }
 
     // ------------------------------------------------------------------------- bus
 
     @Override
     public synchronized void onBatch(ChangeBatch batch) {
+        anchors.apply(batch);
         if (cursor < 0 || batch.toSeq() <= cursor) {
             return;
         }
         if (batch.fromSeq() - 1 > cursor) {
             evaluate(cursor, batch.toSeq(), rules);
+            runAnchors();
             return;
         }
         Set<String> kinds = new HashSet<>();
@@ -206,6 +227,91 @@ public class TriggerEngine implements ChangeListener, IngestStateReset {
             }
         }
         evaluate(cursor, batch.toSeq(), applicable);
+        runAnchors();
+    }
+
+    /** The anchor side of moving-anchor rules, every 5 s (live-only anchor moves and staleness). */
+    @org.springframework.scheduling.annotation.Scheduled(fixedDelay = 5_000, initialDelay = 5_000)
+    public synchronized void anchorTick() {
+        if (subscription != null) {
+            runAnchors();
+        }
+    }
+
+    /**
+     * Runs the {@link AnchorEvaluator} for the anchors that changed and records its alerts (prompt
+     * 036). Public so tests on a mutable clock can drive it.
+     */
+    public synchronized void runAnchors() {
+        if (rules.stream().noneMatch(RuleSpec::anchored)) {
+            anchors.drainDirty();
+            return;
+        }
+        Instant now = clock.instant();
+        List<AnchorEvaluator.Outcome> outcomes = anchorEvaluator.evaluate(rules, anchors.drainDirty(), now);
+        if (outcomes.isEmpty()) {
+            return;
+        }
+        int defaultCap = defaultCap();
+        List<Plan> plans = new ArrayList<>();
+        for (AnchorEvaluator.Outcome outcome : outcomes) {
+            RuleSpec rule = outcome.rule();
+            try {
+                List<MatchRow> rows = withoutCooldown(rule, outcome.rows());
+                if (rows.isEmpty()) {
+                    continue;
+                }
+                AlertPass.State state = states.computeIfAbsent(rule.id(), id -> new AlertPass.State());
+                if (!state.stormSeeded()) {
+                    state.seedStorm(alerts.firedSince(rule.id(), now.minus(AlertPass.STORM_WINDOW)));
+                }
+                Set<String> snoozed = alerts.snoozedEntities(rule.id(), now);
+                AlertPass.Context context = new AlertPass.Context(now, snoozed, defaultCap, false, key -> null);
+                plans.add(new Plan(rule, AlertPass.run(rule, rows, List.of(), state, context),
+                        new AnchorContext(outcome.anchorSeq(), outcome.anchor())));
+            } catch (RuntimeException e) {
+                log.error("Anchor alerts of rule {} failed: {}", rule.id(), e.getMessage());
+                recordError(rule.id(), e);
+            }
+        }
+        if (plans.isEmpty()) {
+            return;
+        }
+        List<RuleStormEvent> storms = new ArrayList<>();
+        boolean disabledAny = alerts.write(writer -> {
+            boolean disabled = false;
+            for (Plan plan : plans) {
+                disabled |= apply(writer, plan, now, storms);
+            }
+            return disabled;
+        });
+        for (RuleStormEvent storm : storms) {
+            events.publishEvent(storm);
+        }
+        if (disabledAny) {
+            events.publishEvent(new TriggerRulesChangedEvent(null));
+        }
+    }
+
+    /** Drops reverse rows inside the rule's cooldown of an alert already stored (the SQL seed's role). */
+    private List<MatchRow> withoutCooldown(RuleSpec rule, List<MatchRow> rows) {
+        if (rule.cooldown().isZero() || rows.isEmpty()) {
+            return rows;
+        }
+        List<MatchRow> out = new ArrayList<>();
+        for (MatchRow row : rows) {
+            Object since = AlertStore.utc(row.observedAt().minus(rule.cooldown()));
+            Boolean recent = rule.cooldownScope() == CooldownScope.RECORD
+                    ? jdbc.queryForObject("SELECT EXISTS (SELECT 1 FROM alert WHERE rule_id = ? AND source_id = ?"
+                            + " AND external_id = ? AND NOT suppressed AND observed_at > ?)", Boolean.class,
+                            rule.id(), row.sourceId(), row.externalId(), since)
+                    : jdbc.queryForObject("SELECT EXISTS (SELECT 1 FROM alert WHERE rule_id = ? AND NOT suppressed"
+                            + " AND observed_at > ?)", Boolean.class, rule.id(), since);
+            if (!Boolean.TRUE.equals(recent)) {
+                out.add(row);
+            }
+        }
+        return out;
     }
 
     @Override
@@ -235,8 +341,22 @@ public class TriggerEngine implements ChangeListener, IngestStateReset {
 
     // ------------------------------------------------------------------------- one chunk
 
-    /** One rule's decisions for a chunk. */
-    private record Plan(RuleSpec rule, AlertPass.Result result) {}
+    /**
+     * One rule's decisions for a chunk.
+     *
+     * @param rule the rule
+     * @param result the pass
+     * @param anchor the anchor's seq and position for an anchored rule, or null
+     */
+    private record Plan(RuleSpec rule, AlertPass.Result result, AnchorContext anchor) {}
+
+    /**
+     * The anchor an anchored rule's alerts were judged against.
+     *
+     * @param seq the anchor's latest seq
+     * @param point its position (never leaves the server: only distances are rendered)
+     */
+    private record AnchorContext(long seq, org.locationtech.jts.geom.Point point) {}
 
     private void processChunk(long from, long to, List<RuleSpec> candidates) {
         Instant now = clock.instant();
@@ -273,11 +393,23 @@ public class TriggerEngine implements ChangeListener, IngestStateReset {
     }
 
     private Plan plan(RuleSpec rule, long from, long to, Instant now, int defaultCap) {
-        RuleSqlBuilder.RuleSql sql = RuleSqlBuilder.matches(rule, from, to, now, true);
+        org.locationtech.jts.geom.Point anchor = null;
+        AnchorContext anchorContext = null;
+        if (rule.anchored()) {
+            anchor = anchors.current(rule.anchor(), now);
+            if (anchor == null) {
+                // A stale or unknown anchor suspends the rule (the evaluator records why).
+                return null;
+            }
+            long seq = anchors.fix(rule.anchor().source(), rule.anchor().externalId())
+                    .map(AnchorPositions.Fix::seq).orElse(0L);
+            anchorContext = new AnchorContext(seq, anchor);
+        }
+        RuleSqlBuilder.RuleSql sql = RuleSqlBuilder.matches(rule, from, to, now, true, anchor);
         List<MatchRow> matches = reads.read(t -> t.query(sql.sql(), sql.params(), MatchRow.MAPPER));
         List<ResolveRow> resolves = List.of();
         if (rule.autoResolve() != null && rule.autoResolve().needsEdgePass() && rule.mode() != TriggerMode.EXIT) {
-            RuleSqlBuilder.RuleSql inverse = RuleSqlBuilder.inverse(rule, from, to);
+            RuleSqlBuilder.RuleSql inverse = RuleSqlBuilder.inverse(rule, from, to, anchor);
             resolves = reads.read(t -> t.query(inverse.sql(), inverse.params(), ResolveRow.MAPPER));
         }
         if (matches.isEmpty() && resolves.isEmpty()) {
@@ -290,7 +422,7 @@ public class TriggerEngine implements ChangeListener, IngestStateReset {
         Set<String> snoozed = matches.isEmpty() ? Set.of() : alerts.snoozedEntities(rule.id(), now);
         Map<String, String> seeds = rule.hysteresis() ? edgeSeeds(rule, matches) : Map.of();
         AlertPass.Context context = new AlertPass.Context(now, snoozed, defaultCap, false, seeds::get);
-        return new Plan(rule, AlertPass.run(rule, matches, resolves, state, context));
+        return new Plan(rule, AlertPass.run(rule, matches, resolves, state, context), anchorContext);
     }
 
     /** The edge state each entity's latest unsuppressed alert implies, for hysteresis rules. */
@@ -323,7 +455,7 @@ public class TriggerEngine implements ChangeListener, IngestStateReset {
         AlertPass.Result result = plan.result();
         for (AlertPass.Op op : result.ops()) {
             switch (op) {
-                case AlertPass.Fire fire -> insert(writer, rule, fire, now);
+                case AlertPass.Fire fire -> insert(writer, rule, fire, now, plan.anchor());
                 case AlertPass.Resolve resolve -> writer.resolveOpen(rule.id(), resolve.row().sourceId(),
                         resolve.row().externalId(), resolve.row().seq(), resolve.row().resolvedBy(), resolve.row().seq(), now);
             }
@@ -353,17 +485,22 @@ public class TriggerEngine implements ChangeListener, IngestStateReset {
                 .defaultMaxAlertsPerHour();
     }
 
-    private void insert(AlertStore.Writer writer, RuleSpec rule, AlertPass.Fire fire, Instant now) {
+    private void insert(AlertStore.Writer writer, RuleSpec rule, AlertPass.Fire fire, Instant now,
+            AnchorContext anchor) {
         MatchRow row = fire.row();
         Map<String, Object> payload = row.payload() == null ? null : json.readValue(row.payload(), MAP);
         String title = registry.find(row.sourceId())
                 .map(r -> TitleResolver.resolve(titleField(r.descriptor()), payload))
                 .orElseGet(() -> TitleResolver.resolve((String) null, payload));
+        AlertContexts.Built context = AlertContexts.build(rule, row, anchor == null ? null : anchor.point(),
+                anchor == null ? null : anchor.seq(), places.getIfAvailable());
         String message = MessageTemplate.render(rule.template(), new MessageTemplate.Context(
                 rule.name(), row.sourceId(), row.externalId(), row.kind(), title, rule.severity().wire(),
-                row.observedAt(), row.eventTime(), row.validFrom(), payload));
+                row.observedAt(), row.eventTime(), row.validFrom(), payload),
+                new MessageTemplate.Extras(java.time.ZoneOffset.UTC, now, context.vars(), null));
         String snapshot = AlertSnapshots.build(row, payload, json);
-        writer.insert(new AlertStore.NewAlert(rule, row, now, message, snapshot, fire.suppressedReason()));
+        writer.insert(new AlertStore.NewAlert(rule, row, now, message, snapshot, fire.suppressedReason(),
+                context.json() == null ? null : json.writeValueAsString(context.json())));
     }
 
     private static String titleField(SourceDescriptor descriptor) {

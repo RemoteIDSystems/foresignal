@@ -183,7 +183,7 @@ public class RecordQueryService {
             List<String> where = new ArrayList<>();
             where.add("h.source_id = " + p.text(sourceId));
             where.add("h.external_id = " + p.text(externalId));
-            RestrictionClamp.addTo(where, "h.source_id", "h.kind", "l.geom", restriction, p);
+            RestrictionClamp.addTo(where, "h.source_id", "h.kind", "l.geom", CURRENT_PAYLOAD, restriction, p);
             String sql = "SELECT " + currentSelect(fields, geometry, GeometryEncoding.GEOJSON, includeObserver, null, p)
                     + CURRENT_FROM + where(where);
             List<RecordRow> rows = jdbc.query(sql, p.source(), RecordRowMapper.INSTANCE);
@@ -222,7 +222,7 @@ public class RecordQueryService {
                     false, null, p) + CURRENT_FROM + " JOIN unnest(" + p.textArray(sources) + ", "
                     + p.textArray(externalIds) + ") AS k(source_id, external_id)"
                     + " ON k.source_id = h.source_id AND k.external_id = h.external_id"
-                    + RestrictionClamp.sqlPredicate("h.source_id", "h.kind", "l.geom", restriction, p)
+                    + RestrictionClamp.sqlPredicate("h.source_id", "h.kind", "l.geom", CURRENT_PAYLOAD, restriction, p)
                             .map(w -> " WHERE " + w).orElse("");
             Map<String, RecordRow> rows = new HashMap<>();
             for (RecordRow row : jdbc.query(sql, p.source(), RecordRowMapper.INSTANCE)) {
@@ -250,7 +250,7 @@ public class RecordQueryService {
             if (!excludedSources.isEmpty()) {
                 sql.append(" AND NOT (h.source_id = ANY(").append(p.textArray(excludedSources)).append("))");
             }
-            RestrictionClamp.sqlPredicate("h.source_id", "h.kind", "l.geom", restriction, p)
+            RestrictionClamp.sqlPredicate("h.source_id", "h.kind", "l.geom", CURRENT_PAYLOAD, restriction, p)
                     .ifPresent(w -> sql.append(" AND ").append(w));
             sql.append(" GROUP BY h.kind ORDER BY h.kind");
             return jdbc.query(sql.toString(), p.source(), (rs, i) -> {
@@ -317,7 +317,7 @@ public class RecordQueryService {
             if (cursor != null) {
                 where.add("v.seq > " + p.bigint(cursor.q()));
             }
-            RestrictionClamp.addTo(where, "v", restriction, p);
+            RestrictionClamp.addTo(where, "v.source_id", "v.kind", "v.geom", "v.payload", restriction, p);
             String sql = "SELECT " + versionSelect("v", FieldSelection.ALL, GeometryOptions.DEFAULT, GeometryEncoding.GEOJSON,
                     includeObserver, p) + " FROM record_version v" + where(where)
                     + " ORDER BY v.seq LIMIT " + (limit + 1);
@@ -575,7 +575,7 @@ public class RecordQueryService {
         List<String> where = new ArrayList<>();
         addIn(where, "h.source_id", q.sources(), p);
         addNotIn(where, "h.source_id", q.excludedSources(), p);
-        RestrictionClamp.addTo(where, "h.source_id", "h.kind", "l.geom", q.restriction(), p);
+        RestrictionClamp.addTo(where, "h.source_id", "h.kind", "l.geom", CURRENT_PAYLOAD, q.restriction(), p);
         addIn(where, "h.kind", q.kinds(), p);
         addIn(where, "h.external_id", q.externalIds(), p);
         where.add("NOT h.tombstone");
@@ -703,7 +703,7 @@ public class RecordQueryService {
         List<String> where = new ArrayList<>();
         addIn(where, "v.source_id", q.sources(), p);
         addNotIn(where, "v.source_id", q.excludedSources(), p);
-        RestrictionClamp.addTo(where, "v", q.restriction(), p);
+        RestrictionClamp.addTo(where, "v.source_id", "v.kind", "v.geom", "v.payload", q.restriction(), p);
         addIn(where, "v.kind", q.kinds(), p);
         addIn(where, "v.external_id", q.externalIds(), p);
         if (q.bbox() != null) {
@@ -791,7 +791,7 @@ public class RecordQueryService {
         where.add("v.seq > " + p.bigint(q.after()));
         addIn(where, "v.source_id", q.sources(), p);
         addNotIn(where, "v.source_id", q.excludedSources(), p);
-        RestrictionClamp.addTo(where, "v", q.restriction(), p);
+        RestrictionClamp.addTo(where, "v.source_id", "v.kind", "v.geom", "v.payload", q.restriction(), p);
         addIn(where, "v.kind", q.kinds(), p);
         addIn(where, "v.external_id", q.externalIds(), p);
         if (q.bbox() != null) {
@@ -846,7 +846,7 @@ public class RecordQueryService {
             List<String> where = new ArrayList<>();
             where.add("v.source_id = " + p.text(sourceId));
             where.add("v.external_id = " + p.text(externalId));
-            RestrictionClamp.addTo(where, "v", restriction, p);
+            RestrictionClamp.addTo(where, "v.source_id", "v.kind", "v.geom", "v.payload", restriction, p);
             Boolean exists = jdbc.queryForObject("SELECT EXISTS (SELECT 1 FROM record_version v" + where(where) + ")",
                     p.source(), Boolean.class);
             return Boolean.TRUE.equals(exists);

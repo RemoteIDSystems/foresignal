@@ -1,5 +1,5 @@
 {
-  "description": "Operator truth table (prompt 017). Each row is one condition {path, op, value} evaluated on payload. expected is whether the condition holds; ambiguous marks rows where the value is missing, JSON null or of another type than the operator expects (SQL yields NULL, Java AMBIGUOUS). RuleSqlBuilderIT and TriggerPersistGateTest both consume it.",
+  "description": "Operator truth table (prompt 017). Each row is one condition {path, op, value} evaluated on payload. expected is whether the condition holds; ambiguous marks rows where the value is missing, JSON null or of another type than the operator expects (SQL yields NULL, Java AMBIGUOUS). RuleSqlBuilderIT and TriggerPersistGateTest both consume it. Prompt 036 adds watchlists (lists created by RecordPredicateTruthTableTest, referenced by key in value) and watchlistRows for inWatchlist and notInWatchlist: the value must be a JSON string or number, compared by its JSON text after the list's normalization; anything else, a missing path or JSON null is ambiguous for both.",
   "rows": [
     {
       "path": "x",
@@ -750,6 +750,176 @@
       "expected": false,
       "ambiguous": true,
       "note": "missing"
+    }
+  ],
+  "watchlists": [
+    {
+      "key": "tails",
+      "identity": "icao24",
+      "normalize": "upper",
+      "values": [
+        "A1B2C3"
+      ]
+    },
+    {
+      "key": "ships",
+      "identity": "mmsi",
+      "normalize": "digits",
+      "values": [
+        "366123456"
+      ]
+    }
+  ],
+  "watchlistRows": [
+    {
+      "path": "x",
+      "op": "inWatchlist",
+      "value": "tails",
+      "payload": {
+        "x": "a1b2c3"
+      },
+      "expected": true,
+      "ambiguous": false,
+      "note": "normalized to upper case"
+    },
+    {
+      "path": "x",
+      "op": "inWatchlist",
+      "value": "tails",
+      "payload": {
+        "x": " A1B2C3 "
+      },
+      "expected": true,
+      "ambiguous": false,
+      "note": "spaces trimmed"
+    },
+    {
+      "path": "x",
+      "op": "inWatchlist",
+      "value": "tails",
+      "payload": {
+        "x": "FFFFFF"
+      },
+      "expected": false,
+      "ambiguous": false
+    },
+    {
+      "path": "x",
+      "op": "notInWatchlist",
+      "value": "tails",
+      "payload": {
+        "x": "FFFFFF"
+      },
+      "expected": true,
+      "ambiguous": false
+    },
+    {
+      "path": "x",
+      "op": "notInWatchlist",
+      "value": "tails",
+      "payload": {
+        "x": "A1B2C3"
+      },
+      "expected": false,
+      "ambiguous": false
+    },
+    {
+      "path": "x",
+      "op": "inWatchlist",
+      "value": "tails",
+      "payload": {},
+      "expected": false,
+      "ambiguous": true,
+      "note": "missing"
+    },
+    {
+      "path": "x",
+      "op": "notInWatchlist",
+      "value": "tails",
+      "payload": {},
+      "expected": false,
+      "ambiguous": true,
+      "note": "missing: notInWatchlist needs the value present"
+    },
+    {
+      "path": "x",
+      "op": "inWatchlist",
+      "value": "tails",
+      "payload": {
+        "x": null
+      },
+      "expected": false,
+      "ambiguous": true,
+      "note": "JSON null"
+    },
+    {
+      "path": "x",
+      "op": "notInWatchlist",
+      "value": "tails",
+      "payload": {
+        "x": true
+      },
+      "expected": false,
+      "ambiguous": true,
+      "note": "boolean is not an identifier"
+    },
+    {
+      "path": "x",
+      "op": "inWatchlist",
+      "value": "tails",
+      "payload": {
+        "x": {
+          "a": 1
+        }
+      },
+      "expected": false,
+      "ambiguous": true,
+      "note": "object is not an identifier"
+    },
+    {
+      "path": "x",
+      "op": "inWatchlist",
+      "value": "ships",
+      "payload": {
+        "x": 366123456
+      },
+      "expected": true,
+      "ambiguous": false,
+      "note": "a number compares by its JSON text"
+    },
+    {
+      "path": "x",
+      "op": "inWatchlist",
+      "value": "ships",
+      "payload": {
+        "x": "366-123-456"
+      },
+      "expected": true,
+      "ambiguous": false,
+      "note": "digits normalization"
+    },
+    {
+      "path": "x",
+      "op": "notInWatchlist",
+      "value": "ships",
+      "payload": {
+        "x": "999"
+      },
+      "expected": true,
+      "ambiguous": false
+    },
+    {
+      "path": "x.y",
+      "op": "inWatchlist",
+      "value": "tails",
+      "payload": {
+        "x": {
+          "y": "a1b2c3"
+        }
+      },
+      "expected": true,
+      "ambiguous": false,
+      "note": "nested path"
     }
   ]
 }

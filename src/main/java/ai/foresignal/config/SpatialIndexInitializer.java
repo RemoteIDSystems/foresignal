@@ -34,7 +34,8 @@ public class SpatialIndexInitializer implements ApplicationRunner {
      * {@code persisted_geom} is never searched), so an index left by an older build is dropped.
      * {@code record_live} gets the only record GiST index plus the storage parameters that keep
      * its touches HOT (Core-Data-Model §8). Prompt 017 adds the {@code alert_rev} sequence and the
-     * partial index on open alerts. {@code embedding_document}'s full-text, spatial and vector DDL
+     * partial index on open alerts. Prompt 036 adds the GiST index on {@code place.area} and the GIN
+     * index on {@code saved_view.place_ids}. {@code embedding_document}'s full-text, spatial and vector DDL
      * (prompt 027) is listed in {@code EmbeddingSchemaManager} ({@code BASE_STATEMENTS} and
      * {@code slotStatements}), which 144 moves into the baseline alongside these.
      */
@@ -44,6 +45,9 @@ public class SpatialIndexInitializer implements ApplicationRunner {
             "ALTER TABLE record_live SET (fillfactor = 70, autovacuum_vacuum_scale_factor = 0.02,"
                     + " autovacuum_vacuum_cost_limit = 2000)",
             "CREATE INDEX IF NOT EXISTS trigger_rule_geofence_gist ON trigger_rule USING GIST (geofence)",
+            // Places (prompt 036): area is what filters, rules and the weather AOI intersect.
+            "CREATE INDEX IF NOT EXISTS place_area_gist ON place USING GIST (area)",
+            "CREATE INDEX IF NOT EXISTS saved_view_place_ids_idx ON saved_view USING GIN (place_ids)",
             // Alert revisions (prompt 017): every native alert write takes rev from this sequence.
             "CREATE SEQUENCE IF NOT EXISTS alert_rev INCREMENT BY 1",
             // Open alerts: auto-resolve, alert snoozes and openAlertCount look only at these.

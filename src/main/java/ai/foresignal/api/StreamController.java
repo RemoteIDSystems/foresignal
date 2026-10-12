@@ -188,6 +188,26 @@ public class StreamController {
 
     // ------------------------------------------------------------------------- helpers
 
+    /**
+     * Opens a single-topic {@code changes} stream for {@code principal} with {@code filter}, resuming
+     * from {@code Last-Event-ID} or {@code after} (prompt 036: {@code streamView}).
+     */
+    public SseEmitter openChanges(StreamPrincipal principal, ChangeFilter filter, String lastEventId, String after,
+            HttpServletResponse response) {
+        Long resume = CompositeCursor.parseSeq(LAST_EVENT_ID, lastEventId);
+        if (resume == null) {
+            resume = QueryParams.nonNegativeLong("after", after);
+        }
+        Map<String, Long> resumes = resume == null ? Map.of() : Map.of(ChangesTopic.NAME, resume);
+        return open(new SseHub.OpenRequest(
+                principal, SseClient.CursorMode.SINGLE, StreamFilter.changesOnly(filter), resumes, false), response);
+    }
+
+    /** The request's parameters, unprefixed, for parsing a {@code changes} filter. */
+    public static Map<String, List<String>> parameters(HttpServletRequest request) {
+        return parameters(request, "");
+    }
+
     private SseEmitter open(SseHub.OpenRequest open, HttpServletResponse response) {
         SseEmitter emitter = EmitterSseSender.newCommittingEmitter();
         SseClient client = hub.open(open, new EmitterSseSender(emitter));

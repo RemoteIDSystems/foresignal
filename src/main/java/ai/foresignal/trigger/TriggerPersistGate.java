@@ -56,6 +56,14 @@ import org.springframework.stereotype.Component;
  *
  * <p>The snapshot ({@link Compiled}) is rebuilt whole on {@link TriggerRulesChangedEvent} and
  * {@link SourceRegistryChangedEvent} and swapped through an {@link AtomicReference}.
+ *
+ * <p><b>Prompt 036.</b> Identity conditions read, per source, the path the rule resolved for it
+ * (watchlist membership comes from the operator's live {@code WatchlistSnapshot}, so both sides are
+ * judged against the current list and a list edit never makes a stationary entity flip). Anchored
+ * rules compare both sides against the anchor's <em>current</em> position from
+ * {@link AnchorPositions}, the snapshot the SQL also uses; the Java distance is approximate, so a
+ * target within a narrow band of the radius counts as ambiguous and flips whenever its geometry
+ * changed (conservative). A stale anchor suspends the rule here too.
  */
 @Component
 @Primary
@@ -66,13 +74,24 @@ public class TriggerPersistGate implements PersistGate, IngestStateReset {
     private final TriggerRuleRepository repository;
     private final RuleSpecs specs;
     private final SourceRegistry registry;
+    private final AnchorPositions anchors;
+    private final java.time.Clock clock;
     private final AtomicReference<GateSnapshot> snapshot = new AtomicReference<>();
 
     /** Creates the gate; the first snapshot is built when the application is ready. */
-    public TriggerPersistGate(TriggerRuleRepository repository, RuleSpecs specs, SourceRegistry registry) {
+    @org.springframework.beans.factory.annotation.Autowired
+    public TriggerPersistGate(TriggerRuleRepository repository, RuleSpecs specs, SourceRegistry registry,
+            AnchorPositions anchors, java.time.Clock clock) {
         this.repository = repository;
         this.specs = specs;
         this.registry = registry;
+        this.anchors = anchors;
+        this.clock = clock;
+    }
+
+    /** A gate without moving anchors (tests). */
+    public TriggerPersistGate(TriggerRuleRepository repository, RuleSpecs specs, SourceRegistry registry) {
+        this(repository, specs, registry, null, java.time.Clock.systemUTC());
     }
 
     @Override
@@ -120,7 +139,8 @@ public class TriggerPersistGate implements PersistGate, IngestStateReset {
                 log.warn("Trigger rule {} is left out of the persist gate: {}", rule.getId(), e.getMessage());
             }
         }
-        snapshot.set(new Compiled(compiled, id -> registry.find(id).map(r -> r.descriptor()).orElse(null)));
+        snapshot.set(new Compiled(compiled, id -> registry.find(id).map(r -> r.descriptor()).orElse(null),
+                anchors == null ? a -> null : a -> anchors.current(a, clock.instant())));
     }
 
     /**
@@ -134,15 +154,27 @@ public class TriggerPersistGate implements PersistGate, IngestStateReset {
         private final Map<String, GateSpec> specs = new ConcurrentHashMap<>();
 
         /**
-         * Compiles {@code rules}.
+         * Compiles {@code rules} without moving anchors (an anchored rule is then suspended).
          *
          * @param rules the enabled rules
          * @param descriptors the descriptor of a source id, or null when unknown
          */
         public Compiled(List<RuleSpec> rules, Function<String, SourceDescriptor> descriptors) {
+            this(rules, descriptors, a -> null);
+        }
+
+        /**
+         * Compiles {@code rules}.
+         *
+         * @param rules the enabled rules
+         * @param descriptors the descriptor of a source id, or null when unknown
+         * @param anchors the current position of a fresh anchor, or null when stale or unknown
+         */
+        public Compiled(List<RuleSpec> rules, Function<String, SourceDescriptor> descriptors,
+                Function<NearAnchor, org.locationtech.jts.geom.Point> anchors) {
             List<GateRule> list = new ArrayList<>();
             for (RuleSpec rule : rules) {
-                list.add(new GateRule(rule));
+                list.add(new GateRule(rule, anchors));
             }
             this.rules = List.copyOf(list);
             this.descriptors = descriptors;
@@ -167,9 +199,12 @@ public class TriggerPersistGate implements PersistGate, IngestStateReset {
                     continue;
                 }
                 for (RuleCondition condition : rule.conditions()) {
-                    paths.add(condition.path());
+                    String path = condition.pathFor(sourceId);
+                    if (path != null) {
+                        paths.add(path);
+                    }
                 }
-                geometry |= rule.hasFence();
+                geometry |= rule.spatial();
             }
             return paths.isEmpty() && !geometry ? GateSpec.NONE : new GateSpec(paths, geometry);
         }
@@ -177,7 +212,7 @@ public class TriggerPersistGate implements PersistGate, IngestStateReset {
         @Override
         public boolean flips(String sourceId, String kind, GateState persisted, GateState candidate) {
             for (GateRule gate : rules) {
-                if (gate.rule.appliesTo(sourceId, kind) && gate.flips(persisted, candidate)) {
+                if (gate.rule.appliesTo(sourceId, kind) && gate.flips(sourceId, persisted, candidate)) {
                     return true;
                 }
             }
@@ -190,9 +225,15 @@ public class TriggerPersistGate implements PersistGate, IngestStateReset {
 
         final RuleSpec rule;
         final List<PreparedGeometry> fences;
+        final Function<NearAnchor, org.locationtech.jts.geom.Point> anchors;
 
         GateRule(RuleSpec rule) {
+            this(rule, a -> null);
+        }
+
+        GateRule(RuleSpec rule, Function<NearAnchor, org.locationtech.jts.geom.Point> anchors) {
             this.rule = rule;
+            this.anchors = anchors;
             List<PreparedGeometry> prepared = new ArrayList<>();
             if (rule.hysteresis()) {
                 prepared.add(prepare(rule.fenceInner()));
@@ -207,13 +248,19 @@ public class TriggerPersistGate implements PersistGate, IngestStateReset {
             return PreparedGeometryFactory.prepare(fence);
         }
 
-        /** True when P differs between {@code before} and {@code candidate}, or conservatively so. */
+        /** {@link #flips(String, GateState, GateState)} for a rule without identity conditions. */
         boolean flips(GateState before, GateState candidate) {
+            return flips(null, before, candidate);
+        }
+
+        /** True when P differs between {@code before} and {@code candidate}, or conservatively so. */
+        boolean flips(String sourceId, GateState before, GateState candidate) {
             boolean conditionsBefore = true;
             boolean conditionsCandidate = true;
             for (RuleCondition condition : rule.conditions()) {
-                Object b = before.pathValues().get(condition.path());
-                Object c = candidate.pathValues().get(condition.path());
+                String path = condition.pathFor(sourceId);
+                Object b = path == null ? null : before.pathValues().get(path);
+                Object c = path == null ? null : candidate.pathValues().get(path);
                 Evaluation eb = condition.evaluateValue(b);
                 Evaluation ec = condition.evaluateValue(c);
                 if ((eb == Evaluation.AMBIGUOUS || ec == Evaluation.AMBIGUOUS) && !jsonEquals(b, c)) {
@@ -221,6 +268,20 @@ public class TriggerPersistGate implements PersistGate, IngestStateReset {
                 }
                 conditionsBefore &= eb.holds();
                 conditionsCandidate &= ec.holds();
+            }
+            if (rule.anchored()) {
+                org.locationtech.jts.geom.Point anchor = anchors.apply(rule.anchor());
+                if (anchor == null) {
+                    // A stale or unknown anchor suspends the rule: P is false on both sides.
+                    return false;
+                }
+                Evaluation nb = AnchorDistance.near(rule.anchor(), anchor, before.geometry());
+                Evaluation nc = AnchorDistance.near(rule.anchor(), anchor, candidate.geometry());
+                if ((nb == Evaluation.AMBIGUOUS || nc == Evaluation.AMBIGUOUS)
+                        && !geometryEquals(before.geometry(), candidate.geometry())) {
+                    return true;
+                }
+                return (conditionsBefore && nb.holds()) != (conditionsCandidate && nc.holds());
             }
             if (fences.isEmpty()) {
                 return conditionsBefore != conditionsCandidate;
@@ -238,6 +299,14 @@ public class TriggerPersistGate implements PersistGate, IngestStateReset {
         private static boolean inside(PreparedGeometry fence, Geometry geometry) {
             return geometry != null && !geometry.isEmpty() && fence.intersects(geometry);
         }
+    }
+
+    /** True when two geometries are both absent or exactly equal. */
+    static boolean geometryEquals(Geometry a, Geometry b) {
+        if (a == null || a.isEmpty()) {
+            return b == null || b.isEmpty();
+        }
+        return b != null && a.equalsExact(b);
     }
 
     /** JSON equality: numbers by numeric value, lists and objects element-wise, the rest by equals. */

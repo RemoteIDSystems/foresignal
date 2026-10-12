@@ -67,7 +67,7 @@ Build the descriptor once, in a static initializer, with `SourceDescriptor.build
 | `searchFields`, `tileProperties`, `rankField` | Keep them significant, or the validator warns that they can go stale | `place, title`; `mag, place, depth, tsunami, alert, sig`; `mag` |
 | `fieldSpecs` | Every payload key, with type, UCUM unit and label (section 6) | 26 keys |
 | `kindDisplay` | Client hints per kind: title template, icon, `#RRGGBB` | `M {mag} - {place}`, `earthquake`, `#D9480F` |
-| `entityKeys` | Identifier type to payload field, for the entity registry (prompt 098) | none |
+| `entityKeys` | Identifier type to top-level payload field, for watchlists (prompt 036) and the entity registry (prompt 098). **Required for identity-bearing adapters:** declare every one of `icao24`, `registration`, `callsign`, `mmsi` and `imo` the payload carries (see §13) | none |
 | `embedFields` | Only for text-bearing records (bulletins, posts) | none; quakes are found spatially |
 | `private` | True for personal data; enforced on every egress path (prompt 039) | false |
 | `zeroResultsNormal` | True when an empty response is ordinary (quiet hours, out of season) | true |
@@ -179,3 +179,21 @@ Adapter base URLs are constants (section 8), so they never pass through here. **
 - **Tests** use a `HostResolver` stand-in (`MutableResolver`, or `TestOutbound.offlineResolver()`), never real DNS, and point at WireMock on 127.0.0.1 through a LAN profile or an `outbound.allowHosts` / `allowCidrs` override.
 
 Admins can adjust the policy with `GET/PUT /v1/settings/outbound` (`allowHosts`, `allowCidrs`, `denyHosts`, `denyCidrs`; deny wins).
+
+## 13. Identity fields: `entityKeys` and watchlists (036)
+
+Watchlists match entities by identity (`icao24`, `registration`, `callsign`, `mmsi`, `imo`). A rule or
+view condition `{op: "inWatchlist", value: "<listId>"}` without a `path` reads, for each source, the
+top-level payload field its descriptor declares under that identity in `entityKeys`
+(`IdentityResolver`). A source that declares nothing for the list's identity **never matches**, and
+rule validation lists it in a warning.
+
+- Every adapter whose records carry one of these identifiers declares it, for example
+  `.entityKey("icao24", "hex").entityKey("registration", "reg").entityKey("callsign", "flight")` for a
+  readsb-family source, or `.entityKey("mmsi", "mmsi").entityKey("imo", "imo")` for AIS.
+- The field must be top-level and hold a JSON string or number; values are compared after the list's
+  normalization (upper case for aircraft identifiers, digits only for MMSI and IMO), so the adapter
+  does not need to normalize them itself.
+- Adapters existing at prompt 036 (USGS earthquakes and the system canary) carry no such identifier,
+  so none needed a change.
+

@@ -170,7 +170,7 @@ class BriefingValidatorTest {
         assertThat(e.getErrors()).filteredOn(err -> err.field().equals("scope.sources"))
                 .extracting(FieldError::message).contains("unknown source: nope", "unknown source: secret");
         assertThat(e.getErrors()).filteredOn(err -> err.field().equals("scope.placeIds"))
-                .extracting(FieldError::message).containsExactly("is not supported until prompt 036");
+                .extracting(FieldError::message).containsExactly("unknown place: home");
     }
 
     @Test

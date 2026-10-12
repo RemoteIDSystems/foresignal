@@ -48,8 +48,13 @@ import tools.jackson.databind.JsonNode;
  * findings have their own code and win over the rest: {@code TRIGGER_PATH_VOLATILE} (a condition
  * reads a volatile field of an applicable source), {@code PLACES_UNAVAILABLE} ({@code near.placeId}
  * without a {@link PlaceLookup}), {@code FEATURE_UNAVAILABLE} ({@code forecastHorizon} without
- * {@code record_version.valid_from}, or a moving {@code near.anchor}, which arrives in 036) and
- * {@code GEOFENCE_TOO_SMALL_FOR_HYSTERESIS}.
+ * {@code record_version.valid_from}) and {@code GEOFENCE_TOO_SMALL_FOR_HYSTERESIS}.
+ *
+ * <p>Prompt 036 adds {@code near.placeIds} (the union of the places' areas, buffered by
+ * {@code radiusKm}; the place versions are kept for the alert context), the moving
+ * {@code near.anchor} (no stored fence: the anchor's current position is the fence) and identity
+ * conditions: {@code inWatchlist}/{@code notInWatchlist} without a path read each source's declared
+ * identity field, and sources that do not declare it are listed as a warning.
  *
  * <p>Normalization: the deprecated {@code source}/{@code kind} fold into the arrays, numbers in
  * condition values become decimals, geofences are materialized by the
@@ -78,6 +83,12 @@ public class RuleValidator {
     public static final int MAX_NAME = 200;
 
     static final Pattern HH_MM = Pattern.compile("^([01]\\d|2[0-3]):[0-5]\\d$");
+
+    /** The {@code near} key holding the place versions a fence was materialized from (prompt 036). */
+    public static final String PLACE_VERSIONS = "placeVersions";
+
+    static final java.util.Set<String> ANCHOR_FIELDS = java.util.Set.of("anchor", "radiusKm", "maxAnchorAge",
+            "minMoveMeters");
 
     static final String VALID_FROM_PROBE =
             "SELECT count(*) FROM information_schema.columns WHERE table_name = 'record_version' AND column_name = 'valid_from'";
@@ -116,6 +127,49 @@ public class RuleValidator {
         }
         Run run = new Run(body);
         return run.validate();
+    }
+
+    /**
+     * A {@code near} clause materialized again (prompt 036: a referenced place was edited).
+     *
+     * @param fence the new geofence
+     * @param inner the fence shrunk by the hysteresis band, or null
+     * @param outer the fence grown by the hysteresis band, or null
+     * @param near the stored near clause with the new place versions
+     */
+    public record Materialized(MultiPolygon fence, MultiPolygon inner, MultiPolygon outer, Map<String, Object> near) {}
+
+    private static final tools.jackson.databind.json.JsonMapper JSON = tools.jackson.databind.json.JsonMapper.builder()
+            .build();
+
+    /**
+     * Materializes a stored places {@code near} clause again from the current places, with the
+     * hysteresis band of the rule.
+     *
+     * @throws ValidationException when a place no longer exists or the fence became empty
+     */
+    public Materialized rematerialize(Map<String, Object> near, double hysteresisMeters) {
+        Map<String, Object> input = new LinkedHashMap<>(near);
+        input.remove(PLACE_VERSIONS);
+        Run run = new Run(JSON.valueToTree(Map.of("near", input)));
+        Fence fence = run.nearPlace(run.body.get("near"));
+        if (run.special != null) {
+            throw run.special;
+        }
+        if (!run.errors.isEmpty() || fence.geometry() == null) {
+            throw new ValidationException("The near clause can no longer be materialized.", run.errors);
+        }
+        MultiPolygon inner = null;
+        MultiPolygon outer = null;
+        if (hysteresisMeters > 0) {
+            inner = geofences.offset(fence.geometry(), -hysteresisMeters);
+            if (inner.isEmpty()) {
+                throw new ValidationException(ErrorCodes.GEOFENCE_TOO_SMALL_FOR_HYSTERESIS,
+                        "Shrinking the new geofence by " + hysteresisMeters + " m leaves nothing.", List.of());
+            }
+            outer = geofences.offset(fence.geometry(), hysteresisMeters);
+        }
+        return new Materialized(fence.geometry(), inner, outer, fence.near());
     }
 
     /** True when {@code record_version.valid_from} exists (checked once). */
@@ -191,7 +245,9 @@ public class RuleValidator {
             MultiPolygon inner = null;
             MultiPolygon outer = null;
             if (hysteresis > 0) {
-                if (!fenced) {
+                if (fence.near() != null && fence.near().containsKey("anchor")) {
+                    error("hysteresisMeters", "is not supported with a moving anchor");
+                } else if (!fenced) {
                     error("hysteresisMeters", "needs a geofence or near");
                 } else if (mode == TriggerMode.MATCH) {
                     error("hysteresisMeters", "applies only to enter and exit rules");
@@ -319,11 +375,16 @@ public class RuleValidator {
                 JsonNode path = item.get("path");
                 JsonNode op = item.get("op");
                 boolean ok = true;
-                if (path == null || !path.isString() || !PATH.matcher(path.asString()).matches()) {
+                Optional<Operator> operator = op != null && op.isString() ? operators.find(op.asString()) : Optional.empty();
+                boolean identity = operator.isPresent() && operator.get() instanceof IdentityOperator;
+                boolean noPath = path == null || path.isNull();
+                if (noPath && identity) {
+                    // An identity condition (prompt 036): the path comes from each source's entityKeys.
+                    ok = true;
+                } else if (path == null || !path.isString() || !PATH.matcher(path.asString()).matches()) {
                     error(prefix + ".path", "must match " + PATH.pattern());
                     ok = false;
                 }
-                Optional<Operator> operator = op != null && op.isString() ? operators.find(op.asString()) : Optional.empty();
                 if (operator.isEmpty()) {
                     error(prefix + ".op", "must be one of " + String.join(", ", operators.names()));
                     ok = false;
@@ -337,12 +398,47 @@ public class RuleValidator {
                 }
                 try {
                     Object value = operator.get().normalize(JsonTrees.toJava(item.get("value")));
-                    conditions.add(new TriggerCondition(path.asString(), operator.get().name(), value));
+                    if (identity && !((IdentityOperator) operator.get()).known(value)) {
+                        error(prefix + ".value", "names no watchlist");
+                        continue;
+                    }
+                    if (noPath && identity) {
+                        IdentityOperator id = (IdentityOperator) operator.get();
+                        if (id.requiresPath(value)) {
+                            error(prefix + ".path", "is required: the watchlist is unknown or its identity is custom");
+                            continue;
+                        }
+                        List<String> without = id.sourcesWithoutIdentity(value, declaredSources());
+                        if (!without.isEmpty()) {
+                            warnings.add(prefix + ": sources without the watchlist's identity never match: "
+                                    + String.join(", ", without));
+                        }
+                    }
+                    conditions.add(new TriggerCondition(noPath && identity ? null : path.asString(),
+                            operator.get().name(), value));
                 } catch (IllegalArgumentException e) {
                     error(prefix + ".value", e.getMessage());
                 }
             }
             return conditions;
+        }
+
+        /** The sources the body names (deprecated alias included); empty for every source. */
+        private List<String> declaredSources() {
+            List<String> out = new ArrayList<>();
+            JsonNode array = body.get("sources");
+            if (array != null && array.isArray()) {
+                array.forEach(n -> {
+                    if (n.isString()) {
+                        out.add(n.asString().strip());
+                    }
+                });
+            }
+            JsonNode alias = body.get("source");
+            if (alias != null && alias.isString()) {
+                out.add(alias.asString().strip());
+            }
+            return out;
         }
 
         private void checkVolatile(List<String> sources, List<String> kinds, List<TriggerCondition> conditions) {
@@ -363,6 +459,9 @@ public class RuleValidator {
             }
             for (int i = 0; i < conditions.size(); i++) {
                 String path = conditions.get(i).path();
+                if (path == null) {
+                    continue;
+                }
                 int dot = path.indexOf('.');
                 String root = dot < 0 ? path : path.substring(0, dot);
                 for (SourceDescriptor descriptor : applicable) {
@@ -434,8 +533,7 @@ public class RuleValidator {
                 return Fence.NONE;
             }
             if (node.has("anchor")) {
-                special(ErrorCodes.FEATURE_UNAVAILABLE, "near.anchor", "moving anchors arrive with prompt 036");
-                return Fence.NONE;
+                return nearAnchor(node);
             }
             if (node.has("placeId") || node.has("placeIds")) {
                 return nearPlace(node);
@@ -475,38 +573,136 @@ public class RuleValidator {
                 special(ErrorCodes.PLACES_UNAVAILABLE, "near.placeId", "places are not available on this installation");
                 return Fence.NONE;
             }
-            JsonNode placeId = node.get("placeId");
-            if (placeId == null || !placeId.isString()) {
-                error("near.placeId", "must be a place id");
-                return Fence.NONE;
+            for (String field : node.propertyNames()) {
+                if (!field.equals("placeId") && !field.equals("placeIds") && !field.equals("radiusKm")) {
+                    error("near." + field, "is not a near field");
+                    return Fence.NONE;
+                }
             }
-            Optional<Geometry> place = lookup.geometry(placeId.asString());
-            if (place.isEmpty()) {
-                error("near.placeId", "unknown place '" + placeId.asString() + "'");
+            List<String> ids = new ArrayList<>();
+            JsonNode placeId = node.get("placeId");
+            JsonNode placeIds = node.get("placeIds");
+            if (placeId != null && !placeId.isNull()) {
+                if (!placeId.isString()) {
+                    error("near.placeId", "must be a place id");
+                    return Fence.NONE;
+                }
+                ids.add(placeId.asString());
+            }
+            if (placeIds != null && !placeIds.isNull()) {
+                if (!placeIds.isArray() || placeIds.isEmpty()) {
+                    error("near.placeIds", "must be a non-empty array of place ids");
+                    return Fence.NONE;
+                }
+                for (JsonNode id : placeIds) {
+                    if (!id.isString()) {
+                        error("near.placeIds", "must contain place ids");
+                        return Fence.NONE;
+                    }
+                    if (!ids.contains(id.asString())) {
+                        ids.add(id.asString());
+                    }
+                }
+            }
+            if (ids.isEmpty()) {
+                error("near.placeIds", "names no place");
                 return Fence.NONE;
             }
             JsonNode radius = node.get("radiusKm");
+            if (radius != null && !radius.isNull() && !radius.isNumber()) {
+                error("near.radiusKm", "must be a number from 0 to 2000");
+                return Fence.NONE;
+            }
             double km = radius == null || radius.isNull() ? 0 : radius.doubleValue();
             if (km < 0 || km > 2000) {
                 error("near.radiusKm", "must be a number from 0 to 2000");
                 return Fence.NONE;
             }
-            Geometry geometry = place.get();
-            MultiPolygon fence;
-            if (geometry instanceof Point p) {
-                if (km < 0.1) {
-                    error("near.radiusKm", "must be at least 0.1 around a point place");
+            List<Geometry> areas = new ArrayList<>();
+            List<Integer> versions = new ArrayList<>();
+            for (String id : ids) {
+                Optional<Geometry> place = lookup.geometry(id);
+                if (place.isEmpty()) {
+                    error("near.placeIds", "unknown place '" + id + "'");
                     return Fence.NONE;
                 }
-                fence = geofences.bufferPoint(p.getX(), p.getY(), km * 1000.0);
-            } else {
-                MultiPolygon area = geofences.polygonal(geometry);
-                fence = km > 0 ? geofences.offset(area, km * 1000.0) : area;
+                Geometry geometry = place.get();
+                if (geometry instanceof Point p) {
+                    // A lookup that returns a bare point (no derived area): buffered by radiusKm.
+                    if (km < 0.1) {
+                        error("near.radiusKm", "must be at least 0.1 around a point place");
+                        return Fence.NONE;
+                    }
+                    areas.add(geofences.bufferPoint(p.getX(), p.getY(), km * 1000.0));
+                } else {
+                    MultiPolygon area = geofences.polygonal(geometry);
+                    areas.add(km > 0 ? geofences.offset(area, km * 1000.0) : area);
+                }
+                versions.add(lookup.version(id).orElse(0));
+            }
+            MultiPolygon fence = areas.size() == 1 ? (MultiPolygon) areas.getFirst()
+                    : geofences.polygonal(Antimeridian.FACTORY.buildGeometry(areas).union());
+            if (fence.isEmpty()) {
+                error("near.placeIds", "the places' area is empty");
+                return Fence.NONE;
             }
             Map<String, Object> near = new LinkedHashMap<>();
-            near.put("placeId", placeId.asString());
+            near.put("placeIds", List.copyOf(ids));
             near.put("radiusKm", km);
+            near.put(PLACE_VERSIONS, List.copyOf(versions));
             return new Fence(fence, null, null, near);
+        }
+
+        private Fence nearAnchor(JsonNode node) {
+            for (String field : node.propertyNames()) {
+                if (!ANCHOR_FIELDS.contains(field)) {
+                    error("near." + field, "is not a near field");
+                    return Fence.NONE;
+                }
+            }
+            JsonNode anchor = node.get("anchor");
+            if (anchor == null || !anchor.isObject() || !anchor.path("source").isString()
+                    || !anchor.path("externalId").isString() || anchor.path("externalId").asString().isBlank()) {
+                error("near.anchor", "must be {source, externalId}");
+                return Fence.NONE;
+            }
+            String source = anchor.get("source").asString();
+            if (!registry.contains(source)) {
+                error("near.anchor.source", "unknown source '" + source + "'");
+                return Fence.NONE;
+            }
+            JsonNode radius = node.get("radiusKm");
+            if (radius == null || !radius.isNumber() || radius.doubleValue() < 0
+                    || radius.doubleValue() > NearAnchor.MAX_RADIUS_KM) {
+                error("near.radiusKm", "must be a number from 0 to 2000");
+                return Fence.NONE;
+            }
+            Duration maxAge = NearAnchor.DEFAULT_MAX_AGE;
+            JsonNode age = node.get("maxAnchorAge");
+            if (age != null && !age.isNull()) {
+                if (!age.isString()) {
+                    error("near.maxAnchorAge", "must be a duration such as PT30M");
+                    return Fence.NONE;
+                }
+                try {
+                    maxAge = Durations.parsePositive(age.asString());
+                } catch (InvalidInputException e) {
+                    error("near.maxAnchorAge", e.getMessage());
+                    return Fence.NONE;
+                }
+            }
+            double move = NearAnchor.DEFAULT_MIN_MOVE;
+            JsonNode moveNode = node.get("minMoveMeters");
+            if (moveNode != null && !moveNode.isNull()) {
+                if (!moveNode.isNumber() || moveNode.doubleValue() < 0) {
+                    error("near.minMoveMeters", "must be a number of at least 0");
+                    return Fence.NONE;
+                }
+                move = moveNode.doubleValue();
+            }
+            NearAnchor parsed = new NearAnchor(source, anchor.get("externalId").asString(), radius.doubleValue(),
+                    maxAge, move);
+            return new Fence(null, null, null, parsed.toMap());
         }
 
         private TriggerMode mode() {
