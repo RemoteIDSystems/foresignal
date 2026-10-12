@@ -169,6 +169,12 @@ public final class ErrorCodes {
     /** 409: semantic search is unavailable (no pgvector, no embedding provider, or no index yet) (prompt 027). */
     public static final String SEMANTIC_UNAVAILABLE = "SEMANTIC_UNAVAILABLE";
 
+    /** 409: Ask is disabled or no chat provider is assigned (prompts 026, 028). */
+    public static final String LLM_NOT_CONFIGURED = "LLM_NOT_CONFIGURED";
+
+    /** 409: the proposed Ask action was already executed, rejected or failed (prompt 028). */
+    public static final String ACTION_NOT_PENDING = "ACTION_NOT_PENDING";
+
     private static final String TYPE_PREFIX = "https://foresignal.ai/problems/";
 
     private ErrorCodes() {}

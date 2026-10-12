@@ -243,7 +243,7 @@ public class McpToolRegistry {
     }
 
     /** The agent-facing text of a service exception: its detail, code and field errors. */
-    static String describe(ForesignalException e) {
+    public static String describe(ForesignalException e) {
         StringBuilder text = new StringBuilder();
         text.append(e.getMessage() == null ? e.getStatus().getReasonPhrase() : e.getMessage());
         if (e.getCode() != null) {

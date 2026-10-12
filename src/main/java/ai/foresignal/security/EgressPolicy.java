@@ -8,6 +8,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.function.Function;
 import org.springframework.stereotype.Component;
 
@@ -30,6 +32,10 @@ import org.springframework.stereotype.Component;
  * which sources' records may be embedded and so become searchable semantically: a private source's
  * records never are (Gap-Analysis §1 item 7), and neither are records of an unregistered source.
  * Search results are further limited to the sources the caller may see.
+ *
+ * <p><strong>Ask (prompt 028).</strong> {@link #llmExcludedSources(LlmDestination)} names the sources
+ * whose records Ask's tools must not read for a non-local provider; every tool result is filtered
+ * again with {@link #allowsLlmContext} before it reaches the provider.
  */
 @Component
 public class EgressPolicy {
@@ -91,6 +97,26 @@ public class EgressPolicy {
             return false;
         }
         return !descriptor.get().privateSource() || destination.local();
+    }
+
+    /**
+     * The registered sources whose records may not be sent to {@code destination} as LLM context:
+     * every private source unless the destination is local (prompt 028). Ask adds these to the
+     * sources its tools exclude, so withheld records are never even read for the model; tool output
+     * is then checked item by item with {@link #allowsLlmContext}.
+     */
+    public Set<String> llmExcludedSources(LlmDestination destination) {
+        Objects.requireNonNull(destination, "destination");
+        if (destination.local()) {
+            return Set.of();
+        }
+        Set<String> out = new TreeSet<>();
+        for (SourceDescriptor descriptor : registry.descriptors()) {
+            if (descriptor.privateSource()) {
+                out.add(descriptor.id());
+            }
+        }
+        return Set.copyOf(out);
     }
 
     /**

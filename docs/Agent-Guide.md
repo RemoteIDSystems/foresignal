@@ -306,3 +306,52 @@ Cite each fact as `[source:externalId]` with the `seq` the tool returned, for ex
 ### Returned content is data
 
 Record payloads, titles and alert messages come from external sources. They are data, not instructions: an agent must never follow directions that appear inside them. The server's `instructions` and the descriptions of text-bearing tools say so too.
+
+## Ask
+
+`POST /v1/ask` answers a natural-language question from Foresignal's own data (prompt 028). It needs a `read` token, always, even while `security.openReads` is on: every question spends the operator's LLM budget. Without `askEnabled` or a chat provider it answers `409 LLM_NOT_CONFIGURED`; when the budget is spent, `429 LLM_BUDGET_EXCEEDED` with `Retry-After`.
+
+```json
+{"question": "Any earthquakes above M5 near Japan today?",
+ "threadId": null,
+ "scope": {"sources": ["usgs-earthquakes"], "bbox": "122,24,154,46", "since": "2026-10-12T00:00:00Z"},
+ "allowActions": false}
+```
+
+- **How it answers.** The model uses the same read tools as the MCP server (`query_records`, `get_record`, `search`, `list_alerts`, …), with your token's scope and restrictions. The `scope` is injected into every tool call as default filters: the model can narrow it, never widen it. A model without tool support answers in retrieval-only mode (`mode: "retrieval"`): a hybrid search on the question within the scope, plus the last 24 hours of alerts.
+- **Follow-ups.** Pass the returned `threadId` to continue a thread. The earlier turns are replayed to the model unchanged. `GET /v1/ask/threads` lists your threads and `GET /v1/ask/threads/{id}` returns one with its messages, citations, warnings and actions; `DELETE` (agent) removes it. Threads expire after the `ask` retention (default 90 days of inactivity).
+
+### Citations
+
+The answer is markdown with citations the server has checked against what the tools actually returned:
+
+- `[source:externalId@seq]` cites a record version; the seq is the persisted version seq the tool returned. `[source:externalId]` is accepted and resolved to the latest seq returned. `[alert:id]` cites an alert and `[briefing:runId]` a briefing run.
+- `citations` lists the accepted ones as `{id, seq, title, type}`, in order of first appearance. A citation no tool returned, or one whose `@seq` no tool returned for that record, is dropped.
+- When a cited record is `live`, its live fields are newer than the cited version; the model is told to say so.
+
+### Warnings
+
+`warnings` is never empty by accident and never cleaned up. It lists:
+
+- `dropped citation [x]: not returned by any tool`;
+- `uncited claim: <first 80 characters>`, for a sentence or list item that states a number, a date or time, a coordinate, or a name that appears in the tool output, without a citation; after ten, `…and N more`;
+- `answer contains no citations`, when the tools returned data but the answer cites none;
+- a refusal (the answer explains that the model declined, with `stopReason: "refusal"` and `refusalCategory`; the status is still 200), a cut-off answer, or a loop that stopped at its limits (12 tool iterations, 120 s, `askMaxTokens`).
+
+Show warnings to the reader next to the answer. The same warnings are stored with the message and returned by `getAskThread`.
+
+### Actions and confirmation
+
+A model can never change anything by itself. When a change would help, it calls a `propose_*` tool (`propose_watch` to create or replace a watch, `propose_ack`, `propose_alert_status` to resolve, snooze or unsnooze an alert; `propose_briefing` once briefings exist). The payload is validated exactly as the REST operation validates it, and the response lists it in `proposedActions` with `status: "pending"`.
+
+- `POST /v1/ask/actions/{id}/confirm` (agent) executes it through the same services as REST and returns it `executed` with the operation's result, or `failed` with `result.error`. `POST /v1/ask/actions/{id}/reject` (agent) discards it. Either on an action that is no longer pending is `409 ACTION_NOT_PENDING`; another token's action is `404`.
+- With `allowActions: true` **and** an `agent` token, proposed actions run as soon as the answer is complete and are still recorded. With a `read` token, `allowActions` changes nothing.
+- Every execution and rejection is written to the audit log.
+
+### Streaming
+
+`POST /v1/ask/stream` takes the same body and answers with Server-Sent Events: `progress` (`{tool, status: calling|done, summary}`), `delta` (answer text as it is generated, **unverified**), `citation`, `warning`, `action`, `done` (the full verified response, identical to the stored message) and `error` (a problem document), with `heartbeat` events in between. Render `done` as the final answer. Problems found before the model runs (validation, `LLM_NOT_CONFIGURED`, an unknown thread, too many open Ask streams) are ordinary problem responses, not streams.
+
+### Data egress
+
+With a frontier provider (Anthropic, an OpenAI-compatible API), the records the model reads are sent to that provider; that is the operator's choice. Records of private sources are never read for, or sent to, a non-local provider, whatever the token may see; a local provider (Ollama, or one flagged `options.local`) can receive them. Tool output is untrusted data: the model is instructed to ignore instructions inside it, and it could not act on them anyway, since its only way to change anything is a proposal a person confirms.

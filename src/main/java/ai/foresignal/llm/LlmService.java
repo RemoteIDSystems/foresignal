@@ -1,6 +1,7 @@
 package ai.foresignal.llm;
 
 import ai.foresignal.api.error.ConflictException;
+import ai.foresignal.api.error.ErrorCodes;
 import ai.foresignal.llm.client.ChatMessage;
 import ai.foresignal.llm.client.ChatRequest;
 import ai.foresignal.llm.client.ChatResponse;
@@ -83,7 +84,7 @@ public class LlmService {
 
     /** The governed client of the chat role, or {@code 409 LLM_NOT_CONFIGURED}. */
     public LlmClient requireChatClient() {
-        return chatClient().orElseThrow(() -> new ConflictException("LLM_NOT_CONFIGURED",
+        return chatClient().orElseThrow(() -> new ConflictException(ErrorCodes.LLM_NOT_CONFIGURED,
                 "No chat provider is configured; add one in /v1/llm/providers and assign it in PUT /v1/llm/settings."));
     }
 

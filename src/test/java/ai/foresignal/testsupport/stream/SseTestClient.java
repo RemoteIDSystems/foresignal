@@ -62,6 +62,23 @@ public final class SseTestClient implements AutoCloseable {
                 .header("Accept", "text/event-stream")
                 .GET();
         headers.forEach(request::header);
+        return open(request, pathAndQuery);
+    }
+
+    /**
+     * POSTs {@code jsonBody} to {@code baseUrl + path} with {@code Accept: text/event-stream} plus
+     * {@code headers} (prompt 028's {@code askStream}). A non-200 answer is kept as {@link #status()}.
+     */
+    public static SseTestClient post(String baseUrl, String path, Map<String, String> headers, String jsonBody) {
+        HttpRequest.Builder request = HttpRequest.newBuilder(URI.create(baseUrl + path))
+                .header("Accept", "text/event-stream")
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(jsonBody));
+        headers.forEach(request::header);
+        return open(request, path);
+    }
+
+    private static SseTestClient open(HttpRequest.Builder request, String pathAndQuery) {
         // Bounded: a server that never answers fails this connect instead of hanging the whole run
         // (prompt 022, run 1 hung for 10 min in HttpClient.send).
         CompletableFuture<HttpResponse<Stream<String>>> pending =

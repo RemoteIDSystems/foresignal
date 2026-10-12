@@ -102,6 +102,11 @@
         "version": "1.3.0",
         "date": "2026-10-12",
         "note": "027: search, getSearchStatus, reindexSearch and cancelReindex are implemented. Additive reconciliations: SearchResults gains an optional `reason` (why results degraded to text); search documents 404 for an unknown source or a private source the caller may not see, and that since/until apply to the timeField axis; SourceSettingsUpdate.embed documents that `true` is refused for a source without embedFields or a private one and that turning it off deletes the source's record documents; Problem lists REINDEX_RUNNING (409) and SEMANTIC_UNAVAILABLE (409). getSystem's full document carries SystemInfo.search and features.search / features.semanticSearch; the MCP server adds the cost-bearing `search` tool (info.description). SourceSettings.embed, SearchStatus.activeModel/reindex/degraded, SearchResult.seq/effectiveTime and the timeField/docType parameters were already specified."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-12",
+        "note": "028: ask, askStream, listAskThreads, getAskThread, deleteAskThread, confirmAskAction and rejectAskAction are implemented. Additive reconciliations: ask and askStream document 400 (unknown members, scope; scope.placeIds and scope.viewId are refused until prompt 036) and 404 (threadId of another caller); askStream's 429 also covers STREAM_LIMIT (per-principal Ask stream limit), and a budget refusal after the stream opened is an `error` event; listAskThreads and getAskThread are described as always authenticated, matching their x-foresignal-always-authenticated flag; confirmAskAction documents that a failed execution is returned as status `failed` with result.error (200); Problem lists LLM_NOT_CONFIGURED (409) and ACTION_NOT_PENDING (409). AskScope.placeIds, AskMessage.citations/warnings, the stream `warning` event and AskAction.type `alert_status` were already specified."
       }
     ]
   },
@@ -8872,6 +8877,16 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "threadId names no thread of this caller",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
           }
         },
         "x-foresignal-scope": "read",
@@ -8916,7 +8931,7 @@
             }
           }
         ],
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/ask/stream": {
@@ -8972,7 +8987,7 @@
             }
           },
           "409": {
-            "description": "LLM not configured",
+            "description": "Ask disabled or no chat provider (LLM_NOT_CONFIGURED)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -8992,7 +9007,7 @@
             }
           },
           "429": {
-            "description": "Rate limited (RATE_LIMITED) or LLM budget exhausted (LLM_BUDGET_EXCEEDED)",
+            "description": "Too many open Ask streams for this caller (STREAM_LIMIT) or LLM budget exhausted before the stream opened (LLM_BUDGET_EXCEEDED); a budget refusal after the stream opened arrives as an `error` event",
             "headers": {
               "Retry-After": {
                 "description": "Seconds to wait before retrying",
@@ -9001,6 +9016,26 @@
                 }
               }
             },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "threadId names no thread of this caller",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed (unknown member, question length, scope; scope.placeIds and scope.viewId until prompt 036)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -9096,7 +9131,7 @@
             }
           }
         ],
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/ask/threads": {
@@ -9106,7 +9141,7 @@
         ],
         "operationId": "listAskThreads",
         "summary": "List Ask threads",
-        "description": "List Ask threads\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "List Ask threads\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on). A token sees its own threads; an admin token sees every thread; another token's thread is 404.",
         "parameters": [
           {
             "name": "cursor",
@@ -9160,7 +9195,7 @@
         ],
         "x-foresignal-prompt": "028",
         "x-foresignal-always-authenticated": true,
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/ask/threads/{threadId}": {
@@ -9182,7 +9217,7 @@
         ],
         "operationId": "getAskThread",
         "summary": "Get an Ask thread with messages",
-        "description": "Get an Ask thread with messages\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "Get an Ask thread with messages\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on). A token sees its own threads; an admin token sees every thread; another token's thread is 404.",
         "responses": {
           "200": {
             "description": "Thread",
@@ -9223,7 +9258,7 @@
         ],
         "x-foresignal-prompt": "028",
         "x-foresignal-always-authenticated": true,
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       },
       "delete": {
         "tags": [
@@ -9274,7 +9309,7 @@
           }
         ],
         "x-foresignal-prompt": "028",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/ask/actions/{actionId}/confirm": {
@@ -9299,7 +9334,7 @@
         "description": "Executes a pending proposed action through the same services and validation as REST; audited. Another non-admin token's action → 404; not pending → 409.\n\n**Scope:** `agent`.",
         "responses": {
           "200": {
-            "description": "Executed",
+            "description": "Executed (status `executed`, with the operation's result) or failed (status `failed`, with `result.error`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -9319,7 +9354,7 @@
             }
           },
           "409": {
-            "description": "Action not pending",
+            "description": "Action not pending (ACTION_NOT_PENDING)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -9356,7 +9391,7 @@
           }
         ],
         "x-foresignal-prompt": "028",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/ask/actions/{actionId}/reject": {
@@ -9378,7 +9413,7 @@
         ],
         "operationId": "rejectAskAction",
         "summary": "Reject a proposed action",
-        "description": "Reject a proposed action\n\n**Scope:** `agent` or `admin`.",
+        "description": "Discards a pending proposed action; it is never executed. Another non-admin token's action → 404; not pending → 409 ACTION_NOT_PENDING.\n\n**Scope:** `agent` or `admin`.",
         "responses": {
           "200": {
             "description": "Rejected",
@@ -9401,7 +9436,7 @@
             }
           },
           "409": {
-            "description": "Action not pending",
+            "description": "Action not pending (ACTION_NOT_PENDING)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -9438,7 +9473,7 @@
           }
         ],
         "x-foresignal-prompt": "028",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/briefings": {
@@ -80625,6 +80660,7 @@
           "023",
           "024",
           "026",
+          "028",
           "135"
         ],
         "x-foresignal-error-codes": [
@@ -80882,6 +80918,16 @@
             "code": "SEMANTIC_UNAVAILABLE",
             "status": 409,
             "prompt": "027"
+          },
+          {
+            "code": "LLM_NOT_CONFIGURED",
+            "status": 409,
+            "prompt": "028"
+          },
+          {
+            "code": "ACTION_NOT_PENDING",
+            "status": 409,
+            "prompt": "028"
           }
         ]
       },
@@ -89903,7 +89949,7 @@
             "items": {
               "type": "string"
             },
-            "description": "Places (036) resolved server-side to areas; the model sees names and rounded distances only"
+            "description": "Places (036) resolved server-side to areas; the model sees names and rounded distances only. Available after prompt 036: until then a scope with placeIds is refused with 400."
           },
           "viewId": {
             "type": [

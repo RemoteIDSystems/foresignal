@@ -28,7 +28,7 @@ public class WatchItems {
      * The schema of a watch definition ({@code TriggerRuleInput}), described for a model. Members
      * not listed here are still accepted and validated exactly as on {@code POST /v1/triggers}.
      */
-    static final Map<String, Object> RULE_SCHEMA = rule();
+    public static final Map<String, Object> RULE_SCHEMA = rule();
 
     private final TriggerMapper mapper;
     private final McpOutputShaper shaper;

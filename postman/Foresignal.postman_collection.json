@@ -7069,7 +7069,7 @@
                 }
               ]
             },
-            "description": "List Ask threads\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `listAskThreads`",
+            "description": "List Ask threads\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on). A token sees its own threads; an admin token sees every thread; another token's thread is 404.\n\noperationId: `listAskThreads`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -7116,7 +7116,7 @@
               ],
               "query": []
             },
-            "description": "Get an Ask thread with messages\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getAskThread`",
+            "description": "Get an Ask thread with messages\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on). A token sees its own threads; an admin token sees every thread; another token's thread is 404.\n\noperationId: `getAskThread`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -7254,7 +7254,7 @@
               ],
               "query": []
             },
-            "description": "Reject a proposed action\n\n**Scope:** `agent` or `admin`.\n\noperationId: `rejectAskAction`",
+            "description": "Discards a pending proposed action; it is never executed. Another non-admin token's action \u2192 404; not pending \u2192 409 ACTION_NOT_PENDING.\n\n**Scope:** `agent` or `admin`.\n\noperationId: `rejectAskAction`",
             "auth": {
               "type": "bearer",
               "bearer": [
