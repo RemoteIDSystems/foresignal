@@ -39,14 +39,15 @@ public interface NotificationDeliveryRepository extends JpaRepository<Notificati
 
     /**
      * Used by retention (019): settled deliveries older than the cutoff, aged by delivery for a
-     * delivered row and by enqueue time for a failed one.
+     * delivered row and by enqueue time for a failed or suppressed one (033).
      */
     @Modifying
     @Query(
             """
             delete from NotificationDeliveryEntity d
              where d.status in (ai.foresignal.store.DeliveryStatus.DELIVERED,
-                                ai.foresignal.store.DeliveryStatus.FAILED)
+                                ai.foresignal.store.DeliveryStatus.FAILED,
+                                ai.foresignal.store.DeliveryStatus.SUPPRESSED)
                and coalesce(d.deliveredAt, d.createdAt) < :before
             """)
     int deleteSettledBefore(@Param("before") Instant before);

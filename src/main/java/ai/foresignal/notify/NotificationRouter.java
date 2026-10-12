@@ -38,7 +38,8 @@ import tools.jackson.databind.json.JsonMapper;
  *
  * <ul>
  *   <li><b>Alerts</b> ({@link AlertBus}, events flagged {@code suppressed} skipped): {@code fired}
- *       becomes {@code alert.fired}; {@code acknowledged}, {@code snoozed} and {@code resolved}
+ *       becomes {@code alert.fired} (persisted but routed to no channel while the rule is muted,
+ *       prompt 033); {@code acknowledged}, {@code snoozed} and {@code resolved}
  *       become {@code alert.acknowledged}, {@code alert.snoozed} and {@code alert.resolved} updates of
  *       the fired notification, whose text shows the new state ("✅ Resolved 14:02 CDT — …", the old
  *       body struck through). {@code updated} (feedback, unsnooze) notifies nobody. {@code enriched}
@@ -145,7 +146,10 @@ public class NotificationRouter implements AlertListener {
                 .alertId(alert.id())
                 .ruleId(alert.ruleId())
                 .build();
-        return service.publish(message, null);
+        // A muted rule's alerts are recorded and kept in the inbox, but not routed (prompt 033).
+        boolean muted = alert.ruleId() != null
+                && rules.findById(alert.ruleId()).map(r -> r.mutedAt(clock.instant())).orElse(false);
+        return service.publish(message, muted ? c -> false : null);
     }
 
     /**

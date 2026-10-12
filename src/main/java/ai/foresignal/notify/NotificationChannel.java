@@ -30,6 +30,7 @@ import java.util.UUID;
  * @param groupWindowSeconds the grouping window, 0 for none
  * @param backlogCap the backlog cap
  * @param editInPlace whether updates edit the original where possible
+ * @param deferWhileActiveSeconds presence deferral in seconds (prompt 033), 0 for none
  * @param createdAt when created
  * @param updatedAt when last changed
  */
@@ -51,6 +52,7 @@ public record NotificationChannel(
         int groupWindowSeconds,
         int backlogCap,
         boolean editInPlace,
+        int deferWhileActiveSeconds,
         Instant createdAt,
         Instant updatedAt) {
 
@@ -61,7 +63,7 @@ public record NotificationChannel(
                 e.getRuleIds() == null ? null : List.copyOf(e.getRuleIds()), e.getMinSeverity(), e.getTitleTemplate(),
                 e.getBodyTemplate(), e.getWaitForEnrichmentSeconds(), e.isEnabled(), e.getTimezone(),
                 QuietHours.fromMap(e.getQuietHours()), e.getGroupWindowSeconds(), e.getBacklogCap(), e.isEditInPlace(),
-                e.getCreatedAt(), e.getUpdatedAt());
+                e.getDeferWhileActiveSeconds(), e.getCreatedAt(), e.getUpdatedAt());
     }
 
     /**

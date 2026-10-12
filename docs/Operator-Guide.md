@@ -1258,6 +1258,79 @@ A device whose token Apple or Google reports as gone (APNs 410, `BadDeviceToken`
 device removes it too. Deleting or disabling a provider stops pushes to its apps' devices until a
 provider serves them again; the devices stay registered.
 
+## Acting from notifications
+
+A firing alert can be acknowledged, snoozed (1 h) or its watch muted (4 h) straight from the
+notification. Each button or link is a **single-use capability** (`/v1/actions/eac_…`), valid for 12
+hours and only for that alert; no API token is ever put on the phone. Opening a link (`GET`) only
+shows a confirm page with one button, so link previews, mail scanners and a stray tap never act; the
+action happens on `POST`. Acknowledging or resolving the alert any other way revokes the remaining
+buttons, and every execution is in the audit log (actor kind `action`, the token shown as `eac_…`).
+Acting on an alert that is already acknowledged or resolved answers "already acknowledged".
+
+Per channel, under `config.actions` (`{"enabled": true, "list": ["ack", "snooze", "mute"], "links": true}`):
+
+| Channel | How it acts | Default |
+|---|---|---|
+| ntfy | Two one-tap buttons (`http` POST, `clear=true`) and **Open** | on |
+| Push (Web Push) | Up to two notification buttons; browsers without buttons (Safari) open the confirm page | on |
+| Push (native apps) | Category `FORESIGNAL_ALERT_ACTIONABLE`; the app fetches its own buttons from `GET /v1/notifications/{id}`, so no capability goes through Apple or Google | on |
+| Telegram | Inline buttons; the message is then edited ("Acknowledged by Ana") and the buttons removed | on |
+| Matrix | Confirm-page links; with `"reactions": true`, a ✅ reaction from someone in `allowedSenders` acknowledges | on (links) |
+| Pushover | Critical alerts are emergency priority; acknowledging in the Pushover app acknowledges in Foresignal (`pushover:<device>`); the URL opens the acknowledge confirm page | on |
+| Webhook | An `actions` array (`action`, `label`, `url`, `expiresAt`) in the default JSON body | opt-in |
+| Email, Slack, Discord, Mattermost, Teams, Google Chat, Gotify, … | Confirm-page links at the end of the body (`"links": true`) | opt-in |
+
+The links use the `server` setting's `publicBaseUrl`, which must be reachable from the phone. Set
+`"enabled": false` to send a channel no buttons, or narrow `list` (for example `["ack"]`).
+
+**Telegram needs a dedicated bot.** Foresignal long-polls `getUpdates` for button presses, which
+Telegram refuses while a webhook is set for the bot, and two programs polling one bot steal each
+other's updates. Create a bot for Foresignal alone with @BotFather. `allowedUserIds` (Telegram user
+ids) limits who may press; left empty, any member of the channel's chat may.
+
+**Pushover receipts.** Foresignal polls each emergency receipt every 60 seconds (Pushover asks for no
+more than every 5 seconds) for up to three hours, until it is acknowledged or expires.
+
+**Why links only confirm.** A capability URL is a credential. Preview bots, antivirus scanners and
+browsers prefetch links; if `GET` acted, they would acknowledge your alerts. The confirm page is
+plain HTML without scripts or external assets, is never cached and is not indexed; posts from
+another site are refused, and the endpoint takes at most 30 requests per minute per client address.
+
+### Presence deferral
+
+When you are at your desk, your phone need not buzz for what you are already looking at. Give the
+phone-type channels (Push, ntfy, Pushover, Telegram, Gotify) `"deferWhileActiveSeconds": 120`. Your
+desktop client reports `POST /v1/clients/presence {"kind":"desktop","state":"active","ttlSeconds":120}`
+every minute or so. While a desktop is active, a non-critical alert waits 120 seconds on those
+channels; if you acknowledge, snooze or resolve it, or read it on the desktop, in that time, the phone
+copy is marked `suppressed` (visible in `/v1/channels/{id}/deliveries`) instead of sent. Critical
+alerts and system events are never held, and presence that stops arriving expires, so everything goes
+to the phone again. `GET /v1/clients` (admin) lists the current presence of every device.
+
+### Escalation
+
+An escalation policy reaches further people when nobody acknowledges:
+
+```json
+POST /v1/escalation-policies
+{"name": "Wake me up",
+ "steps": [{"afterMinutes": 10, "channelIds": ["<pager channel id>"], "includePush": true},
+           {"afterMinutes": 30, "channelIds": ["<second person's channel id>"]}],
+ "repeat": {"everyMinutes": 30, "maxTimes": 3},
+ "stopOn": {"resolve": true, "snooze": true}}
+```
+
+Put its id in a watch's `escalationPolicyId`. Ten minutes after an alert of that watch fires, unless
+it was acknowledged (always), resolved or snoozed (per `stopOn`), the pager channel and Push get
+"[Escalation 1] …" with fresh buttons; at 30 minutes the second channel gets "[Escalation 2] …", and
+then every 30 minutes up to three more times. Quiet hours hold escalations back except for critical
+alerts. Acknowledging stops it at once, cancels escalation messages still waiting and cancels Pushover
+emergency retries; muting the watch (`POST /v1/triggers/{id}/mute {"for":"4h"}`) stops escalation of
+its open alerts too. `GET /v1/alerts/{id}/escalation` shows where an alert stands. A policy used by a
+watch cannot be deleted (`409 POLICY_IN_USE`). Muted watches still record alerts and keep them in the
+inbox, but notify nobody until the mute ends (1 hour to 7 days).
+
 ## Retention
 
 `GET /v1/settings/retention` shows every window; `PUT` replaces the whole object (every window at
@@ -1295,6 +1368,7 @@ A `sources` entry for a TRACK source, or a `kinds` entry for a kind only TRACK s
 | `seq_clock` | Minutes older than the largest window plus a day |
 | Other | Resolved or suppressed alerts after `alerts` (open alerts stay), usage minutes after `usage`, delivered or failed deliveries after 7 days, notifications after `notifications` |
 | Audit | Audit log entries after `audit` (default 90 days) |
+| Inbox | Notifications after `inbox` (default 30 days) once no delivery refers to them, read cursors of devices unseen for 90 days, expired presence and action capabilities expired for a week |
 
 **Current state is kept while it is current** (FR-17 as amended). Versions follow the window, but a
 record that is still being observed keeps a version newer than a quarter of its window, so it never

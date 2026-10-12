@@ -12,6 +12,8 @@ import ai.foresignal.api.support.CursorCodec;
 import ai.foresignal.api.support.FieldSelection;
 import ai.foresignal.api.support.QueryParams;
 import ai.foresignal.api.support.ReadCallerResolver;
+import ai.foresignal.notify.inbox.PresenceService;
+import ai.foresignal.security.CurrentToken;
 import ai.foresignal.store.query.RecordQueryService;
 import ai.foresignal.store.query.RecordRow;
 import ai.foresignal.stream.sse.AlertsTopic;
@@ -83,6 +85,7 @@ public class AlertsController {
     private final SseHub hub;
     private final AlertsTopic topic;
     private final StreamPrincipalResolver principals;
+    private final PresenceService presence;
 
     /** Creates the controller. */
     public AlertsController(
@@ -93,7 +96,9 @@ public class AlertsController {
             ReadCallerResolver callers,
             SseHub hub,
             AlertsTopic topic,
-            StreamPrincipalResolver principals) {
+            StreamPrincipalResolver principals,
+            PresenceService presence) {
+        this.presence = presence;
         this.alerts = alerts;
         this.mapper = mapper;
         this.records = records;
@@ -209,6 +214,9 @@ public class AlertsController {
             HttpServletRequest request,
             HttpServletResponse response) {
         StreamPrincipal principal = principals.resolve(request);
+        // An open alert stream of a device counts as background presence only, never active (033).
+        CurrentToken.of(request).filter(t -> t.device() != null).ifPresent(t ->
+                presence.background(t.id().toString(), PresenceService.kindOf(t.device().platform())));
         AlertQuery filter = topic.parseQuery(new TopicParams("", parameters(request)), principal);
         Long resume = rev(lastEventId);
         Map<String, Long> resumes = resume == null ? Map.of() : Map.of(AlertsTopic.NAME, resume);

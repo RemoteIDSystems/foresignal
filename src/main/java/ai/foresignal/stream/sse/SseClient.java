@@ -412,6 +412,26 @@ public final class SseClient {
         }
     }
 
+    /**
+     * Queues an id-less control event (prompt 033: the inbox {@code badge}), sent ahead of FIFO
+     * events and never carrying an {@code id:} line.
+     *
+     * @param event the SSE event name
+     * @param data the JSON data
+     */
+    public void offerControl(String event, Object data) {
+        lock.lock();
+        try {
+            if (closed) {
+                return;
+            }
+            control.add(SseFrame.control(event, json(data)));
+            signal();
+        } finally {
+            lock.unlock();
+        }
+    }
+
     /** Replays {@code topic} from the last delivered cursor (a bus gap), with the floor check. */
     public void requestReplay(String topic) {
         lock.lock();

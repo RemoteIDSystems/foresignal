@@ -2,12 +2,15 @@ package ai.foresignal.notify.push;
 
 import ai.foresignal.notify.ChannelService;
 import ai.foresignal.notify.MarkdownRenderer;
+import ai.foresignal.notify.NotificationAction;
 import ai.foresignal.notify.NotificationMessage;
 import ai.foresignal.notify.Truncator;
 import ai.foresignal.settings.ClientLinks;
 import ai.foresignal.settings.ServerSettings;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import org.springframework.stereotype.Component;
@@ -46,8 +49,17 @@ public class PushContentFactory {
         this.clock = clock;
     }
 
-    /** The push content of {@code message} (as rendered for the Push channel). */
+    /** The push content of {@code message} (as rendered for the Push channel), without actions. */
     public PushMessage of(NotificationMessage message) {
+        return of(message, List.of());
+    }
+
+    /**
+     * The push content of {@code message} with the delivery's action capabilities (prompt 033): at
+     * most two Web Push buttons, the confirm page of the first action as {@code confirmUrl}, and the
+     * native category {@value PushMessage#ACTIONABLE_CATEGORY}.
+     */
+    public PushMessage of(NotificationMessage message, List<NotificationAction> actions) {
         ServerSettings server = channels.serverSettings();
         Map<String, Object> data = message.data() == null ? Map.of() : message.data();
         Long id = message.id() != null ? message.id() : message.alertId();
@@ -98,9 +110,18 @@ public class PushContentFactory {
             }
         }
         Instant created = message.createdAt() == null ? clock.instant() : message.createdAt();
+        List<NotificationAction> given = actions == null ? List.of() : actions;
+        List<PushMessage.Action> buttons = new ArrayList<>();
+        for (NotificationAction action : given) {
+            if (buttons.size() < PushMessage.MAX_ACTIONS) {
+                buttons.add(new PushMessage.Action(action.action(), action.label(), action.url()));
+            }
+        }
+        String category = given.isEmpty() ? PushMessage.categoryOf(message.event()) : PushMessage.ACTIONABLE_CATEGORY;
         return new PushMessage(message.event(), id, message.alertId(), message.ruleId(), message.severity(),
                 message.title(), message.shortTitle(), body, message.url(), app, web, message.tags(), tag, topic, false,
-                created.toEpochMilli(), null, null, null, PushMessage.categoryOf(message.event()));
+                created.toEpochMilli(), null, null, null, category, buttons,
+                given.isEmpty() ? null : given.getFirst().url());
     }
 
     private static String cut(String text, int max) {

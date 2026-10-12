@@ -96,6 +96,10 @@ public class NotificationChannelEntity {
     @Column(name = "edit_in_place", nullable = false, columnDefinition = "boolean default true")
     private boolean editInPlace = true;
 
+    /** Presence deferral of non-critical alerts while a desktop is active (prompt 033), 0–600 s. */
+    @Column(name = "defer_while_active_seconds", nullable = false, columnDefinition = "integer default 0")
+    private int deferWhileActiveSeconds;
+
     protected NotificationChannelEntity() {
         // for JPA
     }
@@ -300,5 +304,15 @@ public class NotificationChannelEntity {
     /** Sets the edit-in-place switch. */
     public void setEditInPlace(boolean editInPlace) {
         this.editInPlace = editInPlace;
+    }
+
+    /** The presence deferral in seconds (prompt 033); 0 for none. */
+    public int getDeferWhileActiveSeconds() {
+        return deferWhileActiveSeconds;
+    }
+
+    /** Sets the presence deferral. */
+    public void setDeferWhileActiveSeconds(int deferWhileActiveSeconds) {
+        this.deferWhileActiveSeconds = deferWhileActiveSeconds;
     }
 }

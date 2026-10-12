@@ -8,6 +8,7 @@ import ai.foresignal.notify.ChannelSettings;
 import ai.foresignal.notify.ChannelTypeSpec;
 import ai.foresignal.notify.HmacSigner;
 import ai.foresignal.notify.NotificationJson;
+import ai.foresignal.notify.NotificationAction;
 import ai.foresignal.notify.NotificationMessage;
 import ai.foresignal.notify.OriginMarker;
 import ai.foresignal.notify.PreparedRequest;
@@ -90,7 +91,8 @@ public class WebhookChannel extends AbstractChannelType {
     @Override
     public PreparedRequest render(NotificationMessage m, ChannelSettings s) {
         String template = s.config("bodyTemplate", null);
-        String body = template == null ? JSON.writeValueAsString(defaultBody(m, s.origin())) : renderTemplate(template, m);
+        String body = template == null ? JSON.writeValueAsString(defaultBody(m, s.origin(), s.actions()))
+                : renderTemplate(template, m);
         String timestamp = Long.toString(s.now().getEpochSecond());
         Map<String, String> headers = baseHeaders(s);
         headers.put("Content-Type", "application/json");
@@ -114,12 +116,28 @@ public class WebhookChannel extends AbstractChannelType {
 
     /** The default Foresignal JSON body (also Home Assistant's webhook mode). */
     static Map<String, Object> defaultBody(NotificationMessage m, String origin) {
+        return defaultBody(m, origin, List.of());
+    }
+
+    /**
+     * The default body with an {@code actions} array {@code [{action, label, url, expiresAt}]} when
+     * the delivery carries capabilities (prompt 033).
+     */
+    static Map<String, Object> defaultBody(NotificationMessage m, String origin, List<NotificationAction> actions) {
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("event", m.event());
         out.put("subtype", m.subtype());
         out.put("message", NotificationJson.toMap(m));
         out.put("data", m.data());
         out.put(OriginMarker.JSON_FIELD, origin);
+        if (actions != null && !actions.isEmpty()) {
+            List<Map<String, Object>> list = new ArrayList<>();
+            for (NotificationAction action : actions) {
+                list.add(obj("action", action.action(), "label", action.label(), "url", action.url(),
+                        "expiresAt", action.expiresAt() == null ? null : action.expiresAt().toString()));
+            }
+            out.put("actions", list);
+        }
         return out;
     }
 

@@ -86,21 +86,25 @@ final class NotificationService: UNNotificationServiceExtension {
         content = request.content.mutableCopy() as? UNMutableNotificationContent
         guard let content,
               let e = request.content.userInfo["e"] as? [String: Any],
-              let alertId = e["a"] as? Int,
+              let notificationId = e["id"] as? Int,
               let base = SharedConfig.baseURL,            // stored at pairing
               let token = SharedKeychain.readToken() else {
             contentHandler(request.content)               // keep the fallback text
             return
         }
-        // Until prompt 033 adds GET /v1/notifications/{id}, alerts are read from /v1/alerts/{id}.
-        var fetch = URLRequest(url: base.appendingPathComponent("v1/alerts/\(alertId)"))
+        // GET /v1/notifications/{id} (033): the text, the live alert state, and action capabilities
+        // minted for this device, so nothing actionable ever passes through Apple.
+        var fetch = URLRequest(url: base.appendingPathComponent("v1/notifications/\(notificationId)"))
         fetch.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         fetch.timeoutInterval = 5
         URLSession.shared.dataTask(with: fetch) { data, response, _ in
             if let data, (response as? HTTPURLResponse)?.statusCode == 200,
-               let alert = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-                if let rule = alert["ruleName"] as? String { content.title = rule }
-                if let message = alert["message"] as? String { content.body = message }
+               let item = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                if let title = item["title"] as? String { content.title = title }
+                if let body = item["body"] as? String { content.body = body }
+                if let actions = item["actions"] as? [[String: Any]] {
+                    SharedActionCache.store(actions, for: notificationId)   // read by the action handler
+                }
             }
             contentHandler(content)
         }.resume()
@@ -112,13 +116,15 @@ final class NotificationService: UNNotificationServiceExtension {
 }
 ```
 
-`SharedConfig` and `SharedKeychain` stand for the app's own helpers. Foresignal must be reachable
+`SharedConfig`, `SharedKeychain` and `SharedActionCache` stand for the app's own helpers. Foresignal must be reachable
 from the phone for the rewrite: on the LAN, over a VPN, or through Tailscale. When it is not, the
 user sees the minimal text, and opening the notification follows `e.l`.
 
-Categories are `FORESIGNAL_ALERT`, `FORESIGNAL_BRIEFING` and `FORESIGNAL_SYSTEM`; register them with
-`UNUserNotificationCenter.setNotificationCategories`. Their actions (acknowledge, snooze) arrive
-with prompt 033. Live Activities stay on the client roadmap.
+Categories are `FORESIGNAL_ALERT`, `FORESIGNAL_BRIEFING`, `FORESIGNAL_SYSTEM` and, for a firing alert
+that carries actions, `FORESIGNAL_ALERT_ACTIONABLE`; register them with
+`UNUserNotificationCenter.setNotificationCategories`. Give `FORESIGNAL_ALERT_ACTIONABLE` the actions
+`ack` ("Acknowledge"), `snooze` ("Snooze 1h") and `mute` ("Mute 4h"); the handler is described in
+"Acting on notifications" below. Live Activities stay on the client roadmap.
 
 ### Android
 
@@ -160,3 +166,96 @@ optional and work only for an operator who builds and signs their own app with t
 - `POST /v1/push/devices/{deviceId}/test` sends a test notice (five per hour).
 - `DELETE /v1/push/devices/{deviceId}` stops pushes, for example at sign-out.
 - Revoking the app's API token removes its devices.
+
+## The notification inbox
+
+Every notification Foresignal sends (alerts, briefings, system events) is also an inbox item for 30
+days, with **per-device** read state, so a desktop window and a phone each keep their own unread
+count. Inbox calls need a token, even while open reads are on.
+
+**Device id.** A token with device metadata (`PUT /v1/tokens/current/device`, which the paired apps
+already send) is its own device. Any other client (a browser console, a script) picks a UUID once,
+keeps it, and sends it as `Foresignal-Device-Id: <uuid>` on every inbox call; without either the
+answer is `400 DEVICE_ID_REQUIRED`.
+
+**Syncing.**
+
+1. `GET /v1/notifications?limit=100` returns the newest items with `read` for this device and the
+   alert's live `alertState`; page older with `nextCursor` (or `before=<id>`), fetch only newer ones
+   with `after=<id>`. Filters: `events=alert,system`, `minSeverity=warning`, `unread=true`.
+2. `GET /v1/notifications/stream` (SSE; a browser passes a stream ticket as `?ticket=`) sends each new
+   item as `event: notification` with `id: <notification id>`; reconnect with `Last-Event-ID` and the
+   missed items are replayed with their read state. `event: badge` (no id) arrives when another window
+   of the same device marks something read.
+3. `POST /v1/notifications/read {"upToId": 1234}` marks everything up to an id read (it never moves
+   back); `{"ids": [1240, 1242]}` marks single items above it. The answer is the new badge.
+   **Reading never acknowledges an alert.**
+4. `GET /v1/notifications/badge` gives `{unread, unreadCritical, latestId}`: unread system events
+   plus unread alerts that are still firing. Native pushes carry the same number as the app badge.
+
+`GET /v1/notifications/{id}` returns one item with its links and, for a firing alert, `actions`:
+capability URLs minted for this device (single use, 12 hours).
+
+## Presence heartbeats
+
+A desktop client that is in front of the operator reports it, so phone channels with
+`deferWhileActiveSeconds` can hold non-critical alerts back:
+
+```http
+POST /v1/clients/presence
+Foresignal-Device-Id: 0b9f4a3e-7f1c-4c39-9c51-2b1d0f1f0a01
+{"kind": "desktop", "state": "active", "ttlSeconds": 120}
+```
+
+Send it about every 60 seconds while the window is focused and the user is active, `"idle"` after a
+few minutes without input, and `"background"` when minimized; `ttlSeconds` is at most 300. Stopping
+is enough: expired presence counts as absent and phones get everything again. An open inbox or alert
+stream counts as `background` only.
+
+## Acting on notifications
+
+Each action is a URL `<publicBaseUrl>/v1/actions/eac_…`. `POST` it (no token, no body needed) with
+`Accept: application/json` to act; the answer is `{action, alertId, result}` with `result`
+`acknowledged`, `snoozed`, `muted` or `already-acknowledged` / `already-resolved`. A used or expired
+capability is `410 ACTION_EXPIRED`. `GET` on the same URL only shows a confirm page, so open it in a
+browser when there is no way to POST.
+
+**Service worker (Web Push).** The payload carries `actions` (at most two, `{action, title, url}`)
+and `confirmUrl`:
+
+```js
+self.addEventListener("push", (event) => {
+  const p = event.data.json();
+  const actions = ("maxActions" in Notification && Notification.maxActions > 0)
+      ? (p.actions || []).slice(0, Notification.maxActions).map((a) => ({ action: a.action, title: a.title }))
+      : [];
+  event.waitUntil(self.registration.showNotification(p.title || "Foresignal", {
+    body: p.body, tag: p.tag, data: p, actions,
+  }));
+});
+
+self.addEventListener("notificationclick", (event) => {
+  const p = event.notification.data || {};
+  const chosen = (p.actions || []).find((a) => a.action === event.action);
+  event.notification.close();
+  if (chosen) {
+    // One tap acts: the capability is the credential; nothing else is sent.
+    event.waitUntil(fetch(chosen.url, { method: "POST", headers: { Accept: "application/json" } }));
+  } else {
+    // A plain click, or a browser without action buttons (Safari): open the confirm page or the alert.
+    event.waitUntil(clients.openWindow(p.confirmUrl || (p.links && (p.links.web || p.links.api)) || "/"));
+  }
+});
+```
+
+A browser without action buttons (no `Notification.maxActions`, as in Safari) gets none, and a click
+opens the confirm page; browsers that support them show the buttons. Declarative Web Push payloads
+have no service worker to POST, so they navigate to the confirm page.
+
+**Native apps.** The push never carries a capability. For `FORESIGNAL_ALERT_ACTIONABLE` the
+Notification Service Extension above caches the `actions` of `GET /v1/notifications/{id}`; the app's
+`userNotificationCenter(_:didReceive:withCompletionHandler:)` (Android: the action's
+`BroadcastReceiver`) looks up the cached action whose `action` matches the tapped identifier and
+POSTs its `url`. When the cache is empty (the extension timed out), fetch `GET /v1/notifications/{id}`
+first with the app's token.
+

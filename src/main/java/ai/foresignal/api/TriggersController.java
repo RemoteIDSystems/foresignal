@@ -31,7 +31,8 @@ import tools.jackson.databind.JsonNode;
 /**
  * The {@code Triggers} operations (prompt 017): {@code listTriggers}, {@code getTrigger},
  * {@code createTrigger}, {@code updateTrigger}, {@code deleteTrigger}, {@code testTrigger},
- * {@code snoozeTrigger} and {@code unsnoozeTrigger}.
+ * {@code snoozeTrigger} and {@code unsnoozeTrigger}; prompt 033 adds {@code muteTrigger} and
+ * {@code unmuteTrigger}.
  *
  * <p>Reads need {@code read}; every write and the backtest need {@code agent} ({@code AccessPolicy}).
  * Bodies are taken as JSON trees and validated by {@code RuleValidator}, so every field problem is
@@ -147,6 +148,20 @@ public class TriggersController {
     @Operation(operationId = "unsnoozeTrigger", tags = "Triggers")
     public Map<String, Object> unsnoozeTrigger(@PathVariable String ruleId) {
         return mapper.rule(rules.unsnooze(id(ruleId)));
+    }
+
+    /** {@code muteTrigger}: {@code until} or {@code for}, 1 h to 7 days (prompt 033). */
+    @PostMapping("/{ruleId}/mute")
+    @Operation(operationId = "muteTrigger", tags = "Triggers")
+    public Map<String, Object> muteTrigger(@PathVariable String ruleId, @RequestBody JsonNode body) {
+        return mapper.rule(rules.mute(id(ruleId), body));
+    }
+
+    /** {@code unmuteTrigger}: idempotent (prompt 033). */
+    @DeleteMapping("/{ruleId}/mute")
+    @Operation(operationId = "unmuteTrigger", tags = "Triggers")
+    public Map<String, Object> unmuteTrigger(@PathVariable String ruleId) {
+        return mapper.rule(rules.unmute(id(ruleId)));
     }
 
     /** {@code ruleId} as a UUID; anything else names no rule. */

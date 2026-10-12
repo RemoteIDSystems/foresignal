@@ -45,6 +45,7 @@ public class ChannelMapper {
         out.put("groupWindowSeconds", c.groupWindowSeconds());
         out.put("backlogCap", c.backlogCap());
         out.put("editInPlace", c.editInPlace());
+        out.put("deferWhileActiveSeconds", c.deferWhileActiveSeconds());
         return out;
     }
 
@@ -101,6 +102,7 @@ public class ChannelMapper {
         out.put("deferredReason", d.getDeferredReason());
         out.put("edited", d.isEdited());
         out.put("note", d.getNote());
+        out.put("escalationStep", d.getEscalationStep());
         return out;
     }
 

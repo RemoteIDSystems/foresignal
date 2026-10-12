@@ -13,7 +13,9 @@ PATH_VARS = {"sourceId": "sourceId", "externalId": "externalId", "ruleId": "rule
              "channelId": "channelId", "tokenId": "tokenId", "providerId": "providerId", "threadId": "threadId",
              "actionId": "actionId", "briefingId": "briefingId", "runId": "runId", "subscriptionId": "subscriptionId",
              "layer": "tileLayer", "z": "tileZ", "x": "tileX", "y": "tileY", "pairingCodeId": "pairingCodeId",
-             "topic": "sourceId", "format": "ingestFormat", "action": "ntfyAction", "deviceId": "pushDeviceId"}
+             "topic": "sourceId", "format": "ingestFormat", "action": "ntfyAction", "deviceId": "pushDeviceId",
+             # 033: action capabilities, inbox items and escalation policies.
+             "token": "actionToken", "notificationId": "notificationId", "policyId": "escalationPolicyId"}
 
 # Path variables that mean something else under a prefix (024): EDP sources and registration tokens.
 PATH_VARS_BY_PREFIX = [("/v1/external/sources/", {"sourceId": "edpSourceId"}),
@@ -185,6 +187,16 @@ BODIES = {
                          "filters": {"events": ["alert", "briefing"], "minSeverity": "warning"}, "contentLevel": "minimal", "lang": "en"},
   "updatePushDevice": {"name": "My iPhone", "filters": {"events": ["alert"], "minSeverity": "critical"}, "contentLevel": "short",
                        "lang": "en"},
+  # 033: the inbox, presence, escalation policies and rule mutes. Add channelIds to a step to reach further channels.
+  "markNotificationsRead": {"upToId": 1},
+  "updatePresence": {"kind": "desktop", "state": "active", "ttlSeconds": 120},
+  "createEscalationPolicy": {"name": "Wake me up", "steps": [{"afterMinutes": 10, "channelIds": [], "includePush": True},
+                                                            {"afterMinutes": 30, "channelIds": [], "includePush": True}],
+                             "repeat": {"everyMinutes": 30, "maxTimes": 3}, "stopOn": {"resolve": True, "snooze": True}},
+  "updateEscalationPolicy": {"name": "Wake me up", "steps": [{"afterMinutes": 15, "channelIds": [], "includePush": True}],
+                             "repeat": None, "stopOn": {"resolve": True, "snooze": False}},
+  "muteTrigger": {"for": "4h"},
+  "executeAction": {},
   "updateEventStreamFilter": {"changes": {"bbox": "-97.5,32.5,-96.5,33.2", "live": True}},
   "updateSecuritySettings": {"openReads": True, "exposeObserver": False},
   "updateServerSettings": {"publicBaseUrl": "http://foresignal.local:8080", "timezone": "UTC",
@@ -220,6 +232,9 @@ CAPTURE = {
   "runBriefing": "const j = pm.response.json(); if (j.id) pm.collectionVariables.set('runId', j.id);",
   "createPushSubscription": "const j = pm.response.json(); pm.collectionVariables.set('subscriptionId', j.id);",
   "registerPushDevice": "const j = pm.response.json(); pm.collectionVariables.set('pushDeviceId', j.id);",
+  "listNotifications": "const j = pm.response.json(); if (j.items && j.items.length) pm.collectionVariables.set('notificationId', j.items[0].id);",
+  "getNotification": "const j = pm.response.json(); if (j.actions && j.actions.length) pm.collectionVariables.set('actionToken', j.actions[0].url.split('/v1/actions/')[1]);",
+  "createEscalationPolicy": "const j = pm.response.json(); pm.collectionVariables.set('escalationPolicyId', j.id);",
   "listAlerts": "const j = pm.response.json(); if (j.items && j.items.length) pm.collectionVariables.set('alertId', j.items[0].id);",
   "listChanges": "const j = pm.response.json(); pm.collectionVariables.set('lastSeq', j.lastSeq);",
   "listRecords": "const j = pm.response.json(); const it = (j.items || j.features || [])[0]; if (it) { const ext = it.externalId || (it.properties && it.properties.externalId); pm.collectionVariables.set('externalId', ext); }\nif (j.nextCursor) pm.collectionVariables.set('cursor', j.nextCursor);",
@@ -458,6 +473,7 @@ quickstart2 = {"name": "01 Quickstart — Channels, briefings, Ask",
 # Streams convenience folder
 streams = {"name": "Streams (SSE — run manually)", "description": "Postman displays Server-Sent Events live. Set Last-Event-ID (header) to resume.",
            "item": [dict(by_id["streamChanges"], name="Change stream — all"), dict(by_id["streamAlerts"], name="Alert stream"),
+                    dict(by_id["streamNotifications"], name="Notification inbox stream"),
                     dict(by_id["askStream"], name="Ask (streaming)")]}
 
 collection = {
@@ -472,6 +488,7 @@ collection = {
       ("lastSeq", "0"), ("cursor", ""), ("pairingCodeId", ""), ("pairingCode", ""), ("ticket", ""),
       ("ingestFormat", "alertmanager"), ("ntfyAction", "publish"), ("edpSourceId", "ext-hormuz-transits"), ("edpIngestKey", ""),
       ("registrationToken", ""), ("registrationTokenId", ""), ("pushProviderId", "ios-apns"), ("pushDeviceId", ""),
+      ("notificationId", ""), ("actionToken", ""), ("escalationPolicyId", ""),
       ("tileLayer", "earthquake"), ("tileZ", "0"), ("tileX", "0"), ("tileY", "0")]],
 }
 env = {"id": str(uuid.uuid5(uuid.NAMESPACE_URL, "https://foresignal.ai/postman/env/local")), "name": "Foresignal — Local",

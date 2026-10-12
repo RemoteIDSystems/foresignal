@@ -36,7 +36,9 @@ import tools.jackson.databind.node.ObjectNode;
  *   <li>{@code propose_briefing}: create a briefing (offered only once a {@code create_briefing}
  *       handler exists, prompt 029);
  *   <li>{@code propose_ack}: acknowledge an alert;
- *   <li>{@code propose_alert_status}: resolve, snooze or unsnooze an alert.
+ *   <li>{@code propose_alert_status}: resolve, snooze or unsnooze an alert;
+ *   <li>{@code propose_snooze}: snooze an alert (prompt 033, offered once a {@code snooze_alert}
+ *       handler exists).
  * </ul>
  * These tools are never MCP tools: an MCP agent with {@code agent} scope calls the write tools
  * directly.
@@ -75,6 +77,12 @@ public class AskActionTools {
             "feedback", enumeration("resolve only: how useful the alert was.", null,
                     "useful", "noise", "late", "false_positive"),
             "reason", string(REASON_NOTE, 1, 300)), "alertId", "action");
+
+    private static final Map<String, Object> PROPOSE_SNOOZE = object(props(
+            "alertId", JsonSchemas.integer("The alert id (from list_alerts).", 1, Long.MAX_VALUE, null),
+            "until", dateTime("When the snooze ends (RFC 3339, in the future). Give until or for."),
+            "for", string("How long, for example 1h or PT30M. Give until or for.", 1, 40),
+            "reason", string(REASON_NOTE, 1, 300)), "alertId");
 
     private static final String CONFIRM_NOTE = " Nothing changes now: the proposal is shown to the person, who confirms"
             + " or rejects it. Returns {actionId, status}.";
@@ -118,6 +126,10 @@ public class AskActionTools {
                 PROPOSE_ACK));
         out.add(spec("propose_alert_status", "Proposes resolving, snoozing or unsnoozing an alert." + CONFIRM_NOTE,
                 PROPOSE_ALERT_STATUS));
+        if (handlers.containsKey("snooze_alert")) {
+            out.add(spec("propose_snooze", "Proposes snoozing an alert until a time or for a while, which also stops"
+                    + " its escalation." + CONFIRM_NOTE, PROPOSE_SNOOZE));
+        }
         return out;
     }
 
@@ -138,7 +150,8 @@ public class AskActionTools {
      */
     public ProposedAction propose(String tool, JsonNode args, AskCaller caller) {
         Map<String, Object> schema = schema(tool);
-        if (schema == null || (tool.equals("propose_briefing") && !handlers.containsKey("create_briefing"))) {
+        if (schema == null || (tool.equals("propose_briefing") && !handlers.containsKey("create_briefing"))
+                || (tool.equals("propose_snooze") && !handlers.containsKey("snooze_alert"))) {
             throw new McpToolException("Unknown tool: " + tool);
         }
         JsonNode arguments = args == null || args.isNull() ? json.createObjectNode() : args;
@@ -160,6 +173,7 @@ public class AskActionTools {
                 payload = briefing instanceof ObjectNode object ? object.deepCopy() : json.createObjectNode();
             }
             case "propose_ack" -> type = "acknowledge_alert";
+            case "propose_snooze" -> type = "snooze_alert";
             default -> type = "alert_status";
         }
         AskActionHandler handler = handlers.get(type);
@@ -181,6 +195,7 @@ public class AskActionTools {
             case "propose_briefing" -> PROPOSE_BRIEFING;
             case "propose_ack" -> PROPOSE_ACK;
             case "propose_alert_status" -> PROPOSE_ALERT_STATUS;
+            case "propose_snooze" -> PROPOSE_SNOOZE;
             default -> null;
         };
     }

@@ -196,6 +196,18 @@ public final class ErrorCodes {
      */
     public static final String PUSH_PROVIDER_NOT_CONFIGURED = "PUSH_PROVIDER_NOT_CONFIGURED";
 
+    /** 410: a notification action capability is unknown, expired or already used (prompt 033). */
+    public static final String ACTION_EXPIRED = "ACTION_EXPIRED";
+
+    /**
+     * 400: an inbox operation needs a device: a token with device metadata, or a
+     * {@code Foresignal-Device-Id} header (prompt 033).
+     */
+    public static final String DEVICE_ID_REQUIRED = "DEVICE_ID_REQUIRED";
+
+    /** 409: an escalation policy is still referenced by trigger rules (prompt 033). */
+    public static final String POLICY_IN_USE = "POLICY_IN_USE";
+
     private static final String TYPE_PREFIX = "https://foresignal.ai/problems/";
 
     private ErrorCodes() {}

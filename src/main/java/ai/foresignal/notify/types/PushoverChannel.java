@@ -6,6 +6,7 @@ import ai.foresignal.notify.ChannelResponse;
 import ai.foresignal.notify.ChannelSettings;
 import ai.foresignal.notify.ChannelTypeSpec;
 import ai.foresignal.notify.MarkdownRenderer;
+import ai.foresignal.notify.NotificationAction;
 import ai.foresignal.notify.NotificationMessage;
 import ai.foresignal.notify.PreparedRequest;
 import ai.foresignal.notify.Truncator;
@@ -21,7 +22,9 @@ import org.springframework.stereotype.Component;
  *
  * <p>An emergency message returns a {@code receipt}, which is stored. When the alert is resolved or
  * acknowledged, {@code POST /1/receipts/{receipt}/cancel.json} stops the emergency retries before the
- * follow-up is sent ({@link #beforeUpdate}).
+ * follow-up is sent ({@link #beforeUpdate}). Prompt 033: a firing alert with an acknowledge capability
+ * sends its confirm page as the URL, and {@code PushoverReceiptPoller} turns an acknowledged receipt
+ * into a Foresignal acknowledgement.
  */
 @Component
 public class PushoverChannel extends AbstractChannelType {
@@ -78,7 +81,13 @@ public class PushoverChannel extends AbstractChannelType {
             form.put("retry", "300");
             form.put("expire", "3600");
         }
-        if (m.url() != null) {
+        NotificationAction ack = s.actions().stream().filter(a -> NotificationAction.ACK.equals(a.action()))
+                .findFirst().orElse(null);
+        if (ack != null) {
+            // Prompt 033: the supplementary URL opens the acknowledge confirm page (GET never acts).
+            form.put("url", ack.url());
+            form.put("url_title", ack.label());
+        } else if (m.url() != null) {
             form.put("url", m.url());
             form.put("url_title", buttons(m).getFirst().label());
         }
@@ -116,6 +125,11 @@ public class PushoverChannel extends AbstractChannelType {
             html = MarkdownRenderer.escape(m.title(), MarkdownRenderer.Format.TELEGRAM_HTML);
         }
         return Truncator.truncate(html, MESSAGE_MAX, Truncator.Unit.CHARS, Truncator.Mode.HTML, null);
+    }
+
+    /** The API base URL of a channel with {@code s}. */
+    public static String apiBase(ChannelSettings s) {
+        return api(s);
     }
 
     private static String api(ChannelSettings s) {

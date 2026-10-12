@@ -68,6 +68,8 @@ public class TriggerMapper {
                 ? null : Durations.format(Duration.ofSeconds(r.getForecastHorizonSeconds())));
         out.put("messageTemplate", r.getMessageTemplate() == null ? MessageTemplate.DEFAULT : r.getMessageTemplate());
         out.put("snoozedUntil", r.getSnoozedUntil());
+        out.put("mutedUntil", r.getMutedUntil());
+        out.put("escalationPolicyId", r.getEscalationPolicyId());
         out.put("createdAt", r.getCreatedAt());
         out.put("updatedAt", r.getUpdatedAt());
         out.put("lastFiredAt", stats.lastFiredAt());

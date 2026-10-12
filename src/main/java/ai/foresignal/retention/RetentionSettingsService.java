@@ -39,7 +39,7 @@ import tools.jackson.databind.JsonNode;
  * override of every STANDARD source it does not list) and keeps the {@code app_setting} copy empty;
  * a GET reads them back.
  *
- * <p>{@code audit} (prompt 023) is stored with the rest. Members owned by later prompts ({@code stats} 038/119, {@code inbox} 033,
+ * <p>{@code audit} (prompt 023) and {@code inbox} (prompt 033) are stored with the rest. Members owned by later prompts ({@code stats} 038/119,
  * {@code trackRawWindow} and {@code trackDownsampleInterval} 044, {@code social} 135) are accepted
  * and not stored until those prompts.
  */
@@ -50,10 +50,10 @@ public class RetentionSettingsService {
     public static final Duration MIN_WINDOW = Duration.ofHours(1);
 
     static final Set<String> DURATION_FIELDS = Set.of(
-            "default", "alerts", "usage", "briefings", "ask", "trackWindow", "provenance", "notifications", "audit");
+            "default", "alerts", "usage", "briefings", "ask", "trackWindow", "provenance", "notifications", "audit", "inbox");
 
     static final Set<String> LATER_FIELDS = Set.of(
-            "stats", "inbox", "trackRawWindow", "trackDownsampleInterval", "social");
+            "stats", "trackRawWindow", "trackDownsampleInterval", "social");
 
     private final AppSettingService settings;
     private final RetentionResolver resolver;
@@ -218,7 +218,8 @@ public class RetentionSettingsService {
                 values.get("briefings"),
                 values.get("ask"),
                 perKind,
-                values.get("audit"));
+                values.get("audit"),
+                values.get("inbox"));
     }
 
     private static Duration window(JsonNode node, String field, List<FieldError> errors) {

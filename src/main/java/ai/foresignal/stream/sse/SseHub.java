@@ -352,6 +352,24 @@ public class SseHub {
         }
     }
 
+    /**
+     * Hands an id-less control event to every client subscribed to {@code topic} whose topic filter
+     * passes {@code test} (prompt 033: the inbox {@code badge} of one device).
+     *
+     * @return how many clients got it
+     */
+    public int publishControl(String topic, Predicate<Object> test, String event, Object data) {
+        int sent = 0;
+        for (SseClient client : clients.values()) {
+            Object filter = client.filter().filterFor(topic);
+            if (filter != null && test.test(filter)) {
+                client.offerControl(event, data);
+                sent++;
+            }
+        }
+        return sent;
+    }
+
     /** Hands a live update to every client's conflation lane. */
     public void publishLive(LiveUpdate update) {
         for (SseClient client : clients.values()) {

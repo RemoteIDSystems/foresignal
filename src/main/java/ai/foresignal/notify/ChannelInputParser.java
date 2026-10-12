@@ -29,9 +29,9 @@ import tools.jackson.databind.json.JsonMapper;
  * (secrets may be satisfied by the stored ones on a PUT that omits {@code secrets}), field types and
  * enum values, and unknown secret names. Config keys the type does not declare are kept, because the
  * {@code config} object is open (later prompts add {@code actions}, map attachments and so on). The
- * type's own {@link ChannelType#validate} runs last. Members owned by later prompts
- * ({@code deferWhileActiveSeconds}, {@code acceptExercise}, {@code language}) are accepted and not
- * stored yet.
+ * type's own {@link ChannelType#validate} runs last. {@code deferWhileActiveSeconds} (0–600) and
+ * {@code config.actions} ({@code ChannelActionsConfig}) are validated and stored (prompt 033). Members
+ * owned by later prompts ({@code acceptExercise}, {@code language}) are accepted and not stored yet.
  */
 @Component
 public class ChannelInputParser {
@@ -197,12 +197,56 @@ public class ChannelInputParser {
         int group = integer(body, "groupWindowSeconds", 0, 0, MAX_GROUP_WINDOW, errors);
         int cap = integer(body, "backlogCap", 20, 1, MAX_BACKLOG_CAP, errors);
         boolean edit = bool(body, "editInPlace", true, errors);
-        integer(body, "deferWhileActiveSeconds", 0, 0, 600, errors);
+        int deferWhileActive = integer(body, "deferWhileActiveSeconds", 0, 0, 600, errors);
+        actionsConfig(config, errors);
         if (!errors.isEmpty()) {
             throw new ValidationException("The channel is not valid.", errors);
         }
         return new ChannelInput(name.strip(), typeId, config, secrets, events, ruleIds, minSeverity, titleTemplate,
-                bodyTemplate, wait, enabled, timezone, quietHours, group, cap, edit);
+                bodyTemplate, wait, enabled, timezone, quietHours, group, cap, edit, deferWhileActive);
+    }
+
+    /**
+     * Checks {@code config.actions} ({@code ChannelActionsConfig}, prompt 033): an object with the
+     * booleans {@code enabled}, {@code links} and {@code reactions} and a {@code list} of
+     * {@code ack}, {@code snooze} and {@code mute}; plus {@code allowedUserIds} (integers) and
+     * {@code allowedSenders} (strings) when present.
+     */
+    static void actionsConfig(Map<String, Object> config, List<FieldError> errors) {
+        Object actions = config.get("actions");
+        if (actions != null) {
+            if (!(actions instanceof Map<?, ?> map)) {
+                errors.add(new FieldError("config.actions", "must be an object"));
+            } else {
+                for (Map.Entry<?, ?> entry : map.entrySet()) {
+                    String key = String.valueOf(entry.getKey());
+                    Object value = entry.getValue();
+                    switch (key) {
+                        case "enabled", "links", "reactions" -> {
+                            if (value != null && !(value instanceof Boolean)) {
+                                errors.add(new FieldError("config.actions." + key, "must be true or false"));
+                            }
+                        }
+                        case "list" -> {
+                            if (!(value instanceof List<?> list) || !list.stream()
+                                    .allMatch(v -> v instanceof String t && Set.of("ack", "snooze", "mute").contains(t))) {
+                                errors.add(new FieldError("config.actions.list", "must be an array of ack, snooze, mute"));
+                            }
+                        }
+                        default -> errors.add(new FieldError("config.actions." + key, "is not a ChannelActionsConfig member"));
+                    }
+                }
+            }
+        }
+        Object users = config.get("allowedUserIds");
+        if (users != null && !(users instanceof List<?> list && list.stream()
+                .allMatch(v -> v instanceof Number n && n.doubleValue() == Math.rint(n.doubleValue())))) {
+            errors.add(new FieldError("config.allowedUserIds", "must be an array of integers"));
+        }
+        Object senders = config.get("allowedSenders");
+        if (senders != null && !(senders instanceof List<?> list && list.stream().allMatch(String.class::isInstance))) {
+            errors.add(new FieldError("config.allowedSenders", "must be an array of strings"));
+        }
     }
 
     /** The generic checks of the spec's fields. */

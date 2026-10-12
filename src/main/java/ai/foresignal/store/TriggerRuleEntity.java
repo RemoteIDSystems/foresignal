@@ -173,6 +173,15 @@ public class TriggerRuleEntity {
     @Column(name = "snoozed_until")
     private Instant snoozedUntil;
 
+    /** Until when the rule is muted (prompt 033): alerts are recorded but not routed, escalations stop. */
+    @JdbcTypeCode(SqlTypes.TIMESTAMP_UTC)
+    @Column(name = "muted_until")
+    private Instant mutedUntil;
+
+    /** The escalation policy of the rule's alerts (prompt 033), or null. */
+    @Column(name = "escalation_policy_id")
+    private UUID escalationPolicyId;
+
     /** Matches the storm cap dropped. */
     @Column(name = "suppressed_count", nullable = false, columnDefinition = "bigint default 0")
     private long suppressedCount;
@@ -589,5 +598,30 @@ public class TriggerRuleEntity {
     /** Sets when the rule was last changed. */
     public void setUpdatedAt(Instant updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    /** Until when the rule is muted (prompt 033), or null. */
+    public Instant getMutedUntil() {
+        return mutedUntil;
+    }
+
+    /** Sets the mute expiry. */
+    public void setMutedUntil(Instant mutedUntil) {
+        this.mutedUntil = mutedUntil;
+    }
+
+    /** True when the rule is muted at {@code now}. */
+    public boolean mutedAt(Instant now) {
+        return mutedUntil != null && mutedUntil.isAfter(now);
+    }
+
+    /** The escalation policy (prompt 033), or null. */
+    public UUID getEscalationPolicyId() {
+        return escalationPolicyId;
+    }
+
+    /** Sets the escalation policy. */
+    public void setEscalationPolicyId(UUID escalationPolicyId) {
+        this.escalationPolicyId = escalationPolicyId;
     }
 }

@@ -1,5 +1,6 @@
 package ai.foresignal.notify;
 
+import ai.foresignal.notify.inbox.PresenceService;
 import ai.foresignal.security.InstallIdService;
 import ai.foresignal.settings.AppSettingService;
 import ai.foresignal.settings.NotificationSettings;
@@ -13,6 +14,7 @@ import ai.foresignal.store.NotificationDeliveryEntity;
 import ai.foresignal.store.NotificationDeliveryRepository;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -34,8 +36,16 @@ import org.springframework.stereotype.Service;
  *       {@code deferred_reason=enrichment});
  *   <li>opt-in grouping ({@code group_window_seconds > 0}): the first alert of a rule holds for the
  *       window ({@code grouping}); later alerts of that rule in the window are folded into it;
+ *   <li>presence (prompt 033): with {@code defer_while_active_seconds > 0}, a non-critical
+ *       {@code alert.fired} waits that long while any desktop client is active
+ *       ({@code deferred_reason=presence}); the worker suppresses it if the alert is acknowledged,
+ *       snoozed or resolved, or the notification read on a desktop, before it is released. Stale
+ *       presence fails open; critical alerts and system events are never deferred;
  *   <li>the global pause, then the channel's quiet hours ({@link Deferral}).
  * </ol>
+ *
+ * <p>{@link #publishEscalation} (prompt 033) persists an escalation message and sends it to the
+ * step's channels whatever their filters, with quiet hours applying except to critical alerts.
  *
  * <p>After an alert send the channel's backlog cap is applied: the oldest pending sends beyond the
  * cap are folded into one digest ("+N more alerts"). {@link #publishUpdate} handles alert lifecycle
@@ -53,12 +63,15 @@ public class NotificationService {
     private final ChannelTypeRegistry types;
     private final AppSettingService settings;
     private final InstallIdService installId;
+    private final PresenceService presence;
     private final Clock clock;
 
     /** Creates the service. */
     public NotificationService(NotificationStore store, NotificationChannelRepository channels,
             NotificationDeliveryRepository deliveries, DeliveryStore deliveryStore, ChannelService channelService,
-            ChannelTypeRegistry types, AppSettingService settings, InstallIdService installId, Clock clock) {
+            ChannelTypeRegistry types, AppSettingService settings, InstallIdService installId, PresenceService presence,
+            Clock clock) {
+        this.presence = presence;
         this.store = store;
         this.channels = channels;
         this.deliveries = deliveries;
@@ -113,7 +126,8 @@ public class NotificationService {
             NotificationSettings pause = pause();
             Set<UUID> done = new HashSet<>();
             for (NotificationDeliveryEntity original : deliveries.findByNotificationIdOrderByIdAsc(persisted.updateOf())) {
-                if (original.getStatus() == DeliveryStatus.FAILED || !done.add(original.getChannelId())) {
+                if (original.getStatus() == DeliveryStatus.FAILED || original.getStatus() == DeliveryStatus.SUPPRESSED
+                        || !done.add(original.getChannelId())) {
                     continue;
                 }
                 Optional<NotificationChannelEntity> entity = channels.findById(original.getChannelId());
@@ -124,6 +138,58 @@ public class NotificationService {
             }
             return persisted;
         });
+    }
+
+    /**
+     * Persists an escalation message of an alert (prompt 033) and enqueues one delivery, marked with
+     * {@code escalationStep}, per enabled channel among {@code channelIds}, regardless of the
+     * channels' event, severity and rule filters. Quiet hours and the pause apply, except to
+     * critical alerts.
+     *
+     * @return the persisted message
+     */
+    public NotificationMessage publishEscalation(NotificationMessage message, Collection<UUID> channelIds, int step) {
+        Instant now = clock.instant();
+        return store.write(writer -> {
+            NotificationMessage persisted = writer.persist(fill(message, now));
+            NotificationSettings pause = pause();
+            Set<UUID> done = new HashSet<>();
+            for (UUID channelId : channelIds) {
+                if (!done.add(channelId)) {
+                    continue;
+                }
+                Optional<NotificationChannelEntity> entity = channels.findById(channelId);
+                if (entity.isEmpty() || !entity.get().isEnabled() || types.find(entity.get().getType()).isEmpty()) {
+                    continue;
+                }
+                NotificationDeliveryEntity d = delivery(entity.get(), persisted, now);
+                d.setEscalationStep(step);
+                Instant due = now;
+                String reason = null;
+                if (!"critical".equals(persisted.severity())) {
+                    Optional<Deferral.Decision> deferral = quietHoursOverride(entity.get(), Deferral.check(
+                            persisted.severity(), QuietHours.fromMap(entity.get().getQuietHours()),
+                            channelService.zone(entity.get().getTimezone()), pause, now));
+                    if (deferral.isPresent()) {
+                        due = deferral.get().until();
+                        reason = deferral.get().reason();
+                    }
+                }
+                d.setNextAttemptAt(due);
+                d.setDeferredReason(reason);
+                deliveries.save(d);
+            }
+            return persisted;
+        });
+    }
+
+    private boolean desktopActive(Instant now) {
+        try {
+            return presence.desktopActive(now);
+        } catch (RuntimeException e) {
+            // Fail open: deliver everywhere.
+            return false;
+        }
     }
 
     private NotificationMessage fill(NotificationMessage m, Instant now) {
@@ -166,6 +232,14 @@ public class NotificationService {
             if (end.isAfter(due)) {
                 due = end;
                 reason = DeferredReason.GROUPING;
+            }
+        }
+        if (fired && channel.deferWhileActiveSeconds() > 0 && !"critical".equals(m.severity())
+                && desktopActive(now)) {
+            Instant until = now.plusSeconds(channel.deferWhileActiveSeconds());
+            if (until.isAfter(due)) {
+                due = until;
+                reason = DeferredReason.PRESENCE;
             }
         }
         Optional<Deferral.Decision> deferral = quietHoursOverride(entity, Deferral.check(m.severity(),

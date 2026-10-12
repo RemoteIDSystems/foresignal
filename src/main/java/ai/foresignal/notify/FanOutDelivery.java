@@ -1,5 +1,7 @@
 package ai.foresignal.notify;
 
+import java.util.List;
+
 import ai.foresignal.store.NotificationChannelEntity;
 import ai.foresignal.store.NotificationDeliveryEntity;
 import java.time.Instant;
@@ -24,4 +26,15 @@ public interface FanOutDelivery {
      */
     void fanOut(NotificationDeliveryEntity delivery, NotificationMessage message, NotificationChannelEntity channel,
             boolean quietDowngrade, Instant now);
+
+    /**
+     * Fans {@code delivery} out with the action capabilities minted for it (prompt 033). The default
+     * ignores them.
+     *
+     * @param actions the capabilities of a firing alert, empty otherwise
+     */
+    default void fanOut(NotificationDeliveryEntity delivery, NotificationMessage message,
+            NotificationChannelEntity channel, boolean quietDowngrade, Instant now, List<NotificationAction> actions) {
+        fanOut(delivery, message, channel, quietDowngrade, now);
+    }
 }

@@ -29,6 +29,10 @@ import org.springframework.util.AntPathMatcher;
  * {@code /compat/**} paths are outside {@code /v1}, so without their explicit rules they would be
  * open.
  *
+ * <p>Prompt 033 adds {@code /v1/actions/*} as open (the capability is the credential, rate limited
+ * in the controller), the inbox and presence paths (read, always authenticated; {@code GET
+ * /v1/clients} admin) and the escalation policies (agent).
+ *
  * <p>Prompt 025 adds {@code /mcp} and {@code /mcp/**} (the MCP server, also outside {@code /v1}):
  * {@code read}, with per-tool scope checks inside the server ({@code McpToolRegistry}).
  */
@@ -172,6 +176,9 @@ public class AccessPolicy {
                 rule(HttpMethod.GET, "/v1/push/vapid-public-key", AccessRequirement.OPEN),
                 // The pairing code in the body is the credential (023).
                 rule(HttpMethod.POST, "/v1/pairing/claim", AccessRequirement.OPEN),
+                // Notification action capabilities: the capability in the path is the credential (033).
+                rule(HttpMethod.GET, "/v1/actions/*", AccessRequirement.OPEN),
+                rule(HttpMethod.POST, "/v1/actions/*", AccessRequirement.OPEN),
 
                 // ---- Tokens, tickets, pairing and audit (023) ----
                 // The calling token reports its own device: read, before the admin /v1/tokens/** rule.
@@ -256,6 +263,16 @@ public class AccessPolicy {
                 rule(HttpMethod.POST, "/v1/push/subscriptions", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
                 rule(HttpMethod.POST, "/v1/push/subscriptions/*/verify", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
                 rule(HttpMethod.DELETE, "/v1/push/subscriptions/*", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+
+                // ---- Notification inbox and presence (033): per device, so a token is always needed ----
+                rule(null, "/v1/notifications", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(null, "/v1/notifications/**", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.POST, "/v1/clients/presence", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.GET, "/v1/clients", AccessRequirement.ADMIN),
+
+                // ---- Escalation policies (033): agent ----
+                rule(null, "/v1/escalation-policies", AccessRequirement.AGENT),
+                rule(null, "/v1/escalation-policies/**", AccessRequirement.AGENT),
 
                 // ---- Native push (032): providers are admin; devices are managed by their own token ----
                 rule(null, "/v1/push/providers", AccessRequirement.ADMIN),

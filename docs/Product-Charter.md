@@ -205,6 +205,11 @@ Open-source situational-awareness projects (ShadowBroker, God's Eye View, Veloci
 ### 8.16 Web Push
 - **FR-53** Browsers can subscribe for push notifications using Foresignal's VAPID key, with event, rule, severity and tag filters. Native Android and Linux apps subscribe the same way through UnifiedPush, passing Foresignal's VAPID key to their distributor. A subscription receives notifications only after echoing a verification code. Delivery uses RFC 8291 encryption, and expired subscriptions are removed automatically. Native iOS, iPadOS, macOS and Android apps register their APNs or FCM device tokens with event, rule, severity and tag filters and receive visible alerts that carry only ids, the severity and a minimal (or, per device, a short) text; the app fetches the details from Foresignal itself. Dead device tokens are removed automatically, and revoking the registering token removes its devices.
 
+### 8.16a Actionable notifications, inbox and escalation (033)
+- **FR-82** The operator can acknowledge, snooze or mute an alert from the notification itself (ntfy and Web Push buttons, Telegram buttons, a Matrix reaction, a Pushover acknowledgement, or a confirm-page link) without any token on the device. Each action is a single-use, expiring capability; opening its link only shows a confirm page, and every execution is audited.
+- **FR-83** Every client keeps a notification inbox in sync with per-device read state and badge counts (listing, cursor and sparse reads, a live stream); reading never acknowledges an alert. Phone channels can hold non-critical alerts back while a desktop client is active and drop them if they were read or acknowledged meanwhile; critical alerts always go immediately.
+- **FR-84** Escalation policies send an unacknowledged alert to further channels after set delays, with an optional repeat, until it is acknowledged (always) or resolved or snoozed (per policy); muting a rule stops its escalations.
+
 ### 8.17 Derived layers, products and provenance
 - **FR-54** Derived sources compute layers from stored records (GPS jamming cells, AIS gaps, loitering, rendezvous, deception checks, holding patterns) and publish them as ordinary records.
 - **FR-55** Gridded weather products (GFS/ECMWF wind) are fetched by GRIB2 byte range and served through a products API.

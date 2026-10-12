@@ -19,6 +19,7 @@ import java.util.UUID;
  * @param now the send time
  * @param origin this instance's install id ({@link OriginMarker})
  * @param userAgent the User-Agent of every request
+ * @param actions the action capabilities minted for this delivery (prompt 033); empty for most sends
  */
 public record ChannelSettings(
         UUID channelId,
@@ -29,12 +30,26 @@ public record ChannelSettings(
         long deliveryId,
         Instant now,
         String origin,
-        String userAgent) {
+        String userAgent,
+        List<NotificationAction> actions) {
 
-    /** Copies the maps. */
+    /** Copies the maps and the actions. */
     public ChannelSettings {
         config = config == null ? Map.of() : Map.copyOf(withoutNulls(config));
         secrets = secrets == null ? Map.of() : Map.copyOf(secrets);
+        actions = actions == null ? List.of() : List.copyOf(actions);
+    }
+
+    /** Settings without actions (the 018 form). */
+    public ChannelSettings(UUID channelId, String channelName, Map<String, Object> config, Map<String, String> secrets,
+            ZoneId zone, long deliveryId, Instant now, String origin, String userAgent) {
+        this(channelId, channelName, config, secrets, zone, deliveryId, now, origin, userAgent, List.of());
+    }
+
+    /** A copy carrying {@code newActions}. */
+    public ChannelSettings withActions(List<NotificationAction> newActions) {
+        return new ChannelSettings(channelId, channelName, config, secrets, zone, deliveryId, now, origin, userAgent,
+                newActions);
     }
 
     private static Map<String, Object> withoutNulls(Map<String, Object> map) {

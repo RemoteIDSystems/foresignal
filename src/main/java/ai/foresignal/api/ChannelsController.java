@@ -126,7 +126,7 @@ public class ChannelsController {
             @RequestParam(required = false) String limit) {
         UUID id = id(channelId);
         channels.load(id);
-        String wire = status == null ? null : QueryParams.oneOf("status", status, List.of("pending", "delivered", "failed"), null);
+        String wire = status == null ? null : QueryParams.oneOf("status", status, List.of("pending", "delivered", "failed", "suppressed"), null);
         List<DeliveryStatus> statuses = wire == null ? Arrays.asList(DeliveryStatus.values())
                 : List.of(DeliveryStatus.fromWire(wire));
         int size = QueryParams.intInRange("limit", limit, 1, MAX_LIMIT, DEFAULT_LIMIT);

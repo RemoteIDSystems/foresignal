@@ -24,7 +24,9 @@ import tools.jackson.databind.node.ObjectNode;
  *       ({@code resolveAlert}, with {@code note}/{@code feedback}), {@code snooze} ({@code snoozeAlert},
  *       with {@code until} or {@code for}) or {@code unsnooze} ({@code unsnoozeAlert}).
  * </ul>
- * An alert on a source the caller may not see is not found, as on REST.
+ * Prompt 033 adds {@code snooze_alert} ({@code snoozeAlert}): payload {@code {alertId, until | for}},
+ * proposed by {@code propose_snooze}. An alert on a source the caller may not see is not found, as
+ * on REST.
  */
 @Configuration
 public class AlertActionHandlers {
@@ -125,6 +127,43 @@ public class AlertActionHandlers {
                     case "snooze" -> alerts.snooze(id, snoozeBody(json, payload));
                     default -> alerts.unsnooze(id);
                 };
+                return json.valueToTree(mapper.alert(alert, null));
+            }
+        };
+    }
+
+    /** {@code snooze_alert} (prompt 033): payload {@code {alertId, until | for}} ({@code snoozeAlert}). */
+    @Bean
+    public AskActionHandler snoozeAlertActionHandler(AlertService alerts, AlertItems items, AlertMapper mapper,
+            JsonMapper json, Clock clock) {
+        return new AskActionHandler() {
+            @Override
+            public String type() {
+                return "snooze_alert";
+            }
+
+            @Override
+            public JsonNode validate(JsonNode payload, AskCaller caller) {
+                long id = alertId(payload);
+                items.visible(id, caller.excludedSources());
+                Snoozes.expiry(snoozeBody(json, payload), clock.instant(), null);
+                ObjectNode out = snoozeBody(json, payload);
+                out.put("alertId", id);
+                return out;
+            }
+
+            @Override
+            public String describe(JsonNode payload) {
+                String alert = payload.path("alertId").asString();
+                return "Snooze alert " + alert + (payload.hasNonNull("until")
+                        ? " until " + payload.get("until").asString() : " for " + payload.path("for").asString());
+            }
+
+            @Override
+            public JsonNode execute(JsonNode payload, AskCaller caller) {
+                long id = alertId(payload);
+                items.visible(id, caller.excludedSources());
+                AlertView alert = alerts.snooze(id, snoozeBody(json, payload));
                 return json.valueToTree(mapper.alert(alert, null));
             }
         };

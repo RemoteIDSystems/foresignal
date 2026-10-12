@@ -327,6 +327,7 @@ public class ChannelService {
         e.setGroupWindowSeconds(input.groupWindowSeconds());
         e.setBacklogCap(input.backlogCap());
         e.setEditInPlace(input.editInPlace());
+        e.setDeferWhileActiveSeconds(input.deferWhileActiveSeconds());
         e.setUpdatedAt(now);
     }
 

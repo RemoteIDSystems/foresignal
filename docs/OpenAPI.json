@@ -127,6 +127,11 @@
         "version": "1.3.0",
         "date": "2026-10-12",
         "note": "032: listPushProviders, putPushProvider, deletePushProvider, testPushProvider (admin) and registerPushDevice, listPushDevices, updatePushDevice, deletePushDevice, testPushDevice (read, always authenticated) are implemented; AccessPolicy gains /v1/push/providers(/**) admin before /v1/push/devices(/**) read always-authenticated, matching each operation's x-foresignal-scope. Problem lists PUSH_PROVIDER_NOT_CONFIGURED (409). Additive reconciliations: registerPushDevice takes platform from the request (023 DeviceInfo has no ipados) and copies only deviceName and appVersion from the token's device metadata, requires environment and an Apple platform for APNs and ignores environment for FCM; testPushDevice documents 429 RATE_LIMITED with Retry-After and the id-0 system test notice; putPushProvider documents that a type change needs secrets, that the service-account JSON (string or object) fills projectId/clientEmail/tokenUri left out of config, and that output-only PushProvider members are ignored; FcmProviderConfig.tokenUri accepts http only for a local stand-in; deletePushProvider documents that devices stay registered; PushDevice.status disabled is reserved (dead tokens are deleted); NativePushPayload.fcm.message.data.c carries the category from 032 and message.token notes the v1 discovery document's deprecation in favor of fid; SettingsBundle.pushProviders documents its import; NotificationMessage.subtype lists system.push_provider_failed. NativePushPayload, PushProvider, PushProviderInput, PushDevice, PushDeviceInput, PushDeviceUpdate, PushProviderTestRequest and PushTestResult were already specified."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-12",
+        "note": "033: getActionConfirm, executeAction (open), listNotifications, getNotification, markNotificationsRead, getNotificationBadge, streamNotifications, updatePresence (read, always authenticated), listClients (admin), listEscalationPolicies, createEscalationPolicy, getEscalationPolicy, updateEscalationPolicy, deleteEscalationPolicy, muteTrigger, unmuteTrigger (agent) and getAlertEscalation (read) are implemented; AccessPolicy gains /v1/actions/* open, /v1/notifications(/**) and POST /v1/clients/presence read always-authenticated, GET /v1/clients admin and /v1/escalation-policies(/**) agent. Problem lists ACTION_EXPIRED (410), DEVICE_ID_REQUIRED (400) and POLICY_IN_USE (409). Additive reconciliations: executeAction also accepts an Origin equal to the request's own origin (same-origin form posts when the console is reached under another host name than publicBaseUrl); ChannelActionsConfig.enabled documents its default false for types without buttons; muteTrigger documents the 1-hour minimum; listChannelDeliveries accepts status=suppressed. Already specified: NotificationDelivery.status suppressed, deferredReason presence and escalationStep, ChannelInput.deferWhileActiveSeconds and config.actions, TriggerRuleInput.escalationPolicyId, TriggerRule.mutedUntil, RetentionSettings.inbox, PushPayload.actions/confirmUrl, AskAction snooze_alert."
       }
     ]
   },
@@ -7408,13 +7413,14 @@
             "name": "status",
             "in": "query",
             "required": false,
-            "description": "Filter",
+            "description": "Filter (suppressed: not sent on purpose, 033)",
             "schema": {
               "type": "string",
               "enum": [
                 "pending",
                 "delivered",
-                "failed"
+                "failed",
+                "suppressed"
               ]
             }
           },
@@ -7499,7 +7505,10 @@
           }
         ],
         "x-foresignal-prompt": "018",
-        "x-foresignal-status": "implemented"
+        "x-foresignal-status": "implemented",
+        "x-foresignal-extended-by": [
+          "033"
+        ]
       }
     },
     "/v1/llm/providers": {
@@ -17160,7 +17169,7 @@
         },
         "x-foresignal-scope": "open",
         "x-foresignal-prompt": "033",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {}
         ]
@@ -17171,13 +17180,13 @@
         ],
         "operationId": "executeAction",
         "summary": "Execute a notification action",
-        "description": "Executes the capability once (single use, in one transaction): ack sets `acknowledged_by=action:<channelType>:<channelName>`, snooze snoozes the alert, mute mutes the rule. An already acknowledged or resolved alert returns 200 with `result: already-<state>`. `Accept: application/json` → JSON, otherwise an HTML result page. An `Origin` other than the `publicBaseUrl` origin → 403. Audited; 30 requests/min per client IP.\n\n**Scope:** open (no token; the credential is in the request).",
+        "description": "Executes the capability once (single use, in one transaction): ack sets `acknowledged_by=action:<channelType>:<channelName>`, snooze snoozes the alert, mute mutes the rule. An already acknowledged or resolved alert returns 200 with `result: already-<state>`. `Accept: application/json` → JSON, otherwise an HTML result page. An `Origin` other than the `publicBaseUrl` origin or the request's own origin (scheme and Host, behind trusted proxies) → 403. Audited; 30 requests/min per client IP.\n\n**Scope:** open (no token; the credential is in the request).",
         "parameters": [
           {
             "name": "Origin",
             "in": "header",
             "required": false,
-            "description": "Must be absent or the publicBaseUrl origin",
+            "description": "Must be absent, the publicBaseUrl origin, or the request's own origin",
             "schema": {
               "type": "string"
             }
@@ -17264,7 +17273,7 @@
         },
         "x-foresignal-scope": "open",
         "x-foresignal-prompt": "033",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {}
         ]
@@ -17436,7 +17445,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "033",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true,
         "security": [
           {
@@ -17550,7 +17559,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "033",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true,
         "security": [
           {
@@ -17652,7 +17661,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "033",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true,
         "security": [
           {
@@ -17744,7 +17753,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "033",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true,
         "security": [
           {
@@ -17866,7 +17875,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "033",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true,
         "x-foresignal-sse-events": {
           "notification": {
@@ -17988,7 +17997,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "033",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true,
         "security": [
           {
@@ -18060,7 +18069,7 @@
         },
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "033",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -18131,7 +18140,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "033",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -18217,7 +18226,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "033",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -18307,7 +18316,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "033",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -18403,7 +18412,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "033",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -18482,7 +18491,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "033",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -18572,7 +18581,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "033",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -18600,7 +18609,7 @@
         ],
         "operationId": "muteTrigger",
         "summary": "Mute a trigger rule",
-        "description": "A muted rule still records alerts but they are not routed, and its open alerts stop escalating. Expiry required, max 7 days.\n\n**Scope:** `agent`.",
+        "description": "A muted rule still records alerts but they are not routed, and its open alerts stop escalating. Expiry required, 1 hour to 7 days.\n\n**Scope:** `agent`.",
         "requestBody": {
           "required": true,
           "content": {
@@ -18683,7 +18692,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "033",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -18759,7 +18768,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "033",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -80730,6 +80739,7 @@
           "029",
           "031",
           "032",
+          "033",
           "135"
         ],
         "x-foresignal-error-codes": [
@@ -81022,6 +81032,21 @@
             "code": "PUSH_PROVIDER_NOT_CONFIGURED",
             "status": 409,
             "prompt": "032"
+          },
+          {
+            "code": "ACTION_EXPIRED",
+            "status": 410,
+            "prompt": "033"
+          },
+          {
+            "code": "DEVICE_ID_REQUIRED",
+            "status": 400,
+            "prompt": "033"
+          },
+          {
+            "code": "POLICY_IN_USE",
+            "status": 409,
+            "prompt": "033"
           }
         ]
       },
@@ -97120,7 +97145,7 @@
         "properties": {
           "enabled": {
             "type": "boolean",
-            "description": "Default true for ntfy, webpush, telegram, matrix, pushover"
+            "description": "Default true for ntfy, webpush, telegram, matrix, pushover; false for every other type (confirm-page links in the body are an opt-in there)"
           },
           "list": {
             "type": "array",

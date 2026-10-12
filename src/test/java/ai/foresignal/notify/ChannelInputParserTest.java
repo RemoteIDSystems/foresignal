@@ -85,4 +85,27 @@ class ChannelInputParserTest {
         assertThat(fails("{'name':'m','type':'fax'}").getErrors().getFirst().message()).contains("unknown");
         assertThatThrownBy(() -> parser.parse(JSON.readTree("[]"), null)).isInstanceOf(ValidationException.class);
     }
+
+    @Test
+    @DisplayName("033: deferWhileActiveSeconds (0-600) is stored; config.actions and the allow lists are validated")
+    void actionsAndDeferral() {
+        String base = "{'name':'w','type':'webhook','config':{'url':'https://r.example.invalid'";
+        assertThat(parse(base + "},'deferWhileActiveSeconds':120}", null).deferWhileActiveSeconds()).isEqualTo(120);
+        assertThat(parse(base + "}}", null).deferWhileActiveSeconds()).isZero();
+        assertThat(fails(base + "},'deferWhileActiveSeconds':601}").getErrors().getFirst().field())
+                .isEqualTo("deferWhileActiveSeconds");
+        assertThat(parse(base + ",'actions':{'enabled':true,'list':['ack','snooze'],'links':false,'reactions':false}}}",
+                null).config()).containsKey("actions");
+        assertThat(fails(base + ",'actions':{'list':['ack','delete']}}}").getErrors().getFirst().field())
+                .isEqualTo("config.actions.list");
+        assertThat(fails(base + ",'actions':{'enabled':'yes'}}}").getErrors().getFirst().field())
+                .isEqualTo("config.actions.enabled");
+        assertThat(fails(base + ",'actions':{'bogus':1}}}").getErrors().getFirst().field())
+                .isEqualTo("config.actions.bogus");
+        assertThat(fails(base + ",'actions':[]}}").getErrors().getFirst().field()).isEqualTo("config.actions");
+        assertThat(fails(base + ",'allowedUserIds':['x']}}").getErrors().getFirst().field())
+                .isEqualTo("config.allowedUserIds");
+        assertThat(fails(base + ",'allowedSenders':[1]}}").getErrors().getFirst().field())
+                .isEqualTo("config.allowedSenders");
+    }
 }

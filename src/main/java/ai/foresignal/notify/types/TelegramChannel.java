@@ -7,6 +7,7 @@ import ai.foresignal.notify.ChannelResponse;
 import ai.foresignal.notify.ChannelSettings;
 import ai.foresignal.notify.ChannelTypeSpec;
 import ai.foresignal.notify.MarkdownRenderer;
+import ai.foresignal.notify.NotificationAction;
 import ai.foresignal.notify.NotificationMessage;
 import ai.foresignal.notify.PreparedRequest;
 import ai.foresignal.notify.Truncator;
@@ -21,6 +22,10 @@ import org.springframework.stereotype.Component;
  * {@code result.message_id} is stored; a lifecycle update calls {@code editMessageText} (or
  * {@code editMessageCaption} when the original was a photo, whose reference prompt 055 stores as
  * {@code photo:<id>}).
+ *
+ * <p>A firing alert with action capabilities (prompt 033) gets an inline keyboard whose buttons carry
+ * {@code callback_data = "ea:" + token}; {@code TelegramCallbackPoller} executes them. A lifecycle
+ * edit sends an empty keyboard, which removes the buttons.
  *
  * <p>Link previews are disabled with {@code link_preview_options.is_disabled}, which replaced the
  * deprecated {@code disable_web_page_preview} parameter in Bot API 7.0.
@@ -75,6 +80,9 @@ public class TelegramChannel extends AbstractChannelType {
                 "text", text(m, TEXT_MAX),
                 "parse_mode", "HTML",
                 "link_preview_options", obj("is_disabled", true));
+        if (!s.actions().isEmpty()) {
+            payload.put("reply_markup", keyboard(s.actions()));
+        }
         return json("POST", method(s, "sendMessage"), null, payload, s);
     }
 
@@ -96,7 +104,9 @@ public class TelegramChannel extends AbstractChannelType {
                 "message_id", messageId(ref),
                 "text", text(m, TEXT_MAX),
                 "parse_mode", "HTML",
-                "link_preview_options", obj("is_disabled", true));
+                "link_preview_options", obj("is_disabled", true),
+                // Prompt 033: an edit keeps the buttons only while the alert is still actionable.
+                "reply_markup", keyboard(s.actions()));
         return Optional.of(json("POST", method(s, "editMessageText"), null, payload, s));
     }
 
@@ -123,6 +133,26 @@ public class TelegramChannel extends AbstractChannelType {
             }
         }
         return Truncator.truncate(out.toString(), max, Truncator.Unit.CHARS, Truncator.Mode.HTML, m.url());
+    }
+
+    /** The {@code callback_data} prefix of action buttons (prompt 033). */
+    public static final String CALLBACK_PREFIX = "ea:";
+
+    /**
+     * The inline keyboard of {@code actions}: one row of buttons whose {@code callback_data} is
+     * {@code ea:<token>} (41 bytes, within Telegram's 64); an empty keyboard removes the buttons.
+     */
+    public static Map<String, Object> keyboard(List<NotificationAction> actions) {
+        List<Map<String, Object>> row = new java.util.ArrayList<>();
+        for (NotificationAction action : actions) {
+            row.add(obj("text", action.label(), "callback_data", CALLBACK_PREFIX + action.token()));
+        }
+        return obj("inline_keyboard", row.isEmpty() ? List.of() : List.of(row));
+    }
+
+    /** The Bot API URL of {@code name} for a channel with {@code s}. */
+    public static String apiMethod(ChannelSettings s, String name) {
+        return method(s, name);
     }
 
     private static String method(ChannelSettings s, String name) {

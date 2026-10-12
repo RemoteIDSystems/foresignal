@@ -1935,6 +1935,61 @@
           }
         },
         {
+          "name": "Notification inbox stream",
+          "event": [],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Last-Event-ID",
+                "value": "{{lastSeq}}",
+                "description": "SSE resume point (the last `id:` received)",
+                "disabled": true
+              },
+              {
+                "key": "Foresignal-Device-Id",
+                "value": "",
+                "description": "Client-chosen device id (UUID). Used as the device key when the token carries no device metadata (033); combined with the token id",
+                "disabled": true
+              },
+              {
+                "key": "Accept",
+                "value": "text/event-stream"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/notifications/stream",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "notifications",
+                "stream"
+              ],
+              "query": [
+                {
+                  "key": "ticket",
+                  "value": "",
+                  "description": "Stream or tile ticket from `POST /v1/stream-tickets` (023), for clients that cannot send an `Authorization` header. Accepted only for the ticket's purpose and never in a header; stripped from logs",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Server-Sent Events through the 015 channel: `notification` (id = notification id; replayed from the table after `Last-Event-ID`) and `badge` (when this device's cursor moves). An authenticated open stream counts as `background` presence.\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).\n\noperationId: `streamNotifications`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
           "name": "Ask (streaming)",
           "event": [],
           "request": {
@@ -10665,7 +10720,7 @@
                 {
                   "key": "status",
                   "value": "pending",
-                  "description": "Filter",
+                  "description": "Filter (suppressed: not sent on purpose, 033)",
                   "disabled": true
                 },
                 {
@@ -16097,7 +16152,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));"
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('escalationPolicyId', j.id);",
+                  "}"
                 ]
               }
             }
@@ -16138,7 +16196,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"name\": \"Wake me up\",\n  \"steps\": [\n    {\n      \"afterMinutes\": 10,\n      \"channelIds\": [],\n      \"includePush\": true\n    },\n    {\n      \"afterMinutes\": 30,\n      \"channelIds\": [],\n      \"includePush\": true\n    }\n  ],\n  \"repeat\": {\n    \"everyMinutes\": 30,\n    \"maxTimes\": 3\n  },\n  \"stopOn\": {\n    \"resolve\": true,\n    \"snooze\": true\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -16169,14 +16227,14 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/escalation-policies/{{policyId}}",
+              "raw": "{{baseUrl}}/v1/escalation-policies/{{escalationPolicyId}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "v1",
                 "escalation-policies",
-                "{{policyId}}"
+                "{{escalationPolicyId}}"
               ],
               "query": []
             },
@@ -16219,14 +16277,14 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/escalation-policies/{{policyId}}",
+              "raw": "{{baseUrl}}/v1/escalation-policies/{{escalationPolicyId}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "v1",
                 "escalation-policies",
-                "{{policyId}}"
+                "{{escalationPolicyId}}"
               ],
               "query": []
             },
@@ -16243,7 +16301,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"name\": \"Wake me up\",\n  \"steps\": [\n    {\n      \"afterMinutes\": 15,\n      \"channelIds\": [],\n      \"includePush\": true\n    }\n  ],\n  \"repeat\": null,\n  \"stopOn\": {\n    \"resolve\": true,\n    \"snooze\": false\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -16269,14 +16327,14 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/v1/escalation-policies/{{policyId}}",
+              "raw": "{{baseUrl}}/v1/escalation-policies/{{escalationPolicyId}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "v1",
                 "escalation-policies",
-                "{{policyId}}"
+                "{{escalationPolicyId}}"
               ],
               "query": []
             },
@@ -29298,14 +29356,14 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/actions/{{token}}",
+              "raw": "{{baseUrl}}/v1/actions/{{actionToken}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "v1",
                 "actions",
-                "{{token}}"
+                "{{actionToken}}"
               ],
               "query": []
             },
@@ -29334,7 +29392,7 @@
               {
                 "key": "Origin",
                 "value": "",
-                "description": "Must be absent or the publicBaseUrl origin",
+                "description": "Must be absent, the publicBaseUrl origin, or the request's own origin",
                 "disabled": true
               },
               {
@@ -29347,18 +29405,18 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/actions/{{token}}",
+              "raw": "{{baseUrl}}/v1/actions/{{actionToken}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "v1",
                 "actions",
-                "{{token}}"
+                "{{actionToken}}"
               ],
               "query": []
             },
-            "description": "Executes the capability once (single use, in one transaction): ack sets `acknowledged_by=action:<channelType>:<channelName>`, snooze snoozes the alert, mute mutes the rule. An already acknowledged or resolved alert returns 200 with `result: already-<state>`. `Accept: application/json` \u2192 JSON, otherwise an HTML result page. An `Origin` other than the `publicBaseUrl` origin \u2192 403. Audited; 30 requests/min per client IP.\n\n**Scope:** open (no token; the credential is in the request).\n\noperationId: `executeAction`",
+            "description": "Executes the capability once (single use, in one transaction): ack sets `acknowledged_by=action:<channelType>:<channelName>`, snooze snoozes the alert, mute mutes the rule. An already acknowledged or resolved alert returns 200 with `result: already-<state>`. `Accept: application/json` \u2192 JSON, otherwise an HTML result page. An `Origin` other than the `publicBaseUrl` origin or the request's own origin (scheme and Host, behind trusted proxies) \u2192 403. Audited; 30 requests/min per client IP.\n\n**Scope:** open (no token; the credential is in the request).\n\noperationId: `executeAction`",
             "auth": {
               "type": "noauth"
             },
@@ -29381,7 +29439,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); if (j.items && j.items.length) pm.collectionVariables.set('notificationId', j.items[0].id);",
+                  "}"
                 ]
               }
             }
@@ -29475,7 +29536,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); if (j.actions && j.actions.length) pm.collectionVariables.set('actionToken', j.actions[0].url.split('/v1/actions/')[1]);",
+                  "}"
                 ]
               }
             }
@@ -29575,7 +29639,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"upToId\": 1\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -29747,7 +29811,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"kind\": \"desktop\",\n  \"state\": \"active\",\n  \"ttlSeconds\": 120\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -47810,7 +47874,7 @@
               ],
               "query": []
             },
-            "description": "A muted rule still records alerts but they are not routed, and its open alerts stop escalating. Expiry required, max 7 days.\n\n**Scope:** `agent`.\n\noperationId: `muteTrigger`",
+            "description": "A muted rule still records alerts but they are not routed, and its open alerts stop escalating. Expiry required, 1 hour to 7 days.\n\n**Scope:** `agent`.\n\noperationId: `muteTrigger`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -47823,7 +47887,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"for\": \"4h\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -49683,7 +49747,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/websub/{{sourceId}}/{{token}}?hub.mode=subscribe&hub.topic=",
+              "raw": "{{baseUrl}}/v1/websub/{{sourceId}}/{{actionToken}}?hub.mode=subscribe&hub.topic=",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -49691,7 +49755,7 @@
                 "v1",
                 "websub",
                 "{{sourceId}}",
-                "{{token}}"
+                "{{actionToken}}"
               ],
               "query": [
                 {
@@ -49760,7 +49824,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/websub/{{sourceId}}/{{token}}",
+              "raw": "{{baseUrl}}/v1/websub/{{sourceId}}/{{actionToken}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -49768,7 +49832,7 @@
                 "v1",
                 "websub",
                 "{{sourceId}}",
-                "{{token}}"
+                "{{actionToken}}"
               ],
               "query": []
             },
@@ -50451,6 +50515,18 @@
     },
     {
       "key": "pushDeviceId",
+      "value": ""
+    },
+    {
+      "key": "notificationId",
+      "value": ""
+    },
+    {
+      "key": "actionToken",
+      "value": ""
+    },
+    {
+      "key": "escalationPolicyId",
       "value": ""
     },
     {

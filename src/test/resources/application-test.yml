@@ -47,6 +47,12 @@ foresignal:
   push:
     scheduled: false
     builtin-channel: false
+  # The action pollers (Telegram callbacks, Matrix reactions, Pushover receipts) and the escalation
+  # worker do not run in tests; the ITs call pollOnce() and runOnce() (prompt 033).
+  actions:
+    scheduled: false
+  escalation:
+    scheduled: false
   # The briefing scheduler does not tick in tests; BriefingSchedulerIT calls BriefingScheduler.tick().
   briefing:
     scheduled: false

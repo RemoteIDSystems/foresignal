@@ -57,11 +57,12 @@ public class PushDispatchWorker {
     private final NotificationRouter router;
     private final PushProperties properties;
     private final Clock clock;
+    private final List<PushBadgeProvider> badges;
 
     /** Creates the worker. */
     public PushDispatchWorker(PushDispatchStore store, List<PushTargetSource> sources, List<PushTransport> transports,
             NotificationDeliveryRepository deliveries, NotificationChannelRepository channels, NotificationRouter router,
-            PushProperties properties, Clock clock) {
+            PushProperties properties, Clock clock, List<PushBadgeProvider> badges) {
         this.store = store;
         this.sources = List.copyOf(sources);
         this.transports = List.copyOf(transports);
@@ -70,6 +71,7 @@ public class PushDispatchWorker {
         this.router = router;
         this.properties = properties;
         this.clock = clock;
+        this.badges = badges == null ? List.of() : List.copyOf(badges);
     }
 
     /** The scheduled poll; does nothing when {@code foresignal.push.scheduled} is false. */
@@ -136,7 +138,7 @@ public class PushDispatchWorker {
                         "no transport for target type " + dispatch.getTargetType(), now));
                 return;
             }
-            PushMessage message = PushMessage.fromMap(dispatch.getContent());
+            PushMessage message = withBadge(target.get(), PushMessage.fromMap(dispatch.getContent()));
             PushResult result = transport.get().send(target.get(), message, PushOptions.of(message, dispatch.isDowngraded())
                     .withDispatchId(dispatch.getId()));
             apply(dispatch, result, now);
@@ -145,6 +147,23 @@ public class PushDispatchWorker {
             log.error("Push dispatch {} failed unexpectedly; it will be retried", dispatch.getId(), e);
             store.update(dispatch.getId(), row -> failure(row, null, e.getClass().getSimpleName(), now));
         }
+    }
+
+    /** {@code message} with the target's badge from a {@link PushBadgeProvider} (prompt 033), if any. */
+    PushMessage withBadge(PushTarget target, PushMessage message) {
+        if (!PushMessage.VERIFY.equals(message.event())) {
+            for (PushBadgeProvider provider : badges) {
+                try {
+                    Optional<Integer> badge = provider.badgeFor(target);
+                    if (badge.isPresent()) {
+                        return message.withBadge(badge.get());
+                    }
+                } catch (RuntimeException e) {
+                    log.warn("Could not compute the badge of push target {}: {}", target.type(), e.toString());
+                }
+            }
+        }
+        return message;
     }
 
     private void apply(PushDispatchEntity dispatch, PushResult result, Instant now) {

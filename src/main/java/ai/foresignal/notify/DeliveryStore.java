@@ -197,6 +197,35 @@ public class DeliveryStore {
         });
     }
 
+    /**
+     * Settles a delivery as {@code suppressed} (prompt 033): not sent on purpose, with {@code note}
+     * saying why; it shows in {@code /deliveries}.
+     */
+    public void suppress(long id, String note, Instant now) {
+        update(id, d -> {
+            d.setStatus(DeliveryStatus.SUPPRESSED);
+            d.setNote(note.length() > 200 ? note.substring(0, 200) : note);
+            d.setNextAttemptAt(null);
+            d.setLeasedUntil(null);
+            d.setDeliveredAt(null);
+        });
+    }
+
+    /**
+     * Suppresses every pending escalation delivery of {@code alertId} (prompt 033: the escalation
+     * stopped), in its own statement.
+     *
+     * @return how many were suppressed
+     */
+    public int suppressPendingEscalations(long alertId, String note) {
+        return jdbc.update("""
+                update notification_delivery set status = 'SUPPRESSED', note = :note, next_attempt_at = null,
+                       leased_until = null
+                 where alert_id = :alert and escalation_step is not null and status = 'PENDING'
+                """, new MapSqlParameterSource("alert", alertId).addValue("note", note.length() > 200
+                ? note.substring(0, 200) : note));
+    }
+
     /** Fails every delivery folded into a failed digest. */
     public void failFolded(long digestId, String reason) {
         jdbc.update("""

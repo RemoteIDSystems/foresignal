@@ -291,6 +291,10 @@ Every tool takes `detail`: `short` (the default, compact items, the whole result
 | `get_digest` | read | The catch-up digest since `sinceSeq`/`sinceAlertId` (see "Catch-up with /v1/digest"). |
 | `create_briefing` | agent | Create a briefing from a `briefing` (`BriefingInput`), validated as `POST /v1/briefings`. |
 | `run_briefing` | agent, cost-bearing | Run a briefing now (up to 120 s), store and deliver it. |
+| `list_notifications` | read | The newest notifications (alerts, briefings, system events) with each alert's live state; `events`, `minSeverity`, `before`, `limit` ≤ 100. No read state: an agent is not a device (033). |
+| `snooze_alert` | agent | Snooze an alert (`until` or `for`); repeats are recorded but not notified and its escalation stops (033). |
+| `mute_watch` | agent | Mute a watch for 1 h to 7 d (`until` or `for`): alerts are recorded but notify nobody, and escalations stop (033). |
+| `list_escalation_policies` | read | Escalation policies with steps, repeat, stop conditions and how many watches use each (033). |
 
 Later prompts add tools to the same registry: `search` (027), briefings (029), places and watchlists (036), `get_state_at` and `get_track` (037), weather (052), `get_map_image` (055) and entities (098).
 

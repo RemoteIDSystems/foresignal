@@ -12,12 +12,15 @@ import java.util.Map;
  * <ul>
  *   <li><b>{@code foresignal}</b>: {@code {v:1, event, id, alertId?, ruleId?, severity, title,
  *       shortTitle, body, url (alias of links.api), links {api, app, web}, tags, lang, tag, silent,
- *       ts}}; absent links and null members are omitted. The verification push is
+ *       ts, actions?, confirmUrl?}}; absent links and null members are omitted. {@code actions}
+ *       (at most two {@code {action, title, url}}) and {@code confirmUrl} are the capability
+ *       buttons of a firing alert (prompt 033). The verification push is
  *       {@code {v:1, event:"verify", subscriptionId, code}}.
  *   <li><b>{@code declarative}</b> (WebKit Declarative Web Push, Safari 18.4+, no service worker
  *       needed): {@code {"web_push": 8030, "notification": {title, body, navigate, lang, tag,
  *       silent, data}}} where {@code navigate} is {@code links.web ?? links.api} and {@code data} is
- *       the Foresignal payload without title and body. {@code app_badge} is never sent (a crash was
+ *       the Foresignal payload without title, body and actions; a firing alert with actions
+ *       navigates to its confirm page instead (prompt 033). {@code app_badge} is never sent (a crash was
  *       reported in Safari 18.5).
  * </ul>
  */
@@ -109,6 +112,18 @@ public final class PushPayloads {
         putIfPresent(out, "tag", m.tag());
         out.put("silent", m.silent());
         out.put("ts", m.ts());
+        if (!m.actions().isEmpty()) {
+            List<Map<String, Object>> actions = new ArrayList<>();
+            for (PushMessage.Action action : m.actions()) {
+                Map<String, Object> item = new LinkedHashMap<>();
+                item.put("action", action.action());
+                item.put("title", action.title());
+                item.put("url", action.url());
+                actions.add(item);
+            }
+            out.put("actions", actions);
+        }
+        putIfPresent(out, "confirmUrl", m.confirmUrl());
         return out;
     }
 
@@ -117,10 +132,12 @@ public final class PushPayloads {
         Map<String, Object> data = new LinkedHashMap<>(foresignal);
         data.remove("title");
         data.remove("body");
+        // Declarative notifications have no service worker to POST: no buttons, the confirm page only (033).
+        data.remove("actions");
         Map<String, Object> notification = new LinkedHashMap<>();
         notification.put("title", f.title() == null || f.title().isBlank() ? "Foresignal" : f.title());
         putIfPresent(notification, "body", f.body());
-        notification.put("navigate", navigate(m.linkWeb(), f.linkApi()));
+        notification.put("navigate", m.confirmUrl() != null ? m.confirmUrl() : navigate(m.linkWeb(), f.linkApi()));
         putIfPresent(notification, "lang", f.lang());
         putIfPresent(notification, "tag", m.tag());
         notification.put("silent", m.silent());

@@ -17,8 +17,11 @@ public final class DeferredReason {
     /** Held for the channel's grouping window. */
     public static final String GROUPING = "grouping";
 
+    /** Held while a desktop client is active (prompt 033); suppressed if read or acknowledged meanwhile. */
+    public static final String PRESENCE = "presence";
+
     /** Every value. */
-    public static final List<String> ALL = List.of(QUIET_HOURS, PAUSED, ENRICHMENT, GROUPING);
+    public static final List<String> ALL = List.of(QUIET_HOURS, PAUSED, ENRICHMENT, GROUPING, PRESENCE);
 
     /** The reasons released as a digest when they end. */
     public static final List<String> RELEASED_AS_DIGEST = List.of(QUIET_HOURS, PAUSED);

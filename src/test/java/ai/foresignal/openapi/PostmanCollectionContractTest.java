@@ -149,6 +149,12 @@ class PostmanCollectionContractTest {
             // Prompt 032: the production parsers of device registration and update.
             Map.entry("registerPushDevice", PushDeviceService::parse),
             Map.entry("updatePushDevice", PushDeviceService::parseUpdate),
+            // 033: the inbox, presence, escalation policies and rule mutes.
+            Map.entry("markNotificationsRead", ai.foresignal.notify.inbox.InboxService::parseRead),
+            Map.entry("updatePresence", ai.foresignal.notify.inbox.PresenceService::parse),
+            Map.entry("createEscalationPolicy", ai.foresignal.notify.escalation.EscalationPolicyInput::parse),
+            Map.entry("updateEscalationPolicy", ai.foresignal.notify.escalation.EscalationPolicyInput::parse),
+            Map.entry("muteTrigger", body -> ai.foresignal.trigger.Mutes.expiry(body, NOW)),
             Map.entry("createStreamTicket", body -> new TicketStore(new TokenHasher(), null, Clock.fixed(NOW, ZoneOffset.UTC))
                     .mint(new AuthenticatedToken(UUID.randomUUID(), "t", Scope.READ, TokenRestrictions.NONE, null,
                             "01JA8Q3V7S2K9W4T6Y1B5N0M3C", false), body)));
@@ -327,9 +333,10 @@ class PostmanCollectionContractTest {
         // 032: putPushProvider's example carries a placeholder key, which the key check rightly refuses
         // (no real key is ever committed); PushProvidersIT covers the parser with keys generated at test
         // time. testPushProvider's body is an optional device id.
+        // 033: executeAction's body is empty (a form post or {}); nothing in it is read.
         Set<String> schemaOnly = Set.of("createTrigger", "updateTrigger", "updateRetention", "importSettings",
                 "updateEventStreamFilter", "createToken", "createPairingCode", "ntfyPublish", "ntfyPublishPut",
-                "createRegistrationToken", "putPushProvider", "testPushProvider");
+                "createRegistrationToken", "putPushProvider", "testPushProvider", "executeAction");
         List<String> uncovered = OpenApiSpec.routes().stream()
                 .filter(SpecOperation::implemented)
                 .filter(op -> op.node().has("requestBody"))

@@ -3,6 +3,10 @@ package ai.foresignal.mcp;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import ai.foresignal.mcp.tools.AcknowledgeAlertTool;
+import ai.foresignal.mcp.tools.ListEscalationPoliciesTool;
+import ai.foresignal.mcp.tools.ListNotificationsTool;
+import ai.foresignal.mcp.tools.MuteWatchTool;
+import ai.foresignal.mcp.tools.SnoozeAlertTool;
 import ai.foresignal.mcp.tools.CreateWatchTool;
 import ai.foresignal.mcp.tools.DeleteWatchTool;
 import ai.foresignal.mcp.tools.GetAlertTool;
@@ -56,7 +60,7 @@ class McpToolSchemaTest {
 
     /** The tools whose results carry text from external sources. */
     static final Set<String> TEXT_BEARING = Set.of("query_records", "get_record", "get_record_history", "get_changes",
-            "source_health", "list_alerts", "get_alert", "test_watch");
+            "source_health", "list_alerts", "get_alert", "test_watch", "list_notifications");
 
     /** The tools of prompt 025, constructed without services: only their contracts are read. */
     static Stream<ForesignalMcpTool> tools() {
@@ -77,7 +81,12 @@ class McpToolSchemaTest {
                 new UpdateWatchTool(null, null, null),
                 new DeleteWatchTool(null, null),
                 new TestWatchTool(null, null, null),
-                new SystemStatusTool(null, null));
+                new SystemStatusTool(null, null),
+                // 033
+                new ListNotificationsTool(null, null),
+                new SnoozeAlertTool(null, null, null, null),
+                new MuteWatchTool(null, null, null),
+                new ListEscalationPoliciesTool(null, null));
     }
 
     @ParameterizedTest(name = "{0}")
@@ -97,15 +106,19 @@ class McpToolSchemaTest {
     }
 
     @Test
-    @DisplayName("the catalog has the prompt's seventeen tools with the scopes it lists")
+    @DisplayName("the catalog has 025's seventeen tools and 033's four, with the scopes they list")
     void catalog() {
         Map<String, Scope> scopes = new java.util.TreeMap<>();
         tools().forEach(t -> scopes.put(t.name(), t.requiredScope()));
         assertThat(scopes).containsOnlyKeys("query_records", "get_record", "get_record_history", "get_changes",
                 "list_kinds", "list_sources", "source_health", "list_alerts", "get_alert", "acknowledge_alert",
                 "set_alert_status", "list_watches", "create_watch", "update_watch", "delete_watch", "test_watch",
-                "system_status");
-        assertThat(scopes).containsEntry("acknowledge_alert", Scope.AGENT)
+                "system_status", "list_notifications", "snooze_alert", "mute_watch", "list_escalation_policies");
+        assertThat(scopes).containsEntry("list_notifications", Scope.READ)
+                .containsEntry("list_escalation_policies", Scope.READ)
+                .containsEntry("snooze_alert", Scope.AGENT)
+                .containsEntry("mute_watch", Scope.AGENT)
+                .containsEntry("acknowledge_alert", Scope.AGENT)
                 .containsEntry("set_alert_status", Scope.AGENT)
                 .containsEntry("create_watch", Scope.AGENT)
                 .containsEntry("update_watch", Scope.AGENT)

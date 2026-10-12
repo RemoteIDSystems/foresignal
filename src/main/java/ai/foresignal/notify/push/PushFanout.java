@@ -1,6 +1,7 @@
 package ai.foresignal.notify.push;
 
 import ai.foresignal.notify.FanOutDelivery;
+import ai.foresignal.notify.NotificationAction;
 import ai.foresignal.notify.NotificationMessage;
 import ai.foresignal.store.NotificationChannelEntity;
 import ai.foresignal.store.NotificationDeliveryEntity;
@@ -47,8 +48,19 @@ public class PushFanout implements FanOutDelivery {
     @Override
     public void fanOut(NotificationDeliveryEntity delivery, NotificationMessage message,
             NotificationChannelEntity channel, boolean quietDowngrade, Instant now) {
+        fanOut(delivery, message, channel, quietDowngrade, now, List.of());
+    }
+
+    /**
+     * Fans out with the delivery's action capabilities (prompt 033): Web Push targets get them as
+     * buttons; native targets get the actionable category and fetch their own capabilities from
+     * {@code GET /v1/notifications/{id}}.
+     */
+    @Override
+    public void fanOut(NotificationDeliveryEntity delivery, NotificationMessage message,
+            NotificationChannelEntity channel, boolean quietDowngrade, Instant now, List<NotificationAction> actions) {
         List<PushTarget> targets = targets(message);
-        int inserted = store.fanOut(delivery, targets, content.of(message).toMap(), quietDowngrade, now);
+        int inserted = store.fanOut(delivery, targets, content.of(message, actions).toMap(), quietDowngrade, now);
         log.debug("Delivery {} fanned out to {} push targets", delivery.getId(), inserted);
     }
 

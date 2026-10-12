@@ -23,6 +23,7 @@ import java.util.UUID;
  * @param groupWindowSeconds the grouping window
  * @param backlogCap the backlog cap
  * @param editInPlace the edit-in-place switch
+ * @param deferWhileActiveSeconds presence deferral while a desktop is active (0–600, prompt 033)
  */
 public record ChannelInput(
         String name,
@@ -40,4 +41,5 @@ public record ChannelInput(
         QuietHours quietHours,
         int groupWindowSeconds,
         int backlogCap,
-        boolean editInPlace) {}
+        boolean editInPlace,
+        int deferWhileActiveSeconds) {}

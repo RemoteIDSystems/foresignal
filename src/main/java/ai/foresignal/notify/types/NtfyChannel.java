@@ -5,6 +5,7 @@ import ai.foresignal.notify.ChannelRateLimit;
 import ai.foresignal.notify.ChannelSettings;
 import ai.foresignal.notify.ChannelTypeSpec;
 import ai.foresignal.notify.MarkdownRenderer;
+import ai.foresignal.notify.NotificationAction;
 import ai.foresignal.notify.NotificationMessage;
 import ai.foresignal.notify.OriginMarker;
 import ai.foresignal.notify.PreparedRequest;
@@ -26,6 +27,11 @@ import org.springframework.stereotype.Component;
  * number), {@code X-Call} is sent on <em>critical</em> messages only; that needs an ntfy account with
  * a verified phone number. Header values outside ASCII are RFC 2047 encoded, which ntfy decodes.
  * Lifecycle updates are follow-ups.
+ *
+ * <p>A firing alert with action capabilities (prompt 033) gets up to three actions instead of the
+ * link views: {@code http} actions for the first two capabilities ({@code method=POST},
+ * {@code clear=true}, so one tap acts without a token on the phone) and {@code view, Open} to the web
+ * link, else the API link.
  */
 @Component
 public class NtfyChannel extends AbstractChannelType {
@@ -77,8 +83,20 @@ public class NtfyChannel extends AbstractChannelType {
             headers.put("Click", m.url());
         }
         List<String> actions = new ArrayList<>();
-        for (NotificationMessage.Link link : m.links()) {
-            actions.add("view, " + link.label().replace(",", " ").replace(";", " ") + ", " + link.url());
+        if (!s.actions().isEmpty()) {
+            // Prompt 033: two one-tap http actions (POST to the capability, no token on the device) and Open.
+            for (NotificationAction action : s.actions().subList(0, Math.min(2, s.actions().size()))) {
+                actions.add("http, " + clean(action.label()) + ", " + action.url()
+                        + ", method=POST, headers.Accept=application/json, clear=true");
+            }
+            String open = openLink(m);
+            if (open != null) {
+                actions.add("view, Open, " + open);
+            }
+        } else {
+            for (NotificationMessage.Link link : m.links()) {
+                actions.add("view, " + clean(link.label()) + ", " + link.url());
+            }
         }
         if (!actions.isEmpty()) {
             headers.put("Actions", header(String.join("; ", actions)));
@@ -99,6 +117,21 @@ public class NtfyChannel extends AbstractChannelType {
         body = Truncator.truncate(body, BODY_MAX_BYTES, Truncator.Unit.UTF8_BYTES, Truncator.Mode.MARKDOWN, m.url());
         String url = ChannelSettings.trimSlash(s.config("serverUrl", "https://ntfy.sh")) + "/" + s.config("topic", "");
         return new PreparedRequest("POST", url, headers, PreparedRequest.Bytes.text("text/markdown; charset=utf-8", body));
+    }
+
+    /** A label without the separators of ntfy's short action format. */
+    static String clean(String label) {
+        return label.replace(",", " ").replace(";", " ");
+    }
+
+    /** The {@code Open} target: an https web link (023 {@code clientLinks}) when present, else the API link. */
+    static String openLink(NotificationMessage m) {
+        for (NotificationMessage.Link link : m.links()) {
+            if (link.url().startsWith("https://") && !link.url().equals(m.url())) {
+                return link.url();
+            }
+        }
+        return m.url();
     }
 
     /** {@code value} as is when it is printable ASCII, else RFC 2047 base64 UTF-8. */

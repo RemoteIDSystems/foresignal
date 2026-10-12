@@ -1,5 +1,7 @@
 package ai.foresignal.notify;
 
+import ai.foresignal.notify.action.ActionMinter;
+import ai.foresignal.notify.inbox.InboxService;
 import ai.foresignal.store.DeferredReason;
 import ai.foresignal.store.DeliveryKind;
 import ai.foresignal.store.NotificationChannelEntity;
@@ -62,6 +64,13 @@ import org.springframework.stereotype.Component;
  * {@link QuietHoursMode}: defer (as above), downgrade (sent now, flagged) or drop (settled with a
  * note).
  *
+ * <p>Prompt 033: a send held for presence ({@code deferred_reason=presence}) is settled
+ * {@code suppressed} instead of sent when its alert was acknowledged, snoozed or resolved, or its
+ * notification read on a desktop, meanwhile. A firing alert's first send (and its enrichment edit)
+ * carries action capabilities minted at this point ({@link ActionMinter}): types with buttons render
+ * them from {@link ChannelSettings#actions()}, other types get confirm-page links in the body, and the
+ * Push channel passes them to its fan-out. Quiet hours never hold back a critical escalation delivery.
+ *
  * <p>Outcomes: 2xx is delivered and the type's {@link ChannelType#extractRef} is stored; a partial
  * success (Apprise 424) is delivered with a warning and never retried; 429 honors
  * {@code Retry-After} and counts as an attempt at most once per 10 minutes; any other failure
@@ -102,13 +111,18 @@ public class DeliveryWorker {
     private final NotifyProperties properties;
     private final AlertStore alerts;
     private final List<FanOutDelivery> fanOuts;
+    private final ActionMinter minter;
+    private final InboxService inbox;
     private final Clock clock;
 
     /** Creates the worker. */
     public DeliveryWorker(DeliveryStore deliveries, NotificationStore notifications,
             NotificationChannelRepository channels, ChannelService channelService, ChannelTypeRegistry types,
             ChannelSender sender, ChannelRateLimiter limiter, NotificationService service, NotificationRouter router,
-            NotifyProperties properties, AlertStore alerts, List<FanOutDelivery> fanOuts, Clock clock) {
+            NotifyProperties properties, AlertStore alerts, List<FanOutDelivery> fanOuts, ActionMinter minter,
+            InboxService inbox, Clock clock) {
+        this.minter = minter;
+        this.inbox = inbox;
         this.deliveries = deliveries;
         this.notifications = notifications;
         this.channels = channels;
@@ -225,9 +239,21 @@ public class DeliveryWorker {
         }
         Instant now = clock.instant();
         ZoneId zone = channelService.zone(channel.getTimezone());
+        if (DeferredReason.PRESENCE.equals(d.getDeferredReason()) && DeliveryKind.SEND.equals(d.getKind())) {
+            Optional<String> why = presenceSuppression(stored, now);
+            if (why.isPresent()) {
+                deliveries.suppress(d.getId(), why.get(), now);
+                return;
+            }
+        }
         NotificationMessage message = message(d, stored, channel, zone, now);
         Optional<Deferral.Decision> deferral = Deferral.check(message.severity(),
                 QuietHours.fromMap(channel.getQuietHours()), zone, service.pause(), now);
+        if (deferral.isPresent() && d.getEscalationStep() != null && "critical".equals(message.severity())
+                && DeferredReason.QUIET_HOURS.equals(deferral.get().reason())) {
+            // Quiet hours never hold back a critical escalation (prompt 033).
+            deferral = Optional.empty();
+        }
         FanOutDelivery fanOut = type.capabilities().fanOut() ? fanOutFor(channel.getType()) : null;
         boolean downgrade = false;
         if (deferral.isPresent() && fanOut != null && DeferredReason.QUIET_HOURS.equals(deferral.get().reason())) {
@@ -246,7 +272,7 @@ public class DeliveryWorker {
             return;
         }
         if (fanOut != null) {
-            fanOut.fanOut(d, message, channel, downgrade, now);
+            fanOut.fanOut(d, message, channel, downgrade, now, minter.forDelivery(d, stored, channel));
             return;
         }
         if (type.capabilities().fanOut()) {
@@ -258,7 +284,9 @@ public class DeliveryWorker {
             deliveries.reschedule(d.getId(), now.plus(wait));
             return;
         }
-        ChannelSettings settings = channelService.settingsFor(channel, d.getId(), now);
+        List<NotificationAction> actions = minter.forDelivery(d, stored, channel);
+        ChannelSettings settings = channelService.settingsFor(channel, d.getId(), now).withActions(actions);
+        message = ActionMinter.withLinks(message, channel, actions);
         String kind = d.getKind();
         PreparedRequest request;
         boolean edited = false;
@@ -341,6 +369,33 @@ public class DeliveryWorker {
                     : "HTTP " + response.status();
             failed(d, channel, settings, status + ": " + response.body(), now);
         }
+    }
+
+    /**
+     * Why a presence-deferred send must not go out (prompt 033): its alert was acknowledged, resolved
+     * or snoozed meanwhile, or the notification was read on a desktop; empty to send it.
+     */
+    Optional<String> presenceSuppression(NotificationMessage stored, Instant now) {
+        try {
+            if (stored.alertId() != null) {
+                Optional<AlertView> alert = alerts.find(stored.alertId());
+                if (alert.isPresent()) {
+                    AlertView a = alert.get();
+                    if (!"firing".equals(a.state())) {
+                        return Optional.of("suppressed: alert " + a.state() + " while deferred for presence");
+                    }
+                    if (a.snoozedUntil() != null && a.snoozedUntil().isAfter(now)) {
+                        return Optional.of("suppressed: alert snoozed while deferred for presence");
+                    }
+                }
+            }
+            if (stored.id() != null && inbox.readOnDesktop(stored.id())) {
+                return Optional.of("suppressed: read on a desktop while deferred for presence");
+            }
+        } catch (RuntimeException e) {
+            log.warn("Could not check presence suppression of notification {}; sending it", stored.id(), e);
+        }
+        return Optional.empty();
     }
 
     private FanOutDelivery fanOutFor(String channelType) {

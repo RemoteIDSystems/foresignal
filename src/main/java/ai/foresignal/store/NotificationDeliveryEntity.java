@@ -99,6 +99,10 @@ public class NotificationDeliveryEntity {
     @Column(name = "retry_after_counted_at")
     private Instant retryAfterCountedAt;
 
+    /** The escalation step that created this delivery (prompt 033), or null. */
+    @Column(name = "escalation_step")
+    private Integer escalationStep;
+
     @JdbcTypeCode(SqlTypes.TIMESTAMP_UTC)
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
@@ -299,5 +303,15 @@ public class NotificationDeliveryEntity {
     /** Sets when enqueued. */
     public void setCreatedAt(Instant createdAt) {
         this.createdAt = createdAt;
+    }
+
+    /** The escalation step that created this delivery (prompt 033), or null. */
+    public Integer getEscalationStep() {
+        return escalationStep;
+    }
+
+    /** Sets the escalation step. */
+    public void setEscalationStep(Integer escalationStep) {
+        this.escalationStep = escalationStep;
     }
 }
