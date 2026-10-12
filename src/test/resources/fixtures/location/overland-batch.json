@@ -1,0 +1,5 @@
+{"locations":[
+ {"type":"Feature","geometry":{"type":"Point","coordinates":[-73.6,45.5]},"properties":{"timestamp":"2026-10-12T07:58:00Z","horizontal_accuracy":15,"altitude":30,"speed":1.4,"course":270,"motion":["walking"],"battery_level":0.67,"battery_state":"unplugged","wifi":"home-net","device_id":"iphone-1"}},
+ {"type":"Feature","geometry":{"type":"Point","coordinates":[-73.61,45.51]},"properties":{"timestamp":"2026-10-12T07:59:00Z","horizontal_accuracy":900,"device_id":"iphone-1"}},
+ {"type":"Feature","geometry":{"type":"Point","coordinates":[0,0]},"properties":{"timestamp":"2026-10-12T07:59:30Z","horizontal_accuracy":5,"device_id":"iphone-1"}}
+],"current":{"type":"Feature"},"trip":{"mode":"walking"}}

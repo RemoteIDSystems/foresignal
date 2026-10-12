@@ -81,6 +81,11 @@ import org.springframework.stereotype.Component;
 @Component
 public class DeliveryWorker {
 
+    /** The egress policy deciding private payloads (prompt 039); null only in hand-built unit tests. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ai.foresignal.security.EgressPolicy egress;
+
+
     private static final Logger log = LoggerFactory.getLogger(DeliveryWorker.class);
 
     /** The retry ladder after attempt 1, 2, 3, 4 and 5. */
@@ -428,12 +433,28 @@ public class DeliveryWorker {
     private NotificationMessage withTemplates(NotificationMessage m, NotificationChannelEntity channel, ZoneId zone,
             Instant now) {
         if (!NotificationMessage.ALERT.equals(m.event()) || !"alert.fired".equals(m.subtype())) {
-            return m;
+            return privacy(m, channel);
         }
         Map<String, Object> data = withLatestSummary(m);
         AlertTemplates.Text text = AlertTemplates.render(channel.getTitleTemplate(), channel.getBodyTemplate(), data,
                 m.url(), zone, now);
-        return m.withText(text.title(), text.body());
+        return privacy(m.withText(text.title(), text.body()), channel);
+    }
+
+    /**
+     * {@code m} as {@code channel} may receive it (prompt 039): a message about a private-source record
+     * carries only the rule name, severity and link unless the channel has {@code privatePayload: true};
+     * a fan-out push type (Web Push, APNs, FCM) never carries it.
+     */
+    NotificationMessage privacy(NotificationMessage m, NotificationChannelEntity channel) {
+        String sourceId = PrivatePayloads.sourceId(m);
+        if (sourceId == null || egress == null) {
+            return m;
+        }
+        boolean push = types.find(channel.getType()).map(t -> t.capabilities().fanOut()).orElse(false);
+        boolean allowed = push ? egress.allowsPushPayload(sourceId)
+                : egress.allowsNotificationPayload(sourceId, PrivatePayloads.optedIn(channel.getConfig()));
+        return allowed ? m : PrivatePayloads.redact(m);
     }
 
     /**

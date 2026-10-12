@@ -142,7 +142,21 @@ public class RecordMapper {
         all.put("historyTier", historyTier(row));
         all.put("persistReason", persistReason(row));
         all.put("bbox", row.bbox() == null ? null : List.of(row.bbox()[0], row.bbox()[1], row.bbox()[2], row.bbox()[3]));
-        return project(all, fields);
+        Map<String, Object> out = project(all, fields);
+        if (purged(row.tombstone(), row.qaFlags())) {
+            // An entity purge's tombstone (prompt 039): clients and caches delete the entity.
+            out.put("purged", true);
+        }
+        return out;
+    }
+
+    /**
+     * True for the tombstone of an entity purge ({@code QaFlags.PURGED}, prompt 039); such a change
+     * carries {@code purged: true}, which is otherwise absent.
+     */
+    public static boolean purged(boolean tombstone, Integer qaFlags) {
+        return tombstone && qaFlags != null
+                && ai.foresignal.ingest.QaFlags.has(qaFlags, ai.foresignal.ingest.QaFlags.PURGED);
     }
 
     /**
@@ -189,6 +203,9 @@ public class RecordMapper {
         item.put("prevPersistedBbox", box(summary.prevPersistedBbox()));
         item.put("prevLiveBbox", box(summary.prevLiveBbox()));
         item.put("leftFilter", leftFilter);
+        if (summary.purged()) {
+            item.put("purged", true);
+        }
         return item;
     }
 

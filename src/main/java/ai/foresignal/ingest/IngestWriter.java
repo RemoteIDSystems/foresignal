@@ -235,6 +235,57 @@ public class IngestWriter implements IngestStateReset, DisposableBean {
     private static final String DELETE_LIVE = "DELETE FROM record_live WHERE source_id = ? AND external_id = ANY(?)";
     private static final String DELETE_HEAD = "DELETE FROM record_head WHERE source_id = ? AND external_id = ANY(?)";
 
+    private static final String SELECT_PURGE_TARGET =
+            """
+            SELECT h.seq, h.version, h.kind, h.persisted_observed_at, l.observed_at,
+                   ST_XMin(h.persisted_geom), ST_YMin(h.persisted_geom), ST_XMax(h.persisted_geom),
+                   ST_YMax(h.persisted_geom), ST_XMin(l.geom), ST_YMin(l.geom), ST_XMax(l.geom), ST_YMax(l.geom)
+              FROM record_head h LEFT JOIN record_live l USING (source_id, external_id)
+             WHERE h.source_id = ? AND h.external_id = ?
+               FOR UPDATE OF h
+            """;
+
+    private static final String INSERT_PURGE_FETCH_LOG =
+            """
+            INSERT INTO fetch_log (source_id, trigger, status, started_at, received_at, ingested_at, request_count,
+                                   principal, records_seen, rejected, late, skipped, versions_written, live_updates,
+                                   touches, from_seq, to_seq)
+            VALUES (?, 'MANUAL', 'OK', ?, ?, ?, 0, 'purge', 0, 0, 0, 0, 1, 0, 0, ?, ?)
+            RETURNING id
+            """;
+
+    private static final String INSERT_PURGE_TOMBSTONE =
+            """
+            INSERT INTO record_version (seq, ingested_at, observed_at, received_at, event_time, valid_until,
+                                        valid_until_explicit, prev_seq, batch_id, version, history_tier,
+                                        persist_reason, qa_flags, tombstone, source_id, external_id, kind, geom,
+                                        payload, quality, observer, valid_from)
+            VALUES (?, ?, ?, ?, NULL, NULL, NULL, ?, ?, ?, ?, ?, ?, true, ?, ?, ?, NULL, '{}'::jsonb, NULL, NULL, NULL)
+            """;
+
+    private static final String DELETE_PURGED_VERSIONS =
+            "DELETE FROM record_version WHERE source_id = ? AND external_id = ? AND seq < ?";
+
+    private static final String UPDATE_PURGED_HEAD =
+            """
+            UPDATE record_head SET seq = ?, version = ?, tombstone = true, event_time = NULL,
+                   valid_until_explicit = NULL, valid_from = NULL, static_hash = 0, persisted_observed_at = ?,
+                   persisted_received_at = ?, persisted_geom = NULL, payload = '{}'::jsonb, quality = NULL,
+                   search_text = NULL, title = NULL
+             WHERE source_id = ? AND external_id = ?
+            """;
+
+    private static final String UPSERT_PURGED_LIVE =
+            """
+            INSERT INTO record_live (source_id, external_id, observed_at, last_received_at, valid_until, geom,
+                                     full_hash, dirty, kinematic, quality, qa_flags)
+            VALUES (?, ?, ?, ?, ?, NULL, 0, false, '{}'::jsonb, NULL, ?)
+            ON CONFLICT (source_id, external_id) DO UPDATE SET
+                observed_at = EXCLUDED.observed_at, last_received_at = EXCLUDED.last_received_at,
+                valid_until = EXCLUDED.valid_until, geom = NULL, full_hash = 0, dirty = false,
+                kinematic = '{}'::jsonb, quality = NULL, qa_flags = EXCLUDED.qa_flags
+            """;
+
     private final IngestQueue queue;
     private final JdbcTemplate jdbc;
     private final TransactionTemplate tx;
@@ -386,6 +437,7 @@ public class IngestWriter implements IngestStateReset, DisposableBean {
             switch (left) {
                 case IngestBatch batch -> batch.future().completeExceptionally(stopped);
                 case HeadPurge purge -> purge.future().completeExceptionally(stopped);
+                case EntityPurge purge -> purge.future().completeExceptionally(stopped);
             }
         }
         state = WriterState.STOPPED;
@@ -495,6 +547,7 @@ public class IngestWriter implements IngestStateReset, DisposableBean {
         switch (command) {
             case IngestBatch batch -> processBatch(batch);
             case HeadPurge purge -> processPurge(purge);
+            case EntityPurge purge -> processEntityPurge(purge);
         }
     }
 
@@ -1331,6 +1384,148 @@ public class IngestWriter implements IngestStateReset, DisposableBean {
         });
         return deleted == null ? 0 : deleted;
     }
+
+    // ------------------------------------------------------------------ entity purge (039)
+
+    private void processEntityPurge(EntityPurge purge) {
+        try {
+            SourceIngestProfile profile = profiles.get(purge.sourceId());
+            checkClockJump(clock.instant());
+            preflight(profile.tier(), 1);
+            List<Duration> backoff = settings.retryBackoff();
+            int attempt = 0;
+            PurgeCommitted committed;
+            while (true) {
+                try {
+                    committed = tx.execute(status -> writeEntityPurge(purge, profile));
+                    break;
+                } catch (RuntimeException e) {
+                    String sqlState = sqlState(e);
+                    if (attempt < backoff.size() && isRetryable(sqlState, e)) {
+                        retries.increment();
+                        if (isMissingPartition(sqlState, e)) {
+                            partitions.refresh();
+                        }
+                        sleepQuietly(backoff.get(attempt));
+                        attempt++;
+                        continue;
+                    }
+                    throw e;
+                }
+            }
+            if (committed == null) {
+                throw new IllegalStateException("The entity purge transaction returned nothing");
+            }
+            if (committed.outcome().found()) {
+                lastSeq = Math.max(lastSeq, committed.outcome().tombstoneSeq());
+                lastIngestedAt = latest(lastIngestedAt, committed.ingestedAt());
+                // Change before the future, as for batches.
+                changeBus.publish(committed.changes());
+            }
+            purge.future().complete(committed.outcome());
+        } catch (Throwable t) {
+            log.error("Entity purge of {} failed: {}", purge.sourceId(), t.toString(), t);
+            purge.future().completeExceptionally(t);
+        }
+    }
+
+    private PurgeCommitted writeEntityPurge(EntityPurge purge, SourceIngestProfile profile) {
+        String sourceId = purge.sourceId();
+        String externalId = purge.externalId();
+        jdbc.queryForObject(
+                "SELECT set_config('lock_timeout', ?, true)", String.class, settings.lockTimeout().toMillis() + "ms");
+        List<Object[]> heads = jdbc.query(SELECT_PURGE_TARGET, (rs, row) -> new Object[] {
+                rs.getLong(1), rs.getInt(2), rs.getString(3), JdbcValues.instant(rs, 4), JdbcValues.instant(rs, 5),
+                envelope(rs, 6), envelope(rs, 10)},
+                sourceId, externalId);
+        if (heads.isEmpty()) {
+            return new PurgeCommitted(EntityPurgeOutcome.notFound(), null, null);
+        }
+        Object[] head = heads.get(0);
+        long headSeq = (Long) head[0];
+        int version = (Integer) head[1] + 1;
+        String kind = (String) head[2];
+
+        Instant now = clock.instant().truncatedTo(ChronoUnit.MICROS);
+        if (lastIngestedAt != null && now.isBefore(lastIngestedAt)) {
+            clockClamped.increment();
+        }
+        Instant ingestedAt = ClockGuard.ingestedAt(now, lastIngestedAt);
+        // ING-4: per entity, observed_at never decreases.
+        Instant observedAt = latest(latest(now, (Instant) head[3]), (Instant) head[4]);
+
+        long seqClockFirst = lastAllocatedSeq + 1;
+        long seq = jdbc.queryForList(ALLOCATE, Long.class, 1).get(0);
+        lastAllocatedSeq = Math.max(lastAllocatedSeq, seq);
+        ensureCovered(profile.tier(), seq, seq);
+
+        Long batchId = jdbc.query(con -> {
+            PreparedStatement ps = con.prepareStatement(INSERT_PURGE_FETCH_LOG);
+            ps.setString(1, sourceId);
+            JdbcValues.setInstant(ps, 2, now);
+            JdbcValues.setInstant(ps, 3, now);
+            JdbcValues.setInstant(ps, 4, ingestedAt);
+            ps.setLong(5, seq);
+            ps.setLong(6, seq);
+            return ps;
+        }, (rs, row) -> rs.getLong(1)).get(0);
+
+        jdbc.update(con -> {
+            PreparedStatement ps = con.prepareStatement(INSERT_PURGE_TOMBSTONE);
+            ps.setLong(1, seq);
+            JdbcValues.setInstant(ps, 2, ingestedAt);
+            JdbcValues.setInstant(ps, 3, observedAt);
+            JdbcValues.setInstant(ps, 4, now);
+            ps.setLong(5, headSeq);
+            ps.setLong(6, batchId);
+            ps.setInt(7, version);
+            ps.setShort(8, profile.tier().code());
+            ps.setShort(9, PersistReason.TOMBSTONE.code());
+            ps.setShort(10, (short) QaFlags.PURGED);
+            ps.setString(11, sourceId);
+            ps.setString(12, externalId);
+            ps.setString(13, kind);
+            return ps;
+        });
+
+        int deleted = jdbc.update(DELETE_PURGED_VERSIONS, sourceId, externalId, seq);
+
+        jdbc.update(con -> {
+            PreparedStatement ps = con.prepareStatement(UPDATE_PURGED_HEAD);
+            ps.setLong(1, seq);
+            ps.setInt(2, version);
+            JdbcValues.setInstant(ps, 3, observedAt);
+            JdbcValues.setInstant(ps, 4, now);
+            ps.setString(5, sourceId);
+            ps.setString(6, externalId);
+            return ps;
+        });
+        jdbc.update(con -> {
+            PreparedStatement ps = con.prepareStatement(UPSERT_PURGED_LIVE);
+            ps.setString(1, sourceId);
+            ps.setString(2, externalId);
+            JdbcValues.setInstant(ps, 3, observedAt);
+            JdbcValues.setInstant(ps, 4, now);
+            JdbcValues.setInstant(ps, 5, now);
+            ps.setShort(6, (short) QaFlags.PURGED);
+            return ps;
+        });
+        jdbc.update(con -> {
+            PreparedStatement ps = con.prepareStatement(INSERT_SEQ_CLOCK);
+            JdbcValues.setInstant(ps, 1, ingestedAt);
+            ps.setLong(2, seqClockFirst);
+            return ps;
+        });
+
+        ChangeSummary change = new ChangeSummary(seq, headSeq, profile.tier(), sourceId, externalId, kind, version,
+                PersistReason.TOMBSTONE, observedAt, null, null, true, QaFlags.PURGED, null,
+                Bbox.of((Envelope) head[5]), Bbox.of((Envelope) head[6]));
+        ChangeBatch batch = new ChangeBatch(sourceId, batchId, ingestedAt, seq, seq, List.of(change));
+        return new PurgeCommitted(new EntityPurgeOutcome(true, seq, deleted, kind), batch, ingestedAt);
+    }
+
+    /** What one committed entity purge produced. */
+    private record PurgeCommitted(EntityPurgeOutcome outcome, ChangeBatch changes, Instant ingestedAt) {}
 
     // ------------------------------------------------------------------ helpers
 

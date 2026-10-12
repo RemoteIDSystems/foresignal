@@ -122,6 +122,19 @@ public class CustomSourceEntity {
     @Column(name = "verifier_secret_nonce")
     private byte[] verifierSecretNonce;
 
+    /** The applied preset ({@code personal-location}, prompt 039), or null. */
+    @Column(name = "profile", length = 32)
+    private String profile;
+
+    /** True when the ingest key may be carried in the path (prompt 039); null reads as false. */
+    @Column(name = "allow_path_key")
+    private Boolean allowPathKey;
+
+    /** The sender allowlist for path-key and GET pushes (prompt 039); null = private ranges only. */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "ingest_allow_cidrs", columnDefinition = "jsonb")
+    private List<String> ingestAllowCidrs;
+
     @Column(name = "ingest_key_hash", length = 64, nullable = false)
     private String ingestKeyHash;
 
@@ -442,5 +455,38 @@ public class CustomSourceEntity {
 
     private static List<String> copy(List<String> values) {
         return values == null ? new ArrayList<>() : new ArrayList<>(values);
+    }
+
+    /** The applied preset ({@code personal-location}), or null (prompt 039). */
+    public String getProfile() {
+        return profile;
+    }
+
+    /** Sets {@link #getProfile()}. */
+    public void setProfile(String profile) {
+        this.profile = profile;
+    }
+
+    /** True when the source's ingest key may be carried in the path (prompt 039). */
+    public boolean isAllowPathKey() {
+        return Boolean.TRUE.equals(allowPathKey);
+    }
+
+    /** Sets {@link #isAllowPathKey()}. */
+    public void setAllowPathKey(boolean allowPathKey) {
+        this.allowPathKey = allowPathKey;
+    }
+
+    /**
+     * The sender allowlist (CIDR blocks) for path-key and GET pushes, or null for private ranges only
+     * (prompt 039).
+     */
+    public List<String> getIngestAllowCidrs() {
+        return ingestAllowCidrs == null ? null : List.copyOf(ingestAllowCidrs);
+    }
+
+    /** Sets {@link #getIngestAllowCidrs()}; null restores the private-ranges default. */
+    public void setIngestAllowCidrs(List<String> ingestAllowCidrs) {
+        this.ingestAllowCidrs = ingestAllowCidrs == null ? null : new ArrayList<>(ingestAllowCidrs);
     }
 }

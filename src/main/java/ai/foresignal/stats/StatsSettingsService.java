@@ -14,11 +14,17 @@ import org.springframework.transaction.annotation.Transactional;
  * Reads and writes {@link StatsSettings} and decides which sources the rollup covers (prompt 038).
  *
  * <p>A source is rolled up when it is registered, its {@code statsEnabled} is true, and it is not
- * private ({@code private} descriptor flag) unless {@code statsIncludePrivate} is true. Sources that
+ * private (descriptor flag or the operator's tightening, prompt 039) unless {@code statsIncludePrivate}
+ * is true. Sources that
  * are not registered (a deleted custom source) are never rolled up.
  */
 @Service
 public class StatsSettingsService {
+
+    /** The shared private-source visibility (prompt 039); null only in hand-built unit tests. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ai.foresignal.security.visibility.SourceVisibility visibility;
+
 
     private final AppSettingService settings;
     private final SourceRegistry registry;
@@ -51,7 +57,8 @@ public class StatsSettingsService {
         if (!value.enabled(descriptor.id())) {
             return false;
         }
-        return !descriptor.privateSource() || value.includePrivate(descriptor.id());
+        boolean isPrivate = visibility == null ? descriptor.privateSource() : visibility.isPrivate(descriptor.id());
+        return !isPrivate || value.includePrivate(descriptor.id());
     }
 
     /** The registered sources the rollup covers, sorted. */

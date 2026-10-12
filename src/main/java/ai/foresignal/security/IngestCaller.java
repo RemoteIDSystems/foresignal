@@ -18,8 +18,12 @@ import java.util.Optional;
  *     {@code compat-ntfy:<prefix>}, {@code compat-gotify:<prefix>}, {@code token:<name>} or
  *     {@code signature:<sourceId>}
  * @param keyPrefix the ingest key's 8-character prefix, or null
+ * @param deviceId the {@code ingest_device} id of a device-scoped key ({@code eid_}, prompt 039), or null
+ * @param boundExternalId the entity a device key is bound to: everything it ingests is forced to this
+ *     externalId (prompt 039), or null for any other caller
  */
-public record IngestCaller(String via, String sourceId, String principal, String keyPrefix) {
+public record IngestCaller(String via, String sourceId, String principal, String keyPrefix, java.util.UUID deviceId,
+        String boundExternalId) {
 
     /** The request attribute holding the caller. */
     public static final String ATTRIBUTE = "ai.foresignal.ingestCaller";
@@ -33,6 +37,9 @@ public record IngestCaller(String via, String sourceId, String principal, String
     /** An ingest key through Gotify compatibility ({@code X-Gotify-Key} or {@code ?token=}). */
     public static final String COMPAT_GOTIFY = "compat-gotify";
 
+    /** A device-scoped ingest key ({@code eid_}, prompt 039), bound to one source and one entity. */
+    public static final String DEVICE_KEY = "device-key";
+
     /** An admin API token. */
     public static final String ADMIN_TOKEN = "token";
 
@@ -45,9 +52,19 @@ public record IngestCaller(String via, String sourceId, String principal, String
         Objects.requireNonNull(principal, "principal");
     }
 
+    /** A caller that is not a device key (the shape before prompt 039). */
+    public IngestCaller(String via, String sourceId, String principal, String keyPrefix) {
+        this(via, sourceId, principal, keyPrefix, null, null);
+    }
+
+    /** True for a device-scoped key (prompt 039). */
+    public boolean device() {
+        return DEVICE_KEY.equals(via);
+    }
+
     /** True when the caller presented an ingest key. */
     public boolean viaKey() {
-        return INGEST_KEY.equals(via) || COMPAT_NTFY.equals(via) || COMPAT_GOTIFY.equals(via);
+        return INGEST_KEY.equals(via) || COMPAT_NTFY.equals(via) || COMPAT_GOTIFY.equals(via) || DEVICE_KEY.equals(via);
     }
 
     /** True for an admin token. */

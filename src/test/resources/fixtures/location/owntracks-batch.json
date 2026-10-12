@@ -1,0 +1,11 @@
+[
+ {"_type":"location","lat":45.5,"lon":-73.6,"tst":1760256000,"acc":10,"tid":"ph"},
+ {"_type":"transition","event":"enter","desc":"Office","wtst":1760000000,"tst":1760256060,"lat":45.5,"lon":-73.6,"acc":10,"tid":"ph","t":"c"},
+ {"_type":"waypoint","desc":"Office","lat":45.5,"lon":-73.6,"rad":50,"tst":1760000000},
+ {"_type":"lwt","tst":1760256000},
+ {"_type":"card","name":"Test Person","tid":"ph"},
+ {"_type":"status","android":{}},
+ {"_type":"encrypted","data":"c3ludGhldGljIGNpcGhlcnRleHQ="},
+ {"_type":"location","lat":45.5,"lon":-73.6,"tst":1760256120,"acc":500,"tid":"ph"},
+ {"_type":"location","lat":0,"lon":0,"tst":1760256180,"acc":5,"tid":"ph"}
+]

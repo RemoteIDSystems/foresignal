@@ -15,7 +15,7 @@ import java.util.UUID;
  * @param scope {@code read} or {@code agent}
  * @param restrictions the claimed token's restrictions, or null
  * @param principalId the principal that will own the token, or null
- * @param privateAccess always false until prompt 039
+ * @param privateAccess the 039 private grant passed to the claimed token
  * @param createdAt when it was created
  * @param expiresAt when it stops being claimable
  * @param createdByTokenId the admin token that created it, or null
@@ -47,7 +47,7 @@ public record PairingCodeDto(
     /** {@code entity} with its code and QR payload (creation only). */
     public static PairingCodeDto of(PairingCodeEntity entity, String code, String qrPayload) {
         return new PairingCodeDto(entity.getId(), entity.getName(), entity.getScope().wireValue(),
-                entity.getRestrictions().orNull(), entity.getPrincipalId(), false, entity.getCreatedAt(),
+                entity.getRestrictions().orNull(), entity.getPrincipalId(), entity.isPrivateAccess(), entity.getCreatedAt(),
                 entity.getExpiresAt(), entity.getCreatedByTokenId(), entity.getClaimedAt(), entity.getClaimedTokenId(),
                 code, qrPayload);
     }

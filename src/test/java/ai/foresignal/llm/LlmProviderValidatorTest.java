@@ -134,7 +134,7 @@ class LlmProviderValidatorTest {
     }
 
     @Test
-    @DisplayName("LlmSettings.parse: defaults, types, askMaxTokens floor, allowPrivateLocal reserved for 039")
+    @DisplayName("LlmSettings.parse: defaults, types, askMaxTokens floor, allowPrivateLocal accepted (039)")
     void settings() {
         LlmSettings defaults = LlmSettings.parse(json("{}"));
         assertThat(defaults).isEqualTo(LlmSettings.DEFAULTS);
@@ -147,8 +147,9 @@ class LlmProviderValidatorTest {
         assertThat(set.configured()).isTrue();
 
         assertThat(fields(() -> LlmSettings.parse(json("""
-                {'chatProvider':3,'askEnabled':'yes','askMaxTokens':10,'allowPrivateLocal':true,'other':1}"""))))
+                {'chatProvider':3,'askEnabled':'yes','askMaxTokens':10,'allowPrivateLocal':'yes','other':1}"""))))
                 .containsExactlyInAnyOrder("chatProvider", "askEnabled", "askMaxTokens", "allowPrivateLocal", "other");
         assertThatThrownBy(() -> LlmSettings.parse(json("[]"))).isInstanceOf(ValidationException.class);
+        assertThat(LlmSettings.parse(json("{'allowPrivateLocal':true}")).allowPrivateLocal()).isTrue();
     }
 }

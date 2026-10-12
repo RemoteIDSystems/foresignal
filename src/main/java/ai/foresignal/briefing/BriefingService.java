@@ -51,6 +51,11 @@ import tools.jackson.databind.JsonNode;
 @Service
 public class BriefingService {
 
+    /** The shared private-source visibility (prompt 039); null only in hand-built unit tests. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ai.foresignal.security.visibility.SourceVisibility visibility;
+
+
     private static final Logger log = LoggerFactory.getLogger(BriefingService.class);
 
     /** The default page size of {@code listBriefingRuns}. */
@@ -333,6 +338,47 @@ public class BriefingService {
      * @return {@code BriefingRunPage}
      */
     public Map<String, Object> runs(UUID id, String cursor, int limit) {
+        return runs(id, cursor, limit, true);
+    }
+
+    /**
+     * True when {@code run} may hold private-source data (prompt 039): an admin-owned briefing lists
+     * private records, so a run whose citations or text name a private source is shown only to callers
+     * that can see private sources. Fails closed: a mention of a private source id anywhere counts.
+     */
+    public boolean citesPrivate(BriefingRunEntity run) {
+        if (run == null || visibility == null) {
+            return false;
+        }
+        return citesAny(run, visibility.privateSourceIds());
+    }
+
+    /** The private sources (prompt 039); empty without the visibility component. */
+    public java.util.Set<String> privateSources() {
+        return visibility == null ? java.util.Set.of() : visibility.privateSourceIds();
+    }
+
+    /** True when {@code run}'s citations or text name any of {@code sourceIds}. */
+    public boolean citesAny(BriefingRunEntity run, java.util.Set<String> sourceIds) {
+        java.util.Set<String> privateIds = sourceIds;
+        if (run == null || privateIds == null || privateIds.isEmpty()) {
+            return false;
+        }
+        String citations = run.getCitations() == null ? "" : run.getCitations().toString();
+        String content = run.getContentMarkdown() == null ? "" : run.getContentMarkdown();
+        for (String id : privateIds) {
+            if (citations.contains(id) || content.contains(id)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * {@code listBriefingRuns}; runs that cite a private source are left out unless {@code seesPrivate}
+     * (prompt 039).
+     */
+    public Map<String, Object> runs(UUID id, String cursor, int limit, boolean seesPrivate) {
         if (!briefings.existsById(id) && !runs.existsByBriefingId(id)) {
             throw NotFoundException.of("Briefing", id);
         }
@@ -358,8 +404,10 @@ public class BriefingService {
         for (UUID runId : page) {
             BriefingRunEntity run = loaded.get(runId);
             if (run != null) {
-                items.add(BriefingViews.run(run));
                 last = run;
+                if (seesPrivate || !citesPrivate(run)) {
+                    items.add(BriefingViews.run(run));
+                }
             }
         }
         Map<String, Object> out = new LinkedHashMap<>();

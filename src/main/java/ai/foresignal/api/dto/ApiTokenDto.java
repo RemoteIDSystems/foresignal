@@ -25,6 +25,7 @@ import java.util.UUID;
  * @param createdVia {@code api}, {@code pairing} or {@code bootstrap}
  * @param principalId the owning principal
  * @param principalHandle the owning principal's handle
+ * @param privateAccess the 039 private grant: the token may see private sources (admin tokens always may)
  * @param token the value, only on creation
  */
 public record ApiTokenDto(
@@ -42,6 +43,7 @@ public record ApiTokenDto(
         String createdVia,
         String principalId,
         String principalHandle,
+        boolean privateAccess,
         @JsonInclude(JsonInclude.Include.NON_NULL) String token) {
 
     /** The listing form of {@code entity}. */
@@ -54,6 +56,6 @@ public record ApiTokenDto(
         return new ApiTokenDto(entity.getId(), entity.getName(), entity.getScope().wireValue(), entity.getTokenPrefix(),
                 entity.getCreatedAt(), entity.getLastUsedAt(), entity.getExpiresAt(), entity.getRevokedAt(),
                 entity.isBootstrap(), entity.getRestrictions().orNull(), entity.getDevice(), entity.getCreatedVia(),
-                entity.getPrincipalId(), principalHandle, token);
+                entity.getPrincipalId(), principalHandle, entity.isPrivateAccess(), token);
     }
 }

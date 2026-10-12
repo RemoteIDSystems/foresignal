@@ -7,6 +7,7 @@ import ai.foresignal.inbound.format.CloudEventsFormat;
 import ai.foresignal.inbound.format.FormatOptionSpec;
 import ai.foresignal.inbound.format.IngestFormat;
 import ai.foresignal.inbound.format.IngestFormatRegistry;
+import ai.foresignal.inbound.format.NativeReply;
 import ai.foresignal.inbound.signature.SignatureVerifiers;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -35,6 +36,15 @@ import org.springframework.web.bind.annotation.RestController;
  * ({@code 401 SIGNATURE_INVALID}), parses it with the named {@link IngestFormat} and hands the
  * records to {@link PushIngestService}. The response is the v1.2 {@code IngestOutcome}, 200 whenever
  * the request itself was valid, even with per-record rejections.
+ *
+ * <p>Prompt 039 adds {@code ingestRecordsFormatGet} (GET for formats that declare it: OsmAnd/Traccar
+ * Client and GPSLogger; any other format answers {@code 405}), and the key-in-path forms
+ * {@code ingestRecordsPathKey} / {@code ingestRecordsPathKeyGet} at
+ * {@code /v1/ingest/{sourceId}/k/{key}/{format}} for the formats {@link #PATH_KEY_FORMATS} (others are
+ * {@code 404 FORMAT_UNKNOWN}). The {@code {key}} path variable is never read here: the key was taken
+ * and redacted by {@link IngestKeyRedactionFilter} and checked by {@link IngestAuthenticator}. A
+ * format with a {@link NativeReply} (OwnTracks {@code []}, Overland {@code {"result":"ok"}}, OsmAnd and
+ * GPSLogger an empty 200) gets that reply instead of the {@code IngestOutcome}.
  */
 @RestController
 @Tag(name = "Ingest")
@@ -75,9 +85,57 @@ public class IngestController {
     /** {@code ingestRecordsFormat}: a named format; unknown or reserved names are {@code 404 FORMAT_UNKNOWN}. */
     @PostMapping("/v1/ingest/{sourceId}/{format}")
     @Operation(operationId = "ingestRecordsFormat", tags = "Ingest")
-    public IngestOutcomeView ingestRecordsFormat(@PathVariable String sourceId, @PathVariable String format,
+    public ResponseEntity<?> ingestRecordsFormat(@PathVariable String sourceId, @PathVariable String format,
             HttpServletRequest request) {
-        return inbound.push(sourceId, format(format), request).view();
+        return reply(inbound.receive(sourceId, format(format), request));
+    }
+
+    /** {@code ingestRecordsFormatGet}: a GET push (query parameters) for a format that declares GET. */
+    @GetMapping("/v1/ingest/{sourceId}/{format}")
+    @Operation(operationId = "ingestRecordsFormatGet", tags = "Ingest")
+    public ResponseEntity<?> ingestRecordsFormatGet(@PathVariable String sourceId, @PathVariable String format,
+            HttpServletRequest request) {
+        return reply(inbound.receive(sourceId, format(format), request));
+    }
+
+    /** {@code ingestRecordsPathKey}: a POST push with the ingest or device key in the path. */
+    @PostMapping("/v1/ingest/{sourceId}/k/{key}/{format}")
+    @Operation(operationId = "ingestRecordsPathKey", tags = "Ingest")
+    public ResponseEntity<?> ingestRecordsPathKey(@PathVariable String sourceId, @PathVariable String key,
+            @PathVariable String format, HttpServletRequest request) {
+        return reply(inbound.receive(sourceId, pathKeyFormat(format), request));
+    }
+
+    /** {@code ingestRecordsPathKeyGet}: a GET push with the ingest or device key in the path. */
+    @GetMapping("/v1/ingest/{sourceId}/k/{key}/{format}")
+    @Operation(operationId = "ingestRecordsPathKeyGet", tags = "Ingest")
+    public ResponseEntity<?> ingestRecordsPathKeyGet(@PathVariable String sourceId, @PathVariable String key,
+            @PathVariable String format, HttpServletRequest request) {
+        return reply(inbound.receive(sourceId, pathKeyFormat(format), request));
+    }
+
+    /** The formats served on the key-in-path URLs (the spec's enum). */
+    public static final java.util.Set<String> PATH_KEY_FORMATS =
+            java.util.Set.of("osmand", "gpslogger", "owntracks", "overland", "native");
+
+    private IngestFormat pathKeyFormat(String id) {
+        if (!PATH_KEY_FORMATS.contains(id)) {
+            throw unknownFormat(id);
+        }
+        return format(id);
+    }
+
+    /** The native reply when the format has one, else the {@code IngestOutcome}. */
+    static ResponseEntity<?> reply(InboundRequests.Received received) {
+        NativeReply nativeReply = received.reply();
+        if (nativeReply == null) {
+            return ResponseEntity.ok(received.result().view());
+        }
+        ResponseEntity.BodyBuilder builder = ResponseEntity.status(nativeReply.status());
+        if (nativeReply.contentType() == null) {
+            return builder.build();
+        }
+        return builder.contentType(nativeReply.contentType()).body(nativeReply.body());
     }
 
     /**

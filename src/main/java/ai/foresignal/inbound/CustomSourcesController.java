@@ -135,6 +135,9 @@ public class CustomSourcesController {
         out.put("createdAt", row.getCreatedAt());
         out.put("lastIngestAt", row.getLastIngestAt());
         out.put("ingestKeyPrefix", row.getIngestKeyPrefix());
+        out.put("profile", row.getProfile());
+        out.put("allowPathKey", row.isAllowPathKey());
+        out.put("ingestAllowCidrs", row.getIngestAllowCidrs());
         return out;
     }
 }

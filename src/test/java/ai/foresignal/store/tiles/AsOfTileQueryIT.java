@@ -12,7 +12,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import ai.foresignal.ingest.IngestOutcome;
-import ai.foresignal.security.SourceVisibilityGate;
+import ai.foresignal.security.visibility.SourceVisibility;
 import ai.foresignal.security.TokenRestrictions;
 import ai.foresignal.source.SourceRegistry;
 import ai.foresignal.source.spi.NormalizedRecord;
@@ -103,7 +103,7 @@ class AsOfTileQueryIT {
     }
 
     private Set<String> anonymousExcluded() {
-        return SourceVisibilityGate.excludedSources(registry, null, TokenRestrictions.NONE);
+        return new SourceVisibility(registry, null, null).hiddenFor(null, false, TokenRestrictions.NONE);
     }
 
     private List<Feature> features(String layer, TileCoordinates tile, Instant at, Set<String> excluded) {

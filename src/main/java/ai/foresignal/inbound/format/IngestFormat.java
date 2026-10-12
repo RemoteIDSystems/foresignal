@@ -47,4 +47,24 @@ public interface IngestFormat {
      * @return the records and per-item rejections
      */
     ParsedIngest parse(IngestRequest request, SourceDescriptor descriptor, FormatOptions options);
+
+    /**
+     * The reply the sending app expects (prompt 039), or null for Foresignal's {@code IngestOutcome}
+     * JSON. It is sent whenever the request was valid, even when some items were rejected (rejections
+     * are counted, not retried).
+     *
+     * @param parsed what {@link #parse} returned
+     */
+    default NativeReply nativeReply(ParsedIngest parsed) {
+        return null;
+    }
+
+    /**
+     * True when this format may be sent without credentials in a header: such requests carry the key in
+     * the path ({@code /v1/ingest/{sourceId}/k/{key}/{format}}, prompt 039). Informational, for
+     * {@code listIngestFormats}.
+     */
+    default boolean pathKeyFriendly() {
+        return false;
+    }
 }

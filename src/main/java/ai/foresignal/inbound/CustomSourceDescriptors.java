@@ -3,6 +3,8 @@ package ai.foresignal.inbound;
 import ai.foresignal.settings.Durations;
 import ai.foresignal.source.spi.FieldSpec;
 import ai.foresignal.source.spi.HistoryTier;
+import ai.foresignal.source.spi.IngestPolicy;
+import java.time.Duration;
 import ai.foresignal.source.spi.Mode;
 import ai.foresignal.source.spi.ObservedAtMode;
 import ai.foresignal.source.spi.SourceDescriptor;
@@ -19,10 +21,26 @@ import tools.jackson.databind.json.JsonMapper;
  * {@code STANDARD} (custom sources are never TRACK), and {@code zeroResultsNormal=true} (a quiet
  * webhook is not a broken upstream). The budget is {@code rateLimitPerMinute} per minute and
  * {@code rateLimitPerMinute × 1440} per day.
+ *
+ * <p>Profile {@code personal-location} (prompt 039) adds descriptor defaults the operator can still
+ * override per source ({@code PUT /v1/sources/{id}}): ingest policy SAMPLED (minInterval 30 s,
+ * keyframe 10 min, minDeviation 50 m), default retention 7 days, and the private precision cap set to
+ * its maximum of 7 decimals (about 1 cm), which is "off" for practical purposes: it is the owner's
+ * own data. A lower {@code privatePrecisionDecimals} remains available through 008's cap.
  */
 public final class CustomSourceDescriptors {
 
     private static final TypeReference<LinkedHashMap<String, FieldSpec>> FIELD_SPECS = new TypeReference<>() {};
+
+    /** The personal-location profile's ingest policy (prompt 039). */
+    public static final IngestPolicy PERSONAL_LOCATION_POLICY =
+            new IngestPolicy.Sampled(Duration.ofSeconds(30), Duration.ofMinutes(10), 50.0, false, null);
+
+    /** The personal-location profile's default retention (prompt 039). */
+    public static final Duration PERSONAL_LOCATION_RETENTION = Duration.ofDays(7);
+
+    /** The largest private precision (decimals) a descriptor accepts. */
+    static final int MAX_PRECISION_DECIMALS = 7;
 
     private CustomSourceDescriptors() {}
 
@@ -53,6 +71,11 @@ public final class CustomSourceDescriptors {
         builder.volatileFields(row.getVolatileFields().toArray(String[]::new));
         builder.significantFields(row.getSignificantFields().toArray(String[]::new));
         fieldSpecs(row, json).forEach(builder::fieldSpec);
+        if (CustomSourceInputReader.PROFILE_PERSONAL_LOCATION.equals(row.getProfile())) {
+            builder.defaultIngestPolicy(PERSONAL_LOCATION_POLICY)
+                    .defaultRetention(PERSONAL_LOCATION_RETENTION)
+                    .privatePrecisionDecimals(MAX_PRECISION_DECIMALS);
+        }
         return builder.build();
     }
 

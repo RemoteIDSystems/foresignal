@@ -133,8 +133,9 @@ public class BriefingsController {
             HttpServletRequest request) {
         int size = QueryParams.intInRange("limit", limit, 1, BriefingService.MAX_RUN_PAGE,
                 BriefingService.DEFAULT_RUN_PAGE);
-        briefings.requireVisible(id(briefingId), callers.resolve(request).restriction());
-        return briefings.runs(id(briefingId), cursor, size);
+        McpCaller caller = callers.resolve(request);
+        briefings.requireVisible(id(briefingId), caller.restriction());
+        return briefings.runs(id(briefingId), cursor, size, seesPrivate(caller));
     }
 
     /** {@code getLatestBriefingRun}: JSON or HTML; 404 before the first run. */
@@ -146,8 +147,9 @@ public class BriefingsController {
             @RequestHeader(value = HttpHeaders.ACCEPT, required = false) String accept,
             @RequestHeader(value = HttpHeaders.IF_NONE_MATCH, required = false) String ifNoneMatch,
             HttpServletRequest request) {
-        briefings.requireVisible(id(briefingId), callers.resolve(request).restriction());
-        return respond(briefings.latest(id(briefingId)), format, accept, ifNoneMatch, callers.resolve(request));
+        McpCaller caller = callers.resolve(request);
+        briefings.requireVisible(id(briefingId), caller.restriction());
+        return respond(privateChecked(briefings.latest(id(briefingId)), caller), format, accept, ifNoneMatch, caller);
     }
 
     /** {@code getBriefingRun}: JSON or HTML. */
@@ -165,8 +167,23 @@ public class BriefingsController {
         } catch (IllegalArgumentException e) {
             throw NotFoundException.of("Briefing run", runId);
         }
-        briefings.requireVisible(id(briefingId), callers.resolve(request).restriction());
-        return respond(briefings.run(id(briefingId), run), format, accept, ifNoneMatch, callers.resolve(request));
+        McpCaller caller = callers.resolve(request);
+        briefings.requireVisible(id(briefingId), caller.restriction());
+        return respond(privateChecked(briefings.run(id(briefingId), run), caller), format, accept, ifNoneMatch, caller);
+    }
+
+    /** True when {@code caller} may see private sources (prompt 039). */
+    private static boolean seesPrivate(McpCaller caller) {
+        return ai.foresignal.security.visibility.SourceVisibility.canSeePrivate(caller.readCaller().scope(),
+                caller.readCaller().privateAccess());
+    }
+
+    /** {@code run}, or 404 when it cites a private source the caller may not see (prompt 039). */
+    private BriefingRunEntity privateChecked(BriefingRunEntity run, McpCaller caller) {
+        if (!seesPrivate(caller) && briefings.citesPrivate(run)) {
+            throw NotFoundException.of("Briefing run", run.getId());
+        }
+        return run;
     }
 
     private ResponseEntity<Object> respond(BriefingRunEntity run, String format, String accept, String ifNoneMatch,

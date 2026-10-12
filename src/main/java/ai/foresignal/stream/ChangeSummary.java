@@ -47,4 +47,13 @@ public record ChangeSummary(
         int qaFlags,
         Bbox bbox,
         Bbox prevPersistedBbox,
-        Bbox prevLiveBbox) {}
+        Bbox prevLiveBbox) {
+
+    /**
+     * True when this is the tombstone of an entity purge ({@code QaFlags.PURGED}, prompt 039): SSE
+     * clients, {@code /v1/changes} readers and offline caches delete the entity.
+     */
+    public boolean purged() {
+        return tombstone && ai.foresignal.ingest.QaFlags.has(qaFlags, ai.foresignal.ingest.QaFlags.PURGED);
+    }
+}

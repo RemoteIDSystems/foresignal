@@ -34,6 +34,10 @@ import tools.jackson.databind.node.ObjectNode;
  * @param formats per-format options (an object keyed by format id)
  * @param verifiers the non-secret verifier configuration per format
  * @param verifierSecrets the secrets given in this request per format (absent means keep)
+ * @param profile the applied preset ({@code personal-location}, prompt 039), or null
+ * @param allowPathKey true when the ingest key may be carried in the path (prompt 039)
+ * @param ingestAllowCidrs the sender allowlist for path-key and GET pushes, or null for private ranges
+ *     only (prompt 039)
  */
 public record CustomSourceDefinition(
         String id,
@@ -59,4 +63,7 @@ public record CustomSourceDefinition(
         int recordsPerMinute,
         ObjectNode formats,
         Map<String, VerifierConfig> verifiers,
-        Map<String, String> verifierSecrets) {}
+        Map<String, String> verifierSecrets,
+        String profile,
+        boolean allowPathKey,
+        List<String> ingestAllowCidrs) {}

@@ -309,6 +309,9 @@ public class CustomSourceService {
         row.setLicence(d.licence());
         row.setRecordsPerMinute(d.recordsPerMinute());
         row.setFormats(d.formats() == null || d.formats().isEmpty() ? null : json.writeValueAsString(d.formats()));
+        row.setProfile(d.profile());
+        row.setAllowPathKey(d.allowPathKey());
+        row.setIngestAllowCidrs(d.ingestAllowCidrs());
     }
 
     /** Registry validation, then the ingest policy rules (Core-Data-Model §5.1). */

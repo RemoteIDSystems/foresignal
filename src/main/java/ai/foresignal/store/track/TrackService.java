@@ -52,6 +52,11 @@ import org.springframework.stereotype.Service;
 @Service
 public class TrackService {
 
+    /** The shared private-source visibility (prompt 039); null only in hand-built unit tests. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ai.foresignal.security.visibility.SourceVisibility visibility;
+
+
     /** The most versions one track reads. */
     public static final int MAX_SCAN = 200_000;
 
@@ -283,7 +288,8 @@ public class TrackService {
                 && !from.isBefore(horizon.plus(TimeTravelCache.HORIZON_GRACE));
         return new TrackResult(descriptor.id(), q.externalId(), kind, from, to, coordinates, times, values, live,
                 scan.rows.size(), returned, simplified.toleranceMeters(), coordinates.size(), approximate, downsampled,
-                scan.truncated, scan.watermarkSeq, immutable, !descriptor.privateSource());
+                scan.truncated, scan.watermarkSeq, immutable,
+                !(visibility == null ? descriptor.privateSource() : visibility.isPrivate(descriptor.id())));
     }
 
     private static List<TrackPoint> close(List<List<TrackPoint>> segments, List<TrackPoint> current) {

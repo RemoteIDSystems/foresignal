@@ -92,6 +92,21 @@ public class IngestQueue {
     }
 
     /**
+     * Submits an entity purge (prompt 039), waiting at most {@code timeout} for room.
+     *
+     * @param sourceId the source
+     * @param externalId the entity
+     * @return completed by the writer with the outcome
+     * @throws IngestBackpressureException when the queue stayed full for the whole timeout
+     */
+    public CompletableFuture<EntityPurgeOutcome> submitEntityPurge(String sourceId, String externalId,
+            Duration timeout) {
+        EntityPurge purge = new EntityPurge(sourceId, externalId, new CompletableFuture<>());
+        put(purge, timeout, "entity purge of " + sourceId);
+        return purge.future();
+    }
+
+    /**
      * Enqueues {@code command} at the tail without waiting.
      *
      * @return false when the queue is full

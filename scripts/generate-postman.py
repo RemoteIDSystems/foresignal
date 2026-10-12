@@ -25,7 +25,11 @@ PATH_VARS = {"sourceId": "sourceId", "externalId": "externalId", "ruleId": "rule
 PATH_VARS_BY_PREFIX = [("/v1/external/sources/", {"sourceId": "edpSourceId"}),
                        ("/v1/external/registration-tokens/", {"tokenId": "registrationTokenId"}),
                        # Native push providers (032) are not the LLM providers of {{providerId}}.
-                       ("/v1/push/providers/", {"providerId": "pushProviderId"})]
+                       ("/v1/push/providers/", {"providerId": "pushProviderId"}),
+                       # 039: ingest devices are not the push devices of {{pushDeviceId}}; the path key is a
+                       # device key.
+                       ("/v1/custom-sources/", {"deviceId": "ingestDeviceId"}),
+                       ("/v1/ingest/", {"key": "deviceKey"})]
 
 # The EDP manifest of docs/External-Data-Protocol.md §2 (024).
 EDP_MANIFEST = {
@@ -243,6 +247,10 @@ BODIES = {
                              "failUrl": "https://hc-ping.com/REPLACE-WITH-CHECK-UUID/fail", "interval": "60s",
                              "method": "GET", "canary": {"enabled": False, "interval": "1h"}},
   "updateCors": {"readOrigins": ["*"], "writeOrigins": ["http://localhost:5173"]},
+  # 039: a device-scoped ingest key bound to one entity, and entity purges (keep alerts, redacted).
+  "createIngestDevice": {"externalId": "family-phone-1", "name": "Family phone 1"},
+  "purgeDevice": {"purgeAlerts": False},
+  "purgeRecord": {"purgeAlerts": False},
   # 038: stats rollup rebuild and metric projections (a USGS magnitude gauge).
   "rebuildStatsRollup": {"from": "2026-10-01T00:00:00Z", "to": "2026-10-02T00:00:00Z"},
   "updateMetricSettings": {"projections": [{"name": "usgs_magnitude", "source": "usgs-earthquakes", "kind": "earthquake",
@@ -259,6 +267,7 @@ CAPTURE = {
   "createChannel": "const j = pm.response.json(); pm.collectionVariables.set('channelId', j.id);",
   "createToken": "const j = pm.response.json(); pm.collectionVariables.set('tokenId', j.id); console.log('New token (shown once):', j.token);",
   "createCustomSource": "const j = pm.response.json(); pm.collectionVariables.set('ingestKey', j.ingestKey); pm.collectionVariables.set('sourceId', j.id);",
+  "createIngestDevice": "const j = pm.response.json(); pm.collectionVariables.set('ingestDeviceId', j.id); pm.collectionVariables.set('deviceKey', j.key);",
   "rotateIngestKey": "const j = pm.response.json(); pm.collectionVariables.set('ingestKey', j.ingestKey);",
   "createLlmProvider": "const j = pm.response.json(); pm.collectionVariables.set('providerId', j.id);",
   "ask": "const j = pm.response.json(); pm.collectionVariables.set('threadId', j.threadId); if (j.proposedActions && j.proposedActions.length) pm.collectionVariables.set('actionId', j.proposedActions[0].id);",

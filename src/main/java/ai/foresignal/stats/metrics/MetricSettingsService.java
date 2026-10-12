@@ -34,6 +34,11 @@ import tools.jackson.databind.JsonNode;
 @Service
 public class MetricSettingsService {
 
+    /** The shared private-source visibility (prompt 039); null only in hand-built unit tests. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ai.foresignal.security.visibility.SourceVisibility visibility;
+
+
     /** The projection name pattern. */
     public static final Pattern NAME = Pattern.compile("^[a-z_][a-z0-9_]*$");
 
@@ -141,7 +146,8 @@ public class MetricSettingsService {
                 errors.add(new FieldError(at + ".source", "unknown source " + sourceId));
             } else {
                 descriptor = found.get();
-                if (descriptor.privateSource() && !allowPrivate) {
+                boolean isPrivate = visibility == null ? descriptor.privateSource() : visibility.isPrivate(sourceId);
+                if (isPrivate && !allowPrivate) {
                     errors.add(new FieldError(at + ".source", sourceId
                             + " is private; set allowPrivate: true to project it"));
                 }

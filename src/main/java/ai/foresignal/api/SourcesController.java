@@ -2,7 +2,7 @@ package ai.foresignal.api;
 
 import jakarta.servlet.http.HttpServletRequest;
 import ai.foresignal.api.error.NotFoundException;
-import ai.foresignal.security.SourceVisibilityGate;
+import ai.foresignal.security.visibility.SourceVisibility;
 import ai.foresignal.security.CurrentToken;
 import ai.foresignal.security.restrict.RequestPrincipal;
 import ai.foresignal.api.dto.CredentialsUpdate;
@@ -101,7 +101,7 @@ public class SourcesController {
     private final UsageMeter usage;
     private final FetchLogQuery fetchLog;
     private final SourceMapper mapper;
-    private final SourceVisibilityGate visibility;
+    private final SourceVisibility visibility;
     private final ai.foresignal.stats.StatsSettingsService statsSettings;
     private final Clock clock;
 
@@ -115,7 +115,7 @@ public class SourcesController {
             UsageMeter usage,
             FetchLogQuery fetchLog,
             SourceMapper mapper,
-            SourceVisibilityGate visibility,
+            SourceVisibility visibility,
             ai.foresignal.stats.StatsSettingsService statsSettings,
             Clock clock) {
         this.visibility = visibility;
@@ -137,7 +137,7 @@ public class SourcesController {
     public List<SourceSummary> listSources(HttpServletRequest request) {
         Optional<CurrentToken> caller = CurrentToken.of(request);
         return sources.list().stream()
-                .filter(view -> visibility.visible(view.id(), caller, RequestPrincipal.restrictionOf(request)))
+                .filter(view -> visibility.visible(view.id(), caller, RequestPrincipal.of(request).orElse(null)))
                 .sorted(Comparator.comparing(SourceView::id))
                 .map(mapper::summary)
                 .toList();
@@ -155,7 +155,7 @@ public class SourcesController {
         Set<HealthStatus> wanted = parseAll(status, "status", HealthStatus.class, HealthStatus::fromValue);
         Optional<Set<HealthStatus>> filter = wanted.isEmpty() ? Optional.empty() : Optional.of(wanted);
         return health.all(filter).stream()
-                .filter(v -> visibility.visible(v.sourceId(), caller, RequestPrincipal.restrictionOf(request)))
+                .filter(v -> visibility.visible(v.sourceId(), caller, RequestPrincipal.of(request).orElse(null)))
                 .sorted(Comparator.comparing(v -> v.sourceId()))
                 .map(HealthMapper::health)
                 .toList();
@@ -181,7 +181,18 @@ public class SourcesController {
     public SourceDetail updateSource(
             @PathVariable String sourceId, @Valid @RequestBody SourceSettingsUpdate body) {
         SourceDescriptor descriptor = registry.descriptor(sourceId);
+        if (Boolean.FALSE.equals(body.getPrivateSource()) && descriptor.privateSource()) {
+            throw ValidationException.forField("private",
+                    "this source is private by definition; it cannot be made public");
+        }
+        if (body.getEmbed() != null && body.getEmbed()
+                && (descriptor.privateSource() || Boolean.TRUE.equals(body.getPrivateSource())
+                        || (body.getPrivateSource() == null && visibility.isPrivate(sourceId)))) {
+            throw ValidationException.forField("embed", "records of a private source are never embedded");
+        }
         sources.update(sourceId, mapper.update(body, descriptor));
+        // The operator's private tightening (prompt 039) lives in app_setting['visibility'].
+        visibility.setOperatorPrivate(sourceId, body.getPrivateSource());
         // statsEnabled and statsIncludePrivate (prompt 038) live in app_setting['stats'].
         statsSettings.update(sourceId, body.getStatsEnabled(), body.getStatsIncludePrivate());
         return detail(sourceId);
@@ -292,10 +303,10 @@ public class SourcesController {
 
     /**
      * 404 for a private source the caller may not see, exactly as for an unknown one
-     * ({@link SourceVisibilityGate}, prompt 023).
+     * ({@link SourceVisibility}, prompts 023 and 039).
      */
     private void requireVisible(String sourceId, HttpServletRequest request) {
-        if (!visibility.visible(sourceId, CurrentToken.of(request), RequestPrincipal.restrictionOf(request))) {
+        if (!visibility.visible(sourceId, CurrentToken.of(request), RequestPrincipal.of(request).orElse(null))) {
             throw NotFoundException.of("Source", sourceId);
         }
     }

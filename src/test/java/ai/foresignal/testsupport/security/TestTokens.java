@@ -23,6 +23,13 @@ public final class TestTokens {
                 TokenCreatedVia.API, null));
     }
 
+    /** A new unrestricted token of {@code scope} with the 039 private grant {@code privateAccess}. */
+    public static TokenService.CreatedToken create(TokenService tokens, String name, Scope scope,
+            boolean privateAccess) {
+        return tokens.create(new TokenService.TokenSpec(name, scope, null, TokenRestrictions.NONE, null,
+                TokenCreatedVia.API, null, privateAccess));
+    }
+
     /** {@code Bearer <plaintext>} of {@code created}. */
     public static String bearer(TokenService.CreatedToken created) {
         return "Bearer " + created.plaintext();

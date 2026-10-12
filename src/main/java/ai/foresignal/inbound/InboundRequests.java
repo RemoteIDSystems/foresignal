@@ -2,7 +2,13 @@ package ai.foresignal.inbound;
 
 import ai.foresignal.api.error.ErrorCodes;
 import ai.foresignal.api.error.ForesignalException;
+import ai.foresignal.api.error.NotFoundException;
+import ai.foresignal.inbound.format.DeviceEntityMismatchException;
 import ai.foresignal.inbound.format.FormatOptions;
+import ai.foresignal.inbound.format.NativeReply;
+import ai.foresignal.source.LocalAddresses;
+import ai.foresignal.source.spi.NormalizedRecord;
+import org.springframework.http.HttpMethod;
 import ai.foresignal.inbound.format.IngestFormat;
 import ai.foresignal.inbound.format.IngestRequest;
 import ai.foresignal.inbound.format.ParsedIngest;
@@ -40,6 +46,26 @@ import tools.jackson.databind.json.JsonMapper;
  * signature; then the source is admitted (404, {@code 409 SOURCE_DISABLED}, {@code 429}); the
  * format parses (a body it cannot read is a 400 and a health failure); and the records go to the
  * writer.
+ *
+ * <p>Prompt 039 adds, before the body is read:
+ *
+ * <ul>
+ *   <li><strong>Path keys.</strong> An {@code eik_} key carried in the path
+ *       ({@code /v1/ingest/{sourceId}/k/{key}/{format}}) needs the custom source's
+ *       {@code allowPathKey}; otherwise the answer is {@code 404} (path keys not enabled). Device keys
+ *       ({@code eid_}) are always accepted in the path.
+ *   <li><strong>Sender allowlist.</strong> A push with a path key, or by GET, from a key holder must
+ *       come from the source's {@code ingestAllowCidrs}, or from a private address (loopback,
+ *       RFC 1918, link-local, ULA) when that list is unset; otherwise {@code 403
+ *       INGEST_SOURCE_DENIED}. Admin tokens (the operator) are not checked.
+ *   <li><strong>Methods.</strong> A GET push needs a format that declares GET ({@code 405} otherwise).
+ * </ul>
+ *
+ * <p>and after parsing, for a device key, every record must belong to the key's bound entity
+ * ({@code 403 DEVICE_ENTITY_MISMATCH} otherwise): formats that read a device id from the payload
+ * already compare it ({@link IngestRequest#externalId}), and this check covers every other format.
+ * The format's {@link IngestFormat#nativeReply native reply}, if it has one, is returned with the
+ * result.
  */
 @Component
 public class InboundRequests {
@@ -65,33 +91,122 @@ public class InboundRequests {
     }
 
     /**
+     * What a format push produced.
+     *
+     * @param result the push result
+     * @param reply the reply the sending app expects, or null for the {@code IngestOutcome} JSON
+     */
+    public record Received(PushIngestService.PushResult result, NativeReply reply) {}
+
+    /**
      * Pushes {@code request}'s body into {@code sourceId} through {@code format}.
      *
      * @return the push result
      */
     public PushIngestService.PushResult push(String sourceId, IngestFormat format, HttpServletRequest request) {
+        return receive(sourceId, format, request).result();
+    }
+
+    /**
+     * Pushes {@code request} (its body, or for GET its query) into {@code sourceId} through
+     * {@code format}, with the 039 path-key, sender and device checks.
+     *
+     * @return the push result and the format's native reply
+     */
+    public Received receive(String sourceId, IngestFormat format, HttpServletRequest request) {
         IngestCaller caller = caller(request, sourceId);
-        Instant receivedAt = clock.instant();
-        byte[] body = IngestBodyReader.read(request);
-        IngestRequest ingest = ingestRequest(request, body, receivedAt);
         Optional<CustomSourceEntity> row = customSources.findById(sourceId);
+        boolean get = "GET".equalsIgnoreCase(request.getMethod());
+        if (get && !format.methods().contains(HttpMethod.GET)) {
+            throw new ForesignalException(HttpStatus.METHOD_NOT_ALLOWED, ErrorCodes.METHOD_NOT_ALLOWED,
+                    "The ingest format '" + format.id() + "' does not accept GET; use POST.");
+        }
+        boolean pathKey = IngestKeyRedactionFilter.pathKey(request) != null;
+        if (pathKey && !caller.device() && !row.map(CustomSourceEntity::isAllowPathKey).orElse(false)) {
+            throw NotFoundException.of("Path-key ingest for source", sourceId);
+        }
+        if ((pathKey || get) && !caller.admin()) {
+            checkSender(row.map(CustomSourceEntity::getIngestAllowCidrs).orElse(null), request.getRemoteAddr());
+        }
+        Instant receivedAt = clock.instant();
+        byte[] body = get ? new byte[0] : IngestBodyReader.read(request);
+        IngestRequest ingest = ingestRequest(request, body, receivedAt);
+        if (caller.device()) {
+            ingest = ingest.withBoundExternalId(caller.boundExternalId());
+        }
         verifySignature(row.orElse(null), format.id(), caller, ingest);
 
         if (loopGuard.isOwn(request, body, null, null)) {
-            return new PushIngestService.PushResult(ai.foresignal.ingest.IngestOutcome.empty(),
-                    IngestOutcomeView.of(null, 0, List.of()));
+            return new Received(new PushIngestService.PushResult(ai.foresignal.ingest.IngestOutcome.empty(),
+                    IngestOutcomeView.of(null, 0, List.of())), format.nativeReply(ParsedIngest.empty()));
         }
         String url = IngestUrls.redacted(request);
         SourceDescriptor descriptor = pushes.admit(sourceId, caller.principal(), receivedAt, url);
         ParsedIngest parsed;
         try {
             parsed = format.parse(ingest, descriptor, options(row.orElse(null), format.id()));
+            if (caller.device()) {
+                requireBound(parsed, caller.boundExternalId());
+            }
+        } catch (DeviceEntityMismatchException e) {
+            throw e;
         } catch (ForesignalException e) {
             pushes.recordFailure(sourceId, e);
             throw e;
         }
-        return pushes.submit(descriptor, new PushIngestService.PushRequest(
+        PushIngestService.PushResult result = pushes.submit(descriptor, new PushIngestService.PushRequest(
                 sourceId, caller.principal(), parsed, receivedAt, body.length, sha256(body), url));
+        return new Received(result, format.nativeReply(parsed));
+    }
+
+    /**
+     * Refuses a sender outside {@code cidrs}, or, when {@code cidrs} is null, outside the private
+     * ranges.
+     *
+     * @throws ForesignalException {@code 403 INGEST_SOURCE_DENIED}
+     */
+    public static void checkSender(List<String> cidrs, String remoteAddress) {
+        if (!senderAllowed(cidrs, remoteAddress)) {
+            throw new ForesignalException(HttpStatus.FORBIDDEN, ErrorCodes.INGEST_SOURCE_DENIED,
+                    "This sender address may not push with a key in the URL or by GET; add it to the source's"
+                            + " ingestAllowCidrs.");
+        }
+    }
+
+    /** True when {@code remoteAddress} is inside {@code cidrs} (null: a private address). */
+    public static boolean senderAllowed(List<String> cidrs, String remoteAddress) {
+        if (cidrs == null) {
+            byte[] bytes = Cidr.literal(remoteAddress);
+            if (bytes == null) {
+                return false;
+            }
+            try {
+                return LocalAddresses.isPrivate(java.net.InetAddress.getByAddress(bytes));
+            } catch (java.net.UnknownHostException e) {
+                return false;
+            }
+        }
+        for (String cidr : cidrs) {
+            if (Cidr.parse(cidr).contains(remoteAddress)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Every record of {@code parsed} must belong to {@code bound}: its externalId is the bound id, or the
+     * bound id's OwnTracks region-transition entity ({@code <bound>:transition}, kind
+     * {@code tracker-transition}), which the {@code owntracks} format keeps apart so a transition never
+     * replaces the position.
+     */
+    static void requireBound(ParsedIngest parsed, String bound) {
+        String transition = bound + ai.foresignal.inbound.formats.location.OwnTracksFormat.TRANSITION_SUFFIX;
+        for (NormalizedRecord record : parsed.records()) {
+            if (!bound.equals(record.externalId()) && !transition.equals(record.externalId())) {
+                throw new DeviceEntityMismatchException(record.externalId(), bound);
+            }
+        }
     }
 
     /**

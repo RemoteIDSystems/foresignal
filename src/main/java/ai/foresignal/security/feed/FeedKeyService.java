@@ -80,6 +80,7 @@ public class FeedKeyService implements PathKeyResolver {
     private final RestrictionValidator restrictions;
     private final SpecOperationIndex spec;
     private final Clock clock;
+    private org.springframework.context.ApplicationEventPublisher events;
     private final SecureRandom random = new SecureRandom();
 
     /** Creates the service. */
@@ -131,19 +132,20 @@ public class FeedKeyService implements PathKeyResolver {
                 // A feed key is an unauthenticated URL; places are never anonymous (prompt 036).
                 errors.add(new FieldError("restrictions.placeIds", "feed keys cannot be restricted by place"));
             }
-            if (Boolean.FALSE.equals(parsed.excludePrivate())) {
-                errors.add(new FieldError("restrictions.excludePrivate",
-                        "feed keys never read private sources until prompt 039 adds privateAccess"));
-            }
         }
         Instant expiresAt = expiresAt(body.get("expiresAt"), errors);
+        boolean grant = false;
         JsonNode privateAccess = body.get("privateAccess");
         if (privateAccess != null && !privateAccess.isNull()) {
             if (!privateAccess.isBoolean()) {
                 errors.add(new FieldError("privateAccess", "must be a boolean"));
-            } else if (privateAccess.asBoolean()) {
-                errors.add(new FieldError("privateAccess", "is not supported until prompt 039"));
+            } else {
+                grant = privateAccess.asBoolean();
             }
+        }
+        if (parsed != null && Boolean.FALSE.equals(parsed.excludePrivate()) && !grant) {
+            errors.add(new FieldError("restrictions.excludePrivate",
+                    "a feed key reads private sources only with privateAccess: true"));
         }
         if (!errors.isEmpty()) {
             throw new ValidationException(ErrorCodes.VALIDATION_FAILED, "The feed key input is not valid.", errors);
@@ -157,8 +159,9 @@ public class FeedKeyService implements PathKeyResolver {
         entity.setPrefixes(prefixes);
         entity.setExpiresAt(expiresAt);
         TokenRestrictions stored = new TokenRestrictions(parsed.sources(), parsed.kinds(), parsed.bbox(), null,
-                parsed.area(), Boolean.TRUE, parsed.maxRequestsPerMinute());
+                parsed.area(), !grant, parsed.maxRequestsPerMinute());
         entity.setRestrictions(stored);
+        entity.setPrivateAccess(grant);
         tokens.saveAndFlush(entity);
         return new CreatedKey(entity, key);
     }
@@ -181,6 +184,8 @@ public class FeedKeyService implements PathKeyResolver {
         if (entity.getRevokedAt() == null) {
             entity.setRevokedAt(clock.instant());
             tokens.saveAndFlush(entity);
+            // Its open streams lose access too (prompt 039: a revoked grant loses the stream).
+            publishAfterCommit(new ai.foresignal.security.ApiTokenRevokedEvent(id));
         }
     }
 
@@ -220,10 +225,12 @@ public class FeedKeyService implements PathKeyResolver {
             return new Gone();
         }
         tokenService.recordUse(entity.getId());
-        ReadRestriction restriction = ReadRestriction.of(entity.getRestrictions(), true).withExcludePrivate(true)
+        // A feed key hides private sources unless it was created with the 039 private grant.
+        ReadRestriction restriction = ReadRestriction.of(entity.getRestrictions(), true)
+                .withExcludePrivate(!entity.isPrivateAccess())
                 .withEndpoints(null).withExcludeSensitive(true);
         RequestPrincipal principal = new RequestPrincipal(RequestPrincipal.Kind.FEED_KEY, entity.getId(),
-                entity.getName(), Scope.READ, restriction);
+                entity.getName(), Scope.READ, restriction, entity.isPrivateAccess());
         List<String> prefixes = entity.getPrefixes() == null ? List.of() : entity.getPrefixes();
         return new Valid(principal, prefixes);
     }
@@ -335,5 +342,28 @@ public class FeedKeyService implements PathKeyResolver {
             errors.add(new FieldError("expiresAt", "must be at most 365 days ahead"));
         }
         return at;
+    }
+
+    /** Injects the event publisher used to announce revocations (prompt 039). */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setEvents(org.springframework.context.ApplicationEventPublisher events) {
+        this.events = events;
+    }
+
+    private void publishAfterCommit(Object event) {
+        if (events == null) {
+            return;
+        }
+        if (!org.springframework.transaction.support.TransactionSynchronizationManager.isSynchronizationActive()) {
+            events.publishEvent(event);
+            return;
+        }
+        org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
+                new org.springframework.transaction.support.TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        events.publishEvent(event);
+                    }
+                });
     }
 }

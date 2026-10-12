@@ -19,13 +19,25 @@ import java.util.UUID;
  * @param remoteAddress the caller's remote address
  * @param restriction the caller's read restriction (prompt 035): every topic tests its events with
  *     it at publish time, and filters parsed for this principal (including PATCHes) keep it
+ * @param privateAccess the 039 private grant of the token or feed key behind the stream
  */
-public record StreamPrincipal(String id, Scope scope, String remoteAddress, ReadRestriction restriction) {
+public record StreamPrincipal(String id, Scope scope, String remoteAddress, ReadRestriction restriction,
+        boolean privateAccess) {
 
     /** Requires an id; a null restriction becomes {@link ReadRestriction#NONE}. */
     public StreamPrincipal {
         Objects.requireNonNull(id, "id");
         restriction = restriction == null ? ReadRestriction.NONE : restriction;
+    }
+
+    /** A principal without the private grant (the shape before prompt 039). */
+    public StreamPrincipal(String id, Scope scope, String remoteAddress, ReadRestriction restriction) {
+        this(id, scope, remoteAddress, restriction, false);
+    }
+
+    /** This principal with the private grant {@code granted}. */
+    public StreamPrincipal withPrivateAccess(boolean granted) {
+        return new StreamPrincipal(id, scope, remoteAddress, restriction, granted);
     }
 
     /** An unrestricted principal (the shape before prompt 035). */
@@ -35,7 +47,7 @@ public record StreamPrincipal(String id, Scope scope, String remoteAddress, Read
 
     /** This principal under {@code r}. */
     public StreamPrincipal withRestriction(ReadRestriction r) {
-        return new StreamPrincipal(id, scope, remoteAddress, r);
+        return new StreamPrincipal(id, scope, remoteAddress, r, privateAccess);
     }
 
     /** An anonymous caller from {@code remoteAddress}. */

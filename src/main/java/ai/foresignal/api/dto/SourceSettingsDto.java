@@ -22,6 +22,8 @@ import java.util.Map;
  *     (read-only)
  * @param statsEnabled whether the source is included in activity rollups (prompt 038; default true)
  * @param statsIncludePrivate whether a private source is rolled up anyway (prompt 038; default false)
+ * @param privateSource {@code private}: the effective privacy (prompt 039), true when the descriptor is
+ *     private or the operator tightened it; a private source is never embedded ({@code embed} false)
  */
 public record SourceSettingsDto(
         boolean enabled,
@@ -36,4 +38,5 @@ public record SourceSettingsDto(
         IngestPolicyDto effectiveIngestPolicy,
         Duration effectiveRetention,
         boolean statsEnabled,
-        boolean statsIncludePrivate) {}
+        boolean statsIncludePrivate,
+        @com.fasterxml.jackson.annotation.JsonProperty("private") boolean privateSource) {}

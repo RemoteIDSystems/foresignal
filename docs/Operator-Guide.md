@@ -1609,6 +1609,176 @@ query of type JSON, URL `http://foresignal.local:8080/v1/stats/timeseries?bucket
 an `Authorization: Bearer …` header, root selector `series`, and columns `key` (string) and
 `points` expanded to `t` (time) and `value` (number).
 
+## Personal location and privacy
+
+Prompt 039 makes it safe to feed family phones and personal trackers into Foresignal. A **private**
+source is invisible on every read and egress path unless the caller is explicitly allowed; the four
+common tracker apps push without glue; each phone gets a key that can write only its own entity; and
+any single entity can be exported or erased.
+
+### Create a personal-location source
+
+```http
+POST /v1/custom-sources
+{"id": "custom-family", "name": "Family phones", "profile": "personal-location"}
+```
+
+The `personal-location` profile fills in what the request leaves out:
+
+- `private: true`. It cannot be unset: `"private": false` with this profile is a 400.
+- STANDARD history tier, kinds `tracker` (fixes) and `tracker-transition` (OwnTracks region events).
+- `observedAtMode: UPSTREAM`, `ttlAnchor: OBSERVED`, `recordTtl: 24h`, default retention 7 days.
+- Ingest policy SAMPLED: `minInterval` 30 s, keyframe 10 min, `minDeviation` 50 m,
+  `significantFields: [motion, charging]`.
+- No embedding (`embedFields` are refused) and no enrichment (the private gate below).
+- No precision cap: the stored coordinates keep 7 decimals. It is your own data; set
+  `privatePrecisionDecimals` yourself if you want the 008 cap.
+- Field specs `speedMs` (m/s), `courseDeg` (deg), `altitudeM` (m), `battery` (%), `charging`, `motion`.
+
+Explicit members win over the profile, except `private`.
+
+### One key per phone
+
+```http
+POST /v1/custom-sources/custom-family/devices
+{"externalId": "alex-phone", "name": "Alex's phone"}
+```
+
+The answer carries the device key (`eid_…`) **once**, plus ready-made settings for each app under
+`setup`, all built from the `server` setting's `publicBaseUrl` (set it to the address the phones
+reach). A device key:
+
+- authenticates only for its source, and forces every record it pushes to its bound `externalId`. A
+  payload that names another device (`id`, `deviceid`, `device_id`, `dev`) is refused with
+  `403 DEVICE_ENTITY_MISMATCH` and nothing is written;
+- is accepted as `X-Foresignal-Ingest-Key`, `Authorization: Bearer`, the Basic-auth password (any
+  username), or in the path: `/v1/ingest/{sourceId}/k/{key}/{format}`;
+- stops working the moment it is revoked (`DELETE …/devices/{deviceId}`) or rotated
+  (`POST …/devices/{deviceId}/key/rotate`, which returns the new key and setup once). The device's
+  records stay until retention removes them or you purge them.
+
+`GET /v1/custom-sources/{id}/devices` lists the devices with their key prefix and `lastSeenAt`; key
+values are never shown again.
+
+### App setup
+
+| App | Setting | Value |
+|---|---|---|
+| OwnTracks (HTTP mode) | Import `setup.owntracks` as a `.otrc` file, or set Mode HTTP, URL `<base>/v1/ingest/<source>/owntracks`, Authentication on, any username, password = the device key | Foresignal replies `200 []` |
+| Overland (iOS) | Receiver endpoint `setup.overland.endpoint`, access token `setup.overland.token` (sent as `Authorization: Bearer`) | Foresignal replies `{"result":"ok"}` even when some points are rejected (rejections are counted, not retried) |
+| Traccar Client, OsmAnd | Server URL `setup.traccar.serverUrl` (`<base>/v1/ingest/<source>/k/<key>/osmand`); query, form or JSON bodies are all read | `200` with an empty body |
+| GPSLogger (Android) | Log to custom URL: `setup.gpslogger.urlTemplate`, method GET (POST with a form or JSON body works too; Basic or Bearer auth instead of the path key is accepted) | `200` |
+
+The GPSLogger template is
+`lat=%LAT&lon=%LON&time=%TIME&acc=%ACC&alt=%ALT&spd=%SPD&dir=%DIR&batt=%BATT&dev=%SER`; parameter names
+are read case-insensitively. Check the placeholders against the app's own Parameters screen (in the
+custom URL settings): its website names only `%LAT`, `%LON`, `%TIME`, `%SAT`, `%ACC` and `%ALL`, and
+the full list lives in the app. Foresignal reads `spd` as m/s.
+
+OwnTracks region events (`_type=transition`) become a separate `tracker-transition` record whose
+externalId is the phone's plus `:transition`, so an event never replaces the position.
+
+Every fix maps to kind `tracker` with `speedMs`, `courseDeg`, `altitudeM`, `battery`, `charging`,
+`motion` and `quality.accuracyMeters`. Units are normalized: OwnTracks `vel` is km/h, OsmAnd query
+`speed` is knots, everything else is m/s.
+
+- **Accuracy filter:** a fix whose accuracy is worse than `maxAccuracyMeters` (a format option under
+  `formats.<format>`, default 200 m) is rejected with reason `LOW_ACCURACY`. Fixes with `valid=false`
+  (`INVALID_FIX`) and exact (0, 0) (`NULL_ISLAND`) are rejected too. Overland's `wifi` name is dropped
+  unless `formats.overland.keepWifi` is true.
+- **OwnTracks encryption** is not supported: encrypted payloads are acknowledged with `[]`, dropped
+  and counted, and the source's health shows "OwnTracks payload encryption is not supported; disable
+  it".
+- **Path keys and GET.** A key in the path, a key in the query or a GET push is accepted only from
+  the addresses in the source's `ingestAllowCidrs`, or, when that is unset, from private addresses
+  (loopback, RFC 1918, link-local, ULA); anything else is `403 INGEST_SOURCE_DENIED`. A phone on
+  mobile data reaching you through a VPN (WireGuard, Tailscale) arrives from a private address; for a
+  public reverse proxy, list its address range. The source ingest key (`eik_`) is accepted in the
+  path only with `allowPathKey: true` (otherwise `404`); device keys always are.
+
+### Logs and reverse proxies
+
+Foresignal never logs a query string or a path that carries a key: `/k/{key}/` is rewritten to
+`/k/redacted/` before anything (the token filter, problem documents, the fetch log, the access log)
+sees it, and `key=`, `auth=` and `token=` query values are redacted. Do the same in front of it:
+
+- never log `$request_uri` or the query string for `/v1/ingest/*/k/*` or anything carrying `key=`,
+  `auth=` or `token=`;
+- log the path with the `/k/[^/]+/` segment rewritten (nginx: a `map $uri` to `/k/redacted/`), or
+  turn access logging off for `/v1/ingest/`;
+- never log the `Authorization` or `X-Foresignal-Ingest-Key` headers.
+
+### What `private` hides, and from whom
+
+A source is private when its descriptor says so (built-in TAK, Home Assistant and mail sources,
+`CustomSourceInput.private`, an EDP manifest's `private`) or when you tighten it with
+`PUT /v1/sources/{id} {"private": true}`. You can make any source private, never a descriptor-private
+source public (`"private": false` is a 400).
+
+Private sources are visible only to:
+
+- `admin` tokens;
+- `read` and `agent` tokens, feed keys and pairing codes created with `privateAccess: true` (tickets
+  inherit their token's grant). An `agent` token **without** the grant no longer sees them;
+- never to anonymous callers, whatever `openReads` says.
+
+For everyone else a private source does not exist:
+
+| Path | Behavior for a caller without access |
+|---|---|
+| `/v1/records` (list, get, versions, track, asOf, `count=true`), `/v1/history`, `/v1/history/frames`, `/v1/timeline`, `/v1/changes`, `/v1/kinds` counts | absent from lists and counts; a direct read is `404`, never `403` |
+| `/v1/sources` | absent; `GET /v1/sources/{id}` is `404` |
+| Tiles | kind layers leave private sources out; a private source layer is `404`; TileJSON and the layer index omit them. A tile or TileJSON that can contain private data is sent `Cache-Control: private` only |
+| SSE (`/v1/changes/stream`, `/v1/events/stream`, alerts, inbox) | filtered per client at the hub; revoking the token or feed key sends `reset` (reason `revoked`) and ends its streams |
+| Search | text search leaves them out; they are never embedded (`embed` is forced off and existing embedding rows are deleted when a source becomes private) |
+| MCP | every tool filters per token with the same rule |
+| Alerts | alerts on private records (snapshot included) are hidden; see notifications below |
+| Stats, glance, metrics | rollups skip private sources unless `statsIncludePrivate`; glance hides their alerts; metric projections need `allowPrivate` and a caller with access |
+
+Every private-data read by a non-admin principal (a token or feed key holding the grant) is written to
+the audit log (`targetType: private_read`), as is every export and purge.
+
+### Notifications
+
+A notification about a private-source alert carries only the rule name, the severity and a link,
+unless the channel has `config.privatePayload: true` (an admin opt-in per channel). Web Push, APNs and
+FCM payloads never carry it, whatever the channel says, because they cross third-party push services;
+the app fetches the details over its own authenticated connection.
+
+### LLM egress
+
+Private records are never placed in a prompt for a provider classified as remote. A provider counts
+as local only when it is Ollama or flagged `options.local` **and** its base URL resolves only to
+loopback or private addresses. Even then, private records are included only when
+`PUT /v1/settings/llm {"allowPrivateLocal": true}` (default false). This covers Ask, briefings and
+alert enrichment; enrichment of an alert on a private record is skipped unless both conditions hold.
+
+### Export and erase one entity
+
+```http
+GET /v1/records/custom-family/alex-phone/export?format=gpx       # or geojson, ndjson (admin)
+POST /v1/records/custom-family/alex-phone/purge {"purgeAlerts": false}   # admin
+POST /v1/custom-sources/custom-family/devices/{deviceId}/purge             # purge + revoke the key
+```
+
+- The export streams the current state, every retained version (with observers), the alerts that
+  reference the entity and a manifest with counts and a SHA-256 of everything before it. GPX writes a
+  `trk` for kind `tracker`.
+- A purge writes a tombstone (qa flag `PURGED`, its change carries `purged: true` so SSE clients,
+  `/v1/changes` readers and offline caches delete the entity), deletes every older version on both
+  tiers, then deletes the entity's embeddings, redacts referencing alerts (`{"redacted": true}`; or
+  deletes them with `purgeAlerts: true`), redacts stored notification bodies and drops its metric
+  series. Ask messages and briefing runs that cite the entity are counted in the report, not edited.
+  The head disappears with a later retention pass.
+- **Messages already delivered to external channels (email, chat, push) cannot be recalled.**
+
+### A note on data-protection law
+
+Tracking your own and your household's devices on hardware you control is the kind of purely personal
+or household activity that the EU GDPR (Article 2(2)(c)) and similar laws place outside their scope.
+That exemption may not cover tracking people outside your household, or sharing the data further. This
+is not legal advice: check the rules that apply to you, and get consent from the people you track.
+
 ## Retention
 
 `GET /v1/settings/retention` shows every window; `PUT` replaces the whole object (every window at

@@ -16,8 +16,8 @@ import tools.jackson.databind.JsonNode;
  * @param enrichmentEnabled whether alert enrichment runs (030)
  * @param logContent whether prompt and response bodies are logged (at DEBUG); metadata is always logged
  * @param askMaxTokens the token cap of one Ask tool loop (028), at least 1000
- * @param allowPrivateLocal reserved for prompt 039 (private-source records in prompts for local
- *     providers); 026 accepts only false
+ * @param allowPrivateLocal private-source records may be placed in prompts for providers classified
+ *     as local (prompt 039; default false); never for remote providers
  */
 public record LlmSettings(String chatProvider, String embeddingProvider, boolean askEnabled,
         boolean enrichmentEnabled, boolean logContent, int askMaxTokens, boolean allowPrivateLocal) {
@@ -68,14 +68,10 @@ public record LlmSettings(String chatProvider, String embeddingProvider, boolean
                 askMaxTokens = max.asInt();
             }
         }
-        if (allowPrivateLocal) {
-            errors.add(new FieldError("allowPrivateLocal",
-                    "arrives with prompt 039 (private sources); until then only false is accepted"));
-        }
         if (!errors.isEmpty()) {
             throw new ValidationException("The LLM settings are not valid.", errors);
         }
-        return new LlmSettings(chat, embedding, ask, enrichment, logContent, askMaxTokens, false);
+        return new LlmSettings(chat, embedding, ask, enrichment, logContent, askMaxTokens, allowPrivateLocal);
     }
 
     private static String optionalString(JsonNode body, String name, List<FieldError> errors) {

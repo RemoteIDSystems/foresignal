@@ -476,4 +476,25 @@ class AccessPolicyTest {
         assertThat(AccessRequirement.OPEN.alwaysAuthenticated()).isFalse();
         assertThat(AccessRequirement.INGEST_KEY_OR_ADMIN.alwaysAuthenticated()).isFalse();
     }
+
+    @Test
+    @DisplayName("039: GET pushes and key-in-path ingest take an ingest key; export, purge and devices are admin")
+    void privateSourcesAndPersonalLocation() {
+        assertThat(requirement("GET", "/v1/ingest/custom-x/osmand")).isEqualTo(AccessRequirement.INGEST_KEY_OR_ADMIN);
+        assertThat(requirement("GET", "/v1/ingest/custom-x/k/eid_abc/osmand"))
+                .isEqualTo(AccessRequirement.INGEST_KEY_OR_ADMIN);
+        assertThat(requirement("POST", "/v1/ingest/custom-x/k/eid_abc/osmand"))
+                .isEqualTo(AccessRequirement.INGEST_KEY_OR_ADMIN);
+        assertScope("GET", "/v1/ingest/formats", Scope.ADMIN);
+        assertScope("GET", "/v1/records/s/e/export", Scope.ADMIN);
+        assertScope("POST", "/v1/records/s/e/purge", Scope.ADMIN);
+        assertScope("GET", "/v1/records/s/e", Scope.READ);
+        assertScope("GET", "/v1/custom-sources/custom-x/devices", Scope.ADMIN);
+        assertScope("POST", "/v1/custom-sources/custom-x/devices", Scope.ADMIN);
+        assertScope("DELETE", "/v1/custom-sources/custom-x/devices/0b6f2c1e-0000-4000-8000-000000000001", Scope.ADMIN);
+        assertScope("POST", "/v1/custom-sources/custom-x/devices/0b6f2c1e-0000-4000-8000-000000000001/key/rotate",
+                Scope.ADMIN);
+        assertScope("POST", "/v1/custom-sources/custom-x/devices/0b6f2c1e-0000-4000-8000-000000000001/purge",
+                Scope.ADMIN);
+    }
 }

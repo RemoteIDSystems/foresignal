@@ -187,8 +187,12 @@ class LlmControllersIT extends WireMockSupport {
         send(put("/v1/llm/settings"), "{'embeddingProvider':'ollama'}").andExpect(status().isOk());
         mvc.perform(auth(delete("/v1/llm/providers/claude"))).andExpect(status().isNoContent());
 
-        send(put("/v1/llm/settings"), "{'allowPrivateLocal':true}").andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errors[0].message", containsString("039")));
+        // Prompt 039: allowPrivateLocal is accepted and stored; a non-boolean is still refused.
+        send(put("/v1/llm/settings"), "{'allowPrivateLocal':true}").andExpect(status().isOk())
+                .andExpect(jsonPath("$.allowPrivateLocal", is(true)));
+        send(put("/v1/llm/settings"), "{'allowPrivateLocal':'yes'}").andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].field", is("allowPrivateLocal")));
+        send(put("/v1/llm/settings"), "{'allowPrivateLocal':false}").andExpect(status().isOk());
     }
 
     @Test

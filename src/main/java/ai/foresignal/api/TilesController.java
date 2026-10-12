@@ -59,6 +59,11 @@ import tools.jackson.databind.json.JsonMapper;
 @Tag(name = "Tiles")
 public class TilesController {
 
+    /** The shared private-source visibility (prompt 039); null only in hand-built unit tests. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ai.foresignal.security.visibility.SourceVisibility visibility;
+
+
     /** The Mapbox Vector Tile media type. */
     public static final MediaType MVT = MediaType.parseMediaType("application/vnd.mapbox-vector-tile");
 
@@ -156,7 +161,8 @@ public class TilesController {
 
         String etag = ETags.forBytes(result.mvt());
         Duration maxAge = result.shape().aggregated() ? properties.aggMaxAge() : properties.rawMaxAge();
-        HttpHeaders headers = headers(etag, caller.publicCache(), maxAge);
+        // A tile that may hold private data is never publicly cacheable (prompt 039).
+        HttpHeaders headers = headers(etag, caller.publicCache() && !hasPrivate(resolved), maxAge);
         if (result.truncated()) {
             headers.set(TRUNCATED_HEADER, "true");
         }
@@ -175,7 +181,7 @@ public class TilesController {
         boolean immutable = TimeTravelCache.immutable(at.instant(), clock.instant(), plan.horizon(), asOf.settled(plan));
         HttpHeaders headers = new HttpHeaders();
         headers.setETag(etag);
-        headers.setCacheControl(TimeTravelCache.cacheControl(immutable, publicAsOf(caller, layer)));
+        headers.setCacheControl(TimeTravelCache.cacheControl(immutable, publicAsOf(caller, layer) && !hasPrivate(layer)));
         headers.set(HttpHeaders.VARY, VARY);
         headers.set(AS_OF_HEADER, at.canonical());
         headers.set(AS_OF_SEQ_HEADER, Long.toString(plan.s()));
@@ -195,6 +201,29 @@ public class TilesController {
      */
     public static boolean publicAsOf(ReadCaller caller, TileLayer layer) {
         return caller.publicCache() && layer.sources().stream().noneMatch(SourceDescriptor::privateSource);
+    }
+
+    /**
+     * True when {@code layer} includes a private source (descriptor flag or the operator's tightening,
+     * prompt 039); such a tile is served with {@code Cache-Control: private} only.
+     */
+    boolean hasPrivate(TileLayer layer) {
+        if (visibility == null) {
+            return layer.sources().stream().anyMatch(SourceDescriptor::privateSource);
+        }
+        return layer.sources().stream().anyMatch(d -> visibility.isPrivate(d.id()));
+    }
+
+    /**
+     * True when {@code caller} can see at least one private source, so documents listing layers
+     * (TileJSON, the layer index) must not be publicly cached (prompt 039).
+     */
+    boolean seesPrivate(ReadCaller caller) {
+        if (visibility == null) {
+            return false;
+        }
+        Set<String> all = visibility.privateSourceIds();
+        return !all.isEmpty() && !callers.excludedSources(caller).containsAll(all);
     }
 
     /** {@code 301} to the canonical {@code asOf} spelling. */
@@ -297,7 +326,7 @@ public class TilesController {
     private ResponseEntity<String> document(Map<String, Object> body, ReadCaller caller, String ifNoneMatch) {
         String text = json.writeValueAsString(body);
         String etag = ETags.forDocument(text);
-        HttpHeaders headers = headers(etag, caller.publicCache(), TILEJSON_MAX_AGE);
+        HttpHeaders headers = headers(etag, caller.publicCache() && !seesPrivate(caller), TILEJSON_MAX_AGE);
         if (ETags.matches(ifNoneMatch, etag)) {
             return ResponseEntity.status(304).headers(headers).build();
         }

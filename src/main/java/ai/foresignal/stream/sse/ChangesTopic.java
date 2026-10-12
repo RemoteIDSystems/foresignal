@@ -2,8 +2,8 @@ package ai.foresignal.stream.sse;
 
 import ai.foresignal.api.support.ReadCallerResolver;
 
-import ai.foresignal.security.SourceVisibilityGate;
 import ai.foresignal.security.TokenRestrictions;
+import ai.foresignal.security.visibility.SourceVisibility;
 import ai.foresignal.api.error.ErrorCodes;
 import ai.foresignal.api.error.FieldError;
 import ai.foresignal.api.error.ForesignalException;
@@ -103,6 +103,7 @@ public class ChangesTopic implements EventTopic<ChangeFilter>, ChangeListener, L
     private final LiveBus liveBus;
     private final RetentionState retention;
     private final SourceRegistry registry;
+    private volatile SourceVisibility visibility;
     private final ApiProperties properties;
     private final org.springframework.beans.factory.ObjectProvider<ReadScopes> scopes;
     private final tools.jackson.databind.json.JsonMapper json = tools.jackson.databind.json.JsonMapper.builder().build();
@@ -253,11 +254,12 @@ public class ChangesTopic implements EventTopic<ChangeFilter>, ChangeListener, L
         }
     }
 
-    /** Private sources the caller may not see: all of them unless it holds an agent or admin token. */
+    /** Private sources the caller may not see: all of them unless it is admin or holds the private grant. */
     Set<String> excludedSources(StreamPrincipal principal) {
-        // Private sources: agent and admin tokens only (SourceVisibilityGate, prompt 023).
-        return ReadCallerResolver.withRestriction(registry,
-                SourceVisibilityGate.excludedSources(registry, principal.scope(), TokenRestrictions.NONE),
+        // Private sources: admin, or a token or feed key with the private grant (prompt 039).
+        SourceVisibility v = visibility();
+        return ai.foresignal.api.support.ReadCallerResolver.withRestriction(registry, v,
+                v.hiddenFor(principal.scope(), principal.privateAccess(), TokenRestrictions.NONE),
                 principal.restriction());
     }
 
@@ -504,5 +506,21 @@ public class ChangesTopic implements EventTopic<ChangeFilter>, ChangeListener, L
             throw ValidationException.forField(prefix + field, "must be true or false");
         }
         return node.asBoolean();
+    }
+
+    /** Injects the shared private-source visibility (prompt 039). */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setVisibility(SourceVisibility visibility) {
+        this.visibility = visibility;
+    }
+
+    /** The visibility in force: the injected bean, or one over the registry alone (unit tests). */
+    private SourceVisibility visibility() {
+        SourceVisibility v = visibility;
+        if (v == null) {
+            v = new SourceVisibility(registry, null, null);
+            visibility = v;
+        }
+        return v;
     }
 }

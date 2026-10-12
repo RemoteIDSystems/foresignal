@@ -251,6 +251,25 @@ class SourceMapperTest {
     }
 
     @Test
+    @DisplayName("039: settings.private is the effective privacy; a private source shows embed false")
+    @SuppressWarnings("unchecked")
+    void settingsPrivate() {
+        SourceSettingsDto open =
+                mapper.settings(view(STANDARD, IngestPolicy.all()), Optional.empty(), Optional.empty(), Optional.empty());
+        assertThat(open.privateSource()).isFalse();
+        when(appSettings.getOrDefault(eq(SettingKeys.VISIBILITY),
+                eq(ai.foresignal.security.visibility.VisibilitySettings.class), any(Supplier.class)))
+                .thenReturn(ai.foresignal.security.visibility.VisibilitySettings.defaults().with(STANDARD.id(), true));
+        SourceSettingsDto tightened =
+                mapper.settings(view(STANDARD, IngestPolicy.all()), Optional.empty(), Optional.empty(), Optional.empty());
+        assertThat(tightened.privateSource()).isTrue();
+        assertThat(tightened.embed()).isFalse();
+        JsonNode tree = json.valueToTree(tightened);
+        assertThat(tree.get("private").asBoolean()).isTrue();
+        assertThat(tree.has("privateSource")).isFalse();
+    }
+
+    @Test
     @DisplayName("unreadable retention settings fall back to the shipped defaults")
     @SuppressWarnings("unchecked")
     void retentionSettingsFailure() {

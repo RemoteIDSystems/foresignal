@@ -34,7 +34,7 @@ import org.springframework.test.web.servlet.MockMvc;
 /**
  * {@code GET /v1/metrics} and {@code /v1/settings/metrics} over HTTP (prompt 038): the exposition
  * parses as the Prometheus text format (and OpenMetrics on request), projected series never appear on
- * {@code /actuator/prometheus}, private sources follow the 023 gate, and the endpoint needs the
+ * {@code /actuator/prometheus}, private sources follow the 039 gate (admin or the private grant), and the endpoint needs the
  * {@code read} scope (401 without a token once {@code openReads} is off).
  */
 @IntegrationTest
@@ -52,12 +52,14 @@ class MetricsEndpointIT extends StatsItSupport {
     String admin;
     String reader;
     String agent;
+    String privateAgent;
 
     @BeforeEach
     void setUp() throws Exception {
         admin = TestTokens.bearer(TestTokens.create(tokens, "metrics-admin", Scope.ADMIN));
         reader = TestTokens.bearer(TestTokens.create(tokens, "metrics-reader", Scope.READ));
         agent = TestTokens.bearer(TestTokens.create(tokens, "metrics-agent", Scope.AGENT));
+        privateAgent = TestTokens.bearer(TestTokens.create(tokens, "metrics-private-agent", Scope.AGENT, true));
         seed(POINTS, T0, point("q1", POINT_KIND, 10, 50, T0, 4.5));
         seed(SECRET, T0, point("s1", SECRET_KIND, 10, 50, T0, 9));
         mvc.perform(put("/v1/settings/metrics").header(HttpHeaders.AUTHORIZATION, admin)
@@ -107,7 +109,10 @@ class MetricsEndpointIT extends StatsItSupport {
             }
         }
         assertThat(body).as("private series need the private gate").doesNotContain("secret_value");
-        assertThat(scrape(agent, null)).contains("foresignal_data_secret_value");
+        // Prompt 039: the private grant (or admin) is needed; a plain agent token no longer passes.
+        assertThat(scrape(agent, null)).doesNotContain("secret_value");
+        assertThat(scrape(privateAgent, null)).contains("foresignal_data_secret_value");
+        assertThat(scrape(admin, null)).contains("foresignal_data_secret_value");
     }
 
     @Test

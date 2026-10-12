@@ -75,6 +75,8 @@ public abstract class AskItSupport {
     protected String reader;
     protected String agent;
     protected String otherAgent;
+    /** An agent token with the 039 private grant ({@code privateAccess}). */
+    protected String privateAgent;
     protected String admin;
     protected TriggerFixture fixture;
 
@@ -88,6 +90,7 @@ public abstract class AskItSupport {
         reader = TestTokens.bearer(TestTokens.create(tokens, "ask-reader", Scope.READ));
         agent = TestTokens.bearer(TestTokens.create(tokens, "ask-agent", Scope.AGENT));
         otherAgent = TestTokens.bearer(TestTokens.create(tokens, "ask-other", Scope.AGENT));
+        privateAgent = TestTokens.bearer(TestTokens.create(tokens, "ask-private-agent", Scope.AGENT, true));
         admin = "Bearer " + adminTokens.rotate();
         fixture = new TriggerFixture(rules, engine, changeBus, alertStore, alertBus);
         provider(CHAT, "openai-compatible", 1_000_000L);
@@ -101,16 +104,25 @@ public abstract class AskItSupport {
         settings.put(SettingKeys.SECURITY, SecuritySettings.defaults());
     }
 
-    /** Creates a chat provider: {@code openai-compatible} (not local) or {@code ollama} (local). */
+    /**
+     * Creates a chat provider: {@code openai-compatible} (not local) or {@code ollama} (local, on a loopback
+     * literal so prompt 039's LAN classification holds without DNS).
+     */
     protected void provider(String id, String type, long tokensPerDay) {
-        String baseUrl = "ollama".equals(type) ? "" : ",\"baseUrl\":\"http://llm.test\"";
+        String baseUrl = "ollama".equals(type) ? ",\"baseUrl\":\"http://127.0.0.1:11434\""
+                : ",\"baseUrl\":\"http://llm.test\"";
         providers.create(JSON.readTree("{\"id\":\"" + id + "\",\"type\":\"" + type + "\"" + baseUrl
                 + ",\"chatModel\":\"fake-chat\",\"requestsPerMinute\":1000,\"tokensPerDay\":" + tokensPerDay + "}"));
     }
 
     /** Assigns {@code id} as the chat provider with Ask enabled. */
     protected void assign(String id) {
-        llmSettings.update(new LlmSettings(id, null, true, true, false, 200_000, false));
+        assign(id, false);
+    }
+
+    /** Assigns {@code id} as the chat provider with Ask enabled and {@code allowPrivateLocal} (prompt 039). */
+    protected void assign(String id, boolean allowPrivateLocal) {
+        llmSettings.update(new LlmSettings(id, null, true, true, false, 200_000, allowPrivateLocal));
     }
 
     /** The fake of the assigned non-local provider. */

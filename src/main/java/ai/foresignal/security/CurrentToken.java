@@ -46,6 +46,11 @@ public record CurrentToken(AuthenticatedToken token, boolean viaTicket) {
         return token.restrictions();
     }
 
+    /** True when the token holds the 039 private grant. */
+    public boolean privateAccess() {
+        return token.privateAccess();
+    }
+
     /** The reported device, or null. */
     public DeviceInfo device() {
         return token.device();

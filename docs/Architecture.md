@@ -272,6 +272,12 @@ Unchanged records are dropped silently; the run still counts as a success with `
 
 `record_seq` is a Postgres sequence created by Hibernate (`@SequenceGenerator(sequenceName = "record_seq", allocationSize = 1)`, so the DB sequence increments by 1). `RecordVersion` is `@Immutable`; Hibernate never inserts it. The writer allocates a block per batch with `SELECT nextval('record_seq') FROM generate_series(1, :n)`. With one writer, values are monotonic in commit order. Gaps from rolled-back transactions are harmless because readers only use `seq` as a "greater than" cursor.
 
+### 6.4 EntityPurge (039)
+
+A third writer command joins `IngestBatch` and `HeadPurge`: `EntityPurge(sourceId, externalId, future)`, submitted by `POST /v1/records/{sourceId}/{externalId}/purge` (admin), `purgeDevice` and the MCP `purge_entity` tool. On the writer thread, in one transaction, it locks the head (none → not found), allocates one seq, writes a `fetch_log` row and a tombstone version (`persist_reason` TOMBSTONE, qa flag 32 `PURGED`, empty payload, `observed_at` never earlier than the entity's last), deletes every older version of the entity (`DELETE … WHERE source_id = ? AND external_id = ? AND seq < :tombstoneSeq`, a bounded single-entity delete on the `(source_id, external_id, seq)` index of both tiers), and sets the head and live rows to the tombstone state. After commit its change is published with `purged: true` (SSE `change`, `/v1/changes`), so clients and offline caches delete the entity; a later `HeadPurge` removes the head under I7. I1 and I9 hold: only the writer touches these tables, with native SQL.
+
+A `PurgeFanout` then runs, each step in its own transaction: embedding rows deleted, referencing alerts redacted (`{"redacted": true}`) or deleted (`purgeAlerts`), stored notification bodies redacted, region rows (040) and metric series dropped, and Ask messages and briefing runs that cite the entity counted (not edited). Messages already delivered to external channels cannot be recalled.
+
 ## 7. Data model
 
 Hibernate generates the tables from entities. Indexes that JPA cannot express (GiST, partial) are created by `SchemaBootstrap` (§7.3).
@@ -565,6 +571,18 @@ Profiles:
 Link-local, metadata (169.254.169.254, fd00:ec2::254, 100.100.100.200), unspecified, multicast, broadcast, documentation, reserved and the other not-forwardable blocks are refused in every profile. Admin overrides in `app_setting['outbound']` (`allowHosts`, `allowCidrs`, `denyHosts`, `denyCidrs`; `GET/PUT /v1/settings/outbound`) apply everywhere: deny wins, and allow never unblocks the always-blocked set.
 
 Senders connect to the checked address with the original `Host` and TLS name and never follow redirects. `PinnedHttp` does this for channels and the LLM clients (including the Anthropic SDK, through a replaced transport), `PushHttp` for Web Push, `UpstreamClient` for `LAN_URL`, and `EdpHttpClient` for EDP providers, which re-checks each of at most 3 same-host redirects. SMTP, the FCM token endpoint and the watchdog check just before connecting and rely on the JVM DNS cache. With a JVM or environment HTTP proxy configured, `LAN_ONLY` is refused and a startup warning says address checks are bypassed for proxied requests. New features that take an operator URL (generic feeds, dataset-by-URL, kits) must use this policy (Adapter Guide §12).
+
+### 15.4 Private sources and visibility (039)
+
+`ai.foresignal.security.visibility.SourceVisibility` decides which sources are private: the descriptor's `private` flag (008; a custom source's `CustomSourceInput.private` and an EDP manifest's flag become it) **or** the operator's tightening (`SourceSettings.private`, stored in `app_setting['visibility']`). The set is cached and refreshed on registry and setting events; a source that becomes private raises `SourceBecamePrivateEvent`, and its embedding rows are deleted.
+
+Who sees private sources (`SourceVisibility.canSeePrivate`): an `admin` token always; a `read` or `agent` token, a feed key or a ticket only when created with `privateAccess` (`api_token.private_access`, also on pairing codes); anonymous callers never. A token's own source restriction still applies. `PrivateFilter` is the one per-caller exclusion every query builder applies (as the excluded-source set they take, or as SQL); a direct read of a hidden record is `404`.
+
+`ai.foresignal.security.EgressPolicy` is the single egress decision (Conventions). Built on `SourceVisibility`, it gives the read paths their hidden set (`hiddenSources`, `privateFilter`), refuses embedding of private sources (`allowsEmbedding`), keeps private records out of LLM prompts unless the provider is local (Ollama or `options.local`, base URL under 035's `LAN_ONLY` profile) and `llm.allowPrivateLocal` is on, strips private payloads from notifications unless the channel has `privatePayload: true` and always from Web Push, APNs and FCM, and offers the hook for later paths:
+
+`EgressPolicy.allows(EgressPath path, String sourceId, Viewer viewer)` with `EgressPath` = `EXPORT`, `SINK`, `FEDERATION`, `SHARE`, `FEED`. A public source always may leave; a private one only for a viewer that can see private sources, and never on `FEDERATION`. **Prompts 058 (feeds), 110 (sinks), 111 (exports), 112 (share links) and 113 (federation) must call it** for every record they send; 062 (`LOCAL_ONLY`) and 109 (licence policy) extend the same method.
+
+SSE clients are filtered at the hub per principal (the grant travels on `StreamPrincipal`); revoking a token or feed key sends `reset` (`reason: revoked`) and closes its streams. Private-data reads by non-admin principals, exports and purges are audited.
 
 ## 16. Inbound webhooks and custom push sources
 

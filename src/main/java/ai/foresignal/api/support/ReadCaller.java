@@ -10,12 +10,24 @@ import ai.foresignal.security.restrict.ReadRestriction;
  * @param exposeObserver the {@code security.exposeObserver} setting
  * @param openReads the {@code security.openReads} setting (drives {@code Cache-Control})
  * @param restriction the caller's effective read restriction (prompt 035; never null)
+ * @param privateAccess the 039 private grant of the caller's token or feed key (false when anonymous)
  */
-public record ReadCaller(Scope scope, boolean exposeObserver, boolean openReads, ReadRestriction restriction) {
+public record ReadCaller(Scope scope, boolean exposeObserver, boolean openReads, ReadRestriction restriction,
+        boolean privateAccess) {
 
-    /** A null restriction becomes {@link ReadRestriction#NONE}. */
+    /** A null restriction becomes {@link ReadRestriction#NONE}; an anonymous caller never has the grant. */
     public ReadCaller {
         restriction = restriction == null ? ReadRestriction.NONE : restriction;
+    }
+
+    /** A caller without the private grant (the shape before prompt 039). */
+    public ReadCaller(Scope scope, boolean exposeObserver, boolean openReads, ReadRestriction restriction) {
+        this(scope, exposeObserver, openReads, restriction, false);
+    }
+
+    /** This caller under {@code narrowed}, keeping everything else. */
+    public ReadCaller withRestriction(ReadRestriction narrowed) {
+        return new ReadCaller(scope, exposeObserver, openReads, narrowed, privateAccess);
     }
 
     /** An unrestricted caller (before prompt 035's restrictions). */
@@ -60,6 +72,8 @@ public record ReadCaller(Scope scope, boolean exposeObserver, boolean openReads,
     /** A stable text form, for entity tags. */
     public String canonical() {
         String r = restriction.canonical();
-        return (scope == null ? "anon" : scope.wireValue()) + "/" + exposeObserver + (r.isEmpty() ? "" : "/" + r);
+        // The 039 private grant changes what the caller sees, so it is part of the cache identity.
+        return (scope == null ? "anon" : scope.wireValue()) + (privateAccess ? "+private" : "") + "/" + exposeObserver
+                + (r.isEmpty() ? "" : "/" + r);
     }
 }

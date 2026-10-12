@@ -216,6 +216,9 @@ Open-source situational-awareness projects (ShadowBroker, God's Eye View, Veloci
 - **FR-87** Watchlists hold up to 100,000 identifiers (ICAO 24-bit addresses, registrations, callsigns, MMSIs, IMO numbers or custom values), imported from CSV or JSON with a dry run and exported as CSV. One `inWatchlist` condition matches the same entities across every source that declares the identity; alerts of such rules are sensitive and hidden from anonymous readers and feed keys.
 - **FR-88** "Near me" rules follow a moving anchor record (a phone): they fire when a target comes near the anchor and when the anchor moves near a target, and they pause, with a system notification, while the anchor is stale.
 
+### 8.16c Private sources and personal location (039)
+- **FR-89** A source can be private (by its descriptor, a custom source's `private`, or the operator's tightening, which can never be undone for a descriptor-private source). A private source is invisible on every read and egress path (records, history, changes, tiles, SSE, search, MCP, alerts, stats, glance, metrics, notifications, LLM context, exports) unless the caller is an admin or holds a token, feed key or ticket created with `privateAccess`; anonymous callers never see it and direct reads answer 404. OwnTracks, Traccar Client/OsmAnd, Overland and GPSLogger push natively into a `personal-location` source with device keys that write only their own entity, and any single entity can be exported (GeoJSON, ndjson, GPX) or purged with a tombstone that tells clients and caches to delete it.
+
 ### 8.17 Derived layers, products and provenance
 - **FR-54** Derived sources compute layers from stored records (GPS jamming cells, AIS gaps, loitering, rendezvous, deception checks, holding patterns) and publish them as ordinary records.
 - **FR-55** Gridded weather products (GFS/ECMWF wind) are fetched by GRIB2 byte range and served through a products API.

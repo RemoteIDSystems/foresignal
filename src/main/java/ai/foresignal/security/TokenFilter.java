@@ -104,6 +104,9 @@ public class TokenFilter extends OncePerRequestFilter implements Ordered {
 
     /** Ingest keys start with this (prompt 024); such a bearer is never an API token. */
     static final String INGEST_KEY_PREFIX = "eik_";
+
+    /** Device-scoped ingest keys (prompt 039) also go to the ingest-key authenticator. */
+    static final String DEVICE_KEY_PREFIX = "eid_";
     static final String WWW_AUTHENTICATE_VALUE = "Bearer realm=\"foresignal\"";
 
     /** The Prometheus scrape endpoint, admin-only while {@code security.metricsOpen} is false. */
@@ -199,7 +202,8 @@ public class TokenFilter extends OncePerRequestFilter implements Ordered {
         }
 
         if (requirement instanceof IngestKeyOrAdmin
-                && (bearer == null || bearer.startsWith(INGEST_KEY_PREFIX))) {
+                && (bearer == null || bearer.startsWith(INGEST_KEY_PREFIX)
+                        || bearer.startsWith(DEVICE_KEY_PREFIX))) {
             ingestByKey(request, response, chain, method, path);
             return;
         }
@@ -303,7 +307,7 @@ public class TokenFilter extends OncePerRequestFilter implements Ordered {
             }
             audit.record(new AuditRecord(
                     clock.instant(),
-                    AuditRecord.INGEST_KEY,
+                    caller.device() ? AuditRecord.INGEST_DEVICE : AuditRecord.INGEST_KEY,
                     null,
                     caller.principal(),
                     null,
@@ -396,7 +400,8 @@ public class TokenFilter extends OncePerRequestFilter implements Ordered {
         request.setAttribute(CurrentToken.ATTRIBUTE, current);
         request.setAttribute(SCOPE_ATTRIBUTE, current.scope());
         AuthenticatedToken t = current.token();
-        new RequestPrincipal(RequestPrincipal.Kind.TOKEN, t.id(), t.name(), t.scope(), restrictionOf(t)).bind(request);
+        new RequestPrincipal(RequestPrincipal.Kind.TOKEN, t.id(), t.name(), t.scope(), restrictionOf(t),
+                t.privateAccess()).bind(request);
         AuthFailureBackoff b = backoff.getIfAvailable();
         if (b != null) {
             b.recordSuccess(request.getRemoteAddr());

@@ -57,7 +57,10 @@ that watermark, and a rule for applying events.
    change. When a page is the last one (`hasMore: false`), `lastSeq` is at least the watermark, so a
    filtered feed does not rescan seqs that matched nothing.
 3. **Apply.** Apply an event only if its `observedAt` is at least the stored one; otherwise you
-   already have newer state. A `tombstone: true` change deletes the entity.
+   already have newer state. A `tombstone: true` change deletes the entity. A change that also
+   carries `purged: true` (039) is an operator's entity purge: every older version is gone too, so
+   delete the entity and anything you cached about it (tracks, exports, notes), and never apply an
+   older event of it again.
 4. **Expiry.** Records and changes carry `validUntil`. Expiry produces no change event: drop an
    entity yourself once its `validUntil` has passed.
 5. **Resync.** If retention purged entities without tombstones after your `after`, the feed answers
@@ -336,6 +339,8 @@ Every tool takes `detail`: `short` (the default, compact items, the whole result
 | `remove_from_watchlist` | agent | Remove `values` from a watchlist (036). |
 | `get_state_at` | read | Records of a `source[]` or `kind[]` as Foresignal knew them at `asOf` (transaction time): an RFC 3339 time, `now`, or a duration back from now (`-PT2H`, `-2h`); optional `bbox`, `place[]` (needs a token), `limit` ≤ 200. Returns `asOf`, `watermarkSeq`, `approximate` and `horizon` (037). |
 | `get_glance` | read | The same ≤ 2 KB status snapshot as `GET /v1/glance`: `status` (ok, degraded, failing), open alerts per severity and the latest three, source tallies, the latest briefing, versions in the last hour and `lastSeq`; `format=text` gives 8 lines of 40 ASCII characters, `place` narrows the alerts (needs a token). Without a token the counts are omitted unless the operator allows them (038). Call it first to see whether anything needs attention. |
+| `export_entity` | admin | Everything retained about one entity (`sourceId`, `externalId`): current state, every version with observers, referencing alerts and a manifest with counts and SHA-256; `format` ndjson (default) or geojson; up to 1 MB, larger via `GET /v1/records/{sourceId}/{externalId}/export`. Audited. Never offered to Ask (039). |
+| `purge_entity` | admin | Erases one entity: a PURGED tombstone (its change carries `purged: true`), older versions deleted, embeddings deleted, alerts redacted (or deleted with `purgeAlerts`), notifications redacted; returns the `PurgeReport`. Irreversible; messages already delivered to external channels cannot be recalled. Audited. Never offered to Ask (039). |
 | `get_track` | read | The simplified path of one entity (`sourceId`, `externalId`) between `from` and `to` (same time forms; default the last 6 h), `maxPoints` ≤ 500 (100 with `detail=short`, which stays within 4 KB): segments of `[lon, lat, epochSeconds]` plus a summary with `distanceKm`, `durationSeconds`, `bbox`, `maxSpeedKmh`, `segments` and `approximate` (037). |
 
 Later prompts add tools to the same registry: weather (052), `get_map_image` (055) and entities (098).
@@ -405,7 +410,7 @@ A model can never change anything by itself. When a change would help, it calls 
 
 ### Data egress
 
-With a frontier provider (Anthropic, an OpenAI-compatible API), the records the model reads are sent to that provider; that is the operator's choice. Records of private sources are never read for, or sent to, a non-local provider, whatever the token may see; a local provider (Ollama, or one flagged `options.local`) can receive them. Tool output is untrusted data: the model is instructed to ignore instructions inside it, and it could not act on them anyway, since its only way to change anything is a proposal a person confirms.
+With a frontier provider (Anthropic, an OpenAI-compatible API), the records the model reads are sent to that provider; that is the operator's choice. Records of private sources are never read for, or sent to, a non-local provider, whatever the token may see. A local provider (Ollama, or one flagged `options.local`, whose base URL resolves only to loopback or private addresses) receives them only when the operator sets `llm.allowPrivateLocal: true` (039; default false). Tool output is untrusted data: the model is instructed to ignore instructions inside it, and it could not act on them anyway, since its only way to change anything is a proposal a person confirms.
 
 ## Catch-up with /v1/digest
 
@@ -624,7 +629,8 @@ create_watch {"rule": {"name": "Big quake near me", "kinds": ["earthquake"], "co
 - While the phone has not reported for `maxAnchorAge`, the watch is paused, its `lastError` says
   `ANCHOR_STALE` and one system notification says so; it resumes on the next position.
 - Templates get `{{anchor.distanceKm}}`, never the phone's coordinates; the LLM never sees them
-  either. Keep the phone's source private.
+  either. Keep the phone's source private (the `personal-location` profile does, 039): its records are
+  then visible only to admin tokens and to tokens or feed keys created with `privateAccess: true`.
 - For a fixed place instead, name it once (`create_place`) and use `"near": {"placeIds": ["home"],
   "radiusKm": 150}`; editing the place moves the watch.
 

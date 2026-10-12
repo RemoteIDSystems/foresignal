@@ -290,15 +290,35 @@ public class SseHub {
     // ------------------------------------------------------------------------- revocation
 
     /**
-     * Closes every open stream of the revoked token, whether opened with the token itself or with a
-     * ticket it minted (prompt 023).
+     * Resets and closes every open stream of the revoked token, whether opened with the token itself or
+     * with a ticket it minted (prompt 023), and of a revoked feed key (prompt 039).
      */
     @EventListener
     public void onTokenRevoked(ApiTokenRevokedEvent event) {
-        int closed = closePrincipal(StreamPrincipal.tokenId(event.tokenId()));
+        // A token (or a ticket it minted) and a feed key (prompt 035) are keyed differently; a revoked
+        // grant loses its streams with a reset either way (prompt 039).
+        int closed = revokePrincipal(StreamPrincipal.tokenId(event.tokenId()), "revoked")
+                + revokePrincipal("feed:" + event.tokenId(), "revoked");
         if (closed > 0) {
-            log.info("Closed {} stream(s) of a revoked token", closed);
+            log.info("Reset {} stream(s) of a revoked token or feed key", closed);
         }
+    }
+
+    /**
+     * Sends {@code reset} with {@code reason} to every open stream of principal {@code principalId} and
+     * closes them (prompt 039).
+     *
+     * @return how many were reset
+     */
+    public int revokePrincipal(String principalId, String reason) {
+        int reset = 0;
+        for (SseClient client : List.copyOf(clients.values())) {
+            if (client.principal().id().equals(principalId)) {
+                client.revoke(reason);
+                reset++;
+            }
+        }
+        return reset;
     }
 
     /**

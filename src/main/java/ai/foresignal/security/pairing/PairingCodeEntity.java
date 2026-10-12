@@ -56,6 +56,10 @@ public class PairingCodeEntity {
     @Column(name = "claimed_token_id")
     private UUID claimedTokenId;
 
+    /** The 039 private grant passed to the claimed token; null reads as false. */
+    @Column(name = "private_access")
+    private Boolean privateAccess;
+
     @Column(name = "created_by_token_id")
     private UUID createdByTokenId;
 
@@ -152,5 +156,15 @@ public class PairingCodeEntity {
     /** True while unclaimed and before expiry. */
     public boolean isOpen(Instant now) {
         return claimedAt == null && now.isBefore(expiresAt);
+    }
+
+    /** True when the claimed token gets the 039 private grant. */
+    public boolean isPrivateAccess() {
+        return Boolean.TRUE.equals(privateAccess);
+    }
+
+    /** Sets {@link #isPrivateAccess()}. */
+    public void setPrivateAccess(boolean privateAccess) {
+        this.privateAccess = privateAccess;
     }
 }

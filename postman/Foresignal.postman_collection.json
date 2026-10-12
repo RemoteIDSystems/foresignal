@@ -25322,7 +25322,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));"
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('ingestDeviceId', j.id); pm.collectionVariables.set('deviceKey', j.key);",
+                  "}"
                 ]
               }
             }
@@ -25365,7 +25368,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"externalId\": \"family-phone-1\",\n  \"name\": \"Family phone 1\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -25391,7 +25394,7 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/v1/custom-sources/{{sourceId}}/devices/{{pushDeviceId}}",
+              "raw": "{{baseUrl}}/v1/custom-sources/{{sourceId}}/devices/{{ingestDeviceId}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -25400,7 +25403,7 @@
                 "custom-sources",
                 "{{sourceId}}",
                 "devices",
-                "{{pushDeviceId}}"
+                "{{ingestDeviceId}}"
               ],
               "query": []
             },
@@ -25439,7 +25442,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/custom-sources/{{sourceId}}/devices/{{pushDeviceId}}/key/rotate",
+              "raw": "{{baseUrl}}/v1/custom-sources/{{sourceId}}/devices/{{ingestDeviceId}}/key/rotate",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -25448,7 +25451,7 @@
                 "custom-sources",
                 "{{sourceId}}",
                 "devices",
-                "{{pushDeviceId}}",
+                "{{ingestDeviceId}}",
                 "key",
                 "rotate"
               ],
@@ -25493,7 +25496,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/custom-sources/{{sourceId}}/devices/{{pushDeviceId}}/purge",
+              "raw": "{{baseUrl}}/v1/custom-sources/{{sourceId}}/devices/{{ingestDeviceId}}/purge",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -25502,7 +25505,7 @@
                 "custom-sources",
                 "{{sourceId}}",
                 "devices",
-                "{{pushDeviceId}}",
+                "{{ingestDeviceId}}",
                 "purge"
               ],
               "query": []
@@ -25520,7 +25523,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"purgeAlerts\": false\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -25546,7 +25549,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/v1/ingest/{{sourceId}}/k/{{key}}/{{ingestFormat}}",
+              "raw": "{{baseUrl}}/v1/ingest/{{sourceId}}/k/{{deviceKey}}/{{ingestFormat}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -25555,7 +25558,7 @@
                 "ingest",
                 "{{sourceId}}",
                 "k",
-                "{{key}}",
+                "{{deviceKey}}",
                 "{{ingestFormat}}"
               ],
               "query": [
@@ -25713,7 +25716,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/ingest/{{sourceId}}/k/{{key}}/{{ingestFormat}}",
+              "raw": "{{baseUrl}}/v1/ingest/{{sourceId}}/k/{{deviceKey}}/{{ingestFormat}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -25722,7 +25725,7 @@
                 "ingest",
                 "{{sourceId}}",
                 "k",
-                "{{key}}",
+                "{{deviceKey}}",
                 "{{ingestFormat}}"
               ],
               "query": []
@@ -37538,7 +37541,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"purgeAlerts\": false\n}",
               "options": {
                 "raw": {
                   "language": "json"

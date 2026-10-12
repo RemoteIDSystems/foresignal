@@ -55,12 +55,14 @@ class GlanceControllerIT extends StatsItSupport {
 
     String reader;
     String agent;
+    String privateAgent;
 
     @BeforeEach
     void setUp() {
         controller.clearCache();
         reader = TestTokens.bearer(TestTokens.create(tokens, "glance-reader", Scope.READ));
         agent = TestTokens.bearer(TestTokens.create(tokens, "glance-agent", Scope.AGENT));
+        privateAgent = TestTokens.bearer(TestTokens.create(tokens, "glance-private-agent", Scope.AGENT, true));
     }
 
     @AfterEach
@@ -143,7 +145,11 @@ class GlanceControllerIT extends StatsItSupport {
                 .andExpect(jsonPath("$.alerts.open.critical").value(0))
                 .andExpect(jsonPath("$.activity.versionsLastHour").isNumber());
 
+        // Prompt 039: a plain agent token no longer sees private sources; the private grant does.
         mvc.perform(get("/v1/glance").header(HttpHeaders.AUTHORIZATION, agent))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.alerts.open.critical").value(0));
+        mvc.perform(get("/v1/glance").header(HttpHeaders.AUTHORIZATION, privateAgent))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.alerts.open.critical").value(1));
 

@@ -83,6 +83,16 @@ public class GetBriefingRunTool implements ForesignalMcpTool {
         UUID runId = McpArgs.uuid(args, "runId");
         briefings.requireVisible(briefingId, context.restriction());
         BriefingRunEntity run = runId == null ? briefings.latest(briefingId) : briefings.run(briefingId, runId);
+        // A run that cites a private source is shown only to callers that can see private sources, and
+        // never into an Ask loop whose provider may not receive them (its excluded set, prompt 039).
+        java.util.Set<String> hidden = new java.util.TreeSet<>(briefings.privateSources());
+        if (ai.foresignal.security.visibility.SourceVisibility.canSeePrivate(context.caller().readCaller().scope(),
+                context.caller().readCaller().privateAccess())) {
+            hidden.retainAll(context.excludedSources());
+        }
+        if (briefings.citesAny(run, hidden)) {
+            throw ai.foresignal.api.error.NotFoundException.of("Briefing run", run.getId());
+        }
         ObjectNode out = shaper.objectTree(BriefingViews.run(run));
         out.put("title", run.getBriefingName());
         if (detail == Detail.SHORT) {

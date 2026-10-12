@@ -1,5 +1,7 @@
 package ai.foresignal.inbound;
 
+import ai.foresignal.inbound.device.IngestDeviceEntity;
+import ai.foresignal.inbound.device.IngestDeviceService;
 import ai.foresignal.inbound.format.IngestFormatRegistry;
 import ai.foresignal.inbound.signature.VerifierConfig;
 import ai.foresignal.security.IngestCaller;
@@ -30,6 +32,19 @@ import org.springframework.stereotype.Component;
  * {@code keyOptional} lets the request through as {@link IngestCaller#SIGNATURE_ONLY}; the endpoint
  * then requires a valid signature. The query parameters {@code auth} and {@code token} are redacted
  * from every log line and fetch-log URL ({@link IngestUrls}).
+ *
+ * <p>Prompt 039 adds two credentials on {@code /v1/ingest/…}:
+ *
+ * <ul>
+ *   <li>device-scoped keys ({@code eid_}, {@link IngestDeviceService}) in any of the forms above: valid
+ *       only for their own source, with the caller bound to the device's entity
+ *       ({@link IngestCaller#DEVICE_KEY});
+ *   <li>a key in the path, {@code /v1/ingest/{sourceId}/k/{key}/{format}}, taken by
+ *       {@link IngestKeyRedactionFilter} before anything logs the URI. A path key wins over header
+ *       credentials; when both are present they must be the same key, else the request is refused.
+ *       An {@code eik_} key in the path is accepted here and refused later with {@code 404} unless the
+ *       source sets {@code allowPathKey} ({@link InboundRequests}).
+ * </ul>
  */
 @Component
 public class IngestAuthenticator implements IngestKeyAuthenticator {
@@ -43,20 +58,33 @@ public class IngestAuthenticator implements IngestKeyAuthenticator {
     private final CustomSourceRepository repository;
     private final CustomSourceVerifiers verifiers;
     private final IngestKeys keys;
+    private final IngestDeviceService devices;
 
     /** Creates the authenticator. */
-    public IngestAuthenticator(CustomSourceRepository repository, CustomSourceVerifiers verifiers, IngestKeys keys) {
+    public IngestAuthenticator(CustomSourceRepository repository, CustomSourceVerifiers verifiers, IngestKeys keys,
+            IngestDeviceService devices) {
         this.repository = repository;
         this.verifiers = verifiers;
         this.keys = keys;
+        this.devices = devices;
     }
 
     @Override
     public Result authenticate(HttpServletRequest request) {
         IngestPath path = IngestPath.of(request.getRequestURI());
         Credential credential = credential(request, path);
+        String pathKey = IngestKeyRedactionFilter.pathKey(request);
+        if (pathKey != null) {
+            if (credential != null && !pathKey.equals(credential.key())) {
+                return Result.rejected("The key in the path and the key in the headers differ.");
+            }
+            credential = new Credential(pathKey, IngestCaller.INGEST_KEY);
+        }
         if (credential == null) {
             return signatureOnly(path);
+        }
+        if (credential.key() != null && credential.key().startsWith(IngestDeviceService.PREFIX)) {
+            return device(credential.key(), path);
         }
         if (credential.key() == null || !credential.key().startsWith(IngestKeys.PREFIX)) {
             return Result.rejected("The presented ingest key is not valid.");
@@ -71,6 +99,26 @@ public class IngestAuthenticator implements IngestKeyAuthenticator {
         }
         String prefix = row.get().getIngestKeyPrefix();
         return Result.accepted(new IngestCaller(credential.via(), sourceId, credential.via() + ":" + prefix, prefix));
+    }
+
+    /**
+     * A device-scoped key: only on {@code /v1/ingest/{sourceId}/…} of its own source, and only while
+     * not revoked.
+     */
+    private Result device(String key, IngestPath path) {
+        if (path.compat() != null || path.sourceId() == null || path.format() == null) {
+            return Result.rejected("A device key is accepted only on /v1/ingest/{sourceId} paths.");
+        }
+        Optional<IngestDeviceEntity> device = devices.authenticate(key);
+        if (device.isEmpty()) {
+            return Result.rejected("The presented device key is not valid or has been revoked.");
+        }
+        IngestDeviceEntity d = device.get();
+        if (!path.sourceId().equals(d.getSourceId())) {
+            return Result.rejected("The presented device key does not belong to this source.");
+        }
+        return Result.accepted(new IngestCaller(IngestCaller.DEVICE_KEY, d.getSourceId(),
+                "device-key:" + d.getKeyPrefix(), d.getKeyPrefix(), d.getId(), d.getExternalId()));
     }
 
     /** No credential: a keyOptional verifier on the path's source and format lets it through. */
@@ -168,8 +216,14 @@ public class IngestAuthenticator implements IngestKeyAuthenticator {
      * @param sourceId the source named in the path, or null ({@code /compat/ntfy} JSON, Gotify)
      * @param format the ingest format, or null when the path has none
      * @param compat {@code compat-ntfy}, {@code compat-gotify} or null
+     * @param keyInPath true for {@code /v1/ingest/{sourceId}/k/{key}/{format}} (prompt 039)
      */
-    record IngestPath(String sourceId, String format, String compat) {
+    record IngestPath(String sourceId, String format, String compat, boolean keyInPath) {
+
+        /** A path without a key segment. */
+        IngestPath(String sourceId, String format, String compat) {
+            this(sourceId, format, compat, false);
+        }
 
         static IngestPath of(String uri) {
             String path = uri == null ? "" : uri;
@@ -179,6 +233,10 @@ public class IngestAuthenticator implements IngestKeyAuthenticator {
             }
             String[] s = path.split("/");
             // ["", "v1", "ingest", "{sourceId}", "{format}"]
+            // ["", "v1", "ingest", "{sourceId}", "k", "{key}", "{format}"] (prompt 039)
+            if (s.length >= 7 && "v1".equals(s[1]) && "ingest".equals(s[2]) && "k".equals(s[4])) {
+                return new IngestPath(s[3], s[6], null, true);
+            }
             if (s.length >= 4 && "v1".equals(s[1]) && "ingest".equals(s[2])) {
                 String format = s.length >= 5 ? s[4] : IngestFormatRegistry.DEFAULT_FORMAT;
                 return new IngestPath(s[3], format, null);

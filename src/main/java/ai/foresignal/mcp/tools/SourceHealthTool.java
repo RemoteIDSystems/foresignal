@@ -18,7 +18,7 @@ import ai.foresignal.mcp.McpOutputShaper.Detail;
 import ai.foresignal.mcp.ToolContext;
 import ai.foresignal.mcp.ToolResult;
 import ai.foresignal.security.Scope;
-import ai.foresignal.security.SourceVisibilityGate;
+import ai.foresignal.security.visibility.SourceVisibility;
 import ai.foresignal.source.HealthStatus;
 import ai.foresignal.source.SourceRegistry;
 import java.util.ArrayList;
@@ -51,11 +51,11 @@ public class SourceHealthTool implements ForesignalMcpTool {
 
     private final HealthService health;
     private final SourceRegistry registry;
-    private final SourceVisibilityGate visibility;
+    private final SourceVisibility visibility;
     private final McpOutputShaper shaper;
 
     /** Creates the tool. */
-    public SourceHealthTool(HealthService health, SourceRegistry registry, SourceVisibilityGate visibility,
+    public SourceHealthTool(HealthService health, SourceRegistry registry, SourceVisibility visibility,
             McpOutputShaper shaper) {
         this.health = health;
         this.registry = registry;

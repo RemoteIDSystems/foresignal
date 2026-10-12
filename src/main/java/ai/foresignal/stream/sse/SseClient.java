@@ -182,6 +182,7 @@ public final class SseClient {
     private boolean buffering;
     private boolean overflowed;
     private boolean signaled;
+    private String revokedReason;
     private volatile boolean closed;
     private boolean started;
     private long nextLiveDrain;
@@ -246,6 +247,35 @@ public final class SseClient {
     /** Starts the virtual sender thread. */
     public void start() {
         thread = Thread.ofVirtual().name("sse-" + settings.streamId()).start(this::run);
+    }
+
+    /**
+     * Ends the stream because its grant was revoked (prompt 039): the sender thread sends a {@code reset}
+     * with {@code reason} and closes. Idempotent; a closed stream ignores it.
+     */
+    public void revoke(String reason) {
+        lock.lock();
+        try {
+            if (closed || revokedReason != null) {
+                return;
+            }
+            revokedReason = reason == null ? "revoked" : reason;
+            signaled = true;
+            wake.signalAll();
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    private String takeRevoked() {
+        lock.lock();
+        try {
+            String reason = revokedReason;
+            revokedReason = null;
+            return reason;
+        } finally {
+            lock.unlock();
+        }
     }
 
     /** Closes the stream: ends the response, unregisters and stops the sender. Idempotent. */
@@ -493,6 +523,13 @@ public final class SseClient {
             if (settings.hello() != null && !send(SseFrame.control("hello", json(settings.hello())))) {
                 return false;
             }
+        }
+        String revoked = takeRevoked();
+        if (revoked != null) {
+            // The grant behind this stream is gone (prompt 039): tell the client, then end the stream.
+            sendReset(revoked, null, settings.watermark().getAsLong());
+            close();
+            return false;
         }
         if (!runReplays()) {
             return false;

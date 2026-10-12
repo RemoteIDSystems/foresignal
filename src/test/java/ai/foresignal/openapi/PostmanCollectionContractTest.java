@@ -170,6 +170,10 @@ class PostmanCollectionContractTest {
                     new ai.foresignal.source.SourceRegistry(
                             List.of(new ai.foresignal.source.adapters.usgs.UsgsEarthquakesAdapter("")), List.of(),
                             event -> { })).parse(body)),
+            // 039: the device input and the optional purge options (production parsers).
+            Map.entry("createIngestDevice", body -> ai.foresignal.inbound.device.IngestDeviceService.readInput(body)),
+            Map.entry("purgeDevice", body -> ai.foresignal.inbound.device.IngestDevicesController.purgeAlerts(body)),
+            Map.entry("purgeRecord", body -> ai.foresignal.inbound.device.IngestDevicesController.purgeAlerts(body)),
             Map.entry("rebuildStatsRollup", body -> assertThat(Instant.parse(body.get("from").asString()))
                     .isBefore(Instant.parse(body.get("to").asString()))),
             Map.entry("createStreamTicket", body -> new TicketStore(new TokenHasher(), null, Clock.fixed(NOW, ZoneOffset.UTC))

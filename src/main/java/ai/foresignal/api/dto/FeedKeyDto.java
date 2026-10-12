@@ -17,7 +17,7 @@ import java.util.UUID;
  * @param keyPrefix the first eight characters of the key
  * @param prefixes the canonical path prefixes it may read
  * @param restrictions its read restriction
- * @param privateAccess always false until prompt 039
+ * @param privateAccess the 039 private grant: the key may read private sources
  * @param createdAt when it was created
  * @param expiresAt when it expires
  * @param lastUsedAt when it was last used (at most once a minute), or null
@@ -63,7 +63,7 @@ public record FeedKeyDto(
             }
         }
         return new FeedKeyDto(entity.getId(), entity.getName(), entity.getTokenPrefix(), prefixes,
-                entity.getRestrictions(), false, entity.getCreatedAt(), entity.getExpiresAt(), entity.getLastUsedAt(),
+                entity.getRestrictions(), entity.isPrivateAccess(), entity.getCreatedAt(), entity.getExpiresAt(), entity.getLastUsedAt(),
                 entity.getRevokedAt(), key, pairs);
     }
 }

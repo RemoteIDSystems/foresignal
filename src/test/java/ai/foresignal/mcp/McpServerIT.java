@@ -87,6 +87,8 @@ class McpServerIT {
     private final List<McpSyncClient> clients = new ArrayList<>();
     private String reader;
     private String agent;
+    /** An agent token with the 039 private grant. */
+    private String privateAgent;
     private TriggerFixture fixture;
 
     @BeforeEach
@@ -96,6 +98,7 @@ class McpServerIT {
         settings.put(SettingKeys.SECURITY, SecuritySettings.defaults());
         reader = TestTokens.bearer(TestTokens.create(tokens, "mcp-reader", Scope.READ));
         agent = TestTokens.bearer(TestTokens.create(tokens, "mcp-agent", Scope.AGENT));
+        privateAgent = TestTokens.bearer(TestTokens.create(tokens, "mcp-private-agent", Scope.AGENT, true));
         fixture = new TriggerFixture(rules, engine, changeBus, alerts, bus);
         audit.flush();
         jdbc.update("DELETE FROM audit_event");
@@ -264,6 +267,11 @@ class McpServerIT {
         McpSchema.CallToolResult hidden = call(client(reader), "query_records", Map.of("source", List.of(PRIVATE)));
         assertThat(hidden.isError()).isTrue();
         assertThat(text(hidden)).contains("does not exist");
+        // Prompt 039: tools filter per token; a plain agent token is hidden from, the private grant sees.
+        assertThat(structured(call(client(agent), "query_records", Map.of("limit", 200))).get("items").toString())
+                .doesNotContain(PRIVATE);
+        assertThat(structured(call(client(privateAgent), "query_records", Map.of("limit", 200))).get("items")
+                .toString()).contains(PRIVATE);
 
         JsonNode longForm = structured(call(client(reader), "get_record",
                 Map.of("source", STANDARD, "externalId", "a", "detail", "long")));

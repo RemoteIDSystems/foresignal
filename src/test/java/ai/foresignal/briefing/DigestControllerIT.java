@@ -117,7 +117,7 @@ class DigestControllerIT extends BriefingItSupport {
     }
 
     @Test
-    @DisplayName("scope filters; private sources counted but not listed for a read token, listed for an agent")
+    @DisplayName("scope filters; private sources counted but not listed for a read token, listed for an agent only with privateAccess")
     void scopeFilters() throws Exception {
         quake("q1", "Tokyo Bay", 5.5);
         secretQuake("s1", "Hidden Lake", 7.0);
@@ -138,7 +138,9 @@ class DigestControllerIT extends BriefingItSupport {
         assertThat(outside.get("counts")).isEmpty();
 
         JsonNode asAgent = digest("?kind=" + BriefingTestSources.QUAKE_KIND, agent);
-        assertThat(asAgent.get("notable").toString()).contains("Hidden Lake");
+        assertThat(asAgent.get("notable").toString()).doesNotContain("Hidden Lake");
+        JsonNode asPrivateAgent = digest("?kind=" + BriefingTestSources.QUAKE_KIND, privateAgent);
+        assertThat(asPrivateAgent.get("notable").toString()).contains("Hidden Lake");
 
         JsonNode problem = http.call("GET", "/v1/digest?source=" + BriefingTestSources.SECRET, reader, null, 400);
         assertThat(problem.get("errors").toString()).contains("unknown source");

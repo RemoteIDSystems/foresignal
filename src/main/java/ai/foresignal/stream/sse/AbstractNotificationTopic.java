@@ -1,7 +1,7 @@
 package ai.foresignal.stream.sse;
 
-import ai.foresignal.security.SourceVisibilityGate;
 import ai.foresignal.security.TokenRestrictions;
+import ai.foresignal.security.visibility.SourceVisibility;
 import ai.foresignal.api.error.ValidationException;
 import ai.foresignal.notify.NotificationBus;
 import ai.foresignal.notify.NotificationJson;
@@ -30,6 +30,7 @@ abstract class AbstractNotificationTopic implements EventTopic<NotificationFilte
 
     private final NotificationBus bus;
     private final SourceRegistry registry;
+    private volatile SourceVisibility visibility;
     private volatile ai.foresignal.trigger.AlertStore alerts;
 
     AbstractNotificationTopic(NotificationBus bus, SourceRegistry registry) {
@@ -87,9 +88,10 @@ abstract class AbstractNotificationTopic implements EventTopic<NotificationFilte
     }
 
     private Set<String> excludedSources(StreamPrincipal principal) {
-        // Private sources: agent and admin tokens only (SourceVisibilityGate, prompt 023).
-        return ai.foresignal.api.support.ReadCallerResolver.withRestriction(registry,
-                SourceVisibilityGate.excludedSources(registry, principal.scope(), TokenRestrictions.NONE),
+        // Private sources: admin, or a token or feed key with the private grant (prompt 039).
+        SourceVisibility v = visibility();
+        return ai.foresignal.api.support.ReadCallerResolver.withRestriction(registry, v,
+                v.hiddenFor(principal.scope(), principal.privateAccess(), TokenRestrictions.NONE),
                 principal.restriction());
     }
 
@@ -138,5 +140,21 @@ abstract class AbstractNotificationTopic implements EventTopic<NotificationFilte
                 }
             }
         };
+    }
+
+    /** Injects the shared private-source visibility (prompt 039). */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setVisibility(SourceVisibility visibility) {
+        this.visibility = visibility;
+    }
+
+    /** The visibility in force: the injected bean, or one over the registry alone (unit tests). */
+    private SourceVisibility visibility() {
+        SourceVisibility v = visibility;
+        if (v == null) {
+            v = new SourceVisibility(registry, null, null);
+            visibility = v;
+        }
+        return v;
     }
 }

@@ -123,6 +123,23 @@ class PairingIT {
     }
 
     @Test
+    @DisplayName("039: a code created with privateAccess passes the grant to the claimed token")
+    void privateAccessPassesToTheToken() throws Exception {
+        JsonNode created = create("{\"name\":\"Family phone\",\"scope\":\"read\",\"privateAccess\":true}");
+        assertThat(created.get("privateAccess").asBoolean()).isTrue();
+        MockHttpServletResponse claimed = claim(created.get("code").asString(), "10.0.0.6");
+        assertThat(claimed.getStatus()).as(claimed.getContentAsString()).isEqualTo(201);
+        JsonNode token = json.readTree(claimed.getContentAsString());
+        assertThat(token.get("privateAccess").asBoolean()).isTrue();
+        assertThat(tokens.authenticate(token.get("token").asString()).orElseThrow().privateAccess()).isTrue();
+
+        MockHttpServletResponse bad = perform(post("/v1/pairing-codes").header(HttpHeaders.AUTHORIZATION, admin)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"name\":\"Phone\",\"scope\":\"read\",\"privateAccess\":\"yes\"}"));
+        assertThat(bad.getStatus()).isEqualTo(400);
+    }
+
+    @Test
     @DisplayName("an expired code cannot be claimed and is no longer listed")
     void expiry() throws Exception {
         String code = create("{\"name\":\"Phone\",\"scope\":\"agent\",\"ttl\":\"1m\"}").get("code").asString();

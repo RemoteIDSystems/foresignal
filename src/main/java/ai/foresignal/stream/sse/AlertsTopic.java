@@ -1,7 +1,7 @@
 package ai.foresignal.stream.sse;
 
-import ai.foresignal.security.SourceVisibilityGate;
 import ai.foresignal.security.TokenRestrictions;
+import ai.foresignal.security.visibility.SourceVisibility;
 import ai.foresignal.api.error.ValidationException;
 import ai.foresignal.api.mapper.AlertMapper;
 import ai.foresignal.api.support.QueryParams;
@@ -64,6 +64,7 @@ public class AlertsTopic implements EventTopic<AlertQuery>, AlertListener {
     private final AlertBus bus;
     private final AlertMapper mapper;
     private final SourceRegistry registry;
+    private volatile SourceVisibility visibility;
     private volatile SseHub hub;
 
     /** Creates the topic. */
@@ -150,11 +151,12 @@ public class AlertsTopic implements EventTopic<AlertQuery>, AlertListener {
         }
     }
 
-    /** Private sources the caller may not see: all of them unless it holds an agent or admin token. */
+    /** Private sources the caller may not see: all of them unless it is admin or holds the private grant. */
     Set<String> excludedSources(StreamPrincipal principal) {
-        // Private sources: agent and admin tokens only (SourceVisibilityGate, prompt 023).
-        return ai.foresignal.api.support.ReadCallerResolver.withRestriction(registry,
-                SourceVisibilityGate.excludedSources(registry, principal.scope(), TokenRestrictions.NONE),
+        // Private sources: admin, or a token or feed key with the private grant (prompt 039).
+        SourceVisibility v = visibility();
+        return ai.foresignal.api.support.ReadCallerResolver.withRestriction(registry, v,
+                v.hiddenFor(principal.scope(), principal.privateAccess(), TokenRestrictions.NONE),
                 principal.restriction());
     }
 
@@ -281,5 +283,21 @@ public class AlertsTopic implements EventTopic<AlertQuery>, AlertListener {
             values.add(item.asString().strip());
         }
         return QueryParams.multi(prefix + field, values);
+    }
+
+    /** Injects the shared private-source visibility (prompt 039). */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setVisibility(SourceVisibility visibility) {
+        this.visibility = visibility;
+    }
+
+    /** The visibility in force: the injected bean, or one over the registry alone (unit tests). */
+    private SourceVisibility visibility() {
+        SourceVisibility v = visibility;
+        if (v == null) {
+            v = new SourceVisibility(registry, null, null);
+            visibility = v;
+        }
+        return v;
     }
 }

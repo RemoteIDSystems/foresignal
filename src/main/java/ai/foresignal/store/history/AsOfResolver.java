@@ -5,8 +5,7 @@ import ai.foresignal.api.error.ValidationException;
 import ai.foresignal.ingest.SourceIngestProfiles;
 import ai.foresignal.retention.RetentionResolver;
 import ai.foresignal.retention.RetentionState;
-import ai.foresignal.security.SourceVisibilityGate;
-import ai.foresignal.security.TokenRestrictions;
+import ai.foresignal.security.visibility.SourceVisibility;
 import ai.foresignal.source.SourceRegistry;
 import ai.foresignal.source.spi.HistoryTier;
 import ai.foresignal.source.spi.IngestPolicy;
@@ -40,7 +39,7 @@ import org.springframework.stereotype.Component;
  *   <li>{@code t} in the future is {@code 400 ASOF_INVALID} (the code prompt 014 shipped and the
  *       OpenAPI document lists for {@code listRecords}).
  *   <li>Private sources are dropped unless the caller passes the private gate of prompt 023
- *       ({@link SourceVisibilityGate}): callers pass the sources they may not see, and a plan made
+ *       ({@link SourceVisibility}): callers pass the sources they may not see, and a plan made
  *       without a caller drops every private source.
  *   <li>{@code horizon(source) = now − window + effectiveKeyframe + 1 h}; {@code t} before the
  *       latest horizon of any involved source is {@code 400 ASOF_BEYOND_RETENTION} with
@@ -60,6 +59,7 @@ public class AsOfResolver {
     private final ReadQueryRunner runner;
     private final SeqClockQuery seqClock;
     private final SourceRegistry registry;
+    private volatile SourceVisibility visibility;
     private final SourceIngestProfiles profiles;
     private final RetentionState retention;
     private final HistoryFidelity fidelity;
@@ -85,7 +85,7 @@ public class AsOfResolver {
 
     /** The plan for {@code sourceIds} without a caller: every private source is dropped. */
     public AsOfPlan plan(Instant t, Set<String> sourceIds) {
-        return plan(t, sourceIds, List.of(), SourceVisibilityGate.excludedSources(registry, null, TokenRestrictions.NONE));
+        return plan(t, sourceIds, List.of(), visibility().privateSourceIds());
     }
 
     /** The plan for {@code sourceIds}, dropping {@code excluded} (the caller's private gate). */
@@ -255,4 +255,19 @@ public class AsOfResolver {
 
     private record Prepared(Instant t, Map<HistoryTier, List<SourceDescriptor>> byTier,
             Map<String, Duration> validity, Instant horizon, boolean approximate) {}
+
+    /** Injects the shared private-source visibility (prompt 039). */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setVisibility(SourceVisibility visibility) {
+        this.visibility = visibility;
+    }
+
+    private SourceVisibility visibility() {
+        SourceVisibility v = visibility;
+        if (v == null) {
+            v = new SourceVisibility(registry, null, null);
+            visibility = v;
+        }
+        return v;
+    }
 }

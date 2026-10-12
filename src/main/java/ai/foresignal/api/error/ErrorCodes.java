@@ -265,6 +265,18 @@ public final class ErrorCodes {
     /** 409: an escalation policy is still referenced by trigger rules (prompt 033). */
     public static final String POLICY_IN_USE = "POLICY_IN_USE";
 
+    /**
+     * 403: a device-scoped ingest key ({@code eid_}, prompt 039) was used with a payload naming another
+     * entity than the one the key is bound to.
+     */
+    public static final String DEVICE_ENTITY_MISMATCH = "DEVICE_ENTITY_MISMATCH";
+
+    /**
+     * 403: the sender address is outside the custom source's {@code ingestAllowCidrs} (or, when unset,
+     * not a private address) for a path key, query key or GET push (prompt 039).
+     */
+    public static final String INGEST_SOURCE_DENIED = "INGEST_SOURCE_DENIED";
+
     private static final String TYPE_PREFIX = "https://foresignal.ai/problems/";
 
     private ErrorCodes() {}

@@ -50,7 +50,7 @@ public record LlmProviderConfig(String id, LlmProviderType type, String baseUrl,
 
     /** This provider as an LLM-context egress destination. */
     public EgressPolicy.LlmDestination destination() {
-        return new EgressPolicy.LlmDestination(id, type.wireValue(), local());
+        return new EgressPolicy.LlmDestination(id, type.wireValue(), local(), baseUrl);
     }
 
     /** The configured embedding spec, when both model and dimensions are set. */

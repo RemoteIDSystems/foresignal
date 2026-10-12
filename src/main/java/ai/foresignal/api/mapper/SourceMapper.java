@@ -205,14 +205,34 @@ public class SourceMapper {
                 view.params(),
                 budget(view.budget()),
                 retentionOverride.orElse(null),
-                view.embed(),
+                view.embed() && !effectivePrivate(view),
                 view.credentialsSet(),
                 view.updatedAt(),
                 policyOverride.map(this::policy).orElse(null),
                 policy(view.ingestPolicy()),
                 effectiveRetention(view.descriptor(), sourceRetention),
                 statsSettings().enabled(view.id()),
-                statsSettings().includePrivate(view.id()));
+                statsSettings().includePrivate(view.id()),
+                effectivePrivate(view));
+    }
+
+    /**
+     * The effective privacy of {@code view} (prompt 039): the descriptor flag or the operator's tightening
+     * ({@code app_setting['visibility']}).
+     */
+    public boolean effectivePrivate(SourceView view) {
+        if (view.descriptor().privateSource()) {
+            return true;
+        }
+        try {
+            ai.foresignal.security.visibility.VisibilitySettings value = appSettings.getOrDefault(
+                    SettingKeys.VISIBILITY, ai.foresignal.security.visibility.VisibilitySettings.class,
+                    ai.foresignal.security.visibility.VisibilitySettings::defaults);
+            return value != null && value.isPrivate(view.id());
+        } catch (RuntimeException e) {
+            log.warn("Could not read the visibility settings; reporting the source as private", e);
+            return true;
+        }
     }
 
     /**

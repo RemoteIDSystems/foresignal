@@ -19,8 +19,10 @@ import java.util.UUID;
  * @param name the token or feed-key name; null when anonymous
  * @param scope the scope; null when anonymous (feed keys are {@code read})
  * @param restriction the effective restriction (never null)
+ * @param privateAccess the 039 private grant of the token or feed key; always false when anonymous
  */
-public record RequestPrincipal(Kind kind, UUID id, String name, Scope scope, ReadRestriction restriction) {
+public record RequestPrincipal(Kind kind, UUID id, String name, Scope scope, ReadRestriction restriction,
+        boolean privateAccess) {
 
     /** The request attribute holding it. */
     public static final String ATTRIBUTE = "ai.foresignal.requestPrincipal";
@@ -39,6 +41,14 @@ public record RequestPrincipal(Kind kind, UUID id, String name, Scope scope, Rea
     public RequestPrincipal {
         Objects.requireNonNull(kind, "kind");
         restriction = restriction == null ? ReadRestriction.NONE : restriction;
+        if (kind == Kind.ANONYMOUS) {
+            privateAccess = false;
+        }
+    }
+
+    /** A principal without the private grant (the shape before prompt 039). */
+    public RequestPrincipal(Kind kind, UUID id, String name, Scope scope, ReadRestriction restriction) {
+        this(kind, id, name, scope, restriction, false);
     }
 
     /** An anonymous caller under {@code restriction}. */

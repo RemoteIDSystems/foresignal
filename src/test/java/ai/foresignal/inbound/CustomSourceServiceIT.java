@@ -122,7 +122,7 @@ class CustomSourceServiceIT {
         }
         MockHttpServletResponse invalid = it.perform(post("/v1/custom-sources").header(HttpHeaders.AUTHORIZATION, admin)
                 .contentType(MediaType.APPLICATION_JSON).content("{\"id\":\"usgs-thing\",\"name\":\"\",\"kinds\":[\"Bad Kind\"],"
-                        + "\"volatileFields\":[\"a.b\"],\"profile\":\"personal-location\",\"formats\":{\"nope\":{}}}"));
+                        + "\"volatileFields\":[\"a.b\"],\"profile\":\"unknown-profile\",\"formats\":{\"nope\":{}}}"));
         assertThat(invalid.getStatus()).isEqualTo(400);
         assertThat(body(invalid).get("errors").findValuesAsString("field"))
                 .contains("id", "name", "kinds[0]", "volatileFields[0]", "profile", "formats.nope");

@@ -158,10 +158,10 @@ public class PairingService {
             }
         }
         JsonNode privateAccess = body.get("privateAccess");
-        if (privateAccess != null && !privateAccess.isNull()
-                && (!privateAccess.isBoolean() || privateAccess.asBoolean())) {
-            errors.add(new FieldError("privateAccess", "private-source grants arrive in prompt 039"));
+        if (privateAccess != null && !privateAccess.isNull() && !privateAccess.isBoolean()) {
+            errors.add(new FieldError("privateAccess", "must be a boolean"));
         }
+        boolean grant = privateAccess != null && privateAccess.isBoolean() && privateAccess.asBoolean();
         if (!errors.isEmpty()) {
             throw new ValidationException(ErrorCodes.VALIDATION_FAILED, "The pairing code input is not valid.", errors);
         }
@@ -169,6 +169,7 @@ public class PairingService {
         String code = PairingCodes.generate();
         PairingCodeEntity entity = new PairingCodeEntity(UUID.randomUUID(), hasher.hash(PairingCodes.normalize(code)),
                 name, scope, parsed, principalId, now, now.plus(ttl), creator == null ? null : creator.id());
+        entity.setPrivateAccess(grant && scope != Scope.ADMIN);
         codes.saveAndFlush(entity);
         String payload = qrPayload(code, requestBaseUrl);
         prunePayloads(now);
@@ -276,7 +277,7 @@ public class PairingService {
             }
             TokenService.CreatedToken token = tokens.create(new TokenService.TokenSpec(code.getName(),
                     code.getScope(), null, code.getRestrictions(), device, TokenCreatedVia.PAIRING,
-                    code.getPrincipalId()));
+                    code.getPrincipalId(), code.isPrivateAccess()));
             PairingCodeEntity claimed = codes.findById(code.getId()).orElseThrow();
             claimed.setClaimedTokenId(token.entity().getId());
             codes.saveAndFlush(claimed);

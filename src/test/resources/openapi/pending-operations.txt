@@ -1,13 +1,3 @@
-ingestRecordsFormatGet 039
-listIngestDevices 039
-createIngestDevice 039
-deleteIngestDevice 039
-rotateIngestDeviceKey 039
-purgeDevice 039
-exportRecord 039
-purgeRecord 039
-ingestRecordsPathKeyGet 039
-ingestRecordsPathKey 039
 getReference 040
 loadReference 040
 listReferenceCountries 040

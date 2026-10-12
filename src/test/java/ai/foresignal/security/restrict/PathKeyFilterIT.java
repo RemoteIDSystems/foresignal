@@ -118,6 +118,7 @@ class PathKeyFilterIT {
         assertThat(created.get("urls")).hasSize(2);
         assertThat(created.get("urls").get(0).get("url").asString()).endsWith("/v1/k/" + key + "/records");
         assertThat(created.get("restrictions").get("excludePrivate").asBoolean()).isTrue();
+        assertThat(created.get("privateAccess").asBoolean()).isFalse();
         HttpResponse<String> list = admin("GET", "/v1/feed-keys", null);
         assertThat(list.statusCode()).isEqualTo(200);
         assertThat(list.body()).contains(created.get("id").asString()).doesNotContain(key);
@@ -167,6 +168,25 @@ class PathKeyFilterIT {
         assertThat(invalid.statusCode()).isEqualTo(401);
         assertThat(invalid.body()).contains("INVALID_FEED_KEY").doesNotContain("fsf_unknown");
         assertThat(get("/v1/records").statusCode()).as("openReads is off").isEqualTo(401);
+    }
+
+    @Test
+    @DisplayName("039: privateAccess is accepted and reflected; excludePrivate:false needs it")
+    void privateAccess() throws Exception {
+        Instant month = T0.plus(Duration.ofDays(30));
+        String granted = "{\"name\":\"family-kiosk\",\"prefixes\":[\"/v1/records\"],\"restrictions\":{\"sources\":[\""
+                + SCHEMA_A + "\"]},\"expiresAt\":\"" + month + "\",\"privateAccess\":true}";
+        HttpResponse<String> ok = admin("POST", "/v1/feed-keys", granted);
+        assertThat(ok.statusCode()).as(ok.body()).isEqualTo(201);
+        JsonNode key = json.readTree(ok.body());
+        assertThat(key.get("privateAccess").asBoolean()).isTrue();
+        assertThat(key.get("restrictions").get("excludePrivate").asBoolean()).isFalse();
+
+        String withoutGrant = "{\"name\":\"kiosk\",\"prefixes\":[\"/v1/records\"],\"restrictions\":{\"sources\":[\""
+                + SCHEMA_A + "\"],\"excludePrivate\":false},\"expiresAt\":\"" + month + "\"}";
+        assertThat(admin("POST", "/v1/feed-keys", withoutGrant).statusCode()).isEqualTo(400);
+        assertThat(admin("POST", "/v1/feed-keys", withoutGrant.substring(0, withoutGrant.length() - 1) + ",\"privateAccess\":\"yes\"}")
+                .statusCode()).isEqualTo(400);
     }
 
     @Test

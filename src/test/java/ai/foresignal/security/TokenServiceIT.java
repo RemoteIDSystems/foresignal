@@ -228,10 +228,27 @@ class TokenServiceIT {
                 "{\"name\":\"x\",\"scope\":\"read\",\"expiresAt\":\"2020-01-01T00:00:00Z\"}",
                 "{\"name\":\"x\",\"scope\":\"read\",\"expiresAt\":\"tomorrow\"}",
                 "{\"name\":\"x\",\"scope\":\"read\",\"color\":\"red\"}",
-                "{\"name\":\"x\",\"scope\":\"read\",\"privateAccess\":true}",
+                "{\"name\":\"x\",\"scope\":\"read\",\"privateAccess\":\"yes\"}",
                 "{\"name\":\"x\",\"scope\":\"read\",\"principalId\":\"nobody-here\"}")) {
             assertThatThrownBy(() -> tokens.create(body(bad))).as(bad).isInstanceOf(ValidationException.class);
         }
+    }
+
+    @Test
+    @DisplayName("039: privateAccess is stored and authenticated; an admin token needs no grant")
+    void privateAccess() {
+        TokenService.CreatedToken granted = tokens.create(body(
+                "{\"name\":\"family-phone\",\"scope\":\"read\",\"privateAccess\":true}"));
+        assertThat(granted.entity().isPrivateAccess()).isTrue();
+        assertThat(repository.findById(granted.entity().getId()).orElseThrow().isPrivateAccess()).isTrue();
+        assertThat(tokens.authenticate(granted.plaintext()).orElseThrow().privateAccess()).isTrue();
+
+        TokenService.CreatedToken plain = tokens.create(body("{\"name\":\"plain\",\"scope\":\"agent\"}"));
+        assertThat(tokens.authenticate(plain.plaintext()).orElseThrow().privateAccess()).isFalse();
+
+        TokenService.CreatedToken admin = tokens.create(body(
+                "{\"name\":\"ops\",\"scope\":\"admin\",\"privateAccess\":true}"));
+        assertThat(admin.entity().isPrivateAccess()).as("admin always sees private; the grant is not stored").isFalse();
     }
 
     @Test

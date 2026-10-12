@@ -152,6 +152,11 @@
         "version": "1.3.0",
         "date": "2026-10-12",
         "note": "038: getStatsTimeseries, getStatsGrid, getStatsTop (read), rebuildStatsRollup (admin), getGlance, getMetrics (read), getMetricSettings and updateMetricSettings (admin) are implemented; count=true is implemented on listRecords, queryHistory and search (search counts text matches; mode=semantic is refused). AccessPolicy gains GET /v1/stats/** (read), POST /v1/stats/rollup/rebuild (admin), GET /v1/glance and GET /v1/metrics (read). RetentionSettings.stats.hourly (default 35d) and stats.daily (1825d) are stored; regionHourly and regionDaily stay accepted and not stored until 119. SourceSettings statsEnabled and statsIncludePrivate are implemented (stored in app_setting stats). Reconciliations: the stats reads gain 404 for an unknown or hidden source and list their 400 causes (region filters refused until 040/119); getStatsTop by defaults to source; getStatsGrid documents its default res, rollup resolutions and the raw sizeKm semantics; getGlance gains 400, 404 UNKNOWN_PLACE and the Cache-Control header; queryHistory's JSON 200 is HistoryPage or CountResult; MetricProjection.maxSeries has maximum 10000; Problem lists STATS_TOO_LARGE (400)."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-12",
+        "note": "039: ingestRecordsFormatGet, ingestRecordsPathKey and ingestRecordsPathKeyGet (ingest key, device key or admin), listIngestDevices, createIngestDevice, deleteIngestDevice, rotateIngestDeviceKey, purgeDevice, exportRecord and purgeRecord (admin) are implemented; the owntracks, osmand, overland and gpslogger formats are registered with their native replies. AccessPolicy gains GET /v1/ingest/** (ingest key or admin), GET /v1/records/*/*/export and POST /v1/records/*/*/purge (admin, before the records read rule). Implemented members: CustomSourceInput.profile (personal-location), allowPathKey, ingestAllowCidrs and the enforced private; SourceSettings/SourceSettingsUpdate.private (operator tightening, stored in app_setting visibility; false on a descriptor-private source is a 400); privateAccess on ApiTokenInput/ApiToken, FeedKeyInput/FeedKey and PairingCodeInput/PairingCode (agent tokens no longer see private sources without it); ChannelInput/Channel config.privatePayload; LlmSettings.allowPrivateLocal (true now accepted); Change.purged. Reconciliations: a new security scheme ingestKeyPath (apiKey documented with x-foresignal-in: path, like feedKey) is the security of the /v1/ingest/{sourceId}/k/{key}/{format} operations, so the policy check maps them to ingest-key-or-admin; ingestKey, ingestKeyBearer and ingestKeyBasic mention device keys (eid_); the ingest 403 responses also name DEVICE_ENTITY_MISMATCH; ingestRecordsFormatGet gains 405 (a format without GET); purgeRecord and purgeDevice gain 400 and 503 INGEST_BUSY; CustomSourceFormats owntracks, osmand, overland and gpslogger gain maxAccuracyMeters (default 200) and overland.keepWifi is described; IngestOutcome rejection reasons list INVALID_ITEM, LOW_ACCURACY, INVALID_FIX, NULL_ISLAND and ENCRYPTED_UNSUPPORTED; Problem lists DEVICE_ENTITY_MISMATCH and INGEST_SOURCE_DENIED (403); the LlmSettings.allowPrivateLocal description states the local classification (Ollama or options.local with a loopback or private base URL)."
       }
     ]
   },
@@ -6870,7 +6875,7 @@
             }
           },
           "403": {
-            "description": "Sender address not in `ingestAllowCidrs` (INGEST_SOURCE_DENIED)",
+            "description": "Sender address not in `ingestAllowCidrs` (INGEST_SOURCE_DENIED), or a device key (`eid_`) pushed a payload naming another entity than its bound externalId (DEVICE_ENTITY_MISMATCH, 039)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -14413,7 +14418,7 @@
             }
           },
           "403": {
-            "description": "Sender address not in `ingestAllowCidrs` (INGEST_SOURCE_DENIED)",
+            "description": "Sender address not in `ingestAllowCidrs` (INGEST_SOURCE_DENIED), or a device key (`eid_`) pushed a payload naming another entity than its bound externalId (DEVICE_ENTITY_MISMATCH, 039)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -14764,7 +14769,7 @@
             }
           },
           "403": {
-            "description": "Sender address not in `ingestAllowCidrs` (INGEST_SOURCE_DENIED)",
+            "description": "Sender address not in `ingestAllowCidrs` (INGEST_SOURCE_DENIED), or a device key (`eid_`) pushed a payload naming another entity than its bound externalId (DEVICE_ENTITY_MISMATCH, 039)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -14828,11 +14833,21 @@
                 }
               }
             }
+          },
+          "405": {
+            "description": "The format does not accept GET (only osmand and gpslogger do) (METHOD_NOT_ALLOWED)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
           }
         },
         "x-foresignal-scope": "open",
         "x-foresignal-prompt": "039",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "ingestKey": []
@@ -24279,7 +24294,7 @@
         },
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "039",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -24375,7 +24390,7 @@
         },
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "039",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -24468,7 +24483,7 @@
         },
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "039",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -24568,7 +24583,7 @@
         },
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "039",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -24674,11 +24689,31 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Validation failed: an unknown member or a non-boolean purgeAlerts (VALIDATION_FAILED)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The writer is busy and the purge was not committed in time (INGEST_BUSY); retry",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
           }
         },
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "039",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -24803,7 +24838,7 @@
         },
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "039",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -24907,11 +24942,31 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Validation failed: an unknown member or a non-boolean purgeAlerts (VALIDATION_FAILED)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The writer is busy and the purge was not committed in time (INGEST_BUSY); retry",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
           }
         },
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "039",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -25163,7 +25218,7 @@
             }
           },
           "403": {
-            "description": "Sender address not in `ingestAllowCidrs` (INGEST_SOURCE_DENIED)",
+            "description": "Sender address not in `ingestAllowCidrs` (INGEST_SOURCE_DENIED), or a device key (`eid_`) pushed a payload naming another entity than its bound externalId (DEVICE_ENTITY_MISMATCH, 039)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -25223,9 +25278,11 @@
         },
         "x-foresignal-scope": "open",
         "x-foresignal-prompt": "039",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
-          {}
+          {
+            "ingestKeyPath": []
+          }
         ],
         "x-foresignal-extended-by": [
           "059"
@@ -25315,7 +25372,7 @@
             }
           },
           "403": {
-            "description": "Sender address not in `ingestAllowCidrs` (INGEST_SOURCE_DENIED)",
+            "description": "Sender address not in `ingestAllowCidrs` (INGEST_SOURCE_DENIED), or a device key (`eid_`) pushed a payload naming another entity than its bound externalId (DEVICE_ENTITY_MISMATCH, 039)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -25385,9 +25442,11 @@
         },
         "x-foresignal-scope": "open",
         "x-foresignal-prompt": "039",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
-          {}
+          {
+            "ingestKeyPath": []
+          }
         ],
         "x-foresignal-extended-by": [
           "059"
@@ -86160,6 +86219,18 @@
             "status": 400,
             "prompt": "038",
             "note": "A time series above 2,000 buckets, a grid above 10,000 cells, or a raw grid whose bbox holds too many hexagons"
+          },
+          {
+            "code": "DEVICE_ENTITY_MISMATCH",
+            "status": 403,
+            "prompt": "039",
+            "note": "A device key (eid_) pushed a payload naming another entity than its bound externalId"
+          },
+          {
+            "code": "INGEST_SOURCE_DENIED",
+            "status": 403,
+            "prompt": "039",
+            "note": "The sender is outside the source's ingestAllowCidrs (default: private ranges only) for a path key, query key or GET push"
           }
         ]
       },
@@ -93524,7 +93595,7 @@
                 },
                 "reason": {
                   "type": "string",
-                  "description": "Rejection reason code (normalizer, prompt 008): EXTERNAL_ID_INVALID, UNKNOWN_KIND, MISSING_OBSERVED_AT, OBSERVED_AT_TOO_OLD, PAYLOAD_TOO_LARGE, PAYLOAD_TOO_DEEP, PAYLOAD_TOO_MANY_KEYS, PAYLOAD_STRING_TOO_LONG, PAYLOAD_NON_FINITE_NUMBER, PAYLOAD_UNSUPPORTED_TYPE, TOO_MANY_OBSERVERS, GEOMETRY_TOO_MANY_VERTICES, GEOMETRY_WRONG_SRID, COORDINATES_OUT_OF_RANGE, QUALITY_INVALID, VALID_RANGE_INVERTED. Later prompts may add codes."
+                  "description": "Rejection reason code (normalizer, prompt 008): EXTERNAL_ID_INVALID, UNKNOWN_KIND, MISSING_OBSERVED_AT, OBSERVED_AT_TOO_OLD, PAYLOAD_TOO_LARGE, PAYLOAD_TOO_DEEP, PAYLOAD_TOO_MANY_KEYS, PAYLOAD_STRING_TOO_LONG, PAYLOAD_NON_FINITE_NUMBER, PAYLOAD_UNSUPPORTED_TYPE, TOO_MANY_OBSERVERS, GEOMETRY_TOO_MANY_VERTICES, GEOMETRY_WRONG_SRID, COORDINATES_OUT_OF_RANGE, QUALITY_INVALID, VALID_RANGE_INVERTED. Format rejections (024, 039): INVALID_ITEM, LOW_ACCURACY (accuracy worse than maxAccuracyMeters), INVALID_FIX (valid=false, missing or out-of-range coordinates), NULL_ISLAND (exact 0,0), ENCRYPTED_UNSUPPORTED (OwnTracks payload encryption). Later prompts may add codes."
                 }
               }
             }
@@ -94764,7 +94835,7 @@
           "allowPrivateLocal": {
             "type": "boolean",
             "default": false,
-            "description": "Allow private-source records in prompts for local providers (039); never for remote ones. Until 039, only false is accepted (400 otherwise)."
+            "description": "Allow private-source records in prompts for providers classified as local (039): Ollama or `options.local`, whose base URL resolves only to loopback or private addresses. Never for remote providers. Default false."
           }
         },
         "x-foresignal-extended-by": [
@@ -99503,12 +99574,26 @@
           "owntracks": {
             "type": "object",
             "description": "OwnTracks options (039)",
-            "properties": {}
+            "properties": {
+              "maxAccuracyMeters": {
+                "type": "number",
+                "minimum": 0,
+                "default": 200,
+                "description": "Fixes whose accuracy is worse than this many meters are rejected with reason LOW_ACCURACY (039)"
+              }
+            }
           },
           "osmand": {
             "type": "object",
             "description": "OsmAnd/Traccar options (039)",
-            "properties": {}
+            "properties": {
+              "maxAccuracyMeters": {
+                "type": "number",
+                "minimum": 0,
+                "default": 200,
+                "description": "Fixes whose accuracy is worse than this many meters are rejected with reason LOW_ACCURACY (039)"
+              }
+            }
           },
           "overland": {
             "type": "object",
@@ -99516,14 +99601,28 @@
             "properties": {
               "keepWifi": {
                 "type": "boolean",
-                "default": false
+                "default": false,
+                "description": "Keep the Wi-Fi network name (`wifi`); dropped by default (039)"
+              },
+              "maxAccuracyMeters": {
+                "type": "number",
+                "minimum": 0,
+                "default": 200,
+                "description": "Fixes whose accuracy is worse than this many meters are rejected with reason LOW_ACCURACY (039)"
               }
             }
           },
           "gpslogger": {
             "type": "object",
             "description": "GPSLogger options (039)",
-            "properties": {}
+            "properties": {
+              "maxAccuracyMeters": {
+                "type": "number",
+                "minimum": 0,
+                "default": 200,
+                "description": "Fixes whose accuracy is worse than this many meters are rejected with reason LOW_ACCURACY (039)"
+              }
+            }
           }
         },
         "additionalProperties": {
@@ -162970,7 +163069,7 @@
         "type": "apiKey",
         "in": "header",
         "name": "X-Foresignal-Ingest-Key",
-        "description": "Per-source ingest key returned once when a custom source is created"
+        "description": "Per-source ingest key returned once when a custom source is created; a device key (`eid_`, 039) is accepted here too."
       },
       "peerCredential": {
         "type": "http",
@@ -162982,12 +163081,12 @@
         "type": "http",
         "scheme": "bearer",
         "bearerFormat": "eik_<base64url>",
-        "description": "Custom-source ingest key sent as a bearer token (024)."
+        "description": "Custom-source ingest key (`eik_`, 024) or device-scoped ingest key (`eid_`, 039: bound to one source and one entity) sent as a bearer token."
       },
       "ingestKeyBasic": {
         "type": "http",
         "scheme": "basic",
-        "description": "Custom-source ingest key sent as the Basic-auth password (024), for devices that only support Basic auth."
+        "description": "Custom-source ingest key (`eik_`, 024) or device key (`eid_`, 039) sent as the Basic-auth password (any username), for devices that only support Basic auth (OwnTracks HTTP mode)."
       },
       "registrationToken": {
         "type": "http",
@@ -163001,6 +163100,13 @@
         "name": "feedKey",
         "x-foresignal-in": "path",
         "description": "Feed key (`fsf_<base64url>`, 035) carried as the path segment after `/v1/k/`, not as a query parameter: `/v1/k/{key}/<rest>` serves `GET`/`HEAD /v1/<rest>` when `/v1/<rest>` starts with one of the key's prefixes. OpenAPI has no path-segment API key, so this scheme documents the carrier only and no operation lists it; see `info.description`. Unknown key → 401 INVALID_FEED_KEY; expired or revoked → 410 FEED_KEY_GONE; another method → 405; a path outside the prefixes or an operation that is not a `read` data operation → 403 RESTRICTED."
+      },
+      "ingestKeyPath": {
+        "type": "apiKey",
+        "in": "query",
+        "name": "ingestKey",
+        "x-foresignal-in": "path",
+        "description": "Ingest key (`eik_`, only when the custom source has `allowPathKey: true`) or device key (`eid_`, 039) carried as the path segment after `/k/` in `/v1/ingest/{sourceId}/k/{key}/{format}`, not as a query parameter, for apps that cannot send credentials (OsmAnd/Traccar Client, GPSLogger). OpenAPI has no path-segment API key, so this scheme documents the carrier. The key is redacted from every log line and fetch-log URL. Unknown or revoked key → 401; a key of another source → 401; `eik_` without `allowPathKey` → 404; a sender outside `ingestAllowCidrs` (default: private ranges only) → 403 INGEST_SOURCE_DENIED."
       }
     }
   },

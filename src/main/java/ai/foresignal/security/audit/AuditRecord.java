@@ -53,6 +53,18 @@ public record AuditRecord(
     /** Actor kind of Foresignal itself. */
     public static final String SYSTEM = "system";
 
+    /** Actor kind of a device-scoped ingest key (039). */
+    public static final String INGEST_DEVICE = "ingest_device";
+
+    /** {@code targetType} of a private-data read by a non-admin principal (039). */
+    public static final String TARGET_PRIVATE_READ = "private_read";
+
+    /** {@code targetType} of an entity export (039). */
+    public static final String TARGET_ENTITY_EXPORT = "entity_export";
+
+    /** {@code targetType} of an entity purge (039). */
+    public static final String TARGET_ENTITY_PURGE = "entity_purge";
+
     /** A null detail becomes empty. */
     public AuditRecord {
         detail = detail == null ? Map.of() : Collections.unmodifiableMap(new LinkedHashMap<>(detail));

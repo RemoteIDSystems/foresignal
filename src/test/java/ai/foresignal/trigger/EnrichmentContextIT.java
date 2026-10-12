@@ -210,7 +210,8 @@ class EnrichmentContextIT extends EnrichmentItSupport {
     }
 
     @Test
-    @DisplayName("private-source records are withheld from a non-local provider and sent to a local one")
+    @DisplayName("private-source records are withheld from a non-local provider; a local one gets them only with"
+            + " llm.allowPrivateLocal")
     void privateWithheld() {
         UUID rule = mainQuake();
         records.ingestAt(AskTestSources.SECRET, minutesAgo(3), NormalizedRecord.builder("home", AskTestSources.QUAKE_KIND)
@@ -222,9 +223,18 @@ class EnrichmentContextIT extends EnrichmentItSupport {
         assertThat(remote.json()).doesNotContain(AskTestSources.SECRET).doesNotContain("Family home");
         assertThat(remote.citable().latestSeq(id(AskTestSources.SECRET, "home"))).isEmpty();
 
-        EnrichmentContext local = contexts.build(alert, 50, WINDOW, local());
-        assertThat(ids(JSON.readTree(local.json()).get("nearby").get("records")))
-                .contains(id(AskTestSources.SECRET, "home"));
+        EnrichmentContext localOff = contexts.build(alert, 50, WINDOW, local());
+        assertThat(localOff.json()).doesNotContain("Family home");
+
+        allowPrivateLocal(true);
+        try {
+            assertThat(contexts.build(alert, 50, WINDOW, remote()).json()).doesNotContain("Family home");
+            EnrichmentContext local = contexts.build(alert, 50, WINDOW, local());
+            assertThat(ids(JSON.readTree(local.json()).get("nearby").get("records")))
+                    .contains(id(AskTestSources.SECRET, "home"));
+        } finally {
+            allowPrivateLocal(false);
+        }
     }
 
     @Test

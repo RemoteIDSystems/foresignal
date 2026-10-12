@@ -17,7 +17,7 @@ import ai.foresignal.api.error.ErrorCodes;
 import ai.foresignal.api.error.NotFoundException;
 import ai.foresignal.api.error.ValidationException;
 import ai.foresignal.ingest.IngestOutcome;
-import ai.foresignal.security.SourceVisibilityGate;
+import ai.foresignal.security.visibility.SourceVisibility;
 import ai.foresignal.security.TokenRestrictions;
 import ai.foresignal.security.restrict.ReadRestriction;
 import ai.foresignal.source.SourceRegistry;
@@ -203,7 +203,7 @@ class TrackServiceIT {
     void privateGate() {
         ingest(t(0), MOVER_PRIVATE, at("p1", 0, t(0)));
         clock.setInstant(t(600));
-        Set<String> anonymous = SourceVisibilityGate.excludedSources(registry, null, TokenRestrictions.NONE);
+        Set<String> anonymous = new SourceVisibility(registry, null, null).hiddenFor(null, false, TokenRestrictions.NONE);
         assertThatThrownBy(() -> tracks.track(new TrackQuery(MOVER_PRIVATE, "p1", t(0), t(600), null, 2000, null,
                 false, List.of(), anonymous, ReadRestriction.NONE))).isInstanceOf(NotFoundException.class);
         assertThat(tracks.track(query(MOVER_PRIVATE, "p1", t(0), t(600), false, List.of())).publicAllowed()).isFalse();

@@ -69,9 +69,17 @@ public class TokenService {
      * @param device device metadata, or null
      * @param createdVia how it is created
      * @param principalId the owning principal, or null for a new one named after the token
+     * @param privateAccess the 039 private grant
      */
     public record TokenSpec(String name, Scope scope, Instant expiresAt, TokenRestrictions restrictions,
-            DeviceInfo device, TokenCreatedVia createdVia, String principalId) {}
+            DeviceInfo device, TokenCreatedVia createdVia, String principalId, boolean privateAccess) {
+
+        /** A spec without the private grant (the shape before prompt 039). */
+        public TokenSpec(String name, Scope scope, Instant expiresAt, TokenRestrictions restrictions,
+                DeviceInfo device, TokenCreatedVia createdVia, String principalId) {
+            this(name, scope, expiresAt, restrictions, device, createdVia, principalId, false);
+        }
+    }
 
     /**
      * A created token.
@@ -149,6 +157,7 @@ public class TokenService {
             }
         }
         laterMembers(body, errors);
+        boolean privateAccess = privateAccess(body);
         if (!errors.isEmpty()) {
             throw new ValidationException(ErrorCodes.VALIDATION_FAILED, "The token input is not valid.", errors);
         }
@@ -158,7 +167,8 @@ public class TokenService {
                     "Restrictions cannot be set on an admin token.",
                     List.of(new FieldError("restrictions", "is not allowed on an admin token")));
         }
-        return create(new TokenSpec(name, scope, expiresAt, parsed, null, TokenCreatedVia.API, principalId));
+        return create(new TokenSpec(name, scope, expiresAt, parsed, null, TokenCreatedVia.API, principalId,
+                privateAccess && scope != Scope.ADMIN));
     }
 
     /** Creates a token from an already validated {@code spec}. */
@@ -174,6 +184,7 @@ public class TokenService {
                 prefix(plaintext), spec.createdVia(), principal.getId(), now);
         entity.setExpiresAt(spec.expiresAt());
         entity.setRestrictions(spec.restrictions());
+        entity.setPrivateAccess(spec.privateAccess());
         if (spec.device() != null) {
             entity.setDevice(spec.device(), now);
         }
@@ -399,16 +410,20 @@ public class TokenService {
         }
     }
 
-    /** Rejects members later prompts own ({@code privateAccess} 039, {@code licencePolicy} 109) when set. */
+    /** The {@code privateAccess} member (prompt 039); false when absent or not a boolean. */
+    static boolean privateAccess(JsonNode body) {
+        JsonNode node = body.get("privateAccess");
+        return node != null && node.isBoolean() && node.asBoolean();
+    }
+
+    /**
+     * Checks {@code privateAccess} (a boolean, prompt 039) and rejects members later prompts own
+     * ({@code licencePolicy} 109) when set.
+     */
     static void laterMembers(JsonNode body, List<FieldError> errors) {
         JsonNode privateAccess = body.get("privateAccess");
-        if (privateAccess != null && !privateAccess.isNull()) {
-            if (!privateAccess.isBoolean()) {
-                errors.add(new FieldError("privateAccess", "must be a boolean"));
-            } else if (privateAccess.asBoolean()) {
-                errors.add(new FieldError("privateAccess",
-                        "private-source grants arrive in prompt 039; agent and admin tokens already see private sources"));
-            }
+        if (privateAccess != null && !privateAccess.isNull() && !privateAccess.isBoolean()) {
+            errors.add(new FieldError("privateAccess", "must be a boolean"));
         }
         JsonNode licence = body.get("licencePolicy");
         if (licence != null && !licence.isNull() && !(licence.isArray() && licence.isEmpty())) {

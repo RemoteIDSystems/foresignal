@@ -437,6 +437,19 @@ public class ProjectionService implements ChangeListener, LiveListener, IngestSt
         return s;
     }
 
+    /**
+     * Drops every series of one entity (prompt 039 entity purge). The purge's tombstone change drops
+     * them too; this call makes the drop explicit and idempotent.
+     *
+     * @return true when the entity owned at least one series
+     */
+    public synchronized boolean dropEntity(String sourceId, String externalId) {
+        EntityKey entity = new EntityKey(sourceId, externalId);
+        boolean owned = owners.containsKey(entity);
+        drop(entity);
+        return owned;
+    }
+
     /** Detaches {@code entity} from every projection. */
     private void drop(EntityKey entity) {
         Map<String, Owner> mine = owners.get(entity);

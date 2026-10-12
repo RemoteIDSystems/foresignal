@@ -9,6 +9,7 @@ import ai.foresignal.inbound.signature.SignatureVerifiers;
 import ai.foresignal.inbound.signature.VerifierConfig;
 import ai.foresignal.settings.Durations;
 import ai.foresignal.source.spi.FieldSpec;
+import ai.foresignal.source.spi.FieldType;
 import ai.foresignal.source.spi.SourceDescriptor;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -29,10 +30,18 @@ import tools.jackson.databind.node.ObjectNode;
  * Reads and validates a {@code CustomSourceInput} body (OpenAPI), collecting every field error
  * before failing (prompt 024).
  *
- * <p>Members that later prompts own and enforce ({@code profile} 039, {@code mapping},
- * {@code preset}, {@code presetParams} 059, {@code allowPathKey}, {@code ingestAllowCidrs} 039,
- * {@code captureSamples} 059, {@code licenceTerms} 109) are refused with a field error when set to
- * anything but their default: accepting them unenforced would fail open.
+ * <p>Members that later prompts own and enforce ({@code mapping}, {@code preset},
+ * {@code presetParams}, {@code captureSamples} 059, {@code licenceTerms} 109) are refused with a field
+ * error when set to anything but their default: accepting them unenforced would fail open.
+ *
+ * <p>Prompt 039 accepts {@code allowPathKey}, {@code ingestAllowCidrs} (IPv4 or IPv6 CIDR blocks) and
+ * {@code profile}. Profile {@value #PROFILE_PERSONAL_LOCATION} fills in, wherever the input leaves a
+ * member out: kinds {@code tracker} and {@code tracker-transition}, {@code ttlAnchor=OBSERVED},
+ * {@code recordTtl=24h}, {@code significantFields=[motion, charging]} and the tracker field specs
+ * ({@link #PERSONAL_LOCATION_FIELD_SPECS}); {@code observedAtMode} keeps its {@code UPSTREAM}
+ * default. It forces {@code private=true} ({@code private:false} is a field error) and refuses
+ * {@code embedFields}. The SAMPLED policy, the 7-day retention and the precision cap setting are
+ * descriptor defaults ({@link CustomSourceDescriptors}); every custom source is STANDARD tier.
  */
 @Component
 public class CustomSourceInputReader {
@@ -54,14 +63,26 @@ public class CustomSourceInputReader {
 
     /** Members a later prompt owns, with that prompt. */
     static final Map<String, String> LATER_MEMBERS = Map.of(
-            "profile", "039",
             "mapping", "059",
             "preset", "059",
             "presetParams", "059",
-            "allowPathKey", "039",
-            "ingestAllowCidrs", "039",
             "captureSamples", "059",
             "licenceTerms", "109");
+
+    /** The personal-location preset (prompt 039). */
+    public static final String PROFILE_PERSONAL_LOCATION = "personal-location";
+
+    /** The most CIDR blocks {@code ingestAllowCidrs} may list. */
+    static final int MAX_CIDRS = 64;
+
+    /** The kinds the personal-location profile defaults to. */
+    public static final List<String> PERSONAL_LOCATION_KINDS = List.of("tracker", "tracker-transition");
+
+    /** The significant fields the personal-location profile defaults to. */
+    public static final List<String> PERSONAL_LOCATION_SIGNIFICANT = List.of("motion", "charging");
+
+    /** The field specs the personal-location profile adds (input specs win per field). */
+    public static final Map<String, FieldSpec> PERSONAL_LOCATION_FIELD_SPECS = personalLocationFieldSpecs();
 
     private final IngestFormatRegistry formats;
     private final SignatureVerifiers verifiers;
@@ -90,6 +111,9 @@ public class CustomSourceInputReader {
         }
         List<FieldError> errors = new ArrayList<>();
 
+        String profile = profile(body, errors);
+        boolean personal = PROFILE_PERSONAL_LOCATION.equals(profile);
+
         String id = text(body, "id");
         if (id == null) {
             errors.add(new FieldError("id", "is required"));
@@ -104,6 +128,11 @@ public class CustomSourceInputReader {
         }
 
         List<String> kinds = strings(body, "kinds", errors);
+        if (personal && kinds.isEmpty() && absent(body, "kinds")) {
+            kinds = new ArrayList<>(PERSONAL_LOCATION_KINDS);
+        } else if (personal && !kinds.contains("tracker")) {
+            errors.add(new FieldError("kinds", "must include tracker for profile " + PROFILE_PERSONAL_LOCATION));
+        }
         if (kinds.isEmpty()) {
             errors.add(new FieldError("kinds", "must list at least one kind"));
         }
@@ -117,6 +146,9 @@ public class CustomSourceInputReader {
         }
 
         String recordTtl = text(body, "recordTtl");
+        if (personal && absent(body, "recordTtl")) {
+            recordTtl = "24h";
+        }
         Duration ttl = null;
         if (recordTtl != null) {
             try {
@@ -133,6 +165,12 @@ public class CustomSourceInputReader {
         List<String> embedFields = fields(body, "embedFields", errors);
         List<String> volatileFields = fields(body, "volatileFields", errors);
         List<String> significantFields = fields(body, "significantFields", errors);
+        if (personal && absent(body, "significantFields")) {
+            significantFields = new ArrayList<>(PERSONAL_LOCATION_SIGNIFICANT);
+        }
+        if (personal && !embedFields.isEmpty()) {
+            errors.add(new FieldError("embedFields", "must be empty: a private source is never embedded"));
+        }
         String rankField = field(body, "rankField", errors);
         String titleField = field(body, "titleField", errors);
 
@@ -141,10 +179,21 @@ public class CustomSourceInputReader {
                 integer(body, "recordsPerMinute", DEFAULT_RECORDS_PER_MINUTE, 1, MAX_RECORDS_PER_MINUTE, errors);
 
         String observedAtMode = enumValue(body, "observedAtMode", "UPSTREAM", Set.of("UPSTREAM", "RECEIVED"), errors);
-        String ttlAnchor = enumValue(body, "ttlAnchor", "RECEIVED", Set.of("RECEIVED", "OBSERVED"), errors);
+        String ttlAnchor = enumValue(body, "ttlAnchor", personal ? "OBSERVED" : "RECEIVED",
+                Set.of("RECEIVED", "OBSERVED"), errors);
 
         Map<String, FieldSpec> fieldSpecs = fieldSpecs(body, errors);
-        boolean privateSource = bool(body, "private", false, errors);
+        if (personal) {
+            Map<String, FieldSpec> merged = new LinkedHashMap<>(PERSONAL_LOCATION_FIELD_SPECS);
+            merged.putAll(fieldSpecs);
+            fieldSpecs = merged;
+        }
+        boolean privateSource = bool(body, "private", personal, errors);
+        if (personal && !privateSource) {
+            errors.add(new FieldError("private", "cannot be false for profile " + PROFILE_PERSONAL_LOCATION));
+        }
+        boolean allowPathKey = bool(body, "allowPathKey", false, errors);
+        List<String> ingestAllowCidrs = cidrs(body, errors);
         String licence = text(body, "licence");
         String attribution = text(body, "attribution");
         String description = text(body, "description");
@@ -168,7 +217,65 @@ public class CustomSourceInputReader {
         return new CustomSourceDefinition(id, name, description, kinds, attribution, recordTtl, ttl, tileProperties,
                 searchFields, embedFields, rankField, rate, observedAtMode, ttlAnchor, volatileFields,
                 significantFields, titleField, fieldSpecs, privateSource, licence, recordsPerMinute, formatOptions,
-                verifierConfigs, secrets);
+                verifierConfigs, secrets, profile, allowPathKey, ingestAllowCidrs);
+    }
+
+    /** {@code profile}: null or {@value #PROFILE_PERSONAL_LOCATION}. */
+    private static String profile(JsonNode body, List<FieldError> errors) {
+        JsonNode value = body.get("profile");
+        if (value == null || value.isNull()) {
+            return null;
+        }
+        if (!value.isString() || !PROFILE_PERSONAL_LOCATION.equals(value.asString())) {
+            errors.add(new FieldError("profile", "must be null or " + PROFILE_PERSONAL_LOCATION));
+            return null;
+        }
+        return PROFILE_PERSONAL_LOCATION;
+    }
+
+    /** {@code ingestAllowCidrs}: null, or a list of IPv4/IPv6 CIDR blocks (normalized). */
+    private static List<String> cidrs(JsonNode body, List<FieldError> errors) {
+        JsonNode value = body.get("ingestAllowCidrs");
+        if (value == null || value.isNull()) {
+            return null;
+        }
+        if (!value.isArray()) {
+            errors.add(new FieldError("ingestAllowCidrs", "must be an array of CIDR blocks, or null"));
+            return null;
+        }
+        if (value.size() > MAX_CIDRS) {
+            errors.add(new FieldError("ingestAllowCidrs", "must list at most " + MAX_CIDRS + " blocks"));
+            return null;
+        }
+        List<String> out = new ArrayList<>();
+        for (int i = 0; i < value.size(); i++) {
+            JsonNode item = value.get(i);
+            try {
+                if (item == null || !item.isString()) {
+                    throw new IllegalArgumentException("must be a string");
+                }
+                out.add(Cidr.parse(item.asString()).toString());
+            } catch (IllegalArgumentException e) {
+                errors.add(new FieldError("ingestAllowCidrs[" + i + "]", "is not a CIDR block: " + e.getMessage()));
+            }
+        }
+        return out;
+    }
+
+    private static boolean absent(JsonNode body, String name) {
+        JsonNode value = body.get(name);
+        return value == null || value.isNull();
+    }
+
+    private static Map<String, FieldSpec> personalLocationFieldSpecs() {
+        Map<String, FieldSpec> out = new LinkedHashMap<>();
+        out.put("speedMs", new FieldSpec(FieldType.NUMBER, "m/s", "Speed", null, null, Set.of()));
+        out.put("courseDeg", new FieldSpec(FieldType.NUMBER, "deg", "Course", null, null, Set.of()));
+        out.put("altitudeM", new FieldSpec(FieldType.NUMBER, "m", "Altitude", null, null, Set.of()));
+        out.put("battery", new FieldSpec(FieldType.NUMBER, "%", "Battery", null, null, Set.of()));
+        out.put("charging", new FieldSpec(FieldType.BOOLEAN, null, "Charging", null, null, Set.of()));
+        out.put("motion", new FieldSpec(FieldType.ARRAY, null, "Motion", null, null, Set.of()));
+        return java.util.Collections.unmodifiableMap(out);
     }
 
     private ObjectNode formats(JsonNode body, List<FieldError> errors) {

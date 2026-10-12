@@ -7,7 +7,7 @@ import ai.foresignal.search.DocInput;
 import ai.foresignal.search.EmbeddingWorker;
 import ai.foresignal.search.SearchStatusService;
 import ai.foresignal.security.Scope;
-import ai.foresignal.security.SourceVisibilityGate;
+import ai.foresignal.security.visibility.SourceVisibility;
 import ai.foresignal.source.SourceRegistry;
 import ai.foresignal.store.NotificationDeliveryRepository;
 import java.time.Clock;
@@ -64,6 +64,7 @@ public class BriefingRunner {
     private final SearchStatusService searchStatus;
     private final BriefingLinks links;
     private final SourceRegistry registry;
+    private volatile SourceVisibility visibility;
     private final JsonMapper json;
     private final TransactionTemplate transactions;
     private final Clock clock;
@@ -141,7 +142,7 @@ public class BriefingRunner {
         if (scope == Scope.ADMIN) {
             return Set.of();
         }
-        return SourceVisibilityGate.excludedSources(registry, Scope.READ, null);
+        return visibility().privateSourceIds();
     }
 
     /**
@@ -324,5 +325,20 @@ public class BriefingRunner {
         } catch (RuntimeException e) {
             return null;
         }
+    }
+
+    /** Injects the shared private-source visibility (prompt 039). */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setVisibility(SourceVisibility visibility) {
+        this.visibility = visibility;
+    }
+
+    private SourceVisibility visibility() {
+        SourceVisibility v = visibility;
+        if (v == null) {
+            v = new SourceVisibility(registry, null, null);
+            visibility = v;
+        }
+        return v;
     }
 }

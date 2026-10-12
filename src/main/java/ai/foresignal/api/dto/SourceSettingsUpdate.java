@@ -27,6 +27,7 @@ public class SourceSettingsUpdate {
     private Boolean embed;
     private Boolean statsEnabled;
     private Boolean statsIncludePrivate;
+    private Boolean privateSource;
 
     /** Whether the source should be collected; null leaves it unchanged. */
     public Boolean getEnabled() {
@@ -128,5 +129,20 @@ public class SourceSettingsUpdate {
     /** Sets {@link #getStatsIncludePrivate()}. */
     public void setStatsIncludePrivate(Boolean statsIncludePrivate) {
         this.statsIncludePrivate = statsIncludePrivate;
+    }
+
+    /**
+     * The operator's {@code private} tightening (prompt 039): true makes the source private, false
+     * removes the tightening (refused for a descriptor-private source); null leaves it unchanged.
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("private")
+    public Boolean getPrivateSource() {
+        return privateSource;
+    }
+
+    /** Sets {@link #getPrivateSource()}. */
+    @com.fasterxml.jackson.annotation.JsonProperty("private")
+    public void setPrivateSource(Boolean privateSource) {
+        this.privateSource = privateSource;
     }
 }

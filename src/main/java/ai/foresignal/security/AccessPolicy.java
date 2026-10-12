@@ -150,6 +150,9 @@ public class AccessPolicy {
                 // ---- Inbound ingest (Architecture §16, prompt 024) ----
                 rule(HttpMethod.GET, "/v1/ingest/formats", AccessRequirement.ADMIN),
                 rule(HttpMethod.POST, "/v1/ingest/**", AccessRequirement.INGEST_KEY_OR_ADMIN),
+                // GET pushes (OsmAnd/Traccar Client, GPSLogger) and the key-in-path forms (039); device
+                // keys (eid_) and path keys are resolved by the ingest-key authenticator.
+                rule(HttpMethod.GET, "/v1/ingest/**", AccessRequirement.INGEST_KEY_OR_ADMIN),
                 // The CloudEvents webhook validation handshake (ingestWebhookHandshake).
                 rule(HttpMethod.OPTIONS, "/v1/ingest/**", AccessRequirement.INGEST_KEY_OR_ADMIN),
                 // ntfy- and Gotify-compatible publish, outside /v1 (the key resolves the source).
@@ -214,6 +217,9 @@ public class AccessPolicy {
                 rule(HttpMethod.GET, "/v1/sources/**", AccessRequirement.READ),
 
                 // ---- Records, changes, tiles, kinds, history: data reads ----
+                // Per-entity export and purge (039) are admin and sit before the records READ rule.
+                rule(HttpMethod.GET, "/v1/records/*/*/export", AccessRequirement.ADMIN),
+                rule(HttpMethod.POST, "/v1/records/*/*/purge", AccessRequirement.ADMIN),
                 rule(HttpMethod.GET, "/v1/records/**", AccessRequirement.READ),
                 rule(HttpMethod.GET, "/v1/changes/**", AccessRequirement.READ),
                 // The multiplexed event stream and its filter swap; ownership is enforced in code (015).

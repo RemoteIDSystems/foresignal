@@ -32,7 +32,7 @@ class IngestTypesTest {
     }
 
     @Test
-    @DisplayName("commands are a sealed pair carrying futures")
+    @DisplayName("commands are a sealed set carrying futures")
     void commands() {
         IngestCommand batch = new IngestBatch("s", FetchLogEntry.ok("s", FetchTrigger.SCHEDULED, T0, T0), null, null);
         IngestCommand purge = new HeadPurge(List.of(new PurgeSpec("s", 100, T0)), null);
@@ -40,12 +40,17 @@ class IngestTypesTest {
         String kind = switch (batch) {
             case IngestBatch b -> "batch " + b.records().size();
             case HeadPurge p -> "purge";
+            case EntityPurge e -> "entity purge";
         };
         assertThat(kind).isEqualTo("batch 0");
         assertThat(((IngestBatch) batch).future()).isNotNull();
         assertThat(((HeadPurge) purge).future()).isInstanceOf(CompletableFuture.class);
         assertThat(new PurgeOutcome(null).headsDeleted()).isEmpty();
         assertThat(((IngestBatch) batch).log().coverage()).isEqualTo(Coverage.none());
+        EntityPurge entity = new EntityPurge("s", "e", null);
+        assertThat(entity.future()).isNotNull();
+        assertThat(EntityPurgeOutcome.notFound().found()).isFalse();
+        assertThatThrownBy(() -> new EntityPurge(null, "e", null)).isInstanceOf(NullPointerException.class);
     }
 
     @Test
@@ -55,8 +60,8 @@ class IngestTypesTest {
         assertThat(QaFlags.has(QaFlags.FUTURE_CLAMPED | QaFlags.POSITION_STALE, QaFlags.POSITION_STALE)).isTrue();
         assertThat(QaFlags.has(QaFlags.NULL_ISLAND, QaFlags.TIME_IMPUTED)).isFalse();
         assertThat(List.of(QaFlags.FUTURE_CLAMPED, QaFlags.GEOMETRY_FIXED, QaFlags.NULL_ISLAND, QaFlags.TIME_IMPUTED,
-                        QaFlags.POSITION_STALE))
-                .containsExactly(1, 2, 4, 8, 16);
+                        QaFlags.POSITION_STALE, QaFlags.PURGED))
+                .containsExactly(1, 2, 4, 8, 16, 32);
     }
 
     @Test

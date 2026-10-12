@@ -286,7 +286,8 @@ class AskServiceIT extends AskItSupport {
     }
 
     @Test
-    @DisplayName("a private-source record never reaches a non-local provider, even for an agent token; a local one gets it")
+    @DisplayName("a private-source record never reaches a non-local provider, even with privateAccess; a local one gets it"
+            + " only with privateAccess and llm.allowPrivateLocal")
     void privateRecordsStayLocal() throws Exception {
         secret("s1", "Hidden Base", 10.0, 50.0);
         quake("q1", "Tokyo Bay", 5.5, 139.8, 35.6);
@@ -295,14 +296,25 @@ class AskServiceIT extends AskItSupport {
                         call("c3", "query_records", "{\"q\":\"hidden\"}")))
                 .then(text("Tokyo Bay only [" + Q1 + "]."));
 
-        ask(agent, question("Everything you know?"));
+        ask(privateAgent, question("Everything you know?"));
 
         assertThat(everythingSent(chat().requests())).doesNotContain("Hidden Base");
 
         provider(LOCAL, "ollama", 1_000_000L);
         assign(LOCAL);
         fakes.client(LOCAL).then(toolUse(call("c1", "query_records", "{}"))).then(text("Done."));
+        ask(privateAgent, question("Everything you know?"));
+        // allowPrivateLocal is off by default (prompt 039): even a local provider gets nothing private.
+        assertThat(everythingSent(fakes.client(LOCAL).requests())).doesNotContain("Hidden Base");
+
+        assign(LOCAL, true);
+        fakes.client(LOCAL).then(toolUse(call("c1", "query_records", "{}"))).then(text("Done."));
         ask(agent, question("Everything you know?"));
+        // A plain agent token cannot see the private source at all.
+        assertThat(everythingSent(fakes.client(LOCAL).requests())).doesNotContain("Hidden Base");
+
+        fakes.client(LOCAL).then(toolUse(call("c1", "query_records", "{}"))).then(text("Done."));
+        ask(privateAgent, question("Everything you know?"));
         assertThat(everythingSent(fakes.client(LOCAL).requests())).contains("Hidden Base");
     }
 

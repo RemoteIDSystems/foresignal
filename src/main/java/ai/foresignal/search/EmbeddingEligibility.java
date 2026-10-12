@@ -24,7 +24,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 /**
  * Which sources' records are embedded (prompt 027): the descriptor declares {@code embedFields},
  * the source's {@code embed} setting is on (default on when {@code embedFields} is non-empty), and
- * {@link EgressPolicy#allowsEmbedding} allows it, which a private source never is.
+ * {@link EgressPolicy#allowsEmbedding} allows it, which a private source never is (descriptor flag or
+ * operator tightening, prompt 039; the {@code embed} setting is forced off for it).
  *
  * <p>The set is cached and rebuilt when a source is registered or removed, or its settings change.
  * Turning {@code embed} off deletes the source's record documents, so they stop being searchable.
@@ -90,6 +91,18 @@ public class EmbeddingEligibility implements IngestStateReset {
             newTransaction.executeWithoutResult(status -> jdbc.update(
                     "DELETE FROM embedding_document WHERE doc_type = 'record' AND source_id = ?", event.sourceId()));
         }
+    }
+
+    /**
+     * A source became private (prompt 039): it is no longer eligible, and every embedding row it left
+     * (records, and alerts or briefings attributed to it) is deleted, so nothing of it stays searchable
+     * semantically. Published after the change commits: writes in a transaction of its own.
+     */
+    @EventListener
+    public void onSourceBecamePrivate(ai.foresignal.security.visibility.SourceBecamePrivateEvent event) {
+        cached = null;
+        newTransaction.executeWithoutResult(status -> jdbc.update(
+                "DELETE FROM embedding_document WHERE source_id = ?", event.sourceId()));
     }
 
     @Override

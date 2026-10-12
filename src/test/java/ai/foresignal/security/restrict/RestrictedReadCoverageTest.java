@@ -50,7 +50,9 @@ class RestrictedReadCoverageTest {
             // 036: places, view definitions and watchlists are not records.
             "list_places", "get_place", "create_place", "update_place", "delete_place", "PlacesResource",
             "list_views", "create_view", "list_watchlists", "get_watchlist", "add_to_watchlist",
-            "remove_from_watchlist");
+            "remove_from_watchlist",
+            // 039: an admin-only erasure that returns a purge report, never records.
+            "purge_entity");
 
     @Test
     @DisplayName("every record- or alert-returning controller method carries @RestrictedRead")

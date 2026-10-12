@@ -31,13 +31,14 @@ public class HeaderStreamPrincipalResolver implements StreamPrincipalResolver {
         if (principal.isPresent() && principal.get().isFeedKey()) {
             // A feed key (prompt 035) is its own principal, keyed on its id, with the read scope.
             return new StreamPrincipal("feed:" + principal.get().id(), Scope.READ, request.getRemoteAddr(),
-                    restriction);
+                    restriction, principal.get().privateAccess());
         }
         Optional<CurrentToken> current = CurrentToken.of(request);
         if (current.isEmpty()) {
             return StreamPrincipal.anonymous(request.getRemoteAddr()).withRestriction(restriction);
         }
+        // The 039 private grant travels with the principal, so the hub filters private sources per client.
         return StreamPrincipal.forToken(current.get().id(), current.get().scope(), request.getRemoteAddr())
-                .withRestriction(restriction);
+                .withRestriction(restriction).withPrivateAccess(current.get().privateAccess());
     }
 }

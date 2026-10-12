@@ -22,6 +22,12 @@ public final class QaFlags {
     /** TRACK carry-forward: the geometry is the last known one, not this observation's. */
     public static final int POSITION_STALE = 16;
 
+    /**
+     * The version is the tombstone of an entity purge (prompt 039, {@code EntityPurge}): every older
+     * version of the entity was deleted, and clients and caches must delete the entity.
+     */
+    public static final int PURGED = 32;
+
     private QaFlags() {}
 
     /** True when {@code flags} has {@code flag} set. */

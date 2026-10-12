@@ -65,6 +65,12 @@ public final class SettingKeys {
     /** Metric projections served at {@code /v1/metrics} ({@code MetricSettings}, prompt 038). */
     public static final String METRICS = "metrics";
 
+    /**
+     * Operator visibility tightening ({@code VisibilitySettings}, prompt 039): the sources the operator
+     * made private on top of their descriptors ({@code SourceSettings.private}).
+     */
+    public static final String VISIBILITY = "visibility";
+
     /** This installation's generated identifier. */
     public static final String INSTALL_ID = "install.id";
 
@@ -75,7 +81,7 @@ public final class SettingKeys {
     public static final List<String> ALL =
             List.of(RETENTION, CORS, TRIGGER_CURSOR, TRIGGERS, STREAM_LIMITS, SECURITY, SERVER, NOTIFICATIONS,
                     WATCHDOG, INSTALL_ID, LLM, SEARCH_INDEX, EMBEDDING_CURSOR, RATELIMITS, OUTBOUND, STATS_ROLLUP_CURSOR,
-                    STATS, GLANCE, METRICS);
+                    STATS, GLANCE, METRICS, VISIBILITY);
 
     private SettingKeys() {}
 }

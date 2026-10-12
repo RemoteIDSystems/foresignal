@@ -14,7 +14,7 @@ import ai.foresignal.mcp.McpOutputShaper.Detail;
 import ai.foresignal.mcp.ToolContext;
 import ai.foresignal.mcp.ToolResult;
 import ai.foresignal.security.Scope;
-import ai.foresignal.security.SourceVisibilityGate;
+import ai.foresignal.security.visibility.SourceVisibility;
 import ai.foresignal.source.SourceService;
 import ai.foresignal.source.SourceView;
 import java.util.ArrayList;
@@ -34,11 +34,11 @@ public class ListSourcesTool implements ForesignalMcpTool {
 
     private final SourceService sources;
     private final SourceMapper mapper;
-    private final SourceVisibilityGate visibility;
+    private final SourceVisibility visibility;
     private final McpOutputShaper shaper;
 
     /** Creates the tool. */
-    public ListSourcesTool(SourceService sources, SourceMapper mapper, SourceVisibilityGate visibility,
+    public ListSourcesTool(SourceService sources, SourceMapper mapper, SourceVisibility visibility,
             McpOutputShaper shaper) {
         this.sources = sources;
         this.mapper = mapper;

@@ -156,6 +156,13 @@ public abstract class EnrichmentItSupport extends AskItSupport {
         return new EgressPolicy.LlmDestination(LOCAL, "ollama", true);
     }
 
+    /** Turns {@code llm.allowPrivateLocal} (prompt 039) on or off, keeping the other LLM settings. */
+    protected void allowPrivateLocal(boolean on) {
+        LlmSettings s = llmSettings.get();
+        llmSettings.update(new LlmSettings(s.chatProvider(), s.embeddingProvider(), s.askEnabled(),
+                s.enrichmentEnabled(), s.logContent(), s.askMaxTokens(), on));
+    }
+
     /** Settings with enrichment {@code enabled} and {@code chatProvider} (null for none). */
     protected void enrichmentSettings(String chatProvider, boolean enabled) {
         llmSettings.update(new LlmSettings(chatProvider, null, true, enabled, false, 200_000, false));

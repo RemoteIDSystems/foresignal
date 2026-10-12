@@ -110,6 +110,10 @@ public class ApiTokenEntity {
     @Column(name = "allowed_place_ids", columnDefinition = "text[]")
     private String[] allowedPlaceIds;
 
+    /** The 039 private grant: the token or feed key may see private sources; null reads as false. */
+    @Column(name = "private_access")
+    private Boolean privateAccess;
+
     @Column(name = "type", length = 16)
     private String type;
 
@@ -269,6 +273,16 @@ public class ApiTokenEntity {
         this.excludePrivate = r.excludePrivate();
         this.maxRequestsPerMinute = r.maxRequestsPerMinute();
         this.allowedPlaceIds = array(r.placeIds());
+    }
+
+    /** True when the token or feed key may see private sources (prompt 039 {@code privateAccess}). */
+    public boolean isPrivateAccess() {
+        return Boolean.TRUE.equals(privateAccess);
+    }
+
+    /** Sets {@link #isPrivateAccess()}. */
+    public void setPrivateAccess(boolean privateAccess) {
+        this.privateAccess = privateAccess;
     }
 
     /** {@value #TYPE_TOKEN} or {@value #TYPE_FEED_KEY} (prompt 035); a null stored type reads as a token. */

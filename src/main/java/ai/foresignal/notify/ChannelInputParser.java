@@ -234,6 +234,11 @@ public class ChannelInputParser {
      * {@code allowedSenders} (strings) when present.
      */
     static void actionsConfig(Map<String, Object> config, List<FieldError> errors) {
+        Object privatePayload = config.get(PrivatePayloads.CONFIG_KEY);
+        if (privatePayload != null && !(privatePayload instanceof Boolean)) {
+            // The admin opt-in to private-source payloads (prompt 039).
+            errors.add(new FieldError("config." + PrivatePayloads.CONFIG_KEY, "must be true or false"));
+        }
         Object actions = config.get("actions");
         if (actions != null) {
             if (!(actions instanceof Map<?, ?> map)) {

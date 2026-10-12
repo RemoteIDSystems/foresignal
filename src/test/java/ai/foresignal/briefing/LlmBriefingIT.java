@@ -91,7 +91,8 @@ class LlmBriefingIT extends BriefingItSupport {
     }
 
     @Test
-    @DisplayName("a local provider may receive private records of an admin-owned briefing, never of an agent-owned one")
+    @DisplayName("a local provider may receive private records of an admin-owned briefing only with"
+            + " llm.allowPrivateLocal, never of an agent-owned one")
     void localProvider() {
         provider(LOCAL, "ollama", 1_000_000L);
         assign(LOCAL);
@@ -99,7 +100,13 @@ class LlmBriefingIT extends BriefingItSupport {
         fakes.client(LOCAL).otherwise(request -> text("Noted."));
 
         briefings.runNow(llmBriefing(admin()));
-        assertThat(everythingSent(fakes.client(LOCAL).requests())).contains("Hidden Lake");
+        assertThat(everythingSent(fakes.client(LOCAL).requests())).doesNotContain("Hidden Lake");
+
+        assign(LOCAL, true);
+        int off = fakes.client(LOCAL).requests().size();
+        briefings.runNow(llmBriefing(admin()));
+        assertThat(everythingSent(fakes.client(LOCAL).requests().subList(off,
+                fakes.client(LOCAL).requests().size()))).contains("Hidden Lake");
 
         int before = fakes.client(LOCAL).requests().size();
         briefings.runNow(llmBriefing(agentCaller()));

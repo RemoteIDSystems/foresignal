@@ -9,7 +9,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import ai.foresignal.api.support.ReadCaller;
 import ai.foresignal.security.AuthenticatedToken;
 import ai.foresignal.security.Scope;
-import ai.foresignal.security.SourceVisibilityGate;
+import ai.foresignal.security.visibility.SourceVisibility;
 import ai.foresignal.security.TokenRestrictions;
 import ai.foresignal.source.SourceRegistry;
 import ai.foresignal.source.spi.NormalizedRecord;
@@ -56,14 +56,16 @@ class McpTimeTravelToolsIT {
 
     private ToolContext context(Scope scope, boolean openReads) {
         if (scope == null) {
-            Set<String> excluded = SourceVisibilityGate.excludedSources(sources, null, TokenRestrictions.NONE);
+            Set<String> excluded = new SourceVisibility(sources, null, null).hiddenFor(null, false, TokenRestrictions.NONE);
             return new ToolContext(new McpCaller(null, new ReadCaller(null, false, openReads), excluded, "127.0.0.1"),
                     "session", McpSessions.STREAMABLE);
         }
+        // Token callers here hold the 039 private grant, so the private gate lets them through.
         AuthenticatedToken token = new AuthenticatedToken(UUID.randomUUID(), "bot-" + scope.wireValue(), scope,
-                TokenRestrictions.NONE, null, "principal-1", false);
-        return new ToolContext(new McpCaller(token, new ReadCaller(scope, false, openReads), Set.of(), "10.0.0.2"),
-                "session", McpSessions.STREAMABLE);
+                TokenRestrictions.NONE, null, "principal-1", false, true);
+        Set<String> excluded = new SourceVisibility(sources, null, null).hiddenFor(scope, true, TokenRestrictions.NONE);
+        return new ToolContext(new McpCaller(token, new ReadCaller(scope, false, openReads, null, true), excluded,
+                "10.0.0.2"), "session", McpSessions.STREAMABLE);
     }
 
     private McpSchema.CallToolResult call(String tool, Map<String, Object> args, Scope scope) {
