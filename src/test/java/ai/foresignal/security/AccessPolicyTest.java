@@ -114,6 +114,12 @@ class AccessPolicyTest {
         "DELETE, /v1/triggers/9f1e",
         "POST, /v1/triggers/9f1e/test",
         "POST, /v1/alerts/42/ack",
+        "POST, /v1/alerts/42/resolve",
+        "POST, /v1/alerts/42/snooze",
+        "DELETE, /v1/alerts/42/snooze",
+        "PUT, /v1/alerts/42/feedback",
+        "POST, /v1/triggers/9f1e/snooze",
+        "DELETE, /v1/triggers/9f1e/snooze",
         "POST, /v1/briefings",
         "POST, /v1/briefings/preview",
         "PUT, /v1/briefings/9f1e",
@@ -125,6 +131,19 @@ class AccessPolicyTest {
     })
     void agentOperations(String method, String path) {
         assertScope(method, path, Scope.AGENT);
+    }
+
+    @ParameterizedTest(name = "ADMIN by default: {0} {1}")
+    @CsvSource({
+        "PATCH, /v1/alerts/42/resolve",
+        "GET, /v1/alerts/42/resolve/extra",
+        "POST, /v1/alerts/42/feedback",
+        "PUT, /v1/alerts/42/snooze",
+        "POST, /v1/alerts/42",
+    })
+    @DisplayName("the alert lifecycle rules are exact; neighbors fail closed or fall to the read rule (017)")
+    void alertLifecycleRulesAreExact(String method, String path) {
+        assertScope(method, path, "GET".equals(method) ? Scope.READ : Scope.ADMIN);
     }
 
     // ---------- admin ----------

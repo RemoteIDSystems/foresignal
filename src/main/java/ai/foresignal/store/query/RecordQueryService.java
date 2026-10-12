@@ -386,6 +386,27 @@ public class RecordQueryService {
     }
 
     /**
+     * Whole versions of {@code seqs} ({@code WHERE seq = ANY(?)}), with GeoJSON geometry and payload,
+     * keyed by seq; seqs no longer stored are absent. The alert API loads an alert's version with it
+     * and {@code testTrigger} its matches (prompt 017).
+     */
+    public Map<Long, RecordRow> versionsBySeq(Collection<Long> seqs) {
+        if (seqs.isEmpty()) {
+            return Map.of();
+        }
+        return runner.read(jdbc -> {
+            SqlParams p = new SqlParams();
+            String sql = "SELECT " + versionSelect("v", FieldSelection.ALL, GeometryOptions.DEFAULT, GeometryEncoding.GEOJSON,
+                    false, p) + " FROM record_version v WHERE v.seq = ANY(" + p.bigintArray(new ArrayList<>(seqs)) + ")";
+            Map<Long, RecordRow> rows = new HashMap<>();
+            for (RecordRow row : jdbc.query(sql, p.source(), RecordRowMapper.INSTANCE)) {
+                rows.put(row.seq(), row);
+            }
+            return rows;
+        });
+    }
+
+    /**
      * The whole payloads of {@code seqs} as JSON text ({@code WHERE seq = ANY(?)}), keyed by seq.
      * The SSE sender threads load {@code payload=true} payloads in small batches with it (prompt 015).
      */

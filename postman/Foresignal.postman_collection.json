@@ -973,7 +973,7 @@
                 }
               ]
             },
-            "description": "Alerts newest first, keyset on id. Suppressed alerts are hidden unless includeSuppressed.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `listAlerts`",
+            "description": "Alerts newest first, keyset on id. Suppressed alerts are hidden unless includeSuppressed. Anonymous callers (security.openReads) never see alerts of private sources.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `listAlerts`",
             "auth": {
               "type": "noauth"
             }
@@ -1914,7 +1914,7 @@
                 }
               ]
             },
-            "description": "Alert lifecycle as SSE: `alert` (fired), `alert.updated` and `alert.resolved`, data AlertEvent, `id:` = alert rev. Resume replays rows with rev > Last-Event-ID in their current state; clients upsert by alert id.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `streamAlerts`",
+            "description": "Alert lifecycle as SSE: `alert` (fired), `alert.updated` and `alert.resolved`, data AlertEvent, `id:` = alert rev. Resume replays rows with rev > Last-Event-ID in their current state; clients upsert by alert id. A malformed Last-Event-ID is 400 INVALID_CURSOR. Anonymous callers never see alerts of private sources.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `streamAlerts`",
             "auth": {
               "type": "noauth"
             }
@@ -2119,7 +2119,7 @@
                 }
               ]
             },
-            "description": "Alerts newest first, keyset on id. Suppressed alerts are hidden unless includeSuppressed.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `listAlerts`",
+            "description": "Alerts newest first, keyset on id. Suppressed alerts are hidden unless includeSuppressed. Anonymous callers (security.openReads) never see alerts of private sources.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `listAlerts`",
             "auth": {
               "type": "noauth"
             }
@@ -2197,7 +2197,7 @@
                 }
               ]
             },
-            "description": "Alert lifecycle as SSE: `alert` (fired), `alert.updated` and `alert.resolved`, data AlertEvent, `id:` = alert rev. Resume replays rows with rev > Last-Event-ID in their current state; clients upsert by alert id.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `streamAlerts`",
+            "description": "Alert lifecycle as SSE: `alert` (fired), `alert.updated` and `alert.resolved`, data AlertEvent, `id:` = alert rev. Resume replays rows with rev > Last-Event-ID in their current state; clients upsert by alert id. A malformed Last-Event-ID is 400 INVALID_CURSOR. Anonymous callers never see alerts of private sources.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `streamAlerts`",
             "auth": {
               "type": "noauth"
             }
@@ -2236,7 +2236,7 @@
               ],
               "query": []
             },
-            "description": "Alert with its lifecycle; `record` is loaded by seq and falls back to `recordSnapshot` once the version is gone.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getAlert`",
+            "description": "Alert with its lifecycle; `record` is loaded by seq and falls back to `recordSnapshot` once the version is gone. An alert of a private source is 404 for anonymous callers.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getAlert`",
             "auth": {
               "type": "noauth"
             }
@@ -2353,7 +2353,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"note\": \"Handled on site\",\n  \"feedback\": \"useful\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2413,7 +2413,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"until\": \"2026-10-12T06:00:00Z\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2520,7 +2520,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"feedback\": \"noise\",\n  \"note\": \"Routine traffic\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -15411,6 +15411,12 @@
                   "key": "alerts.kind",
                   "value": "",
                   "description": "alerts topic: kinds (repeatable or comma-separated)",
+                  "disabled": true
+                },
+                {
+                  "key": "alerts.includeSuppressed",
+                  "value": "false",
+                  "description": "alerts topic: include suppressed alerts",
                   "disabled": true
                 },
                 {
@@ -45004,7 +45010,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Big quake\",\n  \"enabled\": true,\n  \"source\": \"usgs-earthquakes\",\n  \"kind\": \"earthquake\",\n  \"conditions\": [\n    {\n      \"path\": \"mag\",\n      \"op\": \">=\",\n      \"value\": 6\n    }\n  ],\n  \"mode\": \"enter\",\n  \"cooldown\": \"0s\",\n  \"severity\": \"critical\",\n  \"enrich\": true,\n  \"messageTemplate\": \"M{{payload.mag}} \\u2014 {{payload.place}}\"\n}",
+              "raw": "{\n  \"name\": \"Watched tails on the corridor\",\n  \"enabled\": true,\n  \"kinds\": [\n    \"aircraft\"\n  ],\n  \"conditions\": [\n    {\n      \"path\": \"callsign\",\n      \"op\": \"in\",\n      \"value\": [\n        \"N123AB\",\n        \"N456CD\"\n      ]\n    }\n  ],\n  \"geofence\": {\n    \"type\": \"LineString\",\n    \"coordinates\": [\n      [\n        -97.75,\n        30.25\n      ],\n      [\n        -97.0,\n        32.9\n      ]\n    ]\n  },\n  \"bufferMeters\": 5000,\n  \"mode\": \"enter\",\n  \"hysteresisMeters\": 200,\n  \"cooldown\": \"15m\",\n  \"severity\": \"warning\",\n  \"tags\": [\n    \"watchlist\"\n  ],\n  \"messageTemplate\": \"{{payload.callsign}} entered the corridor at {{observedAt}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -45287,7 +45293,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"for\": \"2h\"\n}",
               "options": {
                 "raw": {
                   "language": "json"

@@ -138,8 +138,12 @@ public class AccessPolicy {
                 rule(HttpMethod.GET, "/v1/triggers/**", AccessRequirement.READ),
                 rule(null, "/v1/triggers/**", AccessRequirement.AGENT),
 
-                // ---- Alerts: read to list, agent to acknowledge ----
+                // ---- Alerts: read to list, agent for the lifecycle (017) ----
                 rule(HttpMethod.POST, "/v1/alerts/*/ack", AccessRequirement.AGENT),
+                rule(HttpMethod.POST, "/v1/alerts/*/resolve", AccessRequirement.AGENT),
+                rule(HttpMethod.POST, "/v1/alerts/*/snooze", AccessRequirement.AGENT),
+                rule(HttpMethod.DELETE, "/v1/alerts/*/snooze", AccessRequirement.AGENT),
+                rule(HttpMethod.PUT, "/v1/alerts/*/feedback", AccessRequirement.AGENT),
                 rule(HttpMethod.GET, "/v1/alerts/**", AccessRequirement.READ),
 
                 // ---- Briefings: read to list, agent to change or run ----

@@ -65,6 +65,18 @@ class SchemaBootstrapIT {
     }
 
     @Test
+    @DisplayName("the alert revision sequence and the partial index on open alerts exist (017)")
+    void alertStatements() {
+        assertThat(indexNames()).contains("alert_open_idx", "alert_rule_entity_observed_idx", "alert_rev_idx");
+        String definition = jdbc.queryForObject(
+                "select indexdef from pg_indexes where schemaname = 'public' and indexname = 'alert_open_idx'", String.class);
+        assertThat(definition).contains("WHERE").contains("resolved");
+        assertThat(jdbc.queryForObject(
+                "select count(*) from pg_sequences where schemaname = 'public' and sequencename = 'alert_rev'", Integer.class))
+                .isEqualTo(1);
+    }
+
+    @Test
     @DisplayName("record_version owns its three partitioned indexes and nothing else")
     void recordVersionIndexes() {
         List<String> parentIndexes =

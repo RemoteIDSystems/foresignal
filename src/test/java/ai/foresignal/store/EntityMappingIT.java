@@ -641,8 +641,11 @@ class EntityMappingIT {
         UUID id = UUID.randomUUID();
         var rule = new TriggerRuleEntity(id, "Big quakes near the bay");
         rule.setEnabled(true);
-        rule.setSourceId("usgs-earthquakes");
-        rule.setKind("earthquake");
+        rule.setSources(List.of("usgs-earthquakes"));
+        rule.setKinds(List.of("earthquake"));
+        rule.setTags(List.of("quakes"));
+        rule.setSeverity("critical");
+        rule.setAutoResolve(Map.of("onInverseEdge", true, "onTombstone", false, "onExpiry", true));
         rule.setConditions(
                 new java.util.ArrayList<>(
                         List.of(
@@ -671,6 +674,13 @@ class EntityMappingIT {
         assertThat(loaded.getGeofence()).isNotNull();
         assertThat(loaded.getGeofence().getSRID()).isEqualTo(WGS84);
         assertThat(loaded.getGeofence().getNumGeometries()).isEqualTo(1);
+        assertThat(loaded.getSources()).containsExactly("usgs-earthquakes");
+        assertThat(loaded.getKinds()).containsExactly("earthquake");
+        assertThat(loaded.getTags()).containsExactly("quakes");
+        assertThat(loaded.getSeverity()).isEqualTo("critical");
+        assertThat(loaded.getCooldownScope()).isEqualTo("record");
+        assertThat(loaded.getAutoResolve()).containsEntry("onTombstone", false);
+        assertThat(loaded.getSuppressedCount()).isZero();
     }
 
     @Test
@@ -760,6 +770,11 @@ class EntityMappingIT {
         assertThat(loaded.getAcknowledgedAt()).isNull();
         assertThat(loaded.getObservedAt()).isNull();
         assertThat(loaded.getRecordSnapshot()).isNull();
+        assertThat(loaded.getState()).isEqualTo("firing");
+        assertThat(loaded.getSeverity()).isEqualTo("warning");
+        assertThat(loaded.isSuppressed()).isFalse();
+        assertThat(loaded.getTags()).isEmpty();
+        assertThat(loaded.getRev()).isZero();
     }
 
     @Test

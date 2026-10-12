@@ -11,6 +11,9 @@ package ai.foresignal.config;
  */
 public final class StartupOrder {
 
+    /** The trigger persist gate's first rule snapshot, before the writer reads it (prompt 017). */
+    public static final int TRIGGER_GATE = 5;
+
     /** The single ingest writer (prompt 009). */
     public static final int WRITER = 10;
 

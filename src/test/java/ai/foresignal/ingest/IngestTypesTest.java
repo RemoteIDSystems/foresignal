@@ -67,6 +67,13 @@ class IngestTypesTest {
         assertThat(JsonValues.at(payload, "a.c")).isNull();
         assertThat(JsonValues.at(payload, "s.t")).isNull();
         assertThat(JsonValues.at(payload, "")).isNull();
+        // Array steps index like PostgreSQL's #> (prompt 017).
+        Map<String, Object> withList = Map.of("l", List.of(5L, Map.of("x", 6L)));
+        assertThat(JsonValues.at(withList, "l.0")).isEqualTo(5L);
+        assertThat(JsonValues.at(withList, "l.1.x")).isEqualTo(6L);
+        assertThat(JsonValues.at(withList, "l.2")).isNull();
+        assertThat(JsonValues.at(withList, "l.x")).isNull();
+        assertThat(JsonValues.at(withList, "l.-1")).isNull();
         assertThat(JsonValues.finiteNumber(Double.NaN)).isNull();
         assertThat(JsonValues.finiteNumber("1")).isNull();
         assertThat(JsonValues.text(2.50)).isEqualTo("2.5");

@@ -69,9 +69,9 @@ Two Server-Sent Events endpoints push changes as they are committed (typically w
 - `GET /v1/changes/stream` carries the `changes` topic only. Filters: `source`, `kind`,
   `externalId`, `bbox` (a box with `minLon > maxLon` crosses the antimeridian), `near` +
   `radiusKm`, `payload` (default false), `live` (default true) and `touches` (default false).
-- `GET /v1/events/stream` multiplexes topics on one connection: `topics=changes` today, `alerts`,
+- `GET /v1/events/stream` multiplexes topics on one connection: `topics=changes,alerts` today,
   `notifications` and `system` as later releases add them. Filters take the topic as a prefix
-  (`changes.bbox=…`, `changes.live=false`). The first event is `hello {streamId, topics,
+  (`changes.bbox=…`, `changes.live=false`, `alerts.minSeverity=warning`). The first event is `hello {streamId, topics,
   watermarkSeq, filterVersion}`. The filter can be swapped without reconnecting (below).
 
 Send the token in the `Authorization` header; tokens are never accepted in the query string.
@@ -142,6 +142,50 @@ At most 100 open streams per server (`503 STREAM_LIMIT`), 8 per token and 4 per 
 (`429 STREAM_LIMIT` with `Retry-After: 5`). Each client may have 1,000 undelivered changes queued;
 a client that cannot keep up gets `reset {reason: "buffer_overflow"}`. The operator can change these
 in the `stream.limits` setting.
+
+## Rules and alerts
+
+A trigger rule watches persisted versions and records an alert when one matches, so a source no
+client is displaying can still announce itself. Create rules with `POST /v1/triggers` and test them
+first with `POST /v1/triggers/{id}/test` (a backtest that creates nothing; `simulate=true` applies
+cooldown, active windows and the storm cap and reports `wouldFire` and `wouldSuppress`).
+
+- **What a rule matches.** `sources` and `kinds` (arrays; empty means any), `conditions` on payload
+  paths (`> >= < <= == != in notIn exists startsWith matches`, all ANDed), and a `geofence` (a
+  polygon, or a line with `bufferMeters` for a route corridor) or `near {point, radiusKm}`. A value
+  of the wrong JSON type or a missing path never matches: the number `5` does not equal the string
+  `"5"`. Conditions on a source's volatile fields are refused (`400 TRIGGER_PATH_VOLATILE`), because
+  those fields change on every fetch and are not persisted reliably.
+- **Prefer `enter` or `exit`, or a cooldown, on sampled sources and derived records.** `match` fires
+  on every persisted version that matches, keyframes included, so a vessel parked inside a fence
+  fires again at every keyframe. `enter` fires when an entity starts matching (or reappears, with
+  `reappearAsEnter`, the default for fenced rules) and `exit` when it stops. `hysteresisMeters` adds
+  a band around a fence so GPS jitter along the edge fires nothing. A cooldown counts on the
+  version's `observedAt`, per entity (`cooldownScope: record`) or per rule.
+- **Resolution follows the data.** Foresignal persists every flip of a rule's predicate, even
+  under SAMPLED policies, so edges are exact, but only to *flush or poll resolution*: an entity that
+  crosses a fence and comes back between two polls or stream flushes is never seen outside.
+- **Edges need the predecessor version.** An edge compares a version with the one before it. When
+  retention has removed the predecessor, nothing fires except a first appearance or a reappearance.
+  Expiry is not an exit.
+- **A tombstone after an inside version is an exit.** Deleting an entity (or a place a derived
+  record belongs to) can therefore fire `exit` rules.
+- **`forecastHorizon` fires on new versions only.** It matches versions whose `validFrom` is within
+  the horizon of the moment they are evaluated; time passing alone does not re-evaluate a rule.
+
+Alerts have a lifecycle: `firing`, `acknowledged` (`POST /v1/alerts/{id}/ack`) and `resolved`
+(`POST /v1/alerts/{id}/resolve`, or automatically on the inverse edge, a tombstone, expiry or
+staleness with `autoResolve`, the default for `enter` rules). Resolved is final; the next enter edge
+fires a new alert. `PUT /v1/alerts/{id}/feedback` records `useful`, `noise`, `late` or
+`false_positive`. Snoozing an alert (`POST /v1/alerts/{id}/snooze`) or a rule
+(`POST /v1/triggers/{id}/snooze`, at most 7 days) records new matches as suppressed instead of
+routing them. A rule that fires more than `maxAlertsPerHour` (default 120) drops the excess and
+counts it in `suppressedCount`.
+
+`GET /v1/alerts/stream` (or `topics=alerts` on `/v1/events/stream`) pushes `alert`,
+`alert.updated` and `alert.resolved` events with `id: <rev>`. A resume replays every alert whose
+`rev` is newer than yours in its current state, so upsert by alert `id`. Filters: `ruleId`,
+`minSeverity`, `source`, `kind` and `includeSuppressed`.
 
 ## Replaying the past (asOf)
 

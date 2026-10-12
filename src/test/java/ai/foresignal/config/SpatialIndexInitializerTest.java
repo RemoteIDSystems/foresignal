@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 class SpatialIndexInitializerTest {
 
     @Test
-    @DisplayName("the statement list is exactly the v1.2 set, in order")
+    @DisplayName("the statement list is exactly the v1.2 set plus the 017 alert statements, in order")
     void statementList() {
         assertThat(SpatialIndexInitializer.STATEMENTS)
                 .containsExactly(
@@ -17,7 +17,10 @@ class SpatialIndexInitializerTest {
                         "CREATE INDEX IF NOT EXISTS record_live_geom_gist ON record_live USING GIST (geom)",
                         "ALTER TABLE record_live SET (fillfactor = 70, autovacuum_vacuum_scale_factor = 0.02,"
                                 + " autovacuum_vacuum_cost_limit = 2000)",
-                        "CREATE INDEX IF NOT EXISTS trigger_rule_geofence_gist ON trigger_rule USING GIST (geofence)");
+                        "CREATE INDEX IF NOT EXISTS trigger_rule_geofence_gist ON trigger_rule USING GIST (geofence)",
+                        "CREATE SEQUENCE IF NOT EXISTS alert_rev INCREMENT BY 1",
+                        "CREATE INDEX IF NOT EXISTS alert_open_idx ON alert (rule_id, source_id, external_id)"
+                                + " WHERE state <> 'resolved'");
     }
 
     @Test

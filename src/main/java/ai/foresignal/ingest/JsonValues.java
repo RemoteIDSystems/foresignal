@@ -115,7 +115,9 @@ public final class JsonValues {
 
     /**
      * The value at a dot-separated path, such as {@code position.lat}, or null when any step is
-     * missing or not an object.
+     * missing. A step reads a key of an object or, when it is a non-negative integer, an element of
+     * an array, as PostgreSQL's {@code #>} does with the same path (prompt 017 relies on the two
+     * agreeing).
      */
     public static Object at(Map<String, ?> root, String path) {
         if (root == null || path == null || path.isEmpty()) {
@@ -124,17 +126,35 @@ public final class JsonValues {
         Object current = root;
         int start = 0;
         while (true) {
-            if (!(current instanceof Map<?, ?> map)) {
-                return null;
-            }
             int dot = path.indexOf('.', start);
             String step = dot < 0 ? path.substring(start) : path.substring(start, dot);
-            current = map.get(step);
+            if (current instanceof Map<?, ?> map) {
+                current = map.get(step);
+            } else if (current instanceof List<?> list) {
+                int index = arrayIndex(step);
+                current = index >= 0 && index < list.size() ? list.get(index) : null;
+            } else {
+                return null;
+            }
             if (dot < 0 || current == null) {
                 return current;
             }
             start = dot + 1;
         }
+    }
+
+    /** {@code step} as an array index, or -1 when it is not a plain non-negative integer. */
+    private static int arrayIndex(String step) {
+        if (step.isEmpty() || step.length() > 9) {
+            return -1;
+        }
+        for (int i = 0; i < step.length(); i++) {
+            char c = step.charAt(i);
+            if (c < '0' || c > '9') {
+                return -1;
+            }
+        }
+        return Integer.parseInt(step);
     }
 
     /** {@code value} as a double when it is a finite number, else null. */

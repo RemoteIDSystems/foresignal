@@ -14,6 +14,9 @@ public final class SettingKeys {
     /** The durable {@code seq} cursor the trigger engine has evaluated up to. */
     public static final String TRIGGER_CURSOR = "trigger.cursor";
 
+    /** {@link TriggerSettings}: trigger engine defaults such as the storm cap (prompt 017). */
+    public static final String TRIGGERS = "triggers";
+
     /** Limits applied to SSE subscribers (buffer size, replay cap). */
     public static final String STREAM_LIMITS = "stream.limits";
 
@@ -34,7 +37,7 @@ public final class SettingKeys {
      * component holding its own copy of a setting drops it too. A new key belongs in this list.
      */
     public static final List<String> ALL =
-            List.of(RETENTION, CORS, TRIGGER_CURSOR, STREAM_LIMITS, SECURITY, SERVER, INSTALL_ID);
+            List.of(RETENTION, CORS, TRIGGER_CURSOR, TRIGGERS, STREAM_LIMITS, SECURITY, SERVER, INSTALL_ID);
 
     private SettingKeys() {}
 }

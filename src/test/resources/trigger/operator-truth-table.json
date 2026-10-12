@@ -1,0 +1,755 @@
+{
+  "description": "Operator truth table (prompt 017). Each row is one condition {path, op, value} evaluated on payload. expected is whether the condition holds; ambiguous marks rows where the value is missing, JSON null or of another type than the operator expects (SQL yields NULL, Java AMBIGUOUS). RuleSqlBuilderIT and TriggerPersistGateTest both consume it.",
+  "rows": [
+    {
+      "path": "x",
+      "op": ">",
+      "value": 5,
+      "payload": {
+        "x": 6
+      },
+      "expected": true,
+      "ambiguous": false
+    },
+    {
+      "path": "x",
+      "op": ">",
+      "value": 5,
+      "payload": {
+        "x": 5
+      },
+      "expected": false,
+      "ambiguous": false
+    },
+    {
+      "path": "x",
+      "op": ">=",
+      "value": 5,
+      "payload": {
+        "x": 5
+      },
+      "expected": true,
+      "ambiguous": false
+    },
+    {
+      "path": "x",
+      "op": ">=",
+      "value": 5,
+      "payload": {
+        "x": 4.99
+      },
+      "expected": false,
+      "ambiguous": false
+    },
+    {
+      "path": "x",
+      "op": "<",
+      "value": 5,
+      "payload": {
+        "x": 4.5
+      },
+      "expected": true,
+      "ambiguous": false
+    },
+    {
+      "path": "x",
+      "op": "<",
+      "value": 5,
+      "payload": {
+        "x": 5
+      },
+      "expected": false,
+      "ambiguous": false
+    },
+    {
+      "path": "x",
+      "op": "<=",
+      "value": 5,
+      "payload": {
+        "x": 5.0
+      },
+      "expected": true,
+      "ambiguous": false
+    },
+    {
+      "path": "x",
+      "op": "<=",
+      "value": 5,
+      "payload": {
+        "x": 5.1
+      },
+      "expected": false,
+      "ambiguous": false
+    },
+    {
+      "path": "x",
+      "op": ">",
+      "value": -1.5,
+      "payload": {
+        "x": -1
+      },
+      "expected": true,
+      "ambiguous": false
+    },
+    {
+      "path": "x",
+      "op": ">",
+      "value": 5,
+      "payload": {
+        "x": "6"
+      },
+      "expected": false,
+      "ambiguous": true,
+      "note": "string is not a number"
+    },
+    {
+      "path": "x",
+      "op": ">",
+      "value": 5,
+      "payload": {},
+      "expected": false,
+      "ambiguous": true,
+      "note": "missing"
+    },
+    {
+      "path": "x",
+      "op": ">",
+      "value": 5,
+      "payload": {
+        "x": true
+      },
+      "expected": false,
+      "ambiguous": true,
+      "note": "boolean is not a number"
+    },
+    {
+      "path": "x",
+      "op": ">",
+      "value": 5,
+      "payload": {
+        "x": null
+      },
+      "expected": false,
+      "ambiguous": true,
+      "note": "JSON null"
+    },
+    {
+      "path": "a.b",
+      "op": ">",
+      "value": 1,
+      "payload": {
+        "a": {
+          "b": 2
+        }
+      },
+      "expected": true,
+      "ambiguous": false,
+      "note": "nested path"
+    },
+    {
+      "path": "a.b",
+      "op": "<",
+      "value": 1,
+      "payload": {
+        "a": 2
+      },
+      "expected": false,
+      "ambiguous": true,
+      "note": "step through a scalar"
+    },
+    {
+      "path": "a.0",
+      "op": "==",
+      "value": 3,
+      "payload": {
+        "a": [
+          3,
+          4
+        ]
+      },
+      "expected": true,
+      "ambiguous": false,
+      "note": "array index"
+    },
+    {
+      "path": "x",
+      "op": "==",
+      "value": 5,
+      "payload": {
+        "x": 5.0
+      },
+      "expected": true,
+      "ambiguous": false,
+      "note": "numeric equality"
+    },
+    {
+      "path": "x",
+      "op": "==",
+      "value": 5,
+      "payload": {
+        "x": "5"
+      },
+      "expected": false,
+      "ambiguous": true,
+      "note": "string 5 is not number 5"
+    },
+    {
+      "path": "x",
+      "op": "==",
+      "value": "5",
+      "payload": {
+        "x": 5
+      },
+      "expected": false,
+      "ambiguous": true,
+      "note": "number 5 is not string 5"
+    },
+    {
+      "path": "x",
+      "op": "==",
+      "value": "abc",
+      "payload": {
+        "x": "abc"
+      },
+      "expected": true,
+      "ambiguous": false
+    },
+    {
+      "path": "x",
+      "op": "==",
+      "value": "abc",
+      "payload": {
+        "x": "abd"
+      },
+      "expected": false,
+      "ambiguous": false
+    },
+    {
+      "path": "x",
+      "op": "==",
+      "value": true,
+      "payload": {
+        "x": true
+      },
+      "expected": true,
+      "ambiguous": false
+    },
+    {
+      "path": "x",
+      "op": "==",
+      "value": false,
+      "payload": {
+        "x": false
+      },
+      "expected": true,
+      "ambiguous": false
+    },
+    {
+      "path": "x",
+      "op": "==",
+      "value": true,
+      "payload": {
+        "x": "true"
+      },
+      "expected": false,
+      "ambiguous": true,
+      "note": "string is not boolean"
+    },
+    {
+      "path": "x",
+      "op": "==",
+      "value": "abc",
+      "payload": {},
+      "expected": false,
+      "ambiguous": true,
+      "note": "missing"
+    },
+    {
+      "path": "x",
+      "op": "!=",
+      "value": 5,
+      "payload": {
+        "x": 6
+      },
+      "expected": true,
+      "ambiguous": false
+    },
+    {
+      "path": "x",
+      "op": "!=",
+      "value": 5,
+      "payload": {
+        "x": 5
+      },
+      "expected": false,
+      "ambiguous": false
+    },
+    {
+      "path": "x",
+      "op": "!=",
+      "value": 5,
+      "payload": {},
+      "expected": false,
+      "ambiguous": true,
+      "note": "!= needs presence"
+    },
+    {
+      "path": "x",
+      "op": "!=",
+      "value": "a",
+      "payload": {
+        "x": "b"
+      },
+      "expected": true,
+      "ambiguous": false
+    },
+    {
+      "path": "x",
+      "op": "!=",
+      "value": "a",
+      "payload": {
+        "x": 1
+      },
+      "expected": false,
+      "ambiguous": true,
+      "note": "!= needs the type"
+    },
+    {
+      "path": "x",
+      "op": "!=",
+      "value": true,
+      "payload": {
+        "x": false
+      },
+      "expected": true,
+      "ambiguous": false
+    },
+    {
+      "path": "x",
+      "op": "!=",
+      "value": "a",
+      "payload": {
+        "x": null
+      },
+      "expected": false,
+      "ambiguous": true,
+      "note": "JSON null"
+    },
+    {
+      "path": "x",
+      "op": "in",
+      "value": [
+        1,
+        2,
+        3
+      ],
+      "payload": {
+        "x": 2
+      },
+      "expected": true,
+      "ambiguous": false
+    },
+    {
+      "path": "x",
+      "op": "in",
+      "value": [
+        1,
+        2,
+        3
+      ],
+      "payload": {
+        "x": 2.0
+      },
+      "expected": true,
+      "ambiguous": false
+    },
+    {
+      "path": "x",
+      "op": "in",
+      "value": [
+        1,
+        2
+      ],
+      "payload": {
+        "x": 4
+      },
+      "expected": false,
+      "ambiguous": false
+    },
+    {
+      "path": "x",
+      "op": "in",
+      "value": [
+        "a",
+        "b"
+      ],
+      "payload": {
+        "x": "b"
+      },
+      "expected": true,
+      "ambiguous": false
+    },
+    {
+      "path": "x",
+      "op": "in",
+      "value": [
+        "a",
+        "b"
+      ],
+      "payload": {
+        "x": "c"
+      },
+      "expected": false,
+      "ambiguous": false
+    },
+    {
+      "path": "x",
+      "op": "in",
+      "value": [
+        "1"
+      ],
+      "payload": {
+        "x": 1
+      },
+      "expected": false,
+      "ambiguous": true,
+      "note": "type mismatch"
+    },
+    {
+      "path": "x",
+      "op": "in",
+      "value": [
+        true
+      ],
+      "payload": {
+        "x": true
+      },
+      "expected": true,
+      "ambiguous": false
+    },
+    {
+      "path": "x",
+      "op": "in",
+      "value": [
+        true
+      ],
+      "payload": {
+        "x": false
+      },
+      "expected": false,
+      "ambiguous": false
+    },
+    {
+      "path": "x",
+      "op": "in",
+      "value": [
+        "a"
+      ],
+      "payload": {},
+      "expected": false,
+      "ambiguous": true,
+      "note": "missing"
+    },
+    {
+      "path": "x",
+      "op": "notIn",
+      "value": [
+        1,
+        2
+      ],
+      "payload": {
+        "x": 3
+      },
+      "expected": true,
+      "ambiguous": false
+    },
+    {
+      "path": "x",
+      "op": "notIn",
+      "value": [
+        1,
+        2
+      ],
+      "payload": {
+        "x": 1
+      },
+      "expected": false,
+      "ambiguous": false
+    },
+    {
+      "path": "x",
+      "op": "notIn",
+      "value": [
+        1,
+        2
+      ],
+      "payload": {},
+      "expected": false,
+      "ambiguous": true,
+      "note": "notIn needs presence"
+    },
+    {
+      "path": "x",
+      "op": "notIn",
+      "value": [
+        "a"
+      ],
+      "payload": {
+        "x": "b"
+      },
+      "expected": true,
+      "ambiguous": false
+    },
+    {
+      "path": "x",
+      "op": "notIn",
+      "value": [
+        "a"
+      ],
+      "payload": {
+        "x": 2
+      },
+      "expected": false,
+      "ambiguous": true,
+      "note": "type mismatch"
+    },
+    {
+      "path": "x",
+      "op": "notIn",
+      "value": [
+        false
+      ],
+      "payload": {
+        "x": true
+      },
+      "expected": true,
+      "ambiguous": false
+    },
+    {
+      "path": "x",
+      "op": "exists",
+      "value": true,
+      "payload": {
+        "x": 1
+      },
+      "expected": true,
+      "ambiguous": false
+    },
+    {
+      "path": "x",
+      "op": "exists",
+      "value": true,
+      "payload": {},
+      "expected": false,
+      "ambiguous": false
+    },
+    {
+      "path": "x",
+      "op": "exists",
+      "value": true,
+      "payload": {
+        "x": null
+      },
+      "expected": false,
+      "ambiguous": false,
+      "note": "JSON null is absent"
+    },
+    {
+      "path": "x",
+      "op": "exists",
+      "value": false,
+      "payload": {},
+      "expected": true,
+      "ambiguous": false
+    },
+    {
+      "path": "x",
+      "op": "exists",
+      "value": false,
+      "payload": {
+        "x": null
+      },
+      "expected": true,
+      "ambiguous": false
+    },
+    {
+      "path": "x",
+      "op": "exists",
+      "value": false,
+      "payload": {
+        "x": "a"
+      },
+      "expected": false,
+      "ambiguous": false
+    },
+    {
+      "path": "x",
+      "op": "exists",
+      "value": true,
+      "payload": {
+        "x": {
+          "y": 1
+        }
+      },
+      "expected": true,
+      "ambiguous": false,
+      "note": "an object is present"
+    },
+    {
+      "path": "x.0",
+      "op": "exists",
+      "value": true,
+      "payload": {
+        "x": [
+          null
+        ]
+      },
+      "expected": false,
+      "ambiguous": false,
+      "note": "null element"
+    },
+    {
+      "path": "x",
+      "op": "exists",
+      "value": true,
+      "payload": {
+        "x": []
+      },
+      "expected": true,
+      "ambiguous": false,
+      "note": "an empty array is present"
+    },
+    {
+      "path": "x",
+      "op": "startsWith",
+      "value": "N12",
+      "payload": {
+        "x": "N123AB"
+      },
+      "expected": true,
+      "ambiguous": false
+    },
+    {
+      "path": "x",
+      "op": "startsWith",
+      "value": "N12",
+      "payload": {
+        "x": "AN12"
+      },
+      "expected": false,
+      "ambiguous": false
+    },
+    {
+      "path": "x",
+      "op": "startsWith",
+      "value": "N12",
+      "payload": {
+        "x": "N1"
+      },
+      "expected": false,
+      "ambiguous": false
+    },
+    {
+      "path": "x",
+      "op": "startsWith",
+      "value": "12",
+      "payload": {
+        "x": 123
+      },
+      "expected": false,
+      "ambiguous": true,
+      "note": "number is not a string"
+    },
+    {
+      "path": "x",
+      "op": "startsWith",
+      "value": "N",
+      "payload": {},
+      "expected": false,
+      "ambiguous": true,
+      "note": "missing"
+    },
+    {
+      "path": "x",
+      "op": "startsWith",
+      "value": "é",
+      "payload": {
+        "x": "éa"
+      },
+      "expected": true,
+      "ambiguous": false,
+      "note": "non-ASCII prefix"
+    },
+    {
+      "path": "x",
+      "op": "matches",
+      "value": "^N[0-9]+",
+      "payload": {
+        "x": "N123"
+      },
+      "expected": true,
+      "ambiguous": false
+    },
+    {
+      "path": "x",
+      "op": "matches",
+      "value": "[0-9]{3}",
+      "payload": {
+        "x": "ab1234"
+      },
+      "expected": true,
+      "ambiguous": false,
+      "note": "search, not anchored"
+    },
+    {
+      "path": "x",
+      "op": "matches",
+      "value": "^abc$",
+      "payload": {
+        "x": "xabc"
+      },
+      "expected": false,
+      "ambiguous": false
+    },
+    {
+      "path": "x",
+      "op": "matches",
+      "value": "a",
+      "payload": {
+        "x": 1
+      },
+      "expected": false,
+      "ambiguous": true,
+      "note": "number is not a string"
+    },
+    {
+      "path": "x",
+      "op": "matches",
+      "value": "a|b",
+      "payload": {
+        "x": "b"
+      },
+      "expected": true,
+      "ambiguous": false
+    },
+    {
+      "path": "x",
+      "op": "matches",
+      "value": "^(?:ab)+$",
+      "payload": {
+        "x": "abab"
+      },
+      "expected": true,
+      "ambiguous": false
+    },
+    {
+      "path": "x",
+      "op": "matches",
+      "value": "x",
+      "payload": {},
+      "expected": false,
+      "ambiguous": true,
+      "note": "missing"
+    }
+  ]
+}

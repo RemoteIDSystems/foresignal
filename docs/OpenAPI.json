@@ -52,6 +52,11 @@
         "version": "1.3.0",
         "date": "2026-10-11",
         "note": "016: getTile, listTileLayers and getTileJson are implemented. getTile's Cache-Control is max-age=5 for raw and max-age=60 for aggregated tiles (was described as max-age=300; 037 keeps the immutable form for closed asOf instants), its ETag is a hash of the tile bytes and Vary is documented; the getTile description documents the feature and cell properties, the half-open tile and cell assignment and hex cells straddling tile edges; listTileLayers lists layers with a source the caller can see (private sources for token callers) and leaves out kinds spelled like a source id (descriptions and response headers only; no parameter or schema changed)."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-11",
+        "note": "017: listTriggers, getTrigger, createTrigger, updateTrigger, deleteTrigger, testTrigger, snoozeTrigger, unsnoozeTrigger, listAlerts, getAlert, streamAlerts, acknowledgeAlert, resolveAlert, snoozeAlert, unsnoozeAlert and setAlertFeedback are implemented, and the alerts topic of /v1/events/stream. Additive reconciliations: EventStreamAlertsFilter and streamEvents gain includeSuppressed (alerts.includeSuppressed); streamAlerts documents 400 INVALID_CURSOR and 404 for an unknown source; listAlerts, getAlert and streamAlerts hide alerts of private sources from anonymous callers; Near.point radiusKm minimum is 0.1 (was 0); TriggerRuleInput.geofence accepts geofenceRoute plus bufferMeters as the route input; Condition.op documents the type rules (string operators need a JSON string; a missing value or another type never matches) and the accepted regex subset; hysteresisMeters documents its semantics."
       }
     ]
   },
@@ -4016,7 +4021,7 @@
         "x-foresignal-extended-by": [
           "035"
         ],
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       },
       "post": {
         "tags": [
@@ -4096,7 +4101,7 @@
         "x-foresignal-extended-by": [
           "100"
         ],
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/triggers/{ruleId}": {
@@ -4190,7 +4195,7 @@
         "x-foresignal-extended-by": [
           "035"
         ],
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       },
       "put": {
         "tags": [
@@ -4271,7 +4276,7 @@
         "x-foresignal-extended-by": [
           "100"
         ],
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       },
       "delete": {
         "tags": [
@@ -4322,7 +4327,7 @@
           }
         ],
         "x-foresignal-prompt": "017",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/triggers/{ruleId}/test": {
@@ -4473,7 +4478,7 @@
         "x-foresignal-extended-by": [
           "100"
         ],
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/alerts": {
@@ -4483,7 +4488,7 @@
         ],
         "operationId": "listAlerts",
         "summary": "List alerts newest first",
-        "description": "Alerts newest first, keyset on id. Suppressed alerts are hidden unless includeSuppressed.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "Alerts newest first, keyset on id. Suppressed alerts are hidden unless includeSuppressed. Anonymous callers (security.openReads) never see alerts of private sources.\n\n**Scope:** `read` (open while `security.openReads` is on).",
         "parameters": [
           {
             "name": "ruleId",
@@ -4765,7 +4770,7 @@
           "035, 039, 040",
           "115"
         ],
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/alerts/stream": {
@@ -4775,7 +4780,7 @@
         ],
         "operationId": "streamAlerts",
         "summary": "Live alert stream (SSE)",
-        "description": "Alert lifecycle as SSE: `alert` (fired), `alert.updated` and `alert.resolved`, data AlertEvent, `id:` = alert rev. Resume replays rows with rev > Last-Event-ID in their current state; clients upsert by alert id.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "Alert lifecycle as SSE: `alert` (fired), `alert.updated` and `alert.resolved`, data AlertEvent, `id:` = alert rev. Resume replays rows with rev > Last-Event-ID in their current state; clients upsert by alert id. A malformed Last-Event-ID is 400 INVALID_CURSOR. Anonymous callers never see alerts of private sources.\n\n**Scope:** `read` (open while `security.openReads` is on).",
         "parameters": [
           {
             "name": "Last-Event-ID",
@@ -4944,6 +4949,26 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Malformed Last-Event-ID (INVALID_CURSOR) or filter (VALIDATION_FAILED)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown source in the filter (NOT_FOUND)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
           }
         },
         "x-foresignal-scope": "read",
@@ -5002,7 +5027,7 @@
           "023, 035, 039",
           "115"
         ],
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/alerts/{alertId}": {
@@ -5024,7 +5049,7 @@
         ],
         "operationId": "getAlert",
         "summary": "Get an alert",
-        "description": "Alert with its lifecycle; `record` is loaded by seq and falls back to `recordSnapshot` once the version is gone.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "Alert with its lifecycle; `record` is loaded by seq and falls back to `recordSnapshot` once the version is gone. An alert of a private source is 404 for anonymous callers.\n\n**Scope:** `read` (open while `security.openReads` is on).",
         "responses": {
           "200": {
             "description": "Alert",
@@ -5096,7 +5121,7 @@
         "x-foresignal-extended-by": [
           "035, 039"
         ],
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/alerts/{alertId}/ack": {
@@ -5188,7 +5213,7 @@
             }
           }
         },
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/settings/retention": {
@@ -10747,6 +10772,16 @@
             "explode": true
           },
           {
+            "name": "alerts.includeSuppressed",
+            "in": "query",
+            "required": false,
+            "description": "alerts topic: include suppressed alerts",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
             "name": "ticket",
             "in": "query",
             "required": false,
@@ -12027,7 +12062,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "017",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -12085,7 +12120,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "017",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -12177,7 +12212,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "017",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -12269,7 +12304,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "017",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -12327,7 +12362,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "017",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -12419,7 +12454,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "017",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -84863,7 +84898,7 @@
               "inWatchlist",
               "notInWatchlist"
             ],
-            "description": "Comparison ops take numbers (== and != also strings and booleans); in/notIn a non-empty homogeneous scalar array (≤ 1000); exists a boolean; startsWith a string ≤ 256; matches a Java regex ≤ 256 without backreferences, lookaround or nested quantifiers"
+            "description": "Comparison ops take numbers (== and != also strings and booleans); in/notIn a non-empty homogeneous scalar array (≤ 1000); exists a boolean; startsWith a string ≤ 256; matches a Java regex ≤ 256 without backreferences, lookaround or nested quantifiers (only (?:…) groups and the escapes \\d \\D \\w \\W \\s \\S \\n \\t \\r \\f, so PostgreSQL reads it the same way). A value of another JSON type than the operator expects, a missing path or JSON null never matches (except exists); string operators need a JSON string (the number 5 does not equal \"5\"); != and notIn need the value present."
           },
           "value": {
             "oneOf": [
@@ -84959,7 +84994,7 @@
                 "type": "null"
               }
             ],
-            "description": "Polygon/MultiPolygon, or LineString/MultiLineString with bufferMeters; ≤ 10,000 vertices; fixed, split at the antimeridian and stored as MultiPolygon. Mutually exclusive with near."
+            "description": "Polygon/MultiPolygon, or LineString/MultiLineString with bufferMeters (buffered server-side as ST_Buffer(line::geography, bufferMeters)); ≤ 10,000 vertices; fixed, split at the antimeridian and stored as MultiPolygon. Mutually exclusive with near. When `geofenceRoute` (a line) is sent together with bufferMeters, the route is the input and `geofence` is ignored, so a rule read back can be sent back unchanged."
           },
           "mode": {
             "type": "string",
@@ -85050,7 +85085,7 @@
           },
           "hysteresisMeters": {
             "type": "number",
-            "description": "Edge band for enter/exit geofence and near rules (0–5,000 m)",
+            "description": "Edge band for enter/exit geofence and near rules (0–5,000 m, default 0): an enter edge needs the position inside the fence shrunk by the band, an exit edge outside the fence grown by it, and edges per (rule, entity) alternate, so jitter along a boundary fires nothing. 400 GEOFENCE_TOO_SMALL_FOR_HYSTERESIS when the shrunk fence is empty.",
             "minimum": 0,
             "maximum": 5000
           },
@@ -91832,6 +91867,11 @@
             },
             "description": "Kinds",
             "maxItems": 100
+          },
+          "includeSuppressed": {
+            "type": "boolean",
+            "default": false,
+            "description": "Include alerts suppressed by a rule or alert snooze"
           }
         }
       },
@@ -96726,7 +96766,7 @@
               },
               "radiusKm": {
                 "type": "number",
-                "minimum": 0,
+                "minimum": 0.1,
                 "maximum": 2000
               }
             },

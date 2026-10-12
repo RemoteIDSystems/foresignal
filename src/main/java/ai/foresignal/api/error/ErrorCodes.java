@@ -65,6 +65,18 @@ public final class ErrorCodes {
     /** 404: a tile layer that is neither a registered source id nor a kind of a visible source (016). */
     public static final String UNKNOWN_LAYER = "UNKNOWN_LAYER";
 
+    /** 400: a trigger condition reads a field the source declares volatile (prompt 017). */
+    public static final String TRIGGER_PATH_VOLATILE = "TRIGGER_PATH_VOLATILE";
+
+    /** 400: a rule names a place, but no Places component is installed (prompt 017; 036 adds it). */
+    public static final String PLACES_UNAVAILABLE = "PLACES_UNAVAILABLE";
+
+    /** 400: a rule asks for a feature this installation does not have (prompt 017). */
+    public static final String FEATURE_UNAVAILABLE = "FEATURE_UNAVAILABLE";
+
+    /** 400: shrinking a geofence by {@code hysteresisMeters} leaves nothing (prompt 017). */
+    public static final String GEOFENCE_TOO_SMALL_FOR_HYSTERESIS = "GEOFENCE_TOO_SMALL_FOR_HYSTERESIS";
+
     private static final String TYPE_PREFIX = "https://foresignal.ai/problems/";
 
     private ErrorCodes() {}

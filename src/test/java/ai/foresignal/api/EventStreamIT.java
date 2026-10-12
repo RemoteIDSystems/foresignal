@@ -213,7 +213,8 @@ class EventStreamIT {
     void unknownTopic() {
         SseTestClient refused = open("?topics=changes,nope", Map.of());
         assertThat(refused.status()).isEqualTo(400);
-        assertThat(open("?topics=alerts", Map.of()).status()).isEqualTo(400);
+        // alerts is registered since prompt 017; notifications arrives with 018.
+        assertThat(open("?topics=notifications", Map.of()).status()).isEqualTo(400);
 
         SseTestClient stream = open("", Map.of());
         JsonNode hello = data(stream.next("hello", WAIT));
@@ -221,7 +222,7 @@ class EventStreamIT {
         HttpResponse<String> response = patch(hello.get("streamId").asString(), "{\"topics\":[\"nope\"]}", key);
         assertThat(response.statusCode()).isEqualTo(400);
         assertThat(JSON.readTree(response.body()).get("code").asString()).isEqualTo("UNKNOWN_TOPIC");
-        assertThat(patch(hello.get("streamId").asString(), "{\"alerts\":{}}", key).statusCode()).isEqualTo(400);
+        assertThat(patch(hello.get("streamId").asString(), "{\"notifications\":{}}", key).statusCode()).isEqualTo(400);
         assertThat(patch(hello.get("streamId").asString(), "{\"changes\":{\"bbox\":\"1,2\"}}", key).statusCode())
                 .isEqualTo(400);
         assertThat(patch(hello.get("streamId").asString(), "{\"changes\":{\"color\":1}}", key).statusCode())
