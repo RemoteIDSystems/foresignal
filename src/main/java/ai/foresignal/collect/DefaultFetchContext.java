@@ -3,6 +3,7 @@ package ai.foresignal.collect;
 import ai.foresignal.source.CredentialsAccess;
 import ai.foresignal.source.spi.AdapterStateStore;
 import ai.foresignal.source.spi.FetchContext;
+import ai.foresignal.source.spi.MediaSink;
 import ai.foresignal.source.spi.Mode;
 import ai.foresignal.source.spi.RasterSink;
 import ai.foresignal.source.spi.SourceDescriptor;
@@ -42,6 +43,8 @@ public class DefaultFetchContext implements FetchContext {
     private final AdapterStateStore state;
 
     private Supplier<RasterSink> rasterSink;
+    private Supplier<MediaSink> mediaSink;
+    private MediaSink media;
     private SourceHttp http;
     private RasterSink rasters;
     private ValidatedParams resolvedParams;
@@ -160,6 +163,31 @@ public class DefaultFetchContext implements FetchContext {
             rasters = rasterSink.get();
         }
         return rasters;
+    }
+
+    /**
+     * Sets where {@link #media()} comes from (prompt 043); the factory calls it when a media store is
+     * installed.
+     */
+    public void mediaSink(Supplier<MediaSink> supplier) {
+        this.mediaSink = supplier;
+    }
+
+    /**
+     * The media store for this fetch, created on first use; probing when this context records a
+     * probe.
+     *
+     * @throws UnsupportedOperationException when no media store is installed
+     */
+    @Override
+    public synchronized MediaSink media() {
+        if (media == null) {
+            if (mediaSink == null) {
+                return FetchContextDefaults.noMedia(sourceId);
+            }
+            media = mediaSink.get();
+        }
+        return media;
     }
 
     /** The probe recorder, or null. */

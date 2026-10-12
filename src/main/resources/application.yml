@@ -98,10 +98,20 @@ foresignal:
     index-cache-mb: ${FORESIGNAL_RASTER_INDEX_CACHE_MB:}
     render-pool: ${FORESIGNAL_RASTER_RENDER_POOL:}
     decode-concurrency: ${FORESIGNAL_RASTER_DECODE_CONCURRENCY:}
-    # The frame store quota; retention evicts the oldest frames above it, /v1/system degrades at 90 %.
+    # The frame store quota (media bytes count against it too, 043); retention evicts the oldest frames
+    # above it, /v1/system degrades at 90 %.
     disk-quota-gb: ${FORESIGNAL_RASTER_DISK_QUOTA_GB:200}
     # Orphan files and rows younger than this are left alone by the hourly sweep (a commit in flight).
     orphan-grace: 10m
+  media:
+    # The media store (043). ImageGuard refuses larger files; MediaStore answers 413 MEDIA_TOO_LARGE.
+    max-file-bytes: ${FORESIGNAL_MEDIA_MAX_FILE_BYTES:25MB}
+    # Orphan files and rows younger than this are left alone by the hourly sweep (a store in flight).
+    orphan-grace: 10m
+    # A record-owned image is deleted this long after its record's head disappears.
+    head-missing-grace: 24h
+    # How long a deleted media id answers 410 MEDIA_EXPIRED rather than 404 UNKNOWN_MEDIA.
+    tombstone-retention: 30d
   # The bind the container's port is published on (compose passes FORESIGNAL_BIND).
   # /v1/system warns when openReads is on and this is not local (019).
   advertised-bind: ${FORESIGNAL_BIND:127.0.0.1}

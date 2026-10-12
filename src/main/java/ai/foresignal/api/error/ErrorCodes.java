@@ -304,6 +304,15 @@ public final class ErrorCodes {
     /** 503: the product is disabled, for example by the decoder self-test (prompt 042; 046 sets it). */
     public static final String PRODUCT_UNAVAILABLE = "PRODUCT_UNAVAILABLE";
 
+    /** 404: no media has this id, or the caller may not read its source (prompt 043). */
+    public static final String UNKNOWN_MEDIA = "UNKNOWN_MEDIA";
+
+    /** 410: the media expired or retention deleted it (prompt 043). */
+    public static final String MEDIA_EXPIRED = "MEDIA_EXPIRED";
+
+    /** 413: an image exceeds {@code foresignal.media.max-file-bytes}, default 25 MB (prompt 043; 054 uploads). */
+    public static final String MEDIA_TOO_LARGE = "MEDIA_TOO_LARGE";
+
     private static final String TYPE_PREFIX = "https://foresignal.ai/problems/";
 
     private ErrorCodes() {}

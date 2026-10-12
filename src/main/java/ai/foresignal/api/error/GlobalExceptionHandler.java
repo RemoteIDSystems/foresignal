@@ -59,6 +59,19 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return handleExceptionInternal(e, problem, headers, e.getStatus(), request);
     }
 
+    /**
+     * An image refused by {@code ImageGuard} (prompt 043): {@code 400 VALIDATION_FAILED} with the
+     * refusal in a {@code reason} property.
+     */
+    @ExceptionHandler(ai.foresignal.source.spi.ImageRejectedException.class)
+    public ResponseEntity<Object> handleImageRejected(ai.foresignal.source.spi.ImageRejectedException e,
+            WebRequest request) {
+        ProblemDetail problem = problem(HttpStatus.BAD_REQUEST, ErrorCodes.VALIDATION_FAILED,
+                "The image was rejected: " + e.reason());
+        problem.setProperty("reason", e.tag());
+        return handleExceptionInternal(e, problem, new HttpHeaders(), HttpStatus.BAD_REQUEST, request);
+    }
+
     // ---------- Validation from the framework ----------
 
     @Override

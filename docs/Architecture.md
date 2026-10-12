@@ -361,6 +361,10 @@ Unique (`source_id`, `external_id`, `version`); index (`ingested_at`); index (`s
 
 **`raster_frame`** (042): PK (`product_id`, `frame_id`) · `valid_time` · `reference_time` · `forecast_step` · `obs_start` · `obs_end` · `grid_id` · `path` (relative to `rasters/`) · `bytes` · `sha256` (of the decoded content; its first 8 hex characters are the URL token `sha8`) · `dtype` · `codec` · `stats` jsonb · `footprint` geometry(MultiPolygon,4326) · `upstream_key` · `status` (partial | complete) · `thinned` · `run_complete` · `ingested_at` · `expires_at`. Indexes: (`product_id`, `valid_time` DESC) and GiST (`footprint`) from `SpatialIndexInitializer`; (`product_id`, `reference_time`, `forecast_step`). `frame_id` is time-based and immutable: `20261010T143240Z` for an observation, `2026101012Z-f006` for a forecast step. The frame files live under `${FORESIGNAL_DATA_DIR}/rasters/frames/{productId}/{yyyy}/{mm}/{dd}/{frameId}.fsg`; each complete observation frame and each completed forecast run is also one `raster-frame` record version.
 
+**`media`** (043, Weather-Imagery-Design §2.3): `id` (ULID, varchar 26) PK · `sha256` char(64) · `content_type` (`image/png` | `image/jpeg` | `image/tiff`) · `width` · `height` · `bytes` · `path` (relative to `media/`) · `role` (image | thumbnail | projected | map) · `source_id` · `record_source_id` · `record_external_id` · `licence` · `created_at` · `expires_at` (null follows the owning record) · `variant_of` (a thumbnail's original, nullable; added by 043) · `variant_width`. Indexes: (`sha256`), (`record_source_id`, `record_external_id`), (`variant_of`), (`expires_at`). Content-addressed: every store inserts a row, and rows with the same `sha256` share one file, `${FORESIGNAL_DATA_DIR}/media/{ab}/{sha256}.{ext}` (`ab` = the first two hex characters), staged in `media/tmp/` and atomically renamed after `ImageGuard` passed. Adapters store images only through `ctx.media()`.
+
+**`media_tombstone`** (043): `id` PK · `deleted_at`. The ids retention deleted, so `GET /v1/media/{id}` answers `410 MEDIA_EXPIRED` rather than `404 UNKNOWN_MEDIA`; kept for `foresignal.media.tombstone-retention` (30 d).
+
 **`app_setting`**: `key` PK · `value` jsonb · `updated_at`. Keys include `retention`, `cors`, `trigger.cursor`, `stream.limits`.
 
 **`system_secret`**: `key` PK · `value` bytea. Holds the VAPID key pair (private key encrypted). The bootstrap admin token became an `api_token` row in §15.
@@ -503,6 +507,13 @@ Retention settings shape: `{"default":"7d","alerts":"90d","usage":"30d","briefin
 - **Ladders** (`ProductSpec.retention`): every frame until the first rung's `olderThan`, then only the frame nearest each `keepEvery` boundary (marked `thinned`, `expires_at` recomputed), nothing past `maxAge`. Defaults: MRMS every frame for 6 h, then 10-min frames to 48 h; GOES C13 5-min frames for 24 h, then 30-min to 72 h; models the current and previous complete run; SatDump geostationary 72 h.
 - **Quota**: `foresignal.raster.disk-quota-gb` (default 200) evicts the oldest frames; at 90 % `/v1/system` degrades (`RASTER_DISK_QUOTA`).
 - **Orphan sweep** (hourly, with the job): removes files with no row and rows with no file, and re-emits the `raster-frame` record of any complete frame newer than its record head (a crash between commit and enqueue) as a `MANUAL` fetch-log row with principal `system:raster-sweeper`.
+
+**Media (043).** `MediaRetentionStep` runs on the same extension point at order 780 (after the head purges, before the raster step, whose quota counts media bytes), not `@Transactional`:
+- Rows whose `expires_at` has passed are deleted (static-map attachments are stored with `expires_at = now + 7d` by 055).
+- Rows with a null `expires_at` follow the owning record: deleted when `created_at` is older than the window of the record's (source, kind), resolved in the per-kind order above, or when the record's head no longer exists and the row is older than 24 h (`foresignal.media.head-missing-grace`). A row with no record follows its producing source's window.
+- Thumbnails (`variant_of`) go with their original. A row is deleted first; its file is unlinked only when no remaining row references its `sha256`.
+- The orphan sweep (every run) removes files with no row, rows with no file and stale staging files older than 10 minutes, counted in `foresignal.media.orphans{type}`. Deleted ids keep a tombstone for 30 days.
+- Media bytes appear in `/v1/system` `rasters.mediaBytes` and count against `foresignal.raster.disk-quota-gb`; the quota evicts frames, never media.
 
 ## 12. Testing strategy
 

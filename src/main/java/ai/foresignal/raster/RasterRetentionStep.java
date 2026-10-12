@@ -1,6 +1,7 @@
 package ai.foresignal.raster;
 
 import ai.foresignal.ingest.FetchLogEntry;
+import ai.foresignal.media.MediaQueries;
 import ai.foresignal.ingest.IngestQueue;
 import ai.foresignal.ingest.IngestRecord;
 import ai.foresignal.retention.RetentionRun;
@@ -39,9 +40,10 @@ import tools.jackson.databind.json.JsonMapper;
  *   <li><b>Ladders</b> ({@link FrameThinning}): thin each product's frames, mark the kept ones
  *       thinned with their new expiry, delete the rest; forecasts keep the current and previous
  *       complete runs.
- *   <li><b>Quota</b>: while the store holds more than {@code foresignal.raster.disk-quota-gb}
- *       (default 200), evict the oldest frames across products ({@code /v1/system} degrades at 90 %,
- *       {@link RasterSystemBlock}).
+ *   <li><b>Quota</b>: while the frame store plus the media store (prompt 043) hold more than
+ *       {@code foresignal.raster.disk-quota-gb} (default 200), evict the oldest frames across products
+ *       ({@code /v1/system} degrades at 90 %, {@link RasterSystemBlock}). Media is never evicted for
+ *       the quota; it follows its owning record.
  *   <li><b>Orphan sweep</b>: delete files with no row and rows with no file (both only once older
  *       than {@code orphanGrace}, so a commit in flight is never touched), clear stale staging files,
  *       and <b>re-emit the {@code raster-frame} record</b> of any complete frame (or completed run)
@@ -75,11 +77,12 @@ public class RasterRetentionStep implements RetentionStep {
     private final IngestQueue queue;
     private final ProductUrls urls;
     private final JsonMapper json;
+    private final MediaQueries media;
     private final AtomicLong arrival = new AtomicLong();
 
     /** Creates the step. */
     public RasterRetentionStep(ProductRegistry registry, RasterFrameQueries frames, FrameStore store, GridStore grids,
-            RasterSettings settings, IngestQueue queue, ProductUrls urls, JsonMapper json) {
+            RasterSettings settings, IngestQueue queue, ProductUrls urls, JsonMapper json, MediaQueries media) {
         this.registry = registry;
         this.frames = frames;
         this.store = store;
@@ -88,6 +91,7 @@ public class RasterRetentionStep implements RetentionStep {
         this.queue = queue;
         this.urls = urls;
         this.json = json;
+        this.media = media;
     }
 
     @Override
@@ -137,10 +141,13 @@ public class RasterRetentionStep implements RetentionStep {
         return enforceQuota(settings.diskQuotaBytes());
     }
 
-    /** Evicts the oldest frames until the store fits {@code quota} bytes; returns the frames deleted. */
+    /**
+     * Evicts the oldest frames until the frame and media stores together fit {@code quota} bytes;
+     * returns the frames deleted.
+     */
     long enforceQuota(long quota) {
         RasterFrameQueries.Totals totals = frames.totals();
-        long bytes = totals.bytes();
+        long bytes = totals.bytes() + media.totalBytes();
         long deleted = 0;
         while (bytes > quota) {
             List<RasterFrameRow> oldest = frames.oldest(QUOTA_BATCH);

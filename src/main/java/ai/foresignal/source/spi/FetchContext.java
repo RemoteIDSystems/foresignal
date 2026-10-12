@@ -61,6 +61,22 @@ public interface FetchContext {
     }
 
     /**
+     * The media store (Weather-Imagery-Design §2.1, prompt 043): the only way an adapter stores
+     * images (SatDump composites, thumbnails). Adapters never write image files themselves; the sink
+     * fills in the source id and runs {@code ImageGuard} before anything is decoded.
+     *
+     * <p>Inherited by {@link StreamContext}. During a probe the returned sink is
+     * {@linkplain MediaSink#probing() probing} and writes nothing.
+     *
+     * @throws UnsupportedOperationException when no media store is installed (a hand-built context in
+     *     a unit test)
+     */
+    default MediaSink media() {
+        throw new UnsupportedOperationException(
+                "No media store is available to " + sourceId() + " in this context.");
+    }
+
+    /**
      * The logger for this source, named {@code foresignal.source.<id>}, so an operator can raise
      * one source's log level without touching the rest.
      */

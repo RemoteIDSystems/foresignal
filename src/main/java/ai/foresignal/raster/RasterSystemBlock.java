@@ -1,6 +1,7 @@
 package ai.foresignal.raster;
 
 import ai.foresignal.collect.UsageMeter;
+import ai.foresignal.media.MediaQueries;
 import ai.foresignal.system.SystemBlockContributor;
 import ai.foresignal.system.SystemWarningContributor;
 import ai.foresignal.system.SystemWarnings;
@@ -15,7 +16,8 @@ import org.springframework.stereotype.Component;
  * The {@code rasters} block of {@code /v1/system} ({@code SystemRasters}, prompt 042;
  * Weather-Imagery-Design §2.6, §6.11): profile, products, frames, store bytes, disk quota and its
  * use, per-cache metrics, the render queue (filled by prompt 045), {@code RENDER_BUSY} responses in
- * the last hour (045) and megabytes downloaded today by product sources.
+ * the last hour (045) and megabytes downloaded today by product sources. Prompt 043 adds
+ * {@code mediaBytes}, the media store's bytes on disk, which count against the same quota.
  *
  * <p>Also the {@value #QUOTA_WARNING} warning: at {@value #QUOTA_WARN_PCT} % of the quota or more,
  * {@code /v1/system} reports {@code degraded}.
@@ -36,15 +38,17 @@ public class RasterSystemBlock implements SystemBlockContributor, SystemWarningC
     private final RasterFrameQueries frames;
     private final RasterCacheRegistry caches;
     private final UsageMeter usage;
+    private final MediaQueries media;
 
     /** Creates the block. */
     public RasterSystemBlock(RasterSettings settings, ProductRegistry registry, RasterFrameQueries frames,
-            RasterCacheRegistry caches, UsageMeter usage) {
+            RasterCacheRegistry caches, UsageMeter usage, MediaQueries media) {
         this.settings = settings;
         this.registry = registry;
         this.frames = frames;
         this.caches = caches;
         this.usage = usage;
+        this.media = media;
     }
 
     @Override
@@ -55,13 +59,15 @@ public class RasterSystemBlock implements SystemBlockContributor, SystemWarningC
     @Override
     public Map<String, Object> block() {
         RasterFrameQueries.Totals totals = frames.totals();
+        long mediaBytes = media.totalBytes();
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("profile", settings.profile().wireValue());
         out.put("products", registry.all().size());
         out.put("frames", totals.frames());
         out.put("storeBytes", totals.bytes());
+        out.put("mediaBytes", mediaBytes);
         out.put("diskQuotaGb", settings.diskQuotaGb());
-        out.put("diskQuotaPct", quotaPct(totals.bytes(), settings.diskQuotaBytes()));
+        out.put("diskQuotaPct", quotaPct(totals.bytes() + mediaBytes, settings.diskQuotaBytes()));
         Map<String, Object> cacheBlock = new LinkedHashMap<>();
         caches.metrics().forEach((name, m) -> {
             Map<String, Object> c = new LinkedHashMap<>();
@@ -84,11 +90,11 @@ public class RasterSystemBlock implements SystemBlockContributor, SystemWarningC
 
     @Override
     public List<SystemWarnings.Warning> warnings() {
-        double pct = quotaPct(frames.totals().bytes(), settings.diskQuotaBytes());
+        double pct = quotaPct(frames.totals().bytes() + media.totalBytes(), settings.diskQuotaBytes());
         if (pct < QUOTA_WARN_PCT) {
             return List.of();
         }
-        return List.of(new SystemWarnings.Warning(QUOTA_WARNING, "warning", "The raster store is at " + pct
+        return List.of(new SystemWarnings.Warning(QUOTA_WARNING, "warning", "The raster and media stores are at " + pct
                 + " % of its " + settings.diskQuotaGb() + " GB quota (FORESIGNAL_RASTER_DISK_QUOTA_GB); retention evicts"
                 + " the oldest frames above 100 %. Raise the quota or shorten the retention ladders."));
     }

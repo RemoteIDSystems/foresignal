@@ -26,6 +26,7 @@ public class FetchContextFactory {
     private final JdbcTemplate jdbc;
     private final Clock clock;
     private final ObjectProvider<RasterSinkFactory> rasters;
+    private final ObjectProvider<MediaSinkFactory> media;
 
     /** Creates the factory without a raster pipeline ({@code ctx.rasters()} throws). */
     public FetchContextFactory(
@@ -35,7 +36,24 @@ public class FetchContextFactory {
             UsageMeter usage,
             JdbcTemplate jdbc,
             Clock clock) {
-        this(upstream, sources, credentials, usage, jdbc, clock, null);
+        this(upstream, sources, credentials, usage, jdbc, clock, null, null);
+    }
+
+    /**
+     * Creates the factory without a media store ({@code ctx.media()} throws).
+     *
+     * @param rasters the raster pipeline behind {@code ctx.rasters()} (prompt 042), resolved lazily;
+     *     null for none
+     */
+    public FetchContextFactory(
+            UpstreamClient upstream,
+            SourceService sources,
+            CredentialsAccess credentials,
+            UsageMeter usage,
+            JdbcTemplate jdbc,
+            Clock clock,
+            ObjectProvider<RasterSinkFactory> rasters) {
+        this(upstream, sources, credentials, usage, jdbc, clock, rasters, null);
     }
 
     /**
@@ -43,6 +61,8 @@ public class FetchContextFactory {
      *
      * @param rasters the raster pipeline behind {@code ctx.rasters()} (prompt 042), resolved lazily;
      *     null for none
+     * @param media the media store behind {@code ctx.media()} (prompt 043), resolved lazily; null for
+     *     none
      */
     @org.springframework.beans.factory.annotation.Autowired
     public FetchContextFactory(
@@ -52,7 +72,8 @@ public class FetchContextFactory {
             UsageMeter usage,
             JdbcTemplate jdbc,
             Clock clock,
-            ObjectProvider<RasterSinkFactory> rasters) {
+            ObjectProvider<RasterSinkFactory> rasters,
+            ObjectProvider<MediaSinkFactory> media) {
         this.upstream = upstream;
         this.sources = sources;
         this.credentials = credentials;
@@ -60,15 +81,33 @@ public class FetchContextFactory {
         this.jdbc = jdbc;
         this.clock = clock;
         this.rasters = rasters;
+        this.media = media;
     }
 
-    /** Wires {@code ctx.rasters()} to the pipeline, probing when the context records a probe. */
+    /**
+     * Wires {@code ctx.rasters()} to the pipeline and {@code ctx.media()} to the media store, probing
+     * when the context records a probe.
+     */
     private <T extends DefaultFetchContext> T withRasters(T ctx, SourceDescriptor descriptor, boolean probing) {
         if (rasters != null) {
             ctx.rasterSink(() -> {
                 RasterSinkFactory factory = rasters.getIfAvailable();
                 if (factory == null) {
                     return FetchContextDefaults.noRasters(descriptor.id());
+                }
+                return factory.forSource(descriptor, probing);
+            });
+        }
+        return withMedia(ctx, descriptor, probing);
+    }
+
+    /** Wires {@code ctx.media()} to the media store, probing when the context records a probe. */
+    private <T extends DefaultFetchContext> T withMedia(T ctx, SourceDescriptor descriptor, boolean probing) {
+        if (media != null) {
+            ctx.mediaSink(() -> {
+                MediaSinkFactory factory = media.getIfAvailable();
+                if (factory == null) {
+                    return FetchContextDefaults.noMedia(descriptor.id());
                 }
                 return factory.forSource(descriptor, probing);
             });

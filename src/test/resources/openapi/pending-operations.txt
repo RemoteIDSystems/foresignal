@@ -1,6 +1,3 @@
-getMedia 043
-getMediaThumbnail 043
-getMediaMeta 043
 getProductTile 045
 getProductTileJson 045
 getProductImage 045

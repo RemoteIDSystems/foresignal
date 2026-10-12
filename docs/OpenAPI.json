@@ -177,6 +177,11 @@
         "version": "1.3.0",
         "date": "2026-10-12",
         "note": "042: listProducts, getProduct, listProductFrames and getLatestProductFrame are implemented. ProductTemporal.retention gains maxAge (the age past which observation frames are deleted, which the ladder rungs alone cannot express, e.g. MRMS '10-min frames to 48 h'). SystemInfo warnings gain RASTER_DISK_QUOTA. The problem-code registry gains UNKNOWN_PRODUCT, UNKNOWN_FRAME, FRAME_EXPIRED, RUN_REQUIRED, PRODUCT_UNAVAILABLE and PRODUCT_EXISTS (409, dynamic product registration)."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-12",
+        "note": "043: getMedia, getMediaThumbnail and getMediaMeta are implemented. The problem-code registry gains UNKNOWN_MEDIA (404), MEDIA_EXPIRED (410) and MEDIA_TOO_LARGE (413). Problem gains reason (an ImageGuard refusal behind VALIDATION_FAILED). SystemRasters.mediaBytes is filled and counts against the disk quota."
       }
     ]
   },
@@ -26683,7 +26688,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "043",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -26856,7 +26861,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "043",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -26957,7 +26962,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "043",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -85856,6 +85861,13 @@
                 }
               }
             }
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "VALIDATION_FAILED from ImageGuard (043): the refusal (file-too-large, unknown-format, bigtiff, content-type-mismatch, truncated, side-too-long, too-many-pixels, multi-image, unreadable)"
           }
         },
         "required": [
@@ -86329,6 +86341,23 @@
             "code": "PRODUCT_EXISTS",
             "status": 409,
             "prompt": "042"
+          },
+          {
+            "code": "UNKNOWN_MEDIA",
+            "status": 404,
+            "prompt": "043"
+          },
+          {
+            "code": "MEDIA_EXPIRED",
+            "status": 410,
+            "prompt": "043",
+            "note": "Past expiresAt, deleted by retention (kept as a tombstone for foresignal.media.tombstone-retention, default 30 d), or its file is gone"
+          },
+          {
+            "code": "MEDIA_TOO_LARGE",
+            "status": 413,
+            "prompt": "043",
+            "note": "Over foresignal.media.max-file-bytes (default 25 MB); returned by the 054 upload endpoints"
           }
         ]
       },
