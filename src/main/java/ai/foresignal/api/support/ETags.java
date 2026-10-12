@@ -17,7 +17,8 @@ import org.springframework.http.ResponseEntity;
  *   <li>lists and kinds: a hash of the normalized query, {@code ChangeBus.lastPublishedSeq()}, the
  *       {@code LiveBus} batch number and the current minute, so a tag never outlives a write or a
  *       minute (expiry is evaluated against the clock);
- *   <li>documents such as the kind schema: a hash of the document.
+ *   <li>documents such as the kind schema: a hash of the document;
+ *   <li>binary bodies such as vector tiles: a hash of the bytes.
  * </ul>
  *
  * <p>Responses carry {@code Vary: Accept, Accept-Encoding, Authorization} and
@@ -46,6 +47,11 @@ public final class ETags {
     /** The tag of a document. */
     public static String forDocument(String document) {
         return "\"d-" + hash(document) + "\"";
+    }
+
+    /** The tag of a binary body, such as a vector tile: a hash of its bytes. */
+    public static String forBytes(byte[] body) {
+        return "\"b-" + hash(body) + "\"";
     }
 
     /**
@@ -92,8 +98,12 @@ public final class ETags {
     }
 
     private static String hash(String text) {
+        return hash(text.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private static String hash(byte[] bytes) {
         try {
-            byte[] digest = MessageDigest.getInstance("SHA-256").digest(text.getBytes(StandardCharsets.UTF_8));
+            byte[] digest = MessageDigest.getInstance("SHA-256").digest(bytes);
             return HEX.formatHex(digest).substring(0, 24);
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException("SHA-256 is not available", e);

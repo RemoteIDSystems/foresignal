@@ -126,6 +126,8 @@ public class AccessPolicy {
                 rule(HttpMethod.GET, "/v1/kinds/*/schema", AccessRequirement.READ),
                 rule(HttpMethod.GET, "/v1/history", AccessRequirement.READ),
                 rule(HttpMethod.GET, "/v1/tiles/**", AccessRequirement.READ),
+                // The TileJSON index; /v1/tiles/** does not match /v1/tiles.json (016).
+                rule(HttpMethod.GET, "/v1/tiles.json", AccessRequirement.READ),
 
                 // ---- Search: read, except reindex ----
                 rule(HttpMethod.POST, "/v1/search/reindex", AccessRequirement.ADMIN),

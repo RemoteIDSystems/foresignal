@@ -93,6 +93,15 @@ foresignal:
     stream:
       # Most rows one ndjson/geojsonseq/csv response may hold (400 RESULT_TOO_LARGE above).
       max-rows: 500000
+  tiles:
+    # Vector tiles (016).
+    # Most features in one raw tile; more are cut to the newest, with Foresignal-Tile-Truncated.
+    max-features: 50000
+    # Aggregate cells across one tile width (even, so square cells line up with tile edges).
+    cells-per-tile: 32
+    # Cache-Control max-age of aggregated and raw tiles.
+    agg-max-age: 60s
+    raw-max-age: 5s
   collector:
     # Poll enabled sources and hold enabled streams open (Architecture §5.1).
     # Off in tests, where cached contexts share one database.

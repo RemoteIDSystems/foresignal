@@ -20,6 +20,12 @@ public final class SettingKeys {
     /** {@link SecuritySettings}: whether data reads require a token. */
     public static final String SECURITY = "security";
 
+    /**
+     * {@link ServerSettings}: the public base URL used in generated links (TileJSON from 016;
+     * prompt 023 adds the rest of the setting and its endpoints).
+     */
+    public static final String SERVER = "server";
+
     /** This installation's generated identifier. */
     public static final String INSTALL_ID = "install.id";
 
@@ -28,7 +34,7 @@ public final class SettingKeys {
      * component holding its own copy of a setting drops it too. A new key belongs in this list.
      */
     public static final List<String> ALL =
-            List.of(RETENTION, CORS, TRIGGER_CURSOR, STREAM_LIMITS, SECURITY, INSTALL_ID);
+            List.of(RETENTION, CORS, TRIGGER_CURSOR, STREAM_LIMITS, SECURITY, SERVER, INSTALL_ID);
 
     private SettingKeys() {}
 }

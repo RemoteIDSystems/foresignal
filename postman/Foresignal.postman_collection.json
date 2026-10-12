@@ -43890,7 +43890,7 @@
                 }
               ]
             },
-            "description": "Mapbox Vector Tile of current live state (record_live \u22c8 record_head). `layer` is a source id or a kind. Raw features carry source, externalId, kind, title, observedAt (epoch s), version, live (bool) plus the sources' tileProperties from the merged payload; capped at foresignal.tiles.maxFeatures with `Foresignal-Tile-Truncated: true`. Aggregated tiles (`agg=grid|hex`, or auto below aggBelowZoom) carry cell polygons with count, latestObservedAt, kinds (JSON string kind \u2192 count), optional maxRank and agg; private sources never count for anonymous callers.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getTile`",
+            "description": "Mapbox Vector Tile of current live state (record_live \u22c8 record_head): geometry and observedAt come from record_live, so a live position shows before any new version is persisted. `layer` is a source id (wins) or a kind declared by a visible source; anything else is 404 UNKNOWN_LAYER. Raw features carry `source`, `externalId`, `kind`, `title` (record_head.title), `observedAt` (epoch seconds, number), `version` (number), `live` (boolean, record_live.dirty) plus the layer sources' valid `tileProperties` (names matching `^[A-Za-z0-9_]{1,64}$`) read from the merged payload with their native JSON types; null values are omitted. Raw tiles are capped at foresignal.tiles.maxFeatures (default 50,000) newest-first, with `Foresignal-Tile-Truncated: true` when the cap was hit. Aggregated tiles (`agg=grid|hex`, or `auto` below the layer's aggBelowZoom, which is the lowest value its visible sources declare) carry one polygon per non-empty cell with `count`, `latestObservedAt` (epoch seconds), `kinds` (a JSON string, kind \u2192 count), `agg` (`grid` or `hex`) and `maxRank` only when every source of the layer declares a numeric rankField. Cells are built in EPSG:3857 with foresignal.tiles.cellsPerTile (default 32) cells across a tile; grid cells line up with tile edges. Each record is reduced to ST_PointOnSurface (a polygon counts once) and counted in exactly one tile (half-open tile envelope) and one cell; a hex cell that straddles a tile edge is drawn by both tiles, each counting the records on its own side. Private sources never appear in features or counts for anonymous callers. An empty tile is 200 with an empty body.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getTile`",
             "auth": {
               "type": "noauth"
             }
@@ -43947,7 +43947,7 @@
                 }
               ]
             },
-            "description": "Every registered source id and kind with at least one non-private source the caller can see, each with its TileJSON URL and aggBelowZoom. Strong ETag; `Cache-Control: public, max-age=300`.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `listTileLayers`",
+            "description": "Every registered source id and every kind with at least one source the caller can see (private sources only for token callers; a kind spelled like a source id is left out because the name resolves to the source), each with its TileJSON URL (under `server.publicBaseUrl`, else the request's scheme, host and port) and aggBelowZoom (null = never aggregate). Strong ETag; `Cache-Control: public, max-age=300` (`private` when openReads is off).\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `listTileLayers`",
             "auth": {
               "type": "noauth"
             }
@@ -44005,7 +44005,7 @@
                 }
               ]
             },
-            "description": "TileJSON 3.0.0 for a source id or kind, with tile URLs under `server.publicBaseUrl` (else the request host), vector_layers field descriptions from fieldSpecs, and `foresignal:aggBelowZoom` / `foresignal:properties`. Unknown layer \u2192 404 UNKNOWN_LAYER.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getTileJson`",
+            "description": "TileJSON 3.0.0 for a source id or kind: `tilejson`, `name`, `description`, `version` (Foresignal version), `attribution` (distinct descriptor attributions joined with \" \u00b7 \"), `scheme: xyz`, `tiles` under `server.publicBaseUrl` (else the request's scheme, host and port; X-Forwarded headers are not trusted until 023), `minzoom` 0, `maxzoom` 16, `bounds`, and one `vector_layers` entry whose `fields` describe every feature property (fieldSpecs label and unit, else String/Number/Boolean), plus the extension keys `foresignal:aggBelowZoom` (null = never) and `foresignal:properties`. Strong ETag; `Cache-Control: public, max-age=300`. Unknown layer, or a private source asked anonymously \u2192 404 UNKNOWN_LAYER.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getTileJson`",
             "auth": {
               "type": "noauth"
             }

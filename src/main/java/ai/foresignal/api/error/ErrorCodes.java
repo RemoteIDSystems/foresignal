@@ -62,6 +62,9 @@ public final class ErrorCodes {
     /** 400: an event-stream topic that is unknown or not registered yet (prompt 015). */
     public static final String UNKNOWN_TOPIC = "UNKNOWN_TOPIC";
 
+    /** 404: a tile layer that is neither a registered source id nor a kind of a visible source (016). */
+    public static final String UNKNOWN_LAYER = "UNKNOWN_LAYER";
+
     private static final String TYPE_PREFIX = "https://foresignal.ai/problems/";
 
     private ErrorCodes() {}

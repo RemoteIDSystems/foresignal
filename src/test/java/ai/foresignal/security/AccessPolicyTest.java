@@ -56,6 +56,8 @@ class AccessPolicyTest {
                 "/v1/sources/usgs-earthquakes/health",
                 "/v1/sources/usgs-earthquakes/usage",
                 "/v1/tiles/records/3/4/5.mvt",
+                "/v1/tiles.json",
+                "/v1/tiles/earthquake.json",
                 "/v1/search",
                 "/v1/search/status",
                 "/v1/alerts",
@@ -95,8 +97,10 @@ class AccessPolicyTest {
         "PATCH, /v1/events/stream",
         "POST, /v1/events/stream/abc/filter",
         "PATCH, /v1/events/stream/abc/filter/extra",
+        "POST, /v1/tiles.json",
+        "GET, /v1/tiles.jsonx",
     })
-    @DisplayName("only GET /v1/kinds, GET /v1/kinds/{kind}/schema and the event-stream pair are reads; neighbors fail closed (014, 015)")
+    @DisplayName("only GET /v1/kinds, GET /v1/kinds/{kind}/schema and the event-stream pair are reads; neighbors fail closed (014, 015, 016)")
     void kindSchemaRuleIsExact(String method, String path) {
         assertScope(method, path, Scope.ADMIN);
     }
