@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>ForeSignal Source Catalog</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" />
+
+<style>
+  :root {
+    --bg: #eef1f6;
+    --surface: #ffffff;
+    --surface-2: #f5f7fb;
+    --border: #d6dde8;
+    --border-strong: #c2ccda;
+    --ink: #121922;
+    --ink-soft: #35414f;
+    --muted: #5c6773;
+    --accent: #0b6e8f;
+    --accent-ink: #084f66;
+    --accent-weak: #e1eff4;
+    --good: #1c8a4b;
+    --good-weak: #dff0e6;
+    --chip: #eef2f7;
+    --chip-ink: #42505f;
+    --shadow: 0 1px 2px rgba(18,25,34,.05), 0 8px 24px -14px rgba(18,25,34,.22);
+    --radius: 12px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0a0f15;
+      --surface: #111a24;
+      --surface-2: #0e151e;
+      --border: #22303f;
+      --border-strong: #2d3e51;
+      --ink: #e7edf4;
+      --ink-soft: #b7c2cf;
+      --muted: #8a97a7;
+      --accent: #4cc9e6;
+      --accent-ink: #9fe3f2;
+      --accent-weak: #0f2f3a;
+      --good: #49d184;
+      --good-weak: #11301f;
+      --chip: #19232f;
+      --chip-ink: #aeb9c6;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px -16px rgba(0,0,0,.7);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0a0f15;
+    --surface: #111a24;
+    --surface-2: #0e151e;
+    --border: #22303f;
+    --border-strong: #2d3e51;
+    --ink: #e7edf4;
+    --ink-soft: #b7c2cf;
+    --muted: #8a97a7;
+    --accent: #4cc9e6;
+    --accent-ink: #9fe3f2;
+    --accent-weak: #0f2f3a;
+    --good: #49d184;
+    --good-weak: #11301f;
+    --chip: #19232f;
+    --chip-ink: #aeb9c6;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px -16px rgba(0,0,0,.7);
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 20px 72px; }
+
+  /* ---------- masthead ---------- */
+  header.mast {
+    padding: 44px 0 28px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 26px;
+  }
+  .eyebrow {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11.5px;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: var(--accent-ink);
+    margin: 0 0 14px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .eyebrow::before {
+    content: ""; width: 26px; height: 2px; background: var(--accent); display: inline-block;
+  }
+  h1 {
+    font-family: "Archivo", system-ui, sans-serif;
+    font-weight: 800;
+    font-size: clamp(2rem, 5.2vw, 3.1rem);
+    line-height: 1.02;
+    letter-spacing: -.02em;
+    margin: 0 0 14px;
+    text-wrap: balance;
+  }
+  h1 .sig { color: var(--accent); }
+  .lede {
+    margin: 0;
+    max-width: 68ch;
+    color: var(--ink-soft);
+    font-size: 16.5px;
+  }
+  .note {
+    margin: 16px 0 0; max-width: 72ch;
+    font-size: 13.5px; color: var(--muted);
+    border-left: 2px solid var(--border-strong);
+    padding: 2px 0 2px 14px;
+  }
+  .note b { color: var(--ink-soft); font-weight: 600; }
+
+  /* ---------- summary tiles ---------- */
+  .tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+    gap: 12px;
+    margin: 26px 0 0;
+  }
+  .tile {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    box-shadow: var(--shadow);
+  }
+  .tile .num {
+    font-family: "Archivo", sans-serif;
+    font-weight: 700;
+    font-size: 1.9rem;
+    line-height: 1;
+    letter-spacing: -.02em;
+    font-variant-numeric: tabular-nums;
+  }
+  .tile .lab {
+    display: block; margin-top: 7px;
+    font-size: 11.5px; letter-spacing: .04em;
+    text-transform: uppercase; color: var(--muted);
+    font-family: "IBM Plex Mono", monospace;
+  }
+  .tile.accent .num { color: var(--accent); }
+  .tile.good .num { color: var(--good); }
+
+  /* ---------- controls ---------- */
+  .controls {
+    position: sticky; top: 0; z-index: 20;
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(8px);
+    padding: 16px 0 14px;
+    margin: 28px 0 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .searchrow { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+  .search {
+    flex: 1 1 260px; position: relative; min-width: 200px;
+  }
+  .search input {
+    width: 100%; font: inherit; color: var(--ink);
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    padding: 10px 12px 10px 38px;
+  }
+  .search input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
+  .search svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); }
+  .toggle {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 13.5px; color: var(--ink-soft); cursor: pointer;
+    user-select: none; white-space: nowrap;
+    padding: 9px 13px; border: 1px solid var(--border-strong);
+    border-radius: 10px; background: var(--surface);
+  }
+  .toggle input { accent-color: var(--accent); width: 15px; height: 15px; margin: 0; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 13px; }
+  .chip-btn {
+    font: 500 12.5px/1 "IBM Plex Sans", sans-serif;
+    color: var(--chip-ink); background: var(--chip);
+    border: 1px solid transparent;
+    border-radius: 999px; padding: 7px 13px; cursor: pointer;
+    transition: background .12s, color .12s, border-color .12s;
+  }
+  .chip-btn:hover { border-color: var(--border-strong); }
+  .chip-btn[aria-pressed="true"] {
+    background: var(--accent); color: #fff; border-color: var(--accent);
+  }
+  :root[data-theme="dark"] .chip-btn[aria-pressed="true"],
+  :root:not([data-theme="light"]) .chip-btn[aria-pressed="true"] { color: #06161c; }
+  .chip-btn .c { font-family: "IBM Plex Mono", monospace; opacity: .7; margin-left: 6px; font-size: 11px; }
+
+  /* ---------- groups + tables ---------- */
+  .group { margin-top: 30px; }
+  .group.hidden { display: none; }
+  .group h2 {
+    font-family: "Archivo", sans-serif; font-weight: 700;
+    font-size: 1.12rem; letter-spacing: -.01em;
+    margin: 0 0 3px; display: flex; align-items: baseline; gap: 10px;
+  }
+  .group h2 .gcount {
+    font-family: "IBM Plex Mono", monospace; font-size: 12px;
+    color: var(--muted); font-weight: 500;
+  }
+  .group .gdesc { margin: 0 0 12px; color: var(--muted); font-size: 13px; }
+
+  .tablewrap {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    box-shadow: var(--shadow);
+  }
+  table { border-collapse: collapse; width: 100%; min-width: 760px; }
+  thead th {
+    position: sticky; top: 0;
+    text-align: left; font-family: "IBM Plex Mono", monospace;
+    font-weight: 500; font-size: 10.5px; letter-spacing: .07em; text-transform: uppercase;
+    color: var(--muted); background: var(--surface-2);
+    padding: 11px 14px; border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  tbody td { padding: 12px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr.row.hidden { display: none; }
+  tbody tr:hover td { background: var(--surface-2); }
+
+  .sid { font-family: "IBM Plex Mono", monospace; font-size: 13px; font-weight: 500; color: var(--ink); white-space: nowrap; }
+  .kind { color: var(--ink-soft); font-size: 13px; }
+  .host { color: var(--muted); font-size: 12.5px; font-family: "IBM Plex Mono", monospace; word-break: break-word; }
+  .cad { color: var(--ink-soft); font-size: 12.5px; font-family: "IBM Plex Mono", monospace; white-space: nowrap; }
+  .lic { color: var(--muted); font-size: 12.5px; }
+
+  .pill {
+    display: inline-block; font: 500 11px/1 "IBM Plex Mono", monospace;
+    letter-spacing: .02em; padding: 4px 8px; border-radius: 6px; white-space: nowrap;
+  }
+  .pill.built { background: var(--good-weak); color: var(--good); }
+  .pill.planned { background: var(--accent-weak); color: var(--accent-ink); }
+  .pill.stream { background: var(--chip); color: var(--chip-ink); margin-left: 6px; }
+  .auth {
+    display: inline-block; font: 500 11px/1 "IBM Plex Mono", monospace;
+    padding: 4px 8px; border-radius: 6px; white-space: nowrap;
+    background: var(--chip); color: var(--chip-ink);
+  }
+  .auth.none { color: var(--muted); background: transparent; border: 1px dashed var(--border-strong); }
+
+  .empty { display: none; padding: 40px 16px; text-align: center; color: var(--muted); }
+  .empty.show { display: block; }
+
+  footer {
+    margin-top: 48px; padding-top: 22px; border-top: 1px solid var(--border);
+    color: var(--muted); font-size: 12.5px; max-width: 80ch;
+  }
+  footer code { font-family: "IBM Plex Mono", monospace; color: var(--ink-soft); font-size: 12px; }
+  footer p { margin: 0 0 10px; }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .group, .tile { animation: rise .4s ease both; }
+  }
+  @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  @media (max-width: 560px) {
+    .wrap { padding: 0 14px 56px; }
+    header.mast { padding: 32px 0 22px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="mast">
+    <p class="eyebrow">Headless intelligence broker · ingest inventory</p>
+    <h1><span class="sig">ForeSignal</span> Source Catalog</h1>
+    <p class="lede">Every upstream ForeSignal's built-in adapters are planned to pull from — the live geophysical, aerial, maritime, weather, conflict, cyber, market and social feeds it turns into versioned, queryable records.</p>
+    <p class="note">This is the planned catalog from <b>docs/Source-Catalog.md</b>. One source — <b>usgs-earthquakes</b> — is built so far; the rest arrive in the numbered build prompts shown as their status. Each record carries kind, geometry, observed/event time, payload, optional quality &amp; coverage, TTL and a tombstone flag.</p>
+    <div class="tiles" id="tiles"></div>
+  </header>
+
+  <div class="controls">
+    <div class="searchrow">
+      <label class="search">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+        <input id="q" type="search" placeholder="Filter by id, kind, upstream, licence…" autocomplete="off" aria-label="Filter sources" />
+      </label>
+      <label class="toggle"><input type="checkbox" id="builtOnly" /> Built only</label>
+      <label class="toggle"><input type="checkbox" id="streamOnly" /> Streaming only</label>
+    </div>
+    <div class="chips" id="chips"></div>
+  </div>
+
+  <main id="catalog"></main>
+  <div class="empty" id="empty">No sources match that filter.</div>
+
+  <footer>
+    <p><b style="color:var(--ink-soft)">Not gathered.</b> Client-fetched basemaps &amp; tiles (Google 3D Tiles, Esri, OSM/OpenFreeMap, NASA GIBS, Mapillary, TomTom), geocoding, routing, point weather and Google News RSS — frontends call these directly.</p>
+    <p><b style="color:var(--ink-soft)">External Data Protocol (EDP).</b> FlightRadar24, MarineTraffic, Liveuamap, OREF sirens, Telegram, TikTok, Yahoo Finance, Shodan, Windy webcams and similar are optional, operator-registered external providers — ForeSignal ships none of them.</p>
+    <p>Source of truth: <code>docs/Source-Catalog.md</code> · Weather &amp; imagery raster products: <code>docs/Weather-Imagery-Design.md</code>. Defaults (interval · budget) are descriptor starting values confirmed per adapter against each upstream's published policy.</p>
+  </footer>
+</div>
+
+<script>
+  // group key -> {label, desc}
+  const GROUPS = {
+    seismic:   { label: "Seismic & geophysical", desc: "Earthquakes and volcanic activity." },
+    air:       { label: "Aircraft & airspace", desc: "Live aircraft positions and airspace status." },
+    sea:       { label: "Maritime & vessels", desc: "AIS tracks, fishing, chokepoints and cables." },
+    space:     { label: "Space & satellites", desc: "Orbital elements, launches, ground stations." },
+    fire:      { label: "Fire", desc: "Thermal detections and wildfire perimeters." },
+    weather:   { label: "Weather alerts & observations", desc: "Warnings, cyclones, reports and point obs." },
+    raster:    { label: "Weather & imagery (raster products)", desc: "Model grids, radar, lightning, satellite imagery — stored as frames." },
+    disaster:  { label: "Disasters & humanitarian", desc: "Multi-hazard events, displacement, disease." },
+    conflict:  { label: "Conflict & geopolitics", desc: "Conflict events, frontlines and air-raid alerts." },
+    infra:     { label: "Infrastructure, connectivity & interference", desc: "Internet outages, probes and GPS jamming." },
+    cyber:     { label: "Cyber & threat intel", desc: "Exploited vulnerabilities and malware indicators." },
+    spacewx:   { label: "Space weather & radiation", desc: "Solar activity and radiation sensors." },
+    radio:     { label: "Radio, RF & mesh", desc: "Spots, SDRs, scanners, APRS and mesh nodes." },
+    transport: { label: "Ground transport & cameras", desc: "Transit, rail, bikeshare, airports, traffic cams." },
+    markets:   { label: "Energy, markets & economic series", desc: "Series records without geometry." },
+    sanctions: { label: "Sanctions, filings & regulatory", desc: "Sanctions lists and regulatory filings." },
+    env:       { label: "Air quality & environment", desc: "Air-quality measurements." },
+    media:     { label: "Attention, news & media ratings", desc: "Article metadata and imported bias/quality ratings." },
+    social:    { label: "Social platforms", desc: "Operator-enabled, each with its own credentials & budget." },
+    history:   { label: "Reference-history datasets", desc: "Weekly counts per family and region; never served raw." },
+    derived:   { label: "Derived layers", desc: "Computed from stored records rather than fetched." },
+  };
+
+  // auth code -> label
+  const A = { none:"none", key:"API key", oauth:"OAuth2", token:"token", creds:"credentials", ua:"User-Agent", pub:"public creds", call:"callsign", app:"app param", pay:"paid" };
+
+  // [id, group, kind, host, auth, cadence, licence, prompt, built, stream]
+  const S = [
+    ["usgs-earthquakes","seismic","earthquake","earthquake.usgs.gov /feed/v1.0","none","60s · 4/min, 2000/day","US public domain","011",1,0],
+    ["emsc-seismic","seismic","earthquake","seismicportal.eu FDSN","none","60s","—","051",0,0],
+    ["gvp-volcanoes","seismic","volcano","Smithsonian GVP WFS","none","weekly","—","056",0,0],
+
+    ["adsblol-mil","air","aircraft","api.adsb.lol/v2/mil","none","30s · 4/min, 3000/day","ODbL","029",0,0],
+    ["adsblol-region-*","air","aircraft","api.adsb.lol/v2/lat/lon/dist","none","60s · 2/min, 1500/day","ODbL","029",0,0],
+    ["opensky-states","air","aircraft","opensky-network.org /states/all","oauth","300s · 1/min, 900/day","non-commercial","029",0,0],
+    ["airplaneslive-mil","air","aircraft","api.airplanes.live/v2/mil","none","60s (serial)","—","044",0,0],
+    ["adsbfi-region-*","air","aircraft","opendata.adsb.fi/api/v3","none","120s (serial)","—","044",0,0],
+    ["local-adsb-*","air","aircraft","dump1090 / readsb on LAN","none","1–5s","—","036",0,0],
+    ["faa-tfr","air","airspace-restriction","tfr.faa.gov/tfrapi","none","15min","US gov","049",0,0],
+    ["faa-nas-status","air","airport-delay","nasstatus.faa.gov/api","none","5min","US gov","049",0,0],
+    ["awc-sigmets","air","aviation-hazard","aviationweather.gov/api","none","5min","US gov","049",0,0],
+
+    ["aisstream","sea","vessel","wss://stream.aisstream.io","key","streaming · 6 conn/hr","—","030",0,1],
+    ["ais-kystverket","sea","vessel","153.44.253.27:5631 (NMEA TCP)","none","streaming","Norway official","048",0,1],
+    ["ais-digitraffic","sea","vessel","meri.digitraffic.fi MQTT/WSS","none","streaming","Finland official","048",0,1],
+    ["nga-msi-warnings","sea","maritime-warning","msi.nga.mil/api","none","15min","US gov","050",0,0],
+    ["gfw-events","sea","fishing-event","gateway.api.globalfishingwatch.org","token","1h","—","050",0,0],
+    ["gfw-sar-detections","sea","sar-detection","Global Fishing Watch SAR","token","—","CC BY-NC 4.0","088",0,0],
+    ["imf-portwatch-chokepoints","sea","chokepoint-transit","services9.arcgis.com (IMF PortWatch)","none","12h","IMF terms","050",0,0],
+    ["submarine-cables","sea","cable","submarinecablemap.com/api/v3","none","weekly","CC BY-NC-SA","056",0,0],
+
+    ["celestrak-gp","space","satellite","celestrak.org/NORAD gp.php","none","2h · 1/min, 30/day","fair use","031",0,0],
+    ["launch-library","space","launch","ll.thespacedevs.com/2.3.0","token","15min · ~15/h","—","031",0,0],
+    ["satnogs-stations","space","ground-station","network.satnogs.org/api","none","6h","—","042",0,0],
+    ["tinygs","space","satellite-telemetry","api.tinygs.com/v1","none","30min","—","042",0,0],
+
+    ["nasa-firms","fire","fire","firms.modaps.eosdis.nasa.gov/api","key","30min · 4/min, 400/day","NASA","032",0,0],
+    ["nifc-perimeters","fire","fire-perimeter","WFIGS ArcGIS FeatureServer","none","5min","US gov","040",0,0],
+
+    ["nws-alerts","weather","weather-alert","api.weather.gov/alerts/active","ua","2min · 2/min, 1440/day","US gov","034",0,0],
+    ["meteoalarm","weather","weather-alert","feeds.meteoalarm.org (per country)","none","15min","—","051",0,0],
+    ["nhc-cyclones","weather","cyclone","nhc.noaa.gov/CurrentStorms.json","none","10min · 2/min, 300/day","US gov","034",0,0],
+    ["nhc-cyclone-cones","weather","cyclone-track","NHC tropical MapServer","none","—","US gov","040",0,0],
+    ["spc-storm-reports","weather","storm-report","spc.noaa.gov/climo/reports","none","15min","US gov","051",0,0],
+    ["ndbc-buoys","weather","buoy-observation","ndbc.noaa.gov/data/latest_obs","none","10min","US gov","043",0,0],
+    ["sondehub","weather","radiosonde","api.v2.sondehub.org/sondes","none","5min","—","042",0,0],
+
+    ["weather-models","raster","raster-frame · wind/grids","GFS · ECMWF/IFS · HRRR (GRIB2)","none","per model cycle","NOAA / ECMWF","058",0,0],
+    ["mrms-radar","raster","raster-frame · reflectivity","MRMS","none","~2min","US gov","058",0,0],
+    ["glm-lightning","raster","raster-frame · lightning","GOES GLM","none","~1min","US gov","058",0,0],
+    ["goes-imagery","raster","raster-frame · imagery","GOES NetCDF","none","~1min","US gov","058",0,0],
+    ["satdump-{station}","raster","satellite-pass","operator's SatDump station","none","per pass","—","043",0,0],
+
+    ["gdacs","disaster","disaster","gdacs.org/gdacsapi","none","15min · 2/min, 200/day","open","034",0,0],
+    ["nasa-eonet","disaster","natural-event","eonet.gsfc.nasa.gov/api/v3","none","—","open","052",0,0],
+    ["reliefweb-disasters","disaster","disaster","api.reliefweb.int/v2","app","daily","—","052",0,0],
+    ["unhcr-population","disaster","displacement","api.unhcr.org/population","none","daily","—","052",0,0],
+    ["who-don","disaster","disease-outbreak","who.int/api/emergencies","none","6h","—","052",0,0],
+
+    ["gdelt-events","conflict","conflict-event","storage.googleapis.com/data.gdeltproject.org","none","15min · 4/min, 400/day","CC BY","033",0,0],
+    ["acled","conflict","conflict-event","acleddata.com/api","creds","15-min window","ACLED EULA (restricted)","045",0,0],
+    ["ucdp-ged","conflict","conflict-event","ucdpapi.pcr.uu.se/api","token","6h","CC BY 4.0","045",0,0],
+    ["deepstate-frontline","conflict","frontline","github cyterat/deepstate-map-data","none","30min","—","045",0,0],
+    ["alerts-in-ua","conflict","air-raid-alert","api.alerts.in.ua/v1","token","2min","—","045",0,0],
+    ["ua-air-raid-siren","conflict","air-raid-alert","siren.pp.ua/api/v3","none","—","verify","045",0,0],
+
+    ["ioda-outages","infra","outage","api.ioda.inetintel.cc.gatech.edu/v2","none","5min · 2/min, 600/day","—","035",0,0],
+    ["cloudflare-radar-outages","infra","outage","api.cloudflare.com /radar","token","1–3h","—","054",0,0],
+    ["ripe-atlas-probes","infra","probe-status","atlas.ripe.net/api/v2","none","15min","—","054",0,0],
+    ["gpsjam-daily","infra","jamming-cell","gpsjam.org/data","none","daily","—","054",0,0],
+
+    ["cisa-kev","cyber","vulnerability","cisa.gov /known_exploited_vulnerabilities.json","none","6h","US gov","041",0,0],
+    ["abusech-feodo","cyber","malware-c2","feodotracker.abuse.ch","none","15min","—","041",0,0],
+    ["abusech-urlhaus","cyber","malware-url","urlhaus-api.abuse.ch/v1","none","15min","—","041",0,0],
+
+    ["noaa-swpc","spacewx","space-weather","services.swpc.noaa.gov/json","none","5min","US gov","042",0,0],
+    ["safecast-radiation","spacewx","radiation","api.safecast.org/measurements","none","2h","—","043",0,0],
+    ["epa-radnet","spacewx","radiation","radnet.epa.gov /csv","none","per station","US gov","043",0,0],
+
+    ["pskreporter-ft8","radio","radio-spot","retrieve.pskreporter.info/query","none","10min","—","046",0,0],
+    ["kiwisdr","radio","sdr-receiver","rx.linkfanel.net/kiwisdr_com.js","none","24h","—","046",0,0],
+    ["openmhz-systems","radio","scanner","api.openmhz.com/systems","none","1h","—","046",0,0],
+    ["aprs-is","radio","aprs-station","rotate.aprs2.net:14580 (TCP)","call","streaming","—","046",0,1],
+    ["radio-browser","radio","radio-station","all.api.radio-browser.info","none","6h","—","040",0,0],
+    ["meshtastic-mqtt","radio","mesh-node","mqtt.meshtastic.org:1883","pub","streaming (MQTT)","—","047",0,1],
+    ["meshtastic-map","radio","mesh-node","meshtastic.liamcottle.net/api/v1","none","daily (~37 MB)","—","047",0,0],
+
+    ["transit-*","transport","transit-vehicle","GTFS-RT (MBTA, HSL, Entur…)","none","15s · TTL 2min","per feed","037",0,0],
+    ["gbfs-*","transport","bikeshare-station","GBFS station feeds","none","60s","—","038",0,0],
+    ["amtraker","transport","train","api.amtraker.com/v3","none","60s","—","044",0,0],
+    ["digitraffic-rail","transport","train","rata.digitraffic.fi/api/v1","none","60s (gzip)","—","044",0,0],
+    ["ourairports","transport","airport","ourairports.com/data/airports.csv","none","weekly","—","056",0,0],
+    ["cctv-*","transport","camera","TfL · Caltrans · 511 … (catalogue only)","key","15min","per host","039",0,0],
+
+    ["eia-petroleum","markets","energy / series","EIA v2 API","key","weekly / daily","US gov (LSEG LOCAL_ONLY)","055",0,0],
+    ["gie-agsi","markets","energy / series","agsi.gie.eu/api","key","daily","—","055",0,0],
+    ["ember-electricity","markets","energy / series","Ember monthly CSV","none","monthly","—","055",0,0],
+    ["cftc-cot","markets","series","CFTC Socrata","none","weekly (lag 3d)","US public domain","117",0,0],
+    ["fred-series","markets","series","FRED API","key","daily","LOCAL_ONLY","117",0,0],
+    ["worldbank-indicators","markets","series","World Bank Indicators v2","none","weekly","CC BY 4.0","117",0,0],
+    ["ice-cot","markets","series","ICE Futures Europe COT","none","weekly","verify","117",0,0],
+    ["wikimedia-pageviews","markets","attention-series","Wikimedia Pageviews REST","ua","daily","CC0","117",0,0],
+    ["gdelt-timelines","markets","attention-series","GDELT DOC 2.0","none","30min","open","117",0,0],
+    ["polymarket / kalshi","markets","prediction-market","gamma-api.polymarket.com · kalshi v2","none","—","restricted (EDP)","138",0,0],
+
+    ["ofac-sdn","sanctions","sanction","sanctionslistservice.ofac.treas.gov","none","daily","US public domain","053",0,0],
+    ["uk-ofsi-sanctions","sanctions","sanction","UK OFSI ConList CSV","none","daily","—","053",0,0],
+    ["un-sanctions","sanctions","sanction","UN consolidated list XML","none","daily","—","053",0,0],
+    ["sec-8k","sanctions","filing","sec.gov EDGAR atom","ua","10min","US public domain","053",0,0],
+
+    ["openaq","env","air-quality","api.openaq.org/v3","key","30min","—","043",0,0],
+
+    ["gdelt-articles","media","article","GDELT DOC 2.0 ArtList","none","per topic","open","133",0,0],
+    ["news-feed-*","media","article","outlet RSS / Atom","none","per outlet","per outlet","133",0,0],
+    ["wikidata-ratings","media","media-rating","Wikidata Query Service","none","—","CC0","133",0,0],
+    ["partisan-web-ratings","media","media-rating","The Partisan Web files","none","—","CC BY 4.0","133",0,0],
+    ["allsides-ratings","media","media-rating","operator import","none","—","CC BY-NC / LOCAL_ONLY","133",0,0],
+    ["mbfc-ratings","media","media-rating","MBFC API (operator key)","key","—","LOCAL_ONLY","133",0,0],
+
+    ["bluesky-jetstream","social","social-post","Jetstream v2 WebSocket","token","streaming","Bluesky terms","135",0,1],
+    ["bluesky-search","social","social-post","app.bsky.feed.searchPosts","token","paged","—","135",0,0],
+    ["mastodon","social","social-post","per-instance streams / trends","none","streaming / daily","per instance","135",0,1],
+    ["reddit","social","social-post","OAuth API /r/{sub}/new","oauth","paged · 100/min","Reddit Data API","136",0,0],
+    ["youtube","social","social-post","Data API v3","key","10k units/day","YouTube API terms","136",0,0],
+    ["x","social","social-post","X API v2 (pay-per-use)","pay","counts + paged","X Dev Agreement ($ cap)","135",0,0],
+    ["threads","social","social-post","keyword_search","token","2200 / 24h","Meta terms","137",0,0],
+    ["instagram-hashtags","social","social-post","Graph API ig_hashtag_search","token","30 tags / 7d","Meta terms","137",0,0],
+    ["xai-x-search","social","social-post · cue","xAI API X search","key","~$5 / 1k","xAI terms","137",0,0],
+
+    ["ucdp-ged-history","history","conflict-history","UCDP API / download","token","1989–","CC BY 4.0","121",0,0],
+    ["acled-history","history","conflict-history","ACLED API (operator creds)","creds","by region","ACLED EULA / LOCAL_ONLY","121",0,0],
+    ["usgs-comcat","history","earthquake-history","FDSN event service","none","decades","US public domain","121",0,0],
+    ["gdacs-archive","history","disaster-history","GDACS event list","none","2000s–","open","121",0,0],
+    ["cftc-cot-history","history","series-history","via cftc-cot backfill","none","1986–","US public domain","121",0,0],
+    ["imf-portwatch-history","history","chokepoint-history","via IMF PortWatch (088)","none","2019–","IMF terms","121",0,0],
+
+    ["gps-jamming","derived","derived · jamming","from adsb.lol NACp per 1° cell","none","stream-driven","—","057",0,0],
+    ["holding-patterns","derived","derived · aircraft","aircraft version history","none","stream-driven","—","057",0,0],
+    ["dark-vessels","derived","derived · AIS","AIS gaps","none","stream-driven","—","057",0,0],
+    ["outage-correlation","derived","derived · outages","outage sources","none","stream-driven","—","057",0,0],
+    ["derived-cable-risk","derived","derived · maritime","slow vessels near cables","none","stream-driven","—","099",0,0],
+    ["derived-dark-vessel-match","derived","derived · maritime","AIS gaps × SAR detections","none","stream-driven","—","099",0,0],
+    ["derived-lightning-holdover","derived","derived · fire","GLM flashes over dry cells","none","stream-driven","—","099",0,0],
+    ["derived-hf-blackout","derived","derived · RF","PSK SNR drops × SWPC X-ray","none","stream-driven","—","099",0,0],
+  ];
+
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;" }[c]));
+  const catalog = document.getElementById("catalog");
+  const order = Object.keys(GROUPS);
+
+  // ---- summary tiles ----
+  const total = S.length;
+  const domains = new Set(S.map(r => r[1])).size;
+  const built = S.filter(r => r[8]).length;
+  const streaming = S.filter(r => r[9]).length;
+  const noauth = S.filter(r => r[4] === "none").length;
+  const tiles = [
+    ["accent", total, "sources"],
+    ["", domains, "domains"],
+    ["good", built, "built"],
+    ["", streaming, "streaming"],
+    ["", noauth, "no key needed"],
+  ];
+  document.getElementById("tiles").innerHTML = tiles.map(
+    ([cls, n, lab]) => `<div class="tile ${cls}"><div class="num">${n}</div><span class="lab">${lab}</span></div>`
+  ).join("");
+
+  // ---- build grouped tables ----
+  for (const g of order) {
+    const rows = S.filter(r => r[1] === g);
+    if (!rows.length) continue;
+    const sec = document.createElement("section");
+    sec.className = "group";
+    sec.dataset.group = g;
+    const body = rows.map(r => {
+      const [id, grp, kind, host, auth, cad, lic, prompt, isBuilt, isStream] = r;
+      const status = isBuilt
+        ? `<span class="pill built">✓ built · ${esc(prompt)}</span>`
+        : `<span class="pill planned">prompt ${esc(prompt)}</span>`;
+      const stream = isStream ? `<span class="pill stream">stream</span>` : "";
+      const authCls = auth === "none" ? "auth none" : "auth";
+      const text = [id, kind, host, auth, lic].join(" ").toLowerCase();
+      return `<tr class="row" data-built="${isBuilt}" data-stream="${isStream}" data-text="${esc(text)}">
+        <td><span class="sid">${esc(id)}</span></td>
+        <td><span class="kind">${esc(kind)}</span></td>
+        <td><span class="host">${esc(host)}</span></td>
+        <td><span class="${authCls}">${esc(A[auth] || auth)}</span></td>
+        <td><span class="cad">${esc(cad)}</span></td>
+        <td><span class="lic">${esc(lic)}</span></td>
+        <td>${status}${stream}</td>
+      </tr>`;
+    }).join("");
+    sec.innerHTML = `
+      <h2>${esc(GROUPS[g].label)} <span class="gcount" data-count>${rows.length}</span></h2>
+      <p class="gdesc">${esc(GROUPS[g].desc)}</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr>
+            <th>Source id</th><th>Kind</th><th>Upstream</th><th>Auth</th><th>Cadence · budget</th><th>Licence</th><th>Status</th>
+          </tr></thead>
+          <tbody>${body}</tbody>
+        </table>
+      </div>`;
+    catalog.appendChild(sec);
+  }
+
+  // ---- filter chips ----
+  const chipWrap = document.getElementById("chips");
+  let activeGroup = "all";
+  const mkChip = (key, label, count) => {
+    const b = document.createElement("button");
+    b.className = "chip-btn";
+    b.type = "button";
+    b.dataset.group = key;
+    b.setAttribute("aria-pressed", key === "all" ? "true" : "false");
+    b.innerHTML = `${esc(label)}${count != null ? `<span class="c">${count}</span>` : ""}`;
+    b.addEventListener("click", () => { activeGroup = key; syncChips(); apply(); });
+    return b;
+  };
+  chipWrap.appendChild(mkChip("all", "All", total));
+  for (const g of order) {
+    const n = S.filter(r => r[1] === g).length;
+    if (n) chipWrap.appendChild(mkChip(g, GROUPS[g].label, n));
+  }
+  function syncChips() {
+    chipWrap.querySelectorAll(".chip-btn").forEach(b =>
+      b.setAttribute("aria-pressed", b.dataset.group === activeGroup ? "true" : "false"));
+  }
+
+  // ---- apply filters ----
+  const q = document.getElementById("q");
+  const builtOnly = document.getElementById("builtOnly");
+  const streamOnly = document.getElementById("streamOnly");
+  const emptyEl = document.getElementById("empty");
+
+  function apply() {
+    const term = q.value.trim().toLowerCase();
+    const bOnly = builtOnly.checked;
+    const sOnly = streamOnly.checked;
+    let anyVisible = false;
+
+    document.querySelectorAll(".group").forEach(sec => {
+      const grp = sec.dataset.group;
+      let shown = 0;
+      sec.querySelectorAll(".row").forEach(tr => {
+        const matchGroup = activeGroup === "all" || activeGroup === grp;
+        const matchText = !term || tr.dataset.text.includes(term);
+        const matchBuilt = !bOnly || tr.dataset.built === "1";
+        const matchStream = !sOnly || tr.dataset.stream === "1";
+        const vis = matchGroup && matchText && matchBuilt && matchStream;
+        tr.classList.toggle("hidden", !vis);
+        if (vis) shown++;
+      });
+      const cnt = sec.querySelector("[data-count]");
+      if (cnt) cnt.textContent = shown;
+      sec.classList.toggle("hidden", shown === 0);
+      if (shown) anyVisible = true;
+    });
+    emptyEl.classList.toggle("show", !anyVisible);
+  }
+
+  q.addEventListener("input", apply);
+  builtOnly.addEventListener("change", apply);
+  streamOnly.addEventListener("change", apply);
+</script>
+</body>
+</html>
