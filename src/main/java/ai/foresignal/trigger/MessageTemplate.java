@@ -6,6 +6,8 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.UnaryOperator;
@@ -90,9 +92,13 @@ public final class MessageTemplate {
         /** No extras: UTC, no extra variables, no escaping. */
         public static final Extras NONE = new Extras(ZoneOffset.UTC, null, Map.of(), null);
 
-        /** Copies the variables. */
+        /**
+         * Copies the variables. A null value is kept (it renders as an empty string, see
+         * {@code value}); {@code Map.copyOf} would reject it, which failed every notification whose
+         * alert had no summary (prompt 022).
+         */
         public Extras {
-            vars = vars == null ? Map.of() : Map.copyOf(vars);
+            vars = vars == null ? Map.of() : Collections.unmodifiableMap(new HashMap<>(vars));
         }
     }
 

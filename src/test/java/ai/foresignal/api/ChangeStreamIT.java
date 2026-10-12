@@ -148,8 +148,10 @@ class ChangeStreamIT {
 
         assertThat(bySource.collect("change", Duration.ofSeconds(2))).extracting(e -> data(e).get("externalId").asString())
                 .containsExactly("t");
+        // Within one batch the writer assigns seqs after a stable sort by externalId
+        // (Core-Data-Model §6.2 step 3), so "boxed" precedes "wanted" whatever the submission order.
         assertThat(byKind.collect("change", Duration.ofSeconds(1))).extracting(e -> data(e).get("externalId").asString())
-                .containsExactly("wanted", "boxed");
+                .containsExactly("boxed", "wanted");
         assertThat(byId.collect("change", Duration.ofSeconds(1))).extracting(e -> data(e).get("externalId").asString())
                 .containsExactly("wanted");
         assertThat(byBox.collect("change", Duration.ofSeconds(1))).extracting(e -> data(e).get("externalId").asString())
@@ -333,7 +335,11 @@ class ChangeStreamIT {
     void maxClients() {
         limits(new StreamLimits(1, 0, 0, 0, 0, 0, 0, 0));
         assertThat(open("").status()).isEqualTo(200);
-        assertThat(open("").status()).isEqualTo(503);
+        SseTestClient refused = open("");
+        assertThat(refused.status()).isEqualTo(503);
+        // Prompt 022 (015 Issue 4): an error to an Accept: text/event-stream connect is still a
+        // problem document, not an empty or event-stream body.
+        assertThat(refused.header("Content-Type")).startsWith("application/problem+json");
     }
 
     @Test
@@ -346,6 +352,7 @@ class ChangeStreamIT {
         SseTestClient refused = open("", auth);
         assertThat(refused.status()).isEqualTo(429);
         assertThat(refused.header("Retry-After")).isEqualTo("5");
+        assertThat(refused.header("Content-Type")).startsWith("application/problem+json");
 
         assertThat(open("").status()).isEqualTo(200);
         assertThat(open("").status()).isEqualTo(429);
@@ -354,7 +361,9 @@ class ChangeStreamIT {
     @Test
     @DisplayName("a malformed Last-Event-ID is 400 and an unknown source is 404")
     void badRequests() {
-        assertThat(open("", Map.of("Last-Event-ID", "c=1")).status()).isEqualTo(400);
+        SseTestClient malformed = open("", Map.of("Last-Event-ID", "c=1"));
+        assertThat(malformed.status()).isEqualTo(400);
+        assertThat(malformed.header("Content-Type")).startsWith("application/problem+json");
         assertThat(open("?bbox=1,2,3").status()).isEqualTo(400);
         assertThat(open("?near=1,2").status()).isEqualTo(400);
         assertThat(open("?live=maybe").status()).isEqualTo(400);

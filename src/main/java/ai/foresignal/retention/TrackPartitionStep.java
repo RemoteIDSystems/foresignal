@@ -49,10 +49,17 @@ public class TrackPartitionStep implements RetentionStep {
     @Override
     public void run(RetentionRun run) {
         Duration window = run.settings().trackWindow();
-        long cutoff = run.cutoff(window);
         partitions.refresh();
+        List<LeafInfo> leaves = sorted(partitions.leaves(HistoryTier.TRACK));
+        // The consumer clamp is applied only when some leaf could be dropped at all. Otherwise there
+        // is nothing to hold back, and clamping would still judge every consumer against the short
+        // track window and report it as lagging (and release it with an alarm) for data this step
+        // never touches (prompt 022).
+        long raw = run.rawCutoff(window);
+        boolean droppable = !leaves.isEmpty() && leaves.getFirst().toSeq() <= raw;
+        long cutoff = droppable ? run.clamp(raw, window) : raw;
         long next = 0L;
-        for (LeafInfo leaf : sorted(partitions.leaves(HistoryTier.TRACK))) {
+        for (LeafInfo leaf : leaves) {
             if (leaf.toSeq() > cutoff) {
                 break;
             }

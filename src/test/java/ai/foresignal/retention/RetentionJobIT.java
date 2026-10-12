@@ -25,6 +25,9 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -76,6 +79,53 @@ class RetentionJobIT extends RetentionItSupport {
         assertThat(live(TRACK, "a")).isFalse();
         assertThat(head(TRACK, "c")).isTrue();
         assertThat(due.versionsDeleted()).isZero();
+    }
+
+    @Test
+    @DisplayName("retention during a sustained ingest burst: no writer failure, nothing lost above the cutoff")
+    void retentionDuringIngestBurst() throws Exception {
+        // Prompt 022 scrutiny item: old versions at T0, a marker minute an hour later (the cutoff
+        // minute once now - 7 d passes it), then a burst of new versions while the job deletes.
+        List<NormalizedRecord> old = new ArrayList<>();
+        for (int i = 0; i < 500; i++) {
+            old.add(record("o" + i, STANDARD_KIND, T0, i));
+        }
+        ingestAt(STANDARD, T0, old.toArray(NormalizedRecord[]::new));
+        Instant marker = T0.plus(Duration.ofHours(1));
+        ingestAt(STANDARD, marker, record("marker", STANDARD_KIND, marker, 1));
+        Instant now = T0.plus(Duration.ofDays(8));
+        clock.setInstant(now);
+
+        AtomicBoolean burst = new AtomicBoolean(true);
+        AtomicLong persisted = new AtomicLong();
+        List<Throwable> failures = new CopyOnWriteArrayList<>();
+        Thread producer = Thread.ofVirtual().start(() -> {
+            int round = 0;
+            while (burst.get() || round < 20) {
+                List<NormalizedRecord> batch = new ArrayList<>();
+                for (int i = 0; i < 50; i++) {
+                    batch.add(record("p" + i, STANDARD_KIND, now.plusMillis(round), round));
+                }
+                try {
+                    persisted.addAndGet(records.ingestAt(STANDARD, now, batch.toArray(NormalizedRecord[]::new)).persisted());
+                } catch (Throwable t) {
+                    failures.add(t);
+                }
+                round++;
+            }
+        });
+        Thread.sleep(50);
+        RetentionRunResult result = runAt(now);
+        burst.set(false);
+        producer.join(60_000);
+
+        assertThat(failures).as("writer failures during the run").isEmpty();
+        assertThat(result.skippedSources()).isEmpty();
+        assertThat(result.perSource().get(STANDARD).versionsDeleted()).isEqualTo(500);
+        assertThat(versions(STANDARD, "marker")).isEqualTo(1);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM record_version WHERE source_id = ? AND external_id LIKE 'p%'",
+                Long.class, STANDARD)).as("every burst version survives").isEqualTo(persisted.get());
+        assertThat(persisted.get()).isGreaterThanOrEqualTo(20L * 50);
     }
 
     @Test

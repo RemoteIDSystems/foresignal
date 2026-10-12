@@ -20,10 +20,10 @@ import org.springframework.context.event.EventListener;
  * bring the ingest sources, the {@code MutableClock} and {@code TestRecords}), plus
  *
  * <ul>
- *   <li>{@value #SAMPLED}: SAMPLED with no distance test, no thresholds, a 1 h keyframe and
+ *   <li>{@value #SAMPLED}: SAMPLED with no distance test, no thresholds, a 1 h keyframe, {@code edgeMinInterval} 0 and
  *       significant {@code name} only, so a moving entity persists nothing between its first version
  *       and a keyframe unless the persist gate forces a {@code TRIGGER_EDGE};
- *   <li>{@value #EDGE}: the same with {@code edgeMinInterval} 5 min, for flapping;
+ *   <li>{@value #EDGE}: the same with {@code edgeMinInterval} and {@code minInterval} 5 min, for flapping;
  *   <li>{@value #VOLATILE}: ALL with volatile {@code fetchedAt}.
  * </ul>
  *
@@ -59,7 +59,11 @@ public class TriggerTestSources {
     public TestPushAdapter testTriggerSampledAdapter() {
         return new TestPushAdapter(base(SAMPLED, SAMPLED_KIND)
                 .significantFields("name")
-                .defaultIngestPolicy(new IngestPolicy.Sampled(Duration.ofSeconds(60), Duration.ofHours(1), null, false, null))
+                // edgeMinInterval is explicitly 0: left null it defaults to minInterval / 2 = 30 s
+                // (Core-Data-Model §5.1), which held every edge of the 10 s steps these tests take
+                // (prompt 022). EDGE below is the source that exercises a non-zero interval.
+                .defaultIngestPolicy(new IngestPolicy.Sampled(
+                        Duration.ofSeconds(60), Duration.ofHours(1), null, false, Duration.ZERO))
                 .build());
     }
 
@@ -68,8 +72,10 @@ public class TriggerTestSources {
     public TestPushAdapter testTriggerEdgeAdapter() {
         return new TestPushAdapter(base(EDGE, EDGE_KIND)
                 .significantFields("name")
+                // Core-Data-Model §5.1 requires edgeMinInterval <= minInterval, so minInterval is the
+                // edge interval itself (it was 60 s, which the registry rejects at start).
                 .defaultIngestPolicy(new IngestPolicy.Sampled(
-                        Duration.ofSeconds(60), Duration.ofHours(1), null, false, EDGE_MIN_INTERVAL))
+                        EDGE_MIN_INTERVAL, Duration.ofHours(1), null, false, EDGE_MIN_INTERVAL))
                 .build());
     }
 

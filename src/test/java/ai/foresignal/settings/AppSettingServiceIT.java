@@ -105,7 +105,8 @@ class AppSettingServiceIT {
                 SettingKeys.RETENTION,
                 new RetentionSettings(Duration.ofDays(1), null, null, Map.of(), null));
 
-        assertThat(repository.count()).isEqualTo(1);
+        // One row for the key (other keys, such as the trigger engine's cursor, may exist).
+        assertThat(repository.findAll()).filteredOn(e -> e.getKey().equals(SettingKeys.RETENTION)).hasSize(1);
         assertThat(service.get(SettingKeys.RETENTION, RetentionSettings.class))
                 .get()
                 .extracting(RetentionSettings::defaultRetention)

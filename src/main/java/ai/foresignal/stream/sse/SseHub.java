@@ -77,7 +77,8 @@ public class SseHub {
     private final Map<String, String> cursorKeys;
     private final AppSettingService settings;
     private final ChangeBus changeBus;
-    private final Clock clock;
+    /** Drives the stream schedule (live drains, heartbeats): monotonic, never the wall clock. */
+    private final Clock clock = new MonotonicClock();
     private final JsonMapper json;
     private final SecureRandom random = new SecureRandom();
     private final Map<String, SseClient> clients = new ConcurrentHashMap<>();
@@ -91,7 +92,7 @@ public class SseHub {
      * @throws IllegalStateException when two topics share a name or a cursor key
      */
     public SseHub(
-            List<EventTopic<?>> topics, AppSettingService settings, ChangeBus changeBus, Clock clock, JsonMapper json) {
+            List<EventTopic<?>> topics, AppSettingService settings, ChangeBus changeBus, JsonMapper json) {
         List<EventTopic<?>> ordered = new ArrayList<>(topics);
         ordered.sort(Comparator.comparingInt((EventTopic<?> t) -> t.cursorOrder()).thenComparing(EventTopic::name));
         Map<String, EventTopic<?>> byName = new LinkedHashMap<>();
@@ -109,7 +110,6 @@ public class SseHub {
         this.cursorKeys = Collections.unmodifiableMap(keys);
         this.settings = settings;
         this.changeBus = changeBus;
-        this.clock = clock;
         this.json = json;
     }
 

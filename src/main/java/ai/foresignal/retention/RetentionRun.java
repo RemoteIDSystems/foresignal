@@ -91,8 +91,12 @@ public final class RetentionRun {
      * recorded as lagging.
      */
     public long cutoff(Duration window) {
-        long raw = seqClock.cutoffSeq(jdbc, now.minus(window));
-        return clamp(raw, window);
+        return clamp(rawCutoff(window), window);
+    }
+
+    /** {@code cutoffSeq(now − window)} before the consumer clamp. */
+    public long rawCutoff(Duration window) {
+        return seqClock.cutoffSeq(jdbc, now.minus(window));
     }
 
     /**

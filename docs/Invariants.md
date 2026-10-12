@@ -124,5 +124,5 @@ Format: `| id | invariant | owner | enforced by | tests |`
 
 | Id | Invariant | Owner | Enforced by | Tests |
 |---|---|---|---|---|
-| PRC-1 | Every API operation is in `docs/OpenAPI.json` with `x-foresignal-scope`, in AccessPolicy and in the Postman collection; `pending-operations.txt` lists only unbuilt operations and is empty at 142 | 020 | contract tests | `OpenApiContractIT`, `PostmanCoverageTest` |
+| PRC-1 | Every API operation is in `docs/OpenAPI.json` with `x-foresignal-scope`, in AccessPolicy and in the Postman collection; `pending-operations.txt` lists only unbuilt operations and is empty at 142 | 020 | contract tests | `OpenApiContractIT`, `PostmanCollectionContractTest` |
 | PRC-2 | No GPL/AGPL code or dependency in the application | 001 | dependency and reuse checks | `LicenseAllowlistTest` |

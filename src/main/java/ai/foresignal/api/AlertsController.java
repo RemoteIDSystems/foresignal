@@ -213,7 +213,7 @@ public class AlertsController {
         Long resume = rev(lastEventId);
         Map<String, Long> resumes = resume == null ? Map.of() : Map.of(AlertsTopic.NAME, resume);
         StreamFilter streamFilter = new StreamFilter(List.of(AlertsTopic.NAME), Map.of(AlertsTopic.NAME, filter), 1);
-        SseEmitter emitter = new SseEmitter(0L);
+        SseEmitter emitter = EmitterSseSender.newCommittingEmitter();
         SseClient client = hub.open(new SseHub.OpenRequest(principal, SseClient.CursorMode.SINGLE, streamFilter, resumes,
                 false), new EmitterSseSender(emitter));
         emitter.onCompletion(client::close);

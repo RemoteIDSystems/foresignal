@@ -19,7 +19,6 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -218,19 +217,9 @@ class CorsFilterIT {
     @RestController
     static class CorsStubEndpoints {
 
-        @GetMapping("/v1/records")
-        String records() {
-            return "records";
-        }
-
         @PostMapping("/v1/records")
         String createRecord() {
             return "created";
-        }
-
-        @GetMapping("/v1/settings/retention")
-        String retention() {
-            return "retention";
         }
     }
 }

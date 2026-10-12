@@ -30,19 +30,30 @@ class UpstreamClientIsTheOnlyHttpClientTest {
     private static final Path MAIN = Path.of("src", "main", "java");
     private static final Path COLLECT = MAIN.resolve(Path.of("ai", "foresignal", "collect"));
 
+    /**
+     * Outbound clients that are not upstream requests, each sanctioned by name. Invariant SRC-1
+     * covers <em>upstream</em> requests (source fetches). Notification deliveries are outbound
+     * traffic to operator-configured receivers: prompt 018 specifies their own dedicated
+     * {@code HttpClient} (no redirects, 5 s connect, 15 s request), and Architecture §17 says
+     * outbound traffic is not counted against source budgets. Prompt 035 adds the outbound URL policy
+     * to this sender. Prompt 022 narrowed the guard from "nothing outside collect" to this list.
+     */
+    private static final List<Path> SANCTIONED_OUTBOUND =
+            List.of(MAIN.resolve(Path.of("ai", "foresignal", "notify", "ChannelSender.java")));
+
     /** The two ways to get an {@code HttpClient}. */
     private static final List<String> CONSTRUCTIONS =
             List.of("HttpClient.newHttpClient", "HttpClient.newBuilder");
 
     @Test
-    @DisplayName("only the collect package constructs an HttpClient")
+    @DisplayName("only the collect package (and the sanctioned notification sender) constructs an HttpClient")
     void onlyCollectBuildsAnHttpClient() throws IOException {
         Map<String, List<String>> offenders = new LinkedHashMap<>();
 
         for (Path file : javaSources()) {
             String source = Files.readString(file);
             List<String> found = CONSTRUCTIONS.stream().filter(source::contains).toList();
-            if (!found.isEmpty() && !file.startsWith(COLLECT)) {
+            if (!found.isEmpty() && !file.startsWith(COLLECT) && !SANCTIONED_OUTBOUND.contains(file)) {
                 offenders.put(file.toString(), found);
             }
         }
@@ -65,6 +76,9 @@ class UpstreamClientIsTheOnlyHttpClientTest {
         String upstreamClient = Files.readString(COLLECT.resolve("UpstreamClient.java"));
 
         assertThat(upstreamClient).contains("HttpClient.newBuilder");
+        for (Path sanctioned : SANCTIONED_OUTBOUND) {
+            assertThat(sanctioned).as("a sanctioned outbound sender that no longer exists must leave the list").exists();
+        }
     }
 
     private static List<Path> javaSources() throws IOException {

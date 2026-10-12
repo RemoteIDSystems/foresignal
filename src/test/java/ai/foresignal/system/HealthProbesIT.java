@@ -1,5 +1,6 @@
 package ai.foresignal.system;
 
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -17,6 +18,7 @@ import org.springframework.boot.health.contributor.Health;
 import org.springframework.boot.health.contributor.HealthIndicator;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -31,6 +33,10 @@ import org.springframework.test.web.servlet.MockMvc;
 @IntegrationTest
 @AutoConfigureMockMvc
 @Import(RetentionTestSources.class)
+// Spring Boot 4.1 declares dbHealthContributor as a HealthContributor, so a HealthIndicator mock of
+// that name is a second definition rather than a type-compatible replacement, and Spring refuses it
+// unless overriding is allowed (prompt 022). This context is already this class's own.
+@TestPropertySource(properties = "spring.main.allow-bean-definition-overriding=true")
 class HealthProbesIT {
 
     @Autowired MockMvc mvc;
@@ -48,9 +54,19 @@ class HealthProbesIT {
     @BeforeEach
     void up() {
         TestPartitions.restore(partitions);
-        when(db.health()).thenReturn(Health.up().build());
-        when(writer.health()).thenReturn(Health.up().build());
+        stub(db, Health.up().build());
+        stub(writer, Health.up().build());
         catchingUp(false);
+    }
+
+    /**
+     * Stubs both {@code health()} and {@code health(boolean)}: Spring Boot 4.1's registry calls the
+     * default {@code health(boolean)}, which a Mockito mock does not route to {@code health()}, so
+     * stubbing only {@code health()} left the probes reading null (prompt 022).
+     */
+    static void stub(HealthIndicator indicator, Health health) {
+        when(indicator.health()).thenReturn(health);
+        when(indicator.health(anyBoolean())).thenReturn(health);
     }
 
     void catchingUp(boolean value) {
@@ -70,7 +86,7 @@ class HealthProbesIT {
     @Test
     @DisplayName("a database outage leaves liveness UP and takes readiness DOWN")
     void databaseDown() throws Exception {
-        when(db.health()).thenReturn(Health.down().build());
+        stub(db, Health.down().build());
 
         mvc.perform(get("/actuator/health/liveness")).andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("UP"));
@@ -81,7 +97,7 @@ class HealthProbesIT {
     @Test
     @DisplayName("a writer without state takes readiness DOWN")
     void writerDown() throws Exception {
-        when(writer.health()).thenReturn(Health.down().build());
+        stub(writer, Health.down().build());
 
         mvc.perform(get("/actuator/health/readiness")).andExpect(status().isServiceUnavailable());
         mvc.perform(get("/actuator/health/liveness")).andExpect(status().isOk());

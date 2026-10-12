@@ -115,7 +115,7 @@ VARIANTS = {
                                         "tls": "starttls", "from": "foresignal@example.org", "to": ["REPLACE@winlink.org"], "plainTextOnly": True},
                                         "secrets": {"username": "REPLACE", "password": "REPLACE"}, "titleTemplate": "{{severity}} {{name}}"}),
     ("Home Assistant (notify, critical alerts)", {"name": "HA phone", "type": "homeassistant",
-                                                  "config": {"baseUrl": "http://homeassistant.local:8123", "mode": "notify", "service": "mobile_app_REPLACE"},
+                                                  "config": {"baseUrl": "http://homeassistant.local:8123", "mode": "notify", "service": "mobile_app_replace_me"},
                                                   "secrets": {"accessToken": "REPLACE"}, "events": ["alert"]}),
     ("Apprise", {"name": "Apprise", "type": "apprise", "config": {"serverUrl": "http://apprise.local:8000", "configKey": "foresignal"},
                  "events": ["alert", "system"]}),

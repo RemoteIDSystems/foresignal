@@ -1,6 +1,5 @@
 package ai.foresignal.testsupport.stream;
 
-import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -10,8 +9,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Stream;
 
 /**
@@ -29,6 +31,9 @@ public final class SseTestClient implements AutoCloseable {
      * @param data the data (lines joined with {@code \n})
      */
     public record Event(String id, String event, String data) {}
+
+    /** How long a connect waits for the response headers. */
+    public static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(10);
 
     private static final HttpClient HTTP = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
 
@@ -57,10 +62,17 @@ public final class SseTestClient implements AutoCloseable {
                 .header("Accept", "text/event-stream")
                 .GET();
         headers.forEach(request::header);
+        // Bounded: a server that never answers fails this connect instead of hanging the whole run
+        // (prompt 022, run 1 hung for 10 min in HttpClient.send).
+        CompletableFuture<HttpResponse<Stream<String>>> pending =
+                HTTP.sendAsync(request.build(), HttpResponse.BodyHandlers.ofLines());
         try {
-            return new SseTestClient(HTTP.send(request.build(), HttpResponse.BodyHandlers.ofLines()));
-        } catch (IOException e) {
-            throw new IllegalStateException(e);
+            return new SseTestClient(pending.get(CONNECT_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS));
+        } catch (ExecutionException e) {
+            throw new IllegalStateException(e.getCause());
+        } catch (TimeoutException e) {
+            pending.cancel(true);
+            throw new IllegalStateException("No SSE response headers within " + CONNECT_TIMEOUT + " for " + pathAndQuery, e);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new IllegalStateException(e);

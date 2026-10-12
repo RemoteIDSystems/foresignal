@@ -329,7 +329,7 @@ class EventSchemaConformanceTest {
                 .thenReturn(StreamLimits.defaults());
         ChangeBus bus = mock(ChangeBus.class);
         when(bus.lastPublishedSeq()).thenReturn(99L);
-        SseHub hub = new SseHub(List.of(topic), settings, bus, java.time.Clock.systemUTC(), SseFixtures.JSON);
+        SseHub hub = new SseHub(List.of(topic), settings, bus, SseFixtures.JSON);
         FakeSender sender = new FakeSender();
         SseClient client = hub.open(new SseHub.OpenRequest(StreamPrincipal.anonymous("127.0.0.1"),
                 SseClient.CursorMode.COMPOSITE, StreamFilter.changesOnly(ChangeFilter.all(Set.of())), Map.of(), true),

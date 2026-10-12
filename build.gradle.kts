@@ -55,13 +55,37 @@ springBoot {
 }
 
 tasks.test {
-    useJUnitPlatform()
+    // The performance smoke (prompt 022) runs for about 13 minutes; it has its own task, perfTest.
+    useJUnitPlatform {
+        excludeTags("perf")
+    }
     // LicenseAllowlistTest (invariant PRC-2) inspects what ships: the runtime classpath, not the
     // test classpath, which also carries WireMock and Testcontainers.
+    // ForesignalApplication.main sets this before anything can initialize the JDK HTTP client
+    // (UpstreamClient.allowHostHeaderForPinnedRequests). In the test JVM a test's own HttpClient can
+    // initialize it first, so the property is set at JVM start, as production effectively does.
+    systemProperty("jdk.httpclient.allowRestrictedHeaders", "host")
     val runtimeClasspath = configurations.runtimeClasspath
     jvmArgumentProviders.add(CommandLineArgumentProvider {
         listOf("-Dforesignal.test.runtime-classpath=" + runtimeClasspath.get().asPath)
     })
+}
+
+// The performance smoke (prompt 022, a gate): @Tag("perf") tests only, against the Testcontainers
+// database. Not wired to check; run it explicitly with ./gradlew perfTest.
+tasks.register<Test>("perfTest") {
+    group = "verification"
+    description = "Runs the @Tag(\"perf\") performance smoke (prompt 022)."
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
+    useJUnitPlatform {
+        includeTags("perf")
+    }
+    maxHeapSize = "2g"
+    testLogging {
+        showStandardStreams = true
+    }
+    outputs.upToDateWhen { false }
 }
 
 // The authored OpenAPI document is the contract. It is copied byte for byte onto

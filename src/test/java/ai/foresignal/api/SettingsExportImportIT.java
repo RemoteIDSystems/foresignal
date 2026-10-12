@@ -100,7 +100,7 @@ class SettingsExportImportIT extends RetentionItSupport {
                 .andExpect(jsonPath("$.retention.kinds").isMap())
                 .andExpect(jsonPath("$.cors.readOrigins").isArray())
                 .andExpect(jsonPath("$.notifications.pauseBypassSeverity").value("critical"))
-                .andExpect(jsonPath("$.watchdog.interval").value("60s"))
+                .andExpect(jsonPath("$.watchdog.interval").value("1m"))
                 .andExpect(jsonPath("$.triggers[0].id").isString())
                 .andExpect(jsonPath("$.triggers[0].name").value("Big"))
                 .andExpect(jsonPath("$.channels[0].id").isString())

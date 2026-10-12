@@ -76,7 +76,9 @@ class GeofenceHysteresisIT {
     @DisplayName("jitter along the boundary fires nothing; a real crossing fires one enter and one exit")
     void hysteresis() {
         UUID enter = fixture.rule("{'name':'In','sources':['" + SAMPLED + "'],'geofence':" + FENCE
-                + ",'mode':'enter','hysteresisMeters':500}");
+                + ",'mode':'enter','hysteresisMeters':500,'autoResolve':true}");
+        // autoResolve is off unless set (OpenAPI TriggerRuleInput.autoResolve: "false/null = off"); the
+        // inverse-edge resolution asserted below needs it (prompt 022 added it).
         UUID exit = fixture.rule("{'name':'Out','sources':['" + SAMPLED + "'],'geofence':" + FENCE
                 + ",'mode':'exit','hysteresisMeters':500}");
         assertThat(repository.findById(enter).orElseThrow().getGeofenceInner()).isNotNull();

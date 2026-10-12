@@ -10195,7 +10195,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"HA phone\",\n  \"type\": \"homeassistant\",\n  \"config\": {\n    \"baseUrl\": \"http://homeassistant.local:8123\",\n    \"mode\": \"notify\",\n    \"service\": \"mobile_app_REPLACE\"\n  },\n  \"secrets\": {\n    \"accessToken\": \"REPLACE\"\n  },\n  \"events\": [\n    \"alert\"\n  ]\n}",
+              "raw": "{\n  \"name\": \"HA phone\",\n  \"type\": \"homeassistant\",\n  \"config\": {\n    \"baseUrl\": \"http://homeassistant.local:8123\",\n    \"mode\": \"notify\",\n    \"service\": \"mobile_app_replace_me\"\n  },\n  \"secrets\": {\n    \"accessToken\": \"REPLACE\"\n  },\n  \"events\": [\n    \"alert\"\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"

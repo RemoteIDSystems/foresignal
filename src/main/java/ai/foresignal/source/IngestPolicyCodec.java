@@ -97,6 +97,14 @@ public class IngestPolicyCodec {
         if (keyframe != null && keyframe.isString() && KEYFRAME_NONE.equalsIgnoreCase(keyframe.stringValue().trim())) {
             copy.remove(KEYFRAME);
         }
+        // SAMPLED.thresholds is optional with default false (OpenAPI IngestPolicySampled). The record
+        // component is a primitive, and Jackson 3 fails on a missing primitive creator property
+        // (FAIL_ON_NULL_FOR_PRIMITIVES is on by default), so the default is written here (prompt 022).
+        JsonNode mode = copy.get("mode");
+        if (mode != null && mode.isString() && "SAMPLED".equalsIgnoreCase(mode.stringValue().trim())
+                && (copy.get("thresholds") == null || copy.get("thresholds").isNull())) {
+            copy.put("thresholds", false);
+        }
         try {
             return jsonMapper.treeToValue(copy, IngestPolicy.class);
         } catch (JacksonException e) {

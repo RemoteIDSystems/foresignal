@@ -2,6 +2,7 @@ package ai.foresignal.test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import ai.foresignal.settings.SettingKeys;
 import ai.foresignal.ingest.IngestStateReset;
 import ai.foresignal.source.spi.HistoryTier;
 import ai.foresignal.store.AppSettingEntity;
@@ -45,14 +46,19 @@ class DatabaseCleanerIT {
         systemSecrets.saveAndFlush(new SystemSecretEntity("leftover", new byte[] {1}));
         jdbc.queryForObject("select nextval('record_seq')", Long.class);
 
-        assertThat(appSettings.count()).isEqualTo(1);
+        assertThat(appSettings.existsById("leftover")).isTrue();
     }
 
     @Test
     @Order(2)
     @DisplayName("the next test sees none of them")
     void startsFromEmptyTables() {
-        assertThat(appSettings.count()).isZero();
+        // The cleaner's IngestStateReset beans run after the truncation, and the trigger engine
+        // re-seeds its durable cursor (app_setting 'trigger.cursor', Core-Data-Model §13 consumer
+        // clamp) when it reloads. So the leftover rows are gone, but app_setting is not empty
+        // (prompt 022: these assertions counted every row before 017 added the cursor).
+        assertThat(appSettings.findAll()).extracting(AppSettingEntity::getKey).doesNotContain("leftover")
+                .allMatch(key -> key.equals(SettingKeys.TRIGGER_CURSOR));
         assertThat(systemSecrets.count()).isZero();
     }
 
@@ -130,7 +136,9 @@ class DatabaseCleanerIT {
         cleaner.clean();
         cleaner.clean();
 
-        assertThat(appSettings.count()).isZero();
+        // Only the trigger engine's re-seeded cursor remains (see startsFromEmptyTables).
+        assertThat(appSettings.findAll()).extracting(AppSettingEntity::getKey)
+                .allMatch(key -> key.equals(SettingKeys.TRIGGER_CURSOR));
     }
 
     @Test
@@ -150,8 +158,11 @@ class DatabaseCleanerIT {
                         "seq_clock",
                         "trigger_rule",
                         "alert",
-                        "webhook",
-                        "webhook_delivery",
+                        // 018 replaced webhook/webhook_delivery with the channel tables (prompt 022).
+                        "notification_channel",
+                        "notification_delivery",
+                        "notification",
+                        "retention_state",
                         "app_setting",
                         "system_secret");
     }

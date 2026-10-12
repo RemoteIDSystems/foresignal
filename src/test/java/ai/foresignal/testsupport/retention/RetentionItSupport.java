@@ -3,6 +3,7 @@ package ai.foresignal.testsupport.retention;
 import static org.awaitility.Awaitility.await;
 
 import ai.foresignal.ingest.IngestOutcome;
+import ai.foresignal.ingest.IngestWriter;
 import ai.foresignal.retention.RetentionJob;
 import ai.foresignal.retention.RetentionRunResult;
 import ai.foresignal.retention.RetentionStateStore;
@@ -36,6 +37,7 @@ public abstract class RetentionItSupport {
     @Autowired protected RetentionJob job;
     @Autowired protected RetentionStateStore state;
     @Autowired protected TriggerEngine engine;
+    @Autowired protected IngestWriter writer;
     @Autowired protected ChangeBus changeBus;
     @Autowired protected JdbcTemplate jdbc;
     @Autowired protected AppSettingService settings;
@@ -84,6 +86,9 @@ public abstract class RetentionItSupport {
         jdbc.queryForObject("SELECT setval('record_seq', ?)", Long.class, seq);
         settings.put(SettingKeys.TRIGGER_CURSOR, seq);
         engine.resetState();
+        // The writer keeps lastAllocatedSeq in memory and stamps it into seq_clock.first_seq; reload
+        // it, or the next minute would claim a first_seq below the jump (prompt 022).
+        writer.resetState();
     }
 
     /** Runs retention at {@code now}, after the trigger engine has caught up. */

@@ -25,7 +25,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -124,14 +123,15 @@ class AdminTokenFilterIT {
     void adminGetWithTokenSucceeds() throws Exception {
         mvc.perform(get("/v1/settings/retention").header(HttpHeaders.AUTHORIZATION, bearer()))
                 .andExpect(status().isOk())
-                .andExpect(content().string("retention"));
+                .andExpect(jsonPath("$.default").isString());
     }
 
     @Test
     @DisplayName("agent-scope writes accept the bootstrap admin token")
     void agentWriteAcceptsAdminToken() throws Exception {
+        // The real createTrigger (017) answers an empty body with 400: the token passed the filter.
         mvc.perform(post("/v1/triggers").header(HttpHeaders.AUTHORIZATION, bearer()))
-                .andExpect(status().isOk());
+                .andExpect(status().isBadRequest());
     }
 
     @Test
@@ -151,7 +151,7 @@ class AdminTokenFilterIT {
     @Test
     @DisplayName("data GETs are open while openReads is on")
     void dataGetsAreOpenByDefault() throws Exception {
-        mvc.perform(get("/v1/records")).andExpect(status().isOk()).andExpect(content().string("records"));
+        mvc.perform(get("/v1/records")).andExpect(status().isOk()).andExpect(jsonPath("$.items").isArray());
         mvc.perform(get("/v1/kinds")).andExpect(status().isOk());
         mvc.perform(get("/v1/sources")).andExpect(status().isOk());
     }
@@ -247,35 +247,14 @@ class AdminTokenFilterIT {
         mvc.perform(delete("/v1/records/usgs-earthquakes/abc")).andExpect(status().isUnauthorized());
     }
 
-    /** Stub endpoints on the real policy paths. */
+    /**
+     * Stub endpoints on policy paths no real controller serves yet. Prompt 022 removed the stubs for
+     * {@code /v1/records}, {@code /v1/kinds}, {@code /v1/settings/retention}, {@code POST /v1/triggers}
+     * and {@code /v1/system}: their real controllers (014, 017, 019) made the mappings ambiguous.
+     */
     @TestConfiguration
     @RestController
     static class StubEndpoints {
-
-        @GetMapping("/v1/records")
-        String records() {
-            return "records";
-        }
-
-        @GetMapping("/v1/kinds")
-        String kinds() {
-            return "kinds";
-        }
-
-        @GetMapping("/v1/settings/retention")
-        String retention() {
-            return "retention";
-        }
-
-        @PostMapping("/v1/triggers")
-        String createTrigger() {
-            return "created";
-        }
-
-        @GetMapping("/v1/system")
-        String system() {
-            return "system";
-        }
 
         @PostMapping("/v1/ingest/{sourceId}")
         String ingest() {

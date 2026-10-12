@@ -230,7 +230,8 @@ class MilestoneE2EIT extends WireMockSupport {
         Response settingsPut = apiPut("/v1/sources/" + ID,
                 "{\"interval\":\"1h\",\"budget\":{\"perMinute\":600,\"perDay\":100000}}");
         assertThat(settingsPut.status()).isEqualTo(200);
-        assertThat(settingsPut.body().get("enabled").asBoolean()).isFalse();
+        // updateSource returns a SourceDetail, where enabled lives under settings (OpenAPI SourceDetail).
+        assertThat(settingsPut.body().get("settings").get("enabled").asBoolean()).isFalse();
 
         // ---- 3. The rule.
         Response rule = apiPost("/v1/triggers", """
@@ -257,7 +258,7 @@ class MilestoneE2EIT extends WireMockSupport {
         // ---- 6. Enable: the scheduler fetches once and every quake is a FIRST change.
         Response enabled = apiPut("/v1/sources/" + ID, "{\"enabled\":true}");
         assertThat(enabled.status()).isEqualTo(200);
-        assertThat(enabled.body().get("enabled").asBoolean()).isTrue();
+        assertThat(enabled.body().get("settings").get("enabled").asBoolean()).isTrue();
 
         List<JsonNode> firstChanges = changes.awaitData("change", FEATURES, 0, SSE_WAIT);
         assertThat(firstChanges).hasSize(FEATURES)

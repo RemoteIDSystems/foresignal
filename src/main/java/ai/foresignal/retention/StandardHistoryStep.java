@@ -42,6 +42,12 @@ public class StandardHistoryStep implements RetentionStep {
                             WHERE history_tier = 0 AND source_id = :source%s AND seq < :cutoff LIMIT :limit)
             """;
 
+    /** Whether a scope has a version below a raw cutoff (the clamp is needed only then). */
+    static final String ANY_BELOW = """
+            SELECT EXISTS (SELECT 1 FROM record_version
+                            WHERE history_tier = 0 AND source_id = :source%s AND seq < :raw)
+            """;
+
     /** Distinct STANDARD source ids by a loose index scan on {@code (source_id, external_id, seq)}. */
     static final String DISTINCT_SOURCES = """
             WITH RECURSIVE s(id) AS (
@@ -104,20 +110,22 @@ public class StandardHistoryStep implements RetentionStep {
         List<RetentionRun.PurgeCandidate> candidates = new java.util.ArrayList<>();
         try {
             if (distinct.size() == 1) {
-                long cutoff = run.cutoff(sourceLevel);
+                long cutoff = cutoff(run, sourceId, "", new MapSqlParameterSource(), sourceLevel);
                 delete(run, sourceId, "", new MapSqlParameterSource(), cutoff);
                 long floor = Math.max(cutoff, state.storedFloor(sourceId, null));
                 floors.put(RetentionStateEntity.ALL_KINDS, floor);
                 candidates.add(new RetentionRun.PurgeCandidate(sourceId, null, floor, sourceLevel));
             } else {
                 for (Map.Entry<String, Duration> kind : kinds.entrySet()) {
-                    long cutoff = run.cutoff(kind.getValue());
+                    long cutoff = cutoff(run, sourceId, " AND kind = :kind",
+                            new MapSqlParameterSource("kind", kind.getKey()), kind.getValue());
                     delete(run, sourceId, " AND kind = :kind", new MapSqlParameterSource("kind", kind.getKey()), cutoff);
                     long floor = Math.max(cutoff, state.storedFloor(sourceId, kind.getKey()));
                     floors.put(kind.getKey(), floor);
                     candidates.add(new RetentionRun.PurgeCandidate(sourceId, kind.getKey(), floor, kind.getValue()));
                 }
-                long cutoff = run.cutoff(sourceLevel);
+                long cutoff = cutoff(run, sourceId, " AND kind NOT IN (:kinds)",
+                        new MapSqlParameterSource("kinds", List.copyOf(kinds.keySet())), sourceLevel);
                 delete(run, sourceId, " AND kind NOT IN (:kinds)",
                         new MapSqlParameterSource("kinds", List.copyOf(kinds.keySet())), cutoff);
                 floors.put(RetentionStateEntity.ALL_KINDS, cutoff);
@@ -133,6 +141,25 @@ public class StandardHistoryStep implements RetentionStep {
         }
         floors.forEach((kind, floor) -> run.floor(sourceId, kind, floor));
         candidates.forEach(run::candidate);
+    }
+
+    /**
+     * The cutoff of one scope (a source, or some of its kinds): {@code cutoffSeq(now − window)},
+     * clamped by the consumers only when the scope has a version below it. With nothing to delete
+     * there is nothing to hold back, and clamping would still judge every consumer against this
+     * scope's window and release it as lagging, with an alarm, over data it never covered (prompt
+     * 022). The floor is the raw cutoff then, which is true: no version of the scope is below it.
+     */
+    private long cutoff(RetentionRun run, String sourceId, String kindClause, MapSqlParameterSource params,
+            Duration window) {
+        long raw = run.rawCutoff(window);
+        if (raw <= 0) {
+            return raw;
+        }
+        MapSqlParameterSource query = new MapSqlParameterSource(params.getValues())
+                .addValue("source", sourceId).addValue("raw", raw);
+        Boolean any = run.jdbc().queryForObject(ANY_BELOW.formatted(kindClause), query, Boolean.class);
+        return Boolean.TRUE.equals(any) ? run.clamp(raw, window) : raw;
     }
 
     private void delete(RetentionRun run, String sourceId, String kindClause, MapSqlParameterSource params,

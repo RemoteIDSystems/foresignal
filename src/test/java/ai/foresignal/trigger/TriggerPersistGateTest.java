@@ -33,6 +33,9 @@ class TriggerPersistGateTest {
     static final SourceDescriptor SHIPS = SourceDescriptor.builder("ships").name("Ships").kind("vessel")
             .mode(Mode.PUSH).defaultBudget(Budget.of(60, 10_000)).build();
 
+    static final SourceDescriptor BUOYS = SourceDescriptor.builder("buoys").name("Buoys").kind("buoy")
+            .mode(Mode.PUSH).defaultBudget(Budget.of(60, 10_000)).build();
+
     static Stream<TruthTable.Row> rows() {
         return TruthTable.rows().stream();
     }
@@ -166,7 +169,13 @@ class TriggerPersistGateTest {
                     rule().kinds("vessel").fence(0, 0, 1, 1).when("speed", ">", 1).build());
             assertThat(gate.spec("quakes")).isEqualTo(new GateSpec(java.util.Set.of("mag"), false));
             assertThat(gate.spec("ships")).isEqualTo(new GateSpec(java.util.Set.of("speed"), true));
-            assertThat(gate.spec("other")).isEqualTo(GateSpec.NONE);
+            // A source that is registered but emits neither kind gets nothing. An unregistered one
+            // ("other") keeps the kind-filtered rule: with no descriptor the gate cannot rule the kind
+            // out, and it errs towards loading (TriggerPersistGate.computeSpec, Core-Data-Model §11
+            // "conservative"). Prompt 022 split the old single assertion, which expected NONE for an
+            // unregistered source.
+            assertThat(gate.spec("buoys")).isEqualTo(GateSpec.NONE);
+            assertThat(gate.spec("other")).isEqualTo(new GateSpec(java.util.Set.of("speed"), true));
         }
 
         @Test
@@ -181,7 +190,7 @@ class TriggerPersistGateTest {
     // ------------------------------------------------------------------------- helpers
 
     static GateSnapshot snapshot(RuleSpec... rules) {
-        Map<String, SourceDescriptor> descriptors = Map.of("quakes", QUAKES, "ships", SHIPS);
+        Map<String, SourceDescriptor> descriptors = Map.of("quakes", QUAKES, "ships", SHIPS, "buoys", BUOYS);
         return new TriggerPersistGate.Compiled(List.of(rules), descriptors::get);
     }
 

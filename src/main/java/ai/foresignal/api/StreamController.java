@@ -186,7 +186,7 @@ public class StreamController {
     // ------------------------------------------------------------------------- helpers
 
     private SseEmitter open(SseHub.OpenRequest open, HttpServletResponse response) {
-        SseEmitter emitter = new SseEmitter(0L);
+        SseEmitter emitter = EmitterSseSender.newCommittingEmitter();
         SseClient client = hub.open(open, new EmitterSseSender(emitter));
         emitter.onCompletion(client::close);
         emitter.onTimeout(client::close);

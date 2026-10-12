@@ -40,7 +40,9 @@ public class StandardLeafDropStep implements RetentionStep {
 
     @Override
     public void run(RetentionRun run) {
-        long cutoff = run.cutoff(run.largestStandardWindow());
+        // Unclamped: only empty leaves are dropped, so no consumer can lose an unprocessed row here,
+        // and clamping would report consumers as lagging against this window for nothing (prompt 022).
+        long cutoff = run.rawCutoff(run.largestStandardWindow());
         partitions.refresh();
         for (LeafInfo leaf : partitions.leaves(HistoryTier.STANDARD).stream()
                 .sorted(Comparator.comparingLong(LeafInfo::fromSeq)).toList()) {

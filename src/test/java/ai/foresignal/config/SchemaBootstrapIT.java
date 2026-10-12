@@ -188,8 +188,12 @@ class SchemaBootstrapIT {
                         "seq_clock",
                         "trigger_rule",
                         "alert",
-                        "webhook",
-                        "webhook_delivery",
+                        // 018 replaced webhook/webhook_delivery with the channel tables; 019 added
+                        // retention_state (prompt 022 brought this list up to date).
+                        "notification_channel",
+                        "notification_delivery",
+                        "notification",
+                        "retention_state",
                         "app_setting",
                         "system_secret");
     }

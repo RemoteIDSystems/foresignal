@@ -24,7 +24,9 @@ import org.springframework.test.context.ActiveProfiles;
  * <p><strong>Every test method starts with empty tables.</strong> {@link DatabaseCleanupExtension}
  * runs {@link DatabaseCleaner} before each method, truncating every Foresignal table and restarting
  * {@code record_seq} at 1. A test may therefore assume it is alone in the database, and need not
- * clean up after itself.
+ * clean up after itself. The one exception is state the reset beans re-seed after the truncation:
+ * the trigger engine writes its durable cursor ({@code app_setting 'trigger.cursor'}) when it
+ * reloads.
  *
  * <p>The <em>schema</em>, however, persists for the whole run. The test profile uses
  * {@code ddl-auto: update}, not {@code create-drop}: one container is shared by every context, and
