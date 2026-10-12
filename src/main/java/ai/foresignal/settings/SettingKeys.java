@@ -50,6 +50,21 @@ public final class SettingKeys {
     /** Outbound URL policy overrides ({@code OutboundSettings}, prompt 035). */
     public static final String OUTBOUND = "outbound";
 
+    /**
+     * The activity rollup job's durable cursor {@code {lastHour, lastDay, seq}} (prompt 038; the consumer
+     * clamp of retention).
+     */
+    public static final String STATS_ROLLUP_CURSOR = "stats.rollup.cursor";
+
+    /** Stats options ({@code StatsSettings}, prompt 038): per-source {@code enabled} and {@code includePrivate}. */
+    public static final String STATS = "stats";
+
+    /** Glance options ({@code GlanceSettings}, prompt 038): {@code exposeCountsAnonymously}. */
+    public static final String GLANCE = "glance";
+
+    /** Metric projections served at {@code /v1/metrics} ({@code MetricSettings}, prompt 038). */
+    public static final String METRICS = "metrics";
+
     /** This installation's generated identifier. */
     public static final String INSTALL_ID = "install.id";
 
@@ -59,7 +74,8 @@ public final class SettingKeys {
      */
     public static final List<String> ALL =
             List.of(RETENTION, CORS, TRIGGER_CURSOR, TRIGGERS, STREAM_LIMITS, SECURITY, SERVER, NOTIFICATIONS,
-                    WATCHDOG, INSTALL_ID, LLM, SEARCH_INDEX, EMBEDDING_CURSOR, RATELIMITS, OUTBOUND);
+                    WATCHDOG, INSTALL_ID, LLM, SEARCH_INDEX, EMBEDDING_CURSOR, RATELIMITS, OUTBOUND, STATS_ROLLUP_CURSOR,
+                    STATS, GLANCE, METRICS);
 
     private SettingKeys() {}
 }

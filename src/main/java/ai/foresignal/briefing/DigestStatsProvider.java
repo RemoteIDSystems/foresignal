@@ -10,8 +10,10 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 /**
  * Where the digest statistics come from (prompt 029). {@link SqlDigestStatsProvider} reads
- * {@code record_version}, {@code record_live ⋈ record_head} and {@code alert} directly; prompt 038
- * swaps in a rollup-backed implementation ({@code activity_rollup}) for the counts.
+ * {@code record_version}, {@code record_live ⋈ record_head} and {@code alert} directly. Since prompt
+ * 038 the previous period's counts come from {@code StatsService.totals} (rollup plus raw edges); the
+ * current period's per-reason counts stay here, because the rollup keeps no per-reason breakdown and no
+ * per-reason distinct entities.
  *
  * <p>Every method takes the caller's template so one digest runs in one read transaction with the
  * read API's statement timeout.

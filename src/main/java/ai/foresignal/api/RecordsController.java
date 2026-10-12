@@ -27,6 +27,7 @@ import ai.foresignal.source.SourceRegistry;
 import ai.foresignal.source.spi.KindDisplay;
 import ai.foresignal.source.spi.SourceDescriptor;
 import ai.foresignal.store.query.AsOfQueryService;
+import ai.foresignal.store.query.CountResult;
 import ai.foresignal.store.query.CurrentQuery;
 import ai.foresignal.store.query.GeometryEncoding;
 import ai.foresignal.store.query.HistoryQuery;
@@ -246,6 +247,10 @@ public class RecordsController {
             throw ValidationException.forField("until", "must be after since");
         }
 
+        boolean countOnly = QueryParams.bool("count", request.getParameter("count"), false);
+        if (countOnly && asOfAt != null) {
+            throw ValidationException.forField("count", "count=true cannot be combined with asOf");
+        }
         if (asOfAt != null) {
             AsOfQueryService.checkCombination(
                     pinned != null, "observed".equals(orderValue), sortValue != null, expired,
@@ -275,6 +280,14 @@ public class RecordsController {
         }
         CurrentQuery query = new CurrentQuery(sources, kinds, ids, box, nearFilter, sinceAt, untilAt, axis, q, expired,
                 listOrder, pinned, cursor, pageSize, selection, geometry, encoding, observers, excluded, restriction);
+
+        if (countOnly) {
+            // count=true (prompt 038): {count, exact, watermarkSeq} and no items, whatever the format.
+            CountResult counted = queries.countCurrent(query);
+            HttpHeaders headers = ETags.cacheHeaders(new HttpHeaders(), null, caller.publicCache());
+            headers.set(WATERMARK_HEADER, Long.toString(counted.watermarkSeq()));
+            return ResponseEntity.ok().headers(headers).contentType(MediaType.APPLICATION_JSON).body(counted.toMap());
+        }
 
         if (fmt.streaming()) {
             streamRecords(fmt, selection, response, sink -> queries.streamCurrent(query, maxRows(), sink),
@@ -457,6 +470,10 @@ public class RecordsController {
                 includes.contains("observer") && caller.mayReadObservers(),
                 callers.excludedSources(caller),
                 caller.restriction());
+        if (QueryParams.bool("count", request.getParameter("count"), false)) {
+            // count=true (prompt 038): {count, exact, watermarkSeq} and no items, whatever the format.
+            return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(queries.countHistory(query).toMap());
+        }
         if (fmt.streaming()) {
             streamRecords(fmt, selection, response, sink -> queries.streamHistory(query, maxRows(), sink),
                     RecordMapper.Shape.VERSION);

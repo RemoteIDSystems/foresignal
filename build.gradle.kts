@@ -40,6 +40,7 @@ dependencies {
     implementation(libs.commonmark)
     implementation(libs.commonmark.ext.gfm.tables)
     implementation(libs.owasp.java.html.sanitizer)
+    implementation(libs.h3)
     runtimeOnly(libs.postgresql)
 
     testImplementation(platform(libs.testcontainers.bom))

@@ -24,8 +24,8 @@ import org.springframework.stereotype.Component;
 /**
  * The SQL {@link DigestStatsProvider} (prompt 029): counts from {@code record_version} by
  * {@code persist_reason}, activity from {@code record_live ⋈ record_head}, notable records from the
- * current head and live rows, alerts by id. Prompt 038 replaces the counts with a rollup-backed
- * provider.
+ * current head and live rows, alerts by id. The previous period's counts come from
+ * {@code StatsService} since prompt 038.
  */
 @Component
 public class SqlDigestStatsProvider implements DigestStatsProvider {

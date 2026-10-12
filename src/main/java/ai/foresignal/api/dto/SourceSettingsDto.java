@@ -20,6 +20,8 @@ import java.util.Map;
  * @param effectiveIngestPolicy the override if set, else the descriptor default (read-only)
  * @param effectiveRetention the retention window in force; for TRACK, {@code retention.trackWindow}
  *     (read-only)
+ * @param statsEnabled whether the source is included in activity rollups (prompt 038; default true)
+ * @param statsIncludePrivate whether a private source is rolled up anyway (prompt 038; default false)
  */
 public record SourceSettingsDto(
         boolean enabled,
@@ -32,4 +34,6 @@ public record SourceSettingsDto(
         Instant updatedAt,
         IngestPolicyDto ingestPolicy,
         IngestPolicyDto effectiveIngestPolicy,
-        Duration effectiveRetention) {}
+        Duration effectiveRetention,
+        boolean statsEnabled,
+        boolean statsIncludePrivate) {}

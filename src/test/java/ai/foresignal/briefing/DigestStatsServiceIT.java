@@ -38,6 +38,7 @@ import org.springframework.context.annotation.Import;
 class DigestStatsServiceIT extends BriefingItSupport {
 
     @Autowired DigestStatsService stats;
+    @Autowired ai.foresignal.stats.RollupJob rollup;
 
     static ScopeResolver.Resolved all() {
         return new ScopeResolver.Resolved(List.of(), List.of(), null, Set.of(), false);
@@ -245,5 +246,39 @@ class DigestStatsServiceIT extends BriefingItSupport {
 
         DigestStats visible = cursor(0, quakes(false), Set.of());
         assertThat(visible.notableItems()).extracting(DigestStats.NotableItem::externalId).contains("s");
+    }
+
+    @Test
+    @DisplayName("the previous period's counts come from StatsService: still there after its raw versions are deleted")
+    void previousFromStats() {
+        clock.setInstant(T.minus(Duration.ofHours(48)).plusSeconds(60));
+        for (int i = 1; i <= 3; i++) {
+            quake("old" + i, "Old " + i, 4.0);
+        }
+        clock.setInstant(T.minus(Duration.ofHours(1)));
+        for (int i = 1; i <= 5; i++) {
+            quake("new" + i, "New " + i, 4.0);
+        }
+        clock.setInstant(T);
+        int hours = 0;
+        for (int run = 0; run < 100; run++) {
+            int rolled = rollup.runOnce().hours();
+            hours += rolled;
+            if (rolled == 0) {
+                break;
+            }
+        }
+        assertThat(hours).as("every closed hour since the first version").isEqualTo(47);
+        jdbc.update("DELETE FROM record_version WHERE source_id = ? AND ingested_at < ?", BriefingTestSources.QUAKES,
+                java.sql.Timestamp.from(T.minus(Duration.ofHours(24))));
+
+        DigestStats digest = period(T.minus(Duration.ofHours(24)), T, quakes(false));
+
+        DigestStats.Count c = count(digest, BriefingTestSources.QUAKES);
+        assertThat(c.created()).isEqualTo(5);
+        assertThat(c.previous()).as("from the rollup").isNotNull();
+        assertThat(c.previous().created()).isEqualTo(3);
+        assertThat(c.previous().changed()).isZero();
+        assertThat(c.previous().removed()).isZero();
     }
 }

@@ -243,6 +243,11 @@ BODIES = {
                              "failUrl": "https://hc-ping.com/REPLACE-WITH-CHECK-UUID/fail", "interval": "60s",
                              "method": "GET", "canary": {"enabled": False, "interval": "1h"}},
   "updateCors": {"readOrigins": ["*"], "writeOrigins": ["http://localhost:5173"]},
+  # 038: stats rollup rebuild and metric projections (a USGS magnitude gauge).
+  "rebuildStatsRollup": {"from": "2026-10-01T00:00:00Z", "to": "2026-10-02T00:00:00Z"},
+  "updateMetricSettings": {"projections": [{"name": "usgs_magnitude", "source": "usgs-earthquakes", "kind": "earthquake",
+                                            "path": "mag", "unit": "magnitude",
+                                            "help": "Magnitude of current USGS earthquakes", "maxSeries": 500}]},
   "importSettings": {"sources": {"usgs-earthquakes": {"enabled": True, "interval": "60s"}},
                      "retention": {"default": "7d", "alerts": "90d", "usage": "30d", "sources": {}},
                      "cors": {"readOrigins": ["*"], "writeOrigins": []}, "triggers": [], "channels": []},

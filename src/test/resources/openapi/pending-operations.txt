@@ -1,11 +1,3 @@
-getStatsTimeseries 038
-getStatsGrid 038
-getStatsTop 038
-rebuildStatsRollup 038
-getGlance 038
-getMetrics 038
-getMetricSettings 038
-updateMetricSettings 038
 ingestRecordsFormatGet 039
 listIngestDevices 039
 createIngestDevice 039

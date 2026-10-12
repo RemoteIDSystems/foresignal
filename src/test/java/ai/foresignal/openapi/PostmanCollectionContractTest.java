@@ -164,6 +164,14 @@ class PostmanCollectionContractTest {
             Map.entry("createEscalationPolicy", ai.foresignal.notify.escalation.EscalationPolicyInput::parse),
             Map.entry("updateEscalationPolicy", ai.foresignal.notify.escalation.EscalationPolicyInput::parse),
             Map.entry("muteTrigger", body -> ai.foresignal.trigger.Mutes.expiry(body, NOW)),
+            // 038: metric projections (the production parser over a registry holding the USGS source) and the
+            // rollup rebuild range.
+            Map.entry("updateMetricSettings", body -> new ai.foresignal.stats.metrics.MetricSettingsService(null,
+                    new ai.foresignal.source.SourceRegistry(
+                            List.of(new ai.foresignal.source.adapters.usgs.UsgsEarthquakesAdapter("")), List.of(),
+                            event -> { })).parse(body)),
+            Map.entry("rebuildStatsRollup", body -> assertThat(Instant.parse(body.get("from").asString()))
+                    .isBefore(Instant.parse(body.get("to").asString()))),
             Map.entry("createStreamTicket", body -> new TicketStore(new TokenHasher(), null, Clock.fixed(NOW, ZoneOffset.UTC))
                     .mint(new AuthenticatedToken(UUID.randomUUID(), "t", Scope.READ, TokenRestrictions.NONE, null,
                             "01JA8Q3V7S2K9W4T6Y1B5N0M3C", false), body)));

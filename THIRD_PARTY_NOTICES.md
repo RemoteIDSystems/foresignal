@@ -143,3 +143,14 @@ section lists dependencies a prompt asked to record here.
   the Apache License, Version 2.0 (<https://github.com/OWASP/java-html-sanitizer/blob/main/COPYING>).
 - **Project:** <https://github.com/OWASP/java-html-sanitizer>, Copyright (c) 2011, Mike Samuel.
 
+
+### H3 (Java binding)
+
+- **Artifact:** `com.uber:h3` 4.5.0 (Maven Central), used unmodified; no runtime dependencies. The jar bundles
+  the H3 C library compiled as a JNI library per platform (linux-x64, linux-arm64, darwin-x64, darwin-arm64 and
+  others), extracted to `java.io.tmpdir` on first use.
+- **Use:** activity rollups and stats grids (prompt 038): the H3 cell of each version's centroid, parent cells
+  for coarser grids, and cell boundaries for the GeoJSON grid.
+- **License:** Apache License, Version 2.0 (<https://github.com/uber/h3-java/blob/master/LICENSE>), covering
+  both the Java binding and the bundled H3 core library.
+- **Project:** <https://github.com/uber/h3-java>, Copyright Uber Technologies, Inc.

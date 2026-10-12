@@ -63,6 +63,12 @@ public final class ErrorCodes {
     public static final String TIMELINE_TOO_LARGE = "TIMELINE_TOO_LARGE";
 
     /**
+     * 400: a stats request would return more than 2,000 buckets or 10,000 cells, or a raw grid would
+     * generate too many hexagons (prompt 038).
+     */
+    public static final String STATS_TOO_LARGE = "STATS_TOO_LARGE";
+
+    /**
      * 503 (server-wide {@code maxClients}) or 429 (per-principal stream count, with
      * {@code Retry-After}): no further SSE stream may be opened now (prompt 015).
      */

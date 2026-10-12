@@ -43,6 +43,11 @@ commonmark = "0.30.1"
 # Apache-2.0 or BSD-2-Clause (dual), no runtime dependencies (spotbugs annotations are provided-scope).
 # Verified on Maven Central 2026-10-12: 20261011.1 is the latest release.
 owaspHtmlSanitizer = "20261011.1"
+# H3 cells of activity rollups and stats grids (038): Uber's H3 Java binding, Apache-2.0, no runtime
+# dependencies. Verified on Maven Central 2026-10-12: 4.5.0 is the latest release of com.uber:h3; the jar
+# bundles the JNI library for linux-x64, linux-arm64, darwin-x64 and darwin-arm64 (and others), extracted
+# to java.io.tmpdir on first use.
+h3 = "4.5.0"
 
 [libraries]
 # --- Versions managed by the Spring Boot BOM ---
@@ -93,6 +98,8 @@ anthropic-java = { module = "com.anthropic:anthropic-java", version.ref = "anthr
 commonmark = { module = "org.commonmark:commonmark", version.ref = "commonmark" }
 commonmark-ext-gfm-tables = { module = "org.commonmark:commonmark-ext-gfm-tables", version.ref = "commonmark" }
 owasp-java-html-sanitizer = { module = "com.googlecode.owasp-java-html-sanitizer:owasp-java-html-sanitizer", version.ref = "owaspHtmlSanitizer" }
+# Activity rollups and stats grids (038): lat/lng to H3 cell, parents and cell boundaries.
+h3 = { module = "com.uber:h3", version.ref = "h3" }
 
 # --- Test; versions from the Testcontainers BOM where unspecified ---
 testcontainers-bom = { module = "org.testcontainers:testcontainers-bom", version.ref = "testcontainers" }

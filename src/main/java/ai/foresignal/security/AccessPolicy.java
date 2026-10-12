@@ -227,6 +227,12 @@ public class AccessPolicy {
                 rule(HttpMethod.GET, "/v1/history/**", AccessRequirement.READ),
                 // The event-density timeline (037).
                 rule(HttpMethod.GET, "/v1/timeline", AccessRequirement.READ),
+                // ---- Stats, glance and metric projections (038) ----
+                rule(HttpMethod.POST, "/v1/stats/rollup/rebuild", AccessRequirement.ADMIN),
+                rule(HttpMethod.GET, "/v1/stats/**", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/glance", AccessRequirement.READ),
+                // Prometheus sends Authorization: Bearer; this is not the open actuator endpoint.
+                rule(HttpMethod.GET, "/v1/metrics", AccessRequirement.READ),
                 rule(HttpMethod.GET, "/v1/tiles/**", AccessRequirement.READ),
                 // The TileJSON index; /v1/tiles/** does not match /v1/tiles.json (016).
                 rule(HttpMethod.GET, "/v1/tiles.json", AccessRequirement.READ),

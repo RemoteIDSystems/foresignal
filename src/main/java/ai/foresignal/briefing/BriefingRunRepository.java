@@ -18,6 +18,9 @@ public interface BriefingRunRepository extends JpaRepository<BriefingRunEntity, 
     /** The most recent run of a briefing, whatever its status. */
     Optional<BriefingRunEntity> findFirstByBriefingIdOrderByStartedAtDescIdDesc(UUID briefingId);
 
+    /** The ten most recent runs with one of {@code statuses}, across briefings (prompt 038: the glance). */
+    java.util.List<BriefingRunEntity> findTop10ByStatusInOrderByStartedAtDescIdDesc(java.util.Collection<String> statuses);
+
     /** True when the briefing has any stored run. */
     boolean existsByBriefingId(UUID briefingId);
 }

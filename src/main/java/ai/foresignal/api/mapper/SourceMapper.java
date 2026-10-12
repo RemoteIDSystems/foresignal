@@ -210,7 +210,9 @@ public class SourceMapper {
                 view.updatedAt(),
                 policyOverride.map(this::policy).orElse(null),
                 policy(view.ingestPolicy()),
-                effectiveRetention(view.descriptor(), sourceRetention));
+                effectiveRetention(view.descriptor(), sourceRetention),
+                statsSettings().enabled(view.id()),
+                statsSettings().includePrivate(view.id()));
     }
 
     /**
@@ -226,6 +228,17 @@ public class SourceMapper {
             return retention.trackWindow();
         }
         return sourceRetention.orElseGet(() -> retention.forSource(descriptor.id()));
+    }
+
+    private ai.foresignal.stats.StatsSettings statsSettings() {
+        try {
+            ai.foresignal.stats.StatsSettings value = appSettings.getOrDefault(SettingKeys.STATS,
+                    ai.foresignal.stats.StatsSettings.class, ai.foresignal.stats.StatsSettings::defaults);
+            return value == null ? ai.foresignal.stats.StatsSettings.defaults() : value;
+        } catch (RuntimeException e) {
+            log.warn("Could not read the stats settings; showing the defaults", e);
+            return ai.foresignal.stats.StatsSettings.defaults();
+        }
     }
 
     private RetentionSettings retentionSettings() {

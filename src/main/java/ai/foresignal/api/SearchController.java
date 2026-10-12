@@ -47,15 +47,17 @@ public class SearchController {
     private final ReindexService reindex;
     private final ReadCallerResolver callers;
     private final SourceRegistry registry;
+    private final ai.foresignal.stream.ChangeBus changeBus;
 
     /** Creates the controller. */
     public SearchController(SearchService search, SearchStatusService status, ReindexService reindex,
-            ReadCallerResolver callers, SourceRegistry registry) {
+            ReadCallerResolver callers, SourceRegistry registry, ai.foresignal.stream.ChangeBus changeBus) {
         this.search = search;
         this.status = status;
         this.reindex = reindex;
         this.callers = callers;
         this.registry = registry;
+        this.changeBus = changeBus;
     }
 
     /** {@code search}: text, semantic or hybrid search over records, briefings and alerts. */
@@ -105,6 +107,15 @@ public class SearchController {
                 QueryParams.multi("kind", kind), BboxParser.parse(bbox), sinceAt, untilAt, "observed".equals(axis),
                 size);
         // place=, view= and inWatchlist= narrow the caller's restriction (prompt 036).
+        if (QueryParams.bool("count", request.getParameter("count"), false)) {
+            // count=true (prompt 038): {count, exact, watermarkSeq} and no items.
+            if (query.mode() == SearchRequest.Mode.SEMANTIC) {
+                throw ValidationException.forField("count", "count=true counts text matches; it cannot be combined"
+                        + " with mode=semantic");
+            }
+            return search.count(query, excluded, callers.resolveScoped(request).restriction(),
+                    changeBus.lastPublishedSeq()).toMap();
+        }
         return search.search(query, excluded, callers.resolveScoped(request).restriction());
     }
 

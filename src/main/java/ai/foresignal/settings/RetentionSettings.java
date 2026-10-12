@@ -33,6 +33,7 @@ import java.util.TreeMap;
  * @param audit how long {@code audit_event} rows are kept (prompt 023)
  * @param inbox how long notifications stay in the inbox (prompt 033; default 30 d), separate from
  *     {@code notifications}
+ * @param stats how long activity rollups are kept (prompt 038): hourly rows 35 d, daily rows 1825 d
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record RetentionSettings(
@@ -47,7 +48,8 @@ public record RetentionSettings(
         Duration ask,
         Map<String, Duration> kinds,
         Duration audit,
-        Duration inbox) {
+        Duration inbox,
+        Stats stats) {
 
     public static final Duration DEFAULT_RETENTION = Duration.ofDays(7);
     public static final Duration DEFAULT_ALERTS = Duration.ofDays(90);
@@ -74,6 +76,66 @@ public record RetentionSettings(
         kinds = kinds == null ? Map.of() : java.util.Collections.unmodifiableMap(new TreeMap<>(kinds));
         audit = audit == null ? DEFAULT_AUDIT : audit;
         inbox = inbox == null ? DEFAULT_INBOX : inbox;
+        stats = stats == null ? Stats.defaults() : stats;
+    }
+
+    /**
+     * Retention of the activity rollups (prompt 038, {@code RetentionSettings.stats}). Prompt 119 adds
+     * the region resolutions ({@code regionHourly}, {@code regionDaily}); until then those members are
+     * accepted by the API and not stored.
+     *
+     * @param hourly how long hourly rows (resolution 0) are kept, by {@code bucket_start}
+     * @param daily how long daily rows (resolution 1) are kept
+     */
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record Stats(Duration hourly, Duration daily) {
+
+        public static final Duration DEFAULT_HOURLY = Duration.ofDays(35);
+        public static final Duration DEFAULT_DAILY = Duration.ofDays(1825);
+
+        /** Fills missing windows with their defaults. */
+        public Stats {
+            hourly = hourly == null ? DEFAULT_HOURLY : hourly;
+            daily = daily == null ? DEFAULT_DAILY : daily;
+        }
+
+        /** The shipped defaults. */
+        public static Stats defaults() {
+            return new Stats(null, null);
+        }
+    }
+
+    /**
+     * The 033 shape: every member except {@code stats}, which takes its default.
+     *
+     * @param defaultRetention see the canonical constructor
+     * @param alerts see the canonical constructor
+     * @param usage see the canonical constructor
+     * @param sources see the canonical constructor
+     * @param trackWindow see the canonical constructor
+     * @param provenance see the canonical constructor
+     * @param notifications see the canonical constructor
+     * @param briefings see the canonical constructor
+     * @param ask see the canonical constructor
+     * @param kinds see the canonical constructor
+     * @param audit see the canonical constructor
+     * @param inbox see the canonical constructor
+     */
+    public RetentionSettings(
+            Duration defaultRetention,
+            Duration alerts,
+            Duration usage,
+            Map<String, Duration> sources,
+            Duration trackWindow,
+            Duration provenance,
+            Duration notifications,
+            Duration briefings,
+            Duration ask,
+            Map<String, Duration> kinds,
+            Duration audit,
+            Duration inbox) {
+        this(defaultRetention, alerts, usage, sources, trackWindow, provenance, notifications, briefings, ask, kinds,
+                audit, inbox, null);
     }
 
     /**
@@ -104,7 +166,7 @@ public record RetentionSettings(
             Map<String, Duration> kinds,
             Duration audit) {
         this(defaultRetention, alerts, usage, sources, trackWindow, provenance, notifications, briefings, ask, kinds,
-                audit, null);
+                audit, null, null);
     }
 
     /**
@@ -133,7 +195,7 @@ public record RetentionSettings(
             Duration ask,
             Map<String, Duration> kinds) {
         this(defaultRetention, alerts, usage, sources, trackWindow, provenance, notifications, briefings, ask, kinds,
-                null, null);
+                null, null, null);
     }
 
     /**
@@ -156,7 +218,7 @@ public record RetentionSettings(
 
     /** The shipped defaults: every window at its default, no per-source or per-kind overrides. */
     public static RetentionSettings defaults() {
-        return new RetentionSettings(null, null, null, null, null, null, null, null, null, null, null, null);
+        return new RetentionSettings(null, null, null, null, null, null, null, null, null, null, null, null, null);
     }
 
     /**
@@ -171,6 +233,6 @@ public record RetentionSettings(
     /** This value with {@code sources} replaced. */
     public RetentionSettings withSources(Map<String, Duration> newSources) {
         return new RetentionSettings(defaultRetention, alerts, usage, newSources, trackWindow, provenance,
-                notifications, briefings, ask, kinds, audit, inbox);
+                notifications, briefings, ask, kinds, audit, inbox, stats);
     }
 }

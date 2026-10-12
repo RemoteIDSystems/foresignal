@@ -135,6 +135,21 @@ public class AlertStore {
         return jdbc.query("SELECT " + COLUMNS + FROM + whereClause(where) + " ORDER BY a.id DESC LIMIT :limit", p, mapper);
     }
 
+    /**
+     * Alerts matching {@code query} per severity (prompt 038: the glance's open counts); severities
+     * without alerts are absent.
+     */
+    public Map<String, Long> countBySeverity(AlertQuery query) {
+        MapSqlParameterSource p = new MapSqlParameterSource();
+        List<String> where = where(query, p);
+        Map<String, Long> out = new java.util.TreeMap<>();
+        jdbc.query("SELECT a.severity, count(*) FROM alert a" + whereClause(where) + " GROUP BY a.severity", p,
+                rs -> {
+                    out.put(rs.getString(1), rs.getLong(2));
+                });
+        return out;
+    }
+
     /** Alerts with {@code rev > afterRev} in rev order, at most {@code limit} (the stream's replay). */
     public List<AlertView> afterRev(AlertQuery query, long afterRev, int limit) {
         MapSqlParameterSource p = new MapSqlParameterSource();

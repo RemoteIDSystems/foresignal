@@ -40591,7 +40591,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"projections\": [\n    {\n      \"name\": \"usgs_magnitude\",\n      \"source\": \"usgs-earthquakes\",\n      \"kind\": \"earthquake\",\n      \"path\": \"mag\",\n      \"unit\": \"magnitude\",\n      \"help\": \"Magnitude of current USGS earthquakes\",\n      \"maxSeries\": 500\n    }\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -45763,7 +45763,7 @@
                 {
                   "key": "res",
                   "value": "",
-                  "description": "H3 resolution (\u2264 cellRes)",
+                  "description": "H3 resolution (\u2264 cellRes, default cellRes)",
                   "disabled": true
                 },
                 {
@@ -45775,7 +45775,7 @@
                 {
                   "key": "sizeKm",
                   "value": "",
-                  "description": "Raw-mode hexagon size",
+                  "description": "Raw-mode hexagon size in ground kilometers at the bbox's centre latitude (required with mode=raw)",
                   "disabled": true
                 },
                 {
@@ -45798,7 +45798,7 @@
                 }
               ]
             },
-            "description": "Rollup mode: H3 cells aggregated to `res` (\u2264 cellRes) with boundaries split at the antimeridian. Raw mode (`mode=raw&sizeKm=`, range \u2264 7d): hexagons in EPSG:3857. \u2264 10,000 cells (400 STATS_TOO_LARGE).\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getStatsGrid`",
+            "description": "Rollup mode (hourly rows for ranges up to 7 days, daily rows beyond; closed buckets only): H3 cells aggregated to `res` (\u2264 cellRes) with boundaries split at the antimeridian. Raw mode (`mode=raw&sizeKm=`, range \u2264 7d): hexagons in EPSG:3857. \u2264 10,000 cells (400 STATS_TOO_LARGE).\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getStatsGrid`",
             "auth": {
               "type": "noauth"
             }
@@ -45961,7 +45961,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"from\": \"2026-10-01T00:00:00Z\",\n  \"to\": \"2026-10-02T00:00:00Z\"\n}",
               "options": {
                 "raw": {
                   "language": "json"

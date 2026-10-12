@@ -59,6 +59,12 @@ public final class StartupOrder {
      */
     public static final int EMBEDDING = 22;
 
+    /**
+     * The metric projections' seeding and bus subscriptions (prompt 038), after the embedding worker and
+     * before the canary and the scheduler.
+     */
+    public static final int METRIC_PROJECTIONS = 23;
+
     /** The ingest canary's change-bus subscription (prompt 019). */
     public static final int CANARY = 25;
 

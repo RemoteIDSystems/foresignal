@@ -271,8 +271,63 @@ public class SearchService {
             ReadRestriction r,
             int fetch) {
         SqlParams p = new SqlParams();
-        String time = request.observedAxis() ? "h.persisted_observed_at"
-                : "COALESCE(h.event_time, h.persisted_observed_at)";
+        String time = headTime(request);
+        List<String> where = headWhere(request, excluded, r, p);
+        String sql = "SELECT h.source_id, h.external_id, h.kind, h.seq, " + time + " AS effective_time,"
+                + " h.persisted_observed_at AS observed_at, h.search_text, h.title, ST_AsGeoJSON(l.geom) AS geom_json"
+                + " FROM record_head h JOIN record_live l ON l.source_id = h.source_id AND l.external_id = h.external_id"
+                + " WHERE " + String.join(" AND ", where)
+                + " ORDER BY " + time + " DESC, h.source_id, h.external_id LIMIT " + fetch;
+        return jdbc.query(sql, p.source(), (rs, i) -> {
+            String sourceId = rs.getString("source_id");
+            String searchText = rs.getString("search_text");
+            return new Hit(DocInput.RECORD, DocInput.recordId(sourceId, rs.getString("external_id")), sourceId,
+                    rs.getString("kind"), rs.getLong("seq"), EmbeddingStore.instant(rs.getTimestamp("effective_time")),
+                    EmbeddingStore.instant(rs.getTimestamp("observed_at")), searchText, rs.getString("geom_json"),
+                    rs.getString("title"), 0.0, excerpt(searchText));
+        });
+    }
+
+    /**
+     * {@code count=true} (prompt 038): the text matches of {@code request} (documents matching the
+     * query, plus records without a document whose search text contains it), each part counted with
+     * {@code LIMIT 1,000,001}. Semantic similarity has no match boundary, so {@code mode=semantic} is
+     * refused by the controller.
+     */
+    public ai.foresignal.store.query.CountResult count(SearchRequest request, Set<String> excludedSources,
+            ReadRestriction restriction, long watermarkSeq) {
+        long cap = ai.foresignal.store.query.CountResult.CAP;
+        long counted = runner.read(jdbc -> {
+            SqlParams p = new SqlParams();
+            String q = p.text(request.q());
+            List<String> where = new ArrayList<>();
+            where.add("d.tsv @@ query");
+            where.addAll(docFilters(request, excludedSources, restriction, p));
+            Long docs = jdbc.queryForObject(ai.foresignal.store.query.CountResult.sql(
+                    "SELECT 1 FROM embedding_document d, websearch_to_tsquery('simple', " + q + ") query WHERE "
+                            + String.join(" AND ", where), cap), p.source(), Long.class);
+            long total = docs == null ? 0 : docs;
+            if (request.includesRecords() && total <= cap) {
+                SqlParams hp = new SqlParams();
+                Long heads = jdbc.queryForObject(ai.foresignal.store.query.CountResult.sql(
+                        "SELECT 1 FROM record_head h JOIN record_live l ON l.source_id = h.source_id"
+                                + " AND l.external_id = h.external_id WHERE "
+                                + String.join(" AND ", headWhere(request, excludedSources, restriction, hp)), cap),
+                        hp.source(), Long.class);
+                total += heads == null ? 0 : heads;
+            }
+            return total;
+        });
+        return ai.foresignal.store.query.CountResult.of(counted, watermarkSeq);
+    }
+
+    private static String headTime(SearchRequest request) {
+        return request.observedAxis() ? "h.persisted_observed_at" : "COALESCE(h.event_time, h.persisted_observed_at)";
+    }
+
+    /** The filters of record heads without a document whose search text contains the query. */
+    private static List<String> headWhere(SearchRequest request, Set<String> excluded, ReadRestriction r, SqlParams p) {
+        String time = headTime(request);
         List<String> where = new ArrayList<>();
         where.add("NOT h.tombstone");
         where.add("h.search_text ILIKE " + p.text("%" + escapeLike(request.q().strip()) + "%") + " ESCAPE '\\'");
@@ -297,19 +352,7 @@ public class SearchService {
         if (request.until() != null) {
             where.add(time + " < " + p.instant(request.until()));
         }
-        String sql = "SELECT h.source_id, h.external_id, h.kind, h.seq, " + time + " AS effective_time,"
-                + " h.persisted_observed_at AS observed_at, h.search_text, h.title, ST_AsGeoJSON(l.geom) AS geom_json"
-                + " FROM record_head h JOIN record_live l ON l.source_id = h.source_id AND l.external_id = h.external_id"
-                + " WHERE " + String.join(" AND ", where)
-                + " ORDER BY " + time + " DESC, h.source_id, h.external_id LIMIT " + fetch;
-        return jdbc.query(sql, p.source(), (rs, i) -> {
-            String sourceId = rs.getString("source_id");
-            String searchText = rs.getString("search_text");
-            return new Hit(DocInput.RECORD, DocInput.recordId(sourceId, rs.getString("external_id")), sourceId,
-                    rs.getString("kind"), rs.getLong("seq"), EmbeddingStore.instant(rs.getTimestamp("effective_time")),
-                    EmbeddingStore.instant(rs.getTimestamp("observed_at")), searchText, rs.getString("geom_json"),
-                    rs.getString("title"), 0.0, excerpt(searchText));
-        });
+        return where;
     }
 
     // ------------------------------------------------------------------------- fusion and filters

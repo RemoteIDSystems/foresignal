@@ -39,9 +39,10 @@ import tools.jackson.databind.JsonNode;
  * override of every STANDARD source it does not list) and keeps the {@code app_setting} copy empty;
  * a GET reads them back.
  *
- * <p>{@code audit} (prompt 023) and {@code inbox} (prompt 033) are stored with the rest. Members owned by later prompts ({@code stats} 038/119,
- * {@code trackRawWindow} and {@code trackDownsampleInterval} 044, {@code social} 135) are accepted
- * and not stored until those prompts.
+ * <p>{@code audit} (prompt 023), {@code inbox} (prompt 033) and {@code stats.hourly}/{@code stats.daily}
+ * (prompt 038) are stored with the rest. Members owned by later prompts ({@code stats.regionHourly} and
+ * {@code stats.regionDaily} 119, {@code trackRawWindow} and {@code trackDownsampleInterval} 044,
+ * {@code social} 135) are accepted and not stored until those prompts.
  */
 @Service
 public class RetentionSettingsService {
@@ -53,7 +54,13 @@ public class RetentionSettingsService {
             "default", "alerts", "usage", "briefings", "ask", "trackWindow", "provenance", "notifications", "audit", "inbox");
 
     static final Set<String> LATER_FIELDS = Set.of(
-            "stats", "trackRawWindow", "trackDownsampleInterval", "social");
+            "trackRawWindow", "trackDownsampleInterval", "social");
+
+    /** {@code stats} members stored now (prompt 038). */
+    static final Set<String> STATS_FIELDS = Set.of("hourly", "daily");
+
+    /** {@code stats} members of prompt 119, accepted and not stored until then. */
+    static final Set<String> LATER_STATS_FIELDS = Set.of("regionHourly", "regionDaily");
 
     private final AppSettingService settings;
     private final RetentionResolver resolver;
@@ -131,7 +138,8 @@ public class RetentionSettingsService {
                 if (value != null) {
                     values.put(field, value);
                 }
-            } else if (!field.equals("sources") && !field.equals("kinds") && !LATER_FIELDS.contains(field)) {
+            } else if (!field.equals("sources") && !field.equals("kinds") && !field.equals("stats")
+                    && !LATER_FIELDS.contains(field)) {
                 errors.add(new FieldError(field, "is not a RetentionSettings member"));
             }
         }
@@ -203,6 +211,8 @@ public class RetentionSettingsService {
             errors.add(new FieldError("kinds", "unknown kind(s): " + String.join(", ", unknownKinds)));
         }
 
+        RetentionSettings.Stats stats = stats(body.get("stats"), errors);
+
         if (!errors.isEmpty()) {
             String code = tierFixed ? ErrorCodes.RETENTION_TIER_FIXED : ErrorCodes.VALIDATION_FAILED;
             throw new ValidationException(code, "The retention settings are not valid.", errors);
@@ -219,7 +229,33 @@ public class RetentionSettingsService {
                 values.get("ask"),
                 perKind,
                 values.get("audit"),
-                values.get("inbox"));
+                values.get("inbox"),
+                stats);
+    }
+
+    /** The {@code stats} object (prompt 038): {@code hourly} and {@code daily} windows, each at least 1 h. */
+    private static RetentionSettings.Stats stats(JsonNode node, List<FieldError> errors) {
+        if (node == null || node.isNull()) {
+            return null;
+        }
+        if (!node.isObject()) {
+            errors.add(new FieldError("stats", "must be an object with hourly and daily durations"));
+            return null;
+        }
+        Map<String, Duration> values = new LinkedHashMap<>();
+        for (String field : node.propertyNames()) {
+            if (STATS_FIELDS.contains(field)) {
+                Duration value = window(node.get(field), "stats." + field, errors);
+                if (value != null) {
+                    values.put(field, value);
+                }
+            } else if (LATER_STATS_FIELDS.contains(field)) {
+                window(node.get(field), "stats." + field, errors);
+            } else {
+                errors.add(new FieldError("stats." + field, "is not a RetentionSettings.stats member"));
+            }
+        }
+        return new RetentionSettings.Stats(values.get("hourly"), values.get("daily"));
     }
 
     private static Duration window(JsonNode node, String field, List<FieldError> errors) {

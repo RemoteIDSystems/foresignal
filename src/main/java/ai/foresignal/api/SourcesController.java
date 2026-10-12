@@ -102,6 +102,7 @@ public class SourcesController {
     private final FetchLogQuery fetchLog;
     private final SourceMapper mapper;
     private final SourceVisibilityGate visibility;
+    private final ai.foresignal.stats.StatsSettingsService statsSettings;
     private final Clock clock;
 
     /** Creates the controller. */
@@ -115,8 +116,10 @@ public class SourcesController {
             FetchLogQuery fetchLog,
             SourceMapper mapper,
             SourceVisibilityGate visibility,
+            ai.foresignal.stats.StatsSettingsService statsSettings,
             Clock clock) {
         this.visibility = visibility;
+        this.statsSettings = statsSettings;
         this.registry = registry;
         this.sources = sources;
         this.health = health;
@@ -179,6 +182,8 @@ public class SourcesController {
             @PathVariable String sourceId, @Valid @RequestBody SourceSettingsUpdate body) {
         SourceDescriptor descriptor = registry.descriptor(sourceId);
         sources.update(sourceId, mapper.update(body, descriptor));
+        // statsEnabled and statsIncludePrivate (prompt 038) live in app_setting['stats'].
+        statsSettings.update(sourceId, body.getStatsEnabled(), body.getStatsIncludePrivate());
         return detail(sourceId);
     }
 

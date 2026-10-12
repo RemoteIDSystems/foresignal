@@ -149,6 +149,49 @@ public class RecordQueryService {
     }
 
     /**
+     * {@code count=true} on {@code listRecords} (prompt 038): the current records matching {@code q}'s
+     * filters (cursor and order ignored), counted with {@code LIMIT 1,000,001}.
+     */
+    public CountResult countCurrent(CurrentQuery q) {
+        return countCurrent(q, CountResult.CAP);
+    }
+
+    /** {@link #countCurrent(CurrentQuery)} with another cap (a test hook). */
+    CountResult countCurrent(CurrentQuery q, long cap) {
+        long watermark = changeBus.lastPublishedSeq();
+        Long pin = q.pinned() ? (q.asOfSeq() != null ? q.asOfSeq() : watermark) : null;
+        Instant now = clock.instant();
+        long counted = runner.read(jdbc -> {
+            SqlParams p = new SqlParams();
+            String sql = CountResult.sql("SELECT 1" + CURRENT_FROM + where(currentWhere(jdbc, q, p, pin, null, now)),
+                    cap);
+            Long n = jdbc.queryForObject(sql, p.source(), Long.class);
+            return n == null ? 0L : n;
+        });
+        return CountResult.of(counted, watermark, cap);
+    }
+
+    /**
+     * {@code count=true} on {@code queryHistory} (prompt 038): the versions matching {@code q}'s filters
+     * (cursor ignored), counted with {@code LIMIT 1,000,001}.
+     */
+    public CountResult countHistory(HistoryQuery q) {
+        return countHistory(q, CountResult.CAP);
+    }
+
+    /** {@link #countHistory(HistoryQuery)} with another cap (a test hook). */
+    CountResult countHistory(HistoryQuery q, long cap) {
+        long watermark = changeBus.lastPublishedSeq();
+        long counted = runner.read(jdbc -> {
+            SqlParams p = new SqlParams();
+            String sql = CountResult.sql("SELECT 1 FROM record_version v" + where(historyWhere(jdbc, q, p, null)), cap);
+            Long n = jdbc.queryForObject(sql, p.source(), Long.class);
+            return n == null ? 0L : n;
+        });
+        return CountResult.of(counted, watermark, cap);
+    }
+
+    /**
      * The current state of one record (head plus live), whatever its expiry or tombstone.
      *
      * @return empty when no such record exists or its source is excluded

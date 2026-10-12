@@ -1492,6 +1492,123 @@ its open alerts too. `GET /v1/alerts/{id}/escalation` shows where an alert stand
 watch cannot be deleted (`409 POLICY_IN_USE`). Muted watches still record alerts and keep them in the
 inbox, but notify nobody until the mute ends (1 hour to 7 days).
 
+## Stats, glance and metrics
+
+### Activity rollups
+
+Foresignal keeps an `activity_rollup` table so clients can draw activity charts and maps without
+paging raw history, and so the counts outlive retention. A job runs every 5 minutes and rolls up each
+closed hour (and, once its 24 hours are done, each UTC day) from `record_version`. It works from a
+durable cursor (`app_setting['stats.rollup.cursor']`) written in the same transaction as the rows, so a
+crash never double-counts or skips an hour.
+
+- **Buckets are on the transaction axis:** hour `H` holds the versions *ingested* in `[H, H + 1 h)`.
+  Stats on the observed, effective or event time are served from raw history, inside retention.
+- **Measures:** `versions` (HEARTBEAT and KEYFRAME excluded), `entities` (distinct entities),
+  `firsts` (FIRST and REAPPEAR), `tombstones`, `edges` (TRIGGER_EDGE). Rows hold no entity ids.
+- **Cells:** each version's centroid is mapped to an H3 cell at `foresignal.stats.cell-res` (default 4,
+  about 1,770 km² per cell). Versions without a geometry go to cell 0.
+- **First start:** the job backfills from the oldest retained version, at most
+  `foresignal.stats.backfill` (default `30d`) back, 6 hours per run.
+- **Retention:** the rollup cursor joins the consumer clamp (`min(trigger, embedding, rollup)`), so raw
+  versions are never deleted before they are rolled up. Rollup rows have their own windows:
+  `RetentionSettings.stats = {"hourly": "35d", "daily": "1825d"}`.
+- **Which sources:** private sources are skipped unless `PUT /v1/sources/{id}` sets
+  `statsIncludePrivate: true`; set `statsEnabled: false` to leave a noisy source out.
+- **Rebuild:** `POST /v1/stats/rollup/rebuild {"from": "…", "to": "…"}` (admin) recomputes the closed
+  buckets in the range, per source, only where that source's raw versions are all still retained.
+
+**Storage estimate.** Rows ≈ hours × sources × kinds × occupied cells, plus one totals row per
+source and kind per hour. Point sources in a few hundred cells cost little. **Global aircraft at
+resolution 4 occupy about 20,000 cells an hour, about 0.5 million rows a day** (about 17 million rows in
+the 35-day hourly window). If that is too much, lower `foresignal.stats.cell-res` to 3 (about 7 times
+fewer cells) or set `statsEnabled: false` on the aircraft sources.
+
+### Stats endpoints
+
+| Endpoint | What |
+|---|---|
+| `GET /v1/stats/timeseries` | `bucket=1h\|1d\|auto` (≤ 2,000 buckets), `measure`, `groupBy=none\|source\|kind`, `timeField`. `backend` says `rollup`, `raw` or `mixed` |
+| `GET /v1/stats/grid` | H3 cells as GeoJSON (`res` ≤ `cellRes`), or `mode=raw&sizeKm=` hexagons in EPSG:3857 (≤ 7 days); ≤ 10,000 cells |
+| `GET /v1/stats/top` | Top sources, kinds, cells or entities (`by=entity` reads raw history inside retention) |
+| `count=true` | On `/v1/records`, `/v1/history` and `/v1/search`: `{count, exact, watermarkSeq}`, exact up to 1,000,000 |
+
+Every stats query has a 10-second statement timeout (`503 QUERY_TIMEOUT`). With a bbox, a restricted
+area or a place, rollup rows are chosen by cell centre, so edges are accurate to a cell, and
+`entities` counts an entity once per cell it visited.
+
+### Glance
+
+`GET /v1/glance` is a status document of at most 2 KB for widgets, watches and e-ink displays:
+`status`, open alerts per severity with the latest three, source tallies, the latest briefing,
+versions in the last hour, `lastSeq` and deep links. `?format=text` (or `Accept: text/plain`) gives at
+most 8 lines of 40 ASCII characters. `?place=<id>` narrows the alerts to a place (token required).
+Answers are cached for 15 seconds and carry a strong ETag, so polling with `If-None-Match` is cheap.
+
+Without a token (under `openReads`) only `status`, `serverTime`, the latest alerts and `lastSeq` are
+shown. To show the counts too, set the app setting `glance.exposeCountsAnonymously` to `true`.
+
+- **TRMNL:** the TRMNL cloud accepts at most 12 webhook updates an hour, so whatever forwards the
+  glance (a small script or an automation fetching `/v1/glance` with a read token) should coalesce to
+  one update every 10 minutes or more. Bring-your-own-server (BYOS) setups need a renderer such as
+  Terminus that turns the JSON into the panel image.
+- **MagicMirror:** any JSON or text module can poll `/v1/glance?format=text` every minute.
+- **Home Assistant:** a REST sensor:
+
+  ```yaml
+  sensor:
+    - platform: rest
+      name: Foresignal
+      resource: http://foresignal.local:8080/v1/glance
+      headers:
+        Authorization: !secret foresignal_read_token
+      value_template: "{{ value_json.status }}"
+      json_attributes: [alerts, sources, activity, lastSeq]
+      scan_interval: 60
+  ```
+
+- **Garmin and Wear OS:** the watch platforms need native code (a Connect IQ widget, a Wear OS tile)
+  that fetches the JSON glance through the phone; the 2 KB limit keeps it within their request
+  budgets.
+
+### Metric projections
+
+`/v1/metrics` exposes payload fields of current records as Prometheus gauges, from a registry of its
+own: it never appears on `/actuator/prometheus`, and it needs the `read` scope (Prometheus sends the
+token as a bearer). Define projections with `PUT /v1/settings/metrics` (admin):
+
+```json
+{"projections": [{"name": "usgs_magnitude", "source": "usgs-earthquakes", "kind": "earthquake",
+  "path": "mag", "unit": "magnitude", "help": "Magnitude of current USGS earthquakes", "maxSeries": 500}]}
+```
+
+Each projection becomes `foresignal_data_<name>{source, external_id}` (or the projection's own
+`labels`, at most 4) plus `foresignal_data_<name>_observed_timestamp_seconds`. Values follow live state
+(SAMPLED sources included); a series disappears when its record is tombstoned, expires or is purged.
+Non-numeric values are skipped and counted in `foresignal.projection.coercion_failures{projection}`.
+Each projection keeps at most `maxSeries` series and the whole endpoint at most 10,000; reaching that
+raises a `system` notification once. A private source needs `allowPrivate: true`, and its series are
+shown only to callers that pass the private gate (an agent or admin token).
+
+A Prometheus scrape job:
+
+```yaml
+scrape_configs:
+  - job_name: foresignal-data
+    metrics_path: /v1/metrics
+    scrape_interval: 60s
+    authorization:
+      type: Bearer
+      credentials_file: /etc/prometheus/foresignal.token
+    static_configs:
+      - targets: ["foresignal.local:8080"]
+```
+
+**Grafana without Prometheus:** the Infinity data source can chart the stats API directly. Add a
+query of type JSON, URL `http://foresignal.local:8080/v1/stats/timeseries?bucket=1h&measure=versions&groupBy=source&from=${__from:date:iso}&to=${__to:date:iso}`,
+an `Authorization: Bearer …` header, root selector `series`, and columns `key` (string) and
+`points` expanded to `t` (time) and `value` (number).
+
 ## Retention
 
 `GET /v1/settings/retention` shows every window; `PUT` replaces the whole object (every window at
@@ -1501,7 +1618,8 @@ also runs hourly, starting 5 minutes after boot.
 ```json
 PUT /v1/settings/retention
 {"default": "7d", "trackWindow": "3d", "provenance": "30d", "alerts": "90d", "usage": "30d",
- "notifications": "90d", "audit": "90d", "kinds": {"earthquake": "3650d"}, "sources": {"usgs-earthquakes": "1825d"}}
+ "notifications": "90d", "audit": "90d", "kinds": {"earthquake": "3650d"}, "sources": {"usgs-earthquakes": "1825d"},
+ "stats": {"hourly": "35d", "daily": "1825d"}}
 ```
 
 **Which window applies.** A TRACK source always uses `trackWindow`. A STANDARD record's window is the
@@ -1530,13 +1648,14 @@ A `sources` entry for a TRACK source, or a `kinds` entry for a kind only TRACK s
 | Other | Resolved or suppressed alerts after `alerts` (open alerts stay), usage minutes after `usage`, delivered or failed deliveries after 7 days, notifications after `notifications` |
 | Audit | Audit log entries after `audit` (default 90 days) |
 | Inbox | Notifications after `inbox` (default 30 days) once no delivery refers to them, read cursors of devices unseen for 90 days, expired presence and action capabilities expired for a week |
+| Stats | Activity rollup rows: hourly after `stats.hourly` (default 35 days), daily after `stats.daily` (default 1825 days) |
 
 **Current state is kept while it is current** (FR-17 as amended). Versions follow the window, but a
 record that is still being observed keeps a version newer than a quarter of its window, so it never
 disappears. A record purged after going quiet that comes back starts again at version 1.
 
-**Durable consumers hold retention back.** The trigger engine's cursor (and later the embedding and
-intelligence cursors) clamp every cutoff, so nothing is deleted before it was evaluated. If a cursor
+**Durable consumers hold retention back.** The trigger engine's, the embedding worker's and the
+activity rollup's cursors (and later the intelligence cursors) clamp every cutoff, so nothing is deleted before it was evaluated. If a cursor
 falls more than two windows behind, retention stops waiting for it, counts
 `foresignal.retention.consumer_lag` and sends a `system` notification; `/v1/system` then shows
 `RETENTION_CONSUMER_LAG`.

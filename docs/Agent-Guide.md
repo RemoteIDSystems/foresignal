@@ -31,6 +31,9 @@ automations, TAK, n8n, Grafana, the OpenClaw skill and MCP client configurations
   `foresignal.api.stream.maxRows` (500,000) rows. A larger result is refused with
   `400 RESULT_TOO_LARGE`; it is never cut short silently. `csv` writes geometry as WKT and needs
   `fields=payload.<path>` entries for payload columns.
+- `count=true` on `/v1/records`, `/v1/history` and `/v1/search` returns only
+  `{count, exact, watermarkSeq}`; counts are exact up to 1,000,000 (`exact: false` above). For charts
+  and maps, use the stats endpoints (`/v1/stats/timeseries`, `/grid`, `/top`) instead of paging history.
 - Responses are gzip-compressed when you send `Accept-Encoding: gzip`.
 - Lists, single records, kinds and kind schemas carry a strong `ETag`. Send it back as
   `If-None-Match` to get `304 Not Modified`. A list tag changes on every write and at least once a
@@ -332,6 +335,7 @@ Every tool takes `detail`: `short` (the default, compact items, the whole result
 | `add_to_watchlist` | agent | Add or update `items` (`{value, label, notes, tags}`), validated for the list's identity; effective on each entity's next observation (036). |
 | `remove_from_watchlist` | agent | Remove `values` from a watchlist (036). |
 | `get_state_at` | read | Records of a `source[]` or `kind[]` as Foresignal knew them at `asOf` (transaction time): an RFC 3339 time, `now`, or a duration back from now (`-PT2H`, `-2h`); optional `bbox`, `place[]` (needs a token), `limit` ≤ 200. Returns `asOf`, `watermarkSeq`, `approximate` and `horizon` (037). |
+| `get_glance` | read | The same ≤ 2 KB status snapshot as `GET /v1/glance`: `status` (ok, degraded, failing), open alerts per severity and the latest three, source tallies, the latest briefing, versions in the last hour and `lastSeq`; `format=text` gives 8 lines of 40 ASCII characters, `place` narrows the alerts (needs a token). Without a token the counts are omitted unless the operator allows them (038). Call it first to see whether anything needs attention. |
 | `get_track` | read | The simplified path of one entity (`sourceId`, `externalId`) between `from` and `to` (same time forms; default the last 6 h), `maxPoints` ≤ 500 (100 with `detail=short`, which stays within 4 KB): segments of `[lon, lat, epochSeconds]` plus a summary with `distanceKm`, `durationSeconds`, `bbox`, `maxSpeedKmh`, `segments` and `approximate` (037). |
 
 Later prompts add tools to the same registry: weather (052), `get_map_image` (055) and entities (098).

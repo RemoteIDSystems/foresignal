@@ -25,6 +25,8 @@ public class SourceSettingsUpdate {
     private @Valid IngestPolicyDto ingestPolicy;
     private boolean ingestPolicyPresent;
     private Boolean embed;
+    private Boolean statsEnabled;
+    private Boolean statsIncludePrivate;
 
     /** Whether the source should be collected; null leaves it unchanged. */
     public Boolean getEnabled() {
@@ -106,5 +108,25 @@ public class SourceSettingsUpdate {
     /** Sets {@link #getEmbed()}. */
     public void setEmbed(Boolean embed) {
         this.embed = embed;
+    }
+
+    /** Whether the source is included in activity rollups (038); null leaves it unchanged. */
+    public Boolean getStatsEnabled() {
+        return statsEnabled;
+    }
+
+    /** Sets {@link #getStatsEnabled()}. */
+    public void setStatsEnabled(Boolean statsEnabled) {
+        this.statsEnabled = statsEnabled;
+    }
+
+    /** Whether a private source is rolled up anyway (038 {@code stats.includePrivate}); null leaves it unchanged. */
+    public Boolean getStatsIncludePrivate() {
+        return statsIncludePrivate;
+    }
+
+    /** Sets {@link #getStatsIncludePrivate()}. */
+    public void setStatsIncludePrivate(Boolean statsIncludePrivate) {
+        this.statsIncludePrivate = statsIncludePrivate;
     }
 }

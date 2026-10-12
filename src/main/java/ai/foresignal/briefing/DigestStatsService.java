@@ -7,6 +7,8 @@ import ai.foresignal.ingest.PersistReason;
 import ai.foresignal.retention.RetentionState;
 import ai.foresignal.source.HealthStatus;
 import ai.foresignal.source.SourceRegistry;
+import ai.foresignal.stats.StatsMeasure;
+import ai.foresignal.stats.StatsService;
 import ai.foresignal.store.query.ReadQueryRunner;
 import ai.foresignal.store.query.SeqClockQuery;
 import ai.foresignal.stream.ChangeBus;
@@ -47,8 +49,10 @@ import org.springframework.stereotype.Service;
  *       {@code seq_clock}, exact to the batch, where the minute-granular {@code cutoffSeq} would count
  *       the rest of the cutoff minute) for a period, or {@code sinceSeq} for a cursor.
  *       {@code gap} is true when {@code fromSeq < RetentionState.lowestRetainedSeq(scope sources)}.
- *   <li><b>Delta:</b> the previous equal-length period ({@code S((fromTime − length)⁻)} to
- *       {@code fromSeq}); null when it reaches below the retention floor.
+ *   <li><b>Delta:</b> the previous equal-length period {@code [fromTime − length, fromTime)} on the
+ *       ingested axis, from {@link StatsService#totals} (prompt 038): whole closed hours from
+ *       {@code activity_rollup}, the edges from raw rows. Null when the period has a gap, or when a raw
+ *       part of the previous period lies below the retention floor and is not rolled up.
  *   <li><b>Alerts</b> are keyed on alert id: {@code sinceAlertId < id <= untilAlertId}, where
  *       {@code untilAlertId} is the largest id when the bounds were read.
  *   <li><b>Health:</b> Foresignal stores no health transitions, so the section is the current
@@ -79,13 +83,14 @@ public class DigestStatsService {
     private final BriefingLinks links;
     private final SourceRegistry registry;
     private final ObjectProvider<BriefingSectionContributor> contributors;
+    private final StatsService stats;
     private final Clock clock;
 
     /** Creates the service. */
     public DigestStatsService(ReadQueryRunner runner, SeqClockQuery seqClock, ChangeBus changeBus,
             RetentionState retention, DigestStatsProvider provider, HealthService health, AlertStore alerts,
             AlertMapper alertMapper, BriefingLinks links, SourceRegistry registry,
-            ObjectProvider<BriefingSectionContributor> contributors, Clock clock) {
+            ObjectProvider<BriefingSectionContributor> contributors, StatsService stats, Clock clock) {
         this.runner = runner;
         this.seqClock = seqClock;
         this.changeBus = changeBus;
@@ -97,6 +102,7 @@ public class DigestStatsService {
         this.links = links;
         this.registry = registry;
         this.contributors = contributors;
+        this.stats = stats;
         this.clock = clock;
     }
 
@@ -195,18 +201,18 @@ public class DigestStatsService {
         String gapReason = gap ? "fromSeq " + bounds.fromSeq() + " is below the retention floor " + floor
                 + " of the scope's sources; versions before the floor were deleted, so counts are incomplete" : null;
 
+        // The previous equal-length period comes from the stats engine (prompt 038): whole closed hours
+        // from activity_rollup, the edges from raw rows, so it survives retention of the raw versions.
+        Map<DigestStatsProvider.Key, DigestStats.Previous> previous = null;
+        Duration length = Duration.between(bounds.fromTime(), bounds.toTime());
+        if (!gap && !length.isNegative() && !length.isZero()) {
+            previous = previous(scope, request.restriction(), bounds.fromTime().minus(length), bounds.fromTime());
+        }
+        Map<DigestStatsProvider.Key, DigestStats.Previous> previousCounts = previous;
         DigestStats stats = runner.read(jdbc -> {
             Map<DigestStatsProvider.Key, DigestStatsProvider.ReasonCounts> current =
                     provider.counts(jdbc, filter, bounds.fromSeq(), bounds.toSeq());
-            Map<DigestStatsProvider.Key, DigestStatsProvider.ReasonCounts> previous = null;
-            Duration length = Duration.between(bounds.fromTime(), bounds.toTime());
-            if (!gap && !length.isNegative() && !length.isZero()) {
-                long prevFrom = seqClock.lastSeqBefore(jdbc, bounds.fromTime().minus(length));
-                if (prevFrom >= floor && prevFrom <= bounds.fromSeq()) {
-                    previous = provider.counts(jdbc, filter, prevFrom, bounds.fromSeq());
-                }
-            }
-            List<DigestStats.Count> counts = counts(current, previous);
+            List<DigestStats.Count> counts = counts(current, previousCounts);
             Map<DigestStatsProvider.Key, Long> activeRows = provider.active(jdbc, filter, bounds.fromTime());
             List<DigestStats.Active> active = new ArrayList<>();
             activeRows.forEach((key, n) -> active.add(new DigestStats.Active(key.sourceId(), key.kind(), n, null)));
@@ -226,9 +232,31 @@ public class DigestStatsService {
 
     // ------------------------------------------------------------------------- parts
 
+    /**
+     * The previous period's counts per {@code (source, kind)} from {@link StatsService#totals}, or null
+     * when part of it is no longer retained raw and not rolled up.
+     */
+    private Map<DigestStatsProvider.Key, DigestStats.Previous> previous(ScopeResolver.Resolved scope,
+            ai.foresignal.security.restrict.ReadRestriction restriction, Instant from, Instant to) {
+        StatsService.Totals totals = stats.totals(scope.sources(), scope.kinds(), scope.bbox(), restriction, from, to,
+                StatsService.GROUP_PAIR, List.of(StatsMeasure.FIRSTS, StatsMeasure.CHANGES, StatsMeasure.TOMBSTONES));
+        if (!totals.complete()) {
+            return null;
+        }
+        Map<DigestStatsProvider.Key, DigestStats.Previous> out = new LinkedHashMap<>();
+        totals.values().forEach((key, measures) -> {
+            int split = key.indexOf(StatsService.PAIR_SEPARATOR);
+            DigestStatsProvider.Key k = new DigestStatsProvider.Key(key.substring(0, split), key.substring(split + 1));
+            out.put(k, new DigestStats.Previous(measures.getOrDefault(StatsMeasure.FIRSTS, 0L),
+                    measures.getOrDefault(StatsMeasure.CHANGES, 0L), measures.getOrDefault(StatsMeasure.TOMBSTONES, 0L),
+                    null));
+        });
+        return out;
+    }
+
     private static List<DigestStats.Count> counts(
             Map<DigestStatsProvider.Key, DigestStatsProvider.ReasonCounts> current,
-            Map<DigestStatsProvider.Key, DigestStatsProvider.ReasonCounts> previous) {
+            Map<DigestStatsProvider.Key, DigestStats.Previous> previous) {
         List<DigestStats.Count> out = new ArrayList<>();
         for (Map.Entry<DigestStatsProvider.Key, DigestStatsProvider.ReasonCounts> entry : current.entrySet()) {
             long[] c = entry.getValue().byCode();
@@ -240,9 +268,7 @@ public class DigestStatsService {
             }
             DigestStats.Previous prev = null;
             if (previous != null) {
-                DigestStatsProvider.ReasonCounts p = previous.get(entry.getKey());
-                long[] pc = p == null ? new long[10] : p.byCode();
-                prev = new DigestStats.Previous(created(pc), changed(pc), removed(pc), null);
+                prev = previous.getOrDefault(entry.getKey(), new DigestStats.Previous(0, 0, 0, null));
             }
             DigestStatsProvider.ReasonCounts r = entry.getValue();
             out.add(new DigestStats.Count(entry.getKey().sourceId(), entry.getKey().kind(), byReason, created(c),

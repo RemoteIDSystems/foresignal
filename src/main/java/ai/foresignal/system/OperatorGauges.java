@@ -30,6 +30,8 @@ import org.springframework.stereotype.Component;
  *   <li>{@code foresignal.source.data_age_seconds{source}}: now − {@code source_health.last_data_at}
  *       (NaN before a source's first data);
  *   <li>{@code foresignal.alerts.active{severity}}: unresolved, unsuppressed alerts (017 lifecycle);
+ *   <li>{@code foresignal.alerts.open{severity}}: unresolved, unacknowledged, unsuppressed alerts
+ *       ({@code state = firing}; prompt 038, the glance's open counts);
  *   <li>{@code foresignal.records.current}: non-tombstoned heads;
  *   <li>{@code foresignal.sse.clients{stream}}: open SSE clients ({@code all}, {@code changes},
  *       {@code events}, {@code alerts});
@@ -56,6 +58,7 @@ public class OperatorGauges {
 
     private final Map<String, Double> dataAge = new ConcurrentHashMap<>();
     private final Map<String, Double> alerts = new ConcurrentHashMap<>();
+    private final Map<String, Double> openAlerts = new ConcurrentHashMap<>();
     private final Map<String, Double> clients = new ConcurrentHashMap<>();
     private final Map<String, Double> historyRows = new ConcurrentHashMap<>();
     private final Set<String> gaugedSources = ConcurrentHashMap.newKeySet();
@@ -82,6 +85,9 @@ public class OperatorGauges {
                 alerts.put(severity, 0.0);
                 Gauge.builder("foresignal.alerts.active", alerts, m -> m.getOrDefault(severity, 0.0))
                         .description("Unresolved alerts").tag("severity", severity).register(meters);
+                openAlerts.put(severity, 0.0);
+                Gauge.builder("foresignal.alerts.open", openAlerts, m -> m.getOrDefault(severity, 0.0))
+                        .description("Unresolved, unacknowledged alerts").tag("severity", severity).register(meters);
             }
             for (String stream : STREAMS) {
                 clients.put(stream, 0.0);
@@ -117,6 +123,13 @@ public class OperatorGauges {
                         counts.put(rs.getString(1), (double) rs.getLong(2));
                     });
             alerts.putAll(counts);
+            Map<String, Double> open = new HashMap<>();
+            SEVERITIES.forEach(s -> open.put(s, 0.0));
+            jdbc.query("SELECT severity, count(*) FROM alert WHERE state = 'firing' AND NOT suppressed GROUP BY severity",
+                    rs -> {
+                        open.put(rs.getString(1), (double) rs.getLong(2));
+                    });
+            openAlerts.putAll(open);
         } catch (RuntimeException e) {
             log.debug("Could not refresh the alert gauges", e);
         }
