@@ -1,0 +1,80 @@
+{
+  "id": "ir-enhanced",
+  "version": 1,
+  "type": "continuous",
+  "units": "K",
+  "stops": [
+    {
+      "value": 183,
+      "color": "#ffffff",
+      "label": "183 K"
+    },
+    {
+      "value": 193,
+      "color": "#000000"
+    },
+    {
+      "value": 203,
+      "color": "#ff0000",
+      "label": "203 K"
+    },
+    {
+      "value": 213,
+      "color": "#ffff00"
+    },
+    {
+      "value": 223,
+      "color": "#00ff00",
+      "label": "223 K"
+    },
+    {
+      "value": 233,
+      "color": "#0000ff"
+    },
+    {
+      "value": 243,
+      "color": "#00ffff",
+      "label": "243 K"
+    },
+    {
+      "value": 253,
+      "color": "#c0c0c0"
+    },
+    {
+      "value": 330,
+      "color": "#000000",
+      "label": "330 K"
+    }
+  ],
+  "categories": [],
+  "specials": [
+    {
+      "kind": "noCoverage",
+      "color": "transparent",
+      "label": "No coverage"
+    },
+    {
+      "kind": "noData",
+      "color": "transparent",
+      "label": "No data"
+    }
+  ],
+  "meaning": [
+    {
+      "min": null,
+      "max": 213,
+      "text": "Below 213 K: very cold tops of deep convection"
+    },
+    {
+      "min": 213,
+      "max": 243,
+      "text": "213–243 K: high cloud"
+    },
+    {
+      "min": 243,
+      "max": null,
+      "text": "Above 243 K: mid and low cloud or clear ground"
+    }
+  ],
+  "notice": "Enhanced IR color curve for cold cloud tops; Foresignal"
+}

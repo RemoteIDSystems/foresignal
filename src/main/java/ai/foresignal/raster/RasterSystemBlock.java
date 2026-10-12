@@ -15,9 +15,9 @@ import org.springframework.stereotype.Component;
 /**
  * The {@code rasters} block of {@code /v1/system} ({@code SystemRasters}, prompt 042;
  * Weather-Imagery-Design §2.6, §6.11): profile, products, frames, store bytes, disk quota and its
- * use, per-cache metrics, the render queue (filled by prompt 045), {@code RENDER_BUSY} responses in
- * the last hour (045) and megabytes downloaded today by product sources. Prompt 043 adds
- * {@code mediaBytes}, the media store's bytes on disk, which count against the same quota.
+ * use, per-cache metrics (frame, and from prompt 045 tile and index), the render queue's depth, active
+ * renders and pool size (045), {@code RENDER_BUSY} responses in the last hour (045) and megabytes
+ * downloaded today by product sources. Prompt 043 adds {@code mediaBytes}, the media store's bytes on disk, which count against the same quota.
  *
  * <p>Also the {@value #QUOTA_WARNING} warning: at {@value #QUOTA_WARN_PCT} % of the quota or more,
  * {@code /v1/system} reports {@code degraded}.
@@ -39,16 +39,19 @@ public class RasterSystemBlock implements SystemBlockContributor, SystemWarningC
     private final RasterCacheRegistry caches;
     private final UsageMeter usage;
     private final MediaQueries media;
+    private final org.springframework.beans.factory.ObjectProvider<ai.foresignal.raster.render.RenderQueue> queue;
 
     /** Creates the block. */
     public RasterSystemBlock(RasterSettings settings, ProductRegistry registry, RasterFrameQueries frames,
-            RasterCacheRegistry caches, UsageMeter usage, MediaQueries media) {
+            RasterCacheRegistry caches, UsageMeter usage, MediaQueries media,
+            org.springframework.beans.factory.ObjectProvider<ai.foresignal.raster.render.RenderQueue> queue) {
         this.settings = settings;
         this.registry = registry;
         this.frames = frames;
         this.caches = caches;
         this.usage = usage;
         this.media = media;
+        this.queue = queue;
     }
 
     @Override
@@ -78,12 +81,13 @@ public class RasterSystemBlock implements SystemBlockContributor, SystemWarningC
             cacheBlock.put(name, c);
         });
         out.put("caches", cacheBlock);
+        ai.foresignal.raster.render.RenderQueue q = queue == null ? null : queue.getIfAvailable();
         Map<String, Object> render = new LinkedHashMap<>();
-        render.put("depth", 0);
-        render.put("active", 0);
-        render.put("poolSize", settings.renderPool());
+        render.put("depth", q == null ? 0 : q.depth());
+        render.put("active", q == null ? 0 : q.active());
+        render.put("poolSize", q == null ? settings.renderPool() : q.poolSize());
         out.put("renderQueue", render);
-        out.put("renderBusyLastHour", 0);
+        out.put("renderBusyLastHour", q == null ? 0 : q.busyLastHour());
         out.put("mbDownloadedToday", round(bytesToday() / MB));
         return out;
     }

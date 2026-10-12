@@ -1,0 +1,124 @@
+{
+  "id": "nws-reflectivity",
+  "version": 1,
+  "type": "discrete",
+  "units": "dBZ",
+  "stops": [
+    {
+      "value": 5,
+      "color": "#04e9e7",
+      "label": "5"
+    },
+    {
+      "value": 10,
+      "color": "#019ff4",
+      "label": "10"
+    },
+    {
+      "value": 15,
+      "color": "#0300f4",
+      "label": "15"
+    },
+    {
+      "value": 20,
+      "color": "#02fd02",
+      "label": "20"
+    },
+    {
+      "value": 25,
+      "color": "#01c501",
+      "label": "25"
+    },
+    {
+      "value": 30,
+      "color": "#008e00",
+      "label": "30"
+    },
+    {
+      "value": 35,
+      "color": "#fdf802",
+      "label": "35"
+    },
+    {
+      "value": 40,
+      "color": "#e5bc00",
+      "label": "40"
+    },
+    {
+      "value": 45,
+      "color": "#fd9500",
+      "label": "45"
+    },
+    {
+      "value": 50,
+      "color": "#fd0000",
+      "label": "50"
+    },
+    {
+      "value": 55,
+      "color": "#d40000",
+      "label": "55"
+    },
+    {
+      "value": 60,
+      "color": "#bc0000",
+      "label": "60"
+    },
+    {
+      "value": 65,
+      "color": "#f800fd",
+      "label": "65"
+    },
+    {
+      "value": 70,
+      "color": "#9854c6",
+      "label": "70"
+    },
+    {
+      "value": 75,
+      "color": "#fdfdfd",
+      "label": "75"
+    }
+  ],
+  "categories": [],
+  "specials": [
+    {
+      "kind": "noCoverage",
+      "color": "transparent",
+      "label": "No coverage (not clear weather)"
+    },
+    {
+      "kind": "noEcho",
+      "color": "transparent",
+      "label": "No echo"
+    },
+    {
+      "kind": "noData",
+      "color": "transparent",
+      "label": "No data"
+    }
+  ],
+  "meaning": [
+    {
+      "min": 5,
+      "max": 20,
+      "text": "5–20 dBZ: light precipitation or drizzle"
+    },
+    {
+      "min": 20,
+      "max": 35,
+      "text": "20–35 dBZ: light to moderate rain"
+    },
+    {
+      "min": 35,
+      "max": 50,
+      "text": "35–50 dBZ: moderate to heavy rain"
+    },
+    {
+      "min": 50,
+      "max": null,
+      "text": "≥ 50 dBZ: heavy rain, hail possible"
+    }
+  ],
+  "notice": "NWS-style 5 dBZ reflectivity steps; Foresignal palette"
+}

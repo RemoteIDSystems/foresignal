@@ -1,0 +1,44 @@
+{
+  "id": "ir-gray",
+  "version": 1,
+  "type": "continuous",
+  "units": "K",
+  "stops": [
+    {
+      "value": 180,
+      "color": "#ffffff",
+      "label": "180 K"
+    },
+    {
+      "value": 330,
+      "color": "#000000",
+      "label": "330 K"
+    }
+  ],
+  "categories": [],
+  "specials": [
+    {
+      "kind": "noCoverage",
+      "color": "transparent",
+      "label": "No coverage"
+    },
+    {
+      "kind": "noData",
+      "color": "transparent",
+      "label": "No data"
+    }
+  ],
+  "meaning": [
+    {
+      "min": null,
+      "max": 220,
+      "text": "Below 220 K: high, cold cloud tops"
+    },
+    {
+      "min": 280,
+      "max": null,
+      "text": "Above 280 K: clear ground or low cloud"
+    }
+  ],
+  "notice": "Linear brightness-temperature gray ramp (cold is bright); Foresignal"
+}

@@ -194,7 +194,7 @@ public class RasterPipeline implements RasterSinkFactory {
     }
 
     /** The product bounds: the spec's, else the grid box. */
-    static List<Double> bounds(ProductSpec spec, GridDefinition grid) {
+    public static List<Double> bounds(ProductSpec spec, GridDefinition grid) {
         List<Double> fromSpec = specBounds(spec);
         return fromSpec != null ? fromSpec : List.of(grid.west(), grid.south(), grid.east(), grid.north());
     }

@@ -1,11 +1,3 @@
-getProductTile 045
-getProductTileJson 045
-getProductImage 045
-getProductLoop 045
-listStyles 045
-getStyle 045
-getProductLegend 045
-getProductLegendPng 045
 getGroundStationPolarplot 049
 listTileKeys 050
 createTileKey 050

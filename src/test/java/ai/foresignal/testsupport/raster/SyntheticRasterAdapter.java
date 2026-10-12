@@ -55,7 +55,7 @@ public class SyntheticRasterAdapter implements PollingAdapter {
                 .nodata(0.0)
                 .code(0, "noCoverage")
                 .code(1, "noEcho")
-                .defaultStyle("test-reflectivity@1")
+                .defaultStyle("nws-reflectivity@1")
                 .temporal(ProductSpec.Temporal.observation(Duration.ofMinutes(2), Duration.ofMinutes(6)))
                 .spatial(new ProductSpec.Spatial("CONUS", 8, 0, 7, null))
                 .retention(new ProductSpec.RetentionLadder(
@@ -74,7 +74,7 @@ public class SyntheticRasterAdapter implements PollingAdapter {
                 .dtype(RasterDtype.I16)
                 .scaleOffset(0.01, 0.0)
                 .nodata(-32768.0)
-                .defaultStyle("test-wind@1")
+                .defaultStyle("wind-speed@1")
                 .temporal(ProductSpec.Temporal.forecast(Duration.ofHours(1), Duration.ofHours(3)))
                 .spatial(new ProductSpec.Spatial("CONUS", 6, 0))
                 .retention(ProductSpec.RetentionLadder.runs(2))

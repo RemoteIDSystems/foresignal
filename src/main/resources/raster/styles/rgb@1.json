@@ -1,0 +1,18 @@
+{
+  "id": "rgb",
+  "version": 1,
+  "type": "categorical",
+  "units": null,
+  "stops": [],
+  "categories": [],
+  "specials": [
+    {
+      "kind": "noData",
+      "color": "transparent",
+      "label": "No data"
+    }
+  ],
+  "meaning": [],
+  "passthrough": "rgba8",
+  "notice": "The frame's own colors (SatDump composites)"
+}

@@ -313,6 +313,15 @@ public final class ErrorCodes {
     /** 413: an image exceeds {@code foresignal.media.max-file-bytes}, default 25 MB (prompt 043; 054 uploads). */
     public static final String MEDIA_TOO_LARGE = "MEDIA_TOO_LARGE";
 
+    /** 400: a tile above the product's native max zoom or below its min zoom; clients overzoom (prompt 045). */
+    public static final String TILE_OUT_OF_RANGE = "TILE_OUT_OF_RANGE";
+
+    /** 400: a style name or version that is not registered (prompt 045). */
+    public static final String UNKNOWN_STYLE = "UNKNOWN_STYLE";
+
+    /** 503: the render queue could not start the render within 1.5 s; {@code Retry-After: 1} (prompt 045). */
+    public static final String RENDER_BUSY = "RENDER_BUSY";
+
     private static final String TYPE_PREFIX = "https://foresignal.ai/problems/";
 
     private ErrorCodes() {}

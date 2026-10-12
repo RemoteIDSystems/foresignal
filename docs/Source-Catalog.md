@@ -45,7 +45,7 @@ Roadmap prompts: `local-adsb-*` → 036, `transit-*` → 037, `gbfs-*` → 038, 
 | `radio-browser` | radio-station | `all.api.radio-browser.info/json/servers` → mirror `/json/stations/search?has_geo_info=true` | REST JSON | none | `server/providers/radio/catalog.js`, `src/sources/radioBrowser.js` | 6 h. Mirror discovery and failover. |
 | `nhc-cyclone-cones` | cyclone-track | NHC tropical MapServer layers (cone, track, points) | ArcGIS REST | none | `server/providers/cyclones.js` | Extends `nhc-cyclones`. |
 
-**Gridded products (prompt 058).** GFS/ECMWF wind (GRIB2 byte-range) is raster data, not records. Prompt 058 adds a separate "products" concept: the latest grid per model and cycle, served as binary. nowCOAST imagery stays a client concern.
+**Raster products (prompts 042–052; Weather-Imagery-Design §5).** MRMS, GOES, GFS and HRRR (later ECMWF) are raster data, not records: enabled, budgeted sources store native-grid frames, and Foresignal renders them itself into tiles, images, loops and legends under `/v1/products` (prompt 045). Each complete frame or forecast run is one `raster-frame` record version. GIBS and nowCOAST layers are `kind=external` catalog entries of the DERIVED source `external-catalogue`: listed by `/v1/products?kind=external` with their tile templates, fetched by clients directly, never proxied.
 
 **Not ingested (client concerns):** Google 3D Tiles, Esri, OSM/OpenFreeMap tiles, NASA GIBS, Mapillary tiles, TomTom flow tiles, terrain, geocoding (Photon/Nominatim/Google), routing (OSRM), Open-Meteo point weather, Google News RSS. Frontends call these directly.
 

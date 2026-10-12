@@ -187,6 +187,11 @@
         "version": "1.3.0",
         "date": "2026-10-12",
         "note": "044: history downsampling. SystemInfo.history.tiers[] gains downsampledLeaves and downsampledRows. RecordVersion.downsampled, RetentionSettings.trackRawWindow/trackDownsampleInterval, SourceSettings/SourceSettingsUpdate.downsampleInterval and TriggerTestResult.warnings (DOWNSAMPLED_RANGE) are now filled. No new operations."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-12",
+        "note": "045: getProductTile, getProductTileJson, getProductImage, getProductLoop, listStyles, getStyle, getProductLegend and getProductLegendPng are implemented. The problem-code registry gains TILE_OUT_OF_RANGE (400), UNKNOWN_STYLE (400) and RENDER_BUSY (503, Retry-After: 1). The 108 extensions (tileSize, tms, encoding, webp) are accepted by the routes but not served yet: format=webp answers 400 VALIDATION_FAILED. Products of the new DERIVED source external-catalogue carry their ExternalCatalogueEntry in Product.external. SystemRasters.renderQueue and renderBusyLastHour are filled; caches gain tile and index."
       }
     ]
   },
@@ -27301,7 +27306,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "045",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -27572,7 +27577,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "045",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -27918,7 +27923,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "045",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -28124,7 +28129,7 @@
             }
           },
           "401": {
-            "description": "Missing or invalid token",
+            "description": "Missing or invalid token; also a `place` loop without a token (places are never anonymous)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -28165,7 +28170,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "045",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -28258,7 +28263,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "045",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -28350,7 +28355,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "045",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -28493,7 +28498,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "045",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -28674,7 +28679,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "045",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -86363,6 +86368,23 @@
             "status": 413,
             "prompt": "043",
             "note": "Over foresignal.media.max-file-bytes (default 25 MB); returned by the 054 upload endpoints"
+          },
+          {
+            "code": "TILE_OUT_OF_RANGE",
+            "status": 400,
+            "prompt": "045",
+            "note": "Above the native max zoom or below the min zoom (clients overzoom), or outside the zoom tile range"
+          },
+          {
+            "code": "UNKNOWN_STYLE",
+            "status": 400,
+            "prompt": "045"
+          },
+          {
+            "code": "RENDER_BUSY",
+            "status": 503,
+            "prompt": "045",
+            "note": "Sent with Retry-After: 1 after the bounded 1.5 s render-queue wait"
           }
         ]
       },

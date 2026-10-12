@@ -48,6 +48,17 @@ class NoClientTriggeredFetchIT {
             "/v1/products/test-synth-obs",
             "/v1/products/test-synth-obs/frames",
             "/v1/products/test-synth-obs/frames/latest",
+            // Tiles, images, loops, styles and legends (prompt 045).
+            "/v1/products/test-synth-obs/tiles/latest/4/3/6.png",
+            "/v1/products/test-synth-obs/tiles/latest/4/3/6@2x.png",
+            "/v1/products/test-synth-obs/tilejson",
+            "/v1/products/test-synth-obs/image/latest.png?bbox=-100,28,-94,34",
+            "/v1/products/loop?products=test-synth-obs&bbox=-100,28,-94,34",
+            "/v1/products/gibs-goes-east-geocolor",
+            "/v1/styles",
+            "/v1/styles/nws-reflectivity@1",
+            "/v1/products/test-synth-obs/legend",
+            "/v1/products/test-synth-obs/legend.png",
             // The media store (prompt 043); an unknown id still runs the whole read path.
             "/v1/media/01JA8Q3V7S2K9W4T6Y1B5N0M3C",
             "/v1/media/01JA8Q3V7S2K9W4T6Y1B5N0M3C/thumbnail?w=256",

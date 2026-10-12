@@ -137,7 +137,7 @@ class RasterPipelineIT {
             assertThat(node.get("productId").asString()).isEqualTo(OBS);
             assertThat(node.get("frameKey").asString()).matches("^[0-9]{8}T[0-9]{6}Z~[0-9a-f]{8}$");
             assertThat(node.get("tiles").asString()).contains("/v1/products/" + OBS + "/tiles/")
-                    .contains("{z}/{x}/{y}.png?style=test-reflectivity@1");
+                    .contains("{z}/{x}/{y}.png?style=nws-reflectivity@1");
             assertThat(node.get("bounds").size()).isEqualTo(4);
             assertThat(node.get("expiresAt").asString()).isNotBlank();
         }

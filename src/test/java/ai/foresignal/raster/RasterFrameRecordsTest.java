@@ -74,7 +74,7 @@ class RasterFrameRecordsTest {
         assertThat(full.payload().get("steps")).isEqualTo(List.of(0, 1));
         assertThat((String) full.payload().get("tilesTemplate"))
                 .isEqualTo("https://fs.example/v1/products/" + spec.id() + "/tiles/{timeKey}/{z}/{x}/{y}.png"
-                        + "?style=test-wind@1&run=2026-10-10T12:00:00Z");
+                        + "?style=wind-speed@1&run=2026-10-10T12:00:00Z");
         NormalizedRecord partial = RasterFrameRecords.partialRun(spec, run, List.of(row(null, run, 0)), BOUNDS, "");
         assertThat(partial.externalId()).isEqualTo(spec.id() + ":partial");
         assertThat(partial.payload()).containsEntry("partial", true);

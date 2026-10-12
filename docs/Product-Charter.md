@@ -62,7 +62,7 @@ Open-source situational-awareness projects (ShadowBroker, God's Eye View, Veloci
 - Analysing private individuals, or accusing anyone of wrongdoing. Market findings describe aggregate activity only.
 - Sending email or chat messages other than notifications the operator configured.
 - Horizontal scale-out or clustering (single instance by design).
-- Hosting or proxying basemaps and imagery (Esri, GIBS, Google 3D Tiles, OSM tiles are fetched by clients directly).
+- Proxying basemaps or third-party tiles. Foresignal hosts products derived from data it ingests; it never proxies basemaps or third-party tiles (GIBS and nowCOAST are external catalog entries clients fetch directly; Esri, Google 3D Tiles and OSM tiles are likewise fetched by clients).
 - Fringe and specialist source adapters in the core (web maps, scrapers, browser automation, prediction markets, niche feeds). They are separate projects that speak the [External Data Protocol](External-Data-Protocol.md); Foresignal accepts whatever the operator connects and does not police that choice.
 - Real-time sub-second latency guarantees.
 
@@ -221,7 +221,7 @@ Open-source situational-awareness projects (ShadowBroker, God's Eye View, Veloci
 
 ### 8.17 Derived layers, products and provenance
 - **FR-54** Derived sources compute layers from stored records (GPS jamming cells, AIS gaps, loitering, rendezvous, deception checks, holding patterns) and publish them as ordinary records.
-- **FR-55** Gridded weather products (GFS/ECMWF wind) are fetched by GRIB2 byte range and served through a products API.
+- **FR-55** Radar, satellite and model products (MRMS, GOES, GFS, HRRR and later ECMWF) are ingested by enabled, budgeted sources (GRIB2 by byte range, NetCDF and S3 objects), stored as native-grid frames, and rendered by Foresignal itself into WebMercator tiles, single images, animation loops and legends through a products API (`/v1/products`). No client request ever causes an upstream fetch; external layers (GIBS, nowCOAST) are catalog entries clients fetch directly.
 - **FR-56** Each record carries licence and provenance metadata. Clients can request licence-filtered responses, and attributions are aggregated per response.
 - **FR-57** The adapter doctor uses the LLM to diagnose a failing source: it probes the upstream, compares the result with the fixture, explains what changed and proposes a parser fix.
 

@@ -56,7 +56,7 @@ Individuals: OSINT hobbyists, analysts, researchers, makers and developers who w
 | REST, GeoJSON, vector tiles, SSE, MCP; OpenAPI-first; Postman collection | Horizontal scale-out (single instance by design) |
 | Optional LLM: Ask, briefings, enrichment, semantic search, adapter doctor | Training or fine-tuning neural models |
 | Intelligence layer: discovery, situations, base rates, rolling hypotheses, forecast ledger, assessments | Analysis of private individuals; accusations |
-| Derived layers, gridded weather products, licence and provenance tracking | Hosting basemaps or imagery (clients fetch tiles directly) |
+| Derived layers, self-rendered radar, satellite and model products, licence and provenance tracking | Proxying basemaps or third-party tiles (Foresignal hosts only products derived from data it ingests; GIBS and nowCOAST are catalog entries clients fetch directly) |
 
 ## Key decisions
 

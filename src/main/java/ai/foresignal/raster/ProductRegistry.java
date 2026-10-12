@@ -167,6 +167,9 @@ public class ProductRegistry implements IngestStateReset {
         if (spec.defaultStyle() != null && !spec.styles().isEmpty() && !spec.styles().contains(spec.defaultStyle())) {
             out.add(p + ": the default style must be one of its styles");
         }
+        if (!ProductSpec.RESAMPLES.contains(spec.resample())) {
+            out.add(p + ": resample must be one of " + ProductSpec.RESAMPLES);
+        }
         if (spec.defaultOpacity() != null && (spec.defaultOpacity() < 0 || spec.defaultOpacity() > 1)) {
             out.add(p + ": defaultOpacity must be between 0 and 1");
         }

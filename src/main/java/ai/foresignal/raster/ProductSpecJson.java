@@ -65,6 +65,7 @@ public final class ProductSpecJson {
         }
         put(out, "coverageMeaning", spec.coverageMeaning());
         put(out, "legendSummary", spec.legendSummary());
+        put(out, "resample", spec.resample());
         return out;
     }
 

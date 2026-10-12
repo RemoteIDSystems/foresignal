@@ -55,17 +55,20 @@ public class ProductCatalogService {
     private final FrameResolver resolver;
     private final ProductStatusTracker status;
     private final ObjectProvider<HealthService> health;
+    private final ObjectProvider<ExternalCatalog> external;
     private final Clock clock;
 
     /** Creates the service. */
     public ProductCatalogService(ProductRegistry registry, RasterFrameQueries frames, GridStore grids,
-            FrameResolver resolver, ProductStatusTracker status, ObjectProvider<HealthService> health, Clock clock) {
+            FrameResolver resolver, ProductStatusTracker status, ObjectProvider<HealthService> health,
+            ObjectProvider<ExternalCatalog> external, Clock clock) {
         this.registry = registry;
         this.frames = frames;
         this.grids = grids;
         this.resolver = resolver;
         this.status = status;
         this.health = health;
+        this.external = external;
         this.clock = clock;
     }
 
@@ -168,8 +171,10 @@ public class ProductCatalogService {
         out.put("spatial", spatial(spec));
         if (spec.defaultStyle() != null || !spec.styles().isEmpty()) {
             Map<String, Object> render = new LinkedHashMap<>();
-            render.put("defaultStyle", spec.defaultStyle() != null ? spec.defaultStyle() : spec.styles().get(0));
-            render.put("styles", spec.styles().isEmpty() ? List.of(spec.defaultStyle()) : spec.styles());
+            render.put("defaultStyle", ProductUrls.styleParam(spec));
+            List<String> styles = spec.styles().isEmpty() ? List.of(spec.defaultStyle()) : spec.styles();
+            render.put("styles", styles.stream()
+                    .map(st -> ai.foresignal.raster.render.StyleRegistry.shipped().versioned(st)).toList());
             if (spec.defaultOpacity() != null) {
                 render.put("defaultOpacity", spec.defaultOpacity());
             }
@@ -183,7 +188,9 @@ public class ProductCatalogService {
         if (spec.attribution() != null) {
             out.put("attribution", ProductSpecJson.attribution(spec.attribution()));
         }
-        out.put("external", null);
+        ExternalCatalog catalog = spec.isExternal() ? external.getIfAvailable() : null;
+        out.put("external", catalog == null ? null
+                : catalog.find(spec.id()).map(ExternalCatalog.Entry::document).orElse(null));
         Map<String, Object> links = new LinkedHashMap<>();
         links.put("self", ProductUrls.product(base, spec.id()));
         links.put("frames", ProductUrls.frames(base, spec.id()));
@@ -199,8 +206,10 @@ public class ProductCatalogService {
         Map<String, Object> t = new LinkedHashMap<>();
         ProductSpec.Temporal temporal = spec.temporal();
         t.put("type", temporal == null ? ProductSpec.Temporal.OBSERVATION : temporal.type());
-        t.put("cadence", temporal == null ? null : ProductSpecJson.format(temporal.cadence()));
-        t.put("maxGap", temporal == null ? null : ProductSpecJson.format(maxGap(spec)));
+        if (temporal != null) {
+            t.put("cadence", ProductSpecJson.format(temporal.cadence()));
+            t.put("maxGap", ProductSpecJson.format(maxGap(spec)));
+        }
         if (spec.isExternal()) {
             return t;
         }
@@ -367,7 +376,12 @@ public class ProductCatalogService {
         return f;
     }
 
-    private void requireAvailable(ProductRegistry.Registered product) {
+    /**
+     * Refuses a disabled product.
+     *
+     * @throws ForesignalException {@code 503 PRODUCT_UNAVAILABLE}
+     */
+    public void requireAvailable(ProductRegistry.Registered product) {
         status.disabled(product.id()).ifPresent(r -> {
             throw new ForesignalException(HttpStatus.SERVICE_UNAVAILABLE, ErrorCodes.PRODUCT_UNAVAILABLE,
                     "Product " + product.id() + " is disabled: " + r.reason());

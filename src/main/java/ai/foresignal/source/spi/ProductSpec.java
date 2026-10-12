@@ -41,6 +41,8 @@ import java.util.TreeMap;
  * @param attribution the structured attribution clients must render
  * @param coverageMeaning a one-line meaning of the coverage, or null for the default text
  * @param legendSummary a short legend text, or null
+ * @param resample how tiles sample the native grid: {@value #RESAMPLE_NEAREST} (default; codes and
+ *     categories) or {@value #RESAMPLE_BILINEAR} (continuous model fields, prompt 045)
  */
 public record ProductSpec(
         String id,
@@ -62,7 +64,8 @@ public record ProductSpec(
         RetentionLadder retention,
         Attribution attribution,
         String coverageMeaning,
-        String legendSummary) {
+        String legendSummary,
+        String resample) {
 
     /** The record kind every frame of every product is published as. */
     public static final String RECORD_KIND = "raster-frame";
@@ -82,6 +85,15 @@ public record ProductSpec(
     /** Every category. */
     public static final Set<String> CATEGORIES = Set.of("radar", "satellite", "model", "lightning", "imagery");
 
+    /** Nearest-cell sampling (the default). */
+    public static final String RESAMPLE_NEAREST = "nearest";
+
+    /** Bilinear sampling of physical values, for continuous fields. */
+    public static final String RESAMPLE_BILINEAR = "bilinear";
+
+    /** Every resampling mode. */
+    public static final Set<String> RESAMPLES = Set.of(RESAMPLE_NEAREST, RESAMPLE_BILINEAR);
+
     /** Ids that would collide with fixed routes under {@code /v1/products}. */
     public static final Set<String> RESERVED_IDS = Set.of("timeline", "loop");
 
@@ -95,6 +107,7 @@ public record ProductSpec(
         codes = codes == null ? Map.of() : Collections.unmodifiableMap(new TreeMap<>(codes));
         bands = bands == null ? List.of() : List.copyOf(bands);
         styles = styles == null ? List.of() : List.copyOf(styles);
+        resample = resample == null || resample.isBlank() ? RESAMPLE_NEAREST : resample;
     }
 
     /**
@@ -103,7 +116,7 @@ public record ProductSpec(
      */
     public ProductSpec(String id, String title, String kind) {
         this(id, title, kind, null, null, null, 1.0, 0.0, null, null, null, null, null, null, null, null, null,
-                null, null, null);
+                null, null, null, null);
     }
 
     /** A builder pre-filled with {@code id}. */
@@ -119,6 +132,11 @@ public record ProductSpec(
     /** True for an external, client-direct catalog entry, which never has frames. */
     public boolean isExternal() {
         return KIND_EXTERNAL.equals(kind);
+    }
+
+    /** True when tiles sample bilinearly. */
+    public boolean bilinear() {
+        return RESAMPLE_BILINEAR.equals(resample);
     }
 
     /** The number of bands each frame holds (at least 1). */
@@ -306,6 +324,7 @@ public record ProductSpec(
         private Attribution attribution;
         private String coverageMeaning;
         private String legendSummary;
+        private String resample;
 
         private Builder(String id) {
             this.id = id;
@@ -426,11 +445,17 @@ public record ProductSpec(
             return this;
         }
 
+        /** The tile resampling mode ({@value ProductSpec#RESAMPLE_NEAREST} by default). */
+        public Builder resample(String resample) {
+            this.resample = resample;
+            return this;
+        }
+
         /** Builds the spec. */
         public ProductSpec build() {
             return new ProductSpec(id, title, kind, category, units, dtype, scale, offset, nodata, codes, bands,
                     styles, defaultStyle, defaultOpacity, temporal, spatial, retention, attribution, coverageMeaning,
-                    legendSummary);
+                    legendSummary, resample);
         }
     }
 }

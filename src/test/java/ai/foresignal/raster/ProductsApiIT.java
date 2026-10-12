@@ -114,15 +114,17 @@ class ProductsApiIT {
         assertThat(obs.get("temporal").get("retention").get("summary").asString())
                 .isEqualTo("every frame for 6h, then 10m frames to 48h");
         assertThat(obs.get("spatial").get("bounds").toString()).isEqualTo("[-100.0,28.0,-94.0,34.0]");
-        assertThat(obs.get("render").get("defaultStyle").asString()).isEqualTo("test-reflectivity@1");
+        assertThat(obs.get("render").get("defaultStyle").asString()).isEqualTo("nws-reflectivity@1");
         assertThat(obs.get("attribution").get("licence").asString()).isEqualTo("US-PD");
         assertThat(obs.get("codes").get("1").asString()).isEqualTo("noEcho");
         assertThat(obs.get("links").get("frames").asString()).endsWith("/v1/products/" + OBS + "/frames");
         assertThat(obs.get("status").get("stale").asBoolean()).isFalse();
 
-        assertThat(body(get("/v1/products?category=model")).get("items")).hasSize(1);
-        assertThat(body(get("/v1/products?category=model")).get("items").get(0).get("id").asString()).isEqualTo(FCST);
-        assertThat(body(get("/v1/products?q=REFLECT")).get("items")).hasSize(1);
+        // The 045 external catalog adds model and radar entries of its own source; filter to ours.
+        assertThat(body(get("/v1/products?category=model&source=" + SOURCE)).get("items")).hasSize(1);
+        assertThat(body(get("/v1/products?category=model&source=" + SOURCE)).get("items").get(0).get("id").asString())
+                .isEqualTo(FCST);
+        assertThat(body(get("/v1/products?q=REFLECT&source=" + SOURCE)).get("items")).hasSize(1);
         assertThat(body(get("/v1/products?source=nope")).get("items")).isEmpty();
         assertThat(body(get("/v1/products?bbox=10,10,20,20")).get("items").size())
                 .as("only products whose bounds meet the box").isLessThan(page.get("items").size());
@@ -177,7 +179,7 @@ class ProductsApiIT {
         assertThat(newest.get("frameKey").asString()).startsWith("20261010T140000Z~");
         assertThat(newest.get("tiles").asString())
                 .isEqualTo("http://localhost:" + port + "/v1/products/" + OBS + "/tiles/" + newest.get("frameKey").asString()
-                        + "/{z}/{x}/{y}.png?style=test-reflectivity@1");
+                        + "/{z}/{x}/{y}.png?style=nws-reflectivity@1");
         assertThat(newest.get("image").asString()).contains("{bbox}").contains("{width}").contains("{height}");
         assertThat(page.get("prefetch").get("recommendedFrames").asInt()).isEqualTo(12);
         assertThat(page.get("prefetch").get("maxZoomForAnimation").asInt()).isEqualTo(7);

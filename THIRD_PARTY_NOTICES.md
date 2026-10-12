@@ -195,3 +195,39 @@ Foresignal bundles two files generated from public datasets and downloads the re
 - **Attribution:** "Place names from GeoNames (https://www.geonames.org/), CC BY 4.0". It is shown in
   `GET /v1/reference` and in every response field derived from a nearest place (`RegionTags.attribution`,
   GeoJSON `properties.nearAttribution`).
+
+## Color ramps of the raster styles (prompt 045)
+
+The style files under `src/main/resources/raster/styles/` sample nine evenly spaced colors from two published
+scientific colormaps. Each style's `notice` field names its origin.
+
+### viridis
+
+- **Used by:** `wind-speed@1`.
+- **Source:** the `_viridis_data` table of matplotlib's `lib/matplotlib/_cm_listed.py`
+  (<https://github.com/matplotlib/matplotlib>); "mpl-colormaps by Nathaniel Smith & Stefan van der Walt"
+  (<https://github.com/BIDS/colormap>).
+- **License:** CC0 1.0 Universal. "To the extent possible under law, the persons who associated CC0 with
+  mpl-colormaps have waived all copyright and related or neighboring rights to mpl-colormaps."
+
+### cmocean
+
+- **Used by:** `temperature@1` (`thermal`) and `smoke@1` (`matter`).
+- **Source:** `cmocean/rgb/thermal-rgb.txt` and `cmocean/rgb/matter-rgb.txt` of
+  <https://github.com/matplotlib/cmocean>, fetched 2026-10-12.
+- **License:** MIT License, Copyright (c) 2015 Kristen M. Thyng.
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+  documentation files (the "Software"), to deal in the Software without restriction, including without
+  limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+  Software, and to permit persons to whom the Software is furnished to do so, subject to the following
+  conditions:
+
+  The above copyright notice and this permission notice shall be included in all copies or substantial portions
+  of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
+  TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+  THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+  CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+  DEALINGS IN THE SOFTWARE.

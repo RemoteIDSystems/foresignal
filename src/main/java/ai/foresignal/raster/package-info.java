@@ -11,6 +11,8 @@
  * and triggers work with no raster-specific distribution code. No client request ever causes an
  * upstream fetch: frames arrive only from enabled, budgeted sources.
  *
- * <p>Prompt 045 adds {@code raster.render} (tiles, styles, legends) and 052 {@code raster.sample}.
+ * <p>Prompt 045 adds the grid projections ({@link ai.foresignal.raster.GridDef}), the client-direct
+ * external catalog ({@link ai.foresignal.raster.ExternalCatalog}) and {@code raster.render} (tiles,
+ * styles, legends); 052 adds {@code raster.sample}.
  */
 package ai.foresignal.raster;

@@ -1,0 +1,79 @@
+{
+  "id": "temperature",
+  "version": 1,
+  "type": "continuous",
+  "units": "K",
+  "stops": [
+    {
+      "value": 233.15,
+      "color": "#042333",
+      "label": null
+    },
+    {
+      "value": 244.4,
+      "color": "#19337c",
+      "label": null
+    },
+    {
+      "value": 255.65,
+      "color": "#563b9c",
+      "label": null
+    },
+    {
+      "value": 266.9,
+      "color": "#83508f",
+      "label": null
+    },
+    {
+      "value": 278.15,
+      "color": "#b15f82",
+      "label": null
+    },
+    {
+      "value": 289.4,
+      "color": "#de7065",
+      "label": null
+    },
+    {
+      "value": 300.65,
+      "color": "#f99242",
+      "label": null
+    },
+    {
+      "value": 311.9,
+      "color": "#f9c441",
+      "label": null
+    },
+    {
+      "value": 323.15,
+      "color": "#e8fa5b",
+      "label": null
+    }
+  ],
+  "categories": [],
+  "specials": [
+    {
+      "kind": "noCoverage",
+      "color": "transparent",
+      "label": "No coverage"
+    },
+    {
+      "kind": "noData",
+      "color": "transparent",
+      "label": "No data"
+    }
+  ],
+  "meaning": [
+    {
+      "min": null,
+      "max": 273.15,
+      "text": "Below freezing"
+    },
+    {
+      "min": 308.15,
+      "max": null,
+      "text": "Above 35 °C: heat stress"
+    }
+  ],
+  "notice": "cmocean 'thermal' colormap, MIT License, Copyright (c) 2015 Kristen M. Thyng"
+}

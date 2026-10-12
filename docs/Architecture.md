@@ -38,6 +38,8 @@ Foresignal is a single Spring Boot process backed by one PostgreSQL database wit
 
 **Key principle:** the *only* thing that causes an upstream request is an enabled source in `source_settings` (or an explicit operator fetch/probe). Nothing a client reads or streams ever reaches the collector. The same holds for the LLM: nothing calls a model except an explicit Ask, a scheduled briefing, an enrichment-enabled rule, or the embedding worker for sources configured to embed. All of these are budgeted like sources.
 
+**No client request ever causes an upstream fetch** (prompt 045; Weather-Imagery-Design §0.1): not tiles, samples, media, maps or SatDump polar plots. Upstream data is pulled only by enabled, budgeted sources on their own schedule; Foresignal hosts the products it derives from what it ingested, and never proxies basemaps or third-party tiles.
+
 ## 2. Technology stack
 
 | Concern | Choice | Notes |
@@ -95,9 +97,10 @@ ai.foresignal
 ├── retention       RetentionSettings, RetentionJob
 ├── raster          Product catalog (ProductSpec, ProductRegistry), FrameStore and the .fsg codec
 │                   (ElgCodec), GridStore, the raster pipeline behind ctx.rasters(), FrameResolver,
-│                   frame-age health, RasterRetentionStep (042)
-│   ├── render      TileRenderer, IndexMapCache, RenderQueue, StyleRegistry, LegendService,
-│   │               LoopService, MapRenderer (045)
+│                   frame-age health, RasterRetentionStep (042); GridDef projections and the
+│                   external catalog with its DERIVED source external-catalogue (045)
+│   ├── render      TileRenderer, IndexMapCache, TileCache, RenderQueue, RasterCachePolicy,
+│   │               StyleRegistry, LegendService, LoopService, TileWarmer (045); MapRenderer (055)
 │   └── sample      Point and area sampling of frames (052)
 ├── place           Named places, the area of interest, moving anchors (036)
 ├── derive          The DERIVED-source runtime: generators fed by the change bus or frame events,
@@ -910,3 +913,15 @@ Authoritative design: [Intelligence Design](Intelligence-Design.md). Summary of 
 - **Invariants** are indexed in [Invariants](Invariants.md) and verified at every checkpoint.
 - **Wording:** probabilities are numbers; ICD 203 terms are derived and linted by one `EstimativeLanguage` utility.
 - **Libraries:** Apache Commons Statistics, Commons Numbers, Commons RNG and Hipparchus; no GPL statistics libraries.
+
+## 28. Raster products (prompt 045)
+
+Authoritative design: [Weather & Imagery Design](Weather-Imagery-Design.md) §0.1, §2.3, §3, §6.1, §6.3. Prompt 042 stores frames; this section is how they are served.
+
+- **Grids** (`ai.foresignal.raster.GridDef`, sealed): `LatLonGrid` (regular lat/lon; `lo1/la1/dx/dy` or the definition's box; global grids wrap), `GeosGrid` (the GOES-R ABI fixed grid / CGMS normalized geostationary projection; `lon0`, `h`, `a`, `b` GRS80 by default, `sweep` x or y, scan angles `x0/dx/y0/dy`; off-disc points are NaN), `LccGrid` (spherical Lambert conformal conic, HRRR; `lat1`, `lat2`, `lov`, `radius`, `la1/lo1` of the south-west cell, `dx/dy`), `AffineGrid` (GDAL geotransform `gt0..gt5` in EPSG:4326 or 3857). Every parameter comes from `raster_grid.definition`; no GeoTools, no proj4j. Index coordinates put cell centers on integers, rows north to south.
+- **Renderer** (`ai.foresignal.raster.render`): WebMercatorQuad, 256 px tiles and `@2x` 512 px for the same extent. `IndexMapCache` (Caffeine, byte-weighed, `foresignal.raster.index-cache-mb`) maps `(grid, z, x, y, scale)` to the source cell of each output pixel (four cells and weights for `resample: bilinear` products). A render gathers band-0 codes through the map, maps them to palette indices through the compiled style, and writes PNG-8 (`IndexColorModel` with alpha, written as `tRNS`; rgba8 passthrough writes 32-bit PNG). `TileCache` (`foresignal.raster.tile-cache-mb`) holds encoded tiles keyed `(product, frameKey, style@v, z/x/y@scale)`. Zooms outside `[minZoom, nativeMaxZoom]` are `400 TILE_OUT_OF_RANGE`; an empty or out-of-bounds tile is one shared transparent PNG with a fixed ETag (`?empty=204` opts into 204). Images (`/image`, up to 2048 px, EPSG:3857 or 4326, bounds snapped outward to 0.01° and returned in `Foresignal-Image-Bounds`) and loops (`/loop`, up to 24 `/image` URLs over one snapped box; one forecast run per product, never mixed) use the same path.
+- **Styles** (`StyleRegistry`): `src/main/resources/raster/styles/{name}@{version}.json`, each compiled per product to at most 256 colors (entry 0 transparent) and a code table (u8 256 entries, u16/i16 65,536; f32 computed per pixel). Product special codes (`noCoverage`, `noEcho`, `noData`) take the style's special colors. Only registered names are accepted (`400 UNKNOWN_STYLE`); a bare name resolves to the current version and is not content-addressed. TileJSON, frames, `/loop` and SSE payloads always carry `name@v`. Legends: JSON (with unit conversion) and a Java2D PNG in the logical `SansSerif` font.
+- **Cache policy** (`RasterCachePolicy`, one rule for every raster route): content-addressed URLs (`{timeKey}~{sha8}`, `name@v`, a pinned forecast `run`, a complete frame) are `{public|private}, max-age=31536000, immutable`; everything else is `max-age=min(cadence/2, 60s)` with an ETag checked before rendering and `Foresignal-Frame-Time`. `public` only when `openReads` covers the path and the source is not private. A stale `sha8` is `404 UNKNOWN_FRAME` with a `Link` to the current key; an expired frame is `410 FRAME_EXPIRED`, or the transparent tile with `Foresignal-Frame-Expired: true` under `?onExpired=transparent`.
+- **Render queue** (`RenderQueue`): a platform pool of `foresignal.raster.render-pool` threads; priority warming > interactive > prefetch (`Foresignal-Prefetch: 1` or `?prefetch=1`); round-robin per client (token, else IP); single-flight per cache key; a caller waits at most 1.5 s, then `503 RENDER_BUSY` with `Retry-After: 1`. `/v1/system` `rasters.renderQueue` and `renderBusyLastHour` report it.
+- **Warming** (`TileWarmer`): each committed complete frame queues its tiles over the places-AOI envelope (036 `PlacesAoiService`, or `weather.defaultAoi`) from the min zoom to `maxZoomForAnimation`, at 1× and 2×, at most 512 per frame.
+- **External catalog**: `src/main/resources/raster/external-catalog.json` seeds `kind=external` products of the DERIVED source `external-catalogue` (GIBS WMTS and nowCOAST WMS; `externalTemplate`, tiling scheme, tile size, native max zoom, bounds, time dimension, attribution). Tile and image routes refuse them with `400 VALIDATION_FAILED`; nothing fetches them.
