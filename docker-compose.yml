@@ -3,6 +3,9 @@
 #   docker compose up -d        # database and broker
 #   docker compose up -d db     # database only, for local development
 #                               # (then run the app from your IDE or ./gradlew bootRun)
+#   TS_AUTHKEY=tskey-... docker compose --profile tailscale up -d
+#                               # adds HTTPS on the tailnet through Tailscale Serve
+#                               # (docs/Operator-Guide.md, "Remote access and TLS")
 services:
   db:
     image: postgis/postgis:17-3.5
@@ -56,6 +59,28 @@ services:
       start_period: 120s
     restart: unless-stopped
 
+  # Remote access over the operator's tailnet (021). Only started with
+  # --profile tailscale. Tailscale Serve terminates HTTPS for
+  # https://foresignal.<tailnet>.ts.net and proxies to the broker over the
+  # compose network, so the broker's own port can stay on 127.0.0.1. No
+  # hostname: is set, so the name "foresignal" resolves to the broker.
+  tailscale:
+    image: tailscale/tailscale:v1.102.5
+    profiles: ["tailscale"]
+    environment:
+      # An auth key from the Tailscale admin console; never commit it.
+      TS_AUTHKEY: ${TS_AUTHKEY:-}
+      TS_HOSTNAME: foresignal
+      TS_STATE_DIR: /var/lib/tailscale
+      TS_SERVE_CONFIG: /config/serve.json
+    volumes:
+      - tailscale-state:/var/lib/tailscale
+      - ./docker/tailscale:/config:ro
+    depends_on:
+      - foresignal
+    restart: unless-stopped
+
 volumes:
   pgdata:
   foresignal-data:
+  tailscale-state:

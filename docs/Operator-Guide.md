@@ -3,6 +3,34 @@
 How to run and tune a Foresignal instance through its API. Later prompts add sections for their
 features. Every write below needs the admin token: `Authorization: Bearer fsr_…`.
 
+The [README](../README.md) has the five-minute quickstart. This guide covers everything after it:
+the token, sources, policies and retention, triggers and channels, streaming for frontends, and
+running the host (storage, clock, binds, remote access, mDNS, backups and troubleshooting).
+
+## First start and the admin token
+
+`docker compose up -d` starts PostGIS and the broker. On the first start the broker generates an
+admin token and prints it **once**, in a delimited block:
+
+```sh
+docker compose logs foresignal | grep -A3 "FORESIGNAL ADMIN TOKEN"
+```
+
+The token starts with `fsr_`. Only its SHA-256 hash is stored, so it cannot be shown again: put it
+in a password manager. Send it as `Authorization: Bearer fsr_…`.
+
+- **Rotate** (you still have the token): `POST /v1/system/admin-token/rotate` returns a new token
+  once; the old one stops working immediately.
+- **Reset** (you lost it): restart once with `FORESIGNAL_RESET_ADMIN_TOKEN=true`
+  (for example `FORESIGNAL_RESET_ADMIN_TOKEN=true docker compose up -d foresignal` after adding the
+  variable to the service's `environment`), read the new token from the log, then remove the
+  variable again, or every restart replaces the token.
+
+Data reads (`GET` of records, changes, tiles and alerts, and the streams) need no token while the
+`security` setting's `openReads` is on, which is the default on a trusted network. Every write, the
+fetch log and `/v1/system`'s full document need the token. Scoped read and agent tokens arrive in
+prompt 023.
+
 ## Sources
 
 A source is one upstream feed, such as `usgs-earthquakes`. Every source is installed **disabled**.
@@ -31,6 +59,30 @@ PUT /v1/sources/usgs-earthquakes
 Omitted fields are left unchanged. A source that needs credentials returns `409 CREDENTIALS_REQUIRED`
 until you store them with `PUT /v1/sources/{id}/credentials`.
 
+### Credentials and budgets
+
+- **Credentials:** `PUT /v1/sources/{id}/credentials` with the fields the descriptor lists under
+  `credentialFields` (for example `{"apiKey": "…"}`). They are encrypted with AES-256-GCM under the key
+  in `${FORESIGNAL_DATA_DIR}/secret.key` and are never returned; a source only shows
+  `credentialsSet: true`. `DELETE` removes them.
+- **Budgets:** every source has a request budget (`budget.perMinute`, `budget.perDay`) that the
+  broker never exceeds. A refused request is logged as a `REFUSED` fetch row, a manual fetch over
+  budget answers `429`, and the scheduler simply waits. Scheduled polls, manual fetches and probes
+  all spend the same budget. `budgetUsedToday` is in `GET /v1/sources`; the day is the UTC day.
+- **Interval:** `interval` (shorthand such as `60s`, `5m`, `1h`, or ISO-8601) cannot go below the
+  descriptor's minimum. An enable or interval change applies within seconds; the first poll after
+  an enable is immediate.
+
+### Health, usage and the fetch log at a glance
+
+| Question | Call |
+|---|---|
+| Is it working? | `GET /v1/sources/{id}/health`: `status` (`healthy`, `degraded`, `failing`, `idle`, `disabled`), `statusReason`, `lastSuccessAt`, `lastError`, `consecutiveFailures`, `coverage` and `storage` |
+| Which sources need attention? | `GET /v1/sources/health?status=failing,degraded` |
+| How much is it costing upstream? | `GET /v1/sources/{id}/usage?resolution=hour` (requests, bytes, errors, refused, records seen, versions, touches) |
+| What did each fetch do? | `GET /v1/sources/{id}/fetches` (below) |
+| What does the upstream send right now? | `POST /v1/sources/{id}/probe` (a diagnostic fetch that never ingests) |
+
 ### History tiers
 
 Each source's descriptor fixes its `historyTier`:
@@ -43,6 +95,12 @@ Each source's descriptor fixes its `historyTier`:
   `400 RETENTION_TIER_FIXED`; change `retention.trackWindow` instead.
 
 `settings.effectiveRetention` shows the window in force for either tier.
+
+**Why TRACK refuses a per-source window.** TRACK history lives in partitions shared by every TRACK
+source and is removed by dropping whole partitions, never row by row: that is what keeps millions of
+positions a day cheap. A partition can only be dropped when every source in it agrees, so there is
+exactly one window for all of them. STANDARD history is deleted row by row and can therefore follow
+each source's and each kind's own window.
 
 ### Ingest policies
 
@@ -74,6 +132,22 @@ Send `"ingestPolicy": null` to go back to the descriptor default. The rules (Cor
 A policy that breaks a rule returns `400 INGEST_POLICY_INVALID`. Every violation is listed in
 `errors[]` with its field, for example `ingestPolicy.keyframe`.
 
+**Keyframes.** A keyframe is a version stored even though nothing significant changed, so history
+always has a recent full picture of every entity: `keyframe` sets how often (for a source with a
+TTL the default is `ttl − pollInterval − 30s`; `none` without a TTL). Separately, the **retention
+keyframe** stores a fresh version of any entity still being observed once a quarter of its retention
+window has passed since its last stored version, so retention can never delete the only version of
+something that is still current. It adds well under 1% on STANDARD sources.
+
+**What is not stored still counts.** An observation that is not persisted still updates live state
+(`record_live`) and the `live` and `touch` stream events. An identical re-observation is a *touch*:
+it moves `observedAt` and `lastReceivedAt` without a version, at most once per `touchMin` (one
+hour without a TTL, else a tenth of the TTL between 30 s and 1 h). The fetch row's `touches`,
+`versionsWritten` and per-reason counts show exactly what each fetch did.
+
+**Defaults** (Core-Data-Model §5.3): aircraft, vessels and transit are `SAMPLED` on the TRACK tier
+with family-specific intervals, deviations and thresholds; everything else is `ALL` on STANDARD.
+
 ### The fetch log
 
 `GET /v1/sources/{id}/fetches` lists one row per fetch, stream flush or push batch, newest first.
@@ -102,6 +176,62 @@ Source health includes `storage`, which shows what the source costs:
 `budgetHoursRemaining` is how many hours today's request budget lasts at the last hour's rate. It is
 `null` when nothing was requested in the last hour. If it is low early in the UTC day, lengthen the
 `interval` or raise `budget.perDay`.
+
+## Triggers and alerts
+
+A trigger rule watches the change stream and opens an alert when a stored version matches. Rules live
+under `/v1/triggers`; `POST /v1/triggers/{id}/test` backtests a rule against stored history without
+alerting.
+
+**A magnitude threshold** that opens one alert when a quake reaches M 6 and closes it on its own when a
+revision takes it below:
+
+```json
+POST /v1/triggers
+{"name": "Big quake", "sources": ["usgs-earthquakes"], "mode": "enter", "autoResolve": true,
+ "conditions": [{"path": "mag", "op": ">=", "value": 6}],
+ "messageTemplate": "M{{payload.mag}} {{payload.place}}", "severity": "warning"}
+```
+
+**A geofence** (GeoJSON Polygon or MultiPolygon in WGS 84; a LineString with `bufferMeters` becomes
+a corridor) that alerts when a vessel enters a harbor and again when it leaves:
+
+```json
+POST /v1/triggers
+{"name": "Harbor entry", "sources": ["aisstream"], "mode": "enter", "autoResolve": true,
+ "geofence": {"type": "Polygon", "coordinates": [[[-97.40, 27.80], [-97.30, 27.80],
+              [-97.30, 27.86], [-97.40, 27.86], [-97.40, 27.80]]]},
+ "hysteresisMeters": 200, "cooldown": "30m"}
+```
+
+- **Conditions** are ANDed; operators include `>`, `>=`, `<`, `<=`, `==`, `!=`, `in`, `notIn`,
+  `exists`, `matches` (a safe regex subset) and length tests. Paths are payload fields; volatile
+  fields (such as USGS `updated`) are refused, because they never cause a version.
+- **Mode:** `match` alerts on every matching version; `enter` when a version matches and the
+  previous one did not (a new entity counts as entering); `exit` the reverse. With
+  `autoResolve: true` an `enter` alert resolves on the exit edge, on a tombstone, or when the
+  entity's live row expires. `hysteresisMeters` keeps a position jittering on a fence edge from
+  flapping.
+- **Cooldown** (`cooldown`, per entity or per rule with `cooldownScope: "rule"`) is measured on the
+  observation time, so a burst of late data cannot fire a rule twice. `maxAlertsPerHour` caps a
+  storm (default 120); `activeWindow` limits a rule to certain hours.
+- **Templates:** `{{payload.<field>}}`, `{{title}}`, `{{source}}`, `{{externalId}}`,
+  `{{observedAt}}` and the other placeholders the spec lists.
+
+**The alert lifecycle.** An alert is `firing`, then optionally `acknowledged`, then `resolved`:
+
+| Call | Effect |
+|---|---|
+| `GET /v1/alerts?state=firing` | List, newest first (filters for rule, source, kind, severity, tag) |
+| `POST /v1/alerts/{id}/ack` | Acknowledge (optional `note` and `feedback`) |
+| `POST /v1/alerts/{id}/resolve` | Resolve by hand |
+| `POST /v1/alerts/{id}/snooze` `{"for": "8h"}` | Suppress repeats of this alert for a while |
+| `PUT /v1/alerts/{id}/feedback` | `useful`, `noise`, `late` or `false_positive`, for tuning |
+| `POST /v1/triggers/{id}/snooze` | Snooze the whole rule |
+
+`GET /v1/alerts/stream` streams `alert` (fired), `alert.updated` and `alert.resolved` events, each
+with the alert's `rev` as its id, so a client resumes with `Last-Event-ID`. Every lifecycle change
+also goes to the notification channels below.
 
 ## Notification channels
 
@@ -212,6 +342,42 @@ Foresignal defines (webhook, Home Assistant, Apprise) carry it as `foresignalOri
 carry the tag `foresignal-origin-<id>` and Gotify messages the extra `foresignal::origin`. When you
 loop a channel back into Foresignal (for example ntfy into an ingest endpoint), the ntfy- and Gotify-compatible ingest endpoints (prompt 024) drop
 messages carrying its own marker, so a notification can never feed itself.
+
+## Streaming for frontends, tiles and asOf
+
+**Snapshot plus stream.** A frontend that mirrors current state:
+
+1. `GET /v1/records?source=…&order=id` returns the first page and `watermarkSeq`. Page on with
+   `cursor`; the cursor pins the snapshot at that seq, so later changes are left to the stream.
+2. Open `GET /v1/changes/stream?source=…&after=<watermarkSeq>` (SSE). Every persisted `change` has
+   its seq as the event id, so a reconnect with `Last-Event-ID` resumes exactly where it stopped.
+3. Apply an event only if its `observedAt` is not older than what you hold.
+
+Stream parameters: `source`, `kind`, `bbox`, `live` (default true: non-persisted position updates as
+`live` events, conflated to one per entity per second), `touches` (default false: `touch` events for
+re-observations) and `payload` (include the payload in `change`). `/v1/events/stream` multiplexes
+changes, alerts and other topics on one connection, and its filter can be changed in place with
+`PATCH /v1/events/stream/{streamId}/filter`.
+
+**When to start over.**
+
+- `reset` (`buffer_overflow`, `replay_cap`, or a resume below the retained floor) ends the stream:
+  reconnect with the `resumeAfter` it carries, or re-snapshot when it says so.
+- `resync` (`gap`, `live_cap`, `live_dropped`) keeps the stream open but means live positions were
+  lost: re-read current state for the affected sources.
+- `GET /v1/changes?after=<seq>` answers `410 RESYNC_REQUIRED` when retention purged records after
+  that seq; take a new snapshot. Routine version deletes never cause it.
+- A `heartbeat` arrives every 15 s; a proxy must not buffer the stream (see the Caddy example).
+
+**Tiles.** `GET /v1/tiles/{kind}/{z}/{x}/{y}.mvt` serves Mapbox Vector Tiles of current state for one
+kind (for example `/v1/tiles/earthquake/3/1/3.mvt`), with `agg=grid` or `agg=hex` for aggregates.
+`GET /v1/tiles.json` and `/v1/tiles/{kind}.json` are TileJSON for MapLibre.
+
+**asOf.** `GET /v1/records?…&asOf=2026-10-11T12:00:00Z` returns what Foresignal *knew* at that time
+(transaction time): each entity at the version stored then, even if it was revised later. The
+response echoes `asOf` and reports `horizon`, the earliest time the involved sources' retention still
+supports; earlier times are `400 ASOF_BEYOND_RETENTION`. `asOfSeq` pins the same thing by seq, and
+`GET /v1/records/{source}/{id}/versions` lists every stored version.
 
 ## Retention
 
@@ -330,3 +496,138 @@ that needs credentials you have not stored is imported disabled with a warning, 
 are upserted by id (channels keep their stored secrets), and any error rejects the whole bundle.
 `POST /v1/system/admin-token/rotate` returns a new admin token once; the old one stops working at
 once.
+
+## Running the host
+
+### Binds
+
+Compose publishes the broker on `127.0.0.1:8080` and PostgreSQL on `127.0.0.1:5433`, so a fresh
+install is reachable only from the host itself.
+
+- **LAN access:** `FORESIGNAL_BIND=0.0.0.0 docker compose up -d`. Compose passes the bind into the
+  container, and `GET /v1/system` then warns `OPEN_READS_ALL_INTERFACES` (and `OPEN_READS_EXPOSED`
+  when the address is not private) while `openReads` is on. Read those warnings: open reads mean
+  anyone who can reach the port can read every collected record.
+- **The database** has its own `FORESIGNAL_DB_BIND`. Leave it on `127.0.0.1`; nothing outside the
+  host needs PostgreSQL, and the compose password is a default.
+
+### Remote access and TLS
+
+**Recommended: Tailscale Serve.** It gives the broker a real HTTPS certificate on your tailnet name
+(`https://foresignal.<tailnet>.ts.net`) without opening any port on your router.
+
+- **Compose profile:** create an auth key in the Tailscale admin console, then
+  `TS_AUTHKEY=tskey-auth-… docker compose --profile tailscale up -d`. The `tailscale` service (pinned
+  `tailscale/tailscale:v1.102.5`) joins the tailnet as `foresignal`, keeps its identity in the
+  `tailscale-state` volume, and loads `docker/tailscale/serve.json`, which proxies HTTPS 443 to
+  `http://foresignal:8080` over the compose network. Funnel (public internet) is off. The broker's
+  own port stays on `127.0.0.1`. Enable HTTPS certificates for your tailnet in the admin console
+  first.
+- **Or on the host:** with Tailscale installed on the host, `tailscale serve --bg 8080` does the same
+  for the localhost port.
+
+**Alternative: Caddy.** `docker/caddy/Caddyfile.example` reverse-proxies with automatic HTTPS (a
+public name pointing at the host, ports 80 and 443 open) or `tls internal` for a LAN-only name. It
+sets `flush_interval -1`, which SSE needs. Forwarded headers are trusted only once prompt 023's
+trusted-proxy setting names the proxy. Prompt 050 adds a Caddy compose profile.
+
+Whichever you use:
+
+- set the `server` setting's `publicBaseUrl` to the HTTPS name, so notification links work from a
+  phone (`PUT /v1/settings/server` arrives in prompt 023);
+- **never expose port 5433**;
+- plain HTTP port forwarding from the internet is **unsupported**: the token would cross the network
+  in clear text.
+
+### mDNS
+
+`docker/avahi/foresignal.service` lets LAN clients discover the broker. On a host running Avahi:
+
+```sh
+sudo cp docker/avahi/foresignal.service /etc/avahi/services/
+```
+
+It advertises `_http._tcp` and `_foresignal._tcp` on port 8080 with exactly two TXT records,
+`path=/v1` and `api=v1`. It deliberately carries **no install id or other stable identifier**:
+anyone on the network can read mDNS, and a stable value would let the device be recognized and
+tracked wherever it goes. Clients ask `GET /v1/system` once connected. mDNS only helps when the broker
+is bound to the LAN (`FORESIGNAL_BIND=0.0.0.0`).
+
+### Clock and NTP
+
+Every version's `ingested_at` comes from the host clock, and asOf, retention and the change cursor
+depend on it never going backwards. **Sync time before Foresignal starts:** use chrony or
+systemd-timesyncd and check with `timedatectl` (`System clock synchronized: yes`).
+
+- If the clock steps **backwards** past the tolerance, the writer **holds ingest** (readiness goes down and
+  `GET /v1/system` `ingestWriter` says why) until the clock catches up with the last stored time; small steps are absorbed.
+- A **forward** jump is only counted and logged; it never blocks, but versions written during it carry
+  the wrong time.
+
+### Storage projection
+
+At full load (every planned source, Core-Data-Model §5.3 budgets), expect about **10–15 GB/day of
+history writes plus 15–20 GB/day of WAL**. The TRACK window (3 days) holds about **40 million rows,
+roughly 20 GB including indexes**. Size the disk for the STANDARD windows on top (1825 days for events).
+
+- `GET /v1/system` (with the token) reports `history` per tier: partitions, rows, bytes, headroom,
+  window, plus `versionsPerMinute` and `projectedBytes`; above 20,000 versions per minute it warns
+  `HISTORY_RATE_HIGH`.
+- Each source's health has `storage.projectedBytes` (its 7-day average bytes per day times its
+  window) and `persistRatio`.
+
+The compose database runs with the flags Core-Data-Model §16 sets for sustained writes:
+`shared_buffers=512MB`, `max_wal_size=8GB`, `checkpoint_timeout=15min`, `wal_compression=lz4`,
+`max_locks_per_transaction=256` (many partitions) and `autovacuum_vacuum_cost_limit=2000`. A
+standalone PostgreSQL should use the same. The broker also sets `reWriteBatchedInserts=true` on its
+JDBC connection.
+
+### Backups
+
+A complete backup is **two things**: a database dump and the secret key file.
+
+```sh
+docker compose exec -T db pg_dump -U foresignal -Fc foresignal > foresignal-$(date +%F).dump
+docker compose cp foresignal:/data/secret.key ./secret.key   # FORESIGNAL_DATA_DIR in the container
+```
+
+- `pg_dump -Fc` dumps and restores the partitioned history like any other table.
+- **Source credentials and channel secrets cannot be decrypted without `secret.key`.** A dump without
+  it restores everything except those secrets, which you would have to enter again. Keep the key with
+  the dump, but not next to it on the same disk, and treat it like a password.
+- The admin token's hash is in the database, so a restored instance accepts the token of the
+  instance it came from.
+
+**Restore** (stop Foresignal first, so the writer is not running):
+
+```sh
+docker compose stop foresignal
+docker compose exec -T db dropdb -U foresignal foresignal
+docker compose exec -T db createdb -U foresignal foresignal
+docker compose exec -T db pg_restore -U foresignal -d foresignal --no-owner < foresignal-2026-10-11.dump
+docker compose cp ./secret.key foresignal:/data/secret.key
+docker compose start foresignal
+```
+
+**Drill it.** Restore into a scratch database now and then and check it, without touching the live
+one:
+
+```sh
+docker compose exec -T db createdb -U foresignal restore_drill
+docker compose exec -T db pg_restore -U foresignal -d restore_drill --no-owner < foresignal-2026-10-11.dump
+docker compose exec -T db psql -U foresignal -d restore_drill -c "select count(*) from record_head"
+docker compose exec -T db dropdb -U foresignal restore_drill
+```
+
+### Troubleshooting
+
+| Symptom | Look at |
+|---|---|
+| A source shows no data | `GET /v1/sources/{id}/health` (`status`, `statusReason`, `lastError`), then `GET /v1/sources/{id}/fetches?limit=5` (HTTP status, error, `versionsWritten`), then `POST /v1/sources/{id}/probe` to see the raw upstream answer |
+| Many sources unhappy at once | `GET /v1/sources/health?status=failing,degraded` |
+| Fetches are `REFUSED` | The budget is spent: raise `budget` or lengthen `interval` |
+| The container restarts or is unhealthy | `/actuator/health/readiness` (database, ingest writer, partitions; details are in `GET /v1/system`); `docker compose logs foresignal` |
+| `GET /v1/system` `ingestWriter` says the clock is behind | The host clock went backwards: fix NTP (above) |
+| Alerts or streams lag | `/actuator/health/catchup` and `GET /v1/system` `catchUp` (trigger lag, ingest queue) |
+| Disk filling | `GET /v1/system` `history` and `warnings`, each source's `storage.projectedBytes`, then the retention windows |
+| A smoke test against the instance | `FORESIGNAL_TOKEN=fsr_… scripts/smoke.sh` (it enables `usgs-earthquakes`) |

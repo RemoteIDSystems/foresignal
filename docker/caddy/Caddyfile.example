@@ -1,0 +1,32 @@
+# Foresignal behind Caddy (021) - the alternative to Tailscale Serve.
+#
+# Copy to docker/caddy/Caddyfile, replace the host name, and run Caddy on the
+# same host (prompt 050 adds a Caddy compose profile). Caddy obtains and renews
+# a public certificate automatically when the name resolves to this host and
+# ports 80 and 443 reach it.
+#
+# Forwarded headers (X-Forwarded-For, X-Forwarded-Proto) are only trusted by
+# Foresignal once prompt 023's trusted-proxy setting names this proxy. Until
+# then Foresignal sees every request as coming from the proxy's address.
+#
+# Set the server setting publicBaseUrl to https://foresignal.example.com so
+# notification links point at the HTTPS name. Never publish port 5433.
+
+foresignal.example.com {
+	encode gzip
+	reverse_proxy 127.0.0.1:8080 {
+		# Server-sent events (/v1/changes/stream, /v1/alerts/stream,
+		# /v1/events/stream) must not be buffered.
+		flush_interval -1
+	}
+}
+
+# LAN only, with Caddy's own local certificate authority instead of a public
+# certificate (clients must trust Caddy's root certificate):
+#
+# foresignal.lan {
+# 	tls internal
+# 	reverse_proxy 127.0.0.1:8080 {
+# 		flush_interval -1
+# 	}
+# }

@@ -1,0 +1,1021 @@
+{
+ "type": "FeatureCollection",
+ "metadata": {
+  "generated": 1791757965000,
+  "url": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson",
+  "title": "USGS All Earthquakes, Past Day",
+  "status": 200,
+  "api": "2.7.0",
+  "count": 25
+ },
+ "features": [
+  {
+   "type": "Feature",
+   "properties": {
+    "mag": 0.7,
+    "place": "73 km WNW of Beluga, Alaska",
+    "time": 1791757094767,
+    "updated": 1791757136341,
+    "tz": null,
+    "url": "https://earthquake.usgs.gov/earthquakes/eventpage/aka2026uekvdg",
+    "detail": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/aka2026uekvdg.geojson",
+    "felt": null,
+    "cdi": null,
+    "mmi": null,
+    "alert": null,
+    "status": "automatic",
+    "tsunami": 0,
+    "sig": 8,
+    "net": "ak",
+    "code": "a2026uekvdg",
+    "ids": ",aka2026uekvdg,",
+    "sources": ",ak,",
+    "types": ",origin,phase-data,",
+    "nst": 9,
+    "dmin": 0.1,
+    "rms": 0.9,
+    "gap": 148,
+    "magType": "ml",
+    "type": "earthquake",
+    "title": "M 0.7 - 73 km WNW of Beluga, Alaska"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -152.369,
+     61.358,
+     5
+    ]
+   },
+   "id": "aka2026uekvdg"
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "mag": 2.4,
+    "place": "13 km ESE of Elmendorf Air Force Base, Alaska",
+    "time": 1791756350663,
+    "updated": 1791756600052,
+    "tz": null,
+    "url": "https://earthquake.usgs.gov/earthquakes/eventpage/aka2026uekklg",
+    "detail": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/aka2026uekklg.geojson",
+    "felt": null,
+    "cdi": null,
+    "mmi": null,
+    "alert": null,
+    "status": "automatic",
+    "tsunami": 0,
+    "sig": 89,
+    "net": "ak",
+    "code": "a2026uekklg",
+    "ids": ",aka2026uekklg,",
+    "sources": ",ak,",
+    "types": ",origin,phase-data,",
+    "nst": 68,
+    "dmin": 0.4,
+    "rms": 0.8,
+    "gap": 41,
+    "magType": "ml",
+    "type": "earthquake",
+    "title": "M 2.4 - 13 km ESE of Elmendorf Air Force Base, Alaska"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -149.391,
+     61.234,
+     14.2
+    ]
+   },
+   "id": "aka2026uekklg"
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "mag": 1.07,
+    "place": "8 km WNW of Cobb, CA",
+    "time": 1791756213300,
+    "updated": 1791756311178,
+    "tz": null,
+    "url": "https://earthquake.usgs.gov/earthquakes/eventpage/nc75447991",
+    "detail": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/nc75447991.geojson",
+    "felt": null,
+    "cdi": null,
+    "mmi": null,
+    "alert": null,
+    "status": "automatic",
+    "tsunami": 0,
+    "sig": 18,
+    "net": "nc",
+    "code": "75447991",
+    "ids": ",nc75447991,",
+    "sources": ",nc,",
+    "types": ",nearby-cities,origin,phase-data,",
+    "nst": 8,
+    "dmin": 0.01326,
+    "rms": 0.03,
+    "gap": 105,
+    "magType": "md",
+    "type": "earthquake",
+    "title": "M 1.1 - 8 km WNW of Cobb, CA"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.810668945312,
+     38.8366661071777,
+     1.57000005245209
+    ]
+   },
+   "id": "nc75447991"
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "mag": 1.7,
+    "place": "65 km W of Tyonek, Alaska",
+    "time": 1791755852886,
+    "updated": 1791756020929,
+    "tz": null,
+    "url": "https://earthquake.usgs.gov/earthquakes/eventpage/aka2026uekdgj",
+    "detail": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/aka2026uekdgj.geojson",
+    "felt": null,
+    "cdi": null,
+    "mmi": null,
+    "alert": null,
+    "status": "automatic",
+    "tsunami": 0,
+    "sig": 44,
+    "net": "ak",
+    "code": "a2026uekdgj",
+    "ids": ",aka2026uekdgj,",
+    "sources": ",ak,",
+    "types": ",origin,phase-data,",
+    "nst": 37,
+    "dmin": 0.2,
+    "rms": 0.6,
+    "gap": 72,
+    "magType": "ml",
+    "type": "earthquake",
+    "title": "M 1.7 - 65 km W of Tyonek, Alaska"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -152.342,
+     61.043,
+     114.8
+    ]
+   },
+   "id": "aka2026uekdgj"
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "mag": 0.84,
+    "place": "12 km WNW of The Geysers, CA",
+    "time": 1791755750720,
+    "updated": 1791755846264,
+    "tz": null,
+    "url": "https://earthquake.usgs.gov/earthquakes/eventpage/nc75447981",
+    "detail": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/nc75447981.geojson",
+    "felt": null,
+    "cdi": null,
+    "mmi": null,
+    "alert": null,
+    "status": "automatic",
+    "tsunami": 0,
+    "sig": 11,
+    "net": "nc",
+    "code": "75447981",
+    "ids": ",nc75447981,",
+    "sources": ",nc,",
+    "types": ",nearby-cities,origin,phase-data,",
+    "nst": 16,
+    "dmin": 0.01131,
+    "rms": 0.02,
+    "gap": 135,
+    "magType": "md",
+    "type": "earthquake",
+    "title": "M 0.8 - 12 km WNW of The Geysers, CA"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.880332946777,
+     38.8271675109863,
+     2.82999992370605
+    ]
+   },
+   "id": "nc75447981"
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "mag": 0.83,
+    "place": "10 km WNW of The Geysers, CA",
+    "time": 1791754837010,
+    "updated": 1791754930860,
+    "tz": null,
+    "url": "https://earthquake.usgs.gov/earthquakes/eventpage/nc75447976",
+    "detail": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/nc75447976.geojson",
+    "felt": null,
+    "cdi": null,
+    "mmi": null,
+    "alert": null,
+    "status": "automatic",
+    "tsunami": 0,
+    "sig": 11,
+    "net": "nc",
+    "code": "75447976",
+    "ids": ",nc75447976,",
+    "sources": ",nc,",
+    "types": ",nearby-cities,origin,phase-data,",
+    "nst": 13,
+    "dmin": 0.01342,
+    "rms": 0.02,
+    "gap": 113,
+    "magType": "md",
+    "type": "earthquake",
+    "title": "M 0.8 - 10 km WNW of The Geysers, CA"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.852165222168,
+     38.8221664428711,
+     2.17000007629395
+    ]
+   },
+   "id": "nc75447976"
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "mag": 5.8,
+    "place": "151 km W of Gorontalo, Indonesia",
+    "time": 1791754493418,
+    "updated": 1791756771040,
+    "tz": null,
+    "url": "https://earthquake.usgs.gov/earthquakes/eventpage/us6000u1mj",
+    "detail": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/us6000u1mj.geojson",
+    "felt": null,
+    "cdi": null,
+    "mmi": null,
+    "alert": null,
+    "status": "reviewed",
+    "tsunami": 0,
+    "sig": 432,
+    "net": "us",
+    "code": "6000u1mj",
+    "ids": ",us6000u1mj,",
+    "sources": ",us,",
+    "types": ",origin,phase-data,",
+    "nst": 89,
+    "dmin": 5.837,
+    "rms": 0.98,
+    "gap": 68,
+    "magType": "mww",
+    "type": "earthquake",
+    "title": "M 5.8 - 151 km W of Gorontalo, Indonesia"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     121.6986,
+     0.5266,
+     103.618
+    ]
+   },
+   "id": "us6000u1mj"
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "mag": 0.7,
+    "place": "6 km WNW of Cobb, CA",
+    "time": 1791754415290,
+    "updated": 1791754510763,
+    "tz": null,
+    "url": "https://earthquake.usgs.gov/earthquakes/eventpage/nc75447966",
+    "detail": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/nc75447966.geojson",
+    "felt": null,
+    "cdi": null,
+    "mmi": null,
+    "alert": null,
+    "status": "automatic",
+    "tsunami": 0,
+    "sig": 8,
+    "net": "nc",
+    "code": "75447966",
+    "ids": ",nc75447966,",
+    "sources": ",nc,",
+    "types": ",nearby-cities,origin,phase-data,",
+    "nst": 9,
+    "dmin": 0.004962,
+    "rms": 0.02,
+    "gap": 75,
+    "magType": "md",
+    "type": "earthquake",
+    "title": "M 0.7 - 6 km WNW of Cobb, CA"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.786163330078,
+     38.8346672058105,
+     2.21000003814697
+    ]
+   },
+   "id": "nc75447966"
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "mag": 0.9,
+    "place": "54 km E of Port Alsworth, Alaska",
+    "time": 1791754216306,
+    "updated": 1791754261754,
+    "tz": null,
+    "url": "https://earthquake.usgs.gov/earthquakes/eventpage/aka2026uejfoy",
+    "detail": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/aka2026uejfoy.geojson",
+    "felt": null,
+    "cdi": null,
+    "mmi": null,
+    "alert": null,
+    "status": "automatic",
+    "tsunami": 0,
+    "sig": 12,
+    "net": "ak",
+    "code": "a2026uejfoy",
+    "ids": ",aka2026uejfoy,",
+    "sources": ",ak,",
+    "types": ",origin,phase-data,",
+    "nst": 6,
+    "dmin": 0.2,
+    "rms": 0.4,
+    "gap": 245,
+    "magType": "ml",
+    "type": "earthquake",
+    "title": "M 0.9 - 54 km E of Port Alsworth, Alaska"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -153.339,
+     60.175,
+     5
+    ]
+   },
+   "id": "aka2026uejfoy"
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "mag": 1.89,
+    "place": "6 km S of P\u0101hala, Hawaii",
+    "time": 1791754098770,
+    "updated": 1791754364650,
+    "tz": null,
+    "url": "https://earthquake.usgs.gov/earthquakes/eventpage/hv75054167",
+    "detail": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/hv75054167.geojson",
+    "felt": null,
+    "cdi": null,
+    "mmi": null,
+    "alert": null,
+    "status": "automatic",
+    "tsunami": 0,
+    "sig": 55,
+    "net": "hv",
+    "code": "75054167",
+    "ids": ",hv75054167,",
+    "sources": ",hv,",
+    "types": ",origin,phase-data,",
+    "nst": 21,
+    "dmin": 0.01392,
+    "rms": 0.119999997,
+    "gap": 172,
+    "magType": "md",
+    "type": "earthquake",
+    "title": "M 1.9 - 6 km S of P\u0101hala, Hawaii"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -155.472503662109,
+     19.1455001831055,
+     28.2999992370605
+    ]
+   },
+   "id": "hv75054167"
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "mag": 2.52,
+    "place": "34 km WNW of Desert Center, CA",
+    "time": 1791754093930,
+    "updated": 1791754304266,
+    "tz": null,
+    "url": "https://earthquake.usgs.gov/earthquakes/eventpage/ci41346535",
+    "detail": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/ci41346535.geojson",
+    "felt": null,
+    "cdi": null,
+    "mmi": null,
+    "alert": null,
+    "status": "automatic",
+    "tsunami": 0,
+    "sig": 98,
+    "net": "ci",
+    "code": "41346535",
+    "ids": ",ci41346535,",
+    "sources": ",ci,",
+    "types": ",nearby-cities,origin,phase-data,scitech-link,",
+    "nst": 52,
+    "dmin": 0.1536,
+    "rms": 0.2,
+    "gap": 55,
+    "magType": "ml",
+    "type": "earthquake",
+    "title": "M 2.5 - 34 km WNW of Desert Center, CA"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -115.729333333333,
+     33.8415,
+     -0.55
+    ]
+   },
+   "id": "ci41346535"
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "mag": 1.8,
+    "place": "31 km NNE of Paxson, Alaska",
+    "time": 1791754072332,
+    "updated": 1791754194951,
+    "tz": null,
+    "url": "https://earthquake.usgs.gov/earthquakes/eventpage/aka2026uejdmo",
+    "detail": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/aka2026uejdmo.geojson",
+    "felt": null,
+    "cdi": null,
+    "mmi": null,
+    "alert": null,
+    "status": "automatic",
+    "tsunami": 0,
+    "sig": 50,
+    "net": "ak",
+    "code": "a2026uejdmo",
+    "ids": ",aka2026uejdmo,",
+    "sources": ",ak,",
+    "types": ",origin,phase-data,",
+    "nst": 29,
+    "dmin": 0.2,
+    "rms": 0.8,
+    "gap": 39,
+    "magType": "ml",
+    "type": "earthquake",
+    "title": "M 1.8 - 31 km NNE of Paxson, Alaska"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -145.276,
+     63.33,
+     1.8
+    ]
+   },
+   "id": "aka2026uejdmo"
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "mag": 4.5,
+    "place": "27 km W of R\u00edo Grande, Panama",
+    "time": 1791753560354,
+    "updated": 1791757285040,
+    "tz": null,
+    "url": "https://earthquake.usgs.gov/earthquakes/eventpage/us6000u1me",
+    "detail": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/us6000u1me.geojson",
+    "felt": null,
+    "cdi": null,
+    "mmi": null,
+    "alert": null,
+    "status": "reviewed",
+    "tsunami": 0,
+    "sig": 312,
+    "net": "us",
+    "code": "6000u1me",
+    "ids": ",us6000u1me,",
+    "sources": ",us,",
+    "types": ",origin,phase-data,",
+    "nst": 30,
+    "dmin": 2.245,
+    "rms": 0.76,
+    "gap": 134,
+    "magType": "mb",
+    "type": "earthquake",
+    "title": "M 4.5 - 27 km W of R\u00edo Grande, Panama"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -81.5862,
+     7.7202,
+     10
+    ]
+   },
+   "id": "us6000u1me"
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "mag": 2,
+    "place": "93 km NNW of Aleneva, Alaska",
+    "time": 1791753226945,
+    "updated": 1791753360224,
+    "tz": null,
+    "url": "https://earthquake.usgs.gov/earthquakes/eventpage/aka2026ueipfd",
+    "detail": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/aka2026ueipfd.geojson",
+    "felt": null,
+    "cdi": null,
+    "mmi": null,
+    "alert": null,
+    "status": "automatic",
+    "tsunami": 0,
+    "sig": 62,
+    "net": "ak",
+    "code": "a2026ueipfd",
+    "ids": ",aka2026ueipfd,",
+    "sources": ",ak,",
+    "types": ",origin,phase-data,",
+    "nst": 33,
+    "dmin": 0.1,
+    "rms": 0.4,
+    "gap": 84,
+    "magType": "ml",
+    "type": "earthquake",
+    "title": "M 2.0 - 93 km NNW of Aleneva, Alaska"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -153.658,
+     58.805,
+     82.9
+    ]
+   },
+   "id": "aka2026ueipfd"
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "mag": 2.53,
+    "place": "33 km WNW of Desert Center, CA",
+    "time": 1791751971890,
+    "updated": 1791752182109,
+    "tz": null,
+    "url": "https://earthquake.usgs.gov/earthquakes/eventpage/ci41346527",
+    "detail": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/ci41346527.geojson",
+    "felt": null,
+    "cdi": null,
+    "mmi": null,
+    "alert": null,
+    "status": "automatic",
+    "tsunami": 0,
+    "sig": 98,
+    "net": "ci",
+    "code": "41346527",
+    "ids": ",ci41346527,",
+    "sources": ",ci,",
+    "types": ",nearby-cities,origin,phase-data,scitech-link,",
+    "nst": 52,
+    "dmin": 0.1507,
+    "rms": 0.21,
+    "gap": 55,
+    "magType": "ml",
+    "type": "earthquake",
+    "title": "M 2.5 - 33 km WNW of Desert Center, CA"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -115.729833333333,
+     33.838,
+     -0.42
+    ]
+   },
+   "id": "ci41346527"
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "mag": 6.2,
+    "place": "79 km SSE of Panguna, Papua New Guinea",
+    "time": 1791727643188,
+    "updated": 1791735233916,
+    "tz": null,
+    "url": "https://earthquake.usgs.gov/earthquakes/eventpage/us6000u1kv",
+    "detail": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/us6000u1kv.geojson",
+    "felt": null,
+    "cdi": null,
+    "mmi": 5.229,
+    "alert": "green",
+    "status": "reviewed",
+    "tsunami": 0,
+    "sig": 591,
+    "net": "us",
+    "code": "6000u1kv",
+    "ids": ",us6000u1kv,",
+    "sources": ",us,",
+    "types": ",ground-failure,losspager,moment-tensor,origin,phase-data,shakemap,",
+    "nst": 102,
+    "dmin": 4.496,
+    "rms": 1.06,
+    "gap": 25,
+    "magType": "mww",
+    "type": "earthquake",
+    "title": "M 6.2 - 79 km SSE of Panguna, Papua New Guinea"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     155.7021,
+     -7.0062,
+     53.473
+    ]
+   },
+   "id": "us6000u1kv"
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "mag": 5.2,
+    "place": "18 km SSE of Caman\u00e1, Peru",
+    "time": 1791726179788,
+    "updated": 1791745497735,
+    "tz": null,
+    "url": "https://earthquake.usgs.gov/earthquakes/eventpage/us6000u1kt",
+    "detail": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/us6000u1kt.geojson",
+    "felt": 2,
+    "cdi": 5,
+    "mmi": null,
+    "alert": null,
+    "status": "reviewed",
+    "tsunami": 0,
+    "sig": 417,
+    "net": "us",
+    "code": "6000u1kt",
+    "ids": ",us6000u1kt,",
+    "sources": ",us,",
+    "types": ",dyfi,origin,phase-data,",
+    "nst": 92,
+    "dmin": 2.716,
+    "rms": 0.93,
+    "gap": 122,
+    "magType": "mb",
+    "type": "earthquake",
+    "title": "M 5.2 - 18 km SSE of Caman\u00e1, Peru"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -72.6601,
+     -16.7849,
+     44.92
+    ]
+   },
+   "id": "us6000u1kt"
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "mag": 3.6,
+    "place": "39 km N of Petersville, Alaska",
+    "time": 1791724541929,
+    "updated": 1791755727460,
+    "tz": null,
+    "url": "https://earthquake.usgs.gov/earthquakes/eventpage/aka2026udsseu",
+    "detail": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/aka2026udsseu.geojson",
+    "felt": null,
+    "cdi": null,
+    "mmi": 2.025,
+    "alert": null,
+    "status": "automatic",
+    "tsunami": 0,
+    "sig": 199,
+    "net": "ak",
+    "code": "a2026udsseu",
+    "ids": ",us6000u1kj,aka2026udsseu,",
+    "sources": ",us,ak,",
+    "types": ",origin,phase-data,shakemap,",
+    "nst": 193,
+    "dmin": 0.3,
+    "rms": 0.9,
+    "gap": 26,
+    "magType": "ml",
+    "type": "earthquake",
+    "title": "M 3.6 - 39 km N of Petersville, Alaska"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -150.688,
+     62.853,
+     104.1
+    ]
+   },
+   "id": "aka2026udsseu"
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "mag": 4.4,
+    "place": "275 km W of Adak, Alaska",
+    "time": 1791720962144,
+    "updated": 1791755572383,
+    "tz": null,
+    "url": "https://earthquake.usgs.gov/earthquakes/eventpage/us6000u1kb",
+    "detail": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/us6000u1kb.geojson",
+    "felt": null,
+    "cdi": null,
+    "mmi": 2.895,
+    "alert": null,
+    "status": "reviewed",
+    "tsunami": 0,
+    "sig": 298,
+    "net": "us",
+    "code": "6000u1kb",
+    "ids": ",aka2026udqtaw,us6000u1kb,",
+    "sources": ",ak,us,",
+    "types": ",origin,phase-data,shakemap,",
+    "nst": 85,
+    "dmin": 0.298,
+    "rms": 0.52,
+    "gap": 89,
+    "magType": "mb",
+    "type": "earthquake",
+    "title": "M 4.4 - 275 km W of Adak, Alaska"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     179.374,
+     51.7312,
+     95.229
+    ]
+   },
+   "id": "us6000u1kb"
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "mag": 2.6,
+    "place": "7 km E of Pearsall, Texas",
+    "time": 1791716255893,
+    "updated": 1791719257729,
+    "tz": null,
+    "url": "https://earthquake.usgs.gov/earthquakes/eventpage/us6000u1jz",
+    "detail": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/us6000u1jz.geojson",
+    "felt": 1,
+    "cdi": 1,
+    "mmi": null,
+    "alert": null,
+    "status": "reviewed",
+    "tsunami": 0,
+    "sig": 104,
+    "net": "us",
+    "code": "6000u1jz",
+    "ids": ",us6000u1jz,",
+    "sources": ",us,",
+    "types": ",dyfi,origin,phase-data,",
+    "nst": 13,
+    "dmin": 0.077,
+    "rms": 0.79,
+    "gap": 108,
+    "magType": "mb_lg",
+    "type": "earthquake",
+    "title": "M 2.6 - 7 km E of Pearsall, Texas"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -99.0224,
+     28.8909,
+     7.724
+    ]
+   },
+   "id": "us6000u1jz"
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "mag": 4,
+    "place": "56 km S of Whites City, New Mexico",
+    "time": 1791705894794,
+    "updated": 1791749698439,
+    "tz": null,
+    "url": "https://earthquake.usgs.gov/earthquakes/eventpage/tx2026uacobs",
+    "detail": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/tx2026uacobs.geojson",
+    "felt": 4,
+    "cdi": 3.3,
+    "mmi": 4.596,
+    "alert": "green",
+    "status": "reviewed",
+    "tsunami": 0,
+    "sig": 247,
+    "net": "tx",
+    "code": "2026uacobs",
+    "ids": ",us6000u1jb,tx2026uacobs,",
+    "sources": ",us,tx,",
+    "types": ",dyfi,event-sequence,losspager,moment-tensor,oaf,origin,phase-data,shakemap,",
+    "nst": 57,
+    "dmin": 0,
+    "rms": 0.2,
+    "gap": 66,
+    "magType": "ml",
+    "type": "earthquake",
+    "title": "M 4.0 - 56 km S of Whites City, New Mexico"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -104.427,
+     31.666,
+     5.946
+    ]
+   },
+   "id": "tx2026uacobs"
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "mag": 2.71,
+    "place": "4 km E of San Jacinto, CA",
+    "time": 1791705843060,
+    "updated": 1791750129174,
+    "tz": null,
+    "url": "https://earthquake.usgs.gov/earthquakes/eventpage/ci41346375",
+    "detail": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/ci41346375.geojson",
+    "felt": 57,
+    "cdi": 2.9,
+    "mmi": 3.212,
+    "alert": null,
+    "status": "reviewed",
+    "tsunami": 0,
+    "sig": 130,
+    "net": "ci",
+    "code": "41346375",
+    "ids": ",ci41346375,us6000u1ja,",
+    "sources": ",ci,us,",
+    "types": ",dyfi,focal-mechanism,nearby-cities,origin,phase-data,scitech-link,shakemap,",
+    "nst": 127,
+    "dmin": 0.05009,
+    "rms": 0.22,
+    "gap": 16,
+    "magType": "ml",
+    "type": "earthquake",
+    "title": "M 2.7 - 4 km E of San Jacinto, CA"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -116.919666666667,
+     33.778,
+     12.14
+    ]
+   },
+   "id": "ci41346375"
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "mag": 2.22,
+    "place": "5 km ESE of Mogul, Nevada",
+    "time": 1791698831038,
+    "updated": 1791700814076,
+    "tz": null,
+    "url": "https://earthquake.usgs.gov/earthquakes/eventpage/nn00925614",
+    "detail": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/nn00925614.geojson",
+    "felt": 7,
+    "cdi": 2.7,
+    "mmi": null,
+    "alert": null,
+    "status": "automatic",
+    "tsunami": 0,
+    "sig": 78,
+    "net": "nn",
+    "code": "00925614",
+    "ids": ",nn00925614,",
+    "sources": ",nn,",
+    "types": ",dyfi,origin,phase-data,",
+    "nst": 27,
+    "dmin": 0.024,
+    "rms": 0.3511,
+    "gap": 38,
+    "magType": "ml",
+    "type": "earthquake",
+    "title": "M 2.2 - 5 km ESE of Mogul, Nevada"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -119.8634,
+     39.4911,
+     14.0379
+    ]
+   },
+   "id": "nn00925614"
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "mag": 4.7,
+    "place": "110 km SSE of Sola, Vanuatu",
+    "time": 1791695277511,
+    "updated": 1791702677775,
+    "tz": null,
+    "url": "https://earthquake.usgs.gov/earthquakes/eventpage/us6000u1il",
+    "detail": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/us6000u1il.geojson",
+    "felt": 1,
+    "cdi": 2,
+    "mmi": null,
+    "alert": null,
+    "status": "reviewed",
+    "tsunami": 0,
+    "sig": 340,
+    "net": "us",
+    "code": "6000u1il",
+    "ids": ",us6000u1il,",
+    "sources": ",us,",
+    "types": ",dyfi,origin,phase-data,",
+    "nst": 27,
+    "dmin": 6.817,
+    "rms": 0.5,
+    "gap": 200,
+    "magType": "mb",
+    "type": "earthquake",
+    "title": "M 4.7 - 110 km SSE of Sola, Vanuatu"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     168.0696,
+     -14.7335,
+     10.602
+    ]
+   },
+   "id": "us6000u1il"
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "mag": 5.2,
+    "place": "180 km S of Pelabuhanratu, Indonesia",
+    "time": 1791689417430,
+    "updated": 1791693785627,
+    "tz": null,
+    "url": "https://earthquake.usgs.gov/earthquakes/eventpage/us6000u1i6",
+    "detail": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/us6000u1i6.geojson",
+    "felt": 1,
+    "cdi": 2,
+    "mmi": null,
+    "alert": null,
+    "status": "reviewed",
+    "tsunami": 0,
+    "sig": 416,
+    "net": "us",
+    "code": "6000u1i6",
+    "ids": ",us6000u1i6,",
+    "sources": ",us,",
+    "types": ",dyfi,origin,phase-data,",
+    "nst": 56,
+    "dmin": 2.001,
+    "rms": 0.84,
+    "gap": 46,
+    "magType": "mb",
+    "type": "earthquake",
+    "title": "M 5.2 - 180 km S of Pelabuhanratu, Indonesia"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     106.526,
+     -8.6161,
+     10
+    ]
+   },
+   "id": "us6000u1i6"
+  }
+ ],
+ "bbox": [
+  -177.6638,
+  -37.4842,
+  -1.9199999570847,
+  179.9648,
+  65.339,
+  546.339
+ ]
+}

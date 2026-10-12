@@ -25,9 +25,10 @@ there is no UI inside the broker.
 
 **Under construction.** The project is being built prompt by prompt; see
 [`docs/Roadmap.md`](docs/Roadmap.md) for the plan and
-[`completion-reports/`](completion-reports/) for what has been finished. Tests
-are written alongside each change but are first executed in prompt 061, so the
-build is not yet verified by a test run.
+[`completion-reports/`](completion-reports/) for what has been finished. The core (prompts
+001–021: collection, versioned storage, the read API, streams, tiles, triggers, notification
+channels and retention) is built. Tests are written with every change and run at the checkpoint
+prompts (012, 022, 041, …); the latest run is recorded in the newest checkpoint report.
 
 ## Requirements
 
@@ -41,18 +42,71 @@ No local Gradle install is needed: use the committed wrapper (`./gradlew`).
 
 ## Quickstart
 
-> Placeholder — the end-to-end quickstart (bring up the stack, mint an admin
-> token, enable the USGS earthquakes source, watch the change stream) is
-> written in prompt 018, once those pieces exist.
+1. **Start the stack** (PostGIS and the broker, both bound to `127.0.0.1`):
 
-For now, to bring up only the database for local development:
+   ```sh
+   docker compose up -d
+   ```
+
+2. **Read the admin token.** It is printed once, on the first start, and only its hash is kept:
+
+   ```sh
+   docker compose logs foresignal | grep -A3 "FORESIGNAL ADMIN TOKEN"
+   export FORESIGNAL_TOKEN=fsr_...   # the token from that block
+   ```
+
+   Lost it? Restart once with `FORESIGNAL_RESET_ADMIN_TOKEN=true` (see the
+   [Operator Guide](docs/Operator-Guide.md#first-start-and-the-admin-token)).
+
+3. **Enable the USGS earthquakes source.** Every source is installed disabled; enabling one is the
+   only thing that makes Foresignal contact its upstream.
+
+   ```sh
+   curl -X PUT localhost:8080/v1/sources/usgs-earthquakes \
+     -H "Authorization: Bearer $FORESIGNAL_TOKEN" -H 'Content-Type: application/json' \
+     -d '{"enabled": true}'
+   ```
+
+4. **Watch changes arrive** (server-sent events; each quake is a `change`, revisions follow):
+
+   ```sh
+   curl -N localhost:8080/v1/changes/stream
+   ```
+
+   Current state is at `curl 'localhost:8080/v1/records?source=usgs-earthquakes&format=geojson'`.
+
+5. **Check it end to end:** `FORESIGNAL_TOKEN=$FORESIGNAL_TOKEN scripts/smoke.sh` (needs `curl` and
+   `jq`) checks the system document and readiness, enables USGS, waits for records and creates and
+   deletes a test trigger.
+
+Next: triggers, notification channels, remote access over HTTPS, backups and the rest are in the
+**[Operator Guide](docs/Operator-Guide.md)**. The API is browsable at
+[`localhost:8080/docs`](http://localhost:8080/docs) (Swagger UI over the served
+[`/v1/openapi.json`](http://localhost:8080/v1/openapi.json)).
+
+### Postman
+
+Import [`postman/Foresignal.postman_collection.json`](postman/Foresignal.postman_collection.json)
+and [`postman/Foresignal-Local.postman_environment.json`](postman/Foresignal-Local.postman_environment.json),
+set the environment's `adminToken`, and run the folder **"00 Quickstart — USGS end to end"**. Or
+headless:
+
+```sh
+npx newman run postman/Foresignal.postman_collection.json \
+  --folder "00 Quickstart — USGS end to end" --env-var adminToken=$FORESIGNAL_TOKEN
+```
+
+### Local development
+
+Run only the database in Docker and the broker from the working tree:
 
 ```sh
 docker compose up -d db
+./gradlew bootRun
 ```
 
-Postgres then listens on `localhost:5433` (database, user and password all
-`foresignal`), which matches the application's defaults.
+Postgres then listens on `localhost:5433` (database, user and password all `foresignal`), which
+matches the application's defaults. The token banner appears in the `bootRun` output.
 
 To compile:
 
@@ -78,13 +132,17 @@ the database and is managed through the API.
 
 - **Ports bind to localhost by default.** `docker compose` publishes the broker
   on `127.0.0.1:8080` and the database on `127.0.0.1:5433`. Set
-  `FORESIGNAL_BIND=0.0.0.0` for LAN access to the broker, and
-  `FORESIGNAL_DB_BIND=0.0.0.0` likewise for the database.
+  `FORESIGNAL_BIND=0.0.0.0` for LAN access to the broker; leave the database local.
+- **Remote access:** `TS_AUTHKEY=… docker compose --profile tailscale up -d` serves the broker over
+  HTTPS on your tailnet through Tailscale Serve; a Caddy example is in `docker/caddy/`, and an Avahi
+  mDNS file in `docker/avahi/`. See the Operator Guide's "Running the host".
 - **Disk.** At full load expect about 10–15 GB/day of history writes plus
   15–20 GB/day of WAL. A 3-day track window holds about 40M rows, roughly 20 GB
   including indexes.
 - **Clock.** NTP must be synced before Foresignal starts. Otherwise the ingest
   writer's clock guard holds ingest until the clock is sane.
+- **Backups** are a `pg_dump -Fc` plus `${FORESIGNAL_DATA_DIR}/secret.key`; without the key, stored
+  credentials and channel secrets cannot be decrypted.
 
 ## Development
 
@@ -110,6 +168,8 @@ the database and is managed through the API.
 - [Client Contract](docs/Client-Contract.md) — object references, relations, workspaces and deep links for frontends
 - [Invariants](docs/Invariants.md) — the rules every checkpoint verifies
 - [Conventions](docs/Conventions.md) — cross-cutting build rules and sources of truth
+- [Operator Guide](docs/Operator-Guide.md) — running, tuning and backing up an instance
+- [Adapter Guide](docs/Adapter-Guide.md) — writing a source adapter
 
 ## Licence
 

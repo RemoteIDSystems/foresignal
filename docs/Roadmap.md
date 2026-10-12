@@ -67,27 +67,27 @@ Legend: ✅ checkpoint.
 | 003 | Security-And-Secrets | Bootstrap token, AccessPolicy (fail-closed), cipher, install id, version, ProblemDetail, CORS | Done |
 | 004 | Source-Framework | SPI with v1.2 ingest input, descriptor (tier, time base, policies), DERIVED/PUSH modes, `LAN_URL`/`INBOX_PATH`, `InvalidInputException` | Done |
 | 005 | Upstream-Client-And-Budgets | Budgeted client, FetchTrace, `getRange`/`download`/`listS3`, mbPerDay, usage ingest counters | Done |
-| 006 | Health-Tracking | Status rules, coverage vs format change, storage, budget outlook, HealthRule SPI | Ready |
-| 007 | History-Schema-And-Partitions | Partitioned `record_version` (tier × seq), `record_head`/`record_live`/`fetch_log`/`seq_clock`, PartitionManager, DB flags, binds | Ready |
-| 008 | Ingest-Normalizer-And-Policy-Engine | Pure core: normalizer, time contract, hashing, policy engine, PersistGate SPI. Gap descriptor extras: `titleField`, `entityKeys`, `fieldSpecs`, `kindDisplay`, `aggBelowZoom`, `start/endField`, `validFrom`, `private` with precision cap | Ready |
-| 009 | Ingest-Writer-And-Change-Bus | Single writer (lock, state, clock guard, fold, batch SQL, touch, purge), ChangeBus and LiveBus, TestRecords | Ready |
-| 010 | Collector-Scheduler | Scheduler, FetchExecutor with fetch_log, PolicyAwareRecordSink, fetch-now and probe, streaming supervisor | Ready |
-| 011 | USGS-Earthquakes-Adapter | First adapter on v1.2 (event vs observed time, volatile `updated`), Adapter Guide (altitude convention, fieldSpecs contract test) | Ready |
-| 012 | ✅ Checkpoint-Core-Pipeline | Run and fix all tests from 001–011 | Ready |
+| 006 | Health-Tracking | Status rules, coverage vs format change, storage, budget outlook, HealthRule SPI | Done |
+| 007 | History-Schema-And-Partitions | Partitioned `record_version` (tier × seq), `record_head`/`record_live`/`fetch_log`/`seq_clock`, PartitionManager, DB flags, binds | Done |
+| 008 | Ingest-Normalizer-And-Policy-Engine | Pure core: normalizer, time contract, hashing, policy engine, PersistGate SPI. Gap descriptor extras: `titleField`, `entityKeys`, `fieldSpecs`, `kindDisplay`, `aggBelowZoom`, `start/endField`, `validFrom`, `private` with precision cap | Done |
+| 009 | Ingest-Writer-And-Change-Bus | Single writer (lock, state, clock guard, fold, batch SQL, touch, purge), ChangeBus and LiveBus, TestRecords | Done |
+| 010 | Collector-Scheduler | Scheduler, FetchExecutor with fetch_log, PolicyAwareRecordSink, fetch-now and probe, streaming supervisor | Done |
+| 011 | USGS-Earthquakes-Adapter | First adapter on v1.2 (event vs observed time, volatile `updated`), Adapter Guide (altitude convention, fieldSpecs contract test) | Done |
+| 012 | ✅ Checkpoint-Core-Pipeline | Run and fix all tests from 001–011 | Done |
 
 ### API, alerts and operations
 
 | # | Prompt | Scope | Status |
 |---|---|---|---|
-| 013 | Sources-API | `/v1/sources/**` with policies, tiers, storage, `/fetches` | Ready |
-| 014 | Records-Changes-API | Head ⋈ live reads, asOf (transaction time), `asOfSeq`/watermark, purge horizon + `410 RESYNC_REQUIRED`, timeField, near/sort=distance, fields/precision/simplify, ndjson/geojsonseq/csv, ETags, kind schema | Ready |
-| 015 | SSE-Change-Stream | Change and live lanes, touch, resync, reset floor, multiplexed `/v1/events/stream` + PATCH filter, per-token limits | Ready |
-| 016 | Vector-Tiles | Live tiles, TileJSON, `agg=grid\|hex`, titles | Ready |
-| 017 | Trigger-Engine-And-Alerts | Gate-based edges, cooldown on observed_at, alert lifecycle (resolve/snooze/feedback), set operators, source/kind arrays, active windows, route buffers, rate cap, backtest, `cooldownScope`/`near`, AlertBus | Ready |
-| 018 | Notification-Channels | 15 types incl. Home Assistant, Apprise, Zulip; attachments field; edit-in-place refs; persisted notifications; quiet hours, folding; templates with timezone | Ready |
-| 019 | Retention-Settings-System | Partition-based retention, kind retention, HeadPurge, consumer clamp, readiness groups, watchdog, capabilities, system history | Ready |
-| 020 | OpenAPI-Conformance | Served spec, drift test, event schemas + OAS webhooks, required lint, Postman sync | Ready |
-| 021 | End-To-End-Milestone | E2E incl. touches, asOf and channels; Operator Guide (remote access, mDNS, backups, NTP, storage) | Ready |
+| 013 | Sources-API | `/v1/sources/**` with policies, tiers, storage, `/fetches` | Done |
+| 014 | Records-Changes-API | Head ⋈ live reads, asOf (transaction time), `asOfSeq`/watermark, purge horizon + `410 RESYNC_REQUIRED`, timeField, near/sort=distance, fields/precision/simplify, ndjson/geojsonseq/csv, ETags, kind schema | Done |
+| 015 | SSE-Change-Stream | Change and live lanes, touch, resync, reset floor, multiplexed `/v1/events/stream` + PATCH filter, per-token limits | Done |
+| 016 | Vector-Tiles | Live tiles, TileJSON, `agg=grid\|hex`, titles | Done |
+| 017 | Trigger-Engine-And-Alerts | Gate-based edges, cooldown on observed_at, alert lifecycle (resolve/snooze/feedback), set operators, source/kind arrays, active windows, route buffers, rate cap, backtest, `cooldownScope`/`near`, AlertBus | Done |
+| 018 | Notification-Channels | 15 types incl. Home Assistant, Apprise, Zulip; attachments field; edit-in-place refs; persisted notifications; quiet hours, folding; templates with timezone | Done |
+| 019 | Retention-Settings-System | Partition-based retention, kind retention, HeadPurge, consumer clamp, readiness groups, watchdog, capabilities, system history | Done |
+| 020 | OpenAPI-Conformance | Served spec, drift test, event schemas + OAS webhooks, required lint, Postman sync | Done |
+| 021 | End-To-End-Milestone | E2E incl. touches, asOf and channels; Operator Guide (remote access, mDNS, backups, NTP, storage) | Done |
 | 022 | ✅ Checkpoint-Milestone | Run and fix all tests from 001–021 | Ready |
 
 ### Platform, agents and intelligence services

@@ -5,6 +5,8 @@
 | `all_day.geojson` | A real capture of the USGS `all_day` summary feed, trimmed to 25 features. `metadata` is kept, with `count` set to 25. |
 | `revised.geojson` | `all_day` reduced to the feature `aka2026uekklg`, revised by hand: `mag` 2.4 → 2.5, `status` automatic → reviewed, `updated` + 600,000 ms, and `title` to match the new magnitude. |
 | `updated-only.geojson` | `all_day` with only `updated` on `us6000u1i6` advanced by 7,200,000 ms (2 h). Every other byte is the same. |
+| `e2e-mag-6.4.geojson` | `all_day` with the feature `us6000u1mj` revised by hand for `MilestoneE2EIT` (prompt 021): `mag` 5.3 → 6.4, `updated` + 600,000 ms, and `title` to match. Every other byte is the same, so the other 24 features are unchanged re-observations. |
+| `e2e-mag-5.8.geojson` | The same feature revised again: `mag` 6.4 → 5.8 (below the E2E rule's `mag >= 6`), `updated` + 1,200,000 ms against `all_day`, and `title` to match. |
 | `edge-cases.geojson` | Hand-made, not a capture: null `mag` with optional fields missing, a feature without an id, one without geometry, one without `updated`, one without depth (with an integer `mag`), and one with `status: deleted`. |
 | `not-a-feature-collection.json` | `{"error": "x"}`, for the format-change check. |
 
@@ -29,6 +31,8 @@ The JSON was re-serialized with one-space indentation; no values were changed.
 
 ## Refreshing
 
-Recapture with the command above, trim the same way, then rebuild `revised.geojson` and
-`updated-only.geojson` from the new `all_day.geojson` (pick a feature that exists in it and update
-the ids in `UsgsGeoJsonParserTest` and `UsgsIngestIT`). Update the date above.
+Recapture with the command above, trim the same way, then rebuild `revised.geojson`,
+`updated-only.geojson` and the two `e2e-mag-*.geojson` files from the new `all_day.geojson` (pick a
+feature that exists in it and update the ids in `UsgsGeoJsonParserTest`, `UsgsIngestIT` and
+`MilestoneE2EIT`). `MilestoneE2EIT` also relies on `us6000u1kv` (M 6.2) being the only feature at or
+above magnitude 6 in `all_day`. Update the date above.

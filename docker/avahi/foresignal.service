@@ -1,0 +1,26 @@
+<?xml version="1.0" standalone='no'?>
+<!DOCTYPE service-group SYSTEM "avahi-service.dtd">
+<!--
+  Foresignal mDNS advertisement (021). Install with:
+    sudo cp docker/avahi/foresignal.service /etc/avahi/services/
+  Avahi picks the file up without a restart.
+
+  TXT records carry only path=/v1 and api=v1. Never add the install id or any
+  other stable identifier: anyone on the LAN can read mDNS, and a stable value
+  would let a device be tracked across networks.
+-->
+<service-group>
+  <name replace-wildcards="yes">Foresignal on %h</name>
+  <service>
+    <type>_http._tcp</type>
+    <port>8080</port>
+    <txt-record>path=/v1</txt-record>
+    <txt-record>api=v1</txt-record>
+  </service>
+  <service>
+    <type>_foresignal._tcp</type>
+    <port>8080</port>
+    <txt-record>path=/v1</txt-record>
+    <txt-record>api=v1</txt-record>
+  </service>
+</service-group>
