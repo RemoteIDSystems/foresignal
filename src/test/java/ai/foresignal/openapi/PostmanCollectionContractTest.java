@@ -174,6 +174,10 @@ class PostmanCollectionContractTest {
             Map.entry("createIngestDevice", body -> ai.foresignal.inbound.device.IngestDeviceService.readInput(body)),
             Map.entry("purgeDevice", body -> ai.foresignal.inbound.device.IngestDevicesController.purgeAlerts(body)),
             Map.entry("purgeRecord", body -> ai.foresignal.inbound.device.IngestDevicesController.purgeAlerts(body)),
+            // 040: the production body reader, and every named dataset is in the bundled manifest.
+            Map.entry("loadReference", body -> assertThat(ai.foresignal.api.ReferenceController.datasets(body))
+                    .allSatisfy(name -> assertThat(new ai.foresignal.reference.ReferenceManifest().find(name))
+                            .as("dataset %s", name).isPresent())),
             Map.entry("rebuildStatsRollup", body -> assertThat(Instant.parse(body.get("from").asString()))
                     .isBefore(Instant.parse(body.get("to").asString()))),
             Map.entry("createStreamTicket", body -> new TicketStore(new TokenHasher(), null, Clock.fixed(NOW, ZoneOffset.UTC))

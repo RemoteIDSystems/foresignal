@@ -70,7 +70,7 @@ public class PlaceBriefingScopeResolver implements ScopeResolver {
             }
         }
         return new Resolved(sources, kinds, BboxParser.parse(s.bbox()), new LinkedHashSet<>(s.ruleIds()),
-                s.includeHealth(), filter, names);
+                s.includeHealth(), filter, names, s.regionFilter());
     }
 
     /** A filter that matches nothing (an empty area), for a deleted place or view. */

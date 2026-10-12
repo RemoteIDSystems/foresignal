@@ -50,16 +50,27 @@ public class RecordItems {
         return sources;
     }
 
-    /** One record row as an item. */
+    /** Region tags for the {@code near} text of current items (prompt 040); null in hand-built unit tests. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ai.foresignal.reference.RegionIncludes regions;
+
+    /** One record row as an item; a current item carries {@code near} when the record is tagged (040). */
     public ObjectNode item(RecordRow row, RecordMapper.Shape shape, Detail detail) {
-        return shaper.record(mapper.record(row, FieldSelection.ALL, shape), detail);
+        return items(List.of(row), shape, detail).getFirst();
     }
 
-    /** Record rows as items. */
+    /** Record rows as items; current items carry {@code near} (short) or {@code region} (long) when tagged. */
     public List<ObjectNode> items(List<RecordRow> rows, RecordMapper.Shape shape, Detail detail) {
-        List<ObjectNode> out = new ArrayList<>(rows.size());
+        List<java.util.Map<String, Object>> mapped = new ArrayList<>(rows.size());
         for (RecordRow row : rows) {
-            out.add(item(row, shape, detail));
+            mapped.add(mapper.record(row, FieldSelection.ALL, shape));
+        }
+        if (regions != null && shape == RecordMapper.Shape.CURRENT && !mapped.isEmpty()) {
+            regions.addToRecords(mapped);
+        }
+        List<ObjectNode> out = new ArrayList<>(rows.size());
+        for (java.util.Map<String, Object> item : mapped) {
+            out.add(shaper.record(item, detail));
         }
         return out;
     }

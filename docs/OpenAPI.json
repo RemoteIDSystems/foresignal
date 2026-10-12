@@ -157,6 +157,11 @@
         "version": "1.3.0",
         "date": "2026-10-12",
         "note": "039: ingestRecordsFormatGet, ingestRecordsPathKey and ingestRecordsPathKeyGet (ingest key, device key or admin), listIngestDevices, createIngestDevice, deleteIngestDevice, rotateIngestDeviceKey, purgeDevice, exportRecord and purgeRecord (admin) are implemented; the owntracks, osmand, overland and gpslogger formats are registered with their native replies. AccessPolicy gains GET /v1/ingest/** (ingest key or admin), GET /v1/records/*/*/export and POST /v1/records/*/*/purge (admin, before the records read rule). Implemented members: CustomSourceInput.profile (personal-location), allowPathKey, ingestAllowCidrs and the enforced private; SourceSettings/SourceSettingsUpdate.private (operator tightening, stored in app_setting visibility; false on a descriptor-private source is a 400); privateAccess on ApiTokenInput/ApiToken, FeedKeyInput/FeedKey and PairingCodeInput/PairingCode (agent tokens no longer see private sources without it); ChannelInput/Channel config.privatePayload; LlmSettings.allowPrivateLocal (true now accepted); Change.purged. Reconciliations: a new security scheme ingestKeyPath (apiKey documented with x-foresignal-in: path, like feedKey) is the security of the /v1/ingest/{sourceId}/k/{key}/{format} operations, so the policy check maps them to ingest-key-or-admin; ingestKey, ingestKeyBearer and ingestKeyBasic mention device keys (eid_); the ingest 403 responses also name DEVICE_ENTITY_MISMATCH; ingestRecordsFormatGet gains 405 (a format without GET); purgeRecord and purgeDevice gain 400 and 503 INGEST_BUSY; CustomSourceFormats owntracks, osmand, overland and gpslogger gain maxAccuracyMeters (default 200) and overland.keepWifi is described; IngestOutcome rejection reasons list INVALID_ITEM, LOW_ACCURACY, INVALID_FIX, NULL_ISLAND and ENCRYPTED_UNSUPPORTED; Problem lists DEVICE_ENTITY_MISMATCH and INGEST_SOURCE_DENIED (403); the LlmSettings.allowPrivateLocal description states the local classification (Ollama or options.local with a loopback or private base URL)."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-12",
+        "note": "040: getReference, listReferenceCountries, reverseGeocode (read) and loadReference (admin, 202) are implemented; AccessPolicy gains GET /v1/reference and /v1/reference/** (read) and POST /v1/reference/load (admin). The country, admin1 and county filters are implemented on listRecords (and its GeoJSON), search, listAlerts, getStatsTimeseries, getStatsGrid and getStatsTop (stats with a region filter are served from raw rows) and BriefingScope; the region filters cannot be combined with asOf (400). include=region returns Record.region and GeoJSON properties.near (with properties.nearAttribution, the GeoNames credit). Alert.region is the region snapshot at fire time. TriggerRuleInput.geofenceRef is implemented; it cannot be combined with geofence, near or hysteresisMeters (400), and createTrigger/replaceTrigger gain 409 REFERENCE_DATA_MISSING. messageTemplate documents the region placeholders. Channel config gains units (metric | imperial) for {{near.text}}. listAlerts gains a 400 response. Problem lists UNKNOWN_REGION (400), REFERENCE_DATA_MISSING (409) and REFERENCE_CHECKSUM_MISMATCH (reported in ReferenceDataset.error, never an HTTP status). The MCP tool reverse_geocode (read) is added and short MCP record items gain near."
       }
     ]
   },
@@ -2028,7 +2033,7 @@
             }
           },
           "400": {
-            "description": "Validation failed (VALIDATION_FAILED, INVALID_CURSOR, ASOF_FILTER_REQUIRED, ASOF_BEYOND_RETENTION, ASOF_INVALID, RESULT_TOO_LARGE)",
+            "description": "Validation failed (VALIDATION_FAILED, INVALID_CURSOR, ASOF_FILTER_REQUIRED, ASOF_BEYOND_RETENTION, ASOF_INVALID, RESULT_TOO_LARGE, UNKNOWN_REGION; the region filters cannot be combined with asOf)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4188,7 +4193,7 @@
             }
           },
           "400": {
-            "description": "Validation failed (VALIDATION_FAILED, TRIGGER_PATH_VOLATILE, PLACES_UNAVAILABLE, FEATURE_UNAVAILABLE, GEOFENCE_TOO_SMALL_FOR_HYSTERESIS, WINDOW_RULE_INVALID)",
+            "description": "Validation failed (VALIDATION_FAILED, TRIGGER_PATH_VOLATILE, PLACES_UNAVAILABLE, FEATURE_UNAVAILABLE, GEOFENCE_TOO_SMALL_FOR_HYSTERESIS, WINDOW_RULE_INVALID, UNKNOWN_REGION)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4209,6 +4214,16 @@
           },
           "403": {
             "description": "Token lacks the required scope",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "geofenceRef needs reference data that is not loaded (REFERENCE_DATA_MISSING)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4353,7 +4368,7 @@
             }
           },
           "400": {
-            "description": "Validation failed (VALIDATION_FAILED, TRIGGER_PATH_VOLATILE, PLACES_UNAVAILABLE, FEATURE_UNAVAILABLE, GEOFENCE_TOO_SMALL_FOR_HYSTERESIS, WINDOW_RULE_INVALID)",
+            "description": "Validation failed (VALIDATION_FAILED, TRIGGER_PATH_VOLATILE, PLACES_UNAVAILABLE, FEATURE_UNAVAILABLE, GEOFENCE_TOO_SMALL_FOR_HYSTERESIS, WINDOW_RULE_INVALID, UNKNOWN_REGION)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4384,6 +4399,16 @@
           },
           "403": {
             "description": "Token lacks the required scope",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "geofenceRef needs reference data that is not loaded (REFERENCE_DATA_MISSING)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4842,6 +4867,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/AlertPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed (VALIDATION_FAILED, INVALID_CURSOR, UNKNOWN_REGION)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
                 }
               }
             }
@@ -25528,7 +25563,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "040",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -25567,7 +25602,7 @@
             }
           },
           "400": {
-            "description": "Unknown dataset",
+            "description": "Unknown dataset or malformed body (VALIDATION_FAILED)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -25617,7 +25652,7 @@
         },
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "040",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -25688,7 +25723,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "040",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -25741,7 +25776,7 @@
             }
           },
           "400": {
-            "description": "Validation failed",
+            "description": "Validation failed (VALIDATION_FAILED: lon or lat missing or out of range)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -25791,7 +25826,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "040",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -85824,6 +85859,7 @@
           "035",
           "036",
           "038",
+          "040",
           "135"
         ],
         "x-foresignal-error-codes": [
@@ -86231,6 +86267,22 @@
             "status": 403,
             "prompt": "039",
             "note": "The sender is outside the source's ingestAllowCidrs (default: private ranges only) for a path key, query key or GET push"
+          },
+          {
+            "code": "UNKNOWN_REGION",
+            "status": 400,
+            "prompt": "040"
+          },
+          {
+            "code": "REFERENCE_DATA_MISSING",
+            "status": 409,
+            "prompt": "040"
+          },
+          {
+            "code": "REFERENCE_CHECKSUM_MISMATCH",
+            "status": 202,
+            "prompt": "040",
+            "note": "Never an HTTP error: reported in ReferenceDataset.error after an asynchronous load"
           }
         ]
       },
@@ -91046,7 +91098,7 @@
           },
           "messageTemplate": {
             "type": "string",
-            "description": "Placeholders {{name}}, {{source}}, {{externalId}}, {{kind}}, {{title}}, {{severity}}, {{observedAt}}, {{eventTime}}, {{time}}, {{validFrom}}, {{payload.<path>}}",
+            "description": "Placeholders {{name}}, {{source}}, {{externalId}}, {{kind}}, {{title}}, {{severity}}, {{observedAt}}, {{eventTime}}, {{time}}, {{validFrom}}, {{payload.<path>}}; region placeholders (040), empty when unknown: {{near.name}}, {{near.km}}, {{near.mi}}, {{near.bearing}} (16-point compass), {{near.text}} (\"12 km NNE of Austin, TX\"; miles with {{near.text|imperial}} or a channel's config.units=imperial), {{country}} (ISO2), {{country.name}}, {{admin1}}, {{admin1.name}}, {{county}} (the county name, else its FIPS5) and {{sea}}",
             "maxLength": 1000,
             "default": "{{name}}: {{source}}/{{externalId}}",
             "example": "M{{payload.mag}} — {{payload.place}}"
@@ -93863,6 +93915,15 @@
                 "type": "boolean",
                 "default": false,
                 "description": "Admin opt-in to include private-source payloads (039); otherwise rule name, severity and a link only"
+              },
+              "units": {
+                "type": "string",
+                "enum": [
+                  "metric",
+                  "imperial"
+                ],
+                "default": "metric",
+                "description": "Units of the {{near.text}} placeholder in this channel's templates (040)"
               }
             },
             "allOf": [
@@ -94103,6 +94164,15 @@
                 "type": "boolean",
                 "default": false,
                 "description": "Admin opt-in to include private-source payloads (039); otherwise rule name, severity and a link only"
+              },
+              "units": {
+                "type": "string",
+                "enum": [
+                  "metric",
+                  "imperial"
+                ],
+                "default": "metric",
+                "description": "Units of the {{near.text}} placeholder in this channel's templates (040)"
               }
             },
             "description": "Non-secret settings per the type's configFields, plus the map-attachment keys",

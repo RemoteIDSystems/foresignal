@@ -97,6 +97,10 @@ public class TriggerEngine implements ChangeListener, IngestStateReset {
     private final AnchorPositions anchors;
     private final AnchorEvaluator anchorEvaluator;
     private final org.springframework.beans.factory.ObjectProvider<PlaceLookup> places;
+
+    /** Region tags for {@code {{near.*}}} and the alert's region snapshot (prompt 040); null in unit tests. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ai.foresignal.reference.RegionTagger regionTagger;
     private final Map<UUID, AlertPass.State> states = new ConcurrentHashMap<>();
     private volatile List<RuleSpec> rules = List.of();
     private volatile Subscription subscription;
@@ -494,13 +498,35 @@ public class TriggerEngine implements ChangeListener, IngestStateReset {
                 .orElseGet(() -> TitleResolver.resolve((String) null, payload));
         AlertContexts.Built context = AlertContexts.build(rule, row, anchor == null ? null : anchor.point(),
                 anchor == null ? null : anchor.seq(), places.getIfAvailable());
+        ai.foresignal.reference.RegionTags region = region(row);
         String message = MessageTemplate.render(rule.template(), new MessageTemplate.Context(
                 rule.name(), row.sourceId(), row.externalId(), row.kind(), title, rule.severity().wire(),
-                row.observedAt(), row.eventTime(), row.validFrom(), payload),
+                row.observedAt(), row.eventTime(), row.validFrom(), payload, region),
                 new MessageTemplate.Extras(java.time.ZoneOffset.UTC, now, context.vars(), null));
         String snapshot = AlertSnapshots.build(row, payload, json);
         writer.insert(new AlertStore.NewAlert(rule, row, now, message, snapshot, fire.suppressedReason(),
-                context.json() == null ? null : json.writeValueAsString(context.json())));
+                context.json() == null ? null : json.writeValueAsString(context.json()),
+                region == null ? null : json.writeValueAsString(region.toMap())));
+    }
+
+    /**
+     * The region tags of the firing version (prompt 040): lazy tagging at the version's geometry, stored in
+     * {@code record_region} in a transaction of its own and snapshotted on the alert; null without a geometry,
+     * for a source whose tagging is off, or when tagging fails (an alert never fails on its region).
+     */
+    private ai.foresignal.reference.RegionTags region(MatchRow row) {
+        if (regionTagger == null || row.geometry() == null) {
+            return null;
+        }
+        try {
+            org.locationtech.jts.geom.Geometry geometry =
+                    new ai.foresignal.source.formats.geojson.GeoJsonReader(1_000_000, 8).read(row.geometry());
+            ai.foresignal.reference.RegionTags tags = regionTagger.tagRecord(row.sourceId(), row.externalId(), geometry);
+            return tags == null || tags.isEmpty() ? null : tags;
+        } catch (RuntimeException e) {
+            log.debug("No region tags for {}:{}: {}", row.sourceId(), row.externalId(), e.getMessage());
+            return null;
+        }
     }
 
     private static String titleField(SourceDescriptor descriptor) {

@@ -37644,7 +37644,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"datasets\": [\n    \"ne-admin1\",\n    \"geonames-cities15000\"\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"

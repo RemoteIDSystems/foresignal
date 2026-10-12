@@ -44,6 +44,10 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
  * <p>Operators come from the registry; every path and value is a bound parameter. Conditions are
  * rendered by {@link RecordPredicate#conditionParts}, the renderer saved views share (prompt 036).
  *
+ * <p><b>Geofence presets</b> (prompt 040): a rule with a {@code geofenceRef} renders
+ * {@code ST_Intersects(x.geom, (SELECT ST_Multi(ST_CollectionExtract(ST_Union(u.g), 3)) FROM (SELECT geom
+ * FROM ref_country WHERE iso2 = ANY(:codes) UNION ALL …) u))} instead of a bound polygon.
+ *
  * <p><b>Moving anchors</b> (prompt 036): an anchored rule's spatial part is
  * {@code x.geom && ST_Expand(:anchor, :dLon, :dLat) AND ST_DWithin(x.geom::geography,
  * :anchor::geography, :m)} ({@code ST_Intersects(x.geom, :anchor)} with radius 0), where
@@ -232,7 +236,17 @@ public final class RuleSqlBuilder {
             case INNER -> rule.fenceInner();
             case OUTER -> rule.fenceOuter();
         };
-        if (fence != null) {
+        if (rule.fenceRef() != null && side == FenceSide.MAIN) {
+            // Prompt 040: a region preset is the union of reference geometries, rendered as a subquery so the
+            // statement always tests the loaded boundaries; the gate tests the same union.
+            int[] n = {0};
+            String union = rule.fenceRef().unionSql(codes -> {
+                String name = "fenceRef" + n[0]++;
+                b.put(name, PgArrays.text(codes));
+                return "CAST(:" + name + " AS text[])";
+            });
+            parts.add("(" + alias + ".geom IS NOT NULL AND ST_Intersects(" + alias + ".geom, " + union + "))");
+        } else if (fence != null) {
             b.put(side.param, new WKBWriter(2).write(fence));
             parts.add("(" + alias + ".geom IS NOT NULL AND ST_Intersects(" + alias + ".geom, ST_GeomFromWKB(CAST(:"
                     + side.param + " AS bytea), 4326)))");

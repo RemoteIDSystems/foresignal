@@ -44,6 +44,7 @@ import org.locationtech.jts.geom.MultiPolygon;
  * @param forecastHorizon the forecast horizon, or null
  * @param messageTemplate the template, or null
  * @param warnings non-fatal findings (unknown kinds)
+ * @param geofenceRef the region preset used as the geofence (prompt 040), or null
  */
 public record ValidatedRule(
         String name,
@@ -76,7 +77,23 @@ public record ValidatedRule(
         ActiveWindow activeWindow,
         Duration forecastHorizon,
         String messageTemplate,
-        List<String> warnings) {
+        List<String> warnings,
+        GeofenceRef geofenceRef) {
+
+    /** A rule without a geofence preset (the shape before prompt 040). */
+    public ValidatedRule(String name, boolean enabled, List<String> sources, List<String> kinds, List<String> tags,
+            List<TriggerCondition> conditions, MultiPolygon geofence, Map<String, Object> geofenceRoute,
+            Double bufferMeters, double hysteresisMeters, MultiPolygon geofenceInner, MultiPolygon geofenceOuter,
+            Map<String, Object> near, TriggerMode mode, boolean onlyNew, boolean reappearAsEnter, Duration cooldown,
+            CooldownScope cooldownScope, Severity severity, boolean enrich, double enrichRadiusKm,
+            Duration enrichWindow, AutoResolve autoResolve, Integer maxAlertsPerHour, boolean autoDisableOnStorm,
+            Instant activeFrom, Instant activeUntil, ActiveWindow activeWindow, Duration forecastHorizon,
+            String messageTemplate, List<String> warnings) {
+        this(name, enabled, sources, kinds, tags, conditions, geofence, geofenceRoute, bufferMeters, hysteresisMeters,
+                geofenceInner, geofenceOuter, near, mode, onlyNew, reappearAsEnter, cooldown, cooldownScope, severity,
+                enrich, enrichRadiusKm, enrichWindow, autoResolve, maxAlertsPerHour, autoDisableOnStorm, activeFrom,
+                activeUntil, activeWindow, forecastHorizon, messageTemplate, warnings, null);
+    }
 
     /** Copies the lists. */
     public ValidatedRule {
@@ -106,6 +123,7 @@ public record ValidatedRule(
         rule.setGeofenceOuter(geofenceOuter);
         rule.setNear(near);
         rule.setGeofenceOrigin(geofence == null ? null : near != null ? "near" : "inline");
+        rule.setGeofenceRef(geofenceRef == null ? null : new java.util.LinkedHashMap<>(geofenceRef.toMap()));
         rule.setMode(mode);
         rule.setOnlyNew(onlyNew);
         rule.setReappearAsEnter(reappearAsEnter);

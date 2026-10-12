@@ -47,6 +47,12 @@ public class BudgetGovernor {
     /** One bucket per source, created on first use. */
     private final Map<String, Entry> buckets = new ConcurrentHashMap<>();
 
+    /**
+     * Budgets of upstream users that are not registered sources (prompt 040: the reference data loader),
+     * by id. Consulted before the source settings, so such an id never reaches the registry.
+     */
+    private final Map<String, Budget> fixedBudgets = new ConcurrentHashMap<>();
+
     public BudgetGovernor(SourceService sources, UsageMeter usage, Clock clock) {
         this.sources = sources;
         this.usage = usage;
@@ -168,6 +174,18 @@ public class BudgetGovernor {
                 after.hasByteBudget() ? ", " + after.mbPerDay() + " MB/day" : "");
     }
 
+    /**
+     * Gives {@code id}, which is not a registered source, the fixed {@code budget} (prompt 040: the
+     * reference data loader downloads through the same budgeted client as adapters). Replaces an earlier
+     * fixed budget of the same id, keeping today's usage.
+     */
+    public void fixBudget(String id, Budget budget) {
+        Budget previous = fixedBudgets.put(id, budget);
+        if (previous != null && !previous.equals(budget)) {
+            buckets.remove(id);
+        }
+    }
+
     /** Discards a source's bucket, so the next use rebuilds it from current settings. */
     public void invalidate(String sourceId) {
         buckets.remove(sourceId);
@@ -180,7 +198,8 @@ public class BudgetGovernor {
 
     private Entry entry(String sourceId) {
         return buckets.computeIfAbsent(
-                sourceId, id -> newEntry(id, sources.effectiveBudget(id)));
+                sourceId, id -> newEntry(id, fixedBudgets.containsKey(id) ? fixedBudgets.get(id)
+                        : sources.effectiveBudget(id)));
     }
 
     private Entry newEntry(String sourceId, Budget budget) {

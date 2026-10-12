@@ -12,16 +12,25 @@ import org.springframework.stereotype.Component;
  * Compiles stored rules into {@link RuleSpec}s, resolving operators through the registry. Prompt 036:
  * a condition without a path is an identity condition ({@link IdentityOperator}), resolved per source
  * from the descriptors' {@code entityKeys}; a rule with such an operator is sensitive; a stored
- * {@code near.anchor} becomes the rule's {@link NearAnchor}.
+ * {@code near.anchor} becomes the rule's {@link NearAnchor}. Prompt 040: a {@code geofenceRef} preset is
+ * resolved through {@link RegionFences} into the fence.
  */
 @Component
 public class RuleSpecs {
 
     private final OperatorRegistry operators;
+    private final RegionFences fences;
 
-    /** Creates the compiler. */
+    /** Creates a compiler without region presets (a rule with a {@code geofenceRef} is then broken). */
     public RuleSpecs(OperatorRegistry operators) {
+        this(operators, null);
+    }
+
+    /** Creates the compiler; {@code fences} resolves {@code geofenceRef} presets (prompt 040). */
+    @org.springframework.beans.factory.annotation.Autowired
+    public RuleSpecs(OperatorRegistry operators, RegionFences fences) {
         this.operators = operators;
+        this.fences = fences;
     }
 
     /**
@@ -53,6 +62,17 @@ public class RuleSpecs {
             }
             sensitive |= op instanceof IdentityOperator;
         }
+        // Prompt 040: a geofence preset is resolved into its union now, so the gate tests the same area the
+        // SQL's subquery computes; missing reference data makes the rule broken until it loads.
+        GeofenceRef ref = GeofenceRef.fromMap(rule.getGeofenceRef());
+        org.locationtech.jts.geom.MultiPolygon fence = rule.getGeofence();
+        if (ref != null) {
+            if (fences == null) {
+                throw new IllegalStateException("Rule " + rule.getId() + " has a geofenceRef but region presets are"
+                        + " not available (REFERENCE_DATA_MISSING)");
+            }
+            fence = fences.union(ref);
+        }
         return new RuleSpec(
                 rule.getId(),
                 rule.getName(),
@@ -61,7 +81,7 @@ public class RuleSpecs {
                 new LinkedHashSet<>(rule.getKinds()),
                 rule.getTags(),
                 conditions,
-                rule.getGeofence(),
+                fence,
                 rule.getGeofenceInner(),
                 rule.getGeofenceOuter(),
                 rule.getHysteresisMeters(),
@@ -83,6 +103,7 @@ public class RuleSpecs {
                 rule.isEnrich(),
                 NearAnchor.fromMap(rule.getNear()),
                 rule.getNear(),
-                sensitive);
+                sensitive,
+                ref);
     }
 }

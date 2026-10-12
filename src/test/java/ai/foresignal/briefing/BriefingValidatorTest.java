@@ -211,4 +211,20 @@ class BriefingValidatorTest {
         assertThat(BriefingScope.fromMap(scope.toMap())).isEqualTo(scope);
         assertThat(BriefingScope.fromMap(null)).isEqualTo(BriefingScope.all());
     }
+
+    @Test
+    @DisplayName("040: country, admin1 and county are scope members, upper-cased and carried to the region filter")
+    void regionScope() {
+        var valid = validator.validate(JSON.readTree("{\"name\":\"b\",\"schedule\":\"0 7 * * *\",\"scope\":"
+                + "{\"country\":[\"us\",\"US\"],\"admin1\":[\"us-tx\"],\"county\":[\"48453\"]}}"), Set.of());
+        BriefingScope scope = valid.input().scope();
+        assertThat(scope.country()).containsExactly("US");
+        assertThat(scope.admin1()).containsExactly("US-TX");
+        assertThat(scope.county()).containsExactly("48453");
+        assertThat(scope.regionFilter().canonical()).isEqualTo("c=US;a=US-TX;n=48453");
+        assertThat(BriefingScope.fromMap(scope.toMap())).isEqualTo(scope);
+        assertThat(BriefingScope.all().regionFilter()).isNull();
+        assertThat(new DefaultScopeResolver().resolve(scope).narrow(
+                ai.foresignal.security.restrict.ReadRestriction.NONE).regionFilter()).isEqualTo(scope.regionFilter());
+    }
 }

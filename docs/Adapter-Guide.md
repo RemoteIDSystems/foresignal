@@ -197,3 +197,15 @@ rule validation lists it in a warning.
 - Adapters existing at prompt 036 (USGS earthquakes and the system canary) carry no such identifier,
   so none needed a change.
 
+## Country-level records (prompt 040)
+
+A record that only knows its country (an outage, a travel advisory, a refugee figure, a botnet
+controller's country) uses the bundled `CountryCentroids` (`ai.foresignal.reference`) for its
+geometry instead of shipping its own centroid table: `byIso2`, `byIso3`, `byFips` (travel advisories
+use FIPS 10-4) and `byName` (case-, accent- and punctuation-insensitive, aliases such as "Türkiye",
+"Czech Republic" and "Ivory Coast" included) return a `CountryRef` whose `labelLon`/`labelLat` is
+Natural Earth's label point, which always falls inside the country. It works with no network and no
+database rows. Put the label point in the record's geometry and set `geometryApproximate: true` in
+the payload, so clients and rules know it is not a measured position. No adapter of prompts 068 (IODA),
+076 (abuse.ch) or 090 (UNHCR, advisories) exists yet; when they are built they use this table.
+

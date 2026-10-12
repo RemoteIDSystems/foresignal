@@ -17,7 +17,8 @@ import java.util.Map;
  * {@code embedFields}, in declaration order, joined with {@code " | "}. A list contributes its
  * scalar elements and an object its scalar leaves, space-joined; empty values are left out. The
  * result is cut to {@value #MAX_CHARS} characters. A record none of whose embed fields has a value
- * has no text and is not embedded.
+ * has no text and is not embedded. Prompt 040 appends the record's region ({@link #withRegion}) when it is
+ * tagged; retagging re-embeds only when the country or first-level region changes.
  */
 public final class EmbeddingText {
 
@@ -55,6 +56,34 @@ public final class EmbeddingText {
         }
         String text = kind + SEPARATOR + sourceName + SEPARATOR + String.join(SEPARATOR, values);
         return cut(text);
+    }
+
+    /**
+     * {@code text} with the region suffix of prompt 040 appended: {@code "Near: 12 km NNE of Austin, TX.
+     * Region: Texas, United States of America."}; {@code text} unchanged when there are no tags (or it is
+     * null).
+     */
+    public static String withRegion(String text, ai.foresignal.reference.RegionTags tags) {
+        if (text == null || tags == null) {
+            return text;
+        }
+        List<String> parts = new ArrayList<>();
+        if (tags.near() != null) {
+            parts.add("Near: " + tags.near().text() + ".");
+        }
+        List<String> names = new ArrayList<>();
+        if (tags.admin1Name() != null && !tags.admin1Name().isBlank()) {
+            names.add(tags.admin1Name());
+        }
+        if (tags.countryName() != null && !tags.countryName().isBlank()) {
+            names.add(tags.countryName());
+        } else if (tags.sea() != null && !tags.sea().isBlank()) {
+            names.add(tags.sea());
+        }
+        if (!names.isEmpty()) {
+            parts.add("Region: " + String.join(", ", names) + ".");
+        }
+        return parts.isEmpty() ? text : cut(text + SEPARATOR + String.join(" ", parts));
     }
 
     /** {@code text} cut to {@value #MAX_CHARS} characters, never splitting a surrogate pair. */

@@ -148,6 +148,19 @@ public class UpstreamClient {
                 pinnedHosts(sourceId, descriptor));
     }
 
+    /**
+     * A {@link SourceHttp} for an upstream user that is not a registered source (prompt 040: the reference
+     * data loader), with the fixed {@code budget}. Everything else is as for an adapter: the budget, the
+     * backoff, the User-Agent, the byte cap, the metering and the redaction.
+     *
+     * @param descriptor a descriptor naming the user (its id meters usage and backoff)
+     * @param budget the request budget
+     */
+    public SourceHttp forSystem(SourceDescriptor descriptor, ai.foresignal.source.spi.Budget budget) {
+        budgets.fixBudget(descriptor.id(), budget);
+        return forSource(descriptor.id(), descriptor, null);
+    }
+
     /** A {@link SourceHttp} with no probe recorder. */
     public SourceHttp forSource(String sourceId, SourceDescriptor descriptor) {
         return forSource(sourceId, descriptor, null);

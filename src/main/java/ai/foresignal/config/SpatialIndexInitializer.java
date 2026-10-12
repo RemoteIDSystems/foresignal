@@ -37,7 +37,9 @@ public class SpatialIndexInitializer implements ApplicationRunner {
      * partial index on open alerts. Prompt 036 adds the GiST index on {@code place.area} and the GIN
      * index on {@code saved_view.place_ids}. {@code embedding_document}'s full-text, spatial and vector DDL
      * (prompt 027) is listed in {@code EmbeddingSchemaManager} ({@code BASE_STATEMENTS} and
-     * {@code slotStatements}), which 144 moves into the baseline alongside these.
+     * {@code slotStatements}), which 144 moves into the baseline alongside these. Prompt 040 adds the GiST
+     * indexes of the reference tables and {@code gazetteer_place.geog}, and the {@code record_region}
+     * indexes {@code (iso2)} and {@code (iso2, admin1)}.
      */
     static final List<String> STATEMENTS = List.of(
             "DROP INDEX IF EXISTS record_head_geom_gist",
@@ -52,7 +54,18 @@ public class SpatialIndexInitializer implements ApplicationRunner {
             "CREATE SEQUENCE IF NOT EXISTS alert_rev INCREMENT BY 1",
             // Open alerts: auto-resolve, alert snoozes and openAlertCount look only at these.
             "CREATE INDEX IF NOT EXISTS alert_open_idx ON alert (rule_id, source_id, external_id)"
-                    + " WHERE state <> 'resolved'");
+                    + " WHERE state <> 'resolved'",
+            // Reference geography (prompt 040): containment and KNN for region tagging, the filters' lookups.
+            "CREATE INDEX IF NOT EXISTS ref_country_geom_gist ON ref_country USING GIST (geom)",
+            "CREATE INDEX IF NOT EXISTS ref_country_geom_simple_gist ON ref_country USING GIST (geom_simple)",
+            "CREATE INDEX IF NOT EXISTS ref_admin1_geom_gist ON ref_admin1 USING GIST (geom)",
+            "CREATE INDEX IF NOT EXISTS ref_admin1_geom_simple_gist ON ref_admin1 USING GIST (geom_simple)",
+            "CREATE INDEX IF NOT EXISTS ref_admin1_gn_code_idx ON ref_admin1 (gn_code)",
+            "CREATE INDEX IF NOT EXISTS ref_admin2_geom_gist ON ref_admin2 USING GIST (geom)",
+            "CREATE INDEX IF NOT EXISTS ref_sea_geom_gist ON ref_sea USING GIST (geom)",
+            "CREATE INDEX IF NOT EXISTS gazetteer_place_geog_gist ON gazetteer_place USING GIST (geog)",
+            "CREATE INDEX IF NOT EXISTS record_region_iso2_idx ON record_region (iso2)",
+            "CREATE INDEX IF NOT EXISTS record_region_iso2_admin1_idx ON record_region (iso2, admin1)");
 
     private final DataSource dataSource;
 

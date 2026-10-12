@@ -50,6 +50,8 @@ public class TriggerMapper {
         out.put("bufferMeters", r.getBufferMeters());
         out.put("hysteresisMeters", r.getHysteresisMeters());
         out.put("near", near(r.getNear()));
+        // A region preset (prompt 040); its geometry is resolved from the reference tables, never stored.
+        out.put("geofenceRef", r.getGeofenceRef());
         out.put("mode", r.getMode().wireValue());
         out.put("onlyNew", r.isOnlyNew());
         out.put("reappearAsEnter", r.isReappearAsEnter());

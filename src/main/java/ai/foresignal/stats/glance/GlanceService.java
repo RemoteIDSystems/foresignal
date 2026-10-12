@@ -128,7 +128,10 @@ public class GlanceService {
                 request.excludedSources(), restriction);
         List<GlanceData.Latest> latest = new ArrayList<>();
         for (AlertView a : alerts.list(open, null, LATEST)) {
-            latest.add(new GlanceData.Latest(a.id(), a.severity(), shortTitle(a), a.firedAt(), null));
+            // near (prompt 040): the region snapshot taken when the alert fired.
+            ai.foresignal.reference.RegionTags region = ai.foresignal.reference.RegionTags.fromJson(a.region());
+            latest.add(new GlanceData.Latest(a.id(), a.severity(), shortTitle(a), a.firedAt(),
+                    region == null ? null : region.nearText()));
         }
         List<SourceHealthView> visible = visibleSources(request.excludedSources(), restriction);
         String status = status(visible);

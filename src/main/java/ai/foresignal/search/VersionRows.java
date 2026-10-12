@@ -72,6 +72,10 @@ public class VersionRows {
     private final JdbcTemplate jdbc;
     private final JsonMapper json;
 
+    /** The region tags appended to the embedding text (prompt 040); null in hand-built unit tests. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ai.foresignal.reference.RegionTagStore regions;
+
     /** Creates the loader. */
     public VersionRows(JdbcTemplate jdbc, JsonMapper json) {
         this.jdbc = jdbc;
@@ -119,6 +123,13 @@ public class VersionRows {
         return jdbc.query(sql.toString(), MAPPER, args.toArray());
     }
 
+    /** The current, non-tombstoned head of one record, or null (prompt 040's re-embedding). */
+    public Row head(String sourceId, String externalId) {
+        List<Row> rows = jdbc.query("SELECT " + HEAD_COLUMNS + " FROM record_head h WHERE h.source_id = ?"
+                + " AND h.external_id = ? AND NOT h.tombstone", MAPPER, sourceId, externalId);
+        return rows.isEmpty() ? null : rows.getFirst();
+    }
+
     /** How many current, non-tombstoned heads {@code sources} have. */
     public long countHeads(Set<String> sources) {
         if (sources.isEmpty()) {
@@ -152,6 +163,11 @@ public class VersionRows {
                 payload, descriptor.embedFields());
         if (text == null) {
             return null;
+        }
+        if (regions != null) {
+            // Prompt 040: "Near: … Region: …" when the record is tagged.
+            text = EmbeddingText.withRegion(text, regions.find(row.sourceId(), row.externalId())
+                    .map(ai.foresignal.reference.RegionTagStore.Stored::tags).orElse(null));
         }
         Instant effective = row.eventTime() != null ? row.eventTime() : row.observedAt();
         return new DocInput(DocInput.RECORD, row.docId(), row.sourceId(), row.kind(), row.seq(), row.geomHex(),

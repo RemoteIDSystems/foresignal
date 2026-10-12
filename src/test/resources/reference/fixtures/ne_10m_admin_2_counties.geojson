@@ -1,0 +1,82 @@
+{
+ "type": "FeatureCollection",
+ "name": "fixture",
+ "features": [
+  {
+   "type": "Feature",
+   "properties": {
+    "ADM2_CODE": "USA-48453",
+    "ISO_A2": "US",
+    "NAME": "Travis",
+    "CODE_LOCAL": "48453",
+    "REGION": "TX",
+    "FIPS": "US48453"
+   },
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       -98.2,
+       30.0
+      ],
+      [
+       -97.4,
+       30.0
+      ],
+      [
+       -97.4,
+       30.6
+      ],
+      [
+       -98.2,
+       30.6
+      ],
+      [
+       -98.2,
+       30.0
+      ]
+     ]
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "ADM2_CODE": "USA-48201",
+    "ISO_A2": "US",
+    "NAME": "Harris",
+    "CODE_LOCAL": "48201",
+    "REGION": "TX",
+    "FIPS": "US48201"
+   },
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       -95.9,
+       29.5
+      ],
+      [
+       -94.9,
+       29.5
+      ],
+      [
+       -94.9,
+       30.2
+      ],
+      [
+       -95.9,
+       30.2
+      ],
+      [
+       -95.9,
+       29.5
+      ]
+     ]
+    ]
+   }
+  }
+ ]
+}

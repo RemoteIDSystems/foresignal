@@ -213,6 +213,24 @@ foresignal:
       expiry-sweep-interval: 1h
       # How long a dispatch waits after a provider credential error before it is retried.
       provider-retry: 15m
+  reference:
+    # Reference geography and region tagging (040). On the first start the default datasets (Natural Earth
+    # boundaries and sea areas, GeoNames cities15000 and names) load in the background, through the budgeted
+    # upstream client; this never blocks startup or readiness. Off in tests.
+    auto-load: true
+    auto-load-delay: 30s
+    # offline-dir: a directory of pre-placed dataset files to load instead of downloading (an offline
+    # install; environment FORESIGNAL_REFERENCE_OFFLINEDIR). Unset: download.
+    # A Natural Earth point-of-view admin-0 file (ind, chn, ...) instead of the de facto boundaries.
+    ne-admin0-variant:
+    # The smallest population a "near" place may have (cities15000 is already filtered).
+    near-min-population: 0
+    coastal-km: 5
+    retag-km: 2
+    track-retag-km: 10
+    cache-size: 50000
+    requests-per-minute: 10
+    requests-per-day: 100
   enrichment:
     # Alert enrichment (030). Whether it runs is llm.enrichmentEnabled plus each rule's enrich flag;
     # these are mechanics. The worker subscribes to the alert bus at startup (off in tests).
@@ -253,7 +271,7 @@ management:
           include: livenessState
         # Readiness: ready to serve and ingest. The compose healthcheck polls it.
         readiness:
-          include: readinessState,db,ingestWriter,partitions
+          include: readinessState,db,ingestWriter,partitions,reference
         # Catching up is a separate signal, deliberately not part of readiness.
         catchup:
           include: catchUp

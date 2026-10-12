@@ -71,6 +71,15 @@ public final class SettingKeys {
      */
     public static final String VISIBILITY = "visibility";
 
+    /** The region tag worker's durable cursor (prompt 040; the consumer clamp of retention). */
+    public static final String REGION_CURSOR = "region.cursor";
+
+    /**
+     * Region tagging modes per source ({@code RegionTaggingSettings}, prompt 040): {@code eager},
+     * {@code lazy} or {@code off} ({@code SourceSettings.regionTagging}).
+     */
+    public static final String REGION_TAGGING = "regionTagging";
+
     /** This installation's generated identifier. */
     public static final String INSTALL_ID = "install.id";
 
@@ -81,7 +90,7 @@ public final class SettingKeys {
     public static final List<String> ALL =
             List.of(RETENTION, CORS, TRIGGER_CURSOR, TRIGGERS, STREAM_LIMITS, SECURITY, SERVER, NOTIFICATIONS,
                     WATCHDOG, INSTALL_ID, LLM, SEARCH_INDEX, EMBEDDING_CURSOR, RATELIMITS, OUTBOUND, STATS_ROLLUP_CURSOR,
-                    STATS, GLANCE, METRICS, VISIBILITY);
+                    STATS, GLANCE, METRICS, VISIBILITY, REGION_CURSOR, REGION_TAGGING);
 
     private SettingKeys() {}
 }

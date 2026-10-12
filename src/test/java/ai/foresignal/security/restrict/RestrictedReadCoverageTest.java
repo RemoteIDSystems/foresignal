@@ -52,7 +52,9 @@ class RestrictedReadCoverageTest {
             "list_views", "create_view", "list_watchlists", "get_watchlist", "add_to_watchlist",
             "remove_from_watchlist",
             // 039: an admin-only erasure that returns a purge report, never records.
-            "purge_entity");
+            "purge_entity",
+            // 040: region tags of a coordinate, never records.
+            "reverse_geocode");
 
     @Test
     @DisplayName("every record- or alert-returning controller method carries @RestrictedRead")

@@ -9,8 +9,8 @@ import java.util.UUID;
  * Folds a {@link BriefingScope} into the plain filters the digest statistics take (prompt 029).
  *
  * <p>This is the hook later prompts extend: 036 resolves {@code placeIds} (place areas) into bbox and
- * area filters, 040 the region filters. Until then {@link DefaultScopeResolver} resolves the members
- * this prompt defines.
+ * area filters, 040 the region filters ({@link Resolved#region}). {@link DefaultScopeResolver} resolves
+ * the members this prompt defines.
  */
 public interface ScopeResolver {
 
@@ -32,9 +32,17 @@ public interface ScopeResolver {
      * @param filter the places' and view's request filter (prompt 036), ANDed into the run's
      *     restriction, or null
      * @param placeNames the names of the scope's places, for the digest heading (never coordinates)
+     * @param region the scope's region filters (prompt 040), or null
      */
     record Resolved(List<String> sources, List<String> kinds, BboxFilter bbox, Set<UUID> ruleIds,
-            boolean includeHealth, ai.foresignal.security.restrict.RecordFilter filter, List<String> placeNames) {
+            boolean includeHealth, ai.foresignal.security.restrict.RecordFilter filter, List<String> placeNames,
+            ai.foresignal.reference.RegionFilter region) {
+
+        /** Filters without region filters (the shape before prompt 040). */
+        public Resolved(List<String> sources, List<String> kinds, BboxFilter bbox, Set<UUID> ruleIds,
+                boolean includeHealth, ai.foresignal.security.restrict.RecordFilter filter, List<String> placeNames) {
+            this(sources, kinds, bbox, ruleIds, includeHealth, filter, placeNames, null);
+        }
 
         /** Filters without places or a view. */
         public Resolved(List<String> sources, List<String> kinds, BboxFilter bbox, Set<UUID> ruleIds,
@@ -50,10 +58,11 @@ public interface ScopeResolver {
             placeNames = placeNames == null ? List.of() : List.copyOf(placeNames);
         }
 
-        /** {@code restriction} narrowed by {@link #filter}. */
+        /** {@code restriction} narrowed by {@link #filter} and the region filters (prompt 040). */
         public ai.foresignal.security.restrict.ReadRestriction narrow(
                 ai.foresignal.security.restrict.ReadRestriction restriction) {
-            return restriction.withFilter(filter);
+            ai.foresignal.security.restrict.ReadRestriction narrowed = restriction.withFilter(filter);
+            return region == null ? narrowed : narrowed.withRegionFilter(region);
         }
     }
 }

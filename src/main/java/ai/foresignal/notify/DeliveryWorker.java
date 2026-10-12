@@ -437,7 +437,7 @@ public class DeliveryWorker {
         }
         Map<String, Object> data = withLatestSummary(m);
         AlertTemplates.Text text = AlertTemplates.render(channel.getTitleTemplate(), channel.getBodyTemplate(), data,
-                m.url(), zone, now);
+                m.url(), zone, now, ChannelUnits.imperial(channel.getConfig()));
         return privacy(m.withText(text.title(), text.body()), channel);
     }
 

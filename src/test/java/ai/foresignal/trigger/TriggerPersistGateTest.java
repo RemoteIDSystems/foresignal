@@ -64,6 +64,46 @@ class TriggerPersistGateTest {
                 .isEqualTo(expected);
     }
 
+    static Stream<TruthTable.GeofenceRefRow> geofenceRefRows() {
+        return TruthTable.geofenceRefRows().stream();
+    }
+
+    /**
+     * The union of a preset's fixture boxes, as {@code RegionGeometries} loads it (prompt 040): the gate
+     * tests this geometry; {@code GeofenceRefIT} checks the SQL union against the same rows.
+     */
+    static org.locationtech.jts.geom.MultiPolygon presetFence(GeofenceRef ref) {
+        Map<String, Map<String, double[]>> regions = TruthTable.geofenceRefRegions();
+        List<org.locationtech.jts.geom.Geometry> parts = new java.util.ArrayList<>();
+        for (Map.Entry<String, List<String>> member : Map.of("country", ref.country(), "admin1", ref.admin1(),
+                "county", ref.county()).entrySet()) {
+            for (String code : member.getValue()) {
+                double[] b = regions.get(member.getKey()).get(code);
+                parts.add(box(b[0], b[1], b[2], b[3]));
+            }
+        }
+        org.locationtech.jts.geom.Geometry union = org.locationtech.jts.operation.union.UnaryUnionOp.union(parts);
+        org.locationtech.jts.geom.MultiPolygon fence = union instanceof org.locationtech.jts.geom.MultiPolygon m ? m
+                : union.getFactory().createMultiPolygon(new org.locationtech.jts.geom.Polygon[] {
+                    (org.locationtech.jts.geom.Polygon) union});
+        fence.setSRID(4326);
+        return fence;
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("geofenceRefRows")
+    @DisplayName("040 truth table: a geofenceRef rule's gate flips exactly when the point enters the preset")
+    void geofenceRefTruthTable(TruthTable.GeofenceRefRow row) {
+        RuleSpec base = rule().mode(TriggerMode.ENTER).build();
+        RuleSpec spec = new RuleSpec(base.id(), base.name(), true, base.sources(), base.kinds(), base.tags(),
+                base.conditions(), presetFence(row.ref()), null, null, 0, TriggerMode.ENTER, false, false,
+                base.cooldown(), base.cooldownScope(), base.severity(), null, null, false, null, null, null, null, null,
+                null, false, null, null, false, row.ref());
+        GateSnapshot gate = snapshot(spec);
+        assertThat(gate.flips("ships", "vessel", geo(null), geo(point(row.lon(), row.lat()))))
+                .isEqualTo(row.expected());
+    }
+
     private static RuleSpec withCondition(RuleCondition condition) {
         TestRules builder = rule();
         builder.conditions.add(condition);

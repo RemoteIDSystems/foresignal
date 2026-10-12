@@ -1,5 +1,5 @@
 {
-  "description": "Operator truth table (prompt 017). Each row is one condition {path, op, value} evaluated on payload. expected is whether the condition holds; ambiguous marks rows where the value is missing, JSON null or of another type than the operator expects (SQL yields NULL, Java AMBIGUOUS). RuleSqlBuilderIT and TriggerPersistGateTest both consume it. Prompt 036 adds watchlists (lists created by RecordPredicateTruthTableTest, referenced by key in value) and watchlistRows for inWatchlist and notInWatchlist: the value must be a JSON string or number, compared by its JSON text after the list's normalization; anything else, a missing path or JSON null is ambiguous for both.",
+  "description": "Operator truth table (prompt 017). Each row is one condition {path, op, value} evaluated on payload. expected is whether the condition holds; ambiguous marks rows where the value is missing, JSON null or of another type than the operator expects (SQL yields NULL, Java AMBIGUOUS). RuleSqlBuilderIT and TriggerPersistGateTest both consume it. Prompt 036 adds watchlists (lists created by RecordPredicateTruthTableTest, referenced by key in value) and watchlistRows for inWatchlist and notInWatchlist: the value must be a JSON string or number, compared by its JSON text after the list's normalization; anything else, a missing path or JSON null is ambiguous for both. Prompt 040 adds geofenceRefRegions (the synthetic squares of the 040 reference fixtures, [minLon, minLat, maxLon, maxLat] by code) and geofenceRefRows: a rule geofence preset and a point, expected true when the point intersects the union of the preset's regions (the boundary counts as inside, as ST_Intersects). GeofenceRefIT checks the SQL union and TriggerPersistGateTest the gate's JTS test.",
   "rows": [
     {
       "path": "x",
@@ -920,6 +920,183 @@
       "expected": true,
       "ambiguous": false,
       "note": "nested path"
+    }
+  ],
+  "geofenceRefRegions": {
+    "country": {
+      "US": [
+        -110,
+        25,
+        -90,
+        40
+      ],
+      "MX": [
+        -110,
+        14,
+        -90,
+        24.9
+      ]
+    },
+    "admin1": {
+      "US-TX": [
+        -106,
+        26,
+        -94,
+        36
+      ]
+    },
+    "county": {
+      "48453": [
+        -98.2,
+        30.0,
+        -97.4,
+        30.6
+      ],
+      "48201": [
+        -95.9,
+        29.5,
+        -94.9,
+        30.2
+      ]
+    }
+  },
+  "geofenceRefRows": [
+    {
+      "geofenceRef": {
+        "country": [
+          "US"
+        ]
+      },
+      "point": [
+        -97.74,
+        30.27
+      ],
+      "expected": true
+    },
+    {
+      "geofenceRef": {
+        "country": [
+          "US"
+        ]
+      },
+      "point": [
+        -100.3,
+        20.0
+      ],
+      "expected": false
+    },
+    {
+      "geofenceRef": {
+        "country": [
+          "US",
+          "MX"
+        ]
+      },
+      "point": [
+        -100.3,
+        20.0
+      ],
+      "expected": true
+    },
+    {
+      "geofenceRef": {
+        "country": [
+          "US"
+        ]
+      },
+      "point": [
+        -90.0,
+        30.0
+      ],
+      "expected": true
+    },
+    {
+      "geofenceRef": {
+        "country": [
+          "US"
+        ]
+      },
+      "point": [
+        -85.0,
+        25.0
+      ],
+      "expected": false
+    },
+    {
+      "geofenceRef": {
+        "admin1": [
+          "US-TX"
+        ]
+      },
+      "point": [
+        -105.0,
+        38.0
+      ],
+      "expected": false
+    },
+    {
+      "geofenceRef": {
+        "admin1": [
+          "US-TX"
+        ]
+      },
+      "point": [
+        -97.74,
+        30.27
+      ],
+      "expected": true
+    },
+    {
+      "geofenceRef": {
+        "county": [
+          "48453"
+        ]
+      },
+      "point": [
+        -97.74,
+        30.27
+      ],
+      "expected": true
+    },
+    {
+      "geofenceRef": {
+        "county": [
+          "48453"
+        ]
+      },
+      "point": [
+        -95.36,
+        29.76
+      ],
+      "expected": false
+    },
+    {
+      "geofenceRef": {
+        "county": [
+          "48453",
+          "48201"
+        ]
+      },
+      "point": [
+        -95.36,
+        29.76
+      ],
+      "expected": true
+    },
+    {
+      "geofenceRef": {
+        "country": [
+          "MX"
+        ],
+        "county": [
+          "48453"
+        ]
+      },
+      "point": [
+        -97.74,
+        30.27
+      ],
+      "expected": true
     }
   ]
 }

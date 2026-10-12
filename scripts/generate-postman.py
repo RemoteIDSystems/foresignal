@@ -251,6 +251,8 @@ BODIES = {
   "createIngestDevice": {"externalId": "family-phone-1", "name": "Family phone 1"},
   "purgeDevice": {"purgeAlerts": False},
   "purgeRecord": {"purgeAlerts": False},
+  # 040: load the Natural Earth admin-1 boundaries and the GeoNames cities from the bundled manifest.
+  "loadReference": {"datasets": ["ne-admin1", "geonames-cities15000"]},
   # 038: stats rollup rebuild and metric projections (a USGS magnitude gauge).
   "rebuildStatsRollup": {"from": "2026-10-01T00:00:00Z", "to": "2026-10-02T00:00:00Z"},
   "updateMetricSettings": {"projections": [{"name": "usgs_magnitude", "source": "usgs-earthquakes", "kind": "earthquake",

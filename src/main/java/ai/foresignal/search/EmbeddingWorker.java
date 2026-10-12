@@ -292,6 +292,32 @@ public class EmbeddingWorker implements ChangeListener, IngestStateReset {
         }
     }
 
+    // ------------------------------------------------------------------------- region re-embedding
+
+    /**
+     * Re-embeds one record's document from its current head (prompt 040: its country or first-level region
+     * changed, so its text's region suffix did). Does nothing while not running, when the source is not
+     * eligible or when the record has no document text; failures are logged and left to the next version.
+     */
+    public synchronized void reembed(String sourceId, String externalId) {
+        if (subscription == null || paused()) {
+            return;
+        }
+        Optional<SourceDescriptor> descriptor = eligibility.descriptor(sourceId);
+        if (descriptor.isEmpty() || !eligibility.sources().contains(sourceId)) {
+            return;
+        }
+        try {
+            VersionRows.Row head = versions.head(sourceId, externalId);
+            DocInput doc = head == null ? null : versions.document(head, descriptor.get());
+            if (doc != null) {
+                indexer.write(List.of(doc));
+            }
+        } catch (LlmBudgetExceededException | LlmProviderException | NotFoundException | DataAccessException e) {
+            log.debug("Could not re-embed {}:{}: {}", sourceId, externalId, e.getMessage());
+        }
+    }
+
     // ------------------------------------------------------------------------- embedDocument
 
     /**

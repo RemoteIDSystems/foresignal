@@ -1,0 +1,114 @@
+{
+ "type": "FeatureCollection",
+ "name": "fixture",
+ "features": [
+  {
+   "type": "Feature",
+   "properties": {
+    "ISO_A2_EH": "US",
+    "ISO_A3_EH": "USA",
+    "NAME": "United States of America",
+    "ISO_A2": "US"
+   },
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       -110,
+       25
+      ],
+      [
+       -90,
+       25
+      ],
+      [
+       -90,
+       40
+      ],
+      [
+       -110,
+       40
+      ],
+      [
+       -110,
+       25
+      ]
+     ]
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "ISO_A2_EH": "MX",
+    "ISO_A3_EH": "MEX",
+    "NAME": "Mexico",
+    "ISO_A2": "MX"
+   },
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       -110,
+       14
+      ],
+      [
+       -90,
+       14
+      ],
+      [
+       -90,
+       24.9
+      ],
+      [
+       -110,
+       24.9
+      ],
+      [
+       -110,
+       14
+      ]
+     ]
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "ISO_A2_EH": "-99",
+    "ISO_A3_EH": "-99",
+    "NAME": "Nowhere",
+    "ISO_A2": "-99"
+   },
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       60,
+       60
+      ],
+      [
+       61,
+       60
+      ],
+      [
+       61,
+       61
+      ],
+      [
+       60,
+       61
+      ],
+      [
+       60,
+       60
+      ]
+     ]
+    ]
+   }
+  }
+ ]
+}

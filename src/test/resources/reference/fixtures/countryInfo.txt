@@ -1,0 +1,3 @@
+#ISO	ISO3	ISO-Numeric	fips	Country	Capital	Area(in sq km)	Population	Continent	tld	CurrencyCode	CurrencyName	Phone	Postal Code Format	Postal Code Regex	Languages	geonameid	neighbours	EquivalentFipsCode
+US	USA	840	US	United States	Washington	9629091	327167434	NA	.us	USD	Dollar	1	#####-####		en-US,es-US	6252001	CA,MX,CU	
+MX	MEX	484	MX	Mexico	Mexico City	1972550	126190788	NA	.mx	MXN	Peso	52	#####		es-MX	3996063	GT,US,BZ	

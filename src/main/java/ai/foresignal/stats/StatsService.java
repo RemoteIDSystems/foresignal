@@ -491,6 +491,10 @@ public class StatsService {
         }
         RestrictionClamp.sqlPredicate("v.source_id", "v.kind", "v.geom", "v.payload", q.restriction(), p)
                 .ifPresent(where::add);
+        if (q.restriction().regionFilter() != null) {
+            // country=, admin1=, county= (prompt 040): the entity's current tags in record_region.
+            where.add(q.restriction().regionFilter().sql("v.source_id", "v.external_id", p::textArray));
+        }
         return where;
     }
 
@@ -522,6 +526,10 @@ public class StatsService {
         }
         RestrictionClamp.sqlPredicate("a.source_id", "a.kind", RestrictionClamp.ALERT_GEOMETRY_SQL,
                 "(a.record_snapshot -> 'payload')", q.restriction(), p).ifPresent(where::add);
+        if (q.restriction().regionFilter() != null) {
+            // country=, admin1=, county= (prompt 040): the region snapshot taken when the alert fired.
+            where.add(q.restriction().regionFilter().jsonSql("a.region", p::textArray));
+        }
         return where;
     }
 
@@ -799,7 +807,8 @@ public class StatsService {
     private StatsTop topCells(StatsQuery base, int limit, Instant now) {
         if (!base.rollupUsable()) {
             throw ValidationException.forField("by", "by=cell cannot be combined with a view or watchlist filter,"
-                    + " whose conditions need the payload");
+                    + " whose conditions need the payload, or with a region filter (the rollup has no regions until"
+                    + " prompt 119)");
         }
         StatsQuery q = new StatsQuery(base.sources(), base.kinds(), null, base.restriction(), base.from(), base.to(),
                 RollupResolution.HOUR, base.measure(), "none", TimeField.INGESTED);

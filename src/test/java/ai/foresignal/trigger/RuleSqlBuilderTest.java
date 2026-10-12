@@ -234,4 +234,23 @@ class RuleSqlBuilderTest {
             assertThat(values).containsKey("fenceOuter").doesNotContainKeys("fence", "fenceInner");
         }
     }
+
+    @Test
+    @DisplayName("040: a geofenceRef rule renders the reference union as a subquery for v and p, never a bound polygon")
+    void geofenceRef() {
+        RuleSpec base = rule().mode(TriggerMode.ENTER).build();
+        GeofenceRef ref = new GeofenceRef(java.util.List.of("US"), java.util.List.of("US-TX"), java.util.List.of());
+        RuleSpec spec = new RuleSpec(base.id(), base.name(), true, base.sources(), base.kinds(), base.tags(),
+                base.conditions(), box(-110, 25, -90, 40), null, null, 0, TriggerMode.ENTER, false, false,
+                base.cooldown(), base.cooldownScope(), base.severity(), null, null, false, null, null, null, null,
+                null, null, false, null, null, false, ref);
+        RuleSqlBuilder.RuleSql s = sql(spec);
+        assertThat(s.sql()).contains("ST_Intersects(v.geom, (SELECT ST_Multi(ST_CollectionExtract(ST_Union(u.g), 3))"
+                + " FROM (SELECT geom AS g FROM ref_country WHERE iso2 = ANY(CAST(:fenceRef0 AS text[])) UNION ALL"
+                + " SELECT geom AS g FROM ref_admin1 WHERE code = ANY(CAST(:fenceRef1 AS text[]))) u))")
+                .contains("ST_Intersects(p.geom, (SELECT")
+                .doesNotContain(":fence AS bytea");
+        assertThat(s.values()).containsEntry("fenceRef0", "{\"US\"}").containsEntry("fenceRef1", "{\"US-TX\"}")
+                .doesNotContainKey("fence");
+    }
 }

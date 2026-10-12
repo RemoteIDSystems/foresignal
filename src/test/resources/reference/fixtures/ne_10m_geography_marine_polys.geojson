@@ -1,0 +1,41 @@
+{
+ "type": "FeatureCollection",
+ "name": "fixture",
+ "features": [
+  {
+   "type": "Feature",
+   "properties": {
+    "name": "Gulf of Mexico",
+    "ne_id": 1159106867,
+    "featurecla": "gulf"
+   },
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       -90,
+       20
+      ],
+      [
+       -80,
+       20
+      ],
+      [
+       -80,
+       30
+      ],
+      [
+       -90,
+       30
+      ],
+      [
+       -90,
+       20
+      ]
+     ]
+    ]
+   }
+  }
+ ]
+}

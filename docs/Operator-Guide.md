@@ -219,7 +219,11 @@ POST /v1/triggers
   observation time, so a burst of late data cannot fire a rule twice. `maxAlertsPerHour` caps a
   storm (default 120); `activeWindow` limits a rule to certain hours.
 - **Templates:** `{{payload.<field>}}`, `{{title}}`, `{{source}}`, `{{externalId}}`,
-  `{{observedAt}}` and the other placeholders the spec lists.
+  `{{observedAt}}` and the other placeholders the spec lists, plus the region placeholders of
+  [Reference data and region tags](#reference-data-and-region-tags) (`{{near.text}}` …).
+- **Region presets:** `"geofenceRef": {"country": ["UA"]}` (or `admin1: ["US-TX"]`,
+  `county: ["48453"]`) instead of a polygon. It needs the reference data loaded (otherwise
+  `409 REFERENCE_DATA_MISSING`) and cannot be combined with `geofence`, `near` or `hysteresisMeters`.
 
 **The alert lifecycle.** An alert is `firing`, then optionally `acknowledged`, then `resolved`:
 
@@ -355,7 +359,8 @@ every rule), `minSeverity`, `titleTemplate` and `bodyTemplate` (the trigger plac
 `{{severity}}`, `{{summary}}`, `{{url}}`, `{{ruleName}}` and `{{message}}`; `{{observedAt|local}}`
 prints `2026-05-01 07:00 CDT` in the channel timezone and `{{observedAt|ago}}` prints `3 min ago`),
 `waitForEnrichmentSeconds`, `timezone`, `quietHours`, `groupWindowSeconds`, `backlogCap` and
-`editInPlace`. Links in messages use the `server` setting's `publicBaseUrl` (default
+`editInPlace`. The region placeholders (`{{near.text}}`, `{{country.name}}` …, prompt 040) read the
+alert's region snapshot; `config.units: "imperial"` prints `{{near.text}}` in miles. Links in messages use the `server` setting's `publicBaseUrl` (default
 `http://localhost:8080`); set it to the address your phone can reach.
 
 ### Setting up each type
@@ -1491,6 +1496,85 @@ emergency retries; muting the watch (`POST /v1/triggers/{id}/mute {"for":"4h"}`)
 its open alerts too. `GET /v1/alerts/{id}/escalation` shows where an alert stands. A policy used by a
 watch cannot be deleted (`409 POLICY_IN_USE`). Muted watches still record alerts and keep them in the
 inbox, but notify nobody until the mute ends (1 hour to 7 days).
+
+## Reference data and region tags
+
+Foresignal gives every record a human place context without any online geocoder (prompt 040):
+country, first-level region, US county, sea area, and the nearest town ("12 km NNE of Austin, TX").
+Tags are stored beside the record (`record_region`), never in its payload, so they never create
+versions or change hashes.
+
+**Datasets.** On the first start, when `foresignal.reference.auto-load` is on (the default), the
+default datasets load in the background about 30 s after startup. Loading never blocks startup or
+readiness; the `reference` readiness detail and `GET /v1/reference` show progress and failures, and a
+failed load raises a `system.reference_load_failed` notification.
+
+| Dataset | Source | Licence | Download | Table |
+|---|---|---|---|---|
+| `ne-admin0` | Natural Earth 10m admin-0 countries v5.1.2 | Public domain | 13 MB | `ref_country` |
+| `ne-admin1` | Natural Earth 10m admin-1 states and provinces | Public domain | 41 MB | `ref_admin1` |
+| `ne-admin2-us` | Natural Earth 10m admin-2 (US counties) | Public domain | 8 MB | `ref_admin2` |
+| `ne-marine` | Natural Earth 10m marine polygons (sea areas) | Public domain | 1.7 MB | `ref_sea` |
+| `geonames-cities15000` | GeoNames, places over 15,000 people (34,160 rows on 2026-10-12) | CC BY 4.0 | 3.4 MB | `gazetteer_place` |
+| `geonames-admin1` | GeoNames first-level region names | CC BY 4.0 | 0.2 MB | `gazetteer_admin1` |
+| `geonames-countryinfo` | GeoNames country names | CC BY 4.0 | 32 KB | `gazetteer_country` |
+| `geonames-cities1000`, `geonames-cities500` (optional) | GeoNames, places over 1,000 / 500 people (171,192 / 236,046 rows) | CC BY 4.0 | 11 / 14 MB | `gazetteer_place` (replaces) |
+
+Reload or add datasets with `POST /v1/reference/load {"datasets": ["ne-admin1", "geonames-cities1000"]}`
+(admin, 202). Only names from the bundled manifest are accepted, never URLs. Downloads go through the
+same budgeted client as adapters (id `foresignal-reference`, 10 requests a minute, 100 a day,
+Foresignal's User-Agent) into `${FORESIGNAL_DATA_DIR}/reference/`. Each file is checked against the
+SHA-256 pinned in the manifest; a mismatch is `REFERENCE_CHECKSUM_MISMATCH` and the dataset is not
+loaded. GeoNames regenerates its dumps every day, so its entries are verified only when you pin a
+checksum (`foresignal.reference.checksums.geonames-cities15000: <sha256>`); otherwise the observed
+SHA-256 is recorded in `GET /v1/reference`. Every load goes into a staging table and is swapped in
+inside one transaction, so readers never see a half-loaded table.
+
+**Disk use.** The default downloads take 65 MB in `${FORESIGNAL_DATA_DIR}/reference/` (measured
+2026-10-12; you may delete them after a load). In PostgreSQL the boundaries are stored at full Natural
+Earth resolution plus a simplified copy, with GiST indexes; check the real size with
+`SELECT pg_size_pretty(sum(pg_total_relation_size(c.oid))) FROM pg_class c WHERE c.relname LIKE 'ref\_%'
+OR c.relname LIKE 'gazetteer\_%'`.
+
+**Offline installs.** Copy the files named in `src/main/resources/reference/manifest.json` into a
+directory and set `foresignal.reference.offline-dir` (or `FORESIGNAL_REFERENCE_OFFLINEDIR`) to it;
+the loader reads them instead of downloading and still verifies the checksums. Without any reference
+data, tags still carry the country, from a simplified boundary set bundled with the application, and
+`GET /v1/reference/countries` serves the bundled country table.
+
+**Boundaries.** Natural Earth draws de facto boundaries (who controls the ground), which are not an
+endorsement of any claim. `foresignal.reference.ne-admin0-variant: ind` (or `arg`, `chn`, `deu`,
+`fra`, `gbr`, `rus`, `tur`, `twn`, `ukr`, `usa` … every Natural Earth point-of-view file is in the
+manifest with its hash) loads a point-of-view file instead.
+
+**Licences.** Natural Earth is public domain. GeoNames is CC BY 4.0: the credit is in
+`THIRD_PARTY_NOTICES.md`, in `GET /v1/reference`, and in every response that carries a `near`
+(`RegionTags.attribution`, GeoJSON `properties.nearAttribution`). Keep it when you republish those
+fields.
+
+**How records are tagged.** Per source, `regionTagging` (`PUT /v1/sources/{id}`) is `eager` (default
+for STANDARD sources: tagged as versions persist), `lazy` (default for TRACK sources: tagged when a
+template renders, an alert fires, or a record is read with `include=region`) or `off`. A moving entity
+is tagged again once it is more than 2 km (10 km for TRACK sources) from where it was last tagged. A
+point outside every country but within 5 km of one gets that country; at sea the country is empty and
+`sea` is set. After a reference load every current record of an eager source is tagged again.
+
+**Using the tags.**
+- `include=region` on `GET /v1/records` and `GET /v1/records/{source}/{id}` adds `region`; GeoJSON
+  features gain `properties.near`.
+- Filters `country=UA,PL`, `admin1=US-TX` and `county=48453` on records (JSON and GeoJSON), `/v1/search`,
+  `/v1/alerts` (the alert's region at fire time), the stats reads (answered from raw rows) and briefing
+  scopes. Unknown codes are `400 UNKNOWN_REGION`. Record filters see tagged records only, so a mover may
+  lag by up to one retag threshold, and lazy sources match only once their records were tagged.
+- `GET /v1/reference/reverse?lon=-97.7&lat=30.37` and the MCP tool `reverse_geocode` tag any point.
+- Template examples:
+
+```text
+{{name}}: M{{payload.mag}} {{near.text}}            → Quake: M4.6 12 km NNE of Austin, TX
+{{country.name}} / {{admin1.name}} / {{county}}     → United States of America / Texas / Travis
+{{near.km}} km ({{near.mi}} mi) {{near.bearing}} of {{near.name}}
+{{near.text|imperial}}                              → 8 mi NNE of Austin, TX
+```
 
 ## Stats, glance and metrics
 

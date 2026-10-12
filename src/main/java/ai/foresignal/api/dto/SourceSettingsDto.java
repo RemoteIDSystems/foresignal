@@ -24,6 +24,8 @@ import java.util.Map;
  * @param statsIncludePrivate whether a private source is rolled up anyway (prompt 038; default false)
  * @param privateSource {@code private}: the effective privacy (prompt 039), true when the descriptor is
  *     private or the operator tightened it; a private source is never embedded ({@code embed} false)
+ * @param regionTagging {@code eager}, {@code lazy} or {@code off} (prompt 040; default eager for STANDARD,
+ *     lazy for TRACK)
  */
 public record SourceSettingsDto(
         boolean enabled,
@@ -39,4 +41,15 @@ public record SourceSettingsDto(
         Duration effectiveRetention,
         boolean statsEnabled,
         boolean statsIncludePrivate,
-        @com.fasterxml.jackson.annotation.JsonProperty("private") boolean privateSource) {}
+        @com.fasterxml.jackson.annotation.JsonProperty("private") boolean privateSource,
+        String regionTagging) {
+
+    /** Settings without a region tagging mode (the shape before prompt 040). */
+    public SourceSettingsDto(boolean enabled, Duration interval, Map<String, Object> params, BudgetDto budget,
+            Duration retention, boolean embed, boolean credentialsSet, Instant updatedAt, IngestPolicyDto ingestPolicy,
+            IngestPolicyDto effectiveIngestPolicy, Duration effectiveRetention, boolean statsEnabled,
+            boolean statsIncludePrivate, boolean privateSource) {
+        this(enabled, interval, params, budget, retention, embed, credentialsSet, updatedAt, ingestPolicy,
+                effectiveIngestPolicy, effectiveRetention, statsEnabled, statsIncludePrivate, privateSource, null);
+    }
+}

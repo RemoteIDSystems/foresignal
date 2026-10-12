@@ -233,6 +233,10 @@ public class AccessPolicy {
                 rule(HttpMethod.GET, "/v1/history/**", AccessRequirement.READ),
                 // The event-density timeline (037).
                 rule(HttpMethod.GET, "/v1/timeline", AccessRequirement.READ),
+                // ---- Reference data (040): reads are read scope, loading is admin ----
+                rule(HttpMethod.POST, "/v1/reference/load", AccessRequirement.ADMIN),
+                rule(HttpMethod.GET, "/v1/reference", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/reference/**", AccessRequirement.READ),
                 // ---- Stats, glance and metric projections (038) ----
                 rule(HttpMethod.POST, "/v1/stats/rollup/rebuild", AccessRequirement.ADMIN),
                 rule(HttpMethod.GET, "/v1/stats/**", AccessRequirement.READ),

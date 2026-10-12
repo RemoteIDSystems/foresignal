@@ -1,0 +1,244 @@
+{
+  "description": "Reference datasets of prompt 040. URLs are fixed here; callers can only name a dataset. Natural Earth files are pinned to release v5.1.2 and verified by SHA-256 (a mismatch is REFERENCE_CHECKSUM_MISMATCH and the dataset is not loaded). GeoNames regenerates its dumps daily, so its entries are marked rolling: the checksum recorded here is verified only when the operator pins one with foresignal.reference.checksums.<name>; otherwise the downloaded file's SHA-256 is recorded in ref_dataset. Natural Earth draws de facto boundaries; foresignal.reference.ne-admin0-variant selects a point-of-view admin-0 file from variants. Marine Regions IHO sea areas are deliberately not offered (their terms ask that products not be re-hosted).",
+  "version": 1,
+  "datasets": [
+    {
+      "name": "ne-admin0",
+      "kind": "ne-admin0",
+      "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_10m_admin_0_countries.geojson",
+      "sha256": "239eec57ac17f100a11e2536cffc56752c318b50ae765b0918ff7aab4ce8f255",
+      "edition": "Natural Earth 10m v5.1.2 (nvkelso/natural-earth-vector tag v5.1.2, commit f1890d9f152c896d250a77557a5751a93d494776)",
+      "licence": "Public domain",
+      "attribution": "Made with Natural Earth. Free vector and raster map data @ naturalearthdata.com.",
+      "optional": false,
+      "rolling": false,
+      "maxBytes": 33554432,
+      "variants": {
+        "arg": {
+          "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_10m_admin_0_countries_arg.geojson",
+          "sha256": "5de5c83114945be5c328295abf31d29641ffe7f0280c0f8f746777648fae5803"
+        },
+        "bdg": {
+          "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_10m_admin_0_countries_bdg.geojson",
+          "sha256": "201b2e38710402b6c7221094d49d5f87c4cb7e3cfa69274a571e2e13d73d8840"
+        },
+        "bra": {
+          "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_10m_admin_0_countries_bra.geojson",
+          "sha256": "de70a3924150e0a6f866fcb507270dc8040afbf9a4addab009783f241e7e2687"
+        },
+        "chn": {
+          "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_10m_admin_0_countries_chn.geojson",
+          "sha256": "a13bf5f310fde87bc0a5f994f8ce9bd706cc198d8ee37d221e61c2546b945372"
+        },
+        "deu": {
+          "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_10m_admin_0_countries_deu.geojson",
+          "sha256": "fc4d56c6bc256f779e0ba21579f81d64885f5296dba3c23c3e78a9b89a7aa0fb"
+        },
+        "egy": {
+          "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_10m_admin_0_countries_egy.geojson",
+          "sha256": "4ed6984fca9bc368619be9b9b7026beef007251b8ccab27ebaeeea0d4af74eaa"
+        },
+        "esp": {
+          "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_10m_admin_0_countries_esp.geojson",
+          "sha256": "e61193d14bc4b41c1652ff94a939d6b4123102329a41524e0accd3463e3079c8"
+        },
+        "fra": {
+          "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_10m_admin_0_countries_fra.geojson",
+          "sha256": "273def0394f5e344ff4938b1cbe9c48f36aea2e8e1635a8814768bc50f5dd44c"
+        },
+        "gbr": {
+          "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_10m_admin_0_countries_gbr.geojson",
+          "sha256": "7acfd0ccade031cd165630e4d5e9b51650079976d94008100407d03e0e83a492"
+        },
+        "grc": {
+          "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_10m_admin_0_countries_grc.geojson",
+          "sha256": "ca4ad82c571e7b507b4382ede1377596e869f680ebcae258bed887c58e94d060"
+        },
+        "idn": {
+          "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_10m_admin_0_countries_idn.geojson",
+          "sha256": "cc5292e1082cdeaa8b92d3314faf89cb0f0b7d5ac4808c72fd7b6efdd3886249"
+        },
+        "ind": {
+          "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_10m_admin_0_countries_ind.geojson",
+          "sha256": "3e67a5a6ddeff3247ca8400cd2514fd4a5ac6e5432823b25d610a7028597d45f"
+        },
+        "iso": {
+          "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_10m_admin_0_countries_iso.geojson",
+          "sha256": "60eb10aa951f5872507c9436937508b09be4b43dc9fa7aad7644f23ef12e1cad"
+        },
+        "isr": {
+          "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_10m_admin_0_countries_isr.geojson",
+          "sha256": "45e43bd18bb0d97290ec1751c8b669c7e99a69ca0413b7a0d3196505fc42d4aa"
+        },
+        "ita": {
+          "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_10m_admin_0_countries_ita.geojson",
+          "sha256": "36e4d8f5f00b5a9ed9a086ef38e330110d7e9cd8fc3b93f54c739123b80531ec"
+        },
+        "jpn": {
+          "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_10m_admin_0_countries_jpn.geojson",
+          "sha256": "11bc047064a5cf2db03efc2aece341e657df2dd59ad715a8221cc1575697df1b"
+        },
+        "kor": {
+          "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_10m_admin_0_countries_kor.geojson",
+          "sha256": "0dd7351fd445628d190d40a3f7b756fea21fd058e63e400ad498e4108ea0130c"
+        },
+        "mar": {
+          "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_10m_admin_0_countries_mar.geojson",
+          "sha256": "71cfbfcb408cf9277dbd5700da168f4634e8e80a9a8b114eb595d739bebd6598"
+        },
+        "nep": {
+          "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_10m_admin_0_countries_nep.geojson",
+          "sha256": "b56e5675c080fca9f520a37cebae32d549cf60cbe2aa0b46453eb74cfb27c297"
+        },
+        "nld": {
+          "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_10m_admin_0_countries_nld.geojson",
+          "sha256": "9a8327cdff482625ffdb17b982203e23f90ef97a4265becc3c98dc66c145539f"
+        },
+        "pak": {
+          "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_10m_admin_0_countries_pak.geojson",
+          "sha256": "9c070579b14cdef62bc5f7ecf9dfc8320195b3c211c4032f8d46087a70a0599c"
+        },
+        "pol": {
+          "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_10m_admin_0_countries_pol.geojson",
+          "sha256": "4d8ef44ed174a06d678dc751bd0a29a4f36da310c3719a54dad88ad68855ed8f"
+        },
+        "prt": {
+          "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_10m_admin_0_countries_prt.geojson",
+          "sha256": "7c9d4d5a72a13ef7d242f9a3c4211ddaf009becddfbfae1311aafbd1c65982c3"
+        },
+        "pse": {
+          "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_10m_admin_0_countries_pse.geojson",
+          "sha256": "ec53197338ffdda19bd238d32e309bee2fefbc8cedda368365a62f92d63d8f18"
+        },
+        "rus": {
+          "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_10m_admin_0_countries_rus.geojson",
+          "sha256": "c8dc3acedf6e1b4e42a21a7eade7fa9664a6f4ff0ed0b3d60aeeeb45dc31b771"
+        },
+        "sau": {
+          "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_10m_admin_0_countries_sau.geojson",
+          "sha256": "43b6675bb0fe9f4e0feb68c5a1e9b0b71f4a41c6d5fd4134b41db6f843134cf8"
+        },
+        "swe": {
+          "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_10m_admin_0_countries_swe.geojson",
+          "sha256": "7f50094bd832c91839666d02dab070d0b6220c58852ef430a1df1e3544fd3259"
+        },
+        "tur": {
+          "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_10m_admin_0_countries_tur.geojson",
+          "sha256": "225a283ee34da427fd77bdf046017cf9bdaae576da6ed66ea23a8e6757b1018f"
+        },
+        "twn": {
+          "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_10m_admin_0_countries_twn.geojson",
+          "sha256": "a8719781480a862c9243ceab07d47e3be3569b5cd550662918d4bc0886a4b9be"
+        },
+        "ukr": {
+          "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_10m_admin_0_countries_ukr.geojson",
+          "sha256": "28a1a17d7327cad576083d5122b867843f957468b1bb11168ded23fd5aea342e"
+        },
+        "usa": {
+          "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_10m_admin_0_countries_usa.geojson",
+          "sha256": "d3166691d3d86f113c0d8db52506f4b72936513691d1593f47010fed01fc0b93"
+        },
+        "vnm": {
+          "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_10m_admin_0_countries_vnm.geojson",
+          "sha256": "90067c7f246a7e85a5d501b8f3d7367ad2287816c85ebd8d44634600caf26b64"
+        }
+      }
+    },
+    {
+      "name": "ne-admin1",
+      "kind": "ne-admin1",
+      "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_10m_admin_1_states_provinces.geojson",
+      "sha256": "22d0e3ad85eb3e27f17cabf8ba2d50e554fbc27a87796ff891d958185da62fb5",
+      "edition": "Natural Earth 10m v5.1.2 (nvkelso/natural-earth-vector tag v5.1.2, commit f1890d9f152c896d250a77557a5751a93d494776)",
+      "licence": "Public domain",
+      "attribution": "Made with Natural Earth. Free vector and raster map data @ naturalearthdata.com.",
+      "optional": false,
+      "rolling": false,
+      "maxBytes": 67108864
+    },
+    {
+      "name": "ne-admin2-us",
+      "kind": "ne-admin2",
+      "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_10m_admin_2_counties.geojson",
+      "sha256": "9a80308d80eef51a0c1ade49aeb9ca877957a346f880e177a85527ef6cfdd1bb",
+      "edition": "Natural Earth 10m v5.1.2 (nvkelso/natural-earth-vector tag v5.1.2, commit f1890d9f152c896d250a77557a5751a93d494776)",
+      "licence": "Public domain",
+      "attribution": "Made with Natural Earth. Free vector and raster map data @ naturalearthdata.com.",
+      "optional": false,
+      "rolling": false,
+      "maxBytes": 33554432
+    },
+    {
+      "name": "ne-marine",
+      "kind": "ne-marine",
+      "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_10m_geography_marine_polys.geojson",
+      "sha256": "53f865e8ffa966cdd402145c82c5cd14ee7ce974cd0eb9a3f59f03a4cfd2d66c",
+      "edition": "Natural Earth 10m v5.1.2 (nvkelso/natural-earth-vector tag v5.1.2, commit f1890d9f152c896d250a77557a5751a93d494776)",
+      "licence": "Public domain",
+      "attribution": "Made with Natural Earth. Free vector and raster map data @ naturalearthdata.com.",
+      "optional": false,
+      "rolling": false,
+      "maxBytes": 16777216
+    },
+    {
+      "name": "geonames-cities15000",
+      "kind": "geonames-cities",
+      "url": "https://download.geonames.org/export/dump/cities15000.zip",
+      "sha256": "8c2390a973087b9f42671a01c401ccbbc4d1346fe1d0371c15d1090b21d2d725",
+      "edition": "GeoNames daily dump (checksum recorded 2026-10-12)",
+      "licence": "CC BY 4.0",
+      "attribution": "Place names from GeoNames (https://www.geonames.org/), licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/).",
+      "optional": false,
+      "rolling": true,
+      "maxBytes": 33554432
+    },
+    {
+      "name": "geonames-admin1",
+      "kind": "geonames-admin1",
+      "url": "https://download.geonames.org/export/dump/admin1CodesASCII.txt",
+      "sha256": "1da92a6323a5fec3176f3f743bf4cf4040fd56a876da55e46fbca23c863aa60a",
+      "edition": "GeoNames daily dump (checksum recorded 2026-10-12)",
+      "licence": "CC BY 4.0",
+      "attribution": "Place names from GeoNames (https://www.geonames.org/), licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/).",
+      "optional": false,
+      "rolling": true,
+      "maxBytes": 8388608
+    },
+    {
+      "name": "geonames-countryinfo",
+      "kind": "geonames-countryinfo",
+      "url": "https://download.geonames.org/export/dump/countryInfo.txt",
+      "sha256": "c5997ea659df5bcf42509eb937064d172b2a998bb873608603e8421d714a9974",
+      "edition": "GeoNames daily dump (checksum recorded 2026-10-12)",
+      "licence": "CC BY 4.0",
+      "attribution": "Place names from GeoNames (https://www.geonames.org/), licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/).",
+      "optional": false,
+      "rolling": true,
+      "maxBytes": 4194304
+    },
+    {
+      "name": "geonames-cities1000",
+      "kind": "geonames-cities",
+      "url": "https://download.geonames.org/export/dump/cities1000.zip",
+      "sha256": "8352b9c84494320fdc4919001ced2b2708f24c89aa5d112fd6dfed98677af93e",
+      "edition": "GeoNames daily dump (checksum recorded 2026-10-12)",
+      "licence": "CC BY 4.0",
+      "attribution": "Place names from GeoNames (https://www.geonames.org/), licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/).",
+      "optional": true,
+      "rolling": true,
+      "maxBytes": 67108864
+    },
+    {
+      "name": "geonames-cities500",
+      "kind": "geonames-cities",
+      "url": "https://download.geonames.org/export/dump/cities500.zip",
+      "sha256": "0254566d8cda847ffea03f61e959e72713b77f1de641883fe024a703283463c4",
+      "edition": "GeoNames daily dump (checksum recorded 2026-10-12)",
+      "licence": "CC BY 4.0",
+      "attribution": "Place names from GeoNames (https://www.geonames.org/), licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/).",
+      "optional": true,
+      "rolling": true,
+      "maxBytes": 67108864
+    }
+  ]
+}

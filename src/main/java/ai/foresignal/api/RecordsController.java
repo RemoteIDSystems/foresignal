@@ -114,6 +114,14 @@ public class RecordsController {
     private final JsonMapper json;
     private final Clock clock;
 
+    /** The 040 region filters and {@code include=region}; null only in hand-built unit tests. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ai.foresignal.reference.RegionCodes regionCodes;
+
+    /** Adds region tags to items for {@code include=region} (prompt 040); null only in unit tests. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ai.foresignal.reference.RegionIncludes regionIncludes;
+
     /** Creates the controller. */
     public RecordsController(
             RecordQueryService queries,
@@ -223,6 +231,11 @@ public class RecordsController {
         ReadCaller caller = callers.resolveScoped(request, scope);
         Set<String> excluded = callers.excludedSources(caller);
         ReadRestriction restriction = caller.restriction();
+        // country=, admin1=, county= (prompt 040): matched through record_region (400 UNKNOWN_REGION).
+        ai.foresignal.reference.RegionFilter region = regionFilter(request);
+        if (region != null) {
+            restriction = restriction.withRegionFilter(region);
+        }
         ResponseFormat fmt = ResponseFormat.negotiate(format, accept, LIST_FORMATS);
         List<String> sources = knownSources(QueryParams.multi("source", source), callers.hiddenSources(caller));
         List<String> kinds = QueryParams.multi("kind", kind);
@@ -250,6 +263,10 @@ public class RecordsController {
         boolean countOnly = QueryParams.bool("count", request.getParameter("count"), false);
         if (countOnly && asOfAt != null) {
             throw ValidationException.forField("count", "count=true cannot be combined with asOf");
+        }
+        if (asOfAt != null && region != null) {
+            throw ValidationException.forField("country", "the region filters apply to current state; they cannot be"
+                    + " combined with asOf");
         }
         if (asOfAt != null) {
             AsOfQueryService.checkCombination(
@@ -302,14 +319,35 @@ public class RecordsController {
         HttpHeaders headers = ETags.cacheHeaders(new HttpHeaders(), etag, caller.publicCache());
         headers.set(WATERMARK_HEADER, Long.toString(slice.watermarkSeq()));
         Object body;
+        boolean withRegion = includes.contains("region") && regionIncludes != null;
         if (fmt == ResponseFormat.GEOJSON) {
-            body = FeatureCollectionPage.of(features(slice.rows(), selection, RecordMapper.Shape.CURRENT),
-                    slice.nextCursor(), slice.watermarkSeq(), slice.asOfSeq(), null, null, null);
+            List<Map<String, Object>> features = features(slice.rows(), selection, RecordMapper.Shape.CURRENT);
+            if (withRegion) {
+                regionIncludes.addToFeatures(features);
+            }
+            body = FeatureCollectionPage.of(features, slice.nextCursor(), slice.watermarkSeq(), slice.asOfSeq(), null,
+                    null, null);
         } else {
-            body = new RecordPage(records(slice.rows(), selection, RecordMapper.Shape.CURRENT), slice.nextCursor(),
-                    slice.watermarkSeq(), slice.asOfSeq(), null, null, null);
+            List<Map<String, Object>> items = records(slice.rows(), selection, RecordMapper.Shape.CURRENT);
+            if (withRegion) {
+                regionIncludes.addToRecords(items);
+            }
+            body = new RecordPage(items, slice.nextCursor(), slice.watermarkSeq(), slice.asOfSeq(), null, null, null);
         }
         return ResponseEntity.ok().headers(headers).contentType(MediaType.parseMediaType(fmt.mediaType())).body(body);
+    }
+
+    /** The request's 040 region filters, validated ({@code 400 UNKNOWN_REGION}), or null. */
+    private ai.foresignal.reference.RegionFilter regionFilter(HttpServletRequest request) {
+        if (regionCodes == null) {
+            return null;
+        }
+        return regionCodes.filter(params(request, "country"), params(request, "admin1"), params(request, "county"));
+    }
+
+    private static List<String> params(HttpServletRequest request, String name) {
+        String[] values = request.getParameterValues(name);
+        return values == null ? List.of() : List.of(values);
     }
 
     private ResponseEntity<Object> asOf(
@@ -372,9 +410,18 @@ public class RecordsController {
         if (ETags.matches(ifNoneMatch, etag)) {
             return ETags.notModified(etag, caller.publicCache());
         }
-        Object body = fmt == ResponseFormat.GEOJSON
+        Map<String, Object> body = fmt == ResponseFormat.GEOJSON
                 ? mapper.feature(row, selection, RecordMapper.Shape.CURRENT)
                 : mapper.record(row, selection, RecordMapper.Shape.CURRENT);
+        if (includes.contains("region") && regionIncludes != null) {
+            // include=region (prompt 040): stored tags, or lazy tagging now.
+            List<Map<String, Object>> one = new ArrayList<>(List.of(body));
+            if (fmt == ResponseFormat.GEOJSON) {
+                regionIncludes.addToFeatures(one);
+            } else {
+                regionIncludes.addToRecords(one);
+            }
+        }
         return ResponseEntity.ok()
                 .headers(ETags.cacheHeaders(new HttpHeaders(), etag, caller.publicCache()))
                 .contentType(MediaType.parseMediaType(fmt.mediaType()))

@@ -31,6 +31,14 @@ import java.util.function.UnaryOperator;
  * {@code {{observedAt|ago}}} renders the age relative to the extras' {@code now}, for example
  * {@code 3 min ago}. Only {@code java.time} is used; there is no ICU dependency. An unknown filter
  * renders the value unfiltered.
+ *
+ * <p><b>Region placeholders (prompt 040),</b> from the record's region tags, each empty when unknown:
+ * {@code {{near.name}}}, {@code {{near.km}}}, {@code {{near.mi}}}, {@code {{near.bearing}}} (16-point
+ * compass, {@code NNE}), {@code {{near.text}}} ({@code 12 km NNE of Austin, TX}; in miles when the
+ * extras say {@code imperial}, which a channel's {@code config.units: imperial} sets, or with the filter
+ * {@code {{near.text|imperial}}}), {@code {{country}}} (ISO2), {@code {{country.name}}},
+ * {@code {{admin1}}}, {@code {{admin1.name}}}, {@code {{county}}} and {@code {{sea}}}. Distances are
+ * whole numbers.
  */
 public final class MessageTemplate {
 
@@ -65,6 +73,7 @@ public final class MessageTemplate {
      * @param eventTime the event time, or null
      * @param validFrom the start of validity, or null
      * @param payload the version's payload, or null
+     * @param region the record's region tags (prompt 040), or null
      */
     public record Context(
             String name,
@@ -76,7 +85,15 @@ public final class MessageTemplate {
             Instant observedAt,
             Instant eventTime,
             Instant validFrom,
-            Map<String, ?> payload) {}
+            Map<String, ?> payload,
+            ai.foresignal.reference.RegionTags region) {
+
+        /** A context without region tags (the shape before prompt 040). */
+        public Context(String name, String source, String externalId, String kind, String title, String severity,
+                Instant observedAt, Instant eventTime, Instant validFrom, Map<String, ?> payload) {
+            this(name, source, externalId, kind, title, severity, observedAt, eventTime, validFrom, payload, null);
+        }
+    }
 
     /**
      * The notification extras of {@link #render(String, Context, Extras)}.
@@ -86,11 +103,19 @@ public final class MessageTemplate {
      * @param vars extra variables by name (they win over the built-in placeholders)
      * @param escape applied to every substituted value (for example markdown escaping for a body),
      *     or null
+     * @param imperial true to render {@code {{near.text}}} in miles (a channel's {@code units=imperial},
+     *     prompt 040)
      */
-    public record Extras(ZoneId zone, Instant now, Map<String, String> vars, UnaryOperator<String> escape) {
+    public record Extras(ZoneId zone, Instant now, Map<String, String> vars, UnaryOperator<String> escape,
+            boolean imperial) {
 
         /** No extras: UTC, no extra variables, no escaping. */
-        public static final Extras NONE = new Extras(ZoneOffset.UTC, null, Map.of(), null);
+        public static final Extras NONE = new Extras(ZoneOffset.UTC, null, Map.of(), null, false);
+
+        /** Metric extras (the shape before prompt 040). */
+        public Extras(ZoneId zone, Instant now, Map<String, String> vars, UnaryOperator<String> escape) {
+            this(zone, now, vars, escape, false);
+        }
 
         /**
          * Copies the variables. A null value is kept (it renders as an empty string, see
@@ -157,8 +182,41 @@ public final class MessageTemplate {
                 default -> instant.toString();
             };
         }
+        String region = region(key, filter, c.region(), x.imperial());
+        if (region != null) {
+            return region;
+        }
         return value(key, c);
     }
+
+    /** The region placeholders of prompt 040; null when {@code key} is not one of them. */
+    static String region(String key, String filter, ai.foresignal.reference.RegionTags tags, boolean imperial) {
+        if (!REGION_KEYS.contains(key)) {
+            return null;
+        }
+        if (tags == null) {
+            return "";
+        }
+        ai.foresignal.reference.RegionNear near = tags.near();
+        return switch (key) {
+            case "near.name" -> near == null ? "" : text(near.name());
+            case "near.km" -> near == null ? "" : Long.toString(Math.round(near.distanceKm()));
+            case "near.mi" -> near == null ? "" : Long.toString(Math.round(near.distanceMi()));
+            case "near.bearing" -> near == null ? "" : near.compass();
+            case "near.text" -> near == null ? "" : near.text(imperial || "imperial".equals(filter));
+            case "country" -> text(tags.iso2());
+            case "country.name" -> text(tags.countryName());
+            case "admin1" -> text(tags.admin1());
+            case "admin1.name" -> text(tags.admin1Name());
+            case "county" -> text(tags.countyName() != null ? tags.countyName() : tags.admin2());
+            case "sea" -> text(tags.sea());
+            default -> "";
+        };
+    }
+
+    /** The region placeholder names (prompt 040). */
+    public static final java.util.Set<String> REGION_KEYS = java.util.Set.of("near.name", "near.km", "near.mi",
+            "near.bearing", "near.text", "country", "country.name", "admin1", "admin1.name", "county", "sea");
 
     /** {@code "3 min ago"}, {@code "in 2 h"}, {@code "just now"}: whole units, rounded down. */
     static String ago(Instant at, Instant now) {

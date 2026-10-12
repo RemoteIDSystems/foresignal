@@ -95,6 +95,15 @@ public class TriggerRuleEntity {
     @Column(name = "geofence_origin", length = 8)
     private String geofenceOrigin;
 
+    /**
+     * A region preset used as the geofence (prompt 040: {@code country}, {@code admin1}, {@code county}
+     * code lists), or null. Its geometry is resolved from the reference tables when the rule is compiled,
+     * never stored in {@code geofence}.
+     */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "geofence_ref")
+    private Map<String, Object> geofenceRef;
+
     // The default is declared with @ColumnDefault rather than inside columnDefinition. With
     // "varchar(8) default 'match'" as the definition, Hibernate's schema update saw a type mismatch
     // on every start and issued "alter column mode set data type varchar(8) default 'match'", which
@@ -366,6 +375,16 @@ public class TriggerRuleEntity {
     /** Sets the near clause. */
     public void setNear(Map<String, Object> near) {
         this.near = near;
+    }
+
+    /** The geofence preset (prompt 040), or null. */
+    public Map<String, Object> getGeofenceRef() {
+        return geofenceRef;
+    }
+
+    /** Sets the geofence preset. */
+    public void setGeofenceRef(Map<String, Object> geofenceRef) {
+        this.geofenceRef = geofenceRef;
     }
 
     /** {@code inline}, {@code near} or null (prompt 036). */

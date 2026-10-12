@@ -56,6 +56,9 @@ foresignal:
   # The activity rollup job does not run on its own in tests; RollupJobIT calls RollupJob.runOnce() (prompt 038).
   stats:
     scheduled: false
+  # No reference data is downloaded in tests; the 040 ITs load small fixtures with ReferenceDataLoader.loadNow.
+  reference:
+    auto-load: false
   # The briefing scheduler does not tick in tests; BriefingSchedulerIT calls BriefingScheduler.tick().
   briefing:
     scheduled: false

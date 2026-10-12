@@ -101,8 +101,17 @@ public record AlertQuery(
         if (!includeSuppressed && alert.suppressed()) {
             return false;
         }
+        if (restriction.regionFilter() != null && !restriction.regionFilter().test(regionOf(alert))) {
+            // The region filters of prompt 040 read the alert's region snapshot.
+            return false;
+        }
         return !excludedSources.contains(alert.sourceId())
                 && RestrictionClamp.testSnapshot(restriction, alert.sourceId(), alert.kind(), alert.recordSnapshot(),
                         alert.sensitive());
+    }
+
+    /** The alert's region snapshot (prompt 040), or null. */
+    static ai.foresignal.reference.RegionTags regionOf(AlertView alert) {
+        return ai.foresignal.reference.RegionTags.fromJson(alert.region());
     }
 }

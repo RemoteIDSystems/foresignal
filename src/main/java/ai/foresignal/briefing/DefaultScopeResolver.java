@@ -12,6 +12,6 @@ public class DefaultScopeResolver implements ScopeResolver {
     public Resolved resolve(BriefingScope scope) {
         BriefingScope s = scope == null ? BriefingScope.all() : scope;
         return new Resolved(s.sources(), s.kinds(), BboxParser.parse(s.bbox()), new LinkedHashSet<>(s.ruleIds()),
-                s.includeHealth());
+                s.includeHealth(), null, java.util.List.of(), s.regionFilter());
     }
 }

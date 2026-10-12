@@ -15,7 +15,8 @@ import java.util.Map;
  * {@code |local} and {@code |ago} filters in the channel's timezone. Values substituted into the
  * body are markdown-escaped, so a payload cannot inject formatting. The context comes from the
  * notification's {@code data} (the alert JSON the router stores), so a channel's templates can be
- * applied at send time.
+ * applied at send time. Prompt 040 adds the region placeholders ({@code {{near.text}}} …) from the
+ * alert's region snapshot, in miles for a channel with {@code config.units: imperial}.
  */
 public final class AlertTemplates {
 
@@ -51,11 +52,21 @@ public final class AlertTemplates {
      */
     public static Text render(String titleTemplate, String bodyTemplate, Map<String, Object> data, String url,
             ZoneId zone, Instant now) {
+        return render(titleTemplate, bodyTemplate, data, url, zone, now, false);
+    }
+
+    /**
+     * {@link #render(String, String, Map, String, ZoneId, Instant)} with the channel's units (prompt 040):
+     * {@code imperial} renders {@code {{near.text}}} in miles.
+     */
+    public static Text render(String titleTemplate, String bodyTemplate, Map<String, Object> data, String url,
+            ZoneId zone, Instant now, boolean imperial) {
         Map<String, Object> d = data == null ? Map.of() : data;
         MessageTemplate.Context context = new MessageTemplate.Context(
                 text(d.get("ruleName")), text(d.get("sourceId")), text(d.get("externalId")), text(d.get("kind")),
                 text(d.get("recordTitle")), text(d.get("severity")), instant(d.get("observedAt")),
-                instant(d.get("eventTime")), instant(d.get("validFrom")), payload(d));
+                instant(d.get("eventTime")), instant(d.get("validFrom")), payload(d),
+                d.get("region") instanceof Map<?, ?> region ? ai.foresignal.reference.RegionTags.fromMap(region) : null);
         Map<String, String> vars = new HashMap<>();
         vars.put("severity", text(d.get("severity")));
         vars.put("summary", text(d.get("summary")));
@@ -63,9 +74,9 @@ public final class AlertTemplates {
         vars.put("ruleName", text(d.get("ruleName")));
         vars.put("message", text(d.get("message")));
         String title = MessageTemplate.render(blankToNull(titleTemplate, DEFAULT_TITLE), context,
-                new MessageTemplate.Extras(zone, now, vars, null));
+                new MessageTemplate.Extras(zone, now, vars, null, imperial));
         String body = MessageTemplate.render(blankToNull(bodyTemplate, DEFAULT_BODY), context,
-                new MessageTemplate.Extras(zone, now, vars, MarkdownRenderer::escapeMarkdown));
+                new MessageTemplate.Extras(zone, now, vars, MarkdownRenderer::escapeMarkdown, imperial));
         return new Text(title.replace('\n', ' ').strip(), tidy(body));
     }
 

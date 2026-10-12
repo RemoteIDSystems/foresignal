@@ -213,7 +213,23 @@ public class SourceMapper {
                 effectiveRetention(view.descriptor(), sourceRetention),
                 statsSettings().enabled(view.id()),
                 statsSettings().includePrivate(view.id()),
-                effectivePrivate(view));
+                effectivePrivate(view),
+                regionTagging(view.descriptor()));
+    }
+
+    /** The source's region tagging mode (prompt 040): the operator's choice, else its tier's default. */
+    private String regionTagging(SourceDescriptor descriptor) {
+        try {
+            ai.foresignal.reference.RegionTaggingSettings value = appSettings.getOrDefault(SettingKeys.REGION_TAGGING,
+                    ai.foresignal.reference.RegionTaggingSettings.class,
+                    ai.foresignal.reference.RegionTaggingSettings::defaults);
+            ai.foresignal.reference.RegionTagMode mode = value == null ? null : value.override(descriptor.id());
+            return (mode != null ? mode : ai.foresignal.reference.RegionTagMode.defaultFor(descriptor.historyTier()))
+                    .wire();
+        } catch (RuntimeException e) {
+            log.warn("Could not read the region tagging settings; showing the default", e);
+            return ai.foresignal.reference.RegionTagMode.defaultFor(descriptor.historyTier()).wire();
+        }
     }
 
     /**

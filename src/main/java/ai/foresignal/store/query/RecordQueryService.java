@@ -619,6 +619,10 @@ public class RecordQueryService {
         addIn(where, "h.source_id", q.sources(), p);
         addNotIn(where, "h.source_id", q.excludedSources(), p);
         RestrictionClamp.addTo(where, "h.source_id", "h.kind", "l.geom", CURRENT_PAYLOAD, q.restriction(), p);
+        if (q.restriction().regionFilter() != null) {
+            // country=, admin1=, county= (prompt 040), through record_region.
+            where.add(q.restriction().regionFilter().sql("h.source_id", "h.external_id", p::textArray));
+        }
         addIn(where, "h.kind", q.kinds(), p);
         addIn(where, "h.external_id", q.externalIds(), p);
         where.add("NOT h.tombstone");

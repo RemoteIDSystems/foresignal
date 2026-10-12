@@ -90,6 +90,15 @@ public class AlertsController {
     private final StreamPrincipalResolver principals;
     private final PresenceService presence;
 
+    /** Validates the 040 region filters; null only in hand-built unit tests. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ai.foresignal.reference.RegionCodes regionCodes;
+
+    private static List<String> params(HttpServletRequest request, String name) {
+        String[] values = request.getParameterValues(name);
+        return values == null ? List.of() : List.of(values);
+    }
+
     /** Creates the controller. */
     public AlertsController(
             AlertService alerts,
@@ -141,8 +150,13 @@ public class AlertsController {
         int size = QueryParams.intInRange("limit", limit, 1, MAX_LIMIT, DEFAULT_LIMIT);
         ReadCaller caller = callers.resolve(request);
         Set<String> excluded = callers.excludedSources(caller);
+        // country=, admin1=, county= (prompt 040) read the alert's region snapshot (400 UNKNOWN_REGION).
+        ai.foresignal.reference.RegionFilter region = regionCodes == null ? null : regionCodes.filter(
+                params(request, "country"), params(request, "admin1"), params(request, "county"));
+        ai.foresignal.security.restrict.ReadRestriction restriction = region == null ? caller.restriction()
+                : caller.restriction().withRegionFilter(region);
         AlertQuery query = new AlertQuery(rules, QueryParams.multi("source", source), QueryParams.multi("kind", kind),
-                sinceValue, ack, states, feedbacks, min, tag, suppressed, excluded, caller.restriction());
+                sinceValue, ack, states, feedbacks, min, tag, suppressed, excluded, restriction);
         String fingerprint = CursorCodec.fingerprint(canonical(query, size));
         Cursor.Seq position = CursorCodec.decode(cursor, Cursor.Seq.class, fingerprint);
         List<AlertView> page = alerts.list(query, position == null ? null : position.q(), size + 1);

@@ -101,6 +101,14 @@ public class RuleValidator {
     private final GeoJsonReader geoJson = new GeoJsonReader();
     private volatile Boolean validFromPresent;
 
+    /** Validates region codes of {@code geofenceRef} (prompt 040); null in hand-built unit tests. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ai.foresignal.reference.RegionCodes regionCodes;
+
+    /** Tells whether a {@code geofenceRef}'s reference data is loaded (prompt 040); null in unit tests. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private RegionFences regionFences;
+
     /** Creates the validator. */
     public RuleValidator(
             SourceRegistry registry,
@@ -211,13 +219,19 @@ public class RuleValidator {
             if (hasGeofence && hasNear) {
                 error("near", "geofence and near are mutually exclusive");
             }
+            // Prompt 040: a region preset instead of a polygon.
+            boolean hasRef = JsonTrees.present(body, "geofenceRef");
+            if (hasRef && (hasGeofence || hasNear)) {
+                error("geofenceRef", "geofence, near and geofenceRef are mutually exclusive");
+            }
+            GeofenceRef geofenceRef = hasRef ? geofenceRef() : null;
             Fence fence = hasGeofence ? geofence() : hasNear && !hasGeofence ? near() : Fence.NONE;
             if (!hasGeofence && JsonTrees.present(body, "bufferMeters")) {
                 error("bufferMeters", "applies only to a LineString or MultiLineString geofence");
             }
 
             TriggerMode mode = mode();
-            boolean fenced = hasGeofence || hasNear;
+            boolean fenced = hasGeofence || hasNear || hasRef;
             if (mode != TriggerMode.MATCH && !fenced && conditions.isEmpty()) {
                 error("mode", "enter and exit need a geofence, near or at least one condition");
             }
@@ -245,7 +259,9 @@ public class RuleValidator {
             MultiPolygon inner = null;
             MultiPolygon outer = null;
             if (hysteresis > 0) {
-                if (fence.near() != null && fence.near().containsKey("anchor")) {
+                if (hasRef) {
+                    error("hysteresisMeters", "is not supported with geofenceRef");
+                } else if (fence.near() != null && fence.near().containsKey("anchor")) {
                     error("hysteresisMeters", "is not supported with a moving anchor");
                 } else if (!fenced) {
                     error("hysteresisMeters", "needs a geofence or near");
@@ -286,6 +302,10 @@ public class RuleValidator {
             if (!errors.isEmpty()) {
                 throw new ValidationException("The rule is not valid.", errors);
             }
+            if (geofenceRef != null && (regionFences == null || !regionFences.available(geofenceRef))) {
+                throw new ai.foresignal.api.error.ConflictException(ErrorCodes.REFERENCE_DATA_MISSING,
+                        "geofenceRef needs reference data that is not loaded; load it with POST /v1/reference/load");
+            }
             for (String warning : warnings) {
                 log.warn("Trigger rule '{}': {}", name, warning);
             }
@@ -293,7 +313,73 @@ public class RuleValidator {
                     fence.bufferMeters(), hysteresis > 0 ? hysteresis : 0, inner, outer, fence.near(), mode, onlyNew,
                     reappearAsEnter, cooldown, cooldownScope, severity, enrich, enrichRadiusKm, enrichWindow,
                     autoResolve, maxAlertsPerHour, autoDisableOnStorm, activeFrom, activeUntil, activeWindow,
-                    forecastHorizon, template, warnings);
+                    forecastHorizon, template, warnings, geofenceRef);
+        }
+
+        /**
+         * {@code geofenceRef} (prompt 040): an object with {@code country}, {@code admin1} and {@code county}
+         * code lists, at least one code, every code known ({@code UNKNOWN_REGION}).
+         */
+        private GeofenceRef geofenceRef() {
+            JsonNode node = body.get("geofenceRef");
+            if (node == null || node.isNull()) {
+                return null;
+            }
+            if (!node.isObject()) {
+                error("geofenceRef", "must be an object with country, admin1 or county code lists");
+                return null;
+            }
+            for (String member : node.propertyNames()) {
+                if (!List.of("country", "admin1", "county").contains(member)) {
+                    error("geofenceRef." + member, "is not a GeofenceRef member");
+                }
+            }
+            List<String> country = codes(node, "country", true);
+            List<String> admin1 = codes(node, "admin1", true);
+            List<String> county = codes(node, "county", false);
+            GeofenceRef ref = new GeofenceRef(country, admin1, county);
+            if (ref.isEmpty()) {
+                error("geofenceRef", "must name at least one country, admin1 or county code");
+                return null;
+            }
+            if (regionCodes != null) {
+                try {
+                    regionCodes.validate(country, admin1, county, "geofenceRef.");
+                } catch (ValidationException e) {
+                    if (special == null) {
+                        special = e;
+                    }
+                }
+            }
+            return ref;
+        }
+
+        private List<String> codes(JsonNode ref, String member, boolean upper) {
+            JsonNode node = ref.get(member);
+            if (node == null || node.isNull()) {
+                return List.of();
+            }
+            if (!node.isArray()) {
+                error("geofenceRef." + member, "must be an array of codes");
+                return List.of();
+            }
+            List<String> out = new ArrayList<>();
+            for (int i = 0; i < node.size(); i++) {
+                JsonNode item = node.get(i);
+                if (!item.isString() || item.asString().isBlank()) {
+                    error("geofenceRef." + member + "[" + i + "]", "must be a non-empty string");
+                    continue;
+                }
+                String code = item.asString().strip();
+                code = upper ? code.toUpperCase(java.util.Locale.ROOT) : code;
+                if (!out.contains(code)) {
+                    out.add(code);
+                }
+            }
+            if (out.size() > 200) {
+                error("geofenceRef." + member, "at most 200 codes are allowed");
+            }
+            return out;
         }
 
         // ------------------------------------------------------------------ fields

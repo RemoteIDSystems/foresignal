@@ -38,9 +38,13 @@ public record StatsQuery(List<String> sources, List<String> kinds, BboxFilter bb
         return new StatsQuery(value, kinds, bbox, restriction, from, to, bucket, measure, groupBy, timeField);
     }
 
-    /** True when the rollup can answer it: no filter needing the payload (view conditions, watchlists). */
+    /**
+     * True when the rollup can answer it: no filter needing the payload (view conditions, watchlists) and no
+     * region filter (prompt 040: the rollup is not keyed by region until prompt 119).
+     */
     public boolean rollupUsable() {
-        return restriction.filter() == null || !restriction.filter().needsPayload();
+        return (restriction.filter() == null || !restriction.filter().needsPayload())
+                && restriction.regionFilter() == null;
     }
 
     /**

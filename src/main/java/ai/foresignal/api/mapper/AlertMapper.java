@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
 /**
  * Maps alerts to the {@code Alert} and {@code AlertEvent} schemas (prompt 017). Prompt 030 adds the
  * enrichment members {@code summary}, {@code enrichedAt} and {@code summaryCitations} (an empty
- * array until the alert is enriched). Prompt 036 adds {@code sensitive} and {@code context}
+ * array until the alert is enriched). Prompt 040 adds {@code region}. Prompt 036 adds {@code sensitive} and {@code context}
  * ({@code near} place versions, {@code anchor} distance).
  */
 @Component
@@ -56,6 +56,8 @@ public class AlertMapper {
         out.put("summaryCitations", alert.summaryCitations() == null ? List.of() : RawJson.of(alert.summaryCitations()));
         out.put("sensitive", alert.sensitive());
         out.put("context", alert.context() == null ? null : RawJson.of(alert.context()));
+        // The record's region tags at fire time (prompt 040), with the GeoNames credit when near is set.
+        out.put("region", alert.region() == null ? null : RawJson.of(alert.region()));
         if (record != null) {
             out.put("record", record);
         }

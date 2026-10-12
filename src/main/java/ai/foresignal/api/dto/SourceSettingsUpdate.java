@@ -28,6 +28,7 @@ public class SourceSettingsUpdate {
     private Boolean statsEnabled;
     private Boolean statsIncludePrivate;
     private Boolean privateSource;
+    private String regionTagging;
 
     /** Whether the source should be collected; null leaves it unchanged. */
     public Boolean getEnabled() {
@@ -109,6 +110,16 @@ public class SourceSettingsUpdate {
     /** Sets {@link #getEmbed()}. */
     public void setEmbed(Boolean embed) {
         this.embed = embed;
+    }
+
+    /** {@code eager}, {@code lazy} or {@code off} (prompt 040); null leaves it unchanged. */
+    public String getRegionTagging() {
+        return regionTagging;
+    }
+
+    /** Sets {@link #getRegionTagging()}. */
+    public void setRegionTagging(String regionTagging) {
+        this.regionTagging = regionTagging;
     }
 
     /** Whether the source is included in activity rollups (038); null leaves it unchanged. */

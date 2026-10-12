@@ -140,6 +140,10 @@ public class SqlDigestStatsProvider implements DigestStatsProvider {
         // A view's conditions (prompt 036) are judged on the alert's record snapshot payload.
         RestrictionClamp.addTo(where, "a.source_id", "a.kind", RestrictionClamp.ALERT_GEOMETRY_SQL,
                 "(a.record_snapshot -> 'payload')", filter.restriction(), p);
+        if (filter.restriction().regionFilter() != null) {
+            // The scope's region filters (prompt 040), through the alert's region snapshot.
+            where.add(filter.restriction().regionFilter().jsonSql("a.region", p::textArray));
+        }
         if (filter.bbox() != null) {
             String geom = "(CASE WHEN jsonb_typeof(a.record_snapshot -> 'geometry') = 'object' THEN"
                     + " ST_SetSRID(ST_GeomFromGeoJSON((a.record_snapshot -> 'geometry')::text), 4326) END)";
@@ -213,6 +217,11 @@ public class SqlDigestStatsProvider implements DigestStatsProvider {
             // A view's conditions (prompt 036) read the version's or the merged current payload.
             String payload = "v.geom".equals(geomColumn) ? "v.payload" : "jsonb_strip_nulls(h.payload || l.kinematic)";
             RestrictionClamp.addTo(where, sourceColumn, kindColumn, geomColumn, payload, filter.restriction(), p);
+            if (filter.restriction().regionFilter() != null) {
+                // The scope's region filters (prompt 040), through record_region.
+                String externalId = sourceColumn.replace("source_id", "external_id");
+                where.add(filter.restriction().regionFilter().sql(sourceColumn, externalId, p::textArray));
+            }
         }
     }
 

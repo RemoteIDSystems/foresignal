@@ -94,6 +94,7 @@ class RecordLifecycleIT {
     @Autowired StubRetentionState retention;
     @Autowired RetentionJob retentionJob;
     @Autowired TriggerEngine engine;
+    @Autowired ai.foresignal.reference.RegionTagWorker regionWorker;
     @Autowired ChangeBus changeBus;
     @Autowired IngestWriter writer;
     @Autowired SseHub hub;
@@ -439,6 +440,9 @@ class RecordLifecycleIT {
 
     private RetentionRunResult runRetention(Instant now) {
         await().atMost(Duration.ofSeconds(30)).until(() -> engine.cursor() >= changeBus.lastPublishedSeq());
+        // The region tag worker's cursor joins the clamp too (prompt 040).
+        await().atMost(Duration.ofSeconds(30)).until(() -> !regionWorker.running()
+                || regionWorker.cursor() >= changeBus.lastPublishedSeq());
         clock.setInstant(now);
         return retentionJob.run();
     }

@@ -234,6 +234,8 @@ public class ChannelInputParser {
      * {@code allowedSenders} (strings) when present.
      */
     static void actionsConfig(Map<String, Object> config, List<FieldError> errors) {
+        // The channel's units (prompt 040): metric or imperial, for {{near.text}}.
+        ChannelUnits.validate(config, errors);
         Object privatePayload = config.get(PrivatePayloads.CONFIG_KEY);
         if (privatePayload != null && !(privatePayload instanceof Boolean)) {
             // The admin opt-in to private-source payloads (prompt 039).

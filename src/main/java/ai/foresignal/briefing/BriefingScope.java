@@ -11,10 +11,11 @@ import java.util.UUID;
  * rules for the alert section, and whether source health is included. Empty lists mean "all".
  *
  * <p>Prompt 036 adds {@code placeIds} (the places' areas bound the scope and the digest heading names
- * them) and {@code viewId} (a saved view's predicate). The spec's later members ({@code country},
- * {@code admin1}, {@code county} from 040, {@code places}, {@code weatherProducts} from 056) are not
- * part of this record yet; {@link BriefingValidator} refuses them when non-empty, and
- * {@link ScopeResolver} is the hook those prompts extend.
+ * them) and {@code viewId} (a saved view's predicate). Prompt 040 adds {@code country}, {@code admin1}
+ * and {@code county} (region filters, matched through {@code record_region} and the alert region
+ * snapshot). The spec's later members ({@code places}, {@code weatherProducts} from 056) are not part of
+ * this record yet; {@link BriefingValidator} refuses them when non-empty, and {@link ScopeResolver} is the
+ * hook that prompt extends.
  *
  * @param sources source ids
  * @param kinds kinds
@@ -23,9 +24,19 @@ import java.util.UUID;
  * @param includeHealth whether the source health section is included (default true)
  * @param placeIds places whose areas bound the scope (prompt 036); empty for none
  * @param viewId a saved view id or slug (prompt 036), or null
+ * @param country ISO2 codes (prompt 040); empty for any
+ * @param admin1 ISO 3166-2 codes (prompt 040); empty for any
+ * @param county US county FIPS5 codes (prompt 040); empty for any
  */
 public record BriefingScope(List<String> sources, List<String> kinds, String bbox, List<UUID> ruleIds,
-        boolean includeHealth, List<String> placeIds, String viewId) {
+        boolean includeHealth, List<String> placeIds, String viewId, List<String> country, List<String> admin1,
+        List<String> county) {
+
+    /** A scope without region filters (the shape before prompt 040). */
+    public BriefingScope(List<String> sources, List<String> kinds, String bbox, List<UUID> ruleIds,
+            boolean includeHealth, List<String> placeIds, String viewId) {
+        this(sources, kinds, bbox, ruleIds, includeHealth, placeIds, viewId, List.of(), List.of(), List.of());
+    }
 
     /** A scope without places or a view. */
     public BriefingScope(List<String> sources, List<String> kinds, String bbox, List<UUID> ruleIds,
@@ -41,6 +52,14 @@ public record BriefingScope(List<String> sources, List<String> kinds, String bbo
         bbox = bbox == null || bbox.isBlank() ? null : bbox.strip();
         placeIds = placeIds == null ? List.of() : List.copyOf(placeIds);
         viewId = viewId == null || viewId.isBlank() ? null : viewId.strip();
+        country = country == null ? List.of() : List.copyOf(country);
+        admin1 = admin1 == null ? List.of() : List.copyOf(admin1);
+        county = county == null ? List.of() : List.copyOf(county);
+    }
+
+    /** The scope's region filters (prompt 040), or null when it has none. */
+    public ai.foresignal.reference.RegionFilter regionFilter() {
+        return ai.foresignal.reference.RegionFilter.of(country, admin1, county);
     }
 
     /** Everything, with health. */
@@ -58,6 +77,9 @@ public record BriefingScope(List<String> sources, List<String> kinds, String bbo
         out.put("includeHealth", includeHealth);
         out.put("placeIds", placeIds);
         out.put("viewId", viewId);
+        out.put("country", country);
+        out.put("admin1", admin1);
+        out.put("county", county);
         return out;
     }
 
@@ -79,7 +101,8 @@ public record BriefingScope(List<String> sources, List<String> kinds, String bbo
         Object view = map.get("viewId");
         return new BriefingScope(strings(map.get("sources")), strings(map.get("kinds")),
                 bbox == null ? null : bbox.toString(), rules, !(health instanceof Boolean b) || b,
-                strings(map.get("placeIds")), view == null ? null : view.toString());
+                strings(map.get("placeIds")), view == null ? null : view.toString(), strings(map.get("country")),
+                strings(map.get("admin1")), strings(map.get("county")));
     }
 
     private static List<String> strings(Object value) {

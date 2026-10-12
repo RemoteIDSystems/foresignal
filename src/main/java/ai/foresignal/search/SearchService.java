@@ -343,6 +343,9 @@ public class SearchService {
             where.add("NOT (h.source_id = ANY(" + p.textArray(excluded) + "))");
         }
         RestrictionClamp.addTo(where, "h.source_id", "h.kind", "l.geom", "jsonb_strip_nulls(h.payload || l.kinematic)", r, p);
+        if (r.regionFilter() != null) {
+            where.add(r.regionFilter().sql("h.source_id", "h.external_id", p::textArray));
+        }
         if (request.bbox() != null) {
             where.add(RecordQueryService.bboxClause("l.geom", request.bbox(), p));
         }
@@ -396,6 +399,15 @@ public class SearchService {
             // A request filter with conditions reads the embedded version's payload (prompt 036).
             RestrictionClamp.addTo(where, "d.source_id", "d.kind", "d.geom",
                     "(SELECT dv.payload FROM record_version dv WHERE dv.seq = d.seq)", r, p);
+        }
+        if (r.regionFilter() != null) {
+            // country=, admin1=, county= (prompt 040): record documents through record_region, alert documents
+            // through the alert's region snapshot; briefing documents have no region and are left out.
+            String record = r.regionFilter().sql("d.source_id",
+                    "substring(d.doc_id FROM char_length(d.source_id) + 2)", p::textArray);
+            String alert = "EXISTS (SELECT 1 FROM alert ra WHERE ra.id::text = d.doc_id AND "
+                    + r.regionFilter().jsonSql("ra.region", p::textArray) + ")";
+            where.add("((d.doc_type = 'record' AND " + record + ") OR (d.doc_type = 'alert' AND " + alert + "))");
         }
         if (request.bbox() != null) {
             where.add(RecordQueryService.bboxClause("d.geom", request.bbox(), p));

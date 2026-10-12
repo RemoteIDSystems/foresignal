@@ -350,6 +350,16 @@ public class NotificationRouter implements AlertListener {
             }
         }
         data.put("record", record);
+        // The region tags at fire time (prompt 040), for the {{near.*}}, {{country}} … placeholders.
+        Object region = null;
+        if (a.region() != null) {
+            try {
+                region = json.readValue(a.region(), Map.class);
+            } catch (RuntimeException e) {
+                region = null;
+            }
+        }
+        data.put("region", region);
         return data;
     }
 

@@ -44,6 +44,7 @@ public abstract class RetentionItSupport {
     @Autowired protected PartitionManager partitions;
     @Autowired protected RetentionTestSources.TestConsumer consumer;
     @Autowired protected RetentionTestSources.BlockingStep blocking;
+    @Autowired protected ai.foresignal.reference.RegionTagWorker regionWorker;
 
     /** Starts every scenario at {@link #T0} with no clamp and the default settings. */
     @BeforeEach
@@ -72,9 +73,14 @@ public abstract class RetentionItSupport {
         return NormalizedRecord.builder(externalId, kind).observedAt(observedAt).put("v", value).build();
     }
 
-    /** Waits until the trigger engine has evaluated everything published, so it does not clamp. */
+    /**
+     * Waits until the trigger engine (and, from prompt 040, the region tag worker) has processed everything
+     * published, so neither clamps.
+     */
     protected void awaitTriggerCursor() {
         await().atMost(Duration.ofSeconds(30)).until(() -> engine.cursor() >= changeBus.lastPublishedSeq());
+        await().atMost(Duration.ofSeconds(30)).until(() -> !regionWorker.running()
+                || regionWorker.cursor() >= changeBus.lastPublishedSeq());
     }
 
     /**

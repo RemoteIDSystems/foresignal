@@ -76,11 +76,10 @@ public class BriefingValidator {
 
     /** Scope members this prompt implements. */
     static final Set<String> SCOPE_MEMBERS = Set.of("sources", "kinds", "bbox", "ruleIds", "includeHealth", "placeIds",
-            "viewId");
+            "viewId", "country", "admin1", "county");
 
     /** Scope members of later prompts: accepted only when empty. */
-    static final Map<String, String> LATER_SCOPE_MEMBERS = Map.of("country", "040",
-            "admin1", "040", "county", "040", "places", "056", "weatherProducts", "056");
+    static final Map<String, String> LATER_SCOPE_MEMBERS = Map.of("places", "056", "weatherProducts", "056");
 
     /** The window over which the frequency floor is checked. */
     private static final Duration FLOOR_WINDOW = Duration.ofDays(400);
@@ -93,6 +92,10 @@ public class BriefingValidator {
     private final NotificationChannelRepository channels;
     private final java.util.function.Predicate<String> placeExists;
     private final java.util.function.Predicate<String> viewExists;
+
+    /** Validates the scope's region codes (prompt 040); null only in hand-built unit tests. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ai.foresignal.reference.RegionCodes regionCodes;
 
     /** Creates the validator with the place and saved-view checks of prompt 036. */
     @org.springframework.beans.factory.annotation.Autowired
@@ -357,7 +360,19 @@ public class BriefingValidator {
                 viewId = viewNode.asString().strip();
             }
         }
-        return new BriefingScope(dedupe(sources), dedupe(kinds), bbox, ruleIds, includeHealth, dedupe(placeIds), viewId);
+        // Region filters (prompt 040): unknown codes are UNKNOWN_REGION.
+        List<String> country = upper(strings(node, "country", errors));
+        List<String> admin1 = upper(strings(node, "admin1", errors));
+        List<String> county = strings(node, "county", errors);
+        if (regionCodes != null && errors.isEmpty()) {
+            regionCodes.validate(dedupe(country), dedupe(admin1), dedupe(county), "scope.");
+        }
+        return new BriefingScope(dedupe(sources), dedupe(kinds), bbox, ruleIds, includeHealth, dedupe(placeIds), viewId,
+                dedupe(country), dedupe(admin1), dedupe(county));
+    }
+
+    private static List<String> upper(List<String> values) {
+        return values.stream().map(v -> v.toUpperCase(java.util.Locale.ROOT)).toList();
     }
 
     // ------------------------------------------------------------------------- schedule helpers

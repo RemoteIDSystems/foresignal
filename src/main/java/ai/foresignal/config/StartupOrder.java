@@ -65,6 +65,12 @@ public final class StartupOrder {
      */
     public static final int METRIC_PROJECTIONS = 23;
 
+    /**
+     * The region tag worker's change-bus and live-bus subscriptions (prompt 040), after the metric
+     * projections and before the canary and the scheduler.
+     */
+    public static final int REGION_TAGGING = 24;
+
     /** The ingest canary's change-bus subscription (prompt 019). */
     public static final int CANARY = 25;
 
@@ -73,6 +79,12 @@ public final class StartupOrder {
 
     /** The briefing scheduler (prompt 029), after the collector scheduler. */
     public static final int BRIEFINGS = 35;
+
+    /**
+     * The reference data's first-start load (prompt 040), last: it is queued on the loader's own thread
+     * after a delay and never blocks startup or readiness.
+     */
+    public static final int REFERENCE = 40;
 
     private StartupOrder() {}
 }

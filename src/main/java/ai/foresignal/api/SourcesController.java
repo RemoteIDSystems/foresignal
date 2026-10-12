@@ -103,6 +103,10 @@ public class SourcesController {
     private final SourceMapper mapper;
     private final SourceVisibility visibility;
     private final ai.foresignal.stats.StatsSettingsService statsSettings;
+
+    /** The per-source region tagging mode (prompt 040); null only in hand-built unit tests. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ai.foresignal.reference.RegionTaggingService regionTagging;
     private final Clock clock;
 
     /** Creates the controller. */
@@ -181,6 +185,11 @@ public class SourcesController {
     public SourceDetail updateSource(
             @PathVariable String sourceId, @Valid @RequestBody SourceSettingsUpdate body) {
         SourceDescriptor descriptor = registry.descriptor(sourceId);
+        if (body.getRegionTagging() != null && !ai.foresignal.reference.RegionTagMode.WIRE_VALUES.contains(
+                body.getRegionTagging().strip().toLowerCase(java.util.Locale.ROOT))) {
+            throw ValidationException.forField("regionTagging", "must be one of "
+                    + ai.foresignal.reference.RegionTagMode.WIRE_VALUES);
+        }
         if (Boolean.FALSE.equals(body.getPrivateSource()) && descriptor.privateSource()) {
             throw ValidationException.forField("private",
                     "this source is private by definition; it cannot be made public");
@@ -195,6 +204,10 @@ public class SourcesController {
         visibility.setOperatorPrivate(sourceId, body.getPrivateSource());
         // statsEnabled and statsIncludePrivate (prompt 038) live in app_setting['stats'].
         statsSettings.update(sourceId, body.getStatsEnabled(), body.getStatsIncludePrivate());
+        // regionTagging (prompt 040) lives in app_setting['regionTagging'].
+        if (regionTagging != null) {
+            regionTagging.update(sourceId, body.getRegionTagging());
+        }
         return detail(sourceId);
     }
 

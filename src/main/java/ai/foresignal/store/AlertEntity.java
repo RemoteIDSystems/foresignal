@@ -170,6 +170,14 @@ public class AlertEntity {
     @Column(name = "context")
     private Map<String, Object> context;
 
+    /**
+     * The record's region tags snapshotted when the alert fired ({@code RegionTags}, prompt 040), or null;
+     * the {@code country}, {@code admin1} and {@code county} filters of {@code listAlerts} read it.
+     */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "region")
+    private Map<String, Object> region;
+
     protected AlertEntity() {
         // for JPA
     }
@@ -342,6 +350,16 @@ public class AlertEntity {
     }
 
     /** The record snapshot taken when the alert fired, or null. */
+    /** The region tags at fire time (prompt 040), or null. */
+    public Map<String, Object> getRegion() {
+        return region;
+    }
+
+    /** Sets the region tags snapshot (prompt 040). */
+    public void setRegion(Map<String, Object> region) {
+        this.region = region;
+    }
+
     public Map<String, Object> getRecordSnapshot() {
         return recordSnapshot;
     }

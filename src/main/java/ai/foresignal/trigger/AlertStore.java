@@ -48,16 +48,16 @@ public class AlertStore {
                     + " a.resolved_by, a.resolved_seq, a.feedback, a.feedback_at, a.note, a.snoozed_until, a.suppressed,"
                     + " a.suppressed_reason, a.tags::text AS tags, a.record_snapshot::text AS record_snapshot,"
                     + " a.summary, a.enriched_at, a.summary_citations::text AS summary_citations,"
-                    + " a.sensitive, a.context::text AS context";
+                    + " a.sensitive, a.context::text AS context, a.region::text AS region";
 
     static final String FROM = " FROM alert a LEFT JOIN trigger_rule r ON r.id = a.rule_id";
 
     static final String INSERT =
             "INSERT INTO alert (rule_id, seq, source_id, external_id, kind, fired_at, observed_at, message, severity, state,"
-                    + " suppressed, suppressed_reason, tags, record_snapshot, rev, sensitive, context)"
+                    + " suppressed, suppressed_reason, tags, record_snapshot, rev, sensitive, context, region)"
                     + " VALUES (:rule, :seq, :source, :externalId, :kind, :firedAt, :observedAt, :message, :severity, 'firing',"
                     + " :suppressed, CAST(:reason AS text), CAST(:tags AS jsonb), CAST(:snapshot AS jsonb), nextval('alert_rev'),"
-                    + " :sensitive, CAST(:context AS jsonb))"
+                    + " :sensitive, CAST(:context AS jsonb), CAST(:region AS jsonb))"
                     + " RETURNING id";
 
     static final String RESOLVE_OPEN =
@@ -271,15 +271,22 @@ public class AlertStore {
      * @param snapshot the record snapshot as JSON text
      * @param suppressedReason {@code alert_snoozed}, {@code rule_snoozed} or null
      * @param context the computed {@code AlertContext} as JSON text, or null (prompt 036)
+     * @param region the record's {@code RegionTags} at fire time as JSON text, or null (prompt 040)
      */
     public record NewAlert(
             RuleSpec rule, MatchRow row, Instant firedAt, String message, String snapshot, String suppressedReason,
-            String context) {
+            String context, String region) {
 
         /** An alert without a computed context. */
         public NewAlert(RuleSpec rule, MatchRow row, Instant firedAt, String message, String snapshot,
                 String suppressedReason) {
-            this(rule, row, firedAt, message, snapshot, suppressedReason, null);
+            this(rule, row, firedAt, message, snapshot, suppressedReason, null, null);
+        }
+
+        /** An alert without region tags (the shape before prompt 040). */
+        public NewAlert(RuleSpec rule, MatchRow row, Instant firedAt, String message, String snapshot,
+                String suppressedReason, String context) {
+            this(rule, row, firedAt, message, snapshot, suppressedReason, context, null);
         }
     }
 
@@ -316,7 +323,8 @@ public class AlertStore {
                     .addValue("tags", json.writeValueAsString(alert.rule().tags()))
                     .addValue("snapshot", alert.snapshot())
                     .addValue("sensitive", alert.rule().sensitive())
-                    .addValue("context", alert.context());
+                    .addValue("context", alert.context())
+                    .addValue("region", alert.region());
             Long id = jdbc.queryForObject(INSERT, p, Long.class);
             AlertView view = find(id).orElseThrow();
             events.add(AlertEvent.of(AlertEvent.FIRED, view));
@@ -424,6 +432,15 @@ public class AlertStore {
         }
         RestrictionClamp.sqlPredicate("a.source_id", "a.kind", RestrictionClamp.ALERT_GEOMETRY_SQL, q.restriction(), p,
                 "restrict").ifPresent(where::add);
+        if (q.restriction().regionFilter() != null) {
+            // The country, admin1 and county filters (prompt 040) read the region snapshot taken at fire time.
+            int[] n = {0};
+            where.add(q.restriction().regionFilter().jsonSql("a.region", codes -> {
+                String name = "region" + n[0]++;
+                p.addValue(name, PgArrays.text(codes));
+                return "CAST(:" + name + " AS text[])";
+            }));
+        }
         return where;
     }
 
@@ -466,7 +483,8 @@ public class AlertStore {
                 instant(rs, "enriched_at"),
                 rs.getString("summary_citations"),
                 rs.getBoolean("sensitive"),
-                rs.getString("context"));
+                rs.getString("context"),
+                rs.getString("region"));
     }
 
     static Instant instant(ResultSet rs, String label) throws SQLException {

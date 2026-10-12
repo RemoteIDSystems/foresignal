@@ -258,25 +258,23 @@ class EntityPurgeIT extends RetentionItSupport {
                 + " VALUES ('alert', ?, ?, 'summary', 2, now())", Long.toString(a.getId()), STANDARD);
         jdbc.update("INSERT INTO embedding_document (doc_type, doc_id, source_id, text, text_hash, updated_at)"
                 + " VALUES ('record', ?, ?, 'kept', 3, now())", STANDARD + ":p-emb-other", STANDARD);
-        jdbc.execute("CREATE TABLE IF NOT EXISTS record_region (source_id text, external_id text, region text)");
-        try {
-            jdbc.update("INSERT INTO record_region VALUES (?, 'p-emb', 'r1'), (?, 'p-emb-other', 'r1')",
-                    STANDARD, STANDARD);
-            clock.setInstant(T0.plus(Duration.ofHours(1)));
+        // record_region exists from prompt 040 on (Hibernate owns it); the region worker may already have tagged
+        // the seeded record, so the rows are written idempotently.
+        jdbc.update("INSERT INTO record_region (source_id, external_id, iso2, tagged_lon, tagged_lat, tagged_at)"
+                + " VALUES (?, 'p-emb', 'US', 0, 0, now()), (?, 'p-emb-other', 'US', 0, 0, now())"
+                + " ON CONFLICT (source_id, external_id) DO NOTHING", STANDARD, STANDARD);
+        clock.setInstant(T0.plus(Duration.ofHours(1)));
 
-            PurgeReport report = purges.purge(STANDARD, "p-emb", false);
+        PurgeReport report = purges.purge(STANDARD, "p-emb", false);
 
-            assertThat(report.embeddingsDeleted()).isEqualTo(2);
-            assertThat(jdbc.queryForObject("SELECT count(*) FROM embedding_document WHERE doc_id = ?", Long.class,
-                    STANDARD + ":p-emb-other")).isEqualTo(1);
-            assertThat(jdbc.queryForObject("SELECT count(*) FROM record_region WHERE external_id = 'p-emb'",
-                    Long.class)).isZero();
-            assertThat(jdbc.queryForObject("SELECT count(*) FROM record_region WHERE external_id = 'p-emb-other'",
-                    Long.class)).isEqualTo(1);
-        } finally {
-            jdbc.execute("DROP TABLE IF EXISTS record_region");
-        }
-        assertThat(fanout.deleteRegionRows(STANDARD, "p-emb")).as("no table, no-op").isZero();
+        assertThat(report.embeddingsDeleted()).isEqualTo(2);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM embedding_document WHERE doc_id = ?", Long.class,
+                STANDARD + ":p-emb-other")).isEqualTo(1);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM record_region WHERE external_id = 'p-emb'",
+                Long.class)).isZero();
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM record_region WHERE external_id = 'p-emb-other'",
+                Long.class)).isEqualTo(1);
+        assertThat(fanout.deleteRegionRows(STANDARD, "p-emb")).as("already deleted").isZero();
     }
 
     @Test

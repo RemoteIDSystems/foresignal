@@ -277,6 +277,15 @@ public final class ErrorCodes {
      */
     public static final String INGEST_SOURCE_DENIED = "INGEST_SOURCE_DENIED";
 
+    /** 400: a {@code country}, {@code admin1} or {@code county} code that is not known (prompt 040). */
+    public static final String UNKNOWN_REGION = "UNKNOWN_REGION";
+
+    /** 409: a rule's {@code geofenceRef} needs reference data that is not loaded (prompt 040). */
+    public static final String REFERENCE_DATA_MISSING = "REFERENCE_DATA_MISSING";
+
+    /** A reference dataset's file does not have its pinned SHA-256; it was not loaded (prompt 040). */
+    public static final String REFERENCE_CHECKSUM_MISMATCH = "REFERENCE_CHECKSUM_MISMATCH";
+
     private static final String TYPE_PREFIX = "https://foresignal.ai/problems/";
 
     private ErrorCodes() {}

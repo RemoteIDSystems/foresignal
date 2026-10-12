@@ -154,6 +154,11 @@ public class McpOutputShaper {
         }
         copyIfPresent(full, out, "persistReason");
         copyIfPresent(full, out, "distanceKm");
+        // Prompt 040: the near text of a tagged record ("12 km NNE of Austin, TX"; GeoNames, CC BY 4.0).
+        JsonNode nearText = full.path("region").path("near").path("text");
+        if (nearText.isString() && !nearText.asString().isBlank()) {
+            out.put("near", nearText.asString());
+        }
         centroid(full.get("geometry"), full.get("bbox"), out);
         ObjectNode fields = keyFields(source, full.get("payload"));
         if (!fields.isEmpty()) {

@@ -76,9 +76,16 @@ class StatsControllerIT extends StatsItSupport {
     }
 
     @Test
-    @DisplayName("region filters are refused until 040/119; hidden sources are 404; bad parameters are 400")
+    @DisplayName("040 region filters are validated and the 119 ones refused; hidden sources are 404; bad parameters are 400")
     void refusals() throws Exception {
+        // Prompt 040: country, admin1 and county are implemented (served from raw rows); unknown codes are 400.
         mvc.perform(get("/v1/stats/timeseries").param("country", "US").param("from", T0.toString())
+                .param("to", H1.toString())).andExpect(status().isOk())
+                .andExpect(jsonPath("$.backend").value("raw"));
+        mvc.perform(get("/v1/stats/timeseries").param("country", "ZZ").param("from", T0.toString())
+                .param("to", H1.toString())).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("UNKNOWN_REGION"));
+        mvc.perform(get("/v1/stats/timeseries").param("region", "US").param("from", T0.toString())
                 .param("to", H1.toString())).andExpect(status().isBadRequest());
         mvc.perform(get("/v1/stats/timeseries").param("groupBy", "region").param("from", T0.toString())
                 .param("to", H1.toString())).andExpect(status().isBadRequest());

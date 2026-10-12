@@ -440,4 +440,20 @@ class SourceMapperTest {
                     });
         }
     }
+
+    @Test
+    @DisplayName("040: regionTagging defaults to eager for STANDARD and lazy for TRACK; the operator's choice wins")
+    @SuppressWarnings("unchecked")
+    void settingsRegionTagging() {
+        assertThat(mapper.settings(view(STANDARD, IngestPolicy.all()), Optional.empty(), Optional.empty(),
+                Optional.empty()).regionTagging()).isEqualTo("eager");
+        assertThat(mapper.settings(view(TRACK, IngestPolicy.all()), Optional.empty(), Optional.empty(),
+                Optional.empty()).regionTagging()).isEqualTo("lazy");
+        when(appSettings.getOrDefault(eq(SettingKeys.REGION_TAGGING),
+                eq(ai.foresignal.reference.RegionTaggingSettings.class), any(Supplier.class)))
+                .thenReturn(ai.foresignal.reference.RegionTaggingSettings.defaults().with(STANDARD.id(),
+                        ai.foresignal.reference.RegionTagMode.OFF));
+        assertThat(mapper.settings(view(STANDARD, IngestPolicy.all()), Optional.empty(), Optional.empty(),
+                Optional.empty()).regionTagging()).isEqualTo("off");
+    }
 }

@@ -113,11 +113,33 @@ public class SearchController {
                 throw ValidationException.forField("count", "count=true counts text matches; it cannot be combined"
                         + " with mode=semantic");
             }
-            return search.count(query, excluded, callers.resolveScoped(request).restriction(),
-                    changeBus.lastPublishedSeq()).toMap();
+            return search.count(query, excluded, restriction(request), changeBus.lastPublishedSeq()).toMap();
         }
-        return search.search(query, excluded, callers.resolveScoped(request).restriction());
+        return search.search(query, excluded, restriction(request));
     }
+
+    /**
+     * The caller's scoped restriction with the request's {@code country}, {@code admin1} and {@code county}
+     * filters (prompt 040; {@code 400 UNKNOWN_REGION}).
+     */
+    private ai.foresignal.security.restrict.ReadRestriction restriction(HttpServletRequest request) {
+        ai.foresignal.security.restrict.ReadRestriction restriction = callers.resolveScoped(request).restriction();
+        if (regionCodes == null) {
+            return restriction;
+        }
+        ai.foresignal.reference.RegionFilter region = regionCodes.filter(params(request, "country"),
+                params(request, "admin1"), params(request, "county"));
+        return region == null ? restriction : restriction.withRegionFilter(region);
+    }
+
+    private static List<String> params(HttpServletRequest request, String name) {
+        String[] values = request.getParameterValues(name);
+        return values == null ? List.of() : List.of(values);
+    }
+
+    /** Validates the 040 region filters; null only in hand-built unit tests. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ai.foresignal.reference.RegionCodes regionCodes;
 
     /** {@code getSearchStatus}. */
     @GetMapping("/v1/search/status")

@@ -39,9 +39,10 @@ import tools.jackson.databind.JsonNode;
  * <p>The reads need the {@code read} scope (open while {@code security.openReads} is on), honor the
  * caller's restriction and the {@code place=}/{@code view=}/{@code inWatchlist=} filters (prompts 035,
  * 036) and never count private sources for callers that fail the private gate. The region filters
- * ({@code country}, {@code admin1}, {@code county}, {@code region}, {@code groupBy=region},
- * {@code by=region}) belong to prompts 040 and 119 and are refused until then. The rebuild is
- * {@code admin}.
+ * {@code country}, {@code admin1} and {@code county} (prompt 040) match through {@code record_region}
+ * (versions) and the alert region snapshot (alerts), and are always answered from raw rows, because the
+ * rollup has no regions until prompt 119; {@code region}, {@code groupBy=region} and {@code by=region}
+ * belong to prompt 119 and are refused until then. The rebuild is {@code admin}.
  */
 @RestController
 @Tag(name = "Stats")
@@ -50,12 +51,16 @@ public class StatsController {
     /** The GeoJSON media type of grids. */
     static final MediaType GEO_JSON = MediaType.parseMediaType("application/geo+json");
 
-    /** The parameters of prompts 040 and 119, refused until then. */
-    static final List<String> REGION_PARAMS = List.of("country", "admin1", "county", "region");
+    /** The parameters of prompt 119, refused until then. */
+    static final List<String> REGION_PARAMS = List.of("region");
 
     private final StatsService stats;
     private final RollupJob rollup;
     private final ReadCallerResolver callers;
+
+    /** Validates the 040 region filters; null only in hand-built unit tests. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ai.foresignal.reference.RegionCodes regionCodes;
     private final SourceRegistry registry;
 
     /** Creates the controller. */
@@ -91,8 +96,8 @@ public class StatsController {
         group = QueryParams.oneOf("groupBy", group, StatsService.GROUP_BY_VALUES, "none");
         return json(stats.timeseries(sources, QueryParams.multi("kind", kind), BboxParser.parse(bbox),
                 required("from", from), required("to", to), bucket, StatsMeasure.parse(measure), group,
-                TimeField.parse(timeField, TimeField.INGESTED), callers.excludedSources(caller), caller.restriction())
-                .toMap(), caller);
+                TimeField.parse(timeField, TimeField.INGESTED), callers.excludedSources(caller),
+                restriction(request, caller)).toMap(), caller);
     }
 
     /** {@code getStatsGrid}. */
@@ -119,7 +124,7 @@ public class StatsController {
                 : QueryParams.doubleInRange("sizeKm", sizeKm, 0.001, 10_000);
         Map<String, Object> body = stats.grid(sources, QueryParams.multi("kind", kind), BboxParser.parse(bbox),
                 required("from", from), required("to", to), StatsMeasure.parse(measure), resolution, modeValue, size,
-                callers.excludedSources(caller), caller.restriction()).toMap();
+                callers.excludedSources(caller), restriction(request, caller)).toMap();
         return ResponseEntity.ok()
                 .headers(ai.foresignal.api.support.ETags.cacheHeaders(new HttpHeaders(), null, caller.publicCache()))
                 .contentType(GEO_JSON)
@@ -148,8 +153,8 @@ public class StatsController {
         List<String> sources = known(QueryParams.multi("source", source), callers.hiddenSources(caller));
         int size = QueryParams.intInRange("limit", limit, 1, StatsService.MAX_TOP, 10);
         return json(stats.top(byValue, StatsMeasure.parse(measure), required("from", from), required("to", to), size,
-                sources, QueryParams.multi("kind", kind), callers.excludedSources(caller), caller.restriction())
-                .toMap(), caller);
+                sources, QueryParams.multi("kind", kind), callers.excludedSources(caller),
+                restriction(request, caller)).toMap(), caller);
     }
 
     /**
@@ -184,15 +189,28 @@ public class StatsController {
                 .body(body);
     }
 
-    /** 400 for the region filters of prompts 040 and 119. */
+    /** 400 for the region rollup filter of prompt 119. */
     static void refuseRegions(HttpServletRequest request) {
         for (String name : REGION_PARAMS) {
             String value = request.getParameter(name);
             if (value != null && !value.isBlank()) {
-                throw ValidationException.forField(name, "region filters arrive with region tagging (prompt 040)"
-                        + " and the region rollups (prompt 119)");
+                throw ValidationException.forField(name, "the region filter arrives with the region rollups"
+                        + " (prompt 119); use country, admin1 or county");
             }
         }
+    }
+
+    /** The caller's restriction with the request's 040 region filters ({@code 400 UNKNOWN_REGION}). */
+    private ai.foresignal.security.restrict.ReadRestriction restriction(HttpServletRequest request,
+            ReadCaller caller) {
+        ai.foresignal.reference.RegionFilter region = regionCodes == null ? null : regionCodes.filter(
+                values(request, "country"), values(request, "admin1"), values(request, "county"));
+        return region == null ? caller.restriction() : caller.restriction().withRegionFilter(region);
+    }
+
+    private static List<String> values(HttpServletRequest request, String name) {
+        String[] values = request.getParameterValues(name);
+        return values == null ? List.of() : List.of(values);
     }
 
     private static Instant required(String name, String raw) {

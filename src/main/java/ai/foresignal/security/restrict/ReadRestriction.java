@@ -64,6 +64,7 @@ public final class ReadRestriction {
     private final PreparedGeometry preparedRegion;
     private final RecordFilter filter;
     private final boolean excludeSensitive;
+    private final ai.foresignal.reference.RegionFilter regionFilter;
 
     /**
      * A restriction.
@@ -85,8 +86,16 @@ public final class ReadRestriction {
     private ReadRestriction(Collection<String> sources, Collection<String> kinds, List<Double> bbox, Geometry area,
             List<String> endpoints, boolean excludePrivate, Integer maxRequestsPerMinute, RecordFilter filter,
             boolean excludeSensitive) {
+        this(sources, kinds, bbox, area, endpoints, excludePrivate, maxRequestsPerMinute, filter, excludeSensitive,
+                null);
+    }
+
+    private ReadRestriction(Collection<String> sources, Collection<String> kinds, List<Double> bbox, Geometry area,
+            List<String> endpoints, boolean excludePrivate, Integer maxRequestsPerMinute, RecordFilter filter,
+            boolean excludeSensitive, ai.foresignal.reference.RegionFilter regionFilter) {
         this.filter = filter;
         this.excludeSensitive = excludeSensitive;
+        this.regionFilter = regionFilter;
         this.sources = sources == null ? null : Set.copyOf(new TreeSet<>(sources));
         this.kinds = kinds == null ? null : Set.copyOf(new TreeSet<>(kinds));
         this.bbox = bbox == null ? null : List.copyOf(bbox);
@@ -234,6 +243,22 @@ public final class ReadRestriction {
         return filter;
     }
 
+    /**
+     * The request's {@code country}, {@code admin1} and {@code county} filters (prompt 040), or null. Like
+     * {@link #filter()} it is request-scoped and never stored; the paths that implement the filters
+     * (records, search, alerts, stats, briefings) add {@code RegionFilter#sql} themselves, because it needs
+     * the record's external id.
+     */
+    public ai.foresignal.reference.RegionFilter regionFilter() {
+        return regionFilter;
+    }
+
+    /** This restriction with the region filters {@code value} (prompt 040); null removes them. */
+    public ReadRestriction withRegionFilter(ai.foresignal.reference.RegionFilter value) {
+        return new ReadRestriction(sources, kinds, bbox, area, endpoints, excludePrivate, maxRequestsPerMinute,
+                filter, excludeSensitive, value);
+    }
+
     /** True when sensitive alerts are hidden from this principal (anonymous callers and feed keys, 036). */
     public boolean excludeSensitive() {
         return excludeSensitive;
@@ -249,14 +274,14 @@ public final class ReadRestriction {
         }
         RecordFilter combined = filter == null ? value : RecordFilters.and(filter, value);
         return new ReadRestriction(sources, kinds, bbox, area, endpoints, excludePrivate, maxRequestsPerMinute,
-                combined, excludeSensitive);
+                combined, excludeSensitive, regionFilter);
     }
 
     /** This restriction with {@code excludeSensitive} replaced (prompt 036). */
     public ReadRestriction withExcludeSensitive(boolean value) {
         return value == excludeSensitive ? this
                 : new ReadRestriction(sources, kinds, bbox, area, endpoints, excludePrivate, maxRequestsPerMinute,
-                        filter, value);
+                        filter, value, regionFilter);
     }
 
     /** True when nothing at all is restricted, private exclusion included. */
@@ -299,13 +324,13 @@ public final class ReadRestriction {
     public ReadRestriction withExcludePrivate(boolean value) {
         return value == excludePrivate ? this
                 : new ReadRestriction(sources, kinds, bbox, area, endpoints, value, maxRequestsPerMinute, filter,
-                        excludeSensitive);
+                        excludeSensitive, regionFilter);
     }
 
     /** This restriction with {@code endpoints} replaced. */
     public ReadRestriction withEndpoints(List<String> value) {
         return new ReadRestriction(sources, kinds, bbox, area, value, excludePrivate, maxRequestsPerMinute, filter,
-                excludeSensitive);
+                excludeSensitive, regionFilter);
     }
 
     /**
@@ -313,7 +338,7 @@ public final class ReadRestriction {
      * so two principals with different restrictions never share a cached response.
      */
     public String canonical() {
-        if (!hasDataRestrictions() && !excludePrivate) {
+        if (!hasDataRestrictions() && !excludePrivate && regionFilter == null) {
             return "";
         }
         List<String> parts = new ArrayList<>();
@@ -326,6 +351,9 @@ public final class ReadRestriction {
         }
         if (excludeSensitive) {
             parts.add("x=true");
+        }
+        if (regionFilter != null) {
+            parts.add("g=" + regionFilter.canonical());
         }
         return String.join(";", parts);
     }
@@ -340,6 +368,7 @@ public final class ReadRestriction {
         }
         return excludePrivate == other.excludePrivate
                 && excludeSensitive == other.excludeSensitive
+                && Objects.equals(regionFilter, other.regionFilter)
                 && Objects.equals(filter == null ? null : filter.canonical(),
                         other.filter == null ? null : other.filter.canonical())
                 && Objects.equals(sources, other.sources)
@@ -353,7 +382,7 @@ public final class ReadRestriction {
     @Override
     public int hashCode() {
         return Objects.hash(sources, kinds, bbox, area == null ? null : area.toText(), endpoints, excludePrivate,
-                maxRequestsPerMinute, filter == null ? null : filter.canonical(), excludeSensitive);
+                maxRequestsPerMinute, filter == null ? null : filter.canonical(), excludeSensitive, regionFilter);
     }
 
     @Override
