@@ -1,0 +1,28 @@
+{
+  "_comment": "Golden request for the canonical message of NotifyFixtures (prompt 018). Hosts use .invalid; tokens are fake.",
+  "method": "POST",
+  "url": "https://discord.example.invalid/api/webhooks/123/TOKEN?wait=true",
+  "headers": {
+    "User-Agent": "Foresignal/test (+https://foresignal.ai; install=abcd1234)",
+    "X-Foresignal-Origin": "abcd1234",
+    "Content-Type": "application/json"
+  },
+  "json": {
+    "username": "Foresignal",
+    "embeds": [
+      {
+        "title": "[warning] Quake <M5> & more",
+        "description": "**M5.1** near *Austin* <TX> & co\n- depth 10 km\n\nsee `a_b*c`",
+        "url": "https://fs.example/v1/alerts/7",
+        "color": 16096779,
+        "timestamp": "2026-05-01T12:00:00Z",
+        "footer": {
+          "text": "Foresignal · warning"
+        }
+      }
+    ],
+    "allowed_mentions": {
+      "parse": []
+    }
+  }
+}

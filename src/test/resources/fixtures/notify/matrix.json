@@ -1,0 +1,17 @@
+{
+  "_comment": "Golden request for the canonical message of NotifyFixtures (prompt 018). Hosts use .invalid; tokens are fake.",
+  "method": "PUT",
+  "url": "https://matrix.example.invalid/_matrix/client/v3/rooms/%21room%3Aexample.invalid/send/m.room.message/99",
+  "headers": {
+    "User-Agent": "Foresignal/test (+https://foresignal.ai; install=abcd1234)",
+    "X-Foresignal-Origin": "abcd1234",
+    "Content-Type": "application/json",
+    "Authorization": "Bearer syt_test"
+  },
+  "json": {
+    "msgtype": "m.text",
+    "body": "[warning] Quake <M5> & more\n\nM5.1 near Austin <TX> & co\n• depth 10 km\n\nsee a_b*c\nOpen alert: https://fs.example/v1/alerts/7",
+    "format": "org.matrix.custom.html",
+    "formatted_body": "<strong>[warning] Quake &lt;M5&gt; &amp; more</strong><br><strong>M5.1</strong> near <em>Austin</em> &lt;TX&gt; &amp; co<br><ul><li>depth 10 km</li></ul><br>see <code>a_b*c</code><br><a href=\"https://fs.example/v1/alerts/7\">Open alert</a>"
+  }
+}

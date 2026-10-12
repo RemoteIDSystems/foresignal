@@ -20,6 +20,9 @@ public final class StartupOrder {
     /** The SSE hub's bus subscriptions (prompt 015). */
     public static final int SSE_HUB = 15;
 
+    /** The notification router's alert bus subscription, before the engine fires alerts (prompt 018). */
+    public static final int NOTIFY_ROUTER = 18;
+
     /** The trigger engine (prompt 017). */
     public static final int TRIGGER_ENGINE = 20;
 

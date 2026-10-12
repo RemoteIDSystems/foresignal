@@ -1,0 +1,18 @@
+{
+  "_comment": "Golden request for the canonical message of NotifyFixtures (prompt 018). Hosts use .invalid; tokens are fake.",
+  "method": "POST",
+  "url": "https://ntfy.example.invalid/alerts-test",
+  "headers": {
+    "User-Agent": "Foresignal/test (+https://foresignal.ai; install=abcd1234)",
+    "X-Foresignal-Origin": "abcd1234",
+    "Content-Type": "text/markdown; charset=utf-8",
+    "Title": "[warning] Quake <M5> & more",
+    "Priority": "4",
+    "Tags": "quake,foresignal-origin-abcd1234",
+    "Click": "https://fs.example/v1/alerts/7",
+    "Actions": "view, Open alert, https://fs.example/v1/alerts/7",
+    "Markdown": "yes",
+    "Authorization": "Bearer tk_test"
+  },
+  "text": "**M5.1** near *Austin* <TX> & co\n- depth 10 km\n\nsee `a_b*c`"
+}

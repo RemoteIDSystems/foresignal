@@ -1,0 +1,18 @@
+{
+  "_comment": "Golden request for the canonical message of NotifyFixtures (prompt 018). Hosts use .invalid; tokens are fake.",
+  "method": "POST",
+  "url": "https://api.telegram.org/bot123456:TESTTOKEN/sendMessage",
+  "headers": {
+    "User-Agent": "Foresignal/test (+https://foresignal.ai; install=abcd1234)",
+    "X-Foresignal-Origin": "abcd1234",
+    "Content-Type": "application/json"
+  },
+  "json": {
+    "chat_id": "-100123",
+    "text": "<b>[warning] Quake &lt;M5&gt; &amp; more</b>\n\n<b>M5.1</b> near <i>Austin</i> &lt;TX&gt; &amp; co\n• depth 10 km\n\nsee <code>a_b*c</code>\n\n<a href=\"https://fs.example/v1/alerts/7\">Open alert</a>",
+    "parse_mode": "HTML",
+    "link_preview_options": {
+      "is_disabled": true
+    }
+  }
+}

@@ -57,6 +57,11 @@
         "version": "1.3.0",
         "date": "2026-10-11",
         "note": "017: listTriggers, getTrigger, createTrigger, updateTrigger, deleteTrigger, testTrigger, snoozeTrigger, unsnoozeTrigger, listAlerts, getAlert, streamAlerts, acknowledgeAlert, resolveAlert, snoozeAlert, unsnoozeAlert and setAlertFeedback are implemented, and the alerts topic of /v1/events/stream. Additive reconciliations: EventStreamAlertsFilter and streamEvents gain includeSuppressed (alerts.includeSuppressed); streamAlerts documents 400 INVALID_CURSOR and 404 for an unknown source; listAlerts, getAlert and streamAlerts hide alerts of private sources from anonymous callers; Near.point radiusKm minimum is 0.1 (was 0); TriggerRuleInput.geofence accepts geofenceRoute plus bufferMeters as the route input; Condition.op documents the type rules (string operators need a JSON string; a missing value or another type never matches) and the accepted regex subset; hysteresisMeters documents its semantics."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-11",
+        "note": "018: listChannelTypes, listChannels, createChannel, getChannel, updateChannel, deleteChannel, testChannel, listChannelDeliveries, getNotificationSettings and updateNotificationSettings are implemented, and the notifications (cursor key n) and system (cursor key s) topics of /v1/events/stream. Additive reconciliations: listChannelDeliveries documents 400 (invalid status, limit or cursor); ChannelInput.events documents that 018 accepts alert, briefing and system; ChannelInput.secrets and ChannelType.secretFields document the prefix.<Name> wildcard (webhook header.<Name>); Channel.secretFields lists the names of the secrets that are set; NotificationMessage.subtype lists alert.digest and system.rule_storm."
       }
     ]
   },
@@ -6850,7 +6855,7 @@
         "x-foresignal-extended-by": [
           "060"
         ],
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/channels": {
@@ -6903,7 +6908,7 @@
           }
         ],
         "x-foresignal-prompt": "018",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       },
       "post": {
         "tags": [
@@ -6984,7 +6989,7 @@
           "035",
           "060"
         ],
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/channels/{channelId}": {
@@ -7056,7 +7061,7 @@
           }
         ],
         "x-foresignal-prompt": "018",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       },
       "put": {
         "tags": [
@@ -7138,7 +7143,7 @@
           "035",
           "060"
         ],
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       },
       "delete": {
         "tags": [
@@ -7189,7 +7194,7 @@
           }
         ],
         "x-foresignal-prompt": "018",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/channels/{channelId}/test": {
@@ -7264,7 +7269,7 @@
         "x-foresignal-extended-by": [
           "060"
         ],
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/channels/{channelId}/deliveries": {
@@ -7335,8 +7340,8 @@
               }
             }
           },
-          "404": {
-            "description": "Not found",
+          "400": {
+            "description": "Invalid status, limit or cursor (VALIDATION_FAILED, INVALID_CURSOR)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -7364,6 +7369,16 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
           }
         },
         "x-foresignal-scope": "admin",
@@ -7373,7 +7388,7 @@
           }
         ],
         "x-foresignal-prompt": "018",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/llm/providers": {
@@ -12504,7 +12519,7 @@
         },
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "018",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -12572,7 +12587,7 @@
         },
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "018",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -87697,7 +87712,8 @@
                 "type",
                 "required"
               ]
-            }
+            },
+            "description": "Write-only fields; a name of the form `prefix.<Name>` is a wildcard (webhook `header.<Name>` sends any such secret as the header <Name>)"
           },
           "events": {
             "type": "array",
@@ -87808,7 +87824,7 @@
             "additionalProperties": {
               "type": "string"
             },
-            "description": "Write-only secret settings per the type's secretFields"
+            "description": "Write-only secret settings per the type's secretFields. A secretFields entry named `prefix.<Name>` (webhook `header.<Name>`) accepts any secret whose name starts with the prefix."
           },
           "events": {
             "type": "array",
@@ -87840,7 +87856,8 @@
                 "chronicle.access.requested",
                 "saved-search.matches"
               ]
-            }
+            },
+            "description": "Prompt 018 accepts alert, briefing and system (default [\"alert\"]); the other values are subscribed by the prompts that introduce them"
           },
           "ruleIds": {
             "type": [
@@ -87900,7 +87917,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Quiet hours in the channel timezone; null for none"
           },
           "groupWindowSeconds": {
             "type": "integer",
@@ -88046,7 +88064,8 @@
             "type": "array",
             "items": {
               "type": "string"
-            }
+            },
+            "description": "Names of the secret fields that are set (values are never returned)"
           },
           "events": {
             "type": "array",
@@ -92504,7 +92523,7 @@
           },
           "subtype": {
             "type": "string",
-            "description": "e.g. alert.fired, alert.acknowledged, alert.snoozed, alert.resolved, system.source_failing, system.delivery_failed",
+            "description": "e.g. alert.fired, alert.acknowledged, alert.snoozed, alert.resolved, alert.digest (a quiet-hours, pause, backlog or grouping digest), system.source_failing, system.rule_storm, system.delivery_failed",
             "example": "alert.fired",
             "maxLength": 64
           },

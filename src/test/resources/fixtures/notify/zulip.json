@@ -1,0 +1,17 @@
+{
+  "_comment": "Golden request for the canonical message of NotifyFixtures (prompt 018). Hosts use .invalid; tokens are fake.",
+  "method": "POST",
+  "url": "https://zulip.example.invalid/api/v1/messages",
+  "headers": {
+    "User-Agent": "Foresignal/test (+https://foresignal.ai; install=abcd1234)",
+    "X-Foresignal-Origin": "abcd1234",
+    "Content-Type": "application/x-www-form-urlencoded",
+    "Authorization": "Basic Ym90QHp1bGlwLmV4YW1wbGUuaW52YWxpZDp6dWxpcHRlc3RrZXk="
+  },
+  "form": {
+    "type": "stream",
+    "to": "alerts",
+    "topic": "Quakes",
+    "content": "**\\[warning\\] Quake <M5> & more**\n\n**M5.1** near *Austin* <TX> & co\n- depth 10 km\n\nsee `a_b*c`\n[Open alert](https://fs.example/v1/alerts/7)"
+  }
+}

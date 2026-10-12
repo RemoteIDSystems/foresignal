@@ -27,6 +27,7 @@ dependencies {
     implementation(libs.micrometer.registry.prometheus)
     implementation(libs.jackson.dataformat.csv)
     implementation(libs.bucket4j.core)
+    implementation(libs.spring.boot.starter.mail)
     implementation(libs.springdoc.openapi.starter.webmvc.ui)
     runtimeOnly(libs.postgresql)
 
@@ -38,6 +39,7 @@ dependencies {
     testImplementation(libs.testcontainers.junit.jupiter)
     testImplementation(libs.wiremock.standalone)
     testImplementation(libs.awaitility)
+    testImplementation(libs.greenmail)
 }
 
 tasks.withType<JavaCompile>().configureEach {

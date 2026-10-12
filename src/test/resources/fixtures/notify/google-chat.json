@@ -1,0 +1,48 @@
+{
+  "_comment": "Golden request for the canonical message of NotifyFixtures (prompt 018). Hosts use .invalid; tokens are fake.",
+  "method": "POST",
+  "url": "https://chat.example.invalid/v1/spaces/AAA/messages?key=k&token=t",
+  "headers": {
+    "User-Agent": "Foresignal/test (+https://foresignal.ai; install=abcd1234)",
+    "X-Foresignal-Origin": "abcd1234",
+    "Content-Type": "application/json"
+  },
+  "json": {
+    "cardsV2": [
+      {
+        "cardId": "foresignal-42",
+        "card": {
+          "header": {
+            "title": "[warning] Quake <M5> & more",
+            "subtitle": "warning · 2026-05-01 12:00 UTC"
+          },
+          "sections": [
+            {
+              "widgets": [
+                {
+                  "textParagraph": {
+                    "text": "<b>M5.1</b> near <i>Austin</i> &lt;TX&gt; &amp; co<br>• depth 10 km<br><br>see a_b*c"
+                  }
+                },
+                {
+                  "buttonList": {
+                    "buttons": [
+                      {
+                        "text": "Open alert",
+                        "onClick": {
+                          "openLink": {
+                            "url": "https://fs.example/v1/alerts/7"
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

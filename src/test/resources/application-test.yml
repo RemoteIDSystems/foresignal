@@ -35,6 +35,9 @@ foresignal:
   # start fetching behind another test's back. CollectorSchedulerIT turns it on.
   collector:
     scheduled: false
+  # The notification delivery worker does not poll in tests; they call DeliveryWorker.runOnce().
+  notify:
+    scheduled: false
 
 logging:
   level:

@@ -10,6 +10,7 @@ springdoc = "3.1.1"
 testcontainers = "2.0.5"
 wiremock = "3.13.2"
 awaitility = "4.3.0"
+greenmail = "2.1.14"
 jacoco = "0.8.15"
 
 [libraries]
@@ -35,6 +36,10 @@ micrometer-registry-prometheus = { module = "io.micrometer:micrometer-registry-p
 # Spring Boot imports (3.1.5 with Boot 4.1.1), Apache-2.0.
 jackson-dataformat-csv = { module = "tools.jackson.dataformat:jackson-dataformat-csv" }
 
+# Notification channel type `email` (018): JavaMailSender over Jakarta Mail; versions from the
+# Spring Boot BOM (angus-mail 2.0.5, EPL-2.0 / EDL-1.0 / GPL-2.0 with Classpath Exception).
+spring-boot-starter-mail = { module = "org.springframework.boot:spring-boot-starter-mail" }
+
 # --- Explicitly versioned ---
 bucket4j-core = { module = "com.bucket4j:bucket4j_jdk17-core", version.ref = "bucket4j" }
 springdoc-openapi-starter-webmvc-ui = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", version.ref = "springdoc" }
@@ -45,6 +50,8 @@ testcontainers-postgresql = { module = "org.testcontainers:testcontainers-postgr
 testcontainers-junit-jupiter = { module = "org.testcontainers:testcontainers-junit-jupiter" }
 wiremock-standalone = { module = "org.wiremock:wiremock-standalone", version.ref = "wiremock" }
 awaitility = { module = "org.awaitility:awaitility", version.ref = "awaitility" }
+# In-process SMTP server for the email channel tests (018), Apache-2.0.
+greenmail = { module = "com.icegreen:greenmail", version.ref = "greenmail" }
 
 [plugins]
 spring-boot = { id = "org.springframework.boot", version.ref = "springBoot" }

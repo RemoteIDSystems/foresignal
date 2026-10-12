@@ -28,6 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -43,6 +44,10 @@ import org.springframework.stereotype.Service;
  * {@code status}, {@code lastSuccessAt}, {@code lastDataAt} and {@code budgetUsedToday}, and exposes
  * the Micrometer gauges {@code foresignal.source.status{source,status}} (1 for the current status, 0
  * for the others) and {@code foresignal.source.consecutive_failures{source}}.
+ *
+ * <p>When an evaluation yields a status different from the previous one in this process, a
+ * {@link SourceHealthChangedEvent} is published (prompt 018); the first evaluation of a source after
+ * start only records its status.
  */
 @Service
 public class HealthService implements SourceHealthLookup {
@@ -77,6 +82,7 @@ public class HealthService implements SourceHealthLookup {
     private final AppSettingService appSettings;
     private final HealthEvaluator evaluator;
     private final MeterRegistry meters;
+    private final ApplicationEventPublisher events;
     private final Clock clock;
 
     /** The last evaluated status and failure count per source, read by the gauges. */
@@ -100,6 +106,7 @@ public class HealthService implements SourceHealthLookup {
             AppSettingService appSettings,
             ObjectProvider<HealthRule> rules,
             MeterRegistry meters,
+            ApplicationEventPublisher events,
             Clock clock) {
         this.registry = registry;
         this.sources = sources;
@@ -112,6 +119,7 @@ public class HealthService implements SourceHealthLookup {
         this.appSettings = appSettings;
         this.evaluator = new HealthEvaluator(rules.orderedStream().toList());
         this.meters = meters;
+        this.events = events;
         this.clock = clock;
     }
 
@@ -227,7 +235,7 @@ public class HealthService implements SourceHealthLookup {
                                 budgetStatus,
                                 stream,
                                 now));
-        remember(id, assessment.status(), snapshot.consecutiveFailures());
+        remember(id, assessment.status(), assessment.statusReason(), snapshot.consecutiveFailures(), now);
         return assessment;
     }
 
@@ -307,8 +315,15 @@ public class HealthService implements SourceHealthLookup {
         }
     }
 
-    private void remember(String sourceId, HealthStatus status, int consecutiveFailures) {
-        gaugeStates.put(sourceId, new GaugeState(status, consecutiveFailures));
+    private void remember(String sourceId, HealthStatus status, String reason, int consecutiveFailures, Instant now) {
+        GaugeState previous = gaugeStates.put(sourceId, new GaugeState(status, consecutiveFailures));
+        if (previous != null && previous.status() != status) {
+            try {
+                events.publishEvent(new SourceHealthChangedEvent(sourceId, previous.status(), status, reason, now));
+            } catch (RuntimeException e) {
+                log.warn("A health change listener failed for {}", sourceId, e);
+            }
+        }
         if (gauged.add(sourceId)) {
             for (HealthStatus candidate : HealthStatus.values()) {
                 Gauge.builder(

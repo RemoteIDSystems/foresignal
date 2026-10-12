@@ -31,7 +31,10 @@ BODIES = {
   "snoozeAlert": {"until": "2026-10-12T06:00:00Z"},
   "setAlertFeedback": {"feedback": "noise", "note": "Routine traffic"},
   "createChannel": {"name": "ntfy phone", "type": "ntfy", "config": {"serverUrl": "https://ntfy.sh", "topic": "REPLACE_TOPIC"},
-                    "secrets": {}, "events": ["alert", "briefing", "system"], "ruleIds": None, "minSeverity": "warning", "enabled": True},
+                    "secrets": {}, "events": ["alert", "briefing", "system"], "ruleIds": None, "minSeverity": "warning", "enabled": True,
+                    "timezone": "America/Chicago", "quietHours": {"start": "22:00", "end": "07:00", "bypassSeverity": "critical"},
+                    "backlogCap": 20, "groupWindowSeconds": 0, "editInPlace": True},
+  "updateNotificationSettings": {"pausedUntil": "2026-10-12T06:00:00Z", "pauseBypassSeverity": "critical"},
   "updateChannel": {"name": "Slack #ops", "type": "slack", "config": {"username": "Foresignal"},
                     "secrets": {"webhookUrl": "https://hooks.slack.com/services/REPLACE"}, "events": ["alert", "briefing"], "ruleIds": None,
                     "minSeverity": "info", "waitForEnrichmentSeconds": 20, "enabled": True},
@@ -86,6 +89,36 @@ CAPTURE = {
   "listChanges": "const j = pm.response.json(); pm.collectionVariables.set('lastSeq', j.lastSeq);",
   "listRecords": "const j = pm.response.json(); const it = (j.items || j.features || [])[0]; if (it) { const ext = it.externalId || (it.properties && it.properties.externalId); pm.collectionVariables.set('externalId', ext); }\nif (j.nextCursor) pm.collectionVariables.set('cursor', j.nextCursor);",
   "rotateAdminToken": "const j = pm.response.json(); pm.collectionVariables.set('adminToken', j.token); console.log('New admin token stored in collection variable adminToken');",
+}
+
+# Extra request items for operations with several useful bodies (one item per variant, placed after the
+# operation's main item). createChannel: one per channel type that needs different fields (018).
+VARIANTS = {
+  "createChannel": [
+    ("Discord (edits on resolve)", {"name": "Discord #alerts", "type": "discord", "config": {"username": "Foresignal"},
+                                    "secrets": {"webhookUrl": "https://discord.com/api/webhooks/REPLACE/REPLACE"}, "events": ["alert", "system"]}),
+    ("Telegram", {"name": "Telegram", "type": "telegram", "config": {"chatId": "REPLACE_CHAT_ID"},
+                  "secrets": {"botToken": "REPLACE_BOT_TOKEN"}, "events": ["alert"], "minSeverity": "warning"}),
+    ("Matrix", {"name": "Matrix room", "type": "matrix", "config": {"homeserverUrl": "https://matrix.example.org", "roomId": "!REPLACE:example.org"},
+                "secrets": {"accessToken": "REPLACE"}, "events": ["alert"]}),
+    ("Teams (Workflows URL only)", {"name": "Teams", "type": "teams", "secrets": {"workflowUrl": "https://REPLACE.logic.azure.com/workflows/REPLACE"},
+                                    "events": ["alert"]}),
+    ("Pushover", {"name": "Pushover", "type": "pushover", "secrets": {"appToken": "REPLACE", "userKey": "REPLACE"}, "events": ["alert"],
+                  "minSeverity": "warning"}),
+    ("Email (plain text for Winlink)", {"name": "Winlink", "type": "email", "config": {"smtpHost": "smtp.example.org", "smtpPort": 587,
+                                        "tls": "starttls", "from": "foresignal@example.org", "to": ["REPLACE@winlink.org"], "plainTextOnly": True},
+                                        "secrets": {"username": "REPLACE", "password": "REPLACE"}, "titleTemplate": "{{severity}} {{name}}"}),
+    ("Home Assistant (notify, critical alerts)", {"name": "HA phone", "type": "homeassistant",
+                                                  "config": {"baseUrl": "http://homeassistant.local:8123", "mode": "notify", "service": "mobile_app_REPLACE"},
+                                                  "secrets": {"accessToken": "REPLACE"}, "events": ["alert"]}),
+    ("Apprise", {"name": "Apprise", "type": "apprise", "config": {"serverUrl": "http://apprise.local:8000", "configKey": "foresignal"},
+                 "events": ["alert", "system"]}),
+    ("Zulip (topic per rule)", {"name": "Zulip", "type": "zulip", "config": {"site": "https://REPLACE.zulipchat.com", "stream": "alerts",
+                                "botEmail": "foresignal-bot@REPLACE.zulipchat.com", "topicTemplate": "{{ruleName}}"},
+                                "secrets": {"apiKey": "REPLACE"}, "events": ["alert"]}),
+    ("Webhook (HMAC signed)", {"name": "Automation webhook", "type": "webhook", "config": {"url": "https://REPLACE/hooks/foresignal", "method": "POST"},
+                               "secrets": {"hmacSecret": "REPLACE"}, "events": ["alert", "briefing", "system"]}),
+  ],
 }
 
 QUERY_DEFAULTS = {"after": "{{lastSeq}}", "cursor": "{{cursor}}", "source": "{{sourceId}}", "ruleId": "{{ruleId}}"}
@@ -151,7 +184,14 @@ items = []
 for path, ops in spec["paths"].items():
     for method, op in ops.items():
         if method == "parameters": continue
-        items.append(req_item(path, method, op))
+        item = req_item(path, method, op)
+        items.append(item)
+        for label, body in VARIANTS.get(op["operationId"], []):
+            variant = json.loads(json.dumps(item))
+            variant["name"] = f"{item['name']} ({label})"
+            variant["request"]["body"]["raw"] = json.dumps(body, indent=2)
+            variant["_variant"] = True
+            items.append(variant)
 
 folders = []
 for tag in [t["name"] for t in spec["tags"]]:
@@ -159,7 +199,7 @@ for tag in [t["name"] for t in spec["tags"]]:
     folder_items = [dict((k, v) for k, v in i.items() if not k.startswith("_")) for i in items if i["_tag"] == tag]
     folders.append({"name": tag, "description": desc, "item": folder_items})
 
-by_id = {i["_opid"]: dict((k, v) for k, v in i.items() if not k.startswith("_")) for i in items}
+by_id = {i["_opid"]: dict((k, v) for k, v in i.items() if not k.startswith("_")) for i in items if not i.get("_variant")}
 def step(n, opid, name=None, overrides=None):
     it = json.loads(json.dumps(by_id[opid])); it["name"] = f"{n:02d} · " + (name or it["name"])
     if overrides:

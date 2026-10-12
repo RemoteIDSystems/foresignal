@@ -48,8 +48,9 @@ class EntityMappingIT {
     @Autowired private SeqClockRepository seqClock;
     @Autowired private TriggerRuleRepository triggerRules;
     @Autowired private AlertRepository alerts;
-    @Autowired private WebhookRepository webhooks;
-    @Autowired private WebhookDeliveryRepository deliveries;
+    @Autowired private NotificationChannelRepository channels;
+    @Autowired private NotificationRepository notifications;
+    @Autowired private NotificationDeliveryRepository deliveries;
     @Autowired private AppSettingRepository appSettings;
     @Autowired private SystemSecretRepository systemSecrets;
     @Autowired private JdbcTemplate jdbc;
@@ -819,83 +820,121 @@ class EntityMappingIT {
                 .isFalse();
     }
 
-    // ---------- webhook and delivery ----------
+    // ---------- notification channel, notification and delivery (prompt 018) ----------
 
     @Test
-    @DisplayName("a webhook round trips, including its encrypted secret and rule_ids jsonb")
-    void webhookRoundTrip() {
+    @DisplayName("a notification channel round trips, including its encrypted secrets and jsonb columns")
+    void notificationChannelRoundTrip() {
         UUID id = UUID.randomUUID();
         UUID ruleId = UUID.randomUUID();
-        var webhook = new WebhookEntity(id, "ops-slack", "https://hooks.example/abc");
-        webhook.setSecretCiphertext(new byte[] {1, 2, 3});
-        webhook.setSecretNonce(new byte[] {4, 5, 6});
-        webhook.setRuleIds(new java.util.ArrayList<>(List.of(ruleId)));
-        webhook.setCreatedAt(NOW);
+        var channel = new NotificationChannelEntity(id, "ops-slack", "slack");
+        channel.setConfig(new java.util.LinkedHashMap<>(Map.of("username", "Foresignal")));
+        channel.setSecretCiphertext(new byte[] {1, 2, 3});
+        channel.setSecretNonce(new byte[] {4, 5, 6});
+        channel.setEvents(new java.util.ArrayList<>(List.of("alert", "system")));
+        channel.setRuleIds(new java.util.ArrayList<>(List.of(ruleId)));
+        channel.setTimezone("America/Chicago");
+        channel.setQuietHours(new java.util.LinkedHashMap<>(Map.of("start", "22:00", "end", "07:00")));
+        channel.setCreatedAt(NOW);
+        channel.setUpdatedAt(NOW);
 
-        webhooks.saveAndFlush(webhook);
+        channels.saveAndFlush(channel);
 
-        WebhookEntity loaded = reload(() -> webhooks.findById(id).orElseThrow());
+        NotificationChannelEntity loaded = reload(() -> channels.findById(id).orElseThrow());
         assertThat(loaded.getName()).isEqualTo("ops-slack");
-        assertThat(loaded.getUrl()).isEqualTo("https://hooks.example/abc");
+        assertThat(loaded.getConfig()).containsEntry("username", "Foresignal");
         assertThat(loaded.getSecretCiphertext()).containsExactly(1, 2, 3);
         assertThat(loaded.getSecretNonce()).containsExactly(4, 5, 6);
+        assertThat(loaded.getEvents()).containsExactly("alert", "system");
         assertThat(loaded.getRuleIds()).containsExactly(ruleId);
+        assertThat(loaded.getQuietHours()).containsEntry("start", "22:00");
+        assertThat(loaded.getBacklogCap()).isEqualTo(20);
+        assertThat(loaded.isEditInPlace()).isTrue();
+        assertThat(loaded.getGroupWindowSeconds()).isZero();
+        assertThat(channels.findByEnabledTrue()).hasSize(1);
     }
 
     @Test
     @DisplayName("a null rule_ids means 'every rule'")
-    void webhookAllowsNullRuleIds() {
+    void channelAllowsNullRuleIds() {
         UUID id = UUID.randomUUID();
-        var webhook = new WebhookEntity(id, "all-rules", "https://hooks.example/all");
-        webhook.setCreatedAt(NOW);
-        webhooks.saveAndFlush(webhook);
+        var channel = new NotificationChannelEntity(id, "all-rules", "webhook");
+        channel.setCreatedAt(NOW);
+        channel.setUpdatedAt(NOW);
+        channels.saveAndFlush(channel);
 
-        assertThat(webhooks.findById(id).orElseThrow().getRuleIds()).isNull();
-        assertThat(webhooks.findByEnabledTrue()).hasSize(1);
+        assertThat(channels.findById(id).orElseThrow().getRuleIds()).isNull();
     }
 
     @Test
-    void webhookDeliveryRoundTrip() {
-        UUID webhookId = UUID.randomUUID();
-        var delivery = new WebhookDeliveryEntity(webhookId, 7L, NOW);
+    @DisplayName("a notification round trips, including links, data, the text[] tags and update_of")
+    void notificationRoundTrip() {
+        var n = new NotificationEntity();
+        n.setEvent("alert");
+        n.setSubtype("alert.fired");
+        n.setSeverity("warning");
+        n.setTitle("[warning] Quake");
+        n.setShortTitle("Quake");
+        n.setBodyMarkdown("**M5**");
+        n.setUrl("http://localhost:8080/v1/alerts/7");
+        n.setLinks(List.of(Map.of("label", "Open alert", "url", "http://localhost:8080/v1/alerts/7")));
+        n.setData(new java.util.LinkedHashMap<>(Map.of("alertId", 7)));
+        n.setAlertId(7L);
+        n.setTags(new String[] {"quake", "ops"});
+        n.setUpdateOf(3L);
+        n.setOrigin("abcd1234");
+        n.setCreatedAt(NOW);
 
-        WebhookDeliveryEntity saved = deliveries.saveAndFlush(delivery);
+        Long id = notifications.saveAndFlush(n).getId();
 
-        assertThat(saved.getId()).isNotNull();
-        WebhookDeliveryEntity loaded = deliveries.findById(saved.getId()).orElseThrow();
-        assertThat(loaded.getStatus()).isEqualTo(DeliveryStatus.PENDING);
-        assertThat(loaded.getWebhookId()).isEqualTo(webhookId);
-        assertThat(loaded.getAlertId()).isEqualTo(7L);
-        assertThat(loaded.getAttempts()).isZero();
-        assertThat(loaded.getNextAttemptAt()).isEqualTo(NOW);
+        NotificationEntity loaded = reload(() -> notifications.findById(id).orElseThrow());
+        assertThat(loaded.getTags()).containsExactly("quake", "ops");
+        assertThat(loaded.getLinks()).singleElement().satisfies(l -> assertThat(l).containsEntry("label", "Open alert"));
+        assertThat(loaded.getData()).containsEntry("alertId", 7);
+        assertThat(loaded.getUpdateOf()).isEqualTo(3L);
+        assertThat(jdbc.queryForObject("select pg_typeof(tags)::text from notification where id = ?", String.class, id))
+                .isEqualTo("text[]");
+        assertThat(notifications.findFirstByAlertIdAndSubtypeOrderByIdAsc(7L, "alert.fired")).isPresent();
     }
 
     @Test
-    @DisplayName("delivery status is stored as its enum name")
-    void deliveryStatusIsStoredAsString() {
-        var delivery = new WebhookDeliveryEntity(UUID.randomUUID(), 1L, NOW);
+    @DisplayName("a delivery round trips with its kind, reference and deferral; status is stored by name")
+    void deliveryRoundTrip() {
+        UUID channelId = UUID.randomUUID();
+        var delivery = new NotificationDeliveryEntity(channelId, 9L, "alert", NOW);
+        delivery.setAlertId(7L);
+        delivery.setKind(DeliveryKind.UPDATE);
+        delivery.setProviderMessageRef("123456");
+        delivery.setDeferredReason(DeferredReason.QUIET_HOURS);
+        delivery.setNote("folded into delivery 1");
         delivery.setStatus(DeliveryStatus.DELIVERED);
         delivery.setDeliveredAt(NOW);
+
         Long id = deliveries.saveAndFlush(delivery).getId();
 
-        assertThat(jdbc.queryForObject(
-                        "select status from webhook_delivery where id = ?", String.class, id))
+        NotificationDeliveryEntity loaded = deliveries.findById(id).orElseThrow();
+        assertThat(loaded.getChannelId()).isEqualTo(channelId);
+        assertThat(loaded.getNotificationId()).isEqualTo(9L);
+        assertThat(loaded.getKind()).isEqualTo("update");
+        assertThat(loaded.getProviderMessageRef()).isEqualTo("123456");
+        assertThat(loaded.getDeferredReason()).isEqualTo("quiet_hours");
+        assertThat(jdbc.queryForObject("select status from notification_delivery where id = ?", String.class, id))
                 .isEqualTo("DELIVERED");
     }
 
     @Test
-    @DisplayName("the retry worker's due query returns pending deliveries oldest first")
-    void findsDueDeliveries() {
-        deliveries.saveAndFlush(new WebhookDeliveryEntity(UUID.randomUUID(), 1L, NOW.minusSeconds(60)));
-        deliveries.saveAndFlush(new WebhookDeliveryEntity(UUID.randomUUID(), 2L, NOW.minusSeconds(30)));
-        var future = new WebhookDeliveryEntity(UUID.randomUUID(), 3L, NOW.plusSeconds(600));
-        deliveries.saveAndFlush(future);
+    @DisplayName("the deliveries page is newest first, below the cursor, filtered by status")
+    void deliveriesPage() {
+        UUID channelId = UUID.randomUUID();
+        Long first = deliveries.saveAndFlush(new NotificationDeliveryEntity(channelId, 1L, "alert", NOW)).getId();
+        Long second = deliveries.saveAndFlush(new NotificationDeliveryEntity(channelId, 2L, "alert", NOW)).getId();
+        deliveries.saveAndFlush(new NotificationDeliveryEntity(UUID.randomUUID(), 3L, "alert", NOW));
 
-        var due =
-                deliveries.findByStatusAndNextAttemptAtLessThanEqualOrderByNextAttemptAtAsc(
-                        DeliveryStatus.PENDING, NOW, org.springframework.data.domain.Limit.of(10));
-
-        assertThat(due).extracting(WebhookDeliveryEntity::getAlertId).containsExactly(1L, 2L);
+        assertThat(deliveries.page(channelId, Long.MAX_VALUE, List.of(DeliveryStatus.PENDING), Limit.of(10)))
+                .extracting(NotificationDeliveryEntity::getId).containsExactly(second, first);
+        assertThat(deliveries.page(channelId, second, List.of(DeliveryStatus.PENDING), Limit.of(10)))
+                .extracting(NotificationDeliveryEntity::getId).containsExactly(first);
+        assertThat(deliveries.page(channelId, Long.MAX_VALUE, List.of(DeliveryStatus.FAILED), Limit.of(10))).isEmpty();
     }
 
     // ---------- app_setting and system_secret ----------

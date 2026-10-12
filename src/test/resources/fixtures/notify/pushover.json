@@ -1,0 +1,21 @@
+{
+  "_comment": "Golden request for the canonical message of NotifyFixtures (prompt 018). Hosts use .invalid; tokens are fake.",
+  "method": "POST",
+  "url": "https://api.pushover.net/1/messages.json",
+  "headers": {
+    "User-Agent": "Foresignal/test (+https://foresignal.ai; install=abcd1234)",
+    "X-Foresignal-Origin": "abcd1234",
+    "Content-Type": "application/x-www-form-urlencoded"
+  },
+  "form": {
+    "token": "apptoken",
+    "user": "userkey",
+    "title": "[warning] Quake <M5> & more",
+    "message": "<b>M5.1</b> near <i>Austin</i> &lt;TX&gt; &amp; co\n• depth 10 km\n\nsee a_b*c",
+    "html": "1",
+    "priority": "1",
+    "url": "https://fs.example/v1/alerts/7",
+    "url_title": "Open alert",
+    "timestamp": "1777636800"
+  }
+}

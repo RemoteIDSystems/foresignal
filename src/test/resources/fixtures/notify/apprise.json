@@ -1,0 +1,18 @@
+{
+  "_comment": "Golden request for the canonical message of NotifyFixtures (prompt 018). Hosts use .invalid; tokens are fake.",
+  "method": "POST",
+  "url": "https://apprise.example.invalid/notify/foresignal",
+  "headers": {
+    "User-Agent": "Foresignal/test (+https://foresignal.ai; install=abcd1234)",
+    "X-Foresignal-Origin": "abcd1234",
+    "Content-Type": "application/json"
+  },
+  "json": {
+    "title": "[warning] Quake <M5> & more",
+    "body": "**M5.1** near *Austin* <TX> & co\n- depth 10 km\n\nsee `a_b*c`",
+    "type": "warning",
+    "format": "markdown",
+    "tag": "ops",
+    "foresignalOrigin": "abcd1234"
+  }
+}

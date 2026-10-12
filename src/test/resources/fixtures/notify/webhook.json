@@ -1,0 +1,51 @@
+{
+  "_comment": "Golden request for the canonical message of NotifyFixtures (prompt 018). Hosts use .invalid; tokens are fake.",
+  "method": "POST",
+  "url": "https://receiver.example.invalid/hook",
+  "headers": {
+    "User-Agent": "Foresignal/test (+https://foresignal.ai; install=abcd1234)",
+    "X-Foresignal-Origin": "abcd1234",
+    "Content-Type": "application/json",
+    "X-Foresignal-Event": "alert",
+    "X-Foresignal-Delivery": "99",
+    "X-Foresignal-Timestamp": "1777636800",
+    "X-Static": "yes",
+    "Authorization": "Bearer hdrsecret"
+  },
+  "json": {
+    "event": "alert",
+    "subtype": "alert.fired",
+    "message": {
+      "id": 42,
+      "event": "alert",
+      "subtype": "alert.fired",
+      "title": "[warning] Quake <M5> & more",
+      "shortTitle": "[warning] Quake <M5> & more",
+      "bodyMarkdown": "**M5.1** near _Austin_ <TX> & co\n- depth 10 km\n\nsee `a_b*c`",
+      "severity": "warning",
+      "url": "https://fs.example/v1/alerts/7",
+      "links": [
+        {
+          "label": "Open alert",
+          "url": "https://fs.example/v1/alerts/7"
+        }
+      ],
+      "data": {
+        "alertId": 7,
+        "ruleName": "Quakes"
+      },
+      "tags": [
+        "quake"
+      ],
+      "attachments": [],
+      "updateOf": null,
+      "origin": "abcd1234",
+      "createdAt": "2026-05-01T12:00:00Z"
+    },
+    "data": {
+      "alertId": 7,
+      "ruleName": "Quakes"
+    },
+    "foresignalOrigin": "abcd1234"
+  }
+}

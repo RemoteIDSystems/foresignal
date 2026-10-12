@@ -29,6 +29,9 @@ public final class SettingKeys {
      */
     public static final String SERVER = "server";
 
+    /** {@link NotificationSettings}: the global notification pause (prompt 018). */
+    public static final String NOTIFICATIONS = "notifications";
+
     /** This installation's generated identifier. */
     public static final String INSTALL_ID = "install.id";
 
@@ -37,7 +40,8 @@ public final class SettingKeys {
      * component holding its own copy of a setting drops it too. A new key belongs in this list.
      */
     public static final List<String> ALL =
-            List.of(RETENTION, CORS, TRIGGER_CURSOR, TRIGGERS, STREAM_LIMITS, SECURITY, SERVER, INSTALL_ID);
+            List.of(RETENTION, CORS, TRIGGER_CURSOR, TRIGGERS, STREAM_LIMITS, SECURITY, SERVER, NOTIFICATIONS,
+                    INSTALL_ID);
 
     private SettingKeys() {}
 }

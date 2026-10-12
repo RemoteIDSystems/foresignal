@@ -1,0 +1,52 @@
+{
+  "_comment": "Golden request for the canonical message of NotifyFixtures (prompt 018). Hosts use .invalid; tokens are fake.",
+  "method": "POST",
+  "url": "https://prod-00.example.invalid/workflows/abc/triggers/manual/paths/invoke",
+  "headers": {
+    "User-Agent": "Foresignal/test (+https://foresignal.ai; install=abcd1234)",
+    "X-Foresignal-Origin": "abcd1234",
+    "Content-Type": "application/json"
+  },
+  "json": {
+    "type": "message",
+    "attachments": [
+      {
+        "contentType": "application/vnd.microsoft.card.adaptive",
+        "content": {
+          "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+          "type": "AdaptiveCard",
+          "version": "1.5",
+          "body": [
+            {
+              "type": "TextBlock",
+              "text": "[warning] Quake <M5> & more",
+              "weight": "Bolder",
+              "size": "Medium",
+              "wrap": true,
+              "color": "Warning"
+            },
+            {
+              "type": "TextBlock",
+              "text": "**M5.1** near _Austin_ <TX> & co\n- depth 10 km\n\nsee a_b*c",
+              "wrap": true
+            },
+            {
+              "type": "TextBlock",
+              "text": "warning · 2026-05-01 12:00 UTC",
+              "isSubtle": true,
+              "size": "Small",
+              "wrap": true
+            }
+          ],
+          "actions": [
+            {
+              "type": "Action.OpenUrl",
+              "title": "Open alert",
+              "url": "https://fs.example/v1/alerts/7"
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

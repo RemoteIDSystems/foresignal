@@ -1,0 +1,21 @@
+{
+  "_comment": "Golden request for the canonical message of NotifyFixtures (prompt 018). Hosts use .invalid; tokens are fake.",
+  "method": "SMTP",
+  "url": "smtp://smtp.example.invalid:587",
+  "headers": {},
+  "mail": {
+    "host": "smtp.example.invalid",
+    "port": 587,
+    "tls": "starttls",
+    "from": "foresignal@example.invalid",
+    "to": [
+      "ops@example.invalid"
+    ],
+    "subject": "[warning] Quake <M5> & more",
+    "text": "[warning] Quake <M5> & more\n\nM5.1 near Austin <TX> & co\n• depth 10 km\n\nsee a_b*c\n\nOpen alert: https://fs.example/v1/alerts/7\n-- \nForesignal · warning · 2026-05-01 12:00 UTC\n",
+    "html": "<html><body><h2>[warning] Quake &lt;M5&gt; &amp; more</h2><p><strong>M5.1</strong> near <em>Austin</em> &lt;TX&gt; &amp; co<br><ul><li>depth 10 km</li></ul><br>see <code>a_b*c</code></p><p><a href=\"https://fs.example/v1/alerts/7\">Open alert</a></p><p style=\"color:#888\">Foresignal · warning · 2026-05-01 12:00 UTC</p></body></html>",
+    "headers": {
+      "X-Foresignal-Origin": "abcd1234"
+    }
+  }
+}

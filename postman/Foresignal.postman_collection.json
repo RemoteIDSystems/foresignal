@@ -1142,7 +1142,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"ntfy phone\",\n  \"type\": \"ntfy\",\n  \"config\": {\n    \"serverUrl\": \"https://ntfy.sh\",\n    \"topic\": \"REPLACE_TOPIC\"\n  },\n  \"secrets\": {},\n  \"events\": [\n    \"alert\",\n    \"briefing\",\n    \"system\"\n  ],\n  \"ruleIds\": null,\n  \"minSeverity\": \"warning\",\n  \"enabled\": true\n}",
+              "raw": "{\n  \"name\": \"ntfy phone\",\n  \"type\": \"ntfy\",\n  \"config\": {\n    \"serverUrl\": \"https://ntfy.sh\",\n    \"topic\": \"REPLACE_TOPIC\"\n  },\n  \"secrets\": {},\n  \"events\": [\n    \"alert\",\n    \"briefing\",\n    \"system\"\n  ],\n  \"ruleIds\": null,\n  \"minSeverity\": \"warning\",\n  \"enabled\": true,\n  \"timezone\": \"America/Chicago\",\n  \"quietHours\": {\n    \"start\": \"22:00\",\n    \"end\": \"07:00\",\n    \"bypassSeverity\": \"critical\"\n  },\n  \"backlogCap\": 20,\n  \"groupWindowSeconds\": 0,\n  \"editInPlace\": true\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -9768,7 +9768,617 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"ntfy phone\",\n  \"type\": \"ntfy\",\n  \"config\": {\n    \"serverUrl\": \"https://ntfy.sh\",\n    \"topic\": \"REPLACE_TOPIC\"\n  },\n  \"secrets\": {},\n  \"events\": [\n    \"alert\",\n    \"briefing\",\n    \"system\"\n  ],\n  \"ruleIds\": null,\n  \"minSeverity\": \"warning\",\n  \"enabled\": true\n}",
+              "raw": "{\n  \"name\": \"ntfy phone\",\n  \"type\": \"ntfy\",\n  \"config\": {\n    \"serverUrl\": \"https://ntfy.sh\",\n    \"topic\": \"REPLACE_TOPIC\"\n  },\n  \"secrets\": {},\n  \"events\": [\n    \"alert\",\n    \"briefing\",\n    \"system\"\n  ],\n  \"ruleIds\": null,\n  \"minSeverity\": \"warning\",\n  \"enabled\": true,\n  \"timezone\": \"America/Chicago\",\n  \"quietHours\": {\n    \"start\": \"22:00\",\n    \"end\": \"07:00\",\n    \"bypassSeverity\": \"critical\"\n  },\n  \"backlogCap\": 20,\n  \"groupWindowSeconds\": 0,\n  \"editInPlace\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Create a notification channel (Discord (edits on resolve))",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('channelId', j.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/channels",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "channels"
+              ],
+              "query": []
+            },
+            "description": "Create a notification channel\n\n**Scope:** `admin`.\n\noperationId: `createChannel`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Discord #alerts\",\n  \"type\": \"discord\",\n  \"config\": {\n    \"username\": \"Foresignal\"\n  },\n  \"secrets\": {\n    \"webhookUrl\": \"https://discord.com/api/webhooks/REPLACE/REPLACE\"\n  },\n  \"events\": [\n    \"alert\",\n    \"system\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Create a notification channel (Telegram)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('channelId', j.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/channels",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "channels"
+              ],
+              "query": []
+            },
+            "description": "Create a notification channel\n\n**Scope:** `admin`.\n\noperationId: `createChannel`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Telegram\",\n  \"type\": \"telegram\",\n  \"config\": {\n    \"chatId\": \"REPLACE_CHAT_ID\"\n  },\n  \"secrets\": {\n    \"botToken\": \"REPLACE_BOT_TOKEN\"\n  },\n  \"events\": [\n    \"alert\"\n  ],\n  \"minSeverity\": \"warning\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Create a notification channel (Matrix)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('channelId', j.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/channels",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "channels"
+              ],
+              "query": []
+            },
+            "description": "Create a notification channel\n\n**Scope:** `admin`.\n\noperationId: `createChannel`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Matrix room\",\n  \"type\": \"matrix\",\n  \"config\": {\n    \"homeserverUrl\": \"https://matrix.example.org\",\n    \"roomId\": \"!REPLACE:example.org\"\n  },\n  \"secrets\": {\n    \"accessToken\": \"REPLACE\"\n  },\n  \"events\": [\n    \"alert\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Create a notification channel (Teams (Workflows URL only))",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('channelId', j.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/channels",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "channels"
+              ],
+              "query": []
+            },
+            "description": "Create a notification channel\n\n**Scope:** `admin`.\n\noperationId: `createChannel`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Teams\",\n  \"type\": \"teams\",\n  \"secrets\": {\n    \"workflowUrl\": \"https://REPLACE.logic.azure.com/workflows/REPLACE\"\n  },\n  \"events\": [\n    \"alert\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Create a notification channel (Pushover)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('channelId', j.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/channels",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "channels"
+              ],
+              "query": []
+            },
+            "description": "Create a notification channel\n\n**Scope:** `admin`.\n\noperationId: `createChannel`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Pushover\",\n  \"type\": \"pushover\",\n  \"secrets\": {\n    \"appToken\": \"REPLACE\",\n    \"userKey\": \"REPLACE\"\n  },\n  \"events\": [\n    \"alert\"\n  ],\n  \"minSeverity\": \"warning\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Create a notification channel (Email (plain text for Winlink))",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('channelId', j.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/channels",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "channels"
+              ],
+              "query": []
+            },
+            "description": "Create a notification channel\n\n**Scope:** `admin`.\n\noperationId: `createChannel`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Winlink\",\n  \"type\": \"email\",\n  \"config\": {\n    \"smtpHost\": \"smtp.example.org\",\n    \"smtpPort\": 587,\n    \"tls\": \"starttls\",\n    \"from\": \"foresignal@example.org\",\n    \"to\": [\n      \"REPLACE@winlink.org\"\n    ],\n    \"plainTextOnly\": true\n  },\n  \"secrets\": {\n    \"username\": \"REPLACE\",\n    \"password\": \"REPLACE\"\n  },\n  \"titleTemplate\": \"{{severity}} {{name}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Create a notification channel (Home Assistant (notify, critical alerts))",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('channelId', j.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/channels",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "channels"
+              ],
+              "query": []
+            },
+            "description": "Create a notification channel\n\n**Scope:** `admin`.\n\noperationId: `createChannel`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"HA phone\",\n  \"type\": \"homeassistant\",\n  \"config\": {\n    \"baseUrl\": \"http://homeassistant.local:8123\",\n    \"mode\": \"notify\",\n    \"service\": \"mobile_app_REPLACE\"\n  },\n  \"secrets\": {\n    \"accessToken\": \"REPLACE\"\n  },\n  \"events\": [\n    \"alert\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Create a notification channel (Apprise)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('channelId', j.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/channels",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "channels"
+              ],
+              "query": []
+            },
+            "description": "Create a notification channel\n\n**Scope:** `admin`.\n\noperationId: `createChannel`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Apprise\",\n  \"type\": \"apprise\",\n  \"config\": {\n    \"serverUrl\": \"http://apprise.local:8000\",\n    \"configKey\": \"foresignal\"\n  },\n  \"events\": [\n    \"alert\",\n    \"system\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Create a notification channel (Zulip (topic per rule))",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('channelId', j.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/channels",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "channels"
+              ],
+              "query": []
+            },
+            "description": "Create a notification channel\n\n**Scope:** `admin`.\n\noperationId: `createChannel`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Zulip\",\n  \"type\": \"zulip\",\n  \"config\": {\n    \"site\": \"https://REPLACE.zulipchat.com\",\n    \"stream\": \"alerts\",\n    \"botEmail\": \"foresignal-bot@REPLACE.zulipchat.com\",\n    \"topicTemplate\": \"{{ruleName}}\"\n  },\n  \"secrets\": {\n    \"apiKey\": \"REPLACE\"\n  },\n  \"events\": [\n    \"alert\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Create a notification channel (Webhook (HMAC signed))",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('channelId', j.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/channels",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "channels"
+              ],
+              "query": []
+            },
+            "description": "Create a notification channel\n\n**Scope:** `admin`.\n\noperationId: `createChannel`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Automation webhook\",\n  \"type\": \"webhook\",\n  \"config\": {\n    \"url\": \"https://REPLACE/hooks/foresignal\",\n    \"method\": \"POST\"\n  },\n  \"secrets\": {\n    \"hmacSecret\": \"REPLACE\"\n  },\n  \"events\": [\n    \"alert\",\n    \"briefing\",\n    \"system\"\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -37767,7 +38377,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"pausedUntil\": \"2026-10-12T06:00:00Z\",\n  \"pauseBypassSeverity\": \"critical\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
