@@ -34,6 +34,10 @@ services:
       FORESIGNAL_DATA_DIR: /data
       FORESIGNAL_PORT: "8080"
       SPRING_PROFILES_ACTIVE: docker
+      # The published bind, so GET /v1/system can warn when open reads are exposed (019).
+      FORESIGNAL_BIND: ${FORESIGNAL_BIND:-127.0.0.1}
+      # ecs (default under the docker profile), gelf, logstash or text.
+      FORESIGNAL_LOG_FORMAT: ${FORESIGNAL_LOG_FORMAT:-ecs}
     volumes:
       - foresignal-data:/data
     # Localhost only by default; set FORESIGNAL_BIND=0.0.0.0 for LAN access.
@@ -42,6 +46,14 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    # Ready to serve and ingest (database, writer, partitions); liveness never
+    # includes the database (019).
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/actuator/health/readiness"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 120s
     restart: unless-stopped
 
 volumes:

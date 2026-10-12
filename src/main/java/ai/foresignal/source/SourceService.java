@@ -5,6 +5,7 @@ import ai.foresignal.api.error.ErrorCodes;
 import ai.foresignal.api.error.ForesignalException;
 import ai.foresignal.api.error.FieldError;
 import ai.foresignal.api.error.ValidationException;
+import ai.foresignal.retention.RetentionResolver;
 import ai.foresignal.security.CredentialCipher;
 import ai.foresignal.security.Encrypted;
 import ai.foresignal.settings.Durations;
@@ -72,6 +73,7 @@ public class SourceService implements ApplicationRunner {
     private final ApplicationEventPublisher events;
     private final Clock clock;
     private final ObjectProvider<SourceHealthLookup> healthLookup;
+    private final RetentionResolver retention;
 
     /**
      * Creates the service.
@@ -88,7 +90,8 @@ public class SourceService implements ApplicationRunner {
             CredentialCipher cipher,
             ApplicationEventPublisher events,
             Clock clock,
-            ObjectProvider<SourceHealthLookup> healthLookup) {
+            ObjectProvider<SourceHealthLookup> healthLookup,
+            RetentionResolver retention) {
         this.registry = registry;
         this.settings = settings;
         this.credentials = credentials;
@@ -98,6 +101,7 @@ public class SourceService implements ApplicationRunner {
         this.events = events;
         this.clock = clock;
         this.healthLookup = healthLookup;
+        this.retention = retention;
     }
 
     /** Seeds default settings rows at startup. */
@@ -602,14 +606,16 @@ public class SourceService implements ApplicationRunner {
     }
 
     /**
-     * The retention window in force, or empty when the global default applies.
+     * The source-level retention window from the source's own settings (the override, else the
+     * descriptor's {@code defaultRetention}), or empty when the global default applies. Delegates to
+     * {@link RetentionResolver#sourceWindow(String)} (prompt 019); per-kind windows are
+     * {@link RetentionResolver#window(String, String)}'s.
      *
      * <p>Always empty for a TRACK source: its retention is fixed by the tier.
      */
     @Transactional(readOnly = true)
     public Optional<Duration> effectiveRetention(String id) {
-        SourceDescriptor descriptor = registry.descriptor(id);
-        return Optional.ofNullable(resolveRetention(descriptor, settings.findById(id).orElse(null)));
+        return retention.sourceWindow(id);
     }
 
     /**

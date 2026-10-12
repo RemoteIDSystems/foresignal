@@ -399,22 +399,28 @@ public class SseHub {
      * @param maxClients the server-wide limit
      * @param changeSubscribers open streams subscribed to {@code changes}
      * @param eventSubscribers open streams on {@code /v1/events/stream}
+     * @param alertSubscribers open streams subscribed to {@code alerts} (prompt 019)
      */
-    public record StreamStats(int clients, int maxClients, int changeSubscribers, int eventSubscribers) {}
+    public record StreamStats(int clients, int maxClients, int changeSubscribers, int eventSubscribers,
+            int alertSubscribers) {}
 
     /** The current counts. */
     public StreamStats stats() {
         int changes = 0;
         int events = 0;
+        int alerts = 0;
         for (SseClient client : clients.values()) {
             if (client.filter().subscribes(ChangesTopic.NAME)) {
                 changes++;
+            }
+            if (client.filter().subscribes(AlertsTopic.NAME)) {
+                alerts++;
             }
             if (client.mode() == SseClient.CursorMode.COMPOSITE) {
                 events++;
             }
         }
-        return new StreamStats(clients.size(), limits().maxClients(), changes, events);
+        return new StreamStats(clients.size(), limits().maxClients(), changes, events, alerts);
     }
 
     /** The open clients (for tests and stats). */

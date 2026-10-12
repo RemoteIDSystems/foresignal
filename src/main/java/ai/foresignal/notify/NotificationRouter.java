@@ -225,6 +225,14 @@ public class NotificationRouter implements AlertListener {
                 baseUrl() + "/v1/triggers/" + event.ruleId(), data, null);
     }
 
+    /** A {@link SystemEvent} from another component (prompt 019: retention lag, canary failure). */
+    @EventListener
+    public void onSystemEvent(SystemEvent event) {
+        String url = event.path() == null ? null : baseUrl() + event.path();
+        system(event.subtype(), event.severity(), event.title(), event.body(), url, new LinkedHashMap<>(event.data()),
+                null);
+    }
+
     /** {@code system.delivery_failed} after a delivery's last attempt, never sent to that channel. */
     public void deliveryFailed(NotificationChannelEntity channel, NotificationDeliveryEntity delivery, String error) {
         Map<String, Object> data = new LinkedHashMap<>();

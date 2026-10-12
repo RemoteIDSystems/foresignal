@@ -17,6 +17,12 @@ public final class StartupOrder {
     /** The single ingest writer (prompt 009). */
     public static final int WRITER = 10;
 
+    /**
+     * Loading the published retention state (prompt 019), before the SSE hub and the read API start
+     * deciding {@code reset} and {@code 410} from it.
+     */
+    public static final int RETENTION_STATE = 12;
+
     /** The SSE hub's bus subscriptions (prompt 015). */
     public static final int SSE_HUB = 15;
 
@@ -25,6 +31,9 @@ public final class StartupOrder {
 
     /** The trigger engine (prompt 017). */
     public static final int TRIGGER_ENGINE = 20;
+
+    /** The ingest canary's change-bus subscription (prompt 019). */
+    public static final int CANARY = 25;
 
     /** The collector scheduler (prompt 010). */
     public static final int SCHEDULER = 30;

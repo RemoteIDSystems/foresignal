@@ -35,9 +35,9 @@ until you store them with `PUT /v1/sources/{id}/credentials`.
 
 Each source's descriptor fixes its `historyTier`:
 
-- **STANDARD** (discrete records: earthquakes, alerts, filings). Retention is per source: your
-  `retention` setting, else the descriptor's `defaultRetention`, else the global default. Set or
-  clear it with `"retention": "365d"` or `"retention": null`.
+- **STANDARD** (discrete records: earthquakes, alerts, filings). Retention is per source and per
+  kind; see [Retention](#retention) for the full resolution order. Set or clear a source's own
+  window with `"retention": "365d"` or `"retention": null`.
 - **TRACK** (moving things: aircraft, vessels). Every TRACK source shares one window,
   `retention.trackWindow` (3 days by default). A per-source `retention` is refused with
   `400 RETENTION_TIER_FIXED`; change `retention.trackWindow` instead.
@@ -212,3 +212,121 @@ Foresignal defines (webhook, Home Assistant, Apprise) carry it as `foresignalOri
 carry the tag `foresignal-origin-<id>` and Gotify messages the extra `foresignal::origin`. When you
 loop a channel back into Foresignal (for example ntfy into an ingest endpoint), the ntfy- and Gotify-compatible ingest endpoints (prompt 024) drop
 messages carrying its own marker, so a notification can never feed itself.
+
+## Retention
+
+`GET /v1/settings/retention` shows every window; `PUT` replaces the whole object (every window at
+least `1h`); `POST /v1/settings/retention/run` runs the job now and returns what it deleted. The job
+also runs hourly, starting 5 minutes after boot.
+
+```json
+PUT /v1/settings/retention
+{"default": "7d", "trackWindow": "3d", "provenance": "30d", "alerts": "90d", "usage": "30d",
+ "notifications": "90d", "kinds": {"earthquake": "3650d"}, "sources": {"usgs-earthquakes": "1825d"}}
+```
+
+**Which window applies.** A TRACK source always uses `trackWindow`. A STANDARD record's window is the
+first of:
+
+1. `kinds.{kind}` (yours);
+2. `sources.{id}` (yours; the same value as `PUT /v1/sources/{id}` `retention`, stored once);
+3. the descriptor's per-kind default (`kindRetention`);
+4. the descriptor's `defaultRetention` (adapters set it by analytic class: events 1825 days, series
+   3650 days, bulk events 90 days);
+5. `default` (7 days).
+
+A `sources` entry for a TRACK source, or a `kinds` entry for a kind only TRACK sources emit, is
+`400 RETENTION_TIER_FIXED`; unknown sources and kinds are listed in one `400`.
+
+**What the job removes, in order.**
+
+| Step | What |
+|---|---|
+| TRACK | Whole track partitions (`rv_t_*`) once they are older than `trackWindow`; never row by row |
+| STANDARD | Versions older than their window, in transactions of 10,000 rows |
+| Partitions | Standard partitions that are older than the largest window and already empty |
+| Heads | Records whose every version is gone and that nobody has observed for a window, purged by the writer |
+| Provenance | `fetch_log` rows that wrote nothing after 7 days, the others after `provenance` |
+| `seq_clock` | Minutes older than the largest window plus a day |
+| Other | Resolved or suppressed alerts after `alerts` (open alerts stay), usage minutes after `usage`, delivered or failed deliveries after 7 days, notifications after `notifications` |
+
+**Current state is kept while it is current** (FR-17 as amended). Versions follow the window, but a
+record that is still being observed keeps a version newer than a quarter of its window, so it never
+disappears. A record purged after going quiet that comes back starts again at version 1.
+
+**Durable consumers hold retention back.** The trigger engine's cursor (and later the embedding and
+intelligence cursors) clamp every cutoff, so nothing is deleted before it was evaluated. If a cursor
+falls more than two windows behind, retention stops waiting for it, counts
+`foresignal.retention.consumer_lag` and sends a `system` notification; `/v1/system` then shows
+`RETENTION_CONSUMER_LAG`.
+
+**Clients.** A change-feed cursor below a purge gets `410 RESYNC_REQUIRED` (re-snapshot, then resume);
+an SSE stream resumed below the retained floor gets `reset`. Routine version deletes never force a
+resync.
+
+## Operating the instance
+
+### Probes and the compose healthcheck
+
+| Endpoint | Includes | Use |
+|---|---|---|
+| `/actuator/health/liveness` | the application state only, never the database | restart decisions |
+| `/actuator/health/readiness` | readiness, database, ingest writer (lock held, state loaded, clock in step), partition headroom | traffic and the compose healthcheck |
+| `/actuator/health/catchup` | the catch-up signal (trigger lag over 10,000 seq, or the ingest queue above 80% for a minute) | dashboards; deliberately not part of readiness |
+
+Details are never shown; `GET /v1/system` has them. The compose file checks readiness with
+`curl -fsS http://localhost:8080/actuator/health/readiness` every 15 s after a 120 s start period.
+
+### Watchdog and canary
+
+A watchdog proves Foresignal is alive from somewhere else. Create a push check in Healthchecks.io
+(or a push monitor in Uptime Kuma), then:
+
+```json
+PUT /v1/settings/watchdog
+{"heartbeatUrl": "https://hc-ping.com/<uuid>", "failUrl": "https://hc-ping.com/<uuid>/fail",
+ "interval": "60s", "method": "GET", "canary": {"enabled": true, "interval": "1h"}}
+```
+
+Every `interval` (at least 30 s) Foresignal pings `heartbeatUrl` while readiness is UP, and
+`failUrl` (when set) while it is not. If the host dies the pings stop and the monitor alerts. Pings
+time out after 5 s, never follow redirects, and their URLs are redacted in logs.
+
+The opt-in **canary** submits one synthetic record to the built-in `system-canary` source every
+`canary.interval` and requires its change on the change stream within 30 s
+(`foresignal.canary.latency`). A failure sends a `system` notification and switches the watchdog to
+`failUrl` until the canary passes again. `system-canary` keeps one day of history and never appears
+in tiles.
+
+### `/v1/system`
+
+Anonymous callers get `version`, `apiVersion`, `startedAt`, `uptimeSeconds`, `status`
+(`ok`, `degraded` or `down`), `features` and `limits`. Any valid token adds the database, records,
+sources, scheduler, writer, streams, notifications, history per tier, catch-up and `warnings`:
+
+| Warning | Meaning |
+|---|---|
+| `OPEN_READS_EXPOSED` | Data reads need no token and `publicBaseUrl` or the published bind is not local (loopback, RFC 1918, 100.64/10 tailnets, link-local, unique-local or `.local`) |
+| `OPEN_READS_ALL_INTERFACES` (info) | Data reads need no token and the port is published on `0.0.0.0` |
+| `HISTORY_RATE_HIGH` | More than 20,000 versions per minute |
+| `PARTITION_HEADROOM_LOW` | A tier has less than one partition block attached ahead |
+| `RETENTION_CONSUMER_LAG` | The last retention run stopped waiting for a lagging consumer |
+
+Compose passes `FORESIGNAL_BIND` into the container so the warning knows the published bind.
+
+### Logs
+
+`FORESIGNAL_LOG_FORMAT` selects the console format: `ecs` (the default in the container), `gelf`,
+`logstash`, or `text` (the default elsewhere). Lines logged while a request is served carry its
+`traceId` and `spanId` from Micrometer Tracing (traces are never exported); an unexpected error's
+`correlationId`, which the caller sees in the `500` body, is logged with its stack trace.
+
+### Settings export and import
+
+`GET /v1/settings/export` returns every setting (sources without credentials, retention, CORS,
+notifications, the watchdog, trigger rules with their ids, channels without secrets).
+`PUT /v1/settings/import` applies such a bundle atomically: unknown sources are listed, a source
+that needs credentials you have not stored is imported disabled with a warning, rules and channels
+are upserted by id (channels keep their stored secrets), and any error rejects the whole bundle.
+`POST /v1/system/admin-token/rotate` returns a new admin token once; the old one stops working at
+once.

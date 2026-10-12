@@ -224,6 +224,14 @@ public class IngestWriter implements IngestStateReset, DisposableBean {
              LIMIT ?
             """;
 
+    /** {@link #SELECT_PURGE_CANDIDATES} restricted to one kind ({@link PurgeSpec#kind()}). */
+    private static final String SELECT_PURGE_CANDIDATES_OF_KIND =
+            """
+            SELECT h.external_id FROM record_head h JOIN record_live l USING (source_id, external_id)
+             WHERE h.source_id = ? AND h.seq < ? AND l.last_received_at < ? AND h.kind = ?
+             LIMIT ?
+            """;
+
     private static final String DELETE_LIVE = "DELETE FROM record_live WHERE source_id = ? AND external_id = ANY(?)";
     private static final String DELETE_HEAD = "DELETE FROM record_head WHERE source_id = ? AND external_id = ANY(?)";
 
@@ -1279,7 +1287,8 @@ public class IngestWriter implements IngestStateReset, DisposableBean {
                 // The queue is full: continue inline rather than block the writer on its own queue.
             }
             purgeProgress.remove(future);
-            future.complete(new PurgeOutcome(totals));
+            // Read on the writer thread, so no batch can publish between the last delete and this.
+            future.complete(new PurgeOutcome(totals, changeBus.lastPublishedSeq()));
         } catch (Throwable t) {
             purgeProgress.remove(future);
             log.error("Head purge failed", t);
@@ -1291,11 +1300,18 @@ public class IngestWriter implements IngestStateReset, DisposableBean {
         Integer deleted = tx.execute(status -> {
             List<String> ids = jdbc.query(
                     con -> {
-                        PreparedStatement ps = con.prepareStatement(SELECT_PURGE_CANDIDATES);
+                        boolean ofKind = spec.kind() != null;
+                        PreparedStatement ps =
+                                con.prepareStatement(ofKind ? SELECT_PURGE_CANDIDATES_OF_KIND : SELECT_PURGE_CANDIDATES);
                         ps.setString(1, spec.sourceId());
                         ps.setLong(2, spec.floorSeq());
                         JdbcValues.setInstant(ps, 3, spec.staleBefore());
-                        ps.setInt(4, purgeChunk);
+                        if (ofKind) {
+                            ps.setString(4, spec.kind());
+                            ps.setInt(5, purgeChunk);
+                        } else {
+                            ps.setInt(4, purgeChunk);
+                        }
                         return ps;
                     },
                     (rs, row) -> rs.getString(1));

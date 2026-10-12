@@ -127,6 +127,24 @@ public class ChannelService {
         return new View(view(e), new Stats(null, 0));
     }
 
+    /**
+     * Creates the channel with {@code id}, or replaces it when it exists; a replaced channel keeps
+     * its stored secrets when the body has none (settings import, prompt 019).
+     */
+    @Transactional
+    public View upsert(UUID id, JsonNode body) {
+        if (channels.existsById(id)) {
+            return replace(id, body);
+        }
+        ChannelInput input = parser.parse(body, null);
+        NotificationChannelEntity e = new NotificationChannelEntity(id, input.name(), input.type());
+        Instant now = clock.instant();
+        e.setCreatedAt(now);
+        apply(e, input, Map.of(), now);
+        channels.save(e);
+        return new View(view(e), new Stats(null, 0));
+    }
+
     /** Replaces a channel whole; omitted {@code secrets} keep the stored ones. */
     @Transactional
     public View replace(UUID id, JsonNode body) {

@@ -32,6 +32,9 @@ public final class SettingKeys {
     /** {@link NotificationSettings}: the global notification pause (prompt 018). */
     public static final String NOTIFICATIONS = "notifications";
 
+    /** {@link WatchdogSettings}: the off-box heartbeat and the ingest canary (prompt 019). */
+    public static final String WATCHDOG = "watchdog";
+
     /** This installation's generated identifier. */
     public static final String INSTALL_ID = "install.id";
 
@@ -41,7 +44,7 @@ public final class SettingKeys {
      */
     public static final List<String> ALL =
             List.of(RETENTION, CORS, TRIGGER_CURSOR, TRIGGERS, STREAM_LIMITS, SECURITY, SERVER, NOTIFICATIONS,
-                    INSTALL_ID);
+                    WATCHDOG, INSTALL_ID);
 
     private SettingKeys() {}
 }

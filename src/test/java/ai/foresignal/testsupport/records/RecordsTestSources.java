@@ -1,7 +1,6 @@
 package ai.foresignal.testsupport.records;
 
-import ai.foresignal.ingest.SourceIngestProfiles;
-import ai.foresignal.retention.DefaultRetentionState;
+import ai.foresignal.retention.RetentionStateStore;
 import ai.foresignal.retention.RetentionState;
 import ai.foresignal.source.spi.Budget;
 import ai.foresignal.source.spi.FieldSpec;
@@ -103,8 +102,8 @@ public class RecordsTestSources {
     /** The settable retention state. */
     @Bean
     @Primary
-    public StubRetentionState stubRetentionState(SourceIngestProfiles profiles) {
-        return new StubRetentionState(new DefaultRetentionState(profiles));
+    public StubRetentionState stubRetentionState(RetentionStateStore real) {
+        return new StubRetentionState(real);
     }
 
     private static SourceDescriptor.Builder base(String id, String kind) {

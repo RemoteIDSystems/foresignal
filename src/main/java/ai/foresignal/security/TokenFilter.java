@@ -111,8 +111,8 @@ public class TokenFilter extends OncePerRequestFilter implements Ordered {
                 reject(response, "The presented token is not valid.");
                 return;
             }
-            // Until prompt 019 the only token is the bootstrap admin token, which satisfies every
-            // scope. The policy already records the final scopes, so 019 changes this lookup only.
+            // Until prompt 023 the only token is the bootstrap admin token, which satisfies every
+            // scope. The policy already records the final scopes, so 023 changes this lookup only.
             request.setAttribute(SCOPE_ATTRIBUTE, Scope.ADMIN);
             chain.doFilter(request, response);
             return;

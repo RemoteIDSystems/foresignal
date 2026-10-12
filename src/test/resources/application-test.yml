@@ -31,6 +31,9 @@ foresignal:
       enabled: false
   retention:
     scheduled: false
+  # The watchdog does not tick in tests; WatchdogIT calls WatchdogService.tick().
+  watchdog:
+    scheduled: false
   # No context polls or streams on its own: an enabled fake source would otherwise
   # start fetching behind another test's back. CollectorSchedulerIT turns it on.
   collector:

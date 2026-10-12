@@ -41,7 +41,7 @@ class JacksonDurationIT {
     }
 
     @Test
-    @DisplayName("RetentionSettings matches the OpenAPI example exactly")
+    @DisplayName("RetentionSettings serializes every window in shorthand, in the schema's member names")
     void retentionSettingsMatchesContract() {
         var settings =
                 new RetentionSettings(
@@ -56,7 +56,9 @@ class JacksonDurationIT {
         assertThat(json)
                 .isEqualTo(
                         "{\"default\":\"7d\",\"alerts\":\"90d\",\"usage\":\"30d\","
-                                + "\"sources\":{\"usgs-earthquakes\":\"3650d\"},\"trackWindow\":\"3d\"}");
+                                + "\"sources\":{\"usgs-earthquakes\":\"3650d\"},\"trackWindow\":\"3d\","
+                                + "\"provenance\":\"30d\",\"notifications\":\"90d\",\"briefings\":\"180d\","
+                                + "\"ask\":\"90d\",\"kinds\":{}}");
     }
 
     @Test

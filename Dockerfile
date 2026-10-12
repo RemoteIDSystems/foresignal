@@ -17,6 +17,11 @@ RUN ./gradlew bootJar -x test --no-daemon
 # ---- Runtime stage -----------------------------------------------------------
 FROM eclipse-temurin:21-jre AS runtime
 
+# curl for the compose healthcheck on /actuator/health/readiness (019).
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends curl \
+ && rm -rf /var/lib/apt/lists/*
+
 RUN groupadd --system --gid 1001 foresignal \
  && useradd --system --uid 1001 --gid foresignal --create-home --home-dir /home/foresignal foresignal \
  && mkdir -p /app /data \

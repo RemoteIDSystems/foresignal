@@ -7,8 +7,8 @@ import java.util.Set;
  * What retention has done, as read clients need to know it (Core-Data-Model §13, Conventions
  * "RetentionState.purgeSeq").
  *
- * <p>Defined by prompt 014 with a default bean ({@link DefaultRetentionState}); prompt 019's
- * retention job publishes the real values.
+ * <p>Defined by prompt 014; {@link RetentionStateStore} (prompt 019) is the implementation, which the
+ * retention job republishes after every run.
  */
 public interface RetentionState {
 
@@ -22,7 +22,11 @@ public interface RetentionState {
      */
     long purgeSeq(String sourceId);
 
-    /** The lowest seq still retained across {@code sources} (all sources when empty); 0 when unknown. */
+    /**
+     * The resume floor over {@code sources} (all sources when empty): the largest {@code floorSeq} of
+     * the set, so a replay from {@code after} is complete only when {@code after ≥} it; 0 when
+     * retention has removed nothing yet.
+     */
     long lowestRetainedSeq(Set<String> sources);
 
     /** The retention window of {@code sourceId}: {@code retention.trackWindow} for TRACK, else the effective window. */

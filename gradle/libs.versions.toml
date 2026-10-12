@@ -40,6 +40,12 @@ jackson-dataformat-csv = { module = "tools.jackson.dataformat:jackson-dataformat
 # Spring Boot BOM (angus-mail 2.0.5, EPL-2.0 / EDL-1.0 / GPL-2.0 with Classpath Exception).
 spring-boot-starter-mail = { module = "org.springframework.boot:spring-boot-starter-mail" }
 
+# Trace ids in logs (019): Micrometer Tracing over the OpenTelemetry bridge, with no exporter on the
+# classpath, so nothing is exported. Versions from the Spring Boot 4.1.1 BOM (micrometer-tracing
+# 1.7.1, opentelemetry 1.62.0), all Apache-2.0.
+spring-boot-micrometer-tracing-opentelemetry = { module = "org.springframework.boot:spring-boot-micrometer-tracing-opentelemetry" }
+micrometer-tracing-bridge-otel = { module = "io.micrometer:micrometer-tracing-bridge-otel" }
+
 # --- Explicitly versioned ---
 bucket4j-core = { module = "com.bucket4j:bucket4j_jdk17-core", version.ref = "bucket4j" }
 springdoc-openapi-starter-webmvc-ui = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", version.ref = "springdoc" }

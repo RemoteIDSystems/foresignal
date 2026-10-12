@@ -1,16 +1,13 @@
 package ai.foresignal.ingest;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import ai.foresignal.retention.RetentionResolver;
 import ai.foresignal.settings.AppSettingChangedEvent;
-import ai.foresignal.settings.AppSettingService;
-import ai.foresignal.settings.RetentionSettings;
 import ai.foresignal.settings.SettingKeys;
 import ai.foresignal.source.SourceRegistry;
 import ai.foresignal.source.SourceRegistryChangedEvent;
@@ -18,8 +15,6 @@ import ai.foresignal.source.SourceService;
 import ai.foresignal.source.SourceSettingsChangedEvent;
 import ai.foresignal.source.spi.IngestPolicy;
 import java.time.Duration;
-import java.util.Map;
-import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -31,21 +26,18 @@ class SourceIngestProfilesTest {
 
     private SourceRegistry registry;
     private SourceService sources;
-    private AppSettingService settings;
+    private RetentionResolver retention;
     private SourceIngestProfiles profiles;
 
     @BeforeEach
-    @SuppressWarnings("unchecked")
     void setUp() {
         registry = mock(SourceRegistry.class);
         sources = mock(SourceService.class);
-        settings = mock(AppSettingService.class);
+        retention = mock(RetentionResolver.class);
         when(registry.descriptor(ID)).thenReturn(IngestFixtures.eventsDescriptor().build());
         when(sources.effectiveIngestPolicy(ID)).thenReturn(IngestPolicy.all(Duration.ofMinutes(4)));
-        when(sources.effectiveRetention(ID)).thenReturn(Optional.empty());
-        when(settings.getOrDefault(eq(SettingKeys.RETENTION), eq(RetentionSettings.class), any()))
-                .thenReturn(new RetentionSettings(Duration.ofDays(20), null, null, Map.of(), null));
-        profiles = new SourceIngestProfiles(registry, sources, settings);
+        when(retention.shortestWindow(ID)).thenReturn(Duration.ofDays(20));
+        profiles = new SourceIngestProfiles(registry, sources, retention);
     }
 
     @Test

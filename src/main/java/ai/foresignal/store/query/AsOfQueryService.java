@@ -8,8 +8,8 @@ import ai.foresignal.api.support.CursorCodec;
 import ai.foresignal.api.support.FieldSelection;
 import ai.foresignal.api.support.GeometryOptions;
 import ai.foresignal.api.support.NearFilter;
-import ai.foresignal.ingest.SourceIngestProfile;
 import ai.foresignal.ingest.SourceIngestProfiles;
+import ai.foresignal.retention.RetentionResolver;
 import ai.foresignal.retention.RetentionState;
 import ai.foresignal.source.SourceRegistry;
 import ai.foresignal.source.spi.HistoryTier;
@@ -60,7 +60,7 @@ public class AsOfQueryService {
     static final Duration TRACK_LOWER_MARGIN = Duration.ofMinutes(2);
 
     /** Margin added to the horizon. */
-    static final Duration HORIZON_MARGIN = Duration.ofHours(1);
+    static final Duration HORIZON_MARGIN = RetentionResolver.HORIZON_MARGIN;
 
     private final ReadQueryRunner runner;
     private final SeqClockQuery seqClock;
@@ -244,12 +244,9 @@ public class AsOfQueryService {
 
     /** {@code now − window + effectiveKeyframe + 1 h} for one source. */
     public Instant horizon(String sourceId, Instant now) {
-        Duration window = retention.window(sourceId);
-        SourceIngestProfile profile = profiles.get(sourceId);
-        Duration quarter = window.dividedBy(4);
-        Duration keyframe = profile.keyframe();
-        Duration effectiveKeyframe = keyframe == null || keyframe.compareTo(quarter) > 0 ? quarter : keyframe;
-        return now.minus(window).plus(effectiveKeyframe).plus(HORIZON_MARGIN);
+        // The math is RetentionResolver's (prompt 019); the window comes from RetentionState so a
+        // test's stub window still applies.
+        return RetentionResolver.horizon(now, retention.window(sourceId), profiles.get(sourceId).keyframe());
     }
 
     private List<SourceDescriptor> involvedSources(AsOfQuery q) {

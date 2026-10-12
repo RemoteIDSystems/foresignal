@@ -21,7 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
  * <p>Runs as an {@link InitializingBean} so the token exists before the web server starts
  * accepting requests, which avoids a window where writes would be unauthenticated.
  *
- * <p>Prompt 019 moves this token into the {@code api_token} table as the {@code bootstrap} row;
+ * <p>Prompt 023 moves this token into the {@code api_token} table as the {@code bootstrap} row;
  * {@link TokenHasher} already holds the reusable part.
  */
 @Service
@@ -70,7 +70,7 @@ public class AdminTokenService implements InitializingBean {
      * Replaces the token and returns the new one, which the caller must show the operator exactly
      * once. The previous token stops working immediately.
      *
-     * <p>Exposed by {@code POST /v1/system/admin-token/rotate} in prompt 016.
+     * <p>Exposed by {@code POST /v1/system/admin-token/rotate} (prompt 019).
      */
     @Transactional
     public String rotate() {

@@ -108,6 +108,26 @@ public class TriggerRuleService {
     }
 
     /**
+     * Creates the rule with {@code id}, or replaces it when it exists (settings import, prompt 019).
+     *
+     * @throws ai.foresignal.api.error.ValidationException when the input is not valid
+     */
+    public RuleView upsert(UUID id, JsonNode input) {
+        if (repository.existsById(id)) {
+            return update(id, input);
+        }
+        ValidatedRule valid = validator.validate(input);
+        Instant now = clock.instant();
+        TriggerRuleEntity rule = new TriggerRuleEntity(id, valid.name());
+        valid.applyTo(rule);
+        rule.setCreatedAt(now);
+        rule.setUpdatedAt(now);
+        TriggerRuleEntity saved = repository.saveAndFlush(rule);
+        changed(saved.getId());
+        return view(saved);
+    }
+
+    /**
      * Replaces a rule whole with a {@code TriggerRuleInput}; snooze and storm counters are kept.
      *
      * @throws NotFoundException when there is no such rule

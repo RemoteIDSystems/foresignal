@@ -28,6 +28,8 @@ dependencies {
     implementation(libs.jackson.dataformat.csv)
     implementation(libs.bucket4j.core)
     implementation(libs.spring.boot.starter.mail)
+    implementation(libs.spring.boot.micrometer.tracing.opentelemetry)
+    implementation(libs.micrometer.tracing.bridge.otel)
     implementation(libs.springdoc.openapi.starter.webmvc.ui)
     runtimeOnly(libs.postgresql)
 

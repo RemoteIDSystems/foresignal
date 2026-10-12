@@ -12,7 +12,7 @@ import org.springframework.stereotype.Service;
  * Reads and validates the CORS origin lists (FR-33).
  *
  * <p>Validation happens here rather than in a controller because the same rules apply to a settings
- * import as to {@code PUT /v1/settings/cors}, which arrives in prompt 016.
+ * import as to {@code PUT /v1/settings/cors} (prompt 019).
  */
 @Service
 public class CorsSettingsService {

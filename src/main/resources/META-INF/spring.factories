@@ -1,0 +1,3 @@
+# FORESIGNAL_LOG_FORMAT -> logging.structured.format.console (prompt 019)
+org.springframework.boot.EnvironmentPostProcessor=\
+ai.foresignal.config.LogFormatEnvironmentPostProcessor

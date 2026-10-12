@@ -1,7 +1,7 @@
 package ai.foresignal.ingest;
 
+import ai.foresignal.retention.RetentionResolver;
 import ai.foresignal.settings.AppSettingChangedEvent;
-import ai.foresignal.settings.AppSettingService;
 import ai.foresignal.settings.RetentionSettings;
 import ai.foresignal.settings.SettingKeys;
 import ai.foresignal.source.SourceRegistry;
@@ -18,8 +18,10 @@ import org.springframework.stereotype.Component;
  * Caches one {@link SourceIngestProfile} per source and rebuilds it when its inputs change
  * (Core-Data-Model §6.1, "Profiles").
  *
- * <p>Inputs: the registered descriptor, the effective ingest policy and retention from
- * {@link SourceService}, and the global {@link RetentionSettings}. A
+ * <p>Inputs: the registered descriptor, the effective ingest policy from {@link SourceService}, and
+ * the retention window from {@link RetentionResolver#shortestWindow(String)} (prompt 019: the
+ * shortest window over the source's kinds, so the retention keyframe keeps every kind's I6
+ * guarantee), which reads the global {@link RetentionSettings}. A
  * {@link SourceSettingsChangedEvent} or {@link SourceRegistryChangedEvent} evicts that source; a
  * retention {@link AppSettingChangedEvent} evicts every source, since the global windows feed every
  * profile. Profiles are rebuilt lazily on the next {@link #get}.
@@ -29,14 +31,14 @@ public class SourceIngestProfiles {
 
     private final SourceRegistry registry;
     private final SourceService sources;
-    private final AppSettingService settings;
+    private final RetentionResolver retention;
     private final Map<String, SourceIngestProfile> cache = new ConcurrentHashMap<>();
 
     /** Creates the cache. */
-    public SourceIngestProfiles(SourceRegistry registry, SourceService sources, AppSettingService settings) {
+    public SourceIngestProfiles(SourceRegistry registry, SourceService sources, RetentionResolver retention) {
         this.registry = registry;
         this.sources = sources;
-        this.settings = settings;
+        this.retention = retention;
     }
 
     /**
@@ -51,12 +53,8 @@ public class SourceIngestProfiles {
     /** Builds a profile from the current descriptor and settings, bypassing the cache. */
     public SourceIngestProfile build(String sourceId) {
         SourceDescriptor descriptor = registry.descriptor(sourceId);
-        RetentionSettings retention =
-                settings.getOrDefault(SettingKeys.RETENTION, RetentionSettings.class, RetentionSettings::defaults);
         return SourceIngestProfile.of(
-                descriptor,
-                sources.effectiveIngestPolicy(sourceId),
-                SourceIngestProfile.window(descriptor, sources.effectiveRetention(sourceId), retention));
+                descriptor, sources.effectiveIngestPolicy(sourceId), retention.shortestWindow(sourceId));
     }
 
     /** Drops every cached profile. */

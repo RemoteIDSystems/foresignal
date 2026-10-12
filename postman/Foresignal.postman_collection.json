@@ -37792,7 +37792,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"default\": \"7d\",\n  \"alerts\": \"90d\",\n  \"usage\": \"30d\",\n  \"briefings\": \"180d\",\n  \"ask\": \"90d\",\n  \"sources\": {\n    \"usgs-earthquakes\": \"3650d\"\n  }\n}",
+              "raw": "{\n  \"default\": \"7d\",\n  \"trackWindow\": \"3d\",\n  \"provenance\": \"30d\",\n  \"alerts\": \"90d\",\n  \"usage\": \"30d\",\n  \"notifications\": \"90d\",\n  \"briefings\": \"180d\",\n  \"ask\": \"90d\",\n  \"kinds\": {\n    \"earthquake\": \"3650d\"\n  },\n  \"sources\": {\n    \"usgs-earthquakes\": \"1825d\"\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -38482,7 +38482,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"heartbeatUrl\": \"https://hc-ping.com/REPLACE-WITH-CHECK-UUID\",\n  \"failUrl\": \"https://hc-ping.com/REPLACE-WITH-CHECK-UUID/fail\",\n  \"interval\": \"60s\",\n  \"method\": \"GET\",\n  \"canary\": {\n    \"enabled\": false,\n    \"interval\": \"1h\"\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"

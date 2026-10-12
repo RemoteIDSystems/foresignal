@@ -67,6 +67,23 @@ foresignal:
   inbox-dir: ${FORESIGNAL_INBOX_DIR:${FORESIGNAL_DATA_DIR:./data}/inbox}
   reset-admin-token: ${FORESIGNAL_RESET_ADMIN_TOKEN:false}
   version: ${spring.application.version:unknown}
+  # The bind the container's port is published on (compose passes FORESIGNAL_BIND).
+  # /v1/system warns when openReads is on and this is not local (019).
+  advertised-bind: ${FORESIGNAL_BIND:127.0.0.1}
+  retention:
+    # The hourly retention job (019). The windows are operator settings
+    # (PUT /v1/settings/retention); these are mechanics. Off in tests.
+    scheduled: true
+    interval: 1h
+    initial-delay: 5m
+    chunk-size: 10000
+    purge-timeout: 10m
+  watchdog:
+    # The off-box heartbeat and the ingest canary (019). What to ping is an
+    # operator setting (PUT /v1/settings/watchdog). Off in tests.
+    scheduled: true
+    timeout: 5s
+    canary-wait: 30s
   history:
     # Seq values per record_version leaf (Core-Data-Model §9).
     track-block: 20000000
@@ -130,6 +147,31 @@ management:
       # behave as never anyway. /actuator/health is for container health checks;
       # detailed status belongs to GET /v1/system.
       show-details: never
+      probes:
+        enabled: true
+      group:
+        # Liveness never includes the database, or a database outage would
+        # restart-loop the container (019).
+        liveness:
+          include: livenessState
+        # Readiness: ready to serve and ingest. The compose healthcheck polls it.
+        readiness:
+          include: readinessState,db,ingestWriter,partitions
+        # Catching up is a separate signal, deliberately not part of readiness.
+        catchup:
+          include: catchUp
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+  tracing:
+    # Trace and span ids in the MDC and in ECS logs (019). No exporter is on the
+    # classpath and export is off, so spans never leave the process.
+    sampling:
+      probability: 1.0
+    export:
+      enabled: false
 
 springdoc:
   api-docs:
@@ -140,15 +182,8 @@ springdoc:
     path: /docs
     url: /v1/openapi.json
 
----
-# Container runtime: structured JSON logs for log shipping. Local runs keep the
-# default human-readable console output.
-spring:
-  config:
-    activate:
-      on-profile: docker
-
-logging:
-  structured:
-    format:
-      console: ecs
+# Log format (019): FORESIGNAL_LOG_FORMAT=ecs|gelf|logstash|text selects
+# logging.structured.format.console through LogFormatEnvironmentPostProcessor.
+# The default is ecs under the docker profile (structured JSON for log
+# shipping) and text otherwise. An explicit logging.structured.format.console
+# still wins.

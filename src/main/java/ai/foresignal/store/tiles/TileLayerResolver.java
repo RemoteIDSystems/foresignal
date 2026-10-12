@@ -3,6 +3,7 @@ package ai.foresignal.store.tiles;
 import ai.foresignal.api.error.ErrorCodes;
 import ai.foresignal.api.error.ForesignalException;
 import ai.foresignal.source.SourceRegistry;
+import ai.foresignal.source.adapters.system.SystemCanaryAdapter;
 import ai.foresignal.source.spi.FieldSpec;
 import ai.foresignal.source.spi.FieldType;
 import ai.foresignal.source.spi.SourceDescriptor;
@@ -44,6 +45,9 @@ public class TileLayerResolver {
 
     private static final Logger log = LoggerFactory.getLogger(TileLayerResolver.class);
 
+    /** Sources that never appear as tile layers: the watchdog's synthetic canary (prompt 019). */
+    public static final Set<String> HIDDEN_FROM_TILES = Set.of(SystemCanaryAdapter.ID);
+
     private final SourceRegistry registry;
 
     /** Creates the resolver. */
@@ -58,7 +62,7 @@ public class TileLayerResolver {
      *     a declared kind, or every matching source is excluded
      */
     public TileLayer resolve(String layer, Set<String> excluded) {
-        return resolve(layer, registry.descriptors(), excluded)
+        return resolve(layer, visible(), excluded)
                 .orElseThrow(() -> unknownLayer(layer));
     }
 
@@ -68,7 +72,12 @@ public class TileLayerResolver {
      * left out, because the name resolves to the source.
      */
     public List<TileLayer> layers(Set<String> excluded) {
-        return layers(registry.descriptors(), excluded);
+        return layers(visible(), excluded);
+    }
+
+    /** Every registered descriptor except those hidden from tiles ({@link #HIDDEN_FROM_TILES}). */
+    private List<SourceDescriptor> visible() {
+        return registry.descriptors().stream().filter(d -> !HIDDEN_FROM_TILES.contains(d.id())).toList();
     }
 
     /** {@link #resolve(String, Set)} over an explicit descriptor list; empty when unknown or hidden. */
