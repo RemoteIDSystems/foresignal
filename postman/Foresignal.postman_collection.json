@@ -1349,7 +1349,7 @@
               ],
               "query": []
             },
-            "description": "Add an LLM provider\n\n**Scope:** `admin`.\n\noperationId: `createLlmProvider`",
+            "description": "Add an LLM provider. Defaults: `anthropic` \u2192 `baseUrl` https://api.anthropic.com, `chatModel` claude-opus-5-5, `options.effort` medium, `options.maxTokens` 16000, and `apiKey` is required; `ollama` \u2192 `baseUrl` http://ollama:11434; `openai-compatible` must name `baseUrl`. `baseUrl` must be http or https with a host and no user info or fragment; private-network URLs are allowed (035 adds OutboundUrlPolicy LAN_ALLOWED). The key is encrypted at rest and never returned (`apiKeySet`).\n\n**Scope:** `admin`.\n\noperationId: `createLlmProvider`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -1408,7 +1408,7 @@
               ],
               "query": []
             },
-            "description": "Set LLM roles and options\n\n**Scope:** `admin`.\n\noperationId: `updateLlmSettings`",
+            "description": "Replaces the LLM roles and options; omitted members take their defaults. Reassigning `embeddingProvider` publishes an embedding-model change (027 reindexes). `allowPrivateLocal` is accepted only as false until prompt 039.\n\n**Scope:** `admin`.\n\noperationId: `updateLlmSettings`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -1465,7 +1465,7 @@
               ],
               "query": []
             },
-            "description": "Sends a tiny chat request (and an embedding request if configured) and reports latency, model and token usage. Consumes budget.\n\n**Scope:** `admin`.\n\noperationId: `testLlmProvider`",
+            "description": "Sends a tiny chat request (\"Reply with the single word: ok\", 16 output tokens, purpose `test`) and an embedding of \"test\" when the provider has an embedding model, and reports latency, model, token usage (cached tokens included) and the normalized stop reason. Consumes budget. A provider failure or refusal is reported in the result (`success: false`, `error`, `refusalCategory`); only a budget refusal is an error status.\n\n**Scope:** `admin`.\n\noperationId: `testLlmProvider`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -27522,7 +27522,7 @@
               ],
               "query": []
             },
-            "description": "Add an LLM provider\n\n**Scope:** `admin`.\n\noperationId: `createLlmProvider`",
+            "description": "Add an LLM provider. Defaults: `anthropic` \u2192 `baseUrl` https://api.anthropic.com, `chatModel` claude-opus-5-5, `options.effort` medium, `options.maxTokens` 16000, and `apiKey` is required; `ollama` \u2192 `baseUrl` http://ollama:11434; `openai-compatible` must name `baseUrl`. `baseUrl` must be http or https with a host and no user info or fragment; private-network URLs are allowed (035 adds OutboundUrlPolicy LAN_ALLOWED). The key is encrypted at rest and never returned (`apiKeySet`).\n\n**Scope:** `admin`.\n\noperationId: `createLlmProvider`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -27629,7 +27629,7 @@
               ],
               "query": []
             },
-            "description": "Omit `apiKey` to keep the stored key. Changing model or dimensions of the active embedding provider (or reassigning `embeddingProvider`) publishes an embedding-model change and starts a zero-downtime reindex (027). `baseUrl` passes OutboundUrlPolicy LAN_ALLOWED (035).\n\n**Scope:** `admin`.\n\noperationId: `updateLlmProvider`",
+            "description": "Omit `apiKey` to keep the stored key. Changing model or dimensions of the active embedding provider (or reassigning `embeddingProvider`) publishes an embedding-model change and starts a zero-downtime reindex (027). `baseUrl` passes OutboundUrlPolicy LAN_ALLOWED (035). A body `id`, when present, must equal the path id. The change is refused (400) when it would leave a role the provider holds unserved (disabled, no chatModel, or no embedding model).\n\n**Scope:** `admin`.\n\noperationId: `updateLlmProvider`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -27642,7 +27642,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"id\": \"claude\",\n  \"type\": \"anthropic\",\n  \"chatModel\": \"claude-opus-5-5\",\n  \"apiKey\": \"REPLACE_ME\",\n  \"options\": {\n    \"effort\": \"medium\",\n    \"maxTokens\": 16000\n  },\n  \"requestsPerMinute\": 30,\n  \"tokensPerDay\": 2000000,\n  \"enabled\": true\n}",
+              "raw": "{\n  \"id\": \"ollama\",\n  \"type\": \"ollama\",\n  \"baseUrl\": \"http://ollama:11434\",\n  \"chatModel\": \"qwen3:14b\",\n  \"embeddingModel\": \"nomic-embed-text\",\n  \"embeddingDimensions\": 768,\n  \"options\": {\n    \"maxTokens\": 8000,\n    \"temperature\": 0.2\n  },\n  \"requestsPerMinute\": 60,\n  \"tokensPerDay\": 5000000,\n  \"enabled\": true,\n  \"knowledgeCutoff\": \"2025-04-01\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -27728,7 +27728,7 @@
               ],
               "query": []
             },
-            "description": "Sends a tiny chat request (and an embedding request if configured) and reports latency, model and token usage. Consumes budget.\n\n**Scope:** `admin`.\n\noperationId: `testLlmProvider`",
+            "description": "Sends a tiny chat request (\"Reply with the single word: ok\", 16 output tokens, purpose `test`) and an embedding of \"test\" when the provider has an embedding model, and reports latency, model, token usage (cached tokens included) and the normalized stop reason. Consumes budget. A provider failure or refusal is reported in the result (`success: false`, `error`, `refusalCategory`); only a budget refusal is an error status.\n\n**Scope:** `admin`.\n\noperationId: `testLlmProvider`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -27872,7 +27872,7 @@
               ],
               "query": []
             },
-            "description": "Set LLM roles and options\n\n**Scope:** `admin`.\n\noperationId: `updateLlmSettings`",
+            "description": "Replaces the LLM roles and options; omitted members take their defaults. Reassigning `embeddingProvider` publishes an embedding-model change (027 reindexes). `allowPrivateLocal` is accepted only as false until prompt 039.\n\n**Scope:** `admin`.\n\noperationId: `updateLlmSettings`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -27885,7 +27885,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"chatProvider\": \"claude\",\n  \"embeddingProvider\": \"ollama\",\n  \"askEnabled\": true,\n  \"enrichmentEnabled\": true,\n  \"logContent\": false\n}",
+              "raw": "{\n  \"chatProvider\": \"ollama\",\n  \"embeddingProvider\": \"ollama\",\n  \"askEnabled\": true,\n  \"enrichmentEnabled\": true,\n  \"logContent\": false,\n  \"askMaxTokens\": 200000\n}",
               "options": {
                 "raw": {
                   "language": "json"

@@ -56,7 +56,7 @@ Format: `| id | invariant | owner | enforced by | tests |`
 | SEC-3 | Credentials are encrypted at rest with the install key | 003 | `CredentialCipher`, `SecretKeyStore` | `CredentialCipherTest`, `SecretKeyStoreTest` |
 | SEC-4 | Token scope ordering `read < agent < admin` is enforced on every operation and MCP tool; restricted tokens stay within their restrictions | 023, 035 | `AccessPolicy`, restricted-token filter | `ScopeTest`, `TokenFilterIT`, `AccessPolicySyncTest`, `RestrictedTokenIT`, `McpServerIT`, `McpToolRegistryTest` |
 | SEC-5 | Every LLM-spending path is `alwaysAuthenticated`, even under `openReads` | 023 | `AccessPolicy`, `McpToolRegistry` (cost-bearing tools) | `AlwaysAuthenticatedIT`, `McpServerIT` |
-| EGR-1 | Private records never leave through non-private paths (API, tiles, SSE, search, LLM context, MCP, exports, sinks, federation, share links) | 039 | `EgressPolicy` | `PrivateEgressIT` |
+| EGR-1 | Private records never leave through non-private paths (API, tiles, SSE, search, LLM context, MCP, exports, sinks, federation, share links) | 039 | `EgressPolicy` | `PrivateEgressIT`, `EgressPolicyTest` (026, LLM context) |
 | EGR-2 | `LOCAL_ONLY` raw values are served only to callers allowed local egress; derived standardised statistics may be shared | 062 | `EgressPolicy` | `LocalOnlyEgressIT` |
 | EGR-3 | Models never change configuration; model-initiated writes are proposals executed only on confirmation or with `allowActions` and agent scope | 028 | proposal pipeline | `ProposedActionsIT` |
 

@@ -1,13 +1,18 @@
 package ai.foresignal.settings;
 
+
 import ai.foresignal.api.error.ErrorCodes;
 import ai.foresignal.api.error.FieldError;
 import ai.foresignal.api.error.ForesignalException;
 import ai.foresignal.api.error.ValidationException;
 import ai.foresignal.api.mapper.ChannelMapper;
+import ai.foresignal.api.mapper.LlmMapper;
 import ai.foresignal.api.mapper.SourceMapper;
 import ai.foresignal.api.mapper.TriggerMapper;
 import ai.foresignal.config.ForesignalVersion;
+import ai.foresignal.llm.LlmProviderService;
+import ai.foresignal.llm.LlmSettings;
+import ai.foresignal.llm.LlmSettingsService;
 import ai.foresignal.notify.ChannelService;
 import ai.foresignal.notify.NotificationSettingsService;
 import ai.foresignal.retention.RetentionSettingsService;
@@ -44,7 +49,9 @@ import tools.jackson.databind.node.ObjectNode;
  * listed in {@code sourcesUnknown}; enabling a source whose required credentials are missing is
  * applied as {@code enabled=false} with a warning. Triggers and channels are upserted by id (a
  * channel without secrets keeps the ones it has). Retention, CORS, notifications, the watchdog,
- * security and server are applied when present. Any validation error is a 400 listing every error, and nothing is
+ * security and server are applied when present. Prompt 026 adds {@code llmProviders} (exported without
+ * keys, upserted by id; a provider without a key keeps a stored one) and {@code llmSettings}, applied
+ * after the providers. Any validation error is a 400 listing every error, and nothing is
  * applied (the transaction rolls back).
  */
 @Service
@@ -52,7 +59,7 @@ public class SettingsTransferService {
 
     /** Sections handled by this version. */
     static final Set<String> HANDLED = Set.of("exportedAt", "foresignalVersion", "sources", "retention", "cors",
-            "notifications", "watchdog", "triggers", "channels", "security", "server");
+            "notifications", "watchdog", "triggers", "channels", "security", "server", "llmProviders", "llmSettings");
 
     /** Channel members that are output only, dropped before a channel is upserted. */
     static final Set<String> CHANNEL_OUTPUT_ONLY = Set.of("id", "secretFields", "createdAt", "updatedAt",
@@ -74,13 +81,20 @@ public class SettingsTransferService {
     private final ServerSettingsService server;
     private final JsonMapper json;
     private final Clock clock;
+    private final LlmProviderService llmProviders;
+    private final LlmSettingsService llmSettings;
+    private final LlmMapper llmMapper;
 
     /** Creates the service. */
     public SettingsTransferService(SourceRegistry registry, SourceService sources, SourceMapper sourceMapper,
             RetentionSettingsService retention, CorsSettingsService cors, NotificationSettingsService notifications,
             WatchdogSettingsService watchdog, TriggerRuleService triggers, TriggerMapper triggerMapper,
             ChannelService channels, ChannelMapper channelMapper, ForesignalVersion version,
-            SecuritySettingsService security, ServerSettingsService server, JsonMapper json, Clock clock) {
+            SecuritySettingsService security, ServerSettingsService server, JsonMapper json, Clock clock,
+            LlmProviderService llmProviders, LlmSettingsService llmSettings, LlmMapper llmMapper) {
+        this.llmProviders = llmProviders;
+        this.llmSettings = llmSettings;
+        this.llmMapper = llmMapper;
         this.security = security;
         this.server = server;
         this.registry = registry;
@@ -140,6 +154,9 @@ public class SettingsTransferService {
             channelList.add(input);
         }
         out.put("channels", channelList);
+        // Prompt 026: providers without their keys, and the roles.
+        out.put("llmProviders", llmProviders.list().stream().map(llmMapper::providerInput).toList());
+        out.put("llmSettings", LlmMapper.settings(llmSettings.get()));
         return out;
     }
 
@@ -306,6 +323,37 @@ public class SettingsTransferService {
                     }
                 }
             }
+        }
+
+        int llmProviderCount = 0;
+        JsonNode llmProvidersNode = present(bundle, "llmProviders");
+        if (llmProvidersNode != null) {
+            if (!llmProvidersNode.isArray()) {
+                errors.add(new FieldError("llmProviders", "must be an array of LLM providers"));
+            } else {
+                for (int i = 0; i < llmProvidersNode.size(); i++) {
+                    try {
+                        // Upserted by id; a provider without apiKey keeps a stored key. An Anthropic
+                        // provider new to this instance needs its key set afterwards.
+                        llmProviders.upsert(llmProvidersNode.get(i));
+                        llmProviderCount++;
+                    } catch (RuntimeException e) {
+                        errors.add("llmProviders[" + i + "]", e);
+                    }
+                }
+            }
+        }
+        JsonNode llmSettingsNode = present(bundle, "llmSettings");
+        if (llmSettingsNode != null) {
+            try {
+                llmSettings.update(LlmSettings.parse(llmSettingsNode));
+            } catch (RuntimeException e) {
+                errors.add("llmSettings", e);
+            }
+        }
+        if (llmProviderCount > 0) {
+            warnings.add(llmProviderCount + " LLM provider(s) imported without API keys; set keys with"
+                    + " PUT /v1/llm/providers/{id} where a provider needs one");
         }
 
         if (!errors.list.isEmpty()) {

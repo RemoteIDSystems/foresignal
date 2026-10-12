@@ -756,6 +756,102 @@ revocations. Filter with `since`, `until`, `tokenId`, `operationId` and `status`
 They are kept for `retention.audit` (default 90 days). Writing the log never slows a request: under
 extreme load entries are dropped and counted (`foresignal.audit.dropped`).
 
+## LLM
+
+An LLM is optional. Without one, every other feature works exactly as before: briefings use
+digest mode, search matches text, enrichment is skipped and Ask answers `409 LLM_NOT_CONFIGURED`.
+With one, Foresignal can answer questions about its data (Ask), write briefings, enrich alerts and
+search by meaning. Every LLM endpoint needs the `admin` scope.
+
+### Providers and roles
+
+A provider is one model API. Three types exist:
+
+| Type | What it talks to | Defaults |
+|---|---|---|
+| `anthropic` | Claude, through the official Anthropic Java SDK | `baseUrl` `https://api.anthropic.com`, `chatModel` `claude-opus-5-5`, effort `medium`, `maxTokens` 16000. An `apiKey` is required. No embeddings. |
+| `openai-compatible` | OpenAI, OpenRouter, Groq, Mistral, vLLM, LM Studio, llama.cpp server, LocalAI | `baseUrl` is required (for example `https://api.openai.com/v1`) |
+| `ollama` | A local Ollama server | `baseUrl` `http://ollama:11434` |
+
+Two roles use providers: `chat` (Ask, briefings, enrichment) and `embedding` (search). Assign them
+with `PUT /v1/llm/settings`. A provider needs a `chatModel` for the chat role, and an
+`embeddingModel` plus `embeddingDimensions` for the embedding role. Anthropic has no embeddings
+endpoint, so pair a Claude chat provider with an Ollama or OpenAI-compatible embedding provider.
+A provider that holds a role cannot be deleted (`409 LLM_PROVIDER_IN_USE`) or changed so that it
+can no longer serve it; reassign the role first.
+
+`baseUrl` must be `http` or `https` with no user name, password or fragment. Addresses on your own
+network are allowed, because a local model is the point.
+
+### A local model (nothing leaves the box)
+
+```sh
+docker compose --profile local-llm up -d
+docker compose exec ollama ollama pull qwen3:14b
+docker compose exec ollama ollama pull nomic-embed-text
+```
+
+Then add the provider and assign both roles:
+
+```sh
+curl -X POST http://localhost:8080/v1/llm/providers -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' -d '{"id":"ollama","type":"ollama","chatModel":"qwen3:14b",
+  "embeddingModel":"nomic-embed-text","embeddingDimensions":768}'
+curl -X PUT http://localhost:8080/v1/llm/settings -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' -d '{"chatProvider":"ollama","embeddingProvider":"ollama"}'
+curl -X POST http://localhost:8080/v1/llm/providers/ollama/test -H "Authorization: Bearer $TOKEN"
+```
+
+The Ollama port is bound to `FORESIGNAL_BIND` (localhost by default), like the other services.
+If the chat model does not support tools, the provider shows `supportsTools: false` and Ask
+answers from retrieved records instead of calling tools.
+
+### Claude
+
+Create an API key in the Anthropic Console (<https://console.anthropic.com>), then:
+
+```sh
+curl -X POST http://localhost:8080/v1/llm/providers -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' -d '{"id":"claude","type":"anthropic","apiKey":"sk-ant-..."}'
+```
+
+The key is encrypted with the install key and never returned (`apiKeySet: true`). To change
+anything else later, send the provider without `apiKey` and the stored key is kept.
+
+Foresignal sets the effort explicitly for each use: Ask and briefings `medium`, enrichment `low`.
+`options.effort` on the provider overrides that for every call (`low`, `medium`, `high`, `xhigh`,
+`max`); higher effort spends more tokens. Calls enable Anthropic's server-side refusal fallback, and
+a refusal is reported as such (the test endpoint shows `refusalCategory`). The stable system prompt
+and tool definitions are cached by Anthropic, so repeated Ask and briefing calls are cheaper; the
+`cachedTokens` figures show how much was served from the cache.
+
+### Budgets and costs
+
+Every provider has `requestsPerMinute` (default 30) and `tokensPerDay` (default 2,000,000, counted
+as input plus output tokens and reset at 00:00 UTC). Before each call Foresignal estimates its
+tokens (prompt characters / 4, plus the output cap) and refuses the call with
+`429 LLM_BUDGET_EXCEEDED` when the estimate does not fit in what is left today. A refused call is
+never sent. The first daily-budget refusal of a day, and a provider that fails three calls in a row, raise a
+`system` notification. Restarting does not reset the day: it is seeded from the recorded usage.
+
+`GET /v1/llm/usage?provider=&from=&to=&resolution=` shows requests, input, output and cached tokens,
+errors and refusals per minute, hour or day; `GET /v1/llm/providers` shows each provider's
+`tokensToday`, health (`status`, `lastError`, `consecutiveFailures`) and roles; `/v1/system` shows
+the `llm` block. To estimate money, multiply the tokens by your provider's prices; the test
+endpoint itself spends a few tokens.
+
+Every call is logged with its purpose, provider, model, token counts (cached included), duration
+and stop reason. Prompts and responses are logged only when `logContent` is `true` in
+`PUT /v1/llm/settings`, at DEBUG level. API keys are never logged.
+
+### What leaves the box
+
+With a frontier provider (Claude, OpenAI, or any remote OpenAI-compatible API), the records the
+model reads to answer are sent to that provider. That is your choice to make. Records of private
+sources (personal data such as family locations) are withheld from remote providers and sent only
+to a local one: an `ollama` provider, or one you mark with `options.local: true` because it runs on
+your own network. The `local-llm` profile keeps everything on this machine.
+
 ## Retention
 
 `GET /v1/settings/retention` shows every window; `PUT` replaces the whole object (every window at
@@ -872,7 +968,9 @@ Compose passes `FORESIGNAL_BIND` into the container so the warning knows the pub
 
 `GET /v1/settings/export` returns every setting (sources without credentials, retention, CORS,
 notifications, the watchdog, `security`, `server`, trigger rules with their ids, channels without
-secrets). Tokens, tickets and pairing codes are never exported.
+secrets, LLM providers without their API keys, and the LLM roles). Tokens, tickets and pairing codes
+are never exported. An imported LLM provider keeps a key it already has here; set the key of a new
+one with `PUT /v1/llm/providers/{id}`.
 `PUT /v1/settings/import` applies such a bundle atomically: unknown sources are listed, a source
 that needs credentials you have not stored is imported disabled with a warning, rules and channels
 are upserted by id (channels keep their stored secrets), and any error rejects the whole bundle.

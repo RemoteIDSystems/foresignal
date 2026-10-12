@@ -29,6 +29,12 @@ zxing = "3.5.4"
 # directly. Runtime dependencies: reactor-core and slf4j-api (versions from the Spring Boot BOM),
 # jackson-annotations, and json-schema-validator (already 3.0.8 here).
 mcp = "2.0.1"
+# LLM provider type `anthropic` (026): the official Anthropic Java SDK with its OkHttp client, MIT.
+# Verified on Maven Central 2026-10-12: 2.71.0 is the latest release of com.anthropic:anthropic-java.
+# It is built on Jackson 2 (com.fasterxml.jackson, versions from the Spring Boot BOM), Kotlin stdlib
+# and OkHttp (Apache-2.0). Only provider type `anthropic` uses it; the OpenAI-compatible and Ollama
+# clients use java.net.http.
+anthropic = "2.71.0"
 
 [libraries]
 # --- Versions managed by the Spring Boot BOM ---
@@ -73,6 +79,8 @@ re2j = { module = "com.google.re2j:re2j", version.ref = "re2j" }
 # The MCP server at /mcp (025): streamable HTTP and the optional legacy HTTP+SSE servlet transports.
 mcp-core = { module = "io.modelcontextprotocol.sdk:mcp-core", version.ref = "mcp" }
 mcp-json-jackson3 = { module = "io.modelcontextprotocol.sdk:mcp-json-jackson3", version.ref = "mcp" }
+# LLM provider type `anthropic` (026): messages, streaming, models; pointed at WireMock in tests.
+anthropic-java = { module = "com.anthropic:anthropic-java", version.ref = "anthropic" }
 
 # --- Test; versions from the Testcontainers BOM where unspecified ---
 testcontainers-bom = { module = "org.testcontainers:testcontainers-bom", version.ref = "testcontainers" }

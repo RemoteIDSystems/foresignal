@@ -148,6 +148,21 @@ public final class ErrorCodes {
     /** 404: no external (EDP) source of that id. */
     public static final String UNKNOWN_EXTERNAL_SOURCE = "UNKNOWN_EXTERNAL_SOURCE";
 
+    /** 429: an LLM call would exceed the provider's per-minute or daily token budget (prompt 026). */
+    public static final String LLM_BUDGET_EXCEEDED = "LLM_BUDGET_EXCEEDED";
+
+    /** 409: an LLM provider with that id already exists (prompt 026). */
+    public static final String LLM_PROVIDER_EXISTS = "LLM_PROVIDER_EXISTS";
+
+    /** 409: the LLM provider is assigned to a role and cannot be deleted (prompt 026). */
+    public static final String LLM_PROVIDER_IN_USE = "LLM_PROVIDER_IN_USE";
+
+    /** 502: the LLM provider failed or could not be reached (prompt 026). */
+    public static final String LLM_PROVIDER_ERROR = "LLM_PROVIDER_ERROR";
+
+    /** 429: the LLM provider itself rate-limited the call; {@code Retry-After} when it said (prompt 026). */
+    public static final String LLM_PROVIDER_RATE_LIMITED = "LLM_PROVIDER_RATE_LIMITED";
+
     private static final String TYPE_PREFIX = "https://foresignal.ai/problems/";
 
     private ErrorCodes() {}

@@ -107,3 +107,19 @@ section lists dependencies a prompt asked to record here.
 - **Licence:** MIT License (<https://github.com/modelcontextprotocol/java-sdk/blob/main/LICENSE>).
 - **Project:** <https://github.com/modelcontextprotocol/java-sdk>, Copyright (c) 2025 the original author or
   authors.
+
+### Anthropic Java SDK
+
+- **Artifact:** `com.anthropic:anthropic-java` 2.71.0 (Maven Central; with `anthropic-java-core` and
+  `anthropic-java-client-okhttp`), used unmodified. Runtime dependencies: OkHttp 4.12.0 and Okio 3.6.0
+  (Apache License, Version 2.0), the Kotlin standard library and `kotlin-reflect` (2.3.21 from the Spring Boot
+  BOM; Apache License, Version 2.0), Jackson 2 with `jackson-module-kotlin` (2.21.5 from the Spring Boot BOM;
+  Apache License, Version 2.0), `com.github.victools:jsonschema-generator` and its modules 4.38.0 (Apache
+  License, Version 2.0), `io.swagger.core.v3:swagger-annotations` 2.2.50 (Apache License, Version 2.0),
+  `com.google.errorprone:error_prone_annotations` 2.50.0 (Apache License, Version 2.0) and
+  `com.standardwebhooks:standardwebhooks` 1.2.0 (MIT).
+- **Use:** LLM provider type `anthropic` (prompt 026): messages (beta path, with the server-side refusal
+  fallback), streaming with its message accumulator, and the Models API. The tests point it at WireMock; no
+  test calls Anthropic.
+- **Licence:** MIT License (<https://github.com/anthropics/anthropic-sdk-java/blob/main/LICENSE>).
+- **Project:** <https://github.com/anthropics/anthropic-sdk-java>, Copyright Anthropic.

@@ -1,13 +1,3 @@
-listLlmProviders 026
-createLlmProvider 026
-getLlmProvider 026
-updateLlmProvider 026
-deleteLlmProvider 026
-testLlmProvider 026
-listLlmProviderModels 026
-getLlmSettings 026
-updateLlmSettings 026
-getLlmUsage 026
 search 027
 getSearchStatus 027
 reindexSearch 027

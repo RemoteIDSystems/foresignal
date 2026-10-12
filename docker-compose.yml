@@ -6,6 +6,9 @@
 #   TS_AUTHKEY=tskey-... docker compose --profile tailscale up -d
 #                               # adds HTTPS on the tailnet through Tailscale Serve
 #                               # (docs/Operator-Guide.md, "Remote access and TLS")
+#   docker compose --profile local-llm up -d
+#                               # adds a local Ollama for the LLM features; nothing
+#                               # leaves the box (docs/Operator-Guide.md, "LLM")
 services:
   db:
     image: postgis/postgis:17-3.5
@@ -84,7 +87,23 @@ services:
       - foresignal
     restart: unless-stopped
 
+  # A local LLM for Ask, briefings, enrichment and search (026). Only started
+  # with --profile local-llm. Configure it as an `ollama` provider with baseUrl
+  # http://ollama:11434, then pull models:
+  #   docker compose exec ollama ollama pull qwen3:14b
+  #   docker compose exec ollama ollama pull nomic-embed-text
+  # Localhost only by default, like the other services.
+  ollama:
+    image: ollama/ollama:0.40.3
+    profiles: ["local-llm"]
+    volumes:
+      - ollama:/root/.ollama
+    ports:
+      - "${FORESIGNAL_BIND:-127.0.0.1}:11434:11434"
+    restart: unless-stopped
+
 volumes:
   pgdata:
   foresignal-data:
   tailscale-state:
+  ollama:

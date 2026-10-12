@@ -92,6 +92,11 @@
         "version": "1.3.0",
         "date": "2026-10-12",
         "note": "025: the MCP server is built. It owns no OpenAPI operation; info.description now documents /mcp (streamable HTTP; tools listed and checked by scope, cost-bearing tools always authenticated, sessions bound to their token, per-call audit with argument names only) and the optional legacy HTTP+SSE transport at /mcp/sse and /mcp/message (foresignal.mcp.legacy-sse.enabled). getSystem's full document now carries SystemInfo.mcp (enabled, transports.streamable, transports.legacySse, sessions, tools) and features.mcp, as already specified."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-12",
+        "note": "026: listLlmProviders, createLlmProvider, getLlmProvider, updateLlmProvider, deleteLlmProvider, testLlmProvider, listLlmProviderModels, getLlmSettings, updateLlmSettings and getLlmUsage are implemented. Additive reconciliations: LlmProviderInput.options gains `local` (the flag LlmProvider.local already referred to) and documents the temperature range (refused for anthropic) and the reserved extraHeaders; createLlmProvider documents the type defaults and that anthropic needs an apiKey; updateLlmProvider requires a body id to match the path and refuses a change that leaves an assigned role unserved; testLlmProvider reports provider failures and refusals in the result (200) and only budget refusals as 429; listLlmProviderModels documents 429 LLM_PROVIDER_RATE_LIMITED; updateLlmSettings replaces the setting and accepts allowPrivateLocal only as false until 039; Problem lists LLM_BUDGET_EXCEEDED (429), LLM_PROVIDER_EXISTS (409), LLM_PROVIDER_IN_USE (409), LLM_PROVIDER_ERROR (502) and LLM_PROVIDER_RATE_LIMITED (429). getSystem's full document carries SystemInfo.llm and features.llm; the SettingsBundle carries llmProviders (without keys) and llmSettings, as already specified."
       }
     ]
   },
@@ -7516,7 +7521,7 @@
           }
         ],
         "x-foresignal-prompt": "026",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       },
       "post": {
         "tags": [
@@ -7524,7 +7529,7 @@
         ],
         "operationId": "createLlmProvider",
         "summary": "Add an LLM provider",
-        "description": "Add an LLM provider\n\n**Scope:** `admin`.",
+        "description": "Add an LLM provider. Defaults: `anthropic` → `baseUrl` https://api.anthropic.com, `chatModel` claude-opus-5-5, `options.effort` medium, `options.maxTokens` 16000, and `apiKey` is required; `ollama` → `baseUrl` http://ollama:11434; `openai-compatible` must name `baseUrl`. `baseUrl` must be http or https with a host and no user info or fragment; private-network URLs are allowed (035 adds OutboundUrlPolicy LAN_ALLOWED). The key is encrypted at rest and never returned (`apiKeySet`).\n\n**Scope:** `admin`.",
         "requestBody": {
           "required": true,
           "content": {
@@ -7557,7 +7562,7 @@
             }
           },
           "409": {
-            "description": "Conflict",
+            "description": "A provider with that id exists (LLM_PROVIDER_EXISTS)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -7594,7 +7599,7 @@
           }
         ],
         "x-foresignal-prompt": "026",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/llm/providers/{providerId}": {
@@ -7666,7 +7671,7 @@
           }
         ],
         "x-foresignal-prompt": "026",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       },
       "put": {
         "tags": [
@@ -7674,7 +7679,7 @@
         ],
         "operationId": "updateLlmProvider",
         "summary": "Replace an LLM provider",
-        "description": "Omit `apiKey` to keep the stored key. Changing model or dimensions of the active embedding provider (or reassigning `embeddingProvider`) publishes an embedding-model change and starts a zero-downtime reindex (027). `baseUrl` passes OutboundUrlPolicy LAN_ALLOWED (035).\n\n**Scope:** `admin`.",
+        "description": "Omit `apiKey` to keep the stored key. Changing model or dimensions of the active embedding provider (or reassigning `embeddingProvider`) publishes an embedding-model change and starts a zero-downtime reindex (027). `baseUrl` passes OutboundUrlPolicy LAN_ALLOWED (035). A body `id`, when present, must equal the path id. The change is refused (400) when it would leave a role the provider holds unserved (disabled, no chatModel, or no embedding model).\n\n**Scope:** `admin`.",
         "requestBody": {
           "required": true,
           "content": {
@@ -7744,7 +7749,7 @@
           }
         ],
         "x-foresignal-prompt": "026",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       },
       "delete": {
         "tags": [
@@ -7768,7 +7773,7 @@
             }
           },
           "409": {
-            "description": "Conflict",
+            "description": "Assigned to a role (LLM_PROVIDER_IN_USE)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -7805,7 +7810,7 @@
           }
         ],
         "x-foresignal-prompt": "026",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/llm/providers/{providerId}/test": {
@@ -7827,7 +7832,7 @@
         ],
         "operationId": "testLlmProvider",
         "summary": "Test an LLM provider",
-        "description": "Sends a tiny chat request (and an embedding request if configured) and reports latency, model and token usage. Consumes budget.\n\n**Scope:** `admin`.",
+        "description": "Sends a tiny chat request (\"Reply with the single word: ok\", 16 output tokens, purpose `test`) and an embedding of \"test\" when the provider has an embedding model, and reports latency, model, token usage (cached tokens included) and the normalized stop reason. Consumes budget. A provider failure or refusal is reported in the result (`success: false`, `error`, `refusalCategory`); only a budget refusal is an error status.\n\n**Scope:** `admin`.",
         "responses": {
           "200": {
             "description": "Result",
@@ -7896,7 +7901,7 @@
         ],
         "x-foresignal-prompt": "026",
         "x-foresignal-always-authenticated": true,
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/llm/providers/{providerId}/models": {
@@ -7944,7 +7949,7 @@
             }
           },
           "502": {
-            "description": "Provider unreachable",
+            "description": "Provider unreachable or failing (LLM_PROVIDER_ERROR)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -7972,6 +7977,24 @@
                 }
               }
             }
+          },
+          "429": {
+            "description": "The provider rate-limited the listing (LLM_PROVIDER_RATE_LIMITED)",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying, when the provider said",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
           }
         },
         "x-foresignal-scope": "admin",
@@ -7981,7 +8004,7 @@
           }
         ],
         "x-foresignal-prompt": "026",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/llm/settings": {
@@ -8031,7 +8054,7 @@
           }
         ],
         "x-foresignal-prompt": "026",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       },
       "put": {
         "tags": [
@@ -8039,7 +8062,7 @@
         ],
         "operationId": "updateLlmSettings",
         "summary": "Set LLM roles and options",
-        "description": "Set LLM roles and options\n\n**Scope:** `admin`.",
+        "description": "Replaces the LLM roles and options; omitted members take their defaults. Reassigning `embeddingProvider` publishes an embedding-model change (027 reindexes). `allowPrivateLocal` is accepted only as false until prompt 039.\n\n**Scope:** `admin`.",
         "requestBody": {
           "required": true,
           "content": {
@@ -8099,7 +8122,7 @@
           }
         ],
         "x-foresignal-prompt": "026",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/llm/usage": {
@@ -8195,7 +8218,7 @@
           }
         ],
         "x-foresignal-prompt": "026",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/search": {
@@ -80586,6 +80609,7 @@
           "013",
           "023",
           "024",
+          "026",
           "135"
         ],
         "x-foresignal-error-codes": [
@@ -80808,6 +80832,31 @@
             "code": "UNKNOWN_EXTERNAL_SOURCE",
             "status": 404,
             "prompt": "024"
+          },
+          {
+            "code": "LLM_BUDGET_EXCEEDED",
+            "status": 429,
+            "prompt": "026"
+          },
+          {
+            "code": "LLM_PROVIDER_EXISTS",
+            "status": 409,
+            "prompt": "026"
+          },
+          {
+            "code": "LLM_PROVIDER_IN_USE",
+            "status": 409,
+            "prompt": "026"
+          },
+          {
+            "code": "LLM_PROVIDER_ERROR",
+            "status": 502,
+            "prompt": "026"
+          },
+          {
+            "code": "LLM_PROVIDER_RATE_LIMITED",
+            "status": 429,
+            "prompt": "026"
           }
         ]
       },
@@ -89178,13 +89227,22 @@
                 "type": [
                   "number",
                   "null"
-                ]
+                ],
+                "description": "Sampling temperature 0–2 for openai-compatible and ollama providers; refused for anthropic (current Claude models control depth with effort)",
+                "minimum": 0,
+                "maximum": 2
               },
               "extraHeaders": {
                 "type": "object",
                 "additionalProperties": {
                   "type": "string"
-                }
+                },
+                "description": "Extra request headers (for example OpenRouter `HTTP-Referer`); Authorization, x-api-key, Content-Type and the anthropic-* headers are reserved"
+              },
+              "local": {
+                "type": "boolean",
+                "default": false,
+                "description": "Treat this provider as local for LLM egress (private-source records may be sent to it, 026/039); `ollama` is always local"
               }
             }
           },
@@ -89393,7 +89451,7 @@
           "allowPrivateLocal": {
             "type": "boolean",
             "default": false,
-            "description": "Allow private-source records in prompts for local providers (039); never for remote ones"
+            "description": "Allow private-source records in prompts for local providers (039); never for remote ones. Until 039, only false is accepted (400 otherwise)."
           }
         },
         "x-foresignal-extended-by": [

@@ -35,6 +35,9 @@ public final class SettingKeys {
     /** {@link WatchdogSettings}: the off-box heartbeat and the ingest canary (prompt 019). */
     public static final String WATCHDOG = "watchdog";
 
+    /** {@code ai.foresignal.llm.LlmSettings}: LLM roles and options (prompt 026). */
+    public static final String LLM = "llm";
+
     /** This installation's generated identifier. */
     public static final String INSTALL_ID = "install.id";
 
@@ -44,7 +47,7 @@ public final class SettingKeys {
      */
     public static final List<String> ALL =
             List.of(RETENTION, CORS, TRIGGER_CURSOR, TRIGGERS, STREAM_LIMITS, SECURITY, SERVER, NOTIFICATIONS,
-                    WATCHDOG, INSTALL_ID);
+                    WATCHDOG, INSTALL_ID, LLM);
 
     private SettingKeys() {}
 }

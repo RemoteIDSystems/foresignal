@@ -37,9 +37,13 @@ class UpstreamClientIsTheOnlyHttpClientTest {
      * {@code HttpClient} (no redirects, 5 s connect, 15 s request), and Architecture §17 says
      * outbound traffic is not counted against source budgets. Prompt 035 adds the outbound URL policy
      * to this sender. Prompt 022 narrowed the guard from "nothing outside collect" to this list.
+     * LLM provider calls (prompt 026) are not upstream fetches either: they are budgeted by
+     * {@code LlmBudgetGovernor}, and every provider client is built by the one factory
+     * {@code LlmHttp}, where prompt 035 enforces the outbound URL policy.
      */
     private static final List<Path> SANCTIONED_OUTBOUND =
-            List.of(MAIN.resolve(Path.of("ai", "foresignal", "notify", "ChannelSender.java")));
+            List.of(MAIN.resolve(Path.of("ai", "foresignal", "notify", "ChannelSender.java")),
+                    MAIN.resolve(Path.of("ai", "foresignal", "llm", "LlmHttp.java")));
 
     /** The two ways to get an {@code HttpClient}. */
     private static final List<String> CONSTRUCTIONS =
