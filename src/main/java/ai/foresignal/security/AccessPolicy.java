@@ -216,6 +216,7 @@ public class AccessPolicy {
 
                 // ---- Search: read, except reindex ----
                 rule(HttpMethod.POST, "/v1/search/reindex", AccessRequirement.ADMIN_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.DELETE, "/v1/search/reindex", AccessRequirement.ADMIN),
                 rule(HttpMethod.GET, "/v1/search/status", AccessRequirement.READ),
                 // Semantic search embeds the query: always authenticated (023, 027).
                 rule(HttpMethod.GET, "/v1/search", AccessRequirement.READ_ALWAYS_AUTHENTICATED),

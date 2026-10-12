@@ -93,6 +93,16 @@ public final class DescriptorValidator {
                                 + " version and the stored search text can go stale");
             }
         }
+        for (String field : descriptor.embedFields()) {
+            if (!significant.contains(field)) {
+                warnings.add(
+                        descriptor.id()
+                                + ": embedField '"
+                                + field
+                                + "' is not significant, so a change to it will not produce a new"
+                                + " version and the embedded text can go stale (prompt 027)");
+            }
+        }
         for (String field : descriptor.tileProperties()) {
             if (!significant.contains(field)) {
                 warnings.add(

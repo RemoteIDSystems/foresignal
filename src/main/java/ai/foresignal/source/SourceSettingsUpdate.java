@@ -23,6 +23,8 @@ import java.util.Map;
  * @param clearRetention true to revert to the global default
  * @param ingestPolicy per-source ingest policy override
  * @param clearIngestPolicy true to revert to the descriptor's default policy
+ * @param embed whether the source's records are embedded for semantic search (prompt 027); null
+ *     leaves it unchanged
  */
 public record SourceSettingsUpdate(
         Boolean enabled,
@@ -32,10 +34,29 @@ public record SourceSettingsUpdate(
         Duration retention,
         boolean clearRetention,
         IngestPolicy ingestPolicy,
-        boolean clearIngestPolicy) {
+        boolean clearIngestPolicy,
+        Boolean embed) {
 
     public SourceSettingsUpdate {
         params = params == null ? null : Map.copyOf(params);
+    }
+
+    /** An update that leaves {@code embed} unchanged (the members before prompt 027). */
+    public SourceSettingsUpdate(
+            Boolean enabled,
+            Duration interval,
+            Map<String, Object> params,
+            Budget budget,
+            Duration retention,
+            boolean clearRetention,
+            IngestPolicy ingestPolicy,
+            boolean clearIngestPolicy) {
+        this(enabled, interval, params, budget, retention, clearRetention, ingestPolicy, clearIngestPolicy, null);
+    }
+
+    /** Only the {@code embed} flag. */
+    public static SourceSettingsUpdate embed(boolean embed) {
+        return new SourceSettingsUpdate(null, null, null, null, null, false, null, false, embed);
     }
 
     /** Changes nothing. */
@@ -76,13 +97,13 @@ public record SourceSettingsUpdate(
     /** This update with {@code retention} set. */
     public SourceSettingsUpdate withRetention(Duration value) {
         return new SourceSettingsUpdate(
-                enabled, interval, params, budget, value, false, ingestPolicy, clearIngestPolicy);
+                enabled, interval, params, budget, value, false, ingestPolicy, clearIngestPolicy, embed);
     }
 
     /** This update with {@code enabled} set. */
     public SourceSettingsUpdate withEnabled(boolean value) {
         return new SourceSettingsUpdate(
-                value, interval, params, budget, retention, clearRetention, ingestPolicy, clearIngestPolicy);
+                value, interval, params, budget, retention, clearRetention, ingestPolicy, clearIngestPolicy, embed);
     }
 
     /** True when nothing would change. */
@@ -94,6 +115,7 @@ public record SourceSettingsUpdate(
                 && retention == null
                 && !clearRetention
                 && ingestPolicy == null
-                && !clearIngestPolicy;
+                && !clearIngestPolicy
+                && embed == null;
     }
 }

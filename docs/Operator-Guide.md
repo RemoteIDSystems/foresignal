@@ -852,6 +852,79 @@ sources (personal data such as family locations) are withheld from remote provid
 to a local one: an `ollama` provider, or one you mark with `options.local: true` because it runs on
 your own network. The `local-llm` profile keeps everything on this machine.
 
+## Search
+
+`GET /v1/search?q=…` finds records (and, once those prompts land, briefing runs and enriched
+alerts) by words, by meaning, or both. It needs a token even when open reads are on, because a
+semantic query spends the embedding budget.
+
+| `mode` | How it ranks | Needs |
+|---|---|---|
+| `text` | Full-text match on the embedded text (`websearch_to_tsquery`), plus a substring match on each record's search fields for records that have no document | Nothing; always works |
+| `semantic` | Cosine distance between the embedded query and each document | pgvector, an embedding provider and a built index; otherwise `409 SEMANTIC_UNAVAILABLE` |
+| `hybrid` (default) | Reciprocal rank fusion of both | Falls back to text with `degraded: true` and a `reason` when semantic search is off |
+
+Filters: `source`, `kind`, `docType`, `bbox`, and `since`/`until` on the effective time (event time
+when the record has one, else observation time; `timeField=observed` for the observation time).
+Record hits carry the persisted `seq` to cite and the current record. Private sources are never
+embedded, and their records only appear in text results for callers allowed to see them. MCP
+clients get the same search as the cost-bearing `search` tool.
+
+### The database image
+
+Semantic search stores vectors with the pgvector extension in the same PostgreSQL. The compose
+`db` service builds `docker/db` (image `foresignal-db:17-3.5-pgvector`): the pinned
+`postgis/postgis:17-3.5` plus `postgresql-17-pgvector` from the PostgreSQL apt repository. Existing
+data volumes keep working; the first start after the switch runs `CREATE EXTENSION vector`.
+
+```sh
+docker compose build db && docker compose up -d
+```
+
+Without pgvector (an external PostgreSQL, or the plain PostGIS image) Foresignal starts normally,
+text search works, and `GET /v1/search/status` says why semantic search is off.
+
+### Choosing an embedding model
+
+Assign an embedding provider in `PUT /v1/llm/settings` (see "LLM"). A local Ollama with
+`nomic-embed-text` (768 dimensions) keeps everything on this machine; an OpenAI-compatible
+provider works the same way. The first assignment builds the index from the current records;
+until it finishes, `hybrid` answers from text and `semantic` is `409`.
+
+Only sources that declare `embedFields` (text-heavy feeds such as alerts, warnings and notices) are
+embedded. Each record is embedded once per text change: unchanged text is skipped without calling
+the model, and new versions are batched 64 texts per call within the provider's budget. When the
+budget runs out the worker pauses until the next minute and resumes where it stopped. Retention
+waits for the worker (`embedding.cursor`), so a long pause holds old versions back until the clamp
+is released at twice the window.
+
+### Changing the model
+
+Changing the embedding model (or `POST /v1/search/reindex`, which also rebuilds with the same
+model) never takes search offline. The new index is built in the second vector slot while searches
+keep using the old one, with queries embedded by the old model. New records are written to both.
+When every document has the new vector, the new index is built concurrently and swapped in; the
+old slot is dropped. `GET /v1/search/status` shows the progress:
+
+```json
+"reindex": {"state": "backfilling", "fromModel": "ollama:nomic-embed-text:768",
+            "toModel": "openai:text-embedding-3-small:1536", "total": 120000, "done": 45000,
+            "percent": 37.5, "ratePerMinute": 1900.0, "etaSeconds": 2368, "startedAt": "…"}
+```
+
+The backfill embeds every embeddable record again, so it costs one embedding per record (about
+`total × average text tokens`; texts are capped at 2,000 characters). A restart resumes from where
+it stopped. `DELETE /v1/search/reindex` cancels and discards the new slot. If the old provider is
+deleted or loses the old model during the rebuild, searches answer from text (`degraded: true`)
+until the swap.
+
+### The `embed` flag
+
+Each source has an `embed` setting (`PUT /v1/sources/{id}` with `{"embed": false}`), on by default
+for sources that declare `embedFields`. Turning it off stops embedding the source and deletes its
+documents. Turning it back on embeds new versions; run `POST /v1/search/reindex` to embed the
+records it already has.
+
 ## Retention
 
 `GET /v1/settings/retention` shows every window; `PUT` replaces the whole object (every window at

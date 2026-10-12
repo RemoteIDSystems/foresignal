@@ -27,6 +27,8 @@ import java.util.Map;
  * @param credentialsSet true when credentials are stored
  * @param updatedAt when the settings last changed
  * @param health status, last success, last data and today's budget use
+ * @param embed whether the source's records are embedded for semantic search (prompt 027): the
+ *     operator's {@code embed} setting, else true when the descriptor declares {@code embedFields}
  */
 public record SourceView(
         SourceDescriptor descriptor,
@@ -38,11 +40,33 @@ public record SourceView(
         IngestPolicy ingestPolicy,
         boolean credentialsSet,
         Instant updatedAt,
-        SourceHealthSummary health) {
+        SourceHealthSummary health,
+        boolean embed) {
 
     public SourceView {
         params = params == null ? Map.of() : Map.copyOf(params);
         health = health == null ? SourceHealthSummary.unavailable(enabled) : health;
+    }
+
+    /** A view with the default {@code embed} (on when the descriptor declares {@code embedFields}). */
+    public SourceView(
+            SourceDescriptor descriptor,
+            boolean enabled,
+            Duration interval,
+            Map<String, Object> params,
+            Budget budget,
+            Duration retention,
+            IngestPolicy ingestPolicy,
+            boolean credentialsSet,
+            Instant updatedAt,
+            SourceHealthSummary health) {
+        this(descriptor, enabled, interval, params, budget, retention, ingestPolicy, credentialsSet, updatedAt, health,
+                defaultEmbed(descriptor));
+    }
+
+    /** The default of the {@code embed} setting: true when {@code descriptor} declares {@code embedFields}. */
+    public static boolean defaultEmbed(SourceDescriptor descriptor) {
+        return descriptor != null && !descriptor.embedFields().isEmpty();
     }
 
     /** The source id. */

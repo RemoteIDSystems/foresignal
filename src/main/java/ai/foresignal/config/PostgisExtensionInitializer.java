@@ -45,7 +45,8 @@ public class PostgisExtensionInitializer implements InitializingBean {
 
                     Fix one of the following and restart:
                       * Install PostGIS in the database server. The supported image is \
-                    postgis/postgis:17-3.5, which docker-compose.yml already uses.
+                    foresignal-db:17-3.5-pgvector (postgis/postgis:17-3.5 plus pgvector, built from \
+                    docker/db), which docker-compose.yml already uses.
                       * Or have a superuser run: CREATE EXTENSION IF NOT EXISTS postgis;
                         in the 'foresignal' database, then restart Foresignal.
 

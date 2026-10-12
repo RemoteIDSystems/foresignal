@@ -4,7 +4,7 @@
     "title": "Foresignal API",
     "version": "1.3.0",
     "summary": "Headless intelligence broker: ingest, version and re-serve public telemetry.",
-    "description": "All configuration is done through this API. The MCP server is at `/mcp` (MCP streamable HTTP, protocol versions 2024-11-05 to 2025-11-25) and is not an OpenAPI operation; it exposes the same data, the alert lifecycle and watch management as MCP tools, resources (`foresignal://sources`, `foresignal://kinds`) and the `situation-report` prompt (025, docs/Agent-Guide.md). It takes the same bearer tokens: `/mcp/**` needs `read` (open while `openReads` is on), tools are listed by the caller's scope and each checks its own (`read` tools; `agent` for writes such as `create_watch` and `set_alert_status`; cost-bearing tools always need a token), a session is bound to the token that opened it, and every tool call is audited (argument names only). The older HTTP+SSE transport (protocol 2024-11-05) is served at `/mcp/sse` with messages at `/mcp/message` only when `foresignal.mcp.legacy-sse.enabled=true`, for older clients. `GET /v1/system` reports its state under `mcp`. Reads of data are open on the local network; all writes and settings reads require the admin bearer token printed on first start. Errors are RFC 9457 problem+json. Timestamps are ISO-8601 UTC. `/v1` is additive-only once released.\n\n**Key-in-path carriers.** Header-less clients use keys in the path: feed keys (`fsf_`, 035) as `/v1/k/{key}/<any allowed GET/HEAD path>`, tile keys (`fsk_`, 050) as `/v1/k/{key}/products/...` and `/v1/k/{key}/tiles/...`, share links (`fss_`, 112) as `/v1/k/{key}`. These are transports for the documented operations, not separate operations. Device ingest URLs (039) and signed action links (033) use their own documented paths.\n\n**Status annotations.** Every operation has `x-foresignal-prompt` (the build prompt that implements it), optional `x-foresignal-extended-by`, and `x-foresignal-status` (`planned` until implemented). Clients can mock the whole API from this document and filter by status.\n\n**Outside this document:** the MCP server (`/mcp`, plus the legacy SSE transport when enabled), Actuator endpoints (`/actuator/**`), and sink listeners on their own ports (110).",
+    "description": "All configuration is done through this API. The MCP server is at `/mcp` (MCP streamable HTTP, protocol versions 2024-11-05 to 2025-11-25) and is not an OpenAPI operation; it exposes the same data, the alert lifecycle and watch management as MCP tools, resources (`foresignal://sources`, `foresignal://kinds`) and the `situation-report` prompt (025, docs/Agent-Guide.md), plus the cost-bearing `search` tool (027). It takes the same bearer tokens: `/mcp/**` needs `read` (open while `openReads` is on), tools are listed by the caller's scope and each checks its own (`read` tools; `agent` for writes such as `create_watch` and `set_alert_status`; cost-bearing tools always need a token), a session is bound to the token that opened it, and every tool call is audited (argument names only). The older HTTP+SSE transport (protocol 2024-11-05) is served at `/mcp/sse` with messages at `/mcp/message` only when `foresignal.mcp.legacy-sse.enabled=true`, for older clients. `GET /v1/system` reports its state under `mcp`. Reads of data are open on the local network; all writes and settings reads require the admin bearer token printed on first start. Errors are RFC 9457 problem+json. Timestamps are ISO-8601 UTC. `/v1` is additive-only once released.\n\n**Key-in-path carriers.** Header-less clients use keys in the path: feed keys (`fsf_`, 035) as `/v1/k/{key}/<any allowed GET/HEAD path>`, tile keys (`fsk_`, 050) as `/v1/k/{key}/products/...` and `/v1/k/{key}/tiles/...`, share links (`fss_`, 112) as `/v1/k/{key}`. These are transports for the documented operations, not separate operations. Device ingest URLs (039) and signed action links (033) use their own documented paths.\n\n**Status annotations.** Every operation has `x-foresignal-prompt` (the build prompt that implements it), optional `x-foresignal-extended-by`, and `x-foresignal-status` (`planned` until implemented). Clients can mock the whole API from this document and filter by status.\n\n**Outside this document:** the MCP server (`/mcp`, plus the legacy SSE transport when enabled), Actuator endpoints (`/actuator/**`), and sink listeners on their own ports (110).",
     "license": {
       "name": "MIT",
       "identifier": "MIT"
@@ -97,6 +97,11 @@
         "version": "1.3.0",
         "date": "2026-10-12",
         "note": "026: listLlmProviders, createLlmProvider, getLlmProvider, updateLlmProvider, deleteLlmProvider, testLlmProvider, listLlmProviderModels, getLlmSettings, updateLlmSettings and getLlmUsage are implemented. Additive reconciliations: LlmProviderInput.options gains `local` (the flag LlmProvider.local already referred to) and documents the temperature range (refused for anthropic) and the reserved extraHeaders; createLlmProvider documents the type defaults and that anthropic needs an apiKey; updateLlmProvider requires a body id to match the path and refuses a change that leaves an assigned role unserved; testLlmProvider reports provider failures and refusals in the result (200) and only budget refusals as 429; listLlmProviderModels documents 429 LLM_PROVIDER_RATE_LIMITED; updateLlmSettings replaces the setting and accepts allowPrivateLocal only as false until 039; Problem lists LLM_BUDGET_EXCEEDED (429), LLM_PROVIDER_EXISTS (409), LLM_PROVIDER_IN_USE (409), LLM_PROVIDER_ERROR (502) and LLM_PROVIDER_RATE_LIMITED (429). getSystem's full document carries SystemInfo.llm and features.llm; the SettingsBundle carries llmProviders (without keys) and llmSettings, as already specified."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-12",
+        "note": "027: search, getSearchStatus, reindexSearch and cancelReindex are implemented. Additive reconciliations: SearchResults gains an optional `reason` (why results degraded to text); search documents 404 for an unknown source or a private source the caller may not see, and that since/until apply to the timeField axis; SourceSettingsUpdate.embed documents that `true` is refused for a source without embedFields or a private one and that turning it off deletes the source's record documents; Problem lists REINDEX_RUNNING (409) and SEMANTIC_UNAVAILABLE (409). getSystem's full document carries SystemInfo.search and features.search / features.semanticSearch; the MCP server adds the cost-bearing `search` tool (info.description). SourceSettings.embed, SearchStatus.activeModel/reindex/degraded, SearchResult.seq/effectiveTime and the timeField/docType parameters were already specified."
       }
     ]
   },
@@ -8228,7 +8233,7 @@
         ],
         "operationId": "search",
         "summary": "Search records, briefings and alerts",
-        "description": "`text` ranks `websearch_to_tsquery` matches (plus `record_head.search_text` matches for records without documents) and always works; `semantic` embeds `q` with the active model (budgeted) and orders by cosine distance; `hybrid` (default) fuses both with reciprocal rank fusion (k = 60) and degrades to text with `degraded=true` when semantic search is unavailable (`semantic` then → 409 SEMANTIC_UNAVAILABLE). Time filters apply to the effective time by default. Record hits carry the persisted `seq`. Private sources are excluded unless the caller may see them; results are clamped to the caller's restriction (035).\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).",
+        "description": "`text` ranks `websearch_to_tsquery` matches (plus `record_head.search_text` matches for records without documents) and always works; `semantic` embeds `q` with the active model (budgeted) and orders by cosine distance; `hybrid` (default) fuses both with reciprocal rank fusion (k = 60) and degrades to text with `degraded=true` when semantic search is unavailable (`semantic` then → 409 SEMANTIC_UNAVAILABLE). Time filters apply to the effective time by default (`timeField=observed` for the observation time). When results degrade to text, `reason` says why. An unknown source is 404, a private one the caller may not see is 404 too. Record hits carry the persisted `seq`. Private sources are excluded unless the caller may see them; results are clamped to the caller's restriction (035).\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).",
         "parameters": [
           {
             "name": "q",
@@ -8311,7 +8316,7 @@
             "name": "since",
             "in": "query",
             "required": false,
-            "description": "observedAt >= since",
+            "description": "Lower bound (inclusive) on the `timeField` axis (effective time by default)",
             "schema": {
               "type": "string",
               "format": "date-time"
@@ -8321,7 +8326,7 @@
             "name": "until",
             "in": "query",
             "required": false,
-            "description": "observedAt < until",
+            "description": "Upper bound (exclusive) on the `timeField` axis (effective time by default)",
             "schema": {
               "type": "string",
               "format": "date-time"
@@ -8560,6 +8565,16 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Unknown source, or a private source the caller may not see (NOT_FOUND)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
           }
         },
         "x-foresignal-scope": "read",
@@ -8579,7 +8594,7 @@
         "x-foresignal-extended-by": [
           "109"
         ],
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/search/status": {
@@ -8651,7 +8666,7 @@
         "x-foresignal-extended-by": [
           "035"
         ],
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/search/reindex": {
@@ -8712,7 +8727,7 @@
         ],
         "x-foresignal-prompt": "027",
         "x-foresignal-always-authenticated": true,
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       },
       "delete": {
         "tags": [
@@ -8773,7 +8788,7 @@
         },
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "027",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -80857,6 +80872,16 @@
             "code": "LLM_PROVIDER_RATE_LIMITED",
             "status": 429,
             "prompt": "026"
+          },
+          {
+            "code": "REINDEX_RUNNING",
+            "status": 409,
+            "prompt": "027"
+          },
+          {
+            "code": "SEMANTIC_UNAVAILABLE",
+            "status": 409,
+            "prompt": "027"
           }
         ]
       },
@@ -81504,7 +81529,8 @@
             "example": "7d"
           },
           "embed": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Embed this source's records for semantic search (027). `true` is refused (400 VALIDATION_FAILED, field `embed`) when the source declares no embedFields or is private; turning it off deletes the source's record documents."
           },
           "ingestPolicy": {
             "oneOf": [
@@ -89759,6 +89785,13 @@
             "type": "integer",
             "minimum": 0,
             "x-foresignal-prompt": "109"
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Why semantic results were not used, when `degraded` is true (027)"
           }
         },
         "required": [
@@ -89767,7 +89800,10 @@
         ],
         "x-foresignal-extended-by": [
           "109"
-        ]
+        ],
+        "x-foresignal-property-prompts": {
+          "reason": "027"
+        }
       },
       "SearchStatus": {
         "type": "object",

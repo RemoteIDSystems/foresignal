@@ -25,6 +25,11 @@ import org.springframework.stereotype.Component;
  * flagged {@code options.local=true}. A record whose source is not registered is dropped too, since
  * its flag cannot be read (fail closed). Prompt 039 hardens this path (the {@code allowPrivateLocal}
  * setting, EGR-1).
+ *
+ * <p><strong>Search and embedding path (prompt 027).</strong> {@link #allowsEmbedding(String)} decides
+ * which sources' records may be embedded and so become searchable semantically: a private source's
+ * records never are (Gap-Analysis §1 item 7), and neither are records of an unregistered source.
+ * Search results are further limited to the sources the caller may see.
  */
 @Component
 public class EgressPolicy {
@@ -86,5 +91,21 @@ public class EgressPolicy {
             return false;
         }
         return !descriptor.get().privateSource() || destination.local();
+    }
+
+    /**
+     * True when records of {@code sourceId} may be embedded into {@code embedding_document} (the
+     * search path, prompt 027): the source is registered and not private. Whether its descriptor
+     * declares {@code embedFields} and its {@code embed} setting is on is decided by the embedding
+     * worker on top of this.
+     */
+    public boolean allowsEmbedding(String sourceId) {
+        if (sourceId == null) {
+            return false;
+        }
+        return registry.find(sourceId)
+                .map(SourceRegistry.Registration::descriptor)
+                .map(descriptor -> !descriptor.privateSource())
+                .orElse(false);
     }
 }

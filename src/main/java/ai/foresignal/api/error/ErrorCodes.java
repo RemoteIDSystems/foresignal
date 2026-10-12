@@ -163,6 +163,12 @@ public final class ErrorCodes {
     /** 429: the LLM provider itself rate-limited the call; {@code Retry-After} when it said (prompt 026). */
     public static final String LLM_PROVIDER_RATE_LIMITED = "LLM_PROVIDER_RATE_LIMITED";
 
+    /** 409: an embedding reindex is already running; cancel it first (prompt 027). */
+    public static final String REINDEX_RUNNING = "REINDEX_RUNNING";
+
+    /** 409: semantic search is unavailable (no pgvector, no embedding provider, or no index yet) (prompt 027). */
+    public static final String SEMANTIC_UNAVAILABLE = "SEMANTIC_UNAVAILABLE";
+
     private static final String TYPE_PREFIX = "https://foresignal.ai/problems/";
 
     private ErrorCodes() {}

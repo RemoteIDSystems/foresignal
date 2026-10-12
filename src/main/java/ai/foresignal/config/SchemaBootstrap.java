@@ -1,5 +1,6 @@
 package ai.foresignal.config;
 
+import ai.foresignal.search.SemanticCapability;
 import ai.foresignal.store.history.HistoryProperties;
 import ai.foresignal.store.history.HistorySchemaInitializer;
 import ai.foresignal.store.history.PartitionManager;
@@ -13,17 +14,21 @@ import org.springframework.context.annotation.DependsOn;
 /**
  * Creates the parts of the schema Hibernate cannot (Core-Data-Model §9).
  *
- * <p>Three steps, because they have different ordering needs:
+ * <p>Four steps, because they have different ordering needs:
  *
  * <ol>
  *   <li>{@link PostgisExtensionInitializer} runs <em>before</em> the {@code EntityManagerFactory}
  *       is built, since Hibernate's DDL references the {@code geometry} type.
+ *   <li>{@link VectorExtensionInitializer} runs right after it, in the same phase: it creates the
+ *       optional pgvector extension (prompt 027) and records the outcome in
+ *       {@link SemanticCapability}; a failure is not fatal.
  *   <li>{@link HistorySchemaInitializer} runs after it and also before the
  *       {@code EntityManagerFactory}: it creates the partitioned {@code record_version}, which
  *       Hibernate then maps as an existing table, and attaches its first partitions through the
  *       {@link PartitionManager}.
  *   <li>{@link SpatialIndexInitializer} runs <em>after</em> Hibernate's DDL, since its GiST indexes
- *       and storage parameters need their tables to exist.
+ *       and storage parameters need their tables to exist; {@code EmbeddingSchemaManager} (027)
+ *       applies {@code embedding_document}'s full-text, spatial and vector DDL at the same point.
  * </ol>
  *
  * <p>When Flyway is introduced for production (prompt 144), this DDL moves into the baseline
@@ -34,10 +39,25 @@ public class SchemaBootstrap {
 
     static final String POSTGIS_INITIALIZER_BEAN = "postgisExtensionInitializer";
     static final String HISTORY_INITIALIZER_BEAN = "historySchemaInitializer";
+    static final String VECTOR_INITIALIZER_BEAN = "vectorExtensionInitializer";
 
     @Bean(POSTGIS_INITIALIZER_BEAN)
     public PostgisExtensionInitializer postgisExtensionInitializer(DataSource dataSource) {
         return new PostgisExtensionInitializer(dataSource);
+    }
+
+    /** Whether pgvector is available; filled in by {@link #vectorExtensionInitializer}. */
+    @Bean
+    public SemanticCapability semanticCapability() {
+        return new SemanticCapability();
+    }
+
+    /** Creates the optional pgvector extension right after PostGIS (027); never fails the start. */
+    @Bean(VECTOR_INITIALIZER_BEAN)
+    @DependsOn(POSTGIS_INITIALIZER_BEAN)
+    public VectorExtensionInitializer vectorExtensionInitializer(
+            DataSource dataSource, SemanticCapability semanticCapability) {
+        return new VectorExtensionInitializer(dataSource, semanticCapability);
     }
 
     /** Keeps {@code record_version}'s partitions ahead of allocation; no JPA dependency. */
@@ -62,8 +82,8 @@ public class SchemaBootstrap {
     }
 
     /**
-     * Forces the {@code EntityManagerFactory} to wait for the PostGIS extension and the partitioned
-     * history table.
+     * Forces the {@code EntityManagerFactory} to wait for the PostGIS extension, the optional
+     * pgvector extension and the partitioned history table.
      *
      * <p>Without this, bean creation order is undefined: Hibernate could try to create
      * {@code geometry} columns before the extension exists, or create {@code record_version} as a
@@ -72,6 +92,6 @@ public class SchemaBootstrap {
     @Bean
     public static EntityManagerFactoryDependsOnPostProcessor postgisDependsOnPostProcessor() {
         return new EntityManagerFactoryDependsOnPostProcessor(
-                POSTGIS_INITIALIZER_BEAN, HISTORY_INITIALIZER_BEAN);
+                POSTGIS_INITIALIZER_BEAN, VECTOR_INITIALIZER_BEAN, HISTORY_INITIALIZER_BEAN);
     }
 }

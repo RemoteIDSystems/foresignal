@@ -34,7 +34,9 @@ public class SpatialIndexInitializer implements ApplicationRunner {
      * {@code persisted_geom} is never searched), so an index left by an older build is dropped.
      * {@code record_live} gets the only record GiST index plus the storage parameters that keep
      * its touches HOT (Core-Data-Model §8). Prompt 017 adds the {@code alert_rev} sequence and the
-     * partial index on open alerts.
+     * partial index on open alerts. {@code embedding_document}'s full-text, spatial and vector DDL
+     * (prompt 027) is listed in {@code EmbeddingSchemaManager} ({@code BASE_STATEMENTS} and
+     * {@code slotStatements}), which 144 moves into the baseline alongside these.
      */
     static final List<String> STATEMENTS = List.of(
             "DROP INDEX IF EXISTS record_head_geom_gist",

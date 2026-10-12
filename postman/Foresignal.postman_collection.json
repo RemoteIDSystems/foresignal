@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "79671620-982c-5d2e-874b-01ab26ee8e6e",
     "name": "Foresignal API",
-    "description": "All configuration is done through this API. The MCP server is at `/mcp` (MCP streamable HTTP, protocol versions 2024-11-05 to 2025-11-25) and is not an OpenAPI operation; it exposes the same data, the alert lifecycle and watch management as MCP tools, resources (`foresignal://sources`, `foresignal://kinds`) and the `situation-report` prompt (025, docs/Agent-Guide.md). It takes the same bearer tokens: `/mcp/**` needs `read` (open while `openReads` is on), tools are listed by the caller's scope and each checks its own (`read` tools; `agent` for writes such as `create_watch` and `set_alert_status`; cost-bearing tools always need a token), a session is bound to the token that opened it, and every tool call is audited (argument names only). The older HTTP+SSE transport (protocol 2024-11-05) is served at `/mcp/sse` with messages at `/mcp/message` only when `foresignal.mcp.legacy-sse.enabled=true`, for older clients. `GET /v1/system` reports its state under `mcp`. Reads of data are open on the local network; all writes and settings reads require the admin bearer token printed on first start. Errors are RFC 9457 problem+json. Timestamps are ISO-8601 UTC. `/v1` is additive-only once released.\n\n**Key-in-path carriers.** Header-less clients use keys in the path: feed keys (`fsf_`, 035) as `/v1/k/{key}/<any allowed GET/HEAD path>`, tile keys (`fsk_`, 050) as `/v1/k/{key}/products/...` and `/v1/k/{key}/tiles/...`, share links (`fss_`, 112) as `/v1/k/{key}`. These are transports for the documented operations, not separate operations. Device ingest URLs (039) and signed action links (033) use their own documented paths.\n\n**Status annotations.** Every operation has `x-foresignal-prompt` (the build prompt that implements it), optional `x-foresignal-extended-by`, and `x-foresignal-status` (`planned` until implemented). Clients can mock the whole API from this document and filter by status.\n\n**Outside this document:** the MCP server (`/mcp`, plus the legacy SSE transport when enabled), Actuator endpoints (`/actuator/**`), and sink listeners on their own ports (110).\n\nGenerated from docs/OpenAPI.json (v1.3.0). Every operation is included, grouped by tag. Admin operations use Bearer `{{adminToken}}`, agent operations `{{agentToken}}` (defaults to the admin token; set it to an agent-scope token to test scopes), always-authenticated read operations `{{readToken}}` (defaults to the admin token; claiming a pairing code stores a read token there), ingest uses `X-Foresignal-Ingest-Key: {{ingestKey}}` (EDP pushes `{{edpIngestKey}}`, Gotify `X-Gotify-Key`), and other reads use no auth (open while openReads is on). Test scripts capture ids into collection variables (ruleId, channelId, alertId, briefingId, threadId, ingestKey, externalId, lastSeq, cursor\u2026).",
+    "description": "All configuration is done through this API. The MCP server is at `/mcp` (MCP streamable HTTP, protocol versions 2024-11-05 to 2025-11-25) and is not an OpenAPI operation; it exposes the same data, the alert lifecycle and watch management as MCP tools, resources (`foresignal://sources`, `foresignal://kinds`) and the `situation-report` prompt (025, docs/Agent-Guide.md), plus the cost-bearing `search` tool (027). It takes the same bearer tokens: `/mcp/**` needs `read` (open while `openReads` is on), tools are listed by the caller's scope and each checks its own (`read` tools; `agent` for writes such as `create_watch` and `set_alert_status`; cost-bearing tools always need a token), a session is bound to the token that opened it, and every tool call is audited (argument names only). The older HTTP+SSE transport (protocol 2024-11-05) is served at `/mcp/sse` with messages at `/mcp/message` only when `foresignal.mcp.legacy-sse.enabled=true`, for older clients. `GET /v1/system` reports its state under `mcp`. Reads of data are open on the local network; all writes and settings reads require the admin bearer token printed on first start. Errors are RFC 9457 problem+json. Timestamps are ISO-8601 UTC. `/v1` is additive-only once released.\n\n**Key-in-path carriers.** Header-less clients use keys in the path: feed keys (`fsf_`, 035) as `/v1/k/{key}/<any allowed GET/HEAD path>`, tile keys (`fsk_`, 050) as `/v1/k/{key}/products/...` and `/v1/k/{key}/tiles/...`, share links (`fss_`, 112) as `/v1/k/{key}`. These are transports for the documented operations, not separate operations. Device ingest URLs (039) and signed action links (033) use their own documented paths.\n\n**Status annotations.** Every operation has `x-foresignal-prompt` (the build prompt that implements it), optional `x-foresignal-extended-by`, and `x-foresignal-status` (`planned` until implemented). Clients can mock the whole API from this document and filter by status.\n\n**Outside this document:** the MCP server (`/mcp`, plus the legacy SSE transport when enabled), Actuator endpoints (`/actuator/**`), and sink listeners on their own ports (110).\n\nGenerated from docs/OpenAPI.json (v1.3.0). Every operation is included, grouped by tag. Admin operations use Bearer `{{adminToken}}`, agent operations `{{agentToken}}` (defaults to the admin token; set it to an agent-scope token to test scopes), always-authenticated read operations `{{readToken}}` (defaults to the admin token; claiming a pairing code stores a read token there), ingest uses `X-Foresignal-Ingest-Key: {{ingestKey}}` (EDP pushes `{{edpIngestKey}}`, Gotify `X-Gotify-Key`), and other reads use no auth (open while openReads is on). Test scripts capture ids into collection variables (ruleId, channelId, alertId, briefingId, threadId, ingestKey, externalId, lastSeq, cursor\u2026).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -1628,13 +1628,13 @@
                 {
                   "key": "since",
                   "value": "2026-10-10T00:00:00Z",
-                  "description": "observedAt >= since",
+                  "description": "Lower bound (inclusive) on the `timeField` axis (effective time by default)",
                   "disabled": true
                 },
                 {
                   "key": "until",
                   "value": "2026-10-10T00:00:00Z",
-                  "description": "observedAt < until",
+                  "description": "Upper bound (exclusive) on the `timeField` axis (effective time by default)",
                   "disabled": true
                 },
                 {
@@ -1705,7 +1705,7 @@
                 }
               ]
             },
-            "description": "`text` ranks `websearch_to_tsquery` matches (plus `record_head.search_text` matches for records without documents) and always works; `semantic` embeds `q` with the active model (budgeted) and orders by cosine distance; `hybrid` (default) fuses both with reciprocal rank fusion (k = 60) and degrades to text with `degraded=true` when semantic search is unavailable (`semantic` then \u2192 409 SEMANTIC_UNAVAILABLE). Time filters apply to the effective time by default. Record hits carry the persisted `seq`. Private sources are excluded unless the caller may see them; results are clamped to the caller's restriction (035).\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).\n\noperationId: `search`",
+            "description": "`text` ranks `websearch_to_tsquery` matches (plus `record_head.search_text` matches for records without documents) and always works; `semantic` embeds `q` with the active model (budgeted) and orders by cosine distance; `hybrid` (default) fuses both with reciprocal rank fusion (k = 60) and degrades to text with `degraded=true` when semantic search is unavailable (`semantic` then \u2192 409 SEMANTIC_UNAVAILABLE). Time filters apply to the effective time by default (`timeField=observed` for the observation time). When results degrade to text, `reason` says why. An unknown source is 404, a private one the caller may not see is 404 too. Record hits carry the persisted `seq`. Private sources are excluded unless the caller may see them; results are clamped to the caller's restriction (035).\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).\n\noperationId: `search`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -38872,13 +38872,13 @@
                 {
                   "key": "since",
                   "value": "2026-10-10T00:00:00Z",
-                  "description": "observedAt >= since",
+                  "description": "Lower bound (inclusive) on the `timeField` axis (effective time by default)",
                   "disabled": true
                 },
                 {
                   "key": "until",
                   "value": "2026-10-10T00:00:00Z",
-                  "description": "observedAt < until",
+                  "description": "Upper bound (exclusive) on the `timeField` axis (effective time by default)",
                   "disabled": true
                 },
                 {
@@ -38949,7 +38949,7 @@
                 }
               ]
             },
-            "description": "`text` ranks `websearch_to_tsquery` matches (plus `record_head.search_text` matches for records without documents) and always works; `semantic` embeds `q` with the active model (budgeted) and orders by cosine distance; `hybrid` (default) fuses both with reciprocal rank fusion (k = 60) and degrades to text with `degraded=true` when semantic search is unavailable (`semantic` then \u2192 409 SEMANTIC_UNAVAILABLE). Time filters apply to the effective time by default. Record hits carry the persisted `seq`. Private sources are excluded unless the caller may see them; results are clamped to the caller's restriction (035).\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).\n\noperationId: `search`",
+            "description": "`text` ranks `websearch_to_tsquery` matches (plus `record_head.search_text` matches for records without documents) and always works; `semantic` embeds `q` with the active model (budgeted) and orders by cosine distance; `hybrid` (default) fuses both with reciprocal rank fusion (k = 60) and degrades to text with `degraded=true` when semantic search is unavailable (`semantic` then \u2192 409 SEMANTIC_UNAVAILABLE). Time filters apply to the effective time by default (`timeField=observed` for the observation time). When results degrade to text, `reason` says why. An unknown source is 404, a private one the caller may not see is 404 too. Record hits carry the persisted `seq`. Private sources are excluded unless the caller may see them; results are clamped to the caller's restriction (035).\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).\n\noperationId: `search`",
             "auth": {
               "type": "bearer",
               "bearer": [

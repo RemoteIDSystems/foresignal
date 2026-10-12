@@ -12,6 +12,8 @@ import java.util.Map;
  * @param params the parameters in force, defaults applied
  * @param budget the request budget in force
  * @param retention the operator's per-source retention override, or null
+ * @param embed whether the source's records are embedded for semantic search (prompt 027; default
+ *     true when the source declares {@code embedFields})
  * @param credentialsSet whether credentials are stored (values are never returned)
  * @param updatedAt when the settings last changed, or null when never saved
  * @param ingestPolicy the operator's ingest-policy override, or null for the descriptor default
@@ -25,6 +27,7 @@ public record SourceSettingsDto(
         Map<String, Object> params,
         BudgetDto budget,
         Duration retention,
+        boolean embed,
         boolean credentialsSet,
         Instant updatedAt,
         IngestPolicyDto ingestPolicy,

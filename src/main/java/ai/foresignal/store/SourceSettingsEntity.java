@@ -58,6 +58,14 @@ public class SourceSettingsEntity {
     @Column(name = "ingest_policy")
     private String ingestPolicy;
 
+    /**
+     * Operator override of whether this source's records are embedded for semantic search
+     * (prompt 027); null means the default, which is on when the descriptor declares
+     * {@code embedFields}.
+     */
+    @Column(name = "embed")
+    private Boolean embed;
+
     @JdbcTypeCode(SqlTypes.TIMESTAMP_UTC)
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
@@ -137,6 +145,16 @@ public class SourceSettingsEntity {
 
     public void setIngestPolicy(String ingestPolicy) {
         this.ingestPolicy = ingestPolicy;
+    }
+
+    /** The {@code embed} override, or null for the default. */
+    public Boolean getEmbed() {
+        return embed;
+    }
+
+    /** Sets the {@code embed} override; null reverts to the default. */
+    public void setEmbed(Boolean embed) {
+        this.embed = embed;
     }
 
     public Instant getUpdatedAt() {

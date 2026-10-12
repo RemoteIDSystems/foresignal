@@ -11,7 +11,10 @@
 #                               # leaves the box (docs/Operator-Guide.md, "LLM")
 services:
   db:
-    image: postgis/postgis:17-3.5
+    # PostGIS plus pgvector for semantic search (027): postgis/postgis:17-3.5 with
+    # postgresql-17-pgvector from the PGDG repository (docker/db/Dockerfile).
+    build: docker/db
+    image: foresignal-db:17-3.5-pgvector
     # Sized for sustained history writes (Core-Data-Model §16).
     command: ["postgres","-c","shared_buffers=512MB","-c","max_wal_size=8GB","-c","checkpoint_timeout=15min","-c","wal_compression=lz4","-c","max_locks_per_transaction=256","-c","autovacuum_vacuum_cost_limit=2000"]
     environment:

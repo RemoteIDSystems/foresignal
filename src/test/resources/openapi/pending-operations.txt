@@ -1,7 +1,3 @@
-search 027
-getSearchStatus 027
-reindexSearch 027
-cancelReindex 027
 ask 028
 askStream 028
 listAskThreads 028

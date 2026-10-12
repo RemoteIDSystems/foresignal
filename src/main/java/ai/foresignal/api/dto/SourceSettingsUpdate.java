@@ -24,6 +24,7 @@ public class SourceSettingsUpdate {
     private boolean retentionPresent;
     private @Valid IngestPolicyDto ingestPolicy;
     private boolean ingestPolicyPresent;
+    private Boolean embed;
 
     /** Whether the source should be collected; null leaves it unchanged. */
     public Boolean getEnabled() {
@@ -95,5 +96,15 @@ public class SourceSettingsUpdate {
     /** True when the body named {@code ingestPolicy}, even as null (null clears the override). */
     public boolean isIngestPolicyPresent() {
         return ingestPolicyPresent;
+    }
+
+    /** Whether the source's records are embedded for semantic search (027); null leaves it unchanged. */
+    public Boolean getEmbed() {
+        return embed;
+    }
+
+    /** Sets {@link #getEmbed()}. */
+    public void setEmbed(Boolean embed) {
+        this.embed = embed;
     }
 }

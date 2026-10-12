@@ -38,6 +38,12 @@ public final class SettingKeys {
     /** {@code ai.foresignal.llm.LlmSettings}: LLM roles and options (prompt 026). */
     public static final String LLM = "llm";
 
+    /** The embedding index state: active and pending vector slots (prompt 027). */
+    public static final String SEARCH_INDEX = "search.index";
+
+    /** The embedding worker's durable cursor (prompt 027; the consumer clamp of retention). */
+    public static final String EMBEDDING_CURSOR = "embedding.cursor";
+
     /** This installation's generated identifier. */
     public static final String INSTALL_ID = "install.id";
 
@@ -47,7 +53,7 @@ public final class SettingKeys {
      */
     public static final List<String> ALL =
             List.of(RETENTION, CORS, TRIGGER_CURSOR, TRIGGERS, STREAM_LIMITS, SECURITY, SERVER, NOTIFICATIONS,
-                    WATCHDOG, INSTALL_ID, LLM);
+                    WATCHDOG, INSTALL_ID, LLM, SEARCH_INDEX, EMBEDDING_CURSOR);
 
     private SettingKeys() {}
 }

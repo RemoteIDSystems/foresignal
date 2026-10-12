@@ -176,6 +176,9 @@ public class SettingsTransferService {
         }
         sources.retentionOverride(view.id()).ifPresent(r -> out.put("retention", Durations.format(r)));
         sources.ingestPolicyOverride(view.id()).ifPresent(p -> out.put("ingestPolicy", sourceMapper.policy(p)));
+        if (view.embed() != SourceView.defaultEmbed(view.descriptor())) {
+            out.put("embed", view.embed());
+        }
         return out;
     }
 

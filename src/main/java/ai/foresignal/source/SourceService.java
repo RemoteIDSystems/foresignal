@@ -298,7 +298,8 @@ public class SourceService implements ApplicationRunner {
                 resolveIngestPolicy(descriptor, row),
                 credentialsSet,
                 row.getUpdatedAt(),
-                healthOf(descriptor, row.isEnabled()));
+                healthOf(descriptor, row.isEnabled()),
+                row.getEmbed() != null ? row.getEmbed() : SourceView.defaultEmbed(descriptor));
     }
 
     /**
@@ -384,6 +385,7 @@ public class SourceService implements ApplicationRunner {
 
         applyRetention(descriptor, update, row, errors);
         applyIngestPolicy(descriptor, update, row, policyErrors);
+        applyEmbed(descriptor, update, row, errors);
 
         if (update.enabled() != null) {
             row.setEnabled(update.enabled());
@@ -451,6 +453,26 @@ public class SourceService implements ApplicationRunner {
             return;
         }
         row.setRetention(Durations.format(retention));
+    }
+
+    /**
+     * The {@code embed} flag (prompt 027). Turning it on is refused for a source that declares no
+     * {@code embedFields} or is private, because nothing of it would ever be embedded.
+     */
+    private static void applyEmbed(
+            SourceDescriptor descriptor, SourceSettingsUpdate update, SourceSettingsEntity row, List<FieldError> errors) {
+        if (update.embed() == null) {
+            return;
+        }
+        if (update.embed() && descriptor.embedFields().isEmpty()) {
+            errors.add(new FieldError("embed", "this source declares no embedFields, so there is nothing to embed"));
+            return;
+        }
+        if (update.embed() && descriptor.privateSource()) {
+            errors.add(new FieldError("embed", "records of a private source are never embedded"));
+            return;
+        }
+        row.setEmbed(update.embed());
     }
 
     private void applyIngestPolicy(

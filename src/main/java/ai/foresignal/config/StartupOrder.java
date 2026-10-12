@@ -41,6 +41,12 @@ public final class StartupOrder {
     /** The trigger engine (prompt 017). */
     public static final int TRIGGER_ENGINE = 20;
 
+    /**
+     * The embedding worker's change-bus subscription and a resumed reindex (prompt 027), after the
+     * trigger engine and before the scheduler (Conventions, "Startup order").
+     */
+    public static final int EMBEDDING = 22;
+
     /** The ingest canary's change-bus subscription (prompt 019). */
     public static final int CANARY = 25;
 

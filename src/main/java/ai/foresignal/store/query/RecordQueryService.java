@@ -171,6 +171,39 @@ public class RecordQueryService {
         });
     }
 
+    /**
+     * The current state of several records (head plus live), whatever their expiry or tombstone,
+     * keyed by {@code <source>:<externalId>}. Search results join it (prompt 027). Records that no
+     * longer exist, or whose source is excluded, are absent.
+     *
+     * @param keys pairs of source id and external id
+     */
+    public Map<String, RecordRow> currentByKeys(List<Map.Entry<String, String>> keys, Set<String> excludedSources) {
+        List<String> sources = new ArrayList<>();
+        List<String> externalIds = new ArrayList<>();
+        for (Map.Entry<String, String> key : keys) {
+            if (!excludedSources.contains(key.getKey())) {
+                sources.add(key.getKey());
+                externalIds.add(key.getValue());
+            }
+        }
+        if (sources.isEmpty()) {
+            return Map.of();
+        }
+        return runner.read(jdbc -> {
+            SqlParams p = new SqlParams();
+            String sql = "SELECT " + currentSelect(FieldSelection.ALL, GeometryOptions.DEFAULT, GeometryEncoding.GEOJSON,
+                    false, null, p) + CURRENT_FROM + " JOIN unnest(" + p.textArray(sources) + ", "
+                    + p.textArray(externalIds) + ") AS k(source_id, external_id)"
+                    + " ON k.source_id = h.source_id AND k.external_id = h.external_id";
+            Map<String, RecordRow> rows = new HashMap<>();
+            for (RecordRow row : jdbc.query(sql, p.source(), RecordRowMapper.INSTANCE)) {
+                rows.put(row.sourceId() + ":" + row.externalId(), row);
+            }
+            return rows;
+        });
+    }
+
     /** Kinds currently present (head ⋈ live, current only), with counts and sources. */
     public List<Slices.KindRow> kinds(Set<String> excludedSources) {
         Instant now = clock.instant();
@@ -836,8 +869,11 @@ public class RecordQueryService {
         return "jsonb_strip_nulls(" + objects + ")::text";
     }
 
-    /** {@code (col && env AND ST_Intersects(col, env)) OR …} over the bbox envelopes. */
-    static String bboxClause(String column, BboxFilter bbox, SqlParams p) {
+    /**
+     * {@code (col && env AND ST_Intersects(col, env)) OR …} over the bbox envelopes; public for the
+     * search queries (prompt 027).
+     */
+    public static String bboxClause(String column, BboxFilter bbox, SqlParams p) {
         StringJoiner or = new StringJoiner(" OR ", "(", ")");
         for (Envelope e : bbox.envelopes()) {
             String envelope = envelope(e, p);

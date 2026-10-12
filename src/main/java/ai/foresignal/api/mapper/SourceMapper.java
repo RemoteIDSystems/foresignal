@@ -205,6 +205,7 @@ public class SourceMapper {
                 view.params(),
                 budget(view.budget()),
                 retentionOverride.orElse(null),
+                view.embed(),
                 view.credentialsSet(),
                 view.updatedAt(),
                 policyOverride.map(this::policy).orElse(null),
@@ -413,7 +414,8 @@ public class SourceMapper {
             }
         }
         return new SourceSettingsUpdate(
-                body.getEnabled(), interval, params, budget, retention, clearRetention, policy, clearPolicy);
+                body.getEnabled(), interval, params, budget, retention, clearRetention, policy, clearPolicy,
+                body.getEmbed());
     }
 
     private static Duration parseDuration(List<FieldError> errors, String field, String value) {
