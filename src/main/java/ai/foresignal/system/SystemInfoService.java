@@ -28,6 +28,7 @@ import java.util.Optional;
 import java.util.TreeMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
@@ -76,6 +77,7 @@ public class SystemInfoService {
     private final SystemWarnings warnings;
     private final OperatorGauges gauges;
     private final TileProperties tiles;
+    private final ObjectProvider<SystemBlockContributor> blocks;
     private final Clock clock;
     private final Instant startedAt;
 
@@ -84,7 +86,8 @@ public class SystemInfoService {
             JdbcTemplate jdbc, ReadinessCheck readiness, IngestWriter writer, IngestQueue queue, ChangeBus changeBus,
             SourceRegistry registry, SourceSettingsRepository sourceSettings, HealthService health,
             CollectorScheduler scheduler, SseHub hub, HistoryStats history, CatchUpMonitor catchUp,
-            SystemWarnings warnings, OperatorGauges gauges, TileProperties tiles, Clock clock) {
+            SystemWarnings warnings, OperatorGauges gauges, TileProperties tiles,
+            ObjectProvider<SystemBlockContributor> blocks, Clock clock) {
         this.version = version;
         this.apiVersion = apiVersion;
         this.contributors = List.copyOf(contributors);
@@ -103,6 +106,7 @@ public class SystemInfoService {
         this.warnings = warnings;
         this.gauges = gauges;
         this.tiles = tiles;
+        this.blocks = blocks;
         this.clock = clock;
         this.startedAt = clock.instant();
     }
@@ -176,6 +180,8 @@ public class SystemInfoService {
         catchUpBlock.put("ingestQueueDepth", catching.ingestQueueDepth());
         catchUpBlock.put("catchingUp", catching.catchingUp());
         out.put("catchUp", catchUpBlock);
+        // Blocks of later subsystems (025 mcp), resolved now so they may depend on this service.
+        blocks.orderedStream().forEach(block -> out.put(block.key(), block.block()));
         out.put("warnings", warningList.stream().map(w -> {
             Map<String, Object> m = new LinkedHashMap<>();
             m.put("code", w.code());

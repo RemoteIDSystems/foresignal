@@ -36,8 +36,12 @@ public class CorsFilter extends OncePerRequestFilter implements Ordered {
     /** Lower than {@link ai.foresignal.security.TokenFilter#ORDER}. */
     public static final int ORDER = Ordered.HIGHEST_PRECEDENCE + 10;
 
-    static final String ALLOWED_HEADERS = "Authorization, Content-Type, Accept, Last-Event-ID";
-    static final String EXPOSED_HEADERS = "Location";
+    /** Request headers a browser may send; the MCP ones serve browser MCP clients (prompt 025). */
+    static final String ALLOWED_HEADERS =
+            "Authorization, Content-Type, Accept, Last-Event-ID, Mcp-Session-Id, MCP-Protocol-Version";
+
+    /** Response headers a browser may read; {@code Mcp-Session-Id} carries the MCP session (prompt 025). */
+    static final String EXPOSED_HEADERS = "Location, Mcp-Session-Id";
     static final String MAX_AGE_SECONDS = "600";
 
     private final CorsSettingsService corsSettings;
@@ -107,8 +111,11 @@ public class CorsFilter extends OncePerRequestFilter implements Ordered {
         }
     }
 
-    /** True when {@code origin} is permitted by {@code allowed}, where {@code *} means any. */
-    static boolean isAllowed(String origin, List<String> allowed) {
+    /**
+     * True when {@code origin} is permitted by {@code allowed}, where {@code *} means any. Public so
+     * the MCP server's Origin check (prompt 025) applies the same rule.
+     */
+    public static boolean isAllowed(String origin, List<String> allowed) {
         for (String candidate : allowed) {
             if (CorsSettingsService.WILDCARD.equals(candidate) || candidate.equalsIgnoreCase(origin)) {
                 return true;

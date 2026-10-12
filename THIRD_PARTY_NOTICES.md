@@ -95,3 +95,15 @@ section lists dependencies a prompt asked to record here.
   through the validator's regular-expression hook (prompt 024, EDP §7).
 - **Licence:** the Go license, a BSD-3-Clause license (<https://golang.org/LICENSE>).
 - **Project:** <https://github.com/google/re2j>, Copyright The Go Authors.
+
+### MCP Java SDK
+
+- **Artifacts:** `io.modelcontextprotocol.sdk:mcp-core` and `io.modelcontextprotocol.sdk:mcp-json-jackson3`
+  2.0.1 (Maven Central), used unmodified, with their runtime dependency `io.projectreactor:reactor-core`
+  (3.8.7 from the Spring Boot BOM; Apache License, Version 2.0) and its `org.reactivestreams:reactive-streams`
+  1.0.4 (MIT-0).
+- **Use:** the MCP server at `/mcp` (prompt 025): the servlet transports (streamable HTTP and the optional
+  legacy HTTP+SSE), the session and protocol classes and the JSON binding; the tests use its client.
+- **Licence:** MIT License (<https://github.com/modelcontextprotocol/java-sdk/blob/main/LICENSE>).
+- **Project:** <https://github.com/modelcontextprotocol/java-sdk>, Copyright (c) 2025 the original author or
+  authors.

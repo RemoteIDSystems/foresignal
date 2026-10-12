@@ -28,6 +28,9 @@ import org.springframework.util.AntPathMatcher;
  * <p>Prompt 024 adds the ingest, ntfy/Gotify compatibility and External Data Protocol rules. The
  * {@code /compat/**} paths are outside {@code /v1}, so without their explicit rules they would be
  * open.
+ *
+ * <p>Prompt 025 adds {@code /mcp} and {@code /mcp/**} (the MCP server, also outside {@code /v1}):
+ * {@code read}, with per-tool scope checks inside the server ({@code McpToolRegistry}).
  */
 @Component
 public class AccessPolicy {
@@ -131,6 +134,12 @@ public class AccessPolicy {
      */
     private static List<Rule> rules() {
         return List.of(
+                // ---- MCP server (Architecture §18, prompt 025), outside /v1 ----
+                // Listing and calling need read (open while openReads is on); each tool checks its own
+                // scope inside, so agent tools stay closed to read tokens and anonymous callers.
+                rule(null, "/mcp", AccessRequirement.READ),
+                rule(null, "/mcp/**", AccessRequirement.READ),
+
                 // ---- Inbound ingest (Architecture §16, prompt 024) ----
                 rule(HttpMethod.GET, "/v1/ingest/formats", AccessRequirement.ADMIN),
                 rule(HttpMethod.POST, "/v1/ingest/**", AccessRequirement.INGEST_KEY_OR_ADMIN),

@@ -425,6 +425,29 @@ class AccessPolicyTest {
                         rule.pattern().replace("**", "x").replace("*", "x")).alwaysAuthenticated()).isTrue());
     }
 
+    @ParameterizedTest
+    @CsvSource({
+        "POST, /mcp",
+        "GET, /mcp",
+        "DELETE, /mcp",
+        "GET, /mcp/sse",
+        "POST, /mcp/message",
+    })
+    @DisplayName("the MCP server paths need read, with per-tool scope checks inside (025)")
+    void mcpPathsNeedRead(String method, String path) {
+        assertScope(method, path, Scope.READ);
+        assertThat(requirement(method, path).alwaysAuthenticated()).isFalse();
+    }
+
+    @Test
+    @DisplayName("TokenFilter recognizes the MCP paths whose calls are audited per tool (025)")
+    void mcpPathsRecognized() {
+        assertThat(TokenFilter.isMcp("/mcp")).isTrue();
+        assertThat(TokenFilter.isMcp("/mcp/message")).isTrue();
+        assertThat(TokenFilter.isMcp("/mcpx")).isFalse();
+        assertThat(TokenFilter.isMcp("/v1/records")).isFalse();
+    }
+
     @Test
     @DisplayName("the requirement records and their flag compare by value")
     void requirementEquality() {

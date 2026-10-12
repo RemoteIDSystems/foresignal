@@ -65,7 +65,9 @@ import org.springframework.web.filter.OncePerRequestFilter;
  *
  * <p>An accepted request carries {@link CurrentToken} (and the scope under
  * {@link #SCOPE_ATTRIBUTE}). The {@code ticket} parameter is stripped from the request before it
- * reaches anything else. Every authenticated write and every 401/403 on a write path is audited.
+ * reaches anything else. Every authenticated write and every 401/403 on a write path is audited,
+ * except accepted requests on {@code /mcp/**}, whose tool calls the MCP server audits one by one
+ * (prompt 025).
  *
  * <p>Deliberately a plain servlet filter: a small static policy table and one credential family do
  * not need Spring Security. That choice is why {@code management.endpoint.health.show-details} must
@@ -402,6 +404,10 @@ public class TokenFilter extends OncePerRequestFilter implements Ordered {
             return;
         }
         String normalized = AccessPolicy.normalize(path);
+        if (!refused && isMcp(normalized)) {
+            // Every MCP message is a POST; the MCP server audits each tool call itself (prompt 025).
+            return;
+        }
         String[] segments = normalized.split("/");
         Map<String, Object> detail = new LinkedHashMap<>();
         Object code = request.getAttribute(REJECTION_ATTRIBUTE);
@@ -426,6 +432,11 @@ public class TokenFilter extends OncePerRequestFilter implements Ordered {
                 segments.length > 3 ? segments[3] : null,
                 request.getRemoteAddr(),
                 detail));
+    }
+
+    /** True for the MCP server's paths, whose tool calls are audited per call (prompt 025). */
+    static boolean isMcp(String normalizedPath) {
+        return normalizedPath.equals("/mcp") || normalizedPath.startsWith("/mcp/");
     }
 
     static boolean isWrite(HttpMethod method) {

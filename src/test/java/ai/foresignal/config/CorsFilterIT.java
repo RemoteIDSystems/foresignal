@@ -63,8 +63,8 @@ class CorsFilterIT {
                 .andExpect(
                         header().string(
                                         HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS,
-                                        "Authorization, Content-Type, Accept, Last-Event-ID"))
-                .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS, "Location"));
+                                        "Authorization, Content-Type, Accept, Last-Event-ID, Mcp-Session-Id, MCP-Protocol-Version"))
+                .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS, "Location, Mcp-Session-Id"));
     }
 
     @Test

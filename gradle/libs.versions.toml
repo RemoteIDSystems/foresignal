@@ -22,6 +22,13 @@ re2j = "1.8"
 jacoco = "0.8.15"
 # QR codes of pairing payloads (023): ZXing core 3.5.4, Apache-2.0, no runtime dependencies.
 zxing = "3.5.4"
+# MCP server (025): the official MCP Java SDK, core plus its Jackson 3 JSON binding (matching Spring
+# Boot 4), MIT. Verified on Maven Central 2026-10-12: 2.0.1 is the latest release of
+# io.modelcontextprotocol.sdk:mcp-core and mcp-json-jackson3. The SDK no longer ships Spring
+# transports (they moved to Spring AI 2.x, which is not used); its servlet transports are registered
+# directly. Runtime dependencies: reactor-core and slf4j-api (versions from the Spring Boot BOM),
+# jackson-annotations, and json-schema-validator (already 3.0.8 here).
+mcp = "2.0.1"
 
 [libraries]
 # --- Versions managed by the Spring Boot BOM ---
@@ -63,6 +70,9 @@ springdoc-openapi-starter-webmvc-ui = { module = "org.springdoc:springdoc-openap
 zxing-core = { module = "com.google.zxing:core", version.ref = "zxing" }
 # EDP payload-schema patterns run on RE2/J through the validator's regular-expression hook (024).
 re2j = { module = "com.google.re2j:re2j", version.ref = "re2j" }
+# The MCP server at /mcp (025): streamable HTTP and the optional legacy HTTP+SSE servlet transports.
+mcp-core = { module = "io.modelcontextprotocol.sdk:mcp-core", version.ref = "mcp" }
+mcp-json-jackson3 = { module = "io.modelcontextprotocol.sdk:mcp-json-jackson3", version.ref = "mcp" }
 
 # --- Test; versions from the Testcontainers BOM where unspecified ---
 testcontainers-bom = { module = "org.testcontainers:testcontainers-bom", version.ref = "testcontainers" }

@@ -34,6 +34,8 @@ dependencies {
     implementation(libs.zxing.core)
     implementation(libs.json.schema.validator)
     implementation(libs.re2j)
+    implementation(libs.mcp.core)
+    implementation(libs.mcp.json.jackson3)
     runtimeOnly(libs.postgresql)
 
     testImplementation(platform(libs.testcontainers.bom))

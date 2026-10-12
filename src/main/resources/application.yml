@@ -158,6 +158,17 @@ foresignal:
     validation-budget: 2s
     # Overall timeout of one manifest or items-page fetch.
     manifest-fetch-timeout: 30s
+  mcp:
+    # The MCP server (025, docs/Agent-Guide.md): streamable HTTP at /mcp.
+    enabled: ${FORESIGNAL_MCP_ENABLED:true}
+    legacy-sse:
+      # The older HTTP+SSE transport (protocol 2024-11-05) at /mcp/sse and /mcp/message, for clients
+      # that predate streamable HTTP. Off by default.
+      enabled: ${FORESIGNAL_MCP_LEGACY_SSE:false}
+    # How long a session waits for a client's reply to a server request.
+    request-timeout: 60s
+    # The largest JSON-RPC message accepted.
+    max-request-bytes: 1048576
 
 management:
   endpoints:
