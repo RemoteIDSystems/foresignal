@@ -25,6 +25,7 @@ import org.springframework.stereotype.Component;
 import tools.jackson.databind.JsonNode;
 
 /** {@code get_record} (read): one record's current state, head plus live, as {@code getRecord}. */
+@ai.foresignal.security.restrict.RestrictedRead
 @Component
 public class GetRecordTool implements ForesignalMcpTool {
 
@@ -83,7 +84,7 @@ public class GetRecordTool implements ForesignalMcpTool {
         String externalId = McpArgs.requiredText(args, "externalId");
         items.visibleSources(List.of(source), context.excludedSources());
         RecordRow row = queries.get(source, externalId, false, FieldSelection.ALL, GeometryOptions.DEFAULT,
-                        context.excludedSources())
+                        context.excludedSources(), context.restriction())
                 .orElseThrow(() -> new McpToolException("No record " + source + ":" + externalId
                         + ". Check the id with query_records."));
         return ToolResult.json(shaper.object(items.item(row, RecordMapper.Shape.CURRENT, detail), detail));

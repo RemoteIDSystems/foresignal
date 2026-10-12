@@ -71,6 +71,7 @@ public class AskController {
     /** {@code ask}: answers a question; citations verified, warnings never stripped. */
     @PostMapping(value = "/v1/ask", consumes = MediaType.APPLICATION_JSON_VALUE)
     @Operation(operationId = "ask", tags = "Ask")
+    @ai.foresignal.security.restrict.RestrictedRead("the tool loop and retrieval run with the caller's restriction")
     public Map<String, Object> ask(@RequestBody JsonNode body, HttpServletRequest request) {
         AskCaller caller = caller(request);
         AskInput input = AskRequestParser.parse(body, registry, caller.excludedSources());
@@ -83,6 +84,7 @@ public class AskController {
      */
     @PostMapping(value = "/v1/ask/stream", consumes = MediaType.APPLICATION_JSON_VALUE)
     @Operation(operationId = "askStream", tags = "Ask")
+    @ai.foresignal.security.restrict.RestrictedRead("the tool loop and retrieval run with the caller's restriction")
     public SseEmitter askStream(@RequestBody JsonNode body, HttpServletRequest request, HttpServletResponse response) {
         AskCaller caller = caller(request);
         AskInput input = AskRequestParser.parse(body, registry, caller.excludedSources());

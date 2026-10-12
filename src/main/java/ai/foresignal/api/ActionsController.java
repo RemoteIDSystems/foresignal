@@ -7,13 +7,16 @@ import ai.foresignal.notify.action.ActionPages;
 import ai.foresignal.notify.action.ActionPaths;
 import ai.foresignal.notify.action.ActionRateLimiter;
 import ai.foresignal.notify.action.ActionService;
+import ai.foresignal.security.ratelimit.AuthFailureBackoff;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
+import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -42,6 +45,12 @@ import tools.jackson.databind.json.JsonMapper;
  * {@code X-Robots-Tag: noindex} and the strict {@link ActionPages#CONTENT_SECURITY_POLICY}; both
  * methods share a limit of 30 requests per minute per client IP. The token never appears in a
  * problem's {@code instance}, the audit log or a log line ({@link ActionPaths}).
+ *
+ * <p>Prompt 035: an unknown, expired or used capability is a failed credential check for
+ * {@link AuthFailureBackoff}; past its threshold the refusal becomes {@code 429 RATE_LIMITED} with a
+ * doubling {@code Retry-After}, and a valid capability resets the address. The 30-per-minute limit
+ * stays here, on top of the perimeter's {@code anonymous} class (120 per minute per IP): it is stricter,
+ * specific to capability links, and answers browsers with an HTML page.
  */
 @RestController
 @Tag(name = "Notifications")
@@ -52,14 +61,16 @@ public class ActionsController {
     private final ActionRateLimiter limiter;
     private final ProblemWriter problems;
     private final JsonMapper json;
+    private final AuthFailureBackoff backoff;
 
     /** Creates the controller. */
     public ActionsController(ActionService actions, ActionRateLimiter limiter, ProblemWriter problems,
-            JsonMapper json) {
+            JsonMapper json, AuthFailureBackoff backoff) {
         this.actions = actions;
         this.limiter = limiter;
         this.problems = problems;
         this.json = json;
+        this.backoff = backoff;
     }
 
     /** {@code getActionConfirm}: the confirm page; never acts. */
@@ -70,11 +81,14 @@ public class ActionsController {
         if (limited != null) {
             return limited;
         }
+        ActionService.Confirm confirm;
         try {
-            return html(HttpStatus.OK, ActionPages.confirm(actions.peek(token)));
+            confirm = actions.peek(token);
         } catch (ForesignalException e) {
-            return refused(request, e.getStatus(), e.getCode(), e.getMessage(), ActionPages.gone(), null);
+            return failedCapability(request, e);
         }
+        backoff.recordSuccess(request.getRemoteAddr());
+        return html(HttpStatus.OK, ActionPages.confirm(confirm));
     }
 
     /** {@code executeAction}: executes the capability once. */
@@ -94,8 +108,9 @@ public class ActionsController {
         try {
             result = actions.execute(token, new ActionService.Via("http", null, request.getRemoteAddr()));
         } catch (ForesignalException e) {
-            return refused(request, e.getStatus(), e.getCode(), e.getMessage(), ActionPages.gone(), null);
+            return failedCapability(request, e);
         }
+        backoff.recordSuccess(request.getRemoteAddr());
         if (wantsJson(request)) {
             Map<String, Object> body = new LinkedHashMap<>();
             body.put("action", result.action());
@@ -141,6 +156,22 @@ public class ActionsController {
         } catch (IllegalArgumentException e) {
             return null;
         }
+    }
+
+    /**
+     * The refusal of a capability that did not verify: a failed credential check for
+     * {@link AuthFailureBackoff}, answered {@code 410} (or the exception's own status) until the
+     * address is in backoff, then {@code 429 RATE_LIMITED} with {@code Retry-After}.
+     */
+    private ResponseEntity<String> failedCapability(HttpServletRequest request, ForesignalException e) {
+        Optional<Duration> retryAfter = backoff.recordFailure(request.getRemoteAddr());
+        if (retryAfter.isPresent()) {
+            long seconds = AuthFailureBackoff.seconds(retryAfter.get());
+            return refused(request, HttpStatus.TOO_MANY_REQUESTS, ErrorCodes.RATE_LIMITED,
+                    "Too many invalid action links from this address; try again later.",
+                    ActionPages.tooMany(seconds), Long.toString(seconds));
+        }
+        return refused(request, e.getStatus(), e.getCode(), e.getMessage(), ActionPages.gone(), null);
     }
 
     private ResponseEntity<String> limited(HttpServletRequest request) {

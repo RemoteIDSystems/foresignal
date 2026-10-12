@@ -12,6 +12,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import ai.foresignal.llm.LlmHttp;
+import ai.foresignal.testsupport.net.TestOutbound;
 import ai.foresignal.llm.LlmProviderConfig;
 import ai.foresignal.llm.LlmProviderType;
 import ai.foresignal.test.WireMockSupport;
@@ -57,7 +58,7 @@ class AnthropicLlmClientIT extends WireMockSupport {
 
     @BeforeEach
     void setUp() {
-        http = new LlmHttp();
+        http = new LlmHttp(TestOutbound.offlinePolicy(), TestOutbound.pinnedHttp());
         client = new AnthropicLlmClient(config(), http.anthropic("claude", baseUrl(), "sk-ant-test-not-a-key"), JSON);
     }
 

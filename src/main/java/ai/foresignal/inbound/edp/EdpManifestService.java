@@ -122,7 +122,8 @@ public class EdpManifestService implements DynamicSourceFactory {
     /**
      * Fetches a manifest from {@code manifestUrl} once, through the URL guard.
      *
-     * @throws ValidationException when it cannot be fetched or is not JSON
+     * @throws ValidationException when it cannot be fetched or is not JSON; code
+     *     {@code URL_NOT_ALLOWED} when the outbound URL policy refuses it (prompt 035)
      */
     public JsonNode fetchManifest(String manifestUrl, boolean allowPrivateNetwork) {
         URI uri;
@@ -136,6 +137,11 @@ public class EdpManifestService implements DynamicSourceFactory {
                     allowPrivateNetwork, MAX_MANIFEST_BYTES);
             return json.readTree(response.body());
         } catch (ai.foresignal.source.spi.AdapterException e) {
+            if (e.getCause() instanceof EdpUrlRefusedException refused) {
+                // 035: the outbound URL policy refused the URL (or a redirect hop): 400 URL_NOT_ALLOWED.
+                throw ai.foresignal.net.OutboundUrlPolicy.notAllowed(
+                        java.util.List.of(new ai.foresignal.api.error.FieldError("manifestUrl", refused.getMessage())));
+            }
             throw ValidationException.forField("manifestUrl", "could not be fetched: " + e.getMessage());
         } catch (RuntimeException e) {
             throw ValidationException.forField("manifestUrl", "did not return a JSON manifest");

@@ -39,6 +39,27 @@ public class SourceVisibilityGate {
         return token.map(t -> privateVisible(sourceId, t.scope(), t.restrictions())).orElse(false);
     }
 
+    /**
+     * {@link #visible(String, Optional)} under a read restriction too (prompt 035): a source outside
+     * its source member, or a private source when it excludes private sources, is invisible.
+     */
+    public boolean visible(String sourceId, Optional<CurrentToken> token,
+            ai.foresignal.security.restrict.ReadRestriction restriction) {
+        if (!visible(sourceId, token)) {
+            return false;
+        }
+        if (restriction == null) {
+            return true;
+        }
+        if (!restriction.allowsSource(sourceId)) {
+            return false;
+        }
+        if (restriction.excludePrivate()) {
+            return registry.find(sourceId).map(r -> !r.descriptor().privateSource()).orElse(true);
+        }
+        return true;
+    }
+
     /** The private sources a caller of {@code scope} (null when anonymous) with {@code restrictions} may not see. */
     public Set<String> excludedSources(Scope scope, TokenRestrictions restrictions) {
         return excludedSources(registry, scope, restrictions);

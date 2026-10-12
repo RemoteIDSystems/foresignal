@@ -1,7 +1,7 @@
 package ai.foresignal.settings;
 
 import ai.foresignal.api.error.FieldError;
-import ai.foresignal.notify.push.Cidr;
+import ai.foresignal.net.Cidr;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.net.URI;
 import java.net.URISyntaxException;

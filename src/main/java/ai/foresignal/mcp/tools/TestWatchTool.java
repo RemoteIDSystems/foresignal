@@ -31,6 +31,7 @@ import tools.jackson.databind.node.ObjectNode;
  * {@code test_watch} (read): a backtest of a trigger rule over a time window or a seq range, as
  * {@code testTrigger}; it creates nothing.
  */
+@ai.foresignal.security.restrict.RestrictedRead
 @Component
 public class TestWatchTool implements ForesignalMcpTool {
 
@@ -104,6 +105,8 @@ public class TestWatchTool implements ForesignalMcpTool {
         TriggerBacktester.Result result = backtester.test(McpArgs.requiredUuid(args, "watchId"), request);
         List<RecordRow> visible = result.matches().stream()
                 .filter(row -> !context.excludedSources().contains(row.sourceId()))
+                .filter(row -> ai.foresignal.security.restrict.RestrictionClamp.testGeoJson(context.restriction(),
+                        row.sourceId(), row.kind(), row.geometry()))
                 .toList();
         List<ObjectNode> matches = items.items(visible, RecordMapper.Shape.VERSION, detail);
         Map<String, Object> extra = new LinkedHashMap<>();

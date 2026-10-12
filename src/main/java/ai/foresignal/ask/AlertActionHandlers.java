@@ -47,7 +47,7 @@ public class AlertActionHandlers {
             @Override
             public JsonNode validate(JsonNode payload, AskCaller caller) {
                 long id = alertId(payload);
-                items.visible(id, caller.excludedSources());
+                items.visible(id, caller.excludedSources(), caller.restriction());
                 ObjectNode body = transitionBody(json, payload);
                 AlertService.transition(body, false);
                 body.put("alertId", id);
@@ -62,7 +62,7 @@ public class AlertActionHandlers {
             @Override
             public JsonNode execute(JsonNode payload, AskCaller caller) {
                 long id = alertId(payload);
-                items.visible(id, caller.excludedSources());
+                items.visible(id, caller.excludedSources(), caller.restriction());
                 AlertView alert = alerts.acknowledge(id, AlertService.transition(transitionBody(json, payload), false),
                         caller.actor());
                 return json.valueToTree(mapper.alert(alert, null));
@@ -84,7 +84,7 @@ public class AlertActionHandlers {
             public JsonNode validate(JsonNode payload, AskCaller caller) {
                 long id = alertId(payload);
                 String action = action(payload);
-                items.visible(id, caller.excludedSources());
+                items.visible(id, caller.excludedSources(), caller.restriction());
                 check(action, payload);
                 ObjectNode out = json.createObjectNode();
                 out.put("alertId", id);
@@ -119,7 +119,7 @@ public class AlertActionHandlers {
             public JsonNode execute(JsonNode payload, AskCaller caller) {
                 long id = alertId(payload);
                 String action = action(payload);
-                items.visible(id, caller.excludedSources());
+                items.visible(id, caller.excludedSources(), caller.restriction());
                 check(action, payload);
                 AlertView alert = switch (action) {
                     case "resolve" -> alerts.resolve(id, AlertService.transition(transitionBody(json, payload), false),
@@ -145,7 +145,7 @@ public class AlertActionHandlers {
             @Override
             public JsonNode validate(JsonNode payload, AskCaller caller) {
                 long id = alertId(payload);
-                items.visible(id, caller.excludedSources());
+                items.visible(id, caller.excludedSources(), caller.restriction());
                 Snoozes.expiry(snoozeBody(json, payload), clock.instant(), null);
                 ObjectNode out = snoozeBody(json, payload);
                 out.put("alertId", id);
@@ -162,7 +162,7 @@ public class AlertActionHandlers {
             @Override
             public JsonNode execute(JsonNode payload, AskCaller caller) {
                 long id = alertId(payload);
-                items.visible(id, caller.excludedSources());
+                items.visible(id, caller.excludedSources(), caller.restriction());
                 AlertView alert = alerts.snooze(id, snoozeBody(json, payload));
                 return json.valueToTree(mapper.alert(alert, null));
             }

@@ -36,6 +36,7 @@ import tools.jackson.databind.node.ObjectNode;
  * {@code source_health} (read): health of one source or of all, optionally by status, as
  * {@code getSourceHealth} and {@code listSourceHealth}.
  */
+@ai.foresignal.security.restrict.RestrictedRead
 @Component
 public class SourceHealthTool implements ForesignalMcpTool {
 

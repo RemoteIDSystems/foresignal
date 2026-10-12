@@ -1,5 +1,7 @@
 package ai.foresignal.trigger;
 
+import ai.foresignal.security.restrict.RestrictionClamp;
+
 import ai.foresignal.store.query.PgArrays;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -392,6 +394,8 @@ public class AlertStore {
             where.add("NOT (a.source_id = ANY(CAST(:excluded AS text[])))");
             p.addValue("excluded", PgArrays.text(q.excludedSources().stream().sorted().toList()));
         }
+        RestrictionClamp.sqlPredicate("a.source_id", "a.kind", RestrictionClamp.ALERT_GEOMETRY_SQL, q.restriction(), p,
+                "restrict").ifPresent(where::add);
         return where;
     }
 

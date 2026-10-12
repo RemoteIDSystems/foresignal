@@ -1,6 +1,7 @@
 package ai.foresignal.notify.push;
 
 import ai.foresignal.collect.UpstreamClient;
+import ai.foresignal.net.Cidr;
 import java.io.IOException;
 import java.net.Inet6Address;
 import java.net.InetAddress;
@@ -21,7 +22,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * Sends one request to a push service over a connection pinned to the address the
- * {@link PushAddressPolicy} just checked (prompt 031), the same technique as the pinned-IP
+ * {@link ai.foresignal.net.OutboundUrlPolicy} just checked (profile {@code PUSH_ENDPOINT}, prompts 031 and 035), the same technique as the pinned-IP
  * connector of prompt 005 and the EDP client of 024.
  *
  * <p>The URI's host is replaced by the checked address and the original {@code Host} header is

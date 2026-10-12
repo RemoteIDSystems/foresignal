@@ -1,9 +1,11 @@
 package ai.foresignal.notify.push.fcm;
 
+import ai.foresignal.net.OutboundUrlPolicy;
 import ai.foresignal.notify.push.EcKeys;
 import ai.foresignal.notify.push.NativePushHttp;
 import ai.foresignal.notify.push.NativePushTransport.NativePushException;
 import ai.foresignal.notify.push.provider.ProviderCredentials;
+import ai.foresignal.notify.push.provider.PushProviderService;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URLEncoder;
@@ -29,7 +31,8 @@ import tools.jackson.databind.json.JsonMapper;
  * service account's key, POSTed as
  * {@code grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=<jwt>} to the token URI.
  * The access token is cached until {@code expires_in} minus {@value #EARLY_SECONDS} seconds;
- * {@link #invalidate} drops it after FCM answers 401.
+ * {@link #invalidate} drops it after FCM answers 401. The token URI passes the outbound URL policy
+ * ({@code LAN_ALLOWED}, prompt 035) before every request.
  */
 @Component
 public class FcmAccessTokenCache {
@@ -55,10 +58,12 @@ public class FcmAccessTokenCache {
     private final NativePushHttp http;
     private final JsonMapper json;
     private final Clock clock;
+    private final OutboundUrlPolicy policy;
     private final Map<String, Entry> entries = new ConcurrentHashMap<>();
 
     /** Creates the cache. */
-    public FcmAccessTokenCache(NativePushHttp http, JsonMapper json, Clock clock) {
+    public FcmAccessTokenCache(NativePushHttp http, JsonMapper json, Clock clock, OutboundUrlPolicy policy) {
+        this.policy = policy;
         this.http = http;
         this.json = json;
         this.clock = clock;
@@ -102,8 +107,22 @@ public class FcmAccessTokenCache {
         String form = "grant_type=" + URLEncoder.encode(GRANT_TYPE, StandardCharsets.UTF_8) + "&assertion="
                 + URLEncoder.encode(assertion(credentials, now), StandardCharsets.UTF_8);
         NativePushHttp.Response response;
+        URI tokenUri;
         try {
-            response = http.post(CLIENT_KEY, URI.create(credentials.tokenUri()),
+            tokenUri = URI.create(credentials.tokenUri());
+        } catch (IllegalArgumentException e) {
+            throw new NativePushException("the OAuth token endpoint is not a valid URL");
+        }
+        // 035: the outbound URL policy, checked before every token request. NativePushHttp keeps one
+        // HTTP/2 client per key with the platform TLS checks against the URL host, so the request is not
+        // rewritten to the address; it resolves again at once, which the JVM's DNS cache answers with
+        // the checked address.
+        if (policy.check(tokenUri, PushProviderService.TOKEN_URI_PROFILE) instanceof OutboundUrlPolicy.Denied denied) {
+            throw new NativePushException("the OAuth token endpoint is not allowed (" + denied.code() + "): "
+                    + denied.reason());
+        }
+        try {
+            response = http.post(CLIENT_KEY, tokenUri,
                     Map.of("content-type", "application/x-www-form-urlencoded", "accept", "application/json"),
                     form.getBytes(StandardCharsets.UTF_8));
         } catch (IOException | IllegalArgumentException e) {

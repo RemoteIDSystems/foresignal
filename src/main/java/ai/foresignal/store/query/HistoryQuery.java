@@ -8,6 +8,7 @@ import ai.foresignal.api.support.TimeField;
 import java.time.Instant;
 import java.util.List;
 import java.util.Set;
+import ai.foresignal.security.restrict.ReadRestriction;
 
 /**
  * A playback range over {@code record_version} ({@code GET /v1/history}).
@@ -27,6 +28,7 @@ import java.util.Set;
  * @param encoding geometry text encoding
  * @param includeObserver include observers
  * @param excludedSources sources the caller may not see
+ * @param restriction the caller's read restriction (prompt 035; never null)
  */
 public record HistoryQuery(
         List<String> sources,
@@ -43,7 +45,17 @@ public record HistoryQuery(
         GeometryOptions geometry,
         GeometryEncoding encoding,
         boolean includeObserver,
-        Set<String> excludedSources) {
+        Set<String> excludedSources,
+        ReadRestriction restriction) {
+
+    /** An unrestricted query (the shape before prompt 035). */
+    public HistoryQuery(List<String> sources, List<String> kinds, List<String> externalIds, BboxFilter bbox,
+            NearFilter near, Instant since, Instant until, TimeField timeField, String cursor, int limit,
+            FieldSelection fields, GeometryOptions geometry, GeometryEncoding encoding, boolean includeObserver,
+            Set<String> excludedSources) {
+        this(sources, kinds, externalIds, bbox, near, since, until, timeField, cursor, limit, fields, geometry,
+                encoding, includeObserver, excludedSources, ReadRestriction.NONE);
+    }
 
     /** Normalizes nulls. */
     public HistoryQuery {
@@ -55,6 +67,13 @@ public record HistoryQuery(
         geometry = geometry == null ? GeometryOptions.DEFAULT : geometry;
         encoding = encoding == null ? GeometryEncoding.GEOJSON : encoding;
         excludedSources = excludedSources == null ? Set.of() : Set.copyOf(excludedSources);
+        restriction = restriction == null ? ReadRestriction.NONE : restriction;
+    }
+
+    /** This query under {@code r}. */
+    public HistoryQuery withRestriction(ReadRestriction r) {
+        return new HistoryQuery(sources, kinds, externalIds, bbox, near, since, until, timeField, cursor, limit, fields,
+                geometry, encoding, includeObserver, excludedSources, r);
     }
 
     /** The filters and ordering that define the range, for the cursor fingerprint. */
@@ -62,6 +81,6 @@ public record HistoryQuery(
         return String.join("|",
                 "history", String.join(",", sources), String.join(",", kinds), String.join(",", externalIds),
                 bbox == null ? "" : bbox.canonical(), near == null ? "" : near.canonical(),
-                String.valueOf(since), String.valueOf(until), timeField.name());
+                String.valueOf(since), String.valueOf(until), timeField.name(), restriction.canonical());
     }
 }

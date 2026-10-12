@@ -60,6 +60,13 @@ server:
   tomcat:
     remoteip:
       internal-proxies: '${FORESIGNAL_TRUSTED_PROXIES:127\.0\.0\.1|0:0:0:0:0:0:0:1|::1}'
+    # Access log (off unless FORESIGNAL_ACCESS_LOG=true). The pattern logs the
+    # request URI from the attribute PathKeyFilter sets, with any /v1/k/{key}
+    # segment replaced by /v1/k/... and without the query string, so feed keys
+    # (035) and ?ticket= values (023) never reach the log. Never use %r, %U or %q.
+    accesslog:
+      enabled: ${FORESIGNAL_ACCESS_LOG:false}
+      pattern: '%h %t "%m %{ai.foresignal.logUri}r" %s %b %D'
   compression:
     # gzip for read responses (014). Never text/event-stream: compressing SSE
     # buffers events and breaks streaming.

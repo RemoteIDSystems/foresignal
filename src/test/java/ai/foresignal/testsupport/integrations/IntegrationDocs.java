@@ -116,7 +116,8 @@ public final class IntegrationDocs {
     /**
      * The {@code /v1/...} paths in {@code text}, without query strings, fragments and trailing
      * punctuation, in order of first appearance. A path ending in {@code /} is a prefix that code
-     * completes (for example {@code "/v1/ingest/" + sourceId}).
+     * completes (for example {@code "/v1/ingest/" + sourceId}). A key-in-path URL
+     * {@code /v1/k/{key}/<rest>} (prompt 035) is reported as the path it serves, {@code /v1/<rest>}.
      */
     public static List<String> apiPaths(String text) {
         Set<String> out = new LinkedHashSet<>();
@@ -126,9 +127,24 @@ public final class IntegrationDocs {
             while (!path.isEmpty() && ".,:;".indexOf(path.charAt(path.length() - 1)) >= 0) {
                 path = path.substring(0, path.length() - 1);
             }
-            out.add(path);
+            String canonical = keyInPath(path);
+            if (canonical != null) {
+                out.add(canonical);
+            }
         }
         return List.copyOf(out);
+    }
+
+    /**
+     * {@code path} with a {@code /v1/k/{key}} carrier removed ({@code /v1/k/fsf_…/records} becomes
+     * {@code /v1/records}); null for a bare {@code /v1/k/{key}}, which serves no operation by itself.
+     */
+    static String keyInPath(String path) {
+        if (!path.startsWith("/v1/k/")) {
+            return path;
+        }
+        int slash = path.indexOf('/', "/v1/k/".length());
+        return slash < 0 ? null : "/v1" + path.substring(slash);
     }
 
     /**

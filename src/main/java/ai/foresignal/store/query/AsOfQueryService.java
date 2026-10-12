@@ -26,6 +26,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import ai.foresignal.security.restrict.ReadRestriction;
+import ai.foresignal.security.restrict.RestrictionClamp;
 import java.util.StringJoiner;
 import org.springframework.stereotype.Service;
 
@@ -101,6 +103,7 @@ public class AsOfQueryService {
      * @param encoding geometry text encoding
      * @param includeObserver include observers
      * @param excludedSources sources the caller may not see
+     * @param restriction the caller's read restriction (prompt 035; never null)
      */
     public record AsOfQuery(
             Instant asOf,
@@ -115,7 +118,17 @@ public class AsOfQueryService {
             GeometryOptions geometry,
             GeometryEncoding encoding,
             boolean includeObserver,
-            Set<String> excludedSources) {
+            Set<String> excludedSources,
+            ReadRestriction restriction) {
+
+        /** An unrestricted query (the shape before prompt 035). */
+        public AsOfQuery(Instant asOf, List<String> sources, List<String> kinds, List<String> externalIds,
+                BboxFilter bbox, NearFilter near, String cursor, int limit, FieldSelection fields,
+                GeometryOptions geometry, GeometryEncoding encoding, boolean includeObserver,
+                Set<String> excludedSources) {
+            this(asOf, sources, kinds, externalIds, bbox, near, cursor, limit, fields, geometry, encoding,
+                    includeObserver, excludedSources, ReadRestriction.NONE);
+        }
 
         /** Normalizes nulls. */
         public AsOfQuery {
@@ -126,12 +139,13 @@ public class AsOfQueryService {
             geometry = geometry == null ? GeometryOptions.DEFAULT : geometry;
             encoding = encoding == null ? GeometryEncoding.GEOJSON : encoding;
             excludedSources = excludedSources == null ? Set.of() : Set.copyOf(excludedSources);
+            restriction = restriction == null ? ReadRestriction.NONE : restriction;
         }
 
         String canonical() {
             return String.join("|", "asof", String.valueOf(asOf), String.join(",", sources), String.join(",", kinds),
                     String.join(",", externalIds), bbox == null ? "" : bbox.canonical(),
-                    near == null ? "" : near.canonical());
+                    near == null ? "" : near.canonical(), restriction.canonical());
         }
     }
 
@@ -309,6 +323,7 @@ public class AsOfQueryService {
                     + "c.ingested_at + c.asof_ttl > " + at + ")))");
         }
         RecordQueryService.addIn(outer, "c.kind", q.kinds(), p);
+        RestrictionClamp.addTo(outer, "c", q.restriction(), p);
         if (q.bbox() != null) {
             outer.add(RecordQueryService.bboxClause("c.geom", q.bbox(), p));
         }

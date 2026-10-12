@@ -65,6 +65,11 @@ public record AskCaller(McpCaller mcp) {
         return admin() || Objects.equals(ownerTokenId, tokenId());
     }
 
+    /** The caller's read restriction (prompt 035): the tool loop and retrieval run inside it. */
+    public ai.foresignal.security.restrict.ReadRestriction restriction() {
+        return mcp.restriction();
+    }
+
     /** The same caller with {@code excluded} sources hidden from the tools as well. */
     public McpCaller toolCaller(Set<String> excluded) {
         if (excluded.isEmpty()) {

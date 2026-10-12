@@ -41,6 +41,7 @@ import tools.jackson.databind.JsonNode;
  * {@code query_records} (read): current records from {@code record_head ⋈ record_live}, the same
  * query as {@code GET /v1/records} (invariant HIST-2), with the caller's private sources excluded.
  */
+@ai.foresignal.security.restrict.RestrictedRead
 @Component
 public class QueryRecordsTool implements ForesignalMcpTool {
 
@@ -146,7 +147,7 @@ public class QueryRecordsTool implements ForesignalMcpTool {
                 GeometryOptions.DEFAULT,
                 GeometryEncoding.GEOJSON,
                 false,
-                context.excludedSources());
+                context.excludedSources()).withRestriction(context.restriction());
         Slices.RecordSlice slice = queries.list(query);
         return ToolResult.json(shaper.list(items.items(slice.rows(), RecordMapper.Shape.CURRENT, detail),
                 slice.rows().size(), slice.nextCursor() != null, detail,

@@ -1,5 +1,7 @@
 package ai.foresignal.stream.sse;
 
+import ai.foresignal.api.support.ReadCallerResolver;
+
 import ai.foresignal.security.SourceVisibilityGate;
 import ai.foresignal.security.TokenRestrictions;
 import ai.foresignal.api.error.ErrorCodes;
@@ -158,14 +160,15 @@ public class ChangesTopic implements EventTopic<ChangeFilter>, ChangeListener, L
                 QueryParams.bool(params.field("payload"), params.single("payload"), false),
                 QueryParams.bool(params.field("live"), params.single("live"), true),
                 QueryParams.bool(params.field("touches"), params.single("touches"), false),
-                excludedSources(principal));
+                excludedSources(principal),
+                principal.restriction());
     }
 
     @Override
     public ChangeFilter parseJson(JsonNode block, StreamPrincipal principal) {
         String prefix = NAME + ".";
         if (block == null || block.isNull()) {
-            return ChangeFilter.all(excludedSources(principal));
+            return ChangeFilter.all(excludedSources(principal), principal.restriction());
         }
         if (!block.isObject()) {
             throw ValidationException.forField(NAME, "must be an object");
@@ -191,7 +194,8 @@ public class ChangesTopic implements EventTopic<ChangeFilter>, ChangeListener, L
                 bool(block, "payload", prefix, false),
                 bool(block, "live", prefix, true),
                 bool(block, "touches", prefix, false),
-                excludedSources(principal));
+                excludedSources(principal),
+                principal.restriction());
     }
 
     private void checkSources(List<String> sources) {
@@ -203,7 +207,9 @@ public class ChangesTopic implements EventTopic<ChangeFilter>, ChangeListener, L
     /** Private sources the caller may not see: all of them unless it holds an agent or admin token. */
     Set<String> excludedSources(StreamPrincipal principal) {
         // Private sources: agent and admin tokens only (SourceVisibilityGate, prompt 023).
-        return SourceVisibilityGate.excludedSources(registry, principal.scope(), TokenRestrictions.NONE);
+        return ReadCallerResolver.withRestriction(registry,
+                SourceVisibilityGate.excludedSources(registry, principal.scope(), TokenRestrictions.NONE),
+                principal.restriction());
     }
 
     // ------------------------------------------------------------------------- resume
@@ -228,7 +234,8 @@ public class ChangesTopic implements EventTopic<ChangeFilter>, ChangeListener, L
         while (true) {
             ChangesQuery query = new ChangesQuery(cursor, filter.sources(), filter.kinds(), filter.externalIds(),
                     filter.bbox(), filter.payload(), REPLAY_PAGE, FieldSelection.ALL, GeometryOptions.DEFAULT,
-                    GeometryEncoding.GEOJSON, filter.excludedSources(), filter.near(), filter.spatial());
+                    GeometryEncoding.GEOJSON, filter.excludedSources(), filter.near(), filter.spatial())
+                    .withRestriction(filter.restriction());
             Slices.ChangeSlice slice;
             try {
                 slice = queries.changes(query);

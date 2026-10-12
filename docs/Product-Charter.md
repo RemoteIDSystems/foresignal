@@ -173,8 +173,8 @@ Open-source situational-awareness projects (ShadowBroker, God's Eye View, Veloci
 - **FR-34** Configuration export/import: `GET /v1/settings/export` returns all settings (excluding credentials) as JSON; `PUT /v1/settings/import` applies them.
 
 ### 8.8 Access tokens
-- **FR-39** The operator can create named tokens with scope `read`, `agent` or `admin` and an optional expiry, list them (never their values) and revoke them.
-- **FR-40** `security.openReads` (default true) controls whether data reads need a token.
+- **FR-39** The operator can create named tokens with scope `read`, `agent` or `admin` and an optional expiry, list them (never their values) and revoke them. A non-admin token may carry a read restriction (sources, kinds, bbox or area, endpoints, private exclusion, a request rate) that every read path applies; header-less clients get path-bound, restricted, expiring feed keys (`/v1/k/{key}/…`) (035).
+- **FR-40** `security.openReads` (default true) controls whether data reads need a token; tokenless reads run under the anonymous restriction profile (`security.anonymous`). Every client is rate-limited, repeated failed credentials back off without locking out a valid one, and every operator-supplied outbound URL passes one SSRF policy (035).
 
 ### 8.9 Inbound webhooks and custom sources
 - **FR-41** The operator can create custom push sources (id, kinds, attribution, TTL, tile/search/embed fields, inbound rate limit). Each gets an ingest key shown once and rotatable.

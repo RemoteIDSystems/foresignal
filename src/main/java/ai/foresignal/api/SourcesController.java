@@ -4,6 +4,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import ai.foresignal.api.error.NotFoundException;
 import ai.foresignal.security.SourceVisibilityGate;
 import ai.foresignal.security.CurrentToken;
+import ai.foresignal.security.restrict.RequestPrincipal;
 import ai.foresignal.api.dto.CredentialsUpdate;
 import ai.foresignal.api.dto.FetchOutcomeDto;
 import ai.foresignal.api.dto.FetchPage;
@@ -133,7 +134,7 @@ public class SourcesController {
     public List<SourceSummary> listSources(HttpServletRequest request) {
         Optional<CurrentToken> caller = CurrentToken.of(request);
         return sources.list().stream()
-                .filter(view -> visibility.visible(view.id(), caller))
+                .filter(view -> visibility.visible(view.id(), caller, RequestPrincipal.restrictionOf(request)))
                 .sorted(Comparator.comparing(SourceView::id))
                 .map(mapper::summary)
                 .toList();
@@ -151,7 +152,7 @@ public class SourcesController {
         Set<HealthStatus> wanted = parseAll(status, "status", HealthStatus.class, HealthStatus::fromValue);
         Optional<Set<HealthStatus>> filter = wanted.isEmpty() ? Optional.empty() : Optional.of(wanted);
         return health.all(filter).stream()
-                .filter(v -> visibility.visible(v.sourceId(), caller))
+                .filter(v -> visibility.visible(v.sourceId(), caller, RequestPrincipal.restrictionOf(request)))
                 .sorted(Comparator.comparing(v -> v.sourceId()))
                 .map(HealthMapper::health)
                 .toList();
@@ -289,7 +290,7 @@ public class SourcesController {
      * ({@link SourceVisibilityGate}, prompt 023).
      */
     private void requireVisible(String sourceId, HttpServletRequest request) {
-        if (!visibility.visible(sourceId, CurrentToken.of(request))) {
+        if (!visibility.visible(sourceId, CurrentToken.of(request), RequestPrincipal.restrictionOf(request))) {
             throw NotFoundException.of("Source", sourceId);
         }
     }

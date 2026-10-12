@@ -1,5 +1,7 @@
 package ai.foresignal.api;
 
+import ai.foresignal.security.restrict.RestrictedRead;
+
 import ai.foresignal.api.error.NotFoundException;
 import ai.foresignal.api.support.ETags;
 import ai.foresignal.api.support.QueryParams;
@@ -66,8 +68,9 @@ public class BriefingsController {
     /** {@code listBriefings}. */
     @GetMapping
     @Operation(operationId = "listBriefings", tags = "Briefings")
-    public List<Map<String, Object>> listBriefings() {
-        return briefings.list();
+    @RestrictedRead("only briefings made under a restriction within the caller's")
+    public List<Map<String, Object>> listBriefings(HttpServletRequest request) {
+        return briefings.list(callers.resolve(request).restriction());
     }
 
     /** {@code createBriefing}: 201 with {@code Location}; channel problems are {@code warnings}. */
@@ -82,6 +85,7 @@ public class BriefingsController {
     /** {@code previewBriefing}: renders without storing, delivering or scheduling. */
     @PostMapping("/preview")
     @Operation(operationId = "previewBriefing", tags = "Briefings")
+    @RestrictedRead("rendered under the caller's restriction")
     public Map<String, Object> previewBriefing(@RequestBody JsonNode body, HttpServletRequest request) {
         return briefings.preview(body, callers.resolve(request));
     }
@@ -89,7 +93,9 @@ public class BriefingsController {
     /** {@code getBriefing}. */
     @GetMapping("/{briefingId}")
     @Operation(operationId = "getBriefing", tags = "Briefings")
-    public Map<String, Object> getBriefing(@PathVariable String briefingId) {
+    @RestrictedRead("404 unless made under a restriction within the caller's")
+    public Map<String, Object> getBriefing(@PathVariable String briefingId, HttpServletRequest request) {
+        briefings.requireVisible(id(briefingId), callers.resolve(request).restriction());
         return briefings.get(id(briefingId));
     }
 
@@ -112,34 +118,42 @@ public class BriefingsController {
     /** {@code runBriefing}: synchronous up to 120 s; 409 {@code BRIEFING_RUNNING} while one runs. */
     @PostMapping("/{briefingId}/run")
     @Operation(operationId = "runBriefing", tags = "Briefings")
-    public Map<String, Object> runBriefing(@PathVariable String briefingId) {
+    @RestrictedRead("runs under the creator's restriction; 404 unless within the caller's")
+    public Map<String, Object> runBriefing(@PathVariable String briefingId, HttpServletRequest request) {
+        briefings.requireVisible(id(briefingId), callers.resolve(request).restriction());
         return briefings.runNow(id(briefingId));
     }
 
     /** {@code listBriefingRuns}: newest first. */
     @GetMapping("/{briefingId}/runs")
     @Operation(operationId = "listBriefingRuns", tags = "Briefings")
+    @RestrictedRead("404 unless the briefing is visible to the caller")
     public Map<String, Object> listBriefingRuns(@PathVariable String briefingId,
-            @RequestParam(required = false) String cursor, @RequestParam(required = false) String limit) {
+            @RequestParam(required = false) String cursor, @RequestParam(required = false) String limit,
+            HttpServletRequest request) {
         int size = QueryParams.intInRange("limit", limit, 1, BriefingService.MAX_RUN_PAGE,
                 BriefingService.DEFAULT_RUN_PAGE);
+        briefings.requireVisible(id(briefingId), callers.resolve(request).restriction());
         return briefings.runs(id(briefingId), cursor, size);
     }
 
     /** {@code getLatestBriefingRun}: JSON or HTML; 404 before the first run. */
     @GetMapping("/{briefingId}/runs/latest")
     @Operation(operationId = "getLatestBriefingRun", tags = "Briefings")
+    @RestrictedRead("404 unless the briefing is visible to the caller")
     public ResponseEntity<Object> getLatestBriefingRun(@PathVariable String briefingId,
             @RequestParam(required = false) String format,
             @RequestHeader(value = HttpHeaders.ACCEPT, required = false) String accept,
             @RequestHeader(value = HttpHeaders.IF_NONE_MATCH, required = false) String ifNoneMatch,
             HttpServletRequest request) {
+        briefings.requireVisible(id(briefingId), callers.resolve(request).restriction());
         return respond(briefings.latest(id(briefingId)), format, accept, ifNoneMatch, callers.resolve(request));
     }
 
     /** {@code getBriefingRun}: JSON or HTML. */
     @GetMapping("/{briefingId}/runs/{runId}")
     @Operation(operationId = "getBriefingRun", tags = "Briefings")
+    @RestrictedRead("404 unless the briefing is visible to the caller")
     public ResponseEntity<Object> getBriefingRun(@PathVariable String briefingId, @PathVariable String runId,
             @RequestParam(required = false) String format,
             @RequestHeader(value = HttpHeaders.ACCEPT, required = false) String accept,
@@ -151,6 +165,7 @@ public class BriefingsController {
         } catch (IllegalArgumentException e) {
             throw NotFoundException.of("Briefing run", runId);
         }
+        briefings.requireVisible(id(briefingId), callers.resolve(request).restriction());
         return respond(briefings.run(id(briefingId), run), format, accept, ifNoneMatch, callers.resolve(request));
     }
 
@@ -158,7 +173,7 @@ public class BriefingsController {
             McpCaller caller) {
         boolean asHtml = wantsHtml(format, accept);
         String etag = etag(run, asHtml);
-        boolean openReads = caller.openReads();
+        boolean openReads = caller.readCaller().publicCache();
         if (ETags.matches(ifNoneMatch, etag)) {
             ResponseEntity<Object> notModified = ETags.notModified(etag, openReads);
             if (asHtml) {

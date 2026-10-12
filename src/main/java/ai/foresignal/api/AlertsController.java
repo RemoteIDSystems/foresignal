@@ -42,6 +42,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import ai.foresignal.api.support.ReadCaller;
+import ai.foresignal.security.restrict.RestrictedRead;
+import ai.foresignal.security.restrict.RestrictionClamp;
 import java.util.UUID;
 import org.springframework.http.HttpHeaders;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -112,6 +115,7 @@ public class AlertsController {
     /** {@code listAlerts}: newest first, keyset on id. */
     @GetMapping
     @Operation(operationId = "listAlerts", tags = "Alerts")
+    @RestrictedRead
     public Map<String, Object> listAlerts(
             @RequestParam(required = false) String ruleId,
             @RequestParam(required = false) List<String> source,
@@ -135,9 +139,10 @@ public class AlertsController {
                 : Severity.fromWire(QueryParams.oneOf("minSeverity", minSeverity, Severity.WIRE_VALUES, null));
         boolean suppressed = QueryParams.bool("includeSuppressed", includeSuppressed, false);
         int size = QueryParams.intInRange("limit", limit, 1, MAX_LIMIT, DEFAULT_LIMIT);
-        Set<String> excluded = callers.excludedSources(callers.resolve(request));
+        ReadCaller caller = callers.resolve(request);
+        Set<String> excluded = callers.excludedSources(caller);
         AlertQuery query = new AlertQuery(rules, QueryParams.multi("source", source), QueryParams.multi("kind", kind),
-                sinceValue, ack, states, feedbacks, min, tag, suppressed, excluded);
+                sinceValue, ack, states, feedbacks, min, tag, suppressed, excluded, caller.restriction());
         String fingerprint = CursorCodec.fingerprint(canonical(query, size));
         Cursor.Seq position = CursorCodec.decode(cursor, Cursor.Seq.class, fingerprint);
         List<AlertView> page = alerts.list(query, position == null ? null : position.q(), size + 1);
@@ -159,6 +164,7 @@ public class AlertsController {
     /** {@code getAlert}: with {@code record} loaded by seq while the version is retained. */
     @GetMapping("/{alertId}")
     @Operation(operationId = "getAlert", tags = "Alerts")
+    @RestrictedRead("an alert outside the restriction is 404")
     public Map<String, Object> getAlert(@PathVariable String alertId, HttpServletRequest request) {
         AlertView alert = visible(alertId, request);
         RecordRow row = queries.versionsBySeq(List.of(alert.seq())).get(alert.seq());
@@ -171,6 +177,7 @@ public class AlertsController {
     @Operation(operationId = "acknowledgeAlert", tags = "Alerts")
     public Map<String, Object> acknowledgeAlert(
             @PathVariable String alertId, @RequestBody(required = false) JsonNode body, HttpServletRequest request) {
+        visible(alertId, request);
         AlertService.Transition transition = AlertService.transition(body, false);
         return mapper.alert(alerts.acknowledge(id(alertId), transition, Actors.of(request)), null);
     }
@@ -180,6 +187,7 @@ public class AlertsController {
     @Operation(operationId = "resolveAlert", tags = "Alerts")
     public Map<String, Object> resolveAlert(
             @PathVariable String alertId, @RequestBody(required = false) JsonNode body, HttpServletRequest request) {
+        visible(alertId, request);
         AlertService.Transition transition = AlertService.transition(body, false);
         return mapper.alert(alerts.resolve(id(alertId), transition, Actors.of(request)), null);
     }
@@ -187,21 +195,26 @@ public class AlertsController {
     /** {@code snoozeAlert}: {@code until} or {@code for}. */
     @PostMapping("/{alertId}/snooze")
     @Operation(operationId = "snoozeAlert", tags = "Alerts")
-    public Map<String, Object> snoozeAlert(@PathVariable String alertId, @RequestBody JsonNode body) {
+    public Map<String, Object> snoozeAlert(@PathVariable String alertId, @RequestBody JsonNode body,
+            HttpServletRequest request) {
+        visible(alertId, request);
         return mapper.alert(alerts.snooze(id(alertId), body), null);
     }
 
     /** {@code unsnoozeAlert}: idempotent. */
     @DeleteMapping("/{alertId}/snooze")
     @Operation(operationId = "unsnoozeAlert", tags = "Alerts")
-    public Map<String, Object> unsnoozeAlert(@PathVariable String alertId) {
+    public Map<String, Object> unsnoozeAlert(@PathVariable String alertId, HttpServletRequest request) {
+        visible(alertId, request);
         return mapper.alert(alerts.unsnooze(id(alertId)), null);
     }
 
     /** {@code setAlertFeedback}: in any state. */
     @PutMapping("/{alertId}/feedback")
     @Operation(operationId = "setAlertFeedback", tags = "Alerts")
-    public Map<String, Object> setAlertFeedback(@PathVariable String alertId, @RequestBody(required = false) JsonNode body) {
+    public Map<String, Object> setAlertFeedback(@PathVariable String alertId, @RequestBody(required = false) JsonNode body,
+            HttpServletRequest request) {
+        visible(alertId, request);
         AlertService.Transition transition = AlertService.transition(body, true);
         return mapper.alert(alerts.setFeedback(id(alertId), transition), null);
     }
@@ -209,6 +222,7 @@ public class AlertsController {
     /** {@code streamAlerts}: SSE with {@code id:} = alert rev. */
     @GetMapping("/stream")
     @Operation(operationId = "streamAlerts", tags = "Alerts")
+    @RestrictedRead("AlertQuery.matches tests the restriction at publish time")
     public SseEmitter streamAlerts(
             @RequestHeader(value = StreamController.LAST_EVENT_ID, required = false) String lastEventId,
             HttpServletRequest request,
@@ -236,7 +250,11 @@ public class AlertsController {
 
     private AlertView visible(String alertId, HttpServletRequest request) {
         AlertView alert = alerts.get(id(alertId));
-        if (callers.excludedSources(callers.resolve(request)).contains(alert.sourceId())) {
+        ReadCaller caller = callers.resolve(request);
+        if (callers.excludedSources(caller).contains(alert.sourceId())
+                || !RestrictionClamp.testSnapshot(caller.restriction(), alert.sourceId(), alert.kind(),
+                        alert.recordSnapshot())) {
+            // Outside what the caller may read: reported like an unknown alert (023, 035).
             throw NotFoundException.of("Alert", alertId);
         }
         return alert;
@@ -252,7 +270,8 @@ public class AlertsController {
                 q.states().stream().sorted().toList().toString(),
                 q.feedback().stream().sorted().toList().toString(),
                 String.valueOf(q.minSeverity()), String.valueOf(q.tag()), String.valueOf(q.includeSuppressed()),
-                q.excludedSources().stream().sorted().toList().toString(), Integer.toString(size));
+                q.excludedSources().stream().sorted().toList().toString(), q.restriction().canonical(),
+                Integer.toString(size));
     }
 
     static long id(String alertId) {

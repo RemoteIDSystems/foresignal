@@ -1,5 +1,7 @@
 package ai.foresignal.stream.sse;
 
+import ai.foresignal.security.restrict.ReadRestriction;
+
 import ai.foresignal.security.Scope;
 import java.util.Objects;
 import java.util.UUID;
@@ -15,12 +17,25 @@ import java.util.UUID;
  *     parent token, prompt 023), {@code anon:<address>} for an anonymous caller
  * @param scope the token's scope, or null for an anonymous caller
  * @param remoteAddress the caller's remote address
+ * @param restriction the caller's read restriction (prompt 035): every topic tests its events with
+ *     it at publish time, and filters parsed for this principal (including PATCHes) keep it
  */
-public record StreamPrincipal(String id, Scope scope, String remoteAddress) {
+public record StreamPrincipal(String id, Scope scope, String remoteAddress, ReadRestriction restriction) {
 
-    /** Requires an id. */
+    /** Requires an id; a null restriction becomes {@link ReadRestriction#NONE}. */
     public StreamPrincipal {
         Objects.requireNonNull(id, "id");
+        restriction = restriction == null ? ReadRestriction.NONE : restriction;
+    }
+
+    /** An unrestricted principal (the shape before prompt 035). */
+    public StreamPrincipal(String id, Scope scope, String remoteAddress) {
+        this(id, scope, remoteAddress, ReadRestriction.NONE);
+    }
+
+    /** This principal under {@code r}. */
+    public StreamPrincipal withRestriction(ReadRestriction r) {
+        return new StreamPrincipal(id, scope, remoteAddress, r);
     }
 
     /** An anonymous caller from {@code remoteAddress}. */

@@ -1,5 +1,9 @@
 package ai.foresignal.stream.sse;
 
+import ai.foresignal.security.Scope;
+import ai.foresignal.security.restrict.ReadRestriction;
+import ai.foresignal.security.restrict.RequestPrincipal;
+
 import ai.foresignal.security.CurrentToken;
 import ai.foresignal.security.TokenFilter;
 import jakarta.servlet.http.HttpServletRequest;
@@ -22,10 +26,18 @@ public class HeaderStreamPrincipalResolver implements StreamPrincipalResolver {
 
     @Override
     public StreamPrincipal resolve(HttpServletRequest request) {
+        ReadRestriction restriction = RequestPrincipal.restrictionOf(request);
+        Optional<RequestPrincipal> principal = RequestPrincipal.of(request);
+        if (principal.isPresent() && principal.get().isFeedKey()) {
+            // A feed key (prompt 035) is its own principal, keyed on its id, with the read scope.
+            return new StreamPrincipal("feed:" + principal.get().id(), Scope.READ, request.getRemoteAddr(),
+                    restriction);
+        }
         Optional<CurrentToken> current = CurrentToken.of(request);
         if (current.isEmpty()) {
-            return StreamPrincipal.anonymous(request.getRemoteAddr());
+            return StreamPrincipal.anonymous(request.getRemoteAddr()).withRestriction(restriction);
         }
-        return StreamPrincipal.forToken(current.get().id(), current.get().scope(), request.getRemoteAddr());
+        return StreamPrincipal.forToken(current.get().id(), current.get().scope(), request.getRemoteAddr())
+                .withRestriction(restriction);
     }
 }

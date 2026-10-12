@@ -2,6 +2,8 @@ package ai.foresignal.notify;
 
 import ai.foresignal.api.error.FieldError;
 import ai.foresignal.api.error.ValidationException;
+import ai.foresignal.net.OutboundUrlPolicy;
+import ai.foresignal.notify.types.EmailChannel;
 import ai.foresignal.trigger.MessageTemplate;
 import ai.foresignal.trigger.Severity;
 import java.net.URI;
@@ -32,6 +34,11 @@ import tools.jackson.databind.json.JsonMapper;
  * type's own {@link ChannelType#validate} runs last. {@code deferWhileActiveSeconds} (0–600) and
  * {@code config.actions} ({@code ChannelActionsConfig}) are validated and stored (prompt 033). Members
  * owned by later prompts ({@code acceptExercise}, {@code language}) are accepted and not stored yet.
+ *
+ * <p>Prompt 035: every {@code url} field Foresignal contacts (config or secret) and the email
+ * {@code smtpHost} pass {@link OutboundUrlPolicy} profile {@code LAN_ALLOWED}; a refusal is reported
+ * on its field and the whole 400 carries code {@code URL_NOT_ALLOWED}. A host that does not resolve
+ * at save time is accepted; {@code ChannelSender} checks again on every send.
  */
 @Component
 public class ChannelInputParser {
@@ -57,15 +64,20 @@ public class ChannelInputParser {
     /** The largest backlog cap. */
     static final int MAX_BACKLOG_CAP = 500;
 
+    /** {@code url} fields that are passed on to the receiver rather than contacted by Foresignal. */
+    static final Set<String> NOT_CONTACTED = Set.of("iconUrl");
+
     private static final Pattern HH_MM = Pattern.compile("^([01]\\d|2[0-3]):[0-5]\\d$");
 
     private final ChannelTypeRegistry types;
     private final JsonMapper json;
+    private final OutboundUrlPolicy policy;
 
     /** Creates the parser. */
-    public ChannelInputParser(ChannelTypeRegistry types, JsonMapper json) {
+    public ChannelInputParser(ChannelTypeRegistry types, JsonMapper json, OutboundUrlPolicy policy) {
         this.types = types;
         this.json = json;
+        this.policy = policy;
     }
 
     /**
@@ -135,11 +147,17 @@ public class ChannelInputParser {
                 }
             }
         }
+        boolean urlRefused = false;
         if (type != null) {
             checkFields(type.spec(), config, secrets == null ? storedSecrets : secrets, errors);
             if (errors.isEmpty()) {
                 errors.addAll(type.validate(config, secrets == null
                         ? (storedSecrets == null ? Map.of() : storedSecrets) : secrets));
+            }
+            if (errors.isEmpty()) {
+                List<FieldError> refused = outboundProblems(type, config, secrets == null ? storedSecrets : secrets);
+                urlRefused = !refused.isEmpty();
+                errors.addAll(refused);
             }
         }
         List<String> events = new ArrayList<>(List.of(NotificationMessage.ALERT));
@@ -200,6 +218,9 @@ public class ChannelInputParser {
         int deferWhileActive = integer(body, "deferWhileActiveSeconds", 0, 0, 600, errors);
         actionsConfig(config, errors);
         if (!errors.isEmpty()) {
+            if (urlRefused) {
+                throw OutboundUrlPolicy.notAllowed(errors);
+            }
             throw new ValidationException("The channel is not valid.", errors);
         }
         return new ChannelInput(name.strip(), typeId, config, secrets, events, ruleIds, minSeverity, titleTemplate,
@@ -247,6 +268,41 @@ public class ChannelInputParser {
         if (senders != null && !(senders instanceof List<?> list && list.stream().allMatch(String.class::isInstance))) {
             errors.add(new FieldError("config.allowedSenders", "must be an array of strings"));
         }
+    }
+
+    /**
+     * The outbound URL policy (prompt 035, {@code LAN_ALLOWED}) applied to every contacted
+     * {@code url} field and to the email {@code smtpHost}; empty when all pass.
+     */
+    List<FieldError> outboundProblems(ChannelType type, Map<String, Object> config, Map<String, String> secrets) {
+        List<FieldError> out = new ArrayList<>();
+        ChannelTypeSpec spec = type.spec();
+        for (ChannelFieldSpec field : spec.configFields()) {
+            if (ChannelFieldSpec.URL.equals(field.type()) && !NOT_CONTACTED.contains(field.name())
+                    && config.get(field.name()) instanceof String url) {
+                String problem = policy.saveProblem(url, ChannelSender.PROFILE, false);
+                if (problem != null) {
+                    out.add(new FieldError("config." + field.name(), problem));
+                }
+            }
+        }
+        Map<String, String> s = secrets == null ? Map.of() : secrets;
+        for (ChannelFieldSpec field : spec.secretFields()) {
+            String url = s.get(field.name());
+            if (ChannelFieldSpec.URL.equals(field.type()) && url != null) {
+                String problem = policy.saveProblem(url, ChannelSender.PROFILE, false);
+                if (problem != null) {
+                    out.add(new FieldError("secrets." + field.name(), problem));
+                }
+            }
+        }
+        if (EmailChannel.ID.equals(type.id()) && config.get("smtpHost") instanceof String host && !host.isBlank()) {
+            String problem = policy.saveHostProblem(host, ChannelSender.PROFILE);
+            if (problem != null) {
+                out.add(new FieldError("config.smtpHost", problem));
+            }
+        }
+        return out;
     }
 
     /** The generic checks of the spec's fields. */

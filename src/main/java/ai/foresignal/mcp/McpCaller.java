@@ -5,6 +5,7 @@ import ai.foresignal.api.support.ReadCaller;
 import ai.foresignal.security.AuthenticatedToken;
 import ai.foresignal.security.CurrentToken;
 import ai.foresignal.security.Scope;
+import ai.foresignal.security.restrict.ReadRestriction;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -46,6 +47,11 @@ public record McpCaller(AuthenticatedToken token, ReadCaller readCaller, Set<Str
     /** The {@code security.openReads} setting at the time of the request. */
     public boolean openReads() {
         return readCaller.openReads();
+    }
+
+    /** The caller's effective read restriction (prompt 035); tools clamp their reads with it. */
+    public ReadRestriction restriction() {
+        return readCaller.restriction();
     }
 
     /**

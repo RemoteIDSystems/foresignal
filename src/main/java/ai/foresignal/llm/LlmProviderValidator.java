@@ -3,6 +3,7 @@ package ai.foresignal.llm;
 import ai.foresignal.api.error.FieldError;
 import ai.foresignal.api.error.ValidationException;
 import ai.foresignal.llm.client.Effort;
+import ai.foresignal.net.OutboundUrlPolicy;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.LocalDate;
@@ -24,11 +25,26 @@ import tools.jackson.databind.JsonNode;
  * {@code openai-compatible} must name its {@code baseUrl}.
  *
  * <p>{@code baseUrl} is checked here only for shape: http or https, a host, no user info, no
- * fragment. Private-network URLs stay allowed, because a local Ollama is the point. Prompt 035 adds
- * the outbound URL policy (SSRF guard) at the seam marked below and in {@link LlmHttp}.
+ * fragment. {@link #parse} then applies the outbound URL policy (prompt 035) with profile
+ * {@code LAN_ALLOWED} ({@link #PROFILE}): private-network URLs stay allowed, because a local Ollama is
+ * the point, while link-local, metadata and the other blocked addresses are refused with 400
+ * {@code URL_NOT_ALLOWED} on {@code baseUrl}. {@link LlmHttp} checks again before every request.
  */
 @Component
 public class LlmProviderValidator {
+
+    /**
+     * The outbound profile of every provider {@code baseUrl}. {@code PUBLIC_ONLY} is not forced for
+     * frontier providers, because the same field points at a local Ollama.
+     */
+    public static final OutboundUrlPolicy.Profile PROFILE = OutboundUrlPolicy.Profile.LAN_ALLOWED;
+
+    private final OutboundUrlPolicy policy;
+
+    /** Creates the validator. */
+    public LlmProviderValidator(OutboundUrlPolicy policy) {
+        this.policy = policy;
+    }
 
     /** The id pattern of the spec. */
     static final Pattern ID = Pattern.compile("^[a-z0-9-]+$");
@@ -108,8 +124,18 @@ public class LlmProviderValidator {
                 errors.add(new FieldError("baseUrl", "is required for openai-compatible providers"));
             }
         }
+        boolean urlRefused = false;
         if (baseUrl != null) {
+            int before = errors.size();
             validateBaseUrl(baseUrl, errors);
+            if (errors.size() == before) {
+                // 035: OutboundUrlPolicy (LAN_ALLOWED); a host that does not resolve yet is accepted.
+                String problem = policy.saveProblem(baseUrl, PROFILE, false);
+                if (problem != null) {
+                    errors.add(new FieldError("baseUrl", problem));
+                    urlRefused = true;
+                }
+            }
             baseUrl = stripTrailingSlash(baseUrl);
         }
 
@@ -157,6 +183,9 @@ public class LlmProviderValidator {
         }
 
         if (!errors.isEmpty()) {
+            if (urlRefused) {
+                throw OutboundUrlPolicy.notAllowed(errors);
+            }
             throw new ValidationException("The LLM provider is not valid.", errors);
         }
         return new LlmProviderInput(id, type, baseUrl, chatModel, embeddingModel, embeddingDimensions, apiKey, options,
@@ -166,7 +195,7 @@ public class LlmProviderValidator {
 
     /**
      * Checks {@code baseUrl}'s shape: absolute http or https with a host, no user info, no fragment.
-     * Private and loopback addresses are allowed.
+     * The address rules are the outbound URL policy's ({@link #PROFILE}), applied by the callers.
      */
     public static void validateBaseUrl(String baseUrl, List<FieldError> errors) {
         URI uri;
@@ -189,7 +218,7 @@ public class LlmProviderValidator {
         if (uri.getRawFragment() != null) {
             errors.add(new FieldError("baseUrl", "must not carry a fragment"));
         }
-        // 035: OutboundUrlPolicy — the outbound URL policy (LAN_ALLOWED) is enforced here and in LlmHttp.
+        // The outbound URL policy (035, LAN_ALLOWED) is applied by parse and by LlmHttp.checkBaseUrl.
     }
 
     private static Map<String, Object> options(JsonNode node, LlmProviderType type, List<FieldError> errors) {

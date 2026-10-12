@@ -20,7 +20,8 @@ import tools.jackson.databind.json.JsonMapper;
 class LlmProviderValidatorTest {
 
     static final JsonMapper JSON = JsonMapper.builder().build();
-    final LlmProviderValidator validator = new LlmProviderValidator();
+    final LlmProviderValidator validator = new LlmProviderValidator(
+            ai.foresignal.testsupport.net.TestOutbound.offlinePolicy());
 
     static JsonNode json(String text) {
         return JSON.readTree(text.replace('\'', '"'));

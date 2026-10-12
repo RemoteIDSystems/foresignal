@@ -37,6 +37,7 @@ import tools.jackson.databind.node.ObjectNode;
  * a token is always required. Short items carry the persisted {@code seq} of every record hit, to
  * cite.
  */
+@ai.foresignal.security.restrict.RestrictedRead
 @Component
 public class SearchTool implements ForesignalMcpTool {
 
@@ -135,7 +136,7 @@ public class SearchTool implements ForesignalMcpTool {
                 until,
                 "observed".equals(timeField),
                 McpArgs.integer(args, "limit", DEFAULT_LIMIT));
-        Map<String, Object> results = search.search(request, context.excludedSources());
+        Map<String, Object> results = search.search(request, context.excludedSources(), context.restriction());
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> items = (List<Map<String, Object>>) results.get("items");
         List<ObjectNode> out = new ArrayList<>(items.size());

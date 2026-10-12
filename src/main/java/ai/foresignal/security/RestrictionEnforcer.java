@@ -8,9 +8,9 @@ import org.springframework.http.HttpMethod;
  * (prompt 023 defines the SPI; prompt 035 enforces the restrictions on every read path and replaces
  * the default bean).
  *
- * <p>The default, {@link FailClosedRestrictionEnforcer}, refuses every data read of a token that
- * carries data restrictions with {@code 403 RESTRICTION_NOT_ENFORCED}: until 035 can narrow the
- * results, serving them unfiltered would fail open.
+ * <p>Until prompt 035 the default refused every data read of a token with data restrictions
+ * ({@code 403 RESTRICTION_NOT_ENFORCED}). From 035 the bean is {@link ClampedRestrictionEnforcer}:
+ * restrictions narrow the results through {@code RestrictionClamp} instead of refusing the request.
  */
 public interface RestrictionEnforcer {
 

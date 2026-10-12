@@ -51,7 +51,8 @@ class FcmAccessTokenCacheTest {
     final MutableClock clock = new MutableClock(T);
     final NativePushHttp http = new NativePushHttp(NativePushHttp.platformTls(),
             new PushProperties(true, true, null, null, 0, null, 0, null, null));
-    final FcmAccessTokenCache cache = new FcmAccessTokenCache(http, JSON, clock);
+    final FcmAccessTokenCache cache = new FcmAccessTokenCache(http, JSON, clock,
+            ai.foresignal.testsupport.net.TestOutbound.offlinePolicy());
 
     ProviderCredentials.Fcm credentials;
 

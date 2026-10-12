@@ -7,9 +7,11 @@ import java.net.InetAddress;
 /**
  * Decides whether an address belongs to the local network.
  *
- * <p>Used by {@link ai.foresignal.source.spi.ParamType#LAN_URL} validation. A receiver the operator runs
- * is on their own network; anything else reachable from the broker — a cloud metadata endpoint, an
- * internal service, a public host — is not something a source parameter should be able to point at.
+ * <p>Prompt 004 used this for {@link ai.foresignal.source.spi.ParamType#LAN_URL} validation; since
+ * prompt 035 that check is {@link ai.foresignal.net.OutboundUrlPolicy} profile {@code LAN_ONLY}, and
+ * every outbound URL check goes through that policy. This class remains a classification helper for
+ * non-outbound decisions, such as whether {@code publicBaseUrl} looks private
+ * ({@code SystemWarnings}). Do not use it to vet a destination.
  */
 public final class LocalAddresses {
 

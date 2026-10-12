@@ -3,6 +3,7 @@ package ai.foresignal.settings;
 import ai.foresignal.api.error.FieldError;
 import ai.foresignal.api.error.InvalidInputException;
 import ai.foresignal.api.error.ValidationException;
+import ai.foresignal.net.OutboundUrlPolicy;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.Duration;
@@ -16,6 +17,8 @@ import tools.jackson.databind.JsonNode;
 /**
  * Reads, validates and stores {@link WatchdogSettings} ({@code GET/PUT /v1/settings/watchdog} and the
  * settings import, prompt 019). A PUT replaces the whole value; every problem is reported in one 400.
+ * Storing checks both URLs with the outbound URL policy ({@code LAN_ALLOWED}, prompt 035; 400
+ * {@code URL_NOT_ALLOWED}); the pinger checks again before every ping.
  */
 @Service
 public class WatchdogSettingsService {
@@ -24,10 +27,12 @@ public class WatchdogSettingsService {
     static final Set<String> CANARY_FIELDS = Set.of("enabled", "interval");
 
     private final AppSettingService settings;
+    private final OutboundUrlPolicy policy;
 
     /** Creates the service. */
-    public WatchdogSettingsService(AppSettingService settings) {
+    public WatchdogSettingsService(AppSettingService settings, OutboundUrlPolicy policy) {
         this.settings = settings;
+        this.policy = policy;
     }
 
     /** The stored settings, or the defaults. */
@@ -35,10 +40,30 @@ public class WatchdogSettingsService {
         return settings.getOrDefault(SettingKeys.WATCHDOG, WatchdogSettings.class, WatchdogSettings::defaults);
     }
 
-    /** Stores {@code value} (already validated by {@link #parse}). */
+    /**
+     * Stores {@code value} (already validated by {@link #parse}) after the outbound URL policy accepts
+     * its URLs.
+     *
+     * @throws ValidationException 400 {@code URL_NOT_ALLOWED} naming each refused URL
+     */
     public WatchdogSettings put(WatchdogSettings value) {
+        List<FieldError> refused = new ArrayList<>();
+        refuse("heartbeatUrl", value.heartbeatUrl(), refused);
+        refuse("failUrl", value.failUrl(), refused);
+        if (!refused.isEmpty()) {
+            throw OutboundUrlPolicy.notAllowed(refused);
+        }
         settings.put(SettingKeys.WATCHDOG, value);
         return value;
+    }
+
+    private void refuse(String field, String url, List<FieldError> refused) {
+        if (url != null && !url.isBlank()) {
+            String problem = policy.saveProblem(url, OutboundUrlPolicy.Profile.LAN_ALLOWED, false);
+            if (problem != null) {
+                refused.add(new FieldError(field, problem));
+            }
+        }
     }
 
     /**

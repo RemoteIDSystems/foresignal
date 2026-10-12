@@ -25,6 +25,7 @@ import tools.jackson.databind.json.JsonMapper;
  * system events) with the live alert state. An agent has no device, so items carry no read state
  * and listing marks nothing read.
  */
+@ai.foresignal.security.restrict.RestrictedRead
 @Component
 public class ListNotificationsTool implements ForesignalMcpTool {
 
@@ -84,7 +85,7 @@ public class ListNotificationsTool implements ForesignalMcpTool {
         String min = McpArgs.text(args, "minSeverity");
         int limit = Math.max(1, Math.min(100, McpArgs.integer(args, "limit", 20)));
         List<InboxService.Item> items = inbox.list(DEVICE, new InboxService.Query(null, McpArgs.optionalLong(args, "before"),
-                events, min == null ? null : Severity.fromWire(min), false, limit), context.excludedSources());
+                events, min == null ? null : Severity.fromWire(min), false, limit), context.excludedSources(), context.restriction());
         List<Map<String, Object>> out = items.stream().map(item -> {
             Map<String, Object> map = new LinkedHashMap<>(item.toMap());
             map.remove("read");

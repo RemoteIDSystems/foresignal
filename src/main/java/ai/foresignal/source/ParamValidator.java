@@ -3,6 +3,7 @@ package ai.foresignal.source;
 import ai.foresignal.api.error.FieldError;
 import ai.foresignal.api.error.InvalidInputException;
 import ai.foresignal.api.error.ValidationException;
+import ai.foresignal.net.OutboundUrlPolicy;
 import ai.foresignal.settings.Durations;
 import ai.foresignal.source.spi.ParamSpec;
 import ai.foresignal.source.spi.ParamType;
@@ -11,15 +12,16 @@ import ai.foresignal.source.spi.ValidatedParams;
 import java.net.InetAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.UnknownHostException;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.locationtech.jts.geom.Envelope;
 import org.springframework.stereotype.Component;
 
@@ -32,14 +34,31 @@ import org.springframework.stereotype.Component;
  *
  * <p>Unknown keys are rejected rather than ignored: a typo in a parameter name would otherwise look
  * like it worked while the adapter silently used its default.
+ *
+ * <p>A {@link ParamType#LAN_URL} passes {@link OutboundUrlPolicy} profile {@code LAN_ONLY} (prompt
+ * 035, replacing prompt 004's {@code LocalAddresses} check); when any parameter is refused by the
+ * policy, the 400 carries code {@code URL_NOT_ALLOWED}.
  */
 @Component
 public class ParamValidator {
 
     private final InboxFiles inboxFiles;
+    private final OutboundUrlPolicy policy;
 
-    public ParamValidator(InboxFiles inboxFiles) {
+    /** Creates the validator. */
+    public ParamValidator(InboxFiles inboxFiles, OutboundUrlPolicy policy) {
         this.inboxFiles = inboxFiles;
+        this.policy = policy;
+    }
+
+    /** A {@link ParamType#LAN_URL} refused by the outbound URL policy. */
+    private static final class UrlRefusedException extends InvalidInputException {
+
+        private static final long serialVersionUID = 1L;
+
+        UrlRefusedException(String detail) {
+            super(detail);
+        }
     }
 
     /**
@@ -52,6 +71,7 @@ public class ParamValidator {
         List<FieldError> errors = new ArrayList<>();
         Map<String, Object> values = new LinkedHashMap<>();
         Map<String, InetAddress> pinned = new LinkedHashMap<>();
+        Set<String> refused = new HashSet<>();
 
         for (String key : supplied.keySet()) {
             if (descriptor.param(key) == null) {
@@ -73,14 +93,17 @@ public class ParamValidator {
                 if (spec.required()) {
                     errors.add(new FieldError(path(spec.name()), "is required"));
                 } else if (spec.hasDefault()) {
-                    coerceInto(spec, spec.defaultValue(), values, pinned, errors, true);
+                    coerceInto(spec, spec.defaultValue(), values, pinned, errors, refused, true);
                 }
                 continue;
             }
-            coerceInto(spec, value, values, pinned, errors, false);
+            coerceInto(spec, value, values, pinned, errors, refused, false);
         }
 
         if (!errors.isEmpty()) {
+            if (!refused.isEmpty()) {
+                throw OutboundUrlPolicy.notAllowed(errors);
+            }
             throw new ValidationException(
                     "The parameters for " + descriptor.id() + " are not valid.", errors);
         }
@@ -93,12 +116,16 @@ public class ParamValidator {
             Map<String, Object> values,
             Map<String, InetAddress> pinned,
             List<FieldError> errors,
+            Set<String> refused,
             boolean fromDefault) {
         try {
             Object coerced = coerce(spec, raw, pinned);
             checkAllowed(spec, coerced);
             values.put(spec.name(), coerced);
         } catch (InvalidInputException e) {
+            if (e instanceof UrlRefusedException) {
+                refused.add(spec.name());
+            }
             String message = fromDefault ? "has an invalid default: " + e.getMessage() : e.getMessage();
             errors.add(new FieldError(path(spec.name()), message));
         }
@@ -301,14 +328,15 @@ public class ParamValidator {
     }
 
     /**
-     * A local-network URL, resolved once and pinned.
+     * A local-network URL, resolved once, checked under {@code LAN_ONLY} and pinned.
      *
      * <p>The resolved address goes into {@link ValidatedParams#pinnedAddress}, and prompt 005
      * connects to that address with the original Host header and redirects disabled. Validating the
      * name alone would be useless: a name that resolves privately now can resolve to anything on
-     * the next lookup, which is DNS rebinding.
+     * the next lookup, which is DNS rebinding. {@code UpstreamClient} validates the parameters
+     * again whenever it binds a source's HTTP client, so the check also runs at fetch time.
      */
-    private static URI asLanUrl(ParamSpec spec, Object raw, Map<String, InetAddress> pinned) {
+    private URI asLanUrl(ParamSpec spec, Object raw, Map<String, InetAddress> pinned) {
         String text = asString(spec, raw);
         URI uri;
         try {
@@ -326,17 +354,14 @@ public class ParamValidator {
                     "scheme '" + uri.getScheme() + "' is not allowed; use http, https, ws or wss");
         }
 
-        InetAddress resolved;
-        try {
-            resolved = InetAddress.getByName(uri.getHost());
-        } catch (UnknownHostException e) {
-            throw new InvalidInputException(
-                    "the host '" + uri.getHost() + "' could not be resolved");
+        OutboundUrlPolicy.Result result = policy.check(uri, OutboundUrlPolicy.Profile.LAN_ONLY);
+        if (result instanceof OutboundUrlPolicy.Denied denied) {
+            if (denied.unresolved()) {
+                throw new InvalidInputException("the host '" + uri.getHost() + "' could not be resolved");
+            }
+            throw new UrlRefusedException(denied.reason());
         }
-        String rejection = LocalAddresses.rejectionReason(resolved);
-        if (rejection != null) {
-            throw new InvalidInputException("'" + uri.getHost() + "' " + rejection);
-        }
+        InetAddress resolved = ((OutboundUrlPolicy.Allowed) result).pinned();
         pinned.put(spec.name(), resolved);
         return uri;
     }

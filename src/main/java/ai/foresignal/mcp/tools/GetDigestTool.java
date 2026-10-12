@@ -24,6 +24,7 @@ import org.springframework.stereotype.Component;
 import tools.jackson.databind.JsonNode;
 
 /** {@code get_digest} (read): the catch-up digest since a seq cursor, as {@code getDigest} (prompt 029). */
+@ai.foresignal.security.restrict.RestrictedRead
 @Component
 public class GetDigestTool implements ForesignalMcpTool {
 

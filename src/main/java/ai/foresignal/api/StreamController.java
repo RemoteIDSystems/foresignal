@@ -81,6 +81,7 @@ public class StreamController {
     /** {@code streamChanges}. */
     @GetMapping("/v1/changes/stream")
     @Operation(operationId = "streamChanges", tags = "Changes")
+    @ai.foresignal.security.restrict.RestrictedRead("ChangeFilter tests the restriction at publish time")
     public SseEmitter streamChanges(
             @RequestHeader(value = LAST_EVENT_ID, required = false) String lastEventId,
             @RequestParam(required = false) String after,
@@ -100,6 +101,7 @@ public class StreamController {
     /** {@code streamEvents}. */
     @GetMapping("/v1/events/stream")
     @Operation(operationId = "streamEvents", tags = "Events")
+    @ai.foresignal.security.restrict.RestrictedRead("every topic's filter carries the principal's restriction")
     public SseEmitter streamEvents(
             @RequestHeader(value = LAST_EVENT_ID, required = false) String lastEventIdHeader,
             @RequestParam(required = false) List<String> topics,
@@ -133,6 +135,7 @@ public class StreamController {
     /** {@code updateEventStreamFilter}. */
     @PatchMapping(value = "/v1/events/stream/{streamId}/filter", consumes = MediaType.APPLICATION_JSON_VALUE)
     @Operation(operationId = "updateEventStreamFilter", tags = "Events")
+    @ai.foresignal.security.restrict.RestrictedRead("the new filter is parsed for the owner, keeping its restriction")
     public ResponseEntity<JsonNode> updateEventStreamFilter(
             @PathVariable String streamId,
             @RequestHeader(value = STREAM_KEY_HEADER, required = false) String streamKey,

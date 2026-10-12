@@ -13,6 +13,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import ai.foresignal.llm.LlmHttp;
+import ai.foresignal.testsupport.net.TestOutbound;
 import ai.foresignal.llm.LlmProviderConfig;
 import ai.foresignal.llm.LlmProviderType;
 import ai.foresignal.test.WireMockSupport;
@@ -35,7 +36,7 @@ class OpenAiCompatibleLlmClientIT extends WireMockSupport {
                 false, "sk-test-not-a-key", 30, 2_000_000, true, null);
     }
 
-    final OpenAiCompatibleLlmClient client = new OpenAiCompatibleLlmClient(config(0.3), new LlmHttp(), JSON);
+    final OpenAiCompatibleLlmClient client = new OpenAiCompatibleLlmClient(config(0.3), new LlmHttp(TestOutbound.offlinePolicy(), TestOutbound.pinnedHttp()), JSON);
 
     static ChatRequest withTool() {
         return new ChatRequest("system text", List.of(new ChatMessage.User("weather?")),
@@ -232,7 +233,7 @@ class OpenAiCompatibleLlmClientIT extends WireMockSupport {
     void unreachable() {
         OpenAiCompatibleLlmClient dead = new OpenAiCompatibleLlmClient(new LlmProviderConfig("dead",
                 LlmProviderType.OPENAI_COMPATIBLE, "http://127.0.0.1:1", "m", null, null, null, null, null, Map.of(),
-                false, null, 30, 2_000_000, true, null), new LlmHttp(), JSON);
+                false, null, 30, 2_000_000, true, null), new LlmHttp(TestOutbound.offlinePolicy(), TestOutbound.pinnedHttp()), JSON);
 
         assertThatThrownBy(() -> dead.chat(withTool())).isInstanceOfSatisfying(LlmProviderException.class,
                 e -> assertThat(e.kind()).isEqualTo(LlmProviderException.Kind.CONNECTION));

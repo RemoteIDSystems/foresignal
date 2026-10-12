@@ -21,6 +21,9 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Set;
+import java.util.List;
+import ai.foresignal.security.restrict.ReadRestriction;
+import ai.foresignal.security.restrict.RestrictedRead;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -94,6 +97,7 @@ public class TilesController {
      */
     @GetMapping("/v1/tiles/{layer}/{z}/{x}/{y}.mvt")
     @Operation(operationId = "getTile", tags = "Tiles")
+    @RestrictedRead("predicate inside the MVT SQL; Cache-Control private when restricted")
     public ResponseEntity<byte[]> getTile(
             @PathVariable String layer,
             @PathVariable String z,
@@ -105,12 +109,12 @@ public class TilesController {
         TileCoordinates coordinates = TileCoordinates.parse(z, x, y);
         AggMode mode = AggMode.parse(agg);
         ReadCaller caller = callers.resolve(request);
-        TileLayer resolved = layers.resolve(layer, callers.excludedSources(caller));
-        TileResult result = tiles.render(resolved, coordinates, mode);
+        TileLayer resolved = allowed(layers.resolve(layer, callers.excludedSources(caller)), caller.restriction());
+        TileResult result = tiles.render(resolved, coordinates, mode, caller.restriction());
 
         String etag = ETags.forBytes(result.mvt());
         Duration maxAge = result.shape().aggregated() ? properties.aggMaxAge() : properties.rawMaxAge();
-        HttpHeaders headers = headers(etag, caller.openReads(), maxAge);
+        HttpHeaders headers = headers(etag, caller.publicCache(), maxAge);
         if (result.truncated()) {
             headers.set(TRUNCATED_HEADER, "true");
         }
@@ -123,24 +127,48 @@ public class TilesController {
     /** {@code listTileLayers}: every source id and kind the caller can see, with its TileJSON URL. */
     @GetMapping("/v1/tiles.json")
     @Operation(operationId = "listTileLayers", tags = "Tiles")
+    @RestrictedRead("layers outside the restriction's sources and kinds are left out")
     public ResponseEntity<String> listTileLayers(
             @RequestHeader(value = HttpHeaders.IF_NONE_MATCH, required = false) String ifNoneMatch,
             HttpServletRequest request) {
         ReadCaller caller = callers.resolve(request);
         Set<String> excluded = callers.excludedSources(caller);
-        return document(tileJson.index(layers.layers(excluded), baseUrl(request)), caller, ifNoneMatch);
+        List<TileLayer> visible = layers.layers(excluded).stream()
+                .filter(l -> layerAllowed(l, caller.restriction()))
+                .toList();
+        return document(tileJson.index(visible, baseUrl(request)), caller, ifNoneMatch);
     }
 
     /** {@code getTileJson}: the TileJSON 3.0.0 document of one layer; {@code 404 UNKNOWN_LAYER}. */
     @GetMapping("/v1/tiles/{layer}.json")
     @Operation(operationId = "getTileJson", tags = "Tiles")
+    @RestrictedRead("a layer outside the restriction is UNKNOWN_LAYER")
     public ResponseEntity<String> getTileJson(
             @PathVariable String layer,
             @RequestHeader(value = HttpHeaders.IF_NONE_MATCH, required = false) String ifNoneMatch,
             HttpServletRequest request) {
         ReadCaller caller = callers.resolve(request);
-        TileLayer resolved = layers.resolve(layer, callers.excludedSources(caller));
+        TileLayer resolved = allowed(layers.resolve(layer, callers.excludedSources(caller)), caller.restriction());
         return document(tileJson.tileJson(resolved, baseUrl(request)), caller, ifNoneMatch);
+    }
+
+    /**
+     * {@code layer}, or {@code 404 UNKNOWN_LAYER} when a kind layer's kind is outside the caller's
+     * kind restriction (source layers are already hidden through the excluded sources).
+     */
+    static TileLayer allowed(TileLayer layer, ReadRestriction restriction) {
+        if (!layerAllowed(layer, restriction)) {
+            throw ai.foresignal.store.tiles.TileLayerResolver.unknownLayer(layer.id());
+        }
+        return layer;
+    }
+
+    /** True when {@code layer} can hold records the restriction allows. */
+    static boolean layerAllowed(TileLayer layer, ReadRestriction restriction) {
+        if (layer.type() == ai.foresignal.store.tiles.TileLayerType.SOURCE) {
+            return restriction.allowsSource(layer.id());
+        }
+        return restriction.allowsKind(layer.id());
     }
 
     /**
@@ -169,7 +197,7 @@ public class TilesController {
     private ResponseEntity<String> document(Map<String, Object> body, ReadCaller caller, String ifNoneMatch) {
         String text = json.writeValueAsString(body);
         String etag = ETags.forDocument(text);
-        HttpHeaders headers = headers(etag, caller.openReads(), TILEJSON_MAX_AGE);
+        HttpHeaders headers = headers(etag, caller.publicCache(), TILEJSON_MAX_AGE);
         if (ETags.matches(ifNoneMatch, etag)) {
             return ResponseEntity.status(304).headers(headers).build();
         }

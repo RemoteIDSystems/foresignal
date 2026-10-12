@@ -1,6 +1,5 @@
 package ai.foresignal.testsupport.push;
 
-import ai.foresignal.notify.push.PushHostResolver;
 import ai.foresignal.notify.push.NativePushTls;
 import ai.foresignal.notify.push.PushTls;
 import ai.foresignal.test.MutableClock;
@@ -26,7 +25,10 @@ import org.springframework.context.annotation.Primary;
 @Import(MutableClock.TestConfig.class)
 public class PushTestConfig {
 
-    /** DNS answers set by each test; the {@link PushHostResolver} the push code uses. */
+    /**
+     * DNS answers set by each test; the {@link ai.foresignal.net.HostResolver} of the outbound URL
+     * policy (prompt 035), and so of the push code, the channels and the LLM clients in this context.
+     */
     @Bean
     @Primary
     public MutableResolver mutableResolver() {

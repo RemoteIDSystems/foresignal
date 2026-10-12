@@ -243,6 +243,7 @@ public class AskService {
         AskScope scope = prepared.scope();
         Predicate<String> allowed = source -> egress.allowsLlmContext(source, destination)
                 && !toolCaller.excludedSources().contains(source)
+                && toolCaller.restriction().allowsSource(source)
                 && (scope.sources().isEmpty() || scope.sources().contains(source));
         Run run = new Run(prepared, toolCaller, allowed, scope.bboxFilter(), listener);
         LlmClient client = llm.client(providerId);
@@ -296,7 +297,8 @@ public class AskService {
         String q = question.length() > MAX_SEARCH_QUERY ? question.substring(0, MAX_SEARCH_QUERY) : question;
         SearchRequest request = new SearchRequest(q, SearchRequest.Mode.HYBRID, Set.of(), scope.sources(), scope.kinds(),
                 scope.bboxFilter(), scope.since(), scope.until(), false, RETRIEVAL_LIMIT);
-        Map<String, Object> results = search.search(request, run.toolCaller.excludedSources());
+        Map<String, Object> results = search.search(request, run.toolCaller.excludedSources(),
+                run.toolCaller.restriction());
         ObjectNode data = json.createObjectNode();
         ArrayNode records = data.putArray("records");
         @SuppressWarnings("unchecked")
@@ -311,7 +313,8 @@ public class AskService {
         }
         ArrayNode alertItems = data.putArray("alerts");
         List<AlertView> recent = alerts.list(new AlertQuery(null, scope.sources(), scope.kinds(), since, null, null,
-                null, null, null, false, run.toolCaller.excludedSources()), null, RETRIEVAL_ALERT_LIMIT);
+                null, null, null, false, run.toolCaller.excludedSources(), run.toolCaller.restriction()), null,
+                RETRIEVAL_ALERT_LIMIT);
         for (AlertView alert : recent) {
             alertItems.add(shaper.objectTree(alertMapper.alert(alert, null)));
         }

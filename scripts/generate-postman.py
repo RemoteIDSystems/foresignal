@@ -15,7 +15,9 @@ PATH_VARS = {"sourceId": "sourceId", "externalId": "externalId", "ruleId": "rule
              "layer": "tileLayer", "z": "tileZ", "x": "tileX", "y": "tileY", "pairingCodeId": "pairingCodeId",
              "topic": "sourceId", "format": "ingestFormat", "action": "ntfyAction", "deviceId": "pushDeviceId",
              # 033: action capabilities, inbox items and escalation policies.
-             "token": "actionToken", "notificationId": "notificationId", "policyId": "escalationPolicyId"}
+             "token": "actionToken", "notificationId": "notificationId", "policyId": "escalationPolicyId",
+             # 035: feed keys.
+             "feedKeyId": "feedKeyId"}
 
 # Path variables that mean something else under a prefix (024): EDP sources and registration tokens.
 PATH_VARS_BY_PREFIX = [("/v1/external/sources/", {"sourceId": "edpSourceId"}),
@@ -198,7 +200,14 @@ BODIES = {
   "muteTrigger": {"for": "4h"},
   "executeAction": {},
   "updateEventStreamFilter": {"changes": {"bbox": "-97.5,32.5,-96.5,33.2", "live": True}},
-  "updateSecuritySettings": {"openReads": True, "exposeObserver": False},
+  "updateSecuritySettings": {"openReads": True, "exposeObserver": False, "metricsOpen": True},
+  # 035: access perimeter.
+  "createFeedKey": {"name": "home-assistant-map", "prefixes": ["/v1/records"],
+                    "restrictions": {"kinds": ["earthquake"], "bbox": [-100.5, 32.0, -91.5, 40.0]},
+                    "expiresAt": "2027-10-01T00:00:00Z"},
+  "updateRateLimits": {"read": 600, "tiles": 1200, "stream": {"opensPerMinute": 30, "concurrent": 8}, "expensive": 20,
+                       "write": 120, "anonymous": 120, "metricsPerMinute": None},
+  "updateOutboundSettings": {"allowHosts": ["ollama"], "allowCidrs": [], "denyHosts": [], "denyCidrs": ["192.168.50.0/24"]},
   "updateServerSettings": {"publicBaseUrl": "http://foresignal.local:8080", "timezone": "UTC",
                            "clientLinks": {"alert": "foresignal://alerts/{id}", "pair": "foresignal://pair?u={publicBaseUrl}&c={code}"},
                            "push": {"contact": "mailto:admin@localhost", "allowedPrivateHosts": [], "defaultLang": "en"}},
@@ -235,6 +244,7 @@ CAPTURE = {
   "listNotifications": "const j = pm.response.json(); if (j.items && j.items.length) pm.collectionVariables.set('notificationId', j.items[0].id);",
   "getNotification": "const j = pm.response.json(); if (j.actions && j.actions.length) pm.collectionVariables.set('actionToken', j.actions[0].url.split('/v1/actions/')[1]);",
   "createEscalationPolicy": "const j = pm.response.json(); pm.collectionVariables.set('escalationPolicyId', j.id);",
+  "createFeedKey": "const j = pm.response.json(); pm.collectionVariables.set('feedKeyId', j.id); console.log('New feed key URLs (shown once):', j.urls);",
   "listAlerts": "const j = pm.response.json(); if (j.items && j.items.length) pm.collectionVariables.set('alertId', j.items[0].id);",
   "listChanges": "const j = pm.response.json(); pm.collectionVariables.set('lastSeq', j.lastSeq);",
   "listRecords": "const j = pm.response.json(); const it = (j.items || j.features || [])[0]; if (it) { const ext = it.externalId || (it.properties && it.properties.externalId); pm.collectionVariables.set('externalId', ext); }\nif (j.nextCursor) pm.collectionVariables.set('cursor', j.nextCursor);",
@@ -274,6 +284,13 @@ VARIANTS = {
   "createToken": [
     ("restricted", {"name": "dashboard-kiosk", "scope": "read", "expiresAt": None,
                     "restrictions": {"endpoints": ["GET /v1/records/**", "GET /v1/tiles/**", "GET /v1/tiles.json"]}}),
+    ("data-restricted (035)", {"name": "family-phone", "scope": "read", "expiresAt": None,
+                               "restrictions": {"kinds": ["earthquake", "weather-alert"], "bbox": [-80.5, 43.0, -78.5, 44.5],
+                                                "maxRequestsPerMinute": 120}}),
+  ],
+  "updateSecuritySettings": [
+    ("anonymous profile (035)", {"openReads": True, "exposeObserver": False, "metricsOpen": False,
+                                 "anonymous": {"kinds": ["earthquake"], "maxRequestsPerMinute": 60}}),
   ],
   "createStreamTicket": [
     ("tiles", {"purpose": "tiles", "ttl": "10m"}),
@@ -488,7 +505,7 @@ collection = {
       ("lastSeq", "0"), ("cursor", ""), ("pairingCodeId", ""), ("pairingCode", ""), ("ticket", ""),
       ("ingestFormat", "alertmanager"), ("ntfyAction", "publish"), ("edpSourceId", "ext-hormuz-transits"), ("edpIngestKey", ""),
       ("registrationToken", ""), ("registrationTokenId", ""), ("pushProviderId", "ios-apns"), ("pushDeviceId", ""),
-      ("notificationId", ""), ("actionToken", ""), ("escalationPolicyId", ""),
+      ("notificationId", ""), ("actionToken", ""), ("escalationPolicyId", ""), ("feedKeyId", ""),
       ("tileLayer", "earthquake"), ("tileZ", "0"), ("tileX", "0"), ("tileY", "0")]],
 }
 env = {"id": str(uuid.uuid5(uuid.NAMESPACE_URL, "https://foresignal.ai/postman/env/local")), "name": "Foresignal — Local",

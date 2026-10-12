@@ -129,6 +129,10 @@ class PostmanCollectionContractTest {
             Map.entry("updateChannel", body -> channelParser().parse(body, Map.of())),
             Map.entry("updateSecuritySettings", SecuritySettingsService::parse),
             Map.entry("updateServerSettings", ServerSettingsService::parse),
+            // 035: the outbound URL policy overrides.
+            Map.entry("updateOutboundSettings", ai.foresignal.settings.OutboundSettingsService::parse),
+            // 035: the per-class rate limits.
+            Map.entry("updateRateLimits", ai.foresignal.security.ratelimit.RateLimitSettingsService::parse),
             Map.entry("updateCurrentTokenDevice", body -> device(body, "")),
             Map.entry("claimPairingCode", body -> {
                 device(body.get("device"), "device.");
@@ -334,9 +338,11 @@ class PostmanCollectionContractTest {
         // (no real key is ever committed); PushProvidersIT covers the parser with keys generated at test
         // time. testPushProvider's body is an optional device id.
         // 033: executeAction's body is empty (a form post or {}); nothing in it is read.
+        // 035: createFeedKey validates its restriction and prefixes against the registered sources and
+        // the spec operations, which need the application context; PathKeyFilterIT covers it.
         Set<String> schemaOnly = Set.of("createTrigger", "updateTrigger", "updateRetention", "importSettings",
                 "updateEventStreamFilter", "createToken", "createPairingCode", "ntfyPublish", "ntfyPublishPut",
-                "createRegistrationToken", "putPushProvider", "testPushProvider", "executeAction");
+                "createRegistrationToken", "putPushProvider", "testPushProvider", "executeAction", "createFeedKey");
         List<String> uncovered = OpenApiSpec.routes().stream()
                 .filter(SpecOperation::implemented)
                 .filter(op -> op.node().has("requestBody"))
@@ -377,7 +383,8 @@ class PostmanCollectionContractTest {
     }
 
     private static ChannelInputParser channelParser() {
-        return new ChannelInputParser(new ChannelTypeRegistry(CHANNEL_TYPES), DTO_JSON);
+        return new ChannelInputParser(new ChannelTypeRegistry(CHANNEL_TYPES), DTO_JSON,
+                ai.foresignal.testsupport.net.TestOutbound.offlinePolicy());
     }
 
     /** Parses a {@code DeviceInfo} with the production parser and fails on any error. */

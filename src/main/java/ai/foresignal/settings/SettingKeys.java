@@ -44,6 +44,12 @@ public final class SettingKeys {
     /** The embedding worker's durable cursor (prompt 027; the consumer clamp of retention). */
     public static final String EMBEDDING_CURSOR = "embedding.cursor";
 
+    /** Per-client rate-limit classes ({@code RateLimitSettings}, prompt 035). */
+    public static final String RATELIMITS = "ratelimits";
+
+    /** Outbound URL policy overrides ({@code OutboundSettings}, prompt 035). */
+    public static final String OUTBOUND = "outbound";
+
     /** This installation's generated identifier. */
     public static final String INSTALL_ID = "install.id";
 
@@ -53,7 +59,7 @@ public final class SettingKeys {
      */
     public static final List<String> ALL =
             List.of(RETENTION, CORS, TRIGGER_CURSOR, TRIGGERS, STREAM_LIMITS, SECURITY, SERVER, NOTIFICATIONS,
-                    WATCHDOG, INSTALL_ID, LLM, SEARCH_INDEX, EMBEDDING_CURSOR);
+                    WATCHDOG, INSTALL_ID, LLM, SEARCH_INDEX, EMBEDDING_CURSOR, RATELIMITS, OUTBOUND);
 
     private SettingKeys() {}
 }

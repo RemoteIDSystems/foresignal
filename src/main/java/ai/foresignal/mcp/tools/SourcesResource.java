@@ -6,6 +6,7 @@ import ai.foresignal.mcp.ToolContext;
 import org.springframework.stereotype.Component;
 
 /** The resource {@code foresignal://sources}: the sources the caller may see, as {@code list_sources} short. */
+@ai.foresignal.security.restrict.RestrictedRead
 @Component
 public class SourcesResource implements ForesignalMcpResource {
 

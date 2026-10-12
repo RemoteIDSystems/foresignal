@@ -21,6 +21,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import ai.foresignal.security.restrict.ReadRestriction;
+import ai.foresignal.security.restrict.RestrictionClamp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -126,6 +128,16 @@ public class SearchService {
      * @throws LlmBudgetExceededException when {@code mode=semantic} and the budget refuses the query
      */
     public Map<String, Object> search(SearchRequest request, Set<String> excludedSources) {
+        return search(request, excludedSources, ReadRestriction.NONE);
+    }
+
+    /**
+     * {@link #search(SearchRequest, Set)} clamped to {@code restriction} (prompt 035): documents
+     * outside its sources, kinds or region are never returned; documents without a source (briefing
+     * runs and the like) are hidden from a principal with data restrictions.
+     */
+    public Map<String, Object> search(SearchRequest request, Set<String> excludedSources, ReadRestriction restriction) {
+        ReadRestriction r = restriction == null ? ReadRestriction.NONE : restriction;
         SearchRequest.Mode mode = request.mode();
         int fetch = mode == SearchRequest.Mode.HYBRID ? Math.min(2 * request.limit(), 2 * SearchRequest.MAX_LIMIT)
                 : request.limit();
@@ -142,7 +154,7 @@ public class SearchService {
                 reason = availability.reason();
             } else {
                 try {
-                    semantic = semantic(request, excludedSources, availability.state(), fetch);
+                    semantic = semantic(request, excludedSources, r, availability.state(), fetch);
                     status.recovered();
                 } catch (LlmBudgetExceededException e) {
                     if (mode == SearchRequest.Mode.SEMANTIC) {
@@ -168,18 +180,18 @@ public class SearchService {
         }
         List<Hit> hits;
         if (semantic == null) {
-            hits = text(request, excludedSources, request.limit());
+            hits = text(request, excludedSources, r, request.limit());
         } else if (mode == SearchRequest.Mode.SEMANTIC) {
             hits = semantic;
         } else {
-            hits = fuse(text(request, excludedSources, fetch), semantic);
+            hits = fuse(text(request, excludedSources, r, fetch), semantic);
         }
         if (hits.size() > request.limit()) {
             hits = new ArrayList<>(hits.subList(0, request.limit()));
         }
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("mode", mode.wireValue());
-        out.put("items", render(hits, excludedSources));
+        out.put("items", render(hits, excludedSources, r));
         out.put("degraded", degraded);
         if (reason != null) {
             out.put("reason", reason);
@@ -189,7 +201,8 @@ public class SearchService {
 
     // ------------------------------------------------------------------------- semantic
 
-    private List<Hit> semantic(SearchRequest request, Set<String> excluded, SearchIndexState state, int fetch) {
+    private List<Hit> semantic(SearchRequest request, Set<String> excluded, ReadRestriction r, SearchIndexState state,
+            int fetch) {
         float[] query = indexer.embed(state.activeSpec(), List.of(request.q())).getFirst();
         VectorSlot slot = state.activeSlot();
         String literal = EmbeddingStore.literal(query);
@@ -200,7 +213,7 @@ public class SearchService {
             List<String> where = new ArrayList<>();
             where.add("d." + slot.modelColumn() + " = " + p.text(state.activeModelId()));
             where.add("d." + slot.embeddingColumn() + " IS NOT NULL");
-            where.addAll(docFilters(request, excluded, p));
+            where.addAll(docFilters(request, excluded, r, p));
             String sql = "SELECT " + DOC_COLUMNS + ", d." + slot.embeddingColumn() + " <=> " + vector + " AS distance"
                     + " FROM embedding_document d WHERE " + String.join(" AND ", where)
                     + " ORDER BY d." + slot.embeddingColumn() + " <=> " + vector + " LIMIT " + fetch;
@@ -214,13 +227,13 @@ public class SearchService {
 
     // ------------------------------------------------------------------------- text
 
-    private List<Hit> text(SearchRequest request, Set<String> excluded, int fetch) {
+    private List<Hit> text(SearchRequest request, Set<String> excluded, ReadRestriction r, int fetch) {
         return runner.read(jdbc -> {
-            List<Hit> hits = new ArrayList<>(textDocuments(jdbc, request, excluded, fetch));
+            List<Hit> hits = new ArrayList<>(textDocuments(jdbc, request, excluded, r, fetch));
             if (request.includesRecords() && hits.size() < fetch) {
                 Set<String> seen = new LinkedHashSet<>();
                 hits.forEach(h -> seen.add(h.key()));
-                for (Hit hit : textHeads(jdbc, request, excluded, fetch)) {
+                for (Hit hit : textHeads(jdbc, request, excluded, r, fetch)) {
                     if (hits.size() >= fetch) {
                         break;
                     }
@@ -234,12 +247,13 @@ public class SearchService {
     }
 
     private List<Hit> textDocuments(NamedParameterJdbcTemplate jdbc, SearchRequest request, Set<String> excluded,
+            ReadRestriction r,
             int fetch) {
         SqlParams p = new SqlParams();
         String q = p.text(request.q());
         List<String> where = new ArrayList<>();
         where.add("d.tsv @@ query");
-        where.addAll(docFilters(request, excluded, p));
+        where.addAll(docFilters(request, excluded, r, p));
         String sql = "SELECT " + DOC_COLUMNS + ", ts_rank_cd(d.tsv, query) AS rank,"
                 + " ts_headline('simple', d.text, query, '" + HEADLINE_OPTIONS + "') AS snippet"
                 + " FROM embedding_document d, websearch_to_tsquery('simple', " + q + ") query"
@@ -254,6 +268,7 @@ public class SearchService {
 
     /** {@code record_head.search_text ILIKE} matches of records without a document. */
     private List<Hit> textHeads(NamedParameterJdbcTemplate jdbc, SearchRequest request, Set<String> excluded,
+            ReadRestriction r,
             int fetch) {
         SqlParams p = new SqlParams();
         String time = request.observedAxis() ? "h.persisted_observed_at"
@@ -272,6 +287,7 @@ public class SearchService {
         if (!excluded.isEmpty()) {
             where.add("NOT (h.source_id = ANY(" + p.textArray(excluded) + "))");
         }
+        RestrictionClamp.addTo(where, "h.source_id", "h.kind", "l.geom", r, p);
         if (request.bbox() != null) {
             where.add(RecordQueryService.bboxClause("l.geom", request.bbox(), p));
         }
@@ -317,7 +333,8 @@ public class SearchService {
         return out;
     }
 
-    private static List<String> docFilters(SearchRequest request, Set<String> excluded, SqlParams p) {
+    private static List<String> docFilters(SearchRequest request, Set<String> excluded, ReadRestriction r,
+            SqlParams p) {
         List<String> where = new ArrayList<>();
         if (!request.docTypes().isEmpty()) {
             where.add("d.doc_type = ANY(" + p.textArray(request.docTypes()) + ")");
@@ -330,6 +347,10 @@ public class SearchService {
         }
         if (!excluded.isEmpty()) {
             where.add("(d.source_id IS NULL OR NOT (d.source_id = ANY(" + p.textArray(excluded) + ")))");
+        }
+        if (r.hasDataRestrictions()) {
+            where.add("d.source_id IS NOT NULL");
+            RestrictionClamp.addTo(where, "d", r, p);
         }
         if (request.bbox() != null) {
             where.add(RecordQueryService.bboxClause("d.geom", request.bbox(), p));
@@ -355,7 +376,7 @@ public class SearchService {
 
     // ------------------------------------------------------------------------- rendering
 
-    private List<Map<String, Object>> render(List<Hit> hits, Set<String> excluded) {
+    private List<Map<String, Object>> render(List<Hit> hits, Set<String> excluded, ReadRestriction r) {
         List<Map.Entry<String, String>> keys = new ArrayList<>();
         for (Hit hit : hits) {
             if (DocInput.RECORD.equals(hit.docType) && hit.sourceId != null
@@ -363,7 +384,7 @@ public class SearchService {
                 keys.add(Map.entry(hit.sourceId, hit.docId.substring(hit.sourceId.length() + 1)));
             }
         }
-        Map<String, RecordRow> current = keys.isEmpty() ? Map.of() : records.currentByKeys(keys, excluded);
+        Map<String, RecordRow> current = keys.isEmpty() ? Map.of() : records.currentByKeys(keys, excluded, r);
         List<Map<String, Object>> items = new ArrayList<>(hits.size());
         for (Hit hit : hits) {
             RecordRow row = current.get(hit.docId);

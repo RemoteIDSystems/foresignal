@@ -9,7 +9,7 @@ import ai.foresignal.api.support.ReadCaller;
 import ai.foresignal.config.ForesignalVersion;
 import ai.foresignal.mcp.tools.SituationReportPrompt;
 import ai.foresignal.security.AuthenticatedToken;
-import ai.foresignal.security.FailClosedRestrictionEnforcer;
+import ai.foresignal.security.ClampedRestrictionEnforcer;
 import ai.foresignal.security.Scope;
 import ai.foresignal.security.TokenRestrictions;
 import ai.foresignal.security.audit.AuditService;
@@ -70,7 +70,7 @@ class McpProtocolTest {
         sessions = new McpSessions(Clock.systemUTC());
         McpToolRegistry registry = new McpToolRegistry(List.of(McpTestTools.costBearing(), McpTestTools.image()),
                 new DefaultJsonSchemaValidator(json), json, mock(AuditService.class),
-                new FailClosedRestrictionEnforcer(), Clock.systemUTC());
+                new ClampedRestrictionEnforcer(), Clock.systemUTC());
         ForesignalVersion version = mock(ForesignalVersion.class);
         when(version.version()).thenReturn("1.2.3");
         protocol = new McpProtocol(registry, List.of(secret), List.of(new SituationReportPrompt()), sessions,

@@ -29,6 +29,7 @@ import tools.jackson.databind.JsonNode;
  * {@code get_record_history} (read): a record's persisted versions in seq order, as
  * {@code listRecordVersions}, each with its {@code persistReason}.
  */
+@ai.foresignal.security.restrict.RestrictedRead
 @Component
 public class GetRecordHistoryTool implements ForesignalMcpTool {
 
@@ -96,7 +97,7 @@ public class GetRecordHistoryTool implements ForesignalMcpTool {
         Instant until = McpArgs.instant(args, "until");
         int limit = McpArgs.integer(args, "limit", 20);
         Slices.VersionSlice slice = queries.versions(source, externalId, since, until, null, limit, false,
-                        context.excludedSources())
+                        context.excludedSources(), context.restriction())
                 .orElseThrow(() -> new McpToolException("No record " + source + ":" + externalId + "."));
         return ToolResult.json(shaper.list(items.items(slice.rows(), RecordMapper.Shape.VERSION, detail),
                 slice.rows().size(), slice.nextCursor() != null, detail, null));

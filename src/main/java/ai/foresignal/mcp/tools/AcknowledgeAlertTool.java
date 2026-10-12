@@ -25,6 +25,7 @@ import tools.jackson.databind.node.ObjectNode;
  * {@code acknowledge_alert} (agent): acknowledges an alert, with an optional note and feedback, as
  * {@code acknowledgeAlert}; idempotent, and a no-op on a resolved alert.
  */
+@ai.foresignal.security.restrict.RestrictedRead
 @Component
 public class AcknowledgeAlertTool implements ForesignalMcpTool {
 
@@ -87,7 +88,7 @@ public class AcknowledgeAlertTool implements ForesignalMcpTool {
     @Override
     public ToolResult call(ToolContext context, JsonNode args) {
         long id = McpArgs.requiredLong(args, "alertId");
-        items.visible(id, context.excludedSources());
+        items.visible(id, context.excludedSources(), context.restriction());
         AlertService.Transition transition = AlertService.transition(transitionBody(json, args), false);
         AlertView alert = alerts.acknowledge(id, transition, context.actor());
         return ToolResult.json(shaper.object(items.item(alert, Detail.SHORT), Detail.SHORT));

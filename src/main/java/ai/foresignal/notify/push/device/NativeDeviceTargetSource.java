@@ -42,6 +42,13 @@ public class NativeDeviceTargetSource implements PushTargetSource {
     private final PushProviderRepository providers;
     private final CredentialCipher cipher;
     private final NamedParameterJdbcTemplate jdbc;
+    private volatile ai.foresignal.notify.push.PushRestrictionGate gate;
+
+    /** The read-restriction gate (prompt 035); optional so slices without it still fan out. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    void setRestrictionGate(ai.foresignal.notify.push.PushRestrictionGate gate) {
+        this.gate = gate;
+    }
 
     /** Creates the source. */
     public NativeDeviceTargetSource(PushDeviceRepository devices, PushProviderRepository providers,
@@ -63,7 +70,8 @@ public class NativeDeviceTargetSource implements PushTargetSource {
                 .filter(p -> p.isEnabled() && p.hasSecret()).toList();
         List<PushTarget> out = new ArrayList<>();
         for (PushDeviceEntity row : devices.findByStatusOrderByCreatedAtAsc(PushDeviceService.ACTIVE)) {
-            if (!served(row, enabled) || !PushFilters.fromMap(row.getFilters()).matches(message)) {
+            if (!served(row, enabled) || !PushFilters.fromMap(row.getFilters()).matches(message)
+                    || (gate != null && !gate.allows(row.getTokenId(), message))) {
                 continue;
             }
             target(row).ifPresent(out::add);

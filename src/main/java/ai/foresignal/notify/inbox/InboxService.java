@@ -1,5 +1,8 @@
 package ai.foresignal.notify.inbox;
 
+import ai.foresignal.security.restrict.ReadRestriction;
+import ai.foresignal.security.restrict.RestrictionClamp;
+
 import ai.foresignal.api.error.FieldError;
 import ai.foresignal.api.error.NotFoundException;
 import ai.foresignal.api.error.ValidationException;
@@ -185,9 +188,15 @@ public class InboxService {
 
     /** One page for {@code deviceKey}, newest first (keyset on id; fetch {@code limit + 1} to page). */
     public List<Item> list(String deviceKey, Query query, Set<String> excludedSources) {
+        return list(deviceKey, query, excludedSources, ReadRestriction.NONE);
+    }
+
+    /** {@link #list(String, Query, Set)} under {@code restriction} (prompt 035). */
+    public List<Item> list(String deviceKey, Query query, Set<String> excludedSources, ReadRestriction restriction) {
         MapSqlParameterSource p = new MapSqlParameterSource("device", deviceKey);
         List<String> where = baseWhere(p);
         exclude(where, p, excludedSources);
+        restrict(where, p, restriction);
         if (query.after() != null) {
             where.add("n.id > :after");
             p.addValue("after", query.after());
@@ -214,10 +223,17 @@ public class InboxService {
 
     /** Items after {@code afterId}, oldest first, at most {@code limit} (the stream replay). */
     public List<Item> after(String deviceKey, long afterId, int limit, Set<String> excludedSources) {
+        return after(deviceKey, afterId, limit, excludedSources, ReadRestriction.NONE);
+    }
+
+    /** {@link #after(String, long, int, Set)} under {@code restriction} (prompt 035). */
+    public List<Item> after(String deviceKey, long afterId, int limit, Set<String> excludedSources,
+            ReadRestriction restriction) {
         MapSqlParameterSource p = new MapSqlParameterSource("device", deviceKey).addValue("after", afterId)
                 .addValue("limit", limit);
         List<String> where = baseWhere(p);
         exclude(where, p, excludedSources);
+        restrict(where, p, restriction);
         where.add("n.id > :after");
         return jdbc.query("select " + COLUMNS + FROM + " where " + String.join(" and ", where)
                 + " order by n.id limit :limit", p, this::item);
@@ -229,9 +245,15 @@ public class InboxService {
      * @throws NotFoundException when it is not in the inbox
      */
     public Item get(String deviceKey, long id, Set<String> excludedSources) {
+        return get(deviceKey, id, excludedSources, ReadRestriction.NONE);
+    }
+
+    /** {@link #get(String, long, Set)} under {@code restriction}: outside it is 404 (prompt 035). */
+    public Item get(String deviceKey, long id, Set<String> excludedSources, ReadRestriction restriction) {
         MapSqlParameterSource p = new MapSqlParameterSource("device", deviceKey).addValue("id", id);
         List<String> where = baseWhere(p);
         exclude(where, p, excludedSources);
+        restrict(where, p, restriction);
         where.add("n.id = :id");
         List<Item> rows = jdbc.query("select " + COLUMNS + FROM + " where " + String.join(" and ", where), p,
                 this::item);
@@ -239,6 +261,13 @@ public class InboxService {
             throw NotFoundException.of("Notification", id);
         }
         return rows.getFirst();
+    }
+
+    /** The record snapshot (JSON text) of alert {@code alertId}, or null (restricted streams, prompt 035). */
+    public String alertSnapshot(long alertId) {
+        List<String> rows = jdbc.queryForList("select record_snapshot::text from alert where id = :id",
+                new MapSqlParameterSource("id", alertId), String.class);
+        return rows.isEmpty() ? null : rows.getFirst();
     }
 
     /** The newest inbox notification id, 0 for none. */
@@ -250,8 +279,18 @@ public class InboxService {
 
     /** The badge of {@code deviceKey}. */
     public Badge badge(String deviceKey) {
+        return badge(deviceKey, Set.of(), ReadRestriction.NONE);
+    }
+
+    /**
+     * The badge of {@code deviceKey}, counting only what the caller may see: notifications about
+     * sources outside {@code excludedSources} and inside {@code restriction} (prompt 035).
+     */
+    public Badge badge(String deviceKey, Set<String> excludedSources, ReadRestriction restriction) {
         MapSqlParameterSource p = new MapSqlParameterSource("device", deviceKey);
         List<String> where = baseWhere(p);
+        exclude(where, p, excludedSources);
+        restrict(where, p, restriction);
         where.add("(n.event = 'system' or (n.event = 'alert' and n.subtype = 'alert.fired' and a.state = 'firing'))");
         where.add("not (n.id <= coalesce(c.read_up_to_id, 0) or r.notification_id is not null)");
         Map<String, Object> counts = jdbc.queryForMap("select count(*) as unread,"
@@ -413,6 +452,20 @@ public class InboxService {
         where.add("n.created_at >= :horizon");
         p.addValue("horizon", Timestamp.from(clock.instant().minus(retention.settings().inbox())));
         return where;
+    }
+
+    /**
+     * Applies a read restriction (prompt 035): only alert notifications whose alert passes it
+     * (source, kind and the record snapshot's geometry); briefing and system notifications are hidden
+     * from a principal with data restrictions (fail closed).
+     */
+    private static void restrict(List<String> where, MapSqlParameterSource p, ReadRestriction restriction) {
+        if (restriction == null || !restriction.hasDataRestrictions()) {
+            return;
+        }
+        where.add("n.alert_id is not null");
+        RestrictionClamp.sqlPredicate("a.source_id", "a.kind", RestrictionClamp.ALERT_GEOMETRY_SQL, restriction, p,
+                "restrict").ifPresent(where::add);
     }
 
     /** Hides notifications about sources the caller may not see (private sources, 023/039). */

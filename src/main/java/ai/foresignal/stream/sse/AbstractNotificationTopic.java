@@ -30,10 +30,20 @@ abstract class AbstractNotificationTopic implements EventTopic<NotificationFilte
 
     private final NotificationBus bus;
     private final SourceRegistry registry;
+    private volatile ai.foresignal.trigger.AlertStore alerts;
 
     AbstractNotificationTopic(NotificationBus bus, SourceRegistry registry) {
         this.bus = bus;
         this.registry = registry;
+    }
+
+    /**
+     * The alert store, for the record snapshot of alert notifications under a spatial restriction
+     * (prompt 035). Optional so the topic still works in slices without the trigger engine.
+     */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    void setAlertStore(ai.foresignal.trigger.AlertStore alerts) {
+        this.alerts = alerts;
     }
 
     /** The SSE event name. */
@@ -57,7 +67,7 @@ abstract class AbstractNotificationTopic implements EventTopic<NotificationFilte
 
     @Override
     public NotificationFilter parseQuery(TopicParams params, StreamPrincipal principal) {
-        return new NotificationFilter(excludedSources(principal));
+        return filter(principal);
     }
 
     @Override
@@ -65,12 +75,22 @@ abstract class AbstractNotificationTopic implements EventTopic<NotificationFilte
         if (block != null && !block.isNull() && !block.isObject()) {
             throw ValidationException.forField(name(), "must be an object");
         }
-        return new NotificationFilter(excludedSources(principal));
+        return filter(principal);
+    }
+
+    /** The filter of {@code principal}: private sources hidden, its restriction applied (prompt 035). */
+    private NotificationFilter filter(StreamPrincipal principal) {
+        return new NotificationFilter(excludedSources(principal), principal.restriction(), id -> {
+            ai.foresignal.trigger.AlertStore store = alerts;
+            return store == null ? null : store.find(id).map(a -> a.recordSnapshot()).orElse(null);
+        });
     }
 
     private Set<String> excludedSources(StreamPrincipal principal) {
         // Private sources: agent and admin tokens only (SourceVisibilityGate, prompt 023).
-        return SourceVisibilityGate.excludedSources(registry, principal.scope(), TokenRestrictions.NONE);
+        return ai.foresignal.api.support.ReadCallerResolver.withRestriction(registry,
+                SourceVisibilityGate.excludedSources(registry, principal.scope(), TokenRestrictions.NONE),
+                principal.restriction());
     }
 
     @Override

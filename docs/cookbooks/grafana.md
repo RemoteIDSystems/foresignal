@@ -13,7 +13,14 @@ annotations). Artifacts in [`integrations/grafana/`](../../integrations/grafana/
 | `docker-compose.grafana.yml` | Optional override adding Prometheus and Grafana to the stack |
 
 **Token scope:** a **read** token, stored in Grafana's `secureJsonData` for the Infinity data
-source. Prometheus needs no token (see the warning below).
+source; give it a restriction (`sources`, `kinds`, `bbox` or `area`) when the dashboards need only
+part of the data. Prometheus needs no token while `security.metricsOpen` is on (see the warning
+below).
+
+**With `openReads` off and no headers.** Infinity sends the bearer token, so it needs nothing else.
+A panel or tool that cannot send headers (an image renderer, a static GeoJSON layer) can read
+through a feed key instead: `POST /v1/feed-keys` with `prefixes: ["/v1/records"]` and a
+restriction, then use `http://foresignal:8080/v1/k/fsf_your_feed_key/records?format=geojson`.
 
 **URLs used:** `/actuator/prometheus` (scraped by Prometheus), `/v1/records` (`format=geojson`),
 `/v1/alerts`, `/v1/system` (the Infinity health check).
@@ -49,9 +56,12 @@ With an existing Grafana, copy the provisioning files and dashboards instead, an
 - **Prometheus** (`uid: foresignal-prometheus`) reads a Prometheus that scrapes
   `/actuator/prometheus` every 30 s.
 
-  **`/actuator/prometheus` is unauthenticated.** Scrape it only over an internal network: the
-  override publishes no Prometheus port, and the broker's own port stays on `127.0.0.1` by default.
-  If the broker is published on the LAN, block `/actuator/prometheus` at the reverse proxy.
+  **`/actuator/prometheus` is unauthenticated while `security.metricsOpen` is on (the default).**
+  Scrape it only over an internal network: the override publishes no Prometheus port, and the
+  broker's own port stays on `127.0.0.1` by default. If the broker is published on the LAN, set
+  `metricsOpen: false` (`PUT /v1/settings/security`), after which a scrape needs an admin token
+  (`authorization: {credentials_file: …}` in `prometheus.yml`), or block `/actuator/prometheus` at
+  the reverse proxy. `metricsPerMinute` (`PUT /v1/settings/ratelimits`) limits scrapes per IP.
 - **Infinity** (`uid: foresignal-infinity`) calls the REST API with `auth_method: bearerToken` and
   the read token in `secureJsonData.bearerToken` (from `$FORESIGNAL_GRAFANA_TOKEN`). `allowedHosts`
   lists only the broker, so a dashboard cannot send the token anywhere else.

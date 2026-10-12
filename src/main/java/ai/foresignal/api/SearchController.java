@@ -61,6 +61,7 @@ public class SearchController {
     /** {@code search}: text, semantic or hybrid search over records, briefings and alerts. */
     @GetMapping("/v1/search")
     @Operation(operationId = "search", tags = "Search")
+    @ai.foresignal.security.restrict.RestrictedRead
     public Map<String, Object> search(
             @RequestParam(required = false) String q,
             @RequestParam(required = false) String mode,
@@ -92,17 +93,18 @@ public class SearchController {
             throw ValidationException.forField("until", "must be after since");
         }
         Set<String> excluded = callers.excludedSources(request);
+        Set<String> hidden = callers.hiddenSources(callers.resolve(request));
         List<String> sources = QueryParams.multi("source", source);
         for (String id : sources) {
             registry.descriptor(id);
-            if (excluded.contains(id)) {
+            if (hidden.contains(id)) {
                 throw NotFoundException.of("Source", id);
             }
         }
         SearchRequest query = new SearchRequest(q.strip(), SearchRequest.Mode.of(modeValue), types, sources,
                 QueryParams.multi("kind", kind), BboxParser.parse(bbox), sinceAt, untilAt, "observed".equals(axis),
                 size);
-        return search.search(query, excluded);
+        return search.search(query, excluded, callers.restriction(request));
     }
 
     /** {@code getSearchStatus}. */

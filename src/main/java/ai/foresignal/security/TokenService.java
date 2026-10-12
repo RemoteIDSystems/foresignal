@@ -152,6 +152,12 @@ public class TokenService {
         if (!errors.isEmpty()) {
             throw new ValidationException(ErrorCodes.VALIDATION_FAILED, "The token input is not valid.", errors);
         }
+        if (scope == Scope.ADMIN && !parsed.isEmpty()) {
+            // An admin token can mint an unrestricted token anyway, so a restriction would be theater (035).
+            throw new ValidationException(ErrorCodes.RESTRICTION_NOT_ALLOWED,
+                    "Restrictions cannot be set on an admin token.",
+                    List.of(new FieldError("restrictions", "is not allowed on an admin token")));
+        }
         return create(new TokenSpec(name, scope, expiresAt, parsed, null, TokenCreatedVia.API, principalId));
     }
 
@@ -180,7 +186,7 @@ public class TokenService {
     /** Every token, newest first. */
     @Transactional(readOnly = true)
     public List<ApiTokenEntity> list() {
-        return tokens.findAllByOrderByCreatedAtDesc();
+        return tokens.findAllByOrderByCreatedAtDesc().stream().filter(t -> !t.isFeedKey()).toList();
     }
 
     /**
@@ -190,7 +196,7 @@ public class TokenService {
      */
     @Transactional(readOnly = true)
     public ApiTokenEntity get(UUID id) {
-        return tokens.findById(id).orElseThrow(() -> NotFoundException.of("Token", id));
+        return tokens.findById(id).filter(t -> !t.isFeedKey()).orElseThrow(() -> NotFoundException.of("Token", id));
     }
 
     /**
@@ -199,7 +205,8 @@ public class TokenService {
      */
     @Transactional(readOnly = true)
     public Optional<AuthenticatedToken> current(UUID id) {
-        return tokens.findById(id).filter(t -> t.isActive(clock.instant())).map(AuthenticatedToken::of);
+        return tokens.findById(id).filter(t -> !t.isFeedKey() && t.isActive(clock.instant()))
+                .map(AuthenticatedToken::of);
     }
 
     /** The handle of principal {@code principalId}, or null. */
@@ -219,7 +226,8 @@ public class TokenService {
      */
     @Transactional
     public void revoke(UUID id) {
-        ApiTokenEntity entity = tokens.findById(id).orElseThrow(() -> NotFoundException.of("Token", id));
+        ApiTokenEntity entity = tokens.findById(id).filter(t -> !t.isFeedKey())
+                .orElseThrow(() -> NotFoundException.of("Token", id));
         if (entity.isBootstrap()) {
             throw new ConflictException(ErrorCodes.BOOTSTRAP_TOKEN,
                     "The bootstrap admin token cannot be revoked. Rotate it with POST /v1/system/admin-token/rotate.");
@@ -251,7 +259,8 @@ public class TokenService {
             return Optional.empty();
         }
         ApiTokenEntity entity = found.get();
-        if (!hasher.matches(presented, entity.getTokenHash()) || !entity.isActive(clock.instant())) {
+        if (!hasher.matches(presented, entity.getTokenHash()) || entity.isFeedKey()
+                || !entity.isActive(clock.instant())) {
             return Optional.empty();
         }
         recordUse(entity.getId());

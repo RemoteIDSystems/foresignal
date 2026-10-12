@@ -67,6 +67,7 @@ public class McpToolRegistry {
     private final JsonMapper json;
     private final AuditService audit;
     private final RestrictionEnforcer restrictions;
+    private volatile ai.foresignal.security.ratelimit.ClientRateLimiter rateLimiter;
     private final Clock clock;
 
     /**
@@ -183,6 +184,8 @@ public class McpToolRegistry {
         }
         AuthenticatedToken token = caller.token();
         if (required == Scope.READ && token.restrictions().hasDataRestrictions()) {
+            // From 035 the enforcer refuses nothing: the tools clamp their reads to the caller's
+            // restriction through ToolContext.restriction() (RestrictionClamp).
             return restrictions.check(HttpMethod.GET, "/v1/records", AccessRequirement.READ, token)
                     .map(RestrictionEnforcer.Refusal::detail);
         }
@@ -213,6 +216,11 @@ public class McpToolRegistry {
                 outcome = "denied";
                 return toResult(tool, ToolResult.error(denied.get()));
             }
+            Optional<String> limited = rateLimited(tool, context.caller());
+            if (limited.isPresent()) {
+                outcome = "rate_limited";
+                return toResult(tool, ToolResult.error(limited.get()));
+            }
             Map<String, Object> args = arguments == null ? Map.of() : arguments;
             JsonSchemaValidator.ValidationResponse validation = validator.validate(tool.inputSchema(), args);
             if (!validation.valid()) {
@@ -240,6 +248,34 @@ public class McpToolRegistry {
         } finally {
             audit(name, argumentNames, context, outcome, (System.nanoTime() - started) / 1_000_000L);
         }
+    }
+
+    /**
+     * The per-client rate limiter (prompt 035), optional so slices and unit tests without it work.
+     * LLM-backed (cost-bearing) tools are charged to its {@code expensive} class.
+     */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setRateLimiter(ai.foresignal.security.ratelimit.ClientRateLimiter rateLimiter) {
+        this.rateLimiter = rateLimiter;
+    }
+
+    /**
+     * Why a call of {@code tool} is refused by the {@code expensive} rate-limit class, or empty when
+     * it may run: only cost-bearing tools are charged, keyed by token, else by client address.
+     */
+    Optional<String> rateLimited(ForesignalMcpTool tool, McpCaller caller) {
+        ai.foresignal.security.ratelimit.ClientRateLimiter limiter = rateLimiter;
+        if (limiter == null || !tool.costBearing()) {
+            return Optional.empty();
+        }
+        String key = caller.anonymous() ? "ip:" + caller.remoteIp() : "token:" + caller.token().id();
+        ai.foresignal.security.ratelimit.ClientRateLimiter.Decision decision =
+                limiter.tryConsume(key, ai.foresignal.security.ratelimit.RateClass.EXPENSIVE);
+        if (decision.allowed()) {
+            return Optional.empty();
+        }
+        return Optional.of("The tool " + tool.name() + " is rate limited (RATE_LIMITED): too many LLM-backed calls;"
+                + " retry after " + decision.retryAfterSeconds() + " s.");
     }
 
     /** The agent-facing text of a service exception: its detail, code and field errors. */

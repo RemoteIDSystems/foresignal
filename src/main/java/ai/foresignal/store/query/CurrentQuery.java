@@ -8,6 +8,7 @@ import ai.foresignal.api.support.TimeField;
 import java.time.Instant;
 import java.util.List;
 import java.util.Set;
+import ai.foresignal.security.restrict.ReadRestriction;
 
 /**
  * A current-state listing over {@code record_head ⋈ record_live} (Core-Data-Model §12).
@@ -31,6 +32,8 @@ import java.util.Set;
  * @param encoding geometry text encoding
  * @param includeObserver read observers from the head's version
  * @param excludedSources sources the caller may not see (private sources for anonymous callers)
+ * @param restriction the caller's read restriction, ANDed into the SQL by {@code RestrictionClamp}
+ *     (prompt 035; never null)
  */
 public record CurrentQuery(
         List<String> sources,
@@ -51,7 +54,17 @@ public record CurrentQuery(
         GeometryOptions geometry,
         GeometryEncoding encoding,
         boolean includeObserver,
-        Set<String> excludedSources) {
+        Set<String> excludedSources,
+        ReadRestriction restriction) {
+
+    /** An unrestricted query (the shape before prompt 035). */
+    public CurrentQuery(List<String> sources, List<String> kinds, List<String> externalIds, BboxFilter bbox,
+            NearFilter near, Instant since, Instant until, TimeField timeField, String text, boolean includeExpired,
+            ListOrder order, Long asOfSeq, String cursor, int limit, FieldSelection fields, GeometryOptions geometry,
+            GeometryEncoding encoding, boolean includeObserver, Set<String> excludedSources) {
+        this(sources, kinds, externalIds, bbox, near, since, until, timeField, text, includeExpired, order, asOfSeq,
+                cursor, limit, fields, geometry, encoding, includeObserver, excludedSources, ReadRestriction.NONE);
+    }
 
     /** Normalizes nulls. */
     public CurrentQuery {
@@ -64,6 +77,13 @@ public record CurrentQuery(
         geometry = geometry == null ? GeometryOptions.DEFAULT : geometry;
         encoding = encoding == null ? GeometryEncoding.GEOJSON : encoding;
         excludedSources = excludedSources == null ? Set.of() : Set.copyOf(excludedSources);
+        restriction = restriction == null ? ReadRestriction.NONE : restriction;
+    }
+
+    /** This query under {@code r} (see {@code RestrictionClamp}). */
+    public CurrentQuery withRestriction(ReadRestriction r) {
+        return new CurrentQuery(sources, kinds, externalIds, bbox, near, since, until, timeField, text, includeExpired,
+                order, asOfSeq, cursor, limit, fields, geometry, encoding, includeObserver, excludedSources, r);
     }
 
     /** True when the listing is pinned to a snapshot seq ({@code asOfSeq} or {@code order=id}). */
@@ -77,6 +97,6 @@ public record CurrentQuery(
                 "records", String.join(",", sources), String.join(",", kinds), String.join(",", externalIds),
                 bbox == null ? "" : bbox.canonical(), near == null ? "" : near.canonical(),
                 String.valueOf(since), String.valueOf(until), timeField.name(), text == null ? "" : text,
-                String.valueOf(includeExpired), order.name(), String.valueOf(asOfSeq));
+                String.valueOf(includeExpired), order.name(), String.valueOf(asOfSeq), restriction.canonical());
     }
 }

@@ -28,6 +28,11 @@ public record ToolContext(McpCaller caller, String sessionId, String transport) 
         return caller.excludedSources();
     }
 
+    /** The caller's read restriction (prompt 035): tools pass it to the services they read through. */
+    public ai.foresignal.security.restrict.ReadRestriction restriction() {
+        return caller.restriction();
+    }
+
     /** The actor recorded on writes. */
     public String actor() {
         return caller.actor();

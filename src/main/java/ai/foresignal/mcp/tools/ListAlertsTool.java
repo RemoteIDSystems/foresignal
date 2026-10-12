@@ -31,6 +31,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;
 
 /** {@code list_alerts} (read): alerts newest first, filtered as {@code listAlerts}. */
+@ai.foresignal.security.restrict.RestrictedRead
 @Component
 public class ListAlertsTool implements ForesignalMcpTool {
 
@@ -100,7 +101,7 @@ public class ListAlertsTool implements ForesignalMcpTool {
         int limit = McpArgs.integer(args, "limit", 20);
         AlertQuery query = new AlertQuery(rule == null ? Set.of() : Set.of(rule), McpArgs.strings(args, "source"),
                 List.of(), McpArgs.instant(args, "since"), null, McpArgs.strings(args, "status"), List.of(),
-                severity == null ? null : Severity.fromWire(severity), null, false, context.excludedSources());
+                severity == null ? null : Severity.fromWire(severity), null, false, context.excludedSources(), context.restriction());
         List<AlertView> page = alerts.list(query, null, limit + 1);
         boolean more = page.size() > limit;
         List<ObjectNode> out = page.stream().limit(limit).map(alert -> items.item(alert, detail)).toList();

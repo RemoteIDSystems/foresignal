@@ -1,5 +1,8 @@
 package ai.foresignal.notify;
 
+import ai.foresignal.net.OutboundUrlDeniedException;
+import ai.foresignal.net.OutboundUrlPolicy;
+import ai.foresignal.net.PinnedHttp;
 import jakarta.mail.internet.MimeMessage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -16,7 +19,6 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.StringJoiner;
 import java.util.UUID;
-import java.util.concurrent.Executors;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Component;
@@ -24,14 +26,22 @@ import org.springframework.stereotype.Component;
 /**
  * Sends a {@link PreparedRequest} (prompt 018).
  *
- * <p>HTTP goes through one dedicated {@link HttpClient} on virtual threads with the configured
- * connect timeout (5 s), a per-request timeout (15 s) and <strong>no redirects</strong>: a 3xx is
- * returned as it is and counts as a failure, so a receiver cannot bounce a delivery (and its secrets
- * in headers) to another host. Email builds a {@link JavaMailSenderImpl} per request from the
- * channel's host, port, TLS mode and credentials, and reports an accepted message as status 250.
+ * <p>HTTP goes through {@link PinnedHttp} clients on virtual threads with the configured connect
+ * timeout (5 s), a per-request timeout (15 s) and <strong>no redirects</strong>: a 3xx is returned as
+ * it is and counts as a failure, so a receiver cannot bounce a delivery (and its secrets in headers)
+ * to another host. Email builds a {@link JavaMailSenderImpl} per request from the channel's host,
+ * port, TLS mode and credentials, and reports an accepted message as status 250.
  *
- * <p>Destinations may be private-network hosts (a LAN Gotify or ntfy), because channels are
- * operator-configured; prompt 035 retrofits the outbound URL policy.
+ * <p><strong>Outbound URL policy (prompt 035).</strong> Every request, including the 033 pollers'
+ * {@code getUpdates}, {@code /sync} and receipt calls that also go through here, is checked with
+ * {@link OutboundUrlPolicy} profile {@code LAN_ALLOWED} just before it is sent: public, loopback,
+ * private, unique-local and shared 100.64/10 destinations are allowed (a LAN Gotify or ntfy), link-local,
+ * metadata and the other blocked addresses never. An HTTP request then connects to the checked
+ * address with the original {@code Host} and TLS name, so a DNS answer that changed since the channel
+ * was saved cannot redirect it (DNS rebinding). The SMTP host gets the same check
+ * ({@link OutboundUrlPolicy#checkHost}); JavaMail resolves it again right after, which the JVM's DNS
+ * cache answers with the checked address, because connecting to a literal would break JavaMail's
+ * server identity check. A refusal is an {@link OutboundUrlDeniedException}: a delivery failure.
  */
 @Component
 public class ChannelSender {
@@ -42,30 +52,45 @@ public class ChannelSender {
     /** The SMTP status reported for an accepted email. */
     public static final int SMTP_OK = 250;
 
-    private final HttpClient http;
+    /** The outbound profile of every channel destination. */
+    public static final OutboundUrlPolicy.Profile PROFILE = OutboundUrlPolicy.Profile.LAN_ALLOWED;
+
     private final NotifyProperties properties;
+    private final OutboundUrlPolicy policy;
+    private final PinnedHttp pinned;
+    private final PinnedHttp.ClientSpec spec;
 
     /** Creates the sender. */
-    public ChannelSender(NotifyProperties properties) {
+    public ChannelSender(NotifyProperties properties, OutboundUrlPolicy policy, PinnedHttp pinned) {
         this.properties = properties;
-        this.http = HttpClient.newBuilder()
-                .connectTimeout(properties.connectTimeout())
-                .followRedirects(HttpClient.Redirect.NEVER)
-                .executor(Executors.newVirtualThreadPerTaskExecutor())
-                .build();
+        this.policy = policy;
+        this.pinned = pinned;
+        // HTTP/1.1: over HTTP/2 the JDK derives :authority from the (pinned, literal) URI rather than
+        // from the Host header, which virtual-hosted receivers would refuse.
+        this.spec = new PinnedHttp.ClientSpec(properties.connectTimeout(), HttpClient.Version.HTTP_1_1);
     }
 
     /**
      * Sends {@code request} and returns the response.
      *
+     * @throws OutboundUrlDeniedException when the outbound URL policy refuses the destination
      * @throws IOException when the destination cannot be reached or the exchange fails
      */
     public ChannelResponse send(PreparedRequest request) throws IOException {
         if (request.body() instanceof PreparedRequest.Mail mail) {
+            OutboundUrlDeniedException.require(policy.checkHost(mail.host(), PROFILE));
             return sendMail(mail);
         }
-        HttpRequest.Builder builder = HttpRequest.newBuilder(URI.create(request.url()))
+        URI uri;
+        try {
+            uri = URI.create(request.url());
+        } catch (IllegalArgumentException e) {
+            throw new OutboundUrlDeniedException("the destination URL is not valid");
+        }
+        OutboundUrlPolicy.Allowed allowed = OutboundUrlDeniedException.require(policy.check(uri, PROFILE));
+        HttpRequest.Builder builder = HttpRequest.newBuilder(PinnedHttp.pinnedUri(uri, allowed.pinned()))
                 .timeout(properties.requestTimeout());
+        PinnedHttp.setHostHeader(builder, uri);
         String contentType = null;
         for (Map.Entry<String, String> header : request.headers().entrySet()) {
             String name = header.getKey().toLowerCase(Locale.ROOT);
@@ -100,7 +125,8 @@ public class ChannelSender {
         }
         builder.method(request.method(), publisher);
         try {
-            HttpResponse<String> response = http.send(builder.build(), HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> response = pinned.client(uri, spec).send(builder.build(),
+                    HttpResponse.BodyHandlers.ofString());
             return new ChannelResponse(response.statusCode(), response.headers().map(), response.body());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();

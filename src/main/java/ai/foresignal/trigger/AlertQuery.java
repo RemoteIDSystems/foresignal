@@ -1,5 +1,8 @@
 package ai.foresignal.trigger;
 
+import ai.foresignal.security.restrict.ReadRestriction;
+import ai.foresignal.security.restrict.RestrictionClamp;
+
 import java.time.Instant;
 import java.util.List;
 import java.util.Set;
@@ -19,6 +22,8 @@ import java.util.UUID;
  * @param tag only alerts with this tag, or null
  * @param includeSuppressed include alerts recorded under a snooze
  * @param excludedSources sources the caller may not see (private sources for anonymous callers)
+ * @param restriction the caller's read restriction (prompt 035): source, kind and, through the
+ *     alert's record snapshot geometry, area
  */
 public record AlertQuery(
         Set<UUID> ruleIds,
@@ -31,7 +36,16 @@ public record AlertQuery(
         Severity minSeverity,
         String tag,
         boolean includeSuppressed,
-        Set<String> excludedSources) {
+        Set<String> excludedSources,
+        ReadRestriction restriction) {
+
+    /** An unrestricted query (the shape before prompt 035). */
+    public AlertQuery(Set<UUID> ruleIds, List<String> sources, List<String> kinds, Instant since, Boolean acknowledged,
+            List<String> states, List<String> feedback, Severity minSeverity, String tag, boolean includeSuppressed,
+            Set<String> excludedSources) {
+        this(ruleIds, sources, kinds, since, acknowledged, states, feedback, minSeverity, tag, includeSuppressed,
+                excludedSources, ReadRestriction.NONE);
+    }
 
     /** Copies the collections. */
     public AlertQuery {
@@ -41,6 +55,13 @@ public record AlertQuery(
         states = states == null ? List.of() : List.copyOf(states);
         feedback = feedback == null ? List.of() : List.copyOf(feedback);
         excludedSources = excludedSources == null ? Set.of() : Set.copyOf(excludedSources);
+        restriction = restriction == null ? ReadRestriction.NONE : restriction;
+    }
+
+    /** This query under {@code r}. */
+    public AlertQuery withRestriction(ReadRestriction r) {
+        return new AlertQuery(ruleIds, sources, kinds, since, acknowledged, states, feedback, minSeverity, tag,
+                includeSuppressed, excludedSources, r);
     }
 
     /** No filter except hiding suppressed alerts. */
@@ -80,6 +101,7 @@ public record AlertQuery(
         if (!includeSuppressed && alert.suppressed()) {
             return false;
         }
-        return !excludedSources.contains(alert.sourceId());
+        return !excludedSources.contains(alert.sourceId())
+                && RestrictionClamp.testSnapshot(restriction, alert.sourceId(), alert.kind(), alert.recordSnapshot());
     }
 }

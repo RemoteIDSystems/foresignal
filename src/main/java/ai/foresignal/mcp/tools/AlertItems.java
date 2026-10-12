@@ -48,8 +48,20 @@ public class AlertItems {
      * @throws NotFoundException when it does not exist or its source is hidden
      */
     public AlertView visible(long id, Set<String> excluded) {
+        return visible(id, excluded, ai.foresignal.security.restrict.ReadRestriction.NONE);
+    }
+
+    /**
+     * The alert, when its source is visible to the caller and it lies inside the caller's read
+     * restriction (prompt 035).
+     *
+     * @throws NotFoundException when it does not exist, its source is hidden or it is outside the
+     *     restriction
+     */
+    public AlertView visible(long id, Set<String> excluded, ai.foresignal.security.restrict.ReadRestriction restriction) {
         AlertView alert = alerts.get(id);
-        if (excluded.contains(alert.sourceId())) {
+        if (excluded.contains(alert.sourceId()) || !ai.foresignal.security.restrict.RestrictionClamp.testSnapshot(
+                restriction, alert.sourceId(), alert.kind(), alert.recordSnapshot())) {
             throw NotFoundException.of("Alert", id);
         }
         return alert;

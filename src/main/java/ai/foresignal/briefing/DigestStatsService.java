@@ -115,12 +115,21 @@ public class DigestStatsService {
      * @param briefing the briefing scope for contributors, or null
      */
     public record Request(Long sinceSeq, Instant periodFrom, Instant periodTo, Long sinceAlertId,
-            ScopeResolver.Resolved scope, int perKind, Set<String> hiddenSources, ZoneId zone, BriefingScope briefing) {
+            ScopeResolver.Resolved scope, int perKind, Set<String> hiddenSources, ZoneId zone, BriefingScope briefing,
+            ai.foresignal.security.restrict.ReadRestriction restriction) {
 
-        /** Copies the hidden sources. */
+        /** Copies the hidden sources; a null restriction becomes none. */
         public Request {
             hiddenSources = hiddenSources == null ? Set.of() : Set.copyOf(hiddenSources);
             zone = zone == null ? ZoneOffset.UTC : zone;
+            restriction = restriction == null ? ai.foresignal.security.restrict.ReadRestriction.NONE : restriction;
+        }
+
+        /** An unrestricted request (the shape before prompt 035). */
+        public Request(Long sinceSeq, Instant periodFrom, Instant periodTo, Long sinceAlertId,
+                ScopeResolver.Resolved scope, int perKind, Set<String> hiddenSources, ZoneId zone,
+                BriefingScope briefing) {
+            this(sinceSeq, periodFrom, periodTo, sinceAlertId, scope, perKind, hiddenSources, zone, briefing, null);
         }
     }
 
@@ -180,7 +189,7 @@ public class DigestStatsService {
     public DigestStats compute(Request request, Bounds bounds) {
         ScopeResolver.Resolved scope = request.scope();
         DigestStatsProvider.Filter filter = new DigestStatsProvider.Filter(scope.sources(), scope.kinds(), scope.bbox(),
-                scope.ruleIds(), request.hiddenSources());
+                scope.ruleIds(), request.hiddenSources(), request.restriction());
         long floor = retention.lowestRetainedSeq(new HashSet<>(scope.sources()));
         boolean gap = bounds.fromSeq() < floor;
         String gapReason = gap ? "fromSeq " + bounds.fromSeq() + " is below the retention floor " + floor
@@ -208,7 +217,7 @@ public class DigestStatsService {
             return new DigestStats(bounds.fromSeq(), bounds.toSeq(), bounds.fromTime(), bounds.toTime(), gap, gapReason,
                     counts, active, alertSection, notable, null, true, List.of());
         });
-        List<DigestStats.HealthItem> healthItems = scope.includeHealth() ? health(scope, request.hiddenSources()) : null;
+        List<DigestStats.HealthItem> healthItems = scope.includeHealth() ? health(scope, request.hiddenSources(), request.restriction()) : null;
         stats = new DigestStats(stats.fromSeq(), stats.toSeq(), stats.fromTime(), stats.toTime(), stats.gap(),
                 stats.gapReason(), stats.counts(), stats.active(), stats.alerts(), stats.notable(), healthItems, true,
                 List.of());
@@ -303,11 +312,13 @@ public class DigestStatsService {
                 total);
     }
 
-    private List<DigestStats.HealthItem> health(ScopeResolver.Resolved scope, Set<String> hidden) {
+    private List<DigestStats.HealthItem> health(ScopeResolver.Resolved scope, Set<String> hidden,
+            ai.foresignal.security.restrict.ReadRestriction restriction) {
         List<DigestStats.HealthItem> out = new ArrayList<>();
         Set<String> sources = new LinkedHashSet<>(scope.sources());
         for (SourceHealthView view : health.all(Optional.of(EnumSet.of(HealthStatus.DEGRADED, HealthStatus.FAILING)))) {
-            if ((!sources.isEmpty() && !sources.contains(view.sourceId())) || hidden.contains(view.sourceId())) {
+            if ((!sources.isEmpty() && !sources.contains(view.sourceId())) || hidden.contains(view.sourceId())
+                    || !restriction.allowsSource(view.sourceId())) {
                 continue;
             }
             String error = view.lastError() != null ? view.lastError() : view.statusReason();

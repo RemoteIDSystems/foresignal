@@ -61,6 +61,12 @@ foresignal:
   enrichment:
     auto-start: false
     timeout: 2s
+  # Per-client rate limits and the auth-failure backoff (prompt 035) are off, so the many requests and
+  # deliberate bad credentials of other tests never meet a 429. ClientRateLimitFilterIT, RateLimitSettingsIT
+  # and the backoff tests turn them on with @TestPropertySource.
+  ratelimit:
+    enabled: false
+    auth-backoff-enabled: false
 
 logging:
   level:

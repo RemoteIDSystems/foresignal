@@ -6,6 +6,7 @@ import ai.foresignal.api.support.GeometryOptions;
 import ai.foresignal.api.support.NearFilter;
 import java.util.List;
 import java.util.Set;
+import ai.foresignal.security.restrict.ReadRestriction;
 
 /**
  * A change-feed page: every version with {@code seq > after}, in seq order.
@@ -25,6 +26,7 @@ import java.util.Set;
  * @param prevBoxes also match the spatial filter on the previous version's geometry
  *     ({@code LEFT JOIN record_version p ON p.seq = v.prev_seq}) and select its box, so the SSE
  *     replay can flag entities that left the area ({@code leftFilter}, prompt 015)
+ * @param restriction the caller's read restriction (prompt 035; never null)
  */
 public record ChangesQuery(
         long after,
@@ -39,7 +41,16 @@ public record ChangesQuery(
         GeometryEncoding encoding,
         Set<String> excludedSources,
         NearFilter near,
-        boolean prevBoxes) {
+        boolean prevBoxes,
+        ReadRestriction restriction) {
+
+    /** An unrestricted query with radius filter and previous boxes (the 015 shape). */
+    public ChangesQuery(long after, List<String> sources, List<String> kinds, List<String> externalIds,
+            BboxFilter bbox, boolean includePayload, int limit, FieldSelection fields, GeometryOptions geometry,
+            GeometryEncoding encoding, Set<String> excludedSources, NearFilter near, boolean prevBoxes) {
+        this(after, sources, kinds, externalIds, bbox, includePayload, limit, fields, geometry, encoding,
+                excludedSources, near, prevBoxes, ReadRestriction.NONE);
+    }
 
     /** The change-feed query of prompt 014: no radius filter, no previous boxes. */
     public ChangesQuery(
@@ -67,5 +78,12 @@ public record ChangesQuery(
         geometry = geometry == null ? GeometryOptions.DEFAULT : geometry;
         encoding = encoding == null ? GeometryEncoding.GEOJSON : encoding;
         excludedSources = excludedSources == null ? Set.of() : Set.copyOf(excludedSources);
+        restriction = restriction == null ? ReadRestriction.NONE : restriction;
+    }
+
+    /** This query under {@code r}. */
+    public ChangesQuery withRestriction(ReadRestriction r) {
+        return new ChangesQuery(after, sources, kinds, externalIds, bbox, includePayload, limit, fields, geometry,
+                encoding, excludedSources, near, prevBoxes, r);
     }
 }

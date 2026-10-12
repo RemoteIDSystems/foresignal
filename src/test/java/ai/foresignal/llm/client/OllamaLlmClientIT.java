@@ -12,6 +12,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import ai.foresignal.llm.LlmHttp;
+import ai.foresignal.testsupport.net.TestOutbound;
 import ai.foresignal.llm.LlmProviderConfig;
 import ai.foresignal.llm.LlmProviderType;
 import ai.foresignal.test.WireMockSupport;
@@ -33,7 +34,7 @@ class OllamaLlmClientIT extends WireMockSupport {
                 null, null, null, Map.of(), false, null, 30, 2_000_000, true, null);
     }
 
-    final OllamaLlmClient client = new OllamaLlmClient(config(), new LlmHttp(), JSON);
+    final OllamaLlmClient client = new OllamaLlmClient(config(), new LlmHttp(TestOutbound.offlinePolicy(), TestOutbound.pinnedHttp()), JSON);
 
     static ChatRequest withTool() {
         return new ChatRequest("system", List.of(new ChatMessage.User("where?")),

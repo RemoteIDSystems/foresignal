@@ -1,22 +1,18 @@
 package ai.foresignal.notify.push;
 
 import ai.foresignal.inbound.edp.EdpHttpClient;
-import java.net.InetAddress;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import tools.jackson.databind.json.JsonMapper;
 
-/** The default beans of the push subsystem (prompt 031): DNS, TLS and the payload budget. */
+/**
+ * The default beans of the push subsystem (prompt 031): TLS and the payload budget. Endpoint DNS is
+ * the outbound URL policy's {@code HostResolver} (prompt 035).
+ */
 @Configuration
 public class PushConfig {
-
-    /** The system resolver. */
-    @Bean
-    public PushHostResolver pushHostResolver() {
-        return InetAddress::getAllByName;
-    }
 
     /** Platform trust store plus an RFC 6125 name check against the endpoint host. */
     @Bean

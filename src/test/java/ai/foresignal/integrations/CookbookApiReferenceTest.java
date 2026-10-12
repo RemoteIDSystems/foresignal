@@ -80,6 +80,9 @@ class CookbookApiReferenceTest {
         assertThat(IntegrationDocs.apiPaths("\"url\": \"http://h:8080/v1/ingest/custom-tak\"")).containsExactly("/v1/ingest/custom-tak");
         assertThat(IntegrationDocs.apiPaths("f\"{base}/v1/ingest/{source_id}\" and `${base}/v1/actions/${token}`"))
                 .containsExactly("/v1/ingest/{source_id}", "/v1/actions/${token}");
+        assertThat(IntegrationDocs.apiPaths("http://h:8080/v1/k/fsf_your_feed_key/records?format=geojson"))
+                .containsExactly("/v1/records");
+        assertThat(IntegrationDocs.apiPaths("the carrier /v1/k/fsf_key alone")).isEmpty();
         assertThat(IntegrationDocs.matches("/v1/ingest/custom-tak", "/v1/ingest/{sourceId}")).isTrue();
         assertThat(IntegrationDocs.matches("/v1/alerts/123/ack", "/v1/alerts/{alertId}/ack")).isTrue();
         assertThat(IntegrationDocs.matches("/v1/actions/eac_…", "/v1/actions/{actionToken}")).isTrue();

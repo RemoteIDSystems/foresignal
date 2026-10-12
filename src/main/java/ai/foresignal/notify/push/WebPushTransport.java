@@ -1,9 +1,11 @@
 package ai.foresignal.notify.push;
 
+import ai.foresignal.net.OutboundUrlPolicy;
 import ai.foresignal.notify.ChannelService;
 import ai.foresignal.notify.DeliveryWorker;
 import ai.foresignal.settings.PushSettings;
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.URI;
 import java.time.Clock;
 import java.time.Duration;
@@ -21,9 +23,9 @@ import org.springframework.stereotype.Component;
  *
  * <p>For each send it:
  * <ol>
- *   <li>re-resolves the endpoint host and applies the {@link PushAddressPolicy} with the current
- *       {@code push.allowedPrivateHosts} (a refusal is {@link PushResult.Rejected} with
- *       {@code URL_NOT_ALLOWED});
+ *   <li>re-resolves the endpoint host and applies {@link OutboundUrlPolicy} profile
+ *       {@code PUSH_ENDPOINT} with the current {@code push.allowedPrivateHosts} and outbound
+ *       overrides (prompt 035; a refusal is {@link PushResult.Rejected} with {@code URL_NOT_ALLOWED});
  *   <li>takes a token from the per-host rate limit (none: {@link PushResult.Retry}, not counted);
  *   <li>renders the payload in the subscription's format and language within the 3993-byte budget,
  *       encrypts it (RFC 8291, {@code aes128gcm}) and signs a VAPID token for the endpoint origin;
@@ -45,7 +47,7 @@ public class WebPushTransport implements PushTransport {
     /** The {@code URL_NOT_ALLOWED} code of a refused endpoint. */
     public static final String URL_NOT_ALLOWED = "URL_NOT_ALLOWED";
 
-    private final PushAddressPolicy policy;
+    private final OutboundUrlPolicy policy;
     private final PushHostLimiter limiter;
     private final PushPayloadBudget budget;
     private final VapidTokens vapid;
@@ -54,7 +56,7 @@ public class WebPushTransport implements PushTransport {
     private final Clock clock;
 
     /** Creates the transport. */
-    public WebPushTransport(PushAddressPolicy policy, PushHostLimiter limiter, PushPayloadBudget budget,
+    public WebPushTransport(OutboundUrlPolicy policy, PushHostLimiter limiter, PushPayloadBudget budget,
             VapidTokens vapid, PushHttp http, ChannelService channels, Clock clock) {
         this.policy = policy;
         this.limiter = limiter;
@@ -126,11 +128,16 @@ public class WebPushTransport implements PushTransport {
         if (!"https".equalsIgnoreCase(endpoint.getScheme()) || endpoint.getRawUserInfo() != null) {
             return new PushResult.Rejected(null, URL_NOT_ALLOWED, "the endpoint must be https without user info");
         }
-        PushAddressPolicy.Decision decision = policy.check(endpoint, settings.allowedPrivateHosts());
-        if (!decision.allowed()) {
-            return new PushResult.Rejected(null, URL_NOT_ALLOWED, decision.reason());
+        OutboundUrlPolicy.Result decision = policy.check(endpoint, OutboundUrlPolicy.Profile.PUSH_ENDPOINT);
+        if (decision instanceof OutboundUrlPolicy.Denied denied) {
+            return new PushResult.Rejected(null, URL_NOT_ALLOWED, denied.reason());
         }
-        Duration wait = limiter.tryAcquire(decision.host());
+        InetAddress pinned = ((OutboundUrlPolicy.Allowed) decision).pinned();
+        String limitHost = host.toLowerCase(java.util.Locale.ROOT);
+        if (limitHost.startsWith("[") && limitHost.endsWith("]")) {
+            limitHost = limitHost.substring(1, limitHost.length() - 1);
+        }
+        Duration wait = limiter.tryAcquire(limitHost);
         if (!wait.isZero()) {
             return new PushResult.Retry(wait, false, null, "rate limit of " + host);
         }
@@ -153,7 +160,7 @@ public class WebPushTransport implements PushTransport {
         }
         PushHttp.Response response;
         try {
-            response = http.post(endpoint, decision.pinned(), headers, body);
+            response = http.post(endpoint, pinned, headers, body);
         } catch (IOException e) {
             return new PushResult.Failed(null, e.getClass().getSimpleName() + " from " + host + ": " + e.getMessage());
         }

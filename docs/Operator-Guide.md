@@ -689,11 +689,63 @@ POST /v1/tokens
  "restrictions": {"endpoints": ["GET /v1/records/**", "GET /v1/tiles/**", "GET /v1/tiles.json"]}}
 ```
 
-- `endpoints` (`METHOD /v1/path/pattern`, Ant style, method may be `*`) is enforced now: any other
-  request is `403 ENDPOINT_NOT_ALLOWED`. Each pattern must match an operation the scope can reach.
-- `sources`, `kinds` and `bbox` are enforced on every read path from prompt 035. Until then a token
-  carrying them is refused on data reads with `403 RESTRICTION_NOT_ENFORCED` rather than served
-  unfiltered. Other members (`area`, `placeIds`, `federation`, …) are refused until their prompts.
+- `endpoints` (`METHOD /v1/path/pattern`, Ant style, method may be `*`): any other request is
+  `403 ENDPOINT_NOT_ALLOWED`. Each pattern must match an operation the scope can reach.
+- `sources`, `kinds`, `bbox` and `area` (a GeoJSON Polygon or MultiPolygon, at most 2,000 vertices)
+  narrow every read: records, history, changes, tiles, streams, search, alerts, the inbox, the digest,
+  briefings, MCP tools and Ask. A request filter is intersected with the restriction, and a record
+  outside it answers `404`. `excludePrivate: true` hides private sources even from an agent token,
+  and `maxRequestsPerMinute` sets the token's own read rate. `placeIds` (036) and the federation
+  members (113) are refused until their prompts. Admin tokens cannot carry restrictions
+  (`400 RESTRICTION_NOT_ALLOWED`); an admin can mint any token anyway.
+
+See "Exposing Foresignal" below for kiosks, family phones, feed keys and limits.
+
+### Exposing Foresignal
+
+Before Foresignal is reachable beyond your LAN (a tailnet shared with others, a public name behind
+Caddy), close the perimeter:
+
+- **Restricted tokens for kiosks and family phones.** Give each device a `read` token restricted to
+  what it shows, for example a wall map:
+  `{"name":"hall-map","scope":"read","restrictions":{"kinds":["earthquake","weather-alert"],"bbox":[-80.5,43.0,-78.5,44.5]}}`.
+  A lost phone then exposes only that slice, and revoking the token cuts it off.
+- **The anonymous profile.** While `openReads` is on, tokenless reads run under `security.anonymous`
+  (`PUT /v1/settings/security`), for example
+  `{"openReads":true,"anonymous":{"kinds":["earthquake"],"maxRequestsPerMinute":60}}`. Private
+  sources are never served anonymously, and the inbox, places, watchlists and every
+  always-authenticated operation need a token. `GET /v1/system` warns
+  (`security.warnings: ANONYMOUS_UNRESTRICTED`, also logged) when `openReads` is on, `publicBaseUrl` is
+  a public name and the profile restricts nothing; turn `openReads` off or restrict the profile.
+- **Feed keys for clients that cannot send headers** (KML NetworkLinks, iCal subscriptions, feed
+  readers, Home Assistant `geo_json_events`, a browser `EventSource`):
+  `POST /v1/feed-keys {"name":"ha-map","prefixes":["/v1/records"],"restrictions":{"kinds":["earthquake"]},"expiresAt":"2027-06-01T00:00:00Z"}`
+  returns the `fsf_` key and a ready-made URL per prefix, once. The URL `/v1/k/{key}/records?…`
+  serves `GET`/`HEAD` of paths under the prefixes only, inside the key's restriction, and never
+  private sources. A restriction (sources, kinds or area) is mandatory and the key expires within
+  365 days. `GET /v1/feed-keys` lists keys without values; `DELETE /v1/feed-keys/{id}` revokes one,
+  after which its URLs answer `410`. Treat the URL as a password: responses carry
+  `Referrer-Policy: no-referrer` and `X-Robots-Tag: noindex`, and are never cached publicly.
+- **Limits.** Every client is rate-limited per minute. Defaults: read 600, tiles 1,200, streams 30
+  opens and 8 open at once, expensive (search, Ask, LLM tools, sampling) 20, write 120, and
+  anonymous 120 per IP. Change them with `PUT /v1/settings/ratelimits`; they apply immediately. To
+  give a kiosk or dashboard token a different read limit, set `maxRequestsPerMinute` in its
+  restrictions. Admin tokens are not limited on reads and tiles. Set `metricsPerMinute` to limit
+  Prometheus scrapes per IP, and `metricsOpen: false` (`PUT /v1/settings/security`) to require an
+  admin token for `/actuator/prometheus`. Behind a reverse proxy, list the proxy in
+  `FORESIGNAL_TRUSTED_PROXIES`; otherwise every client shares the proxy's address and its limits.
+  Repeated wrong credentials from one address get `429` with a growing `Retry-After`, up to 5
+  minutes, while a correct token from the same address always works. Clients should honor
+  `Retry-After`.
+- **Log redaction.** Feed keys are credentials in the path. Foresignal's access log (off unless
+  `FORESIGNAL_ACCESS_LOG=true`) logs the URI with `/v1/k/{key}` replaced and without the query
+  string. `docker/caddy/Caddyfile.example` redacts both the key and `?ticket=` values in Caddy's
+  log; do the same in any other proxy that logs request lines.
+- **Outbound URLs.** Channel URLs, LLM `baseUrl`s, push endpoints and other operator-supplied URLs
+  are checked against the outbound URL policy on save and on every send: link-local and cloud
+  metadata addresses are always refused, and LAN addresses only where the field allows them.
+  `PUT /v1/settings/outbound` adds `allowHosts`/`allowCidrs` and `denyHosts`/`denyCidrs`
+  overrides (deny wins).
 
 ### Pairing a phone
 

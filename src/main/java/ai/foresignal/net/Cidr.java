@@ -1,4 +1,4 @@
-package ai.foresignal.notify.push;
+package ai.foresignal.net;
 
 import java.net.Inet4Address;
 import java.net.InetAddress;
@@ -8,7 +8,8 @@ import java.util.regex.Pattern;
 
 /**
  * An address block such as {@code 192.168.1.0/24} or {@code fd12:3456::/48}, used by
- * {@code push.allowedPrivateHosts} (prompt 031) and by {@link PushAddressPolicy}'s block list.
+ * {@code push.allowedPrivateHosts} (prompt 031), the outbound overrides and the
+ * special-purpose address table of {@link OutboundUrlPolicy} (prompt 035).
  *
  * <p>A bare address literal is a single-address block ({@code /32} or {@code /128}). Literals are
  * parsed without DNS: only dotted-quad IPv4 and colon-hex IPv6 are accepted.

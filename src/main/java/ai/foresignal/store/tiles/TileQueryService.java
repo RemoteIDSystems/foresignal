@@ -1,5 +1,8 @@
 package ai.foresignal.store.tiles;
 
+import ai.foresignal.security.restrict.ReadRestriction;
+import ai.foresignal.security.restrict.RestrictionClamp;
+
 import ai.foresignal.store.query.ReadQueryRunner;
 import ai.foresignal.store.query.SqlParams;
 import java.time.Clock;
@@ -74,10 +77,18 @@ public class TileQueryService {
 
     /** Renders {@code coordinates} of {@code layer} in the shape {@code agg} selects. */
     public TileResult render(TileLayer layer, TileCoordinates coordinates, AggMode agg) {
+        return render(layer, coordinates, agg, ReadRestriction.NONE);
+    }
+
+    /**
+     * Renders {@code coordinates} of {@code layer} for a caller under {@code restriction}: the
+     * restriction's predicate is part of the MVT SQL itself, never a post-filter (prompt 035).
+     */
+    public TileResult render(TileLayer layer, TileCoordinates coordinates, AggMode agg, ReadRestriction restriction) {
         TileShape shape = agg.shapeFor(coordinates.z(), layer.aggBelowZoom());
         return shape.aggregated()
-                ? aggregated(layer, coordinates, shape)
-                : raw(layer, coordinates, properties.maxFeatures());
+                ? aggregated(layer, coordinates, shape, restriction)
+                : raw(layer, coordinates, properties.maxFeatures(), restriction);
     }
 
     /**
@@ -85,6 +96,11 @@ public class TileQueryService {
      * when more records matched.
      */
     public TileResult raw(TileLayer layer, TileCoordinates coordinates, int cap) {
+        return raw(layer, coordinates, cap, ReadRestriction.NONE);
+    }
+
+    /** {@link #raw(TileLayer, TileCoordinates, int)} under {@code restriction}. */
+    public TileResult raw(TileLayer layer, TileCoordinates coordinates, int cap, ReadRestriction restriction) {
         SqlParams p = new SqlParams();
         String env = envelope(coordinates, p);
         String limit = p.bigint(cap + 1L);
@@ -98,7 +114,7 @@ public class TileQueryService {
                 + FROM
                 + (layer.tileProperties().isEmpty() ? "" : MERGED)
                 + " CROSS JOIN bounds"
-                + " WHERE " + commonFilter(layer, p)
+                + " WHERE " + commonFilter(layer, p, restriction)
                 + " AND l.geom && ST_Transform(bounds.env, 4326)"
                 + " ORDER BY l.observed_at DESC, h.source_id, h.external_id"
                 + " LIMIT " + limit
@@ -113,6 +129,12 @@ public class TileQueryService {
 
     /** An aggregated tile of grid or hex cells. */
     public TileResult aggregated(TileLayer layer, TileCoordinates coordinates, TileShape shape) {
+        return aggregated(layer, coordinates, shape, ReadRestriction.NONE);
+    }
+
+    /** {@link #aggregated(TileLayer, TileCoordinates, TileShape)} under {@code restriction}. */
+    public TileResult aggregated(TileLayer layer, TileCoordinates coordinates, TileShape shape,
+            ReadRestriction restriction) {
         if (!shape.aggregated()) {
             throw new IllegalArgumentException("not an aggregate shape: " + shape);
         }
@@ -130,7 +152,7 @@ public class TileQueryService {
                 .append(FROM)
                 .append(layer.rankable() ? MERGED : "")
                 .append(" CROSS JOIN bounds")
-                .append(" WHERE ").append(commonFilter(layer, p))
+                .append(" WHERE ").append(commonFilter(layer, p, restriction))
                 .append(" AND l.geom IS NOT NULL AND l.geom && ST_Transform(bounds.env, 4326)),")
                 // Half-open tile membership: a point on a shared edge belongs to one tile only.
                 .append(" inside AS (SELECT pts.* FROM pts CROSS JOIN bounds")
@@ -189,8 +211,10 @@ public class TileQueryService {
     }
 
     /** Layer filter, tombstones and expiry. */
-    private String commonFilter(TileLayer layer, SqlParams p) {
+    private String commonFilter(TileLayer layer, SqlParams p, ReadRestriction restriction) {
         return layer.filterSql(p)
+                + RestrictionClamp.sqlPredicate("h.source_id", "h.kind", "l.geom", restriction, p)
+                        .map(w -> " AND " + w).orElse("")
                 + " AND NOT h.tombstone"
                 + " AND (l.valid_until IS NULL OR l.valid_until > " + p.instant(clock.instant()) + ")";
     }

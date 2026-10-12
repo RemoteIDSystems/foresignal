@@ -6,6 +6,7 @@ import ai.foresignal.mcp.ToolContext;
 import org.springframework.stereotype.Component;
 
 /** The resource {@code foresignal://kinds}: the kinds currently stored, with counts, as {@code list_kinds}. */
+@ai.foresignal.security.restrict.RestrictedRead
 @Component
 public class KindsResource implements ForesignalMcpResource {
 
@@ -33,6 +34,6 @@ public class KindsResource implements ForesignalMcpResource {
 
     @Override
     public String read(ToolContext context) {
-        return kinds.list(context.excludedSources(), Detail.LONG).toString();
+        return kinds.list(context.excludedSources(), context.restriction(), Detail.LONG).toString();
     }
 }

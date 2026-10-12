@@ -1,5 +1,7 @@
 package ai.foresignal.briefing;
 
+import ai.foresignal.security.restrict.RestrictionClamp;
+
 import ai.foresignal.source.SourceRegistry;
 import ai.foresignal.source.spi.SourceDescriptor;
 import ai.foresignal.store.query.RecordQueryService;
@@ -135,6 +137,8 @@ public class SqlDigestStatsProvider implements DigestStatsProvider {
             where.add("a.rule_id = ANY(CAST(" + p.add(uuidArray(filter.ruleIds())) + " AS uuid[]))");
         }
         scope(where, filter, "a.source_id", "a.kind", null, p);
+        RestrictionClamp.addTo(where, "a.source_id", "a.kind", RestrictionClamp.ALERT_GEOMETRY_SQL,
+                filter.restriction(), p);
         if (filter.bbox() != null) {
             String geom = "(CASE WHEN jsonb_typeof(a.record_snapshot -> 'geometry') = 'object' THEN"
                     + " ST_SetSRID(ST_GeomFromGeoJSON((a.record_snapshot -> 'geometry')::text), 4326) END)";
@@ -202,6 +206,10 @@ public class SqlDigestStatsProvider implements DigestStatsProvider {
         }
         if (geomColumn != null && filter.bbox() != null) {
             where.add(RecordQueryService.bboxClause(geomColumn, filter.bbox(), p));
+        }
+        if (geomColumn != null) {
+            // The caller's read restriction (prompt 035); alerts add theirs with the snapshot geometry.
+            RestrictionClamp.addTo(where, sourceColumn, kindColumn, geomColumn, filter.restriction(), p);
         }
     }
 

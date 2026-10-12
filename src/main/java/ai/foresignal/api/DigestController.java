@@ -39,6 +39,7 @@ public class DigestController {
     /** {@code getDigest}. */
     @GetMapping("/v1/digest")
     @Operation(operationId = "getDigest", tags = "Briefings")
+    @ai.foresignal.security.restrict.RestrictedRead("statistics computed under the caller's restriction")
     public ResponseEntity<Object> getDigest(
             @RequestParam(required = false) String sinceSeq,
             @RequestParam(required = false) String sinceAlertId,
@@ -62,10 +63,10 @@ public class DigestController {
                 QueryParams.multi("places", places));
         DigestService.Prepared prepared = digests.prepare(params, caller);
         if (ETags.matches(ifNoneMatch, prepared.etag())) {
-            return ETags.notModified(prepared.etag(), caller.openReads());
+            return ETags.notModified(prepared.etag(), caller.readCaller().publicCache());
         }
         return ResponseEntity.ok()
-                .headers(ETags.cacheHeaders(new HttpHeaders(), prepared.etag(), caller.openReads()))
+                .headers(ETags.cacheHeaders(new HttpHeaders(), prepared.etag(), caller.readCaller().publicCache()))
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(digests.render(prepared));
     }

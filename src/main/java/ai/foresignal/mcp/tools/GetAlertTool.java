@@ -21,6 +21,7 @@ import tools.jackson.databind.JsonNode;
  * alert's {@code recordSnapshot} once retention has removed that version. Enriched alerts carry
  * their summary and its verified citations (prompt 030).
  */
+@ai.foresignal.security.restrict.RestrictedRead
 @Component
 public class GetAlertTool implements ForesignalMcpTool {
 
@@ -75,7 +76,7 @@ public class GetAlertTool implements ForesignalMcpTool {
     public ToolResult call(ToolContext context, JsonNode args) {
         Detail detail = Detail.of(args);
         long id = McpArgs.requiredLong(args, "alertId");
-        return ToolResult.json(shaper.object(items.withRecord(items.visible(id, context.excludedSources()), detail),
+        return ToolResult.json(shaper.object(items.withRecord(items.visible(id, context.excludedSources(), context.restriction()), detail),
                 detail));
     }
 }

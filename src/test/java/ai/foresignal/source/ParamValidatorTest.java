@@ -34,7 +34,8 @@ class ParamValidatorTest {
 
     @BeforeEach
     void setUp() {
-        validator = new ParamValidator(new InboxFiles(inboxRoot));
+        validator = new ParamValidator(new InboxFiles(inboxRoot),
+                ai.foresignal.testsupport.net.TestOutbound.offlinePolicy());
     }
 
     private static SourceDescriptor.Builder base() {
@@ -471,7 +472,7 @@ class ParamValidatorTest {
                     "http://10.0.0.5",
                     "http://192.168.1.50:8080",
                     "http://172.16.0.1",
-                    "http://169.254.1.1",
+                    "http://[fd12:3456::1]:8080",
                     "ws://192.168.1.50:30003",
                 })
         @DisplayName("a private or loopback address is accepted and its IP is pinned")
@@ -505,12 +506,26 @@ class ParamValidatorTest {
         }
 
         @Test
-        @DisplayName("the cloud metadata address is rejected despite being link-local-adjacent")
-        void rejectsCloudMetadataByCgnat() {
+        @DisplayName("the cloud metadata address is rejected, with code URL_NOT_ALLOWED")
+        void rejectsCloudMetadata() {
             // 100.100.100.200 is Alibaba's metadata endpoint, inside carrier-grade NAT.
             assertThat(errorsOf(descriptor(), Map.of("baseUrl", "http://100.100.100.200")))
                     .singleElement()
-                    .satisfies(e -> assertThat(e.message()).contains("carrier-grade NAT"));
+                    .satisfies(e -> assertThat(e.message()).contains("Cloud metadata"));
+            try {
+                validate(descriptor(), Map.of("baseUrl", "http://169.254.169.254/latest"));
+                throw new AssertionError("expected a refusal");
+            } catch (ValidationException e) {
+                assertThat(e.getCode()).isEqualTo("URL_NOT_ALLOWED");
+            }
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = {"http://169.254.1.1", "http://[fe80::1]", "http://100.64.0.1", "http://0x7f.1",
+            "http://2130706433", "http://127.1"})
+        @DisplayName("link-local, shared 100.64/10 and non-dotted-quad IPv4 forms are rejected (035: LAN_ONLY)")
+        void rejectsLinkLocalSharedAndObfuscated(String url) {
+            assertThat(errorsOf(descriptor(), Map.of("baseUrl", url))).hasSize(1);
         }
 
         @ParameterizedTest

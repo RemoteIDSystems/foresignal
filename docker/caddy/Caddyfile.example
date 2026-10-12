@@ -15,6 +15,17 @@
 
 foresignal.example.com {
 	encode gzip
+	# Access log with credentials removed (035): feed keys travel in the path as
+	# /v1/k/{key}/..., stream and tile tickets as ?ticket=. Both are credentials
+	# and must never reach a log file. One "regexp" field filter covers both (a
+	# field takes one filter; an unmatched group expands to nothing). Syntax per
+	# Caddy's "filter" log format; check it against your Caddy version.
+	log {
+		output file /var/log/caddy/foresignal.log
+		format filter {
+			request>uri regexp "(/v1/k/)[^/?]+|(ticket=)[^&]+" "${1}${2}REDACTED"
+		}
+	}
 	reverse_proxy 127.0.0.1:8080 {
 		# Server-sent events (/v1/changes/stream, /v1/alerts/stream,
 		# /v1/events/stream) must not be buffered.

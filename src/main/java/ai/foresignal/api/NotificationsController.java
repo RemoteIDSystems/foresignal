@@ -83,6 +83,7 @@ public class NotificationsController {
     /** {@code listNotifications}: newest first, keyset on id. */
     @GetMapping
     @Operation(operationId = "listNotifications", tags = "Notifications")
+    @ai.foresignal.security.restrict.RestrictedRead
     public Map<String, Object> listNotifications(
             @RequestParam(required = false) String after,
             @RequestParam(required = false) String before,
@@ -110,7 +111,7 @@ public class NotificationsController {
         }
         List<InboxService.Item> page = inbox.list(device,
                 new InboxService.Query(afterId, upper, eventList, min, unreadOnly, size + 1),
-                callers.excludedSources(request));
+                callers.excludedSources(request), callers.restriction(request));
         String next = null;
         if (page.size() > size) {
             page = page.subList(0, size);
@@ -125,8 +126,10 @@ public class NotificationsController {
     /** {@code getNotificationBadge}: unread counts for this device. */
     @GetMapping("/badge")
     @Operation(operationId = "getNotificationBadge", tags = "Notifications")
+    @ai.foresignal.security.restrict.RestrictedRead
     public Map<String, Object> getNotificationBadge(HttpServletRequest request) {
-        return inbox.badge(devices.resolve(request)).toMap();
+        return inbox.badge(devices.resolve(request), callers.excludedSources(request), callers.restriction(request))
+                .toMap();
     }
 
     /** {@code markNotificationsRead}: moves the cursor or adds sparse reads; never acknowledges. */
@@ -140,6 +143,7 @@ public class NotificationsController {
     /** {@code streamNotifications}: SSE with {@code id:} = notification id, plus {@code badge}. */
     @GetMapping("/stream")
     @Operation(operationId = "streamNotifications", tags = "Notifications")
+    @ai.foresignal.security.restrict.RestrictedRead
     public SseEmitter streamNotifications(
             @RequestHeader(value = StreamController.LAST_EVENT_ID, required = false) String lastEventId,
             HttpServletRequest request,
@@ -147,7 +151,7 @@ public class NotificationsController {
         String device = devices.resolve(request);
         StreamPrincipal principal = principals.resolve(request);
         Long resume = AlertsController.rev(lastEventId);
-        InboxFilter filter = new InboxFilter(device, callers.excludedSources(request));
+        InboxFilter filter = new InboxFilter(device, callers.excludedSources(request), callers.restriction(request));
         StreamFilter streamFilter = new StreamFilter(List.of(InboxTopic.NAME), Map.of(InboxTopic.NAME, filter), 1);
         Map<String, Long> resumes = resume == null ? Map.of() : Map.of(InboxTopic.NAME, resume);
         String kind = CurrentToken.of(request).map(CurrentToken::device)
@@ -168,10 +172,11 @@ public class NotificationsController {
     /** {@code getNotification}: the item with links and fresh action capabilities for this device. */
     @GetMapping("/{notificationId}")
     @Operation(operationId = "getNotification", tags = "Notifications")
+    @ai.foresignal.security.restrict.RestrictedRead
     public Map<String, Object> getNotification(@PathVariable String notificationId, HttpServletRequest request) {
         String device = devices.resolve(request);
         long id = id(notificationId);
-        InboxService.Item item = inbox.get(device, id, callers.excludedSources(request));
+        InboxService.Item item = inbox.get(device, id, callers.excludedSources(request), callers.restriction(request));
         Map<String, Object> out = new LinkedHashMap<>(item.toMap());
         out.put("links", item.links());
         List<Map<String, Object>> list = new ArrayList<>();

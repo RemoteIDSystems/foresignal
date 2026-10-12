@@ -110,14 +110,15 @@ public class AlertsTopic implements EventTopic<AlertQuery>, AlertListener {
         checkSources(sources);
         boolean suppressed = QueryParams.bool(params.field("includeSuppressed"), params.single("includeSuppressed"), false);
         return new AlertQuery(rules, sources, params.multi("kind"), null, null, null, null, min, null, suppressed,
-                excludedSources(principal));
+                excludedSources(principal), principal.restriction());
     }
 
     @Override
     public AlertQuery parseJson(JsonNode block, StreamPrincipal principal) {
         String prefix = NAME + ".";
         if (block == null || block.isNull()) {
-            return new AlertQuery(null, null, null, null, null, null, null, null, null, false, excludedSources(principal));
+            return new AlertQuery(null, null, null, null, null, null, null, null, null, false, excludedSources(principal),
+                    principal.restriction());
         }
         if (!block.isObject()) {
             throw ValidationException.forField(NAME, "must be an object");
@@ -140,7 +141,7 @@ public class AlertsTopic implements EventTopic<AlertQuery>, AlertListener {
             throw ValidationException.forField(prefix + "includeSuppressed", "must be true or false");
         }
         return new AlertQuery(rules, sources, strings(block, "kind", prefix), null, null, null, null, min, null,
-                suppressed != null && suppressed.asBoolean(false), excludedSources(principal));
+                suppressed != null && suppressed.asBoolean(false), excludedSources(principal), principal.restriction());
     }
 
     private void checkSources(List<String> sources) {
@@ -152,7 +153,9 @@ public class AlertsTopic implements EventTopic<AlertQuery>, AlertListener {
     /** Private sources the caller may not see: all of them unless it holds an agent or admin token. */
     Set<String> excludedSources(StreamPrincipal principal) {
         // Private sources: agent and admin tokens only (SourceVisibilityGate, prompt 023).
-        return SourceVisibilityGate.excludedSources(registry, principal.scope(), TokenRestrictions.NONE);
+        return ai.foresignal.api.support.ReadCallerResolver.withRestriction(registry,
+                SourceVisibilityGate.excludedSources(registry, principal.scope(), TokenRestrictions.NONE),
+                principal.restriction());
     }
 
     // ------------------------------------------------------------------------- resume

@@ -209,11 +209,16 @@ Home Assistant's UI (it has no YAML configuration) with a GeoJSON URL, a boundin
 explicit limit:
 
 ```
-http://foresignal.local:8080/v1/records?format=geojson&kind=earthquake&bbox=-106.7,25.8,-93.5,36.5&limit=200
+http://foresignal.local:8080/v1/k/fsf_your_feed_key/records?format=geojson&limit=200
 ```
 
-The integration cannot send a bearer token, so this works only while `security.openReads` is on
-(the default). It polls every 5 minutes, reads one page (it ignores `nextCursor`), and creates no
+The integration cannot send a bearer token, so the URL carries a feed key (prompt 035): create it
+with `POST /v1/feed-keys` (admin) with `prefixes: ["/v1/records"]`, a restriction such as
+`{"kinds":["earthquake"],"bbox":[-106.7,25.8,-93.5,36.5]}` and an `expiresAt` at most a year ahead;
+the response returns the key once with the ready-made URL. The key reads only under its prefixes and
+inside its restriction, and `DELETE /v1/feed-keys/{feedKeyId}` revokes it (the URL then answers
+410). While `security.openReads` is on (the default), the plain
+`/v1/records?format=geojson&kind=earthquake&bbox=-106.7,25.8,-93.5,36.5&limit=200` also works. It polls every 5 minutes, reads one page (it ignores `nextCursor`), and creates no
 entity for a record without geometry. Feature properties carry `title`, which Home Assistant shows
 as the entity name (it prefers a top-level `name` property, which Foresignal features do not have).
 Webhook automations, REST sensors and pushing Home Assistant states into Foresignal are in

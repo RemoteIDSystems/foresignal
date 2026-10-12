@@ -119,7 +119,7 @@ public class DigestService {
                 params.includeHealth());
         DigestStatsService.Request request = new DigestStatsService.Request(
                 params.sinceSeq() == null ? stats.defaultSinceSeq() : params.sinceSeq(), null, null,
-                params.sinceAlertId(), scope, params.limit(), hidden, ZoneOffset.UTC, null);
+                params.sinceAlertId(), scope, params.limit(), hidden, ZoneOffset.UTC, null, caller.restriction());
         DigestStatsService.Bounds bounds = stats.bounds(request);
         String canonical = "digest\n" + bounds.toSeq() + "\n" + bounds.untilAlertId() + "\n" + bounds.fromSeq() + "\n"
                 + bounds.sinceAlertId() + "\n" + new TreeSet<>(params.sources()) + "\n" + new TreeSet<>(params.kinds())

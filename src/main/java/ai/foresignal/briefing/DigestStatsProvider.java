@@ -63,14 +63,21 @@ public interface DigestStatsProvider {
      * @param hiddenSources sources whose records and alerts may be counted but not listed
      */
     record Filter(List<String> sources, List<String> kinds, BboxFilter bbox, Set<UUID> ruleIds,
-            Set<String> hiddenSources) {
+            Set<String> hiddenSources, ai.foresignal.security.restrict.ReadRestriction restriction) {
 
-        /** Copies the collections. */
+        /** Copies the collections; a null restriction becomes none. */
         public Filter {
             sources = sources == null ? List.of() : List.copyOf(sources);
             kinds = kinds == null ? List.of() : List.copyOf(kinds);
             ruleIds = ruleIds == null ? Set.of() : Set.copyOf(ruleIds);
             hiddenSources = hiddenSources == null ? Set.of() : Set.copyOf(hiddenSources);
+            restriction = restriction == null ? ai.foresignal.security.restrict.ReadRestriction.NONE : restriction;
+        }
+
+        /** An unrestricted filter (the shape before prompt 035). */
+        public Filter(List<String> sources, List<String> kinds, BboxFilter bbox, Set<UUID> ruleIds,
+                Set<String> hiddenSources) {
+            this(sources, kinds, bbox, ruleIds, hiddenSources, null);
         }
     }
 

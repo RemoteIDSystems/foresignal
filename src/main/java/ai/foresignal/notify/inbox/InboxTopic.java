@@ -95,7 +95,8 @@ public class InboxTopic implements EventTopic<InboxFilter> {
     public ReplayOutcome replay(ReplayRequest request, InboxFilter filter, ReplaySink sink) {
         long cursor = request.after();
         while (true) {
-            List<InboxService.Item> page = inbox.after(filter.deviceKey(), cursor, REPLAY_PAGE, filter.excludedSources());
+            List<InboxService.Item> page = inbox.after(filter.deviceKey(), cursor, REPLAY_PAGE, filter.excludedSources(),
+                    filter.restriction());
             for (InboxService.Item item : page) {
                 if (!sink.emit(event(item))) {
                     return new ReplayOutcome.CapReached();
@@ -117,7 +118,16 @@ public class InboxTopic implements EventTopic<InboxFilter> {
                 String source = message.data() == null ? null : (String) asText(message.data().get("sourceId"));
                 sseHub.publish(NAME, filter -> {
                     InboxFilter f = (InboxFilter) filter;
-                    return source != null && f.excludedSources().contains(source) ? null : event(item);
+                    if (source != null && f.excludedSources().contains(source)) {
+                        return null;
+                    }
+                    if (f.restriction().hasDataRestrictions()
+                            && !new ai.foresignal.stream.sse.NotificationFilter(f.excludedSources(), f.restriction(),
+                                    inbox::alertSnapshot).matches(message)) {
+                        // Outside the caller's read restriction (prompt 035).
+                        return null;
+                    }
+                    return event(item);
                 });
             }
         });
@@ -144,7 +154,10 @@ public class InboxTopic implements EventTopic<InboxFilter> {
     public void onBadgeChanged(InboxBadgeChangedEvent event) {
         SseHub current = hub;
         if (current != null) {
-            current.publishControl(NAME, filter -> ((InboxFilter) filter).deviceKey().equals(event.deviceKey()),
+            // The device's badge counts every notification; a restricted stream reads its own badge
+            // through GET /v1/notifications/badge instead (prompt 035).
+            current.publishControl(NAME, filter -> ((InboxFilter) filter).deviceKey().equals(event.deviceKey())
+                            && !((InboxFilter) filter).restriction().hasDataRestrictions(),
                     "badge", event.badge().toMap());
         }
     }

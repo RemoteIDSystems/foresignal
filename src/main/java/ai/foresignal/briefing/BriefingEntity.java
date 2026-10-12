@@ -90,6 +90,10 @@ public class BriefingEntity {
     @Column(name = "owner_scope", length = 16)
     private String ownerScope;
 
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "restriction_snapshot", columnDefinition = "jsonb")
+    private ai.foresignal.security.TokenRestrictions restrictionSnapshot;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -102,6 +106,19 @@ public class BriefingEntity {
     /** A new briefing with {@code id}. */
     public BriefingEntity(UUID id) {
         this.id = id;
+    }
+
+    /**
+     * The read restriction of the token that created or last replaced the briefing (prompt 035), or
+     * null when it had none; every run stays inside it.
+     */
+    public ai.foresignal.security.TokenRestrictions getRestrictionSnapshot() {
+        return restrictionSnapshot;
+    }
+
+    /** Stores the creating token's read restriction (null for none). */
+    public void setRestrictionSnapshot(ai.foresignal.security.TokenRestrictions restrictionSnapshot) {
+        this.restrictionSnapshot = restrictionSnapshot;
     }
 
     /** The id. */

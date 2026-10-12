@@ -11,25 +11,30 @@ import tools.jackson.databind.JsonNode;
 
 /**
  * {@code getSecuritySettings} and {@code updateSecuritySettings} (prompt 023), shared with the
- * settings import: {@code openReads} (required) and {@code exposeObserver} (default false).
+ * settings import: {@code openReads} (required), {@code exposeObserver} (default false), and from
+ * prompt 035 the {@code anonymous} restriction profile and {@code metricsOpen} (default true).
  *
  * <p>The token filter and the read endpoints drop their cached copy on the
- * {@link AppSettingChangedEvent} the write publishes. Members later prompts own
- * ({@code anonymous}, {@code metricsOpen} 035, {@code exposeMlat} 069) are refused until then, so a
- * client cannot believe a protection is on that nothing enforces.
+ * {@link AppSettingChangedEvent} the write publishes. {@code exposeMlat} (069) is refused until then,
+ * so a client cannot believe a protection is on that nothing enforces. The anonymous profile is
+ * validated like a read token's restriction; {@code update} also checks that its sources and kinds
+ * exist and its endpoint patterns match {@code read} operations.
  */
 @Service
 public class SecuritySettingsService {
 
-    static final Set<String> MEMBERS = Set.of("openReads", "exposeObserver");
+    static final Set<String> MEMBERS = Set.of("openReads", "exposeObserver", "anonymous", "metricsOpen");
 
-    static final Set<String> LATER_MEMBERS = Set.of("anonymous", "metricsOpen", "exposeMlat");
+    static final Set<String> LATER_MEMBERS = Set.of("exposeMlat");
 
     private final AppSettingService settings;
+    private final ai.foresignal.security.RestrictionValidator restrictions;
 
     /** Creates the service. */
-    public SecuritySettingsService(AppSettingService settings) {
+    public SecuritySettingsService(AppSettingService settings,
+            org.springframework.beans.factory.ObjectProvider<ai.foresignal.security.RestrictionValidator> restrictions) {
         this.settings = settings;
+        this.restrictions = restrictions.getIfAvailable(ai.foresignal.security.RestrictionValidator::structural);
     }
 
     /** The settings in force. */
@@ -43,7 +48,7 @@ public class SecuritySettingsService {
      * @throws ValidationException listing every problem
      */
     public SecuritySettings update(JsonNode body) {
-        SecuritySettings value = parse(body);
+        SecuritySettings value = parse(body, restrictions);
         settings.put(SettingKeys.SECURITY, value);
         return value;
     }
@@ -59,6 +64,16 @@ public class SecuritySettingsService {
      * @throws ValidationException listing every problem
      */
     public static SecuritySettings parse(JsonNode body) {
+        return parse(body, ai.foresignal.security.RestrictionValidator.structural());
+    }
+
+    /**
+     * {@link #parse(JsonNode)} with {@code validator} checking the anonymous profile's sources,
+     * kinds and endpoints.
+     *
+     * @throws ValidationException listing every problem
+     */
+    public static SecuritySettings parse(JsonNode body, ai.foresignal.security.RestrictionValidator validator) {
         if (body == null || !body.isObject()) {
             throw new ValidationException("The request body must be a SecuritySettings object.");
         }
@@ -80,10 +95,20 @@ public class SecuritySettingsService {
         if (exposeObserver != null && !exposeObserver.isNull() && !exposeObserver.isBoolean()) {
             errors.add(new FieldError("exposeObserver", "must be a boolean"));
         }
+        JsonNode metricsOpen = body.get("metricsOpen");
+        if (metricsOpen != null && !metricsOpen.isNull() && !metricsOpen.isBoolean()) {
+            errors.add(new FieldError("metricsOpen", "must be a boolean"));
+        }
+        ai.foresignal.security.TokenRestrictions anonymous = validator.parse(body.get("anonymous"),
+                ai.foresignal.security.Scope.READ, "anonymous", errors);
+        if (anonymous.excludePrivate() != null && !anonymous.excludePrivate()) {
+            errors.add(new FieldError("anonymous.excludePrivate", "private sources are never served anonymously"));
+        }
         if (!errors.isEmpty()) {
             throw new ValidationException(ErrorCodes.VALIDATION_FAILED, "The security settings are not valid.", errors);
         }
         boolean observe = exposeObserver != null && exposeObserver.isBoolean() && exposeObserver.asBoolean();
-        return new SecuritySettings(openReads.asBoolean(), observe);
+        Boolean metrics = metricsOpen == null || metricsOpen.isNull() ? null : metricsOpen.asBoolean();
+        return new SecuritySettings(openReads.asBoolean(), observe, anonymous.orNull(), metrics);
     }
 }

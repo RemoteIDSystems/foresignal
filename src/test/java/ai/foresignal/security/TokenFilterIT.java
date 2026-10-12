@@ -129,7 +129,7 @@ class TokenFilterIT {
         "endpointRestricted, agentOp, true, 403, INSUFFICIENT_SCOPE",
         "endpointRestricted, adminOp, true, 403, INSUFFICIENT_SCOPE",
         "endpointRestricted, alwaysOp, true, 403, ENDPOINT_NOT_ALLOWED",
-        "dataRestricted, readOp, true, 403, RESTRICTION_NOT_ENFORCED",
+        "dataRestricted, readOp, true, PASS, ",
         "dataRestricted, agentOp, true, 403, INSUFFICIENT_SCOPE",
         "dataRestricted, adminOp, true, 403, INSUFFICIENT_SCOPE",
         "dataRestricted, alwaysOp, true, PASS, ",
@@ -147,7 +147,7 @@ class TokenFilterIT {
         "expired, readOp, false, 401, UNAUTHORIZED",
         "endpointRestricted, readOp, false, PASS, ",
         "endpointRestricted, alwaysOp, false, 403, ENDPOINT_NOT_ALLOWED",
-        "dataRestricted, readOp, false, 403, RESTRICTION_NOT_ENFORCED",
+        "dataRestricted, readOp, false, PASS, ",
     })
     void matrix(String token, String op, boolean openReads, String expected, String code) throws Exception {
         settings.put(SettingKeys.SECURITY, new SecuritySettings(openReads));

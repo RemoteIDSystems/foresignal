@@ -19,6 +19,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;
 
 /** {@code list_briefings} (read): the scheduled briefings, as {@code listBriefings} (prompt 029). */
+@ai.foresignal.security.restrict.RestrictedRead
 @Component
 public class ListBriefingsTool implements ForesignalMcpTool {
 
@@ -68,7 +69,7 @@ public class ListBriefingsTool implements ForesignalMcpTool {
     @Override
     public ToolResult call(ToolContext context, JsonNode args) {
         Detail detail = Detail.of(args);
-        List<ObjectNode> items = briefings.list().stream().map(shaper::objectTree).toList();
+        List<ObjectNode> items = briefings.list(context.restriction()).stream().map(shaper::objectTree).toList();
         return ToolResult.json(shaper.list(items, items.size(), false, detail, null));
     }
 }

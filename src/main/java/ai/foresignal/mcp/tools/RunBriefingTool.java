@@ -23,6 +23,7 @@ import tools.jackson.databind.node.ObjectNode;
  * {@code runBriefing} (prompt 029). LLM mode spends the chat provider's budget, so a token is always
  * required.
  */
+@ai.foresignal.security.restrict.RestrictedRead
 @Component
 public class RunBriefingTool implements ForesignalMcpTool {
 
@@ -82,6 +83,7 @@ public class RunBriefingTool implements ForesignalMcpTool {
 
     @Override
     public ToolResult call(ToolContext context, JsonNode args) {
+        briefings.requireVisible(McpArgs.requiredUuid(args, "briefingId"), context.restriction());
         ObjectNode run = shaper.objectTree(briefings.runNow(McpArgs.requiredUuid(args, "briefingId")));
         run.remove("stats");
         return ToolResult.json(shaper.object(run, Detail.LONG));

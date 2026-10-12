@@ -26,6 +26,7 @@ import tools.jackson.databind.node.ObjectNode;
  * {@code get_briefing_run} (read): one run of a briefing, or its latest, as {@code getBriefingRun}
  * and {@code getLatestBriefingRun} (prompt 029). The short form leaves out the statistics.
  */
+@ai.foresignal.security.restrict.RestrictedRead
 @Component
 public class GetBriefingRunTool implements ForesignalMcpTool {
 
@@ -80,6 +81,7 @@ public class GetBriefingRunTool implements ForesignalMcpTool {
         Detail detail = Detail.of(args);
         UUID briefingId = McpArgs.requiredUuid(args, "briefingId");
         UUID runId = McpArgs.uuid(args, "runId");
+        briefings.requireVisible(briefingId, context.restriction());
         BriefingRunEntity run = runId == null ? briefings.latest(briefingId) : briefings.run(briefingId, runId);
         ObjectNode out = shaper.objectTree(BriefingViews.run(run));
         out.put("title", run.getBriefingName());

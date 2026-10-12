@@ -22,6 +22,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;
 
 /** {@code list_kinds} (read): the kinds currently present, with counts and sources, as {@code listKinds}. */
+@ai.foresignal.security.restrict.RestrictedRead
 @Component
 public class ListKindsTool implements ForesignalMcpTool {
 
@@ -71,13 +72,18 @@ public class ListKindsTool implements ForesignalMcpTool {
     @Override
     public ToolResult call(ToolContext context, JsonNode args) {
         Detail detail = Detail.of(args);
-        return ToolResult.json(list(context.excludedSources(), detail));
+        return ToolResult.json(list(context.excludedSources(), context.restriction(), detail));
     }
 
     /** The kinds visible with {@code excluded} hidden, as a capped list (shared with the resource). */
     ObjectNode list(Set<String> excluded, Detail detail) {
+        return list(excluded, ai.foresignal.security.restrict.ReadRestriction.NONE, detail);
+    }
+
+    /** {@link #list(Set, Detail)} counting only records inside {@code restriction} (prompt 035). */
+    ObjectNode list(Set<String> excluded, ai.foresignal.security.restrict.ReadRestriction restriction, Detail detail) {
         List<ObjectNode> items = new ArrayList<>();
-        for (Slices.KindRow row : queries.kinds(excluded)) {
+        for (Slices.KindRow row : queries.kinds(excluded, restriction)) {
             ObjectNode item = shaper.object();
             item.put("kind", row.kind());
             item.put("count", row.count());

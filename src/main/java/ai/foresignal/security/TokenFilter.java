@@ -24,6 +24,10 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.time.Clock;
 import java.util.LinkedHashMap;
+import java.util.List;
+import ai.foresignal.security.ratelimit.AuthFailureBackoff;
+import ai.foresignal.security.restrict.ReadRestriction;
+import ai.foresignal.security.restrict.RequestPrincipal;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -52,9 +56,24 @@ import org.springframework.web.filter.OncePerRequestFilter;
  *       {@code alwaysAuthenticated}.
  *   <li>Scope too low: {@code 403 INSUFFICIENT_SCOPE} with {@code requiredScope}.
  *   <li>An endpoint restriction with no matching pattern: {@code 403 ENDPOINT_NOT_ALLOWED}.
- *   <li>Data restrictions: {@link RestrictionEnforcer} ({@code 403 RESTRICTION_NOT_ENFORCED} until
- *       prompt 035).
+ *   <li>Data restrictions: {@link RestrictionEnforcer}; from prompt 035 data restrictions are applied
+ *       by {@code RestrictionClamp} on every read path, so the enforcer refuses nothing.
  * </ol>
+ *
+ * <p>Prompt 035 adds the perimeter:
+ *
+ * <ul>
+ *   <li>Every accepted request carries a {@link RequestPrincipal}: the token with its effective
+ *       {@link ReadRestriction}, the anonymous profile ({@code security.anonymous}) for tokenless
+ *       data reads, or a feed key bound by {@link ai.foresignal.security.restrict.PathKeyFilter}.
+ *       A feed key reaches only {@code read} operations that are not {@code alwaysAuthenticated};
+ *       an anonymous profile with {@code endpoints} reaches only those ({@code 403 RESTRICTED}).
+ *   <li>Each refused credential (bearer token, ticket, ingest key) counts for
+ *       {@link AuthFailureBackoff}; an address in backoff gets {@code 429 RATE_LIMITED} with
+ *       {@code Retry-After} instead of the 401. A correct credential is always evaluated and
+ *       accepted, and resets the address.
+ *   <li>{@code security.metricsOpen=false} makes {@code /actuator/prometheus} admin-only.
+ * </ul>
  *
  * <p>On ingest paths ({@link AccessRequirement.IngestKeyOrAdmin}, prompt 024) a request without an
  * API token, or with an {@code eik_} bearer, goes to the {@link IngestKeyAuthenticator}: an ingest
@@ -73,7 +92,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * not need Spring Security. That choice is why {@code management.endpoint.health.show-details} must
  * be {@code never}. Runs after {@link CorsFilter} so a preflight gets its CORS headers even when the
  * request itself would be rejected. {@code /actuator/prometheus} stays open on the assumption that
- * Foresignal is reachable only from a trusted network (prompt 035 adds {@code metricsOpen}).
+ * Foresignal is reachable only from a trusted network unless {@code security.metricsOpen} is false.
  */
 @Component
 public class TokenFilter extends OncePerRequestFilter implements Ordered {
@@ -86,6 +105,9 @@ public class TokenFilter extends OncePerRequestFilter implements Ordered {
     /** Ingest keys start with this (prompt 024); such a bearer is never an API token. */
     static final String INGEST_KEY_PREFIX = "eik_";
     static final String WWW_AUTHENTICATE_VALUE = "Bearer realm=\"foresignal\"";
+
+    /** The Prometheus scrape endpoint, admin-only while {@code security.metricsOpen} is false. */
+    static final String METRICS_PATH = "/actuator/prometheus";
 
     /** Set on the request so later components can tell the caller's scope. */
     public static final String SCOPE_ATTRIBUTE = "ai.foresignal.scope";
@@ -104,6 +126,7 @@ public class TokenFilter extends OncePerRequestFilter implements Ordered {
     private final SecureRequestMonitor secureRequests;
     private final Clock clock;
     private final org.springframework.beans.factory.ObjectProvider<IngestKeyAuthenticator> ingestKeys;
+    private final org.springframework.beans.factory.ObjectProvider<AuthFailureBackoff> backoff;
     private final AntPathMatcher matcher = new AntPathMatcher();
 
     private volatile SecuritySettings securitySettings;
@@ -112,7 +135,8 @@ public class TokenFilter extends OncePerRequestFilter implements Ordered {
     public TokenFilter(AccessPolicy policy, TokenService tokens, TicketStore tickets, AppSettingService settings,
             ProblemWriter problems, RestrictionEnforcer restrictions, AuditService audit, SpecOperationIndex spec,
             SecureRequestMonitor secureRequests, Clock clock,
-            org.springframework.beans.factory.ObjectProvider<IngestKeyAuthenticator> ingestKeys) {
+            org.springframework.beans.factory.ObjectProvider<IngestKeyAuthenticator> ingestKeys,
+            org.springframework.beans.factory.ObjectProvider<AuthFailureBackoff> backoff) {
         this.policy = policy;
         this.tokens = tokens;
         this.tickets = tickets;
@@ -124,6 +148,7 @@ public class TokenFilter extends OncePerRequestFilter implements Ordered {
         this.secureRequests = secureRequests;
         this.clock = clock;
         this.ingestKeys = ingestKeys;
+        this.backoff = backoff;
     }
 
     @Override
@@ -150,12 +175,24 @@ public class TokenFilter extends OncePerRequestFilter implements Ordered {
         HttpMethod method = HttpMethod.valueOf(request.getMethod());
         String path = request.getRequestURI();
         AccessRequirement requirement = policy.requirementFor(method, path);
+        if (requirement instanceof Open && METRICS_PATH.equals(AccessPolicy.normalize(path)) && !metricsOpen()) {
+            requirement = AccessRequirement.ADMIN;
+        }
         String bearer = bearerToken(request);
+
+        Optional<RequestPrincipal> pathKey = RequestPrincipal.of(request).filter(RequestPrincipal::isFeedKey);
+        if (pathKey.isPresent()) {
+            feedKey(request, response, chain, requirement, pathKey.get());
+            return;
+        }
 
         if (requirement instanceof Open) {
             // Open endpoints never reject a credential, but a valid token is still noted (getSystem).
             if (bearer != null) {
                 tokens.authenticate(bearer).ifPresent(t -> accept(request, new CurrentToken(t, false)));
+            }
+            if (RequestPrincipal.of(request).isEmpty()) {
+                anonymousPrincipal().bind(request);
             }
             chain.doFilter(request, response);
             return;
@@ -216,7 +253,9 @@ public class TokenFilter extends OncePerRequestFilter implements Ordered {
                 auditIfNeeded(request, response, method, path, current);
                 return;
             }
-            if (current != null) {
+            if (current == null) {
+                anonymousPrincipal().bind(request);
+            } else {
                 accept(request, current);
                 if (requirement instanceof IngestKeyOrAdmin) {
                     request.setAttribute(IngestCaller.ATTRIBUTE, new IngestCaller(
@@ -244,11 +283,15 @@ public class TokenFilter extends OncePerRequestFilter implements Ordered {
         if (!result.accepted()) {
             reject(request, response, method, result.refused()
                     ? result.rejection()
-                    : "Ingest requires an ingest key or an admin token.");
+                    : "Ingest requires an ingest key or an admin token.", result.refused());
             return;
         }
         IngestCaller caller = result.caller();
         request.setAttribute(IngestCaller.ATTRIBUTE, caller);
+        AuthFailureBackoff b = backoff.getIfAvailable();
+        if (b != null) {
+            b.recordSuccess(request.getRemoteAddr());
+        }
         chain.doFilter(request, response);
         if (isWrite(method)) {
             String normalized = AccessPolicy.normalize(path);
@@ -282,6 +325,12 @@ public class TokenFilter extends OncePerRequestFilter implements Ordered {
         if (requirement instanceof RequiresScope required) {
             if (current == null) {
                 if (required.scope() == Scope.READ && !required.alwaysAuthenticated() && openReads()) {
+                    RequestPrincipal anonymous = anonymousPrincipal();
+                    List<String> endpoints = anonymous.restriction().endpoints();
+                    if (endpoints != null && !endpointAllowed(endpoints, method, path)) {
+                        return Optional.of(problems.problem(HttpStatus.FORBIDDEN, ErrorCodes.RESTRICTED,
+                                "Anonymous reads are restricted to other endpoints; present a token."));
+                    }
                     return Optional.empty();
                 }
                 return Optional.of(unauthorized(required.alwaysAuthenticated() && required.scope() == Scope.READ
@@ -321,8 +370,13 @@ public class TokenFilter extends OncePerRequestFilter implements Ordered {
 
     /** True when one of the token's {@code METHOD /path} patterns matches the request. */
     boolean endpointAllowed(TokenRestrictions restrictions, HttpMethod method, String path) {
+        return endpointAllowed(restrictions.endpoints(), method, path);
+    }
+
+    /** True when one of the {@code METHOD /path} patterns in {@code endpoints} matches the request. */
+    boolean endpointAllowed(List<String> endpoints, HttpMethod method, String path) {
         String normalized = AccessPolicy.normalize(path);
-        for (String endpoint : restrictions.endpoints()) {
+        for (String endpoint : endpoints) {
             int space = endpoint.indexOf(' ');
             if (space <= 0) {
                 continue;
@@ -341,6 +395,44 @@ public class TokenFilter extends OncePerRequestFilter implements Ordered {
     private void accept(HttpServletRequest request, CurrentToken current) {
         request.setAttribute(CurrentToken.ATTRIBUTE, current);
         request.setAttribute(SCOPE_ATTRIBUTE, current.scope());
+        AuthenticatedToken t = current.token();
+        new RequestPrincipal(RequestPrincipal.Kind.TOKEN, t.id(), t.name(), t.scope(), restrictionOf(t)).bind(request);
+        AuthFailureBackoff b = backoff.getIfAvailable();
+        if (b != null) {
+            b.recordSuccess(request.getRemoteAddr());
+        }
+    }
+
+    /**
+     * The effective read restriction of a token (prompt 035). Private sources stay governed by the
+     * 023 gate unless the token sets {@code excludePrivate} itself.
+     */
+    public static ReadRestriction restrictionOf(AuthenticatedToken token) {
+        return ReadRestriction.of(token.restrictions(), false);
+    }
+
+    /** The anonymous principal under the {@code security.anonymous} profile in force. */
+    RequestPrincipal anonymousPrincipal() {
+        return RequestPrincipal.anonymous(ReadRestriction.of(security().effectiveAnonymous(), true));
+    }
+
+    /**
+     * A request a {@code PathKeyFilter} bound to a feed key: allowed only on {@code read} operations
+     * that are not {@code alwaysAuthenticated} (and on open ones); {@code 403 RESTRICTED} otherwise.
+     */
+    private void feedKey(HttpServletRequest request, HttpServletResponse response, FilterChain chain,
+            AccessRequirement requirement, RequestPrincipal principal) throws IOException, ServletException {
+        boolean allowed = requirement instanceof Open
+                || (requirement instanceof RequiresScope required && required.scope() == Scope.READ
+                        && !required.alwaysAuthenticated());
+        if (!allowed) {
+            request.setAttribute(REJECTION_ATTRIBUTE, ErrorCodes.RESTRICTED);
+            problems.write(response, problems.problem(HttpStatus.FORBIDDEN, ErrorCodes.RESTRICTED,
+                    "A feed key reads only data endpoints."));
+            return;
+        }
+        request.setAttribute(SCOPE_ATTRIBUTE, Scope.READ);
+        chain.doFilter(request, response);
     }
 
     /**
@@ -446,12 +538,20 @@ public class TokenFilter extends OncePerRequestFilter implements Ordered {
     // ------------------------------------------------------------------------- helpers
 
     private boolean openReads() {
+        return security().openReads();
+    }
+
+    private boolean metricsOpen() {
+        return !Boolean.FALSE.equals(security().metricsOpen());
+    }
+
+    private SecuritySettings security() {
         SecuritySettings cached = securitySettings;
         if (cached == null) {
             cached = settings.getOrDefault(SettingKeys.SECURITY, SecuritySettings.class, SecuritySettings::defaults);
             securitySettings = cached;
         }
-        return cached.openReads();
+        return cached;
     }
 
     /** The token from {@code Authorization: Bearer <token>}, or null when absent or malformed. */
@@ -476,6 +576,26 @@ public class TokenFilter extends OncePerRequestFilter implements Ordered {
      */
     private void reject(HttpServletRequest request, HttpServletResponse response, HttpMethod method, String detail)
             throws IOException {
+        reject(request, response, method, detail, true);
+    }
+
+    /**
+     * {@link #reject(HttpServletRequest, HttpServletResponse, HttpMethod, String)}; {@code presented}
+     * is false when no credential was presented at all, which never counts as a failure.
+     */
+    private void reject(HttpServletRequest request, HttpServletResponse response, HttpMethod method, String detail,
+            boolean presented) throws IOException {
+        AuthFailureBackoff b = presented ? backoff.getIfAvailable() : null;
+        Optional<java.time.Duration> retry = b == null ? Optional.empty() : b.recordFailure(request.getRemoteAddr());
+        if (retry.isPresent()) {
+            // Too many failed credentials from this address: back off instead of answering 401 (035).
+            request.setAttribute(REJECTION_ATTRIBUTE, ErrorCodes.RATE_LIMITED);
+            response.setHeader(HttpHeaders.RETRY_AFTER, Long.toString(AuthFailureBackoff.seconds(retry.get())));
+            problems.write(response, problems.problem(HttpStatus.TOO_MANY_REQUESTS, ErrorCodes.RATE_LIMITED,
+                    "Too many failed credentials from this address; retry later."));
+            auditIfNeeded(request, response, method, request.getRequestURI(), null);
+            return;
+        }
         request.setAttribute(REJECTION_ATTRIBUTE, ErrorCodes.UNAUTHORIZED);
         response.setHeader(HttpHeaders.WWW_AUTHENTICATE, WWW_AUTHENTICATE_VALUE);
         problems.write(response, unauthorized(detail));

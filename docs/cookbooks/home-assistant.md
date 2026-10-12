@@ -9,7 +9,8 @@ package is [`integrations/home-assistant/foresignal_package.yaml`](../../integra
 acknowledging. No agent or admin token is stored in Home Assistant. The admin token is used once, on
 your workstation, to create the channel, the custom source and the read token.
 
-**URLs used:** `/v1/records`, `/v1/notifications/badge`, `/v1/alerts`, `/v1/sources/health`,
+**URLs used:** `/v1/records` (directly, or through a feed key as `/v1/k/{key}/records`),
+`/v1/feed-keys` (setup), `/v1/notifications/badge`, `/v1/alerts`, `/v1/sources/health`,
 `/v1/ingest/{sourceId}`, `/v1/actions/{actionToken}` (capability URLs), and for setup
 `/v1/channels`, `/v1/custom-sources`, `/v1/tokens`, `/v1/sources/{sourceId}`,
 `/v1/settings/server`. Home Assistant's own: `/api/webhook/<webhook_id>`.
@@ -70,14 +71,33 @@ triggers:
 ## 2. Records on the Home Assistant map: `geo_json_events`
 
 The [GeoJSON integration](https://www.home-assistant.io/integrations/geo_json_events/) shows the
-features of a GeoJSON feed as geo-location entities near your home. Add it in **Settings → Devices &
-services → Add integration → GeoJSON** (it is configured in the UI only) with:
+features of a GeoJSON feed as geo-location entities near your home. The integration cannot send
+headers, so give it a **feed key** URL: a narrow, revocable read credential carried in the path.
+Create one (admin token) restricted to the kinds and area the map should show:
+
+```sh
+curl -fsS -X POST http://foresignal.local:8080/v1/feed-keys \
+  -H "Authorization: Bearer $FORESIGNAL_ADMIN_TOKEN" -H 'Content-Type: application/json' \
+  -d '{"name":"Home Assistant map","prefixes":["/v1/records"],
+       "restrictions":{"kinds":["earthquake"],"bbox":[-100.5,32.0,-91.5,40.0]},
+       "expiresAt":"2027-10-01T00:00:00Z"}'
+```
+
+The response carries the key (`fsf_…`, shown once) and a ready-made URL per prefix. Add the
+integration in **Settings → Devices & services → Add integration → GeoJSON** (it is configured in
+the UI only) with:
+
+```
+http://foresignal.local:8080/v1/k/fsf_your_feed_key/records?format=geojson&limit=200
+```
+
+and a radius around your home. The key's restriction applies to every read, so the URL needs no
+`kind` or `bbox` of its own (a narrower one is still allowed). With `security.openReads` on (the
+default) the plain URL without a key also works:
 
 ```
 http://foresignal.local:8080/v1/records?format=geojson&kind=earthquake&bbox=-100.5,32.0,-91.5,40.0&limit=200
 ```
-
-and a radius around your home.
 
 - **Entity names come from `properties.title`.** Home Assistant uses a top-level `name` property
   when a feature has one and otherwise the `title`; Foresignal features carry `title` (the source's
@@ -87,10 +107,11 @@ and a radius around your home.
   raising the limit.
 - **Records without geometry produce no entity.** The integration is meant for point features; use
   kinds whose records are points (earthquakes, aircraft, vessels).
-- **No headers.** The integration cannot send a bearer token, so the URL works only while
-  `security.openReads` is on (the default), which also opens every other read on the network to
-  anyone. Prompt 035 adds feed-key URLs that carry a narrow, revocable read credential in the path;
-  this section will move to them.
+- **No headers.** The integration cannot send a bearer token. Use the feed-key URL when
+  `security.openReads` is off, or whenever the broker is reachable beyond your LAN. A feed key
+  reads only `GET` paths under its prefixes, only inside its restriction, never private sources,
+  and expires (at most 365 days); revoke it with `DELETE /v1/feed-keys/{feedKeyId}`, after which the
+  URL answers `410`. Treat the URL as a secret: it is the credential.
 
 ## 3. RESTful sensors (read token)
 
@@ -130,7 +151,7 @@ entities. A watch on `sources: ["custom-home"]` can then alert on home states li
 
 ## Limits
 
-- `geo_json_events`: one page, every 5 minutes, needs `openReads` until feed keys exist (035).
+- `geo_json_events`: one page, every 5 minutes; a feed-key URL (or `openReads` for the plain URL).
 - REST sensors poll; keep `scan_interval` at 60 s or more. Foresignal's alert stream
   (`/v1/alerts/stream`) is not usable from Home Assistant's REST integrations.
 - Webhook automations are unauthenticated beyond the id; capability URLs expire after 12 h.
@@ -144,5 +165,6 @@ entities. A watch on `sources: ["custom-home"]` can then alert on home states li
   from tokens without private access, and are never embedded for search.
 - The webhook body contains the alert text and record ids; it stays on your LAN with
   `local_only: true`.
-- Anyone with `openReads` on can read what `geo_json_events` reads; turn it off
-  (`PUT /v1/settings/security {"openReads": false}`) when the broker is reachable beyond your LAN.
+- Anyone with `openReads` on can read what the plain `geo_json_events` URL reads; turn it off
+  (`PUT /v1/settings/security {"openReads": false}`) when the broker is reachable beyond your LAN and
+  use the feed-key URL instead.

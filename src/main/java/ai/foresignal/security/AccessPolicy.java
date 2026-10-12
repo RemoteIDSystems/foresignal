@@ -192,6 +192,9 @@ public class AccessPolicy {
                 rule(null, "/v1/system/admin-token/**", AccessRequirement.ADMIN),
                 rule(null, "/v1/channels/**", AccessRequirement.ADMIN),
                 rule(null, "/v1/tokens/**", AccessRequirement.ADMIN),
+                // Feed keys (035): admin; /v1/settings/ratelimits and /v1/settings/outbound fall under /v1/settings/**.
+                rule(null, "/v1/feed-keys", AccessRequirement.ADMIN),
+                rule(null, "/v1/feed-keys/*", AccessRequirement.ADMIN),
                 // Testing a provider spends LLM tokens (always authenticated, 026).
                 rule(HttpMethod.POST, "/v1/llm/providers/*/test", AccessRequirement.ADMIN_ALWAYS_AUTHENTICATED),
                 rule(null, "/v1/llm/**", AccessRequirement.ADMIN),

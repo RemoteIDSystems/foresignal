@@ -98,9 +98,22 @@ public class BriefingRunner {
      * @param periodFrom the period start
      * @param periodTo the period end
      * @param hiddenSources sources counted but never listed (private sources unless the owner is admin)
+     * @param restriction the read restriction of the token that created the briefing (prompt 035):
+     *     statistics, notable records, search hits and therefore citations stay inside it
      */
     public record Plan(String name, BriefingInput input, Instant periodFrom, Instant periodTo,
-            Set<String> hiddenSources) {}
+            Set<String> hiddenSources, ai.foresignal.security.restrict.ReadRestriction restriction) {
+
+        /** A null restriction becomes none. */
+        public Plan {
+            restriction = restriction == null ? ai.foresignal.security.restrict.ReadRestriction.NONE : restriction;
+        }
+
+        /** An unrestricted plan (the shape before prompt 035). */
+        public Plan(String name, BriefingInput input, Instant periodFrom, Instant periodTo, Set<String> hiddenSources) {
+            this(name, input, periodFrom, periodTo, hiddenSources, null);
+        }
+    }
 
     /**
      * A rendered run.
@@ -162,7 +175,7 @@ public class BriefingRunner {
         try {
             scope = scopes.resolve(input.scope());
             stats = statsService.compute(new DigestStatsService.Request(null, plan.periodFrom(), plan.periodTo(), null,
-                    scope, input.maxItemsPerKind(), plan.hiddenSources(), zone, input.scope()));
+                    scope, input.maxItemsPerKind(), plan.hiddenSources(), zone, input.scope(), plan.restriction()));
         } catch (RuntimeException e) {
             log.warn("Briefing '{}' could not compute its statistics", plan.name(), e);
             return new Outcome(BriefingRunEntity.FAILED, input.mode(), started, clock.instant(), plan.periodFrom(),
@@ -177,7 +190,8 @@ public class BriefingRunner {
         }
         try {
             LlmBriefingWriter.Result result = writer.write(new LlmBriefingWriter.Request(plan.name(),
-                    input.instructions(), stats, scope, plan.hiddenSources(), zone, plan.periodFrom(), plan.periodTo()));
+                    input.instructions(), stats, scope, plan.hiddenSources(), zone, plan.periodFrom(), plan.periodTo(),
+                    plan.restriction()));
             return new Outcome(BriefingRunEntity.SUCCEEDED, input.mode(), started, clock.instant(), plan.periodFrom(),
                     plan.periodTo(), result.markdown(), citations(result.citations()), statsJson, result.warnings(),
                     result.usage(), null);
@@ -211,7 +225,8 @@ public class BriefingRunner {
                 input.timezone(), now, from, now);
         transactions.executeWithoutResult(status -> runs.saveAndFlush(running));
 
-        Outcome outcome = render(new Plan(briefing.getName(), input, from, now, hiddenSources(briefing.getOwnerScope())));
+        Outcome outcome = render(new Plan(briefing.getName(), input, from, now, hiddenSources(briefing.getOwnerScope()),
+                ai.foresignal.security.restrict.ReadRestriction.of(briefing.getRestrictionSnapshot(), false)));
         BriefingRunEntity done = transactions.execute(status -> {
             BriefingRunEntity row = runs.findById(runId).orElse(running);
             row.setStatus(outcome.status());

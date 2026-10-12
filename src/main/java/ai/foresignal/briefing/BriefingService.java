@@ -102,6 +102,37 @@ public class BriefingService {
         return view(load(id));
     }
 
+    /**
+     * True when a caller under {@code restriction} may see {@code entity} and its runs: its
+     * creator's restriction lies within the caller's (prompt 035), so no run can show the caller
+     * more than its own restriction allows.
+     */
+    public static boolean visibleTo(BriefingEntity entity, ai.foresignal.security.restrict.ReadRestriction restriction) {
+        return restriction == null || !restriction.hasDataRestrictions()
+                || ai.foresignal.security.restrict.ReadRestriction.of(entity.getRestrictionSnapshot(), false).within(restriction);
+    }
+
+    /**
+     * Throws {@code 404} unless briefing {@code id} is visible under {@code restriction} (see
+     * {@link #visibleTo}).
+     */
+    public void requireVisible(UUID id, ai.foresignal.security.restrict.ReadRestriction restriction) {
+        if (restriction != null && restriction.hasDataRestrictions() && !visibleTo(load(id), restriction)) {
+            throw NotFoundException.of("Briefing", id);
+        }
+    }
+
+    /** {@code listBriefings} for a caller under {@code restriction}: only visible briefings. */
+    public List<Map<String, Object>> list(ai.foresignal.security.restrict.ReadRestriction restriction) {
+        if (restriction == null || !restriction.hasDataRestrictions()) {
+            return list();
+        }
+        return briefings.findAllByOrderByCreatedAtAscIdAsc().stream()
+                .filter(b -> visibleTo(b, restriction))
+                .map(this::view)
+                .toList();
+    }
+
     /** The stored briefing, or 404. */
     public BriefingEntity load(UUID id) {
         return briefings.findById(id).orElseThrow(() -> NotFoundException.of("Briefing", id));
@@ -120,6 +151,7 @@ public class BriefingService {
         Instant now = clock.instant();
         entity.setCreatedAt(now);
         apply(entity, valid.input(), owner(caller), scope(caller), now);
+        entity.setRestrictionSnapshot(caller.restriction().toStored());
         BriefingEntity saved = briefings.saveAndFlush(entity);
         return BriefingViews.briefing(saved, valid.warnings());
     }
@@ -135,6 +167,7 @@ public class BriefingService {
         BriefingEntity entity = load(id);
         BriefingValidator.Validated valid = validator.validate(body, caller.excludedSources());
         apply(entity, valid.input(), owner(caller), scope(caller), clock.instant());
+        entity.setRestrictionSnapshot(caller.restriction().toStored());
         BriefingEntity saved = briefings.saveAndFlush(entity);
         return BriefingViews.briefing(saved, valid.warnings());
     }
@@ -153,6 +186,7 @@ public class BriefingService {
             return created;
         });
         apply(entity, valid.input(), null, Scope.ADMIN.wireValue(), now);
+        entity.setRestrictionSnapshot(null);
         return BriefingViews.briefing(briefings.saveAndFlush(entity), valid.warnings());
     }
 
@@ -279,7 +313,8 @@ public class BriefingService {
         BriefingInput input = valid.input();
         Instant now = clock.instant();
         BriefingRunner.Outcome outcome = runner.render(new BriefingRunner.Plan(input.name(), input,
-                BriefingRunner.periodFrom(input, null, now), now, runner.hiddenSources(scope(caller))));
+                BriefingRunner.periodFrom(input, null, now), now, runner.hiddenSources(scope(caller)),
+                caller.restriction()));
         Map<String, Object> out = BriefingViews.preview(outcome);
         if (!valid.warnings().isEmpty()) {
             List<String> warnings = new ArrayList<>(outcome.warnings());

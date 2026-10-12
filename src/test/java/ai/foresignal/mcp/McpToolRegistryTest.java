@@ -10,7 +10,7 @@ import ai.foresignal.api.error.FieldError;
 import ai.foresignal.api.error.ValidationException;
 import ai.foresignal.api.support.ReadCaller;
 import ai.foresignal.security.AuthenticatedToken;
-import ai.foresignal.security.FailClosedRestrictionEnforcer;
+import ai.foresignal.security.ClampedRestrictionEnforcer;
 import ai.foresignal.security.Scope;
 import ai.foresignal.security.TokenRestrictions;
 import ai.foresignal.security.audit.AuditRecord;
@@ -116,7 +116,7 @@ class McpToolRegistryTest {
     void setUp() {
         audit = mock(AuditService.class);
         registry = new McpToolRegistry(List.of(echo, write, McpTestTools.costBearing(), McpTestTools.image()),
-                new DefaultJsonSchemaValidator(json), json, audit, new FailClosedRestrictionEnforcer(),
+                new DefaultJsonSchemaValidator(json), json, audit, new ClampedRestrictionEnforcer(),
                 Clock.fixed(Instant.parse("2026-10-12T12:00:00Z"), ZoneOffset.UTC));
     }
 
@@ -211,12 +211,11 @@ class McpToolRegistryTest {
     }
 
     @Test
-    @DisplayName("tokens with data restrictions are refused on read tools until 035 enforces them")
+    @DisplayName("tokens with data restrictions may call read tools; the tools clamp their reads (035)")
     void dataRestrictions() {
         TokenRestrictions restricted = new TokenRestrictions(List.of("usgs"), null, null, null);
         McpSchema.CallToolResult result = call("test_echo", Map.of("text", "x"), token(Scope.READ, restricted));
-        assertThat(result.isError()).isTrue();
-        assertThat(text(result)).contains("restrictions");
+        assertThat(result.isError()).isFalse();
     }
 
     @Test
@@ -291,7 +290,7 @@ class McpToolRegistryTest {
     @DisplayName("duplicate or badly named tools are refused at startup")
     void names() {
         assertThatThrownBy(() -> new McpToolRegistry(List.of(echo, echo), new DefaultJsonSchemaValidator(json), json,
-                audit, new FailClosedRestrictionEnforcer(), Clock.systemUTC()))
+                audit, new ClampedRestrictionEnforcer(), Clock.systemUTC()))
                 .isInstanceOf(IllegalStateException.class).hasMessageContaining("test_echo");
         ForesignalMcpTool bad = new ForesignalMcpTool() {
             @Override
@@ -320,7 +319,7 @@ class McpToolRegistryTest {
             }
         };
         assertThatThrownBy(() -> new McpToolRegistry(List.of(bad), new DefaultJsonSchemaValidator(json), json, audit,
-                new FailClosedRestrictionEnforcer(), Clock.systemUTC()))
+                new ClampedRestrictionEnforcer(), Clock.systemUTC()))
                 .isInstanceOf(IllegalStateException.class).hasMessageContaining("snake case");
     }
 

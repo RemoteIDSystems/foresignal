@@ -29,6 +29,7 @@ import tools.jackson.databind.node.ObjectNode;
  * ({@code acknowledgeAlert}), {@code resolve} ({@code resolveAlert}), {@code snooze}
  * ({@code snoozeAlert}, {@code until} or {@code for}) and {@code unsnooze} ({@code unsnoozeAlert}).
  */
+@ai.foresignal.security.restrict.RestrictedRead
 @Component
 public class SetAlertStatusTool implements ForesignalMcpTool {
 
@@ -98,7 +99,7 @@ public class SetAlertStatusTool implements ForesignalMcpTool {
     public ToolResult call(ToolContext context, JsonNode args) {
         long id = McpArgs.requiredLong(args, "alertId");
         String action = McpArgs.requiredText(args, "action");
-        items.visible(id, context.excludedSources());
+        items.visible(id, context.excludedSources(), context.restriction());
         boolean transition = action.equals("ack") || action.equals("resolve");
         boolean snooze = action.equals("snooze");
         if (!transition && (args.hasNonNull("note") || args.hasNonNull("feedback"))) {

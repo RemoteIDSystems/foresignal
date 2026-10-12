@@ -43,11 +43,13 @@ class UpstreamClientIsTheOnlyHttpClientTest {
      * to push services through {@code PushHttp}, pinned to the address its push-endpoint policy
      * checked (prompt 035 swaps that check for {@code OutboundUrlPolicy} {@code PUSH_ENDPOINT}).
      * Native push (prompt 032) reaches APNs, FCM and the OAuth token endpoint through
-     * {@code NativePushHttp}.
+     * {@code NativePushHttp}. Prompt 035 moved the channel and LLM clients into {@code net.PinnedHttp},
+     * which connects them to the address the outbound URL policy checked.
      */
     private static final List<Path> SANCTIONED_OUTBOUND =
             List.of(MAIN.resolve(Path.of("ai", "foresignal", "notify", "ChannelSender.java")),
                     MAIN.resolve(Path.of("ai", "foresignal", "llm", "LlmHttp.java")),
+                    MAIN.resolve(Path.of("ai", "foresignal", "net", "PinnedHttp.java")),
                     MAIN.resolve(Path.of("ai", "foresignal", "notify", "push", "PushHttp.java")),
                     MAIN.resolve(Path.of("ai", "foresignal", "notify", "push", "NativePushHttp.java")));
 

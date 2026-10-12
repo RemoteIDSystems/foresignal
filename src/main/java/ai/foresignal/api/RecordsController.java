@@ -49,6 +49,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.Objects;
+import ai.foresignal.security.restrict.ReadRestriction;
+import ai.foresignal.security.restrict.RestrictedRead;
+import ai.foresignal.security.restrict.RestrictionClamp;
 import java.util.TreeMap;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -147,6 +151,7 @@ public class RecordsController {
      */
     @GetMapping("/v1/records")
     @Operation(operationId = "listRecords", tags = "Records")
+    @RestrictedRead
     public ResponseEntity<Object> listRecords(
             @RequestParam(required = false) List<String> source,
             @RequestParam(required = false) List<String> kind,
@@ -177,8 +182,9 @@ public class RecordsController {
             throws IOException {
         ReadCaller caller = callers.resolve(request);
         Set<String> excluded = callers.excludedSources(caller);
+        ReadRestriction restriction = caller.restriction();
         ResponseFormat fmt = ResponseFormat.negotiate(format, accept, LIST_FORMATS);
-        List<String> sources = knownSources(QueryParams.multi("source", source), excluded);
+        List<String> sources = knownSources(QueryParams.multi("source", source), callers.hiddenSources(caller));
         List<String> kinds = QueryParams.multi("kind", kind);
         List<String> ids = QueryParams.multi("externalId", externalId);
         BboxFilter box = BboxParser.parse(bbox);
@@ -205,8 +211,15 @@ public class RecordsController {
             AsOfQueryService.checkCombination(
                     pinned != null, "observed".equals(orderValue), sortValue != null, expired,
                     sinceAt != null || untilAt != null);
-            return asOf(new AsOfQueryService.AsOfQuery(asOfAt, sources, kinds, ids, box, nearFilter, cursor, pageSize,
-                    selection, geometry, encoding, observers, excluded), fmt, caller, response);
+            // An absent filter becomes the restriction's (asOf needs a source or kind filter).
+            List<String> asOfSources = sources.isEmpty() && kinds.isEmpty()
+                    ? Objects.requireNonNullElse(RestrictionClamp.clampSources(sources, restriction), sources)
+                    : sources;
+            List<String> asOfKinds = sources.isEmpty() && kinds.isEmpty()
+                    ? Objects.requireNonNullElse(RestrictionClamp.clampKinds(kinds, restriction), kinds)
+                    : kinds;
+            return asOf(new AsOfQueryService.AsOfQuery(asOfAt, asOfSources, asOfKinds, ids, box, nearFilter, cursor,
+                    pageSize, selection, geometry, encoding, observers, excluded, restriction), fmt, caller, response);
         }
 
         ListOrder listOrder;
@@ -222,7 +235,7 @@ public class RecordsController {
             listOrder = "id".equals(orderValue) ? ListOrder.ID : ListOrder.OBSERVED;
         }
         CurrentQuery query = new CurrentQuery(sources, kinds, ids, box, nearFilter, sinceAt, untilAt, axis, q, expired,
-                listOrder, pinned, cursor, pageSize, selection, geometry, encoding, observers, excluded);
+                listOrder, pinned, cursor, pageSize, selection, geometry, encoding, observers, excluded, restriction);
 
         if (fmt.streaming()) {
             streamRecords(fmt, selection, response, sink -> queries.streamCurrent(query, maxRows(), sink),
@@ -231,10 +244,10 @@ public class RecordsController {
         }
         String etag = listETag(request, accept, caller);
         if (ETags.matches(ifNoneMatch, etag)) {
-            return ETags.notModified(etag, caller.openReads());
+            return ETags.notModified(etag, caller.publicCache());
         }
         Slices.RecordSlice slice = queries.list(query);
-        HttpHeaders headers = ETags.cacheHeaders(new HttpHeaders(), etag, caller.openReads());
+        HttpHeaders headers = ETags.cacheHeaders(new HttpHeaders(), etag, caller.publicCache());
         headers.set(WATERMARK_HEADER, Long.toString(slice.watermarkSeq()));
         Object body;
         if (fmt == ResponseFormat.GEOJSON) {
@@ -261,7 +274,7 @@ public class RecordsController {
             }
             return null;
         }
-        HttpHeaders headers = ETags.cacheHeaders(new HttpHeaders(), null, caller.openReads());
+        HttpHeaders headers = ETags.cacheHeaders(new HttpHeaders(), null, caller.publicCache());
         headers.set(WATERMARK_HEADER, Long.toString(slice.seq()));
         Object body;
         if (fmt == ResponseFormat.GEOJSON) {
@@ -282,6 +295,7 @@ public class RecordsController {
      */
     @GetMapping("/v1/records/{sourceId}/{externalId}")
     @Operation(operationId = "getRecord", tags = "Records")
+    @RestrictedRead
     public ResponseEntity<Object> getRecord(
             @PathVariable String sourceId,
             @PathVariable String externalId,
@@ -299,17 +313,18 @@ public class RecordsController {
         FieldSelection selection = FieldSelector.parse(fields);
         GeometryOptions geometry = GeometryOptions.parse(precision, null);
         boolean observers = includes.contains("observer") && caller.mayReadObservers();
-        RecordRow row = queries.get(sourceId, externalId, observers, selection, geometry, callers.excludedSources(caller))
+        RecordRow row = queries.get(sourceId, externalId, observers, selection, geometry,
+                        callers.excludedSources(caller), caller.restriction())
                 .orElseThrow(() -> NotFoundException.of("Record", sourceId + ":" + externalId));
         String etag = ETags.forRecord(row.version(), row.observedAt());
         if (ETags.matches(ifNoneMatch, etag)) {
-            return ETags.notModified(etag, caller.openReads());
+            return ETags.notModified(etag, caller.publicCache());
         }
         Object body = fmt == ResponseFormat.GEOJSON
                 ? mapper.feature(row, selection, RecordMapper.Shape.CURRENT)
                 : mapper.record(row, selection, RecordMapper.Shape.CURRENT);
         return ResponseEntity.ok()
-                .headers(ETags.cacheHeaders(new HttpHeaders(), etag, caller.openReads()))
+                .headers(ETags.cacheHeaders(new HttpHeaders(), etag, caller.publicCache()))
                 .contentType(MediaType.parseMediaType(fmt.mediaType()))
                 .body(body);
     }
@@ -319,6 +334,7 @@ public class RecordsController {
     /** {@code listRecordVersions}: versions of one record ordered by seq. */
     @GetMapping("/v1/records/{sourceId}/{externalId}/versions")
     @Operation(operationId = "listRecordVersions", tags = "Records")
+    @RestrictedRead
     public RecordVersionPage listRecordVersions(
             @PathVariable String sourceId,
             @PathVariable String externalId,
@@ -337,7 +353,7 @@ public class RecordsController {
         boolean observers = includes.contains("observer") && caller.mayReadObservers();
         Slices.VersionSlice slice = queries
                 .versions(sourceId, externalId, sinceAt, untilAt, cursor, pageSize, observers,
-                        callers.excludedSources(caller))
+                        callers.excludedSources(caller), caller.restriction())
                 .orElseThrow(() -> NotFoundException.of("Record", sourceId + ":" + externalId));
         return new RecordVersionPage(records(slice.rows(), FieldSelection.ALL, RecordMapper.Shape.VERSION),
                 slice.nextCursor());
@@ -348,6 +364,7 @@ public class RecordsController {
     /** {@code queryHistory}: every version in a range, keyset on the selected time axis and seq. */
     @GetMapping("/v1/history")
     @Operation(operationId = "queryHistory", tags = "Records")
+    @RestrictedRead
     public ResponseEntity<Object> queryHistory(
             @RequestParam(required = false) List<String> source,
             @RequestParam(required = false) List<String> kind,
@@ -385,7 +402,7 @@ public class RecordsController {
         FieldSelection selection = FieldSelector.parse(fields);
         Set<String> includes = QueryParams.enumSet("include", include, List.of("observer"));
         HistoryQuery query = new HistoryQuery(
-                knownSources(QueryParams.multi("source", source), callers.excludedSources(caller)),
+                knownSources(QueryParams.multi("source", source), callers.hiddenSources(caller)),
                 QueryParams.multi("kind", kind),
                 QueryParams.multi("externalId", externalId),
                 BboxParser.parse(bbox),
@@ -399,7 +416,8 @@ public class RecordsController {
                 GeometryOptions.parse(precision, simplify),
                 fmt == ResponseFormat.CSV ? GeometryEncoding.WKT : GeometryEncoding.GEOJSON,
                 includes.contains("observer") && caller.mayReadObservers(),
-                callers.excludedSources(caller));
+                callers.excludedSources(caller),
+                caller.restriction());
         if (fmt.streaming()) {
             streamRecords(fmt, selection, response, sink -> queries.streamHistory(query, maxRows(), sink),
                     RecordMapper.Shape.VERSION);
@@ -418,6 +436,7 @@ public class RecordsController {
     /** {@code listKinds}: kinds currently present, with counts, sources and the declared display block. */
     @GetMapping("/v1/kinds")
     @Operation(operationId = "listKinds", tags = "Records")
+    @RestrictedRead
     public ResponseEntity<Object> listKinds(
             @RequestHeader(value = HttpHeaders.IF_NONE_MATCH, required = false) String ifNoneMatch,
             @RequestHeader(value = HttpHeaders.ACCEPT, required = false) String accept,
@@ -425,14 +444,14 @@ public class RecordsController {
         ReadCaller caller = callers.resolve(request);
         String etag = listETag(request, accept, caller);
         if (ETags.matches(ifNoneMatch, etag)) {
-            return ETags.notModified(etag, caller.openReads());
+            return ETags.notModified(etag, caller.publicCache());
         }
         List<KindSummaryDto> kinds = new ArrayList<>();
-        for (Slices.KindRow row : queries.kinds(callers.excludedSources(caller))) {
+        for (Slices.KindRow row : queries.kinds(callers.excludedSources(caller), caller.restriction())) {
             kinds.add(new KindSummaryDto(row.kind(), row.count(), row.sources(), display(row.kind())));
         }
         return ResponseEntity.ok()
-                .headers(ETags.cacheHeaders(new HttpHeaders(), etag, caller.openReads()))
+                .headers(ETags.cacheHeaders(new HttpHeaders(), etag, caller.publicCache()))
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(kinds);
     }
@@ -440,19 +459,23 @@ public class RecordsController {
     /** {@code getKindSchema}: the merged JSON Schema of one kind. 404 when no source emits it. */
     @GetMapping("/v1/kinds/{kind}/schema")
     @Operation(operationId = "getKindSchema", tags = "Records")
+    @RestrictedRead
     public ResponseEntity<Object> getKindSchema(
             @PathVariable String kind,
             @RequestHeader(value = HttpHeaders.IF_NONE_MATCH, required = false) String ifNoneMatch,
             HttpServletRequest request) {
         ReadCaller caller = callers.resolve(request);
+        if (!caller.restriction().allowsKind(kind)) {
+            throw NotFoundException.of("Kind", kind);
+        }
         Map<String, Object> schema = KindSchemaBuilder.build(kind, registry.descriptors())
                 .orElseThrow(() -> NotFoundException.of("Kind", kind));
         String etag = ETags.forDocument(json.writeValueAsString(schema));
         if (ETags.matches(ifNoneMatch, etag)) {
-            return ETags.notModified(etag, caller.openReads());
+            return ETags.notModified(etag, caller.publicCache());
         }
         return ResponseEntity.ok()
-                .headers(ETags.cacheHeaders(new HttpHeaders(), etag, caller.openReads()))
+                .headers(ETags.cacheHeaders(new HttpHeaders(), etag, caller.publicCache()))
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(schema);
     }

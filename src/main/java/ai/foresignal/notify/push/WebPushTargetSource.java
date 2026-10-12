@@ -35,6 +35,7 @@ public class WebPushTargetSource implements PushTargetSource {
 
     private final PushSubscriptionRepository subscriptions;
     private final NamedParameterJdbcTemplate jdbc;
+    private volatile PushRestrictionGate gate;
 
     /** Creates the source. */
     public WebPushTargetSource(PushSubscriptionRepository subscriptions, NamedParameterJdbcTemplate jdbc) {
@@ -51,11 +52,22 @@ public class WebPushTargetSource implements PushTargetSource {
     public List<PushTarget> targets(NotificationMessage message) {
         List<PushTarget> out = new ArrayList<>();
         for (PushSubscriptionEntity row : subscriptions.findByStatusOrderByCreatedAtAsc(PushSubscriptionService.ACTIVE)) {
-            if (PushFilters.fromMap(row.getFilters()).matches(message)) {
+            if (PushFilters.fromMap(row.getFilters()).matches(message) && restrictionAllows(row.getTokenId(), message)) {
                 out.add(target(row));
             }
         }
         return out;
+    }
+
+    /** The read-restriction gate (prompt 035); optional so slices without it still fan out. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    void setRestrictionGate(PushRestrictionGate gate) {
+        this.gate = gate;
+    }
+
+    private boolean restrictionAllows(UUID tokenId, NotificationMessage message) {
+        PushRestrictionGate g = gate;
+        return g == null || g.allows(tokenId, message);
     }
 
     @Override

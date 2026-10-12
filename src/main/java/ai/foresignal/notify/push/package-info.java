@@ -14,7 +14,7 @@
  *       out into per-target {@code push_dispatch} rows ({@link ai.foresignal.notify.push.PushFanout}),
  *       sent and retried independently by {@link ai.foresignal.notify.push.PushDispatchWorker}.
  *   <li>Subscriptions with registration verification, an address policy re-checked at send time
- *       ({@link ai.foresignal.notify.push.PushAddressPolicy}) and connections pinned to the checked
+ *       ({@link ai.foresignal.net.OutboundUrlPolicy} profile {@code PUSH_ENDPOINT}) and connections pinned to the checked
  *       address ({@link ai.foresignal.notify.push.PushHttp}).
  *   <li>Native push (prompt 032): APNs and FCM transports ({@code apns}, {@code fcm} subpackages)
  *       for {@link ai.foresignal.notify.push.NativeDeviceTarget}s registered at

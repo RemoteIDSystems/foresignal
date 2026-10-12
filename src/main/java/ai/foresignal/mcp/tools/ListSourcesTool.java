@@ -26,6 +26,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;
 
 /** {@code list_sources} (read): every source the caller may see, with its status, as {@code listSources}. */
+@ai.foresignal.security.restrict.RestrictedRead
 @Component
 public class ListSourcesTool implements ForesignalMcpTool {
 

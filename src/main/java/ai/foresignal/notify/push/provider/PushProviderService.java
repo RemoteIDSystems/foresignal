@@ -3,6 +3,7 @@ package ai.foresignal.notify.push.provider;
 import ai.foresignal.api.error.FieldError;
 import ai.foresignal.api.error.NotFoundException;
 import ai.foresignal.api.error.ValidationException;
+import ai.foresignal.net.OutboundUrlPolicy;
 import ai.foresignal.notify.NotificationRouter;
 import ai.foresignal.notify.push.NativeDeviceTarget;
 import ai.foresignal.notify.push.NativePushHttp;
@@ -95,11 +96,22 @@ public class PushProviderService {
     private final NativePushHttp http;
     private final JsonMapper json;
     private final Clock clock;
+    private final OutboundUrlPolicy policy;
+
+    /**
+     * The outbound profile of the FCM {@code tokenUri} (prompt 035): {@code LAN_ALLOWED}, like every
+     * other admin-configured destination, because the field already accepts http for a local stand-in.
+     */
+    public static final OutboundUrlPolicy.Profile TOKEN_URI_PROFILE = OutboundUrlPolicy.Profile.LAN_ALLOWED;
+
+    /** The start of a {@code config.tokenUri} error that the outbound URL policy produced. */
+    static final String POLICY_REFUSAL = "is refused by the outbound URL policy: ";
 
     /** Creates the service. */
     public PushProviderService(PushProviderRepository repository, CredentialCipher cipher,
             NamedParameterJdbcTemplate jdbc, NotificationRouter router, NativePushHttp http, JsonMapper json,
-            Clock clock) {
+            Clock clock, OutboundUrlPolicy policy) {
+        this.policy = policy;
         this.repository = repository;
         this.cipher = cipher;
         this.jdbc = jdbc;
@@ -411,6 +423,9 @@ public class PushProviderService {
             secret = fcm(config, secrets, out, errors);
         }
         if (!errors.isEmpty()) {
+            if (errors.stream().anyMatch(e -> e.message().startsWith(POLICY_REFUSAL))) {
+                throw OutboundUrlPolicy.notAllowed(errors);
+            }
             throw new ValidationException("The push provider is not valid.", errors);
         }
         return new Input(type, appIds, out, secret, enabled);
@@ -522,6 +537,11 @@ public class PushProviderService {
         tokenUri = tokenUri == null ? DEFAULT_TOKEN_URI : tokenUri;
         if (!httpUrl(tokenUri)) {
             errors.add(new FieldError("config.tokenUri", "must be an absolute https URL (http only for a local stand-in)"));
+        } else {
+            String problem = policy.saveProblem(tokenUri, TOKEN_URI_PROFILE, false);
+            if (problem != null) {
+                errors.add(new FieldError("config.tokenUri", POLICY_REFUSAL + problem));
+            }
         }
         out.put("projectId", project);
         out.put("clientEmail", email);

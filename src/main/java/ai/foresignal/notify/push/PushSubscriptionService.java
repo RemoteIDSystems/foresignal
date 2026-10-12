@@ -6,6 +6,7 @@ import ai.foresignal.api.error.FieldError;
 import ai.foresignal.api.error.ForesignalException;
 import ai.foresignal.api.error.NotFoundException;
 import ai.foresignal.api.error.ValidationException;
+import ai.foresignal.net.OutboundUrlPolicy;
 import ai.foresignal.notify.ChannelService;
 import ai.foresignal.notify.NotificationRouter;
 import ai.foresignal.security.ApiTokenRevokedEvent;
@@ -51,7 +52,9 @@ import tools.jackson.databind.JsonNode;
  * <p><b>Validation</b> (all problems in one 400 {@code VALIDATION_FAILED}): an {@code https} endpoint
  * of at most 1000 bytes without user info; {@code p256dh} a 65-byte uncompressed P-256 point on the
  * curve and {@code auth} 16 bytes (base64url); filters, transport label, payload format and language
- * from their enums. Then the address policy ({@link PushAddressPolicy}, 400 {@code URL_NOT_ALLOWED})
+ * from their enums. Then the outbound URL policy ({@link OutboundUrlPolicy} profile
+ * {@code PUSH_ENDPOINT}, prompt 035; 400 {@code URL_NOT_ALLOWED} on {@code endpoint}; a host that does
+ * not resolve is refused here, because the verification push follows at once)
  * and the caps: at most 5 {@code pending} per token and 200 subscriptions in total (409
  * {@code PUSH_LIMIT_REACHED}). A new subscription to an endpoint already registered replaces it.
  *
@@ -97,7 +100,7 @@ public class PushSubscriptionService {
     private static final SecureRandom RANDOM = new SecureRandom();
 
     private final PushSubscriptionRepository subscriptions;
-    private final PushAddressPolicy policy;
+    private final OutboundUrlPolicy policy;
     private final WebPushTransport transport;
     private final ChannelService channels;
     private final PushDispatchStore dispatches;
@@ -107,7 +110,7 @@ public class PushSubscriptionService {
     private final Clock clock;
 
     /** Creates the service. */
-    public PushSubscriptionService(PushSubscriptionRepository subscriptions, PushAddressPolicy policy,
+    public PushSubscriptionService(PushSubscriptionRepository subscriptions, OutboundUrlPolicy policy,
             WebPushTransport transport, ChannelService channels, PushDispatchStore dispatches,
             PushProperties properties, NamedParameterJdbcTemplate jdbc, PlatformTransactionManager transactions,
             Clock clock) {
@@ -151,7 +154,7 @@ public class PushSubscriptionService {
      * verification push.
      *
      * @throws ValidationException 400 {@code VALIDATION_FAILED}
-     * @throws ForesignalException 400 {@code URL_NOT_ALLOWED}
+     * @throws ValidationException 400 {@code URL_NOT_ALLOWED} on {@code endpoint}
      * @throws ConflictException 409 {@code PUSH_LIMIT_REACHED}
      */
     public Created create(JsonNode body, AuthenticatedToken token) {
@@ -160,11 +163,9 @@ public class PushSubscriptionService {
                     "Registering a push subscription needs a token.");
         }
         Input input = parse(body);
-        PushSettings settings = channels.serverSettings().effectivePush();
-        PushAddressPolicy.Decision decision = policy.check(input.host(), settings.allowedPrivateHosts());
-        if (!decision.allowed()) {
-            throw new ForesignalException(HttpStatus.BAD_REQUEST, ErrorCodes.URL_NOT_ALLOWED,
-                    "The push endpoint is not allowed: " + decision.reason() + ".");
+        if (policy.check(URI.create(input.endpoint()), OutboundUrlPolicy.Profile.PUSH_ENDPOINT)
+                instanceof OutboundUrlPolicy.Denied denied) {
+            throw OutboundUrlPolicy.notAllowed(List.of(new FieldError("endpoint", denied.reason())));
         }
         String code = EcKeys.b64(randomBytes(16));
         Instant now = clock.instant();

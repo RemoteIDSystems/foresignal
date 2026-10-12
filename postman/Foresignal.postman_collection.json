@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "79671620-982c-5d2e-874b-01ab26ee8e6e",
     "name": "Foresignal API",
-    "description": "All configuration is done through this API. The MCP server is at `/mcp` (MCP streamable HTTP, protocol versions 2024-11-05 to 2025-11-25) and is not an OpenAPI operation; it exposes the same data, the alert lifecycle and watch management as MCP tools, resources (`foresignal://sources`, `foresignal://kinds`) and the `situation-report` prompt (025, docs/Agent-Guide.md), plus the cost-bearing `search` tool (027) and the briefing tools `list_briefings`, `get_briefing_run`, `get_digest` (read), `create_briefing` and the cost-bearing `run_briefing` (agent) (029). It takes the same bearer tokens: `/mcp/**` needs `read` (open while `openReads` is on), tools are listed by the caller's scope and each checks its own (`read` tools; `agent` for writes such as `create_watch` and `set_alert_status`; cost-bearing tools always need a token), a session is bound to the token that opened it, and every tool call is audited (argument names only). The older HTTP+SSE transport (protocol 2024-11-05) is served at `/mcp/sse` with messages at `/mcp/message` only when `foresignal.mcp.legacy-sse.enabled=true`, for older clients. `GET /v1/system` reports its state under `mcp`. Reads of data are open on the local network; all writes and settings reads require the admin bearer token printed on first start. Errors are RFC 9457 problem+json. Timestamps are ISO-8601 UTC. `/v1` is additive-only once released.\n\n**Key-in-path carriers.** Header-less clients use keys in the path: feed keys (`fsf_`, 035) as `/v1/k/{key}/<any allowed GET/HEAD path>`, tile keys (`fsk_`, 050) as `/v1/k/{key}/products/...` and `/v1/k/{key}/tiles/...`, share links (`fss_`, 112) as `/v1/k/{key}`. These are transports for the documented operations, not separate operations. Device ingest URLs (039) and signed action links (033) use their own documented paths.\n\n**Status annotations.** Every operation has `x-foresignal-prompt` (the build prompt that implements it), optional `x-foresignal-extended-by`, and `x-foresignal-status` (`planned` until implemented). Clients can mock the whole API from this document and filter by status.\n\n**Outside this document:** the MCP server (`/mcp`, plus the legacy SSE transport when enabled), Actuator endpoints (`/actuator/**`), and sink listeners on their own ports (110).\n\nGenerated from docs/OpenAPI.json (v1.3.0). Every operation is included, grouped by tag. Admin operations use Bearer `{{adminToken}}`, agent operations `{{agentToken}}` (defaults to the admin token; set it to an agent-scope token to test scopes), always-authenticated read operations `{{readToken}}` (defaults to the admin token; claiming a pairing code stores a read token there), ingest uses `X-Foresignal-Ingest-Key: {{ingestKey}}` (EDP pushes `{{edpIngestKey}}`, Gotify `X-Gotify-Key`), and other reads use no auth (open while openReads is on). Test scripts capture ids into collection variables (ruleId, channelId, alertId, briefingId, threadId, ingestKey, externalId, lastSeq, cursor\u2026).",
+    "description": "All configuration is done through this API. The MCP server is at `/mcp` (MCP streamable HTTP, protocol versions 2024-11-05 to 2025-11-25) and is not an OpenAPI operation; it exposes the same data, the alert lifecycle and watch management as MCP tools, resources (`foresignal://sources`, `foresignal://kinds`) and the `situation-report` prompt (025, docs/Agent-Guide.md), plus the cost-bearing `search` tool (027) and the briefing tools `list_briefings`, `get_briefing_run`, `get_digest` (read), `create_briefing` and the cost-bearing `run_briefing` (agent) (029). It takes the same bearer tokens: `/mcp/**` needs `read` (open while `openReads` is on), tools are listed by the caller's scope and each checks its own (`read` tools; `agent` for writes such as `create_watch` and `set_alert_status`; cost-bearing tools always need a token), a session is bound to the token that opened it, and every tool call is audited (argument names only). The older HTTP+SSE transport (protocol 2024-11-05) is served at `/mcp/sse` with messages at `/mcp/message` only when `foresignal.mcp.legacy-sse.enabled=true`, for older clients. `GET /v1/system` reports its state under `mcp`. Reads of data are open on the local network; all writes and settings reads require the admin bearer token printed on first start. Errors are RFC 9457 problem+json. Timestamps are ISO-8601 UTC. `/v1` is additive-only once released.\n\n**Key-in-path carriers.** Header-less clients use keys in the path: feed keys (`fsf_`, 035) as `/v1/k/{key}/<any allowed GET/HEAD path>`, tile keys (`fsk_`, 050) as `/v1/k/{key}/products/...` and `/v1/k/{key}/tiles/...`, share links (`fss_`, 112) as `/v1/k/{key}`. These are transports for the documented operations, not separate operations. A feed key reaches only `GET`/`HEAD` of `read` operations that are not always-authenticated, under the key's path prefixes, with the key's mandatory read restriction (unknown key 401 INVALID_FEED_KEY, expired or revoked 410 FEED_KEY_GONE, another method 405, a path outside the prefixes 403 RESTRICTED). Responses carry `Referrer-Policy: no-referrer`, `X-Robots-Tag: noindex` and `Cache-Control: private`; the key is never echoed except by `createFeedKey`.\n\n**Restrictions and limits (035).** Restricted tokens, feed keys and the anonymous profile (`security.anonymous`, applied to tokenless reads while `openReads` is on) see only records and alerts inside their `ReadRestriction` on every read path (records, history, versions, changes, kinds, tiles, streams, search, alerts, the inbox, the digest, briefings, MCP tools and Ask): request filters are intersected with the restriction, and a single record or alert outside it is 404. Every client is rate-limited per class (`RateLimitSettings`); over a limit, or after repeated failed credentials from one address, the answer is 429 RATE_LIMITED with `Retry-After`. Device ingest URLs (039) and signed action links (033) use their own documented paths.\n\n**Status annotations.** Every operation has `x-foresignal-prompt` (the build prompt that implements it), optional `x-foresignal-extended-by`, and `x-foresignal-status` (`planned` until implemented). Clients can mock the whole API from this document and filter by status.\n\n**Outside this document:** the MCP server (`/mcp`, plus the legacy SSE transport when enabled), Actuator endpoints (`/actuator/**`), and sink listeners on their own ports (110).\n\nGenerated from docs/OpenAPI.json (v1.3.0). Every operation is included, grouped by tag. Admin operations use Bearer `{{adminToken}}`, agent operations `{{agentToken}}` (defaults to the admin token; set it to an agent-scope token to test scopes), always-authenticated read operations `{{readToken}}` (defaults to the admin token; claiming a pairing code stores a read token there), ingest uses `X-Foresignal-Ingest-Key: {{ingestKey}}` (EDP pushes `{{edpIngestKey}}`, Gotify `X-Gotify-Key`), and other reads use no auth (open while openReads is on). Test scripts capture ids into collection variables (ruleId, channelId, alertId, briefingId, threadId, ingestKey, externalId, lastSeq, cursor\u2026).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -1185,7 +1185,7 @@
               ],
               "query": []
             },
-            "description": "Synchronous; nothing is persisted.\n\n**Scope:** `admin`.\n\noperationId: `testChannel`",
+            "description": "Synchronous; nothing is persisted. A destination refused by the outbound URL policy at send time answers `success: false` with an `error` containing URL_NOT_ALLOWED (035).\n\n**Scope:** `admin`.\n\noperationId: `testChannel`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -1465,7 +1465,7 @@
               ],
               "query": []
             },
-            "description": "Sends a tiny chat request (\"Reply with the single word: ok\", 16 output tokens, purpose `test`) and an embedding of \"test\" when the provider has an embedding model, and reports latency, model, token usage (cached tokens included) and the normalized stop reason. Consumes budget. A provider failure or refusal is reported in the result (`success: false`, `error`, `refusalCategory`); only a budget refusal is an error status.\n\n**Scope:** `admin`.\n\noperationId: `testLlmProvider`",
+            "description": "Sends a tiny chat request (\"Reply with the single word: ok\", 16 output tokens, purpose `test`) and an embedding of \"test\" when the provider has an embedding model, and reports latency, model, token usage (cached tokens included) and the normalized stop reason. Consumes budget. A provider failure or refusal is reported in the result (`success: false`, `error`, `refusalCategory`); only a budget refusal is an error status. A destination refused by the outbound URL policy at send time answers `success: false` with an `error` containing URL_NOT_ALLOWED (035).\n\n**Scope:** `admin`.\n\noperationId: `testLlmProvider`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -10671,7 +10671,7 @@
               ],
               "query": []
             },
-            "description": "Synchronous; nothing is persisted.\n\n**Scope:** `admin`.\n\noperationId: `testChannel`",
+            "description": "Synchronous; nothing is persisted. A destination refused by the outbound URL policy at send time answers `success: false` with an `error` containing URL_NOT_ALLOWED (035).\n\n**Scope:** `admin`.\n\noperationId: `testChannel`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -27786,7 +27786,7 @@
               ],
               "query": []
             },
-            "description": "Sends a tiny chat request (\"Reply with the single word: ok\", 16 output tokens, purpose `test`) and an embedding of \"test\" when the provider has an embedding model, and reports latency, model, token usage (cached tokens included) and the normalized stop reason. Consumes budget. A provider failure or refusal is reported in the result (`success: false`, `error`, `refusalCategory`); only a budget refusal is an error status.\n\n**Scope:** `admin`.\n\noperationId: `testLlmProvider`",
+            "description": "Sends a tiny chat request (\"Reply with the single word: ok\", 16 output tokens, purpose `test`) and an embedding of \"test\" when the provider has an embedding model, and reports latency, model, token usage (cached tokens included) and the normalized stop reason. Consumes budget. A provider failure or refusal is reported in the result (`success: false`, `error`, `refusalCategory`); only a budget refusal is an error status. A destination refused by the outbound URL policy at send time answers `success: false` with an `error` containing URL_NOT_ALLOWED (035).\n\n**Scope:** `admin`.\n\noperationId: `testLlmProvider`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -39886,7 +39886,7 @@
               ],
               "query": []
             },
-            "description": "Replaces `openReads` (required) and `exposeObserver`. Members later prompts own (`anonymous`, `metricsOpen` from 035, `exposeMlat` from 069) are refused with 400 until then, so a protection is never reported on that nothing enforces.\n\n**Scope:** `admin`.\n\noperationId: `updateSecuritySettings`",
+            "description": "Replaces `openReads` (required), `exposeObserver`, `anonymous` (the anonymous restriction profile, validated like a read token's restriction; `excludePrivate: false` is refused because private sources are never served anonymously) and `metricsOpen` (035). `exposeMlat` (069) is refused with 400 until then, so a protection is never reported on that nothing enforces.\n\n**Scope:** `admin`.\n\noperationId: `updateSecuritySettings`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -39899,7 +39899,66 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"openReads\": true,\n  \"exposeObserver\": false\n}",
+              "raw": "{\n  \"openReads\": true,\n  \"exposeObserver\": false,\n  \"metricsOpen\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Set security settings (anonymous profile (035))",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/settings/security",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "settings",
+                "security"
+              ],
+              "query": []
+            },
+            "description": "Replaces `openReads` (required), `exposeObserver`, `anonymous` (the anonymous restriction profile, validated like a read token's restriction; `excludePrivate: false` is refused because private sources are never served anonymously) and `metricsOpen` (035). `exposeMlat` (069) is refused with 400 until then, so a protection is never reported on that nothing enforces.\n\n**Scope:** `admin`.\n\noperationId: `updateSecuritySettings`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"openReads\": true,\n  \"exposeObserver\": false,\n  \"metricsOpen\": false,\n  \"anonymous\": {\n    \"kinds\": [\n      \"earthquake\"\n    ],\n    \"maxRequestsPerMinute\": 60\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -40319,7 +40378,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"read\": 600,\n  \"tiles\": 1200,\n  \"stream\": {\n    \"opensPerMinute\": 30,\n    \"concurrent\": 8\n  },\n  \"expensive\": 20,\n  \"write\": 120,\n  \"anonymous\": 120,\n  \"metricsPerMinute\": null\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -40411,7 +40470,7 @@
               ],
               "query": []
             },
-            "description": "Deny entries win over allow entries.\n\n**Scope:** `admin`.\n\noperationId: `updateOutboundSettings`",
+            "description": "Deny entries win over allow entries, and allow entries never unblock the always-blocked set (link-local, cloud metadata and the other not-forwardable special-purpose addresses). Host entries are exact (case-insensitive, trailing dot ignored), `*.suffix` for subdomains only, or an IP literal; CIDR entries are returned as their network address; at most 500 entries per list. A bad entry is 400 VALIDATION_FAILED with a field such as `allowCidrs[0]`.\n\n**Scope:** `admin`.\n\noperationId: `updateOutboundSettings`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -40424,7 +40483,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"allowHosts\": [\n    \"ollama\"\n  ],\n  \"allowCidrs\": [],\n  \"denyHosts\": [],\n  \"denyCidrs\": [\n    \"192.168.50.0/24\"\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -46449,7 +46508,7 @@
               ],
               "query": []
             },
-            "description": "Returns the token value (`fsr_` + 32 random bytes, base64url) exactly once. Optional `restrictions` (sources, kinds, bbox, endpoints; area and more from 035) are validated: endpoint patterns must match an operation the scope can reach, source ids and kinds must exist; bbox within \u00b1180/\u00b190 with min < max. Restriction members later prompts enforce (`area`, `placeIds`, `excludePrivate`, `maxRequestsPerMinute` from 035, `federation`, `includeExercise` from 113) and `privateAccess: true` (039) are refused with 400 until then. Restrictions on admin tokens \u2192 400 RESTRICTION_NOT_ALLOWED (035).\n\n**Scope:** `admin`.\n\noperationId: `createToken`",
+            "description": "Returns the token value (`fsr_` + 32 random bytes, base64url) exactly once. Optional `restrictions` (`ReadRestriction`: sources, kinds, bbox, area, endpoints, excludePrivate, maxRequestsPerMinute) are validated: endpoint patterns must match an operation the scope can reach, source ids and kinds must exist; bbox within \u00b1180/\u00b190 with min < max; area a valid GeoJSON Polygon or MultiPolygon of at most 2,000 vertices; maxRequestsPerMinute at least 1. Data restrictions are applied on every read path (035). Members later prompts enforce (`placeIds` from 036, `federation`, `includeExercise` from 113) and `privateAccess: true` (039) are refused with 400 until then. Restrictions on admin tokens \u2192 400 RESTRICTION_NOT_ALLOWED (035).\n\n**Scope:** `admin`.\n\noperationId: `createToken`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -46510,7 +46569,7 @@
               ],
               "query": []
             },
-            "description": "Returns the token value (`fsr_` + 32 random bytes, base64url) exactly once. Optional `restrictions` (sources, kinds, bbox, endpoints; area and more from 035) are validated: endpoint patterns must match an operation the scope can reach, source ids and kinds must exist; bbox within \u00b1180/\u00b190 with min < max. Restriction members later prompts enforce (`area`, `placeIds`, `excludePrivate`, `maxRequestsPerMinute` from 035, `federation`, `includeExercise` from 113) and `privateAccess: true` (039) are refused with 400 until then. Restrictions on admin tokens \u2192 400 RESTRICTION_NOT_ALLOWED (035).\n\n**Scope:** `admin`.\n\noperationId: `createToken`",
+            "description": "Returns the token value (`fsr_` + 32 random bytes, base64url) exactly once. Optional `restrictions` (`ReadRestriction`: sources, kinds, bbox, area, endpoints, excludePrivate, maxRequestsPerMinute) are validated: endpoint patterns must match an operation the scope can reach, source ids and kinds must exist; bbox within \u00b1180/\u00b190 with min < max; area a valid GeoJSON Polygon or MultiPolygon of at most 2,000 vertices; maxRequestsPerMinute at least 1. Data restrictions are applied on every read path (035). Members later prompts enforce (`placeIds` from 036, `federation`, `includeExercise` from 113) and `privateAccess: true` (039) are refused with 400 until then. Restrictions on admin tokens \u2192 400 RESTRICTION_NOT_ALLOWED (035).\n\n**Scope:** `admin`.\n\noperationId: `createToken`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -46524,6 +46583,67 @@
             "body": {
               "mode": "raw",
               "raw": "{\n  \"name\": \"dashboard-kiosk\",\n  \"scope\": \"read\",\n  \"expiresAt\": null,\n  \"restrictions\": {\n    \"endpoints\": [\n      \"GET /v1/records/**\",\n      \"GET /v1/tiles/**\",\n      \"GET /v1/tiles.json\"\n    ]\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Create an API token (data-restricted (035))",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('tokenId', j.id); console.log('New token (shown once):', j.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/tokens",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "tokens"
+              ],
+              "query": []
+            },
+            "description": "Returns the token value (`fsr_` + 32 random bytes, base64url) exactly once. Optional `restrictions` (`ReadRestriction`: sources, kinds, bbox, area, endpoints, excludePrivate, maxRequestsPerMinute) are validated: endpoint patterns must match an operation the scope can reach, source ids and kinds must exist; bbox within \u00b1180/\u00b190 with min < max; area a valid GeoJSON Polygon or MultiPolygon of at most 2,000 vertices; maxRequestsPerMinute at least 1. Data restrictions are applied on every read path (035). Members later prompts enforce (`placeIds` from 036, `federation`, `includeExercise` from 113) and `privateAccess: true` (039) are refused with 400 until then. Restrictions on admin tokens \u2192 400 RESTRICTION_NOT_ALLOWED (035).\n\n**Scope:** `admin`.\n\noperationId: `createToken`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"family-phone\",\n  \"scope\": \"read\",\n  \"expiresAt\": null,\n  \"restrictions\": {\n    \"kinds\": [\n      \"earthquake\",\n      \"weather-alert\"\n    ],\n    \"bbox\": [\n      -80.5,\n      43.0,\n      -78.5,\n      44.5\n    ],\n    \"maxRequestsPerMinute\": 120\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -47057,7 +47177,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));"
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('feedKeyId', j.id); console.log('New feed key URLs (shown once):', j.urls);",
+                  "}"
                 ]
               }
             }
@@ -47098,7 +47221,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"name\": \"home-assistant-map\",\n  \"prefixes\": [\n    \"/v1/records\"\n  ],\n  \"restrictions\": {\n    \"kinds\": [\n      \"earthquake\"\n    ],\n    \"bbox\": [\n      -100.5,\n      32.0,\n      -91.5,\n      40.0\n    ]\n  },\n  \"expiresAt\": \"2027-10-01T00:00:00Z\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -50527,6 +50650,10 @@
     },
     {
       "key": "escalationPolicyId",
+      "value": ""
+    },
+    {
+      "key": "feedKeyId",
       "value": ""
     },
     {

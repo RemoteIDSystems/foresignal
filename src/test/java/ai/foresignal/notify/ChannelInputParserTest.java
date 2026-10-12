@@ -17,7 +17,8 @@ class ChannelInputParserTest {
 
     static final JsonMapper JSON = JsonMapper.builder().build();
     final ChannelInputParser parser = new ChannelInputParser(
-            new ChannelTypeRegistry(List.of(new WebhookChannel(), new SlackChannel())), JSON);
+            new ChannelTypeRegistry(List.of(new WebhookChannel(), new SlackChannel())), JSON,
+            ai.foresignal.testsupport.net.TestOutbound.offlinePolicy());
 
     ChannelInput parse(String json, Map<String, String> stored) {
         return parser.parse(JSON.readTree(json.replace('\'', '"')), stored);

@@ -28,6 +28,7 @@ import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import ai.foresignal.security.restrict.RestrictedRead;
 import java.util.Map;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -90,6 +91,7 @@ public class ChangesController {
     /** {@code listChanges}. */
     @GetMapping("/v1/changes")
     @Operation(operationId = "listChanges", tags = "Changes")
+    @RestrictedRead
     public ResponseEntity<Object> listChanges(
             @RequestParam(required = false) String after,
             @RequestParam(required = false) List<String> source,
@@ -108,7 +110,7 @@ public class ChangesController {
         ResponseFormat fmt = ResponseFormat.negotiate(format, accept, FORMATS);
         Long afterSeq = QueryParams.nonNegativeLong("after", after);
         List<String> sources = QueryParams.multi("source", source);
-        Set<String> hidden = callers.excludedSources(caller);
+        Set<String> hidden = callers.hiddenSources(caller);
         for (String id : sources) {
             registry.descriptor(id);
             if (hidden.contains(id)) {
@@ -128,7 +130,7 @@ public class ChangesController {
                 selection,
                 GeometryOptions.DEFAULT,
                 fmt == ResponseFormat.CSV ? GeometryEncoding.WKT : GeometryEncoding.GEOJSON,
-                callers.excludedSources(caller));
+                callers.excludedSources(caller)).withRestriction(caller.restriction());
         if (fmt.streaming()) {
             stream(query, fmt, selection, response);
             return null;

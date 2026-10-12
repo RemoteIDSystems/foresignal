@@ -36,6 +36,7 @@ import tools.jackson.databind.node.ObjectNode;
  * {@code get_changes} (read): the change feed after a seq, as {@code listChanges}. A
  * {@code 410 RESYNC_REQUIRED} becomes a tool error telling the agent to re-query current state.
  */
+@ai.foresignal.security.restrict.RestrictedRead
 @Component
 public class GetChangesTool implements ForesignalMcpTool {
 
@@ -103,7 +104,7 @@ public class GetChangesTool implements ForesignalMcpTool {
         int limit = McpArgs.integer(args, "limit", 100);
         ChangesQuery query = new ChangesQuery(after, sources, McpArgs.strings(args, "kind"), List.of(), null,
                 detail == Detail.LONG, limit, FieldSelection.ALL, GeometryOptions.DEFAULT, GeometryEncoding.GEOJSON,
-                context.excludedSources());
+                context.excludedSources()).withRestriction(context.restriction());
         Slices.ChangeSlice slice;
         try {
             slice = queries.changes(query);

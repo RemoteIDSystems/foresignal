@@ -89,13 +89,31 @@ public final class ErrorCodes {
      */
     public static final String RESTRICTION_NOT_ENFORCED = "RESTRICTION_NOT_ENFORCED";
 
+    /**
+     * 403: the request is outside the principal's restriction: an endpoint a restricted token, feed
+     * key or the anonymous profile may not call (prompt 035).
+     */
+    public static final String RESTRICTED = "RESTRICTED";
+
+    /** 400: restrictions were set on an admin token, which can mint tokens anyway (prompt 035). */
+    public static final String RESTRICTION_NOT_ALLOWED = "RESTRICTION_NOT_ALLOWED";
+
+    /** 401: a {@code /v1/k/{key}/…} path carries an unknown or malformed feed key (prompt 035). */
+    public static final String INVALID_FEED_KEY = "INVALID_FEED_KEY";
+
+    /** 410: a feed key in a {@code /v1/k/{key}/…} path has expired or was revoked (prompt 035). */
+    public static final String FEED_KEY_GONE = "FEED_KEY_GONE";
+
     /** 409: the bootstrap admin token cannot be revoked; rotate it instead (prompt 023). */
     public static final String BOOTSTRAP_TOKEN = "BOOTSTRAP_TOKEN";
 
     /** 400: an unknown, expired or already claimed pairing code (prompt 023). */
     public static final String PAIRING_CODE_INVALID = "PAIRING_CODE_INVALID";
 
-    /** 429: too many attempts; honour {@code Retry-After} (pairing claims, prompt 023). */
+    /**
+     * 429: too many attempts; honour {@code Retry-After} (pairing claims, prompt 023; per-client rate
+     * limits and auth-failure backoff, prompt 035).
+     */
     public static final String RATE_LIMITED = "RATE_LIMITED";
 
     // ---- Inbound webhooks, custom sources and EDP (prompt 024) ----
@@ -185,8 +203,8 @@ public final class ErrorCodes {
     public static final String VERIFY_FAILED = "VERIFY_FAILED";
 
     /**
-     * 400: an outbound URL is not allowed: a push endpoint that is not https or resolves to a
-     * non-global address outside {@code push.allowedPrivateHosts} (prompt 031; 035 widens it).
+     * 400: an outbound URL is not allowed by {@code OutboundUrlPolicy}: wrong scheme, user info, or
+     * an address the field's profile refuses (push endpoints 031; every operator-supplied URL 035).
      */
     public static final String URL_NOT_ALLOWED = "URL_NOT_ALLOWED";
 

@@ -24,6 +24,11 @@ import org.locationtech.jts.geom.PrecisionModel;
  * first eight characters for display. Prompt 023 adds the restriction columns, the device columns,
  * {@code created_via} and the owning principal to the Architecture columns. The bootstrap admin
  * token is the row named {@value #BOOTSTRAP_NAME} with {@code created_via = bootstrap}.
+ *
+ * <p>Prompt 035 adds the {@code ReadRestriction} columns ({@code allowed_area},
+ * {@code exclude_private}, {@code max_requests_per_minute}) and the row {@code type}: {@code token}
+ * (null on rows written before 035), or {@code feed_key} for a path-bound feed key ({@code fsf_},
+ * scope {@code read}, with its allowed path {@code prefixes}); prompt 050 adds {@code tile_key}.
  */
 @Entity
 @Table(name = "api_token", indexes = @Index(name = "api_token_hash_idx", columnList = "token_hash", unique = true))
@@ -31,6 +36,12 @@ public class ApiTokenEntity {
 
     /** The name of the bootstrap admin token's row. */
     public static final String BOOTSTRAP_NAME = "bootstrap";
+
+    /** {@code type} of an API token (also what a null type means). */
+    public static final String TYPE_TOKEN = "token";
+
+    /** {@code type} of a feed key (prompt 035). */
+    public static final String TYPE_FEED_KEY = "feed_key";
 
     /** Characters of the token kept in {@code token_prefix}. */
     public static final int PREFIX_LENGTH = 8;
@@ -83,6 +94,22 @@ public class ApiTokenEntity {
     @JdbcTypeCode(SqlTypes.ARRAY)
     @Column(name = "allowed_endpoints", columnDefinition = "text[]")
     private String[] allowedEndpoints;
+
+    @Column(name = "allowed_area", columnDefinition = "geometry(Geometry,4326)")
+    private org.locationtech.jts.geom.Geometry allowedArea;
+
+    @Column(name = "exclude_private")
+    private Boolean excludePrivate;
+
+    @Column(name = "max_requests_per_minute")
+    private Integer maxRequestsPerMinute;
+
+    @Column(name = "type", length = 16)
+    private String type;
+
+    @JdbcTypeCode(SqlTypes.ARRAY)
+    @Column(name = "prefixes", columnDefinition = "text[]")
+    private String[] prefixes;
 
     @Column(name = "device_name", length = DeviceInfo.MAX_NAME)
     private String deviceName;
@@ -219,7 +246,10 @@ public class ApiTokenEntity {
             Envelope e = allowedBbox.getEnvelopeInternal();
             bbox = List.of(e.getMinX(), e.getMinY(), e.getMaxX(), e.getMaxY());
         }
-        return new TokenRestrictions(list(allowedSources), list(allowedKinds), bbox, list(allowedEndpoints));
+        java.util.Map<String, Object> area = allowedArea == null ? null
+                : new ai.foresignal.source.formats.geojson.GeoJsonWriter().write(allowedArea);
+        return new TokenRestrictions(list(allowedSources), list(allowedKinds), bbox, list(allowedEndpoints), area,
+                excludePrivate, maxRequestsPerMinute);
     }
 
     /** Stores {@code restrictions}; a validated bbox becomes a WGS84 polygon. */
@@ -229,6 +259,34 @@ public class ApiTokenEntity {
         this.allowedKinds = array(r.kinds());
         this.allowedEndpoints = array(r.endpoints());
         this.allowedBbox = r.bbox() == null ? null : polygon(r.bbox());
+        this.allowedArea = ai.foresignal.security.restrict.ReadRestriction.area(r.area());
+        this.excludePrivate = r.excludePrivate();
+        this.maxRequestsPerMinute = r.maxRequestsPerMinute();
+    }
+
+    /** {@value #TYPE_TOKEN} or {@value #TYPE_FEED_KEY} (prompt 035); a null stored type reads as a token. */
+    public String getType() {
+        return type == null ? TYPE_TOKEN : type;
+    }
+
+    /** Sets the row type. */
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    /** True for a feed key (prompt 035). */
+    public boolean isFeedKey() {
+        return TYPE_FEED_KEY.equals(type);
+    }
+
+    /** A feed key's allowed canonical path prefixes, or null for a token. */
+    public List<String> getPrefixes() {
+        return list(prefixes);
+    }
+
+    /** Sets a feed key's allowed canonical path prefixes. */
+    public void setPrefixes(List<String> prefixes) {
+        this.prefixes = array(prefixes);
     }
 
     /** The reported device, or null when none was reported. */

@@ -1,5 +1,8 @@
 package ai.foresignal.stream.sse;
 
+import ai.foresignal.security.restrict.ReadRestriction;
+import ai.foresignal.security.restrict.RestrictionClamp;
+
 import ai.foresignal.api.support.BboxFilter;
 import ai.foresignal.api.support.NearFilter;
 import ai.foresignal.stream.Bbox;
@@ -32,6 +35,10 @@ import org.locationtech.jts.geom.Envelope;
  * @param live send {@code live} events
  * @param touches send {@code touch} events
  * @param excludedSources sources the caller may not read (private sources for anonymous callers)
+ * @param restriction the caller's read restriction (prompt 035), tested at publish time with
+ *     {@code RestrictionClamp}; a client's PATCHed filter keeps it, so it can never be widened. An
+ *     entity that moves out of the restricted region simply stops matching (it is never reported as
+ *     {@code LEFT}, which would carry its new position)
  */
 public record ChangeFilter(
         List<String> sources,
@@ -42,7 +49,14 @@ public record ChangeFilter(
         boolean payload,
         boolean live,
         boolean touches,
-        Set<String> excludedSources) {
+        Set<String> excludedSources,
+        ReadRestriction restriction) {
+
+    /** An unrestricted filter (the shape before prompt 035). */
+    public ChangeFilter(List<String> sources, List<String> kinds, List<String> externalIds, BboxFilter bbox,
+            NearFilter near, boolean payload, boolean live, boolean touches, Set<String> excludedSources) {
+        this(sources, kinds, externalIds, bbox, near, payload, live, touches, excludedSources, ReadRestriction.NONE);
+    }
 
     /** Mean Earth radius in kilometers, for the haversine distance. */
     static final double EARTH_RADIUS_KM = 6371.0088;
@@ -53,11 +67,18 @@ public record ChangeFilter(
         kinds = kinds == null ? List.of() : List.copyOf(kinds);
         externalIds = externalIds == null ? List.of() : List.copyOf(externalIds);
         excludedSources = excludedSources == null ? Set.of() : Set.copyOf(excludedSources);
+        restriction = restriction == null ? ReadRestriction.NONE : restriction;
     }
 
     /** No filter: every change, {@code live=true}, {@code touches=false}, {@code payload=false}. */
     public static ChangeFilter all(Set<String> excludedSources) {
-        return new ChangeFilter(List.of(), List.of(), List.of(), null, null, false, true, false, excludedSources);
+        return all(excludedSources, ReadRestriction.NONE);
+    }
+
+    /** {@link #all(Set)} under {@code restriction}. */
+    public static ChangeFilter all(Set<String> excludedSources, ReadRestriction restriction) {
+        return new ChangeFilter(List.of(), List.of(), List.of(), null, null, false, true, false, excludedSources,
+                restriction);
     }
 
     /** True when a bbox or near filter is set. */
@@ -67,7 +88,8 @@ public record ChangeFilter(
 
     /** How a persisted change relates to this filter. */
     public FilterMatch matchChange(ChangeSummary change) {
-        if (!matchesEntity(change.sourceId(), change.kind(), change.externalId())) {
+        if (!matchesEntity(change.sourceId(), change.kind(), change.externalId())
+                || !RestrictionClamp.test(restriction, change.sourceId(), change.kind(), change.bbox())) {
             return FilterMatch.NONE;
         }
         return matchBoxes(change.bbox(), change.prevPersistedBbox(), change.prevLiveBbox());
@@ -75,7 +97,8 @@ public record ChangeFilter(
 
     /** How a live update relates to this filter, ignoring {@link #live} itself. */
     public FilterMatch matchLive(LiveUpdate update) {
-        if (!matchesEntity(update.sourceId(), update.kind(), update.externalId())) {
+        if (!matchesEntity(update.sourceId(), update.kind(), update.externalId())
+                || !RestrictionClamp.test(restriction, update.sourceId(), update.kind(), update.bbox())) {
             return FilterMatch.NONE;
         }
         return matchBoxes(update.bbox(), update.prevBbox(), null);
@@ -93,7 +116,28 @@ public record ChangeFilter(
         if (!kinds.isEmpty() && (possibleKinds == null || possibleKinds.stream().noneMatch(kinds::contains))) {
             return FilterMatch.NONE;
         }
+        if (!touchAllowed(touch, possibleKinds)) {
+            return FilterMatch.NONE;
+        }
         return matchBoxes(touch.bbox(), null, null);
+    }
+
+    /**
+     * True when a touch passes the restriction: its source is allowed, every kind its source may
+     * emit is allowed (a touch carries no kind), and its box lies in the restricted region.
+     */
+    private boolean touchAllowed(Touch touch, Collection<String> possibleKinds) {
+        if (!restriction.hasDataRestrictions()) {
+            return true;
+        }
+        if (restriction.kinds() != null
+                && (possibleKinds == null || possibleKinds.isEmpty() || !restriction.kinds().containsAll(possibleKinds))) {
+            return false;
+        }
+        String anyKind = possibleKinds == null || possibleKinds.isEmpty() ? null : possibleKinds.iterator().next();
+        return RestrictionClamp.test(restriction.kinds() == null ? restriction
+                : new ReadRestriction(restriction.sources(), null, restriction.bbox(), restriction.area(), null, false,
+                        null), touch.sourceId(), anyKind, touch.bbox());
     }
 
     /** True when the source, kind and external id pass (no spatial test). */

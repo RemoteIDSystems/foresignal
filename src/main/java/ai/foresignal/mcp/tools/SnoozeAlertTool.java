@@ -25,6 +25,7 @@ import tools.jackson.databind.node.ObjectNode;
  * {@code snooze_alert} (agent, prompt 033): snoozes an alert ({@code snoozeAlert}): repeats for the
  * same watch and record are recorded suppressed until the snooze ends, and its escalation stops.
  */
+@ai.foresignal.security.restrict.RestrictedRead
 @Component
 public class SnoozeAlertTool implements ForesignalMcpTool {
 
@@ -85,7 +86,7 @@ public class SnoozeAlertTool implements ForesignalMcpTool {
     @Override
     public ToolResult call(ToolContext context, JsonNode args) {
         long id = McpArgs.requiredLong(args, "alertId");
-        items.visible(id, context.excludedSources());
+        items.visible(id, context.excludedSources(), context.restriction());
         ObjectNode body = json.createObjectNode();
         if (args.hasNonNull("until")) {
             body.set("until", args.get("until"));

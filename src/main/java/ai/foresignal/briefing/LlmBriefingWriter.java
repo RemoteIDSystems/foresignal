@@ -108,7 +108,19 @@ public class LlmBriefingWriter {
      * @param periodTo the period end
      */
     public record Request(String name, String instructions, DigestStats stats, ScopeResolver.Resolved scope,
-            Set<String> hiddenSources, ZoneId zone, Instant periodFrom, Instant periodTo) {}
+            Set<String> hiddenSources, ZoneId zone, Instant periodFrom, Instant periodTo, ai.foresignal.security.restrict.ReadRestriction restriction) {
+
+        /** A null restriction becomes none. */
+        public Request {
+            restriction = restriction == null ? ai.foresignal.security.restrict.ReadRestriction.NONE : restriction;
+        }
+
+        /** An unrestricted request (the shape before prompt 035). */
+        public Request(String name, String instructions, DigestStats stats, ScopeResolver.Resolved scope,
+                Set<String> hiddenSources, ZoneId zone, Instant periodFrom, Instant periodTo) {
+            this(name, instructions, stats, scope, hiddenSources, zone, periodFrom, periodTo, null);
+        }
+    }
 
     /**
      * A verified narrative.
@@ -308,7 +320,7 @@ public class LlmBriefingWriter {
         try {
             results = search.search(new SearchRequest(q, SearchRequest.Mode.HYBRID, Set.of(DocInput.RECORD),
                     scope.sources(), scope.kinds(), scope.bbox(), request.periodFrom(), request.periodTo(), false,
-                    SEARCH_LIMIT), excluded);
+                    SEARCH_LIMIT), excluded, request.restriction());
         } catch (RuntimeException e) {
             warnings.add("the search on the instructions was skipped: " + e.getMessage());
             return null;
