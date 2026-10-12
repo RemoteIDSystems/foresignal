@@ -1,0 +1,6 @@
+{
+  "protocol": "foresignal-edp/1.0",
+  "source": {"id": "layered", "name": "Layered", "publisher": {"name": "X"}, "originator": {"id": "x", "class": "operator"}},
+  "transport": {"push": true},
+  "streams": [{"id": "s", "mode": "layer", "itemType": "observation", "kind": "k"}]
+}

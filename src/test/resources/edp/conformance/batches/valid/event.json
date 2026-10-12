@@ -1,0 +1,25 @@
+{
+  "protocol": "foresignal-edp/1.0",
+  "x-manifest": "hormuz-example.json",
+  "sentAt": "2026-10-11T18:00:00Z",
+  "items": [
+    {
+      "stream": "incidents",
+      "type": "event",
+      "id": "inc-8812",
+      "observedAt": "2026-10-11T17:41:00Z",
+      "eventTime": "2026-10-11T16:55:00Z",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          56.4,
+          26.5
+        ]
+      },
+      "properties": {
+        "category": "approach-by-small-craft",
+        "vessel": "MV Example"
+      }
+    }
+  ]
+}

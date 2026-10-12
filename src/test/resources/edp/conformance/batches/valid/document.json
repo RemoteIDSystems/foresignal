@@ -1,0 +1,24 @@
+{
+  "protocol": "foresignal-edp/1.0",
+  "x-manifest": "push-layer.json",
+  "sentAt": "2026-10-11T18:00:00Z",
+  "items": [
+    {
+      "stream": "notes",
+      "type": "document",
+      "id": "n-1",
+      "observedAt": "2026-10-11T17:00:00Z",
+      "documentType": "note",
+      "text": "Crane 3 out of service",
+      "title": "Crane",
+      "language": "en",
+      "publishedAt": "2026-10-11T16:59:00Z",
+      "media": [
+        {
+          "type": "image",
+          "url": "https://example.org/c.jpg"
+        }
+      ]
+    }
+  ]
+}

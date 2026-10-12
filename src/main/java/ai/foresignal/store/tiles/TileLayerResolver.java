@@ -118,6 +118,9 @@ public class TileLayerResolver {
             kinds.addAll(descriptor.kinds());
         }
         kinds.removeAll(allIds(descriptors));
+        // EDP atomic kinds (prompt 024) stay requestable by name but are left out of the index
+        // unless some visible source shows them as an ordinary layer.
+        kinds.removeIf(kind -> hiddenEverywhere(kind, descriptors, excluded));
         List<TileLayer> layers = new ArrayList<>();
         for (String id : sourceIds) {
             resolve(id, descriptors, excluded).ifPresent(layers::add);
@@ -126,6 +129,22 @@ public class TileLayerResolver {
             resolve(kind, descriptors, excluded).ifPresent(layers::add);
         }
         return List.copyOf(layers);
+    }
+
+    /** True when every visible source declaring {@code kind} hides it from the layer lists. */
+    private static boolean hiddenEverywhere(
+            String kind, Collection<SourceDescriptor> descriptors, Set<String> excluded) {
+        boolean declared = false;
+        for (SourceDescriptor descriptor : descriptors) {
+            if (excluded.contains(descriptor.id()) || !descriptor.kinds().contains(kind)) {
+                continue;
+            }
+            declared = true;
+            if (!descriptor.hidesKind(kind)) {
+                return false;
+            }
+        }
+        return declared;
     }
 
     /** True when {@code name} may be interpolated into SQL as a property name. */

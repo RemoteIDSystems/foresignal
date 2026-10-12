@@ -39,6 +39,7 @@ import ai.foresignal.settings.DurationShorthandModule;
 import ai.foresignal.settings.WatchdogSettingsService;
 import ai.foresignal.testsupport.openapi.OpenApiSpec;
 import ai.foresignal.testsupport.openapi.OpenApiSpec.SpecOperation;
+import ai.foresignal.testsupport.inbound.InboundBodies;
 import ai.foresignal.testsupport.openapi.SpecSchemas;
 import ai.foresignal.trigger.AlertService;
 import ai.foresignal.trigger.Snoozes;
@@ -132,6 +133,18 @@ class PostmanCollectionContractTest {
                 device(body.get("device"), "device.");
                 assertThat(PairingCodes.normalize(body.get("code").asString())).as("pairing code").isNotNull();
             }),
+            // Prompt 024: the production parsers of custom sources, formats, compat and EDP bodies.
+            Map.entry("createCustomSource", InboundBodies::customSource),
+            Map.entry("updateCustomSource", InboundBodies::customSource),
+            Map.entry("ingestRecords", InboundBodies::nativeBody),
+            Map.entry("ingestRecordsFormat", InboundBodies::formatBody),
+            Map.entry("ntfyPublishJson", InboundBodies::ntfyJson),
+            Map.entry("gotifyPublish", InboundBodies::gotify),
+            Map.entry("registerExternalSource", InboundBodies::registration),
+            Map.entry("selfRegisterExternalSource", InboundBodies::manifest),
+            Map.entry("updateExternalSourceManifest", InboundBodies::manifest),
+            Map.entry("pushExternalItems", InboundBodies::batch),
+            Map.entry("validateEdp", InboundBodies::validation),
             Map.entry("createStreamTicket", body -> new TicketStore(new TokenHasher(), null, Clock.fixed(NOW, ZoneOffset.UTC))
                     .mint(new AuthenticatedToken(UUID.randomUUID(), "t", Scope.READ, TokenRestrictions.NONE, null,
                             "01JA8Q3V7S2K9W4T6Y1B5N0M3C", false), body)));
@@ -186,10 +199,14 @@ class PostmanCollectionContractTest {
             return null;
         }
 
-        /** The raw JSON body, or null. */
+        /** The raw JSON body, or null (also for a text, XML or NDJSON body, prompt 024). */
         JsonNode body() {
             JsonNode body = request.get("body");
-            return body == null ? null : OpenApiSpec.JSON.readTree(body.get("raw").asString());
+            if (body == null) {
+                return null;
+            }
+            String language = body.path("options").path("raw").path("language").asString("json");
+            return "json".equals(language) ? OpenApiSpec.JSON.readTree(body.get("raw").asString()) : null;
         }
     }
 
@@ -233,10 +250,15 @@ class PostmanCollectionContractTest {
                 case "read" -> always ? "bearer {{readToken}}" : "noauth";
                 default -> "noauth";
             };
-            if ("ingestRecords".equals(op.operationId())) {
+            if (acceptsIngestKey(op)) {
+                // Ingest-key operations (024): the source's key in a header, no bearer.
                 expected = "noauth";
-                if (!"{{ingestKey}}".equals(request.header("X-Foresignal-Ingest-Key"))) {
-                    problems.add(request.name() + ": ingestRecords needs X-Foresignal-Ingest-Key: {{ingestKey}}");
+                String key = request.header("X-Foresignal-Ingest-Key") != null
+                        ? request.header("X-Foresignal-Ingest-Key")
+                        : request.header("X-Gotify-Key");
+                if (!"{{ingestKey}}".equals(key) && !"{{edpIngestKey}}".equals(key)) {
+                    problems.add(request.name() + ": " + op.operationId()
+                            + " needs the ingest key header ({{ingestKey}} or {{edpIngestKey}})");
                 }
             }
             String actual = "bearer".equals(request.authType())
@@ -264,7 +286,12 @@ class PostmanCollectionContractTest {
             if (op == null || body == null || pending.contains(op.operationId()) || !op.implemented()) {
                 continue;
             }
-            JsonNode schema = op.node().path("requestBody").path("content").path("application/json").get("schema");
+            // The schema of the request's own content type when the spec has one (CloudEvents batch, 024).
+            JsonNode content = op.node().path("requestBody").path("content");
+            String contentType = request.header("Content-Type");
+            JsonNode schema = contentType != null && content.has(contentType)
+                    ? content.get(contentType).get("schema")
+                    : content.path("application/json").get("schema");
             if (schema == null) {
                 continue;
             }
@@ -291,8 +318,11 @@ class PostmanCollectionContractTest {
         // createToken and createPairingCode validate restrictions against the registered sources and
         // the spec operations, which need the application context; TokensControllerIT and PairingIT
         // exercise them.
+        // 024: ntfyPublish and ntfyPublishPut carry a text body (the message); createRegistrationToken's
+        // parser lives in a service that needs the database (EdpIngestIT covers it).
         Set<String> schemaOnly = Set.of("createTrigger", "updateTrigger", "updateRetention", "importSettings",
-                "updateEventStreamFilter", "createToken", "createPairingCode");
+                "updateEventStreamFilter", "createToken", "createPairingCode", "ntfyPublish", "ntfyPublishPut",
+                "createRegistrationToken");
         List<String> uncovered = OpenApiSpec.routes().stream()
                 .filter(SpecOperation::implemented)
                 .filter(op -> op.node().has("requestBody"))
@@ -313,6 +343,18 @@ class PostmanCollectionContractTest {
     }
 
     // ------------------------------------------------------------------------- helpers
+
+    /** True when the operation's security alternatives include an ingest key scheme. */
+    private static boolean acceptsIngestKey(SpecOperation op) {
+        for (JsonNode alternative : op.node().path("security")) {
+            for (String scheme : alternative.propertyNames()) {
+                if (scheme.startsWith("ingestKey")) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
 
     private static Map<String, SpecOperation> operationsById() {
         Map<String, SpecOperation> out = new HashMap<>();

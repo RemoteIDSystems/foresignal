@@ -206,4 +206,18 @@ class TileLayerResolverTest {
         assertThat(TileQueryService.rankExpression(resolve("fire", Set.of("secret")), new SqlParams()))
                 .isEqualTo("CAST(NULL AS double precision)");
     }
+
+    @org.junit.jupiter.api.Test
+    @org.junit.jupiter.api.DisplayName("a kind every declaring source hides (EDP atomic, 024) is left out of the index but still resolves")
+    void hiddenKindsStayOutOfTheIndex() {
+        SourceDescriptor ext = source("ext-harbor", "harbor-camera", "harbor-note").hiddenKind("harbor-note").build();
+        SourceDescriptor other = source("notes-too", "shared-kind").build();
+        SourceDescriptor hider = source("hider", "shared-kind").hiddenKind("shared-kind").build();
+        List<SourceDescriptor> all = List.of(ext, other, hider);
+
+        List<String> ids = TileLayerResolver.layers(all, Set.of()).stream().map(TileLayer::id).toList();
+
+        org.assertj.core.api.Assertions.assertThat(ids).contains("harbor-camera", "shared-kind").doesNotContain("harbor-note");
+        org.assertj.core.api.Assertions.assertThat(TileLayerResolver.resolve("harbor-note", all, Set.of())).isPresent();
+    }
 }

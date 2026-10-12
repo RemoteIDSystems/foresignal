@@ -4,7 +4,8 @@ How to run and tune a Foresignal instance through its API. Later prompts add sec
 features. Every write below needs the admin token: `Authorization: Bearer fsr_…`.
 
 The [README](../README.md) has the five-minute quickstart. This guide covers everything after it:
-the token, sources, policies and retention, triggers and channels, streaming for frontends, and
+the token, sources, policies and retention, triggers and channels, inbound webhooks and external
+data providers, streaming for frontends, and
 running the host (storage, clock, binds, remote access, mDNS, backups and troubleshooting).
 
 ## First start and the admin token
@@ -344,6 +345,273 @@ Foresignal defines (webhook, Home Assistant, Apprise) carry it as `foresignalOri
 carry the tag `foresignal-origin-<id>` and Gotify messages the extra `foresignal::origin`. When you
 loop a channel back into Foresignal (for example ntfy into an ingest endpoint), the ntfy- and Gotify-compatible ingest endpoints (prompt 024) drop
 messages carrying its own marker, so a notification can never feed itself.
+
+## Inbound webhooks
+
+Some data cannot be polled: an SDR decoder, AIS-catcher, Home Assistant, a script, an n8n flow,
+Alertmanager, a CAP publisher, or any homelab tool that already speaks ntfy or Gotify. These push
+into a **custom source**. Pushed records go through the same writer as polled data, so versioning,
+policies, touches, the change stream, triggers, tiles, search and retention all apply.
+
+### Creating a custom source
+
+```json
+POST /v1/custom-sources
+{"id": "custom-garage", "name": "Garage sensors", "kinds": ["sensor-reading"],
+ "observedAtMode": "UPSTREAM", "recordTtl": "1h", "ttlAnchor": "RECEIVED",
+ "volatileFields": ["rssi"], "significantFields": [], "titleField": "name",
+ "tileProperties": ["value"], "rateLimitPerMinute": 60, "recordsPerMinute": 6000}
+```
+
+The response is `201` with `ingestKey` (`eik_…`), **shown once**; only its SHA-256 and first eight
+characters (`ingestKeyPrefix`) are stored. Rotate it with
+`POST /v1/custom-sources/{id}/ingest-key/rotate`; the old key stops working at once. The id must
+start with `custom-` and be unique across all sources. The source is created enabled, appears in
+`GET /v1/sources` with `custom: true`, and is always STANDARD tier.
+
+- **Time base (`observedAtMode`).** `UPSTREAM` (the default) means every record carries its own
+  `observedAt`; a record without one is rejected `MISSING_OBSERVED_AT`, never silently stamped.
+  `RECEIVED` stamps the receipt time on every record (flagged `TIME_IMPUTED`). A source never
+  mixes the two, and the mode can change only while the source has no records
+  (`409 OBSERVED_AT_MODE_LOCKED`).
+- **TTL.** `recordTtl` makes records expire from the current view; `ttlAnchor` counts it from receipt
+  (`RECEIVED`, the default) or from `observedAt` (`OBSERVED`).
+- **Volatile and significant fields.** Volatile fields (an RSSI, a battery level) are left out of the
+  hash, so a change to them alone is a touch, not a version. Significant fields are the ones whose
+  change is always worth a version; a SAMPLED or LATEST ingest policy needs them
+  (`400 INGEST_POLICY_INVALID` if they are emptied). Editing either list changes the hash recipe: the
+  writer rehashes the source's records before its next batch, so the edit never produces a burst of
+  spurious versions.
+- **Editing.** `PUT /v1/custom-sources/{id}` replaces the definition; the id cannot change, and
+  removing a kind that still has current records is `409 KIND_IN_USE`.
+- **Caps.** `rateLimitPerMinute` limits requests (the source's budget); `recordsPerMinute` (default
+  6,000, at most 60,000) limits records. Over either is `429` with `Retry-After`, and a `REFUSED` row
+  appears in `GET /v1/sources/{id}/fetches`. A body is at most 5 MB (decompressed; `gzip` is accepted)
+  and 10,000 records.
+- **Deleting** a custom source stops ingest; its records age out through retention.
+- **Members later prompts own** (`profile`, `allowPathKey`, `ingestAllowCidrs`, `mapping`, `preset`,
+  `captureSamples`, `licenceTerms`) are refused with `400` until those prompts.
+
+Every push answers `200` with an `IngestOutcome` (`seen`, `persisted`, `touched`, `rejected` with
+each item's index and reason, …) whenever the request itself was valid, even if some records were
+rejected. `GET /v1/sources/{id}/fetches` shows each push with `trigger: PUSH`, the principal
+(`ingest-key:<prefix>`, `compat-ntfy:<prefix>`, `compat-gotify:<prefix>` or `token:<name>`) and the
+body's SHA-256.
+
+### Credentials
+
+Send the key as `X-Foresignal-Ingest-Key: eik_…`, as `Authorization: Bearer eik_…`, or as the
+Basic-auth password (any user name), for devices that only do Basic. An admin token also works. A
+key belongs to one source; pushing it to another is `401`.
+
+### Formats
+
+`POST /v1/ingest/{sourceId}` reads the `native` format; `POST /v1/ingest/{sourceId}/{format}` reads a
+named one. `GET /v1/ingest/formats` lists them with their options. Options live in the source's
+`formats` object, keyed by format id.
+
+| Format | Body | Notes |
+|---|---|---|
+| `native` | GeoJSON FeatureCollection, or `{"records": [...]}` | Feature `id` is the external id; properties `kind` (optional with one kind), `observedAt`, `eventTime`, `validUntil`, `tombstone`, `quality`; the rest is the payload |
+| `alertmanager` | Alertmanager webhook payload v4 | One record per alert (`fingerprint`); `kindLabel` picks the kind from a label; `resolved: tombstone` (default) or `record` |
+| `cloudevents` | CloudEvents 1.0 structured, batch or binary mode | External id `subject`, else `source/id`; `typeKinds` maps CloudEvents types to kinds; answers the webhook validation handshake (`OPTIONS` with `WebHook-Request-Origin`) |
+| `cap` | CAP 1.2 XML | `Alert` creates a record, `Update` also tombstones the referenced alerts, `Cancel` only tombstones; polygons and circles become geometry; non-`Actual` alerts are rejected unless `acceptNonActual` |
+| `mapping` | Any JSON | Uses the source's `formats.mapping`: JSON Pointers for `recordsPath`, `externalId`, `kind`, `observedAt` (`observedAtFormat` `ISO`, `epoch-s`, `epoch-ms`), `lat`/`lon` or `geometry`, and `payload` (`[{from, to}]`) |
+
+`media`, `rasters` and `mapping-preview` are reserved for later prompts (`404 FORMAT_UNKNOWN` until
+then).
+
+```sh
+# native GeoJSON
+curl -X POST http://foresignal.local:8080/v1/ingest/custom-garage \
+  -H "X-Foresignal-Ingest-Key: $KEY" -H "Content-Type: application/geo+json" \
+  -d '{"type":"FeatureCollection","features":[{"type":"Feature","id":"garage-temp",
+       "geometry":{"type":"Point","coordinates":[-97.74,30.27]},
+       "properties":{"observedAt":"2026-10-12T08:00:00Z","name":"Garage","value":31.5}}]}'
+
+# a CloudEvent
+curl -X POST http://foresignal.local:8080/v1/ingest/custom-garage/cloudevents \
+  -H "Authorization: Bearer $KEY" -H "Content-Type: application/cloudevents+json" \
+  -d '{"specversion":"1.0","id":"e1","source":"/ha/garage","type":"door","subject":"garage-door",
+       "time":"2026-10-12T08:00:00Z","data":{"state":"open"}}'
+
+# a CAP alert
+curl -X POST http://foresignal.local:8080/v1/ingest/custom-alerts/cap \
+  -H "X-Foresignal-Ingest-Key: $KEY" -H "Content-Type: application/cap+xml" --data-binary @alert.xml
+```
+
+**AIS-catcher-style GeoJSON.** Point an HTTP output at
+`http://foresignal.local:8080/v1/ingest/custom-ais` with the header
+`X-Foresignal-Ingest-Key: eik_…` and GeoJSON output; `gzip` is accepted.
+
+**Home Assistant** (`configuration.yaml`):
+
+```yaml
+rest_command:
+  foresignal_push:
+    url: "http://foresignal.local:8080/v1/ingest/custom-home"
+    method: POST
+    headers:
+      X-Foresignal-Ingest-Key: !secret foresignal_ingest_key
+    content_type: "application/json"
+    payload: >-
+      {"records": [{"externalId": "{{ entity_id }}", "kind": "state",
+        "observedAt": "{{ now().isoformat() }}", "payload": {"state": "{{ state }}"}}]}
+```
+
+**Python:**
+
+```python
+import requests
+requests.post("http://foresignal.local:8080/v1/ingest/custom-garage",
+              headers={"X-Foresignal-Ingest-Key": KEY},
+              json={"records": [{"externalId": "probe-1", "kind": "sensor-reading",
+                                 "observedAt": "2026-10-12T08:00:00Z", "payload": {"value": 21.4}}]},
+              timeout=10).raise_for_status()
+```
+
+**Alertmanager** (`alertmanager.yml`), which cannot sign, authenticates with the key as a bearer
+token:
+
+```yaml
+receivers:
+  - name: foresignal
+    webhook_configs:
+      - url: "http://foresignal.local:8080/v1/ingest/custom-alerts/alertmanager"
+        send_resolved: true
+        http_config:
+          authorization:
+            type: Bearer
+            credentials_file: /etc/alertmanager/foresignal-key
+```
+
+### ntfy and Gotify compatibility
+
+Tools that publish to ntfy or Gotify can publish to Foresignal unchanged. Give such sources
+`observedAtMode: RECEIVED` (the messages carry no observation time) and a TTL. The kind is the
+source's single kind, or `notification` (which must then be one of its kinds); the payload is
+`{title, message, priority, tags, click, topic}`. The external id comes from
+`X-Foresignal-External-Id`, an ntfy tag `id=<x>`, or Gotify `extras["foresignal::record"].externalId`,
+otherwise each message gets a new ULID.
+
+- **ntfy:** the topic is the custom source id. `POST` or `PUT /compat/ntfy/{topic}` (body = message;
+  `X-Title`, `X-Priority` (1–5 or `min`…`urgent`), `X-Tags`, `X-Click`),
+  `GET` or `POST /compat/ntfy/{topic}/publish` (also `send`, `trigger`) with `?message=&title=…`, and
+  the JSON form `POST /compat/ntfy` with `{"topic", "message", "title", "priority", "tags", "click"}`.
+  Credentials: Bearer or Basic with the key, or ntfy's `?auth=` (base64 of `Bearer eik_…`).
+- **Uptime Kuma:** add an ntfy notification with server URL `http://foresignal.local:8080/compat/ntfy`
+  (Kuma posts the JSON form there), topic `custom-uptime`, and the ingest key as the access token.
+- **Gotify:** `POST /compat/gotify/message` (JSON or form `title`, `message`, `priority`, `extras`);
+  the key in `X-Gotify-Key` or `?token=` picks the source.
+- **Proxmox:** add a Gotify notification target with server URL
+  `http://foresignal.local:8080/compat/gotify` (Gotify clients post to `{server}/message`) and the
+  ingest key as the token.
+
+`?auth=` and `?token=` values are masked as `***` in logs and in the fetch log. A message carrying
+this instance's own origin marker (the ntfy tag `foresignal-origin-<id>` or the Gotify extra
+`foresignal::origin`) is acknowledged and dropped, so a notification channel pointed back at
+Foresignal cannot feed itself.
+
+### Signatures
+
+A source can require a webhook signature per format under `verifiers.{format}`:
+
+| Scheme | What is checked |
+|---|---|
+| `hmac-sha256` | `X-Signature-256: sha256=<hex>` (header configurable) over the raw body |
+| `standard-webhooks` | `webhook-id`, `webhook-timestamp` and `webhook-signature: v1,<base64>` over `id.timestamp.body`, ±5 minutes, a replayed id refused for 10 minutes |
+| `foresignal` | `X-Foresignal-Timestamp` and `X-Foresignal-Signature: sha256=HMAC("<ts>.<body>")`, the scheme of Foresignal's own webhook channel (instance to instance) |
+
+```json
+"verifiers": {"native": {"scheme": "hmac-sha256", "secret": "…", "keyOptional": false}}
+```
+
+With a verifier set, a request must carry a valid signature **and** the key
+(`401 SIGNATURE_INVALID` otherwise); with `keyOptional: true` a valid signature alone authenticates.
+Secrets are write-only: reads show `secretSet: true`, and omitting `secret` on an update keeps the
+stored one. An admin token is not asked for a signature.
+
+### A geofence rule on a custom kind
+
+Custom kinds work in rules like any other:
+
+```json
+POST /v1/triggers
+{"name": "Drone near the house", "sources": ["custom-adsb"], "kinds": ["drone"], "mode": "enter",
+ "geofence": {"type": "Polygon", "coordinates": [[[-97.75,30.26],[-97.73,30.26],[-97.73,30.28],
+              [-97.75,30.28],[-97.75,30.26]]]}, "severity": "warning"}
+```
+
+## External data providers
+
+The External Data Protocol (EDP, [docs/External-Data-Protocol.md](External-Data-Protocol.md)) lets
+anyone add a data source without changing Foresignal: a provider describes itself with a
+**manifest** and pushes or serves **items**. `GET /v1/external/protocol` shows the protocol version
+and item types; `GET /v1/external/protocol/schemas/{name}` serves the JSON Schemas.
+
+### Registering a provider
+
+- **By manifest or URL (admin):** `POST /v1/external/sources` with `{"manifest": {...}}` or
+  `{"manifestUrl": "https://provider.example/.well-known/foresignal-edp.json"}` (fetched once), plus
+  `"approve": true` to activate it at once. The response carries `ingestKey` once. The provider
+  becomes the source `ext-{source.id}`.
+- **By registration token:** create one with `POST /v1/external/registration-tokens`
+  (`{"name", "expiresAt", "maxUses" (default 1), "sourceIdPrefix"}`); the `fsx_…` token is shown
+  once. The provider calls `POST /v1/external/register` with `Authorization: Bearer fsx_…` and its
+  manifest; the source is created **pending**. A provider id outside the token's prefix is
+  `409 SOURCE_ID_NOT_ALLOWED`; a used-up or expired token is `401 REGISTRATION_TOKEN_INVALID`.
+  `GET /v1/external/registration-tokens` lists unexpired tokens (never the secret);
+  `DELETE /v1/external/registration-tokens/{id}` revokes one.
+
+A manifest is validated first: `400 MANIFEST_INVALID` lists every error with its JSON Pointer, and
+a protocol minor version above what this instance supports is `400 PROTOCOL_UNSUPPORTED`.
+
+### Approval and the access block
+
+Nothing from a **pending** or **suspended** provider is stored (pushes answer
+`409 SOURCE_PENDING_APPROVAL` / `SOURCE_SUSPENDED`, and it is not pulled). Before approving, read
+`GET /v1/external/sources/{id}`: the **access block** says how the provider gets its data
+(`official`, `unofficial-api`, `scrape`, `browser`, `other`), how likely it is to break
+(`fragility`) and a summary of the upstream's terms; the licence's `redistribution` sets the egress
+(`allowed` → `OPEN`, otherwise `LOCAL_ONLY`); `private` marks personal data. Then
+`POST /v1/external/sources/{id}/approve`. `POST …/suspend` stops it (records stay);
+`DELETE /v1/external/sources/{id}` removes it (records age out through retention).
+
+Provider URLs (manifest, pull, search) must be `https` and may not reach private, loopback,
+link-local, carrier-grade NAT or cloud-metadata addresses, including by DNS rebinding or redirects
+(only same-host redirects are followed). For a provider on your own network, register it with
+`"allowPrivateNetwork": true`; metadata addresses stay refused even then.
+
+A provider (with its ingest key) or you can send `PUT /v1/external/sources/{id}/manifest`. Additive
+changes (descriptions, presentation, new optional fields) apply at once; a change to streams, kinds,
+item types, modes, payload schemas or provider URLs returns the source to **pending** until you
+approve it again, and the response lists those changes in `breakingChanges`.
+
+### Push and pull
+
+- **Push:** the provider sends batches to `POST /v1/external/sources/{id}/items` (JSON, or NDJSON
+  with an optional header line) with its ingest key, the same credentials as custom sources.
+- **Pull:** a manifest with `transport.pull` makes Foresignal poll `itemsUrl?cursor=&limit=500` every
+  `intervalSeconds`, following `nextCursor` and storing the cursor. Enter the credential with
+  `PUT /v1/sources/{id}/credentials`: `token` for `bearer`, `value` for `header`, `username` and
+  `password` for `basic`. Requests count against the source's budget; provider failures show in its
+  health and in `pull.lastError`.
+
+Layer streams become ordinary map layers (their `presentation` hints appear on the provider and in
+the kind's TileJSON); atomic streams are stored, searchable and usable in rules, but kept out of the
+default tile layer list until prompt 138 binds them. `status` items change the provider's health
+without creating records. Snapshot streams remove entities only after a complete, validated snapshot
+of the same scope; a snapshot that would remove more than half of a scope is held and the provider
+turns degraded.
+
+### Reading validation errors
+
+A push answers `200` with `accepted`, `rejected` (each item's index, stream, id, reason such as
+`SCHEMA_INVALID`, `PAYLOAD_INVALID`, `GEOMETRY_INVALID`, `PERIOD_INVALID` or `FORECAST_INVALID`, and
+`schemaErrors` with JSON Pointers) and the writer's `outcome`. Valid items in the same batch are kept.
+`GET /v1/external/sources/{id}` shows per-stream counts and the last validation errors.
+`POST /v1/external/validate` (agent) checks a manifest and sample items without storing anything,
+for provider developers and CI.
 
 ## Streaming for frontends, tiles and asOf
 

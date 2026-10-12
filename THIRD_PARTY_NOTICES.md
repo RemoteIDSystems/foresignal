@@ -77,3 +77,21 @@ section lists dependencies a prompt asked to record here.
   (`GET /v1/pairing-codes/{id}/qr.svg`, prompt 023). The tests use its QR reader to decode them.
 - **Licence:** Apache License, Version 2.0 (<https://www.apache.org/licenses/LICENSE-2.0>).
 - **Project:** <https://github.com/zxing/zxing>, Copyright the ZXing authors.
+
+### networknt json-schema-validator
+
+- **Artifact:** `com.networknt:json-schema-validator` 3.0.8 (Maven Central), used unmodified, with its
+  runtime dependencies `com.ethlo.time:itu` and `tools.jackson.dataformat:jackson-dataformat-yaml`
+  (both Apache License, Version 2.0).
+- **Use:** validates EDP manifests, items and provider payload schemas (JSON Schema 2020-12) at run
+  time (prompt 024); earlier only the contract tests used it (prompt 020).
+- **Licence:** Apache License, Version 2.0 (<https://www.apache.org/licenses/LICENSE-2.0>).
+- **Project:** <https://github.com/networknt/json-schema-validator> (its LICENSE file is the plain Apache 2.0 text).
+
+### RE2/J
+
+- **Artifact:** `com.google.re2j:re2j` 1.8 (Maven Central), used unmodified; no runtime dependencies.
+- **Use:** evaluates the `pattern` and `patternProperties` of EDP payload schemas in linear time
+  through the validator's regular-expression hook (prompt 024, EDP §7).
+- **Licence:** the Go license, a BSD-3-Clause license (<https://golang.org/LICENSE>).
+- **Project:** <https://github.com/google/re2j>, Copyright The Go Authors.

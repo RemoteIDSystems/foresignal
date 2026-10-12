@@ -1,0 +1,17 @@
+{
+  "protocol": "foresignal-edp/1.0",
+  "x-manifest": "hormuz-example.json",
+  "sentAt": "2026-10-11T18:00:00Z",
+  "items": [
+    {
+      "stream": "transits",
+      "type": "observation",
+      "id": "x",
+      "observedAt": "2026-10-11T06:00:00Z",
+      "seriesKey": "tanker",
+      "t": "2026-02-30",
+      "value": 1
+    }
+  ],
+  "x-expect": "PERIOD_INVALID"
+}

@@ -56,6 +56,13 @@ import org.springframework.web.filter.OncePerRequestFilter;
  *       prompt 035).
  * </ol>
  *
+ * <p>On ingest paths ({@link AccessRequirement.IngestKeyOrAdmin}, prompt 024) a request without an
+ * API token, or with an {@code eik_} bearer, goes to the {@link IngestKeyAuthenticator}: an ingest
+ * key in {@code X-Foresignal-Ingest-Key}, {@code Authorization: Bearer eik_…}, Basic (the key as the
+ * password), or the ntfy/Gotify compatibility credentials. An accepted caller is set as
+ * {@link IngestCaller}; an admin API token becomes an {@link IngestCaller#ADMIN_TOKEN} caller.
+ * Ingest-key writes are audited with actor kind {@code ingest_key}.
+ *
  * <p>An accepted request carries {@link CurrentToken} (and the scope under
  * {@link #SCOPE_ATTRIBUTE}). The {@code ticket} parameter is stripped from the request before it
  * reaches anything else. Every authenticated write and every 401/403 on a write path is audited.
@@ -73,6 +80,9 @@ public class TokenFilter extends OncePerRequestFilter implements Ordered {
     public static final int ORDER = CorsFilter.ORDER + 10;
 
     static final String BEARER_PREFIX = "Bearer ";
+
+    /** Ingest keys start with this (prompt 024); such a bearer is never an API token. */
+    static final String INGEST_KEY_PREFIX = "eik_";
     static final String WWW_AUTHENTICATE_VALUE = "Bearer realm=\"foresignal\"";
 
     /** Set on the request so later components can tell the caller's scope. */
@@ -91,6 +101,7 @@ public class TokenFilter extends OncePerRequestFilter implements Ordered {
     private final SpecOperationIndex spec;
     private final SecureRequestMonitor secureRequests;
     private final Clock clock;
+    private final org.springframework.beans.factory.ObjectProvider<IngestKeyAuthenticator> ingestKeys;
     private final AntPathMatcher matcher = new AntPathMatcher();
 
     private volatile SecuritySettings securitySettings;
@@ -98,7 +109,8 @@ public class TokenFilter extends OncePerRequestFilter implements Ordered {
     /** Creates the filter. */
     public TokenFilter(AccessPolicy policy, TokenService tokens, TicketStore tickets, AppSettingService settings,
             ProblemWriter problems, RestrictionEnforcer restrictions, AuditService audit, SpecOperationIndex spec,
-            SecureRequestMonitor secureRequests, Clock clock) {
+            SecureRequestMonitor secureRequests, Clock clock,
+            org.springframework.beans.factory.ObjectProvider<IngestKeyAuthenticator> ingestKeys) {
         this.policy = policy;
         this.tokens = tokens;
         this.tickets = tickets;
@@ -109,6 +121,7 @@ public class TokenFilter extends OncePerRequestFilter implements Ordered {
         this.spec = spec;
         this.secureRequests = secureRequests;
         this.clock = clock;
+        this.ingestKeys = ingestKeys;
     }
 
     @Override
@@ -143,6 +156,12 @@ public class TokenFilter extends OncePerRequestFilter implements Ordered {
                 tokens.authenticate(bearer).ifPresent(t -> accept(request, new CurrentToken(t, false)));
             }
             chain.doFilter(request, response);
+            return;
+        }
+
+        if (requirement instanceof IngestKeyOrAdmin
+                && (bearer == null || bearer.startsWith(INGEST_KEY_PREFIX))) {
+            ingestByKey(request, response, chain, method, path);
             return;
         }
 
@@ -197,11 +216,61 @@ public class TokenFilter extends OncePerRequestFilter implements Ordered {
             }
             if (current != null) {
                 accept(request, current);
+                if (requirement instanceof IngestKeyOrAdmin) {
+                    request.setAttribute(IngestCaller.ATTRIBUTE, new IngestCaller(
+                            IngestCaller.ADMIN_TOKEN, null, "token:" + current.name(), null));
+                }
             }
             chain.doFilter(request, response);
             auditIfNeeded(request, response, method, path, current);
         } finally {
             holdUntilStreamEnds(request, streamTicket);
+        }
+    }
+
+    /**
+     * An ingest path without an API token: the ingest key decides (prompt 024). No credential, or a
+     * refused one, is a 401; an accepted caller proceeds with {@link IngestCaller} set, and its
+     * writes are audited as {@code ingest_key}.
+     */
+    private void ingestByKey(HttpServletRequest request, HttpServletResponse response, FilterChain chain,
+            HttpMethod method, String path) throws IOException, ServletException {
+        IngestKeyAuthenticator authenticator = ingestKeys.getIfAvailable();
+        IngestKeyAuthenticator.Result result = authenticator == null
+                ? IngestKeyAuthenticator.Result.none()
+                : authenticator.authenticate(request);
+        if (!result.accepted()) {
+            reject(request, response, method, result.refused()
+                    ? result.rejection()
+                    : "Ingest requires an ingest key or an admin token.");
+            return;
+        }
+        IngestCaller caller = result.caller();
+        request.setAttribute(IngestCaller.ATTRIBUTE, caller);
+        chain.doFilter(request, response);
+        if (isWrite(method)) {
+            String normalized = AccessPolicy.normalize(path);
+            String[] segments = normalized.split("/");
+            Map<String, Object> detail = new LinkedHashMap<>();
+            detail.put("via", caller.via());
+            if (caller.sourceId() != null) {
+                detail.put("sourceId", caller.sourceId());
+            }
+            audit.record(new AuditRecord(
+                    clock.instant(),
+                    AuditRecord.INGEST_KEY,
+                    null,
+                    caller.principal(),
+                    null,
+                    null,
+                    method.name(),
+                    normalized,
+                    spec.operationId(method, normalized),
+                    response.getStatus(),
+                    segments.length > 2 ? segments[2] : null,
+                    segments.length > 3 ? segments[3] : null,
+                    request.getRemoteAddr(),
+                    detail));
         }
     }
 
@@ -220,8 +289,7 @@ public class TokenFilter extends OncePerRequestFilter implements Ordered {
             return checkToken(required.scope(), requirement, current, method, path);
         }
         if (requirement instanceof IngestKeyOrAdmin) {
-            // Per-source ingest keys arrive with custom sources in prompt 024. Until then an admin
-            // token is the only way in, which keeps the endpoint closed rather than open.
+            // Ingest keys are handled before this point (ingestByKey); an API token must be admin.
             if (current == null) {
                 return Optional.of(unauthorized("Ingest requires an ingest key or an admin token."));
             }

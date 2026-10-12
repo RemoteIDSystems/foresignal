@@ -12,7 +12,92 @@ outdir = pathlib.Path(sys.argv[2]); outdir.mkdir(parents=True, exist_ok=True)
 PATH_VARS = {"sourceId": "sourceId", "externalId": "externalId", "ruleId": "ruleId", "alertId": "alertId",
              "channelId": "channelId", "tokenId": "tokenId", "providerId": "providerId", "threadId": "threadId",
              "actionId": "actionId", "briefingId": "briefingId", "runId": "runId", "subscriptionId": "subscriptionId",
-             "layer": "tileLayer", "z": "tileZ", "x": "tileX", "y": "tileY", "pairingCodeId": "pairingCodeId"}
+             "layer": "tileLayer", "z": "tileZ", "x": "tileX", "y": "tileY", "pairingCodeId": "pairingCodeId",
+             "topic": "sourceId", "format": "ingestFormat", "action": "ntfyAction"}
+
+# Path variables that mean something else under a prefix (024): EDP sources and registration tokens.
+PATH_VARS_BY_PREFIX = [("/v1/external/sources/", {"sourceId": "edpSourceId"}),
+                       ("/v1/external/registration-tokens/", {"tokenId": "registrationTokenId"})]
+
+# The EDP manifest of docs/External-Data-Protocol.md §2 (024).
+EDP_MANIFEST = {
+  "protocol": "foresignal-edp/1.0",
+  "source": {"id": "hormuz-transits", "name": "Strait of Hormuz transits",
+             "description": "Daily tanker and cargo transits counted from public dashboards", "version": "0.3.1",
+             "publisher": {"name": "Example OSINT Lab", "url": "https://example.org", "contact": "ops@example.org"},
+             "homepage": "https://github.com/example/hormuz-edp",
+             "licence": {"id": "CC-BY-4.0", "url": "https://creativecommons.org/licenses/by/4.0/", "attribution": "Example OSINT Lab", "redistribution": "allowed"},
+             "terms": {"summary": "Derived from a public dashboard; upstream terms unclear", "url": None},
+             "access": {"route": "scrape", "fragility": "high"},
+             "originator": {"id": "example-osint-lab", "class": "aggregator", "aggregates": []}, "private": False},
+  "transport": {"push": True, "pull": None, "search": None},
+  "streams": [
+    {"id": "transits", "mode": "atomic", "itemType": "observation", "kind": "transit-count", "title": "Daily transits by vessel class",
+     "unit": "vessels/day", "update": "incremental", "payloadSchema": {"type": "object", "properties": {"vesselClass": {"type": "string"}}},
+     "suggestedBindings": [{"target": "series"}]},
+    {"id": "incidents", "mode": "layer", "itemType": "event", "kind": "maritime-incident", "title": "Reported incidents", "geometry": "Point",
+     "update": "incremental",
+     "payloadSchema": {"type": "object", "required": ["category"], "properties": {"category": {"type": "string"}, "vessel": {"type": ["string", "null"]}}},
+     "fields": {"title": "category", "significant": ["category"], "volatile": []}, "ttl": None, "retentionClass": "event",
+     "presentation": {"color": "#d9480f", "icon": "ship", "labelField": "vessel", "minZoom": 3, "tileProperties": ["category"]}}]}
+
+# The EDP batch of §3, with observedAt on the observation (the stream's time base is upstream).
+EDP_ITEMS = [
+  {"stream": "transits", "type": "observation", "id": "tanker:2026-10-10", "observedAt": "2026-10-11T06:00:00Z", "seriesKey": "tanker",
+   "t": "2026-10-10", "value": 31, "knownAt": "2026-10-11T06:00:00Z", "properties": {"vesselClass": "tanker"}},
+  {"stream": "incidents", "type": "event", "id": "inc-8812", "observedAt": "2026-10-11T17:41:00Z", "eventTime": "2026-10-11T16:55:00Z",
+   "geometry": {"type": "Point", "coordinates": [56.4, 26.5]}, "properties": {"category": "approach-by-small-craft", "vessel": "MV Example"}},
+  {"stream": "incidents", "type": "delete", "id": "inc-8790"},
+  {"stream": "transits", "type": "status", "health": "degraded", "message": "dashboard layout changed; tanker counts missing for 2026-10-11"}]
+EDP_BATCH = {"protocol": "foresignal-edp/1.0", "sourceId": "hormuz-transits", "sentAt": "2026-10-11T18:00:00Z", "snapshot": None,
+             "items": EDP_ITEMS, "nextCursor": None}
+
+ALERTMANAGER = {"version": "4", "groupKey": "{}:{alertname=\"HighTemp\"}", "truncatedAlerts": 0, "status": "firing", "receiver": "foresignal",
+                "groupLabels": {"alertname": "HighTemp"}, "commonLabels": {"alertname": "HighTemp"}, "commonAnnotations": {},
+                "externalURL": "http://alertmanager.local:9093",
+                "alerts": [{"status": "firing", "labels": {"alertname": "HighTemp", "instance": "garage", "latitude": "30.27", "longitude": "-97.74"},
+                            "annotations": {"summary": "Garage above 40 C"}, "startsAt": "2026-10-10T12:00:00Z", "endsAt": "0001-01-01T00:00:00Z",
+                            "generatorURL": "http://prometheus.local:9090/graph", "fingerprint": "6a8f1c2b9d0e4f31"}]}
+
+CAP_ALERT = """<?xml version="1.0" encoding="UTF-8"?>
+<alert xmlns="urn:oasis:names:tc:emergency:cap:1.2">
+  <identifier>EXAMPLE-2026-10-10-001</identifier>
+  <sender>alerts@example.org</sender>
+  <sent>2026-10-10T12:00:00-00:00</sent>
+  <status>Actual</status>
+  <msgType>Alert</msgType>
+  <scope>Public</scope>
+  <info>
+    <language>en-US</language>
+    <category>Met</category>
+    <event>Flash Flood Warning</event>
+    <urgency>Immediate</urgency>
+    <severity>Severe</severity>
+    <certainty>Likely</certainty>
+    <onset>2026-10-10T12:00:00-00:00</onset>
+    <expires>2026-10-10T18:00:00-00:00</expires>
+    <headline>Flash flood warning for the river valley</headline>
+    <description>Heavy rain is causing flash flooding.</description>
+    <instruction>Move to higher ground.</instruction>
+    <area>
+      <areaDesc>River valley</areaDesc>
+      <polygon>30.20,-97.80 30.20,-97.60 30.35,-97.60 30.35,-97.80 30.20,-97.80</polygon>
+    </area>
+  </info>
+</alert>
+"""
+
+# Request bodies that are not JSON (024): content type, raw text, Postman language.
+RAW_BODIES = {
+  "ntfyPublish": ("text/plain", "Backup finished on pve1", "text"),
+  "ntfyPublishPut": ("text/plain", "Disk usage above 90% on nas", "text"),
+}
+
+# Request headers for operations that need more than the generic ones (024).
+EXTRA_HEADERS = {
+  "ntfyPublish": [("X-Title", "Proxmox"), ("X-Priority", "high"), ("X-Tags", "backup,id=pve1-backup")],
+  "ntfyPublishPut": [("Title", "NAS"), ("Priority", "4"), ("Tags", "storage")],
+}
 
 BODIES = {
   "updateSource": {"enabled": True, "interval": "60s", "params": {"feed": "all_day"}, "budget": {"perMinute": 4, "perDay": 2000}, "retention": "365d",
@@ -41,12 +126,28 @@ BODIES = {
                     "minSeverity": "info", "waitForEnrichmentSeconds": 20, "enabled": True},
   "createToken": {"name": "openclaw-agent", "scope": "agent", "expiresAt": None},
   "createCustomSource": {"id": "custom-home-sensors", "name": "Home sensors", "kinds": ["sensor-reading"], "attribution": "My bench",
-                         "recordTtl": "1h", "tileProperties": ["value", "unit"], "searchFields": ["name"], "embedFields": [], "rateLimitPerMinute": 60},
+                         "recordTtl": "1h", "tileProperties": ["value", "unit"], "searchFields": ["name"], "embedFields": [], "rateLimitPerMinute": 60,
+                         "observedAtMode": "UPSTREAM", "ttlAnchor": "RECEIVED", "volatileFields": ["rssi"], "significantFields": [],
+                         "titleField": "name", "fieldSpecs": {"value": {"type": "NUMBER", "unit": "Cel", "label": "Temperature"}},
+                         "private": False, "licence": None, "recordsPerMinute": 6000,
+                         "formats": {"alertmanager": {"resolved": "tombstone"}},
+                         "verifiers": {"native": {"scheme": "hmac-sha256", "header": "X-Signature-256", "secret": "REPLACE_ME", "keyOptional": False}}},
   "updateCustomSource": {"id": "custom-home-sensors", "name": "Home sensors", "kinds": ["sensor-reading", "sensor-alarm"], "attribution": "My bench",
                          "recordTtl": "1h", "tileProperties": ["value", "unit"], "searchFields": ["name"], "embedFields": [], "rateLimitPerMinute": 60},
   "ingestRecords": {"type": "FeatureCollection", "features": [{"type": "Feature", "id": "garage-temp",
                     "geometry": {"type": "Point", "coordinates": [-97.74, 30.27]},
                     "properties": {"kind": "sensor-reading", "observedAt": "2026-10-10T12:00:00Z", "name": "Garage temperature", "value": 31.5, "unit": "C"}}]},
+  "ingestRecordsFormat": ALERTMANAGER,
+  "ntfyPublishJson": {"topic": "{{sourceId}}", "message": "Monitor 'NAS' is down", "title": "Uptime Kuma", "priority": 4,
+                      "tags": ["warning", "id=kuma-nas"], "click": "https://kuma.local/dashboard/1"},
+  "gotifyPublish": {"title": "vzdump", "message": "Backup of VM 101 finished", "priority": 5,
+                    "extras": {"foresignal::record": {"externalId": "pve-backup-101"}}},
+  "registerExternalSource": {"manifest": EDP_MANIFEST, "manifestUrl": None, "approve": False, "allowPrivateNetwork": False},
+  "selfRegisterExternalSource": EDP_MANIFEST,
+  "updateExternalSourceManifest": dict(EDP_MANIFEST, source=dict(EDP_MANIFEST["source"], version="0.3.2")),
+  "pushExternalItems": EDP_BATCH,
+  "createRegistrationToken": {"name": "Hormuz provider", "expiresAt": None, "maxUses": 1, "sourceIdPrefix": "hormuz"},
+  "validateEdp": {"manifest": EDP_MANIFEST, "sourceId": None, "items": EDP_ITEMS},
   "createLlmProvider": {"id": "ollama", "type": "ollama", "baseUrl": "http://ollama:11434", "chatModel": "qwen3:14b",
                         "embeddingModel": "nomic-embed-text", "embeddingDimensions": 768, "requestsPerMinute": 60, "tokensPerDay": 5000000, "enabled": True},
   "updateLlmProvider": {"id": "claude", "type": "anthropic", "chatModel": "claude-opus-5-5", "apiKey": "REPLACE_ME",
@@ -104,11 +205,35 @@ CAPTURE = {
   "createPairingCode": "const j = pm.response.json(); pm.collectionVariables.set('pairingCodeId', j.id); pm.collectionVariables.set('pairingCode', j.code);",
   "claimPairingCode": "const j = pm.response.json(); pm.collectionVariables.set('readToken', j.token); console.log('Paired token stored in collection variable readToken');",
   "createStreamTicket": "const j = pm.response.json(); pm.collectionVariables.set('ticket', j.ticket);",
+  "registerExternalSource": "const j = pm.response.json(); pm.collectionVariables.set('edpIngestKey', j.ingestKey); pm.collectionVariables.set('edpSourceId', j.source.sourceId);",
+  "selfRegisterExternalSource": "const j = pm.response.json(); pm.collectionVariables.set('edpIngestKey', j.ingestKey); pm.collectionVariables.set('edpSourceId', j.source.sourceId);",
+  "createRegistrationToken": "const j = pm.response.json(); pm.collectionVariables.set('registrationToken', j.token); pm.collectionVariables.set('registrationTokenId', j.id);",
 }
 
 # Extra request items for operations with several useful bodies (one item per variant, placed after the
 # operation's main item). createChannel: one per channel type that needs different fields (018).
 VARIANTS = {
+  # Ingest formats (024): each variant may override the format path segment, the content type and the raw body.
+  "ingestRecords": [
+    ("records shape", {"records": [{"externalId": "garage-humidity", "kind": "sensor-reading", "observedAt": "2026-10-10T12:00:00Z",
+                                    "geometry": {"type": "Point", "coordinates": [-97.74, 30.27]}, "payload": {"name": "Garage humidity", "value": 61, "unit": "%"}}]}),
+  ],
+  "ingestRecordsFormat": [
+    ("CloudEvents structured", {"specversion": "1.0", "id": "evt-0001", "source": "/homeassistant/garage", "type": "sensor.reading",
+                                "subject": "garage-door", "time": "2026-10-10T12:00:00Z", "datacontenttype": "application/json",
+                                "data": {"state": "open", "lat": 30.27, "lon": -97.74}},
+     {"format": "cloudevents", "content_type": "application/cloudevents+json"}),
+    ("CloudEvents batch", [{"specversion": "1.0", "id": "evt-0002", "source": "/n8n/flow-7", "type": "sensor.reading", "subject": "porch-light",
+                            "time": "2026-10-10T12:01:00Z", "data": {"state": "on"}}],
+     {"format": "cloudevents", "content_type": "application/cloudevents-batch+json"}),
+    ("CAP 1.2 alert", None, {"format": "cap", "content_type": "application/cap+xml", "raw": CAP_ALERT, "language": "xml"}),
+    ("mapping (JSON Pointer)", {"items": [{"device": "aqi-1", "ts": 1760097600, "pm25": 12.5, "pos": {"lat": 30.27, "lon": -97.74}}]},
+     {"format": "mapping"}),
+  ],
+  "pushExternalItems": [
+    ("NDJSON", None, {"content_type": "application/x-ndjson", "language": "text",
+                      "raw": "\n".join(json.dumps(x) for x in [{"protocol": "foresignal-edp/1.0", "sourceId": "hormuz-transits"}] + EDP_ITEMS[:2]) + "\n"}),
+  ],
   "createToken": [
     ("restricted", {"name": "dashboard-kiosk", "scope": "read", "expiresAt": None,
                     "restrictions": {"endpoints": ["GET /v1/records/**", "GET /v1/tiles/**", "GET /v1/tiles.json"]}}),
@@ -157,7 +282,11 @@ def req_item(path, method, op):
     opid = op["operationId"]
     scope = op.get("x-foresignal-scope", "open")
     admin = scope in ("agent", "admin")
-    pm_path = re.sub(r"\{(\w+)\}", lambda m: "{{" + PATH_VARS.get(m.group(1), m.group(1)) + "}}", path)
+    path_vars = dict(PATH_VARS)
+    for prefix, overrides in PATH_VARS_BY_PREFIX:
+        if path.startswith(prefix):
+            path_vars.update(overrides)
+    pm_path = re.sub(r"\{(\w+)\}", lambda m: "{{" + path_vars.get(m.group(1), m.group(1)) + "}}", path)
     raw = "{{baseUrl}}" + pm_path
     query = []
     for p in op.get("parameters", []):
@@ -181,9 +310,16 @@ def req_item(path, method, op):
                "url": {"raw": raw + ("?" + "&".join(f"{q['key']}={q['value']}" for q in query if not q["disabled"]) if any(not q["disabled"] for q in query) else ""),
                        "host": ["{{baseUrl}}"], "path": [s for s in pm_path.strip("/").split("/")], "query": query},
                "description": (op.get("description") or op.get("summary", "")) + f"\n\noperationId: `{opid}`"}
-    if opid == "ingestRecords":
+    ingest_key = any("ingestKey" in alt for alt in op.get("security", []))
+    if ingest_key:
+        # The ingest key of the source (024): the EDP paths use the provider's key, Gotify its own header.
         request["auth"] = {"type": "noauth"}
-        request["header"].append({"key": "X-Foresignal-Ingest-Key", "value": "{{ingestKey}}"})
+        key_var = "{{edpIngestKey}}" if path.startswith("/v1/external/") else "{{ingestKey}}"
+        key_header = "X-Gotify-Key" if path.startswith("/compat/gotify") else "X-Foresignal-Ingest-Key"
+        request["header"].append({"key": key_header, "value": key_var})
+    elif opid == "selfRegisterExternalSource":
+        request["auth"] = {"type": "noauth"}
+        request["header"].append({"key": "Authorization", "value": "Bearer {{registrationToken}}"})
     elif admin:
         var = "{{agentToken}}" if scope == "agent" else "{{adminToken}}"
         request["auth"] = {"type": "bearer", "bearer": [{"key": "token", "value": var, "type": "string"}]}
@@ -192,7 +328,13 @@ def req_item(path, method, op):
         request["auth"] = {"type": "bearer", "bearer": [{"key": "token", "value": "{{readToken}}", "type": "string"}]}
     else:
         request["auth"] = {"type": "noauth"}
-    if "requestBody" in op:
+    for key, value in EXTRA_HEADERS.get(opid, []):
+        request["header"].append({"key": key, "value": value})
+    if opid in RAW_BODIES:
+        ctype, raw_body, language = RAW_BODIES[opid]
+        request["header"].append({"key": "Content-Type", "value": ctype})
+        request["body"] = {"mode": "raw", "raw": raw_body, "options": {"raw": {"language": language}}}
+    elif "requestBody" in op:
         body = BODIES.get(opid, {})
         request["header"].append({"key": "Content-Type", "value": "application/json"})
         request["body"] = {"mode": "raw", "raw": json.dumps(body, indent=2), "options": {"raw": {"language": "json"}}}
@@ -211,10 +353,24 @@ for path, ops in spec["paths"].items():
         if method == "parameters": continue
         item = req_item(path, method, op)
         items.append(item)
-        for label, body in VARIANTS.get(op["operationId"], []):
+        for entry in VARIANTS.get(op["operationId"], []):
+            label, body = entry[0], entry[1]
+            extra = entry[2] if len(entry) > 2 else {}
             variant = json.loads(json.dumps(item))
             variant["name"] = f"{item['name']} ({label})"
-            variant["request"]["body"]["raw"] = json.dumps(body, indent=2)
+            if "raw" in extra:
+                variant["request"]["body"]["raw"] = extra["raw"]
+            else:
+                variant["request"]["body"]["raw"] = json.dumps(body, indent=2)
+            variant["request"]["body"]["options"]["raw"]["language"] = extra.get("language", "json")
+            if "content_type" in extra:
+                for h in variant["request"]["header"]:
+                    if h["key"] == "Content-Type":
+                        h["value"] = extra["content_type"]
+            if "format" in extra:
+                url = variant["request"]["url"]
+                url["raw"] = url["raw"].replace("{{ingestFormat}}", extra["format"])
+                url["path"] = [extra["format"] if seg == "{{ingestFormat}}" else seg for seg in url["path"]]
             variant["_variant"] = True
             items.append(variant)
 
@@ -273,7 +429,7 @@ streams = {"name": "Streams (SSE — run manually)", "description": "Postman dis
 
 collection = {
   "info": {"_postman_id": str(uuid.uuid5(uuid.NAMESPACE_URL, "https://foresignal.ai/postman")), "name": "Foresignal API",
-           "description": f"{spec['info']['description']}\n\nGenerated from docs/OpenAPI.json (v{spec['info']['version']}). Every operation is included, grouped by tag. Admin operations use Bearer `{{{{adminToken}}}}`, agent operations `{{{{agentToken}}}}` (defaults to the admin token; set it to an agent-scope token to test scopes), always-authenticated read operations `{{{{readToken}}}}` (defaults to the admin token; claiming a pairing code stores a read token there), ingest uses `X-Foresignal-Ingest-Key: {{{{ingestKey}}}}`, and other reads use no auth (open while openReads is on). Test scripts capture ids into collection variables (ruleId, channelId, alertId, briefingId, threadId, ingestKey, externalId, lastSeq, cursor…).",
+           "description": f"{spec['info']['description']}\n\nGenerated from docs/OpenAPI.json (v{spec['info']['version']}). Every operation is included, grouped by tag. Admin operations use Bearer `{{{{adminToken}}}}`, agent operations `{{{{agentToken}}}}` (defaults to the admin token; set it to an agent-scope token to test scopes), always-authenticated read operations `{{{{readToken}}}}` (defaults to the admin token; claiming a pairing code stores a read token there), ingest uses `X-Foresignal-Ingest-Key: {{{{ingestKey}}}}` (EDP pushes `{{{{edpIngestKey}}}}`, Gotify `X-Gotify-Key`), and other reads use no auth (open while openReads is on). Test scripts capture ids into collection variables (ruleId, channelId, alertId, briefingId, threadId, ingestKey, externalId, lastSeq, cursor…).",
            "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"},
   "item": [quickstart, quickstart2, streams] + folders,
   "variable": [{"key": k, "value": v} for k, v in [
@@ -281,6 +437,8 @@ collection = {
       ("sourceId", "usgs-earthquakes"), ("externalId", ""), ("ruleId", ""), ("alertId", ""), ("channelId", ""), ("tokenId", ""),
       ("providerId", "ollama"), ("threadId", ""), ("actionId", ""), ("briefingId", ""), ("runId", ""), ("subscriptionId", ""),
       ("lastSeq", "0"), ("cursor", ""), ("pairingCodeId", ""), ("pairingCode", ""), ("ticket", ""),
+      ("ingestFormat", "alertmanager"), ("ntfyAction", "publish"), ("edpSourceId", "ext-hormuz-transits"), ("edpIngestKey", ""),
+      ("registrationToken", ""), ("registrationTokenId", ""),
       ("tileLayer", "earthquake"), ("tileZ", "0"), ("tileX", "0"), ("tileY", "0")]],
 }
 env = {"id": str(uuid.uuid5(uuid.NAMESPACE_URL, "https://foresignal.ai/postman/env/local")), "name": "Foresignal — Local",

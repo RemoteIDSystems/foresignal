@@ -1,0 +1,15 @@
+{
+  "protocol": "foresignal-edp/1.0",
+  "source": {
+    "id": "river-gauges",
+    "name": "River gauges",
+    "publisher": {"name": "Example Hydro"},
+    "licence": {"redistribution": "local-only"},
+    "access": {"route": "unofficial-api", "fragility": "medium"},
+    "originator": {"id": "example-hydro", "class": "sensor-network"}
+  },
+  "transport": {"pull": {"itemsUrl": "https://hydro.example.org/edp/items", "intervalSeconds": 300, "auth": "header", "header": "X-Api-Key"}},
+  "streams": [
+    {"id": "levels", "mode": "atomic", "itemType": "observation", "kind": "river-level", "unit": "m", "geometry": "none"}
+  ]
+}

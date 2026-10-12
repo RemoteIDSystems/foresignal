@@ -1,0 +1,40 @@
+{
+  "protocol": "foresignal-edp/1.0",
+  "source": {
+    "id": "harbor-cams",
+    "name": "Harbor cameras",
+    "publisher": {"name": "Example Port Watch"},
+    "licence": {"id": "CC0-1.0", "redistribution": "allowed"},
+    "access": {"route": "official", "fragility": "low"},
+    "originator": {"id": "example-port-watch", "class": "operator"}
+  },
+  "transport": {"push": true},
+  "streams": [
+    {
+      "id": "cameras",
+      "mode": "layer",
+      "itemType": "feature",
+      "kind": "harbor-camera",
+      "geometry": "Point",
+      "update": "snapshot",
+      "snapshotScope": "region",
+      "payloadSchema": {"type": "object", "required": ["name"], "properties": {"name": {"type": "string", "pattern": "^[A-Za-z0-9 ]+$"}, "region": {"type": "string"}, "online": {"type": "boolean"}}},
+      "fields": {"title": "name", "significant": ["name", "online"], "volatile": []},
+      "ttl": "PT1H",
+      "presentation": {"color": "#1971c2", "icon": "camera", "tileProperties": ["name"]}
+    },
+    {
+      "id": "notes",
+      "mode": "atomic",
+      "itemType": "document",
+      "kind": "harbor-note",
+      "documentType": "note"
+    },
+    {
+      "id": "odds",
+      "mode": "atomic",
+      "itemType": "forecast",
+      "kind": "harbor-forecast"
+    }
+  ]
+}

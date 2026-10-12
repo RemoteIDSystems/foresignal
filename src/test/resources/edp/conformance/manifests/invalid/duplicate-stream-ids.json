@@ -1,0 +1,9 @@
+{
+  "protocol": "foresignal-edp/1.0",
+  "source": {"id": "twice", "name": "Twice", "publisher": {"name": "X"}, "originator": {"id": "x", "class": "operator"}},
+  "transport": {"push": true},
+  "streams": [
+    {"id": "s", "mode": "atomic", "itemType": "observation", "kind": "k"},
+    {"id": "s", "mode": "atomic", "itemType": "document", "kind": "d"}
+  ]
+}

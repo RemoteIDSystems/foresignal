@@ -1,0 +1,22 @@
+{
+  "protocol": "foresignal-edp/1.0",
+  "x-manifest": "push-layer.json",
+  "sentAt": "2026-10-11T18:00:00Z",
+  "items": [
+    {
+      "stream": "odds",
+      "type": "forecast",
+      "id": "f-3",
+      "madeAt": "2026-10-11T12:00:00Z",
+      "questionRef": "q",
+      "quantiles": {
+        "p05": 5,
+        "p25": 4,
+        "p50": 3,
+        "p75": 2,
+        "p95": 1
+      }
+    }
+  ],
+  "x-expect": "FORECAST_INVALID"
+}

@@ -1,0 +1,13 @@
+{
+  "protocol": "foresignal-edp/1.0",
+  "x-manifest": "hormuz-example.json",
+  "sentAt": "2026-10-11T18:00:00Z",
+  "items": [
+    {
+      "stream": "nope",
+      "type": "delete",
+      "id": "x"
+    }
+  ],
+  "x-expect": "UNKNOWN_STREAM"
+}

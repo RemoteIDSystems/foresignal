@@ -1,0 +1,29 @@
+{
+  "protocol": "foresignal-edp/1.0",
+  "x-manifest": "hormuz-example.json",
+  "sentAt": "2026-10-11T18:00:00Z",
+  "items": [
+    {
+      "stream": "transits",
+      "type": "observation",
+      "id": "tanker:2026-10-10",
+      "observedAt": "2026-10-11T06:00:00Z",
+      "seriesKey": "tanker",
+      "t": "2026-10-10",
+      "value": 31,
+      "knownAt": "2026-10-11T06:00:00Z",
+      "properties": {
+        "vesselClass": "tanker"
+      }
+    },
+    {
+      "stream": "transits",
+      "type": "observation",
+      "id": "cargo:2026-W41",
+      "observedAt": "2026-10-11T06:00:00Z",
+      "seriesKey": "cargo",
+      "t": "2026-W41",
+      "value": null
+    }
+  ]
+}

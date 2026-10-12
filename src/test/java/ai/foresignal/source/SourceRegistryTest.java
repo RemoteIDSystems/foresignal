@@ -503,6 +503,47 @@ class SourceRegistryTest {
         }
 
         @Test
+        @DisplayName("redefining a dynamic source replaces its descriptor and publishes REDEFINED (024)")
+        void redefinesDynamicSource() {
+            SourceRegistry registry = registry(List.of());
+            registry.registerDynamic(custom("custom-sdr"));
+            published.clear();
+            SourceDescriptor renamed = SourceDescriptor.builder("custom-sdr").name("Renamed").kind("custom-thing")
+                    .mode(Mode.PUSH).defaultBudget(Budget.of(60, 10_000)).build();
+
+            registry.redefineDynamic(renamed, null);
+
+            assertThat(registry.descriptor("custom-sdr").name()).isEqualTo("Renamed");
+            assertThat(published).containsExactly(SourceRegistryChangedEvent.redefined("custom-sdr"));
+            assertThatThrownBy(() -> registry.redefineDynamic(custom("custom-missing"), null))
+                    .isInstanceOf(ai.foresignal.api.error.NotFoundException.class);
+        }
+
+        @Test
+        @DisplayName("a POLLING source registers dynamically only with a polling adapter (an EDP pull provider, 024)")
+        void dynamicPollingNeedsAnAdapter() {
+            SourceRegistry registry = registry(List.of());
+            SourceDescriptor pulled = SourceDescriptor.builder("ext-pulled").kind("thing").mode(Mode.POLLING)
+                    .interval(java.time.Duration.ofSeconds(60), java.time.Duration.ofSeconds(300))
+                    .defaultBudget(Budget.of(60, 10_000)).build();
+
+            assertThatThrownBy(() -> registry.registerDynamic(pulled))
+                    .isInstanceOf(ai.foresignal.api.error.ValidationException.class);
+            registry.registerDynamic(pulled, new ai.foresignal.source.spi.PollingAdapter() {
+                @Override
+                public SourceDescriptor descriptor() {
+                    return pulled;
+                }
+
+                @Override
+                public ai.foresignal.source.spi.FetchResult fetch(ai.foresignal.source.spi.FetchContext ctx) {
+                    return ai.foresignal.source.spi.FetchResult.of(List.of());
+                }
+            });
+            assertThat(registry.get("ext-pulled").adapterIfPresent()).isPresent();
+        }
+
+        @Test
         @DisplayName("a duplicate id is a conflict")
         void rejectsDuplicate() {
             SourceRegistry registry = registry(List.of());

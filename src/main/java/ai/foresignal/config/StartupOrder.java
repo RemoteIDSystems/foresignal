@@ -11,6 +11,15 @@ package ai.foresignal.config;
  */
 public final class StartupOrder {
 
+    /**
+     * Registering persisted custom sources and external providers (prompt 024). Runs before every
+     * phase here: {@code CustomSourceRegistrar} registers them in
+     * {@code afterSingletonsInstantiated}, before the web server and every
+     * {@code ApplicationReadyEvent} listener (writer, trigger engine, scheduler) start, so no
+     * consumer ever meets an unknown source id. The constant documents the position.
+     */
+    public static final int CUSTOM_SOURCES = 1;
+
     /** The trigger persist gate's first rule snapshot, before the writer reads it (prompt 017). */
     public static final int TRIGGER_GATE = 5;
 

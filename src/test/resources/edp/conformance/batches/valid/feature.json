@@ -1,0 +1,25 @@
+{
+  "protocol": "foresignal-edp/1.0",
+  "x-manifest": "push-layer.json",
+  "sentAt": "2026-10-11T18:00:00Z",
+  "items": [
+    {
+      "stream": "cameras",
+      "type": "feature",
+      "id": "cam-1",
+      "observedAt": "2026-10-11T17:59:00Z",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.05,
+          42.36
+        ]
+      },
+      "properties": {
+        "name": "Pier 4",
+        "region": "north",
+        "online": true
+      }
+    }
+  ]
+}

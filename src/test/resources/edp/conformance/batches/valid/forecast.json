@@ -1,0 +1,32 @@
+{
+  "protocol": "foresignal-edp/1.0",
+  "x-manifest": "push-layer.json",
+  "sentAt": "2026-10-11T18:00:00Z",
+  "items": [
+    {
+      "stream": "odds",
+      "type": "forecast",
+      "id": "f-1",
+      "madeAt": "2026-10-11T12:00:00Z",
+      "question": {
+        "externalId": "q-1",
+        "title": "Will the port close this week?"
+      },
+      "probability": 0.2
+    },
+    {
+      "stream": "odds",
+      "type": "forecast",
+      "id": "f-2",
+      "madeAt": "2026-10-11T12:00:00Z",
+      "questionRef": "01J9ZZZZZZZZZZZZZZZZZZZZZZ",
+      "quantiles": {
+        "p05": 1,
+        "p25": 2,
+        "p50": 3,
+        "p75": 4,
+        "p95": 5
+      }
+    }
+  ]
+}

@@ -24,6 +24,10 @@ import org.springframework.util.AntPathMatcher;
  * {@code alwaysAuthenticated} flag ({@link AccessRequirement.RequiresScope#alwaysAuthenticated()}),
  * which mirrors the spec's {@code x-foresignal-always-authenticated}. {@link #alwaysAuthenticated()}
  * lists those rules so prompt 025 can mark LLM-backed MCP tools the same way.
+ *
+ * <p>Prompt 024 adds the ingest, ntfy/Gotify compatibility and External Data Protocol rules. The
+ * {@code /compat/**} paths are outside {@code /v1}, so without their explicit rules they would be
+ * open.
  */
 @Component
 public class AccessPolicy {
@@ -127,8 +131,32 @@ public class AccessPolicy {
      */
     private static List<Rule> rules() {
         return List.of(
-                // ---- Inbound ingest (Architecture §16) ----
+                // ---- Inbound ingest (Architecture §16, prompt 024) ----
+                rule(HttpMethod.GET, "/v1/ingest/formats", AccessRequirement.ADMIN),
                 rule(HttpMethod.POST, "/v1/ingest/**", AccessRequirement.INGEST_KEY_OR_ADMIN),
+                // The CloudEvents webhook validation handshake (ingestWebhookHandshake).
+                rule(HttpMethod.OPTIONS, "/v1/ingest/**", AccessRequirement.INGEST_KEY_OR_ADMIN),
+                // ntfy- and Gotify-compatible publish, outside /v1 (the key resolves the source).
+                rule(null, "/compat/ntfy", AccessRequirement.INGEST_KEY_OR_ADMIN),
+                rule(null, "/compat/ntfy/**", AccessRequirement.INGEST_KEY_OR_ADMIN),
+                rule(null, "/compat/gotify/**", AccessRequirement.INGEST_KEY_OR_ADMIN),
+
+                // ---- External Data Protocol (prompt 024) ----
+                rule(HttpMethod.GET, "/v1/external/protocol", AccessRequirement.OPEN),
+                rule(HttpMethod.GET, "/v1/external/protocol/**", AccessRequirement.OPEN),
+                // The registration token in the body's bearer is the credential, checked in code.
+                rule(HttpMethod.POST, "/v1/external/register", AccessRequirement.OPEN),
+                // A provider pushes and updates its manifest with its own ingest key.
+                rule(HttpMethod.POST, "/v1/external/sources/*/items", AccessRequirement.INGEST_KEY_OR_ADMIN),
+                rule(HttpMethod.PUT, "/v1/external/sources/*/manifest", AccessRequirement.INGEST_KEY_OR_ADMIN),
+                rule(HttpMethod.POST, "/v1/external/validate", AccessRequirement.AGENT),
+                rule(null, "/v1/external/sources", AccessRequirement.ADMIN),
+                rule(null, "/v1/external/sources/*", AccessRequirement.ADMIN),
+                rule(HttpMethod.POST, "/v1/external/sources/*/approve", AccessRequirement.ADMIN),
+                rule(HttpMethod.POST, "/v1/external/sources/*/suspend", AccessRequirement.ADMIN),
+                rule(HttpMethod.POST, "/v1/external/sources/*/snapshots/*/allow", AccessRequirement.ADMIN),
+                rule(null, "/v1/external/registration-tokens", AccessRequirement.ADMIN),
+                rule(null, "/v1/external/registration-tokens/*", AccessRequirement.ADMIN),
 
                 // ---- Open informational endpoints ----
                 rule(HttpMethod.GET, "/v1/system", AccessRequirement.OPEN),

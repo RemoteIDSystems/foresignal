@@ -234,6 +234,46 @@ class AccessPolicyTest {
     void ingestIsSpecialCased() {
         assertThat(requirement("POST", "/v1/ingest/custom-sdr"))
                 .isInstanceOf(AccessRequirement.IngestKeyOrAdmin.class);
+        assertThat(requirement("POST", "/v1/ingest/custom-sdr/alertmanager"))
+                .isInstanceOf(AccessRequirement.IngestKeyOrAdmin.class);
+        assertThat(requirement("OPTIONS", "/v1/ingest/custom-sdr/cloudevents"))
+                .isInstanceOf(AccessRequirement.IngestKeyOrAdmin.class);
+        assertScope("GET", "/v1/ingest/formats", Scope.ADMIN);
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+        "POST, /compat/ntfy/custom-alerts",
+        "PUT, /compat/ntfy/custom-alerts",
+        "GET, /compat/ntfy/custom-alerts/publish",
+        "POST, /compat/ntfy/custom-alerts/send",
+        "POST, /compat/ntfy",
+        "POST, /compat/gotify/message",
+        "POST, /v1/external/sources/ext-hormuz/items",
+        "PUT, /v1/external/sources/ext-hormuz/manifest"
+    })
+    @DisplayName("the compatibility paths outside /v1 and the EDP push paths take an ingest key (024)")
+    void compatAndEdpPushTakeIngestKeys(String method, String path) {
+        assertThat(requirement(method, path)).isInstanceOf(AccessRequirement.IngestKeyOrAdmin.class);
+    }
+
+    @Test
+    @DisplayName("EDP: the protocol and self-registration are open, validation is agent, the rest admin (024)")
+    void externalDataProtocol() {
+        assertOpen("GET", "/v1/external/protocol");
+        assertOpen("GET", "/v1/external/protocol/schemas/manifest");
+        assertOpen("POST", "/v1/external/register");
+        assertScope("POST", "/v1/external/validate", Scope.AGENT);
+        assertScope("GET", "/v1/external/sources", Scope.ADMIN);
+        assertScope("POST", "/v1/external/sources", Scope.ADMIN);
+        assertScope("GET", "/v1/external/sources/ext-hormuz", Scope.ADMIN);
+        assertScope("DELETE", "/v1/external/sources/ext-hormuz", Scope.ADMIN);
+        assertScope("POST", "/v1/external/sources/ext-hormuz/approve", Scope.ADMIN);
+        assertScope("POST", "/v1/external/sources/ext-hormuz/suspend", Scope.ADMIN);
+        assertScope("POST", "/v1/external/sources/ext-hormuz/snapshots/s1/allow", Scope.ADMIN);
+        assertScope("GET", "/v1/external/registration-tokens", Scope.ADMIN);
+        assertScope("POST", "/v1/external/registration-tokens", Scope.ADMIN);
+        assertScope("DELETE", "/v1/external/registration-tokens/01J0000000000000000000000A", Scope.ADMIN);
     }
 
     // ---------- defaults and edges ----------

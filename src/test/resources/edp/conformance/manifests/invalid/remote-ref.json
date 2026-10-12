@@ -1,0 +1,6 @@
+{
+  "protocol": "foresignal-edp/1.0",
+  "source": {"id": "remote", "name": "Remote", "publisher": {"name": "X"}, "originator": {"id": "x", "class": "operator"}},
+  "transport": {"push": true},
+  "streams": [{"id": "s", "mode": "atomic", "itemType": "document", "kind": "k", "payloadSchema": {"$ref": "https://evil.example.org/schema.json"}}]
+}

@@ -87,7 +87,7 @@ public class SourceMapper {
                 d.name(),
                 sorted(d.kinds()),
                 d.mode().wireValue(),
-                false,
+                d.custom(),
                 view.enabled(),
                 view.health().status(),
                 d.requiresCredentials(),
@@ -114,7 +114,7 @@ public class SourceMapper {
                 d.homepage(),
                 d.attribution(),
                 d.mode().wireValue(),
-                false,
+                d.custom(),
                 d.credentialFields().stream().map(SourceMapper::credentialField).toList(),
                 d.params().stream().map(SourceMapper::param).toList(),
                 d.minInterval(),
@@ -149,7 +149,10 @@ public class SourceMapper {
                 d.startField(),
                 d.endField(),
                 d.privateSource(),
-                d.privatePrecisionDecimals());
+                d.privatePrecisionDecimals(),
+                d.egress().wireValue(),
+                d.originator(),
+                d.access());
     }
 
     static CredentialFieldDto credentialField(CredentialField field) {

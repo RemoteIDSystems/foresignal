@@ -11,9 +11,14 @@ testcontainers = "2.0.5"
 wiremock = "3.13.2"
 awaitility = "4.3.0"
 greenmail = "2.1.14"
-# JSON Schema 2020-12 validator for the event-schema and Postman contract tests (020). 3.x is
-# built on Jackson 3 (tools.jackson), matching Spring Boot 4; Apache-2.0.
+# JSON Schema 2020-12 validator: the event-schema and Postman contract tests (020), and at runtime
+# the EDP manifest payload schemas and items (024). 3.x is built on Jackson 3 (tools.jackson),
+# matching Spring Boot 4; Apache-2.0. Runtime dependencies: com.ethlo.time:itu (Apache-2.0) and
+# jackson-dataformat-yaml (Apache-2.0); joni and GraalJS are optional and not used.
 jsonSchemaValidator = "3.0.8"
+# Linear-time regular expressions for EDP payload-schema patterns (024, EDP §7): RE2/J 1.8, the Go
+# license (BSD-3-Clause), no runtime dependencies.
+re2j = "1.8"
 jacoco = "0.8.15"
 # QR codes of pairing payloads (023): ZXing core 3.5.4, Apache-2.0, no runtime dependencies.
 zxing = "3.5.4"
@@ -56,6 +61,8 @@ bucket4j-core = { module = "com.bucket4j:bucket4j_jdk17-core", version.ref = "bu
 springdoc-openapi-starter-webmvc-ui = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", version.ref = "springdoc" }
 # SVG QR codes for device pairing (023); the decoder used by PairingIT is in the same artifact.
 zxing-core = { module = "com.google.zxing:core", version.ref = "zxing" }
+# EDP payload-schema patterns run on RE2/J through the validator's regular-expression hook (024).
+re2j = { module = "com.google.re2j:re2j", version.ref = "re2j" }
 
 # --- Test; versions from the Testcontainers BOM where unspecified ---
 testcontainers-bom = { module = "org.testcontainers:testcontainers-bom", version.ref = "testcontainers" }
@@ -65,7 +72,8 @@ wiremock-standalone = { module = "org.wiremock:wiremock-standalone", version.ref
 awaitility = { module = "org.awaitility:awaitility", version.ref = "awaitility" }
 # In-process SMTP server for the email channel tests (018), Apache-2.0.
 greenmail = { module = "com.icegreen:greenmail", version.ref = "greenmail" }
-# Validates serialized DTOs and Postman bodies against docs/OpenAPI.json schemas (020), Apache-2.0.
+# Validates serialized DTOs and Postman bodies against docs/OpenAPI.json schemas (020) and, at runtime,
+# EDP manifests and items (024), Apache-2.0.
 json-schema-validator = { module = "com.networknt:json-schema-validator", version.ref = "jsonSchemaValidator" }
 
 [plugins]

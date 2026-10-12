@@ -200,7 +200,13 @@ class SchemaBootstrapIT {
                         "api_token",
                         "principal",
                         "pairing_code",
-                        "audit_event");
+                        "audit_event",
+                        // 024: custom sources and the External Data Protocol.
+                        "custom_source",
+                        "external_source",
+                        "edp_registration_token",
+                        "edp_snapshot",
+                        "edp_snapshot_stage");
     }
 
     @Test

@@ -1,0 +1,40 @@
+{
+  "protocol": "foresignal-edp/1.0",
+  "x-manifest": "push-layer.json",
+  "sentAt": "2026-10-11T18:00:00Z",
+  "items": [
+    {
+      "stream": "cameras",
+      "type": "feature",
+      "id": "cam-poly",
+      "observedAt": "2026-10-11T17:59:00Z",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              1,
+              1
+            ],
+            [
+              0,
+              0
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Area"
+      }
+    }
+  ],
+  "x-expect": "GEOMETRY_INVALID"
+}

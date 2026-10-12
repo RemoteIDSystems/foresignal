@@ -1,0 +1,50 @@
+{
+  "protocol": "foresignal-edp/1.0",
+  "source": {
+    "id": "hormuz-transits",
+    "name": "Strait of Hormuz transits",
+    "description": "Daily tanker and cargo transits counted from public dashboards",
+    "version": "0.3.1",
+    "publisher": {"name": "Example OSINT Lab", "url": "https://example.org", "contact": "ops@example.org"},
+    "homepage": "https://github.com/example/hormuz-edp",
+    "licence": {"id": "CC-BY-4.0", "url": "https://creativecommons.org/licenses/by/4.0/", "attribution": "Example OSINT Lab", "redistribution": "allowed"},
+    "terms": {"summary": "Derived from a public dashboard; upstream terms unclear", "url": null},
+    "access": {"route": "scrape", "fragility": "high"},
+    "originator": {"id": "example-osint-lab", "class": "aggregator", "aggregates": []},
+    "private": false
+  },
+  "transport": {
+    "push": true,
+    "pull": {"itemsUrl": "https://hormuz.example.org/edp/items", "intervalSeconds": 3600, "auth": "bearer"},
+    "search": null
+  },
+  "streams": [
+    {
+      "id": "transits",
+      "mode": "atomic",
+      "itemType": "observation",
+      "kind": "transit-count",
+      "title": "Daily transits by vessel class",
+      "unit": "vessels/day",
+      "update": "incremental",
+      "payloadSchema": {"type": "object", "properties": {"vesselClass": {"type": "string"}}},
+      "suggestedBindings": [{"target": "series"}]
+    },
+    {
+      "id": "incidents",
+      "mode": "layer",
+      "itemType": "event",
+      "kind": "maritime-incident",
+      "title": "Reported incidents",
+      "geometry": "Point",
+      "update": "incremental",
+      "payloadSchema": {"type": "object", "required": ["category"], "properties": {"category": {"type": "string"}, "vessel": {"type": ["string", "null"]}}},
+      "fields": {"title": "category", "significant": ["category"], "volatile": []},
+      "ttl": null,
+      "retentionClass": "event",
+      "presentation": {"color": "#d9480f", "icon": "ship", "labelField": "vessel", "minZoom": 3, "tileProperties": ["category"]},
+      "coverage": {"area": {"type": "Polygon", "coordinates": [[[54.5, 25.0], [58.0, 25.0], [58.0, 27.5], [54.5, 27.5], [54.5, 25.0]]]}, "family": "maritime-incident", "pDetect": 0.6},
+      "suggestedBindings": [{"target": "canonical-family", "config": {"family": "maritime-incident"}}]
+    }
+  ]
+}

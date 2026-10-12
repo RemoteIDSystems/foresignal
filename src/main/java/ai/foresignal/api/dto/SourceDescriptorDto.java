@@ -22,7 +22,7 @@ import java.util.Map;
  * @param homepage upstream homepage
  * @param attribution attribution text
  * @param mode {@code polling}, {@code streaming}, {@code push} or {@code derived}
- * @param custom true for a runtime-defined custom push source (none before prompt 024)
+ * @param custom true for a runtime-defined custom push source (prompt 024)
  * @param credentialFields credentials it accepts
  * @param params adapter parameters
  * @param minInterval the shortest allowed poll interval
@@ -58,6 +58,9 @@ import java.util.Map;
  * @param endField payload key of an interval end, or null
  * @param privateSource whether the source holds personal data (wire name {@code private})
  * @param privatePrecisionDecimals coordinate decimals kept for a private source
+ * @param egress {@code OPEN} or {@code LOCAL_ONLY} (prompt 024 sets it for EDP providers)
+ * @param originator the originator id override, or null
+ * @param access how the source reaches its data, or null
  */
 public record SourceDescriptorDto(
         String id,
@@ -102,4 +105,8 @@ public record SourceDescriptorDto(
         String startField,
         String endField,
         @JsonProperty("private") boolean privateSource,
-        int privatePrecisionDecimals) {}
+        int privatePrecisionDecimals,
+        String egress,
+        String originator,
+        @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+                ai.foresignal.source.spi.SourceAccess access) {}

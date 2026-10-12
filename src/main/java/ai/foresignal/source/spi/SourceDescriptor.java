@@ -77,6 +77,18 @@ import java.util.Set;
  * @param privateSource true for personal data (JSON {@code private}); prompt 039 enforces its
  *     exclusion from egress paths, and the normalizer caps its coordinate precision
  * @param privatePrecisionDecimals coordinate decimals kept for a private source, 2 to 7
+ * @param custom true for a runtime-defined custom push source or external (EDP) provider (prompt
+ *     024)
+ * @param egress where the records may be served; {@link Egress#OPEN} unless a licence says
+ *     otherwise
+ * @param originator the originator id used for evidence independence (prompt 116 reads it); null
+ *     means the default from the originator registry
+ * @param access how the source reaches its data, or null when not declared
+ * @param hiddenKinds kinds left out of the default tile layer lists (EDP atomic streams, prompt
+ *     024); still queryable, searchable and usable in rules, and requestable as a layer by name
+ * @param kindPresentation layer presentation hints per kind ({@code color}, {@code icon},
+ *     {@code labelField}, {@code minZoom}, {@code maxZoom}, {@code tileProperties}), exposed in the
+ *     kind's TileJSON as {@code foresignal:presentation}
  */
 public record SourceDescriptor(
         String id,
@@ -124,7 +136,13 @@ public record SourceDescriptor(
         String startField,
         String endField,
         @JsonProperty("private") boolean privateSource,
-        int privatePrecisionDecimals) {
+        int privatePrecisionDecimals,
+        boolean custom,
+        Egress egress,
+        String originator,
+        SourceAccess access,
+        Set<String> hiddenKinds,
+        Map<String, Map<String, Object>> kindPresentation) {
 
     /** Coordinate decimals kept for a private source unless it says otherwise (about 11 m). */
     public static final int DEFAULT_PRIVATE_PRECISION_DECIMALS = 4;
@@ -160,6 +178,22 @@ public record SourceDescriptor(
         entityKeys = entityKeys == null ? Map.of() : Map.copyOf(entityKeys);
         fieldSpecs = fieldSpecs == null ? Map.of() : Map.copyOf(fieldSpecs);
         kindDisplay = kindDisplay == null ? Map.of() : Map.copyOf(kindDisplay);
+        egress = egress == null ? Egress.OPEN : egress;
+        hiddenKinds = hiddenKinds == null ? Set.of() : Set.copyOf(hiddenKinds);
+        kindPresentation = kindPresentation == null ? Map.of() : copyPresentation(kindPresentation);
+    }
+
+    private static Map<String, Map<String, Object>> copyPresentation(Map<String, Map<String, Object>> given) {
+        Map<String, Map<String, Object>> copy = new LinkedHashMap<>();
+        given.forEach((kind, hints) -> copy.put(kind, hints == null
+                ? Map.of()
+                : java.util.Collections.unmodifiableMap(new LinkedHashMap<>(hints))));
+        return java.util.Collections.unmodifiableMap(copy);
+    }
+
+    /** True when {@code kind} is left out of the default tile layer lists. */
+    public boolean hidesKind(String kind) {
+        return hiddenKinds.contains(kind);
     }
 
     public static Builder builder(String id) {
@@ -218,6 +252,8 @@ public record SourceDescriptor(
         private final Map<String, String> entityKeys = new LinkedHashMap<>();
         private final Map<String, FieldSpec> fieldSpecs = new LinkedHashMap<>();
         private final Map<String, KindDisplay> kindDisplay = new LinkedHashMap<>();
+        private final Set<String> hiddenKinds = new LinkedHashSet<>();
+        private final Map<String, Map<String, Object>> kindPresentation = new LinkedHashMap<>();
 
         private String name;
         private String description;
@@ -251,6 +287,10 @@ public record SourceDescriptor(
         private String endField;
         private boolean privateSource;
         private int privatePrecisionDecimals = DEFAULT_PRIVATE_PRECISION_DECIMALS;
+        private boolean custom;
+        private Egress egress = Egress.OPEN;
+        private String originator;
+        private SourceAccess access;
 
         private Builder(String id) {
             this.id = id;
@@ -512,6 +552,42 @@ public record SourceDescriptor(
             return this;
         }
 
+        /** Marks the source as a runtime-defined custom or external source (prompt 024). */
+        public Builder custom(boolean custom) {
+            this.custom = custom;
+            return this;
+        }
+
+        /** Where the records may be served. */
+        public Builder egress(Egress egress) {
+            this.egress = egress;
+            return this;
+        }
+
+        /** The originator id for evidence independence (prompt 116). */
+        public Builder originator(String originator) {
+            this.originator = originator;
+            return this;
+        }
+
+        /** How the source reaches its data. */
+        public Builder access(SourceAccess access) {
+            this.access = access;
+            return this;
+        }
+
+        /** Leaves {@code kind} out of the default tile layer lists. */
+        public Builder hiddenKind(String kind) {
+            this.hiddenKinds.add(kind);
+            return this;
+        }
+
+        /** Sets the layer presentation hints of one kind. */
+        public Builder kindPresentation(String kind, Map<String, Object> hints) {
+            this.kindPresentation.put(kind, hints);
+            return this;
+        }
+
         public SourceDescriptor build() {
             return new SourceDescriptor(
                     id,
@@ -559,7 +635,13 @@ public record SourceDescriptor(
                     startField,
                     endField,
                     privateSource,
-                    privatePrecisionDecimals);
+                    privatePrecisionDecimals,
+                    custom,
+                    egress,
+                    originator,
+                    access,
+                    hiddenKinds,
+                    kindPresentation);
         }
     }
 }

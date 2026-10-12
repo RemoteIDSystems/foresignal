@@ -110,6 +110,15 @@ public class BudgetGovernor {
         entry.chargedBytes.add(actualBytes - expectedBytes);
     }
 
+    /**
+     * Seconds until one more request token is available, for {@code Retry-After} on an inbound
+     * push refused by the request budget (prompt 024); at least 1.
+     */
+    public long secondsUntilAvailable(String sourceId) {
+        long nanos = entry(sourceId).bucket.estimateAbilityToConsume(1).getNanosToWaitForRefill();
+        return Math.max(1, (nanos + 999_999_999L) / 1_000_000_000L);
+    }
+
     /** What the source has left. */
     public BudgetStatus status(String sourceId) {
         Entry entry = entry(sourceId);

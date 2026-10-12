@@ -97,7 +97,28 @@ public class TileJsonMapper {
         body.put("vector_layers", List.of(vectorLayer));
         body.put("foresignal:aggBelowZoom", layer.aggBelowZoom());
         body.put("foresignal:properties", layer.properties());
+        Map<String, Object> presentation = presentation(layer);
+        if (presentation != null) {
+            body.put("foresignal:presentation", presentation);
+        }
         return body;
+    }
+
+    /**
+     * The layer presentation hints of a kind layer (EDP {@code presentation}, prompt 024): the first
+     * declaring source's hints for the kind, or null when none declares any.
+     */
+    static Map<String, Object> presentation(TileLayer layer) {
+        if (layer.type() != ai.foresignal.store.tiles.TileLayerType.KIND) {
+            return null;
+        }
+        for (ai.foresignal.source.spi.SourceDescriptor source : layer.sources()) {
+            Map<String, Object> hints = source.kindPresentation().get(layer.id());
+            if (hints != null && !hints.isEmpty()) {
+                return hints;
+            }
+        }
+        return null;
     }
 
     /**

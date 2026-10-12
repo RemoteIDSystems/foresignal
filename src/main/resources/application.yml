@@ -146,6 +146,18 @@ foresignal:
       reconnect-ladder: 5s,15s,60s,300s,900s
       ladder-reset-after: 10m
       credentials-retry: 1h
+  edp:
+    # External Data Protocol (024, docs/External-Data-Protocol.md).
+    # Highest foresignal-edp/1.N minor accepted at registration (1.0 → 0).
+    max-minor: 0
+    # A snapshot must complete within this window of its first page, and may remove at most this
+    # share of its scope's entities before the deletion is held for the operator (§3.2).
+    snapshot-window: 30m
+    max-absent-ratio: 0.5
+    # Item validation time budget per batch (§7).
+    validation-budget: 2s
+    # Overall timeout of one manifest or items-page fetch.
+    manifest-fetch-timeout: 30s
 
 management:
   endpoints:

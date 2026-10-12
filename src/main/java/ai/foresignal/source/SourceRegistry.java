@@ -160,7 +160,7 @@ public class SourceRegistry {
     }
 
     /**
-     * Registers a runtime-defined source (a custom push source, prompt 020).
+     * Registers a runtime-defined source (a custom push source, prompt 024).
      *
      * <p>Applies exactly the same validation as a compile-time adapter, so a custom source cannot
      * express something the rest of the system treats as impossible.
@@ -169,23 +169,26 @@ public class SourceRegistry {
      * @throws ValidationException if the descriptor is not sound
      */
     public void registerDynamic(SourceDescriptor descriptor) {
-        if (descriptor == null) {
-            throw new ValidationException("A descriptor is required.");
-        }
-        List<String> problems = DescriptorValidator.problems(descriptor, null);
-        if (!problems.isEmpty()) {
-            throw new ValidationException(
-                    "The source definition is not valid: " + String.join("; ", problems));
-        }
-        if (descriptor.mode() != Mode.PUSH && descriptor.mode() != Mode.DERIVED) {
-            throw new ValidationException(
-                    "A dynamic source must be PUSH or DERIVED, but " + descriptor.id() + " is "
-                            + descriptor.mode());
-        }
+        registerDynamic(descriptor, null);
+    }
 
+    /**
+     * Registers a runtime-defined source with an optional implementation (prompt 024).
+     *
+     * <p>A dynamic source is PUSH or DERIVED with no adapter, or POLLING with a
+     * {@link ai.foresignal.source.spi.PollingAdapter}: an external (EDP) provider that Foresignal
+     * pulls from. The same validation as for compile-time adapters applies.
+     *
+     * @param descriptor the source's description
+     * @param adapter the implementation, or null for PUSH and DERIVED sources
+     * @throws ConflictException if the id is already registered
+     * @throws ValidationException if the descriptor is not sound
+     */
+    public void registerDynamic(SourceDescriptor descriptor, SourceAdapter adapter) {
+        validateDynamic(descriptor, adapter);
         Registration previous =
                 registrations.putIfAbsent(
-                        descriptor.id(), new Registration(descriptor, null, true));
+                        descriptor.id(), new Registration(descriptor, adapter, true));
         if (previous != null) {
             throw new ConflictException(
                     "SOURCE_EXISTS", "A source with id '" + descriptor.id() + "' already exists.");
@@ -193,6 +196,51 @@ public class SourceRegistry {
         DescriptorValidator.warnings(descriptor).forEach(log::warn);
         log.info("Registered dynamic source {}", descriptor.id());
         events.publishEvent(SourceRegistryChangedEvent.registered(descriptor.id()));
+    }
+
+    /**
+     * Replaces the definition of an already registered dynamic source (an edited custom source or a
+     * changed EDP manifest, prompt 024).
+     *
+     * <p>Publishes {@link SourceRegistryChangedEvent} with {@code REDEFINED}, so the ingest writer
+     * rebuilds the source's profile (and runs the lazy recipe migration when the hash recipe
+     * changed) and the scheduler reconciles.
+     *
+     * @throws NotFoundException when no such source exists
+     * @throws ConflictException when the source is a compile-time adapter
+     * @throws ValidationException if the descriptor is not sound
+     */
+    public void redefineDynamic(SourceDescriptor descriptor, SourceAdapter adapter) {
+        validateDynamic(descriptor, adapter);
+        Registration existing = get(descriptor.id());
+        if (!existing.dynamic()) {
+            throw new ConflictException(
+                    "SOURCE_NOT_DYNAMIC",
+                    "'" + descriptor.id() + "' is a built-in source and cannot be redefined.");
+        }
+        registrations.put(descriptor.id(), new Registration(descriptor, adapter, true));
+        DescriptorValidator.warnings(descriptor).forEach(log::warn);
+        log.info("Redefined dynamic source {}", descriptor.id());
+        events.publishEvent(SourceRegistryChangedEvent.redefined(descriptor.id()));
+    }
+
+    private static void validateDynamic(SourceDescriptor descriptor, SourceAdapter adapter) {
+        if (descriptor == null) {
+            throw new ValidationException("A descriptor is required.");
+        }
+        List<String> problems = DescriptorValidator.problems(descriptor, adapter);
+        if (!problems.isEmpty()) {
+            throw new ValidationException(
+                    "The source definition is not valid: " + String.join("; ", problems));
+        }
+        boolean pushOrDerived = descriptor.mode() == Mode.PUSH || descriptor.mode() == Mode.DERIVED;
+        boolean pulled = descriptor.mode() == Mode.POLLING
+                && adapter instanceof ai.foresignal.source.spi.PollingAdapter;
+        if (!pushOrDerived && !pulled) {
+            throw new ValidationException(
+                    "A dynamic source must be PUSH or DERIVED, or POLLING with a polling adapter, but "
+                            + descriptor.id() + " is " + descriptor.mode());
+        }
     }
 
     /**

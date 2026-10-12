@@ -1,0 +1,39 @@
+{
+  "protocol": "foresignal-edp/1.0",
+  "x-manifest": "push-layer.json",
+  "sentAt": "2026-10-11T18:00:00Z",
+  "items": [
+    {
+      "stream": "notes",
+      "type": "document",
+      "id": "n-ring",
+      "observedAt": "2026-10-11T17:59:00Z",
+      "documentType": "note",
+      "text": "An area",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              1,
+              1
+            ],
+            [
+              0,
+              1
+            ]
+          ]
+        ]
+      }
+    }
+  ],
+  "x-expect": "GEOMETRY_INVALID"
+}

@@ -165,6 +165,81 @@ public class SourceService implements ApplicationRunner {
         return entity;
     }
 
+    // ---------- dynamic sources (prompt 024) ----------
+
+    /**
+     * Creates the settings row of a newly registered dynamic source (a custom push source or an
+     * external provider), with the descriptor's interval and budget.
+     *
+     * <p>Unlike the seeded rows of built-in sources, a custom source starts enabled: the operator
+     * created it in order to push into it. Publishes {@link SourceSettingsChangedEvent} after commit.
+     *
+     * @param descriptor the registered descriptor
+     * @param enabled whether the source starts enabled
+     */
+    @Transactional
+    public void createDynamicSettings(SourceDescriptor descriptor, boolean enabled) {
+        SourceSettingsEntity row = settings.findById(descriptor.id()).orElseGet(() -> defaultRow(descriptor));
+        row.setEnabled(enabled);
+        row.setIntervalSeconds(
+                descriptor.defaultInterval() == null ? 0 : (int) descriptor.defaultInterval().toSeconds());
+        Budget budget = descriptor.defaultBudget();
+        row.setBudgetPerMinute(budget == null ? 0 : budget.perMinute());
+        row.setBudgetPerDay(budget == null ? 0 : budget.perDay());
+        row.setUpdatedAt(clock.instant());
+        settings.save(row);
+        publishAfterCommit(new SourceSettingsChangedEvent(descriptor.id(), null, view(descriptor.id())));
+    }
+
+    /**
+     * Applies a redefined dynamic source's descriptor defaults (budget and interval) to its settings
+     * row, keeping {@code enabled}, parameters, retention and the policy override. Publishes
+     * {@link SourceSettingsChangedEvent} after commit so the writer refreshes the source's profile.
+     */
+    @Transactional
+    public void refreshDynamicSettings(SourceDescriptor descriptor) {
+        SourceView before = view(descriptor.id());
+        SourceSettingsEntity row = settings.findById(descriptor.id()).orElseGet(() -> defaultRow(descriptor));
+        Budget budget = descriptor.defaultBudget();
+        row.setBudgetPerMinute(budget == null ? 0 : budget.perMinute());
+        row.setBudgetPerDay(budget == null ? 0 : budget.perDay());
+        if (descriptor.defaultInterval() != null) {
+            row.setIntervalSeconds((int) descriptor.defaultInterval().toSeconds());
+        }
+        row.setUpdatedAt(clock.instant());
+        settings.save(row);
+        publishAfterCommit(new SourceSettingsChangedEvent(descriptor.id(), before, view(descriptor.id())));
+    }
+
+    /**
+     * Switches a dynamic source on or off without the credential check of {@link #update}: an
+     * external provider is enabled by its approval and disabled while pending or suspended
+     * (prompt 024). A pull provider without its credential then fails its fetches visibly.
+     */
+    @Transactional
+    public void setDynamicEnabled(String id, boolean enabled) {
+        SourceDescriptor descriptor = registry.descriptor(id);
+        SourceView before = view(id);
+        SourceSettingsEntity row = settings.findById(id).orElseGet(() -> defaultRow(descriptor));
+        if (row.isEnabled() == enabled && settings.existsById(id)) {
+            return;
+        }
+        row.setEnabled(enabled);
+        row.setUpdatedAt(clock.instant());
+        settings.save(row);
+        publishAfterCommit(new SourceSettingsChangedEvent(id, before, view(id)));
+    }
+
+    /**
+     * Deletes a removed dynamic source's settings and credentials. The source must already be
+     * unregistered; its records age out through retention.
+     */
+    @Transactional
+    public void deleteDynamicSettings(String id) {
+        settings.findById(id).ifPresent(settings::delete);
+        credentials.findById(id).ifPresent(credentials::delete);
+    }
+
     // ---------- views ----------
 
     /** Every registered source with its effective settings, ordered by id. */

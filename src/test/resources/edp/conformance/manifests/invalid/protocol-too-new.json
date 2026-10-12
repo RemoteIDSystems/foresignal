@@ -1,0 +1,6 @@
+{
+  "protocol": "foresignal-edp/1.9",
+  "source": {"id": "future", "name": "Future", "publisher": {"name": "X"}, "originator": {"id": "x", "class": "operator"}},
+  "transport": {"push": true},
+  "streams": [{"id": "s", "mode": "atomic", "itemType": "observation", "kind": "k"}]
+}

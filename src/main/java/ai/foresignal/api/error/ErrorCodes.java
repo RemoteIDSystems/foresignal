@@ -98,6 +98,56 @@ public final class ErrorCodes {
     /** 429: too many attempts; honour {@code Retry-After} (pairing claims, prompt 023). */
     public static final String RATE_LIMITED = "RATE_LIMITED";
 
+    // ---- Inbound webhooks, custom sources and EDP (prompt 024) ----
+
+    /** 409: a source id is already registered (custom sources, EDP registration). */
+    public static final String SOURCE_EXISTS = "SOURCE_EXISTS";
+
+    /** 409: a custom-source update removes a kind that still has current heads. */
+    public static final String KIND_IN_USE = "KIND_IN_USE";
+
+    /** 409: {@code observedAtMode} cannot change while the source has heads. */
+    public static final String OBSERVED_AT_MODE_LOCKED = "OBSERVED_AT_MODE_LOCKED";
+
+    /** 429: the source's records-per-minute cap is spent; honour {@code Retry-After}. */
+    public static final String INGEST_RECORD_RATE = "INGEST_RECORD_RATE";
+
+    /** 404: no ingest format of that name. */
+    public static final String FORMAT_UNKNOWN = "FORMAT_UNKNOWN";
+
+    /** 401: a configured webhook signature verifier did not verify. */
+    public static final String SIGNATURE_INVALID = "SIGNATURE_INVALID";
+
+    /** 409: the push source is disabled. */
+    public static final String SOURCE_DISABLED = "SOURCE_DISABLED";
+
+    /** 503: the ingest queue stayed full for 30 s; honour {@code Retry-After}. */
+    public static final String INGEST_BUSY = "INGEST_BUSY";
+
+    /** 400: an EDP manifest failed validation; {@code errors} lists each problem. */
+    public static final String MANIFEST_INVALID = "MANIFEST_INVALID";
+
+    /** 400: an EDP protocol minor version above what this instance supports. */
+    public static final String PROTOCOL_UNSUPPORTED = "PROTOCOL_UNSUPPORTED";
+
+    /** 400: an EDP batch names a different source than the one it was sent to. */
+    public static final String SOURCE_MISMATCH = "SOURCE_MISMATCH";
+
+    /** 409: the external source awaits the operator's approval. */
+    public static final String SOURCE_PENDING_APPROVAL = "SOURCE_PENDING_APPROVAL";
+
+    /** 409: the external source is suspended. */
+    public static final String SOURCE_SUSPENDED = "SOURCE_SUSPENDED";
+
+    /** 401: the EDP registration token is unknown, expired or used up. */
+    public static final String REGISTRATION_TOKEN_INVALID = "REGISTRATION_TOKEN_INVALID";
+
+    /** 409: a self-registering provider's id is outside its registration token's prefix. */
+    public static final String SOURCE_ID_NOT_ALLOWED = "SOURCE_ID_NOT_ALLOWED";
+
+    /** 404: no external (EDP) source of that id. */
+    public static final String UNKNOWN_EXTERNAL_SOURCE = "UNKNOWN_EXTERNAL_SOURCE";
+
     private static final String TYPE_PREFIX = "https://foresignal.ai/problems/";
 
     private ErrorCodes() {}

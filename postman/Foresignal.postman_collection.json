@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "79671620-982c-5d2e-874b-01ab26ee8e6e",
     "name": "Foresignal API",
-    "description": "All configuration is done through this API. The MCP server (streamable HTTP) is at `/mcp` and is not described here; it exposes the same data as tools. Reads of data are open on the local network; all writes and settings reads require the admin bearer token printed on first start. Errors are RFC 9457 problem+json. Timestamps are ISO-8601 UTC. `/v1` is additive-only once released.\n\n**Key-in-path carriers.** Header-less clients use keys in the path: feed keys (`fsf_`, 035) as `/v1/k/{key}/<any allowed GET/HEAD path>`, tile keys (`fsk_`, 050) as `/v1/k/{key}/products/...` and `/v1/k/{key}/tiles/...`, share links (`fss_`, 112) as `/v1/k/{key}`. These are transports for the documented operations, not separate operations. Device ingest URLs (039) and signed action links (033) use their own documented paths.\n\n**Status annotations.** Every operation has `x-foresignal-prompt` (the build prompt that implements it), optional `x-foresignal-extended-by`, and `x-foresignal-status` (`planned` until implemented). Clients can mock the whole API from this document and filter by status.\n\n**Outside this document:** the MCP server (`/mcp`, plus the legacy SSE transport when enabled), Actuator endpoints (`/actuator/**`), and sink listeners on their own ports (110).\n\nGenerated from docs/OpenAPI.json (v1.3.0). Every operation is included, grouped by tag. Admin operations use Bearer `{{adminToken}}`, agent operations `{{agentToken}}` (defaults to the admin token; set it to an agent-scope token to test scopes), always-authenticated read operations `{{readToken}}` (defaults to the admin token; claiming a pairing code stores a read token there), ingest uses `X-Foresignal-Ingest-Key: {{ingestKey}}`, and other reads use no auth (open while openReads is on). Test scripts capture ids into collection variables (ruleId, channelId, alertId, briefingId, threadId, ingestKey, externalId, lastSeq, cursor\u2026).",
+    "description": "All configuration is done through this API. The MCP server (streamable HTTP) is at `/mcp` and is not described here; it exposes the same data as tools. Reads of data are open on the local network; all writes and settings reads require the admin bearer token printed on first start. Errors are RFC 9457 problem+json. Timestamps are ISO-8601 UTC. `/v1` is additive-only once released.\n\n**Key-in-path carriers.** Header-less clients use keys in the path: feed keys (`fsf_`, 035) as `/v1/k/{key}/<any allowed GET/HEAD path>`, tile keys (`fsk_`, 050) as `/v1/k/{key}/products/...` and `/v1/k/{key}/tiles/...`, share links (`fss_`, 112) as `/v1/k/{key}`. These are transports for the documented operations, not separate operations. Device ingest URLs (039) and signed action links (033) use their own documented paths.\n\n**Status annotations.** Every operation has `x-foresignal-prompt` (the build prompt that implements it), optional `x-foresignal-extended-by`, and `x-foresignal-status` (`planned` until implemented). Clients can mock the whole API from this document and filter by status.\n\n**Outside this document:** the MCP server (`/mcp`, plus the legacy SSE transport when enabled), Actuator endpoints (`/actuator/**`), and sink listeners on their own ports (110).\n\nGenerated from docs/OpenAPI.json (v1.3.0). Every operation is included, grouped by tag. Admin operations use Bearer `{{adminToken}}`, agent operations `{{agentToken}}` (defaults to the admin token; set it to an agent-scope token to test scopes), always-authenticated read operations `{{readToken}}` (defaults to the admin token; claiming a pairing code stores a read token there), ingest uses `X-Foresignal-Ingest-Key: {{ingestKey}}` (EDP pushes `{{edpIngestKey}}`, Gotify `X-Gotify-Key`), and other reads use no auth (open while openReads is on). Test scripts capture ids into collection variables (ruleId, channelId, alertId, briefingId, threadId, ingestKey, externalId, lastSeq, cursor\u2026).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -18514,7 +18514,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));"
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('edpIngestKey', j.ingestKey); pm.collectionVariables.set('edpSourceId', j.source.sourceId);",
+                  "}"
                 ]
               }
             }
@@ -18556,7 +18559,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"manifest\": {\n    \"protocol\": \"foresignal-edp/1.0\",\n    \"source\": {\n      \"id\": \"hormuz-transits\",\n      \"name\": \"Strait of Hormuz transits\",\n      \"description\": \"Daily tanker and cargo transits counted from public dashboards\",\n      \"version\": \"0.3.1\",\n      \"publisher\": {\n        \"name\": \"Example OSINT Lab\",\n        \"url\": \"https://example.org\",\n        \"contact\": \"ops@example.org\"\n      },\n      \"homepage\": \"https://github.com/example/hormuz-edp\",\n      \"licence\": {\n        \"id\": \"CC-BY-4.0\",\n        \"url\": \"https://creativecommons.org/licenses/by/4.0/\",\n        \"attribution\": \"Example OSINT Lab\",\n        \"redistribution\": \"allowed\"\n      },\n      \"terms\": {\n        \"summary\": \"Derived from a public dashboard; upstream terms unclear\",\n        \"url\": null\n      },\n      \"access\": {\n        \"route\": \"scrape\",\n        \"fragility\": \"high\"\n      },\n      \"originator\": {\n        \"id\": \"example-osint-lab\",\n        \"class\": \"aggregator\",\n        \"aggregates\": []\n      },\n      \"private\": false\n    },\n    \"transport\": {\n      \"push\": true,\n      \"pull\": null,\n      \"search\": null\n    },\n    \"streams\": [\n      {\n        \"id\": \"transits\",\n        \"mode\": \"atomic\",\n        \"itemType\": \"observation\",\n        \"kind\": \"transit-count\",\n        \"title\": \"Daily transits by vessel class\",\n        \"unit\": \"vessels/day\",\n        \"update\": \"incremental\",\n        \"payloadSchema\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"vesselClass\": {\n              \"type\": \"string\"\n            }\n          }\n        },\n        \"suggestedBindings\": [\n          {\n            \"target\": \"series\"\n          }\n        ]\n      },\n      {\n        \"id\": \"incidents\",\n        \"mode\": \"layer\",\n        \"itemType\": \"event\",\n        \"kind\": \"maritime-incident\",\n        \"title\": \"Reported incidents\",\n        \"geometry\": \"Point\",\n        \"update\": \"incremental\",\n        \"payloadSchema\": {\n          \"type\": \"object\",\n          \"required\": [\n            \"category\"\n          ],\n          \"properties\": {\n            \"category\": {\n              \"type\": \"string\"\n            },\n            \"vessel\": {\n              \"type\": [\n                \"string\",\n                \"null\"\n              ]\n            }\n          }\n        },\n        \"fields\": {\n          \"title\": \"category\",\n          \"significant\": [\n            \"category\"\n          ],\n          \"volatile\": []\n        },\n        \"ttl\": null,\n        \"retentionClass\": \"event\",\n        \"presentation\": {\n          \"color\": \"#d9480f\",\n          \"icon\": \"ship\",\n          \"labelField\": \"vessel\",\n          \"minZoom\": 3,\n          \"tileProperties\": [\n            \"category\"\n          ]\n        }\n      }\n    ]\n  },\n  \"manifestUrl\": null,\n  \"approve\": false,\n  \"allowPrivateNetwork\": false\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -18587,7 +18590,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/external/sources/{{sourceId}}",
+              "raw": "{{baseUrl}}/v1/external/sources/{{edpSourceId}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -18595,7 +18598,7 @@
                 "v1",
                 "external",
                 "sources",
-                "{{sourceId}}"
+                "{{edpSourceId}}"
               ],
               "query": []
             },
@@ -18629,7 +18632,7 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/v1/external/sources/{{sourceId}}",
+              "raw": "{{baseUrl}}/v1/external/sources/{{edpSourceId}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -18637,7 +18640,7 @@
                 "v1",
                 "external",
                 "sources",
-                "{{sourceId}}"
+                "{{edpSourceId}}"
               ],
               "query": []
             },
@@ -18675,12 +18678,16 @@
                 "value": "application/json"
               },
               {
+                "key": "X-Foresignal-Ingest-Key",
+                "value": "{{edpIngestKey}}"
+              },
+              {
                 "key": "Content-Type",
                 "value": "application/json"
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/external/sources/{{sourceId}}/manifest",
+              "raw": "{{baseUrl}}/v1/external/sources/{{edpSourceId}}/manifest",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -18688,25 +18695,18 @@
                 "v1",
                 "external",
                 "sources",
-                "{{sourceId}}",
+                "{{edpSourceId}}",
                 "manifest"
               ],
               "query": []
             },
-            "description": "Additive changes apply at once; changes to streams, kinds, item types, modes or payload schemas return the source to `pending`. Accepted from an admin token or the source's own ingest key.\n\n**Scope:** ingest key of the source (or `admin`).\n\noperationId: `updateExternalSourceManifest`",
+            "description": "Additive changes apply at once; changes to streams, kinds, item types, modes, update styles, geometry types, payload schemas or provider URLs (pull itemsUrl, search url) return the source to `pending`; the response lists them in `breakingChanges`. Accepted from an admin token or the source's own ingest key.\n\n**Scope:** ingest key of the source (or `admin`).\n\noperationId: `updateExternalSourceManifest`",
             "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{agentToken}}",
-                  "type": "string"
-                }
-              ]
+              "type": "noauth"
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"protocol\": \"foresignal-edp/1.0\",\n  \"source\": {\n    \"id\": \"hormuz-transits\",\n    \"name\": \"Strait of Hormuz transits\",\n    \"description\": \"Daily tanker and cargo transits counted from public dashboards\",\n    \"version\": \"0.3.2\",\n    \"publisher\": {\n      \"name\": \"Example OSINT Lab\",\n      \"url\": \"https://example.org\",\n      \"contact\": \"ops@example.org\"\n    },\n    \"homepage\": \"https://github.com/example/hormuz-edp\",\n    \"licence\": {\n      \"id\": \"CC-BY-4.0\",\n      \"url\": \"https://creativecommons.org/licenses/by/4.0/\",\n      \"attribution\": \"Example OSINT Lab\",\n      \"redistribution\": \"allowed\"\n    },\n    \"terms\": {\n      \"summary\": \"Derived from a public dashboard; upstream terms unclear\",\n      \"url\": null\n    },\n    \"access\": {\n      \"route\": \"scrape\",\n      \"fragility\": \"high\"\n    },\n    \"originator\": {\n      \"id\": \"example-osint-lab\",\n      \"class\": \"aggregator\",\n      \"aggregates\": []\n    },\n    \"private\": false\n  },\n  \"transport\": {\n    \"push\": true,\n    \"pull\": null,\n    \"search\": null\n  },\n  \"streams\": [\n    {\n      \"id\": \"transits\",\n      \"mode\": \"atomic\",\n      \"itemType\": \"observation\",\n      \"kind\": \"transit-count\",\n      \"title\": \"Daily transits by vessel class\",\n      \"unit\": \"vessels/day\",\n      \"update\": \"incremental\",\n      \"payloadSchema\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"vesselClass\": {\n            \"type\": \"string\"\n          }\n        }\n      },\n      \"suggestedBindings\": [\n        {\n          \"target\": \"series\"\n        }\n      ]\n    },\n    {\n      \"id\": \"incidents\",\n      \"mode\": \"layer\",\n      \"itemType\": \"event\",\n      \"kind\": \"maritime-incident\",\n      \"title\": \"Reported incidents\",\n      \"geometry\": \"Point\",\n      \"update\": \"incremental\",\n      \"payloadSchema\": {\n        \"type\": \"object\",\n        \"required\": [\n          \"category\"\n        ],\n        \"properties\": {\n          \"category\": {\n            \"type\": \"string\"\n          },\n          \"vessel\": {\n            \"type\": [\n              \"string\",\n              \"null\"\n            ]\n          }\n        }\n      },\n      \"fields\": {\n        \"title\": \"category\",\n        \"significant\": [\n          \"category\"\n        ],\n        \"volatile\": []\n      },\n      \"ttl\": null,\n      \"retentionClass\": \"event\",\n      \"presentation\": {\n        \"color\": \"#d9480f\",\n        \"icon\": \"ship\",\n        \"labelField\": \"vessel\",\n        \"minZoom\": 3,\n        \"tileProperties\": [\n          \"category\"\n        ]\n      }\n    }\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -18737,7 +18737,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/external/sources/{{sourceId}}/approve",
+              "raw": "{{baseUrl}}/v1/external/sources/{{edpSourceId}}/approve",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -18745,7 +18745,7 @@
                 "v1",
                 "external",
                 "sources",
-                "{{sourceId}}",
+                "{{edpSourceId}}",
                 "approve"
               ],
               "query": []
@@ -18785,7 +18785,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/external/sources/{{sourceId}}/suspend",
+              "raw": "{{baseUrl}}/v1/external/sources/{{edpSourceId}}/suspend",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -18793,7 +18793,7 @@
                 "v1",
                 "external",
                 "sources",
-                "{{sourceId}}",
+                "{{edpSourceId}}",
                 "suspend"
               ],
               "query": []
@@ -18832,12 +18832,16 @@
                 "value": "application/json"
               },
               {
+                "key": "X-Foresignal-Ingest-Key",
+                "value": "{{edpIngestKey}}"
+              },
+              {
                 "key": "Content-Type",
                 "value": "application/json"
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/external/sources/{{sourceId}}/items",
+              "raw": "{{baseUrl}}/v1/external/sources/{{edpSourceId}}/items",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -18845,28 +18849,79 @@
                 "v1",
                 "external",
                 "sources",
-                "{{sourceId}}",
+                "{{edpSourceId}}",
                 "items"
               ],
               "query": []
             },
             "description": "Accepts a batch (JSON) or NDJSON items; validates each item against its stream and returns per-item rejections. Pending or suspended sources answer 409.\n\n**Scope:** ingest key of the source (or `admin`).\n\noperationId: `pushExternalItems`",
             "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{agentToken}}",
-                  "type": "string"
-                }
-              ]
+              "type": "noauth"
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"protocol\": \"foresignal-edp/1.0\",\n  \"sourceId\": \"hormuz-transits\",\n  \"sentAt\": \"2026-10-11T18:00:00Z\",\n  \"snapshot\": null,\n  \"items\": [\n    {\n      \"stream\": \"transits\",\n      \"type\": \"observation\",\n      \"id\": \"tanker:2026-10-10\",\n      \"observedAt\": \"2026-10-11T06:00:00Z\",\n      \"seriesKey\": \"tanker\",\n      \"t\": \"2026-10-10\",\n      \"value\": 31,\n      \"knownAt\": \"2026-10-11T06:00:00Z\",\n      \"properties\": {\n        \"vesselClass\": \"tanker\"\n      }\n    },\n    {\n      \"stream\": \"incidents\",\n      \"type\": \"event\",\n      \"id\": \"inc-8812\",\n      \"observedAt\": \"2026-10-11T17:41:00Z\",\n      \"eventTime\": \"2026-10-11T16:55:00Z\",\n      \"geometry\": {\n        \"type\": \"Point\",\n        \"coordinates\": [\n          56.4,\n          26.5\n        ]\n      },\n      \"properties\": {\n        \"category\": \"approach-by-small-craft\",\n        \"vessel\": \"MV Example\"\n      }\n    },\n    {\n      \"stream\": \"incidents\",\n      \"type\": \"delete\",\n      \"id\": \"inc-8790\"\n    },\n    {\n      \"stream\": \"transits\",\n      \"type\": \"status\",\n      \"health\": \"degraded\",\n      \"message\": \"dashboard layout changed; tanker counts missing for 2026-10-11\"\n    }\n  ],\n  \"nextCursor\": null\n}",
               "options": {
                 "raw": {
                   "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Push EDP items (NDJSON)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Foresignal-Ingest-Key",
+                "value": "{{edpIngestKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/x-ndjson"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/external/sources/{{edpSourceId}}/items",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "external",
+                "sources",
+                "{{edpSourceId}}",
+                "items"
+              ],
+              "query": []
+            },
+            "description": "Accepts a batch (JSON) or NDJSON items; validates each item against its stream and returns per-item rejections. Pending or suspended sources answer 409.\n\n**Scope:** ingest key of the source (or `admin`).\n\noperationId: `pushExternalItems`",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"protocol\": \"foresignal-edp/1.0\", \"sourceId\": \"hormuz-transits\"}\n{\"stream\": \"transits\", \"type\": \"observation\", \"id\": \"tanker:2026-10-10\", \"observedAt\": \"2026-10-11T06:00:00Z\", \"seriesKey\": \"tanker\", \"t\": \"2026-10-10\", \"value\": 31, \"knownAt\": \"2026-10-11T06:00:00Z\", \"properties\": {\"vesselClass\": \"tanker\"}}\n{\"stream\": \"incidents\", \"type\": \"event\", \"id\": \"inc-8812\", \"observedAt\": \"2026-10-11T17:41:00Z\", \"eventTime\": \"2026-10-11T16:55:00Z\", \"geometry\": {\"type\": \"Point\", \"coordinates\": [56.4, 26.5]}, \"properties\": {\"category\": \"approach-by-small-craft\", \"vessel\": \"MV Example\"}}\n",
+              "options": {
+                "raw": {
+                  "language": "text"
                 }
               }
             }
@@ -18926,7 +18981,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));"
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('registrationToken', j.token); pm.collectionVariables.set('registrationTokenId', j.id);",
+                  "}"
                 ]
               }
             }
@@ -18968,7 +19026,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"name\": \"Hormuz provider\",\n  \"expiresAt\": null,\n  \"maxUses\": 1,\n  \"sourceIdPrefix\": \"hormuz\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -18994,7 +19052,7 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/v1/external/registration-tokens/{{tokenId}}",
+              "raw": "{{baseUrl}}/v1/external/registration-tokens/{{registrationTokenId}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -19002,7 +19060,7 @@
                 "v1",
                 "external",
                 "registration-tokens",
-                "{{tokenId}}"
+                "{{registrationTokenId}}"
               ],
               "query": []
             },
@@ -19027,7 +19085,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));"
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('edpIngestKey', j.ingestKey); pm.collectionVariables.set('edpSourceId', j.source.sourceId);",
+                  "}"
                 ]
               }
             }
@@ -19038,6 +19099,10 @@
               {
                 "key": "Accept",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{registrationToken}}"
               },
               {
                 "key": "Content-Type",
@@ -19062,7 +19127,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"protocol\": \"foresignal-edp/1.0\",\n  \"source\": {\n    \"id\": \"hormuz-transits\",\n    \"name\": \"Strait of Hormuz transits\",\n    \"description\": \"Daily tanker and cargo transits counted from public dashboards\",\n    \"version\": \"0.3.1\",\n    \"publisher\": {\n      \"name\": \"Example OSINT Lab\",\n      \"url\": \"https://example.org\",\n      \"contact\": \"ops@example.org\"\n    },\n    \"homepage\": \"https://github.com/example/hormuz-edp\",\n    \"licence\": {\n      \"id\": \"CC-BY-4.0\",\n      \"url\": \"https://creativecommons.org/licenses/by/4.0/\",\n      \"attribution\": \"Example OSINT Lab\",\n      \"redistribution\": \"allowed\"\n    },\n    \"terms\": {\n      \"summary\": \"Derived from a public dashboard; upstream terms unclear\",\n      \"url\": null\n    },\n    \"access\": {\n      \"route\": \"scrape\",\n      \"fragility\": \"high\"\n    },\n    \"originator\": {\n      \"id\": \"example-osint-lab\",\n      \"class\": \"aggregator\",\n      \"aggregates\": []\n    },\n    \"private\": false\n  },\n  \"transport\": {\n    \"push\": true,\n    \"pull\": null,\n    \"search\": null\n  },\n  \"streams\": [\n    {\n      \"id\": \"transits\",\n      \"mode\": \"atomic\",\n      \"itemType\": \"observation\",\n      \"kind\": \"transit-count\",\n      \"title\": \"Daily transits by vessel class\",\n      \"unit\": \"vessels/day\",\n      \"update\": \"incremental\",\n      \"payloadSchema\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"vesselClass\": {\n            \"type\": \"string\"\n          }\n        }\n      },\n      \"suggestedBindings\": [\n        {\n          \"target\": \"series\"\n        }\n      ]\n    },\n    {\n      \"id\": \"incidents\",\n      \"mode\": \"layer\",\n      \"itemType\": \"event\",\n      \"kind\": \"maritime-incident\",\n      \"title\": \"Reported incidents\",\n      \"geometry\": \"Point\",\n      \"update\": \"incremental\",\n      \"payloadSchema\": {\n        \"type\": \"object\",\n        \"required\": [\n          \"category\"\n        ],\n        \"properties\": {\n          \"category\": {\n            \"type\": \"string\"\n          },\n          \"vessel\": {\n            \"type\": [\n              \"string\",\n              \"null\"\n            ]\n          }\n        }\n      },\n      \"fields\": {\n        \"title\": \"category\",\n        \"significant\": [\n          \"category\"\n        ],\n        \"volatile\": []\n      },\n      \"ttl\": null,\n      \"retentionClass\": \"event\",\n      \"presentation\": {\n        \"color\": \"#d9480f\",\n        \"icon\": \"ship\",\n        \"labelField\": \"vessel\",\n        \"minZoom\": 3,\n        \"tileProperties\": [\n          \"category\"\n        ]\n      }\n    }\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -19121,7 +19186,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"manifest\": {\n    \"protocol\": \"foresignal-edp/1.0\",\n    \"source\": {\n      \"id\": \"hormuz-transits\",\n      \"name\": \"Strait of Hormuz transits\",\n      \"description\": \"Daily tanker and cargo transits counted from public dashboards\",\n      \"version\": \"0.3.1\",\n      \"publisher\": {\n        \"name\": \"Example OSINT Lab\",\n        \"url\": \"https://example.org\",\n        \"contact\": \"ops@example.org\"\n      },\n      \"homepage\": \"https://github.com/example/hormuz-edp\",\n      \"licence\": {\n        \"id\": \"CC-BY-4.0\",\n        \"url\": \"https://creativecommons.org/licenses/by/4.0/\",\n        \"attribution\": \"Example OSINT Lab\",\n        \"redistribution\": \"allowed\"\n      },\n      \"terms\": {\n        \"summary\": \"Derived from a public dashboard; upstream terms unclear\",\n        \"url\": null\n      },\n      \"access\": {\n        \"route\": \"scrape\",\n        \"fragility\": \"high\"\n      },\n      \"originator\": {\n        \"id\": \"example-osint-lab\",\n        \"class\": \"aggregator\",\n        \"aggregates\": []\n      },\n      \"private\": false\n    },\n    \"transport\": {\n      \"push\": true,\n      \"pull\": null,\n      \"search\": null\n    },\n    \"streams\": [\n      {\n        \"id\": \"transits\",\n        \"mode\": \"atomic\",\n        \"itemType\": \"observation\",\n        \"kind\": \"transit-count\",\n        \"title\": \"Daily transits by vessel class\",\n        \"unit\": \"vessels/day\",\n        \"update\": \"incremental\",\n        \"payloadSchema\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"vesselClass\": {\n              \"type\": \"string\"\n            }\n          }\n        },\n        \"suggestedBindings\": [\n          {\n            \"target\": \"series\"\n          }\n        ]\n      },\n      {\n        \"id\": \"incidents\",\n        \"mode\": \"layer\",\n        \"itemType\": \"event\",\n        \"kind\": \"maritime-incident\",\n        \"title\": \"Reported incidents\",\n        \"geometry\": \"Point\",\n        \"update\": \"incremental\",\n        \"payloadSchema\": {\n          \"type\": \"object\",\n          \"required\": [\n            \"category\"\n          ],\n          \"properties\": {\n            \"category\": {\n              \"type\": \"string\"\n            },\n            \"vessel\": {\n              \"type\": [\n                \"string\",\n                \"null\"\n              ]\n            }\n          }\n        },\n        \"fields\": {\n          \"title\": \"category\",\n          \"significant\": [\n            \"category\"\n          ],\n          \"volatile\": []\n        },\n        \"ttl\": null,\n        \"retentionClass\": \"event\",\n        \"presentation\": {\n          \"color\": \"#d9480f\",\n          \"icon\": \"ship\",\n          \"labelField\": \"vessel\",\n          \"minZoom\": 3,\n          \"tileProperties\": [\n            \"category\"\n          ]\n        }\n      }\n    ]\n  },\n  \"sourceId\": null,\n  \"items\": [\n    {\n      \"stream\": \"transits\",\n      \"type\": \"observation\",\n      \"id\": \"tanker:2026-10-10\",\n      \"observedAt\": \"2026-10-11T06:00:00Z\",\n      \"seriesKey\": \"tanker\",\n      \"t\": \"2026-10-10\",\n      \"value\": 31,\n      \"knownAt\": \"2026-10-11T06:00:00Z\",\n      \"properties\": {\n        \"vesselClass\": \"tanker\"\n      }\n    },\n    {\n      \"stream\": \"incidents\",\n      \"type\": \"event\",\n      \"id\": \"inc-8812\",\n      \"observedAt\": \"2026-10-11T17:41:00Z\",\n      \"eventTime\": \"2026-10-11T16:55:00Z\",\n      \"geometry\": {\n        \"type\": \"Point\",\n        \"coordinates\": [\n          56.4,\n          26.5\n        ]\n      },\n      \"properties\": {\n        \"category\": \"approach-by-small-craft\",\n        \"vessel\": \"MV Example\"\n      }\n    },\n    {\n      \"stream\": \"incidents\",\n      \"type\": \"delete\",\n      \"id\": \"inc-8790\"\n    },\n    {\n      \"stream\": \"transits\",\n      \"type\": \"status\",\n      \"health\": \"degraded\",\n      \"message\": \"dashboard layout changed; tanker counts missing for 2026-10-11\"\n    }\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -19152,7 +19217,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/external/sources/{{sourceId}}/bindings",
+              "raw": "{{baseUrl}}/v1/external/sources/{{edpSourceId}}/bindings",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -19160,7 +19225,7 @@
                 "v1",
                 "external",
                 "sources",
-                "{{sourceId}}",
+                "{{edpSourceId}}",
                 "bindings"
               ],
               "query": []
@@ -19204,7 +19269,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/external/sources/{{sourceId}}/bindings",
+              "raw": "{{baseUrl}}/v1/external/sources/{{edpSourceId}}/bindings",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -19212,7 +19277,7 @@
                 "v1",
                 "external",
                 "sources",
-                "{{sourceId}}",
+                "{{edpSourceId}}",
                 "bindings"
               ],
               "query": []
@@ -19261,7 +19326,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/external/sources/{{sourceId}}/bindings/accept-suggested",
+              "raw": "{{baseUrl}}/v1/external/sources/{{edpSourceId}}/bindings/accept-suggested",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -19269,7 +19334,7 @@
                 "v1",
                 "external",
                 "sources",
-                "{{sourceId}}",
+                "{{edpSourceId}}",
                 "bindings",
                 "accept-suggested"
               ],
@@ -19507,7 +19572,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/external/sources/{{sourceId}}/question-links",
+              "raw": "{{baseUrl}}/v1/external/sources/{{edpSourceId}}/question-links",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -19515,7 +19580,7 @@
                 "v1",
                 "external",
                 "sources",
-                "{{sourceId}}",
+                "{{edpSourceId}}",
                 "question-links"
               ],
               "query": []
@@ -19552,7 +19617,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/external/sources/{{sourceId}}/question-links",
+              "raw": "{{baseUrl}}/v1/external/sources/{{edpSourceId}}/question-links",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -19560,7 +19625,7 @@
                 "v1",
                 "external",
                 "sources",
-                "{{sourceId}}",
+                "{{edpSourceId}}",
                 "question-links"
               ],
               "query": []
@@ -19623,6 +19688,56 @@
                 {
                   "key": "token",
                   "value": "{{agentToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Release a held snapshot deletion once",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/external/sources/{{edpSourceId}}/snapshots/{{snapshotId}}/allow",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "external",
+                "sources",
+                "{{edpSourceId}}",
+                "snapshots",
+                "{{snapshotId}}",
+                "allow"
+              ],
+              "query": []
+            },
+            "description": "A snapshot whose absent share is above `maxAbsentRatio` is held and the source turns degraded (docs/External-Data-Protocol.md \u00a73.2). This releases it once: the absence tombstones are computed against the scope's current entities now and ingested; the hold and the degraded status clear.\n\n**Scope:** `admin`.\n\noperationId: `allowExternalSnapshot`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
                   "type": "string"
                 }
               ]
@@ -23214,7 +23329,7 @@
               ],
               "query": []
             },
-            "description": "Registers a runtime PUSH source (STANDARD tier, `custom=true`) after registry validation and `IngestPolicyValidator`; id unique across static and dynamic sources (409). Returns the ingest key (`eik_` + 32 random bytes) exactly once. `profile: personal-location` applies the 039 defaults.\n\n**Scope:** `admin`.\n\noperationId: `createCustomSource`",
+            "description": "Registers a runtime PUSH source (STANDARD tier, `custom=true`) after registry validation and `IngestPolicyValidator`; id unique across static and dynamic sources (409). Returns the ingest key (`eik_` + 32 random bytes) exactly once. `profile: personal-location` applies the 039 defaults. Members a later prompt owns and enforces (`profile`, `allowPathKey`, `ingestAllowCidrs` 039; `mapping`, `preset`, `presetParams`, `captureSamples` 059; `licenceTerms` 109) are refused with 400 until that prompt, because accepting them unenforced would fail open.\n\n**Scope:** `admin`.\n\noperationId: `createCustomSource`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -23227,7 +23342,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"id\": \"custom-home-sensors\",\n  \"name\": \"Home sensors\",\n  \"kinds\": [\n    \"sensor-reading\"\n  ],\n  \"attribution\": \"My bench\",\n  \"recordTtl\": \"1h\",\n  \"tileProperties\": [\n    \"value\",\n    \"unit\"\n  ],\n  \"searchFields\": [\n    \"name\"\n  ],\n  \"embedFields\": [],\n  \"rateLimitPerMinute\": 60\n}",
+              "raw": "{\n  \"id\": \"custom-home-sensors\",\n  \"name\": \"Home sensors\",\n  \"kinds\": [\n    \"sensor-reading\"\n  ],\n  \"attribution\": \"My bench\",\n  \"recordTtl\": \"1h\",\n  \"tileProperties\": [\n    \"value\",\n    \"unit\"\n  ],\n  \"searchFields\": [\n    \"name\"\n  ],\n  \"embedFields\": [],\n  \"rateLimitPerMinute\": 60,\n  \"observedAtMode\": \"UPSTREAM\",\n  \"ttlAnchor\": \"RECEIVED\",\n  \"volatileFields\": [\n    \"rssi\"\n  ],\n  \"significantFields\": [],\n  \"titleField\": \"name\",\n  \"fieldSpecs\": {\n    \"value\": {\n      \"type\": \"NUMBER\",\n      \"unit\": \"Cel\",\n      \"label\": \"Temperature\"\n    }\n  },\n  \"private\": false,\n  \"licence\": null,\n  \"recordsPerMinute\": 6000,\n  \"formats\": {\n    \"alertmanager\": {\n      \"resolved\": \"tombstone\"\n    }\n  },\n  \"verifiers\": {\n    \"native\": {\n      \"scheme\": \"hmac-sha256\",\n      \"header\": \"X-Signature-256\",\n      \"secret\": \"REPLACE_ME\",\n      \"keyOptional\": false\n    }\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -23496,6 +23611,68 @@
           }
         },
         {
+          "name": "Push records into a source (inbound webhook) (records shape)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Encoding",
+                "value": "",
+                "description": "`gzip` accepted (AIS-catcher `GZIP on`); decompressed size capped at 5 MB \u2192 413",
+                "disabled": true
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Foresignal-Ingest-Key",
+                "value": "{{ingestKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/ingest/{{sourceId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "ingest",
+                "{{sourceId}}"
+              ],
+              "query": []
+            },
+            "description": "The `native` format: a GeoJSON FeatureCollection (`id` \u2192 externalId; properties `kind` (optional with a single kind), `observedAt`, `eventTime`, `validUntil`, `tombstone`, `quality`; the rest \u2192 payload) or `{records:[...]}`. Max 5 MB and 10,000 records. Credentials as for `ingestRecordsFormat` (ingest key header, Bearer, Basic, device key, admin token). Records enter the single writer as IngestRecords with the full v1.2 pipeline; the response is the v1.2 `IngestOutcome`. Per-record rejections (e.g. MISSING_OBSERVED_AT under UPSTREAM) do not fail the request.\n\n**Scope:** ingest key (or an `admin` token).\n\noperationId: `ingestRecords`",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"records\": [\n    {\n      \"externalId\": \"garage-humidity\",\n      \"kind\": \"sensor-reading\",\n      \"observedAt\": \"2026-10-10T12:00:00Z\",\n      \"geometry\": {\n        \"type\": \"Point\",\n        \"coordinates\": [\n          -97.74,\n          30.27\n        ]\n      },\n      \"payload\": {\n        \"name\": \"Garage humidity\",\n        \"value\": 61,\n        \"unit\": \"%\"\n      }\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
           "name": "Push records in a named format",
           "event": [
             {
@@ -23612,12 +23789,16 @@
                 "value": "application/json"
               },
               {
+                "key": "X-Foresignal-Ingest-Key",
+                "value": "{{ingestKey}}"
+              },
+              {
                 "key": "Content-Type",
                 "value": "application/json"
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/ingest/{{sourceId}}/{{format}}",
+              "raw": "{{baseUrl}}/v1/ingest/{{sourceId}}/{{ingestFormat}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -23625,17 +23806,629 @@
                 "v1",
                 "ingest",
                 "{{sourceId}}",
-                "{{format}}"
+                "{{ingestFormat}}"
               ],
               "query": []
             },
-            "description": "Parses the body with the named `IngestFormat` and submits one batch to the single writer (same versioning, policies, live/touch semantics, change stream, triggers and retention as polled data). Credentials: `X-Foresignal-Ingest-Key`, `Authorization: Bearer eik_\u2026`, Basic with the key as password, a device key (039, bound to one entity), or an `admin` token; a configured signature verifier must also pass unless `keyOptional`. 200 when the request is valid even with per-record rejections (MISSING_OBSERVED_AT, LOW_ACCURACY, \u2026). OwnTracks, Overland, OsmAnd and GPSLogger get their native reply shapes.\n\n**Scope:** ingest key (or an `admin` token).\n\noperationId: `ingestRecordsFormat`",
+            "description": "Parses the body with the named `IngestFormat` and submits one batch to the single writer (same versioning, policies, live/touch semantics, change stream, triggers and retention as polled data). Credentials: `X-Foresignal-Ingest-Key`, `Authorization: Bearer eik_\u2026`, Basic with the key as password, a device key (039, bound to one entity), or an `admin` token; a configured signature verifier must also pass unless `keyOptional`. 200 when the request is valid even with per-record rejections (MISSING_OBSERVED_AT, LOW_ACCURACY, \u2026). OwnTracks, Overland, OsmAnd and GPSLogger get their native reply shapes. An `admin` token is the operator and is not asked for a sender signature.\n\n**Scope:** ingest key (or an `admin` token).\n\noperationId: `ingestRecordsFormat`",
             "auth": {
               "type": "noauth"
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"version\": \"4\",\n  \"groupKey\": \"{}:{alertname=\\\"HighTemp\\\"}\",\n  \"truncatedAlerts\": 0,\n  \"status\": \"firing\",\n  \"receiver\": \"foresignal\",\n  \"groupLabels\": {\n    \"alertname\": \"HighTemp\"\n  },\n  \"commonLabels\": {\n    \"alertname\": \"HighTemp\"\n  },\n  \"commonAnnotations\": {},\n  \"externalURL\": \"http://alertmanager.local:9093\",\n  \"alerts\": [\n    {\n      \"status\": \"firing\",\n      \"labels\": {\n        \"alertname\": \"HighTemp\",\n        \"instance\": \"garage\",\n        \"latitude\": \"30.27\",\n        \"longitude\": \"-97.74\"\n      },\n      \"annotations\": {\n        \"summary\": \"Garage above 40 C\"\n      },\n      \"startsAt\": \"2026-10-10T12:00:00Z\",\n      \"endsAt\": \"0001-01-01T00:00:00Z\",\n      \"generatorURL\": \"http://prometheus.local:9090/graph\",\n      \"fingerprint\": \"6a8f1c2b9d0e4f31\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Push records in a named format (CloudEvents structured)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Signature-256",
+                "value": "",
+                "description": "hmac-sha256 verifier: `sha256=<hex>` (header name configurable)",
+                "disabled": true
+              },
+              {
+                "key": "webhook-id",
+                "value": "",
+                "description": "standard-webhooks verifier",
+                "disabled": true
+              },
+              {
+                "key": "webhook-timestamp",
+                "value": "",
+                "description": "standard-webhooks verifier",
+                "disabled": true
+              },
+              {
+                "key": "webhook-signature",
+                "value": "",
+                "description": "standard-webhooks verifier: `v1,<base64>`",
+                "disabled": true
+              },
+              {
+                "key": "X-Foresignal-Timestamp",
+                "value": "",
+                "description": "foresignal verifier",
+                "disabled": true
+              },
+              {
+                "key": "X-Foresignal-Signature",
+                "value": "",
+                "description": "foresignal verifier: `sha256=HMAC(\"<ts>.<body>\")`",
+                "disabled": true
+              },
+              {
+                "key": "ce-id",
+                "value": "",
+                "description": "CloudEvents binary mode attribute `id`",
+                "disabled": true
+              },
+              {
+                "key": "ce-source",
+                "value": "",
+                "description": "CloudEvents binary mode attribute `source`",
+                "disabled": true
+              },
+              {
+                "key": "ce-type",
+                "value": "",
+                "description": "CloudEvents binary mode attribute `type`",
+                "disabled": true
+              },
+              {
+                "key": "ce-subject",
+                "value": "",
+                "description": "CloudEvents binary mode attribute `subject`",
+                "disabled": true
+              },
+              {
+                "key": "ce-time",
+                "value": "",
+                "description": "CloudEvents binary mode attribute `time`",
+                "disabled": true
+              },
+              {
+                "key": "ce-specversion",
+                "value": "",
+                "description": "CloudEvents binary mode attribute `specversion`",
+                "disabled": true
+              },
+              {
+                "key": "X-Limit-U",
+                "value": "",
+                "description": "OwnTracks user (externalId = `X-Limit-U/X-Limit-D`)",
+                "disabled": true
+              },
+              {
+                "key": "X-Limit-D",
+                "value": "",
+                "description": "OwnTracks device",
+                "disabled": true
+              },
+              {
+                "key": "X-Foresignal-External-Id",
+                "value": "",
+                "description": "Overrides the externalId where the format allows it",
+                "disabled": true
+              },
+              {
+                "key": "Content-Encoding",
+                "value": "",
+                "description": "`gzip` accepted (AIS-catcher `GZIP on`); decompressed size capped at 5 MB \u2192 413",
+                "disabled": true
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Foresignal-Ingest-Key",
+                "value": "{{ingestKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/cloudevents+json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/ingest/{{sourceId}}/cloudevents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "ingest",
+                "{{sourceId}}",
+                "cloudevents"
+              ],
+              "query": []
+            },
+            "description": "Parses the body with the named `IngestFormat` and submits one batch to the single writer (same versioning, policies, live/touch semantics, change stream, triggers and retention as polled data). Credentials: `X-Foresignal-Ingest-Key`, `Authorization: Bearer eik_\u2026`, Basic with the key as password, a device key (039, bound to one entity), or an `admin` token; a configured signature verifier must also pass unless `keyOptional`. 200 when the request is valid even with per-record rejections (MISSING_OBSERVED_AT, LOW_ACCURACY, \u2026). OwnTracks, Overland, OsmAnd and GPSLogger get their native reply shapes. An `admin` token is the operator and is not asked for a sender signature.\n\n**Scope:** ingest key (or an `admin` token).\n\noperationId: `ingestRecordsFormat`",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"specversion\": \"1.0\",\n  \"id\": \"evt-0001\",\n  \"source\": \"/homeassistant/garage\",\n  \"type\": \"sensor.reading\",\n  \"subject\": \"garage-door\",\n  \"time\": \"2026-10-10T12:00:00Z\",\n  \"datacontenttype\": \"application/json\",\n  \"data\": {\n    \"state\": \"open\",\n    \"lat\": 30.27,\n    \"lon\": -97.74\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Push records in a named format (CloudEvents batch)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Signature-256",
+                "value": "",
+                "description": "hmac-sha256 verifier: `sha256=<hex>` (header name configurable)",
+                "disabled": true
+              },
+              {
+                "key": "webhook-id",
+                "value": "",
+                "description": "standard-webhooks verifier",
+                "disabled": true
+              },
+              {
+                "key": "webhook-timestamp",
+                "value": "",
+                "description": "standard-webhooks verifier",
+                "disabled": true
+              },
+              {
+                "key": "webhook-signature",
+                "value": "",
+                "description": "standard-webhooks verifier: `v1,<base64>`",
+                "disabled": true
+              },
+              {
+                "key": "X-Foresignal-Timestamp",
+                "value": "",
+                "description": "foresignal verifier",
+                "disabled": true
+              },
+              {
+                "key": "X-Foresignal-Signature",
+                "value": "",
+                "description": "foresignal verifier: `sha256=HMAC(\"<ts>.<body>\")`",
+                "disabled": true
+              },
+              {
+                "key": "ce-id",
+                "value": "",
+                "description": "CloudEvents binary mode attribute `id`",
+                "disabled": true
+              },
+              {
+                "key": "ce-source",
+                "value": "",
+                "description": "CloudEvents binary mode attribute `source`",
+                "disabled": true
+              },
+              {
+                "key": "ce-type",
+                "value": "",
+                "description": "CloudEvents binary mode attribute `type`",
+                "disabled": true
+              },
+              {
+                "key": "ce-subject",
+                "value": "",
+                "description": "CloudEvents binary mode attribute `subject`",
+                "disabled": true
+              },
+              {
+                "key": "ce-time",
+                "value": "",
+                "description": "CloudEvents binary mode attribute `time`",
+                "disabled": true
+              },
+              {
+                "key": "ce-specversion",
+                "value": "",
+                "description": "CloudEvents binary mode attribute `specversion`",
+                "disabled": true
+              },
+              {
+                "key": "X-Limit-U",
+                "value": "",
+                "description": "OwnTracks user (externalId = `X-Limit-U/X-Limit-D`)",
+                "disabled": true
+              },
+              {
+                "key": "X-Limit-D",
+                "value": "",
+                "description": "OwnTracks device",
+                "disabled": true
+              },
+              {
+                "key": "X-Foresignal-External-Id",
+                "value": "",
+                "description": "Overrides the externalId where the format allows it",
+                "disabled": true
+              },
+              {
+                "key": "Content-Encoding",
+                "value": "",
+                "description": "`gzip` accepted (AIS-catcher `GZIP on`); decompressed size capped at 5 MB \u2192 413",
+                "disabled": true
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Foresignal-Ingest-Key",
+                "value": "{{ingestKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/cloudevents-batch+json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/ingest/{{sourceId}}/cloudevents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "ingest",
+                "{{sourceId}}",
+                "cloudevents"
+              ],
+              "query": []
+            },
+            "description": "Parses the body with the named `IngestFormat` and submits one batch to the single writer (same versioning, policies, live/touch semantics, change stream, triggers and retention as polled data). Credentials: `X-Foresignal-Ingest-Key`, `Authorization: Bearer eik_\u2026`, Basic with the key as password, a device key (039, bound to one entity), or an `admin` token; a configured signature verifier must also pass unless `keyOptional`. 200 when the request is valid even with per-record rejections (MISSING_OBSERVED_AT, LOW_ACCURACY, \u2026). OwnTracks, Overland, OsmAnd and GPSLogger get their native reply shapes. An `admin` token is the operator and is not asked for a sender signature.\n\n**Scope:** ingest key (or an `admin` token).\n\noperationId: `ingestRecordsFormat`",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "[\n  {\n    \"specversion\": \"1.0\",\n    \"id\": \"evt-0002\",\n    \"source\": \"/n8n/flow-7\",\n    \"type\": \"sensor.reading\",\n    \"subject\": \"porch-light\",\n    \"time\": \"2026-10-10T12:01:00Z\",\n    \"data\": {\n      \"state\": \"on\"\n    }\n  }\n]",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Push records in a named format (CAP 1.2 alert)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Signature-256",
+                "value": "",
+                "description": "hmac-sha256 verifier: `sha256=<hex>` (header name configurable)",
+                "disabled": true
+              },
+              {
+                "key": "webhook-id",
+                "value": "",
+                "description": "standard-webhooks verifier",
+                "disabled": true
+              },
+              {
+                "key": "webhook-timestamp",
+                "value": "",
+                "description": "standard-webhooks verifier",
+                "disabled": true
+              },
+              {
+                "key": "webhook-signature",
+                "value": "",
+                "description": "standard-webhooks verifier: `v1,<base64>`",
+                "disabled": true
+              },
+              {
+                "key": "X-Foresignal-Timestamp",
+                "value": "",
+                "description": "foresignal verifier",
+                "disabled": true
+              },
+              {
+                "key": "X-Foresignal-Signature",
+                "value": "",
+                "description": "foresignal verifier: `sha256=HMAC(\"<ts>.<body>\")`",
+                "disabled": true
+              },
+              {
+                "key": "ce-id",
+                "value": "",
+                "description": "CloudEvents binary mode attribute `id`",
+                "disabled": true
+              },
+              {
+                "key": "ce-source",
+                "value": "",
+                "description": "CloudEvents binary mode attribute `source`",
+                "disabled": true
+              },
+              {
+                "key": "ce-type",
+                "value": "",
+                "description": "CloudEvents binary mode attribute `type`",
+                "disabled": true
+              },
+              {
+                "key": "ce-subject",
+                "value": "",
+                "description": "CloudEvents binary mode attribute `subject`",
+                "disabled": true
+              },
+              {
+                "key": "ce-time",
+                "value": "",
+                "description": "CloudEvents binary mode attribute `time`",
+                "disabled": true
+              },
+              {
+                "key": "ce-specversion",
+                "value": "",
+                "description": "CloudEvents binary mode attribute `specversion`",
+                "disabled": true
+              },
+              {
+                "key": "X-Limit-U",
+                "value": "",
+                "description": "OwnTracks user (externalId = `X-Limit-U/X-Limit-D`)",
+                "disabled": true
+              },
+              {
+                "key": "X-Limit-D",
+                "value": "",
+                "description": "OwnTracks device",
+                "disabled": true
+              },
+              {
+                "key": "X-Foresignal-External-Id",
+                "value": "",
+                "description": "Overrides the externalId where the format allows it",
+                "disabled": true
+              },
+              {
+                "key": "Content-Encoding",
+                "value": "",
+                "description": "`gzip` accepted (AIS-catcher `GZIP on`); decompressed size capped at 5 MB \u2192 413",
+                "disabled": true
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Foresignal-Ingest-Key",
+                "value": "{{ingestKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/cap+xml"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/ingest/{{sourceId}}/cap",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "ingest",
+                "{{sourceId}}",
+                "cap"
+              ],
+              "query": []
+            },
+            "description": "Parses the body with the named `IngestFormat` and submits one batch to the single writer (same versioning, policies, live/touch semantics, change stream, triggers and retention as polled data). Credentials: `X-Foresignal-Ingest-Key`, `Authorization: Bearer eik_\u2026`, Basic with the key as password, a device key (039, bound to one entity), or an `admin` token; a configured signature verifier must also pass unless `keyOptional`. 200 when the request is valid even with per-record rejections (MISSING_OBSERVED_AT, LOW_ACCURACY, \u2026). OwnTracks, Overland, OsmAnd and GPSLogger get their native reply shapes. An `admin` token is the operator and is not asked for a sender signature.\n\n**Scope:** ingest key (or an `admin` token).\n\noperationId: `ingestRecordsFormat`",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<alert xmlns=\"urn:oasis:names:tc:emergency:cap:1.2\">\n  <identifier>EXAMPLE-2026-10-10-001</identifier>\n  <sender>alerts@example.org</sender>\n  <sent>2026-10-10T12:00:00-00:00</sent>\n  <status>Actual</status>\n  <msgType>Alert</msgType>\n  <scope>Public</scope>\n  <info>\n    <language>en-US</language>\n    <category>Met</category>\n    <event>Flash Flood Warning</event>\n    <urgency>Immediate</urgency>\n    <severity>Severe</severity>\n    <certainty>Likely</certainty>\n    <onset>2026-10-10T12:00:00-00:00</onset>\n    <expires>2026-10-10T18:00:00-00:00</expires>\n    <headline>Flash flood warning for the river valley</headline>\n    <description>Heavy rain is causing flash flooding.</description>\n    <instruction>Move to higher ground.</instruction>\n    <area>\n      <areaDesc>River valley</areaDesc>\n      <polygon>30.20,-97.80 30.20,-97.60 30.35,-97.60 30.35,-97.80 30.20,-97.80</polygon>\n    </area>\n  </info>\n</alert>\n",
+              "options": {
+                "raw": {
+                  "language": "xml"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Push records in a named format (mapping (JSON Pointer))",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Signature-256",
+                "value": "",
+                "description": "hmac-sha256 verifier: `sha256=<hex>` (header name configurable)",
+                "disabled": true
+              },
+              {
+                "key": "webhook-id",
+                "value": "",
+                "description": "standard-webhooks verifier",
+                "disabled": true
+              },
+              {
+                "key": "webhook-timestamp",
+                "value": "",
+                "description": "standard-webhooks verifier",
+                "disabled": true
+              },
+              {
+                "key": "webhook-signature",
+                "value": "",
+                "description": "standard-webhooks verifier: `v1,<base64>`",
+                "disabled": true
+              },
+              {
+                "key": "X-Foresignal-Timestamp",
+                "value": "",
+                "description": "foresignal verifier",
+                "disabled": true
+              },
+              {
+                "key": "X-Foresignal-Signature",
+                "value": "",
+                "description": "foresignal verifier: `sha256=HMAC(\"<ts>.<body>\")`",
+                "disabled": true
+              },
+              {
+                "key": "ce-id",
+                "value": "",
+                "description": "CloudEvents binary mode attribute `id`",
+                "disabled": true
+              },
+              {
+                "key": "ce-source",
+                "value": "",
+                "description": "CloudEvents binary mode attribute `source`",
+                "disabled": true
+              },
+              {
+                "key": "ce-type",
+                "value": "",
+                "description": "CloudEvents binary mode attribute `type`",
+                "disabled": true
+              },
+              {
+                "key": "ce-subject",
+                "value": "",
+                "description": "CloudEvents binary mode attribute `subject`",
+                "disabled": true
+              },
+              {
+                "key": "ce-time",
+                "value": "",
+                "description": "CloudEvents binary mode attribute `time`",
+                "disabled": true
+              },
+              {
+                "key": "ce-specversion",
+                "value": "",
+                "description": "CloudEvents binary mode attribute `specversion`",
+                "disabled": true
+              },
+              {
+                "key": "X-Limit-U",
+                "value": "",
+                "description": "OwnTracks user (externalId = `X-Limit-U/X-Limit-D`)",
+                "disabled": true
+              },
+              {
+                "key": "X-Limit-D",
+                "value": "",
+                "description": "OwnTracks device",
+                "disabled": true
+              },
+              {
+                "key": "X-Foresignal-External-Id",
+                "value": "",
+                "description": "Overrides the externalId where the format allows it",
+                "disabled": true
+              },
+              {
+                "key": "Content-Encoding",
+                "value": "",
+                "description": "`gzip` accepted (AIS-catcher `GZIP on`); decompressed size capped at 5 MB \u2192 413",
+                "disabled": true
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Foresignal-Ingest-Key",
+                "value": "{{ingestKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/ingest/{{sourceId}}/mapping",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "ingest",
+                "{{sourceId}}",
+                "mapping"
+              ],
+              "query": []
+            },
+            "description": "Parses the body with the named `IngestFormat` and submits one batch to the single writer (same versioning, policies, live/touch semantics, change stream, triggers and retention as polled data). Credentials: `X-Foresignal-Ingest-Key`, `Authorization: Bearer eik_\u2026`, Basic with the key as password, a device key (039, bound to one entity), or an `admin` token; a configured signature verifier must also pass unless `keyOptional`. 200 when the request is valid even with per-record rejections (MISSING_OBSERVED_AT, LOW_ACCURACY, \u2026). OwnTracks, Overland, OsmAnd and GPSLogger get their native reply shapes. An `admin` token is the operator and is not asked for a sender signature.\n\n**Scope:** ingest key (or an `admin` token).\n\noperationId: `ingestRecordsFormat`",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"device\": \"aqi-1\",\n      \"ts\": 1760097600,\n      \"pm25\": 12.5,\n      \"pos\": {\n        \"lat\": 30.27,\n        \"lon\": -97.74\n      }\n    }\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -23663,10 +24456,14 @@
               {
                 "key": "Accept",
                 "value": "text/plain"
+              },
+              {
+                "key": "X-Foresignal-Ingest-Key",
+                "value": "{{ingestKey}}"
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/ingest/{{sourceId}}/{{format}}",
+              "raw": "{{baseUrl}}/v1/ingest/{{sourceId}}/{{ingestFormat}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -23674,7 +24471,7 @@
                 "v1",
                 "ingest",
                 "{{sourceId}}",
-                "{{format}}"
+                "{{ingestFormat}}"
               ],
               "query": [
                 {
@@ -23850,10 +24647,14 @@
                 "value": "",
                 "description": "Callback URL for asynchronous validation (not used)",
                 "disabled": true
+              },
+              {
+                "key": "X-Foresignal-Ingest-Key",
+                "value": "{{ingestKey}}"
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/ingest/{{sourceId}}/{{format}}",
+              "raw": "{{baseUrl}}/v1/ingest/{{sourceId}}/{{ingestFormat}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -23861,7 +24662,7 @@
                 "v1",
                 "ingest",
                 "{{sourceId}}",
-                "{{format}}"
+                "{{ingestFormat}}"
               ],
               "query": []
             },
@@ -23968,19 +24769,35 @@
                 "value": "application/json"
               },
               {
+                "key": "X-Foresignal-Ingest-Key",
+                "value": "{{ingestKey}}"
+              },
+              {
+                "key": "X-Title",
+                "value": "Proxmox"
+              },
+              {
+                "key": "X-Priority",
+                "value": "high"
+              },
+              {
+                "key": "X-Tags",
+                "value": "backup,id=pve1-backup"
+              },
+              {
                 "key": "Content-Type",
-                "value": "application/json"
+                "value": "text/plain"
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/compat/ntfy/{{topic}}",
+              "raw": "{{baseUrl}}/compat/ntfy/{{sourceId}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "compat",
                 "ntfy",
-                "{{topic}}"
+                "{{sourceId}}"
               ],
               "query": [
                 {
@@ -23997,10 +24814,10 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "Backup finished on pve1",
               "options": {
                 "raw": {
-                  "language": "json"
+                  "language": "text"
                 }
               }
             }
@@ -24057,19 +24874,35 @@
                 "value": "application/json"
               },
               {
+                "key": "X-Foresignal-Ingest-Key",
+                "value": "{{ingestKey}}"
+              },
+              {
+                "key": "Title",
+                "value": "NAS"
+              },
+              {
+                "key": "Priority",
+                "value": "4"
+              },
+              {
+                "key": "Tags",
+                "value": "storage"
+              },
+              {
                 "key": "Content-Type",
-                "value": "application/json"
+                "value": "text/plain"
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/compat/ntfy/{{topic}}",
+              "raw": "{{baseUrl}}/compat/ntfy/{{sourceId}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "compat",
                 "ntfy",
-                "{{topic}}"
+                "{{sourceId}}"
               ],
               "query": [
                 {
@@ -24086,10 +24919,10 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "Disk usage above 90% on nas",
               "options": {
                 "raw": {
-                  "language": "json"
+                  "language": "text"
                 }
               }
             }
@@ -24114,18 +24947,22 @@
               {
                 "key": "Accept",
                 "value": "application/json"
+              },
+              {
+                "key": "X-Foresignal-Ingest-Key",
+                "value": "{{ingestKey}}"
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/compat/ntfy/{{topic}}/{{action}}",
+              "raw": "{{baseUrl}}/compat/ntfy/{{sourceId}}/{{ntfyAction}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "compat",
                 "ntfy",
-                "{{topic}}",
-                "{{action}}"
+                "{{sourceId}}",
+                "{{ntfyAction}}"
               ],
               "query": [
                 {
@@ -24185,18 +25022,22 @@
               {
                 "key": "Accept",
                 "value": "application/json"
+              },
+              {
+                "key": "X-Foresignal-Ingest-Key",
+                "value": "{{ingestKey}}"
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/compat/ntfy/{{topic}}/{{action}}",
+              "raw": "{{baseUrl}}/compat/ntfy/{{sourceId}}/{{ntfyAction}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "compat",
                 "ntfy",
-                "{{topic}}",
-                "{{action}}"
+                "{{sourceId}}",
+                "{{ntfyAction}}"
               ],
               "query": [
                 {
@@ -24258,6 +25099,10 @@
                 "value": "application/json"
               },
               {
+                "key": "X-Foresignal-Ingest-Key",
+                "value": "{{ingestKey}}"
+              },
+              {
                 "key": "Content-Type",
                 "value": "application/json"
               }
@@ -24286,7 +25131,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"topic\": \"{{sourceId}}\",\n  \"message\": \"Monitor 'NAS' is down\",\n  \"title\": \"Uptime Kuma\",\n  \"priority\": 4,\n  \"tags\": [\n    \"warning\",\n    \"id=kuma-nas\"\n  ],\n  \"click\": \"https://kuma.local/dashboard/1\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -24322,6 +25167,10 @@
                 "value": "application/json"
               },
               {
+                "key": "X-Gotify-Key",
+                "value": "{{ingestKey}}"
+              },
+              {
                 "key": "Content-Type",
                 "value": "application/json"
               }
@@ -24351,7 +25200,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"title\": \"vzdump\",\n  \"message\": \"Backup of VM 101 finished\",\n  \"priority\": 5,\n  \"extras\": {\n    \"foresignal::record\": {\n      \"externalId\": \"pve-backup-101\"\n    }\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -24639,7 +25488,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/v1/ingest/{{sourceId}}/k/{{key}}/{{format}}",
+              "raw": "{{baseUrl}}/v1/ingest/{{sourceId}}/k/{{key}}/{{ingestFormat}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -24649,7 +25498,7 @@
                 "{{sourceId}}",
                 "k",
                 "{{key}}",
-                "{{format}}"
+                "{{ingestFormat}}"
               ],
               "query": [
                 {
@@ -24806,7 +25655,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/ingest/{{sourceId}}/k/{{key}}/{{format}}",
+              "raw": "{{baseUrl}}/v1/ingest/{{sourceId}}/k/{{key}}/{{ingestFormat}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -24816,7 +25665,7 @@
                 "{{sourceId}}",
                 "k",
                 "{{key}}",
-                "{{format}}"
+                "{{ingestFormat}}"
               ],
               "query": []
             },
@@ -24854,6 +25703,10 @@
               {
                 "key": "Accept",
                 "value": "application/json"
+              },
+              {
+                "key": "X-Foresignal-Ingest-Key",
+                "value": "{{ingestKey}}"
               },
               {
                 "key": "Content-Type",
@@ -24907,6 +25760,10 @@
               {
                 "key": "Accept",
                 "value": "application/json"
+              },
+              {
+                "key": "X-Foresignal-Ingest-Key",
+                "value": "{{ingestKey}}"
               },
               {
                 "key": "Content-Type",
@@ -29123,7 +29980,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/wmts/1.0.0/{{tileLayer}}/{{style}}/{{time}}/{{tileMatrixSetId}}/{{tileMatrix}}/{{tileRow}}/{{tileCol}}.{{format}}",
+              "raw": "{{baseUrl}}/v1/wmts/1.0.0/{{tileLayer}}/{{style}}/{{time}}/{{tileMatrixSetId}}/{{tileMatrix}}/{{tileRow}}/{{tileCol}}.{{ingestFormat}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -29137,7 +29994,7 @@
                 "{{tileMatrixSetId}}",
                 "{{tileMatrix}}",
                 "{{tileRow}}",
-                "{{tileCol}}.{{format}}"
+                "{{tileCol}}.{{ingestFormat}}"
               ],
               "query": [
                 {
@@ -33354,7 +34211,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/products/{{productId}}/image/{{frameKey}}.{{format}}?bbox=",
+              "raw": "{{baseUrl}}/v1/products/{{productId}}/image/{{frameKey}}.{{ingestFormat}}?bbox=",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -33363,7 +34220,7 @@
                 "products",
                 "{{productId}}",
                 "image",
-                "{{frameKey}}.{{format}}"
+                "{{frameKey}}.{{ingestFormat}}"
               ],
               "query": [
                 {
@@ -34185,7 +35042,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/products/{{productId}}/tiles/{{frameKey}}/{{tileMatrixSetId}}/{{tileZ}}/{{tileX}}/{{tileY}}.{{format}}",
+              "raw": "{{baseUrl}}/v1/products/{{productId}}/tiles/{{frameKey}}/{{tileMatrixSetId}}/{{tileZ}}/{{tileX}}/{{tileY}}.{{ingestFormat}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -34198,7 +35055,7 @@
                 "{{tileMatrixSetId}}",
                 "{{tileZ}}",
                 "{{tileX}}",
-                "{{tileY}}.{{format}}"
+                "{{tileY}}.{{ingestFormat}}"
               ],
               "query": [
                 {
@@ -49437,6 +50294,30 @@
     },
     {
       "key": "ticket",
+      "value": ""
+    },
+    {
+      "key": "ingestFormat",
+      "value": "alertmanager"
+    },
+    {
+      "key": "ntfyAction",
+      "value": "publish"
+    },
+    {
+      "key": "edpSourceId",
+      "value": "ext-hormuz-transits"
+    },
+    {
+      "key": "edpIngestKey",
+      "value": ""
+    },
+    {
+      "key": "registrationToken",
+      "value": ""
+    },
+    {
+      "key": "registrationTokenId",
       "value": ""
     },
     {

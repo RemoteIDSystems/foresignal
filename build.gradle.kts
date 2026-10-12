@@ -32,6 +32,8 @@ dependencies {
     implementation(libs.micrometer.tracing.bridge.otel)
     implementation(libs.springdoc.openapi.starter.webmvc.ui)
     implementation(libs.zxing.core)
+    implementation(libs.json.schema.validator)
+    implementation(libs.re2j)
     runtimeOnly(libs.postgresql)
 
     testImplementation(platform(libs.testcontainers.bom))
@@ -43,7 +45,6 @@ dependencies {
     testImplementation(libs.wiremock.standalone)
     testImplementation(libs.awaitility)
     testImplementation(libs.greenmail)
-    testImplementation(libs.json.schema.validator)
 }
 
 tasks.withType<JavaCompile>().configureEach {
@@ -97,6 +98,12 @@ tasks.processResources {
     from(layout.projectDirectory.file("docs/OpenAPI.json")) {
         into("openapi")
         rename { "openapi.json" }
+    }
+    // The EDP JSON Schemas exported from the spec (scripts/export-edp-schemas.py), served at
+    // /v1/external/protocol/schemas/{name} and used to validate items (prompt 024).
+    from(layout.projectDirectory.dir("docs/protocol/edp-1.0")) {
+        include("*.schema.json")
+        into("edp/schemas")
     }
 }
 
