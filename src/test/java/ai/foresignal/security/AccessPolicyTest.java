@@ -45,6 +45,7 @@ class AccessPolicyTest {
                 "/v1/records/usgs-earthquakes/us7000abcd",
                 "/v1/records/usgs-earthquakes/us7000abcd/versions",
                 "/v1/kinds",
+                "/v1/kinds/earthquake/schema",
                 "/v1/history",
                 "/v1/changes",
                 "/v1/changes/stream",
@@ -82,6 +83,17 @@ class AccessPolicyTest {
     @DisplayName("a few writes need only read, because they act on the caller's own behalf")
     void someWritesRequireOnlyRead(String method, String path) {
         assertScope(method, path, Scope.READ);
+    }
+
+    @ParameterizedTest(name = "ADMIN by default: {0} {1}")
+    @CsvSource({
+        "GET, /v1/kinds/earthquake",
+        "GET, /v1/kinds/earthquake/schema/extra",
+        "PUT, /v1/kinds/earthquake/schema",
+    })
+    @DisplayName("only GET /v1/kinds and GET /v1/kinds/{kind}/schema are reads; neighbors fail closed (014)")
+    void kindSchemaRuleIsExact(String method, String path) {
+        assertScope(method, path, Scope.ADMIN);
     }
 
     // ---------- agent ----------

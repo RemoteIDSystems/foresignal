@@ -48,6 +48,17 @@ spring:
 
 server:
   port: ${FORESIGNAL_PORT:8080}
+  compression:
+    # gzip for read responses (014). Never text/event-stream: compressing SSE
+    # buffers events and breaks streaming.
+    enabled: ${FORESIGNAL_COMPRESSION:true}
+    mime-types:
+      - application/json
+      - application/geo+json
+      - application/x-ndjson
+      - application/geo+json-seq
+      - application/problem+json
+      - application/vnd.mapbox-vector-tile
 
 foresignal:
   data-dir: ${FORESIGNAL_DATA_DIR:./data}
@@ -71,6 +82,17 @@ foresignal:
       exclusive: true
       # SET LOCAL lock_timeout for each batch transaction; a timeout is retried.
       lock-timeout: 10s
+  api:
+    # Read API (014).
+    query:
+      # SET LOCAL statement_timeout of every read query; longer runs are 503 QUERY_TIMEOUT.
+      statement-timeout: 30s
+    changes:
+      # Kinds whose changes always carry their payload (Weather-Imagery-Design §6.8).
+      inline-payload-kinds: raster-frame
+    stream:
+      # Most rows one ndjson/geojsonseq/csv response may hold (400 RESULT_TOO_LARGE above).
+      max-rows: 500000
   collector:
     # Poll enabled sources and hold enabled streams open (Architecture §5.1).
     # Off in tests, where cached contexts share one database.

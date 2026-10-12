@@ -43,6 +43,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(ValidationException.class)
     public ResponseEntity<Object> handleValidation(ValidationException e, WebRequest request) {
         ProblemDetail problem = problem(e.getStatus(), e.getCode(), e.getMessage());
+        e.getProperties().forEach(problem::setProperty);
         if (!e.getErrors().isEmpty()) {
             problem.setProperty("errors", e.getErrors());
         }
@@ -52,6 +53,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(ForesignalException.class)
     public ResponseEntity<Object> handleForesignal(ForesignalException e, WebRequest request) {
         ProblemDetail problem = problem(e.getStatus(), e.getCode(), e.getMessage());
+        e.getProperties().forEach(problem::setProperty);
         return handleExceptionInternal(e, problem, new HttpHeaders(), e.getStatus(), request);
     }
 

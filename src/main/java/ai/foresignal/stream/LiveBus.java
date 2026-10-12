@@ -8,6 +8,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -33,6 +34,7 @@ public class LiveBus {
 
     private final List<LiveSubscription> subscriptions = new CopyOnWriteArrayList<>();
     private final MeterRegistry meters;
+    private final AtomicLong batchNo = new AtomicLong();
 
     /** Creates the bus. */
     public LiveBus(MeterRegistry meters) {
@@ -62,6 +64,7 @@ public class LiveBus {
     /** Publishes {@code batch} to every subscriber. Never blocks. */
     public void publish(LiveBatch batch) {
         Objects.requireNonNull(batch, "batch");
+        batchNo.incrementAndGet();
         for (LiveSubscription subscription : subscriptions) {
             subscription.offer(batch);
         }
@@ -70,6 +73,14 @@ public class LiveBus {
     /** The number of current subscribers. */
     public int subscriberCount() {
         return subscriptions.size();
+    }
+
+    /**
+     * How many live batches have been published since start. Read APIs fold it into list entity
+     * tags, because live updates change current state without advancing the change watermark.
+     */
+    public long lastPublishedBatchNo() {
+        return batchNo.get();
     }
 
     private final class LiveSubscription implements Subscription {

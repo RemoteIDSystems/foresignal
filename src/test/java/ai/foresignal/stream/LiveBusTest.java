@@ -86,4 +86,13 @@ class LiveBusTest {
             }
         };
     }
+
+    @Test
+    @DisplayName("lastPublishedBatchNo counts published batches, with or without subscribers")
+    void countsBatches() {
+        assertThat(bus.lastPublishedBatchNo()).isZero();
+        bus.publish(new LiveBatch("x", List.of(), List.of()));
+        bus.publish(new LiveBatch("y", List.of(), List.of()));
+        assertThat(bus.lastPublishedBatchNo()).isEqualTo(2);
+    }
 }

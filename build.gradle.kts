@@ -25,6 +25,7 @@ dependencies {
     implementation(libs.spring.boot.starter.actuator)
     implementation(libs.hibernate.spatial)
     implementation(libs.micrometer.registry.prometheus)
+    implementation(libs.jackson.dataformat.csv)
     implementation(libs.bucket4j.core)
     implementation(libs.springdoc.openapi.starter.webmvc.ui)
     runtimeOnly(libs.postgresql)

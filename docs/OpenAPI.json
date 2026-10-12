@@ -37,6 +37,11 @@
         "version": "1.3.0",
         "date": "2026-10-11",
         "note": "013: every Sources operation of prompt 013 (including listSourceFetches) is implemented; updateSource's 400 attributes INGEST_POLICY_INVALID and RETENTION_TIER_FIXED to 013 (was 014, a pre-v1.3 number); SourceDescriptor.defaultIngestPolicy documents that the §5.1 defaults are filled in (description only)."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-11",
+        "note": "014: listRecords, getRecord, listRecordVersions, queryHistory, listKinds, getKindSchema and listChanges are implemented. Feature.properties gains ingestedAt and persistReason for version-based features (history, asOf); KindSchema documents x-datum, the TIMESTAMP mapping and per-variant x-sources; ChangePage.lastSeq documents that an exhausted page advances to the watermark; the change-feed geojsonseq Feature carries the Change fields as properties (descriptions and optional properties only; no operation changed)."
       }
     ]
   },
@@ -1425,7 +1430,7 @@
         "x-foresignal-extended-by": [
           "035, 039"
         ],
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/records": {
@@ -1999,7 +2004,7 @@
           "098",
           "109"
         ],
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/records/{sourceId}/{externalId}": {
@@ -2251,7 +2256,7 @@
           "098",
           "109"
         ],
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/records/{sourceId}/{externalId}/versions": {
@@ -2468,7 +2473,7 @@
           "035, 039",
           "109"
         ],
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/history": {
@@ -2853,7 +2858,7 @@
           "109",
           "141"
         ],
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/changes": {
@@ -3090,7 +3095,7 @@
               "application/geo+json-seq": {
                 "schema": {
                   "type": "string",
-                  "description": "RFC 8142 GeoJSON text sequence of Features"
+                  "description": "RFC 8142 GeoJSON text sequence of Features; properties are the Change fields"
                 },
                 "x-foresignal-item": {
                   "$ref": "#/components/schemas/Feature"
@@ -3175,7 +3180,7 @@
           "035, 036, 039",
           "109"
         ],
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/changes/stream": {
@@ -10503,7 +10508,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "014",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -84457,6 +84462,15 @@
                   "null"
                 ],
                 "description": "Region near text with include=region (040)"
+              },
+              "ingestedAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "Version-based features only (history and asOf): the batch time of the version"
+              },
+              "persistReason": {
+                "$ref": "#/components/schemas/PersistReason",
+                "description": "History features only"
               }
             }
           }
@@ -84713,7 +84727,7 @@
           "lastSeq": {
             "type": "integer",
             "format": "int64",
-            "description": "Pass as `after` next time"
+            "description": "Pass as `after` next time. When `hasMore` is false it is at least the `watermarkSeq` read before the query, so a filtered client skips past seqs that matched nothing"
           },
           "hasMore": {
             "type": "boolean"
@@ -91378,7 +91392,7 @@
       },
       "KindSchema": {
         "type": "object",
-        "description": "JSON Schema 2020-12 document merged from the fieldSpecs of every source emitting a kind, with `x-unit`, `x-unitLabel`, `x-label`, `x-format`, `x-display` and `x-conflicts` extensions",
+        "description": "JSON Schema 2020-12 document merged from the fieldSpecs of every source emitting a kind, with `x-unit`, `x-unitLabel`, `x-label`, `x-format`, `x-display` and `x-conflicts` extensions. Each property may also carry `x-datum` (vertical datum of a length field); `TIMESTAMP` fields are `[\"string\", \"integer\"]` with `x-format: timestamp`; each `oneOf` variant of a conflicting field lists its `x-sources`.",
         "additionalProperties": true,
         "properties": {
           "$schema": {

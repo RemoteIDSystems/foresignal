@@ -119,6 +119,8 @@ public class AccessPolicy {
                 rule(HttpMethod.GET, "/v1/records/**", AccessRequirement.READ),
                 rule(HttpMethod.GET, "/v1/changes/**", AccessRequirement.READ),
                 rule(HttpMethod.GET, "/v1/kinds", AccessRequirement.READ),
+                // The /v1/kinds rule matches only the exact path (014).
+                rule(HttpMethod.GET, "/v1/kinds/*/schema", AccessRequirement.READ),
                 rule(HttpMethod.GET, "/v1/history", AccessRequirement.READ),
                 rule(HttpMethod.GET, "/v1/tiles/**", AccessRequirement.READ),
 

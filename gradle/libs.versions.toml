@@ -31,6 +31,9 @@ hibernate-spatial = { module = "org.hibernate.orm:hibernate-spatial" }
 # jts-core arrives through hibernate-spatial.
 postgresql = { module = "org.postgresql:postgresql" }
 micrometer-registry-prometheus = { module = "io.micrometer:micrometer-registry-prometheus" }
+# CSV output for the streaming formats (014); Jackson 3, version from the Jackson BOM that
+# Spring Boot imports (3.1.5 with Boot 4.1.1), Apache-2.0.
+jackson-dataformat-csv = { module = "tools.jackson.dataformat:jackson-dataformat-csv" }
 
 # --- Explicitly versioned ---
 bucket4j-core = { module = "com.bucket4j:bucket4j_jdk17-core", version.ref = "bucket4j" }

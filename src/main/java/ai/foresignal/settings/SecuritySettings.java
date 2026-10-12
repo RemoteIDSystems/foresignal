@@ -11,13 +11,30 @@ package ai.foresignal.settings;
  * decide anything without them.
  *
  * @param openReads true when data GETs are served without a token
+ * @param exposeObserver true when record observers are returned with {@code include=observer} to
+ *     read-scope and anonymous callers too; otherwise only agent and admin tokens see them
+ *     (Core-Data-Model §14, prompt 014)
  */
-public record SecuritySettings(boolean openReads) {
+public record SecuritySettings(boolean openReads, Boolean exposeObserver) {
 
     public static final boolean DEFAULT_OPEN_READS = true;
 
-    /** The shipped default: data reads are open. */
+    public static final boolean DEFAULT_EXPOSE_OBSERVER = false;
+
+    /** A value stored before {@code exposeObserver} existed reads as false. */
+    public SecuritySettings {
+        if (exposeObserver == null) {
+            exposeObserver = DEFAULT_EXPOSE_OBSERVER;
+        }
+    }
+
+    /** Only {@code openReads}; observers stay gated. */
+    public SecuritySettings(boolean openReads) {
+        this(openReads, DEFAULT_EXPOSE_OBSERVER);
+    }
+
+    /** The shipped default: data reads are open, observers gated. */
     public static SecuritySettings defaults() {
-        return new SecuritySettings(DEFAULT_OPEN_READS);
+        return new SecuritySettings(DEFAULT_OPEN_READS, DEFAULT_EXPOSE_OBSERVER);
     }
 }
