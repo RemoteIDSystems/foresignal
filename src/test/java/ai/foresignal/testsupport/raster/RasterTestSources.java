@@ -33,13 +33,14 @@ public class RasterTestSources {
 
     /**
      * A SatDump station source for the prompt 049 ITs (no new context: it joins this one), with the real
-     * places and live-image beans.
+     * places, live-image and (prompt 054) remote-media receiver beans.
      */
     @Bean
     public ai.foresignal.source.adapters.satdump.SatDumpAdapter satDumpTestStation(
             org.springframework.beans.factory.ObjectProvider<ai.foresignal.source.spi.PlacePoints> places,
-            org.springframework.beans.factory.ObjectProvider<ai.foresignal.source.spi.LiveImageHolder> liveImages) {
+            org.springframework.beans.factory.ObjectProvider<ai.foresignal.source.spi.LiveImageHolder> liveImages,
+            org.springframework.beans.factory.ObjectProvider<ai.foresignal.source.spi.RemoteMediaReceivers> receivers) {
         return new ai.foresignal.source.adapters.satdump.SatDumpAdapter(SATDUMP_STATION, places::getIfAvailable,
-                liveImages::getIfAvailable);
+                liveImages::getIfAvailable, receivers::getIfAvailable);
     }
 }

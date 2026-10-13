@@ -57,6 +57,12 @@ netcdfJava = "5.11.0"
 # CCSDS/AEC (GRIB2 template 5.42) native library for NetCDF-Java's libaec-jna, BSD-2-Clause; verified
 # in the same repository 2026-10-12 (edu.ucar.unidata:libaec-native:1.1.7.0, also the BOM's version).
 libaec = "1.1.7.0"
+# SGP4 for the SatDump approximate swath (054) and, later, predicted passes (064): Orekit, Apache-2.0.
+# Verified on Maven Central 2026-10-13: 13.1.9 is the latest 13.1.x release of org.orekit:orekit
+# (Java 8 bytecode; runtime dependencies Hipparchus 4.0.3 core, geometry, ode, fitting, optim, filtering and
+# stat, all Apache-2.0). Its data (leap seconds and one EOP file) is a pinned subset under
+# src/main/resources/orekit-data/.
+orekit = "13.1.9"
 
 [libraries]
 # --- Versions managed by the Spring Boot BOM ---
@@ -122,6 +128,8 @@ netcdf-java-bom = { module = "edu.ucar:netcdf-java-bom", version.ref = "netcdfJa
 netcdf-cdm-core = { module = "edu.ucar:cdm-core" }
 netcdf-grib = { module = "edu.ucar:grib" }
 libaec-native = { module = "edu.ucar.unidata:libaec-native", version.ref = "libaec" }
+# SGP4 swaths of SatDump passes (054); 064 reuses it for predicted passes.
+orekit = { module = "org.orekit:orekit", version.ref = "orekit" }
 
 # --- Test; versions from the Testcontainers BOM where unspecified ---
 testcontainers-bom = { module = "org.testcontainers:testcontainers-bom", version.ref = "testcontainers" }

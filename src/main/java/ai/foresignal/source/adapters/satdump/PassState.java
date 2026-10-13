@@ -72,4 +72,13 @@ public final class PassState {
 
     /** True once the missing-{@code dataset.json} health reason was raised for this pass. */
     public boolean datasetOverdue;
+
+    /**
+     * The pass geometry as WKT (SRID 4326, prompt 054): the GeoTIFF footprint, else the approximate
+     * swath; null for the station point.
+     */
+    public String geometry;
+
+    /** {@code footprint}, {@code swath} or null (the station point). */
+    public String geometrySource;
 }

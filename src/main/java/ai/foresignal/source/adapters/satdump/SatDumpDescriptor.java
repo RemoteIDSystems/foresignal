@@ -1,6 +1,7 @@
 package ai.foresignal.source.adapters.satdump;
 
 import ai.foresignal.source.spi.Budget;
+import ai.foresignal.source.spi.CredentialField;
 import ai.foresignal.source.spi.HistoryTier;
 import ai.foresignal.source.spi.IngestPolicy;
 import ai.foresignal.source.spi.Mode;
@@ -26,7 +27,11 @@ import tools.jackson.databind.json.JsonMapper;
  * {@code satellite-pass} and {@code raster-frame} with 30 d, 365 d and 7 d retention, STANDARD, policy
  * ALL, {@code observedAt} from upstream (the {@code /api} read time for ground-station records, SatDump
  * timestamps for passes and frames), no record TTL, license {@code operator-owned}, a LAN-only budget of
- * 60 a minute and 50,000 a day (each inbox scan counts as one request).
+ * 60 a minute and 50,000 a day (each inbox scan counts as one request, and so does each remote push).
+ *
+ * <p>Prompt 054 adds the {@code polarGlob} parameter (polar GeoTIFF overlays), the optional
+ * {@code ingestKey} credential and {@code acceptsRemoteMedia}: a remote station may push images and pass
+ * bundles to {@code POST /v1/ingest/{sourceId}/media} and {@code /rasters}.
  */
 public final class SatDumpDescriptor {
 
@@ -53,6 +58,18 @@ public final class SatDumpDescriptor {
 
     /** {@code scanInterval}: the inbox scan period. */
     public static final String SCAN_INTERVAL = "scanInterval";
+
+    /** {@code polarGlob}: which files of a ready pass folder are read as polar GeoTIFF overlays (054). */
+    public static final String POLAR_GLOB = "polarGlob";
+
+    /** The default {@code polarGlob}. */
+    public static final String DEFAULT_POLAR_GLOB = "**/*.tif";
+
+    /**
+     * {@code ingestKey}: the credential a remote station presents on {@code POST /v1/ingest/{sourceId}/media}
+     * and {@code /rasters} (prompt 054).
+     */
+    public static final String INGEST_KEY = SourceDescriptor.REMOTE_MEDIA_KEY;
 
     /** The shortest {@code apiInterval}. */
     public static final Duration MIN_API_INTERVAL = Duration.ofSeconds(2);
@@ -88,7 +105,8 @@ public final class SatDumpDescriptor {
                 .description("The operator's own SatDump ground station '" + station + "': station state and RF"
                         + " sessions from SatDump's /api (optional), satellite passes joined to their RF statistics,"
                         + " composites and thumbnails from SatDump's output directory, and GOES/Elektro xRIT"
-                        + " geostationary frames. Foresignal talks to SatDump only through HTTP and files.")
+                        + " geostationary frames, plus polar GeoTIFF overlays with real footprints (or an approximate"
+                        + " swath). Foresignal talks to SatDump only through HTTP and files.")
                 .kinds(GroundStationRecords.KIND, PassBook.KIND, ProductSpec.RECORD_KIND)
                 .homepage("https://github.com/SatDump/SatDump")
                 .attribution("Operator-owned SatDump ground station")
@@ -123,6 +141,14 @@ public final class SatDumpDescriptor {
                         "How often /api is polled, 2s to 30s.", "5s"))
                 .param(ParamSpec.optional(SCAN_INTERVAL, ParamType.DURATION,
                         "How often the inbox is fully scanned, 5s to 10m; each scan costs one budget unit.", "30s"))
+                .param(ParamSpec.optional(POLAR_GLOB, ParamType.STRING,
+                        "Which files of a ready polar pass folder are read as EPSG:4326/3857 GeoTIFF overlays, a glob"
+                                + " relative to the pass folder; ** crosses directories.", DEFAULT_POLAR_GLOB))
+                .credential(CredentialField.optional(INGEST_KEY,
+                        "Optional. A key you choose (eik_ followed by at least 32 random characters) that a remote"
+                                + " station sends, like an ingest key, to POST /v1/ingest/" + sourceId(station)
+                                + "/media and /rasters. Without it only an admin token may push."))
+                .acceptsRemoteMedia(true)
                 .build();
     }
 
@@ -150,6 +176,14 @@ public final class SatDumpDescriptor {
                 StationLocation.parse(location);
             } catch (IllegalArgumentException e) {
                 problems.put(LOCATION, e.getMessage());
+            }
+        }
+        String glob = params.string(POLAR_GLOB);
+        if (glob != null && !glob.isBlank()) {
+            try {
+                PolarGlob.compile(glob);
+            } catch (IllegalArgumentException e) {
+                problems.put(POLAR_GLOB, e.getMessage());
             }
         }
         String names = params.string(SAT_NAMES);

@@ -2291,6 +2291,11 @@ Foresignal image contains no SatDump binaries or SatDump-produced images.
 | `satNames` | JSON object | — | Name or NORAD number to `satKey`, overriding the built-in table (`src/main/resources/satdump/sat-names.json`). |
 | `apiInterval` | duration | `5s` | 2 s to 30 s. |
 | `scanInterval` | duration | `30s` | 5 s to 10 min. Each full scan costs one budget unit. |
+| `polarGlob` | glob | `**/*.tif` | Which files of a ready polar pass folder are read as GeoTIFF overlays, relative to the pass folder (`**` crosses directories, `*` and `?` do not; case is ignored). |
+
+Credential (optional, `PUT /v1/sources/satdump-home/credentials`): `ingestKey`, a key you choose
+(`eik_` followed by at least 32 random characters) that a remote station presents on the push endpoints
+below. Without it only an admin token may push.
 
 At least one of `apiUrl` and `inboxPath` is required (`400 VALIDATION_FAILED` otherwise). The budget is
 60 a minute and 50,000 a day; every request stays on your LAN.
@@ -2321,12 +2326,72 @@ PUT /v1/sources/satdump-home
   (read scope; `404 NO_ACTIVE_PASS` otherwise). Fetched every 15 s by the source, held in memory only,
   never fetched because a client asked.
 
+- **Polar overlays** (prompt 054): every file matching `polarGlob` in a ready pass folder is read as a
+  GeoTIFF map overlay; see the next section.
+
 The original images and the provenance files (`dataset.json`, `product.cbor`, any `.tif`) are copied to
-`${FORESIGNAL_DATA_DIR}/rasters/satdump/{station}/{passId}/`. `.cadu` and baseband files are never copied;
-SatDump's own retention keeps them. A BigTIFF is skipped ("BigTIFF not supported.").
+`${FORESIGNAL_DATA_DIR}/rasters/satdump/{station}/{passId}/` and deleted after 30 days. `.cadu` and baseband
+files are never copied; SatDump's own retention keeps them.
 
 **Health.** The source is `failing` when `apiUrl` is set and `/api` has been unreachable for 3 polls in a
-row, and `degraded` for the reasons above. With no `apiUrl` it stays healthy on the inbox loop alone.
+row, and `degraded` for the reasons above and the overlay reasons below. With no `apiUrl` it stays healthy
+on the inbox loop alone.
+
+### Polar overlays and footprints (prompt 054)
+
+Foresignal only **reads** GeoTIFFs that SatDump wrote into a pass folder; it never reimplements SatDump's
+projection, and no SatDump code is involved (SatDump's source was read for file-format facts only).
+
+**The one producer configuration.** No SatDump version has been confirmed for your station yet
+(Weather-Imagery-Design §1.5, question 1), so the documented producer is the default the design names:
+**SatDump 1.2.2**, with a `project` block on each composite you want as an overlay, in the pipeline's
+composite settings:
+
+```json
+"project": {"config": {"type": "equirec", "auto": true}, "img_format": ".tif", "draw_map_overlay": false}
+```
+
+SatDump 1.2.2 then writes `rgb_{composite}_projected.tif` next to the composite: an EPSG:4326 GeoTIFF
+(one tie point, a pixel scale of about 0.016°, `GeographicTypeGeoKey` 4326). `"auto": true` is needed:
+without it, or an explicit `width` and `height`, 1.2.2 logs "No width or height defined for projection!"
+and writes nothing. **SatDump 2.0-alpha ignores a preset's `project` keys**, so a 2.0 station gets
+thumbnails and approximate swaths only, until the 2.0 hook of prompt 107.
+
+**What happens to each GeoTIFF:**
+
+1. The header is checked first: a BigTIFF, more than 150 megapixels or a side over 12,000 px is refused
+   before any pixel is decoded.
+2. Only EPSG:4326 and EPSG:3857 are read (PixelIsArea and PixelIsPoint both; a rotated
+   ModelTransformation is refused); 8-bit RGB/RGBA and 16-bit grayscale. A file without alpha is
+   transparent where every band is zero (or equals `GDAL_NODATA`).
+3. It becomes one frame of the dynamic product `satdump-{station}-{composite}` (the file stem without
+   `_projected`): `rgba8`, `temporal.type` `pass`, coverage `swath`, style `rgb@1`, kept 30 days, tiled
+   like every other product. Processing the same pass again replaces its frame.
+4. Its footprint is the outline of the non-transparent pixels, simplified to about 0.02° and split at
+   ±180°. The `satellite-pass` record's geometry becomes that footprint (`geometrySource: footprint`),
+   and its `products[]` entry gains `productId`, `frameKey` and `tilesTemplate`.
+
+**Approximate swath.** A pass without a usable GeoTIFF (a 2.0 station, a refused file, a failed decode) gets
+an approximate swath: the SGP4 ground track (Orekit) from the TLE in `product.cbor`, between the first and
+last product timestamps, widened by half the swath on each side (`corr_swath` from the product, else
+MSU-MR 2,800 km, AVHRR 2,900 km, MHS 2,200 km). It is a geometry only (`geometrySource: swath`), never
+tiles, and never replaces a footprint. Without a TLE the pass keeps the station point.
+
+**Health reasons** (the source shows `degraded` until a later pass is clean):
+
+| Reason | Fix |
+|---|---|
+| `GeoTIFF CRS EPSG:{n} not supported (build with WITH_GDAL=true)` | Use `"type": "equirec"` (or WebMercator) in the composite's `project`, or build with GDAL |
+| `GeoTIFF ModelTransformation is rotated or sheared (not supported; build with WITH_GDAL=true)` | As above |
+| `BigTIFF not supported.` | Keep overlays under 4 GB, or build with GDAL |
+| `GeoTIFF … px has a side over the 12000 px limit` / `… over the 150 megapixel limit` | Raise `scale_x`/`scale_y` in the projection |
+
+**Optional GDAL.** Build the image with `docker compose build --build-arg WITH_GDAL=true` (or
+`WITH_GDAL=true docker compose build`): it installs `gdal-bin` only (no JNI, no AGPL drivers). Foresignal
+detects `gdalwarp --version` at startup (`FORESIGNAL_RASTER_GDAL_ENABLED`, default `auto`; `false` turns it
+off) and warps refused GeoTIFFs (another CRS, a rotation, BigTIFF) with
+`gdalwarp -t_srs EPSG:4326 -of GTiff -co COMPRESS=DEFLATE`, a 120-second timeout and `GDAL_CACHEMAX=256`,
+on the raster decode pool, with its files only under `rasters/tmp/`.
 
 ### Same host or remote Pi (§4.7)
 
@@ -2341,6 +2406,30 @@ row, and `degraded` for the reasons above. With no `apiUrl` it stays healthy on 
   `${FORESIGNAL_INBOX_DIR}/satdump/{station}` with rsync or Syncthing; the 30-second rescan picks it up
   (inotify is not trusted, so a sync tool that renames into place works). Point `apiUrl` at the Pi if it
   is on your LAN.
+- **Remote Pi that pushes (prompt 054):** when a sync tool is not an option, the Pi can push with the
+  source's `ingestKey` credential (`X-Foresignal-Ingest-Key`, `Authorization: Bearer` or Basic) or an
+  admin token:
+  - `POST /v1/ingest/satdump-home/rasters`: a whole pass folder as `multipart/form-data`, a `meta` part
+    `{"passFolder": "…", "files": ["dataset.json", "product.cbor", "…png", "…tif"], "product": "MSU-MR"}`
+    and one `files` part per file. Each file at most 25 MB, the bundle at most 200 MB (`413
+    MEDIA_TOO_LARGE`); file and folder names are single path segments. `dataset.json` goes to the pass
+    folder and the rest to the `product` directory (default: the single product `dataset.json` lists).
+    The bundle is written atomically to `${FORESIGNAL_DATA_DIR}/rasters/satdump/home/incoming/{uploadId}/`
+    and processed by the next inbox scan exactly like a pass folder; it is deleted after 2 days. Send one
+    bundle per product for a multi-instrument pass. Answers `202 {uploadId, passFolder}`.
+  - `POST /v1/ingest/satdump-home/media`: one image (`file`, at most 25 MB) and
+    `meta {"composite", "timestamp", "satellite", "passId"?}`; it is checked by the image guard, stored
+    with thumbnails and attached to the matching pass (or a new one). Answers
+    `202 {mediaId, sha256, passId}`; `404` while the source's stream is not running.
+
+  Each push costs one unit of the source's budget (`429 RATE_LIMITED` with `Retry-After` when spent).
+  Other sources answer both paths with `404`.
+
+  ```sh
+  curl -H "X-Foresignal-Ingest-Key: $KEY" -F 'meta={"passFolder":"2026-10-12_18-02_meteor","files":["dataset.json","product.cbor","rgb_MSU-MR_221_Composite_projected.tif"],"product":"MSU-MR"};type=application/json' \
+       -F files=@dataset.json -F files=@MSU-MR/product.cbor -F files=@MSU-MR/rgb_MSU-MR_221_Composite_projected.tif \
+       https://foresignal.example/v1/ingest/satdump-home/rasters
+  ```
 
 **Do not use SatDump's webhook plugin** as an ingest path: it posts plain text only.
 
@@ -2359,7 +2448,7 @@ decommissioned in 2025.
 
 | Question | Default until answered |
 |---|---|
-| SatDump version and mode at the station | 2.0.0-alpha headless `legacy autotrack`; fixtures are hand-written from that version's observed keys until a capture replaces them |
+| SatDump version and mode at the station | 2.0.0-alpha headless `legacy autotrack` for `/api` and the inbox; fixtures are hand-written from that version's observed keys until a capture replaces them. The polar overlay producer is documented for 1.2.2 (054, the design's default when unanswered); a 2.0 station gets approximate swaths only |
 | Bench server or remote Pi | Both work; the remote Pi with rsync/Syncthing is the documented default |
 | L-band dish for GOES HRIT, 137 MHz antenna | Both decoders are built; whatever arrives is used |
 | 32 GB or 64 GB host | `small` profile |

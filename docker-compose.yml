@@ -43,7 +43,11 @@ services:
     restart: unless-stopped
 
   foresignal:
-    build: .
+    build:
+      context: .
+      args:
+        # Prompt 054: WITH_GDAL=true installs gdal-bin for SatDump GeoTIFFs in another CRS or BigTIFF.
+        WITH_GDAL: ${WITH_GDAL:-false}
     environment:
       FORESIGNAL_DB_URL: jdbc:postgresql://db:5432/foresignal
       FORESIGNAL_DB_USER: foresignal

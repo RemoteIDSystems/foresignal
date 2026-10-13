@@ -56,6 +56,21 @@ public record AffineGrid(int nx, int ny, boolean mercator, double[] gt, double[]
         }
         double x = mercator ? R * Math.toRadians(GridDef.normalizeLon(lon)) : lon;
         double y = mercator ? R * Math.log(Math.tan(Math.PI / 4 + Math.toRadians(lat) / 2)) : lat;
+        double[] index = index(x, y);
+        if (index == null) {
+            // Prompt 054: a grid whose longitudes run past ±180° (a SatDump pass over the Bering Sea) is
+            // looked up one turn east or west.
+            double turn = mercator ? 2 * Math.PI * R : 360;
+            index = index(x + turn, y);
+            if (index == null) {
+                index = index(x - turn, y);
+            }
+        }
+        return index == null ? GridDef.nowhere() : index;
+    }
+
+    /** The continuous cell index of the projected point, or null when it is outside the grid. */
+    private double[] index(double x, double y) {
         double det = gt[1] * gt[5] - gt[2] * gt[4];
         double u = x - gt[0];
         double v = y - gt[3];
@@ -63,7 +78,7 @@ public record AffineGrid(int nx, int ny, boolean mercator, double[] gt, double[]
         double row = (-gt[4] * u + gt[1] * v) / det;
         double i = col - 0.5;
         double j = row - 0.5;
-        return GridDef.inside(i, j, nx, ny) ? new double[] {i, j} : GridDef.nowhere();
+        return GridDef.inside(i, j, nx, ny) ? new double[] {i, j} : null;
     }
 
     @Override

@@ -62,6 +62,7 @@ public class RasterPipeline implements RasterSinkFactory {
     private final ObjectProvider<FlashStore> flashes;
     private final RasterPaths paths;
     private final ai.foresignal.raster.model.FieldStore fieldStore;
+    private final ObjectProvider<ai.foresignal.raster.geotiff.GdalWarp> gdal;
 
     /**
      * Creates the pipeline.
@@ -69,11 +70,14 @@ public class RasterPipeline implements RasterSinkFactory {
      * @param flashes the GLM flash store behind {@code ctx.rasters().flashes()} (prompt 048), resolved
      *     lazily; null for none
      * @param fieldStore writes the God's Eye View wind fields of global field products (prompt 051)
+     * @param gdal the optional {@code gdalwarp} path behind {@link RasterSink#warpToWgs84} (prompt 054),
+     *     resolved lazily; null for none
      */
     public RasterPipeline(ProductRegistry registry, FrameStore store, GridStore grids, RasterFrameQueries frames,
             RasterDecodePool pool, ProductStatusTracker status, ProductUrls urls, ApplicationEventPublisher events,
             JsonMapper json, Clock clock,
-            ObjectProvider<FlashStore> flashes, RasterPaths paths, ai.foresignal.raster.model.FieldStore fieldStore) {
+            ObjectProvider<FlashStore> flashes, RasterPaths paths, ai.foresignal.raster.model.FieldStore fieldStore,
+            ObjectProvider<ai.foresignal.raster.geotiff.GdalWarp> gdal) {
         this.registry = registry;
         this.store = store;
         this.grids = grids;
@@ -87,6 +91,7 @@ public class RasterPipeline implements RasterSinkFactory {
         this.flashes = flashes;
         this.paths = paths;
         this.fieldStore = fieldStore;
+        this.gdal = gdal;
     }
 
     /** The flash store, or throws when none is installed. */
@@ -218,6 +223,28 @@ public class RasterPipeline implements RasterSinkFactory {
         } catch (IOException e) {
             throw new AdapterException("Could not write provenance file " + relativePath + ": " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * Warps a GeoTIFF to EPSG:4326 with the optional GDAL; see {@link RasterSink#warpToWgs84}.
+     *
+     * @throws AdapterException when the warp failed
+     */
+    public java.util.Optional<byte[]> warpToWgs84(byte[] geotiff) throws AdapterException {
+        ai.foresignal.raster.geotiff.GdalWarp warp = gdal == null ? null : gdal.getIfAvailable();
+        if (warp == null) {
+            return java.util.Optional.empty();
+        }
+        try {
+            return warp.warpToWgs84(geotiff);
+        } catch (IOException e) {
+            throw new AdapterException("gdalwarp failed: " + e.getMessage(), e);
+        }
+    }
+
+    /** The upload area {@code rasters/satdump/}; see {@link RasterSink#uploads}. */
+    public ai.foresignal.source.spi.InboxAccess uploads() {
+        return ai.foresignal.source.InboxFiles.rootedAt(paths.root().resolve("satdump"));
     }
 
     /** Records a silent format change of {@code productId} for {@code sourceId}. */
@@ -362,6 +389,16 @@ public class RasterPipeline implements RasterSinkFactory {
         public void storeProvenance(String relativePath, byte[] content) throws AdapterException {
             RasterPipeline.this.storeProvenance(relativePath, content);
         }
+
+        @Override
+        public java.util.Optional<byte[]> warpToWgs84(byte[] geotiff) throws AdapterException {
+            return RasterPipeline.this.warpToWgs84(geotiff);
+        }
+
+        @Override
+        public ai.foresignal.source.spi.InboxAccess uploads() {
+            return RasterPipeline.this.uploads();
+        }
     }
 
     /**
@@ -432,6 +469,11 @@ public class RasterPipeline implements RasterSinkFactory {
         @Override
         public void storeProvenance(String relativePath, byte[] content) {
             // A probe writes nothing.
+        }
+
+        @Override
+        public ai.foresignal.source.spi.InboxAccess uploads() {
+            return RasterPipeline.this.uploads();
         }
 
         @Override

@@ -67,6 +67,8 @@ dependencies {
     implementation(libs.netcdf.cdm.core)
     implementation(libs.netcdf.grib)
     runtimeOnly(libs.libaec.native)
+    // SGP4 approximate swaths of SatDump passes (054), loaded only on that code path.
+    implementation(libs.orekit)
     runtimeOnly(libs.postgresql)
 
     testImplementation(platform(libs.testcontainers.bom))

@@ -232,6 +232,11 @@
         "version": "1.3.0",
         "date": "2026-10-12",
         "note": "053: no new operations. Record x-foresignal-kinds gains nws-forecast (nws-gridpoints) and storm-report (spc-storm-reports); place-weather documents precip.qpe1hMmMax, qpe24hMmMax, ffgRatio1hPctMax and forecast.nws; wx-area accepts the fields rotation, qpe1h and ffg. StormReportPayload: wind magnitude is mph (the SPC CSV, verified 2026-10-13), not knots; magnitudeUnits is EF, mph or in. NwsForecastPayload records carry no geometry. Product examples: mrms-qpe-1h and mrms-ffg-ratio-1h maxGap 30m, mrms-qpe-24h maxGap 150m (files arrive about 59 minutes after their valid time), maxZoomForAnimation 7 on the four second-wave MRMS products. ForecastSeries gains the nws provider (a place's cached 72-hour series; status stale after 6 h)."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-13",
+        "note": "054: ingestSourceMedia and ingestSourceRasters are implemented (scope open; the ingest key, or an admin token, is checked by the endpoint). A satdump-{station} source holds the key a remote station presents as its `ingestKey` credential, since built-in sources have no minted ingest key. RemoteRasterBundleMeta gains the optional `product` (the product directory of the bundle's files). /media answers 404 when the station's stream is not running, and both endpoints 429 RATE_LIMITED when the source's budget is spent. SatellitePassPayload gains `geometrySource` (footprint | swath; absent for the station point) and documents products[].productId, frameKey and tilesTemplate (polar overlays `satdump-{station}-{composite}`, temporal.type pass, coverage swath, style rgb@1, ladder 30 d) plus instrument and mediaId (049)."
       }
     ]
   },
@@ -30678,7 +30683,7 @@
         ],
         "operationId": "ingestSourceMedia",
         "summary": "Push a decoded image (remote station)",
-        "description": "A single image plus `meta`; passes ImageGuard before decoding, is stored with 256/1024 px thumbnails and attaches to the matching pass by the 049 join rule, else mints a pass. `media` is a reserved segment that never routes to an IngestFormat. Counts against the source's LAN budget.\n\n**Scope:** `open` (the source's ingest key, or an admin token, is checked by the endpoint).",
+        "description": "A single image (`file`, PNG, JPEG or TIFF, ≤ 25 MB) plus `meta`. The running station passes it through ImageGuard before decoding, stores it with 256/1024 px thumbnails and attaches it to the matching pass: `meta.passId` when the station knows that pass, else the 049 join rule (same satellite, timestamp inside [first lock − 5 min, LOS + 5 min]), else a pass minted from the image; the pass gets a new `decoded` version. Only sources whose descriptor accepts remote media (the `satdump-{station}` family) answer; any other source, or a station whose stream is not running, is 404. `media` is a reserved segment that never routes to an IngestFormat. Each push costs one unit of the source's budget (429 `RATE_LIMITED` with `Retry-After` when spent). Syncing SatDump's output into the inbox (rsync or Syncthing) remains the recommended remote path.\n\n**Scope:** `open` (the source's ingest key, or an admin token, is checked by the endpoint). A `satdump-{station}` source has no minted ingest key: the operator stores the key a remote station presents as the source's `ingestKey` credential (`PUT /v1/sources/{id}/credentials`).",
         "requestBody": {
           "required": true,
           "content": {
@@ -30780,7 +30785,7 @@
         },
         "x-foresignal-scope": "open",
         "x-foresignal-prompt": "054",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "ingestKey": []
@@ -30816,7 +30821,7 @@
         ],
         "operationId": "ingestSourceRasters",
         "summary": "Push a pass bundle (remote station)",
-        "description": "A `meta` part `{passFolder, files[]}` plus file parts (`dataset.json`, `product.cbor`, PNG, TIF), each ≤ 25 MB and ≤ 200 MB in total, written atomically to an incoming folder that the inbox loop processes like a ready pass. `rasters` is a reserved segment that never routes to an IngestFormat.\n\n**Scope:** `open` (the source's ingest key, or an admin token, is checked by the endpoint).",
+        "description": "A `meta` part `{passFolder, files[], product?}` plus file parts named `files` (`dataset.json`, `product.cbor`, PNG, JPEG, TIF), each ≤ 25 MB and ≤ 200 MB in total (413 `MEDIA_TOO_LARGE`). Names are single safe path segments (no separators, no `..`, no leading dot); every listed file needs a part and every part must be listed; images pass the ImageGuard header check (400). `dataset.json` is placed in the pass folder and every other file in the product directory: `product` when given, else the single product `dataset.json` lists, else the pass folder itself. The bundle is written atomically to `${FORESIGNAL_DATA_DIR}/rasters/satdump/{station}/incoming/{uploadId}/` (the inbox mount is read-only); the station's inbox loop processes it like a ready pass folder on its next scan (composites, thumbnails, provenance, polar GeoTIFF overlays, footprint or approximate swath) and the copy expires after 2 days. Only `satdump-{station}` sources answer; others are 404. `rasters` is a reserved segment that never routes to an IngestFormat. Each push costs one unit of the source's budget.\n\n**Scope:** `open` (the source's ingest key, or an admin token, is checked by the endpoint). The ingest key of a `satdump-{station}` source is its `ingestKey` credential.",
         "requestBody": {
           "required": true,
           "content": {
@@ -30918,7 +30923,7 @@
         },
         "x-foresignal-scope": "open",
         "x-foresignal-prompt": "054",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "ingestKey": []
@@ -109442,7 +109447,7 @@
         "properties": {
           "passFolder": {
             "type": "string",
-            "description": "Pass folder name (sanitised)"
+            "description": "Pass folder name: one safe path segment (no separators, no `..`, no leading dot), at most 128 characters"
           },
           "files": {
             "type": "array",
@@ -109452,6 +109457,13 @@
             },
             "description": "Filenames of the file parts (no separators, no `..`)",
             "minItems": 1
+          },
+          "product": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Product directory for every file except `dataset.json` (one safe path segment, for example `MSU-MR`); default: the single product `dataset.json` lists, else the pass folder. Send one bundle per product for a multi-instrument pass."
           }
         },
         "required": [
@@ -110923,7 +110935,7 @@
       },
       "SatellitePassPayload": {
         "type": "object",
-        "description": "Payload of `satellite-pass` records (externalId `{station}:{satKey}:{aosEpochMinute}`); geometry: footprint → swath → station point",
+        "description": "Payload of `satellite-pass` records (externalId `{station}:{satKey}:{aosEpochMinute}`); geometry: polar GeoTIFF footprint → approximate SGP4 swath → station point (054), named by `geometrySource`",
         "properties": {
           "status": {
             "type": "string",
@@ -111041,13 +111053,15 @@
               "description": "Decoded product",
               "properties": {
                 "productId": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "The polar overlay product `satdump-{station}-{composite}` (054); present when the composite has a GeoTIFF overlay"
                 },
                 "frameKey": {
                   "type": [
                     "string",
                     "null"
-                  ]
+                  ],
+                  "description": "The overlay frame's content-addressed key (054)"
                 },
                 "composite": {
                   "type": "string"
@@ -111068,6 +111082,19 @@
                     "null"
                   ],
                   "description": "Content-addressed tile template (054 polar overlays)"
+                },
+                "instrument": {
+                  "type": "string"
+                },
+                "mediaId": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/Ulid"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
                 }
               },
               "required": [
@@ -111092,6 +111119,14 @@
           },
           "attribution": {
             "$ref": "#/components/schemas/Attribution"
+          },
+          "geometrySource": {
+            "type": "string",
+            "enum": [
+              "footprint",
+              "swath"
+            ],
+            "description": "Present when the record geometry is not the station point: `footprint` (the alpha-mask outline of the pass's polar GeoTIFF overlays, 054) or `swath` (an approximate SGP4 swath from the TLE, used when no GeoTIFF was usable; never tiled)"
           }
         },
         "required": [
@@ -111125,10 +111160,13 @@
               {
                 "productId": "satdump-home-msu-mr-rgb-221",
                 "composite": "msu_mr_rgb_221",
-                "thumbMediaId": "01JA8Q3V7S2K9W4T6Y1B5N0M3C"
+                "thumbMediaId": "01JA8Q3V7S2K9W4T6Y1B5N0M3C",
+                "frameKey": "20261010T194600Z~3fa85c21",
+                "tilesTemplate": "https://foresignal.example/v1/products/satdump-home-msu-mr-rgb-221/tiles/20261010T194600Z~3fa85c21/{z}/{x}/{y}.png?style=rgb@1"
               }
             ],
-            "title": "Meteor-M2-3 pass, max el 54°"
+            "title": "Meteor-M2-3 pass, max el 54°",
+            "geometrySource": "footprint"
           }
         ]
       },

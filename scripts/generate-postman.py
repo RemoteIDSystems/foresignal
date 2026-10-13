@@ -110,6 +110,29 @@ RAW_BODIES = {
                       "ADF7C8,N456CD,\"Medevac, county\",medical\n", "text"),
 }
 
+# multipart/form-data bodies (054, the remote SatDump pushes): Postman formdata entries. File parts are
+# placeholders (src empty): pick the files in Postman before sending. Postman sets the boundary itself, so
+# no Content-Type header is added.
+FORMDATA_BODIES = {
+  "ingestSourceMedia": [
+    {"key": "meta", "type": "text", "contentType": "application/json",
+     "value": json.dumps({"composite": "msu_mr_rgb_221", "timestamp": "2026-10-12T18:02:10Z",
+                          "satellite": "METEOR-M2 3"})},
+    {"key": "file", "type": "file", "src": "", "description": "PNG, JPEG or TIFF, at most 25 MB"},
+  ],
+  "ingestSourceRasters": [
+    {"key": "meta", "type": "text", "contentType": "application/json",
+     "value": json.dumps({"passFolder": "2026-10-12_18-02_meteor_m2-x_lrpt_137.9 MHz",
+                          "files": ["dataset.json", "product.cbor", "rgb_MSU-MR_221_Composite.png",
+                                    "rgb_MSU-MR_221_Composite_projected.tif"],
+                          "product": "MSU-MR"})},
+    {"key": "files", "type": "file", "src": "", "description": "dataset.json"},
+    {"key": "files", "type": "file", "src": "", "description": "product.cbor"},
+    {"key": "files", "type": "file", "src": "", "description": "rgb_MSU-MR_221_Composite.png"},
+    {"key": "files", "type": "file", "src": "", "description": "rgb_MSU-MR_221_Composite_projected.tif (EPSG:4326 GeoTIFF)"},
+  ],
+}
+
 # Request headers for operations that need more than the generic ones (024).
 EXTRA_HEADERS = {
   "ntfyPublish": [("X-Title", "Proxmox"), ("X-Priority", "high"), ("X-Tags", "backup,id=pve1-backup")],
@@ -450,7 +473,9 @@ def req_item(path, method, op):
         request["auth"] = {"type": "noauth"}
     for key, value in EXTRA_HEADERS.get(opid, []):
         request["header"].append({"key": key, "value": value})
-    if opid in RAW_BODIES:
+    if opid in FORMDATA_BODIES:
+        request["body"] = {"mode": "formdata", "formdata": FORMDATA_BODIES[opid]}
+    elif opid in RAW_BODIES:
         ctype, raw_body, language = RAW_BODIES[opid]
         request["header"].append({"key": "Content-Type", "value": ctype})
         request["body"] = {"mode": "raw", "raw": raw_body, "options": {"raw": {"language": language}}}

@@ -10,15 +10,17 @@ import java.util.Set;
 import org.springframework.stereotype.Component;
 
 /**
- * Every registered {@link IngestFormat}, by id, plus the names reserved for later prompts.
+ * Every registered {@link IngestFormat}, by id, plus the reserved names.
  *
- * <p>{@code media} and {@code rasters} belong to prompt 054 and {@code mapping-preview} to prompt
- * 059; they are listed as reserved and cannot be registered by anything else.
+ * <p>{@code media} and {@code rasters} are the remote SatDump push endpoints of prompt 054
+ * ({@code ingestSourceMedia}, {@code ingestSourceRasters}), whose literal path segments win over
+ * {@code /v1/ingest/{sourceId}/{format}}; {@code mapping-preview} belongs to prompt 059. They are listed
+ * as reserved and cannot be registered by any format.
  */
 @Component
 public class IngestFormatRegistry {
 
-    /** Format names reserved for later prompts. */
+    /** Format names no format may take: the 054 push endpoints and 059's mapping preview. */
     public static final Set<String> RESERVED = Set.of("media", "rasters", "mapping-preview");
 
     /** The format used by {@code POST /v1/ingest/{sourceId}}. */

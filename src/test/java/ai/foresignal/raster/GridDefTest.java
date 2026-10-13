@@ -151,6 +151,20 @@ class GridDefTest {
     }
 
     @Test
+    @DisplayName("054: an EPSG:4326 affine grid running past 180° (a Bering Sea pass) is found one turn east")
+    void affinePastAntimeridian() {
+        GridDef grid = GridDef.of(new GridDefinition(GridDefinition.AFFINE, 120, 160, 165, 30, -165, 70, Map.of(
+                "crs", "EPSG:4326", "gt0", 165.0, "gt1", 0.25, "gt2", 0.0, "gt3", 70.0, "gt4", 0.0, "gt5", -0.25)));
+        double[] west = grid.lonLatToIndex(170.0, 60.0);
+        assertThat(west[0]).isCloseTo(19.5, within(1e-9));
+        double[] east = grid.lonLatToIndex(-170.0, 60.0);
+        assertThat(east[0]).as("190°E is column 100").isCloseTo(99.5, within(1e-9));
+        assertThat(east[1]).isCloseTo(39.5, within(1e-9));
+        assertThat(grid.lonLatToIndex(0.0, 60.0)[0]).isNaN();
+        assertThat(grid.indexToLonLat(99.5, 39.5)[0]).isCloseTo(-170.0, within(1e-9));
+    }
+
+    @Test
     @DisplayName("missing or invalid parameters are refused")
     void refusals() {
         assertThatThrownBy(() -> GridDef.of(new GridDefinition(GridDefinition.GEOS, 10, 10, -10, -10, 10, 10,

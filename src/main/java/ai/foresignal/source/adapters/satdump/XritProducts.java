@@ -49,6 +49,14 @@ public final class XritProducts {
         String r = region == null || region.isBlank() ? FULL_DISK : SatNames.slug(region);
         String id = "satdump-" + SatNames.slug(station) + "-" + SatNames.slug(satKey) + "-" + (r.isEmpty() ? FULL_DISK : r)
                 + "-" + (SatNames.slug(channel).isEmpty() ? "ch" : SatNames.slug(channel));
+        return bounded(id);
+    }
+
+    /**
+     * {@code id} with repeated hyphens collapsed, at most 64 characters: a longer one keeps its first 57
+     * characters and appends a 6-hex hash of the whole (prompt 054 shares it for polar overlays).
+     */
+    public static String bounded(String id) {
         id = id.replaceAll("-+", "-");
         if (id.length() <= 64) {
             return id;

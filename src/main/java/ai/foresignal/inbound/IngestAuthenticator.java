@@ -6,10 +6,14 @@ import ai.foresignal.inbound.format.IngestFormatRegistry;
 import ai.foresignal.inbound.signature.VerifierConfig;
 import ai.foresignal.security.IngestCaller;
 import ai.foresignal.security.IngestKeyAuthenticator;
+import ai.foresignal.source.CredentialsAccess;
+import ai.foresignal.source.SourceRegistry;
+import ai.foresignal.source.spi.SourceDescriptor;
 import jakarta.servlet.http.HttpServletRequest;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Optional;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 
@@ -45,6 +49,12 @@ import org.springframework.stereotype.Component;
  *       An {@code eik_} key in the path is accepted here and refused later with {@code 404} unless the
  *       source sets {@code allowPathKey} ({@link InboundRequests}).
  * </ul>
+ *
+ * <p>Prompt 054: a built-in source that {@code acceptsRemoteMedia} (the {@code satdump-*} family) has no
+ * custom-source row and so no minted ingest key. On its own {@code /v1/ingest/{sourceId}/media} and
+ * {@code /rasters} paths, a key that matches no custom source is compared, in constant time, with the
+ * source's encrypted {@code ingestKey} credential ({@link SourceDescriptor#REMOTE_MEDIA_KEY}); a match
+ * is an ingest-key caller bound to that source.
  */
 @Component
 public class IngestAuthenticator implements IngestKeyAuthenticator {
@@ -59,14 +69,24 @@ public class IngestAuthenticator implements IngestKeyAuthenticator {
     private final CustomSourceVerifiers verifiers;
     private final IngestKeys keys;
     private final IngestDeviceService devices;
+    private final ObjectProvider<SourceRegistry> registry;
+    private final ObjectProvider<CredentialsAccess> credentials;
 
-    /** Creates the authenticator. */
+    /**
+     * Creates the authenticator.
+     *
+     * @param registry the sources, for the remote-media key (prompt 054), resolved lazily
+     * @param credentials the decrypted credentials, for the remote-media key (prompt 054), resolved lazily
+     */
     public IngestAuthenticator(CustomSourceRepository repository, CustomSourceVerifiers verifiers, IngestKeys keys,
-            IngestDeviceService devices) {
+            IngestDeviceService devices, ObjectProvider<SourceRegistry> registry,
+            ObjectProvider<CredentialsAccess> credentials) {
         this.repository = repository;
         this.verifiers = verifiers;
         this.keys = keys;
         this.devices = devices;
+        this.registry = registry;
+        this.credentials = credentials;
     }
 
     @Override
@@ -90,6 +110,12 @@ public class IngestAuthenticator implements IngestKeyAuthenticator {
             return Result.rejected("The presented ingest key is not valid.");
         }
         Optional<CustomSourceEntity> row = repository.findByIngestKeyHash(keys.hash(credential.key()));
+        if (row.isEmpty()) {
+            Optional<Result> remote = remoteMediaKey(credential.key(), path);
+            if (remote.isPresent()) {
+                return remote.get();
+            }
+        }
         if (row.isEmpty() || !keys.matches(credential.key(), row.get().getIngestKeyHash())) {
             return Result.rejected("The presented ingest key is not valid.");
         }
@@ -99,6 +125,38 @@ public class IngestAuthenticator implements IngestKeyAuthenticator {
         }
         String prefix = row.get().getIngestKeyPrefix();
         return Result.accepted(new IngestCaller(credential.via(), sourceId, credential.via() + ":" + prefix, prefix));
+    }
+
+    /**
+     * Prompt 054: the {@code ingestKey} credential of a source that accepts remote media, on that source's
+     * own {@code media} or {@code rasters} path only.
+     */
+    Optional<Result> remoteMediaKey(String key, IngestPath path) {
+        if (path.sourceId() == null || path.keyInPath() || path.compat() != null
+                || !SourceDescriptor.REMOTE_MEDIA_SEGMENTS.contains(path.format())) {
+            return Optional.empty();
+        }
+        SourceRegistry sources = registry == null ? null : registry.getIfAvailable();
+        CredentialsAccess access = credentials == null ? null : credentials.getIfAvailable();
+        if (sources == null || access == null) {
+            return Optional.empty();
+        }
+        Optional<SourceRegistry.Registration> source = sources.find(path.sourceId());
+        if (source.isEmpty() || !source.get().descriptor().acceptsRemoteMedia()) {
+            return Optional.empty();
+        }
+        String stored;
+        try {
+            stored = access.forSource(path.sourceId()).get(SourceDescriptor.REMOTE_MEDIA_KEY);
+        } catch (RuntimeException e) {
+            return Optional.empty();
+        }
+        if (stored == null || stored.isBlank() || !keys.matches(key, keys.hash(stored.strip()))) {
+            return Optional.empty();
+        }
+        String prefix = IngestKeys.prefixOf(key);
+        return Optional.of(Result.accepted(new IngestCaller(IngestCaller.INGEST_KEY, path.sourceId(),
+                IngestCaller.INGEST_KEY + ":" + prefix, prefix)));
     }
 
     /**

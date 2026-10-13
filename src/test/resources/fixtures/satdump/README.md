@@ -32,6 +32,29 @@ reading the SatDump source for *format facts only* (GPL-3.0; no code, headers or
 | `coastline-points.csv` | Coastline points with their visibility from GOES-19, GOES-18 and Elektro-L 4, checked against a great-circle limb of 81.3° |
 | `generate-synthetic.py` | Writes every file above (Pillow for the PNGs, a minimal CBOR encoder): `python3 generate-synthetic.py src/test/resources/fixtures/satdump` |
 
+## `1.2.2/`: polar overlay producer (prompt 054)
+
+**`synthetic: true` — written by `generate-geotiff.py`** (standard library only), not captured: no
+SatDump version has been confirmed for the owner's station (Weather-Imagery-Design §1.5), so prompt 054
+documents the design's default producer, SatDump 1.2.2's composite `project` block
+(`{"config": {"type": "equirec", "auto": true}, "img_format": ".tif", "draw_map_overlay": false}`). The
+GeoTIFFs carry the same tags SatDump 1.2.2's GeoTIFF writer emits for that projection, read in the SatDump
+1.2.2 source for format facts only (`src-core/common/projection/geotiff/geotiff_write.cpp`,
+`src-core/common/image/io/tiffio.cpp`, `src-core/products/processor/image_processor.cpp`; no code copied):
+one ModelTiepoint at raster (0, 0), ModelPixelScale `(scale_x, scale_y, 0)`, `GTModelTypeGeoKey` 2,
+`GeogAngularUnitsGeoKey` 9102 and `GeographicTypeGeoKey` 4326; uncompressed strips, PlanarConfig 1, 8-bit
+RGB with zero outside the swath; the file is named `rgb_{composite}_projected.tif` next to the composite.
+
+| File | What it is |
+|---|---|
+| `1.2.2/pass/2026-10-12_18-02_meteor_m2-x_lrpt_137.9 MHz/` | A Meteor pass over Texas: `dataset.json`, `MSU-MR/product.cbor` (the CelesTrak GP TLE of Meteor-M2-3 for epoch 2026-10-12T22:16Z, `corr_swath` 2800, 61 line timestamps 10 s apart), a channel PNG, the composite PNG, and `rgb_MSU-MR_221_Composite_projected.tif` (120 × 160 px at 0.25°, 110°W–80°W, 2°N–42°N, a slanted swath band) |
+| `1.2.2/pass-bering/2026-10-12_09-40_meteor_m2-x_lrpt_137.9 MHz/` | A Bering Sea pass whose GeoTIFF starts at 165°E and runs 30° east, past 180° (the antimeridian split) |
+| `generate-geotiff.py` | Writes both: `python3 generate-geotiff.py src/test/resources/fixtures/satdump` |
+
+Replace with a capture from the owner's station (a pass folder with one projected composite, downscaled to
+at most 200 px on the long edge with the tie point and pixel scale adjusted to match) once the version is
+confirmed.
+
 ## Capture procedure (replace the synthetic set)
 
 Once the owner names the pinned version, capture a set into `{version}/` and keep this one until no

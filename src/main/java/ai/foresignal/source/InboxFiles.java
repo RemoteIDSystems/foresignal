@@ -45,6 +45,16 @@ public class InboxFiles implements InboxAccess {
         this.root = root.toAbsolutePath().normalize();
     }
 
+    /**
+     * Reads files under another Foresignal-owned root with the same checks (prompt 054: the SatDump
+     * upload area {@code rasters/satdump/}).
+     *
+     * @param root the root every path must stay inside
+     */
+    public static InboxFiles rootedAt(Path root) {
+        return new InboxFiles(root);
+    }
+
     /** The inbox root, as an absolute normalized path. */
     @Override
     public Path root() {

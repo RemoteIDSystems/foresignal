@@ -72,6 +72,21 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return handleExceptionInternal(e, problem, new HttpHeaders(), HttpStatus.BAD_REQUEST, request);
     }
 
+    /**
+     * A multipart request over the container's limits (prompt 054, remote SatDump pushes):
+     * {@code 413 MEDIA_TOO_LARGE}.
+     */
+    @Override
+    protected ResponseEntity<Object> handleMaxUploadSizeExceededException(
+            org.springframework.web.multipart.MaxUploadSizeExceededException e,
+            HttpHeaders headers,
+            HttpStatusCode status,
+            WebRequest request) {
+        ProblemDetail problem = problem(HttpStatus.CONTENT_TOO_LARGE, ErrorCodes.MEDIA_TOO_LARGE,
+                "The upload is larger than the server accepts.");
+        return handleExceptionInternal(e, problem, headers, HttpStatus.CONTENT_TOO_LARGE, request);
+    }
+
     // ---------- Validation from the framework ----------
 
     @Override

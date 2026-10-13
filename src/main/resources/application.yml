@@ -36,6 +36,14 @@ spring:
   threads:
     virtual:
       enabled: true
+  servlet:
+    multipart:
+      # Remote SatDump pushes (054): POST /v1/ingest/{sourceId}/media and /rasters. The endpoints cap each
+      # file at 25 MB and a bundle at 200 MB themselves (413 MEDIA_TOO_LARGE); these container limits sit
+      # just above, and parts over 1 MB are spooled to java.io.tmpdir rather than held in memory.
+      max-file-size: 200MB
+      max-request-size: 201MB
+      file-size-threshold: 1MB
   mvc:
     async:
       # SSE streams are long-lived; MVC must not time them out.
@@ -109,6 +117,11 @@ foresignal:
     orphan-grace: 10m
     # The GLM ring (048): aoi (the places AOI) or conus (large profile only; the small profile stays on aoi).
     glm-ring-scope: ${FORESIGNAL_RASTER_GLM_RING_SCOPE:aoi}
+    gdal:
+      # The optional gdalwarp path for GeoTIFFs in another CRS or BigTIFF (054; the image must be built
+      # with WITH_GDAL=true): auto (use it when `gdalwarp --version` works), true (the same, warning when
+      # it is missing) or false.
+      enabled: ${FORESIGNAL_RASTER_GDAL_ENABLED:auto}
   media:
     # The media store (043). ImageGuard refuses larger files; MediaStore answers 413 MEDIA_TOO_LARGE.
     max-file-bytes: ${FORESIGNAL_MEDIA_MAX_FILE_BYTES:25MB}

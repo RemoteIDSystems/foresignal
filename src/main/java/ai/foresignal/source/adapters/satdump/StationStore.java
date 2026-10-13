@@ -22,7 +22,11 @@ import tools.jackson.databind.json.JsonMapper;
  *   <li>{@value #PASSES}: the pending and recent passes;
  *   <li>{@value #WATCHES} and {@value #PROCESSED}: inbox folder signatures and processed folders;
  *   <li>{@value #XRIT_FOLDERS} and {@value #XRIT_PRODUCTS}: xRIT folders in progress and the dynamic
- *       products to register again on restart.
+ *       products to register again on restart;
+ *   <li>{@value #UPLOAD_WATCHES} and {@value #UPLOAD_PROCESSED}: the same for remote pass bundles under
+ *       {@code rasters/satdump/{station}/incoming/} (prompt 054);
+ *   <li>{@value #POLAR_PRODUCTS}: the polar overlay products (id to composite) to register again on
+ *       restart (prompt 054).
  * </ul>
  *
  * <p>Each value is JSON. A value that cannot be read is logged and treated as absent, so a format change
@@ -47,11 +51,36 @@ public final class StationStore {
     /** The processed pass folders. */
     public static final String PROCESSED = "inbox.processed";
 
+    /** The remote upload watches (prompt 054). */
+    public Map<String, InboxScanner.Watch> uploadWatches() {
+        return read(UPLOAD_WATCHES, new TypeReference<LinkedHashMap<String, InboxScanner.Watch>>() {},
+                new LinkedHashMap<>());
+    }
+
+    /** The processed remote uploads (prompt 054). */
+    public Map<String, String> uploadProcessed() {
+        return read(UPLOAD_PROCESSED, new TypeReference<LinkedHashMap<String, String>>() {}, new LinkedHashMap<>());
+    }
+
+    /** The polar overlay products, id to composite (prompt 054). */
+    public Map<String, String> polarProducts() {
+        return read(POLAR_PRODUCTS, new TypeReference<LinkedHashMap<String, String>>() {}, new LinkedHashMap<>());
+    }
+
     /** The xRIT folders. */
     public static final String XRIT_FOLDERS = "xrit.folders";
 
     /** The dynamic xRIT products. */
     public static final String XRIT_PRODUCTS = "xrit.products";
+
+    /** The remote upload folder watches (prompt 054). */
+    public static final String UPLOAD_WATCHES = "uploads.watches";
+
+    /** The processed remote upload folders (prompt 054). */
+    public static final String UPLOAD_PROCESSED = "uploads.processed";
+
+    /** The polar overlay products, id to composite (prompt 054). */
+    public static final String POLAR_PRODUCTS = "polar.products";
 
     /** RF session summaries kept. */
     public static final int MAX_SESSIONS = 50;

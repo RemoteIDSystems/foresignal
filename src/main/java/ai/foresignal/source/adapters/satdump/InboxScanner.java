@@ -90,6 +90,20 @@ public final class InboxScanner {
 
     private final Map<String, Watch> watches = new LinkedHashMap<>();
     private final Map<String, String> processed = new LinkedHashMap<>();
+    private final int stableScans;
+
+    /** A scanner for SatDump's output directory: a pass folder is ready after {@value #STABLE_SCANS} unchanged scans. */
+    public InboxScanner() {
+        this(STABLE_SCANS);
+    }
+
+    /**
+     * A scanner whose pass folders are ready after {@code stableScans} unchanged scans; 0 for the remote
+     * upload area (prompt 054), where an upload appears complete in one atomic rename.
+     */
+    public InboxScanner(int stableScans) {
+        this.stableScans = stableScans;
+    }
 
     /** The watches, for persistence. */
     public Map<String, Watch> watches() {
@@ -155,7 +169,7 @@ public final class InboxScanner {
             Folder folder = new Folder(relative, found.path, signature, Instant.ofEpochMilli(current.lastChange()), files);
             if (found.xrit) {
                 xrit.add(folder);
-            } else if (current.stableScans() >= STABLE_SCANS && !signature.equals(processed.get(relative))) {
+            } else if (current.stableScans() >= stableScans && !signature.equals(processed.get(relative))) {
                 ready.add(folder);
             }
         }

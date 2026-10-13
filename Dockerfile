@@ -17,9 +17,15 @@ RUN ./gradlew bootJar -x test --no-daemon
 # ---- Runtime stage -----------------------------------------------------------
 FROM eclipse-temurin:21-jre AS runtime
 
+# Prompt 054: optional GDAL for SatDump GeoTIFFs in another CRS or BigTIFF. Off by default; build with
+# --build-arg WITH_GDAL=true to install gdal-bin only (the gdalwarp program: no JNI binding, no AGPL
+# drivers). Foresignal runs it as a subprocess (foresignal.raster.gdal.enabled, default auto).
+ARG WITH_GDAL=false
+
 # curl for the compose healthcheck on /actuator/health/readiness (019).
 RUN apt-get update \
  && apt-get install -y --no-install-recommends curl \
+ && if [ "$WITH_GDAL" = "true" ]; then apt-get install -y --no-install-recommends gdal-bin; fi \
  && rm -rf /var/lib/apt/lists/*
 
 RUN groupadd --system --gid 1001 foresignal \

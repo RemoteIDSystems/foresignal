@@ -91,6 +91,9 @@ import java.util.Set;
  * @param kindPresentation layer presentation hints per kind ({@code color}, {@code icon},
  *     {@code labelField}, {@code minZoom}, {@code maxZoom}, {@code tileProperties}), exposed in the
  *     kind's TileJSON as {@code foresignal:presentation}
+ * @param acceptsRemoteMedia true when a remote station may push images and pass bundles to
+ *     {@code POST /v1/ingest/{sourceId}/media} and {@code /rasters} (prompt 054: the {@code satdump-*}
+ *     family); every other source answers those paths with {@code 404 NOT_FOUND}
  */
 public record SourceDescriptor(
         String id,
@@ -144,7 +147,8 @@ public record SourceDescriptor(
         String originator,
         SourceAccess access,
         Set<String> hiddenKinds,
-        Map<String, Map<String, Object>> kindPresentation) {
+        Map<String, Map<String, Object>> kindPresentation,
+        boolean acceptsRemoteMedia) {
 
     /** Coordinate decimals kept for a private source unless it says otherwise (about 11 m). */
     public static final int DEFAULT_PRIVATE_PRECISION_DECIMALS = 4;
@@ -158,6 +162,15 @@ public record SourceDescriptor(
 
     /** The volatile payload field of {@code raster-frame} records (prompt 042). */
     public static final String RASTER_EXPIRES_AT_FIELD = "expiresAt";
+
+    /**
+     * The credential a source with {@link #acceptsRemoteMedia} may hold: a key a remote station presents
+     * like an ingest key on {@code POST /v1/ingest/{sourceId}/media} and {@code /rasters} (prompt 054).
+     */
+    public static final String REMOTE_MEDIA_KEY = "ingestKey";
+
+    /** The ingest path segments a source with {@link #acceptsRemoteMedia} serves (prompt 054). */
+    public static final java.util.Set<String> REMOTE_MEDIA_SEGMENTS = java.util.Set.of("media", "rasters");
 
     /** The default retention of {@code raster-frame} versions (Weather-Imagery-Design §2.4). */
     public static final Duration RASTER_FRAME_RETENTION = Duration.ofDays(7);
@@ -262,6 +275,7 @@ public record SourceDescriptor(
         private final Map<String, KindDisplay> kindDisplay = new LinkedHashMap<>();
         private final Set<String> hiddenKinds = new LinkedHashSet<>();
         private final Map<String, Map<String, Object>> kindPresentation = new LinkedHashMap<>();
+        private boolean acceptsRemoteMedia;
 
         private String name;
         private String description;
@@ -592,6 +606,12 @@ public record SourceDescriptor(
             return this;
         }
 
+        /** Lets a remote station push media and pass bundles to this source (prompt 054). */
+        public Builder acceptsRemoteMedia(boolean value) {
+            this.acceptsRemoteMedia = value;
+            return this;
+        }
+
         /** Sets the layer presentation hints of one kind. */
         public Builder kindPresentation(String kind, Map<String, Object> hints) {
             this.kindPresentation.put(kind, hints);
@@ -670,7 +690,8 @@ public record SourceDescriptor(
                     originator,
                     access,
                     hiddenKinds,
-                    kindPresentation);
+                    kindPresentation,
+                    acceptsRemoteMedia);
         }
     }
 }

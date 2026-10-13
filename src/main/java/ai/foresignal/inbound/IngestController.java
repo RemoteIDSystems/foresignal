@@ -197,7 +197,9 @@ public class IngestController {
         for (String reserved : IngestFormatRegistry.RESERVED.stream().sorted().toList()) {
             Map<String, Object> info = new LinkedHashMap<>();
             info.put("id", reserved);
-            info.put("description", "Reserved for prompt " + ("mapping-preview".equals(reserved) ? "059" : "054"));
+            info.put("description", "mapping-preview".equals(reserved) ? "Reserved for prompt 059"
+                    : "Reserved: POST /v1/ingest/{sourceId}/" + reserved + " is the remote SatDump push endpoint"
+                            + " (prompt 054), never an ingest format");
             info.put("mediaTypes", List.of());
             info.put("reserved", true);
             out.add(info);

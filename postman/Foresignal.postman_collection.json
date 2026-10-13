@@ -25768,10 +25768,6 @@
               {
                 "key": "X-Foresignal-Ingest-Key",
                 "value": "{{ingestKey}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
               }
             ],
             "url": {
@@ -25787,18 +25783,26 @@
               ],
               "query": []
             },
-            "description": "A single image plus `meta`; passes ImageGuard before decoding, is stored with 256/1024 px thumbnails and attaches to the matching pass by the 049 join rule, else mints a pass. `media` is a reserved segment that never routes to an IngestFormat. Counts against the source's LAN budget.\n\n**Scope:** `open` (the source's ingest key, or an admin token, is checked by the endpoint).\n\noperationId: `ingestSourceMedia`",
+            "description": "A single image (`file`, PNG, JPEG or TIFF, \u2264 25 MB) plus `meta`. The running station passes it through ImageGuard before decoding, stores it with 256/1024 px thumbnails and attaches it to the matching pass: `meta.passId` when the station knows that pass, else the 049 join rule (same satellite, timestamp inside [first lock \u2212 5 min, LOS + 5 min]), else a pass minted from the image; the pass gets a new `decoded` version. Only sources whose descriptor accepts remote media (the `satdump-{station}` family) answer; any other source, or a station whose stream is not running, is 404. `media` is a reserved segment that never routes to an IngestFormat. Each push costs one unit of the source's budget (429 `RATE_LIMITED` with `Retry-After` when spent). Syncing SatDump's output into the inbox (rsync or Syncthing) remains the recommended remote path.\n\n**Scope:** `open` (the source's ingest key, or an admin token, is checked by the endpoint). A `satdump-{station}` source has no minted ingest key: the operator stores the key a remote station presents as the source's `ingestKey` credential (`PUT /v1/sources/{id}/credentials`).\n\noperationId: `ingestSourceMedia`",
             "auth": {
               "type": "noauth"
             },
             "body": {
-              "mode": "raw",
-              "raw": "{}",
-              "options": {
-                "raw": {
-                  "language": "json"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "meta",
+                  "type": "text",
+                  "contentType": "application/json",
+                  "value": "{\"composite\": \"msu_mr_rgb_221\", \"timestamp\": \"2026-10-12T18:02:10Z\", \"satellite\": \"METEOR-M2 3\"}"
+                },
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "",
+                  "description": "PNG, JPEG or TIFF, at most 25 MB"
                 }
-              }
+              ]
             }
           }
         },
@@ -25825,10 +25829,6 @@
               {
                 "key": "X-Foresignal-Ingest-Key",
                 "value": "{{ingestKey}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
               }
             ],
             "url": {
@@ -25844,18 +25844,44 @@
               ],
               "query": []
             },
-            "description": "A `meta` part `{passFolder, files[]}` plus file parts (`dataset.json`, `product.cbor`, PNG, TIF), each \u2264 25 MB and \u2264 200 MB in total, written atomically to an incoming folder that the inbox loop processes like a ready pass. `rasters` is a reserved segment that never routes to an IngestFormat.\n\n**Scope:** `open` (the source's ingest key, or an admin token, is checked by the endpoint).\n\noperationId: `ingestSourceRasters`",
+            "description": "A `meta` part `{passFolder, files[], product?}` plus file parts named `files` (`dataset.json`, `product.cbor`, PNG, JPEG, TIF), each \u2264 25 MB and \u2264 200 MB in total (413 `MEDIA_TOO_LARGE`). Names are single safe path segments (no separators, no `..`, no leading dot); every listed file needs a part and every part must be listed; images pass the ImageGuard header check (400). `dataset.json` is placed in the pass folder and every other file in the product directory: `product` when given, else the single product `dataset.json` lists, else the pass folder itself. The bundle is written atomically to `${FORESIGNAL_DATA_DIR}/rasters/satdump/{station}/incoming/{uploadId}/` (the inbox mount is read-only); the station's inbox loop processes it like a ready pass folder on its next scan (composites, thumbnails, provenance, polar GeoTIFF overlays, footprint or approximate swath) and the copy expires after 2 days. Only `satdump-{station}` sources answer; others are 404. `rasters` is a reserved segment that never routes to an IngestFormat. Each push costs one unit of the source's budget.\n\n**Scope:** `open` (the source's ingest key, or an admin token, is checked by the endpoint). The ingest key of a `satdump-{station}` source is its `ingestKey` credential.\n\noperationId: `ingestSourceRasters`",
             "auth": {
               "type": "noauth"
             },
             "body": {
-              "mode": "raw",
-              "raw": "{}",
-              "options": {
-                "raw": {
-                  "language": "json"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "meta",
+                  "type": "text",
+                  "contentType": "application/json",
+                  "value": "{\"passFolder\": \"2026-10-12_18-02_meteor_m2-x_lrpt_137.9 MHz\", \"files\": [\"dataset.json\", \"product.cbor\", \"rgb_MSU-MR_221_Composite.png\", \"rgb_MSU-MR_221_Composite_projected.tif\"], \"product\": \"MSU-MR\"}"
+                },
+                {
+                  "key": "files",
+                  "type": "file",
+                  "src": "",
+                  "description": "dataset.json"
+                },
+                {
+                  "key": "files",
+                  "type": "file",
+                  "src": "",
+                  "description": "product.cbor"
+                },
+                {
+                  "key": "files",
+                  "type": "file",
+                  "src": "",
+                  "description": "rgb_MSU-MR_221_Composite.png"
+                },
+                {
+                  "key": "files",
+                  "type": "file",
+                  "src": "",
+                  "description": "rgb_MSU-MR_221_Composite_projected.tif (EPSG:4326 GeoTIFF)"
                 }
-              }
+              ]
             }
           }
         },

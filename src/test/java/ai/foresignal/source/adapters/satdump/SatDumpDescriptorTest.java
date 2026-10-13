@@ -54,6 +54,26 @@ class SatDumpDescriptorTest {
     }
 
     @Test
+    @DisplayName("054: polarGlob (default **/*.tif, checked), the optional ingestKey credential, acceptsRemoteMedia")
+    void polarAndRemote() {
+        SourceDescriptor d = SatDumpDescriptor.build("home");
+        assertThat(d.param("polarGlob").type()).isEqualTo(ParamType.STRING);
+        assertThat(d.param("polarGlob").defaultValue()).isEqualTo("**/*.tif");
+        assertThat(d.credentialFields()).singleElement().satisfies(f -> {
+            assertThat(f.name()).isEqualTo("ingestKey");
+            assertThat(f.required()).isFalse();
+        });
+        assertThat(d.acceptsRemoteMedia()).isTrue();
+        Map<String, Object> values = new LinkedHashMap<>();
+        values.put("location", "29.76,-95.37");
+        values.put("inboxPath", Path.of("/data/inbox/satdump/home"));
+        values.put("polarGlob", "../outside/*.tif");
+        assertThat(SatDumpDescriptor.check(new ValidatedParams(values, Map.of()))).containsKey("polarGlob");
+        values.put("polarGlob", "MSU-MR/*_projected.tif");
+        assertThat(SatDumpDescriptor.check(new ValidatedParams(values, Map.of()))).doesNotContainKey("polarGlob");
+    }
+
+    @Test
     @DisplayName("at least one of apiUrl and inboxPath; intervals in range; location and satNames parse")
     void checks() {
         Map<String, Object> values = new LinkedHashMap<>();
@@ -101,8 +121,8 @@ class SatDumpDescriptorTest {
         assertThat(SatDumpFamily.names(null)).isEmpty();
         assertThatThrownBy(() -> SatDumpFamily.names("Home")).isInstanceOf(IllegalStateException.class);
         assertThatThrownBy(() -> SatDumpFamily.names("a".repeat(57))).isInstanceOf(IllegalStateException.class);
-        SatDumpFamily family = new SatDumpFamily("home,pi", null, null);
+        SatDumpFamily family = new SatDumpFamily("home,pi", null, null, null);
         assertThat(family.adapters()).extracting(a -> a.id()).containsExactly("satdump-home", "satdump-pi");
-        assertThat(new SatDumpFamily("", null, null).adapters()).isEmpty();
+        assertThat(new SatDumpFamily("", null, null, null).adapters()).isEmpty();
     }
 }

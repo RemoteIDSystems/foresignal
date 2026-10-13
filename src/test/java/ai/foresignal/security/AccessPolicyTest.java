@@ -261,6 +261,17 @@ class AccessPolicyTest {
         assertScope("GET", "/v1/ingest/formats", Scope.ADMIN);
     }
 
+    @Test
+    @DisplayName("054: the remote SatDump pushes (media, rasters) take an ingest key or an admin token, like every push")
+    void remoteSatDumpPushes() {
+        assertThat(requirement("POST", "/v1/ingest/satdump-home/media"))
+                .isInstanceOf(AccessRequirement.IngestKeyOrAdmin.class);
+        assertThat(requirement("POST", "/v1/ingest/satdump-home/rasters"))
+                .isInstanceOf(AccessRequirement.IngestKeyOrAdmin.class);
+        assertThat(requirement("POST", "/v1/ingest/satdump-pi-at-the-antenna/rasters"))
+                .isInstanceOf(AccessRequirement.IngestKeyOrAdmin.class);
+    }
+
     @ParameterizedTest
     @CsvSource({
         "POST, /compat/ntfy/custom-alerts",

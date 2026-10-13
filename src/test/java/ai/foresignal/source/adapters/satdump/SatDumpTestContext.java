@@ -185,6 +185,11 @@ final class SatDumpTestContext implements StreamContext {
         final List<FrameInput> commits = new CopyOnWriteArrayList<>();
         final Map<String, byte[]> provenance = new LinkedHashMap<>();
         boolean probe;
+        /** The upload area behind {@link #uploads()} (prompt 054), or null for none. */
+        InboxAccess uploads;
+        /** The GDAL warp behind {@link #warpToWgs84} (prompt 054); empty by default (no GDAL). */
+        java.util.function.Function<byte[], Optional<byte[]>> warp = b -> Optional.empty();
+        final List<byte[]> warped = new CopyOnWriteArrayList<>();
 
         @Override
         public NormalizedRecord commit(FrameInput frame) {
@@ -192,8 +197,27 @@ final class SatDumpTestContext implements StreamContext {
             if (frame.partial()) {
                 return null;
             }
+            String frameKey = ai.foresignal.raster.FrameKeys.timeKey(frame.validTime()) + "~0a1b2c3d";
             return NormalizedRecord.builder(frame.productId(), ProductSpec.RECORD_KIND).observedAt(frame.validTime())
-                    .put("productId", frame.productId()).build();
+                    .put("productId", frame.productId())
+                    .put("frameKey", frameKey)
+                    .put("tiles", "http://test/v1/products/" + frame.productId() + "/tiles/" + frameKey
+                            + "/{z}/{x}/{y}.png?style=rgb@1")
+                    .build();
+        }
+
+        @Override
+        public Optional<byte[]> warpToWgs84(byte[] geotiff) {
+            warped.add(geotiff);
+            return warp.apply(geotiff);
+        }
+
+        @Override
+        public InboxAccess uploads() {
+            if (uploads == null) {
+                throw new UnsupportedOperationException("no upload area in this test");
+            }
+            return uploads;
         }
 
         @Override

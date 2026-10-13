@@ -116,7 +116,9 @@ public class FrameAgeHealthRule implements HealthRule {
                         + change.get().reason(), frameAt));
                 continue;
             }
-            if (spec.temporal() == null) {
+            if (spec.temporal() == null || ProductSpec.Temporal.PASS.equals(spec.temporal().type())) {
+                // Prompt 054: a pass product (SatDump polar overlays) has frames only when a satellite
+                // passes over the station, so frame age says nothing about its health.
                 continue;
             }
             boolean byRun = spec.isForecast() && runEvery != null;

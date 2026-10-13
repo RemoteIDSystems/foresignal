@@ -234,6 +234,44 @@ Other runtime dependencies NetCDF-Java brings from Maven Central, all used unmod
 calls it), JDOM 2 (the JDOM license, Apache-style), Joda-Time (Apache-2.0), Protocol Buffers Java (BSD-3-Clause),
 Apache HttpClient, HttpCore and HttpMime 4 with Commons Logging and Commons Codec (Apache-2.0).
 
+### Orekit (prompt 054)
+
+- **Artifact:** `org.orekit:orekit` 13.1.9 (Maven Central), used unmodified. Runtime dependencies: Hipparchus 4.0.3
+  (`org.hipparchus:hipparchus-core`, `-geometry`, `-ode`, `-fitting`, `-optim`, `-filtering` and `-stat`, Maven
+  Central, Apache License, Version 2.0, Copyright the Hipparchus project; <https://hipparchus.org>).
+- **Use:** `ai.foresignal.orbit`: SGP4 propagation of a SatDump pass's TLE for its approximate swath (prompt 054);
+  prompt 064 reuses it for predicted passes. Loaded only on those code paths, with its own data context (below).
+- **License:** Apache License, Version 2.0 (the jar's `META-INF/LICENSE.txt`). Its `META-INF/NOTICE.txt` reads
+  "OREKIT, Copyright 2002-2025 CS GROUP" and credits the authors whose work Orekit includes or translates, among them
+  the SGP4 work of David A. Vallado, Paul Crawford, Richard Hujsak and T.S. Kelso, and of Felix R. Hoots and Ronald L.
+  Roehrich; the notice ships unchanged inside the jar.
+- **Project:** <https://www.orekit.org>.
+
+### GDAL (optional, not in the default image)
+
+- **Package:** `gdal-bin` from the base image's distribution, installed **only** when the image is built with
+  `--build-arg WITH_GDAL=true` (prompt 054). Run as a separate program (`gdalwarp`) through `ProcessBuilder`; no
+  JNI binding, nothing linked.
+- **License:** MIT/X style (<https://gdal.org/license.html>), Copyright the GDAL/OGR project contributors; the
+  distribution package's own copyright file lists the bundled third-party code.
+
+---
+
+## Orekit data (prompt 054)
+
+`src/main/resources/orekit-data/` holds a pinned minimal subset of the
+[orekit-data](https://gitlab.orekit.org/orekit/orekit-data) repository (commit
+`2422a7d06ee2cc3b5a503a47271203b0706f3e82`, 2026-10-06), loaded by `ai.foresignal.orbit.OrekitData` through a
+classpath crawler:
+
+| File | Content | Origin |
+|---|---|---|
+| `tai-utc.dat` | UTC−TAI leap-second history to 2017-01-01 (unchanged; SHA-256 `3524e1ae…10c3`) | US Naval Observatory; a US Government work, public domain |
+| `finals2000A.all` | IERS Earth orientation parameters (IAU 2000), rows from 2024-01-01 onward of the repository's file (SHA-256 of the full file `9fbc14ae…30cd`), with predictions to late 2026 | IERS Rapid Service/Prediction Center at the US Naval Observatory; a US Government work, public domain |
+
+Replace both from the same repository (or the USNO originals) when the predictions run out; outside the EOP range
+Orekit uses zero corrections, which is far below an approximate swath's accuracy.
+
 ---
 
 ## Reference data (prompt 040)

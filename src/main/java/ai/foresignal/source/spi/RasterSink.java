@@ -101,6 +101,30 @@ public interface RasterSink {
     }
 
     /**
+     * Warps a GeoTIFF the built-in reader refuses (another CRS, a rotated transform, BigTIFF) to
+     * EPSG:4326 with the optional {@code gdalwarp} subprocess (prompt 054, {@code WITH_GDAL}).
+     *
+     * @param geotiff the file's bytes
+     * @return the warped GeoTIFF, or empty when GDAL is not available (the default, and while probing)
+     * @throws AdapterException when GDAL is available but the warp failed or timed out
+     */
+    default java.util.Optional<byte[]> warpToWgs84(byte[] geotiff) throws AdapterException {
+        return java.util.Optional.empty();
+    }
+
+    /**
+     * The Foresignal-owned upload area {@code ${FORESIGNAL_DATA_DIR}/rasters/satdump/} as an
+     * {@link InboxAccess} (prompt 054): remote pass bundles land in
+     * {@code {station}/incoming/{uploadId}/}, and the SatDump inbox loop reads them through this, with
+     * the same link and realpath checks as the inbox.
+     *
+     * @throws UnsupportedOperationException when this sink has no upload area (a test double)
+     */
+    default InboxAccess uploads() {
+        throw new UnsupportedOperationException("This raster sink has no upload area.");
+    }
+
+    /**
      * The GLM flash store (prompt 048): the only way an adapter writes lightning flashes, and the read
      * API derived records use. During a probe the returned store is {@linkplain FlashSink#probing()
      * probing} and writes nothing.

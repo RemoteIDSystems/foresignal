@@ -251,10 +251,13 @@ class PostmanCollectionContractTest {
             return null;
         }
 
-        /** The raw JSON body, or null (also for a text, XML or NDJSON body, prompt 024). */
+        /**
+         * The raw JSON body, or null (also for a text, XML or NDJSON body, prompt 024, and for a
+         * multipart {@code formdata} body, prompt 054).
+         */
         JsonNode body() {
             JsonNode body = request.get("body");
-            if (body == null) {
+            if (body == null || !"raw".equals(body.path("mode").asString("raw"))) {
                 return null;
             }
             String language = body.path("options").path("raw").path("language").asString("json");

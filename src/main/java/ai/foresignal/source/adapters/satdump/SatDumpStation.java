@@ -6,8 +6,13 @@ import ai.foresignal.source.spi.LiveImageHolder;
 import ai.foresignal.source.spi.MediaSink;
 import ai.foresignal.source.spi.NormalizedRecord;
 import ai.foresignal.source.spi.PlacePoints;
+import ai.foresignal.source.spi.MediaInput;
+import ai.foresignal.source.spi.MediaRef;
+import ai.foresignal.source.spi.MediaRole;
 import ai.foresignal.source.spi.RasterSink;
 import ai.foresignal.source.spi.RecordSink;
+import ai.foresignal.source.spi.RemoteMediaReceiver;
+import ai.foresignal.source.spi.RemoteMediaReceivers;
 import ai.foresignal.source.spi.StreamContext;
 import ai.foresignal.source.spi.StreamHandle;
 import ai.foresignal.source.spi.UpstreamResponse;
@@ -19,7 +24,9 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -48,10 +55,17 @@ import org.slf4j.Logger;
  * without {@code dataset.json}, FY-4/MSG HRV and BigTIFF. Without {@code apiUrl} the source stays healthy
  * on the inbox loop alone, with one {@code ground-station} record in state {@code unknown}.
  *
+ * <p>Prompt 054 adds polar overlays ({@link PolarOverlays}: GeoTIFFs matching {@code polarGlob} in a
+ * ready pass folder become {@code satdump-{station}-{composite}} frames, and the pass geometry becomes
+ * the footprint, else an approximate swath), remote pass bundles (the inbox loop also scans
+ * {@code rasters/satdump/{station}/incoming/}, where {@code POST /v1/ingest/{sourceId}/rasters} writes
+ * them; an upload is ready at once) and pushed images ({@link #receive}, registered with
+ * {@link RemoteMediaReceivers} while the stream runs).
+ *
  * <p>State changes run under the station's lock; records are emitted after it is released, because
  * {@link RecordSink#accept} may block.
  */
-public final class SatDumpStation implements StreamHandle {
+public final class SatDumpStation implements StreamHandle, RemoteMediaReceiver {
 
     /** Consecutive unreachable polls after which the source is failing. */
     public static final int API_FAILURES_TO_FAIL = 3;
@@ -79,6 +93,11 @@ public final class SatDumpStation implements StreamHandle {
     private final SatNames names;
     private final PassBook book;
     private final InboxScanner scanner = new InboxScanner();
+    private final InboxScanner uploadScanner = new InboxScanner(0);
+    private final PolarOverlays overlays;
+    private final PolarGlob glob;
+    private final RemoteMediaReceivers receivers;
+    private final Map<String, String> polarProducts = new LinkedHashMap<>();
     private final XritFrames xrit;
     private final PolarPassProcessor polar;
     private final StationStore store;
@@ -107,7 +126,23 @@ public final class SatDumpStation implements StreamHandle {
      */
     public SatDumpStation(String station, StreamContext ctx, RecordSink sink, PlacePoints places,
             LiveImageHolder liveImages) {
+        this(station, ctx, sink, places, liveImages, null);
+    }
+
+    /**
+     * Creates the station (prompt 054).
+     *
+     * @param station the station name
+     * @param ctx the stream context
+     * @param sink where records go
+     * @param places resolves a place id {@code location}, or null when places are unavailable
+     * @param liveImages holds the polar plot, or null to skip it
+     * @param receivers where the station registers for pushed images while it runs, or null
+     */
+    public SatDumpStation(String station, StreamContext ctx, RecordSink sink, PlacePoints places,
+            LiveImageHolder liveImages, RemoteMediaReceivers receivers) {
         this.station = station;
+        this.receivers = receivers;
         this.sourceId = ctx.sourceId();
         this.ctx = ctx;
         this.sink = sink;
@@ -125,6 +160,8 @@ public final class SatDumpStation implements StreamHandle {
         this.book = new PassBook(station, names);
         this.xrit = new XritFrames(station, names);
         this.polar = new PolarPassProcessor(station, sourceId);
+        this.overlays = new PolarOverlays(station);
+        this.glob = PolarGlob.orDefault(params.string(SatDumpDescriptor.POLAR_GLOB));
         this.store = new StationStore(ctx.state());
         this.log = ctx.log();
         restore();
@@ -143,8 +180,12 @@ public final class SatDumpStation implements StreamHandle {
         }
         try {
             xrit.reregister(ctx.rasters());
+            reregisterPolar(ctx.rasters());
         } catch (UnsupportedOperationException e) {
             log.debug("{}: no raster pipeline in this context", sourceId);
+        }
+        if (receivers != null) {
+            receivers.register(sourceId, this);
         }
         inboxThread = Thread.ofVirtual().name("foresignal-satdump-inbox-" + station).start(this::inboxLoop);
         if (apiUrl != null) {
@@ -157,6 +198,9 @@ public final class SatDumpStation implements StreamHandle {
     public void close() {
         if (!running.getAndSet(false)) {
             return;
+        }
+        if (receivers != null) {
+            receivers.unregister(sourceId, this);
         }
         for (Thread t : new Thread[] {apiThread, inboxThread}) {
             if (t != null) {
@@ -410,6 +454,7 @@ public final class SatDumpStation implements StreamHandle {
         synchronized (lock) {
             out.addAll(book.expire(now, point()));
         }
+        out.addAll(scanUploads(now));
         if (inboxPath != null) {
             try {
                 ctx.chargeRequest("inbox-scan");
@@ -436,18 +481,7 @@ public final class SatDumpStation implements StreamHandle {
             reasons.remove("inbox");
             InboxScanner.Scan scan = scanner.scan(inbox, inboxPath, now);
             List<NormalizedRecord> out = new ArrayList<>();
-            boolean bigTiff = false;
-            for (InboxScanner.Folder folder : scan.ready()) {
-                out.addAll(processPass(folder, inbox, now));
-                bigTiff |= polar.reasons().contains(PolarPassProcessor.BIGTIFF_REASON);
-            }
-            if (!scan.ready().isEmpty()) {
-                if (bigTiff) {
-                    reasons.put("bigtiff", PolarPassProcessor.BIGTIFF_REASON);
-                } else {
-                    reasons.remove("bigtiff");
-                }
-            }
+            processReady(scan.ready(), inbox, "", now, out);
             RasterSink rasters = ctx.rasters();
             MediaSink media = ctx.media();
             out.addAll(xrit.process(scan.xrit(), inbox, rasters, media, now));
@@ -463,26 +497,161 @@ public final class SatDumpStation implements StreamHandle {
         }
     }
 
-    /** Joins, stores and records one ready pass folder. Called under the lock. */
-    private List<NormalizedRecord> processPass(InboxScanner.Folder folder, InboxAccess inbox, Instant now) {
+    /**
+     * The remote pass bundles under {@code rasters/satdump/{station}/incoming/} (prompt 054): each upload
+     * folder is ready on the scan after its atomic rename and goes through the same pass pipeline. The
+     * push already paid its budget unit.
+     */
+    private List<NormalizedRecord> scanUploads(Instant now) {
+        InboxAccess uploads;
+        try {
+            uploads = ctx.rasters().uploads();
+        } catch (UnsupportedOperationException e) {
+            return List.of();
+        }
+        java.nio.file.Path base = uploads.root().resolve(SatNames.slug(station)).resolve(UPLOADS_DIRECTORY);
+        synchronized (lock) {
+            InboxScanner.Scan scan;
+            try {
+                scan = uploadScanner.scan(uploads, base, now);
+            } catch (IOException | RuntimeException e) {
+                // No upload has arrived yet, so the directory does not exist.
+                log.debug("{}: no remote uploads to scan: {}", sourceId, e.getMessage());
+                return List.of();
+            }
+            List<NormalizedRecord> out = new ArrayList<>();
+            processReady(scan.ready(), uploads, UPLOAD_PREFIX, now, out);
+            return out;
+        }
+    }
+
+    /** The directory of remote uploads below the station's upload area. */
+    public static final String UPLOADS_DIRECTORY = "incoming";
+
+    /** The prefix of a remote upload's dataset key in the pass book. */
+    static final String UPLOAD_PREFIX = "upload:";
+
+    /** Processes ready pass folders and updates the polar health reasons. Called under the lock. */
+    private void processReady(List<InboxScanner.Folder> ready, InboxAccess access, String prefix, Instant now,
+            List<NormalizedRecord> out) {
+        if (ready.isEmpty()) {
+            return;
+        }
+        Set<String> polarReasons = new LinkedHashSet<>();
+        for (InboxScanner.Folder folder : ready) {
+            out.addAll(processPass(folder, access, prefix, now, polarReasons));
+            polarReasons.addAll(polar.reasons());
+        }
+        if (polarReasons.isEmpty()) {
+            reasons.remove("polar");
+        } else {
+            reasons.put("polar", String.join(" ", polarReasons));
+        }
+    }
+
+    /**
+     * Joins, stores and records one ready pass folder: composites and thumbnails, provenance copies, polar
+     * overlays and the pass geometry (prompt 054). Called under the lock.
+     */
+    private List<NormalizedRecord> processPass(InboxScanner.Folder folder, InboxAccess access, String prefix,
+            Instant now, Set<String> polarReasons) {
+        InboxScanner marker = prefix.isEmpty() ? scanner : uploadScanner;
         PolarPassProcessor.Contents contents;
         try {
-            contents = polar.read(folder, inbox);
+            contents = polar.read(folder, access);
         } catch (SatDumpFiles.FormatException | IOException | RuntimeException e) {
-            log.warn("{}: pass folder {} skipped: {}", sourceId, folder.relative(), e.getMessage());
-            scanner.markProcessed(folder.relative(), folder.signature());
+            log.warn("{}: pass folder {}{} skipped: {}", sourceId, prefix, folder.relative(), e.getMessage());
+            marker.markProcessed(folder.relative(), folder.signature());
             return List.of();
         }
         SatDumpFiles.Dataset dataset = contents.dataset();
         String satKey = names.key(dataset.satellite());
         PassState pass = book.join(satKey, dataset.satellite(), dataset.timestamp(), now);
-        List<Map<String, Object>> products = polar.storeComposites(folder, contents, pass.externalId, inbox, ctx.media());
-        polar.copyProvenance(folder, pass.externalId, inbox, ctx.rasters());
-        NormalizedRecord record = book.decoded(pass, folder.relative(), contents.instruments(), products,
-                contents.tle(), now, point());
-        scanner.markProcessed(folder.relative(), folder.signature());
-        return List.of(record);
+        List<Map<String, Object>> products = polar.storeComposites(folder, contents, pass.externalId, access, ctx.media());
+        RasterSink rasters = ctx.rasters();
+        polar.copyProvenance(folder, pass.externalId, access, rasters);
+        List<NormalizedRecord> out = new ArrayList<>();
+        try {
+            PolarOverlays.Result result = overlays.process(folder, contents, pass, glob, access, rasters);
+            out.addAll(result.records());
+            polarReasons.addAll(result.reasons());
+            for (PolarOverlays.Overlay overlay : result.overlays()) {
+                polarProducts.put(overlay.productId(), overlay.composite());
+            }
+            products = PolarOverlays.merge(products, result.overlays());
+            book.geometry(pass, result.geometry(), result.geometrySource());
+        } catch (RuntimeException e) {
+            log.warn("{}: polar overlays of {}{} failed: {}", sourceId, prefix, folder.relative(), e.toString());
+        }
+        out.add(book.decoded(pass, prefix + folder.relative(), contents.instruments(), products, contents.tle(), now,
+                point()));
+        marker.markProcessed(folder.relative(), folder.signature());
+        return out;
     }
+
+    /** Registers the polar overlay products again after a restart (dynamic products are not reloaded). */
+    private void reregisterPolar(RasterSink rasters) {
+        for (Map.Entry<String, String> e : Map.copyOf(polarProducts).entrySet()) {
+            try {
+                rasters.registerProduct(PolarOverlays.spec(e.getKey(), station, e.getValue()));
+            } catch (AdapterException ex) {
+                log.warn("{}: polar product {} not registered again: {}", sourceId, e.getKey(), ex.getMessage());
+            }
+        }
+    }
+
+    // ------------------------------------------------------------------------- pushed images
+
+    /**
+     * Stores one image pushed to {@code POST /v1/ingest/{sourceId}/media} (prompt 054): the image guard
+     * (through {@code ctx.media().decode}), the media store with 256 and 1024 px thumbnails, owned by the
+     * pass it attaches to; that pass is {@code passId} when the book knows it, else the one the 049 join
+     * rule finds, else a pass minted from the image. The pass's {@code decoded} version is emitted.
+     *
+     * @throws AdapterException when the image cannot be stored
+     */
+    @Override
+    public Accepted receive(Upload upload) throws AdapterException {
+        MediaSink media = ctx.media();
+        media.decode(upload.bytes(), upload.contentType());
+        Instant now = ctx.now();
+        NormalizedRecord record;
+        MediaRef ref;
+        String passId;
+        synchronized (lock) {
+            PassState pass = upload.passId() == null ? null : book.find(upload.passId()).orElse(null);
+            if (pass == null) {
+                pass = book.join(names.key(upload.satellite()), upload.satellite(), upload.timestamp(), now);
+            }
+            passId = pass.externalId;
+            // A refusal (ImageRejectedException) or the size cap (413) propagates to the endpoint as is.
+            ref = media.store(MediaInput.of(upload.bytes(), upload.contentType(), MediaRole.IMAGE)
+                    .withRecord(sourceId, passId)
+                    .withLicence(SatDumpDescriptor.LICENSE));
+            MediaRef thumb = null;
+            for (MediaRef t : media.thumbnails(ref)) {
+                if (thumb == null || Math.max(t.width(), t.height()) < Math.max(thumb.width(), thumb.height())) {
+                    thumb = t;
+                }
+            }
+            Map<String, Object> entry = new LinkedHashMap<>();
+            entry.put("composite", upload.composite());
+            if (ref.id() != null) {
+                entry.put("mediaId", ref.id());
+            }
+            if (thumb != null && thumb.id() != null) {
+                entry.put("thumbMediaId", thumb.id());
+            }
+            record = book.decoded(pass, REMOTE_MEDIA_PREFIX + upload.composite(), List.of(), List.of(entry), null, now,
+                    point());
+            persist();
+        }
+        emit(List.of(record));
+        return new Accepted(ref.id(), ref.sha256(), passId);
+    }
+
+    /** The prefix of a pushed image's dataset key in the pass book. */
+    static final String REMOTE_MEDIA_PREFIX = "remote-media:";
 
     // ------------------------------------------------------------------------- shared
 
@@ -540,6 +709,8 @@ public final class SatDumpStation implements StreamHandle {
     private void restore() {
         book.restore(store.passes());
         scanner.restore(store.watches(), store.processed());
+        uploadScanner.restore(store.uploadWatches(), store.uploadProcessed());
+        polarProducts.putAll(store.polarProducts());
         xrit.restore(store.xritFolders(), store.xritProducts());
         StationStore.ActiveSession active = store.active();
         if (active != null) {
@@ -556,6 +727,9 @@ public final class SatDumpStation implements StreamHandle {
         store.write(StationStore.PASSES, book.passes());
         store.write(StationStore.WATCHES, scanner.watches());
         store.write(StationStore.PROCESSED, scanner.processed());
+        store.write(StationStore.UPLOAD_WATCHES, uploadScanner.watches());
+        store.write(StationStore.UPLOAD_PROCESSED, uploadScanner.processed());
+        store.write(StationStore.POLAR_PRODUCTS, polarProducts);
         store.write(StationStore.XRIT_FOLDERS, xrit.folders());
         store.write(StationStore.XRIT_PRODUCTS, xrit.products());
     }

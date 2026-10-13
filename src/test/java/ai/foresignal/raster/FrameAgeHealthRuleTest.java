@@ -70,6 +70,19 @@ class FrameAgeHealthRuleTest {
     }
 
     @Test
+    @DisplayName("054: a pass product (SatDump polar overlay) is never judged by frame age; it still reports newestFrameAt")
+    void passProductsSkipFrameAge() {
+        ProductRegistry.Registered pass = new ProductRegistry.Registered(
+                ai.foresignal.source.adapters.satdump.PolarOverlays.spec("satdump-home-rgb", "home", "rgb"), "satdump-home",
+                true);
+        Optional<HealthVerdict> v = FrameAgeHealthRule.verdict(List.of(pass),
+                Map.of(pass.id(), NOW.minus(java.time.Duration.ofDays(3))), tracker, NOW);
+        assertThat(v).isPresent();
+        assertThat(v.get().status()).isEqualTo(HealthStatus.HEALTHY);
+        assertThat(v.get().newestFrameAt()).isEqualTo(NOW.minus(java.time.Duration.ofDays(3)));
+    }
+
+    @Test
     @DisplayName("no frame yet gives no verdict")
     void noFrames() {
         assertThat(FrameAgeHealthRule.verdict(List.of(OBS), Map.of(), tracker, NOW)).isEmpty();

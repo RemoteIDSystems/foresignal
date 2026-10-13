@@ -27,6 +27,9 @@ import java.util.Optional;
  *       had lock. {@code predicted} belongs to prompt 064.
  * </ul>
  *
+ * <p>Geometry (prompt 054, §4.4): the actual footprint of the pass's GeoTIFF overlays, else the
+ * approximate swath, else the station point. A footprint is never replaced by a swath.
+ *
  * <p>Not thread-safe; the station synchronizes. Every method returns the records to emit.
  */
 public final class PassBook {
@@ -297,6 +300,60 @@ public final class PassBook {
         return String.format(MISSING_DATASET_REASON, Instant.ofEpochMilli(newest.los));
     }
 
+    /** The longest geometry WKT kept in the adapter state; a longer one is simplified further. */
+    static final int MAX_GEOMETRY_CHARS = 32_000;
+
+    /**
+     * Sets a pass's geometry in the order footprint → approximate swath → station point: a footprint
+     * always replaces what was there, a swath only replaces nothing or another swath.
+     *
+     * @param pass the pass
+     * @param geometry the footprint or swath, SRID 4326; null leaves the pass unchanged
+     * @param source {@code footprint} or {@code swath}
+     * @return true when the geometry changed
+     */
+    public boolean geometry(PassState pass, org.locationtech.jts.geom.Geometry geometry, String source) {
+        if (geometry == null || geometry.isEmpty() || source == null) {
+            return false;
+        }
+        if (PolarOverlays.SWATH.equals(source) && PolarOverlays.FOOTPRINT.equals(pass.geometrySource)) {
+            return false;
+        }
+        String wkt = wkt(geometry, 6);
+        if (wkt.length() > MAX_GEOMETRY_CHARS) {
+            wkt = wkt(org.locationtech.jts.simplify.TopologyPreservingSimplifier.simplify(geometry, 0.1), 4);
+        }
+        if (wkt.length() > MAX_GEOMETRY_CHARS) {
+            wkt = wkt(geometry.getEnvelope(), 4);
+        }
+        boolean changed = !wkt.equals(pass.geometry) || !source.equals(pass.geometrySource);
+        pass.geometry = wkt;
+        pass.geometrySource = source;
+        return changed;
+    }
+
+    private static String wkt(org.locationtech.jts.geom.Geometry geometry, int decimals) {
+        org.locationtech.jts.geom.PrecisionModel precision =
+                new org.locationtech.jts.geom.PrecisionModel(Math.pow(10, decimals));
+        org.locationtech.jts.geom.Geometry reduced =
+                org.locationtech.jts.precision.GeometryPrecisionReducer.reduce(geometry, precision);
+        return new org.locationtech.jts.io.WKTWriter().write(reduced);
+    }
+
+    /** The geometry of a pass, or null when it has none or it does not parse. */
+    static org.locationtech.jts.geom.Geometry parsedGeometry(PassState pass) {
+        if (pass.geometry == null) {
+            return null;
+        }
+        try {
+            org.locationtech.jts.geom.Geometry g = new org.locationtech.jts.io.WKTReader(
+                    ai.foresignal.raster.geotiff.Antimeridian.GEOMETRY).read(pass.geometry);
+            return g.isEmpty() ? null : g;
+        } catch (org.locationtech.jts.io.ParseException e) {
+            return null;
+        }
+    }
+
     /** Drops finished passes older than a day and keeps at most {@value #MAX_PASSES}. */
     void prune(Instant now) {
         long cutoff = now.minus(KEEP_FINISHED).toEpochMilli();
@@ -343,7 +400,10 @@ public final class PassBook {
         if (pass.tle != null) {
             builder.put("tle", pass.tle);
         }
-        if (point != null) {
+        org.locationtech.jts.geom.Geometry geometry = parsedGeometry(pass);
+        if (geometry != null) {
+            builder.geometry(geometry).put("geometrySource", pass.geometrySource);
+        } else if (point != null) {
             builder.point(point[0], point[1]);
         }
         return builder.build();
