@@ -50,6 +50,10 @@ import org.springframework.stereotype.Component;
  *       source sets {@code allowPathKey} ({@link InboundRequests}).
  * </ul>
  *
+ * <p>Prompt 059 adds the WU protocol's {@code PASSWORD} query parameter on {@code /v1/ingest/{sourceId}/wu-pws}
+ * (the station key of WU-protocol firmware); its value is redacted like {@code key=} ({@link IngestUrls}). A push
+ * with a query key also passes the sender allowlist, like any GET push ({@link InboundRequests}).
+ *
  * <p>Prompt 054: a built-in source that {@code acceptsRemoteMedia} (the {@code satdump-*} family) has no
  * custom-source row and so no minted ingest key. On its own {@code /v1/ingest/{sourceId}/media} and
  * {@code /rasters} paths, a key that matches no custom source is compared, in constant time, with the
@@ -64,6 +68,12 @@ public class IngestAuthenticator implements IngestKeyAuthenticator {
 
     /** The Gotify key header. */
     public static final String GOTIFY_HEADER = "X-Gotify-Key";
+
+    /** The format whose query parameter {@link #WU_PASSWORD} carries the ingest key (prompt 059). */
+    public static final String WU_FORMAT = "wu-pws";
+
+    /** The WU protocol's station-key parameter; {@code ID} is ignored. */
+    public static final String WU_PASSWORD = "PASSWORD";
 
     private final CustomSourceRepository repository;
     private final CustomSourceVerifiers verifiers;
@@ -207,6 +217,12 @@ public class IngestAuthenticator implements IngestKeyAuthenticator {
         if (fromAuthorization != null) {
             return fromAuthorization;
         }
+        if (path.compat() == null && WU_FORMAT.equals(path.format())) {
+            String password = queryValue(request.getQueryString(), WU_PASSWORD);
+            if (password != null && !password.isBlank()) {
+                return new Credential(password.strip(), via);
+            }
+        }
         if (IngestCaller.COMPAT_NTFY.equals(path.compat())) {
             String auth = request.getParameter("auth");
             if (auth != null && !auth.isBlank()) {
@@ -233,6 +249,29 @@ public class IngestAuthenticator implements IngestKeyAuthenticator {
             String token = request.getParameter("token");
             if (token != null && !token.isBlank()) {
                 return new Credential(token.strip(), via);
+            }
+        }
+        return null;
+    }
+
+    /**
+     * The first value of {@code name} in {@code query}, matched case-insensitively and URL-decoded, or null. The
+     * query string is parsed directly so a form body is never consumed.
+     */
+    static String queryValue(String query, String name) {
+        if (query == null || query.isEmpty()) {
+            return null;
+        }
+        for (String pair : query.split("&")) {
+            int eq = pair.indexOf('=');
+            String key = eq < 0 ? pair : pair.substring(0, eq);
+            if (key.equalsIgnoreCase(name)) {
+                String value = eq < 0 ? "" : pair.substring(eq + 1);
+                try {
+                    return java.net.URLDecoder.decode(value, StandardCharsets.UTF_8);
+                } catch (IllegalArgumentException e) {
+                    return value;
+                }
             }
         }
         return null;

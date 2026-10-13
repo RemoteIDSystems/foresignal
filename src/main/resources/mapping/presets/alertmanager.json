@@ -1,0 +1,80 @@
+{
+  "id": "alertmanager",
+  "title": "Prometheus Alertmanager",
+  "description": "Alertmanager webhook v4 through the built-in alertmanager format: one record per alert, externalId {receiver}:{fingerprint}. A resolved alert becomes a new version with status=resolved and validUntil = endsAt + 1 h (a tombstone only with tombstoneOnResolve).",
+  "format": "alertmanager",
+  "kinds": [
+    "ops-alert"
+  ],
+  "observedAtMode": "UPSTREAM",
+  "ttl": null,
+  "ingestPolicy": null,
+  "significantFields": [
+    "status",
+    "severity",
+    "alertname"
+  ],
+  "volatileFields": [],
+  "private": false,
+  "allowPathKey": false,
+  "allowsGet": false,
+  "locationMode": "station",
+  "titleField": "alertname",
+  "tileProperties": [
+    "status",
+    "severity",
+    "alertname"
+  ],
+  "fieldSpecs": {
+    "status": {
+      "type": "STRING",
+      "label": "Status"
+    },
+    "severity": {
+      "type": "STRING",
+      "label": "Severity"
+    },
+    "alertname": {
+      "type": "STRING",
+      "label": "Alert"
+    }
+  },
+  "formatOptions": {
+    "resolved": "record",
+    "resolvedValidFor": "1h",
+    "receiverPrefix": true
+  },
+  "mapping": null,
+  "params": [
+    {
+      "name": "tombstoneOnResolve",
+      "type": "boolean",
+      "description": "End the record (tombstone) when the alert resolves instead of keeping a resolved version",
+      "default": false,
+      "required": false
+    },
+    {
+      "name": "lon",
+      "type": "number",
+      "description": "Station longitude (WGS84); rounded to 0.01° unless exactLocation",
+      "required": false
+    },
+    {
+      "name": "lat",
+      "type": "number",
+      "description": "Station latitude (WGS84); rounded to 0.01° unless exactLocation",
+      "required": false
+    },
+    {
+      "name": "exactLocation",
+      "type": "boolean",
+      "description": "Keep lon/lat unrounded",
+      "default": false,
+      "required": false
+    }
+  ],
+  "setup": {
+    "urlTemplate": "{publicBaseUrl}/v1/ingest/{sourceId}/alertmanager",
+    "instructions": "In `alertmanager.yml`:\n\n```yaml\nreceivers:\n  - name: foresignal\n    webhook_configs:\n      - url: {url}\n        send_resolved: true\n        http_config:\n          authorization:\n            type: Bearer\n            credentials: {key}\n```"
+  }
+}

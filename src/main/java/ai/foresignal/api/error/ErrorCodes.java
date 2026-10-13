@@ -286,6 +286,25 @@ public final class ErrorCodes {
      */
     public static final String INGEST_SOURCE_DENIED = "INGEST_SOURCE_DENIED";
 
+    /**
+     * 400: a {@code RecordMapping} did not compile; {@code errors[].field} carries paths such as
+     * {@code mapping.fields[3].unit.from} (prompt 059). {@code suggestMapping} answers 422 with it when the
+     * model's draft still fails after its repair rounds.
+     */
+    public static final String MAPPING_INVALID = "MAPPING_INVALID";
+
+    /**
+     * 409: the request would send data to a remote LLM provider and did not set {@code confirmEgress: true}
+     * (prompt 059, {@code suggestMapping}).
+     */
+    public static final String EGRESS_CONFIRMATION_REQUIRED = "EGRESS_CONFIRMATION_REQUIRED";
+
+    /** 409: a mapping test has no stored mapping and none was proposed (prompt 059). */
+    public static final String MAPPING_NOT_SET = "MAPPING_NOT_SET";
+
+    /** 409: a mapping test found no captured samples; turn {@code captureSamples} on first (prompt 059). */
+    public static final String NO_SAMPLES = "NO_SAMPLES";
+
     /** 400: a {@code country}, {@code admin1} or {@code county} code that is not known (prompt 040). */
     public static final String UNKNOWN_REGION = "UNKNOWN_REGION";
 

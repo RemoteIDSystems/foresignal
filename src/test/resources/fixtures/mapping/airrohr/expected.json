@@ -1,0 +1,37 @@
+{
+  "presetParams": {
+    "lon": -97.7431,
+    "lat": 30.2672,
+    "exactLocation": true
+  },
+  "records": [
+    {
+      "externalId": "airrohr-1234567",
+      "kind": "air-quality",
+      "observedAt": "2026-10-13T15:05:00Z",
+      "geometry": [
+        -97.7431,
+        30.2672
+      ],
+      "payload": {
+        "pm10": 12.4,
+        "pm25": 6.1,
+        "tempC": 18.52,
+        "rh": 64.21,
+        "pressureHpa": 1013.25,
+        "firmware": "NRZ-2020-133"
+      },
+      "qualityExtra": {
+        "wifi.rssi": -63.0
+      }
+    }
+  ],
+  "secrets": [],
+  "neverStored": [
+    "samples",
+    "min_micro",
+    "max_micro",
+    "interval",
+    "signal"
+  ]
+}

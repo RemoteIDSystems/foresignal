@@ -1,8 +1,3 @@
-previewMapping 059
-suggestMapping 059
-listMappingPresets 059
-listCustomSourceSamples 059
-testCustomSourceMapping 059
 republishMqttChannel 060
 getChannelInteractiveStatus 061
 getCelestrakGp 064

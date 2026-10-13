@@ -1,0 +1,9 @@
+{
+  "receivedAt": "2026-10-13T15:05:00Z",
+  "method": "POST",
+  "format": "ecowitt",
+  "contentType": "application/x-www-form-urlencoded",
+  "query": null,
+  "body": "PASSKEY=0123456789ABCDEF0123456789ABCDEF&stationtype=GW2000A_V3.2.4&runtime=12345&dateutc=2026-10-13+15:04:05&tempinf=72.1&humidityin=41&baromrelin=29.921&baromabsin=29.250&tempf=68.4&humidity=55&winddir=212&windspeedmph=4.47&windgustmph=8.05&maxdailygust=12.75&solarradiation=512.34&uv=4&rainratein=0.120&eventrainin=0.000&hourlyrainin=0.000&dailyrainin=0.354&weeklyrainin=0.354&monthlyrainin=1.024&yearlyrainin=21.500&totalrainin=21.500&wh65batt=0&freq=915M&model=GW2000A&pm25_ch1=8.0&pm25batt1=5&lightning=14&lightning_time=1760367000&lightning_num=3",
+  "contentEncoding": null
+}

@@ -63,6 +63,12 @@ libaec = "1.1.7.0"
 # stat, all Apache-2.0). Its data (leap seconds and one EOP file) is a pinned subset under
 # src/main/resources/orekit-data/.
 orekit = "13.1.9"
+# RecordMapping JSONPath (059): Jayway JsonPath, Apache-2.0. Verified on Maven Central 2026-10-13: 3.0.0 is
+# the latest release of com.jayway.jsonpath:json-path, the first line with Jackson 3 providers
+# (Jackson3JsonNodeJsonProvider, Jackson3MappingProvider). Its json-smart runtime dependency is excluded
+# from the application (build.gradle.kts): the mapping code always passes its own Jackson 3 configuration.
+# The Spring Boot BOM manages json-path at 2.10.0; build.gradle.kts overrides the BOM property.
+jsonPath = "3.0.0"
 
 [libraries]
 # --- Versions managed by the Spring Boot BOM ---
@@ -130,6 +136,7 @@ netcdf-grib = { module = "edu.ucar:grib" }
 libaec-native = { module = "edu.ucar.unidata:libaec-native", version.ref = "libaec" }
 # SGP4 swaths of SatDump passes (054); 064 reuses it for predicted passes.
 orekit = { module = "org.orekit:orekit", version.ref = "orekit" }
+json-path = { module = "com.jayway.jsonpath:json-path", version.ref = "jsonPath" }
 
 # --- Test; versions from the Testcontainers BOM where unspecified ---
 testcontainers-bom = { module = "org.testcontainers:testcontainers-bom", version.ref = "testcontainers" }

@@ -1,0 +1,263 @@
+{
+  "id": "wu-pws",
+  "title": "Weather Underground protocol station",
+  "description": "Any station or console that uploads with the Weather Underground PWS protocol (GET updateweatherstation.php style), including Ecowitt's Customized upload in Wunderground mode. The station key goes in PASSWORD; ID is ignored. Every observation is stamped with its receive time (most stations send dateutc=now).",
+  "format": "wu-pws",
+  "kinds": [
+    "weather-observation"
+  ],
+  "observedAtMode": "RECEIVED",
+  "ttl": "30m",
+  "ingestPolicy": {
+    "mode": "LATEST",
+    "keyframe": "5m"
+  },
+  "significantFields": [
+    "model"
+  ],
+  "volatileFields": [],
+  "private": false,
+  "allowPathKey": false,
+  "allowsGet": true,
+  "locationMode": "const",
+  "titleField": "model",
+  "tileProperties": [
+    "tempC",
+    "rh",
+    "windSpeedMs",
+    "windDirDeg",
+    "rainHourMm"
+  ],
+  "fieldSpecs": {
+    "tempC": {
+      "type": "NUMBER",
+      "unit": "Cel",
+      "label": "Temperature"
+    },
+    "rh": {
+      "type": "NUMBER",
+      "unit": "%",
+      "label": "Relative humidity"
+    },
+    "dewPointC": {
+      "type": "NUMBER",
+      "unit": "Cel",
+      "label": "Dew point"
+    },
+    "pressureHpa": {
+      "type": "NUMBER",
+      "unit": "hPa",
+      "label": "Pressure (relative)"
+    },
+    "windDirDeg": {
+      "type": "NUMBER",
+      "unit": "deg",
+      "label": "Wind direction"
+    },
+    "windSpeedMs": {
+      "type": "NUMBER",
+      "unit": "m/s",
+      "label": "Wind speed"
+    },
+    "windGustMs": {
+      "type": "NUMBER",
+      "unit": "m/s",
+      "label": "Wind gust"
+    },
+    "rainRateMmH": {
+      "type": "NUMBER",
+      "unit": "mm/h",
+      "label": "Rain rate"
+    },
+    "rainHourMm": {
+      "type": "NUMBER",
+      "unit": "mm",
+      "label": "Rain, last hour"
+    },
+    "rainDailyMm": {
+      "type": "NUMBER",
+      "unit": "mm",
+      "label": "Rain today"
+    },
+    "solarWm2": {
+      "type": "NUMBER",
+      "unit": "W/m2",
+      "label": "Solar radiation"
+    },
+    "uvIndex": {
+      "type": "NUMBER",
+      "unit": "1",
+      "label": "UV index"
+    },
+    "pm25": {
+      "type": "NUMBER",
+      "unit": "ug/m3",
+      "label": "PM2.5"
+    },
+    "lightningKm": {
+      "type": "NUMBER",
+      "unit": "km",
+      "label": "Last lightning distance"
+    },
+    "indoorTempC": {
+      "type": "NUMBER",
+      "unit": "Cel",
+      "label": "Indoor temperature"
+    },
+    "indoorRh": {
+      "type": "NUMBER",
+      "unit": "%",
+      "label": "Indoor humidity"
+    },
+    "model": {
+      "type": "STRING",
+      "label": "Station model"
+    }
+  },
+  "mapping": {
+    "version": 1,
+    "externalId": {
+      "const": "station"
+    },
+    "observedAt": {
+      "received": true
+    },
+    "fields": [
+      {
+        "name": "tempC",
+        "path": "$.tempf",
+        "type": "number",
+        "unit": {
+          "from": "[degF]",
+          "to": "Cel"
+        }
+      },
+      {
+        "name": "rh",
+        "path": "$.humidity",
+        "type": "number"
+      },
+      {
+        "name": "dewPointC",
+        "path": "$.dewptf",
+        "type": "number",
+        "unit": {
+          "from": "[degF]",
+          "to": "Cel"
+        }
+      },
+      {
+        "name": "pressureHpa",
+        "path": "$.baromin",
+        "type": "number",
+        "unit": {
+          "from": "[in_i'Hg]",
+          "to": "hPa"
+        }
+      },
+      {
+        "name": "windDirDeg",
+        "path": "$.winddir",
+        "type": "number"
+      },
+      {
+        "name": "windSpeedMs",
+        "path": "$.windspeedmph",
+        "type": "number",
+        "unit": {
+          "from": "[mi_i]/h",
+          "to": "m/s"
+        }
+      },
+      {
+        "name": "windGustMs",
+        "path": "$.windgustmph",
+        "type": "number",
+        "unit": {
+          "from": "[mi_i]/h",
+          "to": "m/s"
+        }
+      },
+      {
+        "name": "rainHourMm",
+        "path": "$.rainin",
+        "type": "number",
+        "unit": {
+          "from": "[in_i]",
+          "to": "mm"
+        }
+      },
+      {
+        "name": "rainDailyMm",
+        "path": "$.dailyrainin",
+        "type": "number",
+        "unit": {
+          "from": "[in_i]",
+          "to": "mm"
+        }
+      },
+      {
+        "name": "solarWm2",
+        "path": "$.solarradiation",
+        "type": "number"
+      },
+      {
+        "name": "uvIndex",
+        "path": "$.UV",
+        "type": "number"
+      },
+      {
+        "name": "indoorTempC",
+        "path": "$.indoortempf",
+        "type": "number",
+        "unit": {
+          "from": "[degF]",
+          "to": "Cel"
+        }
+      },
+      {
+        "name": "indoorRh",
+        "path": "$.indoorhumidity",
+        "type": "number"
+      },
+      {
+        "name": "model",
+        "path": "$.softwaretype",
+        "type": "string"
+      }
+    ],
+    "drop": [
+      "ID",
+      "PASSWORD",
+      "action",
+      "dateutc",
+      "realtime",
+      "rtfreq"
+    ]
+  },
+  "params": [
+    {
+      "name": "lon",
+      "type": "number",
+      "description": "Station longitude (WGS84); rounded to 0.01° unless exactLocation",
+      "required": false
+    },
+    {
+      "name": "lat",
+      "type": "number",
+      "description": "Station latitude (WGS84); rounded to 0.01° unless exactLocation",
+      "required": false
+    },
+    {
+      "name": "exactLocation",
+      "type": "boolean",
+      "description": "Keep lon/lat unrounded",
+      "default": false,
+      "required": false
+    }
+  ],
+  "setup": {
+    "urlTemplate": "{publicBaseUrl}/v1/ingest/{sourceId}/wu-pws",
+    "instructions": "On an Ecowitt console: Weather Services → Customized, Protocol Type **Wunderground**; Server IP / Hostname `{host}`, Path `{path}?`, Port `{port}`, Station ID: any text, Station Key: `{key}`.\n\nOther WU-protocol software: send `GET {url}?ID=any&PASSWORD={key}&dateutc=now&tempf=…`.\n\nThe key travels in the query string over plain HTTP: keep the station on the LAN (GET pushes are accepted only from private addresses unless `ingestAllowCidrs` says otherwise)."
+  }
+}

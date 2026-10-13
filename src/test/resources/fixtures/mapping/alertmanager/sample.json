@@ -1,0 +1,9 @@
+{
+  "receivedAt": "2026-10-13T15:05:00Z",
+  "method": "POST",
+  "format": "alertmanager",
+  "contentType": "application/json",
+  "query": null,
+  "body": "{\"version\": \"4\", \"groupKey\": \"{}:{alertname=\\\"HighTemp\\\"}\", \"truncatedAlerts\": 0, \"status\": \"firing\", \"receiver\": \"foresignal\", \"groupLabels\": {\"alertname\": \"HighTemp\"}, \"commonLabels\": {}, \"commonAnnotations\": {}, \"externalURL\": \"http://alertmanager:9093\", \"alerts\": [{\"status\": \"firing\", \"labels\": {\"alertname\": \"HighTemp\", \"severity\": \"warning\", \"instance\": \"pve1:9100\"}, \"annotations\": {\"summary\": \"Server room hot\"}, \"startsAt\": \"2026-10-13T14:50:00Z\", \"endsAt\": \"0001-01-01T00:00:00Z\", \"generatorURL\": \"http://prometheus:9090/graph?g0.expr=node_hwmon_temp_celsius\", \"fingerprint\": \"a1b2c3d4e5f60718\"}, {\"status\": \"resolved\", \"labels\": {\"alertname\": \"DiskFull\", \"severity\": \"critical\", \"instance\": \"nas:9100\"}, \"annotations\": {\"summary\": \"Disk almost full\"}, \"startsAt\": \"2026-10-13T12:00:00Z\", \"endsAt\": \"2026-10-13T15:00:00Z\", \"generatorURL\": \"http://prometheus:9090/graph?g0.expr=node_filesystem_avail_bytes\", \"fingerprint\": \"0f1e2d3c4b5a6978\"}]}",
+  "contentEncoding": null
+}

@@ -1,0 +1,265 @@
+{
+  "id": "ecowitt",
+  "title": "Ecowitt weather station (Customized upload)",
+  "description": "Ecowitt consoles and gateways (GW1000/GW1100/GW2000, HP2551, WS2910 …) with Customized upload in the Ecowitt protocol: a form POST every 16 s or more, to a key-in-path URL because the firmware sets only a host, port and path.",
+  "format": "ecowitt",
+  "kinds": [
+    "weather-observation"
+  ],
+  "observedAtMode": "UPSTREAM",
+  "ttl": "30m",
+  "ingestPolicy": {
+    "mode": "LATEST",
+    "keyframe": "5m"
+  },
+  "significantFields": [
+    "model"
+  ],
+  "volatileFields": [],
+  "private": false,
+  "allowPathKey": true,
+  "allowsGet": false,
+  "locationMode": "const",
+  "titleField": "model",
+  "tileProperties": [
+    "tempC",
+    "rh",
+    "windSpeedMs",
+    "windDirDeg",
+    "rainRateMmH"
+  ],
+  "fieldSpecs": {
+    "tempC": {
+      "type": "NUMBER",
+      "unit": "Cel",
+      "label": "Temperature"
+    },
+    "rh": {
+      "type": "NUMBER",
+      "unit": "%",
+      "label": "Relative humidity"
+    },
+    "dewPointC": {
+      "type": "NUMBER",
+      "unit": "Cel",
+      "label": "Dew point"
+    },
+    "pressureHpa": {
+      "type": "NUMBER",
+      "unit": "hPa",
+      "label": "Pressure (relative)"
+    },
+    "windDirDeg": {
+      "type": "NUMBER",
+      "unit": "deg",
+      "label": "Wind direction"
+    },
+    "windSpeedMs": {
+      "type": "NUMBER",
+      "unit": "m/s",
+      "label": "Wind speed"
+    },
+    "windGustMs": {
+      "type": "NUMBER",
+      "unit": "m/s",
+      "label": "Wind gust"
+    },
+    "rainRateMmH": {
+      "type": "NUMBER",
+      "unit": "mm/h",
+      "label": "Rain rate"
+    },
+    "rainHourMm": {
+      "type": "NUMBER",
+      "unit": "mm",
+      "label": "Rain, last hour"
+    },
+    "rainDailyMm": {
+      "type": "NUMBER",
+      "unit": "mm",
+      "label": "Rain today"
+    },
+    "solarWm2": {
+      "type": "NUMBER",
+      "unit": "W/m2",
+      "label": "Solar radiation"
+    },
+    "uvIndex": {
+      "type": "NUMBER",
+      "unit": "1",
+      "label": "UV index"
+    },
+    "pm25": {
+      "type": "NUMBER",
+      "unit": "ug/m3",
+      "label": "PM2.5"
+    },
+    "lightningKm": {
+      "type": "NUMBER",
+      "unit": "km",
+      "label": "Last lightning distance"
+    },
+    "indoorTempC": {
+      "type": "NUMBER",
+      "unit": "Cel",
+      "label": "Indoor temperature"
+    },
+    "indoorRh": {
+      "type": "NUMBER",
+      "unit": "%",
+      "label": "Indoor humidity"
+    },
+    "model": {
+      "type": "STRING",
+      "label": "Station model"
+    }
+  },
+  "mapping": {
+    "version": 1,
+    "externalId": {
+      "const": "station"
+    },
+    "observedAt": {
+      "path": "$.dateutc",
+      "format": "pattern:yyyy-MM-dd HH:mm:ss",
+      "zone": "UTC"
+    },
+    "fields": [
+      {
+        "name": "tempC",
+        "path": "$.tempf",
+        "type": "number",
+        "unit": {
+          "from": "[degF]",
+          "to": "Cel"
+        }
+      },
+      {
+        "name": "rh",
+        "path": "$.humidity",
+        "type": "number"
+      },
+      {
+        "name": "pressureHpa",
+        "path": "$.baromrelin",
+        "type": "number",
+        "unit": {
+          "from": "[in_i'Hg]",
+          "to": "hPa"
+        }
+      },
+      {
+        "name": "windDirDeg",
+        "path": "$.winddir",
+        "type": "number"
+      },
+      {
+        "name": "windSpeedMs",
+        "path": "$.windspeedmph",
+        "type": "number",
+        "unit": {
+          "from": "[mi_i]/h",
+          "to": "m/s"
+        }
+      },
+      {
+        "name": "windGustMs",
+        "path": "$.windgustmph",
+        "type": "number",
+        "unit": {
+          "from": "[mi_i]/h",
+          "to": "m/s"
+        }
+      },
+      {
+        "name": "rainRateMmH",
+        "path": "$.rainratein",
+        "type": "number",
+        "unit": {
+          "from": "[in_i]/h",
+          "to": "mm/h"
+        }
+      },
+      {
+        "name": "rainDailyMm",
+        "path": "$.dailyrainin",
+        "type": "number",
+        "unit": {
+          "from": "[in_i]",
+          "to": "mm"
+        }
+      },
+      {
+        "name": "solarWm2",
+        "path": "$.solarradiation",
+        "type": "number",
+        "unit": {
+          "from": "W/m2",
+          "to": "W/m2"
+        }
+      },
+      {
+        "name": "uvIndex",
+        "path": "$.uv",
+        "type": "number"
+      },
+      {
+        "name": "pm25",
+        "path": "$.pm25_ch1",
+        "type": "number"
+      },
+      {
+        "name": "lightningKm",
+        "path": "$.lightning",
+        "type": "number"
+      },
+      {
+        "name": "indoorTempC",
+        "path": "$.tempinf",
+        "type": "number",
+        "unit": {
+          "from": "[degF]",
+          "to": "Cel"
+        }
+      },
+      {
+        "name": "indoorRh",
+        "path": "$.humidityin",
+        "type": "number"
+      },
+      {
+        "name": "model",
+        "path": "$.stationtype",
+        "type": "string"
+      }
+    ],
+    "drop": [
+      "PASSKEY"
+    ]
+  },
+  "params": [
+    {
+      "name": "lon",
+      "type": "number",
+      "description": "Station longitude (WGS84); rounded to 0.01° unless exactLocation",
+      "required": false
+    },
+    {
+      "name": "lat",
+      "type": "number",
+      "description": "Station latitude (WGS84); rounded to 0.01° unless exactLocation",
+      "required": false
+    },
+    {
+      "name": "exactLocation",
+      "type": "boolean",
+      "description": "Keep lon/lat unrounded",
+      "default": false,
+      "required": false
+    }
+  ],
+  "setup": {
+    "urlTemplate": "{publicBaseUrl}/v1/ingest/{sourceId}/k/{key}/ecowitt",
+    "instructions": "In the WS View Plus or Ecowitt app: Weather Services → Customized.\n\n1. Customized: **Enable**; Protocol Type: **Ecowitt**.\n2. Server IP / Hostname: `{host}`\n3. Path: `{path}`\n4. Port: `{port}`\n5. Upload Interval: **16** seconds or more.\n\nThe firmware sends plain HTTP: keep the console and Foresignal on the same LAN (the source accepts path-key pushes only from private addresses unless `ingestAllowCidrs` says otherwise). `PASSKEY` (a hash of the console's MAC address) is never stored."
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "receivedAt": "2026-10-13T15:05:00Z",
+  "method": "POST",
+  "format": "tts-v3",
+  "contentType": "application/json",
+  "query": null,
+  "body": "{\"end_device_ids\": {\"device_id\": \"balcony-sensor\", \"application_ids\": {\"application_id\": \"home-sensors\"}, \"dev_eui\": \"70B3D57ED0051234\", \"join_eui\": \"0000000000000000\", \"dev_addr\": \"260B1234\"}, \"correlation_ids\": [\"as:up:01JA0000000000000000000000\", \"rpc:/ttn.lorawan.v3.AppAs/SimulateUplink:00000000\"], \"received_at\": \"2026-10-13T15:04:05.678901234Z\", \"uplink_message\": {\"session_key_id\": \"AYbN4kTTpnbPsxRjBcLQjA==\", \"f_port\": 1, \"f_cnt\": 42, \"frm_payload\": \"AQIDBA==\", \"decoded_payload\": {\"temperature\": 19.75, \"humidity\": 62, \"battery\": 3.6, \"status\": \"ok\"}, \"rx_metadata\": [{\"gateway_ids\": {\"gateway_id\": \"my-gw\", \"eui\": \"B827EBFFFE000001\"}, \"rssi\": -101, \"channel_rssi\": -101, \"snr\": -2.25, \"location\": {\"latitude\": 30.1, \"longitude\": -97.6, \"source\": \"SOURCE_REGISTRY\"}}], \"settings\": {\"data_rate\": {\"lora\": {\"bandwidth\": 125000, \"spreading_factor\": 9, \"coding_rate\": \"4/5\"}}, \"frequency\": \"904100000\"}, \"locations\": {\"user\": {\"latitude\": 30.2672, \"longitude\": -97.7431, \"altitude\": 160, \"source\": \"SOURCE_REGISTRY\"}}, \"received_at\": \"2026-10-13T15:04:05.400Z\", \"consumed_airtime\": \"0.144384s\"}}",
+  "contentEncoding": null
+}

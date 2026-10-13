@@ -1,0 +1,29 @@
+{
+  "presetParams": {
+    "lon": -97.7431,
+    "lat": 30.2672
+  },
+  "records": [
+    {
+      "externalId": "gmc-0987654321",
+      "kind": "radiation",
+      "observedAt": "2026-10-13T15:05:00Z",
+      "geometry": [
+        -97.74,
+        30.27
+      ],
+      "payload": {
+        "cpm": 18.0,
+        "acpm": 17.5,
+        "doseRateUSvH": 0.117,
+        "geigerId": "0987654321"
+      }
+    }
+  ],
+  "secrets": [
+    "0123456"
+  ],
+  "neverStored": [
+    "AID"
+  ]
+}

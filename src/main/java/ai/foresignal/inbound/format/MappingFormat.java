@@ -1,16 +1,22 @@
 package ai.foresignal.inbound.format;
 
-import ai.foresignal.api.error.InvalidInputException;
+import ai.foresignal.mapping.CompiledMapping;
+import ai.foresignal.mapping.MappingCache;
+import ai.foresignal.mapping.MappingEngine;
+import ai.foresignal.mapping.MappingInputs;
 import ai.foresignal.source.spi.SourceDescriptor;
-import java.util.List;
 import java.util.Set;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * The {@code mapping} ingest format (prompt 024): arbitrary JSON mapped to records by the source's
- * {@link RecordMapping} (its {@code formats.mapping} options).
+ * The {@code mapping} ingest format: any JSON document, or a form body, mapped to records by the source's
+ * {@code RecordMapping} (prompt 059).
+ *
+ * <p>Prompt 024 shipped an interim JSON-Pointer mapping under {@code formats.mapping}; prompt 059 replaced it:
+ * this format now delegates to {@link MappingEngine} with the mapping stored in the source's {@code mapping}
+ * member ({@link MappingCache}). A source without one answers {@code 400}.
  */
 @Component
 public class MappingFormat implements IngestFormat {
@@ -19,11 +25,13 @@ public class MappingFormat implements IngestFormat {
     public static final String ID = "mapping";
 
     private final JsonMapper json;
-    private final RecordMappingEngine engine;
+    private final MappingCache mappings;
+    private final MappingEngine engine;
 
     /** Creates the format. */
-    public MappingFormat(JsonMapper json, RecordMappingEngine engine) {
+    public MappingFormat(JsonMapper json, MappingCache mappings, MappingEngine engine) {
         this.json = json;
+        this.mappings = mappings;
         this.engine = engine;
     }
 
@@ -34,34 +42,17 @@ public class MappingFormat implements IngestFormat {
 
     @Override
     public Set<MediaType> mediaTypes() {
-        return Set.of(MediaType.APPLICATION_JSON);
+        return Set.of(MediaType.APPLICATION_JSON, MediaType.APPLICATION_FORM_URLENCODED);
     }
 
     @Override
     public String description() {
-        return "Any JSON, mapped by the source's JSON Pointer mapping (formats.mapping)";
-    }
-
-    @Override
-    public List<FormatOptionSpec> options() {
-        return List.of(
-                new FormatOptionSpec("recordsPath", "string", false, "", "JSON Pointer to the records array"),
-                new FormatOptionSpec("externalId", "string", true, null, "JSON Pointer to the external id"),
-                new FormatOptionSpec("kind", "string", false, null, "JSON Pointer to the kind"),
-                new FormatOptionSpec("observedAt", "string", false, null, "JSON Pointer to the observation time"),
-                new FormatOptionSpec("observedAtFormat", "string", false, "ISO", "ISO, epoch-s or epoch-ms"),
-                new FormatOptionSpec("lat", "string", false, null, "JSON Pointer to the latitude"),
-                new FormatOptionSpec("lon", "string", false, null, "JSON Pointer to the longitude"),
-                new FormatOptionSpec("geometry", "string", false, null, "JSON Pointer to a GeoJSON geometry"),
-                new FormatOptionSpec("payload", "array", false, null, "[{from, to}] payload fields"));
+        return "Any JSON or form body, mapped by the source's RecordMapping (its mapping member)";
     }
 
     @Override
     public ParsedIngest parse(IngestRequest request, SourceDescriptor descriptor, FormatOptions options) {
-        if (options.node().isEmpty()) {
-            throw new InvalidInputException("This source has no mapping (formats.mapping).");
-        }
-        RecordMapping mapping = RecordMapping.parse(options.node());
-        return engine.apply(mapping, NativeFormat.readJson(json, request), descriptor);
+        CompiledMapping mapping = mappings.require(descriptor, null);
+        return engine.apply(MappingInputs.fromRequest(request, json), mapping, request.receivedAt()).toParsedIngest();
     }
 }

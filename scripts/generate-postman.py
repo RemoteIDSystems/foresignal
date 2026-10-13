@@ -181,6 +181,24 @@ BODIES = {
                     "geometry": {"type": "Point", "coordinates": [-97.74, 30.27]},
                     "properties": {"kind": "sensor-reading", "observedAt": "2026-10-10T12:00:00Z", "name": "Garage temperature", "value": 31.5, "unit": "C"}}]},
   "ingestRecordsFormat": ALERTMANAGER,
+  # 059: a RecordMapping previewed over an Ecowitt form sample, and an LLM draft for an airrohr sample.
+  "previewMapping": {"mapping": {"version": 1, "externalId": {"const": "station"}, "kind": {"const": "weather-observation"},
+                                 "observedAt": {"path": "$.dateutc", "format": "pattern:yyyy-MM-dd HH:mm:ss", "zone": "UTC"},
+                                 "geometry": {"const": [-97.74, 30.27]},
+                                 "fields": [{"name": "tempC", "path": "$.tempf", "type": "number", "unit": {"from": "[degF]", "to": "Cel"}},
+                                            {"name": "rh", "path": "$.humidity", "type": "number"},
+                                            {"name": "model", "path": "$.stationtype", "type": "string"}],
+                                 "drop": ["PASSKEY"]},
+                     "sample": {"contentType": "application/x-www-form-urlencoded",
+                                "body": "PASSKEY=REDACTED&stationtype=GW2000A_V3.1.4&dateutc=2026-10-13+12%3A00%3A00&tempf=68.0&humidity=55"},
+                     "sourceId": None},
+  "suggestMapping": {"sample": {"contentType": "application/json",
+                                "body": {"esp8266id": "1234567", "software_version": "NRZ-2020-133",
+                                         "sensordatavalues": [{"value_type": "SDS_P1", "value": "12.4"}, {"value_type": "SDS_P2", "value": "6.1"},
+                                                              {"value_type": "signal", "value": "-63"}]}},
+                     "hints": {"kind": "air-quality", "description": "Sensor.Community airrohr on the balcony", "sourceId": None},
+                     "confirmEgress": False},
+  "testCustomSourceMapping": {"mapping": None},
   # A device key in the path (039): an OwnTracks location message, the format the personal-location preset uses.
   "ingestRecordsPathKey": {"_type": "location", "lat": 30.27, "lon": -97.74, "tst": 1760097600, "acc": 12, "batt": 81,
                            "tid": "ph"},
@@ -358,12 +376,19 @@ VARIANTS = {
                             "time": "2026-10-10T12:01:00Z", "data": {"state": "on"}}],
      {"format": "cloudevents", "content_type": "application/cloudevents-batch+json"}),
     ("CAP 1.2 alert", None, {"format": "cap", "content_type": "application/cap+xml", "raw": CAP_ALERT, "language": "xml"}),
-    ("mapping (JSON Pointer)", {"items": [{"device": "aqi-1", "ts": 1760097600, "pm25": 12.5, "pos": {"lat": 30.27, "lon": -97.74}}]},
+    # 059: the source's RecordMapping reads items[*] (select), device, ts (epochS), pos and pm25.
+    ("mapping (RecordMapping)", {"items": [{"device": "aqi-1", "ts": 1760097600, "pm25": 12.5, "pos": {"lat": 30.27, "lon": -97.74}}]},
      {"format": "mapping"}),
   ],
   "pushExternalItems": [
     ("NDJSON", None, {"content_type": "application/x-ndjson", "language": "text",
                       "raw": "\n".join(json.dumps(x) for x in [{"protocol": "foresignal-edp/1.0", "sourceId": "hormuz-transits"}] + EDP_ITEMS[:2]) + "\n"}),
+  ],
+  # 059: a source created from a device preset; the response's setup holds the device instructions and URL.
+  "createCustomSource": [
+    ("from the ecowitt preset", {"id": "custom-backyard-weather", "name": "Backyard weather", "kinds": ["weather-observation"],
+                                 "preset": "ecowitt",
+                                 "presetParams": {"lon": -97.7431, "lat": 30.2672}}),
   ],
   "createToken": [
     ("restricted", {"name": "dashboard-kiosk", "scope": "read", "expiresAt": None,

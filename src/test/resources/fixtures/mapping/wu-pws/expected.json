@@ -1,0 +1,39 @@
+{
+  "presetParams": {
+    "lon": -97.7431,
+    "lat": 30.2672
+  },
+  "records": [
+    {
+      "externalId": "station",
+      "kind": "weather-observation",
+      "observedAt": "2026-10-13T15:05:00Z",
+      "geometry": [
+        -97.74,
+        30.27
+      ],
+      "payload": {
+        "tempC": 21.22222222222222,
+        "rh": 60.0,
+        "dewPointC": 13.11111111111111,
+        "pressureHpa": 1016.2553389,
+        "windDirDeg": 180.0,
+        "windSpeedMs": 1.34112,
+        "windGustMs": 2.2352,
+        "rainHourMm": 0.254,
+        "rainDailyMm": 2.54,
+        "solarWm2": 300.5,
+        "uvIndex": 3.0,
+        "model": "EasyWeatherPro_V5.1.6"
+      }
+    }
+  ],
+  "secrets": [
+    "KTXAUSTI123",
+    "***"
+  ],
+  "neverStored": [
+    "ID",
+    "PASSWORD"
+  ]
+}

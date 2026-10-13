@@ -14,13 +14,14 @@ import org.springframework.stereotype.Component;
  *
  * <p>{@code media} and {@code rasters} are the remote SatDump push endpoints of prompt 054
  * ({@code ingestSourceMedia}, {@code ingestSourceRasters}), whose literal path segments win over
- * {@code /v1/ingest/{sourceId}/{format}}; {@code mapping-preview} belongs to prompt 059. They are listed
- * as reserved and cannot be registered by any format.
+ * {@code /v1/ingest/{sourceId}/{format}}; {@code mapping-preview} stays reserved so it can never shadow
+ * prompt 059's {@code POST /v1/mappings/preview}. They are listed as reserved and cannot be registered by any
+ * format. Prompt 059's device-preset formats are registered by {@code DeviceFormatsConfiguration}.
  */
 @Component
 public class IngestFormatRegistry {
 
-    /** Format names no format may take: the 054 push endpoints and 059's mapping preview. */
+    /** Format names no format may take: the 054 push endpoints and {@code mapping-preview}. */
     public static final Set<String> RESERVED = Set.of("media", "rasters", "mapping-preview");
 
     /** The format used by {@code POST /v1/ingest/{sourceId}}. */

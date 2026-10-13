@@ -1,0 +1,9 @@
+{
+  "receivedAt": "2026-10-13T15:05:00Z",
+  "method": "GET",
+  "format": "wu-pws",
+  "contentType": null,
+  "query": "ID=KTXAUSTI123&PASSWORD=***&dateutc=now&action=updateraw&tempf=70.2&humidity=60&dewptf=55.6&baromin=30.01&winddir=180&windspeedmph=3.0&windgustmph=5.0&rainin=0.01&dailyrainin=0.10&solarradiation=300.5&UV=3&softwaretype=EasyWeatherPro_V5.1.6",
+  "body": null,
+  "contentEncoding": null
+}

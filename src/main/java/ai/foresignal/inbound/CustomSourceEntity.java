@@ -135,6 +135,24 @@ public class CustomSourceEntity {
     @Column(name = "ingest_allow_cidrs", columnDefinition = "jsonb")
     private List<String> ingestAllowCidrs;
 
+    /** The {@code RecordMapping} as raw JSON text (prompt 059); null for none. */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "mapping", columnDefinition = "jsonb")
+    private String mapping;
+
+    /** The format {@code POST /v1/ingest/{sourceId}} uses (prompt 059, a preset's format); null = native. */
+    @Column(name = "default_format", length = 32)
+    private String defaultFormat;
+
+    /** The preset the source was created from (prompt 059), or null. */
+    @Column(name = "preset", length = 32)
+    private String preset;
+
+    /** Until when raw requests are captured for {@code /samples} (prompt 059); null or past = off. */
+    @JdbcTypeCode(SqlTypes.TIMESTAMP_UTC)
+    @Column(name = "capture_samples_until")
+    private Instant captureSamplesUntil;
+
     @Column(name = "ingest_key_hash", length = 64, nullable = false)
     private String ingestKeyHash;
 
@@ -488,5 +506,50 @@ public class CustomSourceEntity {
     /** Sets {@link #getIngestAllowCidrs()}; null restores the private-ranges default. */
     public void setIngestAllowCidrs(List<String> ingestAllowCidrs) {
         this.ingestAllowCidrs = ingestAllowCidrs == null ? null : new ArrayList<>(ingestAllowCidrs);
+    }
+
+    /** The {@code RecordMapping} JSON text (prompt 059), or null. */
+    public String getMapping() {
+        return mapping;
+    }
+
+    /** Sets the {@code RecordMapping} JSON text. */
+    public void setMapping(String mapping) {
+        this.mapping = mapping;
+    }
+
+    /** The format of {@code POST /v1/ingest/{sourceId}} (prompt 059), or null for {@code native}. */
+    public String getDefaultFormat() {
+        return defaultFormat;
+    }
+
+    /** Sets the default format. */
+    public void setDefaultFormat(String defaultFormat) {
+        this.defaultFormat = defaultFormat;
+    }
+
+    /** The preset the source was created from (prompt 059), or null. */
+    public String getPreset() {
+        return preset;
+    }
+
+    /** Sets the preset id. */
+    public void setPreset(String preset) {
+        this.preset = preset;
+    }
+
+    /** Until when samples are captured (prompt 059), or null. */
+    public Instant getCaptureSamplesUntil() {
+        return captureSamplesUntil;
+    }
+
+    /** Sets until when samples are captured; null turns capture off. */
+    public void setCaptureSamplesUntil(Instant captureSamplesUntil) {
+        this.captureSamplesUntil = captureSamplesUntil;
+    }
+
+    /** True while sample capture is on at {@code now}. */
+    public boolean capturesSamplesAt(Instant now) {
+        return captureSamplesUntil != null && captureSamplesUntil.isAfter(now);
     }
 }

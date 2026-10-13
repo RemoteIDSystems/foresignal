@@ -1,0 +1,123 @@
+{
+  "id": "tts-v3",
+  "title": "The Things Stack v3 webhook",
+  "description": "A The Things Stack (TTN/TTI) v3 webhook. Uplinks become one record per device (DevEUI) with the decoded payload's numeric keys as fields. Geometry comes from the frm-payload location, else the device's configured location (flagged lora.locationSource=static), else the preset's position. Private by default.",
+  "format": "tts-v3",
+  "kinds": [
+    "lorawan-device"
+  ],
+  "observedAtMode": "UPSTREAM",
+  "ttl": null,
+  "ingestPolicy": null,
+  "significantFields": [],
+  "volatileFields": [
+    "fCnt"
+  ],
+  "private": true,
+  "allowPathKey": false,
+  "allowsGet": false,
+  "locationMode": "fallback",
+  "titleField": "name",
+  "tileProperties": [
+    "name"
+  ],
+  "fieldSpecs": {
+    "name": {
+      "type": "STRING",
+      "label": "Device id"
+    },
+    "fPort": {
+      "type": "INTEGER",
+      "label": "FPort"
+    },
+    "fCnt": {
+      "type": "INTEGER",
+      "label": "Frame counter"
+    }
+  },
+  "mapping": {
+    "version": 1,
+    "externalId": {
+      "path": "$.end_device_ids.dev_eui"
+    },
+    "observedAt": {
+      "path": "$.received_at",
+      "format": "iso"
+    },
+    "geometry": {
+      "lon": {
+        "path": "$.uplink_message.locations['frm-payload'].longitude"
+      },
+      "lat": {
+        "path": "$.uplink_message.locations['frm-payload'].latitude"
+      }
+    },
+    "fields": [
+      {
+        "name": "name",
+        "path": "$.end_device_ids.device_id",
+        "type": "string"
+      },
+      {
+        "name": "fPort",
+        "path": "$.uplink_message.f_port",
+        "type": "integer"
+      },
+      {
+        "name": "fCnt",
+        "path": "$.uplink_message.f_cnt",
+        "type": "integer"
+      }
+    ],
+    "spread": {
+      "path": "$.uplink_message.decoded_payload",
+      "type": "number",
+      "max": 32
+    },
+    "quality": {
+      "extra": {
+        "lora.rssi": {
+          "path": "$.uplink_message.rx_metadata[0].rssi"
+        },
+        "lora.snr": {
+          "path": "$.uplink_message.rx_metadata[0].snr"
+        }
+      }
+    },
+    "filter": [
+      {
+        "path": "$.uplink_message",
+        "op": "exists"
+      }
+    ],
+    "drop": [
+      "latitude",
+      "longitude"
+    ]
+  },
+  "params": [
+    {
+      "name": "lon",
+      "type": "number",
+      "description": "Station longitude (WGS84); rounded to 0.01° unless exactLocation",
+      "required": false
+    },
+    {
+      "name": "lat",
+      "type": "number",
+      "description": "Station latitude (WGS84); rounded to 0.01° unless exactLocation",
+      "required": false
+    },
+    {
+      "name": "exactLocation",
+      "type": "boolean",
+      "description": "Keep lon/lat unrounded",
+      "default": false,
+      "required": false
+    }
+  ],
+  "setup": {
+    "urlTemplate": "{publicBaseUrl}/v1/ingest/{sourceId}/tts-v3",
+    "instructions": "In the The Things Stack console: Applications → (your application) → Integrations → **Webhooks** → Add webhook → Custom webhook.\n\n1. Webhook format: **JSON**.\n2. Base URL: `{url}`\n3. Additional headers: `Authorization` = `Bearer {key}`.\n4. Enabled event types: **Uplink message** (other messages are acknowledged and ignored).\n\nAdd a payload formatter that decodes to an object of numbers; at most 32 numeric keys become fields."
+  }
+}

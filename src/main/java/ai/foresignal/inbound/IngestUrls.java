@@ -14,11 +14,14 @@ import java.util.regex.Pattern;
  * <p>Prompt 039 adds the key-in-path ingest URLs: the {@code {key}} segment of
  * {@code /v1/ingest/{sourceId}/k/{key}/{format}} becomes {@link #REDACTED_KEY}, and a {@code key}
  * query parameter is masked like {@code auth} and {@code token}.
+ *
+ * <p>Prompt 059 adds the device-protocol credentials {@code PASSWORD} (the WU protocol carries the ingest key
+ * there) and {@code PASSKEY} (Ecowitt's MAC-derived station identifier). Names are matched case-insensitively.
  */
 public final class IngestUrls {
 
     /** Query parameters that carry credentials. */
-    public static final Set<String> SECRET_PARAMETERS = Set.of("auth", "token", "key");
+    public static final Set<String> SECRET_PARAMETERS = Set.of("auth", "token", "key", "password", "passkey");
 
     /** What replaces a key carried in an ingest path. */
     public static final String REDACTED_KEY = "redacted";

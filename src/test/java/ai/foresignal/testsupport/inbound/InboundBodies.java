@@ -4,6 +4,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import ai.foresignal.inbound.CompatPublishService;
 import ai.foresignal.inbound.CustomSourceInputReader;
+import ai.foresignal.inbound.CustomSourceService;
+import ai.foresignal.mapping.CompiledMapping;
+import ai.foresignal.mapping.MappingCompiler;
+import ai.foresignal.mapping.MappingContext;
+import ai.foresignal.mapping.MappingEngine;
+import ai.foresignal.mapping.MappingInputs;
+import ai.foresignal.mapping.MappingResult;
 import ai.foresignal.inbound.edp.EdpItemValidator;
 import ai.foresignal.inbound.edp.EdpManifestValidator;
 import ai.foresignal.inbound.edp.EdpProperties;
@@ -19,7 +26,6 @@ import ai.foresignal.inbound.format.IngestRequest;
 import ai.foresignal.inbound.format.MappingFormat;
 import ai.foresignal.inbound.format.NativeFormat;
 import ai.foresignal.inbound.format.ParsedIngest;
-import ai.foresignal.inbound.format.RecordMappingEngine;
 import ai.foresignal.inbound.signature.ForesignalSignatureVerifier;
 import ai.foresignal.inbound.signature.HmacSha256Verifier;
 import ai.foresignal.inbound.signature.NoneVerifier;
@@ -54,14 +60,18 @@ public final class InboundBodies {
     private static final NativeFormat NATIVE = new NativeFormat(JSON, GEOJSON);
     private static final AlertmanagerFormat ALERTMANAGER = new AlertmanagerFormat(JSON, GEOJSON);
     private static final CloudEventsFormat CLOUDEVENTS = new CloudEventsFormat(JSON, GEOJSON);
-    private static final MappingFormat MAPPING = new MappingFormat(JSON, new RecordMappingEngine(GEOJSON));
+    private static final MappingEngine ENGINE = new MappingEngine(JSON);
+    private static final MappingCompiler COMPILER_059 = new MappingCompiler();
+    /** The {@code mapping} format, for the registry only: its parse needs a stored mapping (prompt 059). */
+    private static final MappingFormat MAPPING = new MappingFormat(JSON, null, ENGINE);
     private static final List<IngestFormat> FORMATS = List.of(NATIVE, ALERTMANAGER, CLOUDEVENTS, new CapFormat(), MAPPING);
     private static final EdpSchemaCompiler COMPILER = new EdpSchemaCompiler();
 
-    /** The mapping the Postman {@code mapping} example is written for. */
-    private static final String EXAMPLE_MAPPING = "{\"recordsPath\":\"/items\",\"externalId\":\"/device\","
-            + "\"observedAt\":\"/ts\",\"observedAtFormat\":\"epoch-s\",\"lat\":\"/pos/lat\",\"lon\":\"/pos/lon\","
-            + "\"payload\":[{\"from\":\"/pm25\",\"to\":\"pm25\"}]}";
+    /** The RecordMapping the Postman {@code mapping} example is written for (prompt 059). */
+    private static final String EXAMPLE_MAPPING = "{\"version\":1,\"select\":\"$.items[*]\","
+            + "\"externalId\":{\"path\":\"$.device\"},\"observedAt\":{\"path\":\"$.ts\",\"format\":\"epochS\"},"
+            + "\"geometry\":{\"lon\":{\"path\":\"$.pos.lon\"},\"lat\":{\"path\":\"$.pos.lat\"}},"
+            + "\"fields\":[{\"name\":\"pm25\",\"path\":\"$.pm25\",\"type\":\"number\"}]}";
 
     private InboundBodies() {}
 
@@ -69,7 +79,8 @@ public final class InboundBodies {
     public static void customSource(JsonNode body) {
         SignatureVerifiers verifiers = new SignatureVerifiers(List.of(new NoneVerifier(), new HmacSha256Verifier(),
                 new StandardWebhooksVerifier(CLOCK), new ForesignalSignatureVerifier(CLOCK)));
-        new CustomSourceInputReader(new IngestFormatRegistry(FORMATS), verifiers, JSON).read(body, null, Set.of());
+        new CustomSourceInputReader(new IngestFormatRegistry(FORMATS), verifiers, JSON, COMPILER_059)
+                .read(CustomSourceService.withPreset(body), null, Set.of());
     }
 
     /** {@code ingestRecords}: the native format, with no rejection. */
@@ -86,8 +97,11 @@ public final class InboundBodies {
         } else if (body.has("specversion")) {
             accepted(CLOUDEVENTS.parse(request(body, CloudEventsFormat.STRUCTURED), source(), FormatOptions.empty()));
         } else {
-            accepted(MAPPING.parse(request(body, MediaType.APPLICATION_JSON), source(),
-                    new FormatOptions(JSON.readTree(EXAMPLE_MAPPING))));
+            CompiledMapping mapping = COMPILER_059.compile(JSON.readTree(EXAMPLE_MAPPING),
+                    new MappingContext(source().kinds(), source().observedAtMode(), true));
+            MappingResult result = ENGINE.apply(MappingInputs.fromRequest(request(body, MediaType.APPLICATION_JSON), JSON),
+                    mapping, RECEIVED);
+            accepted(result.toParsedIngest());
         }
     }
 

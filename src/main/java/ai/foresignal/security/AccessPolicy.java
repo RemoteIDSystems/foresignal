@@ -46,6 +46,11 @@ import org.springframework.util.AntPathMatcher;
  * {@code GET /v1/media/**} as {@code read}; the news providers of prompt 133 under
  * {@code /v1/media/providers} stay {@code admin}, listed before it.
  *
+ * <p>Prompt 059 adds {@code /v1/mappings/**} (preview, presets) as {@code admin}, with
+ * {@code POST /v1/mappings/suggest} also always authenticated (it spends LLM budget). The samples and mapping
+ * test under {@code /v1/custom-sources/**} are admin through the existing rule; {@code GET /v1/ingest/**}
+ * (WU, GMC) is already {@code INGEST_KEY_OR_ADMIN}.
+ *
  * <p>Prompt 058 adds {@code GET /v1/map/**} (MapLibre style, sprite, icons), {@code GET /v1/kml/**},
  * {@code GET /v1/alerts/feed.*}, {@code GET /v1/briefings/*}{@code /runs/feed.*} and
  * {@code GET /v1/triggers/*.kml} as {@code read}, ahead of the broader rules.
@@ -231,6 +236,9 @@ public class AccessPolicy {
                 rule(HttpMethod.POST, "/v1/llm/providers/*/test", AccessRequirement.ADMIN_ALWAYS_AUTHENTICATED),
                 rule(null, "/v1/llm/**", AccessRequirement.ADMIN),
                 rule(null, "/v1/custom-sources/**", AccessRequirement.ADMIN),
+                // ---- Mappings (prompt 059): the LLM draft spends budget, so it is always authenticated ----
+                rule(HttpMethod.POST, "/v1/mappings/suggest", AccessRequirement.ADMIN_ALWAYS_AUTHENTICATED),
+                rule(null, "/v1/mappings/**", AccessRequirement.ADMIN),
 
                 // ---- Sources: reads open, configuration admin ----
                 rule(HttpMethod.PUT, "/v1/sources/*/credentials", AccessRequirement.ADMIN),

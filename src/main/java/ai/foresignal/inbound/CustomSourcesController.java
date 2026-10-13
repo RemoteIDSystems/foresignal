@@ -1,6 +1,10 @@
 package ai.foresignal.inbound;
 
+import ai.foresignal.api.support.PublicUrls;
 import ai.foresignal.inbound.signature.VerifierConfig;
+import ai.foresignal.mapping.preset.PresetCatalog;
+import ai.foresignal.settings.AppSettingService;
+import jakarta.servlet.http.HttpServletRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.LinkedHashMap;
@@ -24,6 +28,10 @@ import tools.jackson.databind.json.JsonMapper;
  * {@code updateCustomSource}, {@code deleteCustomSource} and {@code rotateIngestKey} (admin, prompt
  * 024). Keys are shown once, in the create and rotate responses; verifier secrets are write-only and
  * reported as {@code secretSet}.
+ *
+ * <p>Prompt 059: the view carries {@code mapping}, {@code preset} and {@code captureSamples} (true while the
+ * capture window is open); a source created from a preset also gets {@code setup}, the device instructions with
+ * the concrete URL, which may contain the key and is shown once like it.
  */
 @RestController
 @Tag(name = "Ingest")
@@ -32,12 +40,17 @@ public class CustomSourcesController {
     private final CustomSourceService service;
     private final IngestRecordLimiter recordLimiter;
     private final JsonMapper json;
+    private final AppSettingService settings;
+    private final java.time.Clock clock;
 
     /** Creates the controller. */
-    public CustomSourcesController(CustomSourceService service, IngestRecordLimiter recordLimiter, JsonMapper json) {
+    public CustomSourcesController(CustomSourceService service, IngestRecordLimiter recordLimiter, JsonMapper json,
+            AppSettingService settings, java.time.Clock clock) {
         this.service = service;
         this.recordLimiter = recordLimiter;
         this.json = json;
+        this.settings = settings;
+        this.clock = clock;
     }
 
     /** {@code listCustomSources}. */
@@ -51,10 +64,15 @@ public class CustomSourcesController {
     @PostMapping("/v1/custom-sources")
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(operationId = "createCustomSource", tags = "Ingest")
-    public Map<String, Object> createCustomSource(@RequestBody JsonNode body) {
+    public Map<String, Object> createCustomSource(@RequestBody JsonNode body, HttpServletRequest request) {
         CustomSourceService.Created created = service.create(body);
         Map<String, Object> out = view(created.source());
         out.put("ingestKey", created.ingestKey());
+        String preset = created.source().getPreset();
+        out.put("setup", preset == null ? null : PresetCatalog.find(preset)
+                .map(p -> PresetCatalog.setup(p, PublicUrls.base(settings, request), created.source().getSourceId(),
+                        created.ingestKey()))
+                .orElse(null));
         return out;
     }
 
@@ -138,6 +156,9 @@ public class CustomSourcesController {
         out.put("profile", row.getProfile());
         out.put("allowPathKey", row.isAllowPathKey());
         out.put("ingestAllowCidrs", row.getIngestAllowCidrs());
+        out.put("mapping", row.getMapping() == null ? null : json.readTree(row.getMapping()));
+        out.put("preset", row.getPreset());
+        out.put("captureSamples", row.capturesSamplesAt(clock.instant()));
         return out;
     }
 }

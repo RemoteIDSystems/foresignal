@@ -45,6 +45,11 @@ import org.springframework.web.bind.annotation.RestController;
  * and redacted by {@link IngestKeyRedactionFilter} and checked by {@link IngestAuthenticator}. A
  * format with a {@link NativeReply} (OwnTracks {@code []}, Overland {@code {"result":"ok"}}, OsmAnd and
  * GPSLogger an empty 200) gets that reply instead of the {@code IngestOutcome}.
+ *
+ * <p>Prompt 059 adds the device-preset formats ({@code ecowitt}, {@code wu-pws}, {@code aiscatcher},
+ * {@code chirpstack-v4}, {@code tts-v3}, {@code airrohr}, {@code gmc}); {@code ecowitt}, {@code gmc} and
+ * {@code mapping} are also served on the key-in-path URLs (the source still needs {@code allowPathKey}), and
+ * {@code POST /v1/ingest/{sourceId}} uses the source's default format when it has one.
  */
 @RestController
 @Tag(name = "Ingest")
@@ -56,30 +61,40 @@ public class IngestController {
     private final PushIngestService pushes;
     private final ai.foresignal.source.SourceRegistry registry;
     private final ai.foresignal.source.SourceService sources;
+    private final CustomSourceRepository customSources;
 
     /** Creates the controller. */
     public IngestController(IngestFormatRegistry formats, InboundRequests inbound, SignatureVerifiers verifiers,
             PushIngestService pushes, ai.foresignal.source.SourceRegistry registry,
-            ai.foresignal.source.SourceService sources) {
+            ai.foresignal.source.SourceService sources, CustomSourceRepository customSources) {
         this.formats = formats;
         this.inbound = inbound;
         this.verifiers = verifiers;
         this.pushes = pushes;
         this.registry = registry;
         this.sources = sources;
+        this.customSources = customSources;
     }
 
-    /** {@code ingestRecords}: the {@code native} format (GeoJSON FeatureCollection or {@code {records}}). */
+    /**
+     * {@code ingestRecords}: the {@code native} format (GeoJSON FeatureCollection or {@code {records}}), or the
+     * source's default format when it has one (prompt 059: a preset's format, so a form POST from a device lands
+     * in its mapping).
+     */
     @PostMapping("/v1/ingest/{sourceId}")
     @Operation(operationId = "ingestRecords", tags = "Ingest")
-    public IngestOutcomeView ingestRecords(@PathVariable String sourceId, HttpServletRequest request) {
+    public ResponseEntity<?> ingestRecords(@PathVariable String sourceId, HttpServletRequest request) {
+        String defaultFormat = customSources.findById(sourceId).map(CustomSourceEntity::getDefaultFormat).orElse(null);
+        if (defaultFormat != null && formats.find(defaultFormat).isPresent()) {
+            return reply(inbound.receive(sourceId, format(defaultFormat), request));
+        }
         String contentType = request.getContentType();
         if (contentType != null && !isJson(contentType)) {
             throw new ForesignalException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, ErrorCodes.UNSUPPORTED_MEDIA_TYPE,
-                    "POST /v1/ingest/{sourceId} reads JSON (application/json or application/geo+json); use a named"
-                            + " format for anything else.");
+                    "POST /v1/ingest/{sourceId} reads JSON (application/json or application/geo+json) unless the"
+                            + " source has a default format (a preset); use a named format for anything else.");
         }
-        return inbound.push(sourceId, format(IngestFormatRegistry.DEFAULT_FORMAT), request).view();
+        return ResponseEntity.ok(inbound.push(sourceId, format(IngestFormatRegistry.DEFAULT_FORMAT), request).view());
     }
 
     /** {@code ingestRecordsFormat}: a named format; unknown or reserved names are {@code 404 FORMAT_UNKNOWN}. */
@@ -116,7 +131,7 @@ public class IngestController {
 
     /** The formats served on the key-in-path URLs (the spec's enum). */
     public static final java.util.Set<String> PATH_KEY_FORMATS =
-            java.util.Set.of("osmand", "gpslogger", "owntracks", "overland", "native");
+            java.util.Set.of("osmand", "gpslogger", "owntracks", "overland", "native", "ecowitt", "gmc", "mapping");
 
     private IngestFormat pathKeyFormat(String id) {
         if (!PATH_KEY_FORMATS.contains(id)) {
@@ -197,7 +212,8 @@ public class IngestController {
         for (String reserved : IngestFormatRegistry.RESERVED.stream().sorted().toList()) {
             Map<String, Object> info = new LinkedHashMap<>();
             info.put("id", reserved);
-            info.put("description", "mapping-preview".equals(reserved) ? "Reserved for prompt 059"
+            info.put("description", "mapping-preview".equals(reserved)
+                    ? "Reserved: mapping previews are POST /v1/mappings/preview (prompt 059), never an ingest format"
                     : "Reserved: POST /v1/ingest/{sourceId}/" + reserved + " is the remote SatDump push endpoint"
                             + " (prompt 054), never an ingest format");
             info.put("mediaTypes", List.of());

@@ -1,0 +1,9 @@
+{
+  "receivedAt": "2026-10-13T15:05:00Z",
+  "method": "POST",
+  "format": "aiscatcher",
+  "contentType": "application/json",
+  "contentEncoding": "gzip",
+  "query": null,
+  "body": "{\"protocol\": \"jsonaiscatcher\", \"encodetime\": \"20261013150405\", \"stationid\": \"home\", \"station_lat\": 30.27, \"station_lon\": -97.74, \"receiver\": {\"description\": \"AIS-catcher\", \"version\": 61}, \"msgs\": [{\"class\": \"AIS\", \"device\": \"AIS-catcher\", \"rxtime\": \"20261013150401\", \"scaled\": true, \"channel\": \"A\", \"signalpower\": -35.2, \"ppm\": 1.2, \"type\": 1, \"repeat\": 0, \"mmsi\": 366123456, \"status\": 0, \"turn\": 0, \"speed\": 12.3, \"accuracy\": true, \"lon\": -94.8123, \"lat\": 29.3101, \"course\": 145.6, \"heading\": 146, \"second\": 1, \"maneuver\": 0, \"raim\": false}, {\"class\": \"AIS\", \"device\": \"AIS-catcher\", \"rxtime\": \"20261013150402\", \"scaled\": true, \"channel\": \"B\", \"signalpower\": -36.0, \"ppm\": 1.1, \"type\": 5, \"repeat\": 0, \"mmsi\": 366123456, \"imo\": 9123456, \"callsign\": \"WDA1234\", \"shipname\": \"GULF TRADER\", \"shiptype\": 70, \"to_bow\": 100, \"to_stern\": 20, \"to_port\": 10, \"to_starboard\": 10, \"epfd\": 1, \"eta\": \"10-14 08:00\", \"draught\": 7.5, \"destination\": \"HOUSTON\"}, {\"class\": \"AIS\", \"device\": \"AIS-catcher\", \"rxtime\": \"20261013150403\", \"scaled\": true, \"channel\": \"A\", \"signalpower\": -41.5, \"ppm\": 0.9, \"type\": 1, \"repeat\": 0, \"mmsi\": 538009876, \"status\": 5, \"turn\": -128, \"speed\": 102.3, \"accuracy\": false, \"lon\": 181, \"lat\": 91, \"course\": 360, \"heading\": 511, \"second\": 60}]}"
+}

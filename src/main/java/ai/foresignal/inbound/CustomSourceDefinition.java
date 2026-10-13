@@ -38,6 +38,10 @@ import tools.jackson.databind.node.ObjectNode;
  * @param allowPathKey true when the ingest key may be carried in the path (prompt 039)
  * @param ingestAllowCidrs the sender allowlist for path-key and GET pushes, or null for private ranges
  *     only (prompt 039)
+ * @param mapping the {@code RecordMapping}, validated, or null (prompt 059)
+ * @param preset the preset the source was created from, or null (prompt 059)
+ * @param defaultFormat the format of {@code POST /v1/ingest/{sourceId}}, or null for native (prompt 059)
+ * @param captureSamples true to capture raw requests for an hour (prompt 059)
  */
 public record CustomSourceDefinition(
         String id,
@@ -66,4 +70,8 @@ public record CustomSourceDefinition(
         Map<String, String> verifierSecrets,
         String profile,
         boolean allowPathKey,
-        List<String> ingestAllowCidrs) {}
+        List<String> ingestAllowCidrs,
+        tools.jackson.databind.JsonNode mapping,
+        String preset,
+        String defaultFormat,
+        boolean captureSamples) {}

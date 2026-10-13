@@ -4,7 +4,12 @@ import ai.foresignal.api.error.FieldError;
 import ai.foresignal.api.error.InvalidInputException;
 import ai.foresignal.api.error.ValidationException;
 import ai.foresignal.inbound.format.IngestFormatRegistry;
-import ai.foresignal.inbound.format.RecordMapping;
+import ai.foresignal.mapping.MappingCompiler;
+import ai.foresignal.mapping.MappingContext;
+import ai.foresignal.mapping.MappingInvalidException;
+import ai.foresignal.mapping.preset.MappingPreset;
+import ai.foresignal.mapping.preset.PresetCatalog;
+import ai.foresignal.source.spi.ObservedAtMode;
 import ai.foresignal.inbound.signature.SignatureVerifiers;
 import ai.foresignal.inbound.signature.VerifierConfig;
 import ai.foresignal.settings.Durations;
@@ -30,9 +35,15 @@ import tools.jackson.databind.node.ObjectNode;
  * Reads and validates a {@code CustomSourceInput} body (OpenAPI), collecting every field error
  * before failing (prompt 024).
  *
- * <p>Members that later prompts own and enforce ({@code mapping}, {@code preset},
- * {@code presetParams}, {@code captureSamples} 059, {@code licenceTerms} 109) are refused with a field
+ * <p>Members that later prompts own and enforce ({@code licenceTerms} 109) are refused with a field
  * error when set to anything but their default: accepting them unenforced would fail open.
+ *
+ * <p>Prompt 059 accepts {@code mapping} (a {@code RecordMapping}, compiled against the input's own kinds and
+ * {@code observedAtMode}; any problem makes the whole failure {@code 400 MAPPING_INVALID}, with paths such as
+ * {@code mapping.fields[3].unit.from}), {@code preset} (a known preset id, which also sets the default format;
+ * {@code CustomSourceService} applies the preset's defaults before this reader runs, so {@code presetParams}
+ * is refused here) and {@code captureSamples}. The interim {@code formats.mapping} options of prompt 024 are
+ * refused: the mapping is the top-level {@code mapping} member now.
  *
  * <p>Prompt 039 accepts {@code allowPathKey}, {@code ingestAllowCidrs} (IPv4 or IPv6 CIDR blocks) and
  * {@code profile}. Profile {@value #PROFILE_PERSONAL_LOCATION} fills in, wherever the input leaves a
@@ -62,12 +73,7 @@ public class CustomSourceInputReader {
     static final int DEFAULT_RECORDS_PER_MINUTE = 6_000;
 
     /** Members a later prompt owns, with that prompt. */
-    static final Map<String, String> LATER_MEMBERS = Map.of(
-            "mapping", "059",
-            "preset", "059",
-            "presetParams", "059",
-            "captureSamples", "059",
-            "licenceTerms", "109");
+    static final Map<String, String> LATER_MEMBERS = Map.of("licenceTerms", "109");
 
     /** The personal-location preset (prompt 039). */
     public static final String PROFILE_PERSONAL_LOCATION = "personal-location";
@@ -87,12 +93,15 @@ public class CustomSourceInputReader {
     private final IngestFormatRegistry formats;
     private final SignatureVerifiers verifiers;
     private final JsonMapper json;
+    private final MappingCompiler compiler;
 
     /** Creates the reader. */
-    public CustomSourceInputReader(IngestFormatRegistry formats, SignatureVerifiers verifiers, JsonMapper json) {
+    public CustomSourceInputReader(IngestFormatRegistry formats, SignatureVerifiers verifiers, JsonMapper json,
+            MappingCompiler compiler) {
         this.formats = formats;
         this.verifiers = verifiers;
         this.json = json;
+        this.compiler = compiler;
     }
 
     /**
@@ -203,6 +212,39 @@ public class CustomSourceInputReader {
         Map<String, String> secrets = new LinkedHashMap<>();
         verifiers(body, existing, secretSet, verifierConfigs, secrets, errors);
 
+        // ---- prompt 059: mapping, preset, captureSamples ----
+        String preset = null;
+        String defaultFormat = null;
+        JsonNode presetNode = body.get("preset");
+        if (presetNode != null && !presetNode.isNull()) {
+            MappingPreset found = presetNode.isString() ? PresetCatalog.find(presetNode.asString()).orElse(null) : null;
+            if (found == null) {
+                errors.add(new FieldError("preset", "is not a mapping preset " + PresetCatalog.ids()));
+            } else {
+                preset = found.id();
+                defaultFormat = found.format();
+            }
+        }
+        JsonNode presetParams = body.get("presetParams");
+        if (presetParams != null && !presetParams.isNull()) {
+            errors.add(new FieldError("presetParams", "is accepted only with preset, when creating a source"));
+        }
+        boolean captureSamples = bool(body, "captureSamples", false, errors);
+        boolean mappingInvalid = false;
+        JsonNode mapping = body.get("mapping");
+        if (mapping != null && mapping.isNull()) {
+            mapping = null;
+        }
+        if (mapping != null) {
+            try {
+                ObservedAtMode mode = ObservedAtMode.valueOf(observedAtMode);
+                compiler.compile(mapping, new MappingContext(new LinkedHashSet<>(kinds), mode, true));
+            } catch (MappingInvalidException e) {
+                errors.addAll(e.getErrors());
+                mappingInvalid = true;
+            }
+        }
+
         for (Map.Entry<String, String> later : LATER_MEMBERS.entrySet()) {
             JsonNode value = body.get(later.getKey());
             if (value != null && !value.isNull() && !(value.isBoolean() && !value.booleanValue())) {
@@ -212,12 +254,17 @@ public class CustomSourceInputReader {
         }
 
         if (!errors.isEmpty()) {
+            if (mappingInvalid) {
+                throw new ValidationException(ai.foresignal.api.error.ErrorCodes.MAPPING_INVALID,
+                        "The custom source's mapping is not valid.", errors);
+            }
             throw new ValidationException("The custom source is not valid.", errors);
         }
         return new CustomSourceDefinition(id, name, description, kinds, attribution, recordTtl, ttl, tileProperties,
                 searchFields, embedFields, rankField, rate, observedAtMode, ttlAnchor, volatileFields,
                 significantFields, titleField, fieldSpecs, privateSource, licence, recordsPerMinute, formatOptions,
-                verifierConfigs, secrets, profile, allowPathKey, ingestAllowCidrs);
+                verifierConfigs, secrets, profile, allowPathKey, ingestAllowCidrs,
+                mapping == null ? null : mapping.deepCopy(), preset, defaultFormat, captureSamples);
     }
 
     /** {@code profile}: null or {@value #PROFILE_PERSONAL_LOCATION}. */
@@ -303,17 +350,10 @@ public class CustomSourceInputReader {
                 continue;
             }
             if ("mapping".equals(format)) {
-                try {
-                    RecordMapping.parse(options);
-                } catch (ValidationException e) {
-                    for (FieldError error : e.getErrors()) {
-                        errors.add(error);
-                    }
-                    if (e.getErrors().isEmpty()) {
-                        errors.add(new FieldError("formats.mapping", e.getMessage()));
-                    }
-                    continue;
-                }
+                // Prompt 059 replaced the interim JSON-Pointer options with the top-level RecordMapping.
+                errors.add(new FieldError("formats.mapping",
+                        "is no longer accepted; set the top-level mapping member (a RecordMapping)"));
+                continue;
             }
             out.set(format, options);
         }

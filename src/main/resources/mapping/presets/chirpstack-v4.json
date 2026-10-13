@@ -1,0 +1,119 @@
+{
+  "id": "chirpstack-v4",
+  "title": "ChirpStack v4 HTTP integration",
+  "description": "ChirpStack v4's HTTP integration with JSON encoding. Uplinks (?event=up) become one record per device (DevEUI) with the decoded object's numeric keys as fields; location events move the device; other events are acknowledged and ignored; Protobuf encoding is refused (415). Private by default: trackers carry personal data.",
+  "format": "chirpstack-v4",
+  "kinds": [
+    "lorawan-device"
+  ],
+  "observedAtMode": "UPSTREAM",
+  "ttl": null,
+  "ingestPolicy": null,
+  "significantFields": [],
+  "volatileFields": [
+    "fCnt"
+  ],
+  "private": true,
+  "allowPathKey": false,
+  "allowsGet": false,
+  "locationMode": "fallback",
+  "titleField": "name",
+  "tileProperties": [
+    "name"
+  ],
+  "fieldSpecs": {
+    "name": {
+      "type": "STRING",
+      "label": "Device name"
+    },
+    "fPort": {
+      "type": "INTEGER",
+      "label": "FPort"
+    },
+    "fCnt": {
+      "type": "INTEGER",
+      "label": "Frame counter"
+    }
+  },
+  "mapping": {
+    "version": 1,
+    "externalId": {
+      "path": "$.deviceInfo.devEui"
+    },
+    "observedAt": {
+      "path": "$.time",
+      "format": "iso"
+    },
+    "geometry": {
+      "lon": {
+        "path": "$.object.longitude"
+      },
+      "lat": {
+        "path": "$.object.latitude"
+      }
+    },
+    "fields": [
+      {
+        "name": "name",
+        "path": "$.deviceInfo.deviceName",
+        "type": "string"
+      },
+      {
+        "name": "fPort",
+        "path": "$.fPort",
+        "type": "integer"
+      },
+      {
+        "name": "fCnt",
+        "path": "$.fCnt",
+        "type": "integer"
+      }
+    ],
+    "spread": {
+      "path": "$.object",
+      "type": "number",
+      "max": 32
+    },
+    "quality": {
+      "extra": {
+        "lora.rssi": {
+          "path": "$.rxInfo[0].rssi"
+        },
+        "lora.snr": {
+          "path": "$.rxInfo[0].snr"
+        }
+      }
+    },
+    "drop": [
+      "latitude",
+      "longitude",
+      "devEui",
+      "devAddr"
+    ]
+  },
+  "params": [
+    {
+      "name": "lon",
+      "type": "number",
+      "description": "Station longitude (WGS84); rounded to 0.01° unless exactLocation",
+      "required": false
+    },
+    {
+      "name": "lat",
+      "type": "number",
+      "description": "Station latitude (WGS84); rounded to 0.01° unless exactLocation",
+      "required": false
+    },
+    {
+      "name": "exactLocation",
+      "type": "boolean",
+      "description": "Keep lon/lat unrounded",
+      "default": false,
+      "required": false
+    }
+  ],
+  "setup": {
+    "urlTemplate": "{publicBaseUrl}/v1/ingest/{sourceId}/chirpstack-v4",
+    "instructions": "In ChirpStack: Applications → (your application) → Integrations → **HTTP** → Add.\n\n1. Payload encoding: **JSON**.\n2. Event endpoint URL(s): `{url}`\n3. Headers: `Authorization` = `Bearer {key}`.\n\nChirpStack appends `?event=up`, `?event=location`, … itself. Give the devices a codec that decodes to an object of numbers; at most 32 numeric keys become fields."
+  }
+}

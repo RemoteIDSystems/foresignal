@@ -61,6 +61,12 @@ import tools.jackson.databind.json.JsonMapper;
  *   <li><strong>Methods.</strong> A GET push needs a format that declares GET ({@code 405} otherwise).
  * </ul>
  *
+ * <p>Prompt 059 adds the WU protocol's query key ({@code PASSWORD} on the {@code wu-pws} format) to the pushes
+ * that must pass the sender allowlist, and keeps a redacted copy of the request ({@link
+ * ai.foresignal.mapping.SampleCapture}) while the source's {@code captureSamples} is on; the copy is taken after
+ * the caller is authorized and the body is read, before the signature check and parsing, so a request the
+ * mapping cannot read yet is still captured.
+ *
  * <p>and after parsing, for a device key, every record must belong to the key's bound entity
  * ({@code 403 DEVICE_ENTITY_MISMATCH} otherwise): formats that read a device id from the payload
  * already compare it ({@link IngestRequest#externalId}), and this check covers every other format.
@@ -77,10 +83,12 @@ public class InboundRequests {
     private final JsonMapper json;
     private final LoopGuard loopGuard;
     private final Clock clock;
+    private final ai.foresignal.mapping.SampleCapture samples;
 
     /** Creates the helper. */
     public InboundRequests(CustomSourceRepository customSources, CustomSourceVerifiers verifierStore,
-            SignatureVerifiers verifiers, PushIngestService pushes, JsonMapper json, LoopGuard loopGuard, Clock clock) {
+            SignatureVerifiers verifiers, PushIngestService pushes, JsonMapper json, LoopGuard loopGuard, Clock clock,
+            ai.foresignal.mapping.SampleCapture samples) {
         this.customSources = customSources;
         this.verifierStore = verifierStore;
         this.verifiers = verifiers;
@@ -88,6 +96,7 @@ public class InboundRequests {
         this.json = json;
         this.loopGuard = loopGuard;
         this.clock = clock;
+        this.samples = samples;
     }
 
     /**
@@ -125,11 +134,19 @@ public class InboundRequests {
         if (pathKey && !caller.device() && !row.map(CustomSourceEntity::isAllowPathKey).orElse(false)) {
             throw NotFoundException.of("Path-key ingest for source", sourceId);
         }
-        if ((pathKey || get) && !caller.admin()) {
+        boolean queryKey = IngestAuthenticator.WU_FORMAT.equals(format.id())
+                && IngestAuthenticator.queryValue(request.getQueryString(), IngestAuthenticator.WU_PASSWORD) != null;
+        if ((pathKey || get || queryKey) && !caller.admin()) {
             checkSender(row.map(CustomSourceEntity::getIngestAllowCidrs).orElse(null), request.getRemoteAddr());
         }
         Instant receivedAt = clock.instant();
         byte[] body = get ? new byte[0] : IngestBodyReader.read(request);
+        if (row.isPresent() && row.get().capturesSamplesAt(receivedAt)) {
+            String uri = request.getRequestURI();
+            String segment = uri != null && uri.endsWith("/ingest/" + sourceId) ? null : format.id();
+            samples.capture(sourceId, receivedAt, request.getMethod(), segment, request.getContentType(),
+                    request.getHeader("Content-Encoding"), request.getQueryString(), body);
+        }
         IngestRequest ingest = ingestRequest(request, body, receivedAt);
         if (caller.device()) {
             ingest = ingest.withBoundExternalId(caller.boundExternalId());

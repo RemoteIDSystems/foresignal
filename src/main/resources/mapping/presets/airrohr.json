@@ -1,0 +1,194 @@
+{
+  "id": "airrohr",
+  "title": "Sensor.Community airrohr",
+  "description": "A Sensor.Community (luftdaten) airrohr sensor's \"Send data to own API\": JSON with sensordatavalues name/value pairs and Basic auth. Field names match the openaq adapter (prompt 078).",
+  "format": "airrohr",
+  "kinds": [
+    "air-quality"
+  ],
+  "observedAtMode": "RECEIVED",
+  "ttl": "30m",
+  "ingestPolicy": {
+    "mode": "LATEST",
+    "keyframe": "10m"
+  },
+  "significantFields": [
+    "firmware"
+  ],
+  "volatileFields": [],
+  "private": false,
+  "allowPathKey": false,
+  "allowsGet": false,
+  "locationMode": "const",
+  "titleField": null,
+  "tileProperties": [
+    "pm25",
+    "pm10",
+    "tempC",
+    "rh"
+  ],
+  "fieldSpecs": {
+    "pm1": {
+      "type": "NUMBER",
+      "unit": "ug/m3",
+      "label": "PM1"
+    },
+    "pm25": {
+      "type": "NUMBER",
+      "unit": "ug/m3",
+      "label": "PM2.5"
+    },
+    "pm4": {
+      "type": "NUMBER",
+      "unit": "ug/m3",
+      "label": "PM4"
+    },
+    "pm10": {
+      "type": "NUMBER",
+      "unit": "ug/m3",
+      "label": "PM10"
+    },
+    "tempC": {
+      "type": "NUMBER",
+      "unit": "Cel",
+      "label": "Temperature"
+    },
+    "rh": {
+      "type": "NUMBER",
+      "unit": "%",
+      "label": "Relative humidity"
+    },
+    "pressureHpa": {
+      "type": "NUMBER",
+      "unit": "hPa",
+      "label": "Pressure"
+    },
+    "firmware": {
+      "type": "STRING",
+      "label": "Firmware"
+    }
+  },
+  "mapping": {
+    "version": 1,
+    "externalId": {
+      "template": "airrohr-{{$.esp8266id}}"
+    },
+    "observedAt": {
+      "received": true
+    },
+    "pairs": {
+      "path": "$.sensordatavalues",
+      "key": "value_type",
+      "value": "value"
+    },
+    "fields": [
+      {
+        "name": "pm10",
+        "path": "$pairs.SDS_P1",
+        "type": "number"
+      },
+      {
+        "name": "pm25",
+        "path": "$pairs.SDS_P2",
+        "type": "number"
+      },
+      {
+        "name": "pm1",
+        "path": "$pairs.PMS_P0",
+        "type": "number"
+      },
+      {
+        "name": "pm10",
+        "path": "$pairs.PMS_P1",
+        "type": "number"
+      },
+      {
+        "name": "pm25",
+        "path": "$pairs.PMS_P2",
+        "type": "number"
+      },
+      {
+        "name": "pm1",
+        "path": "$pairs.SPS30_P0",
+        "type": "number"
+      },
+      {
+        "name": "pm10",
+        "path": "$pairs.SPS30_P1",
+        "type": "number"
+      },
+      {
+        "name": "pm25",
+        "path": "$pairs.SPS30_P2",
+        "type": "number"
+      },
+      {
+        "name": "pm4",
+        "path": "$pairs.SPS30_P4",
+        "type": "number"
+      },
+      {
+        "name": "tempC",
+        "path": "$pairs.BME280_temperature",
+        "type": "number"
+      },
+      {
+        "name": "rh",
+        "path": "$pairs.BME280_humidity",
+        "type": "number"
+      },
+      {
+        "name": "pressureHpa",
+        "path": "$pairs.BME280_pressure",
+        "type": "number",
+        "unit": {
+          "from": "Pa",
+          "to": "hPa"
+        }
+      },
+      {
+        "name": "firmware",
+        "path": "$.software_version",
+        "type": "string"
+      }
+    ],
+    "quality": {
+      "extra": {
+        "wifi.rssi": {
+          "path": "$pairs.signal"
+        }
+      }
+    },
+    "drop": [
+      "samples",
+      "min_micro",
+      "max_micro",
+      "interval"
+    ]
+  },
+  "params": [
+    {
+      "name": "lon",
+      "type": "number",
+      "description": "Station longitude (WGS84); rounded to 0.01° unless exactLocation",
+      "required": false
+    },
+    {
+      "name": "lat",
+      "type": "number",
+      "description": "Station latitude (WGS84); rounded to 0.01° unless exactLocation",
+      "required": false
+    },
+    {
+      "name": "exactLocation",
+      "type": "boolean",
+      "description": "Keep lon/lat unrounded",
+      "default": false,
+      "required": false
+    }
+  ],
+  "setup": {
+    "urlTemplate": "{publicBaseUrl}/v1/ingest/{sourceId}/airrohr",
+    "instructions": "In the sensor's configuration page (http://<sensor-ip>/config) → APIs → **Send data to own API**:\n\n1. Server: `{host}`\n2. Path: `{path}`\n3. Port: `{port}`\n4. User: any text; Password: `{key}` (Basic auth).\n\nThe sensor sends plain HTTP unless HTTPS is ticked; keep it on the LAN or use HTTPS."
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "presetParams": {
+    "lon": -97.7431,
+    "lat": 30.2672
+  },
+  "records": [
+    {
+      "externalId": "station",
+      "kind": "weather-observation",
+      "observedAt": "2026-10-13T15:04:05Z",
+      "geometry": [
+        -97.74,
+        30.27
+      ],
+      "payload": {
+        "tempC": 20.222222222222225,
+        "rh": 55.0,
+        "pressureHpa": 1013.24145269,
+        "windDirDeg": 212.0,
+        "windSpeedMs": 1.9982688,
+        "windGustMs": 3.598672,
+        "rainRateMmH": 3.0479999999999996,
+        "rainDailyMm": 8.991599999999998,
+        "solarWm2": 512.34,
+        "uvIndex": 4.0,
+        "pm25": 8.0,
+        "lightningKm": 14.0,
+        "indoorTempC": 22.277777777777775,
+        "indoorRh": 41.0,
+        "model": "GW2000A_V3.2.4"
+      }
+    }
+  ],
+  "secrets": [
+    "0123456789ABCDEF0123456789ABCDEF"
+  ],
+  "neverStored": [
+    "PASSKEY"
+  ]
+}

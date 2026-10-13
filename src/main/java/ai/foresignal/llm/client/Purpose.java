@@ -19,7 +19,9 @@ public enum Purpose {
     /** Diagnostics ("doctor") prompts. */
     DOCTOR(Effort.MEDIUM),
     /** The intelligence layer's analyst calls (101 onward). */
-    ANALYST(Effort.MEDIUM);
+    ANALYST(Effort.MEDIUM),
+    /** LLM-suggested draft RecordMappings (059); wire value {@code mapping-suggest}. */
+    MAPPING_SUGGEST(Effort.LOW);
 
     private final Effort defaultEffort;
 
@@ -32,8 +34,8 @@ public enum Purpose {
         return defaultEffort;
     }
 
-    /** The wire value, for example {@code ask}. */
+    /** The wire value, for example {@code ask} or {@code mapping-suggest}. */
     public String wireValue() {
-        return name().toLowerCase(Locale.ROOT);
+        return name().toLowerCase(Locale.ROOT).replace('_', '-');
     }
 }

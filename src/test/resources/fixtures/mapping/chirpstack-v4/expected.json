@@ -1,0 +1,33 @@
+{
+  "presetParams": null,
+  "records": [
+    {
+      "externalId": "a84041000181c0de",
+      "kind": "lorawan-device",
+      "observedAt": "2026-10-13T15:04:05.123Z",
+      "geometry": [
+        -97.7431,
+        30.2672
+      ],
+      "payload": {
+        "name": "garage-lht65",
+        "fPort": 2,
+        "fCnt": 1234,
+        "TempC_SHT": 21.53,
+        "Hum_SHT": 48.2,
+        "BatV": 3.051
+      },
+      "qualityExtra": {
+        "lora.rssi": -87.0,
+        "lora.snr": 7.5
+      }
+    }
+  ],
+  "secrets": [],
+  "neverStored": [
+    "latitude",
+    "longitude",
+    "Ext_sensor",
+    "devAddr"
+  ]
+}

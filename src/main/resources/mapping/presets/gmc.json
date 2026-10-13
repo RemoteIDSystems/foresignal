@@ -1,0 +1,120 @@
+{
+  "id": "gmc",
+  "title": "GQ GMC Geiger counter (WiFi)",
+  "description": "A GQ GMC-320+/500+/600+ counter uploading to a custom server by GET with AID, GID, CPM, ACPM and uSV. Unverified (2026-10): capture a request with captureSamples before relying on it.",
+  "format": "gmc",
+  "kinds": [
+    "radiation"
+  ],
+  "observedAtMode": "RECEIVED",
+  "ttl": "30m",
+  "ingestPolicy": {
+    "mode": "LATEST",
+    "keyframe": "10m"
+  },
+  "significantFields": [
+    "geigerId"
+  ],
+  "volatileFields": [],
+  "private": false,
+  "allowPathKey": true,
+  "allowsGet": true,
+  "locationMode": "const",
+  "titleField": null,
+  "tileProperties": [
+    "cpm",
+    "doseRateUSvH"
+  ],
+  "fieldSpecs": {
+    "cpm": {
+      "type": "NUMBER",
+      "unit": "/min",
+      "label": "Counts per minute"
+    },
+    "acpm": {
+      "type": "NUMBER",
+      "unit": "/min",
+      "label": "Average CPM"
+    },
+    "doseRateUSvH": {
+      "type": "NUMBER",
+      "unit": "uSv/h",
+      "label": "Dose rate"
+    },
+    "geigerId": {
+      "type": "STRING",
+      "label": "Geiger counter id"
+    }
+  },
+  "mapping": {
+    "version": 1,
+    "externalId": {
+      "template": "gmc-{{$.GID}}"
+    },
+    "observedAt": {
+      "received": true
+    },
+    "fields": [
+      {
+        "name": "cpm",
+        "path": "$.CPM",
+        "type": "number",
+        "unit": {
+          "from": "/min",
+          "to": "/min"
+        }
+      },
+      {
+        "name": "acpm",
+        "path": "$.ACPM",
+        "type": "number",
+        "unit": {
+          "from": "/min",
+          "to": "/min"
+        }
+      },
+      {
+        "name": "doseRateUSvH",
+        "path": "$.uSV",
+        "type": "number",
+        "unit": {
+          "from": "uSv/h",
+          "to": "uSv/h"
+        }
+      },
+      {
+        "name": "geigerId",
+        "path": "$.GID",
+        "type": "string"
+      }
+    ],
+    "drop": [
+      "AID"
+    ]
+  },
+  "params": [
+    {
+      "name": "lon",
+      "type": "number",
+      "description": "Station longitude (WGS84); rounded to 0.01° unless exactLocation",
+      "required": false
+    },
+    {
+      "name": "lat",
+      "type": "number",
+      "description": "Station latitude (WGS84); rounded to 0.01° unless exactLocation",
+      "required": false
+    },
+    {
+      "name": "exactLocation",
+      "type": "boolean",
+      "description": "Keep lon/lat unrounded",
+      "default": false,
+      "required": false
+    }
+  ],
+  "setup": {
+    "urlTemplate": "{publicBaseUrl}/v1/ingest/{sourceId}/k/{key}/gmc",
+    "instructions": "On the counter: Server → Website: `{host}`, URL: `{path}`, User ID: any, Counter ID: any, Period: 1–10 minutes. **Unverified (2026-10):** turn on `captureSamples` for this source, check `GET /v1/custom-sources/{sourceId}/samples` after the first upload, and adjust the mapping if the counter's parameters differ.\n\nThe counter sends plain HTTP: keep it on the LAN."
+  }
+}

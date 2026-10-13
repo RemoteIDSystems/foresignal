@@ -247,6 +247,16 @@ Apache HttpClient, HttpCore and HttpMime 4 with Commons Logging and Commons Code
   Roehrich; the notice ships unchanged inside the jar.
 - **Project:** <https://www.orekit.org>.
 
+### Jayway JsonPath (prompt 059)
+
+- **Artifact:** `com.jayway.jsonpath:json-path` 3.0.0 (Maven Central), used unmodified. Its `json-smart` runtime
+  dependency is excluded; `slf4j-api` comes from the Spring Boot BOM.
+- **Use:** `ai.foresignal.mapping`: the paths of a `RecordMapping`, evaluated over Jackson 3 trees with the
+  library's own `Jackson3JsonNodeJsonProvider` and `Jackson3MappingProvider`. Deep scan, function calls and regex
+  filters are refused when a mapping is compiled.
+- **License:** Apache License, Version 2.0 (the pom's `<licenses>`).
+- **Project:** <https://github.com/json-path/JsonPath>.
+
 ### GDAL (optional, not in the default image)
 
 - **Package:** `gdal-bin` from the base image's distribution, installed **only** when the image is built with

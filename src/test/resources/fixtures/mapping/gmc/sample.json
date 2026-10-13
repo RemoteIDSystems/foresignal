@@ -1,0 +1,9 @@
+{
+  "receivedAt": "2026-10-13T15:05:00Z",
+  "method": "GET",
+  "format": "gmc",
+  "contentType": null,
+  "query": "AID=0123456&GID=0987654321&CPM=18&ACPM=17.5&uSV=0.117",
+  "body": null,
+  "contentEncoding": null
+}

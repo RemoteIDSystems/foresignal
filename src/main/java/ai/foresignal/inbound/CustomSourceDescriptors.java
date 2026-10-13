@@ -1,5 +1,6 @@
 package ai.foresignal.inbound;
 
+import ai.foresignal.mapping.preset.PresetCatalog;
 import ai.foresignal.settings.Durations;
 import ai.foresignal.source.spi.FieldSpec;
 import ai.foresignal.source.spi.HistoryTier;
@@ -27,6 +28,11 @@ import tools.jackson.databind.json.JsonMapper;
  * keyframe 10 min, minDeviation 50 m), default retention 7 days, and the private precision cap set to
  * its maximum of 7 decimals (about 1 cm), which is "off" for practical purposes: it is the owner's
  * own data. A lower {@code privatePrecisionDecimals} remains available through 008's cap.
+ *
+ * <p>A source created from a device preset (prompt 059, {@code preset}) gets the preset's descriptor defaults,
+ * which the operator can still override per source: its ingest policy (LATEST for weather stations, air quality
+ * and radiation; SAMPLED vessel defaults for {@code aiscatcher}), retention ({@code aiscatcher} 3 days), field
+ * thresholds and motion fields.
  */
 public final class CustomSourceDescriptors {
 
@@ -71,6 +77,18 @@ public final class CustomSourceDescriptors {
         builder.volatileFields(row.getVolatileFields().toArray(String[]::new));
         builder.significantFields(row.getSignificantFields().toArray(String[]::new));
         fieldSpecs(row, json).forEach(builder::fieldSpec);
+        PresetCatalog.find(row.getPreset()).ifPresent(preset -> {
+            if (preset.ingestPolicy() != null) {
+                builder.defaultIngestPolicy(preset.ingestPolicy());
+            }
+            if (preset.retention() != null) {
+                builder.defaultRetention(preset.retention());
+            }
+            preset.thresholds().forEach(builder::threshold);
+            if (preset.motion() != null) {
+                builder.motion(preset.motion());
+            }
+        });
         if (CustomSourceInputReader.PROFILE_PERSONAL_LOCATION.equals(row.getProfile())) {
             builder.defaultIngestPolicy(PERSONAL_LOCATION_POLICY)
                     .defaultRetention(PERSONAL_LOCATION_RETENTION)

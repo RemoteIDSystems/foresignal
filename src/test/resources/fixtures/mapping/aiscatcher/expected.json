@@ -1,0 +1,54 @@
+{
+  "presetParams": null,
+  "records": [
+    {
+      "externalId": "366123456",
+      "kind": "vessel",
+      "observedAt": "2026-10-13T15:04:01Z",
+      "geometry": [
+        -94.8123,
+        29.3101
+      ],
+      "payload": {
+        "sog": 12.3,
+        "cog": 145.6,
+        "heading": 146.0,
+        "navStatus": 0
+      }
+    },
+    {
+      "externalId": "366123456",
+      "kind": "vessel",
+      "observedAt": "2026-10-13T15:04:02Z",
+      "geometry": [
+        -94.8123,
+        29.3101
+      ],
+      "payload": {
+        "sog": 12.3,
+        "cog": 145.6,
+        "heading": 146.0,
+        "navStatus": 0,
+        "name": "GULF TRADER",
+        "callsign": "WDA1234",
+        "destination": "HOUSTON",
+        "shipType": 70
+      }
+    },
+    {
+      "externalId": "538009876",
+      "kind": "vessel",
+      "observedAt": "2026-10-13T15:04:03Z",
+      "geometry": null,
+      "payload": {
+        "navStatus": 5
+      }
+    }
+  ],
+  "secrets": [],
+  "neverStored": [
+    "station_lat",
+    "station_lon",
+    "stationid"
+  ]
+}

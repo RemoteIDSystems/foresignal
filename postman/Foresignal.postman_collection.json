@@ -23387,7 +23387,7 @@
               ],
               "query": []
             },
-            "description": "Registers a runtime PUSH source (STANDARD tier, `custom=true`) after registry validation and `IngestPolicyValidator`; id unique across static and dynamic sources (409). Returns the ingest key (`eik_` + 32 random bytes) exactly once. `profile: personal-location` applies the 039 defaults. Members a later prompt owns and enforces (`profile`, `allowPathKey`, `ingestAllowCidrs` 039; `mapping`, `preset`, `presetParams`, `captureSamples` 059; `licenceTerms` 109) are refused with 400 until that prompt, because accepting them unenforced would fail open.\n\n**Scope:** `admin`.\n\noperationId: `createCustomSource`",
+            "description": "Registers a runtime PUSH source (STANDARD tier, `custom=true`) after registry validation and `IngestPolicyValidator`; id unique across static and dynamic sources (409). Returns the ingest key (`eik_` + 32 random bytes) exactly once. `profile: personal-location` applies the 039 defaults. `preset` (059) fills every member the input leaves out from a MappingPreset, with `presetParams` (`lon`/`lat` rounded to 0.01\u00b0 unless `exactLocation`; `tombstoneOnResolve` for alertmanager), and the response's `setup` carries the device instructions with the concrete URL (it may contain the key; shown once). `mapping` is compiled against the input's kinds and observedAtMode (400 MAPPING_INVALID). Members a later prompt owns and enforces (`licenceTerms` 109) are refused with 400 until that prompt, because accepting them unenforced would fail open.\n\n**Scope:** `admin`.\n\noperationId: `createCustomSource`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -23401,6 +23401,67 @@
             "body": {
               "mode": "raw",
               "raw": "{\n  \"id\": \"custom-home-sensors\",\n  \"name\": \"Home sensors\",\n  \"kinds\": [\n    \"sensor-reading\"\n  ],\n  \"attribution\": \"My bench\",\n  \"recordTtl\": \"1h\",\n  \"tileProperties\": [\n    \"value\",\n    \"unit\"\n  ],\n  \"searchFields\": [\n    \"name\"\n  ],\n  \"embedFields\": [],\n  \"rateLimitPerMinute\": 60,\n  \"observedAtMode\": \"UPSTREAM\",\n  \"ttlAnchor\": \"RECEIVED\",\n  \"volatileFields\": [\n    \"rssi\"\n  ],\n  \"significantFields\": [],\n  \"titleField\": \"name\",\n  \"fieldSpecs\": {\n    \"value\": {\n      \"type\": \"NUMBER\",\n      \"unit\": \"Cel\",\n      \"label\": \"Temperature\"\n    }\n  },\n  \"private\": false,\n  \"licence\": null,\n  \"recordsPerMinute\": 6000,\n  \"formats\": {\n    \"alertmanager\": {\n      \"resolved\": \"tombstone\"\n    }\n  },\n  \"verifiers\": {\n    \"native\": {\n      \"scheme\": \"hmac-sha256\",\n      \"header\": \"X-Signature-256\",\n      \"secret\": \"REPLACE_ME\",\n      \"keyOptional\": false\n    }\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Create a custom push source (from the ecowitt preset)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('ingestKey', j.ingestKey); pm.collectionVariables.set('sourceId', j.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/custom-sources",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "custom-sources"
+              ],
+              "query": []
+            },
+            "description": "Registers a runtime PUSH source (STANDARD tier, `custom=true`) after registry validation and `IngestPolicyValidator`; id unique across static and dynamic sources (409). Returns the ingest key (`eik_` + 32 random bytes) exactly once. `profile: personal-location` applies the 039 defaults. `preset` (059) fills every member the input leaves out from a MappingPreset, with `presetParams` (`lon`/`lat` rounded to 0.01\u00b0 unless `exactLocation`; `tombstoneOnResolve` for alertmanager), and the response's `setup` carries the device instructions with the concrete URL (it may contain the key; shown once). `mapping` is compiled against the input's kinds and observedAtMode (400 MAPPING_INVALID). Members a later prompt owns and enforces (`licenceTerms` 109) are refused with 400 until that prompt, because accepting them unenforced would fail open.\n\n**Scope:** `admin`.\n\noperationId: `createCustomSource`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"custom-backyard-weather\",\n  \"name\": \"Backyard weather\",\n  \"kinds\": [\n    \"weather-observation\"\n  ],\n  \"preset\": \"ecowitt\",\n  \"presetParams\": {\n    \"lon\": -97.7431,\n    \"lat\": 30.2672\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -23653,7 +23714,7 @@
               ],
               "query": []
             },
-            "description": "The `native` format: a GeoJSON FeatureCollection (`id` \u2192 externalId; properties `kind` (optional with a single kind), `observedAt`, `eventTime`, `validUntil`, `tombstone`, `quality`; the rest \u2192 payload) or `{records:[...]}`. Max 5 MB and 10,000 records. Credentials as for `ingestRecordsFormat` (ingest key header, Bearer, Basic, device key, admin token). Records enter the single writer as IngestRecords with the full v1.2 pipeline; the response is the v1.2 `IngestOutcome`. Per-record rejections (e.g. MISSING_OBSERVED_AT under UPSTREAM) do not fail the request.\n\n**Scope:** ingest key (or an `admin` token).\n\noperationId: `ingestRecords`",
+            "description": "The `native` format, unless the source has a default format (059: a source created from a preset uses the preset's format here, so a form POST from a device lands in its mapping): a GeoJSON FeatureCollection (`id` \u2192 externalId; properties `kind` (optional with a single kind), `observedAt`, `eventTime`, `validUntil`, `tombstone`, `quality`; the rest \u2192 payload) or `{records:[...]}`. Max 5 MB and 10,000 records. Credentials as for `ingestRecordsFormat` (ingest key header, Bearer, Basic, device key, admin token). Records enter the single writer as IngestRecords with the full v1.2 pipeline; the response is the v1.2 `IngestOutcome`. Per-record rejections (e.g. MISSING_OBSERVED_AT under UPSTREAM) do not fail the request.\n\n**Scope:** ingest key (or an `admin` token).\n\noperationId: `ingestRecords`",
             "auth": {
               "type": "noauth"
             },
@@ -23715,7 +23776,7 @@
               ],
               "query": []
             },
-            "description": "The `native` format: a GeoJSON FeatureCollection (`id` \u2192 externalId; properties `kind` (optional with a single kind), `observedAt`, `eventTime`, `validUntil`, `tombstone`, `quality`; the rest \u2192 payload) or `{records:[...]}`. Max 5 MB and 10,000 records. Credentials as for `ingestRecordsFormat` (ingest key header, Bearer, Basic, device key, admin token). Records enter the single writer as IngestRecords with the full v1.2 pipeline; the response is the v1.2 `IngestOutcome`. Per-record rejections (e.g. MISSING_OBSERVED_AT under UPSTREAM) do not fail the request.\n\n**Scope:** ingest key (or an `admin` token).\n\noperationId: `ingestRecords`",
+            "description": "The `native` format, unless the source has a default format (059: a source created from a preset uses the preset's format here, so a form POST from a device lands in its mapping): a GeoJSON FeatureCollection (`id` \u2192 externalId; properties `kind` (optional with a single kind), `observedAt`, `eventTime`, `validUntil`, `tombstone`, `quality`; the rest \u2192 payload) or `{records:[...]}`. Max 5 MB and 10,000 records. Credentials as for `ingestRecordsFormat` (ingest key header, Bearer, Basic, device key, admin token). Records enter the single writer as IngestRecords with the full v1.2 pipeline; the response is the v1.2 `IngestOutcome`. Per-record rejections (e.g. MISSING_OBSERVED_AT under UPSTREAM) do not fail the request.\n\n**Scope:** ingest key (or an `admin` token).\n\noperationId: `ingestRecords`",
             "auth": {
               "type": "noauth"
             },
@@ -23868,7 +23929,7 @@
               ],
               "query": []
             },
-            "description": "Parses the body with the named `IngestFormat` and submits one batch to the single writer (same versioning, policies, live/touch semantics, change stream, triggers and retention as polled data). Credentials: `X-Foresignal-Ingest-Key`, `Authorization: Bearer eik_\u2026`, Basic with the key as password, a device key (039, bound to one entity), or an `admin` token; a configured signature verifier must also pass unless `keyOptional`. 200 when the request is valid even with per-record rejections (MISSING_OBSERVED_AT, LOW_ACCURACY, \u2026). OwnTracks, Overland, OsmAnd and GPSLogger get their native reply shapes. An `admin` token is the operator and is not asked for a sender signature.\n\n**Scope:** ingest key (or an `admin` token).\n\noperationId: `ingestRecordsFormat`",
+            "description": "Parses the body with the named `IngestFormat` and submits one batch to the single writer (same versioning, policies, live/touch semantics, change stream, triggers and retention as polled data). Credentials: `X-Foresignal-Ingest-Key`, `Authorization: Bearer eik_\u2026`, Basic with the key as password, a device key (039, bound to one entity), or an `admin` token; a configured signature verifier must also pass unless `keyOptional`. 200 when the request is valid even with per-record rejections (MISSING_OBSERVED_AT, LOW_ACCURACY, \u2026). OwnTracks, Overland, OsmAnd and GPSLogger get their native reply shapes; the device presets (059) reply as their firmware expects (ecowitt an empty 200, wu-pws `success`, gmc `OK.`). `Content-Encoding: gzip` is accepted (decompressed size capped at 5 MB \u2192 413). The `chirpstack-v4` format maps `?event=up`, moves the device on `?event=location`, acknowledges other events and refuses Protobuf (415). An `admin` token is the operator and is not asked for a sender signature.\n\n**Scope:** ingest key (or an `admin` token).\n\noperationId: `ingestRecordsFormat`",
             "auth": {
               "type": "noauth"
             },
@@ -24021,7 +24082,7 @@
               ],
               "query": []
             },
-            "description": "Parses the body with the named `IngestFormat` and submits one batch to the single writer (same versioning, policies, live/touch semantics, change stream, triggers and retention as polled data). Credentials: `X-Foresignal-Ingest-Key`, `Authorization: Bearer eik_\u2026`, Basic with the key as password, a device key (039, bound to one entity), or an `admin` token; a configured signature verifier must also pass unless `keyOptional`. 200 when the request is valid even with per-record rejections (MISSING_OBSERVED_AT, LOW_ACCURACY, \u2026). OwnTracks, Overland, OsmAnd and GPSLogger get their native reply shapes. An `admin` token is the operator and is not asked for a sender signature.\n\n**Scope:** ingest key (or an `admin` token).\n\noperationId: `ingestRecordsFormat`",
+            "description": "Parses the body with the named `IngestFormat` and submits one batch to the single writer (same versioning, policies, live/touch semantics, change stream, triggers and retention as polled data). Credentials: `X-Foresignal-Ingest-Key`, `Authorization: Bearer eik_\u2026`, Basic with the key as password, a device key (039, bound to one entity), or an `admin` token; a configured signature verifier must also pass unless `keyOptional`. 200 when the request is valid even with per-record rejections (MISSING_OBSERVED_AT, LOW_ACCURACY, \u2026). OwnTracks, Overland, OsmAnd and GPSLogger get their native reply shapes; the device presets (059) reply as their firmware expects (ecowitt an empty 200, wu-pws `success`, gmc `OK.`). `Content-Encoding: gzip` is accepted (decompressed size capped at 5 MB \u2192 413). The `chirpstack-v4` format maps `?event=up`, moves the device on `?event=location`, acknowledges other events and refuses Protobuf (415). An `admin` token is the operator and is not asked for a sender signature.\n\n**Scope:** ingest key (or an `admin` token).\n\noperationId: `ingestRecordsFormat`",
             "auth": {
               "type": "noauth"
             },
@@ -24174,7 +24235,7 @@
               ],
               "query": []
             },
-            "description": "Parses the body with the named `IngestFormat` and submits one batch to the single writer (same versioning, policies, live/touch semantics, change stream, triggers and retention as polled data). Credentials: `X-Foresignal-Ingest-Key`, `Authorization: Bearer eik_\u2026`, Basic with the key as password, a device key (039, bound to one entity), or an `admin` token; a configured signature verifier must also pass unless `keyOptional`. 200 when the request is valid even with per-record rejections (MISSING_OBSERVED_AT, LOW_ACCURACY, \u2026). OwnTracks, Overland, OsmAnd and GPSLogger get their native reply shapes. An `admin` token is the operator and is not asked for a sender signature.\n\n**Scope:** ingest key (or an `admin` token).\n\noperationId: `ingestRecordsFormat`",
+            "description": "Parses the body with the named `IngestFormat` and submits one batch to the single writer (same versioning, policies, live/touch semantics, change stream, triggers and retention as polled data). Credentials: `X-Foresignal-Ingest-Key`, `Authorization: Bearer eik_\u2026`, Basic with the key as password, a device key (039, bound to one entity), or an `admin` token; a configured signature verifier must also pass unless `keyOptional`. 200 when the request is valid even with per-record rejections (MISSING_OBSERVED_AT, LOW_ACCURACY, \u2026). OwnTracks, Overland, OsmAnd and GPSLogger get their native reply shapes; the device presets (059) reply as their firmware expects (ecowitt an empty 200, wu-pws `success`, gmc `OK.`). `Content-Encoding: gzip` is accepted (decompressed size capped at 5 MB \u2192 413). The `chirpstack-v4` format maps `?event=up`, moves the device on `?event=location`, acknowledges other events and refuses Protobuf (415). An `admin` token is the operator and is not asked for a sender signature.\n\n**Scope:** ingest key (or an `admin` token).\n\noperationId: `ingestRecordsFormat`",
             "auth": {
               "type": "noauth"
             },
@@ -24327,7 +24388,7 @@
               ],
               "query": []
             },
-            "description": "Parses the body with the named `IngestFormat` and submits one batch to the single writer (same versioning, policies, live/touch semantics, change stream, triggers and retention as polled data). Credentials: `X-Foresignal-Ingest-Key`, `Authorization: Bearer eik_\u2026`, Basic with the key as password, a device key (039, bound to one entity), or an `admin` token; a configured signature verifier must also pass unless `keyOptional`. 200 when the request is valid even with per-record rejections (MISSING_OBSERVED_AT, LOW_ACCURACY, \u2026). OwnTracks, Overland, OsmAnd and GPSLogger get their native reply shapes. An `admin` token is the operator and is not asked for a sender signature.\n\n**Scope:** ingest key (or an `admin` token).\n\noperationId: `ingestRecordsFormat`",
+            "description": "Parses the body with the named `IngestFormat` and submits one batch to the single writer (same versioning, policies, live/touch semantics, change stream, triggers and retention as polled data). Credentials: `X-Foresignal-Ingest-Key`, `Authorization: Bearer eik_\u2026`, Basic with the key as password, a device key (039, bound to one entity), or an `admin` token; a configured signature verifier must also pass unless `keyOptional`. 200 when the request is valid even with per-record rejections (MISSING_OBSERVED_AT, LOW_ACCURACY, \u2026). OwnTracks, Overland, OsmAnd and GPSLogger get their native reply shapes; the device presets (059) reply as their firmware expects (ecowitt an empty 200, wu-pws `success`, gmc `OK.`). `Content-Encoding: gzip` is accepted (decompressed size capped at 5 MB \u2192 413). The `chirpstack-v4` format maps `?event=up`, moves the device on `?event=location`, acknowledges other events and refuses Protobuf (415). An `admin` token is the operator and is not asked for a sender signature.\n\n**Scope:** ingest key (or an `admin` token).\n\noperationId: `ingestRecordsFormat`",
             "auth": {
               "type": "noauth"
             },
@@ -24343,7 +24404,7 @@
           }
         },
         {
-          "name": "Push records in a named format (mapping (JSON Pointer))",
+          "name": "Push records in a named format (mapping (RecordMapping))",
           "event": [
             {
               "listen": "test",
@@ -24480,7 +24541,7 @@
               ],
               "query": []
             },
-            "description": "Parses the body with the named `IngestFormat` and submits one batch to the single writer (same versioning, policies, live/touch semantics, change stream, triggers and retention as polled data). Credentials: `X-Foresignal-Ingest-Key`, `Authorization: Bearer eik_\u2026`, Basic with the key as password, a device key (039, bound to one entity), or an `admin` token; a configured signature verifier must also pass unless `keyOptional`. 200 when the request is valid even with per-record rejections (MISSING_OBSERVED_AT, LOW_ACCURACY, \u2026). OwnTracks, Overland, OsmAnd and GPSLogger get their native reply shapes. An `admin` token is the operator and is not asked for a sender signature.\n\n**Scope:** ingest key (or an `admin` token).\n\noperationId: `ingestRecordsFormat`",
+            "description": "Parses the body with the named `IngestFormat` and submits one batch to the single writer (same versioning, policies, live/touch semantics, change stream, triggers and retention as polled data). Credentials: `X-Foresignal-Ingest-Key`, `Authorization: Bearer eik_\u2026`, Basic with the key as password, a device key (039, bound to one entity), or an `admin` token; a configured signature verifier must also pass unless `keyOptional`. 200 when the request is valid even with per-record rejections (MISSING_OBSERVED_AT, LOW_ACCURACY, \u2026). OwnTracks, Overland, OsmAnd and GPSLogger get their native reply shapes; the device presets (059) reply as their firmware expects (ecowitt an empty 200, wu-pws `success`, gmc `OK.`). `Content-Encoding: gzip` is accepted (decompressed size capped at 5 MB \u2192 413). The `chirpstack-v4` format maps `?event=up`, moves the device on `?event=location`, acknowledges other events and refuses Protobuf (415). An `admin` token is the operator and is not asked for a sender signature.\n\n**Scope:** ingest key (or an `admin` token).\n\noperationId: `ingestRecordsFormat`",
             "auth": {
               "type": "noauth"
             },
@@ -24666,7 +24727,7 @@
                 }
               ]
             },
-            "description": "GET form of the `osmand` (Traccar Client, OsmAnd) and `gpslogger` formats; other formats \u2192 405. Fields come from the query string (see `OsmAndQuery`, `GpsLoggerFix`). Replies with an empty 200. Keys in query strings are redacted from every log.\n\n**Scope:** ingest key (or an `admin` token).\n\noperationId: `ingestRecordsFormatGet`",
+            "description": "GET form of the formats that declare it: `osmand` (Traccar Client, OsmAnd) and `gpslogger` (039), `wu-pws` and `gmc` (059); other formats \u2192 405. Fields come from the query string (see `OsmAndQuery`, `GpsLoggerFix`; the device presets map the query as a flat object of strings). Replies: an empty 200 (OsmAnd, GPSLogger), `200 text/plain success` (wu-pws), `200 text/plain OK.` (gmc, unverified). The WU protocol's `PASSWORD` parameter carries the ingest key (`ID` is ignored). GET pushes from a key holder must come from `ingestAllowCidrs` (default: private ranges; else 403 INGEST_SOURCE_DENIED). Keys in query strings (`key`, `PASSWORD`, `PASSKEY`, `auth`, `token`) are redacted from every log and fetch log.\n\n**Scope:** ingest key (or an `admin` token).\n\noperationId: `ingestRecordsFormatGet`",
             "auth": {
               "type": "noauth"
             }
@@ -25678,7 +25739,7 @@
                 }
               ]
             },
-            "description": "Path-key form of `ingestRecordsFormatGet` for OsmAnd/Traccar Client and GPSLogger, which cannot send credentials. `id`/`deviceid` must match a device key's bound entity (403 DEVICE_ENTITY_MISMATCH).\n\n**Scope:** open (no token; the credential is in the request).\n\noperationId: `ingestRecordsPathKeyGet`",
+            "description": "Path-key form of `ingestRecordsFormatGet` for OsmAnd/Traccar Client, GPSLogger and the GQ GMC counter (059), which cannot send credentials. `id`/`deviceid` must match a device key's bound entity (403 DEVICE_ENTITY_MISMATCH). An `eik_` key in the path needs the source's `allowPathKey` (else 404); the sender must be in `ingestAllowCidrs` (default: private ranges; else 403 INGEST_SOURCE_DENIED). The firmware sends cleartext HTTP.\n\n**Scope:** open (no token; the credential is in the request).\n\noperationId: `ingestRecordsPathKeyGet`",
             "auth": {
               "type": "noauth"
             }
@@ -25730,7 +25791,7 @@
               ],
               "query": []
             },
-            "description": "Path-key form of `ingestRecordsFormat` (query, form or JSON bodies) for tracker apps without header or Basic support. Same limits, rejections and native replies.\n\n**Scope:** open (no token; the credential is in the request).\n\noperationId: `ingestRecordsPathKey`",
+            "description": "Path-key form of `ingestRecordsFormat` (query, form or JSON bodies) for tracker apps and device firmware that can set only a host and path (Ecowitt Customized upload, 059). Same limits, rejections and native replies. An `eik_` key in the path needs the source's `allowPathKey` (else 404); the sender must be in `ingestAllowCidrs` (default: private ranges; else 403 INGEST_SOURCE_DENIED).\n\n**Scope:** open (no token; the credential is in the request).\n\noperationId: `ingestRecordsPathKey`",
             "auth": {
               "type": "noauth"
             },
@@ -25984,7 +26045,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"mapping\": null\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -28375,7 +28436,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"mapping\": {\n    \"version\": 1,\n    \"externalId\": {\n      \"const\": \"station\"\n    },\n    \"kind\": {\n      \"const\": \"weather-observation\"\n    },\n    \"observedAt\": {\n      \"path\": \"$.dateutc\",\n      \"format\": \"pattern:yyyy-MM-dd HH:mm:ss\",\n      \"zone\": \"UTC\"\n    },\n    \"geometry\": {\n      \"const\": [\n        -97.74,\n        30.27\n      ]\n    },\n    \"fields\": [\n      {\n        \"name\": \"tempC\",\n        \"path\": \"$.tempf\",\n        \"type\": \"number\",\n        \"unit\": {\n          \"from\": \"[degF]\",\n          \"to\": \"Cel\"\n        }\n      },\n      {\n        \"name\": \"rh\",\n        \"path\": \"$.humidity\",\n        \"type\": \"number\"\n      },\n      {\n        \"name\": \"model\",\n        \"path\": \"$.stationtype\",\n        \"type\": \"string\"\n      }\n    ],\n    \"drop\": [\n      \"PASSKEY\"\n    ]\n  },\n  \"sample\": {\n    \"contentType\": \"application/x-www-form-urlencoded\",\n    \"body\": \"PASSKEY=REDACTED&stationtype=GW2000A_V3.1.4&dateutc=2026-10-13+12%3A00%3A00&tempf=68.0&humidity=55\"\n  },\n  \"sourceId\": null\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -28434,7 +28495,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"sample\": {\n    \"contentType\": \"application/json\",\n    \"body\": {\n      \"esp8266id\": \"1234567\",\n      \"software_version\": \"NRZ-2020-133\",\n      \"sensordatavalues\": [\n        {\n          \"value_type\": \"SDS_P1\",\n          \"value\": \"12.4\"\n        },\n        {\n          \"value_type\": \"SDS_P2\",\n          \"value\": \"6.1\"\n        },\n        {\n          \"value_type\": \"signal\",\n          \"value\": \"-63\"\n        }\n      ]\n    }\n  },\n  \"hints\": {\n    \"kind\": \"air-quality\",\n    \"description\": \"Sensor.Community airrohr on the balcony\",\n    \"sourceId\": null\n  },\n  \"confirmEgress\": false\n}",
               "options": {
                 "raw": {
                   "language": "json"

@@ -1,0 +1,34 @@
+{
+  "presetParams": null,
+  "records": [
+    {
+      "externalId": "70B3D57ED0051234",
+      "kind": "lorawan-device",
+      "observedAt": "2026-10-13T15:04:05.678901234Z",
+      "geometry": [
+        -97.7431,
+        30.2672
+      ],
+      "payload": {
+        "name": "balcony-sensor",
+        "fPort": 1,
+        "fCnt": 42,
+        "temperature": 19.75,
+        "humidity": 62.0,
+        "battery": 3.6
+      },
+      "qualityExtra": {
+        "lora.rssi": -101.0,
+        "lora.snr": -2.25,
+        "lora.locationSource": "static"
+      }
+    }
+  ],
+  "secrets": [
+    "AYbN4kTTpnbPsxRjBcLQjA=="
+  ],
+  "neverStored": [
+    "status",
+    "session_key_id"
+  ]
+}

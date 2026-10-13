@@ -6,6 +6,9 @@ import ai.foresignal.api.error.FieldError;
 import ai.foresignal.api.error.NotFoundException;
 import ai.foresignal.api.error.ValidationException;
 import ai.foresignal.inbound.signature.VerifierConfig;
+import ai.foresignal.mapping.SampleCapture;
+import ai.foresignal.mapping.preset.MappingPreset;
+import ai.foresignal.mapping.preset.PresetCatalog;
 import ai.foresignal.source.DescriptorValidator;
 import ai.foresignal.source.SourceRegistry;
 import ai.foresignal.source.SourceService;
@@ -48,11 +51,20 @@ import tools.jackson.databind.json.JsonMapper;
  *
  * <p><strong>delete</strong> unregisters the source and deletes its row and settings; its records
  * age out through retention.
+ *
+ * <p>Prompt 059: {@code create} applies a {@code preset}'s defaults first ({@link PresetCatalog#apply}) and
+ * stores the preset and its format as the source's default format; {@code preset} cannot change on update.
+ * {@code captureSamples} turns capture on for {@link #CAPTURE_WINDOW}; a PUT that keeps it on does not extend
+ * the window, and turning it off drops the captured samples. The {@code mapping} is stored with the row;
+ * editing it goes through {@code update}, which publishes the custom-source change event.
  */
 @Service
 public class CustomSourceService {
 
     private static final Logger log = LoggerFactory.getLogger(CustomSourceService.class);
+
+    /** How long {@code captureSamples} stays on (prompt 059). */
+    public static final java.time.Duration CAPTURE_WINDOW = java.time.Duration.ofHours(1);
 
     private final CustomSourceRepository repository;
     private final CustomSourceInputReader reader;
@@ -63,11 +75,12 @@ public class CustomSourceService {
     private final JdbcTemplate jdbc;
     private final JsonMapper json;
     private final Clock clock;
+    private final SampleCapture samples;
 
     /** Creates the service. */
     public CustomSourceService(CustomSourceRepository repository, CustomSourceInputReader reader,
             CustomSourceVerifiers verifiers, SourceRegistry registry, SourceService sources, IngestKeys keys,
-            JdbcTemplate jdbc, JsonMapper json, Clock clock) {
+            JdbcTemplate jdbc, JsonMapper json, Clock clock, SampleCapture samples) {
         this.repository = repository;
         this.reader = reader;
         this.verifiers = verifiers;
@@ -77,6 +90,7 @@ public class CustomSourceService {
         this.jdbc = jdbc;
         this.json = json;
         this.clock = clock;
+        this.samples = samples;
     }
 
     /**
@@ -134,13 +148,16 @@ public class CustomSourceService {
      */
     @Transactional
     public Created create(JsonNode body) {
-        CustomSourceDefinition definition = reader.read(body, null, Set.of());
+        CustomSourceDefinition definition = reader.read(withPreset(body), null, Set.of());
         if (registry.contains(definition.id()) || repository.existsById(definition.id())) {
             throw new ConflictException(ErrorCodes.SOURCE_EXISTS,
                     "A source with id '" + definition.id() + "' already exists.");
         }
         CustomSourceEntity row = new CustomSourceEntity(definition.id());
         apply(row, definition);
+        row.setPreset(definition.preset());
+        row.setDefaultFormat(definition.defaultFormat());
+        row.setCaptureSamplesUntil(definition.captureSamples() ? clock.instant().plus(CAPTURE_WINDOW) : null);
         verifiers.store(row, definition.verifiers(), definition.verifierSecrets());
         SourceDescriptor descriptor = CustomSourceDescriptors.toDescriptor(row, json);
         validate(descriptor, IngestPolicyValidator.applyDefaults(descriptor.defaultIngestPolicy(), descriptor));
@@ -215,7 +232,17 @@ public class CustomSourceService {
             throw new ConflictException(ErrorCodes.OBSERVED_AT_MODE_LOCKED,
                     "observedAtMode can change only while " + id + " has no records.");
         }
+        if (definition.preset() != null && !definition.preset().equals(row.getPreset())) {
+            throw ValidationException.forField("preset", "is set only when the source is created (was "
+                    + row.getPreset() + ")");
+        }
         apply(row, definition);
+        if (!definition.captureSamples()) {
+            row.setCaptureSamplesUntil(null);
+            samples.clear(id);
+        } else if (!row.capturesSamplesAt(clock.instant())) {
+            row.setCaptureSamplesUntil(clock.instant().plus(CAPTURE_WINDOW));
+        }
         verifiers.store(row, definition.verifiers(), definition.verifierSecrets());
         SourceDescriptor descriptor = CustomSourceDescriptors.toDescriptor(row, json);
         IngestPolicy effective = sources.ingestPolicyOverride(id)
@@ -273,6 +300,7 @@ public class CustomSourceService {
     public void delete(String id) {
         CustomSourceEntity row = repository.findById(id).orElseThrow(() -> NotFoundException.of("Custom source", id));
         repository.delete(row);
+        samples.clear(id);
         sources.deleteDynamicSettings(id);
         if (registry.contains(id)) {
             registry.unregisterDynamic(id);
@@ -312,6 +340,24 @@ public class CustomSourceService {
         row.setProfile(d.profile());
         row.setAllowPathKey(d.allowPathKey());
         row.setIngestAllowCidrs(d.ingestAllowCidrs());
+        row.setMapping(d.mapping() == null ? null : json.writeValueAsString(d.mapping()));
+    }
+
+    /**
+     * {@code body} with its preset's defaults applied (prompt 059), or {@code body} unchanged without
+     * {@code preset}.
+     *
+     * @throws ValidationException for an unknown preset or invalid {@code presetParams}
+     */
+    public static JsonNode withPreset(JsonNode body) {
+        if (body == null || !body.isObject() || !body.hasNonNull("preset")) {
+            return body;
+        }
+        JsonNode id = body.get("preset");
+        MappingPreset preset = (id.isString() ? PresetCatalog.find(id.asString()) : java.util.Optional.<MappingPreset>empty())
+                .orElseThrow(() -> ValidationException.forField("preset", "is not a mapping preset "
+                        + PresetCatalog.ids()));
+        return PresetCatalog.apply((tools.jackson.databind.node.ObjectNode) body, preset);
     }
 
     /** Registry validation, then the ingest policy rules (Core-Data-Model §5.1). */

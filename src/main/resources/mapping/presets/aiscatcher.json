@@ -1,0 +1,192 @@
+{
+  "id": "aiscatcher",
+  "title": "AIS-catcher HTTP feed",
+  "description": "AIS-catcher's HTTP output in its own JSON protocol (jsonaiscatcher), optionally gzip-compressed. One vessel record per MMSI; position and static messages are merged into one snapshot. The built-in local-ais source (prompt 085) is preferred where it fits; the station position is never stored.",
+  "format": "aiscatcher",
+  "kinds": [
+    "vessel"
+  ],
+  "observedAtMode": "UPSTREAM",
+  "ttl": "30m",
+  "ingestPolicy": {
+    "mode": "SAMPLED",
+    "minInterval": "30s",
+    "keyframe": "1200s",
+    "minDeviationMeters": 250,
+    "thresholds": true,
+    "edgeMinInterval": "15s"
+  },
+  "significantFields": [
+    "name",
+    "callsign",
+    "shipType",
+    "destination",
+    "navStatus"
+  ],
+  "volatileFields": [],
+  "thresholds": [
+    {
+      "field": "cog",
+      "delta": 15,
+      "angular": true
+    },
+    {
+      "field": "sog",
+      "delta": 3,
+      "angular": false
+    }
+  ],
+  "motion": {
+    "speedField": "sog",
+    "speedUnit": "KNOTS",
+    "courseField": "cog"
+  },
+  "retention": "3d",
+  "mergeCurrent": true,
+  "private": false,
+  "allowPathKey": false,
+  "allowsGet": false,
+  "locationMode": null,
+  "titleField": "name",
+  "tileProperties": [
+    "name",
+    "sog",
+    "cog",
+    "heading",
+    "shipType"
+  ],
+  "fieldSpecs": {
+    "sog": {
+      "type": "NUMBER",
+      "unit": "[kn_i]",
+      "label": "Speed over ground"
+    },
+    "cog": {
+      "type": "NUMBER",
+      "unit": "deg",
+      "label": "Course over ground"
+    },
+    "heading": {
+      "type": "NUMBER",
+      "unit": "deg",
+      "label": "True heading"
+    },
+    "name": {
+      "type": "STRING",
+      "label": "Name"
+    },
+    "callsign": {
+      "type": "STRING",
+      "label": "Call sign"
+    },
+    "destination": {
+      "type": "STRING",
+      "label": "Destination"
+    },
+    "shipType": {
+      "type": "INTEGER",
+      "label": "Ship type"
+    },
+    "navStatus": {
+      "type": "INTEGER",
+      "label": "Navigation status"
+    }
+  },
+  "mapping": {
+    "version": 1,
+    "select": "$.msgs[*]",
+    "externalId": {
+      "path": "$.mmsi"
+    },
+    "observedAt": {
+      "path": "$.rxtime",
+      "format": "pattern:yyyyMMddHHmmss",
+      "zone": "UTC"
+    },
+    "geometry": {
+      "lon": {
+        "path": "$.lon"
+      },
+      "lat": {
+        "path": "$.lat"
+      }
+    },
+    "fields": [
+      {
+        "name": "sog",
+        "path": "$.speed",
+        "type": "number",
+        "sentinels": [
+          102.3
+        ]
+      },
+      {
+        "name": "cog",
+        "path": "$.course",
+        "type": "number",
+        "sentinels": [
+          360
+        ]
+      },
+      {
+        "name": "heading",
+        "path": "$.heading",
+        "type": "number",
+        "sentinels": [
+          511
+        ]
+      },
+      {
+        "name": "name",
+        "path": "$.shipname",
+        "type": "string",
+        "sentinels": [
+          ""
+        ]
+      },
+      {
+        "name": "callsign",
+        "path": "$.callsign",
+        "type": "string",
+        "sentinels": [
+          ""
+        ]
+      },
+      {
+        "name": "destination",
+        "path": "$.destination",
+        "type": "string",
+        "sentinels": [
+          ""
+        ]
+      },
+      {
+        "name": "shipType",
+        "path": "$.shiptype",
+        "type": "integer",
+        "sentinels": [
+          0
+        ]
+      },
+      {
+        "name": "navStatus",
+        "path": "$.status",
+        "type": "integer",
+        "sentinels": [
+          15
+        ]
+      }
+    ],
+    "filter": [
+      {
+        "path": "$.mmsi",
+        "op": "exists"
+      }
+    ]
+  },
+  "params": [],
+  "setup": {
+    "urlTemplate": "{publicBaseUrl}/v1/ingest/{sourceId}/aiscatcher",
+    "instructions": "Add an HTTP output to AIS-catcher:\n\n```\n-H {url} PROTOCOL AISCATCHER USERPWD x:{key} GZIP on INTERVAL 30\n```\n\nThe key is the Basic-auth password (the user name is ignored). Use HTTPS when Foresignal is reached over the internet; on a LAN, plain HTTP is accepted. The built-in `local-ais` source is preferred when AIS-catcher runs next to Foresignal."
+  }
+}

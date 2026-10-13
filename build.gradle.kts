@@ -37,6 +37,10 @@ repositories {
     }
 }
 
+// RecordMapping (059) needs Jayway JsonPath 3.0.0 (Jackson 3 providers); the Spring Boot BOM pins 2.10.0
+// (its json-path.version property), which would otherwise win for the test classpath's copy.
+extra["json-path.version"] = libs.versions.jsonPath.get()
+
 dependencies {
     implementation(libs.spring.boot.starter.web)
     implementation(libs.spring.boot.starter.data.jpa)
@@ -69,6 +73,10 @@ dependencies {
     runtimeOnly(libs.libaec.native)
     // SGP4 approximate swaths of SatDump passes (054), loaded only on that code path.
     implementation(libs.orekit)
+    // The mapping code always passes its own Jackson 3 configuration; the json-smart default is never used.
+    implementation(libs.json.path) {
+        exclude(group = "net.minidev", module = "json-smart")
+    }
     runtimeOnly(libs.postgresql)
 
     testImplementation(platform(libs.testcontainers.bom))

@@ -1,0 +1,9 @@
+{
+  "receivedAt": "2026-10-13T15:05:00Z",
+  "method": "POST",
+  "format": "chirpstack-v4",
+  "contentType": "application/json",
+  "query": "event=up",
+  "body": "{\"deduplicationId\": \"3ac7e3c4-4401-4b8d-9386-a5c902f9202d\", \"time\": \"2026-10-13T15:04:05.123+00:00\", \"deviceInfo\": {\"tenantId\": \"52f14cd4-c6f1-4fbd-8f87-4025e1d49242\", \"tenantName\": \"Home\", \"applicationId\": \"17c82e96-be03-4f38-aef3-f83d48582d97\", \"applicationName\": \"Sensors\", \"deviceProfileId\": \"14855bf7-d10d-4aee-b618-ebfcb64dc7ad\", \"deviceProfileName\": \"Dragino LHT65\", \"deviceName\": \"garage-lht65\", \"devEui\": \"a84041000181c0de\", \"deviceClassEnabled\": \"CLASS_A\", \"tags\": {}}, \"devAddr\": \"01e2f3a4\", \"adr\": true, \"dr\": 5, \"fCnt\": 1234, \"fPort\": 2, \"confirmed\": false, \"data\": \"y9cKAg==\", \"object\": {\"TempC_SHT\": 21.53, \"Hum_SHT\": 48.2, \"BatV\": 3.051, \"Ext_sensor\": \"Temperature Sensor\", \"latitude\": 30.2672, \"longitude\": -97.7431}, \"rxInfo\": [{\"gatewayId\": \"0016c001ff10a235\", \"uplinkId\": 12345, \"rssi\": -87, \"snr\": 7.5, \"channel\": 2, \"location\": {}, \"context\": \"EFwMtA==\", \"metadata\": {}}], \"txInfo\": {\"frequency\": 904300000, \"modulation\": {\"lora\": {\"bandwidth\": 125000, \"spreadingFactor\": 7, \"codeRate\": \"CR_4_5\"}}}}",
+  "contentEncoding": null
+}

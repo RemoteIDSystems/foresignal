@@ -543,8 +543,9 @@ start with `custom-` and be unique across all sources. The source is created ena
   appears in `GET /v1/sources/{id}/fetches`. A body is at most 5 MB (decompressed; `gzip` is accepted)
   and 10,000 records.
 - **Deleting** a custom source stops ingest; its records age out through retention.
-- **Members later prompts own** (`profile`, `allowPathKey`, `ingestAllowCidrs`, `mapping`, `preset`,
-  `captureSamples`, `licenceTerms`) are refused with `400` until those prompts.
+- **`mapping`, `preset`, `presetParams` and `captureSamples`** are described under "Devices and
+  mappings"; `profile`, `allowPathKey` and `ingestAllowCidrs` under "Personal location and privacy".
+- **Members later prompts own** (`licenceTerms`, prompt 109) are refused with `400` until then.
 
 Every push answers `200` with an `IngestOutcome` (`seen`, `persisted`, `touched`, `rejected` with
 each item's index and reason, …) whenever the request itself was valid, even if some records were
@@ -570,10 +571,12 @@ named one. `GET /v1/ingest/formats` lists them with their options. Options live 
 | `alertmanager` | Alertmanager webhook payload v4 | One record per alert (`fingerprint`); `kindLabel` picks the kind from a label; `resolved: tombstone` (default) or `record` |
 | `cloudevents` | CloudEvents 1.0 structured, batch or binary mode | External id `subject`, else `source/id`; `typeKinds` maps CloudEvents types to kinds; answers the webhook validation handshake (`OPTIONS` with `WebHook-Request-Origin`) |
 | `cap` | CAP 1.2 XML | `Alert` creates a record, `Update` also tombstones the referenced alerts, `Cancel` only tombstones; polygons and circles become geometry; non-`Actual` alerts are rejected unless `acceptNonActual` |
-| `mapping` | Any JSON | Uses the source's `formats.mapping`: JSON Pointers for `recordsPath`, `externalId`, `kind`, `observedAt` (`observedAtFormat` `ISO`, `epoch-s`, `epoch-ms`), `lat`/`lon` or `geometry`, and `payload` (`[{from, to}]`) |
+| `mapping` | Any JSON, or a form body | Uses the source's `mapping` member, a RecordMapping (see "Devices and mappings" below). The 024 `formats.mapping` JSON-Pointer options are no longer accepted |
+| `ecowitt`, `wu-pws`, `aiscatcher`, `chirpstack-v4`, `tts-v3`, `airrohr`, `gmc` | The device's own payload | The device presets (see "Devices and mappings"); each replies the way its firmware expects |
 
-`media`, `rasters` and `mapping-preview` are reserved for later prompts (`404 FORMAT_UNKNOWN` until
-then).
+`media` and `rasters` are the remote SatDump endpoints and `mapping-preview` is reserved
+(`404 FORMAT_UNKNOWN`). A source created from a preset uses the preset's format on
+`POST /v1/ingest/{sourceId}` too.
 
 ```sh
 # native GeoJSON
@@ -594,9 +597,7 @@ curl -X POST http://foresignal.local:8080/v1/ingest/custom-alerts/cap \
   -H "X-Foresignal-Ingest-Key: $KEY" -H "Content-Type: application/cap+xml" --data-binary @alert.xml
 ```
 
-**AIS-catcher-style GeoJSON.** Point an HTTP output at
-`http://foresignal.local:8080/v1/ingest/custom-ais` with the header
-`X-Foresignal-Ingest-Key: eik_…` and GeoJSON output; `gzip` is accepted.
+**AIS-catcher.** Use the `aiscatcher` preset (see "Devices and mappings"); `gzip` is accepted.
 
 **Home Assistant** (`configuration.yaml`):
 
@@ -695,6 +696,190 @@ POST /v1/triggers
  "geofence": {"type": "Polygon", "coordinates": [[[-97.75,30.26],[-97.73,30.26],[-97.73,30.28],
               [-97.75,30.28],[-97.75,30.26]]]}, "severity": "warning"}
 ```
+
+## Devices and mappings
+
+Homelab devices that can only send their own payload (weather stations, AIS-catcher, LoRaWAN
+servers, Alertmanager, air-quality sensors, Geiger counters) are onboarded with a **preset** or a
+**RecordMapping**, with no code.
+
+### Creating a source from a preset
+
+```sh
+curl -X POST http://foresignal.local:8080/v1/custom-sources -H "Authorization: Bearer $ADMIN" \
+  -H "Content-Type: application/json" \
+  -d '{"id":"custom-backyard-weather","preset":"ecowitt","presetParams":{"lon":-97.7431,"lat":30.2672}}'
+```
+
+`GET /v1/mappings/presets` lists the presets with their mapping, defaults, parameters and setup
+text. The preset fills every member you leave out (kinds, field specs, time base, TTL, significant
+and volatile fields, privacy, `allowPathKey`, the mapping and format options); anything you set
+wins. `lon`/`lat` are rounded to 0.01° (about 1 km) unless `exactLocation: true`. The response
+carries the ingest key and `setup`: the device instructions with the concrete URL, built from
+`publicBaseUrl`. **Both are shown once**: the URL can contain the key.
+
+**Cleartext and the LAN.** Most of this firmware speaks plain HTTP and can only put the key in the
+URL path or the query string. Keep such devices on the same LAN as Foresignal: pushes with a key in
+the path, a key in the query (`PASSWORD`) or by GET are accepted only from private addresses
+(loopback, RFC 1918, link-local, ULA) unless the source's `ingestAllowCidrs` lists the sender
+(`403 INGEST_SOURCE_DENIED` otherwise). Never forward these URLs over the internet without TLS.
+
+### Ecowitt (`ecowitt`)
+
+Consoles and gateways (GW1000/GW1100/GW2000, HP2551, WS2910 …) in the WS View Plus or Ecowitt app:
+Weather Services → **Customized**.
+
+| Setting | Value |
+|---|---|
+| Customized | Enable |
+| Protocol Type | Ecowitt |
+| Server IP / Hostname | the host of `publicBaseUrl` (for example `192.168.1.10`) |
+| Path | `/v1/ingest/<sourceId>/k/<key>/ecowitt` |
+| Port | the port of `publicBaseUrl` (for example `8080`) |
+| Upload Interval | 16 seconds or more |
+
+Fields: `tempC`, `rh`, `pressureHpa` (relative), `windDirDeg`, `windSpeedMs`, `windGustMs`,
+`rainRateMmH`, `rainDailyMm`, `solarWm2`, `uvIndex`, `pm25` (channel 1), `lightningKm`,
+`indoorTempC`, `indoorRh` and `model` (from `stationtype`); `dateutc` is the observation time.
+`PASSKEY` (a hash of the console's MAC address) is never stored. Policy LATEST with a 5-minute
+keyframe: the live value follows every upload, history keeps one version per 5 minutes plus model
+changes. One source per station (the external id is `station`).
+
+### Weather Underground protocol (`wu-pws`)
+
+Any station software that uploads with the WU PWS protocol, or an Ecowitt console with Customized →
+Protocol Type **Wunderground**: Server `<host>`, Path `/v1/ingest/<sourceId>/wu-pws?`, Port
+`<port>`, Station ID anything, Station Key `<key>`. Other software sends
+`GET /v1/ingest/<sourceId>/wu-pws?ID=any&PASSWORD=<key>&dateutc=now&tempf=…`. The key is the
+`PASSWORD` parameter; `ID` is ignored. The reply is `success`. Every observation is stamped with its
+receive time (`observedAtMode: RECEIVED`), because most stations send `dateutc=now`.
+
+### AIS-catcher (`aiscatcher`)
+
+```
+AIS-catcher … -H http://foresignal.local:8080/v1/ingest/custom-ais/aiscatcher PROTOCOL AISCATCHER USERPWD x:<key> GZIP on INTERVAL 30
+```
+
+The key is the Basic password. One vessel record per MMSI; position reports and static messages are
+merged into one snapshot (`sog`, `cog`, `heading`, `navStatus`, `name`, `callsign`, `destination`,
+`shipType`). The AIS "not available" values (lat 91, lon 181, speed 102.3, course 360, heading 511)
+are dropped. SAMPLED vessel policy, 30-minute TTL, 3 days of history. The station position AIS-catcher
+sends is never stored. Where AIS-catcher runs next to Foresignal, the built-in `local-ais` source
+(prompt 085) is preferred.
+
+### ChirpStack v4 (`chirpstack-v4`)
+
+Applications → your application → Integrations → **HTTP**: payload encoding **JSON**, event
+endpoint `http://foresignal.local:8080/v1/ingest/<sourceId>/chirpstack-v4`, header
+`Authorization: Bearer <key>`. Uplinks (`?event=up`) become one record per DevEUI: `name`, `fPort`,
+`fCnt` and up to 32 numeric keys of the decoded `object`; `rxInfo[0]` RSSI and SNR go to
+`quality.extra` (`lora.rssi`, `lora.snr`). `location` events move the device; other events are
+acknowledged and ignored; the Protobuf encoding is refused (415). Position: `object.latitude` and
+`object.longitude`, else the last `location` event, else the preset's `lon`/`lat`. **Private by
+default**: trackers carry personal data.
+
+### The Things Stack v3 (`tts-v3`)
+
+Applications → your application → Integrations → **Webhooks** → Custom webhook: format JSON, base URL
+`http://foresignal.local:8080/v1/ingest/<sourceId>/tts-v3`, additional header
+`Authorization: Bearer <key>`, event type **Uplink message**. Same record shape as ChirpStack, from
+`uplink_message.decoded_payload`. Position: the `frm-payload` location, else the device's configured
+location (`locations.user`, flagged `lora.locationSource=static`), else the preset's `lon`/`lat`.
+Private by default.
+
+### Alertmanager (`alertmanager`)
+
+```yaml
+receivers:
+  - name: foresignal
+    webhook_configs:
+      - url: http://foresignal.local:8080/v1/ingest/<sourceId>/alertmanager
+        send_resolved: true
+        http_config:
+          authorization:
+            type: Bearer
+            credentials_file: /etc/alertmanager/foresignal-key
+```
+
+The preset uses the built-in `alertmanager` format with: external id `{receiver}:{fingerprint}`,
+`severity` and `alertname` as significant fields, and a resolved alert kept as a new version with
+`status=resolved` and `validUntil = endsAt + 1 h`. `presetParams.tombstoneOnResolve: true` ends the
+record instead; `lon`/`lat` place alerts without location labels.
+
+### Sensor.Community airrohr (`airrohr`)
+
+On the sensor's configuration page (`http://<sensor>/config`) → APIs → **Send data to own API**:
+Server `<host>`, Path `/v1/ingest/<sourceId>/airrohr`, Port `<port>`, User anything, Password `<key>`.
+The `sensordatavalues` pairs become `pm1`, `pm25`, `pm4`, `pm10` (SDS011, PMS or SPS30, the first
+present wins), `tempC`, `rh`, `pressureHpa` (BME280, converted from Pa) and `firmware`; the Wi-Fi
+signal goes to `quality.extra wifi.rssi`. The names match the `openaq` adapter. LATEST with a
+10-minute keyframe.
+
+### GQ GMC Geiger counter (`gmc`) — unverified
+
+Server → Website `<host>`, URL `/v1/ingest/<sourceId>/k/<key>/gmc`. The counter sends
+`GET …?AID=…&GID=…&CPM=…&ACPM=…&uSV=…`; the reply is `OK.`. Fields `cpm`, `acpm`, `doseRateUSvH`
+and `geigerId`; `AID` is never stored. **This preset was written from the protocol description, not a
+capture (2026-10).** Turn on `captureSamples`, check the first upload under `/samples`, and adjust the
+mapping if the counter differs.
+
+### Writing a mapping
+
+A `RecordMapping` is data, not a script. It goes in the source's `mapping` member:
+
+```json
+{"version": 1,
+ "select": "$.items[*]",
+ "externalId": {"template": "probe-{{$.serial}}"},
+ "observedAt": {"path": "$.ts", "format": "epochS"},
+ "geometry": {"lon": {"path": "$.pos.lon"}, "lat": {"path": "$.pos.lat"}},
+ "fields": [
+   {"name": "tempC", "path": "$.t_f", "type": "number", "unit": {"from": "[degF]", "to": "Cel"}},
+   {"name": "battery", "path": "$.bat", "type": "integer", "sentinels": [-1]}
+ ],
+ "drop": ["apikey"],
+ "filter": [{"path": "$.type", "op": "==", "value": "reading"}]}
+```
+
+- Values are `{path}` (Jayway JSONPath; `$` is the document, or each item under `select`;
+  `$['frm-payload']` quotes a name), `{template}` (substitution only) or `{const}`. Deep scan
+  (`..`), function calls and regex filters are refused.
+- Form and query inputs are flat objects of strings: `$.tempf`.
+- `observedAt` is `{path, format: iso | epochS | epochMs | pattern:<Java DateTimeFormatter>, zone}`
+  under `observedAtMode: UPSTREAM`, and `{received: true}` under RECEIVED; mixing them is refused.
+- Units come only from the built-in table: `[degF]`→`Cel`; `[mi_i]/h`, `km/h`, `[kn_i]`→`m/s`;
+  `[in_i]`→`mm`; `[in_i]/h`→`mm/h`; `[in_i'Hg]`, `Pa`→`hPa`; `[mi_i]`→`km`; `[ft_i]`→`m`.
+- `pairs` flattens name/value arrays (`$pairs.<name>`); `spread` copies an object's scalar members;
+  `tombstone`, `quality` (`accuracyMeters`, `extra`) and `eventTime`/`validUntil` are optional.
+- A value that cannot be converted (or NaN) leaves that field out; an out-of-range coordinate leaves
+  the geometry out.
+
+Errors come back as `400 MAPPING_INVALID` with a path per problem, such as
+`mapping.fields[3].unit.from`.
+
+### Preview, samples and test
+
+- `POST /v1/mappings/preview` with `{mapping, sample: {contentType, body | query}, sourceId?}`
+  shows exactly what ingest would write, normalized, and writes nothing. Warnings name unmapped
+  input keys, fields missing from the source's `fieldSpecs`, significant fields a SAMPLED or LATEST
+  policy needs, and a time-base mismatch.
+- `captureSamples: true` on the source keeps the last five raw requests in memory for one hour,
+  redacted, without headers except `Content-Type`: `GET /v1/custom-sources/<id>/samples`.
+- `POST /v1/custom-sources/<id>/mapping/test` runs the stored mapping, or `{"mapping": …}`, over
+  those samples.
+
+To write a mapping for a new device: create a plain custom source with `captureSamples: true`, point
+the device at it, read `/samples`, preview a mapping against one of them, then save it with
+`PUT /v1/custom-sources/<id>`.
+
+### Asking the LLM for a draft
+
+`POST /v1/mappings/suggest` with `{sample, hints: {kind, description, sourceId}, confirmEgress}`
+asks the chat provider for a draft. The sample is sent as untrusted data and the draft is validated
+(two repair rounds at most), then previewed. **It is never saved**: review it and save it yourself.
+A remote provider needs `confirmEgress: true` (`409 EGRESS_CONFIRMATION_REQUIRED`), because the
+sample leaves your network; a private source's sample is never sent to one. It spends the
+provider's budget like any other call.
 
 ## External data providers
 
@@ -1846,13 +2031,28 @@ Every fix maps to kind `tracker` with `speedMs`, `courseDeg`, `altitudeM`, `batt
 
 Foresignal never logs a query string or a path that carries a key: `/k/{key}/` is rewritten to
 `/k/redacted/` before anything (the token filter, problem documents, the fetch log, the access log)
-sees it, and `key=`, `auth=` and `token=` query values are redacted. Do the same in front of it:
+sees it, and `key=`, `auth=`, `token=`, `PASSWORD=` and `PASSKEY=` query values are redacted. Do the
+same in front of it:
 
 - never log `$request_uri` or the query string for `/v1/ingest/*/k/*` or anything carrying `key=`,
-  `auth=` or `token=`;
+  `auth=`, `token=`, `PASSWORD=` or `PASSKEY=`;
 - log the path with the `/k/[^/]+/` segment rewritten (nginx: a `map $uri` to `/k/redacted/`), or
   turn access logging off for `/v1/ingest/`;
 - never log the `Authorization` or `X-Foresignal-Ingest-Key` headers.
+
+Caddy's `log` directive can rewrite both the path key and the query values (the `filter` format's
+`regexp` filter, RE2; checked against the Caddy documentation on 2026-10-13):
+
+```caddy
+foresignal.example.org {
+	reverse_proxy foresignal:8080
+	log {
+		format filter {
+			request>uri regexp "(/k/)[^/?]+|((?i:password|passkey|key|auth|token)=)[^&]*" "${1}${2}redacted"
+		}
+	}
+}
+```
 
 ### What `private` hides, and from whom
 

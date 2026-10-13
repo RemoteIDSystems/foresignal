@@ -28,7 +28,7 @@ class CustomSourceProfileTest {
     static final JsonMapper JSON = JsonMapper.builder().build();
     final CustomSourceInputReader reader = new CustomSourceInputReader(
             new IngestFormatRegistry(List.of(new NativeFormat(JSON, new GeoJsonIngestMapper(JSON)))),
-            new SignatureVerifiers(List.of(new NoneVerifier())), JSON);
+            new SignatureVerifiers(List.of(new NoneVerifier())), JSON, new ai.foresignal.mapping.MappingCompiler());
 
     CustomSourceDefinition read(String json) {
         return reader.read(JSON.readTree(json.replace('\'', '"')), null, Set.of());
