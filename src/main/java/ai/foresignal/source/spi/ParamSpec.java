@@ -14,7 +14,9 @@ import java.util.List;
  * @param description shown in {@code GET /v1/sources}
  * @param defaultValue applied when the operator supplies nothing; null means no default
  * @param required true when the source cannot run without it
- * @param allowed when non-empty, the only accepted values (compared as strings)
+ * @param allowed when non-empty, the only accepted values (compared as strings); for a
+ *     {@link ParamType#LAN_URL}, the accepted URL schemes instead (prompt 069): empty means
+ *     {@code http, https, ws, wss}, and {@code tcp} or {@code udp} must be listed to be accepted
  */
 public record ParamSpec(
         String name,
@@ -48,6 +50,20 @@ public record ParamSpec(
     public static ParamSpec enumerated(
             String name, String description, Object defaultValue, List<String> allowed) {
         return new ParamSpec(name, ParamType.STRING, description, defaultValue, false, allowed);
+    }
+
+    /**
+     * A {@link ParamType#LAN_URL} accepting only {@code schemes} (prompt 069), for example {@code tcp} for a
+     * socket source or {@code http, https} for a receiver's JSON.
+     *
+     * @param required true when the source cannot run without it
+     * @param schemes the accepted schemes, lower case; at least one
+     */
+    public static ParamSpec lanUrl(String name, String description, boolean required, String... schemes) {
+        if (schemes == null || schemes.length == 0) {
+            throw new IllegalArgumentException("Param '" + name + "' needs at least one scheme");
+        }
+        return new ParamSpec(name, ParamType.LAN_URL, description, null, required, List.of(schemes));
     }
 
     public boolean hasDefault() {

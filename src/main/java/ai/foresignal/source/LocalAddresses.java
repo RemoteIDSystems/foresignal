@@ -1,5 +1,6 @@
 package ai.foresignal.source;
 
+import ai.foresignal.net.Cidr;
 import java.net.Inet4Address;
 import java.net.Inet6Address;
 import java.net.InetAddress;
@@ -15,7 +16,34 @@ import java.net.InetAddress;
  */
 public final class LocalAddresses {
 
+    /**
+     * The private address space a UDP sender allowlist may name (prompt 069): loopback, RFC 1918,
+     * link-local and unique-local, IPv4 and IPv6.
+     */
+    static final java.util.List<Cidr> PRIVATE_BLOCKS = java.util.stream.Stream.of(
+                    "127.0.0.0/8", "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "169.254.0.0/16",
+                    "::1/128", "fc00::/7", "fe80::/10")
+            .map(text -> Cidr.parse(text).orElseThrow())
+            .toList();
+
     private LocalAddresses() {}
+
+    /**
+     * True when every address of {@code block} is private: the block lies wholly inside one of
+     * {@link #PRIVATE_BLOCKS} (prompt 069, the {@code allowSenders} rule). A block that merely overlaps
+     * private space, such as {@code 10.0.0.0/7}, is not private, and neither is an IPv4-mapped IPv6 block.
+     */
+    public static boolean isPrivateBlock(Cidr block) {
+        if (block == null) {
+            return false;
+        }
+        for (Cidr space : PRIVATE_BLOCKS) {
+            if (space.ipv4() == block.ipv4() && space.prefix() <= block.prefix() && space.contains(block.network())) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     /**
      * True for loopback, RFC 1918 private, link-local or IPv6 unique-local addresses.

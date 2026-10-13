@@ -10,6 +10,7 @@
 package ai.foresignal.source.formats.readsb;
 
 import ai.foresignal.source.spi.NormalizedRecord;
+import ai.foresignal.source.spi.Observer;
 import ai.foresignal.source.spi.PositionSource;
 import ai.foresignal.source.spi.Quality;
 import java.time.Duration;
@@ -44,9 +45,18 @@ import tools.jackson.databind.JsonNode;
  *       {@code track} (degrees), {@code baro_rate} (m/s), {@code posSource, nac_p, nic, navDegraded} and
  *       {@code mil, pia, ladd} from {@code dbFlags} (only when true). Raw counters and query-relative values
  *       ({@code messages, rssi, seen, seen_pos, rc, version, sil, gva, sda, nav_*}) are left out.
- *   <li><strong>Quality:</strong> {@code positionSource} REPORTED for ADS-B and ADS-R, CALCULATED for MLAT
- *       and TIS-B, UNKNOWN otherwise.
+ *   <li><strong>Quality:</strong> {@code positionSource} REPORTED for ADS-B, ADS-R and ADS-C, CALCULATED
+ *       for MLAT and TIS-B, UNKNOWN otherwise.
+ *   <li><strong>Local receivers (prompt 069, {@link MapperOptions#localReceiver}):</strong> one
+ *       {@link Observer} per record with the source as receiver and {@code rssi} (dBFS); {@code nic_baro,
+ *       sil, gva, sda} and, from a 978 MHz receiver, {@code uat_version} in
+ *       {@code quality.extra["adsb.*"]}; payload {@code band: "978"} for a UAT receiver.
  * </ul>
+ *
+ * <p>readsb v2 {@code type} to {@code posSource}: {@code adsb_icao, adsb_icao_nt, adsb_other → adsb};
+ * {@code adsr_icao, adsr_other → adsr}; {@code tisb_icao, tisb_other, tisb_trackfile → tisb};
+ * {@code adsc → adsc}; {@code mlat → mlat}; {@code mode_s → modes}; {@code other} and anything unknown
+ * {@code → other}. The {@code mlat} and {@code tisb} field lists naming {@code lat} win over {@code type}.
  */
 public final class ReadsbAircraftMapper {
 
@@ -63,8 +73,17 @@ public final class ReadsbAircraftMapper {
     /** {@code dbFlags} bit: FAA LADD. */
     public static final int DB_FLAG_LADD = 8;
 
+    /** The {@code quality.extra} prefix of the integrity values a local receiver keeps (prompt 069). */
+    public static final String EXTRA_PREFIX = "adsb.";
+
+    /** The integrity values a local receiver keeps in {@code quality.extra} (prompt 069). */
+    public static final List<String> INTEGRITY_EXTRAS = List.of("nic_baro", "sil", "gva", "sda");
+
+    /** The UAT version a 978 MHz receiver keeps in {@code quality.extra} (prompt 069). */
+    public static final String UAT_VERSION = "uat_version";
+
     /** {@code posSource} values with a reported position. */
-    static final Set<String> REPORTED = Set.of("adsb", "adsr");
+    static final Set<String> REPORTED = Set.of("adsb", "adsr", "adsc");
 
     /** {@code posSource} values with a calculated position. */
     static final Set<String> CALCULATED = Set.of("mlat", "tisb");
@@ -137,7 +156,25 @@ public final class ReadsbAircraftMapper {
         }
 
         Map<String, Object> payload = payload(ac, hex);
+        if (options.band() != null) {
+            payload.put(AircraftFields.BAND, options.band());
+        }
         builder.putAll(payload);
+        if (options.integrityExtras()) {
+            for (String key : INTEGRITY_EXTRAS) {
+                Double value = number(ac.get(key));
+                if (value != null) {
+                    extra.put(EXTRA_PREFIX + key, value == Math.rint(value) ? (Object) (long) (double) value : value);
+                }
+            }
+            Integer uat = integer(ac.get(UAT_VERSION));
+            if (uat != null) {
+                extra.put(EXTRA_PREFIX + UAT_VERSION, uat);
+            }
+        }
+        if (options.receiverId() != null) {
+            builder.observers(List.of(new Observer(options.receiverId(), null, number(ac.get("rssi")), null, null)));
+        }
         String posSource = (String) payload.get(AircraftFields.POS_SOURCE);
         builder.quality(new Quality(null, null, positionSource(posSource), extra));
         return Optional.of(builder.build());
@@ -255,6 +292,9 @@ public final class ReadsbAircraftMapper {
         }
         if (t.startsWith("tisb")) {
             return "tisb";
+        }
+        if (t.equals("adsc")) {
+            return "adsc";
         }
         if (t.equals("mode_s")) {
             return "modes";

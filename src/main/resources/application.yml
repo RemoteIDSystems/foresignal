@@ -97,6 +97,10 @@ foresignal:
   # comma-separated name, for example "home" or "home,pi". Empty means none.
   satdump:
     stations: ${FORESIGNAL_SATDUMP_STATIONS:}
+  # Local receivers (069): numbered slots per family (local-adsb, local-sbs, local-gpsd, station-readsb,
+  # wxstation-davis, wxstation-ecowitt), 1 to 16. Every slot is disabled until configured.
+  local-receivers:
+    slots: ${FORESIGNAL_LOCAL_RECEIVERS_SLOTS:2}
   version: ${spring.application.version:unknown}
   # Memory profile (042, Weather-Imagery-Design §2.6): small (32 GB host) or large (64 GB host).
   # Selects the raster defaults below; never derived from MaxRAMPercentage.

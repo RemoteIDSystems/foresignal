@@ -40,10 +40,25 @@ import org.springframework.stereotype.Component;
  *
  * <p>A {@link ParamType#LAN_URL} passes {@link OutboundUrlPolicy} profile {@code LAN_ONLY} (prompt
  * 035, replacing prompt 004's {@code LocalAddresses} check); when any parameter is refused by the
- * policy, the 400 carries code {@code URL_NOT_ALLOWED}.
+ * policy, the 400 carries code {@code URL_NOT_ALLOWED}. From prompt 069 a {@code LAN_URL} may also be
+ * {@code tcp://host:port} (the host pinned like an HTTP one) or {@code udp://bindHost:port} (a wildcard or local
+ * bind address, with the {@value #ALLOW_SENDERS} companion), when its spec lists those schemes.
  */
 @Component
 public class ParamValidator {
+
+    /**
+     * The companion of a {@code udp://} {@link ParamType#LAN_URL} (prompt 069): a {@code string-list} of
+     * IPs or CIDRs, each wholly inside private, loopback, link-local or unique-local space, naming the
+     * senders whose datagrams are read. Required whenever a {@code udp://} endpoint is configured.
+     */
+    public static final String ALLOW_SENDERS = "allowSenders";
+
+    /** The schemes a {@link ParamType#LAN_URL} accepts when its spec lists none. */
+    static final List<String> DEFAULT_LAN_SCHEMES = List.of("http", "https", "ws", "wss");
+
+    /** Every scheme a {@link ParamType#LAN_URL} can have (prompt 069 adds {@code tcp} and {@code udp}). */
+    static final Set<String> KNOWN_LAN_SCHEMES = Set.of("http", "https", "ws", "wss", "tcp", "udp");
 
     private final InboxFiles inboxFiles;
     private final OutboundUrlPolicy policy;
@@ -123,6 +138,11 @@ public class ParamValidator {
             throw new ValidationException(
                     "The parameters for " + descriptor.id() + " are not valid.", errors);
         }
+        checkAllowSenders(descriptor, values, errors);
+        if (!errors.isEmpty()) {
+            throw new ValidationException(
+                    "The parameters for " + descriptor.id() + " are not valid.", errors);
+        }
         ValidatedParams validated = new ValidatedParams(values, pinned);
         crossCheck(descriptor, validated, errors);
         if (!errors.isEmpty()) {
@@ -130,6 +150,48 @@ public class ParamValidator {
                     "The parameters for " + descriptor.id() + " are not valid.", errors);
         }
         return validated;
+    }
+
+    /**
+     * The {@value #ALLOW_SENDERS} rule (prompt 069): required and non-empty when any {@code udp://}
+     * endpoint is configured, and every entry an IP or CIDR wholly inside private space
+     * ({@link LocalAddresses#isPrivateBlock}).
+     */
+    private static void checkAllowSenders(SourceDescriptor descriptor, Map<String, Object> values,
+            List<FieldError> errors) {
+        boolean udp = false;
+        for (ParamSpec spec : descriptor.params()) {
+            if (spec.type() == ParamType.LAN_URL && values.get(spec.name()) instanceof URI uri
+                    && "udp".equalsIgnoreCase(uri.getScheme())) {
+                udp = true;
+            }
+        }
+        ParamSpec companion = descriptor.param(ALLOW_SENDERS);
+        Object raw = values.get(ALLOW_SENDERS);
+        List<?> entries = raw instanceof List<?> list ? list : List.of();
+        if (udp && (companion == null || companion.type() != ParamType.STRING_LIST)) {
+            errors.add(new FieldError(path(ALLOW_SENDERS), "a udp:// endpoint needs a string-list parameter "
+                    + ALLOW_SENDERS + ", which " + descriptor.id() + " does not declare"));
+            return;
+        }
+        if (companion == null || companion.type() != ParamType.STRING_LIST) {
+            return;
+        }
+        if (udp && entries.isEmpty()) {
+            errors.add(new FieldError(path(ALLOW_SENDERS), "is required with a udp:// endpoint: list the IPs or"
+                    + " CIDRs of the senders whose datagrams are read"));
+            return;
+        }
+        for (Object entry : entries) {
+            String text = String.valueOf(entry);
+            java.util.Optional<ai.foresignal.net.Cidr> block = ai.foresignal.net.Cidr.parse(text);
+            if (block.isEmpty()) {
+                errors.add(new FieldError(path(ALLOW_SENDERS), "'" + text + "' is not an IP address or CIDR block"));
+            } else if (!LocalAddresses.isPrivateBlock(block.get())) {
+                errors.add(new FieldError(path(ALLOW_SENDERS), "'" + text + "' is not wholly inside loopback,"
+                        + " private (RFC 1918), link-local or unique-local space"));
+            }
+        }
     }
 
     /** Runs the adapter's {@link SourceAdapter#checkParams}, when there is an adapter (prompt 049). */
@@ -367,6 +429,10 @@ public class ParamValidator {
     /**
      * A local-network URL, resolved once, checked under {@code LAN_ONLY} and pinned.
      *
+     * <p>The spec's {@code allowed} list names the accepted schemes (default http, https, ws, wss); a
+     * {@code tcp://} host is pinned the same way and a {@code udp://} bind host must be a wildcard or a local
+     * interface address (prompt 069). Socket URLs need an explicit port and nothing after it.
+     *
      * <p>The resolved address goes into {@link ValidatedParams#pinnedAddress}, and prompt 005
      * connects to that address with the original Host header and redirects disabled. Validating the
      * name alone would be useless: a name that resolves privately now can resolve to anything on
@@ -381,14 +447,21 @@ public class ParamValidator {
         } catch (URISyntaxException e) {
             throw new InvalidInputException("'" + text + "' is not a URL");
         }
+        List<String> schemes = spec.allowed().isEmpty() ? DEFAULT_LAN_SCHEMES : spec.allowed();
         if (uri.getScheme() == null || uri.getHost() == null) {
-            throw new InvalidInputException(
-                    "'" + text + "' must be an absolute URL, for example http://192.168.1.50:8080");
+            throw new InvalidInputException("'" + text + "' must be an absolute URL, for example "
+                    + example(schemes.get(0)));
         }
-        String scheme = uri.getScheme().toLowerCase();
-        if (!scheme.equals("http") && !scheme.equals("https") && !scheme.equals("ws") && !scheme.equals("wss")) {
+        String scheme = uri.getScheme().toLowerCase(java.util.Locale.ROOT);
+        if (!schemes.contains(scheme) || !KNOWN_LAN_SCHEMES.contains(scheme)) {
             throw new InvalidInputException(
-                    "scheme '" + uri.getScheme() + "' is not allowed; use http, https, ws or wss");
+                    "scheme '" + uri.getScheme() + "' is not allowed; use " + String.join(", ", schemes));
+        }
+        if (scheme.equals("tcp") || scheme.equals("udp")) {
+            checkSocketUrl(uri, text);
+            InetAddress address = scheme.equals("tcp") ? pinTcpHost(uri) : bindAddress(uri);
+            pinned.put(spec.name(), address);
+            return uri;
         }
 
         OutboundUrlPolicy.Result result = policy.check(uri, OutboundUrlPolicy.Profile.LAN_ONLY);
@@ -401,6 +474,73 @@ public class ParamValidator {
         InetAddress resolved = ((OutboundUrlPolicy.Allowed) result).pinned();
         pinned.put(spec.name(), resolved);
         return uri;
+    }
+
+    /** An example URL of {@code scheme}, for messages. */
+    private static String example(String scheme) {
+        return switch (scheme) {
+            case "tcp" -> "tcp://192.168.1.50:30003";
+            case "udp" -> "udp://0.0.0.0:5000";
+            default -> scheme + "://192.168.1.50:8080";
+        };
+    }
+
+    /**
+     * The shape of a {@code tcp://host:port} or {@code udp://bindHost:port} URL (prompt 069): an explicit
+     * port (no default is ever assumed), and no user info, path, query or fragment.
+     */
+    private static void checkSocketUrl(URI uri, String text) {
+        if (uri.getPort() < 1 || uri.getPort() > 65_535) {
+            throw new InvalidInputException("'" + text + "' needs an explicit port, for example "
+                    + example(uri.getScheme().toLowerCase(java.util.Locale.ROOT)));
+        }
+        if (uri.getRawUserInfo() != null) {
+            throw new InvalidInputException("'" + text + "' must not carry user info");
+        }
+        String path = uri.getRawPath();
+        if ((path != null && !path.isEmpty() && !path.equals("/")) || uri.getRawQuery() != null
+                || uri.getRawFragment() != null) {
+            throw new InvalidInputException("'" + text + "' must be only scheme://host:port, without a path, query"
+                    + " or fragment");
+        }
+    }
+
+    /**
+     * A {@code tcp://} host resolved once under {@code LAN_ONLY} and pinned (prompt 069): the transport
+     * connects to the returned address and never resolves the name again.
+     */
+    private InetAddress pinTcpHost(URI uri) {
+        OutboundUrlPolicy.Result result = policy.checkHost(uri.getHost(), OutboundUrlPolicy.Profile.LAN_ONLY);
+        if (result instanceof OutboundUrlPolicy.Denied denied) {
+            if (denied.unresolved()) {
+                throw new InvalidInputException("the host '" + uri.getHost() + "' could not be resolved");
+            }
+            throw new UrlRefusedException(denied.reason());
+        }
+        return ((OutboundUrlPolicy.Allowed) result).pinned();
+    }
+
+    /**
+     * A {@code udp://} bind host (prompt 069): {@code 0.0.0.0}, {@code ::} or an address literal of one of
+     * this machine's interfaces. A name is refused, because a bind address is never resolved.
+     */
+    private static InetAddress bindAddress(URI uri) {
+        String host = uri.getHost();
+        String literal = host.startsWith("[") && host.endsWith("]") ? host.substring(1, host.length() - 1) : host;
+        InetAddress address = ai.foresignal.net.Cidr.literal(literal).orElseThrow(() -> new InvalidInputException(
+                "the bind host '" + host + "' must be 0.0.0.0, :: or an address of one of this machine's interfaces"));
+        if (address.isAnyLocalAddress()) {
+            return address;
+        }
+        try {
+            if (java.net.NetworkInterface.getByInetAddress(address) != null) {
+                return address;
+            }
+        } catch (java.net.SocketException e) {
+            throw new InvalidInputException("the interfaces of this machine could not be listed: " + e.getMessage());
+        }
+        throw new InvalidInputException("the bind host '" + host + "' is not an address of this machine; use"
+                + " 0.0.0.0, :: or a local interface address");
     }
 
     /** A path whose realpath must sit inside the inbox directory. */
@@ -419,7 +559,8 @@ public class ParamValidator {
     // ---------- shared ----------
 
     private static void checkAllowed(ParamSpec spec, Object coerced) {
-        if (spec.allowed().isEmpty()) {
+        // A LAN_URL's allowed list names schemes, checked while coercing (prompt 069).
+        if (spec.allowed().isEmpty() || spec.type() == ParamType.LAN_URL) {
             return;
         }
         if (coerced instanceof List<?> list) {

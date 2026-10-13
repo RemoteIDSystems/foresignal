@@ -1,0 +1,19 @@
+{
+  "common_list": [
+    {"id": "0x02", "val": "65.1", "unit": "F"},
+    {"id": "0x07", "val": "62%"},
+    {"id": "0x03", "val": "52.0", "unit": "F"},
+    {"id": "0x0B", "val": "5.1 mph"},
+    {"id": "0x0C", "val": "9.2 mph"},
+    {"id": "0x0A", "val": "225"},
+    {"id": "0x15", "val": "12000 Klux"},
+    {"id": "0x99", "val": "1"}
+  ],
+  "piezoRain": [
+    {"id": "0x0E", "val": "0.05 in/Hr"},
+    {"id": "0x10", "val": "0.18 in"}
+  ],
+  "wh25": [
+    {"intemp": "71.4", "unit": "F", "inhumi": "44%", "abs": "24.90 inHg", "rel": "29.93 inHg"}
+  ]
+}

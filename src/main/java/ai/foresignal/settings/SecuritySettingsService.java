@@ -15,17 +15,19 @@ import tools.jackson.databind.JsonNode;
  * prompt 035 the {@code anonymous} restriction profile and {@code metricsOpen} (default true).
  *
  * <p>The token filter and the read endpoints drop their cached copy on the
- * {@link AppSettingChangedEvent} the write publishes. {@code exposeMlat} (069) is refused until then,
- * so a client cannot believe a protection is on that nothing enforces. The anonymous profile is
+ * {@link AppSettingChangedEvent} the write publishes. From prompt 069 {@code exposeMlat} (default false) is
+ * accepted: {@code EgressPolicy} strips MLAT positions from anonymous reads unless it is true. The anonymous
+ * profile is
  * validated like a read token's restriction; {@code update} also checks that its sources and kinds
  * exist and its endpoint patterns match {@code read} operations.
  */
 @Service
 public class SecuritySettingsService {
 
-    static final Set<String> MEMBERS = Set.of("openReads", "exposeObserver", "anonymous", "metricsOpen");
+    static final Set<String> MEMBERS = Set.of("openReads", "exposeObserver", "anonymous", "metricsOpen", "exposeMlat");
 
-    static final Set<String> LATER_MEMBERS = Set.of("exposeMlat");
+    /** Members a later prompt implements; refused until then. Empty since prompt 069 added {@code exposeMlat}. */
+    static final Set<String> LATER_MEMBERS = Set.of();
 
     private final AppSettingService settings;
     private final ai.foresignal.security.RestrictionValidator restrictions;
@@ -99,6 +101,10 @@ public class SecuritySettingsService {
         if (metricsOpen != null && !metricsOpen.isNull() && !metricsOpen.isBoolean()) {
             errors.add(new FieldError("metricsOpen", "must be a boolean"));
         }
+        JsonNode exposeMlat = body.get("exposeMlat");
+        if (exposeMlat != null && !exposeMlat.isNull() && !exposeMlat.isBoolean()) {
+            errors.add(new FieldError("exposeMlat", "must be a boolean"));
+        }
         ai.foresignal.security.TokenRestrictions anonymous = validator.parse(body.get("anonymous"),
                 ai.foresignal.security.Scope.READ, "anonymous", errors);
         if (anonymous.excludePrivate() != null && !anonymous.excludePrivate()) {
@@ -113,6 +119,7 @@ public class SecuritySettingsService {
         }
         boolean observe = exposeObserver != null && exposeObserver.isBoolean() && exposeObserver.asBoolean();
         Boolean metrics = metricsOpen == null || metricsOpen.isNull() ? null : metricsOpen.asBoolean();
-        return new SecuritySettings(openReads.asBoolean(), observe, anonymous.orNull(), metrics);
+        boolean mlat = exposeMlat != null && exposeMlat.isBoolean() && exposeMlat.asBoolean();
+        return new SecuritySettings(openReads.asBoolean(), observe, anonymous.orNull(), metrics, mlat);
     }
 }

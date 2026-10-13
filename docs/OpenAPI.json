@@ -297,6 +297,11 @@
         "version": "1.3.0",
         "date": "2026-10-13",
         "note": "066: no operation changes. New source gdelt-events (kind conflict-event, no credential). The conflict-event kind note documents its time base, TTL, codes, location precision and summary."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-13",
+        "note": "069: no new operations. SecuritySettings.exposeMlat is now accepted by updateSecuritySettings (it was refused with 400) and enforced on anonymous record reads. updateSource accepts egress only for egressOverridable descriptors (400 EGRESS_FIXED otherwise, added to the Problem codes); SourceSettings.egress returns the override. ParamSpec.allowed lists URL schemes for lan-url params, which may now be tcp:// and udp://. New sources local-adsb-{n}, local-sbs-{n}, local-gpsd-{n}, station-readsb-{n}, wxstation-davis-{n}, wxstation-ecowitt-{n}; the weather-observation kind lists the station fields, and posSource gains adsc."
       }
     ]
   },
@@ -6320,7 +6325,10 @@
           }
         ],
         "x-foresignal-prompt": "023",
-        "x-foresignal-status": "implemented"
+        "x-foresignal-status": "implemented",
+        "x-foresignal-extended-by": [
+          "069"
+        ]
       },
       "put": {
         "tags": [
@@ -6328,7 +6336,7 @@
         ],
         "operationId": "updateSecuritySettings",
         "summary": "Set security settings",
-        "description": "Replaces `openReads` (required), `exposeObserver`, `anonymous` (the anonymous restriction profile, validated like a read token's restriction; `excludePrivate: false` is refused because private sources are never served anonymously) and `metricsOpen` (035). `exposeMlat` (069) is refused with 400 until then, so a protection is never reported on that nothing enforces.\n\n**Scope:** `admin`.",
+        "description": "Replaces `openReads` (required), `exposeObserver`, `anonymous` (the anonymous restriction profile, validated like a read token's restriction; `excludePrivate: false` is refused because private sources are never served anonymously) `metricsOpen` (035) and `exposeMlat` (069, default false; when false, MLAT positions are stripped from anonymous reads).\n\n**Scope:** `admin`.",
         "requestBody": {
           "required": true,
           "content": {
@@ -6388,7 +6396,10 @@
           }
         ],
         "x-foresignal-prompt": "023",
-        "x-foresignal-status": "implemented"
+        "x-foresignal-status": "implemented",
+        "x-foresignal-extended-by": [
+          "069"
+        ]
       }
     },
     "/v1/settings/server": {
@@ -86170,6 +86181,11 @@
             "prompt": "013"
           },
           {
+            "code": "EGRESS_FIXED",
+            "status": 400,
+            "prompt": "069"
+          },
+          {
             "code": "INVALID_CURSOR",
             "status": 400,
             "prompt": "014"
@@ -86707,7 +86723,8 @@
             "type": "array",
             "items": {
               "type": "string"
-            }
+            },
+            "description": "When non-empty, the only accepted values. For type lan-url it lists the accepted URL schemes instead (069): empty means http, https, ws and wss; tcp (tcp://host:port, resolved once to a loopback, RFC 1918 or unique-local address and pinned) and udp (udp://bindHost:port, bindHost 0.0.0.0, :: or a local interface address, with the required string-list companion allowSenders of private IPs or CIDRs) are accepted only when listed. The port of a tcp or udp URL is always explicit."
           }
         },
         "required": [
@@ -88277,7 +88294,7 @@
                 "originCountry"
               ]
             },
-            "note": "Altitudes in metres (datum labels in fieldSpecs); 978 MHz local receivers add `band`. Shared readsb mapper (062), reused by 069 and 080."
+            "note": "Altitudes in meters (datum labels in fieldSpecs); 978 MHz local receivers add `band` (`978`). Shared readsb mapper (062), reused by 069 and 080. posSource adsb|adsr|adsc|mlat|tisb|modes|other (readsb, local receivers; `other` for local-sbs), adsb|asterix|mlat|flarm (OpenSky). local-adsb and local-sbs records carry one observer (the receiver itself, with rssi in dBFS for local-adsb). MLAT positions are never redistributable (069)."
           },
           "vessel": {
             "x-foresignal-prompt": "063",
@@ -88850,7 +88867,7 @@
                 "hdop"
               ]
             },
-            "note": "Private source (operator location)."
+            "note": "Private source (operator location). One record per gpsd device; observedAt = TPV time; altHAE only with a 3D fix; fixQuality none|2d|3d; navDegraded = mode < 3 || uSat < 4 || eph > 50 (069)."
           },
           "receiver-status": {
             "x-foresignal-prompt": "069",
@@ -88866,7 +88883,7 @@
                 "state"
               ]
             },
-            "note": "state `ok|low-rate|silent`."
+            "note": "state `ok|low-rate|silent` (low-rate below the minMessagesPerSec param, default 1.0); observedAt = last1min.end of readsb stats.json; noiseDbfs and aircraftWithPos only when the receiver reports them (069)."
           },
           "weather-observation": {
             "x-foresignal-prompt": "069",
@@ -88887,9 +88904,39 @@
                 "indoorTempC",
                 "indoorRh",
                 "model"
+              ],
+              "wxstation-davis-{n}": [
+                "tempC",
+                "rh",
+                "dewPointC",
+                "windSpeedMs",
+                "windDirDeg",
+                "windGustMs",
+                "rainRateMmH",
+                "rainDailyMm",
+                "pressureHpa",
+                "pressureTrendHpa",
+                "batteryLow",
+                "indoorTempC",
+                "indoorRh"
+              ],
+              "wxstation-ecowitt-{n}": [
+                "tempC",
+                "rh",
+                "dewPointC",
+                "windSpeedMs",
+                "windDirDeg",
+                "windGustMs",
+                "rainRateMmH",
+                "rainDailyMm",
+                "pressureHpa",
+                "solarWm2",
+                "uvIndex",
+                "indoorTempC",
+                "indoorRh"
               ]
             },
-            "note": "wxstation-davis-{n} and wxstation-ecowitt-{n} (069) emit SI-converted ISS/barometer fields declared in their fieldSpecs."
+            "note": "wxstation-davis-{n} and wxstation-ecowitt-{n} (069) poll the operator's station on the LAN and emit SI units with the preset keys; indoorTempC and indoorRh only with includeIndoor; geometry is the configured lat/lon rounded to 2 decimals. Davis: observedAt = eventTime = data.ts. Ecowitt (experimental): no timestamp in the body, observedAt imputed at receipt."
           },
           "transit-vehicle": {
             "x-foresignal-prompt": "070",
@@ -94018,7 +94065,7 @@
           "exposeMlat": {
             "type": "boolean",
             "default": false,
-            "description": "When false, records with `posSource=mlat` are stripped from anonymous openReads responses"
+            "description": "When false (the default), records whose `posSource` is `mlat` are stripped from anonymous openReads responses of the records API (list, get, versions, history, asOf); a record whose `posSource` was projected away by `fields=` is stripped too when its source reports `posSource`. MLAT positions are never sent on sinks, federation, share links or feeds regardless (069)"
           }
         },
         "required": [
@@ -94031,7 +94078,8 @@
         ],
         "x-foresignal-property-prompts": {
           "anonymous": "035",
-          "metricsOpen": "035"
+          "metricsOpen": "035",
+          "exposeMlat": "069"
         }
       },
       "ServerSettings": {

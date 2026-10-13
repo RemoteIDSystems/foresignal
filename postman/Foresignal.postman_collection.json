@@ -40101,7 +40101,7 @@
               ],
               "query": []
             },
-            "description": "Replaces `openReads` (required), `exposeObserver`, `anonymous` (the anonymous restriction profile, validated like a read token's restriction; `excludePrivate: false` is refused because private sources are never served anonymously) and `metricsOpen` (035). `exposeMlat` (069) is refused with 400 until then, so a protection is never reported on that nothing enforces.\n\n**Scope:** `admin`.\n\noperationId: `updateSecuritySettings`",
+            "description": "Replaces `openReads` (required), `exposeObserver`, `anonymous` (the anonymous restriction profile, validated like a read token's restriction; `excludePrivate: false` is refused because private sources are never served anonymously) `metricsOpen` (035) and `exposeMlat` (069, default false; when false, MLAT positions are stripped from anonymous reads).\n\n**Scope:** `admin`.\n\noperationId: `updateSecuritySettings`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -40160,7 +40160,7 @@
               ],
               "query": []
             },
-            "description": "Replaces `openReads` (required), `exposeObserver`, `anonymous` (the anonymous restriction profile, validated like a read token's restriction; `excludePrivate: false` is refused because private sources are never served anonymously) and `metricsOpen` (035). `exposeMlat` (069) is refused with 400 until then, so a protection is never reported on that nothing enforces.\n\n**Scope:** `admin`.\n\noperationId: `updateSecuritySettings`",
+            "description": "Replaces `openReads` (required), `exposeObserver`, `anonymous` (the anonymous restriction profile, validated like a read token's restriction; `excludePrivate: false` is refused because private sources are never served anonymously) `metricsOpen` (035) and `exposeMlat` (069, default false; when false, MLAT positions are stripped from anonymous reads).\n\n**Scope:** `admin`.\n\noperationId: `updateSecuritySettings`",
             "auth": {
               "type": "bearer",
               "bearer": [

@@ -106,6 +106,30 @@ class UpstreamClientIsTheOnlyHttpClientTest {
         }
     }
 
+    /** The raw socket constructions only the 069 socket transport may make (adapter rule 2, SRC-1). */
+    private static final List<String> SOCKETS = List.of("new Socket(", "DatagramChannel.open", "SocketChannel.open",
+            "new DatagramSocket(", "new ServerSocket(", "ServerSocketChannel.open");
+
+    @Test
+    @DisplayName("only collect/socket/DefaultSocketTransport opens a socket, and nothing opens a server socket (069)")
+    void onlyTheSocketTransportOpensSockets() throws IOException {
+        Path transport = COLLECT.resolve(Path.of("socket", "DefaultSocketTransport.java"));
+        Map<String, List<String>> offenders = new LinkedHashMap<>();
+        for (Path file : javaSources()) {
+            String source = Files.readString(file);
+            List<String> found = SOCKETS.stream().filter(source::contains).toList();
+            boolean server = found.stream().anyMatch(c -> c.contains("ServerSocket"));
+            if (!found.isEmpty() && (!file.equals(transport) || server)) {
+                offenders.put(file.toString(), found);
+            }
+        }
+        assertThat(offenders)
+                .as("Sockets are opened only by the budgeted, LAN-only socket transport (StreamContext.sockets());"
+                        + " inbound TCP serving is prompt 110's SERVE sinks")
+                .isEmpty();
+        assertThat(Files.readString(transport)).contains("new Socket(", "DatagramChannel.open");
+    }
+
     private static List<Path> javaSources() throws IOException {
         try (Stream<Path> files = Files.walk(MAIN)) {
             return files.filter(path -> path.toString().endsWith(".java")).sorted().toList();

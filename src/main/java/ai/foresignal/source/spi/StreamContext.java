@@ -50,4 +50,16 @@ public interface StreamContext extends FetchContext {
      * @param error why, or null for a clean close by the upstream
      */
     void disconnected(Throwable error);
+
+    /**
+     * The LAN-only socket transport (prompt 069): the only way a streaming adapter opens a TCP connection
+     * or a UDP listener. Each connect or bind consumes one budget unit; bytes are metered through
+     * {@link #reportBytes}.
+     *
+     * @throws UnsupportedOperationException when no transport is installed (a hand-built context in a unit
+     *     test)
+     */
+    default SocketTransport sockets() {
+        throw new UnsupportedOperationException("No socket transport is available to " + sourceId() + " in this context.");
+    }
 }

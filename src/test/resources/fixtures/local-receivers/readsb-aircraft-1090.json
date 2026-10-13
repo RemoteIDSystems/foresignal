@@ -1,0 +1,19 @@
+{
+  "now": 1791900000.5,
+  "messages": 81234567,
+  "aircraft": [
+    {"hex": "a1b2c3", "type": "adsb_icao", "flight": "UAL123  ", "r": "N12345", "t": "B738", "alt_baro": 35000, "alt_geom": 35500, "gs": 452.3, "track": 271.4, "baro_rate": -64, "squawk": "4512", "emergency": "none", "category": "A3", "lat": 40.12345, "lon": -105.54321, "nic": 8, "rc": 186, "seen_pos": 0.4, "version": 2, "nic_baro": 1, "nac_p": 10, "nac_v": 2, "sil": 3, "sil_type": "perhour", "gva": 2, "sda": 2, "mlat": [], "tisb": [], "messages": 5123, "seen": 0.1, "rssi": -12.4},
+    {"hex": "a2b3c4", "type": "adsb_icao_nt", "flight": "TUG7", "alt_baro": "ground", "gs": 12.0, "track": 90.0, "lat": 39.8601, "lon": -104.6731, "nic": 9, "nac_p": 9, "seen_pos": 1.2, "messages": 210, "seen": 1.0, "rssi": -20.1},
+    {"hex": "a3b4c5", "type": "adsr_icao", "flight": "N55UA", "alt_baro": 4500, "lat": 40.01, "lon": -105.2, "nic": 7, "nac_p": 8, "seen_pos": 2.0, "messages": 80, "seen": 2.0, "rssi": -25.0},
+    {"hex": "a4b5c6", "type": "tisb_icao", "alt_baro": 6200, "lat": 40.2, "lon": -104.9, "tisb": ["lat", "lon", "altitude"], "seen_pos": 3.1, "messages": 12, "seen": 3.0, "rssi": -28.7},
+    {"hex": "a5b6c7", "type": "adsc", "flight": "QFA9", "alt_baro": 38000, "lat": -20.5, "lon": 150.3, "seen_pos": 30.0, "messages": 3, "seen": 30.0, "rssi": -30.0},
+    {"hex": "a6b7c8", "type": "mlat", "flight": "SWA42", "alt_baro": 12000, "gs": 300.0, "track": 45.0, "lat": 39.95, "lon": -105.05, "mlat": ["lat", "lon", "track", "gs"], "seen_pos": 0.8, "messages": 400, "seen": 0.5, "rssi": -18.0},
+    {"hex": "a7b8c9", "type": "other", "alt_baro": 9000, "messages": 7, "seen": 4.0, "rssi": -31.2},
+    {"hex": "a8b9ca", "type": "mode_s", "squawk": "1200", "alt_baro": 5500, "messages": 40, "seen": 1.5, "rssi": -27.5},
+    {"hex": "~2f0001", "type": "adsb_other", "alt_baro": 3000, "lat": 40.3, "lon": -105.1, "nac_p": 6, "nic": 5, "seen_pos": 5.0, "messages": 30, "seen": 5.0, "rssi": -29.9},
+    {"hex": "~2f0002", "type": "adsr_other", "alt_baro": 2500, "lat": 40.31, "lon": -105.11, "seen_pos": 6.0, "messages": 9, "seen": 6.0, "rssi": -30.5},
+    {"hex": "~2f0003", "type": "tisb_other", "alt_baro": 7000, "lat": 40.4, "lon": -105.3, "seen_pos": 7.0, "messages": 4, "seen": 7.0, "rssi": -31.0},
+    {"hex": "~2f0004", "type": "tisb_trackfile", "alt_baro": 8000, "lat": 40.5, "lon": -105.4, "seen_pos": 8.0, "messages": 2, "seen": 8.0, "rssi": -32.0},
+    {"type": "adsb_icao", "flight": "NOHEX", "alt_baro": 1000, "seen": 1.0}
+  ]
+}

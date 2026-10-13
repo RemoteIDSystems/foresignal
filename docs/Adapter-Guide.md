@@ -473,3 +473,69 @@ A source that relies on a TTL instead (`gdacs`, 48 h from receipt) lets unlisted
 Configure a new CAP source with a `CapMappingProfile`: kind, preferred languages, the parameter allowlist, the text cap
 (4 KB for `headline`, `description` and `instruction`, which are the `embedFields` and untrusted text under 028's
 rules), the cancellation rule and an optional `RecordExtender` for source-specific payload keys or a fallback geometry.
+
+## 19. LAN endpoints (prompt 069)
+
+A source that reads the operator's own hardware takes its address from a `ParamType.LAN_URL` parameter and nothing
+else. The family's slot list is code (`foresignal.local-receivers.slots`, default 2); the operator supplies only the
+LAN parameters, so no request can name a host (the family rule of `SourceAdapterFamily`).
+
+- **Schemes per parameter.** For a `LAN_URL`, `ParamSpec.allowed` lists the accepted schemes
+  (`ParamSpec.lanUrl(name, description, required, "tcp")`); an empty list keeps the historical `http, https, ws, wss`.
+  `tcp` and `udp` are accepted only where listed.
+- **`http://` and `https://`:** resolved once under `OutboundUrlPolicy` profile `LAN_ONLY` (loopback, RFC 1918,
+  unique-local; never link-local or metadata), pinned, and fetched by `UpstreamClient` at the pinned address with the
+  original `Host` and redirects off. Check the path in `checkParams` (`aircraft.json`, `stats.json`) and refuse
+  credentials, a query or a fragment there.
+- **`tcp://host:port`:** the host is resolved once under `LAN_ONLY` and pinned; the socket transport connects to the
+  pinned address and never resolves the name again. The port is always explicit; a path, query, fragment or user info
+  is refused.
+- **`udp://bindHost:port`:** `bindHost` is `0.0.0.0`, `::` or an address of one of this machine's interfaces (never a
+  name). The descriptor must declare a `string-list` parameter `allowSenders` (`ParamValidator.ALLOW_SENDERS`), which is
+  then required: IPs or CIDRs, each wholly inside loopback, private, link-local or unique-local space
+  (`LocalAddresses.isPrivateBlock`).
+- **Read it back** with `LanEndpoint.fromParams(params, name)`: the scheme, the host as written, the explicit port and
+  the pinned (TCP) or bind (UDP) address.
+- **Conventional ports** (30003 for SBS, 2947 for gpsd) appear in descriptions and docs only; no code assumes them.
+- **Egress.** Every local descriptor sets `egress(LOCAL_ONLY)` and `egressOverridable(true)`: the data is the
+  operator's own, so `source_settings.egress` may open it; any other descriptor's egress is fixed (`400 EGRESS_FIXED`).
+
+## 20. Socket transport and codecs (prompt 069)
+
+**Transport.** A streaming adapter reaches a LAN socket only through `StreamContext.sockets()`, a
+`SocketTransport` (implemented by `ai.foresignal.collect.socket.DefaultSocketTransport`). Adapters never construct a
+socket (a guard in `UpstreamClientIsTheOnlyHttpClientTest` fails the build), and Foresignal never listens on TCP for a
+source (serving TCP is 110's SERVE sinks).
+
+- `tcp(LanEndpoint, SocketOptions, Framing, FrameHandler) → StreamHandle`: one budget unit per connect attempt
+  (`ctx.chargeRequest`), connect timeout 5 s, TCP keepalive, the optional `SocketOptions.onConnect` bytes written once
+  (gpsd's `?WATCH`), and a read watchdog: a connection silent for `SocketOptions.silenceTimeout` (default 120 s) is
+  closed with `SilenceTimeoutException`, so the supervisor's ladder reconnects (and pays another unit).
+- `Framing.LINES` cuts LF or CRLF lines of at most 64 KB; a longer line is dropped whole and counted. `Framing.RAW`
+  delivers read-sized chunks (KISS in 082).
+- `udp(LanEndpoint bind, Set<Cidr> allowSenders, DatagramHandler)`: a `DatagramChannel` read on a virtual thread, one
+  unit per bind; a datagram from outside the allowlist is counted (`foresignal.socket.udp.rejected{source}`) and never
+  parsed; one over 64 KB is dropped.
+- Handlers run on the connection's virtual thread and may block in `RecordSink.accept` (back-pressure). Throwing from
+  a handler closes the connection with that error.
+- Received bytes are metered through `ctx.reportBytes` after every read.
+- Metrics: `foresignal.socket.connects{source,result}`, `foresignal.socket.frames{source}`,
+  `foresignal.socket.frames.dropped{source,reason}`.
+
+**Codec SPI** (`ai.foresignal.source.codec`). A wire format is a `SocketCodec` bean:
+
+- `id()` (kebab-case), `framing()`, `newSession(CodecContext)` and an optional `onConnect()` write.
+- A `CodecSession` holds the per-connection state and returns `List<NormalizedRecord> onFrame(byte[] frame,
+  Instant receivedAt)`. It is created afresh for each connection, so nothing survives a reconnect.
+- Codecs do no I/O and read no clock: they are fixture-testable on their own. A malformed frame is skipped and counted
+  (`skipped()`); an `UpstreamFormatException` means the whole stream is unusable and closes the connection.
+- `CodecRegistry` collects the beans by id; a duplicate or malformed id fails startup.
+- The shared body of a socket source is `CodecStream.start(ctx, sink, codec, endpointParam, options)` in
+  `source.adapters.local`; later families copy that pattern in their own package (adapters never import each other).
+
+| Codec | Framing | Source | Notes |
+|---|---|---|---|
+| `sbs1` | LINES | `local-sbs-{n}` | 22-field BaseStation lines merged per hex (rule 7) into the readsb payload keys; feet → meters; `posSource: other`; times never parsed (declare `observedAtMode` RECEIVED); hexes evicted after 5 min |
+| `gpsd` | LINES | `local-gpsd-{n}` | `?WATCH={"enable":true,"json":true};` on connect; VERSION `proto_major` 3; TPV and SKY merged per device into `gnss-fix`; `observedAt` = TPV `time` |
+
+Prompt 085 adds `aivdm`, 082 `kiss-ax25`, 086 `acars-json` and `sonde-udp`.

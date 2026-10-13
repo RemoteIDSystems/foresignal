@@ -122,6 +122,13 @@ public class RecordsController {
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private ai.foresignal.reference.RegionIncludes regionIncludes;
 
+    /**
+     * Strips MLAT positions from anonymous responses while {@code security.exposeMlat} is off (prompt 069);
+     * null only in hand-built unit tests.
+     */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ai.foresignal.security.EgressPolicy egressPolicy;
+
     /** Creates the controller. */
     public RecordsController(
             RecordQueryService queries,
@@ -308,7 +315,7 @@ public class RecordsController {
 
         if (fmt.streaming()) {
             streamRecords(fmt, selection, response, sink -> queries.streamCurrent(query, maxRows(), sink),
-                    RecordMapper.Shape.CURRENT);
+                    RecordMapper.Shape.CURRENT, mlatGate(caller, selection));
             return null;
         }
         String etag = listETag(request, accept, caller);
@@ -316,19 +323,20 @@ public class RecordsController {
             return ETags.notModified(etag, caller.publicCache());
         }
         Slices.RecordSlice slice = queries.list(query);
+        List<RecordRow> rows = visible(slice.rows(), caller, selection);
         HttpHeaders headers = ETags.cacheHeaders(new HttpHeaders(), etag, caller.publicCache());
         headers.set(WATERMARK_HEADER, Long.toString(slice.watermarkSeq()));
         Object body;
         boolean withRegion = includes.contains("region") && regionIncludes != null;
         if (fmt == ResponseFormat.GEOJSON) {
-            List<Map<String, Object>> features = features(slice.rows(), selection, RecordMapper.Shape.CURRENT);
+            List<Map<String, Object>> features = features(rows, selection, RecordMapper.Shape.CURRENT);
             if (withRegion) {
                 regionIncludes.addToFeatures(features);
             }
             body = FeatureCollectionPage.of(features, slice.nextCursor(), slice.watermarkSeq(), slice.asOfSeq(), null,
                     null, null);
         } else {
-            List<Map<String, Object>> items = records(slice.rows(), selection, RecordMapper.Shape.CURRENT);
+            List<Map<String, Object>> items = records(rows, selection, RecordMapper.Shape.CURRENT);
             if (withRegion) {
                 regionIncludes.addToRecords(items);
             }
@@ -354,11 +362,12 @@ public class RecordsController {
             AsOfQueryService.AsOfQuery query, ResponseFormat fmt, ReadCaller caller, HttpServletResponse response)
             throws IOException {
         AsOfQueryService.AsOfSlice slice = asOfQueries.list(query);
+        List<RecordRow> rows = visible(slice.rows(), caller, query.fields());
         if (fmt.streaming()) {
             List<String> columns = RecordMapper.csvColumns(query.fields(), RecordMapper.DEFAULT_CSV_COLUMNS);
             startStream(response, fmt, slice.seq());
             try (StreamWriter writer = new StreamWriter(fmt, response.getOutputStream(), json, columns)) {
-                for (RecordRow row : slice.rows()) {
+                for (RecordRow row : rows) {
                     writer.write(streamItem(fmt, row, query.fields(), RecordMapper.Shape.AS_OF, columns));
                 }
             }
@@ -368,10 +377,10 @@ public class RecordsController {
         headers.set(WATERMARK_HEADER, Long.toString(slice.seq()));
         Object body;
         if (fmt == ResponseFormat.GEOJSON) {
-            body = FeatureCollectionPage.of(features(slice.rows(), query.fields(), RecordMapper.Shape.AS_OF),
+            body = FeatureCollectionPage.of(features(rows, query.fields(), RecordMapper.Shape.AS_OF),
                     slice.nextCursor(), slice.seq(), null, slice.asOf(), slice.approximate(), slice.horizon());
         } else {
-            body = new RecordPage(records(slice.rows(), query.fields(), RecordMapper.Shape.AS_OF), slice.nextCursor(),
+            body = new RecordPage(records(rows, query.fields(), RecordMapper.Shape.AS_OF), slice.nextCursor(),
                     slice.seq(), null, slice.asOf(), slice.approximate(), slice.horizon());
         }
         return ResponseEntity.ok().headers(headers).contentType(MediaType.parseMediaType(fmt.mediaType())).body(body);
@@ -406,6 +415,10 @@ public class RecordsController {
         RecordRow row = queries.get(sourceId, externalId, observers, selection, geometry,
                         callers.excludedSources(caller), caller.restriction())
                 .orElseThrow(() -> NotFoundException.of("Record", sourceId + ":" + externalId));
+        if (!mlatGate(caller, selection).test(row)) {
+            // An MLAT position withheld from an anonymous caller reads as absent (prompt 069).
+            throw NotFoundException.of("Record", sourceId + ":" + externalId);
+        }
         String etag = ETags.forRecord(row.version(), row.observedAt());
         if (ETags.matches(ifNoneMatch, etag)) {
             return ETags.notModified(etag, caller.publicCache());
@@ -454,8 +467,8 @@ public class RecordsController {
                 .versions(sourceId, externalId, sinceAt, untilAt, cursor, pageSize, observers,
                         callers.excludedSources(caller), caller.restriction())
                 .orElseThrow(() -> NotFoundException.of("Record", sourceId + ":" + externalId));
-        return new RecordVersionPage(records(slice.rows(), FieldSelection.ALL, RecordMapper.Shape.VERSION),
-                slice.nextCursor());
+        return new RecordVersionPage(records(visible(slice.rows(), caller, FieldSelection.ALL), FieldSelection.ALL,
+                RecordMapper.Shape.VERSION), slice.nextCursor());
     }
 
     // ------------------------------------------------------------------ queryHistory
@@ -523,14 +536,15 @@ public class RecordsController {
         }
         if (fmt.streaming()) {
             streamRecords(fmt, selection, response, sink -> queries.streamHistory(query, maxRows(), sink),
-                    RecordMapper.Shape.VERSION);
+                    RecordMapper.Shape.VERSION, mlatGate(caller, selection));
             return null;
         }
         Slices.VersionSlice slice = queries.history(query);
+        List<RecordRow> rows = visible(slice.rows(), caller, selection);
         Object body = fmt == ResponseFormat.GEOJSON
-                ? FeatureCollectionPage.of(features(slice.rows(), selection, RecordMapper.Shape.VERSION),
+                ? FeatureCollectionPage.of(features(rows, selection, RecordMapper.Shape.VERSION),
                         slice.nextCursor(), null, null, null, null, null)
-                : new RecordVersionPage(records(slice.rows(), selection, RecordMapper.Shape.VERSION), slice.nextCursor());
+                : new RecordVersionPage(records(rows, selection, RecordMapper.Shape.VERSION), slice.nextCursor());
         return ResponseEntity.ok().contentType(MediaType.parseMediaType(fmt.mediaType())).body(body);
     }
 
@@ -603,12 +617,32 @@ public class RecordsController {
     }
 
     /** Streams rows produced by {@code producer} in a streaming format. */
+    /**
+     * The MLAT gate of {@code caller} (prompt 069): everything for a caller with a token, or while
+     * {@code security.exposeMlat} is on; otherwise {@link ai.foresignal.security.EgressPolicy#allowsAnonymous}.
+     */
+    private java.util.function.Predicate<RecordRow> mlatGate(ReadCaller caller, FieldSelection selection) {
+        if (egressPolicy == null || !caller.isAnonymous() || egressPolicy.exposeMlat()) {
+            return row -> true;
+        }
+        boolean whole = selection == null || selection.all() || selection.topLevel().contains("payload");
+        return row -> egressPolicy.allowsAnonymous(row, whole);
+    }
+
+    /** {@code rows} without what {@link #mlatGate} withholds, in order. */
+    private List<RecordRow> visible(List<RecordRow> rows, ReadCaller caller, FieldSelection selection) {
+        java.util.function.Predicate<RecordRow> gate = mlatGate(caller, selection);
+        List<RecordRow> out = rows.stream().filter(gate).toList();
+        return out.size() == rows.size() ? rows : out;
+    }
+
     private void streamRecords(
             ResponseFormat fmt,
             FieldSelection fields,
             HttpServletResponse response,
             java.util.function.Consumer<RecordQueryService.RowSink> producer,
-            RecordMapper.Shape shape) {
+            RecordMapper.Shape shape,
+            java.util.function.Predicate<RecordRow> gate) {
         List<String> columns = RecordMapper.csvColumns(fields, RecordMapper.DEFAULT_CSV_COLUMNS);
         StreamWriter[] writer = new StreamWriter[1];
         try {
@@ -625,7 +659,9 @@ public class RecordsController {
 
                 @Override
                 public void accept(RecordRow row) {
-                    writer[0].write(streamItem(fmt, row, fields, shape, columns));
+                    if (gate.test(row)) {
+                        writer[0].write(streamItem(fmt, row, fields, shape, columns));
+                    }
                 }
             });
         } finally {

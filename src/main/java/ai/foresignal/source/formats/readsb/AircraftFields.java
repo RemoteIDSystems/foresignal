@@ -52,7 +52,7 @@ public final class AircraftFields {
     public static final String TRACK = "track";
     /** Barometric vertical rate in m/s. */
     public static final String BARO_RATE = "baro_rate";
-    /** How the position was obtained ({@code adsb|adsr|mlat|tisb|modes|other}, or OpenSky's {@code adsb|asterix|mlat|flarm}). */
+    /** How the position was obtained ({@code adsb|adsr|adsc|mlat|tisb|modes|other}, or OpenSky's {@code adsb|asterix|mlat|flarm}). */
     public static final String POS_SOURCE = "posSource";
     /** Navigation accuracy category for position. */
     public static final String NAC_P = "nac_p";
@@ -66,6 +66,8 @@ public final class AircraftFields {
     public static final String PIA = "pia";
     /** FAA LADD list, from {@code dbFlags} bit 8. */
     public static final String LADD = "ladd";
+    /** Local 978 MHz receivers only (prompt 069): the band, {@code "978"}. */
+    public static final String BAND = "band";
     /** OpenSky only: the country of registration inferred from the address. */
     public static final String ORIGIN_COUNTRY = "originCountry";
 

@@ -75,6 +75,13 @@ public class SourceSettingsEntity {
     @Column(name = "downsample_interval")
     private Duration downsampleInterval;
 
+    /**
+     * The operator's egress override (prompt 069), {@code OPEN} or {@code LOCAL_ONLY}; null means the
+     * descriptor's {@code egress}. Accepted only for an {@code egressOverridable} descriptor.
+     */
+    @Column(name = "egress", length = 16)
+    private String egress;
+
     @JdbcTypeCode(SqlTypes.TIMESTAMP_UTC)
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
@@ -164,6 +171,16 @@ public class SourceSettingsEntity {
     /** Sets the {@code embed} override; null reverts to the default. */
     public void setEmbed(Boolean embed) {
         this.embed = embed;
+    }
+
+    /** The egress override (prompt 069), or null for the descriptor's. */
+    public String getEgress() {
+        return egress;
+    }
+
+    /** Sets the egress override; null reverts to the descriptor's. */
+    public void setEgress(String egress) {
+        this.egress = egress;
     }
 
     /** The downsample interval override (prompt 044), or null for the global interval. */

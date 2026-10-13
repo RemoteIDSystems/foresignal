@@ -59,7 +59,7 @@ SOFTWARE.
 
 ### Ported files
 
-Ported from God's Eye View commit `591f299d11f38a612629a274463196d57ae3862e` (prompts 051, 062, 063, 064, 065 and 067). Each
+Ported from God's Eye View commit `591f299d11f38a612629a274463196d57ae3862e` (prompts 051, 062, 063, 064, 065, 067 and 069). Each
 file carries an origin header naming its source file and this notice.
 
 | Foresignal file | GEV origin file |
@@ -86,6 +86,8 @@ file carries an origin header naming its source file and this notice.
 | `src/main/java/ai/foresignal/source/adapters/firms/FirmsCsvParser.java` (columns located by header name, the unpadded `acq_time`, `isLikelyCsv`, VIIRS letter versus MODIS numeric confidence, prompt 065) | `src/data/firmsCsv.js` (`isLikelyCsv`, `parseFirmsCsv`, `acquisitionMsUtc`) and `src/data/firmsAdapt.js` (`normalizeConfidence`) |
 | `src/main/java/ai/foresignal/source/adapters/firms/FirmsAdapter.java` (the four default products fetched sequentially, never without a key, errors as HTML or text rather than CSV, the 2 h forward slack, prompt 065) | `server/providers/firms.js` (`firmsProxy`, `fetchSource`, `refreshUpstream`) and `src/data/firmsCsv.js` (`FORWARD_SLACK_MS` of `filterTrailing24h`) |
 | `src/main/java/ai/foresignal/source/adapters/nhc/NhcCurrentStormsParser.java` (the `activeStorms` cap of 32, the `(al\|ep\|cp)` + six digits id pattern, unique ids, sanitized strings, the advisory-number pattern and its normalization, numbers accepted as strings or numbers within a range, `www.nhc.noaa.gov`-only links, prompt 067) | `server/providers/cyclones.js` (`parseCycloneStatus`, `text`, `advisory`, `number`, `officialLink`) |
+| `src/main/java/ai/foresignal/source/adapters/local/LocalReceivers.java` (local feed rules: a path ending in `aircraft.json`, no credentials, query or fragment, loopback and private hosts only, prompt 069) | `server/providers/local-receivers.js` (`parseEntry`, `LOCAL_RECEIVER_*` constants) and `src/data/tapAddress.js` (the receiver-tap address rule) |
+| `src/main/java/ai/foresignal/source/adapters/local/LocalAdsbAdapter.java` (band 1090/978, the 2 s timeout, staleness by the feed's own `now` at 10 s, the receiver signal per aircraft, prompt 069) | `server/providers/local-receivers.js` (`readFeed`, `LOCAL_RECEIVER_STALE_MS`, `LOCAL_RECEIVER_TIMEOUT_MS`) and `src/sources/adsbRecords.js` (`normalizeDump1090Aircraft`: `rssiDbfs`, `band`) |
 
 `decode.js` (ecCodes WASM) is not ported: Foresignal decodes with NetCDF-Java. The particle layer
 (`src/layers/wind/*`) is not part of Foresignal; the Frontend Guide tells web clients which of its

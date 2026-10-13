@@ -31,6 +31,8 @@ public class SourceSettingsUpdate {
     private String regionTagging;
     private String downsampleInterval;
     private boolean downsampleIntervalPresent;
+    private String egress;
+    private boolean egressPresent;
 
     /** Whether the source should be collected; null leaves it unchanged. */
     public Boolean getEnabled() {
@@ -128,6 +130,22 @@ public class SourceSettingsUpdate {
     /** True when the body named {@code downsampleInterval}, even as null (null clears the override). */
     public boolean isDownsampleIntervalPresent() {
         return downsampleIntervalPresent;
+    }
+
+    /** The egress override (prompt 069), {@code OPEN} or {@code LOCAL_ONLY}; see {@link #isEgressPresent()}. */
+    public String getEgress() {
+        return egress;
+    }
+
+    /** Sets {@link #getEgress()} and records that the key was present. */
+    public void setEgress(String egress) {
+        this.egress = egress;
+        this.egressPresent = true;
+    }
+
+    /** True when the body named {@code egress}, even as null (null reverts to the descriptor). */
+    public boolean isEgressPresent() {
+        return egressPresent;
     }
 
     /** {@code eager}, {@code lazy} or {@code off} (prompt 040); null leaves it unchanged. */

@@ -152,7 +152,8 @@ public class SourceMapper {
                 d.privatePrecisionDecimals(),
                 d.egress().wireValue(),
                 d.originator(),
-                d.access());
+                d.access(),
+                d.egressOverridable());
     }
 
     static CredentialFieldDto credentialField(CredentialField field) {
@@ -217,6 +218,21 @@ public class SourceMapper {
             Optional<Duration> retentionOverride,
             Optional<Duration> sourceRetention,
             Optional<Duration> downsampleOverride) {
+        return settings(view, policyOverride, retentionOverride, sourceRetention, downsampleOverride, Optional.empty());
+    }
+
+    /**
+     * The settings of one source, with its downsample interval and egress overrides (prompts 044 and 069).
+     *
+     * @param egressOverride {@link ai.foresignal.source.SourceService#egressOverride(String)}
+     */
+    public SourceSettingsDto settings(
+            SourceView view,
+            Optional<IngestPolicy> policyOverride,
+            Optional<Duration> retentionOverride,
+            Optional<Duration> sourceRetention,
+            Optional<Duration> downsampleOverride,
+            Optional<ai.foresignal.source.spi.Egress> egressOverride) {
         return new SourceSettingsDto(
                 view.enabled(),
                 view.interval(),
@@ -233,7 +249,8 @@ public class SourceMapper {
                 statsSettings().includePrivate(view.id()),
                 effectivePrivate(view),
                 regionTagging(view.descriptor()),
-                downsampleOverride.orElse(null));
+                downsampleOverride.orElse(null),
+                egressOverride.map(ai.foresignal.source.spi.Egress::wireValue).orElse(null));
     }
 
     /** The source's region tagging mode (prompt 040): the operator's choice, else its tier's default. */
@@ -451,6 +468,21 @@ public class SourceMapper {
             }
         }
 
+        ai.foresignal.source.spi.Egress egress = null;
+        boolean clearEgress = false;
+        if (body.isEgressPresent()) {
+            if (body.getEgress() == null) {
+                clearEgress = true;
+            } else {
+                try {
+                    egress = ai.foresignal.source.spi.Egress.valueOf(body.getEgress().strip());
+                } catch (IllegalArgumentException e) {
+                    errors.add(new FieldError("egress", "must be OPEN, LOCAL_ONLY or null, but was '"
+                            + body.getEgress() + "'"));
+                }
+            }
+        }
+
         Budget budget = null;
         if (body.getBudget() != null) {
             BudgetDto b = body.getBudget();
@@ -493,7 +525,7 @@ public class SourceMapper {
         }
         return new SourceSettingsUpdate(
                 body.getEnabled(), interval, params, budget, retention, clearRetention, policy, clearPolicy,
-                body.getEmbed(), downsampleInterval, clearDownsampleInterval);
+                body.getEmbed(), downsampleInterval, clearDownsampleInterval, egress, clearEgress);
     }
 
     private static Duration parseDuration(List<FieldError> errors, String field, String value) {

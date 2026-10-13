@@ -118,6 +118,20 @@ class FamilyDefaultsTest {
             Map.entry("IodaOutagesAdapter", new Entry(
                     new ai.foresignal.source.adapters.ioda.IodaOutagesAdapter("", null, null, null).descriptor(),
                     "event")),
+            // Prompt 069: the local receivers. Aircraft are TRACK (trackWindow, never a default); GNSS fixes,
+            // receiver health and weather-station readings are SAMPLED-style status, the state class (365 d).
+            Map.entry("LocalAdsbAdapter", new Entry(
+                    new ai.foresignal.source.adapters.local.LocalAdsbAdapter(1).descriptor(), "track")),
+            Map.entry("LocalSbsAdapter", new Entry(new ai.foresignal.source.adapters.local.LocalSbsAdapter(1,
+                    new ai.foresignal.source.codec.Sbs1Codec()).descriptor(), "track")),
+            Map.entry("LocalGpsdAdapter", new Entry(new ai.foresignal.source.adapters.local.LocalGpsdAdapter(1,
+                    new ai.foresignal.source.codec.GpsdCodec()).descriptor(), "state")),
+            Map.entry("StationReadsbAdapter", new Entry(
+                    new ai.foresignal.source.adapters.local.StationReadsbAdapter(1).descriptor(), "state")),
+            Map.entry("DavisWllAdapter", new Entry(
+                    new ai.foresignal.source.adapters.local.DavisWllAdapter(1).descriptor(), "state")),
+            Map.entry("EcowittAdapter", new Entry(
+                    new ai.foresignal.source.adapters.local.EcowittAdapter(1, null).descriptor(), "state")),
             // Prompt 052: the derived weather sources, retained per Weather-Imagery-Design §2.4.
             Map.entry("WxPlacesGenerator", new Entry(
                     new ai.foresignal.source.adapters.wx.WxPlacesGenerator().descriptor(), "weather")),
@@ -197,6 +211,12 @@ class FamilyDefaultsTest {
                 }
                 assertThat(descriptor.defaultRetention()).as("%s defaultRetention", descriptor.id())
                         .isEqualTo(WEATHER_KIND_RETENTION.get(descriptor.kinds().iterator().next()));
+                continue;
+            }
+            if (analyticClass.equals("track")) {
+                // Prompt 069: TRACK retention is trackWindow plus downsampling, never defaultRetention.
+                assertThat(descriptor.isTrack()).as("%s is TRACK", descriptor.id()).isTrue();
+                assertThat(descriptor.defaultRetention()).as("%s defaultRetention", descriptor.id()).isNull();
                 continue;
             }
             Duration minimum = CLASS_DEFAULTS.get(analyticClass);

@@ -393,6 +393,7 @@ public class SourceService implements ApplicationRunner {
         applyDownsampleInterval(descriptor, update, row, errors);
         applyIngestPolicy(descriptor, update, row, policyErrors);
         applyEmbed(descriptor, update, row, errors);
+        applyEgress(descriptor, update, row);
 
         if (update.enabled() != null) {
             row.setEnabled(update.enabled());
@@ -422,6 +423,56 @@ public class SourceService implements ApplicationRunner {
         SourceView after = toView(descriptor, row, credentials.existsById(id));
         publishAfterCommit(new SourceSettingsChangedEvent(id, before, after));
         return after;
+    }
+
+    /**
+     * The egress override (prompt 069): accepted only when the descriptor is {@code egressOverridable};
+     * otherwise {@code 400 EGRESS_FIXED}, because a license restriction must not be lifted by
+     * configuration. Clearing is always accepted.
+     */
+    private void applyEgress(SourceDescriptor descriptor, SourceSettingsUpdate update, SourceSettingsEntity row) {
+        if (update.clearEgress()) {
+            row.setEgress(null);
+            return;
+        }
+        if (update.egress() == null) {
+            return;
+        }
+        if (!descriptor.egressOverridable()) {
+            throw new ValidationException(ai.foresignal.api.error.ErrorCodes.EGRESS_FIXED,
+                    "The egress of " + descriptor.id() + " is fixed by its descriptor (" + descriptor.egress().wireValue()
+                            + ") and cannot be overridden.",
+                    List.of(new FieldError("egress", "this source's egress is not overridable")));
+        }
+        row.setEgress(update.egress().wireValue());
+    }
+
+    /**
+     * The operator's egress override (prompt 069), or empty when the descriptor's {@code egress} applies.
+     * Always empty for a descriptor that is not {@code egressOverridable}, whatever is stored.
+     */
+    @Transactional(readOnly = true)
+    public Optional<ai.foresignal.source.spi.Egress> egressOverride(String id) {
+        SourceDescriptor descriptor = registry.descriptor(id);
+        if (!descriptor.egressOverridable()) {
+            return Optional.empty();
+        }
+        return settings.findById(id)
+                .map(SourceSettingsEntity::getEgress)
+                .filter(value -> !value.isBlank())
+                .flatMap(value -> {
+                    try {
+                        return Optional.of(ai.foresignal.source.spi.Egress.valueOf(value));
+                    } catch (IllegalArgumentException e) {
+                        return Optional.empty();
+                    }
+                });
+    }
+
+    /** The egress in force for {@code id} (prompt 069): the override if any, else the descriptor's. */
+    @Transactional(readOnly = true)
+    public ai.foresignal.source.spi.Egress effectiveEgress(String id) {
+        return egressOverride(id).orElseGet(() -> registry.descriptor(id).egress());
     }
 
     private void applyRetention(

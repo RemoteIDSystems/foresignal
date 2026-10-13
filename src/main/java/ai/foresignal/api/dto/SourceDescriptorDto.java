@@ -61,6 +61,8 @@ import java.util.Map;
  * @param egress {@code OPEN} or {@code LOCAL_ONLY} (prompt 024 sets it for EDP providers)
  * @param originator the originator id override, or null
  * @param access how the source reaches its data, or null
+ * @param egressOverridable whether the operator may override {@code egress} in {@code SourceSettings}
+ *     (prompt 069: the local receiver families)
  */
 public record SourceDescriptorDto(
         String id,
@@ -109,4 +111,5 @@ public record SourceDescriptorDto(
         String egress,
         String originator,
         @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
-                ai.foresignal.source.spi.SourceAccess access) {}
+                ai.foresignal.source.spi.SourceAccess access,
+        boolean egressOverridable) {}

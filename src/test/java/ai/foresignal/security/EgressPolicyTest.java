@@ -26,6 +26,7 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.ObjectProvider;
 
@@ -221,6 +222,133 @@ class EgressPolicyTest {
             return (SourceVisibility) field.get(policy);
         } catch (ReflectiveOperationException e) {
             throw new IllegalStateException(e);
+        }
+    }
+
+    /**
+     * Prompt 069: the effective egress of an {@code egressOverridable} source, MLAT never leaving on a
+     * re-serving path even from an {@code OPEN} source, and the {@code security.exposeMlat} filter of anonymous
+     * reads (EGR-2).
+     */
+    @Nested
+    @DisplayName("local receivers and MLAT (069)")
+    class LocalReceiversAndMlat {
+
+        final AtomicReference<ai.foresignal.source.spi.Egress> override = new AtomicReference<>();
+        final AtomicReference<ai.foresignal.settings.SecuritySettings> security =
+                new AtomicReference<>(ai.foresignal.settings.SecuritySettings.defaults());
+        final java.util.concurrent.atomic.AtomicInteger lookups = new java.util.concurrent.atomic.AtomicInteger();
+        EgressPolicy local;
+
+        @BeforeEach
+        void setUpLocal() {
+            SourceDescriptor receiver = SourceDescriptor.builder("local-adsb-1").name("Receiver").kind("aircraft")
+                    .mode(Mode.PUSH).egress(ai.foresignal.source.spi.Egress.LOCAL_ONLY).egressOverridable(true)
+                    .fieldSpec("posSource", ai.foresignal.source.spi.FieldSpec.of(
+                            ai.foresignal.source.spi.FieldType.STRING, null))
+                    .build();
+            SourceDescriptor licensed = SourceDescriptor.builder("opensky-states").name("OpenSky").kind("aircraft")
+                    .mode(Mode.PUSH).egress(ai.foresignal.source.spi.Egress.LOCAL_ONLY).build();
+            SourceDescriptor open = SourceDescriptor.builder("quakes").name("Quakes").kind("earthquake").mode(Mode.PUSH)
+                    .build();
+            Map<String, SourceDescriptor> all = Map.of("local-adsb-1", receiver, "opensky-states", licensed,
+                    "quakes", open);
+            SourceRegistry registry = mock(SourceRegistry.class);
+            when(registry.descriptors()).thenReturn(List.copyOf(all.values()));
+            when(registry.contains(any())).thenAnswer(i -> all.containsKey(i.<String>getArgument(0)));
+            when(registry.find(any())).thenAnswer(i -> Optional.ofNullable(all.get(i.<String>getArgument(0)))
+                    .map(d -> new SourceRegistry.Registration(d, null, false)));
+            when(registry.descriptor(any())).thenAnswer(i -> all.get(i.<String>getArgument(0)));
+
+            AppSettingService settings = mock(AppSettingService.class);
+            when(settings.getOrDefault(eq(SettingKeys.VISIBILITY), eq(VisibilitySettings.class), any()))
+                    .thenAnswer(i -> VisibilitySettings.defaults());
+            when(settings.getOrDefault(eq(SettingKeys.SECURITY), eq(ai.foresignal.settings.SecuritySettings.class),
+                    any())).thenAnswer(i -> security.get());
+
+            ai.foresignal.source.SourceService service = mock(ai.foresignal.source.SourceService.class);
+            when(service.effectiveEgress(any())).thenAnswer(i -> {
+                lookups.incrementAndGet();
+                ai.foresignal.source.spi.Egress value = override.get();
+                return value == null ? all.get(i.<String>getArgument(0)).egress() : value;
+            });
+            @SuppressWarnings("unchecked")
+            ObjectProvider<ai.foresignal.source.SourceService> services = mock(ObjectProvider.class);
+            when(services.getIfAvailable()).thenReturn(service);
+            @SuppressWarnings("unchecked")
+            ObjectProvider<OutboundUrlPolicy> outbound = mock(ObjectProvider.class);
+            local = new EgressPolicy(registry, new SourceVisibility(registry, settings, null), settings, outbound,
+                    services);
+        }
+
+        RecordRow aircraft(String externalId, String payload, String titlePayload) {
+            return new RecordRow("local-adsb-1", externalId, "aircraft", 1, 1L, null, null, null, null, null, false,
+                    null, null, payload, titlePayload, null, null, 0, null, null, null, null, null, null, null, null,
+                    null, null);
+        }
+
+        @Test
+        @DisplayName("LOCAL_ONLY denies every re-serving path and allows an export to the instance's own client")
+        void localOnlyDeniesRemotePaths() {
+            for (EgressPath path : List.of(EgressPath.SINK, EgressPath.FEDERATION, EgressPath.SHARE, EgressPath.FEED)) {
+                assertThat(local.allows("local-adsb-1", path)).as(path.name()).isFalse();
+            }
+            assertThat(local.allows("local-adsb-1", EgressPath.EXPORT)).isTrue();
+        }
+
+        @Test
+        @DisplayName("an OPEN override applies only to an overridable descriptor, and is cached until settings change")
+        void openOverride() {
+            override.set(ai.foresignal.source.spi.Egress.OPEN);
+            assertThat(local.isLocalOnly("local-adsb-1")).isFalse();
+            assertThat(local.allows("local-adsb-1", EgressPath.SINK)).isTrue();
+            assertThat(local.isLocalOnly("opensky-states")).as("not overridable: the descriptor decides").isTrue();
+            int before = lookups.get();
+            local.isLocalOnly("local-adsb-1");
+            assertThat(lookups.get()).as("cached").isEqualTo(before);
+
+            override.set(null);
+            assertThat(local.isLocalOnly("local-adsb-1")).as("still cached").isFalse();
+            local.onSourceSettingsChanged(new ai.foresignal.source.SourceSettingsChangedEvent("local-adsb-1", null, null));
+            assertThat(local.isLocalOnly("local-adsb-1")).isTrue();
+        }
+
+        @Test
+        @DisplayName("MLAT is denied on every non-local path even when the source is OPEN")
+        void mlatNeverLeaves() {
+            override.set(ai.foresignal.source.spi.Egress.OPEN);
+            Map<String, Object> mlat = Map.of("posSource", "mlat");
+            Map<String, Object> adsb = Map.of("posSource", "adsb");
+            for (EgressPath path : List.of(EgressPath.SINK, EgressPath.FEDERATION, EgressPath.SHARE, EgressPath.FEED)) {
+                assertThat(local.allows(path, "local-adsb-1", mlat, null)).as(path.name()).isFalse();
+                assertThat(local.allows(path, "local-adsb-1", adsb, null)).as(path.name()).isTrue();
+            }
+            assertThat(local.allows(EgressPath.EXPORT, "local-adsb-1", mlat, null)).isTrue();
+            assertThat(local.allows(EgressPath.FEED, "quakes", mlat, null)).as("any source").isFalse();
+
+            assertThat(local.allows(aircraft("m", "{\"posSource\":\"mlat\"}", null), EgressPath.SINK)).isFalse();
+            assertThat(local.allows(aircraft("a", "{\"posSource\":\"adsb\"}", null), EgressPath.SINK)).isTrue();
+            assertThat(local.allows(aircraft("n", "{\"hex\":\"abc\"}", null), EgressPath.SINK))
+                    .as("a whole payload without posSource is not MLAT").isTrue();
+            assertThat(local.allows(aircraft("x", null, null), EgressPath.SINK)).as("unknown: fail closed").isFalse();
+        }
+
+        @Test
+        @DisplayName("exposeMlat false strips MLAT rows from anonymous reads; true, or a token, keeps them")
+        void exposeMlatFilter() {
+            List<RecordRow> rows = List.of(aircraft("a", "{\"posSource\":\"adsb\"}", null),
+                    aircraft("m", "{\"posSource\":\"mlat\"}", null),
+                    aircraft("p", "{\"flight\":\"X\"}", "{\"flight\":\"X\",\"posSource\":\"mlat\"}"),
+                    aircraft("q", "{\"flight\":\"Y\"}", null));
+            assertThat(local.withoutMlatForAnonymous(rows, true, true)).extracting(RecordRow::externalId)
+                    .containsExactly("a", "q");
+            assertThat(local.withoutMlatForAnonymous(rows, true, false)).extracting(RecordRow::externalId)
+                    .as("projected without posSource: fail closed").containsExactly("a");
+            assertThat(local.withoutMlatForAnonymous(rows, false, true)).hasSize(4);
+
+            security.set(new ai.foresignal.settings.SecuritySettings(true, false, null, null, true));
+            assertThat(local.exposeMlat()).isTrue();
+            assertThat(local.withoutMlatForAnonymous(rows, true, true)).hasSize(4);
         }
     }
 }

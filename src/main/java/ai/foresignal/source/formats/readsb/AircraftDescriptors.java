@@ -84,7 +84,55 @@ public final class AircraftDescriptors {
     /** The datum label of {@code alt_geom}. */
     public static final String ELLIPSOID_DATUM = "WGS84 ellipsoid";
 
+    /** The record TTL of the local receivers (prompt 069; Core-Data-Model §5.3 row {@code local-adsb-*}). */
+    public static final Duration LOCAL_TTL = Duration.ofMinutes(5);
+
+    /** The local receivers' SAMPLED sampling interval. */
+    public static final Duration LOCAL_MIN_INTERVAL = Duration.ofSeconds(10);
+
+    /** The local receivers' keyframe. */
+    public static final Duration LOCAL_KEYFRAME = Duration.ofSeconds(120);
+
+    /** The local receivers' dead-reckoning deviation. */
+    public static final double LOCAL_MIN_DEVIATION_METERS = 300.0;
+
+    /** The local receivers' trigger-edge interval. */
+    public static final Duration LOCAL_EDGE_MIN_INTERVAL = Duration.ofSeconds(5);
+
+    /** The local receivers' {@code alt_baro} threshold in meters (500 ft). */
+    public static final double LOCAL_ALT_BARO_THRESHOLD_METERS = 150.0;
+
+    /** The local receivers' {@code track} threshold in degrees. */
+    public static final double LOCAL_TRACK_THRESHOLD_DEGREES = 10.0;
+
     private AircraftDescriptors() {}
+
+    /**
+     * The SAMPLED policy of the local receivers (prompt 069, Core-Data-Model §5.3):
+     * {@code {10s, 120s, 300 m, thresholds, edgeMin 5s}}.
+     */
+    public static IngestPolicy localPolicy() {
+        return new IngestPolicy.Sampled(LOCAL_MIN_INTERVAL, LOCAL_KEYFRAME, LOCAL_MIN_DEVIATION_METERS, true,
+                LOCAL_EDGE_MIN_INTERVAL);
+    }
+
+    /**
+     * Applies the local receiver defaults (prompt 069): the shared keys, motion, tiles, search and field specs
+     * of {@link #global}, with TTL {@link #LOCAL_TTL}, {@link #localPolicy()}, thresholds {@code alt_baro}
+     * 150 m and {@code track} 10°, the {@code band} field spec, and {@code observedAtMode} as given
+     * (UPSTREAM for {@code aircraft.json}, RECEIVED for SBS, whose times have no zone).
+     *
+     * @param builder the adapter's builder
+     * @param observedAtMode where {@code observedAt} comes from
+     * @return {@code builder}
+     */
+    public static SourceDescriptor.Builder local(SourceDescriptor.Builder builder, ObservedAtMode observedAtMode) {
+        apply(builder, LOCAL_TTL, localPolicy(), LOCAL_ALT_BARO_THRESHOLD_METERS, LOCAL_TRACK_THRESHOLD_DEGREES,
+                observedAtMode);
+        builder.fieldSpec(AircraftFields.BAND, new FieldSpec(FieldType.STRING, null, "Band",
+                "Receiver band: 978 for a UAT receiver; omitted for 1090 MHz", null, Set.of()));
+        return builder;
+    }
 
     /** The SAMPLED default policy of §5.3. */
     public static IngestPolicy defaultPolicy() {
@@ -104,15 +152,21 @@ public final class AircraftDescriptors {
      * @return {@code builder}
      */
     public static SourceDescriptor.Builder global(SourceDescriptor.Builder builder, Duration recordTtl) {
+        return apply(builder, recordTtl, defaultPolicy(), ALT_BARO_THRESHOLD_METERS, TRACK_THRESHOLD_DEGREES,
+                ObservedAtMode.UPSTREAM);
+    }
+
+    private static SourceDescriptor.Builder apply(SourceDescriptor.Builder builder, Duration recordTtl,
+            IngestPolicy policy, double altThreshold, double trackThreshold, ObservedAtMode observedAtMode) {
         builder.kind(AircraftFields.KIND)
                 .historyTier(HistoryTier.TRACK)
                 .ttlAnchor(TtlAnchor.OBSERVED)
-                .observedAtMode(ObservedAtMode.UPSTREAM)
+                .observedAtMode(observedAtMode)
                 .recordTtl(recordTtl)
-                .defaultIngestPolicy(defaultPolicy())
+                .defaultIngestPolicy(policy)
                 .significantFields(SIGNIFICANT_FIELDS.toArray(String[]::new))
-                .threshold(FieldThreshold.of(AircraftFields.ALT_BARO, ALT_BARO_THRESHOLD_METERS))
-                .threshold(FieldThreshold.angular(AircraftFields.TRACK, TRACK_THRESHOLD_DEGREES))
+                .threshold(FieldThreshold.of(AircraftFields.ALT_BARO, altThreshold))
+                .threshold(FieldThreshold.angular(AircraftFields.TRACK, trackThreshold))
                 .motion(new MotionSpec(AircraftFields.GROUND_SPEED, MotionSpec.SpeedUnit.KNOTS, AircraftFields.TRACK))
                 .tileProperties(TILE_PROPERTIES.toArray(String[]::new))
                 .searchFields(SEARCH_FIELDS.toArray(String[]::new))
@@ -160,8 +214,9 @@ public final class AircraftDescriptors {
         b.fieldSpec(AircraftFields.BARO_RATE, new FieldSpec(FieldType.NUMBER, "m/s", "Vertical rate",
                 "Barometric vertical rate in meters per second, positive climbing, rounded to 0.1", null, Set.of()));
         text(b, AircraftFields.POS_SOURCE, "Position source",
-                "How the position was obtained: adsb, adsr, mlat, tisb, modes or other (readsb); adsb, asterix, mlat"
-                        + " or flarm (OpenSky)");
+                "How the position was obtained: adsb, adsr, adsc, mlat, tisb, modes or other (readsb and local receivers;"
+                        + " other for SBS); adsb, asterix, mlat or flarm (OpenSky). MLAT positions are never"
+                        + " redistributable");
         b.fieldSpec(AircraftFields.NAC_P, new FieldSpec(FieldType.INTEGER, "1", "NACp",
                 "Navigation accuracy category for position, 0 to 11", null, Set.of()));
         b.fieldSpec(AircraftFields.NIC, new FieldSpec(FieldType.INTEGER, "1", "NIC",

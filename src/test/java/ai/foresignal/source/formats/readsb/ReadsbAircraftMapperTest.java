@@ -221,7 +221,7 @@ class ReadsbAircraftMapperTest {
         @CsvSource({
             "adsb_icao,adsb,REPORTED", "adsb_icao_nt,adsb,REPORTED", "adsb_other,adsb,REPORTED",
             "adsr_icao,adsr,REPORTED", "mlat,mlat,CALCULATED", "tisb_trackfile,tisb,CALCULATED",
-            "mode_s,modes,UNKNOWN", "adsc,other,UNKNOWN", "unknown,other,UNKNOWN"
+            "mode_s,modes,UNKNOWN", "adsc,adsc,REPORTED", "unknown,other,UNKNOWN"
         })
         @DisplayName("posSource from type")
         void fromType(String type, String expected, PositionSource quality) {

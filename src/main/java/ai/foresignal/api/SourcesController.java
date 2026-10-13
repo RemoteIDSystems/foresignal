@@ -178,7 +178,8 @@ public class SourcesController {
      * {@code null} for {@code retention}, {@code ingestPolicy} or {@code downsampleInterval} (prompt
      * 044, TRACK sources only) clears that override.
      *
-     * <p>400 {@code VALIDATION_FAILED}, {@code INGEST_POLICY_INVALID} or {@code RETENTION_TIER_FIXED};
+     * <p>400 {@code VALIDATION_FAILED}, {@code INGEST_POLICY_INVALID}, {@code RETENTION_TIER_FIXED} or
+     * {@code EGRESS_FIXED} (prompt 069: {@code egress} on a source that is not {@code egressOverridable});
      * 409 {@code CREDENTIALS_REQUIRED}.
      */
     @PutMapping("/{sourceId}")
@@ -334,7 +335,8 @@ public class SourcesController {
                         sources.ingestPolicyOverride(sourceId),
                         sources.retentionOverride(sourceId),
                         sources.effectiveRetention(sourceId),
-                        sources.downsampleIntervalOverride(sourceId)),
+                        sources.downsampleIntervalOverride(sourceId),
+                        sources.egressOverride(sourceId)),
                 HealthMapper.health(health.health(sourceId)));
     }
 

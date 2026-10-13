@@ -76,10 +76,11 @@ class SecuritySettingsIT {
     }
 
     @Test
-    @DisplayName("invalid bodies and members later prompts own are 400; 035 members are accepted")
+    @DisplayName("invalid bodies are 400; 035 members and 069's exposeMlat are accepted")
     void validation() throws Exception {
         assertThat(putSecurity("{}").getStatus()).isEqualTo(400);
-        assertThat(putSecurity("{\"openReads\":true,\"exposeMlat\":true}").getStatus()).isEqualTo(400);
+        assertThat(putSecurity("{\"openReads\":true,\"exposeMlat\":\"yes\"}").getStatus()).isEqualTo(400);
+        assertThat(putSecurity("{\"openReads\":true,\"exposeMlat\":true}").getStatus()).isEqualTo(200);
         assertThat(putSecurity("{\"openReads\":true,\"anonymous\":{\"sources\":[\"no-such-source\"]}}").getStatus())
                 .as("the anonymous profile's sources must exist").isEqualTo(400);
         assertThat(putSecurity("{\"openReads\":true,\"metricsOpen\":false}").getStatus()).isEqualTo(200);

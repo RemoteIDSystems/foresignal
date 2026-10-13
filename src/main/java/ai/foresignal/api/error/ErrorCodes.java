@@ -29,6 +29,12 @@ public final class ErrorCodes {
     /** 400: retention was set on a TRACK source, whose window is {@code retention.trackWindow}. */
     public static final String RETENTION_TIER_FIXED = "RETENTION_TIER_FIXED";
 
+    /**
+     * 400: an {@code egress} override on a source whose descriptor is not {@code egressOverridable}
+     * (prompt 069).
+     */
+    public static final String EGRESS_FIXED = "EGRESS_FIXED";
+
     /** 400: a pagination cursor is malformed, tampered with, or belongs to a different query. */
     public static final String INVALID_CURSOR = "INVALID_CURSOR";
 

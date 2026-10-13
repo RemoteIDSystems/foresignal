@@ -1,6 +1,7 @@
 package ai.foresignal.source;
 
 import ai.foresignal.source.spi.Budget;
+import ai.foresignal.source.spi.Egress;
 import ai.foresignal.source.spi.IngestPolicy;
 import java.time.Duration;
 import java.util.Map;
@@ -28,6 +29,9 @@ import java.util.Map;
  * @param downsampleInterval the history downsample interval override (prompt 044, TRACK sources only);
  *     null leaves it unchanged
  * @param clearDownsampleInterval true to revert to {@code retention.trackDownsampleInterval}
+ * @param egress the egress override (prompt 069), accepted only for an {@code egressOverridable}
+ *     descriptor; null leaves it unchanged
+ * @param clearEgress true to revert to the descriptor's {@code egress}
  */
 public record SourceSettingsUpdate(
         Boolean enabled,
@@ -40,10 +44,29 @@ public record SourceSettingsUpdate(
         boolean clearIngestPolicy,
         Boolean embed,
         Duration downsampleInterval,
-        boolean clearDownsampleInterval) {
+        boolean clearDownsampleInterval,
+        Egress egress,
+        boolean clearEgress) {
 
     public SourceSettingsUpdate {
         params = params == null ? null : Map.copyOf(params);
+    }
+
+    /** An update that leaves the egress override unchanged (the members before prompt 069). */
+    public SourceSettingsUpdate(
+            Boolean enabled,
+            Duration interval,
+            Map<String, Object> params,
+            Budget budget,
+            Duration retention,
+            boolean clearRetention,
+            IngestPolicy ingestPolicy,
+            boolean clearIngestPolicy,
+            Boolean embed,
+            Duration downsampleInterval,
+            boolean clearDownsampleInterval) {
+        this(enabled, interval, params, budget, retention, clearRetention, ingestPolicy, clearIngestPolicy, embed,
+                downsampleInterval, clearDownsampleInterval, null, false);
     }
 
     /** An update that leaves the downsample interval unchanged (the members before prompt 044). */
@@ -124,22 +147,39 @@ public record SourceSettingsUpdate(
         return new SourceSettingsUpdate(null, null, null, null, null, false, null, false, null, null, true);
     }
 
+    /** Only the egress override (prompt 069). */
+    public static SourceSettingsUpdate egress(Egress value) {
+        return empty().withEgress(value);
+    }
+
+    /** Reverts the egress override to the descriptor's {@code egress} (prompt 069). */
+    public static SourceSettingsUpdate clearingEgress() {
+        return new SourceSettingsUpdate(null, null, null, null, null, false, null, false, null, null, false, null,
+                true);
+    }
+
     /** This update with {@code retention} set. */
     public SourceSettingsUpdate withRetention(Duration value) {
         return new SourceSettingsUpdate(enabled, interval, params, budget, value, false, ingestPolicy,
-                clearIngestPolicy, embed, downsampleInterval, clearDownsampleInterval);
+                clearIngestPolicy, embed, downsampleInterval, clearDownsampleInterval, egress, clearEgress);
     }
 
     /** This update with {@code enabled} set. */
     public SourceSettingsUpdate withEnabled(boolean value) {
         return new SourceSettingsUpdate(value, interval, params, budget, retention, clearRetention, ingestPolicy,
-                clearIngestPolicy, embed, downsampleInterval, clearDownsampleInterval);
+                clearIngestPolicy, embed, downsampleInterval, clearDownsampleInterval, egress, clearEgress);
     }
 
     /** This update with {@code downsampleInterval} set (prompt 044). */
     public SourceSettingsUpdate withDownsampleInterval(Duration value) {
         return new SourceSettingsUpdate(enabled, interval, params, budget, retention, clearRetention, ingestPolicy,
-                clearIngestPolicy, embed, value, false);
+                clearIngestPolicy, embed, value, false, egress, clearEgress);
+    }
+
+    /** This update with the egress override set (prompt 069). */
+    public SourceSettingsUpdate withEgress(Egress value) {
+        return new SourceSettingsUpdate(enabled, interval, params, budget, retention, clearRetention, ingestPolicy,
+                clearIngestPolicy, embed, downsampleInterval, clearDownsampleInterval, value, false);
     }
 
     /** True when nothing would change. */
@@ -154,6 +194,8 @@ public record SourceSettingsUpdate(
                 && !clearIngestPolicy
                 && embed == null
                 && downsampleInterval == null
-                && !clearDownsampleInterval;
+                && !clearDownsampleInterval
+                && egress == null
+                && !clearEgress;
     }
 }

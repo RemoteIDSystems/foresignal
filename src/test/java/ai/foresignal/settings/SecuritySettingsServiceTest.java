@@ -45,15 +45,23 @@ class SecuritySettingsServiceTest {
     }
 
     @Test
-    @DisplayName("missing or mistyped members, unknown members and later members are refused")
+    @DisplayName("missing or mistyped members and unknown members are refused")
     void refuses() {
         for (String bad : new String[] {"{}", "[]", "{\"openReads\":\"yes\"}", "{\"openReads\":true,\"exposeObserver\":1}",
             "{\"openReads\":true,\"metricsOpen\":\"no\"}", "{\"openReads\":true,\"anonymous\":[]}",
             "{\"openReads\":true,\"anonymous\":{\"excludePrivate\":false}}",
             "{\"openReads\":true,\"anonymous\":{\"placeIds\":[\"home\"]}}",
-            "{\"openReads\":true,\"exposeMlat\":true}",
+            "{\"openReads\":true,\"exposeMlat\":\"yes\"}",
             "{\"openReads\":true,\"colour\":\"red\"}"}) {
             assertThatThrownBy(() -> parse(bad)).as(bad).isInstanceOf(ValidationException.class);
         }
+    }
+
+    @Test
+    @DisplayName("exposeMlat (069) is accepted and defaults to false")
+    void exposeMlat() {
+        assertThat(parse("{\"openReads\":true}").exposeMlat()).isFalse();
+        assertThat(parse("{\"openReads\":true,\"exposeMlat\":true}").exposeMlat()).isTrue();
+        assertThat(parse("{\"openReads\":true,\"exposeMlat\":null}").exposeMlat()).isFalse();
     }
 }

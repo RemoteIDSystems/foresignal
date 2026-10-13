@@ -28,6 +28,8 @@ import java.util.Map;
  *     lazy for TRACK)
  * @param downsampleInterval the operator's history downsample interval override (prompt 044, TRACK
  *     sources only), or null for {@code retention.trackDownsampleInterval}
+ * @param egress the operator's egress override (prompt 069; {@code OPEN} or {@code LOCAL_ONLY}), or null for
+ *     the descriptor's {@code egress}
  */
 public record SourceSettingsDto(
         boolean enabled,
@@ -45,7 +47,18 @@ public record SourceSettingsDto(
         boolean statsIncludePrivate,
         @com.fasterxml.jackson.annotation.JsonProperty("private") boolean privateSource,
         String regionTagging,
-        Duration downsampleInterval) {
+        Duration downsampleInterval,
+        String egress) {
+
+    /** Settings without an egress override (the shape before prompt 069). */
+    public SourceSettingsDto(boolean enabled, Duration interval, Map<String, Object> params, BudgetDto budget,
+            Duration retention, boolean embed, boolean credentialsSet, Instant updatedAt, IngestPolicyDto ingestPolicy,
+            IngestPolicyDto effectiveIngestPolicy, Duration effectiveRetention, boolean statsEnabled,
+            boolean statsIncludePrivate, boolean privateSource, String regionTagging, Duration downsampleInterval) {
+        this(enabled, interval, params, budget, retention, embed, credentialsSet, updatedAt, ingestPolicy,
+                effectiveIngestPolicy, effectiveRetention, statsEnabled, statsIncludePrivate, privateSource,
+                regionTagging, downsampleInterval, null);
+    }
 
     /** Settings without a downsample interval override (the shape before prompt 044). */
     public SourceSettingsDto(boolean enabled, Duration interval, Map<String, Object> params, BudgetDto budget,
@@ -54,7 +67,7 @@ public record SourceSettingsDto(
             boolean statsIncludePrivate, boolean privateSource, String regionTagging) {
         this(enabled, interval, params, budget, retention, embed, credentialsSet, updatedAt, ingestPolicy,
                 effectiveIngestPolicy, effectiveRetention, statsEnabled, statsIncludePrivate, privateSource,
-                regionTagging, null);
+                regionTagging, (Duration) null);
     }
 
     /** Settings without a region tagging mode (the shape before prompt 040). */

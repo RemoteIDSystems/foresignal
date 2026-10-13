@@ -2,6 +2,7 @@ package ai.foresignal.collect;
 
 import ai.foresignal.source.CredentialsAccess;
 import ai.foresignal.source.spi.AdapterStateStore;
+import ai.foresignal.source.spi.SocketTransport;
 import ai.foresignal.source.spi.SourceDescriptor;
 import ai.foresignal.source.spi.StreamContext;
 import ai.foresignal.source.spi.ValidatedParams;
@@ -43,6 +44,8 @@ public class DefaultStreamContext extends DefaultFetchContext implements StreamC
 
     private final UsageMeter usage;
     private final Callbacks callbacks;
+    private java.util.function.Function<DefaultStreamContext, SocketTransport> socketFactory;
+    private SocketTransport sockets;
 
     /** Creates a stream context; see {@link DefaultFetchContext} for the shared parameters. */
     public DefaultStreamContext(
@@ -66,6 +69,28 @@ public class DefaultStreamContext extends DefaultFetchContext implements StreamC
         if (bytes > 0 && usage != null) {
             usage.recordBytes(sourceId(), bytes);
         }
+    }
+
+    /**
+     * Installs the socket transport behind {@link #sockets()} (prompt 069); called by
+     * {@code FetchContextFactory}.
+     *
+     * @param factory builds the transport for this context, on first use
+     */
+    public void socketTransport(java.util.function.Function<DefaultStreamContext, SocketTransport> factory) {
+        this.socketFactory = factory;
+    }
+
+    /** The socket transport of this context, built on first use (prompt 069). */
+    @Override
+    public synchronized SocketTransport sockets() {
+        if (sockets == null) {
+            if (socketFactory == null) {
+                return StreamContextDefaults.noSockets(this);
+            }
+            sockets = socketFactory.apply(this);
+        }
+        return sockets;
     }
 
     @Override

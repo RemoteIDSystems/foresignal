@@ -104,6 +104,9 @@ import java.util.Set;
  * @param followRedirects false when a redirect from this upstream must reach the adapter as a 3xx response
  *     instead of being followed (prompt 064: CelesTrak's usage policy counts a 301 as an error a client must
  *     stop on). True by default. Internal, not in the OpenAPI {@code SourceDescriptor}
+ * @param egressOverridable true when the operator may override {@code egress} per source in
+ *     {@code source_settings.egress} (prompt 069: the local receiver families, whose data is the operator's
+ *     own); otherwise an override is refused with {@code 400 EGRESS_FIXED}. False by default
  */
 public record SourceDescriptor(
         String id,
@@ -161,7 +164,8 @@ public record SourceDescriptor(
         boolean acceptsRemoteMedia,
         boolean accessDeniedIsTerminal,
         Duration defaultRetryAfter,
-        boolean followRedirects) {
+        boolean followRedirects,
+        boolean egressOverridable) {
 
     /** Coordinate decimals kept for a private source unless it says otherwise (about 11 m). */
     public static final int DEFAULT_PRIVATE_PRECISION_DECIMALS = 4;
@@ -292,6 +296,7 @@ public record SourceDescriptor(
         private boolean accessDeniedIsTerminal;
         private Duration defaultRetryAfter;
         private boolean followRedirects = true;
+        private boolean egressOverridable;
 
         private String name;
         private String description;
@@ -652,6 +657,15 @@ public record SourceDescriptor(
             return this;
         }
 
+        /**
+         * Lets the operator override {@code egress} per source (prompt 069); false unless set, so a license
+         * restriction cannot be lifted by configuration.
+         */
+        public Builder egressOverridable(boolean value) {
+            this.egressOverridable = value;
+            return this;
+        }
+
         /** Sets the layer presentation hints of one kind. */
         public Builder kindPresentation(String kind, Map<String, Object> hints) {
             this.kindPresentation.put(kind, hints);
@@ -734,7 +748,8 @@ public record SourceDescriptor(
                     acceptsRemoteMedia,
                     accessDeniedIsTerminal,
                     defaultRetryAfter,
-                    followRedirects);
+                    followRedirects,
+                    egressOverridable);
         }
     }
 }

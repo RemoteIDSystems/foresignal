@@ -10,8 +10,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
  * frontends are on it. Turning it off makes every data GET require at least the {@code read} scope.
  *
  * <p>Stored under {@link SettingKeys#SECURITY}; {@code GET/PUT /v1/settings/security} (prompt 023,
- * {@code SecuritySettingsService}) read and replace it. {@code exposeMlat} (069) is ignored when
- * stored.
+ * {@code SecuritySettingsService}) read and replace it.
  *
  * @param openReads true when data GETs are served without a token
  * @param exposeObserver true when record observers are returned with {@code include=observer} to
@@ -22,11 +21,14 @@ import com.fasterxml.jackson.annotation.JsonInclude;
  *     private sources excluded, data GETs only, {@value #DEFAULT_ANONYMOUS_RPM} requests per minute
  * @param metricsOpen when false, {@code /actuator/prometheus} requires an admin token (prompt 035);
  *     null reads as {@value #DEFAULT_METRICS_OPEN}
+ * @param exposeMlat when false, records whose {@code posSource} is {@code mlat} are stripped from anonymous
+ *     {@code openReads} responses (prompt 069, {@code EgressPolicy}); null reads as
+ *     {@value #DEFAULT_EXPOSE_MLAT}
  */
 @com.fasterxml.jackson.annotation.JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record SecuritySettings(boolean openReads, Boolean exposeObserver, TokenRestrictions anonymous,
-        Boolean metricsOpen) {
+        Boolean metricsOpen, Boolean exposeMlat) {
 
     public static final boolean DEFAULT_OPEN_READS = true;
 
@@ -34,6 +36,9 @@ public record SecuritySettings(boolean openReads, Boolean exposeObserver, TokenR
 
     /** {@code metricsOpen} when unset: the LAN assumption. */
     public static final boolean DEFAULT_METRICS_OPEN = true;
+
+    /** {@code exposeMlat} when unset: MLAT positions are not served anonymously. */
+    public static final boolean DEFAULT_EXPOSE_MLAT = false;
 
     /** The anonymous profile's default {@code maxRequestsPerMinute}. */
     public static final int DEFAULT_ANONYMOUS_RPM = 120;
@@ -46,6 +51,15 @@ public record SecuritySettings(boolean openReads, Boolean exposeObserver, TokenR
         if (metricsOpen == null) {
             metricsOpen = DEFAULT_METRICS_OPEN;
         }
+        if (exposeMlat == null) {
+            exposeMlat = DEFAULT_EXPOSE_MLAT;
+        }
+    }
+
+    /** Settings without {@code exposeMlat} (the shape of prompt 035); MLAT stays hidden from anonymous reads. */
+    public SecuritySettings(boolean openReads, Boolean exposeObserver, TokenRestrictions anonymous,
+            Boolean metricsOpen) {
+        this(openReads, exposeObserver, anonymous, metricsOpen, DEFAULT_EXPOSE_MLAT);
     }
 
     /** {@code openReads} and {@code exposeObserver} with the default anonymous profile (the 023 shape). */

@@ -207,6 +207,77 @@ source is `egress: LOCAL_ONLY`, like `opensky-states`: served to your own client
 share links or feeds. No key means no vessels from this source; keyless official AIS (`ais-kystverket`,
 `ais-digitraffic`) and a local AIS-catcher arrive later.
 
+### Local receivers
+
+Prompt 069 adds sources for hardware you run yourself on your own network. Each family has
+`foresignal.local-receivers.slots` numbered slots (default 2, at most 16; environment
+`FORESIGNAL_LOCAL_RECEIVERS_SLOTS`), all disabled until you set an address and enable them:
+
+| Source | Reads | Default interval · budget |
+|---|---|---|
+| `local-adsb-{n}` | readsb, dump1090 or skyaware978 `aircraft.json` (`band` 1090 or 978) | 2 s · 60/min, 50,000/day |
+| `local-sbs-{n}` | SBS-1 (BaseStation) lines over TCP | stream · 2 connects/min, 200/day |
+| `local-gpsd-{n}` | your GNSS receiver through gpsd (private) | stream · 2 connects/min, 200/day |
+| `station-readsb-{n}` | readsb `stats.json`: messages per second, signal, noise, `state` ok, low-rate or silent | 60 s · 2/min, 2,000/day |
+| `wxstation-davis-{n}` | a Davis WeatherLink Live console | 60 s (never under 10 s) · 6/min, 10,000/day |
+| `wxstation-ecowitt-{n}` | an Ecowitt gateway's live data (experimental) | 60 s · 6/min, 10,000/day |
+
+**Addresses.** Every address must resolve to a loopback, private (RFC 1918) or unique-local address. It is resolved
+once when you save it and pinned, so a name that later resolves elsewhere cannot redirect Foresignal; redirects are
+never followed. Sockets need an explicit port: no default is assumed.
+
+```json
+PUT /v1/sources/local-adsb-1
+{"enabled": true, "params": {"url": "http://192.168.1.50/tar1090/data/aircraft.json", "band": "1090"}}
+
+PUT /v1/sources/local-sbs-1
+{"enabled": true, "params": {"endpoint": "tcp://192.168.1.50:30003"}}
+
+PUT /v1/sources/local-gpsd-1
+{"enabled": true, "params": {"endpoint": "tcp://192.168.1.60:2947"}}
+
+PUT /v1/sources/station-readsb-1
+{"enabled": true, "params": {"url": "http://192.168.1.50/tar1090/data/stats.json", "minMessagesPerSec": 1.0}}
+
+PUT /v1/sources/wxstation-davis-1
+{"enabled": true, "params": {"url": "http://192.168.1.70", "lat": 40.01, "lon": -105.27}}
+```
+
+**Enabling the receiver's outputs.**
+
+- **readsb JSON:** readsb writes `aircraft.json` and `stats.json` with `--write-json` and serves them through
+  tar1090 or its own web server (`http://host/tar1090/data/aircraft.json`); with `--net-api-port` they are on that
+  port too. The path must end in `aircraft.json` (or `stats.json`).
+- **readsb SBS:** off unless you start readsb with `--net-sbs-port 30003` (any port you choose; set it in
+  `endpoint`).
+- **dump978 / skyaware978:** skyaware978 serves UAT aircraft at `http://host:8978/data/aircraft.json` (or
+  `/skyaware978/data/aircraft.json` behind the PiAware web server); set `band` to `978`.
+- **gpsd:** listens on 2947 by default, on loopback only unless started with `-G` (or `GPSD_OPTIONS="-G"`); allow your
+  Foresignal host in its firewall. Foresignal sends `?WATCH={"enable":true,"json":true};` and needs protocol 3.
+- **Davis WeatherLink Live:** the local API is on by default; Davis asks clients not to poll more often than every
+  10 s, which is the minimum interval.
+- **Ecowitt:** `/get_livedata_info` has no official specification and changes with firmware; the parser is tolerant
+  and counts ids it does not know (`foresignal.ecowitt.unknown_ids`). After a firmware update, watch the source's
+  health for a format change. For Ecowitt's own push ("Customized upload"), use the `ecowitt` mapping preset instead.
+
+**Firewalling UDP.** No source in this prompt listens on UDP, but later ones (AIS, APRS, radiosondes) will: a UDP
+endpoint must name `allowSenders` (private IPs or CIDRs), and datagrams from anyone else are dropped unread and counted
+(`foresignal.socket.udp.rejected`). Bind to the interface that faces your receivers rather than `0.0.0.0` where you
+can, and keep the port closed to the internet in your router and host firewall.
+
+**Why the data stays local.** Every local source is `egress: LOCAL_ONLY`: your own clients, tiles, SSE, MCP and
+notifications see it, but sinks, federation, share links and public feed keys do not. This is your data, so unlike a
+licensed source you may change it: `PUT /v1/sources/local-adsb-1 {"egress": "OPEN"}` (and `null` to go back); other
+sources answer `400 EGRESS_FIXED`. `local-gpsd-{n}` is also **private**: it is your location, so it is never served to
+anonymous readers, tiled, embedded or sent to a remote LLM. Weather stations store `lat`/`lon` rounded to about 1 km.
+
+**MLAT terms.** Multilateration positions (`posSource: mlat`) are computed by the aggregator networks your receiver
+feeds, under terms that forbid passing them on. Foresignal never sends an MLAT record on a sink, federation, share link
+or feed, even from a source you opened, and strips them from anonymous `openReads` responses unless you set
+`security.exposeMlat` to true (`PUT /v1/settings/security`). Receiver health: a local `aircraft.json` whose `now` is
+more than 10 s old marks `local-adsb-{n}` degraded ("receiver feed stale"), and a `station-readsb-{n}` rule on
+`state == silent` tells you when the antenna or dongle has stopped.
+
 ### History tiers
 
 Each source's descriptor fixes its `historyTier`:

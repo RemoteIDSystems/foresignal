@@ -31,6 +31,7 @@ public class FetchContextFactory {
     private final ObjectProvider<RasterSinkFactory> rasters;
     private final ObjectProvider<MediaSinkFactory> media;
     private final ObjectProvider<InboxAccess> inbox;
+    private ObjectProvider<ai.foresignal.collect.socket.SocketTransportFactory> sockets;
 
     /** Creates the factory without a raster pipeline ({@code ctx.rasters()} throws). */
     public FetchContextFactory(
@@ -112,6 +113,17 @@ public class FetchContextFactory {
     }
 
     /**
+     * Installs the socket transport behind {@code StreamContext.sockets()} (prompt 069). Setter injection
+     * keeps the existing constructors; without it a stream context's {@code sockets()} throws.
+     *
+     * @param sockets builds a transport per stream context, resolved lazily
+     */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setSocketTransports(ObjectProvider<ai.foresignal.collect.socket.SocketTransportFactory> sockets) {
+        this.sockets = sockets;
+    }
+
+    /**
      * Wires {@code ctx.rasters()} to the pipeline and {@code ctx.media()} to the media store, probing
      * when the context records a probe.
      */
@@ -172,7 +184,7 @@ public class FetchContextFactory {
     public DefaultStreamContext forStream(
             SourceDescriptor descriptor, RequestRecorder recorder, DefaultStreamContext.Callbacks callbacks) {
         String id = descriptor.id();
-        return withRasters(new DefaultStreamContext(
+        DefaultStreamContext ctx = withRasters(new DefaultStreamContext(
                 descriptor,
                 upstream,
                 recorder,
@@ -183,6 +195,13 @@ public class FetchContextFactory {
                 stateFor(id, recorder),
                 usage,
                 callbacks), descriptor, recorder != null);
+        if (sockets != null) {
+            ctx.socketTransport(c -> {
+                ai.foresignal.collect.socket.SocketTransportFactory factory = sockets.getIfAvailable();
+                return factory == null ? StreamContextDefaults.noSockets(c) : factory.forContext(c);
+            });
+        }
+        return ctx;
     }
 
     /**
