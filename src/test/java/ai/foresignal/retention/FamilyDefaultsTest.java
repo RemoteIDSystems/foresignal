@@ -107,6 +107,13 @@ class FamilyDefaultsTest {
             Map.entry("GdeltEventsAdapter", new Entry(
                     new ai.foresignal.source.adapters.gdelt.GdeltEventsAdapter("", null, null).descriptor(),
                     "bulk-event")),
+            // Prompt 067: cyclones, disasters and CAP alerts are the event class (1825 d).
+            Map.entry("NhcCyclonesAdapter", new Entry(
+                    new ai.foresignal.source.adapters.nhc.NhcCyclonesAdapter("").descriptor(), "event")),
+            Map.entry("GdacsAdapter", new Entry(
+                    new ai.foresignal.source.adapters.gdacs.GdacsAdapter("").descriptor(), "event")),
+            Map.entry("TsunamiWarningsAdapter", new Entry(
+                    new ai.foresignal.source.adapters.tsunami.TsunamiWarningsAdapter("").descriptor(), "event")),
             // Prompt 052: the derived weather sources, retained per Weather-Imagery-Design §2.4.
             Map.entry("WxPlacesGenerator", new Entry(
                     new ai.foresignal.source.adapters.wx.WxPlacesGenerator().descriptor(), "weather")),

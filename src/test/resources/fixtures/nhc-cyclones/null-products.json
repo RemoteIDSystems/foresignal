@@ -1,0 +1,4 @@
+{"activeStorms":[
+ {"id":"al102026","binNumber":"AT5","name":"Julian","classification":"PTC","intensity":"30","pressure":"1009","latitude":"30.0N","longitude":"60.0W","latitudeNumeric":30.0,"longitudeNumeric":-60.0,"movementDir":45,"movementSpeed":20,"lastUpdate":"2026-09-02T09:00:00.000Z",
+  "publicAdvisory":null,"forecastAdvisory":null,"windSpeedProbabilities":null,"forecastDiscussion":null,"forecastGraphics":null,"forecastTrack":null,"windWatchesWarnings":null,"trackCone":null,"initialWindExtent":null,"forecastWindRadiiGIS":null,"bestTrackGIS":null,"earliestArrivalTimeTSWindsGIS":null,"mostLikelyTimeTSWindsGIS":null,"windSpeedProbabilitiesGIS":null,"stormSurgeWatchWarningGIS":null,"potentialStormSurgeFloodingGIS":null,"peakSurgeKML":null}
+]}

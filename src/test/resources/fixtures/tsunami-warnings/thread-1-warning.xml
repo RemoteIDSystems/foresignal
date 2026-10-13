@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><alert xmlns="urn:oasis:names:tc:emergency:cap:1.2">
+  <identifier>PAAQ-1-tsthr01</identifier>
+  <sender>ntwc@noaa.gov</sender>
+  <sent>2026-10-13T20:00:00-00:00</sent>
+  <status>Actual</status>
+  <msgType>Alert</msgType>
+  <source>NTWC</source>
+  <scope>Public</scope>
+  <code>IPAWSv1.0</code>
+x0  <incidents>tsthr01</incidents>
+  <info>
+    <category>Geo</category>
+    <event>Tsunami Warning</event>
+    <responseType>Evacuate</responseType>
+    <urgency>Immediate</urgency>
+    <severity>Extreme</severity>
+    <certainty>Observed</certainty>
+    <onset>2026-10-13T20:00:00-00:00</onset>
+    <expires>2026-10-14T08:00:00-00:00</expires>
+    <senderName>NWS National Tsunami Warning Center Palmer AK</senderName>
+    <headline>Tsunami Warning for the coast of southern Alaska (synthetic test message).</headline>
+    <description>Tsunami Warning - Event details: Preliminary magnitude 7.9 (Mw) earthquake / Lat: 55.300, Lon: -157.900 at 2026-10-13T19:52:00 UTC</description>
+    <instruction>Synthetic test message for Foresignal; not a real warning.</instruction>
+    <web>http://www.tsunami.gov/events/PAAQ/2026/10/13/tsthr01/1/WEAK51/WEAK51.txt</web>
+    <parameter>
+      <valueName>EventPreliminaryMagnitude</valueName>
+      <value>7.9</value>
+    </parameter>
+    <parameter>
+      <valueName>EventOriginTime</valueName>
+      <value>2026-10-13T19:52:00-00:00</value>
+    </parameter>
+    <parameter>
+      <valueName>EventLatLon</valueName>
+      <value>55.300,-157.900 0.000</value>
+    </parameter>
+    <parameter>
+      <valueName>VTEC</valueName>
+      <value>x1</value>
+    </parameter>
+    <parameter>
+      <valueName>NWSUGC</valueName>
+      <value>AKZ111-121-131-141-132015-</value>
+    </parameter>
+    <parameter>
+      <valueName>EAS-ORG</valueName>
+      <value>WXR</value>
+    </parameter>
+    <area>
+      <areaDesc>Coast of southern Alaska</areaDesc>
+      <circle>55.3,-157.9 0.0</circle>
+      <geocode>
+        <valueName>UGC</valueName>
+        <value>AKZ111</value>
+      </geocode>
+      <geocode>
+        <valueName>UGC</valueName>
+        <value>AKZ121</value>
+      </geocode>
+    </area>
+  </info>
+</alert>

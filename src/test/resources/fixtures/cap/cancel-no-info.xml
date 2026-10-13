@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<alert xmlns="urn:oasis:names:tc:emergency:cap:1.2">
+  <identifier>CANCEL-1</identifier>
+  <sender>alerts@example.org</sender>
+  <sent>2026-10-13T12:00:00-00:00</sent>
+  <status>Actual</status>
+  <msgType>Cancel</msgType>
+  <scope>Public</scope>
+  <references>alerts@example.org,POLY-1,2026-10-13T11:00:00-00:00</references>
+</alert>

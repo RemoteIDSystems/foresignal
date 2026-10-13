@@ -427,3 +427,46 @@ build TLE text to propagate: TLE cannot carry catalog numbers of 100000 and abov
 **Predicted records.** Round predicted times (10 s), angles and geometry before emitting, so element refreshes do not
 churn versions; tombstone a prediction only when fresh elements no longer produce it, never because elements are
 missing.
+
+## 18. Alert sources: time mapping, threads, cancellation (prompt 067)
+
+Every CAP source reads and maps through **`ai.foresignal.source.formats.cap`**, the only CAP parser in the codebase:
+024's `cap` ingest format, `tsunami-warnings`, and 089's CAP family. `CapParser.parse(InputStream, CapParseOptions)`
+reads CAP 1.2 (and 1.1, recording `capVersion`) with hardened StAX: no DTDs, no external entities, no entity
+expansion, a 2 MB cap and an element cap. Anything else, an un-namespaced `alert` included, and a missing
+`identifier`, `sender`, `sent`, `status`, `msgType` or `scope` is an `UpstreamFormatException`. `CapGeometry` swaps
+`lat,lon` to lon/lat, closes open rings and builds a MultiPolygon; a circle is a 64-segment polygon (radius 0 is a
+Point); a geocode-only area has no geometry and its codes stay in the payload. The normalizer's `GeometryFixer` repairs
+what is invalid.
+
+**Time mapping** (`CapRecordMapper`, and the rule for every alert source, so forecast-aware rules work across them):
+
+| Field | Value |
+|---|---|
+| `observedAt` | `sent` (or the feed's `updated`) |
+| `eventTime` | `onset` when present |
+| `validFrom` | `onset ?? effective`; null when neither; left out when it would fall after `validUntil` |
+| `validUntil` | `expires`, explicit and upstream-asserted (Core-Data-Model §3 rule 9); a cancellation uses `expires ?? sent` |
+
+`nws-alerts` (047) is GeoJSON and maps its fields directly; it currently sets `validFrom = onset` and
+`validUntil = max(expires, ends)` (the 047 report, Issue 3 and 4).
+
+**Threads.** One record per alert thread: `externalId` is the thread key from `CapThreadResolver`, which takes the
+source's own key when it has one (tsunami: `{center}:{incidents}`), else the thread of the earliest referenced message
+it remembers, else that reference's `{sender}:{identifier}`, else the message's own. The `identifier → threadKey` map
+lives in the adapter state (`cap.threads`, 14 days, at most 20,000 entries). A push source (024's format) has no
+adapter state and keys records by `identifier`.
+
+**Cancellation is a version, not a tombstone.** `msgType = Cancel`, or the profile's cancellation rule (tsunami: an
+`event` containing "cancel" or a VTEC action `CAN`), sets `state: cancelled`; `Update` sets `updated`; otherwise
+`active`. The cancelled record keeps its thread id and expires through its own `validUntil`, and a rule on `state`
+sees the change as SIGNIFICANT.
+
+**Never close on absence.** A CAP or alert feed that drops a message has not cancelled it: the record expires at its
+`expires`. The one exception is a feed that is by definition the complete active set and was received in full and
+parsed without error: `nhc-cyclones` tombstones a storm that leaves `CurrentStorms.json` (with `LiveIdSet`, section 7).
+A source that relies on a TTL instead (`gdacs`, 48 h from receipt) lets unlisted events expire.
+
+Configure a new CAP source with a `CapMappingProfile`: kind, preferred languages, the parameter allowlist, the text cap
+(4 KB for `headline`, `description` and `instruction`, which are the `embedFields` and untrusted text under 028's
+rules), the cancellation rule and an optional `RecordExtender` for source-specific payload keys or a fallback geometry.

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<alert xmlns="urn:oasis:names:tc:emergency:cap:1.2">
+  <identifier>LANG-1</identifier>
+  <sender>alerts@example.org</sender>
+  <sent>2026-10-13T12:00:00-00:00</sent>
+  <status>Actual</status>
+  <msgType>Alert</msgType>
+  <scope>Public</scope>
+  <info>
+    <language>fr-CA</language>
+    <category>Met</category>
+    <event>Avertissement de pluie</event>
+    <urgency>Expected</urgency>
+    <severity>Moderate</severity>
+    <certainty>Likely</certainty>
+    <headline>Avertissement de pluie</headline>
+  </info>
+  <info>
+    <language>en-CA</language>
+    <category>Met</category>
+    <event>Rainfall Warning</event>
+    <urgency>Expected</urgency>
+    <severity>Moderate</severity>
+    <certainty>Likely</certainty>
+    <headline>Rainfall warning</headline>
+  </info>
+</alert>

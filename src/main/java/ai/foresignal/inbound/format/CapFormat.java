@@ -1,15 +1,17 @@
 package ai.foresignal.inbound.format;
 
+import ai.foresignal.api.error.InvalidInputException;
 import ai.foresignal.source.formats.cap.CapAlert;
+import ai.foresignal.source.formats.cap.CapMappingProfile;
+import ai.foresignal.source.formats.cap.CapParseOptions;
 import ai.foresignal.source.formats.cap.CapParser;
+import ai.foresignal.source.formats.cap.CapRecordMapper;
 import ai.foresignal.source.spi.NormalizedRecord;
 import ai.foresignal.source.spi.SourceDescriptor;
+import ai.foresignal.source.spi.UpstreamFormatException;
+import java.io.ByteArrayInputStream;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -21,14 +23,20 @@ import org.springframework.stereotype.Component;
  * every referenced message; {@code Cancel} only tombstones the referenced messages. A status other
  * than {@code Actual} is rejected unless the option {@code acceptNonActual} is true. Every record of
  * the request has index 0.
+ *
+ * <p>Since prompt 067 the document is read by the shared {@link CapParser} (hardened StAX, CAP 1.2 and
+ * 1.1 namespaces only, required elements enforced, 2 MB cap) and the record is built by the shared
+ * {@link CapRecordMapper}, so the time mapping ({@code validFrom = onset ?? effective},
+ * {@code validUntil = expires}) and the payload match every built-in CAP source. A parse failure is a
+ * 400 ({@link InvalidInputException}). The push format keeps 024's identity rules: the record id is the
+ * message {@code identifier}, not a thread key, because a push source has no adapter state to resolve
+ * threads with.
  */
 @Component
 public class CapFormat implements IngestFormat {
 
     /** The format id. */
     public static final String ID = "cap";
-
-    private final CapParser parser = new CapParser();
 
     @Override
     public String id() {
@@ -53,12 +61,15 @@ public class CapFormat implements IngestFormat {
 
     @Override
     public ParsedIngest parse(IngestRequest request, SourceDescriptor descriptor, FormatOptions options) {
-        CapAlert alert = parser.parse(request.body());
+        CapAlert alert;
+        try {
+            alert = CapParser.parse(new ByteArrayInputStream(request.body() == null ? new byte[0] : request.body()),
+                    CapParseOptions.DEFAULTS);
+        } catch (UpstreamFormatException e) {
+            throw new InvalidInputException("The CAP document could not be parsed: " + e.getMessage(), e);
+        }
         ParsedIngest.Builder out = ParsedIngest.builder().items(1);
         String identifier = alert.identifier();
-        if (identifier == null || identifier.isBlank()) {
-            return out.reject(0, null, "EXTERNAL_ID_INVALID", "the alert has no identifier").build();
-        }
         if (!"Actual".equals(alert.status()) && !options.bool("acceptNonActual", false)) {
             return out.reject(0, identifier, "NON_ACTUAL_STATUS", "status is " + alert.status()).build();
         }
@@ -66,60 +77,18 @@ public class CapFormat implements IngestFormat {
         if (kind == null) {
             return out.reject(0, identifier, "UNKNOWN_KIND", "the source does not have a single kind").build();
         }
-        String msgType = alert.msgType() == null ? "Alert" : alert.msgType();
+        Instant sent = alert.sent().toInstant();
+        String msgType = alert.msgType();
         if ("Update".equals(msgType) || "Cancel".equals(msgType)) {
             for (CapAlert.Reference reference : alert.references()) {
                 if (!reference.identifier().equals(identifier)) {
-                    out.add(0, NormalizedRecord.tombstone(reference.identifier(), kind, alert.sent()));
+                    out.add(0, NormalizedRecord.tombstone(reference.identifier(), kind, sent));
                 }
             }
         }
         if (!"Cancel".equals(msgType)) {
-            out.add(0, record(alert, identifier, kind));
+            out.add(0, CapRecordMapper.toRecord(alert, identifier, CapMappingProfile.of(kind)));
         }
         return out.build();
-    }
-
-    private NormalizedRecord record(CapAlert alert, String identifier, String kind) {
-        CapAlert.Info info = alert.firstInfo();
-        Instant eventTime = info == null ? null : (info.onset() != null ? info.onset() : info.effective());
-        NormalizedRecord.Builder record = NormalizedRecord.builder(identifier, kind)
-                .observedAt(alert.sent())
-                .eventTime(eventTime)
-                .validUntil(info == null ? null : info.expires())
-                .geometry(alert.geometry(parser.factory()))
-                .put("sender", alert.sender())
-                .put("status", alert.status())
-                .put("msgType", alert.msgType());
-        if (info != null) {
-            record.put("event", info.event())
-                    .put("headline", info.headline())
-                    .put("description", info.description())
-                    .put("instruction", info.instruction())
-                    .put("severity", info.severity())
-                    .put("urgency", info.urgency())
-                    .put("certainty", info.certainty())
-                    .put("language", info.language());
-            Set<String> areaDesc = new LinkedHashSet<>();
-            List<Map<String, Object>> geocodes = new ArrayList<>();
-            for (CapAlert.Area area : info.areas()) {
-                if (area.areaDesc() != null && !area.areaDesc().isBlank()) {
-                    areaDesc.add(area.areaDesc());
-                }
-                for (CapAlert.Geocode geocode : area.geocodes()) {
-                    Map<String, Object> code = new LinkedHashMap<>();
-                    code.put("valueName", geocode.valueName());
-                    code.put("value", geocode.value());
-                    geocodes.add(code);
-                }
-            }
-            if (!areaDesc.isEmpty()) {
-                record.put("areaDesc", String.join("; ", areaDesc));
-            }
-            if (!geocodes.isEmpty()) {
-                record.put("geocodes", geocodes);
-            }
-        }
-        return record.build();
     }
 }

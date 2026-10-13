@@ -1,0 +1,10 @@
+{"activeStorms":[
+ {"id":"al092026","binNumber":"AT4","name":"Ida<script>\u0007","classification":"TS","intensity":"55","pressure":"1001","latitude":"25.1N","longitude":"80.3W","latitudeNumeric":25.1,"longitudeNumeric":-80.3,"movementDir":"315","movementSpeed":"10","lastUpdate":"2026-09-02T15:00:00.000Z",
+  "publicAdvisory":{"advNum":"012A","issuance":"2026-09-02T15:00:00.000Z","url":"https://www.nhc.noaa.gov/text/MIATCPAT4.shtml"},
+  "forecastAdvisory":{"advNum":"012","issuance":"2026-09-02T15:00:00.000Z","url":"https://evil.example.com/text/MIATCMAT4.shtml"}},
+ {"id":"cp012026","binNumber":"CP1","name":"Akoni","classification":"HU","intensity":95,"pressure":970,"latitude":"15.0N","longitude":"150.0W","latitudeNumeric":15.0,"longitudeNumeric":-150.0,"movementDir":270,"movementSpeed":12,"lastUpdate":"2026-09-02T12:00:00.000Z",
+  "publicAdvisory":{"advNum":"003","issuance":"2026-09-02T12:00:00.000Z","url":"http://www.nhc.noaa.gov/text/MIATCPCP1.shtml"},
+  "forecastAdvisory":{"advNum":"003","issuance":"2026-09-02T12:00:00.000Z","url":"https://www.nhc.noaa.gov/text/MIATCMCP1.shtml"}},
+ {"id":"ep142026","binNumber":"EP2","name":"Lowell","classification":"XX","intensity":"n/a","pressure":"","latitude":"12.0N","longitude":"110.0W","latitudeNumeric":"12.0","longitudeNumeric":"-110.0","movementDir":null,"movementSpeed":"abc","lastUpdate":"2026-09-02T12:00:00.000Z",
+  "publicAdvisory":null,"forecastAdvisory":{"advNum":"bad!","issuance":"not a time","url":"https://www.nhc.noaa.gov/text/X.shtml?x=1"}}
+]}

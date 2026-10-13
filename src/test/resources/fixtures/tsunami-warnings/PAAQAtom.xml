@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+    <feed xmlns="http://www.w3.org/2005/Atom" xmlns:geo="http://www.w3.org/2003/01/geo/wgs84_pos#" xmlns:georss="http://www.georss.org/georss">
+    <id>urn:uuid:2c510112-bca7-4bce-b198-7f41376f6a15</id><title>Tsunami Information Statement Number 1</title>
+    <updated>2026-10-13T12:36:06Z</updated>
+    <author>
+      <name>NWS National Tsunami Warning Center Palmer AK</name>
+<uri>https://www.tsunami.gov/</uri>
+     <email>ntwc@noaa.gov</email>
+    </author>
+<icon>https://www.tsunami.gov/images/favicon.ico</icon>
+<link type="application/atom+xml" rel="self" title="self" href="https://www.tsunami.gov/events/xml/PAAQAtom.xml"/>
+<link rel="related" title="Travel Time Map" href="https://www.tsunami.gov/events/PAAQ/2026/10/13/tmuiel/1/WEXX32/ttvutmuiel-01.jpg" type="image/jpeg" /> 
+<link rel="related" title="Energy Map" href="https://www.tsunami.gov/events/PAAQ/2026/10/13/tmuiel/1/WEXX32/energytmuiel.jpg" type="image/jpeg" /> 
+
+   <entry>
+
+    <title>near the central Mid-Atlantic Ridge</title><updated>2026-10-13T12:36:06Z</updated>
+<geo:lat>-0.200</geo:lat>
+<geo:long>-19.200</geo:long>
+<summary type="xhtml"><div xmlns="http://www.w3.org/1999/xhtml">
+     <strong>Category:</strong> Information<br/><strong>Bulletin Issue Time: </strong> 2026.10.13 12:36:06 UTC <br/><strong>Preliminary Magnitude: </strong>6.8(Mwp)<br/><strong>Lat/Lon: </strong>-0.200 / -19.200<br/><strong>Affected Region: </strong>near the central Mid-Atlantic Ridge<br/><b>Note:</b>  * There is no tsunami danger for the U.S. east coast, the Gulf of    America states, or the eastern coast of Canada.  * Based on the earthquake location near the Mid-Atlantic Ridge,    a damaging tsunami is not expected. <br/><strong>Definition: </strong>An information statement indicates that an earthquake has occurred, but does not pose a tsunami threat, or that a tsunami warning, advisory, or watch has been issued for another section of the ocean. <a href="https://www.tsunami.gov/events/PAAQ/2026/10/13/tmuiel/1/WEXX32/WEXX32.txt">View bulletin</a><img src="https://www.tsunami.gov/events/PAAQ/2026/10/13/tmuiel/1/WEXX32/energytmuiel.jpg" alt="Energy Map" /> 
+<img src="https://www.tsunami.gov/events/PAAQ/2026/10/13/tmuiel/1/WEXX32/ttvutmuiel-01.jpg" alt="Travel Time Map" /> 
+</div></summary>
+    <id>urn:uuid:802162bb-e5e0-4822-a1a9-4141ee710cfe</id><link rel="related" title="CapXML document" href="https://www.tsunami.gov/events/PAAQ/2026/10/13/tmuiel/1/WEXX32/PAAQCAP.xml" type="application/cap+xml" />
+<link rel="alternate" title="Bulletin" href="https://www.tsunami.gov/events/PAAQ/2026/10/13/tmuiel/1/WEXX32/WEXX32.txt" type="application/xml" />
+</entry>
+</feed>

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<alert xmlns="urn:oasis:names:tc:emergency:cap:1.2">
+  <identifier>CIRCLE-1</identifier>
+  <sender>alerts@example.org</sender>
+  <sent>2026-10-13T12:00:00-00:00</sent>
+  <status>Actual</status>
+  <msgType>Alert</msgType>
+  <scope>Public</scope>
+  <info>
+    <category>Safety</category>
+    <event>Hazardous Materials Warning</event>
+    <urgency>Immediate</urgency>
+    <severity>Severe</severity>
+    <certainty>Observed</certainty>
+    <expires>2026-10-13T14:00:00-00:00</expires>
+    <area>
+      <areaDesc>Around the plant</areaDesc>
+      <circle>32.9525,-115.5527 10</circle>
+    </area>
+    <area>
+      <areaDesc>The plant</areaDesc>
+      <circle>32.9525,-115.5527 0</circle>
+    </area>
+  </info>
+</alert>

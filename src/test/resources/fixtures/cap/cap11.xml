@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<alert xmlns="urn:oasis:names:tc:emergency:cap:1.1">
+  <identifier>V11-1</identifier>
+  <sender>alerts@example.org</sender>
+  <sent>2026-10-13T12:00:00-00:00</sent>
+  <status>Actual</status>
+  <msgType>Alert</msgType>
+  <scope>Public</scope>
+  <info>
+    <category>Geo</category>
+    <event>Earthquake</event>
+    <urgency>Past</urgency>
+    <severity>Minor</severity>
+    <certainty>Observed</certainty>
+  </info>
+</alert>
