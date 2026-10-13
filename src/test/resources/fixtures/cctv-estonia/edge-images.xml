@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<d2LogicalModel modelBaseVersion="2" xmlns="http://datex2.eu/schema/2/2_0">
+    <payloadPublication xsi:type="TrafficViewPublication" lang="en" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+        <trafficView id="1"><linearTrafficView id="1"><linearPredefinedLocationReference targetClass="PredefinedLocation" id="ok" version="0"/>
+            <trafficViewRecord id="1-1"><urlLink><urlLinkAddress>https://tarktee.transpordiamet.ee/images/1/1_202610131700.jpg</urlLinkAddress><urlLinkType>image</urlLinkType></urlLink></trafficViewRecord></linearTrafficView></trafficView>
+        <trafficView id="2"><linearTrafficView id="2"><linearPredefinedLocationReference targetClass="PredefinedLocation" id="no-coordinates" version="0"/>
+            <trafficViewRecord id="2-1"><urlLink><urlLinkAddress>https://tarktee.transpordiamet.ee/images/2/2_202610131700.jpg</urlLinkAddress></urlLink></trafficViewRecord></linearTrafficView></trafficView>
+        <trafficView id="3"><linearTrafficView id="3"><linearPredefinedLocationReference targetClass="PredefinedLocation" id="out-of-bounds" version="0"/>
+            <trafficViewRecord id="3-1"><urlLink><urlLinkAddress>https://tarktee.transpordiamet.ee/images/3/3_202610131700.jpg</urlLinkAddress></urlLink></trafficViewRecord></linearTrafficView></trafficView>
+        <trafficView id="4"><linearTrafficView id="4"><linearPredefinedLocationReference targetClass="PredefinedLocation" id="off-host" version="0"/>
+            <trafficViewRecord id="4-1"><urlLink><urlLinkAddress>https://evil.example/images/4.jpg</urlLinkAddress></urlLink></trafficViewRecord></linearTrafficView></trafficView>
+    </payloadPublication>
+</d2LogicalModel>

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<d2LogicalModel modelBaseVersion="2" xmlns="http://datex2.eu/schema/2/2_0">
+    <payloadPublication xsi:type="PredefinedLocationsPublication" lang="en" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+        <predefinedLocationContainer xsi:type="PredefinedNonOrderedLocationGroup" id="TRAFFIC_CAMERAS" version="0">
+            <predefinedLocation id="ok" version="0">
+                <predefinedLocationName><values><value lang="et">Edge Ok</value></values></predefinedLocationName>
+                <location xsi:type="Point"><pointByCoordinates><pointCoordinates><latitude>59.0</latitude><longitude>25.0</longitude></pointCoordinates></pointByCoordinates></location>
+            </predefinedLocation>
+            <predefinedLocation id="no-coordinates" version="0">
+                <predefinedLocationName><values><value lang="et">No Coordinates</value></values></predefinedLocationName>
+            </predefinedLocation>
+            <predefinedLocation id="out-of-bounds" version="0">
+                <predefinedLocationName><values><value lang="et">Helsinki</value></values></predefinedLocationName>
+                <location xsi:type="Point"><pointByCoordinates><pointCoordinates><latitude>60.17</latitude><longitude>24.94</longitude></pointCoordinates></pointByCoordinates></location>
+            </predefinedLocation>
+            <predefinedLocation id="off-host" version="0">
+                <predefinedLocationName><values><value lang="et">Off Host</value></values></predefinedLocationName>
+                <location xsi:type="Point"><pointByCoordinates><pointCoordinates><latitude>58.5</latitude><longitude>25.5</longitude></pointCoordinates></pointByCoordinates></location>
+            </predefinedLocation>
+            <predefinedLocation id="no-image" version="0">
+                <predefinedLocationName><values><value lang="et">No Image</value></values></predefinedLocationName>
+                <location xsi:type="Point"><pointByCoordinates><pointCoordinates><latitude>58.4</latitude><longitude>26.7</longitude></pointCoordinates></pointByCoordinates></location>
+            </predefinedLocation>
+            <predefinedLocation id="ok" version="0">
+                <predefinedLocationName><values><value lang="et">Duplicate</value></values></predefinedLocationName>
+                <location xsi:type="Point"><pointByCoordinates><pointCoordinates><latitude>59.1</latitude><longitude>25.1</longitude></pointCoordinates></pointByCoordinates></location>
+            </predefinedLocation>
+        </predefinedLocationContainer>
+    </payloadPublication>
+</d2LogicalModel>

@@ -1,0 +1,10 @@
+tallinn.json and warendorf.json are copied unchanged from God's Eye View,
+config/cctv_sources.tallinn.json and config/cctv_sources.warendorf.json,
+https://github.com/bilawalsidhu/gods-eye-view, commit 591f299d11f38a612629a274463196d57ae3862e.
+
+Copyright (c) 2026 Bilawal Sidhu. MIT License; the full notice is in THIRD_PARTY_NOTICES.md
+at the repository root.
+
+Foresignal reads only id, name, provider, city, lat, lon, url (or snapshotUrl), and headingDeg
+when headingConfidence is "high". The pose priors (pitchDeg, fovDeg, rangeM, mountHeightM,
+groundElevationM) are ignored.

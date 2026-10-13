@@ -1,0 +1,18 @@
+{"data": [
+ {"cctv": {"index": "1", "location": {"district": "4", "locationName": "TV900 -- I-80 : Edge Ok", "nearbyPlace": "Berkeley", "longitude": "-122.30", "latitude": "37.87", "direction": "East", "route": "I-80"}, "inService": "true",
+  "imageData": {"streamingVideoURL": "https://wzmedia.dot.ca.gov:443/D4/E80_edge.stream/playlist.m3u8", "static": {"currentImageUpdateFrequency": "5", "currentImageURL": "https://cwwp2.dot.ca.gov/data/d4/cctv/image/tv900edge/tv900edge.jpg"}}}},
+ {"cctv": {"index": "2", "location": {"district": "4", "locationName": "TV901 -- I-80 : No Coordinates", "nearbyPlace": "Berkeley", "longitude": "", "latitude": "", "direction": "East", "route": "I-80"}, "inService": "true",
+  "imageData": {"streamingVideoURL": "", "static": {"currentImageUpdateFrequency": "5", "currentImageURL": "https://cwwp2.dot.ca.gov/data/d4/cctv/image/tv901/tv901.jpg"}}}},
+ {"cctv": {"index": "3", "location": {"district": "4", "locationName": "TV902 -- I-80 : Out Of Bounds", "nearbyPlace": "Reno", "longitude": "-119.81", "latitude": "45.53", "direction": "East", "route": "I-80"}, "inService": "true",
+  "imageData": {"streamingVideoURL": "", "static": {"currentImageUpdateFrequency": "5", "currentImageURL": "https://cwwp2.dot.ca.gov/data/d4/cctv/image/tv902/tv902.jpg"}}}},
+ {"cctv": {"index": "4", "location": {"district": "4", "locationName": "TV903 -- I-80 : Off Host Image", "nearbyPlace": "Albany", "longitude": "-122.31", "latitude": "37.89", "direction": "West", "route": "I-80"}, "inService": "true",
+  "imageData": {"streamingVideoURL": "https://evil.example/stream.m3u8", "static": {"currentImageUpdateFrequency": "Not Reported", "currentImageURL": "https://evil.example/tv903.jpg"}}}},
+ {"cctv": {"index": "5", "location": {"district": "4", "locationName": "TV904 -- I-80 : Out Of Service", "nearbyPlace": "Richmond", "longitude": "-122.33", "latitude": "37.92", "direction": "North", "route": "I-80"}, "inService": "false",
+  "imageData": {"streamingVideoURL": "", "static": {"currentImageUpdateFrequency": "60", "currentImageURL": "https://cwwp2.dot.ca.gov/data/d4/cctv/image/tv904/tv904.jpg"}}}},
+ {"cctv": {"index": "6", "location": {"district": "4", "locationName": "TV900 -- I-80 : Duplicate Of TV900", "nearbyPlace": "Berkeley", "longitude": "-122.29", "latitude": "37.86", "direction": "East", "route": "I-80"}, "inService": "true",
+  "imageData": {"streamingVideoURL": "", "static": {"currentImageUpdateFrequency": "5", "currentImageURL": "https://cwwp2.dot.ca.gov/data/d4/cctv/image/tv900b/tv900b.jpg"}}}},
+ {"cctv": {"index": "7", "location": {"district": "4", "locationName": "No camera code here", "nearbyPlace": "Oakland", "longitude": "-122.27", "latitude": "37.80", "direction": "", "route": "I-880"}, "inService": "true",
+  "imageData": {"streamingVideoURL": "", "static": {"currentImageUpdateFrequency": "5", "currentImageURL": "https://cwwp2.dot.ca.gov/data/d4/cctv/image/i880atbroadway/i880atbroadway.jpg"}}}},
+ {"cctv": {"index": "8", "location": {"district": "4", "locationName": "", "nearbyPlace": "Oakland", "longitude": "-122.27", "latitude": "37.81", "direction": "", "route": "I-880"}, "inService": "true",
+  "imageData": {"streamingVideoURL": "", "static": {"currentImageUpdateFrequency": "5", "currentImageURL": "Not Reported"}}}}
+]}

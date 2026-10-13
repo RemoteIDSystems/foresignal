@@ -554,3 +554,38 @@ source (serving TCP is 110's SERVE sinks).
 | `gpsd` | LINES | `local-gpsd-{n}` | `?WATCH={"enable":true,"json":true};` on connect; VERSION `proto_major` 3; TPV and SKY merged per device into `gnss-fix`; `observedAt` = TPV `time` |
 
 Prompt 085 adds `aivdm`, 082 `kiss-ax25`, 086 `acars-json` and `sonde-udp`.
+
+## 21. Catalog sources and client-fetched media (prompt 072)
+
+A **catalog source** publishes a list of things (cameras, plants, ports) rather than observations. The `cctv-*`
+family is the first; prompts 074 and 075 follow the same pattern.
+
+- **Time base:** `observedAtMode` RECEIVED and `ttlAnchor` RECEIVED, no record TTL, policy ALL with no keyframe.
+  Catalogs carry no per-entry update time; never invent one from a file date. Retention is the `reference` class
+  (90 d of history).
+- **One shared mapper:** each pack's parser is pure (`byte[]` and a `PackContext` → entries) and reads only what the
+  upstream publishes; one `CameraRecordMapper` turns entries into records, checks the bounding box, drops off-origin
+  URLs, removes duplicates and counts every skip by reason (`foresignal.cctv.skipped{source, reason}`). Never port a
+  synthetic value: God's Eye View's `fallbackHeadingFromId` and pose priors stay out, and a heading is set only
+  from a field the upstream documents as the camera's direction (Caltrans' `direction` is the road's direction of
+  travel, so it gives none).
+- **Media is fetched by clients, never by Foresignal.** A record carries the upstream URL (`imageUrl`, `videoUrl`)
+  and an access hint; there is no proxy, relay or snapshot store. Each URL must parse as an absolute `http`/`https`
+  URL without user info that starts with one of the pack's **allowed origins** (URL prefixes, compared after
+  canonicalizing scheme, host and default port). A URL that fails is dropped and the record kept.
+- **The frame-access probe:** when capturing fixtures, request one frame per pack with Foresignal's User-Agent and
+  no `Referer`. `image/*` (or an HLS playlist) → `direct`; an HTML page or 403 → `browser` (works only from a real
+  browser `<img>`); a key-gated host → `key`. Record the result in `src/main/resources/cctv/hosts.json` and the
+  fixture README. Record a `Referer` or `Origin` requirement only where the upstream documents it, and **never** add
+  a User-Agent override to get past a bot wall. `frameInsecure: true` marks an `http:` frame URL; when the host also
+  serves https, upgrade in the parser instead (Calgary).
+- **Absence:** catalogs carry no deletion marker. `ai.foresignal.source.support.AbsenceTombstoner` keeps the ids of
+  the last complete fetch (`absence:ids`, sorted, gzip+base64 above 64 KB) and the ids missed once
+  (`absence:missed`), and tombstones an id missing from **two consecutive** complete fetches. Call it with the fetch
+  `Outcome`: a 304, a truncated body or a parse error changes nothing. The `cctv-*` adapter also skips it for an
+  empty catalog and for a paginated catalog that did not finish within its page limit.
+- **Credentials in the query string** (TfL `app_key`, Ontario 511 `key`) are fine: `UpstreamClient` redacts every
+  credential value from traces, recorded exchanges and logs. A required credential makes enabling fail with 409
+  `CREDENTIALS_REQUIRED`.
+- **Bundled catalogs** (Tallinn, Warendorf) are classpath resources with a sibling `NOTICE`; their fetch makes no
+  request and runs daily.

@@ -1,0 +1,473 @@
+[
+ {
+  "camera_url": {
+   "url": "http://trafficcam.calgary.ca/loc74.jpg",
+   "description": "Camera 75"
+  },
+  "quadrant": "NW",
+  "camera_location": "16 Avenue / 10 Street NW",
+  "point": {
+   "type": "Point",
+   "coordinates": [
+    -114.0849216,
+    51.0668068
+   ]
+  },
+  ":@computed_region_4a3i_ccfj": "2",
+  ":@computed_region_kxmf_bzkv": "40",
+  ":@computed_region_p8tp_5dkv": "7",
+  ":@computed_region_4b54_tmc4": "7"
+ },
+ {
+  "camera_url": {
+   "url": "http://trafficcam.calgary.ca/loc112.jpg",
+   "description": "Camera 113"
+  },
+  "quadrant": "SW",
+  "camera_location": "Flanders Avenue / Crowchild Trail SW",
+  "point": {
+   "type": "Point",
+   "coordinates": [
+    -114.1173771,
+    51.0157852
+   ]
+  },
+  ":@computed_region_4a3i_ccfj": "1",
+  ":@computed_region_kxmf_bzkv": "201",
+  ":@computed_region_p8tp_5dkv": "2",
+  ":@computed_region_4b54_tmc4": "8"
+ },
+ {
+  "camera_url": {
+   "url": "http://trafficcam.calgary.ca/loc92.jpg",
+   "description": "Camera 93"
+  },
+  "quadrant": "NE",
+  "camera_location": "McKnight Boulevard / Barlow Trail NE",
+  "point": {
+   "type": "Point",
+   "coordinates": [
+    -114.0018281,
+    51.0927921
+   ]
+  },
+  ":@computed_region_4a3i_ccfj": "4",
+  ":@computed_region_kxmf_bzkv": "82",
+  ":@computed_region_p8tp_5dkv": "1",
+  ":@computed_region_4b54_tmc4": "11"
+ },
+ {
+  "camera_url": {
+   "url": "https://trafficcam.calgary.ca/loc37.jpg",
+   "description": "Camera 38"
+  },
+  "quadrant": "NW",
+  "camera_location": "Crowchild Trail / Shaganappi Trail NW",
+  "point": {
+   "type": "Point",
+   "coordinates": [
+    -114.149379,
+    51.0988494
+   ]
+  },
+  ":@computed_region_4a3i_ccfj": "2",
+  ":@computed_region_kxmf_bzkv": "38",
+  ":@computed_region_p8tp_5dkv": "4",
+  ":@computed_region_4b54_tmc4": "7"
+ },
+ {
+  "camera_url": {
+   "url": "http://trafficcam.calgary.ca/loc30.jpg",
+   "description": "Camera 31"
+  },
+  "quadrant": "NE",
+  "camera_location": "Memorial Drive / Edmonton Trail NE",
+  "point": {
+   "type": "Point",
+   "coordinates": [
+    -114.0501357,
+    51.0508018
+   ]
+  },
+  ":@computed_region_4a3i_ccfj": "4",
+  ":@computed_region_kxmf_bzkv": "137",
+  ":@computed_region_p8tp_5dkv": "11",
+  ":@computed_region_4b54_tmc4": "10"
+ },
+ {
+  "camera_url": {
+   "url": "http://trafficcam.calgary.ca/loc178.jpg",
+   "description": "Camera 179"
+  },
+  "quadrant": "SE",
+  "camera_location": "7 Ave / 3 St SE",
+  "point": {
+   "type": "Point",
+   "coordinates": [
+    -114.0556068,
+    51.0463647
+   ]
+  },
+  ":@computed_region_4a3i_ccfj": "3",
+  ":@computed_region_kxmf_bzkv": "262",
+  ":@computed_region_p8tp_5dkv": "7",
+  ":@computed_region_4b54_tmc4": "7"
+ },
+ {
+  "camera_url": {
+   "url": "http://trafficcam.calgary.ca/loc106.jpg",
+   "description": "Camera 107"
+  },
+  "quadrant": "NE",
+  "camera_location": "32 Avenue / 36 Street NE",
+  "point": {
+   "type": "Point",
+   "coordinates": [
+    -113.9823261,
+    51.0815499
+   ]
+  },
+  ":@computed_region_4a3i_ccfj": "4",
+  ":@computed_region_kxmf_bzkv": "71",
+  ":@computed_region_p8tp_5dkv": "3",
+  ":@computed_region_4b54_tmc4": "9"
+ },
+ {
+  "camera_url": {
+   "url": "http://trafficcam.calgary.ca/loc16.jpg",
+   "description": "Camera 17"
+  },
+  "quadrant": "NW",
+  "camera_location": "24 Avenue / Crowchild Trail NW",
+  "point": {
+   "type": "Point",
+   "coordinates": [
+    -114.1182195,
+    51.0741894
+   ]
+  },
+  ":@computed_region_4a3i_ccfj": "2",
+  ":@computed_region_kxmf_bzkv": "153",
+  ":@computed_region_p8tp_5dkv": "7",
+  ":@computed_region_4b54_tmc4": "7"
+ },
+ {
+  "camera_url": {
+   "url": "http://trafficcam.calgary.ca/loc128.jpg",
+   "description": "Camera 129"
+  },
+  "quadrant": "SE",
+  "camera_location": "Glenmore Trail / Stoney Trail SE",
+  "point": {
+   "type": "Point",
+   "coordinates": [
+    -113.9292632,
+    50.9796349
+   ]
+  },
+  ":@computed_region_4a3i_ccfj": "3",
+  ":@computed_region_kxmf_bzkv": "104",
+  ":@computed_region_p8tp_5dkv": "8",
+  ":@computed_region_4b54_tmc4": "10"
+ },
+ {
+  "camera_url": {
+   "url": "http://trafficcam.calgary.ca/loc211.jpg",
+   "description": "Camera 212"
+  },
+  "quadrant": "NW",
+  "camera_location": "Citadel Gt/Nose Hill Dr & Country Hills Bv NW",
+  "point": {
+   "type": "Point",
+   "coordinates": [
+    -114.18228,
+    51.140979
+   ]
+  },
+  ":@computed_region_4a3i_ccfj": "2",
+  ":@computed_region_kxmf_bzkv": "244",
+  ":@computed_region_p8tp_5dkv": "10",
+  ":@computed_region_4b54_tmc4": "3"
+ },
+ {
+  "camera_url": {
+   "url": "http://trafficcam.calgary.ca/loc34.jpg",
+   "description": "Camera 35"
+  },
+  "quadrant": "SE",
+  "camera_location": "11 Avenue / Macleod Trail S",
+  "point": {
+   "type": "Point",
+   "coordinates": [
+    -114.0583524,
+    51.042248
+   ]
+  },
+  ":@computed_region_4a3i_ccfj": "3",
+  ":@computed_region_kxmf_bzkv": "260",
+  ":@computed_region_p8tp_5dkv": "5",
+  ":@computed_region_4b54_tmc4": "14"
+ },
+ {
+  "camera_url": {
+   "url": "http://trafficcam.calgary.ca/loc83.jpg",
+   "description": "Camera 84"
+  },
+  "quadrant": "NE",
+  "camera_location": "16 Avenue / Stoney Trail NE",
+  "point": {
+   "type": "Point",
+   "coordinates": [
+    -113.9204069,
+    51.0676856
+   ]
+  },
+  ":@computed_region_4a3i_ccfj": "4",
+  ":@computed_region_kxmf_bzkv": "232",
+  ":@computed_region_p8tp_5dkv": "3",
+  ":@computed_region_4b54_tmc4": "9"
+ },
+ {
+  "camera_url": {
+   "url": "https://trafficcam.calgary.ca/loc147.jpg",
+   "description": "Camera 148"
+  },
+  "quadrant": "NE",
+  "camera_location": "Country Hills Blvd / Metis Trail NE",
+  "point": {
+   "type": "Point",
+   "coordinates": [
+    -113.9696467,
+    51.1543276
+   ]
+  },
+  ":@computed_region_4a3i_ccfj": "4",
+  ":@computed_region_kxmf_bzkv": "12",
+  ":@computed_region_p8tp_5dkv": "1",
+  ":@computed_region_4b54_tmc4": "11"
+ },
+ {
+  "camera_url": {
+   "url": "http://trafficcam.calgary.ca/loc158.jpg",
+   "description": "Camera 159"
+  },
+  "quadrant": "SE",
+  "camera_location": "7 Ave / Macleod Tr SE",
+  "point": {
+   "type": "Point",
+   "coordinates": [
+    -114.0581972,
+    51.046454
+   ]
+  },
+  ":@computed_region_4a3i_ccfj": "3",
+  ":@computed_region_kxmf_bzkv": "262",
+  ":@computed_region_p8tp_5dkv": "7",
+  ":@computed_region_4b54_tmc4": "7"
+ },
+ {
+  "camera_url": {
+   "url": "http://trafficcam.calgary.ca/loc182.jpg",
+   "description": "Camera 183"
+  },
+  "quadrant": "SW",
+  "camera_location": "9 Ave / 6 St SW",
+  "point": {
+   "type": "Point",
+   "coordinates": [
+    -114.0763782,
+    51.0449937
+   ]
+  },
+  ":@computed_region_4a3i_ccfj": "1",
+  ":@computed_region_kxmf_bzkv": "262",
+  ":@computed_region_p8tp_5dkv": "2",
+  ":@computed_region_4b54_tmc4": "14"
+ },
+ {
+  "camera_url": {
+   "url": "http://trafficcam.calgary.ca/loc193.jpg",
+   "description": "Camera 194"
+  },
+  "quadrant": "SW",
+  "camera_location": "90 Ave / Stoney Tr SW",
+  "point": {
+   "type": "Point",
+   "coordinates": [
+    -114.1548591,
+    50.9762089
+   ]
+  }
+ },
+ {
+  "camera_url": {
+   "url": "http://trafficcam.calgary.ca/loc80.jpg",
+   "description": "Camera 81"
+  },
+  "quadrant": "SE",
+  "camera_location": "12 Avenue / Olympic Way SE",
+  "point": {
+   "type": "Point",
+   "coordinates": [
+    -114.0534925,
+    51.0411473
+   ]
+  },
+  ":@computed_region_4a3i_ccfj": "3",
+  ":@computed_region_kxmf_bzkv": "260",
+  ":@computed_region_p8tp_5dkv": "5",
+  ":@computed_region_4b54_tmc4": "14"
+ },
+ {
+  "camera_url": {
+   "url": "http://trafficcam.calgary.ca/loc17.jpg",
+   "description": "Camera 18"
+  },
+  "quadrant": "SE",
+  "camera_location": "Memorial Drive / Deerfoot Trail SE",
+  "point": {
+   "type": "Point",
+   "coordinates": [
+    -114.0181691,
+    51.0478522
+   ]
+  },
+  ":@computed_region_4a3i_ccfj": "3",
+  ":@computed_region_kxmf_bzkv": "137",
+  ":@computed_region_p8tp_5dkv": "11",
+  ":@computed_region_4b54_tmc4": "10"
+ },
+ {
+  "camera_url": {
+   "url": "http://trafficcam.calgary.ca/loc52.jpg",
+   "description": "Camera 53"
+  },
+  "quadrant": "SE",
+  "camera_location": "Glenmore Trail / Deerfoot Trail SE",
+  "point": {
+   "type": "Point",
+   "coordinates": [
+    -114.035226,
+    50.9942156
+   ]
+  },
+  ":@computed_region_4a3i_ccfj": "3",
+  ":@computed_region_kxmf_bzkv": "109",
+  ":@computed_region_p8tp_5dkv": "11",
+  ":@computed_region_4b54_tmc4": "10"
+ },
+ {
+  "camera_url": {
+   "url": "http://trafficcam.calgary.ca/loc36.jpg",
+   "description": "Camera 37"
+  },
+  "quadrant": "SE",
+  "camera_location": "5 Avenue / 1 Street SE",
+  "point": {
+   "type": "Point",
+   "coordinates": [
+    -114.0603862,
+    51.0483314
+   ]
+  },
+  ":@computed_region_4a3i_ccfj": "3",
+  ":@computed_region_kxmf_bzkv": "262",
+  ":@computed_region_p8tp_5dkv": "7",
+  ":@computed_region_4b54_tmc4": "7"
+ },
+ {
+  "camera_url": {
+   "url": "http://trafficcam.calgary.ca/loc57.jpg",
+   "description": "Camera 58"
+  },
+  "quadrant": "NW",
+  "camera_location": "Memorial Drive / 14 Street NW",
+  "point": {
+   "type": "Point",
+   "coordinates": [
+    -114.0931995,
+    51.049639
+   ]
+  },
+  ":@computed_region_4a3i_ccfj": "2",
+  ":@computed_region_kxmf_bzkv": "40",
+  ":@computed_region_p8tp_5dkv": "7",
+  ":@computed_region_4b54_tmc4": "7"
+ },
+ {
+  "camera_url": {
+   "url": "http://trafficcam.calgary.ca/loc27.jpg",
+   "description": "Camera 28"
+  },
+  "quadrant": "SW/SE",
+  "camera_location": "Glenmore Trail / Macleod Trail S (West)",
+  "point": {
+   "type": "Point",
+   "coordinates": [
+    -114.071551,
+    50.9939175
+   ]
+  },
+  ":@computed_region_4a3i_ccfj": "3",
+  ":@computed_region_kxmf_bzkv": "120",
+  ":@computed_region_p8tp_5dkv": "5",
+  ":@computed_region_4b54_tmc4": "8"
+ },
+ {
+  "camera_url": {
+   "url": "http://trafficcam.calgary.ca/loc192.jpg",
+   "description": "Camera 193"
+  },
+  "quadrant": "NE",
+  "camera_location": "80 Ave / Stoney Tr NE (East of)",
+  "point": {
+   "type": "Point",
+   "coordinates": [
+    -113.9198443,
+    51.1253774
+   ]
+  },
+  ":@computed_region_4a3i_ccfj": "4",
+  ":@computed_region_kxmf_bzkv": "164",
+  ":@computed_region_p8tp_5dkv": "1",
+  ":@computed_region_4b54_tmc4": "11"
+ },
+ {
+  "camera_url": {
+   "url": "http://trafficcam.calgary.ca/loc129.jpg",
+   "description": "Camera 130"
+  },
+  "quadrant": "SW",
+  "camera_location": "9 Avenue / 5 Street SW",
+  "point": {
+   "type": "Point",
+   "coordinates": [
+    -114.0738336,
+    51.0448849
+   ]
+  },
+  ":@computed_region_4a3i_ccfj": "1",
+  ":@computed_region_kxmf_bzkv": "262",
+  ":@computed_region_p8tp_5dkv": "2",
+  ":@computed_region_4b54_tmc4": "14"
+ },
+ {
+  "camera_url": {
+   "url": "http://trafficcam.calgary.ca/loc131.jpg",
+   "description": "Camera 132"
+  },
+  "quadrant": "SW",
+  "camera_location": "Richmond Road / Sarcee Trail SW",
+  "point": {
+   "type": "Point",
+   "coordinates": [
+    -114.1661897,
+    51.0178524
+   ]
+  },
+  ":@computed_region_4a3i_ccfj": "1",
+  ":@computed_region_kxmf_bzkv": "278",
+  ":@computed_region_p8tp_5dkv": "14",
+  ":@computed_region_4b54_tmc4": "1"
+ }
+]

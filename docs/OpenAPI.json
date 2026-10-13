@@ -312,6 +312,11 @@
         "version": "1.3.0",
         "date": "2026-10-13",
         "note": "071: no operation changes. New sources gbfs-{id}, one per reviewed docked bikeshare system (30 systems); the bikeshare-station kind note documents the LATEST policy, the time base and availability. Descriptor followRedirects is internal and not part of the API."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-13",
+        "note": "072: no operation changes. New sources cctv-tfl, cctv-caltrans-d1 to cctv-caltrans-d12, cctv-ontario511 (requires the key credential), cctv-digitraffic, cctv-drivebc, cctv-nsw, cctv-calgary, cctv-austin, cctv-deldot, cctv-vegvesen, cctv-estonia, cctv-tallinn and cctv-warendorf, all disabled by default; the camera kind note documents the payload, status, headingDeg, frameAccess and frameInsecure."
       }
     ]
   },
@@ -89029,7 +89034,7 @@
                 "frameInsecure"
               ]
             },
-            "note": "Frames are never fetched or proxied; frameAccess `direct|browser|key`."
+            "note": "STANDARD, ALL with no keyframe, no TTL, observedAt = receipt (catalogs carry no per-camera update time). Frames are never fetched, proxied or stored: clients load imageUrl (a still) or videoUrl (an official HLS stream) from the upstream host. frameAccess `direct|browser|key` says how (browser: only a real browser <img> gets the frame); frameInsecure is present and true for an http: frame URL. status `active|offline`. headingDeg (degrees) only when the upstream publishes a direction for the camera; direction is the published text verbatim. refreshSeconds is the published still refresh interval. A frame URL outside the pack's allowed origins is dropped. A camera missing from two consecutive complete fetches is tombstoned (072)."
           },
           "fire-incident": {
             "x-foresignal-prompt": "073",

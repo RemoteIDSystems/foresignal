@@ -59,7 +59,7 @@ SOFTWARE.
 
 ### Ported files
 
-Ported from God's Eye View commit `591f299d11f38a612629a274463196d57ae3862e` (prompts 051, 062, 063, 064, 065, 067, 069, 070 and 071). Each
+Ported from God's Eye View commit `591f299d11f38a612629a274463196d57ae3862e` (prompts 051, 062, 063, 064, 065, 067, 069, 070, 071 and 072). Each
 file carries an origin header naming its source file and this notice.
 
 | Foresignal file | GEV origin file |
@@ -97,6 +97,18 @@ file carries an origin header naming its source file and this notice.
 | `src/main/java/ai/foresignal/source/adapters/gbfs/GbfsSystems.java` (the host and path allowlist, prompt 071) | `src/data/gbfsSource.js` (`GBFS_ALLOWED_HOSTS`, `isAllowedGbfsHost`, `isAllowedGbfsPath`) |
 | `src/main/java/ai/foresignal/source/adapters/gbfs/GbfsAdapter.java` and `GbfsDescriptors.java` (no redirects followed, any 3xx refused with the redirect host reported, the 5 MB body cap, prompt 071) | `server/providers/gbfs.js` (`fetchGbfsUpstream`, `gbfsRedirectHost`, `GBFS_MAX_BODY_BYTES`) |
 | `src/main/java/ai/foresignal/source/adapters/gbfs/GbfsParser.java` (station field normalization, boolean coercion, non-negative integers, the stations-array lookup, prompt 071) | `src/sources/gbfsStations.js` (`normalizeGbfsBool`, `toNonNegativeInteger`, `extractStationsArray`, `parseStationInformation`, `parseStationStatus`) |
+| `src/main/java/ai/foresignal/source/adapters/cctv/CctvPacks.java` (the camera-catalog packs: endpoints, frame-origin pins, bounding boxes, the `Digitraffic-User` header, TfL's optional `app_key`, prompt 072) | `server/providers/cctv/constants.js`, `server/providers/cctv/catalog.js` (`LIVE_PACKS`) and `server/providers/cctv/normalize.js` (`isLikely*Coordinate`, `isPlausibleLatLon`) |
+| `src/main/java/ai/foresignal/source/adapters/cctv/CctvJsonParsers.java` (per-pack field mapping for TfL, Caltrans, Ontario 511, Digitraffic, DriveBC, NSW, Calgary, Austin, DelDOT, Vegvesen and the bundled packs, prompt 072) | `server/providers/cctv/sources.js` (`load*SourcesFromOpenData`, `normalizeOntarioCctvUrl`, `pickOntarioCctvView`, `driveBcImageCredit`, `nswCameraToSource`, `normalizeCalgaryImageUrl`, `calgaryCameraId`, `calgaryCameraName`, `vegvesenCameraToSource`, `loadTallinnSourcesFromCatalog`, `loadWarendorfSourcesFromCatalog`) and `server/providers/cctv/normalize.js` (`fintrafficCameraName`) |
+| `src/main/java/ai/foresignal/source/adapters/cctv/DatexCameraParser.java` (the DATEX II location and image join, prompt 072) | `server/providers/cctv/sources.js` (`parseTarkteeDatexLocations`, `parseTarkteeDatexImages`, `loadTarkteeSourcesFromDatex`) |
+| `src/main/java/ai/foresignal/source/adapters/cctv/Compass.java` (direction words and abbreviations, prompt 072) | `src/data/directionText.js` (`directionToHeading`) and `server/providers/cctv/sources.js` (`DRIVEBC_ORIENTATION_HEADINGS`) |
+| `src/main/java/ai/foresignal/source/adapters/cctv/CctvPackAdapter.java` (redirects refused, the OGC `rel=next` paging, the two DATEX documents, prompt 072) | `server/providers/cctv/sources.js` and `server/providers/cctv/catalog.js` |
+| `src/main/resources/cctv/packs/tallinn.json` and `warendorf.json` (copied unchanged; sibling `NOTICE`, prompt 072) | `config/cctv_sources.tallinn.json` and `config/cctv_sources.warendorf.json` |
+
+Not ported from `server/providers/cctv/` (prompt 072): the frame proxy and stream relay (`media.js`, `stream.js`,
+`range.js`), ground heights (`groundHeights.js`), the catalog cap and round-robin (`cap.js`), distance
+prioritization (`prioritizeSources`), the synthetic heading and pose priors (`fallbackHeadingFromId`, pitch, field
+of view, range, mount height), the NSW browser User-Agent (`NSW_IMAGE_USER_AGENT`), the TxDOT loader and the
+Shinjuku pack.
 
 `decode.js` (ecCodes WASM) is not ported: Foresignal decodes with NetCDF-Java. The particle layer
 (`src/layers/wind/*`) is not part of Foresignal; the Frontend Guide tells web clients which of its

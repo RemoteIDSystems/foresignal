@@ -1,0 +1,398 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<d2LogicalModel modelBaseVersion="2" xmlns="http://datex2.eu/schema/2/2_0">
+    <exchange>
+        <supplierIdentification>
+            <country>ee</country>
+            <nationalIdentifier>MNT</nationalIdentifier>
+        </supplierIdentification>
+    </exchange>
+    <payloadPublication xsi:type="PredefinedLocationsPublication" lang="en" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+        <feedType>Traffic camera locations</feedType>
+        <publicationTime>2026-10-13T20:17:18.397+03:00</publicationTime>
+        <publicationCreator>
+            <country>ee</country>
+            <nationalIdentifier>MNT</nationalIdentifier>
+        </publicationCreator>
+        <headerInformation>
+            <confidentiality>noRestriction</confidentiality>
+            <informationStatus>real</informationStatus>
+        </headerInformation>
+        <predefinedLocationContainer xsi:type="PredefinedNonOrderedLocationGroup" id="TRAFFIC_CAMERAS" version="0">
+            <predefinedLocation id="a84734fc-8f1d-47af-ba22-8323cd6eb367" version="0">
+                <predefinedLocationName>
+                    <values>
+                        <value lang="et">Kaimi</value>
+                    </values>
+                </predefinedLocationName>
+                <location xsi:type="Point">
+                    <pointByCoordinates>
+                        <pointCoordinates>
+                            <latitude>58.34474</latitude>
+                            <longitude>26.3853</longitude>
+                        </pointCoordinates>
+                    </pointByCoordinates>
+                </location>
+            </predefinedLocation>
+            <predefinedLocation id="63b6d697-3070-45e7-aa38-95e3fd42a633" version="0">
+                <predefinedLocationName>
+                    <values>
+                        <value lang="et">Kolgaküla</value>
+                    </values>
+                </predefinedLocationName>
+                <location xsi:type="Point">
+                    <pointByCoordinates>
+                        <pointCoordinates>
+                            <latitude>59.52601</latitude>
+                            <longitude>25.69951</longitude>
+                        </pointCoordinates>
+                    </pointByCoordinates>
+                </location>
+            </predefinedLocation>
+            <predefinedLocation id="6b6d60dd-5ac9-4ce9-a02c-16dc1fa4903b" version="0">
+                <predefinedLocationName>
+                    <values>
+                        <value lang="et">Meerapalu</value>
+                    </values>
+                </predefinedLocationName>
+                <location xsi:type="Point">
+                    <pointByCoordinates>
+                        <pointCoordinates>
+                            <latitude>58.385082</latitude>
+                            <longitude>27.364</longitude>
+                        </pointCoordinates>
+                    </pointByCoordinates>
+                </location>
+            </predefinedLocation>
+            <predefinedLocation id="4493c56a-9fc9-464c-bc89-d506e0e3bab8" version="0">
+                <predefinedLocationName>
+                    <values>
+                        <value lang="et">Konju</value>
+                    </values>
+                </predefinedLocationName>
+                <location xsi:type="Point">
+                    <pointByCoordinates>
+                        <pointCoordinates>
+                            <latitude>59.39085</latitude>
+                            <longitude>27.5901</longitude>
+                        </pointCoordinates>
+                    </pointByCoordinates>
+                </location>
+            </predefinedLocation>
+            <predefinedLocation id="0424e1a7-3105-4e64-a47b-4f4740ec795a" version="0">
+                <predefinedLocationName>
+                    <values>
+                        <value lang="et">Lokuti</value>
+                    </values>
+                </predefinedLocationName>
+                <location xsi:type="Point">
+                    <pointByCoordinates>
+                        <pointCoordinates>
+                            <latitude>59.280315</latitude>
+                            <longitude>24.741144</longitude>
+                        </pointCoordinates>
+                    </pointByCoordinates>
+                </location>
+            </predefinedLocation>
+            <predefinedLocation id="dc2bb6f5-433c-4933-ac64-76bc561c4fca" version="0">
+                <predefinedLocationName>
+                    <values>
+                        <value lang="et">Viira</value>
+                    </values>
+                </predefinedLocationName>
+                <location xsi:type="Point">
+                    <pointByCoordinates>
+                        <pointCoordinates>
+                            <latitude>58.60254</latitude>
+                            <longitude>23.197504</longitude>
+                        </pointCoordinates>
+                    </pointByCoordinates>
+                </location>
+            </predefinedLocation>
+            <predefinedLocation id="eab31605-3476-40a1-a398-df064446dffa" version="0">
+                <predefinedLocationName>
+                    <values>
+                        <value lang="et">Nõva</value>
+                    </values>
+                </predefinedLocationName>
+                <location xsi:type="Point">
+                    <pointByCoordinates>
+                        <pointCoordinates>
+                            <latitude>59.18556</latitude>
+                            <longitude>23.64891</longitude>
+                        </pointCoordinates>
+                    </pointByCoordinates>
+                </location>
+            </predefinedLocation>
+            <predefinedLocation id="e017a05d-382e-4805-9c07-19d0a39de8d3" version="0">
+                <predefinedLocationName>
+                    <values>
+                        <value lang="et">Padaorg</value>
+                    </values>
+                </predefinedLocationName>
+                <location xsi:type="Point">
+                    <pointByCoordinates>
+                        <pointCoordinates>
+                            <latitude>59.43359</latitude>
+                            <longitude>26.70641</longitude>
+                        </pointCoordinates>
+                    </pointByCoordinates>
+                </location>
+            </predefinedLocation>
+            <predefinedLocation id="8437325a-e4e1-42f6-97ad-34731d56c797" version="0">
+                <predefinedLocationName>
+                    <values>
+                        <value lang="et">Paimvere</value>
+                    </values>
+                </predefinedLocationName>
+                <location xsi:type="Point">
+                    <pointByCoordinates>
+                        <pointCoordinates>
+                            <latitude>58.586243</latitude>
+                            <longitude>23.973825</longitude>
+                        </pointCoordinates>
+                    </pointByCoordinates>
+                </location>
+            </predefinedLocation>
+            <predefinedLocation id="67f7dceb-9c08-4198-b403-9e827581f234" version="0">
+                <predefinedLocationName>
+                    <values>
+                        <value lang="et">Paldiski</value>
+                    </values>
+                </predefinedLocationName>
+                <location xsi:type="Point">
+                    <pointByCoordinates>
+                        <pointCoordinates>
+                            <latitude>59.34001</latitude>
+                            <longitude>24.147383</longitude>
+                        </pointCoordinates>
+                    </pointByCoordinates>
+                </location>
+            </predefinedLocation>
+            <predefinedLocation id="4ebcb3ba-e0bf-4fb4-bb1d-37ac66ef8376" version="0">
+                <predefinedLocationName>
+                    <values>
+                        <value lang="et">Pataste</value>
+                    </values>
+                </predefinedLocationName>
+                <location xsi:type="Point">
+                    <pointByCoordinates>
+                        <pointCoordinates>
+                            <latitude>58.550896</latitude>
+                            <longitude>26.753817</longitude>
+                        </pointCoordinates>
+                    </pointByCoordinates>
+                </location>
+            </predefinedLocation>
+            <predefinedLocation id="5f67c346-28e0-4f03-8380-52ce648177cb" version="0">
+                <predefinedLocationName>
+                    <values>
+                        <value lang="et">Pootsi</value>
+                    </values>
+                </predefinedLocationName>
+                <location xsi:type="Point">
+                    <pointByCoordinates>
+                        <pointCoordinates>
+                            <latitude>58.26516</latitude>
+                            <longitude>24.11879</longitude>
+                        </pointCoordinates>
+                    </pointByCoordinates>
+                </location>
+            </predefinedLocation>
+            <predefinedLocation id="4ddf298e-d354-4c32-bcf8-4b2be2204b56" version="0">
+                <predefinedLocationName>
+                    <values>
+                        <value lang="et">Puiatu</value>
+                    </values>
+                </predefinedLocationName>
+                <location xsi:type="Point">
+                    <pointByCoordinates>
+                        <pointCoordinates>
+                            <latitude>58.3547</latitude>
+                            <longitude>25.43937</longitude>
+                        </pointCoordinates>
+                    </pointByCoordinates>
+                </location>
+            </predefinedLocation>
+            <predefinedLocation id="f38aa55a-bf9b-4545-87b5-577e7302a272" version="0">
+                <predefinedLocationName>
+                    <values>
+                        <value lang="et">Räägu</value>
+                    </values>
+                </predefinedLocationName>
+                <location xsi:type="Point">
+                    <pointByCoordinates>
+                        <pointCoordinates>
+                            <latitude>58.48109</latitude>
+                            <longitude>24.52801</longitude>
+                        </pointCoordinates>
+                    </pointByCoordinates>
+                </location>
+            </predefinedLocation>
+            <predefinedLocation id="8bf716b3-fd7a-4001-9de8-5b3e0c1408c4" version="0">
+                <predefinedLocationName>
+                    <values>
+                        <value lang="et">Kõrkküla</value>
+                    </values>
+                </predefinedLocationName>
+                <location xsi:type="Point">
+                    <pointByCoordinates>
+                        <pointCoordinates>
+                            <latitude>59.43594</latitude>
+                            <longitude>26.92689</longitude>
+                        </pointCoordinates>
+                    </pointByCoordinates>
+                </location>
+            </predefinedLocation>
+            <predefinedLocation id="b92ccbe1-f849-474b-adfc-2512c12a523b" version="0">
+                <predefinedLocationName>
+                    <values>
+                        <value lang="et">Raudla</value>
+                    </values>
+                </predefinedLocationName>
+                <location xsi:type="Point">
+                    <pointByCoordinates>
+                        <pointCoordinates>
+                            <latitude>59.22367</latitude>
+                            <longitude>25.72044</longitude>
+                        </pointCoordinates>
+                    </pointByCoordinates>
+                </location>
+            </predefinedLocation>
+            <predefinedLocation id="4c8eab75-6904-4534-bb00-52cd9ac3305b" version="0">
+                <predefinedLocationName>
+                    <values>
+                        <value lang="et">Sõmeru</value>
+                    </values>
+                </predefinedLocationName>
+                <location xsi:type="Point">
+                    <pointByCoordinates>
+                        <pointCoordinates>
+                            <latitude>59.36514</latitude>
+                            <longitude>26.435558</longitude>
+                        </pointCoordinates>
+                    </pointByCoordinates>
+                </location>
+            </predefinedLocation>
+            <predefinedLocation id="dafdef77-cc62-4fa1-9f90-7a50dab76aa7" version="0">
+                <predefinedLocationName>
+                    <values>
+                        <value lang="et">Soodla</value>
+                    </values>
+                </predefinedLocationName>
+                <location xsi:type="Point">
+                    <pointByCoordinates>
+                        <pointCoordinates>
+                            <latitude>59.37873</latitude>
+                            <longitude>25.45652</longitude>
+                        </pointCoordinates>
+                    </pointByCoordinates>
+                </location>
+            </predefinedLocation>
+            <predefinedLocation id="79cb640e-adbf-4139-ac24-5c8e4e6afa50" version="0">
+                <predefinedLocationName>
+                    <values>
+                        <value lang="et">Tabasalu</value>
+                    </values>
+                </predefinedLocationName>
+                <location xsi:type="Point">
+                    <pointByCoordinates>
+                        <pointCoordinates>
+                            <latitude>59.42978</latitude>
+                            <longitude>24.55765</longitude>
+                        </pointCoordinates>
+                    </pointByCoordinates>
+                </location>
+            </predefinedLocation>
+            <predefinedLocation id="3c09831c-a6f5-47c1-b9d9-204c45b19d6b" version="0">
+                <predefinedLocationName>
+                    <values>
+                        <value lang="et">Üdruma</value>
+                    </values>
+                </predefinedLocationName>
+                <location xsi:type="Point">
+                    <pointByCoordinates>
+                        <pointCoordinates>
+                            <latitude>58.812683</latitude>
+                            <longitude>24.051933</longitude>
+                        </pointCoordinates>
+                    </pointByCoordinates>
+                </location>
+            </predefinedLocation>
+            <predefinedLocation id="3cd6e2ce-180d-49fc-96e9-1f6fc7d64a62" version="0">
+                <predefinedLocationName>
+                    <values>
+                        <value lang="et">Tootsi</value>
+                    </values>
+                </predefinedLocationName>
+                <location xsi:type="Point">
+                    <pointByCoordinates>
+                        <pointCoordinates>
+                            <latitude>57.80447</latitude>
+                            <longitude>27.08078</longitude>
+                        </pointCoordinates>
+                    </pointByCoordinates>
+                </location>
+            </predefinedLocation>
+            <predefinedLocation id="3eed2f87-ccc3-45dd-91af-2be9bba5691d" version="0">
+                <predefinedLocationName>
+                    <values>
+                        <value lang="et">Rõngu</value>
+                    </values>
+                </predefinedLocationName>
+                <location xsi:type="Point">
+                    <pointByCoordinates>
+                        <pointCoordinates>
+                            <latitude>58.135628</latitude>
+                            <longitude>26.245975</longitude>
+                        </pointCoordinates>
+                    </pointByCoordinates>
+                </location>
+            </predefinedLocation>
+            <predefinedLocation id="974fe667-2225-4c07-87ae-44edd8ab9844" version="0">
+                <predefinedLocationName>
+                    <values>
+                        <value lang="et">Ristiküla</value>
+                    </values>
+                </predefinedLocationName>
+                <location xsi:type="Point">
+                    <pointByCoordinates>
+                        <pointCoordinates>
+                            <latitude>58.18527</latitude>
+                            <longitude>24.789602</longitude>
+                        </pointCoordinates>
+                    </pointByCoordinates>
+                </location>
+            </predefinedLocation>
+            <predefinedLocation id="d799d418-ebbb-4dbc-99d3-50b56ecb02ea" version="0">
+                <predefinedLocationName>
+                    <values>
+                        <value lang="et">Väo</value>
+                    </values>
+                </predefinedLocationName>
+                <location xsi:type="Point">
+                    <pointByCoordinates>
+                        <pointCoordinates>
+                            <latitude>59.444534</latitude>
+                            <longitude>24.914864</longitude>
+                        </pointCoordinates>
+                    </pointByCoordinates>
+                </location>
+            </predefinedLocation>
+            <predefinedLocation id="3f575f7c-97e0-46b4-a713-3a5d4b1ceed0" version="0">
+                <predefinedLocationName>
+                    <values>
+                        <value lang="et">Loobu</value>
+                    </values>
+                </predefinedLocationName>
+                <location xsi:type="Point">
+                    <pointByCoordinates>
+                        <pointCoordinates>
+                            <latitude>59.45482</latitude>
+                            <longitude>25.9463</longitude>
+                        </pointCoordinates>
+                    </pointByCoordinates>
+                </location>
+            </predefinedLocation>
+        </predefinedLocationContainer>
+    </payloadPublication>
+</d2LogicalModel>

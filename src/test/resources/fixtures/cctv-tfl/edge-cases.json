@@ -1,0 +1,12 @@
+[
+ {"id": "JamCams_edge.ok", "commonName": "Edge Ok", "lat": 51.5, "lon": -0.12, "additionalProperties": [
+  {"key": "available", "value": "true"}, {"key": "imageUrl", "value": "https://s3-eu-west-1.amazonaws.com/jamcams.tfl.gov.uk/edge.ok.jpg"},
+  {"key": "videoUrl", "value": "https://s3-eu-west-1.amazonaws.com/jamcams.tfl.gov.uk/edge.ok.mp4"}, {"key": "view", "value": "North-West"}]},
+ {"commonName": "No Id", "lat": 51.5, "lon": -0.12, "additionalProperties": []},
+ {"id": "JamCams_unavailable", "commonName": "Unavailable", "lat": 51.51, "lon": -0.13, "additionalProperties": [
+  {"key": "available", "value": "false"}, {"key": "imageUrl", "value": "https://s3-eu-west-1.amazonaws.com/jamcams.tfl.gov.uk/unavailable.jpg"}, {"key": "view", "value": "A40 Westway"}]},
+ {"id": "JamCams_other.bucket", "commonName": "Other Bucket", "lat": 51.52, "lon": -0.14, "additionalProperties": [
+  {"key": "available", "value": "true"}, {"key": "imageUrl", "value": "https://s3-eu-west-1.amazonaws.com/other-bucket/x.jpg"}]},
+ {"id": "JamCams_no.position", "commonName": "No Position", "additionalProperties": [{"key": "available", "value": "true"}]},
+ {"id": "JamCams_edge.ok", "commonName": "Duplicate", "lat": 51.53, "lon": -0.15, "additionalProperties": [{"key": "available", "value": "true"}]}
+]

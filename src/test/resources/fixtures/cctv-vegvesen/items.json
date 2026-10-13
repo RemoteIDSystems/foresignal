@@ -1,0 +1,913 @@
+{
+ "type": "FeatureCollection",
+ "numberMatched": 897,
+ "numberReturned": 897,
+ "timeStamp": "2026-10-13T17:17:07.900Z",
+ "links": [
+  {
+   "title": "This document as text/html",
+   "type": "text/html",
+   "rel": "alternate",
+   "href": "https://ogckart-sn1.atlas.vegvesen.no/ogc/features/v1/collections/datex_3_1%3ACctvSimple/items?f=text%2Fhtml"
+  },
+  {
+   "title": "This document as application/vnd.ogc.fg+json",
+   "type": "application/vnd.ogc.fg+json",
+   "rel": "alternate",
+   "href": "https://ogckart-sn1.atlas.vegvesen.no/ogc/features/v1/collections/datex_3_1%3ACctvSimple/items?f=application%2Fvnd.ogc.fg%2Bjson"
+  },
+  {
+   "title": "This document",
+   "type": "application/geo+json",
+   "rel": "self",
+   "href": "https://ogckart-sn1.atlas.vegvesen.no/ogc/features/v1/collections/datex_3_1%3ACctvSimple/items?f=application%2Fgeo%2Bjson"
+  },
+  {
+   "title": "This document as application/stac+json",
+   "type": "application/stac+json",
+   "rel": "alternate",
+   "href": "https://ogckart-sn1.atlas.vegvesen.no/ogc/features/v1/collections/datex_3_1%3ACctvSimple/items?f=application%2Fstac%2Bjson"
+  },
+  {
+   "title": "This document as application/vnd.google-earth.kml+xml",
+   "type": "application/vnd.google-earth.kml+xml",
+   "rel": "alternate",
+   "href": "https://ogckart-sn1.atlas.vegvesen.no/ogc/features/v1/collections/datex_3_1%3ACctvSimple/items?f=application%2Fvnd.google-earth.kml%2Bxml"
+  },
+  {
+   "title": "This document as application/gml+xml;version=3.2",
+   "type": "application/gml+xml;version=3.2",
+   "rel": "alternate",
+   "href": "https://ogckart-sn1.atlas.vegvesen.no/ogc/features/v1/collections/datex_3_1%3ACctvSimple/items?f=application%2Fgml%2Bxml%3Bversion%3D3.2"
+  },
+  {
+   "title": "This document as text/csv",
+   "type": "text/csv",
+   "rel": "alternate",
+   "href": "https://ogckart-sn1.atlas.vegvesen.no/ogc/features/v1/collections/datex_3_1%3ACctvSimple/items?f=text%2Fcsv"
+  },
+  {
+   "title": "This document as application/json",
+   "type": "application/json",
+   "rel": "alternate",
+   "href": "https://ogckart-sn1.atlas.vegvesen.no/ogc/features/v1/collections/datex_3_1%3ACctvSimple/items?f=application%2Fjson"
+  },
+  {
+   "title": "This document as application/ld+json",
+   "type": "application/ld+json",
+   "rel": "alternate",
+   "href": "https://ogckart-sn1.atlas.vegvesen.no/ogc/features/v1/collections/datex_3_1%3ACctvSimple/items?f=application%2Fld%2Bjson"
+  },
+  {
+   "title": "The collection description as application/json",
+   "type": "application/json",
+   "rel": "collection",
+   "href": "https://ogckart-sn1.atlas.vegvesen.no/ogc/features/v1/collections/datex_3_1%3ACctvSimple?f=application%2Fjson"
+  },
+  {
+   "title": "The collection description as application/yaml",
+   "type": "application/yaml",
+   "rel": "collection",
+   "href": "https://ogckart-sn1.atlas.vegvesen.no/ogc/features/v1/collections/datex_3_1%3ACctvSimple?f=application%2Fyaml"
+  },
+  {
+   "title": "The collection description as text/html",
+   "type": "text/html",
+   "rel": "collection",
+   "href": "https://ogckart-sn1.atlas.vegvesen.no/ogc/features/v1/collections/datex_3_1%3ACctvSimple?f=text%2Fhtml"
+  }
+ ],
+ "features": [
+  {
+   "type": "Feature",
+   "id": "6707b6d757c76d466ad9dc37",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     5.459189,
+     61.832706
+    ]
+   },
+   "properties": {
+    "@featureType": "geoJsonCctvSimple",
+    "stillImageUrl": "https://kamera.atlas.vegvesen.no/api/images/3000063_1",
+    "videoEncodingStandard": "",
+    "cameraId": "3000063_1",
+    "lastUpdateTime": "2026-10-13T19:16:47+0200",
+    "recordId": "3000063_1",
+    "pubId": 1791911793,
+    "_id": "6707b6d757c76d466ad9dc37",
+    "status.stillImageServiceLevel": "1",
+    "roadNumber": "F614",
+    "status.stillImageAvailability": "videoOrImagesAvailable",
+    "endJsonTime": "2026-10-13T19:16:49+0200",
+    "publicationTime": "2026-10-13T19:16:47+0200",
+    "orientationDescription": "Svelgen",
+    "geometry_name": "GEOMETRY_OBJECT",
+    "stillImageUrlDescription": "https://www.yr.no/nb/værvarsel/daglig-tabell/61.8327048,5.4591888/",
+    "stillImageServiceLevel": 1,
+    "stillImageFormat": "jpeg",
+    "videoServiceLevel": 0,
+    "description": "Langesi"
+   }
+  },
+  {
+   "type": "Feature",
+   "id": "6707b6d757c76d466ad9dc83",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     13.28838,
+     66.28629
+    ]
+   },
+   "properties": {
+    "@featureType": "geoJsonCctvSimple",
+    "stillImageUrl": "https://kamera.atlas.vegvesen.no/api/images/3000192_1",
+    "videoEncodingStandard": "",
+    "cameraId": "3000192_1",
+    "lastUpdateTime": "2026-10-13T19:16:47+0200",
+    "recordId": "3000192_1",
+    "pubId": 1791911793,
+    "_id": "6707b6d757c76d466ad9dc83",
+    "status.stillImageServiceLevel": "1",
+    "roadNumber": "F17",
+    "status.stillImageAvailability": "videoOrImagesUnavailableDueToCameraFault",
+    "endJsonTime": "2026-10-13T19:16:49+0200",
+    "publicationTime": "2026-10-13T19:16:47+0200",
+    "orientationDescription": "Nesna",
+    "geometry_name": "GEOMETRY_OBJECT",
+    "stillImageUrlDescription": "https://www.yr.no/nb/værvarsel/daglig-tabell/66.286292,13.2883795/",
+    "stillImageServiceLevel": 1,
+    "stillImageFormat": "jpeg",
+    "videoServiceLevel": 0,
+    "description": "Sjonfjellet"
+   }
+  },
+  {
+   "type": "Feature",
+   "id": "6707b6d757c76d466ad9dc8c",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     9.568446,
+     63.309277
+    ]
+   },
+   "properties": {
+    "@featureType": "geoJsonCctvSimple",
+    "stillImageUrl": "https://kamera.atlas.vegvesen.no/api/images/1629006_1",
+    "videoEncodingStandard": "",
+    "cameraId": "1629006_1",
+    "lastUpdateTime": "2026-10-13T19:16:47+0200",
+    "recordId": "1629006_1",
+    "pubId": 1791911793,
+    "_id": "6707b6d757c76d466ad9dc8c",
+    "status.stillImageServiceLevel": "1",
+    "roadNumber": "F714",
+    "status.stillImageAvailability": "videoOrImagesAvailable",
+    "endJsonTime": "2026-10-13T19:16:49+0200",
+    "publicationTime": "2026-10-13T19:16:47+0200",
+    "orientationDescription": "Snilldal",
+    "geometry_name": "GEOMETRY_OBJECT",
+    "stillImageUrlDescription": "https://www.yr.no/nb/værvarsel/daglig-tabell/63.309276,9.5684458/",
+    "stillImageServiceLevel": 1,
+    "stillImageFormat": "jpeg",
+    "videoServiceLevel": 0,
+    "description": "Våvatnet"
+   }
+  },
+  {
+   "type": "Feature",
+   "id": "6707b6d757c76d466ad9dc5f",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     11.324527,
+     62.74033
+    ]
+   },
+   "properties": {
+    "@featureType": "geoJsonCctvSimple",
+    "stillImageUrl": "https://kamera.atlas.vegvesen.no/api/images/1629011_1",
+    "videoEncodingStandard": "",
+    "cameraId": "1629011_1",
+    "lastUpdateTime": "2026-10-13T19:16:47+0200",
+    "recordId": "1629011_1",
+    "pubId": 1791911793,
+    "_id": "6707b6d757c76d466ad9dc5f",
+    "status.stillImageServiceLevel": "1",
+    "roadNumber": "F30",
+    "status.stillImageAvailability": "videoOrImagesUnavailableDueToCameraFault",
+    "endJsonTime": "2026-10-13T19:16:49+0200",
+    "publicationTime": "2026-10-13T19:16:47+0200",
+    "orientationDescription": "Røros",
+    "geometry_name": "GEOMETRY_OBJECT",
+    "stillImageUrlDescription": "https://www.yr.no/nb/værvarsel/daglig-tabell/62.7403314,11.3245272/",
+    "stillImageServiceLevel": 1,
+    "stillImageFormat": "jpeg",
+    "videoServiceLevel": 0,
+    "description": "Rugeldalen"
+   }
+  },
+  {
+   "type": "Feature",
+   "id": "6707b6d757c76d466ad9dc8d",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     9.763047,
+     63.23076
+    ]
+   },
+   "properties": {
+    "@featureType": "geoJsonCctvSimple",
+    "stillImageUrl": "https://kamera.atlas.vegvesen.no/api/images/1629004_1",
+    "videoEncodingStandard": "",
+    "cameraId": "1629004_1",
+    "lastUpdateTime": "2026-10-13T19:16:47+0200",
+    "recordId": "1629004_1",
+    "pubId": 1791911793,
+    "_id": "6707b6d757c76d466ad9dc8d",
+    "status.stillImageServiceLevel": "1",
+    "roadNumber": "F65",
+    "status.stillImageAvailability": "videoOrImagesUnavailableDueToCameraFault",
+    "endJsonTime": "2026-10-13T19:16:49+0200",
+    "publicationTime": "2026-10-13T19:16:47+0200",
+    "orientationDescription": "varierer",
+    "geometry_name": "GEOMETRY_OBJECT",
+    "stillImageUrlDescription": "https://www.yr.no/nb/værvarsel/daglig-tabell/63.2307602,9.7630474/",
+    "stillImageServiceLevel": 1,
+    "stillImageFormat": "jpeg",
+    "videoServiceLevel": 0,
+    "description": "Bye"
+   }
+  },
+  {
+   "type": "Feature",
+   "id": "6707b6d757c76d466ad9dccc",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     8.841809,
+     58.574112
+    ]
+   },
+   "properties": {
+    "@featureType": "geoJsonCctvSimple",
+    "stillImageUrl": "https://kamera.atlas.vegvesen.no/api/images/0929001_1",
+    "videoEncodingStandard": "",
+    "cameraId": "0929001_1",
+    "lastUpdateTime": "2026-10-13T19:16:47+0200",
+    "recordId": "0929001_1",
+    "pubId": 1791911793,
+    "_id": "6707b6d757c76d466ad9dccc",
+    "status.stillImageServiceLevel": "1",
+    "roadNumber": "F421",
+    "status.stillImageAvailability": "videoOrImagesAvailable",
+    "endJsonTime": "2026-10-13T19:16:49+0200",
+    "publicationTime": "2026-10-13T19:16:47+0200",
+    "orientationDescription": "Tvedestrand",
+    "geometry_name": "GEOMETRY_OBJECT",
+    "stillImageUrlDescription": "https://www.yr.no/nb/værvarsel/daglig-tabell/58.5741114,8.8418091/",
+    "stillImageServiceLevel": 1,
+    "stillImageFormat": "jpeg",
+    "videoServiceLevel": 0,
+    "description": "Haslestad"
+   }
+  },
+  {
+   "type": "Feature",
+   "id": "6707b6d757c76d466ad9dd0b",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     11.992811,
+     61.840477
+    ]
+   },
+   "properties": {
+    "@featureType": "geoJsonCctvSimple",
+    "stillImageUrl": "https://kamera.atlas.vegvesen.no/api/images/0429018_1",
+    "videoEncodingStandard": "",
+    "cameraId": "0429018_1",
+    "lastUpdateTime": "2026-10-13T19:16:47+0200",
+    "recordId": "0429018_1",
+    "pubId": 1791911793,
+    "_id": "6707b6d757c76d466ad9dd0b",
+    "status.stillImageServiceLevel": "1",
+    "roadNumber": "F26",
+    "status.stillImageAvailability": "videoOrImagesAvailable",
+    "endJsonTime": "2026-10-13T19:16:49+0200",
+    "publicationTime": "2026-10-13T19:16:47+0200",
+    "orientationDescription": "Engerdal",
+    "geometry_name": "GEOMETRY_OBJECT",
+    "stillImageUrlDescription": "https://www.yr.no/nb/værvarsel/daglig-tabell/61.8404785,11.992811/",
+    "stillImageServiceLevel": 1,
+    "stillImageFormat": "jpeg",
+    "videoServiceLevel": 0,
+    "description": "Skarven"
+   }
+  },
+  {
+   "type": "Feature",
+   "id": "6707b6d757c76d466ad9dd14",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     9.106606,
+     60.809635
+    ]
+   },
+   "properties": {
+    "@featureType": "geoJsonCctvSimple",
+    "stillImageUrl": "https://kamera.atlas.vegvesen.no/api/images/0529019_1",
+    "videoEncodingStandard": "",
+    "cameraId": "0529019_1",
+    "lastUpdateTime": "2026-10-13T19:16:47+0200",
+    "recordId": "0529019_1",
+    "pubId": 1791911793,
+    "_id": "6707b6d757c76d466ad9dd14",
+    "status.stillImageServiceLevel": "1",
+    "roadNumber": "F51",
+    "status.stillImageAvailability": "videoOrImagesAvailable",
+    "endJsonTime": "2026-10-13T19:16:49+0200",
+    "publicationTime": "2026-10-13T19:16:47+0200",
+    "orientationDescription": "Valdres",
+    "geometry_name": "GEOMETRY_OBJECT",
+    "stillImageUrlDescription": "https://www.yr.no/nb/værvarsel/daglig-tabell/60.8096334,9.1066054/",
+    "stillImageServiceLevel": 1,
+    "stillImageFormat": "jpeg",
+    "videoServiceLevel": 0,
+    "description": "Golsfjellet"
+   }
+  },
+  {
+   "type": "Feature",
+   "id": "6707b6d757c76d466ad9dd15",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     9.284967,
+     62.11189
+    ]
+   },
+   "properties": {
+    "@featureType": "geoJsonCctvSimple",
+    "stillImageUrl": "https://kamera.atlas.vegvesen.no/api/images/0529015_1",
+    "videoEncodingStandard": "",
+    "cameraId": "0529015_1",
+    "lastUpdateTime": "2026-10-13T19:16:49+0200",
+    "recordId": "0529015_1",
+    "pubId": 1791911793,
+    "_id": "6707b6d757c76d466ad9dd15",
+    "status.stillImageServiceLevel": "1",
+    "roadNumber": "E6",
+    "status.stillImageAvailability": "videoOrImagesAvailable",
+    "endJsonTime": "2026-10-13T19:16:49+0200",
+    "publicationTime": "2026-10-13T19:16:49+0200",
+    "orientationDescription": "Hjerkinn",
+    "geometry_name": "GEOMETRY_OBJECT",
+    "stillImageUrlDescription": "https://www.yr.no/nb/værvarsel/daglig-tabell/62.1118902,9.2849676/",
+    "stillImageServiceLevel": 1,
+    "stillImageFormat": "jpeg",
+    "videoServiceLevel": 0,
+    "description": "Fokstugu"
+   }
+  },
+  {
+   "type": "Feature",
+   "id": "6707b6d757c76d466ad9dd4d",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     16.565825,
+     68.630486
+    ]
+   },
+   "properties": {
+    "@featureType": "geoJsonCctvSimple",
+    "stillImageUrl": "https://kamera.atlas.vegvesen.no/api/images/3000988_2",
+    "videoEncodingStandard": "",
+    "cameraId": "3000988_2",
+    "lastUpdateTime": "2026-10-13T19:16:47+0200",
+    "recordId": "3000988_2",
+    "pubId": 1791911793,
+    "_id": "6707b6d757c76d466ad9dd4d",
+    "status.stillImageServiceLevel": "1",
+    "roadNumber": "E10",
+    "status.stillImageAvailability": "videoOrImagesAvailable",
+    "endJsonTime": "2026-10-13T19:16:49+0200",
+    "publicationTime": "2026-10-13T19:16:47+0200",
+    "orientationDescription": "Tjeldsund",
+    "geometry_name": "GEOMETRY_OBJECT",
+    "stillImageUrlDescription": "https://www.yr.no/nb/værvarsel/daglig-tabell/68.6304879,16.5658243/",
+    "stillImageServiceLevel": 1,
+    "stillImageFormat": "jpeg",
+    "videoServiceLevel": 0,
+    "description": "Tjeldsundbrua vest"
+   }
+  },
+  {
+   "type": "Feature",
+   "id": "6707b6d757c76d466ad9dcd0",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     11.493878,
+     60.14646
+    ]
+   },
+   "properties": {
+    "@featureType": "geoJsonCctvSimple",
+    "stillImageUrl": "https://kamera.atlas.vegvesen.no/api/images/0229034_1",
+    "videoEncodingStandard": "",
+    "cameraId": "0229034_1",
+    "lastUpdateTime": "2026-10-13T19:16:47+0200",
+    "recordId": "0229034_1",
+    "pubId": 1791911793,
+    "_id": "6707b6d757c76d466ad9dcd0",
+    "status.stillImageServiceLevel": "1",
+    "roadNumber": "F175",
+    "status.stillImageAvailability": "videoOrImagesUnavailableDueToCameraFault",
+    "endJsonTime": "2026-10-13T19:16:49+0200",
+    "publicationTime": "2026-10-13T19:16:47+0200",
+    "orientationDescription": "",
+    "geometry_name": "GEOMETRY_OBJECT",
+    "stillImageUrlDescription": "https://www.yr.no/nb/værvarsel/daglig-tabell/60.1464629,11.4938779/",
+    "stillImageServiceLevel": 1,
+    "stillImageFormat": "jpeg",
+    "videoServiceLevel": 0,
+    "description": "Folmo"
+   }
+  },
+  {
+   "type": "Feature",
+   "id": "6707b6d757c76d466ad9dcdf",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     14.488926,
+     67.32721
+    ]
+   },
+   "properties": {
+    "@featureType": "geoJsonCctvSimple",
+    "stillImageUrl": "https://kamera.atlas.vegvesen.no/api/images/3000971_1",
+    "videoEncodingStandard": "",
+    "cameraId": "3000971_1",
+    "lastUpdateTime": "2026-10-13T19:16:47+0200",
+    "recordId": "3000971_1",
+    "pubId": 1791911793,
+    "_id": "6707b6d757c76d466ad9dcdf",
+    "status.stillImageServiceLevel": "1",
+    "roadNumber": "F834",
+    "status.stillImageAvailability": "videoOrImagesAvailable",
+    "endJsonTime": "2026-10-13T19:16:49+0200",
+    "publicationTime": "2026-10-13T19:16:47+0200",
+    "orientationDescription": "Løpsmarka",
+    "geometry_name": "GEOMETRY_OBJECT",
+    "stillImageUrlDescription": "https://www.yr.no/nb/værvarsel/daglig-tabell/67.327212,14.4889258/",
+    "stillImageServiceLevel": 1,
+    "stillImageFormat": "jpeg",
+    "videoServiceLevel": 0,
+    "description": "Løp"
+   }
+  },
+  {
+   "type": "Feature",
+   "id": "6707b6d757c76d466ad9dd1d",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     5.451225,
+     60.35686
+    ]
+   },
+   "properties": {
+    "@featureType": "geoJsonCctvSimple",
+    "stillImageUrl": "https://kamera.atlas.vegvesen.no/api/images/1229050_1",
+    "videoEncodingStandard": "",
+    "cameraId": "1229050_1",
+    "lastUpdateTime": "2026-10-13T19:16:47+0200",
+    "recordId": "1229050_1",
+    "pubId": 1791911793,
+    "_id": "6707b6d757c76d466ad9dd1d",
+    "status.stillImageServiceLevel": "1",
+    "roadNumber": "F587",
+    "status.stillImageAvailability": "videoOrImagesUnavailableDueToCameraFault",
+    "endJsonTime": "2026-10-13T19:16:49+0200",
+    "publicationTime": "2026-10-13T19:16:47+0200",
+    "orientationDescription": "Arna",
+    "geometry_name": "GEOMETRY_OBJECT",
+    "stillImageUrlDescription": "https://www.yr.no/nb/værvarsel/daglig-tabell/60.3568616,5.4512247/",
+    "stillImageServiceLevel": 1,
+    "stillImageFormat": "jpeg",
+    "videoServiceLevel": 0,
+    "description": "Haukeland"
+   }
+  },
+  {
+   "type": "Feature",
+   "id": "6707b6d757c76d466ad9dd3a",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     8.041146,
+     61.16736
+    ]
+   },
+   "properties": {
+    "@featureType": "geoJsonCctvSimple",
+    "stillImageUrl": "https://kamera.atlas.vegvesen.no/api/images/1429041_1",
+    "videoEncodingStandard": "",
+    "cameraId": "1429041_1",
+    "lastUpdateTime": "2026-10-13T19:16:47+0200",
+    "recordId": "1429041_1",
+    "pubId": 1791911793,
+    "_id": "6707b6d757c76d466ad9dd3a",
+    "status.stillImageServiceLevel": "1",
+    "roadNumber": "E16",
+    "status.stillImageAvailability": "videoOrImagesAvailable",
+    "endJsonTime": "2026-10-13T19:16:49+0200",
+    "publicationTime": "2026-10-13T19:16:47+0200",
+    "orientationDescription": "Fagernes",
+    "geometry_name": "GEOMETRY_OBJECT",
+    "stillImageUrlDescription": "https://www.yr.no/nb/værvarsel/daglig-tabell/61.1673602,8.0411461/",
+    "stillImageServiceLevel": 1,
+    "stillImageFormat": "jpeg",
+    "videoServiceLevel": 0,
+    "description": "Filefjell v/Smedalen"
+   }
+  },
+  {
+   "type": "Feature",
+   "id": "6707b6d757c76d466ad9dcba",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     7.7657695,
+     61.27194
+    ]
+   },
+   "properties": {
+    "@featureType": "geoJsonCctvSimple",
+    "stillImageUrl": "https://kamera.atlas.vegvesen.no/api/images/1429013_2",
+    "videoEncodingStandard": "",
+    "cameraId": "1429013_2",
+    "lastUpdateTime": "2026-10-13T19:16:47+0200",
+    "recordId": "1429013_2",
+    "pubId": 1791911793,
+    "_id": "6707b6d757c76d466ad9dcba",
+    "status.stillImageServiceLevel": "1",
+    "roadNumber": "F53",
+    "status.stillImageAvailability": "videoOrImagesUnavailableDueToCameraFault",
+    "endJsonTime": "2026-10-13T19:16:49+0200",
+    "publicationTime": "2026-10-13T19:16:47+0200",
+    "orientationDescription": "Øvre Årdal",
+    "geometry_name": "GEOMETRY_OBJECT",
+    "stillImageUrlDescription": "https://www.yr.no/nb/værvarsel/daglig-tabell/61.2719396,7.7657696/",
+    "stillImageServiceLevel": 1,
+    "stillImageFormat": "jpeg",
+    "videoServiceLevel": 0,
+    "description": "Brennborg"
+   }
+  },
+  {
+   "type": "Feature",
+   "id": "6707b6d757c76d466ad9dcbc",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     6.5042486,
+     61.767117
+    ]
+   },
+   "properties": {
+    "@featureType": "geoJsonCctvSimple",
+    "stillImageUrl": "https://kamera.atlas.vegvesen.no/api/images/1429037_1",
+    "videoEncodingStandard": "hls",
+    "cameraId": "1429037_1",
+    "lastUpdateTime": "2026-10-13T19:16:47+0200",
+    "recordId": "1429037_1",
+    "pubId": 1791911793,
+    "_id": "6707b6d757c76d466ad9dcbc",
+    "status.stillImageServiceLevel": "1",
+    "roadNumber": "F60",
+    "status.stillImageAvailability": "videoOrImagesAvailable",
+    "videoUrl": "https://kamera.vegvesen.no/public/1429037_1/manifest.m3u8",
+    "endJsonTime": "2026-10-13T19:16:49+0200",
+    "publicationTime": "2026-10-13T19:16:47+0200",
+    "videoFrameRate": 60,
+    "orientationDescription": "Stryn",
+    "geometry_name": "GEOMETRY_OBJECT",
+    "stillImageUrlDescription": "https://www.yr.no/nb/værvarsel/daglig-tabell/61.7671164,6.5042486/",
+    "stillImageServiceLevel": 1,
+    "stillImageFormat": "jpeg",
+    "videoServiceLevel": 1,
+    "description": "Utvikfjellet"
+   }
+  },
+  {
+   "type": "Feature",
+   "id": "6707b6d757c76d466ad9dcc6",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     5.299231,
+     60.331062
+    ]
+   },
+   "properties": {
+    "@featureType": "geoJsonCctvSimple",
+    "stillImageUrl": "https://kamera.atlas.vegvesen.no/api/images/1229054_1",
+    "videoEncodingStandard": "",
+    "cameraId": "1229054_1",
+    "lastUpdateTime": "2026-10-13T19:16:47+0200",
+    "recordId": "1229054_1",
+    "pubId": 1791911793,
+    "_id": "6707b6d757c76d466ad9dcc6",
+    "status.stillImageServiceLevel": "1",
+    "roadNumber": "F5368",
+    "status.stillImageAvailability": "videoOrImagesAvailable",
+    "endJsonTime": "2026-10-13T19:16:49+0200",
+    "publicationTime": "2026-10-13T19:16:47+0200",
+    "orientationDescription": "Straume",
+    "geometry_name": "GEOMETRY_OBJECT",
+    "stillImageUrlDescription": "https://www.yr.no/nb/værvarsel/daglig-tabell/60.3310628,5.2992311/",
+    "stillImageServiceLevel": 1,
+    "stillImageFormat": "jpeg",
+    "videoServiceLevel": 0,
+    "description": "Bønesskogen"
+   }
+  },
+  {
+   "type": "Feature",
+   "id": "6707b6d757c76d466ad9dd46",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     9.747164,
+     60.28738
+    ]
+   },
+   "properties": {
+    "@featureType": "geoJsonCctvSimple",
+    "stillImageUrl": "https://kamera.atlas.vegvesen.no/api/images/3000020_1",
+    "videoEncodingStandard": "",
+    "cameraId": "3000020_1",
+    "lastUpdateTime": "2026-10-13T19:16:47+0200",
+    "recordId": "3000020_1",
+    "pubId": 1791911793,
+    "_id": "6707b6d757c76d466ad9dd46",
+    "status.stillImageServiceLevel": "1",
+    "roadNumber": "R7",
+    "status.stillImageAvailability": "videoOrImagesAvailable",
+    "endJsonTime": "2026-10-13T19:16:49+0200",
+    "publicationTime": "2026-10-13T19:16:47+0200",
+    "orientationDescription": "mot Sokna",
+    "geometry_name": "GEOMETRY_OBJECT",
+    "stillImageUrlDescription": "https://www.yr.no/nb/værvarsel/daglig-tabell/60.2873796,9.747164/",
+    "stillImageServiceLevel": 1,
+    "stillImageFormat": "jpeg",
+    "videoServiceLevel": 0,
+    "description": "Nordtjernlia"
+   }
+  },
+  {
+   "type": "Feature",
+   "id": "6707b6d757c76d466ad9dd66",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     7.474915,
+     61.101627
+    ]
+   },
+   "properties": {
+    "@featureType": "geoJsonCctvSimple",
+    "stillImageUrl": "https://kamera.atlas.vegvesen.no/api/images/3000162_1",
+    "videoEncodingStandard": "",
+    "cameraId": "3000162_1",
+    "lastUpdateTime": "2026-10-13T19:16:47+0200",
+    "recordId": "3000162_1",
+    "pubId": 1791911793,
+    "_id": "6707b6d757c76d466ad9dd66",
+    "status.stillImageServiceLevel": "1",
+    "roadNumber": "R5",
+    "status.stillImageAvailability": "videoOrImagesAvailable",
+    "endJsonTime": "2026-10-13T19:16:49+0200",
+    "publicationTime": "2026-10-13T19:16:47+0200",
+    "orientationDescription": "Fodnes",
+    "geometry_name": "GEOMETRY_OBJECT",
+    "stillImageUrlDescription": "https://www.yr.no/nb/værvarsel/daglig-tabell/61.1016288,7.4749151/",
+    "stillImageServiceLevel": 1,
+    "stillImageFormat": "jpeg",
+    "videoServiceLevel": 0,
+    "description": "Lærdalsøyri"
+   }
+  },
+  {
+   "type": "Feature",
+   "id": "6707b6d757c76d466ad9dc9f",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     7.1049676,
+     60.861065
+    ]
+   },
+   "properties": {
+    "@featureType": "geoJsonCctvSimple",
+    "stillImageUrl": "https://kamera.atlas.vegvesen.no/api/images/1429020_1",
+    "videoEncodingStandard": "",
+    "cameraId": "1429020_1",
+    "lastUpdateTime": "2026-10-13T19:16:49+0200",
+    "recordId": "1429020_1",
+    "pubId": 1791911793,
+    "_id": "6707b6d757c76d466ad9dc9f",
+    "status.stillImageServiceLevel": "1",
+    "roadNumber": "E16",
+    "status.stillImageAvailability": "videoOrImagesAvailable",
+    "endJsonTime": "2026-10-13T19:16:49+0200",
+    "publicationTime": "2026-10-13T19:16:49+0200",
+    "orientationDescription": "Aurland",
+    "geometry_name": "GEOMETRY_OBJECT",
+    "stillImageUrlDescription": "https://www.yr.no/nb/værvarsel/daglig-tabell/60.8610646,7.1049676/",
+    "stillImageServiceLevel": 1,
+    "stillImageFormat": "jpeg",
+    "videoServiceLevel": 0,
+    "description": "Flåm"
+   }
+  },
+  {
+   "type": "Feature",
+   "id": "6707b6d757c76d466ad9dce9",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     5.339726,
+     60.37364
+    ]
+   },
+   "properties": {
+    "@featureType": "geoJsonCctvSimple",
+    "stillImageUrl": "https://kamera.atlas.vegvesen.no/api/images/3000061_1",
+    "videoEncodingStandard": "hls",
+    "cameraId": "3000061_1",
+    "lastUpdateTime": "2026-10-13T19:16:47+0200",
+    "recordId": "3000061_1",
+    "pubId": 1791911793,
+    "_id": "6707b6d757c76d466ad9dce9",
+    "status.stillImageServiceLevel": "1",
+    "roadNumber": "E39",
+    "status.stillImageAvailability": "videoOrImagesAvailable",
+    "videoUrl": "https://kamera.vegvesen.no/public/3000061_1/manifest.m3u8",
+    "endJsonTime": "2026-10-13T19:16:49+0200",
+    "publicationTime": "2026-10-13T19:16:47+0200",
+    "videoFrameRate": 60,
+    "orientationDescription": "sentrum",
+    "geometry_name": "GEOMETRY_OBJECT",
+    "stillImageUrlDescription": "https://www.yr.no/nb/værvarsel/daglig-tabell/60.3736382,5.3397261/",
+    "stillImageServiceLevel": 1,
+    "stillImageFormat": "jpeg",
+    "videoServiceLevel": 1,
+    "description": "Fjøsangerveien v/BKK"
+   }
+  },
+  {
+   "type": "Feature",
+   "id": "6707b6d757c76d466ad9dd6b",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     7.212595,
+     60.908295
+    ]
+   },
+   "properties": {
+    "@featureType": "geoJsonCctvSimple",
+    "stillImageUrl": "https://kamera.atlas.vegvesen.no/api/images/3000440_1",
+    "videoEncodingStandard": "hls",
+    "cameraId": "3000440_1",
+    "lastUpdateTime": "2026-10-13T19:16:47+0200",
+    "recordId": "3000440_1",
+    "pubId": 1791911793,
+    "_id": "6707b6d757c76d466ad9dd6b",
+    "status.stillImageServiceLevel": "1",
+    "roadNumber": "F5627",
+    "status.stillImageAvailability": "videoOrImagesAvailable",
+    "videoUrl": "https://kamera.vegvesen.no/public/3000440_1/manifest.m3u8",
+    "endJsonTime": "2026-10-13T19:16:49+0200",
+    "publicationTime": "2026-10-13T19:16:47+0200",
+    "videoFrameRate": 60,
+    "orientationDescription": "Aurlandsvangen",
+    "geometry_name": "GEOMETRY_OBJECT",
+    "stillImageUrlDescription": "https://www.yr.no/nb/værvarsel/daglig-tabell/60.9082939,7.212595/",
+    "stillImageServiceLevel": 1,
+    "stillImageFormat": "jpeg",
+    "videoServiceLevel": 1,
+    "description": "Stegasteinen"
+   }
+  },
+  {
+   "type": "Feature",
+   "id": "6707b6d757c76d466ad9dc45",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     5.194947,
+     61.66738
+    ]
+   },
+   "properties": {
+    "@featureType": "geoJsonCctvSimple",
+    "stillImageUrl": "https://kamera.atlas.vegvesen.no/api/images/1429014_1",
+    "videoEncodingStandard": "",
+    "cameraId": "1429014_1",
+    "lastUpdateTime": "2026-10-13T19:16:47+0200",
+    "recordId": "1429014_1",
+    "pubId": 1791911793,
+    "_id": "6707b6d757c76d466ad9dc45",
+    "status.stillImageServiceLevel": "1",
+    "roadNumber": "F614",
+    "status.stillImageAvailability": "videoOrImagesUnavailableDueToCameraFault",
+    "endJsonTime": "2026-10-13T19:16:49+0200",
+    "publicationTime": "2026-10-13T19:16:47+0200",
+    "orientationDescription": "Florø",
+    "geometry_name": "GEOMETRY_OBJECT",
+    "stillImageUrlDescription": "https://www.yr.no/nb/værvarsel/daglig-tabell/61.6673802,5.1949467/",
+    "stillImageServiceLevel": 1,
+    "stillImageFormat": "jpeg",
+    "videoServiceLevel": 0,
+    "description": "Grytadalen"
+   }
+  },
+  {
+   "type": "Feature",
+   "id": "6707b6d757c76d466ad9dc5a",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     11.088684,
+     63.338028
+    ]
+   },
+   "properties": {
+    "@featureType": "geoJsonCctvSimple",
+    "stillImageUrl": "https://kamera.atlas.vegvesen.no/api/images/1629014_1",
+    "videoEncodingStandard": "",
+    "cameraId": "1629014_1",
+    "lastUpdateTime": "2026-10-13T19:16:47+0200",
+    "recordId": "1629014_1",
+    "pubId": 1791911793,
+    "_id": "6707b6d757c76d466ad9dc5a",
+    "status.stillImageServiceLevel": "1",
+    "roadNumber": "F705",
+    "status.stillImageAvailability": "videoOrImagesUnavailableDueToCameraFault",
+    "endJsonTime": "2026-10-13T19:16:49+0200",
+    "publicationTime": "2026-10-13T19:16:47+0200",
+    "orientationDescription": "Stjørdal",
+    "geometry_name": "GEOMETRY_OBJECT",
+    "stillImageUrlDescription": "https://www.yr.no/nb/værvarsel/daglig-tabell/63.3380284,11.0886839/",
+    "stillImageServiceLevel": 1,
+    "stillImageFormat": "jpeg",
+    "videoServiceLevel": 0,
+    "description": "Selbuskogen"
+   }
+  },
+  {
+   "type": "Feature",
+   "id": "6707b6d757c76d466ad9dc7c",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     5.2274313,
+     60.703682
+    ]
+   },
+   "properties": {
+    "@featureType": "geoJsonCctvSimple",
+    "stillImageUrl": "https://kamera.atlas.vegvesen.no/api/images/1229059_1",
+    "videoEncodingStandard": "",
+    "cameraId": "1229059_1",
+    "lastUpdateTime": "2026-10-13T19:16:47+0200",
+    "recordId": "1229059_1",
+    "pubId": 1791911793,
+    "_id": "6707b6d757c76d466ad9dc7c",
+    "status.stillImageServiceLevel": "1",
+    "roadNumber": "F57",
+    "status.stillImageAvailability": "videoOrImagesUnavailableDueToCameraFault",
+    "endJsonTime": "2026-10-13T19:16:49+0200",
+    "publicationTime": "2026-10-13T19:16:47+0200",
+    "orientationDescription": "Austrheim",
+    "geometry_name": "GEOMETRY_OBJECT",
+    "stillImageUrlDescription": "https://www.yr.no/nb/værvarsel/daglig-tabell/60.7036804,5.2274311/",
+    "stillImageServiceLevel": 1,
+    "stillImageFormat": "jpeg",
+    "videoServiceLevel": 0,
+    "description": "Skodvin"
+   }
+  }
+ ]
+}

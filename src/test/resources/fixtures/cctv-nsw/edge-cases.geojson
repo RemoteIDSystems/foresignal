@@ -1,0 +1,18 @@
+{"type": "FeatureCollection", "features": [
+ {"type": "Feature", "id": "edge-ok", "geometry": {"type": "Point", "coordinates": [151.2, -33.87]},
+  "properties": {"region": "SYD_MET", "title": "Edge Ok", "view": "Looking north-east.", "direction": "N-E", "href": "https://webcams.transport.nsw.gov.au/livetraffic-webcams/cameras/edge_ok.jpeg"}},
+ {"type": "Feature", "id": "no-geometry", "geometry": null,
+  "properties": {"region": "SYD_MET", "title": "No Geometry", "direction": "N", "href": "https://webcams.transport.nsw.gov.au/livetraffic-webcams/cameras/no_geometry.jpeg"}},
+ {"type": "Feature", "id": "string-coordinates", "geometry": {"type": "Point", "coordinates": ["151.2", "-33.87"]},
+  "properties": {"region": "SYD_MET", "title": "String Coordinates", "direction": "S", "href": "https://webcams.transport.nsw.gov.au/livetraffic-webcams/cameras/strings.jpeg"}},
+ {"type": "Feature", "id": "out-of-bounds", "geometry": {"type": "Point", "coordinates": [115.86, -31.95]},
+  "properties": {"region": "WA", "title": "Perth", "direction": "E", "href": "https://webcams.transport.nsw.gov.au/livetraffic-webcams/cameras/perth.jpeg"}},
+ {"type": "Feature", "id": "off-host", "geometry": {"type": "Point", "coordinates": [151.1, -33.9]},
+  "properties": {"region": "SYD_MET", "title": "Off Host", "direction": "W", "href": "https://evil.example/cameras/off_host.jpeg"}},
+ {"type": "Feature", "id": "insecure", "geometry": {"type": "Point", "coordinates": [151.0, -33.8]},
+  "properties": {"region": "SYD_MET", "title": "Insecure", "direction": "Both", "href": "http://webcams.transport.nsw.gov.au/livetraffic-webcams/cameras/insecure.jpeg"}},
+ {"type": "Feature", "id": "edge-ok", "geometry": {"type": "Point", "coordinates": [151.3, -33.7]},
+  "properties": {"region": "SYD_MET", "title": "Duplicate", "direction": "S", "href": "https://webcams.transport.nsw.gov.au/livetraffic-webcams/cameras/duplicate.jpeg"}},
+ {"type": "Feature", "geometry": {"type": "Point", "coordinates": [151.3, -33.7]},
+  "properties": {"region": "SYD_MET", "title": "No Id", "direction": "S", "href": "https://webcams.transport.nsw.gov.au/livetraffic-webcams/cameras/no_id.jpeg"}}
+]}

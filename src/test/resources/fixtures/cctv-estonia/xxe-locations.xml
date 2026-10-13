@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE d2LogicalModel [ <!ENTITY xxe SYSTEM "file:///etc/passwd"> ]>
+<d2LogicalModel modelBaseVersion="2" xmlns="http://datex2.eu/schema/2/2_0">
+    <predefinedLocation id="x" version="0">
+        <predefinedLocationName><values><value lang="et">&xxe;</value></values></predefinedLocationName>
+        <location><pointByCoordinates><pointCoordinates><latitude>59.0</latitude><longitude>25.0</longitude></pointCoordinates></pointByCoordinates></location>
+    </predefinedLocation>
+</d2LogicalModel>

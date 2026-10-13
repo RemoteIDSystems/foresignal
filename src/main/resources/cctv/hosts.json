@@ -1,0 +1,22 @@
+{
+  "probed": "2026-10-13",
+  "method": "one frame per pack, requested with Foresignal's fixture User-Agent and no Referer or Origin (HEAD, plus a GET where HEAD did not settle it); access is direct when the answer was image/* or an HLS playlist, browser when a non-browser client gets an HTML page or 403, key when the host needs a key",
+  "hosts": {
+    "s3-eu-west-1.amazonaws.com": {"access": "direct", "cors": false, "notes": "TfL JamCam stills (bucket jamcams.tfl.gov.uk); image/jpeg, no Access-Control-Allow-Origin"},
+    "cwwp2.dot.ca.gov": {"access": "direct", "cors": true, "notes": "Caltrans stills; image/jpeg, Access-Control-Allow-Origin *"},
+    "wzmedia.dot.ca.gov": {"access": "direct", "cors": true, "notes": "Caltrans HLS; application/vnd.apple.mpegurl with Access-Control-Allow-Origin * (some streams answer 404 when the camera is down)"},
+    "511on.ca": {"access": "direct", "cors": true, "notes": "Ontario 511 stills need no key (the catalog does); image/jpeg, Access-Control-Allow-Origin *"},
+    "weathercam.digitraffic.fi": {"access": "direct", "cors": true, "notes": "Digitraffic weathercam presets; image/jpeg, Access-Control-Allow-Origin *"},
+    "www.drivebc.ca": {"access": "direct", "cors": true, "notes": "DriveBC /images/{id}.jpg; image/jpeg, Access-Control-Allow-Origin *"},
+    "webcams.transport.nsw.gov.au": {"access": "browser", "cors": false, "notes": "answers non-browser clients with 200 text/html instead of the frame; loads from a real browser <img>"},
+    "trafficcam.calgary.ca": {"access": "direct", "cors": false, "notes": "City of Calgary stills over https; image/jpeg"},
+    "cctv.austinmobility.io": {"access": "direct", "cors": false, "notes": "Austin stills; image/jpeg for TURNED_ON cameras (403 application/xml for planned ones)"},
+    "video.deldot.gov": {"access": "direct", "cors": true, "notes": "DelDOT HLS; application/vnd.apple.mpegurl, Access-Control-Allow-Origin *"},
+    "kamera.atlas.vegvesen.no": {"access": "direct", "cors": false, "notes": "Statens vegvesen stills; image/jpeg"},
+    "kamera.vegvesen.no": {"access": "direct", "cors": true, "notes": "Statens vegvesen HLS; application/vnd.apple.mpegurl, Access-Control-Allow-Origin *"},
+    "tarktee.transpordiamet.ee": {"access": "direct", "cors": false, "notes": "Transpordiamet stills; image/jpeg; the file name changes with every image"},
+    "ristmikud.tallinn.ee": {"access": "direct", "cors": false, "notes": "City of Tallinn stills; image/jpeg"},
+    "webcam.warendorf.de": {"access": "direct", "cors": false, "notes": "unverified: the host did not answer at the probe; http only (frameInsecure)"},
+    "www.kreis-warendorf.de": {"access": "direct", "cors": false, "notes": "unverified: allowed by the bundled pack, no camera of the pack uses it at present"}
+  }
+}

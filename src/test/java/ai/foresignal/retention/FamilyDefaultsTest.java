@@ -140,6 +140,10 @@ class FamilyDefaultsTest {
             // Prompt 071: bikeshare station status is LATEST station state, the state class (365 d).
             Map.entry("GbfsAdapter", new Entry(new ai.foresignal.source.adapters.gbfs.GbfsAdapter(
                     ai.foresignal.source.adapters.gbfs.GbfsSystems.reviewed("nyc-citibike"), null).descriptor(), "state")),
+            // Prompt 072: camera catalogs are reference data (90 d of history).
+            Map.entry("CctvPackAdapter", new Entry(new ai.foresignal.source.adapters.cctv.CctvPackAdapter(
+                    ai.foresignal.source.adapters.cctv.CctvPacks.reviewed("cctv-tfl"), null, null).descriptor(),
+                    "reference")),
             // Prompt 052: the derived weather sources, retained per Weather-Imagery-Design §2.4.
             Map.entry("WxPlacesGenerator", new Entry(
                     new ai.foresignal.source.adapters.wx.WxPlacesGenerator().descriptor(), "weather")),
