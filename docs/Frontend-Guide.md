@@ -5,7 +5,8 @@ How map clients read Foresignal's rasters, record tiles and change streams: MapL
 §6.1, tiles and loops §6.3, access §6.7, SSE §6.8, recipes §6.10); the operations are in
 `docs/OpenAPI.json`.
 
-Library versions were checked on 2026-10-12:
+Library versions were checked on 2026-10-12 (ol-mapbox-style 13.5.1 and vector_map_tiles 8.0.0 on
+2026-10-13):
 
 | Client | Version | Notes |
 |---|---|---|
@@ -22,9 +23,10 @@ Library versions were checked on 2026-10-12:
 4. [maplibre_gl (Flutter)](#maplibre_gl-flutter)
 5. [flutter_map](#flutter_map)
 6. [Cesium](#cesium)
-7. [Legends and attribution](#legends-and-attribution)
-8. [On plain HTTP/1.1](#on-plain-http11)
-9. [Wind particles](#wind-particles)
+7. [Overlay style and sprite](#overlay-style-and-sprite)
+8. [Legends and attribution](#legends-and-attribution)
+9. [On plain HTTP/1.1](#on-plain-http11)
+10. [Wind particles](#wind-particles)
 
 ## Getting in: tile keys, tokens and tickets
 
@@ -56,7 +58,8 @@ The answer carries the key **once**, plus `urlBase` (`{publicBaseUrl}/v1/k/{key}
 ```
 
 - **Prefixes** are chosen from `/v1/products/`, `/v1/styles`, `/v1/media/`, `/v1/tiles/`,
-  `/v1/maps/static`, `/v1/sample`, `/v1/ground-stations/`, `/v1/changes/stream` and `/v1/events/stream`.
+  `/v1/maps/static`, `/v1/sample`, `/v1/ground-stations/`, `/v1/changes/stream`, `/v1/events/stream` and
+  `/v1/map/` (the overlay style, its sprite and the KML icons, 058).
   `/v1/maps/static` and `/v1/sample` answer 404 until the prompts that build them (055, 052) ship.
 - **Restrictions** are optional: `"restrictions": {"sources": [...], "kinds": [...], "bbox": [w,s,e,n]}`
   clamps record tiles and change streams exactly as for a restricted token.
@@ -373,6 +376,81 @@ viewer.imageryLayers.addImageryProvider(new Cesium.UrlTemplateImageryProvider({
 - Use **tile-key URLs**; Cesium's imagery requests carry no custom headers by default.
 - On a new frame, add a provider for the new template and remove the old layer.
 - **Wind:** barb MVT points as billboards rotated by `fromDeg`, or the `wind-speed` raster style.
+
+## Overlay style and sprite
+
+`GET /v1/map/style.json?layers=a,b&theme=light|dark` (prompt 058) is a MapLibre version-8 **overlay** style
+generated from each kind's display hints. It has no basemap, no `glyphs` and no text layers, so it never
+triggers a glyph request. Default styles are overridable data, not UI: restyle the same tiles as you like.
+
+- **Sources:** one `vector` source per layer, named after the layer, whose `url` is the layer's TileJSON;
+  below a layer's `aggBelowZoom` a second source `<layer>--agg` reads `agg=hex` tiles, and its `fill` layer
+  stops at that zoom where the raw layers start.
+- **Layers** per kind: `symbol` with an SDF icon colored by `icon-color` (rotated by `rotateField`), or a
+  `circle` (radius by zoom and `sizeField`), a `line`, and a `fill` at 0.25 opacity with an outline, all
+  filtered by geometry type and, for multi-kind layers, by `kind`. Ids are `<layer>--<kind>--point|line|fill|outline`.
+- **Sprite:** `<base>/v1/map/sprites/foresignal-{sha8}` (MapLibre appends `.json`, `.png` and `@2x`). It is
+  content-addressed and cached for a year; a new hash appears in the style when the sprite changes.
+- **`metadata.foresignal.layers`** lists each layer's kinds, attribution and `aggBelowZoom`.
+- With a tile key, request `/v1/k/{key}/map/style.json`: the source and sprite URLs then carry the same
+  key (the key needs the `/v1/map/` and `/v1/tiles/` prefixes).
+
+### MapLibre GL JS
+
+GL JS has no style merge. Load your basemap style, then add the overlay's sprite under its own id and its
+sources and layers. With more than one sprite, an icon is addressed as `<spriteId>:<name>`:
+
+```js
+const overlay = await (await fetch(keyed(`${base}/v1/map/style.json?layers=usgs-earthquakes,nws-alerts`))).json();
+map.on("load", () => {
+  map.addSprite("foresignal", overlay.sprite);
+  for (const [id, source] of Object.entries(overlay.sources)) map.addSource(id, source);
+  for (const layer of overlay.layers) {
+    if (layer.layout?.["icon-image"]) {
+      layer.layout["icon-image"] = `foresignal:${layer.layout["icon-image"]}`;
+    }
+    map.addLayer(layer);
+  }
+});
+```
+
+Alternatively, merge the two documents yourself before creating the map: concatenate `sources` and
+`layers`, and set `sprite` to the array form `[{id: "default", url: basemapSprite}, {id: "foresignal", url:
+overlay.sprite}]` with the same `foresignal:` prefix on `icon-image`.
+
+### maplibre_gl (Flutter, mobile and web)
+
+The same merge works: fetch the basemap style JSON and the overlay, append the overlay's sources and
+layers to the basemap document, and pass the merged JSON as `styleString`. If your platform's renderer does
+not load a second sprite, add the overlay's icons with `addImage(name, bytes, true)` (the third argument marks an SDF image) from the 1x or 2x
+sheet (`foresignal-{sha8}.json` gives each icon's rectangle) and keep the unprefixed `icon-image` names.
+
+### flutter_map with vector_map_tiles (desktop)
+
+`vector_map_tiles` reads a MapLibre style into a theme, sprites and tile providers (`StyleReader(uri: …).read()`,
+then `VectorTileLayer(theme: style.theme, sprites: style.sprites, tileProviders: style.providers)`). Read
+the overlay style as its own layer above your basemap layer; data-driven expressions the theme reader
+does not support fall back to the kind's base color. Note that vector_map_tiles 8.0.0 (the latest release on pub.dev on 2026-10-13) is built
+against flutter_map 7.0.2, not the flutter_map 8.3.2 above; its 10.0 line is still in beta, so pin the pair
+that resolves together.
+
+### OpenLayers
+
+`ol-mapbox-style` applies a MapLibre style to an OpenLayers map or layer: `apply(map, styleUrl)` for the
+whole map, or `applyStyle(vectorTileLayer, styleUrl)` for one layer over your basemap.
+
+### QGIS
+
+Add a Vector Tiles connection with the layer's tile template from its TileJSON
+(`<base>/v1/tiles/<layer>/{z}/{x}/{y}.mvt`) and the style URL `<base>/v1/map/style.json?layers=<layer>`.
+
+### Feeds and KML
+
+- **Atom / JSON Feed:** `/v1/alerts/feed.atom|json` and `/v1/briefings/{id}/runs/feed.atom|json` for feed
+  readers and automations (JSON Feed items carry `_foresignal.{severity, state, sourceId, externalId,
+  geometry}`). RSS 2.0 and WebSub are not offered.
+- **KML:** `/v1/kml/networklink.kml` for Google Earth and Cesium `KmlDataSource` (Operator Guide "Feeds,
+  Google Earth and Cesium").
 
 ## Legends and attribution
 

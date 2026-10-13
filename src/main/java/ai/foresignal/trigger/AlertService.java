@@ -90,6 +90,25 @@ public class AlertService {
     }
 
     /**
+     * The newest {@code limit} alerts matching {@code query} by last lifecycle change (fired,
+     * acknowledged or resolved), for the Atom and JSON feeds of prompt 058.
+     */
+    public List<AlertView> feed(AlertQuery query, int limit) {
+        return store.feed(query, limit);
+    }
+
+    /** The last lifecycle change of {@code alert}: the latest of fired, acknowledged and resolved. */
+    public static java.time.Instant lastChange(AlertView alert) {
+        java.time.Instant last = alert.firedAt();
+        for (java.time.Instant t : new java.time.Instant[] {alert.acknowledgedAt(), alert.resolvedAt()}) {
+            if (t != null && (last == null || t.isAfter(last))) {
+                last = t;
+            }
+        }
+        return last;
+    }
+
+    /**
      * Acknowledges an alert: idempotent, and a no-op on a resolved alert. A note or feedback given
      * with a repeated acknowledge is still recorded.
      */

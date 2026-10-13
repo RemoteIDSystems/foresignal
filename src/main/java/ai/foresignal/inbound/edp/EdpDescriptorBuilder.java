@@ -244,6 +244,10 @@ public final class EdpDescriptorBuilder {
         }
         String color = text(p, "color");
         String icon = text(p, "icon");
+        // Prompt 058: kindDisplay.icon must be a sprite icon; a provider's other names stay presentation hints only.
+        if (icon != null && !ai.foresignal.map.SpriteCatalog.iconNames().contains(icon)) {
+            icon = null;
+        }
         if ((color != null && COLOR.matcher(color).matches()) || icon != null) {
             b.kindDisplay(stream.kind(), new KindDisplay(null, icon,
                     color != null && COLOR.matcher(color).matches() ? color : null, null));

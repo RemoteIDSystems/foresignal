@@ -895,7 +895,7 @@ Caddy), close the perimeter:
   token mints `POST /v1/tile-keys {"name":"kitchen-tablet","prefixes":["/v1/products/","/v1/styles","/v1/changes/stream"],"ttl":"7d"}`
   and gets the `fsk_` key and its `urlBase` once. They are the same path carrier as feed keys, with map
   prefixes only (`/v1/products/`, `/v1/styles`, `/v1/media/`, `/v1/tiles/`, `/v1/maps/static`,
-  `/v1/sample`, `/v1/ground-stations/`, `/v1/changes/stream`, `/v1/events/stream`), a lifetime of at
+  `/v1/sample`, `/v1/ground-stations/`, `/v1/changes/stream`, `/v1/events/stream`, `/v1/map/`), a lifetime of at
   most 30 days, an optional restriction, and never private sources. An unknown, expired or revoked key
   answers `401 INVALID_TILE_KEY`. Mint one per device and rotate weekly; `docs/Frontend-Guide.md` has
   the client recipes. Responses through a tile key follow the normal cache rule, so content-addressed
@@ -2112,6 +2112,60 @@ own network**: a host that does not resolve to a loopback or private address is 
 map) and Natural Earth is used. Tiles are fetched only while a map is drawn (at most 16 per map, 0.8 s
 each) and are never cached or passed on. Do **not** point it at `tile.openstreetmap.org`: the OpenStreetMap
 tile usage policy forbids this kind of use, and Foresignal refuses public hosts anyway.
+
+## Feeds, Google Earth and Cesium
+
+Prompt 058 lets ordinary feed readers, Google Earth and Cesium read Foresignal with no custom code. All of
+these are `read` operations: open while `openReads` is on, otherwise reached with a token or, for clients
+that cannot send headers, a feed key in the path (`/v1/k/{key}/…`). Private sources appear only for a
+token or feed key holding the private grant, and a URL that carries a key is never cached publicly.
+
+**Feed readers (Atom and JSON Feed).**
+- Alerts: `GET /v1/alerts/feed.atom` or `/v1/alerts/feed.json`, filtered by `rule`, `minSeverity`
+  (`info|warning|critical`), `source`, `kind` and `state` (`firing|acknowledged|resolved`), `limit` 1–200
+  (default 50), newest first by last change (fired, acknowledged or resolved).
+- Briefing runs: `GET /v1/briefings/{id}/runs/feed.atom` or `.json`, with the whole run text.
+- Entry links open your app when you set `clientLinks` in the server settings, else the API URL under
+  `publicBaseUrl`, so set `publicBaseUrl` to a name the reader can reach. Content is the alert message
+  (and its enrichment summary) as sanitized HTML: no scripts, images or styles, only `http`/`https`
+  links. Atom entries carry GeoRSS (`georss:point`, or `georss:polygon` for a simple polygon). Readers that
+  send `If-None-Match` or `If-Modified-Since` get `304` until something changes.
+- With `openReads` off, mint a feed key for the reader, for example
+  `POST /v1/feed-keys {"name":"reader","prefixes":["/v1/alerts/feed.atom"],"restrictions":{"kinds":["earthquake"]},"expiresAt":"2027-06-01T00:00:00Z"}`,
+  and subscribe to `{publicBaseUrl}/v1/k/{key}/alerts/feed.atom`. A feed key never sees alerts of watchlist
+  rules.
+- RSS 2.0 and WebSub are not offered: every current reader understands Atom or JSON Feed, and readers poll.
+
+**Google Earth.** Add a network link to `{publicBaseUrl}/v1/kml/networklink.kml?layers=usgs-earthquakes,nws-alerts&refresh=60`
+(Add → Network Link in Google Earth Pro; or open the file). It holds one NetworkLink per layer to
+`/v1/kml/records.kml?layer=…`, refreshed every `refresh` seconds (at least 30) and two seconds after the
+view stops, with the view's bounding box. Each refresh returns at most 5,000 Placemarks per layer, newest
+first; when more match, the document's snippet says `truncated: showing 5000 of N`, so zoom in. Names,
+descriptions and values are escaped for HTML, so upstream text can never inject markup into a balloon.
+Other exports:
+- `GET /v1/kml/records.kml?source=…|kind=…&bbox=…&asOf=…&format=kmz` for a one-off file (KMZ bundles the
+  icons);
+- `GET /v1/kml/tracks.kml?sourceId=…&externalId=…&from=…&to=…` for one entity's `gx:Track` history
+  (unsimplified, at most 5,000 points), or `?kind=…&bbox=…` for up to 100 entities;
+- `GET /v1/triggers/{ruleId}.kml` for a trigger's geofence.
+
+With `openReads` off, use a feed key whose prefixes include `/v1/kml/` and `/v1/map/` (the icons), and add
+`{publicBaseUrl}/v1/k/{key}/kml/networklink.kml`: the generated links keep the same key, and the access
+log shows only its first eight characters.
+
+**Cesium.** Load the same NetworkLink document as a data source; Cesium needs the camera and canvas to fill
+the view bounding box:
+
+```js
+viewer.dataSources.add(Cesium.KmlDataSource.load(
+  `${base}/v1/kml/networklink.kml?layers=usgs-earthquakes`,
+  { camera: viewer.scene.camera, canvas: viewer.scene.canvas }));
+```
+
+**MapLibre style.** `GET /v1/map/style.json?layers=…&theme=light|dark` is an overlay style built from each
+kind's display hints, with an SDF sprite (Maki and Temaki icons) and no glyphs; `docs/Frontend-Guide.md`
+("Overlay style and sprite") shows how to add it over a basemap. Tile keys reach it when their prefixes
+include `/v1/map/` and `/v1/tiles/`.
 
 ## Forecast models (GFS and HRRR)
 

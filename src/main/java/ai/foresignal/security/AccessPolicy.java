@@ -46,6 +46,10 @@ import org.springframework.util.AntPathMatcher;
  * {@code GET /v1/media/**} as {@code read}; the news providers of prompt 133 under
  * {@code /v1/media/providers} stay {@code admin}, listed before it.
  *
+ * <p>Prompt 058 adds {@code GET /v1/map/**} (MapLibre style, sprite, icons), {@code GET /v1/kml/**},
+ * {@code GET /v1/alerts/feed.*}, {@code GET /v1/briefings/*}{@code /runs/feed.*} and
+ * {@code GET /v1/triggers/*.kml} as {@code read}, ahead of the broader rules.
+ *
  * <p>Prompt 055 adds {@code GET /v1/maps/**} ({@code getStaticMap}) as {@code read}; a map of a place
  * needs a token, which the controller enforces as the loop does.
  *
@@ -312,6 +316,14 @@ public class AccessPolicy {
                 rule(HttpMethod.GET, "/v1/search/status", AccessRequirement.READ),
                 // Semantic search embeds the query: always authenticated (023, 027).
                 rule(HttpMethod.GET, "/v1/search", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+
+                // ---- Map styles, feeds and KML (058): reads, ordered before the broader alert, briefing and
+                // trigger rules; feed keys (035) reach them under their prefixes, tile keys (050) /v1/map/ ----
+                rule(HttpMethod.GET, "/v1/map/**", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/kml/**", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/alerts/feed.*", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/briefings/*/runs/feed.*", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/triggers/*.kml", AccessRequirement.READ),
 
                 // ---- Triggers: read to list, agent to change ----
                 rule(HttpMethod.GET, "/v1/triggers/**", AccessRequirement.READ),

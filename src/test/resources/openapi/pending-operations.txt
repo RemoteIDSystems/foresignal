@@ -1,14 +1,3 @@
-getMapStyle 058
-getMapSprite 058
-getMapIcon 058
-getAlertsAtom 058
-getAlertsJsonFeed 058
-getBriefingRunsAtom 058
-getBriefingRunsJsonFeed 058
-getKmlNetworkLink 058
-getKmlRecords 058
-getKmlTracks 058
-getTriggerKml 058
 previewMapping 059
 suggestMapping 059
 listMappingPresets 059

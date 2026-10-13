@@ -135,6 +135,21 @@ public class AlertStore {
         return jdbc.query("SELECT " + COLUMNS + FROM + whereClause(where) + " ORDER BY a.id DESC LIMIT :limit", p, mapper);
     }
 
+    /** The last lifecycle change of an alert row: fired, acknowledged or resolved, whichever is latest. */
+    static final String LAST_CHANGE_SQL = "GREATEST(a.fired_at, a.acknowledged_at, a.resolved_at)";
+
+    /**
+     * The newest alerts by last lifecycle change (prompt 058: Atom and JSON Feed), then by id, both
+     * descending; at most {@code limit}.
+     */
+    public List<AlertView> feed(AlertQuery query, int limit) {
+        MapSqlParameterSource p = new MapSqlParameterSource();
+        List<String> where = where(query, p);
+        p.addValue("limit", limit);
+        return jdbc.query("SELECT " + COLUMNS + FROM + whereClause(where) + " ORDER BY " + LAST_CHANGE_SQL
+                + " DESC, a.id DESC LIMIT :limit", p, mapper);
+    }
+
     /**
      * Alerts matching {@code query} per severity (prompt 038: the glance's open counts); severities
      * without alerts are absent.

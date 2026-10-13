@@ -417,6 +417,26 @@ public class BriefingService {
     }
 
     /**
+     * The newest {@code limit} finished runs of a briefing for its Atom and JSON feeds (prompt 058);
+     * runs that cite a private source are left out unless {@code seesPrivate} (prompt 039).
+     *
+     * @throws NotFoundException for an unknown briefing without runs
+     */
+    public List<BriefingRunEntity> feedRuns(UUID id, int limit, boolean seesPrivate) {
+        if (!briefings.existsById(id) && !runs.existsByBriefingId(id)) {
+            throw NotFoundException.of("Briefing", id);
+        }
+        List<BriefingRunEntity> out = new ArrayList<>();
+        for (BriefingRunEntity run : runs.findByBriefingIdAndStatusNotOrderByStartedAtDescIdDesc(id,
+                BriefingRunEntity.RUNNING, org.springframework.data.domain.PageRequest.of(0, limit))) {
+            if (seesPrivate || !citesPrivate(run)) {
+                out.add(run);
+            }
+        }
+        return out;
+    }
+
+    /**
      * One run of a briefing.
      *
      * @throws NotFoundException when there is no such run of that briefing

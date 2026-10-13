@@ -52,8 +52,10 @@ import org.springframework.web.util.UrlPathHelper;
  * {@code X-Robots-Tag: noindex} and {@code Cache-Control: private} (controllers may refine the
  * latter: a feed key is always restricted so stays {@code private}; a tile key without data
  * restrictions gets the canonical path's own rule, {@code public} only while {@code openReads} covers
- * it, prompt 050). The key never appears in a response body. For every request the filter also sets
- * the request attribute {@value #LOG_URI_ATTRIBUTE}: the request URI with any path key replaced by its
+ * it, prompt 050). The key never appears in a response body, except in the follow-up URLs of the
+ * documents prompt 058 generates for header-less clients (the MapLibre style, KML NetworkLink and icon
+ * hrefs, a feed's own self link), which repeat the caller's own key ({@link #keyBase}) and are always
+ * {@code Cache-Control: private}. For every request the filter also sets the request attribute {@value #LOG_URI_ATTRIBUTE}: the request URI with any path key replaced by its
  * first eight characters and {@code …} ({@link #redact}), which the Tomcat access-log pattern in
  * {@code application.yml} logs instead of the raw request line.
  */
@@ -71,6 +73,13 @@ public class PathKeyFilter extends OncePerRequestFilter implements Ordered {
 
     /** The request attribute holding the original (key-bearing) URI; never logged. */
     static final String ORIGINAL_URI_ATTRIBUTE = "ai.foresignal.pathKey.originalUri";
+
+    /**
+     * The request attribute holding {@code /v1/k/{key}} of a forwarded key-in-path request (prompt 058),
+     * so documents that generate follow-up URLs (the MapLibre style, KML NetworkLinks) keep the caller on
+     * the same key. Never logged; read through {@link #keyBase(HttpServletRequest)}.
+     */
+    public static final String KEY_BASE_ATTRIBUTE = "ai.foresignal.pathKey.base";
 
     private static final Pattern KEY_SEGMENT = Pattern.compile("(/v1/k/)([^/?#\\s]+)");
 
@@ -202,10 +211,28 @@ public class PathKeyFilter extends OncePerRequestFilter implements Ordered {
             return;
         }
         valid.principal().bind(request);
+        request.setAttribute(KEY_BASE_ATTRIBUTE, PREFIX + key(request, contextPath));
         HttpServletRequest forwarded = new CanonicalPathRequest(request, contextPath, canonical);
         ServletRequestPathUtils.clearParsedRequestPath(forwarded);
         forwarded.removeAttribute(UrlPathHelper.PATH_ATTRIBUTE);
         chain.doFilter(forwarded, response);
+    }
+
+    /**
+     * {@code /v1/k/{key}} when {@code request} came in through a key-in-path URL (prompt 058), else null.
+     * Generated URLs append the canonical path without its {@code /v1} ({@code /v1/k/{key}/tiles/…}).
+     */
+    public static String keyBase(HttpServletRequest request) {
+        Object value = request == null ? null : request.getAttribute(KEY_BASE_ATTRIBUTE);
+        return value instanceof String s ? s : null;
+    }
+
+    /** The key segment of a {@code /v1/k/{key}/…} request URI. */
+    private static String key(HttpServletRequest request, String contextPath) {
+        String uri = request.getRequestURI();
+        String afterPrefix = uri.substring(Math.min(contextPath.length() + PREFIX.length(), uri.length()));
+        int slash = afterPrefix.indexOf('/');
+        return slash < 0 ? afterPrefix : afterPrefix.substring(0, slash);
     }
 
     /** True when {@code canonical} starts with one of {@code prefixes} on a segment boundary. */

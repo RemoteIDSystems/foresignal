@@ -21,7 +21,8 @@ public final class TileKeyPolicy {
     /**
      * The canonical prefixes a tile key may name; anything else is {@code 400 VALIDATION_FAILED} at
      * creation. {@code /v1/maps/static} (prompt 055) and {@code /v1/sample} (prompt 052) are accepted
-     * before their endpoints exist and answer {@code 404} until then.
+     * before their endpoints exist and answer {@code 404} until then. {@code /v1/map/} (prompt 058) covers
+     * the MapLibre style, its sprite and the icons.
      */
     public static final List<String> ALLOWED_PREFIXES = List.of(
             "/v1/products/",
@@ -32,7 +33,8 @@ public final class TileKeyPolicy {
             "/v1/sample",
             "/v1/ground-stations/",
             "/v1/changes/stream",
-            "/v1/events/stream");
+            "/v1/events/stream",
+            "/v1/map/");
 
     private TileKeyPolicy() {}
 

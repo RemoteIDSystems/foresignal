@@ -546,6 +546,33 @@ public final class DescriptorValidator {
                             + display.sidc()
                             + "' must be a 15- or 20-character MIL-STD-2525 code");
         }
+        // Prompt 058: the icon must be in the shipped sprite, and the style fields must be tile properties.
+        if (display.icon() != null) {
+            java.util.Set<String> icons = ai.foresignal.map.SpriteCatalog.iconNames();
+            if (!icons.contains(display.icon())) {
+                problems.add(id + ": kindDisplay." + kind + ".icon '" + display.icon()
+                        + "' is not in the sprite (scripts/build-sprite.sh); valid names: " + String.join(", ", icons));
+            }
+        }
+        checkStyleField(descriptor, kind, "rotateField", display.rotateField(), problems);
+        checkStyleField(descriptor, kind, "sizeField", display.sizeField(), problems);
+        checkStyleField(descriptor, kind, "colorField", display.colorField(), problems);
+    }
+
+    /**
+     * A {@code kindDisplay} style field (prompt 058) must name one of the source's {@code tileProperties}:
+     * the MapLibre style reads it from the vector tile features.
+     */
+    private static void checkStyleField(
+            SourceDescriptor descriptor, String kind, String name, String field, List<String> problems) {
+        if (field == null) {
+            return;
+        }
+        if (!descriptor.tileProperties().contains(field)) {
+            problems.add(descriptor.id() + ": kindDisplay." + kind + "." + name + " '" + field
+                    + "' is not one of the source's tileProperties " + descriptor.tileProperties()
+                    + "; the map style reads it from the tiles");
+        }
     }
 
     private static void checkDefaultPolicy(SourceDescriptor descriptor, List<String> problems) {
