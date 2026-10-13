@@ -33,6 +33,21 @@ public final class DecoderFixtures {
     /** Committed MRMS 60-minute MESH, 2026-10-12 12:00:00Z. */
     public static final String MRMS_MESH = "MRMS_MESH_Max_60min_00.50_20261012-120000.grib2.gz";
 
+    /** Committed MRMS rotation track 60 min, 0.005° grid (prompt 053). */
+    public static final String MRMS_ROTATION = "MRMS_RotationTrack60min_00.50_20261013-043200.grib2.gz";
+
+    /** Committed MRMS radar-only QPE 1 h (prompt 053). */
+    public static final String MRMS_QPE_1H = "MRMS_RadarOnly_QPE_01H_00.00_20261013-043200.grib2.gz";
+
+    /** Committed MRMS FLASH QPE-to-FFG ratio 1 h (prompt 053). */
+    public static final String MRMS_FFG = "MRMS_FLASH_QPE_FFG01H_00.00_20261013-043000.grib2.gz";
+
+    /** The downloaded MRMS multi-sensor QPE 24 h (prompt 053; 4.7 MB, pinned in downloadTestFixtures). */
+    public static final String MRMS_QPE_24H = "MRMS_MultiSensor_QPE_24H_Pass2_00.00_20261013-030000.grib2.gz";
+
+    /** Where {@code downloadTestFixtures} puts downloaded MRMS files (prompt 053). */
+    public static final Path MRMS_DIR = Path.of("build", "test-fixtures", "mrms");
+
     /** Committed MRMS Hawaii MESH, the no-coverage-heavy sample. */
     public static final String MRMS_HAWAII_MESH = "HAWAII_MRMS_MESH_Max_60min_00.50_20261012-000000.grib2.gz";
 
@@ -126,6 +141,23 @@ public final class DecoderFixtures {
         Assumptions.assumeTrue(Files.isRegularFile(file), "HRRR fixture absent: run ./gradlew downloadTestFixtures");
         try {
             return Files.readAllBytes(file);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    /**
+     * Copies the downloaded MRMS file {@code name} into {@code dir}, or skips the test with a logged reason when
+     * {@code ./gradlew downloadTestFixtures} has not been run (prompt 053).
+     */
+    public static Path mrmsDownloadedOrSkip(String name, Path dir) {
+        Path file = MRMS_DIR.resolve(name);
+        if (!Files.isRegularFile(file)) {
+            log.warn("Skipping: {} is absent; run ./gradlew downloadTestFixtures to fetch it", file);
+        }
+        Assumptions.assumeTrue(Files.isRegularFile(file), "MRMS fixture absent: run ./gradlew downloadTestFixtures");
+        try {
+            return Files.copy(file, dir.resolve(name), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

@@ -50,7 +50,10 @@ import org.springframework.stereotype.Component;
  *       nearest 40, 50 and 60 dBZ cells within 100 km ({@value WxRound#NONE} for none), plus the 10-minute
  *       rolling minimum {@code nearest50Km10m}; stale after 6 min;
  *   <li>{@code hail}: the MESH maximum within the radius and the nearest ≥ 25 mm cell; stale after 6 min;
- *   <li>{@code precip}: the precipitation rate at the place, 1 mm/h; stale after 6 min;
+ *   <li>{@code precip}: the precipitation rate at the place, 1 mm/h; stale after 6 min; and (prompt 053) the
+ *       maxima within the radius of the MRMS 1-hour QPE ({@code qpe1hMmMax}, 1 mm), 24-hour QPE
+ *       ({@code qpe24hMmMax}, 1 mm) and flash-flood guidance ratio ({@code ffgRatio1hPctMax}, 1 %), each judged
+ *       against its own product's gap (30 min, 150 min, 30 min) and merged by {@link PlaceWeatherState};
  *   <li>{@code lightning}: from the GLM ring, the nearest flash in 15 and 30 minutes and the flashes within
  *       15 km in 15 minutes; stale when no GLM file was processed for 2 minutes. GLM's footprint over Texas
  *       is about 8–10 km and its detection efficiency is below 100%: GLM-only rules should use 15 km or
@@ -58,7 +61,11 @@ import org.springframework.stereotype.Component;
  *   <li>{@code cell}: the ETA of a ≥ 50 dBZ core ({@link CellEta}); unavailable while {@code wx-cells} is
  *       disabled or failing, and as unknown as the radar section otherwise;
  *   <li>{@code smoke}: the HRRR near-surface smoke maximum over the next 24 h of the newest complete run;
- *   <li>{@code forecast.gfs}: the GFS gust maximum and precipitation over the next 24 h.
+ *   <li>{@code forecast.gfs}: the GFS gust maximum and precipitation over the next 24 h;
+ *   <li>{@code forecast.nws} (prompt 053): {@code popMax24h}, {@code qpf24hMm} and {@code gustMaxMs24h} from the
+ *       place's {@code nws-forecast} head ({@code nws-gridpoints}); {@code stale} when its
+ *       {@code forecastUpdated} is older than 6 h, {@code unavailable} while that source is disabled or failing or
+ *       has no forecast for the place.
  * </ul>
  * Distances are measured from the place's representative point. The record has no geometry: a place's
  * position is sensitive (prompt 036) and must not reach read tokens through the records API.
@@ -101,6 +108,30 @@ public class WxPlacesGenerator implements DerivedGenerator {
     /** The GLM source. */
     public static final String GLM = "goes-glm";
 
+    /** MRMS radar-only 1-hour QPE (prompt 053). */
+    public static final String QPE_1H = "mrms-qpe-1h";
+
+    /** MRMS multi-sensor 24-hour QPE (prompt 053). */
+    public static final String QPE_24H = "mrms-qpe-24h";
+
+    /** MRMS 1-hour flash-flood guidance ratio (prompt 053). */
+    public static final String FFG = "mrms-ffg-ratio-1h";
+
+    /** The NWS gridpoint forecast source (prompt 053). */
+    public static final String NWS = "nws-gridpoints";
+
+    /** The NWS forecast kind (prompt 053). */
+    public static final String NWS_KIND = "nws-forecast";
+
+    /** The gap of the 10-minute MRMS products (QPE 1 h, FFG ratio). */
+    public static final Duration TEN_MINUTE_MAX_GAP = Duration.ofMinutes(30);
+
+    /** The gap of the hourly 24-hour QPE (files arrive about 59 minutes after their valid time). */
+    public static final Duration QPE_24H_MAX_GAP = Duration.ofMinutes(150);
+
+    /** The age after which an NWS forecast is stale. */
+    public static final Duration NWS_MAX_AGE = Duration.ofHours(6);
+
     /** MRMS maximum gap. */
     public static final Duration MRMS_MAX_GAP = Duration.ofMinutes(6);
 
@@ -118,6 +149,7 @@ public class WxPlacesGenerator implements DerivedGenerator {
 
     private static final double[] RADAR_THRESHOLDS = {40, 50, 60};
     private static final double[] HAIL_THRESHOLDS = {25};
+    private static final double[] NO_THRESHOLDS = {};
 
     private final SourceDescriptor descriptor = buildDescriptor();
     private final TreeMap<String, PlaceWeatherState> places = new TreeMap<>();
@@ -134,11 +166,11 @@ public class WxPlacesGenerator implements DerivedGenerator {
     static SourceDescriptor buildDescriptor() {
         return SourceDescriptor.builder(ID)
                 .name("Place weather (derived)")
-                .description("Automated weather near each place, from MRMS radar, GOES GLM lightning, wx-cells storm"
-                        + " cells, HRRR smoke and GFS forecasts. Sections that are stale, failing or without coverage"
+                .description("Automated weather near each place, from MRMS radar and rainfall, GOES GLM lightning,"
+                        + " wx-cells storm cells, HRRR smoke, GFS forecasts and the NWS gridpoint forecast. Sections that are stale, failing or without coverage"
                         + " keep their previous values with a non-ok status; unknown is never clear. Not a warning.")
                 .kind(KIND)
-                .attribution("Derived by Foresignal from NOAA MRMS, GOES-19 GLM, HRRR and GFS")
+                .attribution("Derived by Foresignal from NOAA MRMS, GOES-19 GLM, HRRR, GFS and NWS forecasts")
                 .licence("derived (see inputs)")
                 .mode(Mode.DERIVED)
                 .defaultBudget(Budget.of(1, 1))
@@ -154,8 +186,9 @@ public class WxPlacesGenerator implements DerivedGenerator {
 
     @Override
     public DerivedInputs inputs(ValidatedParams params) {
-        return new DerivedInputs(Set.of(CELLS), Set.of(WxCellsGenerator.KIND),
-                Set.of(REFLECTIVITY, MESH, PRECIP, SMOKE, "gfs", GFS_GUST, "gfs-t2m", GFS_APCP), TICK, true);
+        return new DerivedInputs(Set.of(CELLS, NWS), Set.of(WxCellsGenerator.KIND, NWS_KIND),
+                Set.of(REFLECTIVITY, MESH, PRECIP, QPE_1H, QPE_24H, FFG, SMOKE, "gfs", GFS_GUST, "gfs-t2m", GFS_APCP),
+                TICK, true);
     }
 
     // ------------------------------------------------------------------ hooks
@@ -200,6 +233,7 @@ public class WxPlacesGenerator implements DerivedGenerator {
             }
             case MESH -> updateHail(ctx, now, false);
             case PRECIP -> updatePrecip(ctx, now, false);
+            case QPE_1H, QPE_24H, FFG -> updatePrecipPart(ctx, now, false, event.productId());
             case SMOKE -> updateSmoke(ctx, now, event.complete());
             case GFS_GUST, GFS_APCP -> updateGfs(ctx, now, event.complete());
             default -> {
@@ -213,6 +247,7 @@ public class WxPlacesGenerator implements DerivedGenerator {
     public void onChanges(ChangeBatch batch, DerivedContext ctx) {
         syncPlaces(ctx);
         updateCells(ctx, ctx.now());
+        updateNws(ctx, ctx.now());
         emitAll(ctx, batch.ingestedAt() == null ? ctx.now() : batch.ingestedAt());
     }
 
@@ -256,6 +291,9 @@ public class WxPlacesGenerator implements DerivedGenerator {
                 st.radarFrame = null;
                 st.hailFrame = null;
                 st.precipFrame = null;
+                st.qpe1hFrame = null;
+                st.qpe24hFrame = null;
+                st.ffgFrame = null;
             }
         }
     }
@@ -287,10 +325,150 @@ public class WxPlacesGenerator implements DerivedGenerator {
         updateRadar(ctx, now, force);
         updateHail(ctx, now, force);
         updatePrecip(ctx, now, force);
+        updatePrecipPart(ctx, now, force, QPE_1H);
+        updatePrecipPart(ctx, now, force, QPE_24H);
+        updatePrecipPart(ctx, now, force, FFG);
         updateLightning(ctx, now);
         updateCells(ctx, now);
         updateSmoke(ctx, now, force);
         updateGfs(ctx, now, force);
+        updateNws(ctx, now);
+    }
+
+    /** The precip part of a prompt 053 product. */
+    static WxSection part(PlaceWeatherState p, String productId) {
+        return switch (productId) {
+            case QPE_1H -> p.qpe1h;
+            case QPE_24H -> p.qpe24h;
+            default -> p.ffg;
+        };
+    }
+
+    private static String partFrame(PlaceWeatherState p, String productId) {
+        return switch (productId) {
+            case QPE_1H -> p.qpe1hFrame;
+            case QPE_24H -> p.qpe24hFrame;
+            default -> p.ffgFrame;
+        };
+    }
+
+    private static void partFrame(PlaceWeatherState p, String productId, String frameId) {
+        switch (productId) {
+            case QPE_1H -> p.qpe1hFrame = frameId;
+            case QPE_24H -> p.qpe24hFrame = frameId;
+            default -> p.ffgFrame = frameId;
+        }
+    }
+
+    /** The payload key of a prompt 053 product's maximum within the radius. */
+    static String partKey(String productId) {
+        return switch (productId) {
+            case QPE_1H -> PlaceWeatherState.QPE_1H_KEY;
+            case QPE_24H -> PlaceWeatherState.QPE_24H_KEY;
+            default -> PlaceWeatherState.FFG_KEY;
+        };
+    }
+
+    /** The gap of a prompt 053 product. */
+    static Duration partGap(String productId) {
+        return QPE_24H.equals(productId) ? QPE_24H_MAX_GAP : TEN_MINUTE_MAX_GAP;
+    }
+
+    /**
+     * One prompt 053 precip input (QPE 1 h, QPE 24 h or the FFG ratio): the maximum within each place's radius,
+     * whole units. A product that is disabled or not installed leaves the section until it returns.
+     */
+    void updatePrecipPart(DerivedContext ctx, Instant now, boolean force, String productId) {
+        Optional<String> reason = ctx.rasters().unavailableReason(productId);
+        if (reason.isPresent() && (reason.get().contains(" is disabled") || reason.get().contains("not installed"))) {
+            places.values().forEach(p -> {
+                part(p, productId).clear();
+                partFrame(p, productId, null);
+            });
+            return;
+        }
+        WxInput in = WxInput.observation(ctx, productId, partGap(productId), now);
+        if (!in.ok()) {
+            places.values().forEach(p -> part(p, productId).notOk(in.status()));
+            return;
+        }
+        RasterFrameRow frame = in.frame();
+        List<PlaceWeatherState> todo = places.values().stream()
+                .filter(p -> force || !frame.frameId().equals(partFrame(p, productId)) || !part(p, productId).ok())
+                .toList();
+        if (todo.isEmpty()) {
+            return;
+        }
+        Optional<FrameView> view = ctx.rasters().view(frame);
+        if (view.isEmpty()) {
+            todo.forEach(p -> part(p, productId).notOk(WxSection.UNAVAILABLE));
+            return;
+        }
+        for (PlaceWeatherState p : todo) {
+            PlaceGridIndex.Scan scan = PlaceGridIndex.scan(view.get(),
+                    PlaceGridIndex.of(frame.gridId(), view.get().grid(), p.lon, p.lat), NO_THRESHOLDS, p.radiusKm);
+            partFrame(p, productId, frame.frameId());
+            if (!PlaceWeatherState.covered(scan)) {
+                part(p, productId).notOk(WxSection.NO_COVERAGE);
+                continue;
+            }
+            double max = Double.isNaN(scan.maxInRadius()) ? 0 : Math.max(0, scan.maxInRadius());
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put(partKey(productId), WxRound.whole(max));
+            part(p, productId).good(m, frame.validTime());
+        }
+    }
+
+    /**
+     * {@code forecast.nws} from the places' {@code nws-forecast} heads: unavailable while {@value #NWS} is disabled
+     * or failing or a place has no forecast; stale when the forecast is older than {@link #NWS_MAX_AGE} (values
+     * kept, {@code asOf} = its {@code forecastUpdated}).
+     */
+    void updateNws(DerivedContext ctx, Instant now) {
+        HealthStatus status = ctx.sourceStatus(NWS);
+        if (status == HealthStatus.DISABLED || status == HealthStatus.FAILING) {
+            places.values().forEach(p -> p.nws.notOk(WxSection.UNAVAILABLE));
+            return;
+        }
+        Map<String, HeadSnapshot> heads = new HashMap<>();
+        for (HeadSnapshot head : ctx.records().current(List.of(NWS), List.of(NWS_KIND), 5_000)) {
+            if (!head.tombstone()) {
+                heads.put(head.externalId(), head);
+            }
+        }
+        for (PlaceWeatherState p : places.values()) {
+            HeadSnapshot head = heads.get(PlaceWeatherState.externalId(p.placeId));
+            if (head == null) {
+                p.nws.notOk(WxSection.UNAVAILABLE);
+                continue;
+            }
+            Instant updated = parseInstant(head.payload().get("forecastUpdated"));
+            if (updated == null) {
+                updated = head.observedAt();
+            }
+            Map<String, Object> m = new LinkedHashMap<>();
+            for (String key : List.of("popMax24h", "qpf24hMm", "gustMaxMs24h")) {
+                Object v = head.payload().get(key);
+                if (v != null) {
+                    m.put(key, v);
+                }
+            }
+            p.nws.good(m, updated);
+            if (updated != null && Duration.between(updated, now).compareTo(NWS_MAX_AGE) > 0) {
+                p.nws.notOk(WxSection.STALE);
+            }
+        }
+    }
+
+    private static Instant parseInstant(Object value) {
+        if (value == null) {
+            return null;
+        }
+        try {
+            return Instant.parse(value.toString());
+        } catch (RuntimeException e) {
+            return null;
+        }
     }
 
     void updateRadar(DerivedContext ctx, Instant now, boolean force) {

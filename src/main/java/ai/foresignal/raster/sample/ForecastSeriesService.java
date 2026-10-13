@@ -17,7 +17,8 @@ import org.springframework.stereotype.Service;
 
 /**
  * Cached point forecast series from the stored model runs (prompt 052; OpenAPI {@code ForecastSeries}):
- * GFS 3-hourly to 120 h and HRRR hourly to 18 h. NWS gridpoint series join in prompt 053.
+ * GFS 3-hourly to 120 h and HRRR hourly to 18 h; and (prompt 053) the NWS gridpoint series of a place, hourly to
+ * 72 h, read from {@code forecast_series_cache} where {@code nws-gridpoints} stores it.
  *
  * <p>Each provider reads the newest complete run of each of its products (prompt 051) and aligns the
  * steps by valid time: {@code gfs} wind (u/v) for speed and direction, {@code gfs-gust},
@@ -25,23 +26,45 @@ import org.springframework.stereotype.Service;
  * interval's precipitation); {@code hrrr} wind, {@code hrrr-gust} and {@code hrrr-smoke}. A series is
  * computed once per point and set of runs and then served from a cache, so a new run invalidates it
  * naturally. Reads stored frames only; never fetches.
+ *
+ * <p>The {@code nws} series exists only for a place (it is cached per place, not per point). Its {@code status}
+ * is {@code ok}, or {@code stale} when the forecast's {@code updatedAt} is older than 6 hours; its {@code run} is
+ * null. It is left out when the caller may not read {@code nws-gridpoints}.
  */
 @Service
 public class ForecastSeriesService {
 
     /** The providers this prompt serves. */
-    public static final List<String> PROVIDERS = List.of("gfs", "hrrr");
+    public static final List<String> PROVIDERS = List.of("gfs", "hrrr", "nws");
+
+    /** The source behind the {@code nws} provider. */
+    public static final String NWS_SOURCE = "nws-gridpoints";
+
+    /** The age after which an NWS series is stale. */
+    public static final Duration NWS_MAX_AGE = Duration.ofHours(6);
 
     /** The furthest step returned. */
     public static final Duration HORIZON = Duration.ofHours(120);
 
     private final SampleService samples;
+    private final ai.foresignal.place.ForecastSeriesCache nwsCache;
     private final Cache<String, Map<String, Object>> cache = Caffeine.newBuilder()
             .maximumSize(500).expireAfterWrite(Duration.ofHours(6)).build();
 
-    /** Creates the service. */
+    /** Creates the service without the NWS cache (tests). */
     public ForecastSeriesService(SampleService samples) {
+        this(samples, null);
+    }
+
+    /**
+     * Creates the service.
+     *
+     * @param nwsCache the place series cache of prompt 053, or null for none
+     */
+    @org.springframework.beans.factory.annotation.Autowired
+    public ForecastSeriesService(SampleService samples, ai.foresignal.place.ForecastSeriesCache nwsCache) {
         this.samples = samples;
+        this.nwsCache = nwsCache;
     }
 
     /** The products of a provider: {@code [wind, gust, t2m, apcp, smoke]}, null where it has none. */
@@ -59,15 +82,46 @@ public class ForecastSeriesService {
      * @param excludedSources sources the caller may not read; their providers are left out
      */
     public List<Map<String, Object>> series(double lon, double lat, java.util.Set<String> excludedSources) {
+        return series(null, lon, lat, excludedSources);
+    }
+
+    /**
+     * Every provider's series for a place (or a bare point when {@code placeId} is null), from now on.
+     *
+     * @param placeId the place, which adds its {@code nws} series when one is cached; or null
+     * @param excludedSources sources the caller may not read; their providers are left out
+     */
+    public List<Map<String, Object>> series(String placeId, double lon, double lat, java.util.Set<String> excludedSources) {
         List<Map<String, Object>> out = new ArrayList<>();
         for (String provider : PROVIDERS) {
-            if (excludedSources != null && excludedSources.contains(provider)) {
+            String source = "nws".equals(provider) ? NWS_SOURCE : provider;
+            if (excludedSources != null && excludedSources.contains(source)) {
                 continue;
             }
-            Optional<Map<String, Object>> s = series(provider, lon, lat);
+            Optional<Map<String, Object>> s = "nws".equals(provider) ? nwsSeries(placeId) : series(provider, lon, lat);
             s.ifPresent(out::add);
         }
         return out;
+    }
+
+    /** A place's cached NWS series, trimmed to the current hour on; empty without a place or a cached row. */
+    public Optional<Map<String, Object>> nwsSeries(String placeId) {
+        if (placeId == null || nwsCache == null) {
+            return Optional.empty();
+        }
+        return nwsCache.find(placeId, "nws").map(entry -> {
+            Map<String, Object> out = new LinkedHashMap<>();
+            out.put("provider", "nws");
+            out.put("run", null);
+            out.put("updatedAt", entry.updatedAt().toString());
+            if (entry.validFrom() != null) {
+                out.put("validFrom", entry.validFrom().toString());
+            }
+            boolean stale = Duration.between(entry.updatedAt(), samples.now()).compareTo(NWS_MAX_AGE) > 0;
+            out.put("status", stale ? "stale" : "ok");
+            out.put("items", new ArrayList<>(entry.items()));
+            return trim(out, samples.now());
+        });
     }
 
     /** One provider's series at a point, or empty when the provider's products are not installed. */

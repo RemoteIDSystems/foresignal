@@ -67,6 +67,12 @@ public final class SampleFixtures {
         return new FrameView(spec, row, GridDef.of(grid), new ElgCodec.Decoded(encoded.header(), encoded.decoded()));
     }
 
+    /** The decoded frame of raw codes in several bands (prompt 053: {@code mrms-precip-rate} has rate and flag). */
+    public static FrameView bands(ProductSpec spec, GridDefinition grid, RasterFrameRow row, int[]... codes) {
+        EncodedFrame encoded = FrameEncoder.encode(spec, grid, DecodedBands.codes(codes), false);
+        return new FrameView(spec, row, GridDef.of(grid), new ElgCodec.Decoded(encoded.header(), encoded.decoded()));
+    }
+
     /** The decoded frame of physical values (one band per array). */
     public static FrameView physical(ProductSpec spec, GridDefinition grid, RasterFrameRow row, float[]... bands) {
         EncodedFrame encoded = FrameEncoder.encode(spec, grid, DecodedBands.physical(bands), false);

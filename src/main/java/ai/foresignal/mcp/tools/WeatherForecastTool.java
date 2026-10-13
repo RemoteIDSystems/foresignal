@@ -76,7 +76,9 @@ public class WeatherForecastTool implements ForesignalMcpTool {
 
     @Override
     public String description() {
-        return "Returns a 3-hourly forecast at a point or place to 120 h from the stored GFS and HRRR model runs:"
+        return "Returns a 3-hourly forecast at a point or place to 120 h from the stored GFS and HRRR model runs, plus"
+                + " the official NWS gridpoint forecast (to 72 h, with precipitation probability and sky cover) for a"
+                + " place:"
                 + " temperature (°C), wind speed (m/s) and direction (from, degrees), gusts, precipitation per step (mm)"
                 + " and HRRR smoke (µg/m³), each step with its valid and local time. Each provider gives its run time and"
                 + " status (ok, stale, no-coverage or unavailable; anything but ok is unknown).";
@@ -115,13 +117,17 @@ public class WeatherForecastTool implements ForesignalMcpTool {
         out.put("timezone", point.zone().getId());
         out.put("serverTime", now.toString());
         ArrayNode providers = out.putArray("providers");
-        for (Map<String, Object> series : forecasts.series(point.lon(), point.lat(), context.excludedSources())) {
+        for (Map<String, Object> series : forecasts.series(point.placeId(), point.lon(), point.lat(),
+                context.excludedSources())) {
             ObjectNode p = providers.addObject();
             String provider = String.valueOf(series.get("provider"));
             p.put("provider", provider);
             p.put("run", (String) series.get("run"));
             p.put("status", String.valueOf(series.get("status")));
-            p.put("coverage", "gfs".equals(provider) ? "global" : "CONUS");
+            p.put("coverage", "gfs".equals(provider) ? "global" : "nws".equals(provider) ? "place" : "CONUS");
+            if (series.get("updatedAt") != null) {
+                p.put("updatedAt", String.valueOf(series.get("updatedAt")));
+            }
             ArrayNode items = p.putArray("items");
             int kept = 0;
             for (Map<String, Object> item : (List<Map<String, Object>>) series.get("items")) {

@@ -4,8 +4,10 @@ import ai.foresignal.raster.sample.PlaceGridIndex;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -13,8 +15,16 @@ import java.util.Map;
  * §7.2), and the pure payload builder.
  *
  * <p>The payload is exactly the design's: {@code place}, {@code radiusKm}, the sections {@code radar},
- * {@code hail}, {@code precip}, {@code lightning}, {@code cell}, {@code smoke} and {@code forecast.gfs}
- * ({@code forecast.nws} joins in prompt 053), plus {@code automated: true} and {@code notAWarning: true}.
+ * {@code hail}, {@code precip}, {@code lightning}, {@code cell}, {@code smoke}, {@code forecast.gfs} and
+ * {@code forecast.nws} (prompt 053), plus {@code automated: true} and {@code notAWarning: true}.
+ *
+ * <p><b>The precip section</b> (prompt 053) joins four inputs: the rate at the place ({@code rateMmH}), and the
+ * maxima within the radius of the 1-hour and 24-hour QPE ({@code qpe1hMmMax}, {@code qpe24hMmMax}) and of the
+ * flash-flood guidance ratio ({@code ffgRatio1hPctMax}). Each input keeps the section rules on its own (stale
+ * after its product's gap, previous values kept); the section's {@code status} is the worst of the rate and of
+ * every other input that has had data (unavailable, then no-coverage, then stale), and its {@code asOf} the oldest
+ * last-good time among the inputs that are not ok. An input whose product is disabled or not installed leaves
+ * the section, metric and status, until it returns.
  * Frame ids, ages and timestamps are never in it; {@code asOf} appears only while a section is not ok.
  *
  * <p><b>Verified-clear helpers</b> for all-clear rules (the trigger engine's conditions are AND-only):
@@ -42,24 +52,37 @@ public final class PlaceWeatherState {
     final WxSection smoke;
     final WxSection gfs;
 
+    /** Precip inputs of prompt 053: 1-hour QPE, 24-hour QPE and the FFG ratio (the rate is {@link #precip}). */
+    final WxSection qpe1h;
+    final WxSection qpe24h;
+    final WxSection ffg;
+
+    /** {@code forecast.nws} (prompt 053). */
+    final WxSection nws;
+
     /** {@code (validTime ms, nearest50Km)} of recent reflectivity frames, oldest first. */
     final ArrayDeque<long[]> radarHistory = new ArrayDeque<>();
 
     String radarFrame;
     String hailFrame;
     String precipFrame;
+    String qpe1hFrame;
+    String qpe24hFrame;
+    String ffgFrame;
     Instant smokeRun;
     Instant gfsRun;
 
     /** A new place with fresh sections. */
     public PlaceWeatherState(String placeId, String name, double radiusKm, double lon, double lat, int version) {
         this(placeId, name, radiusKm, lon, lat, version, new WxSection(), new WxSection(), new WxSection(),
-                new WxSection(), new WxSection(), new WxSection(), new WxSection());
+                new WxSection(), new WxSection(), new WxSection(), new WxSection(), new WxSection(), new WxSection(),
+                new WxSection(), new WxSection());
     }
 
     /** A place with restored sections. */
     PlaceWeatherState(String placeId, String name, double radiusKm, double lon, double lat, int version, WxSection radar,
-            WxSection hail, WxSection precip, WxSection lightning, WxSection cell, WxSection smoke, WxSection gfs) {
+            WxSection hail, WxSection precip, WxSection lightning, WxSection cell, WxSection smoke, WxSection gfs,
+            WxSection qpe1h, WxSection qpe24h, WxSection ffg, WxSection nws) {
         this.placeId = placeId;
         this.name = name;
         this.radiusKm = radiusKm;
@@ -73,6 +96,10 @@ public final class PlaceWeatherState {
         this.cell = cell;
         this.smoke = smoke;
         this.gfs = gfs;
+        this.qpe1h = qpe1h;
+        this.qpe24h = qpe24h;
+        this.ffg = ffg;
+        this.nws = nws;
     }
 
     /** The externalId of a place's record: {@code place:{id}}. */
@@ -96,14 +123,58 @@ public final class PlaceWeatherState {
             int version, Map<String, Object> payload, Instant observedAt) {
         Object forecast = payload.get("forecast");
         Object gfs = forecast instanceof Map<?, ?> f ? ((Map<String, Object>) f).get("gfs") : null;
+        Object nws = forecast instanceof Map<?, ?> f ? ((Map<String, Object>) f).get("nws") : null;
+        Object precip = payload.get("precip");
         return new PlaceWeatherState(placeId, name, radiusKm, lon, lat, version,
                 WxSection.restore(strip(payload.get("radar"), "verifiedNearest50Km10m"), observedAt),
                 WxSection.restore(payload.get("hail"), observedAt),
-                WxSection.restore(payload.get("precip"), observedAt),
+                WxSection.restore(precipPart(precip, RATE_KEY, true), observedAt),
                 WxSection.restore(strip(payload.get("lightning"), "verifiedNearestKm30m"), observedAt),
                 WxSection.restore(payload.get("cell"), observedAt),
                 WxSection.restore(payload.get("smoke"), observedAt),
-                WxSection.restore(gfs, observedAt));
+                WxSection.restore(gfs, observedAt),
+                WxSection.restore(precipPart(precip, QPE_1H_KEY, false), observedAt),
+                WxSection.restore(precipPart(precip, QPE_24H_KEY, false), observedAt),
+                WxSection.restore(precipPart(precip, FFG_KEY, false), observedAt),
+                WxSection.restore(nws, observedAt));
+    }
+
+    /** {@code precip.rateMmH}. */
+    public static final String RATE_KEY = "rateMmH";
+
+    /** {@code precip.qpe1hMmMax}. */
+    public static final String QPE_1H_KEY = "qpe1hMmMax";
+
+    /** {@code precip.qpe24hMmMax}. */
+    public static final String QPE_24H_KEY = "qpe24hMmMax";
+
+    /** {@code precip.ffgRatio1hPctMax}. */
+    public static final String FFG_KEY = "ffgRatio1hPctMax";
+
+    private static final List<String> PRECIP_KEYS = List.of(RATE_KEY, QPE_1H_KEY, QPE_24H_KEY, FFG_KEY);
+
+    /**
+     * One input's part of a stored precip section: its status and {@code asOf} with only its own metric.
+     *
+     * @param primary the rate, restored even without its metric (status only)
+     * @return the part, or null when a secondary input's metric is absent (it never had data)
+     */
+    @SuppressWarnings("unchecked")
+    static Object precipPart(Object section, String key, boolean primary) {
+        if (!(section instanceof Map<?, ?> m)) {
+            return primary ? section : null;
+        }
+        Map<String, Object> stored = (Map<String, Object>) m;
+        if (!primary && !stored.containsKey(key)) {
+            return null;
+        }
+        Map<String, Object> part = new LinkedHashMap<>(stored);
+        for (String other : PRECIP_KEYS) {
+            if (!other.equals(key)) {
+                part.remove(other);
+            }
+        }
+        return part;
     }
 
     @SuppressWarnings("unchecked")
@@ -155,8 +226,66 @@ public final class PlaceWeatherState {
         radarFrame = null;
         hailFrame = null;
         precipFrame = null;
+        qpe1hFrame = null;
+        qpe24hFrame = null;
+        ffgFrame = null;
         smokeRun = null;
         gfsRun = null;
+    }
+
+    /**
+     * The precip section of the payload: the rate and the prompt 053 inputs merged under one status (see the
+     * class comment).
+     */
+    Map<String, Object> precipMap() {
+        List<WxSection> counted = new ArrayList<>();
+        counted.add(precip);
+        for (WxSection part : List.of(qpe1h, qpe24h, ffg)) {
+            if (part.ok() || part.lastGood() != null || part.metrics() != null) {
+                counted.add(part);
+            }
+        }
+        String status = WxSection.OK;
+        Instant asOf = null;
+        for (WxSection part : counted) {
+            if (part.ok()) {
+                continue;
+            }
+            if (severity(part.status()) > severity(status)) {
+                status = part.status();
+            }
+            if (part.lastGood() != null && (asOf == null || part.lastGood().isBefore(asOf))) {
+                asOf = part.lastGood();
+            }
+        }
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("status", status);
+        if (!WxSection.OK.equals(status)) {
+            if (asOf != null) {
+                m.put("asOf", asOf.toString());
+            }
+            m.put("statusText", WxSection.text(status));
+        }
+        for (WxSection part : counted) {
+            if (part.metrics() != null) {
+                part.metrics().forEach((k, v) -> {
+                    if (v != null) {
+                        m.put(k, v);
+                    }
+                });
+            }
+        }
+        return m;
+    }
+
+    /** The order of non-ok statuses when sections merge: unavailable, then no-coverage, then stale. */
+    static int severity(String status) {
+        return switch (status) {
+            case WxSection.UNAVAILABLE -> 3;
+            case WxSection.NO_COVERAGE -> 2;
+            case WxSection.STALE -> 1;
+            default -> 0;
+        };
     }
 
     /** The place's current payload. */
@@ -169,7 +298,7 @@ public final class PlaceWeatherState {
         r.put("verifiedNearest50Km10m", radar.ok() && n10 instanceof Number n ? n : 0);
         p.put("radar", r);
         p.put("hail", hail.toMap());
-        p.put("precip", precip.toMap());
+        p.put("precip", precipMap());
         Map<String, Object> l = lightning.toMap();
         Object n30 = lightning.metric("nearestKm30m");
         l.put("verifiedNearestKm30m", lightning.ok() && n30 instanceof Number n ? n : 0);
@@ -178,6 +307,7 @@ public final class PlaceWeatherState {
         p.put("smoke", smoke.toMap());
         Map<String, Object> forecast = new LinkedHashMap<>();
         forecast.put("gfs", gfs.toMap());
+        forecast.put("nws", nws.toMap());
         p.put("forecast", forecast);
         p.put("automated", true);
         p.put("notAWarning", true);

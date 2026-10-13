@@ -225,6 +225,14 @@ val pinnedFixtures = listOf(
         984_361L,
         "bytes=51042719-52027079",
     ),
+    // Prompt 053: MRMS multi-sensor QPE 24 h is 4.7 MB on a wet day, over the 2 MB the prompt allows to commit.
+    PinnedFixture(
+        "mrms/MRMS_MultiSensor_QPE_24H_Pass2_00.00_20261013-030000.grib2.gz",
+        "https://noaa-mrms-pds.s3.amazonaws.com/CONUS/MultiSensor_QPE_24H_Pass2_00.00/20261013/" +
+            "MRMS_MultiSensor_QPE_24H_Pass2_00.00_20261013-030000.grib2.gz",
+        "349bb80cd2e485ff9a8771f3462987398c8c05e82a149ad0f898cdbe4c5ccebb",
+        4_725_486L,
+    ),
 )
 tasks.register("downloadTestFixtures") {
     group = "verification"

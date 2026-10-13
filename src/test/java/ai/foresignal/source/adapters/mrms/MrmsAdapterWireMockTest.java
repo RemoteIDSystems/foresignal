@@ -359,13 +359,51 @@ class MrmsAdapterWireMockTest extends WireMockSupport {
     @Test
     @DisplayName("disabled products make no request at all")
     void disabledProducts() throws Exception {
-        RecordingSink sink = new RecordingSink().disable(MrmsAdapter.REFLECTIVITY, MrmsAdapter.PRECIP_RATE, MrmsAdapter.MESH);
+        RecordingSink sink = new RecordingSink().disable(MrmsAdapter.REFLECTIVITY, MrmsAdapter.PRECIP_RATE, MrmsAdapter.MESH,
+                MrmsAdapter.ROTATION, MrmsAdapter.QPE_1H, MrmsAdapter.QPE_24H, MrmsAdapter.FFG_RATIO);
         assertThat(adapter.fetch(context(sink)).records()).isEmpty();
         WIREMOCK.verify(0, anyRequestedFor(anyUrl()));
     }
 
     @Test
-    @DisplayName("the descriptor: budgets, cadence, response cap, kinds, retention and the three products")
+    @DisplayName("second wave (053): QPE 1 h at takeEvery 5 commits one file per 10 minutes and passes the rest without"
+            + " downloading them; rotation is reduced to the 0.01° grid")
+    void secondWaveThinningAndReduction() throws Exception {
+        clock.setInstant(t("2026-10-13T04:40:00Z"));
+        byte[] qpe = DecoderFixtures.mrmsBytes(DecoderFixtures.MRMS_QPE_1H);
+        Map<String, Long> objects = new LinkedHashMap<>();
+        for (int i = 0; i < 10; i++) {
+            String key = MrmsAdapter.QPE_1H_UPSTREAM.key(t("2026-10-13T04:20:00Z").plus(Duration.ofMinutes(2L * i)));
+            objects.put(key, (long) qpe.length);
+            stubObject(key, qpe);
+        }
+        stubListing("CONUS/RadarOnly_QPE_01H_00.00/20261013/", null, objects);
+        byte[] rotation = DecoderFixtures.mrmsBytes(DecoderFixtures.MRMS_ROTATION);
+        String rotationKey = MrmsAdapter.ROTATION_UPSTREAM.key(t("2026-10-13T04:32:00Z"));
+        stubObject(rotationKey, rotation);
+        stubListing("CONUS/RotationTrack60min_00.50/20261013/", null, Map.of(rotationKey, (long) rotation.length));
+        RecordingSink sink = new RecordingSink().disable(MrmsAdapter.REFLECTIVITY, MrmsAdapter.PRECIP_RATE, MrmsAdapter.MESH,
+                MrmsAdapter.QPE_24H, MrmsAdapter.FFG_RATIO);
+
+        adapter.fetch(context(sink));
+
+        assertThat(sink.committed(MrmsAdapter.QPE_1H)).extracting(c -> c.frame().validTime())
+                .containsExactly(t("2026-10-13T04:20:00Z"), t("2026-10-13T04:30:00Z"));
+        WIREMOCK.verify(0, getRequestedFor(urlPathEqualTo("/" + BUCKET + "/"
+                + MrmsAdapter.QPE_1H_UPSTREAM.key(t("2026-10-13T04:22:00Z")))));
+        assertThat(state.get("lastKey:" + MrmsAdapter.QPE_1H)).as("the cursor passes the thinned-out files")
+                .contains(MrmsAdapter.QPE_1H_UPSTREAM.key(t("2026-10-13T04:38:00Z")));
+        Committed rot = sink.committed(MrmsAdapter.ROTATION).get(0);
+        assertThat(rot.frame().grid().nx()).isEqualTo(7000);
+        assertThat(rot.frame().grid().ny()).isEqualTo(3500);
+        assertThat(rot.frame().grid().params()).containsEntry("la1", 54.995).containsEntry("lo1", -129.995)
+                .containsEntry("dx", 0.01);
+        assertThat(rot.frame().extraStats()).containsEntry("reducedFrom", "14000x7000");
+        assertThat(rot.frame().variable()).isEqualTo("RotationTrack60min");
+    }
+
+    @Test
+    @DisplayName("the descriptor: budgets, cadence, response cap, kinds, retention and the seven products (053 adds four)")
     void descriptor() {
         SourceDescriptor d = adapter.descriptor();
         assertThat(d.id()).isEqualTo("mrms");
@@ -378,7 +416,8 @@ class MrmsAdapterWireMockTest extends WireMockSupport {
         assertThat(d.zeroResultsNormal()).isTrue();
         assertThat(d.licence()).isEqualTo("US-PD");
         assertThat(d.products()).extracting(ProductSpec::id)
-                .containsExactly(MrmsAdapter.REFLECTIVITY, MrmsAdapter.PRECIP_RATE, MrmsAdapter.MESH);
+                .containsExactly(MrmsAdapter.REFLECTIVITY, MrmsAdapter.PRECIP_RATE, MrmsAdapter.MESH, MrmsAdapter.ROTATION,
+                        MrmsAdapter.QPE_1H, MrmsAdapter.QPE_24H, MrmsAdapter.FFG_RATIO);
         ProductSpec reflectivity = d.products().get(0);
         assertThat(reflectivity.codes()).containsEntry(0, "noCoverage").containsEntry(1, "noEcho");
         assertThat(reflectivity.physical(166)).isEqualTo(50.0);

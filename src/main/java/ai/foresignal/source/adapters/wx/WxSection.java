@@ -68,6 +68,16 @@ public final class WxSection {
         this.status = newStatus;
     }
 
+    /**
+     * Forgets everything (prompt 053): the section returns to "never had data", for an input that left the
+     * payload (its product was disabled or removed).
+     */
+    public void clear() {
+        this.status = UNAVAILABLE;
+        this.lastGood = null;
+        this.metrics = null;
+    }
+
     /** The status. */
     public String status() {
         return status;

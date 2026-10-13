@@ -36,8 +36,9 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
 /**
- * The shared context of the prompt 047 and 048 ingest ITs: the weather adapters (047's four, and 048's
- * {@code goes-glm}, {@code goes-fdc}, {@code hms-smoke} and {@code hms-fire}) point at one stub server
+ * The shared context of the prompt 047 and 048 ingest ITs: the weather adapters (047's four, 048's
+ * {@code goes-glm}, {@code goes-fdc}, {@code hms-smoke} and {@code hms-fire}, and 053's {@code nws-gridpoints} and
+ * {@code spc-storm-reports}, which share the NWS and SPC base-URL properties) point at one stub server
  * through their test base-URL properties (and S3 listings through {@code foresignal.test.s3-endpoint}),
  * and each test drives real fetches with {@link FetchExecutor#execute(String, FetchTrigger)
  * execute(id, MANUAL)}, so records reach the store through the real fetch path and ingest writer
@@ -80,7 +81,8 @@ public abstract class WeatherIngestSupport {
     /** The sources whose backoff is cleared around each test. */
     protected static final List<String> SOURCES = List.of(NwsAlertsAdapter.ID, ProbSevereAdapter.ID,
             SpcOutlooksAdapter.ID, AwcMetarsAdapter.ID, GoesGlmAdapter.ID, GoesFdcAdapter.ID, HmsSmokeAdapter.ID,
-            HmsFireAdapter.ID);
+            HmsFireAdapter.ID, ai.foresignal.source.adapters.nws.NwsGridpointsAdapter.ID,
+            ai.foresignal.source.adapters.spc.SpcStormReportsAdapter.ID);
 
     /** Resets the stubs and the backoff of the weather sources. */
     @BeforeEach

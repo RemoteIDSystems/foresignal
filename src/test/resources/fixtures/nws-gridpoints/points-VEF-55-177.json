@@ -1,0 +1,112 @@
+{
+ "@context": [
+  "https://geojson.org/geojson-ld/geojson-context.jsonld",
+  {
+   "@version": "1.1",
+   "wx": "https://api.weather.gov/ontology#",
+   "s": "https://schema.org/",
+   "geo": "http://www.opengis.net/ont/geosparql#",
+   "unit": "http://codes.wmo.int/common/unit/",
+   "@vocab": "https://api.weather.gov/ontology#",
+   "geometry": {
+    "@id": "s:GeoCoordinates",
+    "@type": "geo:wktLiteral"
+   },
+   "city": "s:addressLocality",
+   "state": "s:addressRegion",
+   "distance": {
+    "@id": "s:Distance",
+    "@type": "s:QuantitativeValue"
+   },
+   "bearing": {
+    "@type": "s:QuantitativeValue"
+   },
+   "value": {
+    "@id": "s:value"
+   },
+   "unitCode": {
+    "@id": "s:unitCode",
+    "@type": "@id"
+   },
+   "forecastOffice": {
+    "@type": "@id"
+   },
+   "forecastGridData": {
+    "@type": "@id"
+   },
+   "publicZone": {
+    "@type": "@id"
+   },
+   "county": {
+    "@type": "@id"
+   }
+  }
+ ],
+ "id": "https://api.weather.gov/points/37.6856,-117.3638",
+ "type": "Feature",
+ "geometry": {
+  "type": "Point",
+  "coordinates": [
+   -117.3638,
+   37.6856
+  ]
+ },
+ "properties": {
+  "@id": "https://api.weather.gov/points/37.6856,-117.3638",
+  "@type": "wx:Point",
+  "cwa": "VEF",
+  "type": "land",
+  "forecastOffice": "https://api.weather.gov/offices/VEF",
+  "gridId": "VEF",
+  "gridX": 55,
+  "gridY": 177,
+  "forecast": "https://api.weather.gov/gridpoints/VEF/55,177/forecast",
+  "forecastHourly": "https://api.weather.gov/gridpoints/VEF/55,177/forecast/hourly",
+  "forecastGridData": "https://api.weather.gov/gridpoints/VEF/55,177",
+  "observationStations": "https://api.weather.gov/gridpoints/VEF/55,177/stations",
+  "relativeLocation": {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -117.2378544,
+     37.7121705
+    ]
+   },
+   "properties": {
+    "city": "Goldfield",
+    "state": "NV",
+    "distance": {
+     "unitCode": "wmoUnit:m",
+     "value": 10384.847454007
+    },
+    "bearing": {
+     "unitCode": "wmoUnit:degree_(angle)",
+     "value": 255
+    }
+   }
+  },
+  "forecastZone": "https://api.weather.gov/zones/forecast/NVZ014",
+  "county": "https://api.weather.gov/zones/county/NVC009",
+  "fireWeatherZone": "https://api.weather.gov/zones/fire/NVZ460",
+  "timeZone": "America/Los_Angeles",
+  "radarStation": "KHNX",
+  "astronomicalData": {
+   "sunrise": "2026-10-13T06:56:11-07:00",
+   "sunset": "2026-10-13T18:15:01-07:00",
+   "transit": "2026-10-13T12:35:36-07:00",
+   "civilTwilightBegin": "2026-10-13T06:29:56-07:00",
+   "civilTwilightEnd": "2026-10-13T18:41:17-07:00",
+   "nauticalTwilightBegin": "2026-10-13T05:59:33-07:00",
+   "nauticalTwilightEnd": "2026-10-13T19:11:40-07:00",
+   "astronomicalTwilightBegin": "2026-10-13T05:29:12-07:00",
+   "astronomicalTwilightEnd": "2026-10-13T19:42:00-07:00"
+  },
+  "nwr": {
+   "transmitter": "WZ2519",
+   "sameCode": "032009",
+   "areaBroadcast": "https://api.weather.gov/radio/WZ2519/broadcast",
+   "pointBroadcast": "https://api.weather.gov/points/37.6856,-117.3638/radio"
+  }
+ }
+}

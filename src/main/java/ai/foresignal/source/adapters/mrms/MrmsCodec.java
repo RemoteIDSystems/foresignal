@@ -18,6 +18,22 @@ package ai.foresignal.source.adapters.mrms;
  *   <li>MESH, u8: 0 = no coverage, 1 = 0 mm (no hail), 2..255 = {@code clamp(round(mm) + 1, 2, 255)};
  *       mm = code − 1.
  * </ul>
+ *
+ * <p><b>Second wave</b> (prompt 053), verified against the 2026-10-13 fixtures and the MRMS GRIB2 table
+ * NetCDF-Java ships ({@code UserTable_MRMS_v12.2.csv}):
+ *
+ * <ul>
+ *   <li>Rotation track 60 min, u16: the file holds 0.001 s⁻¹ units on a 0.005° grid, and the table gives
+ *       0 for both "missing" and "no coverage", so a zero cannot be told apart from "no rotation". Code 0 =
+ *       no coverage (a bitmap-missing sample only), 1 = 0 (no rotation detected, named {@code noEcho}),
+ *       2..65,535 = {@code clamp(round(value × 10) + 1, 2, 65,535)}; s⁻¹ = code × 10⁻⁴ − 10⁻⁴. The adapter
+ *       reduces the grid 2 × 2 by maximum ({@link #coarsenMax}) to the 0.01° grid of the other products.
+ *   <li>QPE 1 h and 24 h, u16: {@code round(mm × 10)} capped at 65,534; 65,535 = no coverage (MRMS −3) or
+ *       missing (−1); both are unknown, never "no rain".
+ *   <li>FLASH QPE-to-FFG ratio 1 h, u16 percent: {@code round(percent × 10)} (0.1 % precision; the file
+ *       holds whole percents in steps of 5), capped at 65,534; 65,535 = no coverage (MRMS −999). The table
+ *       says "non-dim", but the values are percentages: a light-rain day's p50 is 5 and its maximum 90.
+ * </ul>
  */
 public final class MrmsCodec {
 
@@ -53,6 +69,18 @@ public final class MrmsCodec {
 
     /** The lowest reflectivity that keeps a value code, dBZ. */
     public static final float MIN_DBZ = -32f;
+
+    /** Rotation no coverage (a bitmap-missing sample; MRMS has no in-band sentinel for it). */
+    public static final int ROTATION_NO_COVERAGE = 0;
+
+    /** Rotation 0 s⁻¹: MRMS 0, no rotation detected (or no radar there; the file cannot tell). */
+    public static final int ROTATION_NONE = 1;
+
+    /** The largest u16 code. */
+    public static final int U16_MAX = 65_535;
+
+    /** MRMS FLASH no-coverage sentinel. */
+    public static final float MRMS_FLASH_NO_COVERAGE = -999f;
 
     private static final float SENTINEL_TOLERANCE = 0.25f;
 
@@ -136,6 +164,128 @@ public final class MrmsCodec {
         int[] out = new int[mm.length];
         for (int i = 0; i < mm.length; i++) {
             out[i] = mesh(mm[i]);
+        }
+        return out;
+    }
+
+    /**
+     * The u16 rotation code of {@code value}, in the file's 0.001 s⁻¹ units.
+     *
+     * @param value the MRMS value (0 = none or no coverage, NaN = missing)
+     */
+    public static int rotation(float value) {
+        if (Float.isNaN(value) || value < 0f) {
+            return ROTATION_NO_COVERAGE;
+        }
+        long code = Math.round((double) value * 10.0) + 1;
+        if (code <= ROTATION_NONE) {
+            return ROTATION_NONE;
+        }
+        return (int) Math.max(2, Math.min(U16_MAX, code));
+    }
+
+    /** The u16 QPE code of {@code mm} (1 h or 24 h accumulation). */
+    public static int qpe(float mm) {
+        if (Float.isNaN(mm) || mm < 0f) {
+            // −3 no coverage and −1 missing: both unknown, never zero rain.
+            return U16_MISSING;
+        }
+        return (int) Math.min(PRECIP_MAX_CODE, Math.round((double) mm * 10.0));
+    }
+
+    /** The u16 code of a QPE-to-FFG ratio in percent: tenths of a percent. */
+    public static int ffgPercent(float percent) {
+        if (Float.isNaN(percent) || near(percent, MRMS_FLASH_NO_COVERAGE) || percent < 0f) {
+            return U16_MISSING;
+        }
+        return (int) Math.min(PRECIP_MAX_CODE, Math.round((double) percent * 10.0));
+    }
+
+    /** {@link #rotation} over a band. */
+    public static int[] rotation(float[] values) {
+        int[] out = new int[values.length];
+        for (int i = 0; i < values.length; i++) {
+            out[i] = rotation(values[i]);
+        }
+        return out;
+    }
+
+    /** {@link #qpe} over a band. */
+    public static int[] qpe(float[] mm) {
+        int[] out = new int[mm.length];
+        for (int i = 0; i < mm.length; i++) {
+            out[i] = qpe(mm[i]);
+        }
+        return out;
+    }
+
+    /** {@link #ffgPercent} over a band. */
+    public static int[] ffgPercent(float[] percent) {
+        int[] out = new int[percent.length];
+        for (int i = 0; i < percent.length; i++) {
+            out[i] = ffgPercent(percent[i]);
+        }
+        return out;
+    }
+
+    /**
+     * Reduces a row-major code grid by {@code factor} in both directions, keeping each block's largest code.
+     * Only for code spaces where a larger code means a larger value and the no-coverage code is the smallest
+     * (rotation): a block is no coverage only when all its cells are.
+     *
+     * @param codes {@code nx × ny} codes, rows north to south
+     * @param nx columns, a multiple of {@code factor}
+     * @param ny rows, a multiple of {@code factor}
+     * @param factor the reduction, 1 or more
+     * @return {@code (nx / factor) × (ny / factor)} codes
+     */
+    public static int[] coarsenMax(int[] codes, int nx, int ny, int factor) {
+        if (factor <= 1) {
+            return codes;
+        }
+        if (nx % factor != 0 || ny % factor != 0 || codes.length != nx * ny) {
+            throw new IllegalArgumentException("A " + nx + "x" + ny + " grid cannot be reduced by " + factor);
+        }
+        int ox = nx / factor;
+        int oy = ny / factor;
+        int[] out = new int[ox * oy];
+        for (int y = 0; y < ny; y++) {
+            int row = y * nx;
+            int orow = (y / factor) * ox;
+            for (int x = 0; x < nx; x++) {
+                int c = codes[row + x];
+                int o = orow + x / factor;
+                if (c > out[o]) {
+                    out[o] = c;
+                }
+            }
+        }
+        return out;
+    }
+
+    /**
+     * Converts a decoded float band to rotation codes and reduces it in one pass (prompt 053), so the full
+     * 0.005° code grid (98 M ints) is never allocated.
+     */
+    public static int[] rotationCoarsened(float[] values, int nx, int ny, int factor) {
+        if (factor <= 1) {
+            return rotation(values);
+        }
+        if (nx % factor != 0 || ny % factor != 0 || values.length != nx * ny) {
+            throw new IllegalArgumentException("A " + nx + "x" + ny + " grid cannot be reduced by " + factor);
+        }
+        int ox = nx / factor;
+        int[] out = new int[ox * (ny / factor)];
+        for (int y = 0; y < ny; y++) {
+            int row = y * nx;
+            int orow = (y / factor) * ox;
+            for (int x = 0; x < nx; x++) {
+                int c = rotation(values[row + x]);
+                int o = orow + x / factor;
+                if (c > out[o]) {
+                    out[o] = c;
+                }
+            }
         }
         return out;
     }

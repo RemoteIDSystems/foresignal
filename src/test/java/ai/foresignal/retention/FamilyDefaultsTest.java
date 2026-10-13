@@ -70,7 +70,10 @@ class FamilyDefaultsTest {
      * for a {@code bulk-event} kind is not overridden (only {@code event} and {@code series} are), and
      * §2.4 names {@code lightning-cluster} 3 d and {@code fire-detection}, {@code fire-cluster},
      * {@code smoke-polygon} 7 d. Prompt 052 adds the derived weather sources ({@code DerivedGenerator}s) to
-     * {@code weather}: §2.4 names {@code place-weather} 14 d, {@code wx-area} 7 d and {@code radar-cell} 3 d.
+     * {@code weather}: §2.4 names {@code place-weather} 14 d, {@code wx-area} 7 d and {@code radar-cell} 3 d. Prompt 053
+     * adds {@code spc-storm-reports} ({@code storm-report} 30 d, §2.4) and {@code nws-gridpoints} ({@code nws-forecast}
+     * 7 d, named by the prompt; forecasts are not events) to {@code weather}; whether storm reports belong to the
+     * {@code event} class (1825 d) is an open owner question in the 053 report.
      */
     record Entry(SourceDescriptor descriptor, String analyticClass) {}
 
@@ -86,6 +89,12 @@ class FamilyDefaultsTest {
             Map.entry("NwsAlertsAdapter", new Entry(new NwsAlertsAdapter((CountyGeometries) null, "").descriptor(), "event")),
             Map.entry("ProbSevereAdapter", new Entry(new ProbSevereAdapter((AreaOfInterest) null, "").descriptor(), "weather")),
             Map.entry("SpcOutlooksAdapter", new Entry(new SpcOutlooksAdapter("").descriptor(), "weather")),
+            // Prompt 053: storm reports and NWS gridpoint forecasts, retained per the prompt and §2.4.
+            Map.entry("SpcStormReportsAdapter", new Entry(
+                    new ai.foresignal.source.adapters.spc.SpcStormReportsAdapter("").descriptor(), "weather")),
+            Map.entry("NwsGridpointsAdapter", new Entry(new ai.foresignal.source.adapters.nws.NwsGridpointsAdapter(
+                    (java.util.function.Supplier<ai.foresignal.source.spi.PlacePoints>) null, null, "").descriptor(),
+                    "weather")),
             Map.entry("AwcMetarsAdapter", new Entry(new AwcMetarsAdapter((AreaOfInterest) null, "").descriptor(), "weather")),
             Map.entry("GoesGlmAdapter", new Entry(new GoesGlmAdapter(null, "").descriptor(), "weather")),
             Map.entry("GoesFdcAdapter", new Entry(new GoesFdcAdapter(null, (AreaOfInterest) null, "").descriptor(), "weather")),
@@ -100,17 +109,19 @@ class FamilyDefaultsTest {
                     new ai.foresignal.source.adapters.wx.WxCellsGenerator("small").descriptor(), "weather")));
 
     /** Weather-Imagery-Design §2.4's per-kind record retention, for the {@code weather} class. */
-    static final Map<String, Duration> WEATHER_KIND_RETENTION = Map.of(
-            "probsevere-object", Duration.ofDays(3),
-            "spc-outlook", Duration.ofDays(14),
-            "metar", Duration.ofDays(7),
-            "lightning-cluster", Duration.ofDays(3),
-            "fire-detection", Duration.ofDays(7),
-            "fire-cluster", Duration.ofDays(7),
-            "smoke-polygon", Duration.ofDays(7),
-            "place-weather", Duration.ofDays(14),
-            "wx-area", Duration.ofDays(7),
-            "radar-cell", Duration.ofDays(3));
+    static final Map<String, Duration> WEATHER_KIND_RETENTION = Map.ofEntries(
+            Map.entry("probsevere-object", Duration.ofDays(3)),
+            Map.entry("spc-outlook", Duration.ofDays(14)),
+            Map.entry("metar", Duration.ofDays(7)),
+            Map.entry("lightning-cluster", Duration.ofDays(3)),
+            Map.entry("fire-detection", Duration.ofDays(7)),
+            Map.entry("fire-cluster", Duration.ofDays(7)),
+            Map.entry("smoke-polygon", Duration.ofDays(7)),
+            Map.entry("place-weather", Duration.ofDays(14)),
+            Map.entry("wx-area", Duration.ofDays(7)),
+            Map.entry("radar-cell", Duration.ofDays(3)),
+            Map.entry("storm-report", Duration.ofDays(30)),
+            Map.entry("nws-forecast", Duration.ofDays(7)));
 
     /** The design's raster-frame record retention (Weather-Imagery-Design §2.4). */
     static final Duration RASTER_FRAME_RETENTION = Duration.ofDays(7);

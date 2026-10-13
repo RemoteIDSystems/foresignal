@@ -284,6 +284,27 @@ public class PlaceService implements PlaceLookup, PlacePoints, IngestStateReset 
         });
     }
 
+    /**
+     * Every place for an adapter (prompt 053): id, name, representative point, products and version, ordered
+     * by id. Places without a usable geometry are left out.
+     */
+    @Override
+    public List<PlacePoints.Summary> summaries() {
+        return all().stream()
+                .sorted(java.util.Comparator.comparing(PlaceView::id))
+                .map(v -> {
+                    org.locationtech.jts.geom.Geometry g = v.geometry() == null || v.geometry().isEmpty() ? v.area() : v.geometry();
+                    if (g == null || g.isEmpty()) {
+                        return null;
+                    }
+                    org.locationtech.jts.geom.Point p = g instanceof org.locationtech.jts.geom.Point point ? point
+                            : g.getInteriorPoint();
+                    return new PlacePoints.Summary(v.id(), v.name(), p.getX(), p.getY(), v.products(), v.version());
+                })
+                .filter(java.util.Objects::nonNull)
+                .toList();
+    }
+
     // ------------------------------------------------------------------------- writes
 
     /**

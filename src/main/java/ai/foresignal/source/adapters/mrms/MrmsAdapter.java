@@ -13,10 +13,13 @@ import ai.foresignal.source.spi.DownloadResult;
 import ai.foresignal.source.spi.FetchContext;
 import ai.foresignal.source.spi.FetchResult;
 import ai.foresignal.source.spi.FrameInput;
+import ai.foresignal.source.spi.GridDefinition;
 import ai.foresignal.source.spi.HistoryTier;
 import ai.foresignal.source.spi.Mode;
 import ai.foresignal.source.spi.NormalizedRecord;
 import ai.foresignal.source.spi.ObservedAtMode;
+import ai.foresignal.source.spi.ParamSpec;
+import ai.foresignal.source.spi.ParamType;
 import ai.foresignal.source.spi.PollingAdapter;
 import ai.foresignal.source.spi.ProductSpec;
 import ai.foresignal.source.spi.RasterDtype;
@@ -25,6 +28,7 @@ import ai.foresignal.source.spi.S3Listing;
 import ai.foresignal.source.spi.S3Object;
 import ai.foresignal.source.spi.SilentFormatChangeException;
 import ai.foresignal.source.spi.SourceDescriptor;
+import ai.foresignal.source.spi.ValidatedParams;
 import java.net.URI;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -35,6 +39,7 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -50,7 +55,20 @@ import org.springframework.stereotype.Component;
 
 /**
  * NOAA MRMS radar mosaics (prompt 046, Weather-Imagery-Design §5.1): {@value #REFLECTIVITY},
- * {@value #PRECIP_RATE} (with PrecipFlag as band 2) and {@value #MESH}, every 2-minute frame.
+ * {@value #PRECIP_RATE} (with PrecipFlag as band 2) and {@value #MESH}, every 2-minute frame; and the
+ * second wave (prompt 053, §5.2): {@value #ROTATION}, {@value #QPE_1H}, {@value #QPE_24H} and
+ * {@value #FFG_RATIO}.
+ *
+ * <p><b>Second wave thinning</b>: each second-wave product has a fixed {@code takeEvery} parameter (never
+ * adaptive cadence, design §11): the first listed file of each {@code 2 min × takeEvery} bucket of the
+ * key timestamps is committed and the rest are passed over ({@link #thin}). Defaults: rotation every frame,
+ * QPE 1 h and the FFG ratio every 10 minutes, QPE 24 h every (hourly) file. Measured 2026-10-12 from the full
+ * day's listings: rotation 187 MB, QPE 1 h 607 MB (121 MB at every fifth file), QPE 24 h 130 MB and the FFG
+ * ratio 104 MB (21 MB), so about 0.46 GB/day at the defaults, and the whole source about 2.5 GB/day.
+ *
+ * <p><b>Rotation</b> is published on a 0.005° grid (14,000 × 7,000); the adapter reduces it 2 × 2 by maximum
+ * to the 0.01° grid of the other MRMS products before it is stored ({@link #coarsen}), which keeps a decoded
+ * frame at 49 MB instead of 196 MB and keeps every peak.
  *
  * <p><b>One access path</b>: anonymous S3 ListObjectsV2 on {@value #BUCKET} with {@code start-after},
  * prefix {@code CONUS/{Product}/{YYYYMMDD}/}; no NCEP {@code .latest} file and no adaptive cadence.
@@ -104,6 +122,39 @@ public class MrmsAdapter implements PollingAdapter, DecoderDependent {
 
     /** 60-minute maximum estimated size of hail. */
     public static final String MESH = "mrms-mesh-60m";
+
+    /** 60-minute rotation track, 0–2 km AGL (prompt 053). */
+    public static final String ROTATION = "mrms-rotation-60m";
+
+    /** Radar-only 1-hour precipitation accumulation (prompt 053). */
+    public static final String QPE_1H = "mrms-qpe-1h";
+
+    /** Multi-sensor 24-hour precipitation accumulation, pass 2 (prompt 053). */
+    public static final String QPE_24H = "mrms-qpe-24h";
+
+    /** FLASH QPE-to-flash-flood-guidance ratio over 1 hour, percent (prompt 053). */
+    public static final String FFG_RATIO = "mrms-ffg-ratio-1h";
+
+    /** The {@code takeEvery} parameter of {@value #ROTATION}. */
+    public static final String ROTATION_TAKE_EVERY = "rotationTakeEvery";
+
+    /** The {@code takeEvery} parameter of {@value #QPE_1H}. */
+    public static final String QPE_1H_TAKE_EVERY = "qpe1hTakeEvery";
+
+    /** The {@code takeEvery} parameter of {@value #QPE_24H}. */
+    public static final String QPE_24H_TAKE_EVERY = "qpe24hTakeEvery";
+
+    /** The {@code takeEvery} parameter of {@value #FFG_RATIO}. */
+    public static final String FFG_TAKE_EVERY = "ffgTakeEvery";
+
+    /** The largest {@code takeEvery}. */
+    public static final int MAX_TAKE_EVERY = 30;
+
+    /** The upstream file spacing that {@code takeEvery} counts in. */
+    static final Duration FILE_SPACING = Duration.ofMinutes(2);
+
+    /** The resolution every stored MRMS product shares, degrees. */
+    static final double STORED_RESOLUTION_DEG = 0.01;
 
     /** New frames committed per product per run. */
     public static final int MAX_FRAMES_PER_RUN = 15;
@@ -160,6 +211,43 @@ public class MrmsAdapter implements PollingAdapter, DecoderDependent {
             DecodeRequest.grib2(PRECIP_RATE, "PrecipFlag", 209, 6, 0, 102, 0.0, "0 m"));
     static final Upstream MESH_UPSTREAM = new Upstream("MESH_Max_60min_00.50",
             DecodeRequest.grib2(MESH, "MESH_Max_60min", 209, 3, 30, 102, 500.0, "500 m"));
+    // Prompt 053; parameters verified on the 2026-10-13 fixtures (src/test/resources/fixtures/mrms/README.md).
+    static final Upstream ROTATION_UPSTREAM = new Upstream("RotationTrack60min_00.50",
+            DecodeRequest.grib2(ROTATION, "RotationTrack60min", 209, 3, 3, 102, 500.0, "500 m"));
+    static final Upstream QPE_1H_UPSTREAM = new Upstream("RadarOnly_QPE_01H_00.00",
+            DecodeRequest.grib2(QPE_1H, "RadarOnly_QPE_01H", 209, 6, 2, 102, 0.0, "0 m"));
+    static final Upstream QPE_24H_UPSTREAM = new Upstream("MultiSensor_QPE_24H_Pass2_00.00",
+            DecodeRequest.grib2(QPE_24H, "MultiSensor_QPE_24H_Pass2", 209, 6, 41, 102, 0.0, "0 m"));
+    static final Upstream FFG_UPSTREAM = new Upstream("FLASH_QPE_FFG01H_00.00",
+            DecodeRequest.grib2(FFG_RATIO, "FLASH_QPE_FFG01H", 209, 12, 26, 1, 0.0, "surface"));
+
+    /**
+     * A second-wave product (prompt 053): one file per frame, thinned by a fixed {@code takeEvery}.
+     *
+     * @param productId the product
+     * @param upstream its upstream directory and field
+     * @param codec MRMS values to codes
+     * @param takeEveryParam the parameter holding its {@code takeEvery}
+     * @param defaultTakeEvery the default {@code takeEvery}
+     * @param reduce true to reduce a finer grid to {@value #STORED_RESOLUTION_DEG}° by block maximum
+     */
+    record SecondWave(String productId, Upstream upstream, Function<float[], int[]> codec, String takeEveryParam,
+            int defaultTakeEvery, boolean reduce) {
+
+        /** The effective {@code takeEvery}: the parameter, else the default, clamped to 1..{@value #MAX_TAKE_EVERY}. */
+        int takeEvery(ValidatedParams params) {
+            int v = params == null || !params.has(takeEveryParam) || params.integer(takeEveryParam) == null
+                    ? defaultTakeEvery : params.integer(takeEveryParam);
+            return Math.max(1, Math.min(MAX_TAKE_EVERY, v));
+        }
+    }
+
+    /** The four second-wave products, in fetch order. */
+    static final List<SecondWave> SECOND_WAVE = List.of(
+            new SecondWave(ROTATION, ROTATION_UPSTREAM, MrmsCodec::rotation, ROTATION_TAKE_EVERY, 1, true),
+            new SecondWave(QPE_1H, QPE_1H_UPSTREAM, MrmsCodec::qpe, QPE_1H_TAKE_EVERY, 5, false),
+            new SecondWave(QPE_24H, QPE_24H_UPSTREAM, MrmsCodec::qpe, QPE_24H_TAKE_EVERY, 1, false),
+            new SecondWave(FFG_RATIO, FFG_UPSTREAM, MrmsCodec::ffgPercent, FFG_TAKE_EVERY, 5, false));
 
     /**
      * One listed frame.
@@ -195,8 +283,25 @@ public class MrmsAdapter implements PollingAdapter, DecoderDependent {
 
     @Override
     public Map<String, Set<DecoderCapability>> decoderRequirements() {
-        return Map.of(REFLECTIVITY, Set.of(DecoderCapability.GRIB2_PNG), PRECIP_RATE, Set.of(DecoderCapability.GRIB2_PNG),
-                MESH, Set.of(DecoderCapability.GRIB2_PNG));
+        Map<String, Set<DecoderCapability>> out = new HashMap<>();
+        for (String product : List.of(REFLECTIVITY, PRECIP_RATE, MESH, ROTATION, QPE_1H, QPE_24H, FFG_RATIO)) {
+            out.put(product, Set.of(DecoderCapability.GRIB2_PNG));
+        }
+        return Map.copyOf(out);
+    }
+
+    @Override
+    public Map<String, String> checkParams(ValidatedParams params) {
+        Map<String, String> problems = new LinkedHashMap<>();
+        for (SecondWave product : SECOND_WAVE) {
+            if (params != null && params.has(product.takeEveryParam()) && params.integer(product.takeEveryParam()) != null) {
+                int v = params.integer(product.takeEveryParam());
+                if (v < 1 || v > MAX_TAKE_EVERY) {
+                    problems.put(product.takeEveryParam(), "must be between 1 and " + MAX_TAKE_EVERY);
+                }
+            }
+        }
+        return problems;
     }
 
     /** The URL of {@code key}. */
@@ -227,6 +332,13 @@ public class MrmsAdapter implements PollingAdapter, DecoderDependent {
         } catch (AdapterException e) {
             failure = failure == null ? e : failure;
         }
+        for (SecondWave product : SECOND_WAVE) {
+            try {
+                records.addAll(fetchSecondWave(ctx, product));
+            } catch (AdapterException e) {
+                failure = failure == null ? e : failure;
+            }
+        }
         if (failure != null) {
             if (records.isEmpty()) {
                 throw failure;
@@ -239,6 +351,23 @@ public class MrmsAdapter implements PollingAdapter, DecoderDependent {
     /** Fetches the new frames of a single-file product. */
     List<NormalizedRecord> fetchSingle(FetchContext ctx, String productId, Upstream upstream,
             Function<float[], int[]> codec) throws AdapterException {
+        return fetchSingle(ctx, productId, upstream, codec, 1, false);
+    }
+
+    /** Fetches the new frames of a second-wave product at its {@code takeEvery} (prompt 053). */
+    List<NormalizedRecord> fetchSecondWave(FetchContext ctx, SecondWave product) throws AdapterException {
+        return fetchSingle(ctx, product.productId(), product.upstream(), product.codec(), product.takeEvery(ctx.params()),
+                product.reduce());
+    }
+
+    /**
+     * Fetches the new frames of a single-file product.
+     *
+     * @param takeEvery commit the first file of each {@code 2 min × takeEvery} bucket only (1 = every file)
+     * @param reduce reduce a grid finer than {@value #STORED_RESOLUTION_DEG}° by block maximum
+     */
+    List<NormalizedRecord> fetchSingle(FetchContext ctx, String productId, Upstream upstream,
+            Function<float[], int[]> codec, int takeEvery, boolean reduce) throws AdapterException {
         RasterSink sink = ctx.rasters();
         if (sink.disabled(productId)) {
             return List.of();
@@ -249,10 +378,17 @@ public class MrmsAdapter implements PollingAdapter, DecoderDependent {
         Listed listed = listNew(ctx, upstream, last, now);
         List<NormalizedRecord> out = new ArrayList<>();
         String cursor = listed.passedOldKey(last);
+        Set<String> taken = Set.copyOf(thin(listed.frames(), cursor == null ? null : timeOf(upstream, cursor).orElse(null),
+                takeEvery).stream().map(Frame::key).toList());
         int committed = 0;
         for (Frame frame : listed.frames()) {
             if (committed >= MAX_FRAMES_PER_RUN) {
                 break;
+            }
+            if (!taken.contains(frame.key())) {
+                // Thinned out (prompt 053): passed over, never fetched.
+                cursor = frame.key();
+                continue;
             }
             if (frame.size() > MAX_RESPONSE_BYTES) {
                 ctx.log().warn("MRMS {}: skipping {} ({} bytes is over the {}-byte cap)", productId, frame.key(),
@@ -261,7 +397,7 @@ public class MrmsAdapter implements PollingAdapter, DecoderDependent {
                 continue;
             }
             try {
-                NormalizedRecord record = commitSingle(ctx, productId, upstream, codec, frame);
+                NormalizedRecord record = commitSingle(ctx, productId, upstream, codec, frame, reduce);
                 if (record != null) {
                     out.add(record);
                 }
@@ -280,21 +416,104 @@ public class MrmsAdapter implements PollingAdapter, DecoderDependent {
     }
 
     private NormalizedRecord commitSingle(FetchContext ctx, String productId, Upstream upstream,
-            Function<float[], int[]> codec, Frame frame) throws AdapterException {
+            Function<float[], int[]> codec, Frame frame, boolean reduce) throws AdapterException {
         Path grib = downloadInflated(ctx, productId, frame);
         try {
             DecodedGrid header = decoder.decode(grib, upstream.request().header());
             DecodeRequest request = upstream.request();
-            return ctx.rasters().commit(FrameInput.builder(productId)
+            GridDefinition native_ = header.gridDefinition();
+            int factor = reduce ? reduction(native_) : 1;
+            GridDefinition stored = factor > 1 ? coarsen(native_, factor) : native_;
+            FrameInput.Builder input = FrameInput.builder(productId)
                     .validTime(frame.time())
-                    .grid(header.gridDefinition())
-                    .file(grib, file -> DecodedBands.codes(codec.apply(decoder.decode(file, request).floatData())))
+                    .grid(stored)
                     .upstreamKey(frame.key())
-                    .variable(request.label())
-                    .build());
+                    .variable(request.label());
+            if (factor > 1) {
+                input.file(grib, file -> {
+                    DecodedGrid grid = decoder.decode(file, request);
+                    return DecodedBands.codes(MrmsCodec.rotationCoarsened(grid.floatData(), grid.nx(), grid.ny(), factor));
+                });
+                input.stat("reducedFrom", native_.nx() + "x" + native_.ny());
+            } else {
+                input.file(grib, file -> DecodedBands.codes(codec.apply(decoder.decode(file, request).floatData())));
+            }
+            return ctx.rasters().commit(input.build());
         } finally {
             GzipInputs.deleteQuietly(grib);
         }
+    }
+
+    /**
+     * The block size that reduces {@code grid} to {@value #STORED_RESOLUTION_DEG}° (2 for MRMS's 0.005° rotation
+     * grid), or 1 when it is not finer or not an exact multiple.
+     */
+    static int reduction(GridDefinition grid) {
+        Object dx = grid.params().get("dx");
+        Object dy = grid.params().get("dy");
+        if (!GridDefinition.LATLON.equals(grid.type()) || !(dx instanceof Number x) || !(dy instanceof Number y)) {
+            return 1;
+        }
+        long fx = Math.round(STORED_RESOLUTION_DEG / x.doubleValue());
+        long fy = Math.round(STORED_RESOLUTION_DEG / y.doubleValue());
+        if (fx < 2 || fx != fy || Math.abs(fx * x.doubleValue() - STORED_RESOLUTION_DEG) > 1e-9
+                || grid.nx() % fx != 0 || grid.ny() % fx != 0) {
+            return 1;
+        }
+        return (int) fx;
+    }
+
+    /**
+     * {@code grid} reduced by {@code factor}: the same box, {@code factor} times fewer columns and rows, first cell
+     * centers moved half a coarse cell inside the box (the decoder's {@code la1}, {@code lo1}, {@code dx},
+     * {@code dy} convention), so the result equals the decoder's grid of a native 0.01° file.
+     */
+    static GridDefinition coarsen(GridDefinition grid, int factor) {
+        if (factor <= 1) {
+            return grid;
+        }
+        double dx = ((Number) grid.params().get("dx")).doubleValue();
+        double dy = ((Number) grid.params().get("dy")).doubleValue();
+        double lo1 = ((Number) grid.params().get("lo1")).doubleValue();
+        double la1 = ((Number) grid.params().get("la1")).doubleValue();
+        Map<String, Object> params = new LinkedHashMap<>(grid.params());
+        params.put("dx", round9(dx * factor));
+        params.put("dy", round9(dy * factor));
+        params.put("lo1", round9(lo1 + dx * (factor - 1) / 2.0));
+        params.put("la1", round9(la1 - dy * (factor - 1) / 2.0));
+        return new GridDefinition(grid.type(), grid.nx() / factor, grid.ny() / factor, grid.west(), grid.south(),
+                grid.east(), grid.north(), params);
+    }
+
+    private static double round9(double v) {
+        return Math.round(v * 1e9) / 1e9;
+    }
+
+    /**
+     * Thinning (prompt 053): the frames to commit at {@code takeEvery}, oldest first. The key timestamps are cut
+     * into fixed buckets of {@code 2 min × takeEvery} (epoch-aligned, so 10-minute buckets start at :00, :10, …),
+     * and the first listed frame of each bucket after the cursor's bucket is taken. Fixed: it depends only on the
+     * keys, never on the weather or on what a frame holds.
+     *
+     * @param frames listed frames after the cursor, oldest first
+     * @param cursorTime the timestamp of the last key passed (taken or thinned out), or null before the first
+     * @param takeEvery 1 takes every frame
+     */
+    static List<Frame> thin(List<Frame> frames, Instant cursorTime, int takeEvery) {
+        if (takeEvery <= 1) {
+            return frames;
+        }
+        long bucketSeconds = FILE_SPACING.toSeconds() * takeEvery;
+        long lastBucket = cursorTime == null ? Long.MIN_VALUE : Math.floorDiv(cursorTime.getEpochSecond(), bucketSeconds);
+        List<Frame> out = new ArrayList<>();
+        for (Frame frame : frames) {
+            long bucket = Math.floorDiv(frame.time().getEpochSecond(), bucketSeconds);
+            if (bucket > lastBucket) {
+                out.add(frame);
+                lastBucket = bucket;
+            }
+        }
+        return out;
     }
 
     /** Fetches the new precipitation frames, pairing rate and flag files. */
@@ -607,10 +826,84 @@ public class MrmsAdapter implements PollingAdapter, DecoderDependent {
                 .attribution(attribution)
                 .legendSummary("Maximum estimated size of hail over the last 60 minutes, mm")
                 .build();
-        return SourceDescriptor.builder(ID)
+        ProductSpec.Spatial conus = new ProductSpec.Spatial("CONUS", 8, 0, 7, null);
+        ProductSpec rotation = ProductSpec.builder(ROTATION)
+                .title("MRMS rotation track (60 min, 0–2 km AGL)")
+                .category("radar")
+                .units("s-1")
+                .dtype(RasterDtype.U16)
+                .scaleOffset(0.0001, -0.0001)
+                .nodata((double) MrmsCodec.ROTATION_NO_COVERAGE)
+                .code(MrmsCodec.ROTATION_NO_COVERAGE, "noCoverage")
+                .code(MrmsCodec.ROTATION_NONE, "noEcho")
+                .defaultStyle("rotation@1")
+                .temporal(temporal)
+                .spatial(conus)
+                .retention(ladder)
+                .attribution(attribution)
+                .coverageMeaning("CONUS; MRMS marks no radar coverage on this product, so 0 means no rotation detected"
+                        + " or no radar there, never evidence of calm weather")
+                .legendSummary("Maximum 0–2 km AGL azimuthal shear over the last 60 minutes, s⁻¹ (reduced 2 × 2 by maximum"
+                        + " from MRMS's 0.005° grid)")
+                .build();
+        ProductSpec.Temporal tenMinutes = ProductSpec.Temporal.observation(Duration.ofMinutes(10), Duration.ofMinutes(30));
+        ProductSpec qpe1h = ProductSpec.builder(QPE_1H)
+                .title("MRMS radar-only precipitation (1 h)")
+                .category("radar")
+                .units("mm")
+                .dtype(RasterDtype.U16)
+                .scaleOffset(0.1, 0.0)
+                .nodata((double) MrmsCodec.U16_MISSING)
+                .code(MrmsCodec.U16_MISSING, "noCoverage")
+                .defaultStyle("qpe@1")
+                .temporal(tenMinutes)
+                .spatial(conus)
+                .retention(ladder)
+                .attribution(attribution)
+                .coverageMeaning("CONUS radar coverage; no coverage and missing data are transparent, never zero rain")
+                .legendSummary("Radar-only precipitation accumulated over the last hour, mm (every 10 minutes by default)")
+                .build();
+        ProductSpec qpe24h = ProductSpec.builder(QPE_24H)
+                .title("MRMS multi-sensor precipitation (24 h)")
+                .category("radar")
+                .units("mm")
+                .dtype(RasterDtype.U16)
+                .scaleOffset(0.1, 0.0)
+                .nodata((double) MrmsCodec.U16_MISSING)
+                .code(MrmsCodec.U16_MISSING, "noCoverage")
+                .defaultStyle("qpe@1")
+                // Hourly files arriving about 59 minutes after their valid time (measured 2026-10-13): the newest
+                // frame is 59 to 119 minutes old, so the 90-minute gap the prompt names would flap every hour.
+                .temporal(ProductSpec.Temporal.observation(Duration.ofHours(1), Duration.ofMinutes(150)))
+                .spatial(conus)
+                .retention(ProductSpec.RetentionLadder.maxAge(Duration.ofHours(48)))
+                .attribution(attribution)
+                .coverageMeaning("CONUS radar and gauge coverage; no coverage and missing data are transparent")
+                .legendSummary("Multi-sensor (radar and gauge, pass 2) precipitation over the last 24 hours, mm, hourly")
+                .build();
+        ProductSpec ffg = ProductSpec.builder(FFG_RATIO)
+                .title("MRMS 1-hour rainfall as a percentage of flash-flood guidance")
+                .category("radar")
+                .units("%")
+                .dtype(RasterDtype.U16)
+                .scaleOffset(0.1, 0.0)
+                .nodata((double) MrmsCodec.U16_MISSING)
+                .code(MrmsCodec.U16_MISSING, "noCoverage")
+                .defaultStyle("ffg-ratio@1")
+                .temporal(tenMinutes)
+                .spatial(conus)
+                .retention(ladder)
+                .attribution(attribution)
+                .coverageMeaning("CONUS where flash-flood guidance exists; elsewhere transparent, never read as safe")
+                .legendSummary("FLASH radar QPE over 1 hour as a percentage of the 1-hour flash-flood guidance; 100 % or"
+                        + " more means rainfall exceeds it (every 10 minutes by default)")
+                .build();
+        SourceDescriptor.Builder builder = SourceDescriptor.builder(ID)
                 .name("NOAA MRMS radar mosaics")
                 .description("NOAA Multi-Radar/Multi-Sensor composite reflectivity, precipitation rate with its type"
-                        + " flag, and 60-minute maximum hail size over CONUS, every 2-minute frame.")
+                        + " flag and 60-minute maximum hail size over CONUS, every 2-minute frame; plus the 60-minute"
+                        + " rotation track, 1-hour and 24-hour precipitation and the 1-hour flash-flood guidance ratio,"
+                        + " each at a fixed takeEvery.")
                 .kind(ProductSpec.RECORD_KIND)
                 .homepage("https://registry.opendata.aws/noaa-mrms-pds/")
                 .attribution("NOAA/NSSL Multi-Radar/Multi-Sensor System (MRMS)")
@@ -629,6 +922,15 @@ public class MrmsAdapter implements PollingAdapter, DecoderDependent {
                 .product(reflectivity)
                 .product(precip)
                 .product(mesh)
-                .build();
+                .product(rotation)
+                .product(qpe1h)
+                .product(qpe24h)
+                .product(ffg);
+        for (SecondWave product : SECOND_WAVE) {
+            builder.param(ParamSpec.optional(product.takeEveryParam(), ParamType.INTEGER,
+                    "Commit one " + product.productId() + " file per 2 min x takeEvery (fixed, 1 to " + MAX_TAKE_EVERY
+                            + "; never adaptive)", product.defaultTakeEvery()));
+        }
+        return builder.build();
     }
 }

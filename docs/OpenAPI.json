@@ -227,6 +227,11 @@
         "version": "1.3.0",
         "date": "2026-10-12",
         "note": "052: getSample, postSample, getProductSeries, postProductStats and getPlaceWeather are implemented (read; getPlaceWeather always authenticated). getSample's `record` parameter belongs to 106 and is 400 VALIDATION_FAILED until then. Descriptions document the time rules (latest/now/ISO/past offsets choose observation frames, future offsets the newest complete run), the status order, `value: null` for non-ok values, series defaults (last 6 h of observations; one run's steps for forecasts) and that non-ok stats carry no statistics. Record.x-foresignal-kinds gains place-weather, wx-area and radar-cell (sources wx-places, wx-areas, wx-cells, DERIVED). MCP gains list_products, sample_weather, weather_forecast and area_weather_stats, the resource foresignal://products and the resource template foresignal://products/{id}/legend."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-12",
+        "note": "053: no new operations. Record x-foresignal-kinds gains nws-forecast (nws-gridpoints) and storm-report (spc-storm-reports); place-weather documents precip.qpe1hMmMax, qpe24hMmMax, ffgRatio1hPctMax and forecast.nws; wx-area accepts the fields rotation, qpe1h and ffg. StormReportPayload: wind magnitude is mph (the SPC CSV, verified 2026-10-13), not knots; magnitudeUnits is EF, mph or in. NwsForecastPayload records carry no geometry. Product examples: mrms-qpe-1h and mrms-ffg-ratio-1h maxGap 30m, mrms-qpe-24h maxGap 150m (files arrive about 59 minutes after their valid time), maxZoomForAnimation 7 on the four second-wave MRMS products. ForecastSeries gains the nws provider (a place's cached 72-hour series; status stale after 6 h)."
       }
     ]
   },
@@ -91059,7 +91064,7 @@
                 "notAWarning"
               ]
             },
-            "note": "externalId = place:{placeId}; one record per place, written only when the quantized payload changes (no heartbeat versions); no geometry (a place's position is sensitive). Each section (radar, hail, precip, lightning, cell, smoke, forecast.gfs) has status ok|stale|no-coverage|unavailable: when its input is older than maxGap (MRMS 6 min, GLM 2 min), comes from a failing source or lacks coverage, it keeps its previous values, sets the status and adds asOf (time of the last good data, fixed while not ok); before the first good data a section carries its status only. 999 = none within 100 km (and no approaching core for cell.eta50Min). Distances to 0.5 km below 10 km else 1 km, ETAs to 5 min, rates to 1 mm/h, dBZ to 0.5. radar.nearest50Km10m and lightning.nearestKm30m are rolling minimums. Verified-clear helpers radar.verifiedNearest50Km10m and lightning.verifiedNearestKm30m equal the metric while the section is ok and 0 otherwise, so `<= X` on them is true when near or unknown (use them for all-clear exit rules). GLM's footprint over Texas is about 8–10 km and its detection efficiency below 100%: GLM-only rules should use 15 km or more; all-clears are advisory. Tombstoned when the place is deleted (which can fire exit rules), never because input is stale. Automated guidance, never a warning.",
+            "note": "externalId = place:{placeId}; one record per place, written only when the quantized payload changes (no heartbeat versions); no geometry (a place's position is sensitive). Each section (radar, hail, precip, lightning, cell, smoke, forecast.gfs) has status ok|stale|no-coverage|unavailable: when its input is older than maxGap (MRMS 6 min, GLM 2 min), comes from a failing source or lacks coverage, it keeps its previous values, sets the status and adds asOf (time of the last good data, fixed while not ok); before the first good data a section carries its status only. 999 = none within 100 km (and no approaching core for cell.eta50Min). Distances to 0.5 km below 10 km else 1 km, ETAs to 5 min, rates to 1 mm/h, dBZ to 0.5. radar.nearest50Km10m and lightning.nearestKm30m are rolling minimums. Verified-clear helpers radar.verifiedNearest50Km10m and lightning.verifiedNearestKm30m equal the metric while the section is ok and 0 otherwise, so `<= X` on them is true when near or unknown (use them for all-clear exit rules). GLM's footprint over Texas is about 8–10 km and its detection efficiency below 100%: GLM-only rules should use 15 km or more; all-clears are advisory. Tombstoned when the place is deleted (which can fire exit rules), never because input is stale. Automated guidance, never a warning. Prompt 053: precip adds qpe1hMmMax, qpe24hMmMax and ffgRatio1hPctMax (maxima within the radius, whole units); each input keeps the section rules on its own, and precip.status is the worst of the rate and of the inputs that have had data. forecast.nws = {status, popMax24h, qpf24hMm, gustMaxMs24h} from the place's nws-forecast head: stale when its forecastUpdated is older than 6 h, unavailable while nws-gridpoints is disabled or failing or has no forecast for the place.",
             "example": {
               "place": "Home",
               "radiusKm": 20,
@@ -91131,7 +91136,7 @@
                 "notAWarning"
               ]
             },
-            "note": "externalId = {field}:{threshold}:{aoi} (field refl, mesh or precip; aoi a place id or `aoi`), from the `areas` parameter (default refl:50:aoi, mesh:25:aoi), computed every 6–10 min (param `interval`, default 8 min). areaKm2 to 2 significant figures, maxValue to 0.5 dBZ (refl) or whole units, coveragePct an integer. Geometry = the thresholded mask polygons simplified and snapped to about 1 km, null when nothing reaches the threshold. Stale, failing or uncovered input keeps the previous values (geometry included) with a non-ok status and asOf. Tombstoned when its place is deleted or it leaves the `areas` parameter.",
+            "note": "externalId = {field}:{threshold}:{aoi} (field refl, mesh, precip, or from 053 rotation, qpe1h or ffg; aoi a place id or `aoi`), from the `areas` parameter (default refl:50:aoi, mesh:25:aoi), computed every 6–10 min (param `interval`, default 8 min). areaKm2 to 2 significant figures, maxValue to 0.5 dBZ (refl) or whole units, coveragePct an integer. Geometry = the thresholded mask polygons simplified and snapped to about 1 km, null when nothing reaches the threshold. Stale, failing or uncovered input keeps the previous values (geometry included) with a non-ok status and asOf. Tombstoned when its place is deleted or it leaves the `areas` parameter.",
             "example": {
               "field": "refl",
               "threshold": 50,
@@ -91170,6 +91175,66 @@
               },
               "automated": true,
               "notAWarning": true
+            }
+          },
+          "nws-forecast": {
+            "x-foresignal-prompt": "053",
+            "payloadFields": {
+              "nws-gridpoints": [
+                "place",
+                "wfo",
+                "gridX",
+                "gridY",
+                "popMax24h",
+                "qpf24hMm",
+                "tMaxC24h",
+                "tMinC24h",
+                "gustMaxMs24h",
+                "hazards",
+                "forecastUpdated"
+              ]
+            },
+            "note": "externalId = place:{placeId}; one record per selected place (all places, or those with product `nws` when allPlaces=false; at most maxPlaces, default 50). observedAt = the forecast's updateTime (UPSTREAM); no eventTime, no TTL, no geometry (a place's position is sensitive). The 24-hour summaries cover the first 24 hours from the fetch hour of the hourly expansion of the gridpoint layers (accumulations divided evenly over their intervals; wind in m/s). hazards: at most 10, type = phenomenon.significance. Fetched hourly per place with If-Modified-Since; a 304 or a failed request keeps the record. The 72-hour hourly series is cached in forecast_series_cache (provider nws) and served as ForecastSeries by getPlaceWeather and weather_forecast. Tombstoned when the place is deleted or leaves the selection.",
+            "example": {
+              "place": "Home",
+              "wfo": "FWD",
+              "gridX": 89,
+              "gridY": 104,
+              "popMax24h": 20,
+              "qpf24hMm": 0.5,
+              "tMaxC24h": 31.1,
+              "tMinC24h": 19.4,
+              "gustMaxMs24h": 10.8,
+              "hazards": [],
+              "forecastUpdated": "2026-10-12T23:06:24Z"
+            }
+          },
+          "storm-report": {
+            "x-foresignal-prompt": "053",
+            "payloadFields": {
+              "spc-storm-reports": [
+                "type",
+                "magnitude",
+                "magnitudeUnits",
+                "location",
+                "county",
+                "state",
+                "wfo",
+                "comments",
+                "title"
+              ]
+            },
+            "note": "externalId = the first 12 hex of SHA-256 over type|convDate|HHMM|lat|lon|location (reports have no upstream id). observedAt = eventTime = the report time: HHMM UTC within the SPC convective day (12 UTC to 12 UTC; rows before 1200 fall on the next calendar date). Point geometry. From today.csv every 10 minutes and yesterday.csv hourly (conditional GETs; three CSV sections: tornado F_Scale, wind Speed in mph, hail Size in hundredths of an inch). magnitude is omitted for UNK. comments are untrusted upstream text (≤ 500 chars). Never tombstoned on absence; no TTL.",
+            "example": {
+              "type": "hail",
+              "magnitude": 1.75,
+              "magnitudeUnits": "in",
+              "location": "5 WNW Oliver",
+              "county": "Screven",
+              "state": "GA",
+              "wfo": "CHS",
+              "comments": "Golf ball sized hail. (CHS)",
+              "title": "Hail 1.75 in — 5 WNW Oliver, GA"
             }
           }
         }
@@ -106393,6 +106458,7 @@
             "dtype": "u16",
             "defaultStyle": "rotation@1",
             "maxZoom": 8,
+            "maxZoomForAnimation": 7,
             "cadence": "2m",
             "maxGap": "6m",
             "coverage": "CONUS"
@@ -106406,7 +106472,9 @@
             "dtype": "u16",
             "defaultStyle": "qpe@1",
             "maxZoom": 8,
+            "maxZoomForAnimation": 7,
             "cadence": "10m",
+            "maxGap": "30m",
             "coverage": "CONUS"
           },
           {
@@ -106418,8 +106486,9 @@
             "dtype": "u16",
             "defaultStyle": "qpe@1",
             "maxZoom": 8,
+            "maxZoomForAnimation": 7,
             "cadence": "1h",
-            "maxGap": "90m",
+            "maxGap": "150m",
             "coverage": "CONUS"
           },
           {
@@ -106431,7 +106500,9 @@
             "dtype": "u16",
             "defaultStyle": "ffg-ratio@1",
             "maxZoom": 8,
+            "maxZoomForAnimation": 7,
             "cadence": "10m",
+            "maxGap": "30m",
             "coverage": "CONUS"
           },
           {
@@ -111203,7 +111274,7 @@
       },
       "NwsForecastPayload": {
         "type": "object",
-        "description": "Payload of `nws-forecast` records (nws-gridpoints, externalId `place:{placeId}`)",
+        "description": "Payload of `nws-forecast` records (nws-gridpoints, externalId `place:{placeId}`; no geometry, since a place's position is sensitive)",
         "properties": {
           "place": {
             "type": "string"
@@ -111239,7 +111310,8 @@
               "description": "NWS hazard",
               "properties": {
                 "type": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "phenomenon.significance, for example FZ.W"
                 },
                 "validTime": {
                   "type": "string",
@@ -111299,10 +111371,16 @@
               "string",
               "number"
             ],
-            "description": "F-scale string, wind kt or hail inches; omitted when UNK"
+            "description": "Tornado rating string (EF0 to EF5), wind mph or hail inches as numbers; omitted when UNK"
           },
           "magnitudeUnits": {
-            "type": "string"
+            "type": "string",
+            "description": "EF (tornado), mph (wind) or in (hail)",
+            "enum": [
+              "EF",
+              "mph",
+              "in"
+            ]
           },
           "location": {
             "type": "string"

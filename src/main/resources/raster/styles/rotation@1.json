@@ -1,0 +1,74 @@
+{
+  "id": "rotation",
+  "version": 1,
+  "type": "discrete",
+  "units": "s-1",
+  "stops": [
+    {
+      "value": 0.003,
+      "color": "#c8c8c8",
+      "label": "0.003"
+    },
+    {
+      "value": 0.005,
+      "color": "#8cc8ff",
+      "label": "0.005"
+    },
+    {
+      "value": 0.007,
+      "color": "#00c800",
+      "label": "0.007"
+    },
+    {
+      "value": 0.01,
+      "color": "#ffff00",
+      "label": "0.010"
+    },
+    {
+      "value": 0.015,
+      "color": "#ff9900",
+      "label": "0.015"
+    },
+    {
+      "value": 0.02,
+      "color": "#ff0000",
+      "label": "0.020"
+    },
+    {
+      "value": 0.03,
+      "color": "#c800c8",
+      "label": "0.030"
+    }
+  ],
+  "categories": [],
+  "specials": [
+    {
+      "kind": "noCoverage",
+      "color": "transparent",
+      "label": "No coverage (not calm weather)"
+    },
+    {
+      "kind": "noEcho",
+      "color": "transparent",
+      "label": "No rotation detected (MRMS does not mark radar coverage on this product)"
+    },
+    {
+      "kind": "noData",
+      "color": "transparent",
+      "label": "No data"
+    }
+  ],
+  "meaning": [
+    {
+      "min": 0.005,
+      "max": 0.01,
+      "text": "≥ 0.005 s⁻¹: moderate low-level rotation"
+    },
+    {
+      "min": 0.01,
+      "max": null,
+      "text": "≥ 0.010 s⁻¹: strong low-level rotation"
+    }
+  ],
+  "notice": "60-minute maximum 0–2 km AGL azimuthal shear; Foresignal palette"
+}

@@ -32,6 +32,30 @@ mode 0, data template 5.41. CONUS grid 7000 × 3500, first point 54.995° N, 230
 The design's −999 / −99 / −3 sentinels hold. MESH uses −1 (not 0) for "no hail", which
 `MrmsCodec` maps to code 1 (0 mm).
 
+## Second wave (prompt 053)
+
+Captured 2026-10-13 04:35 UTC (newest key of each prefix, listed anonymously; `curl` of
+`https://noaa-mrms-pds.s3.amazonaws.com/<key>`, the same objects `aws s3 cp --no-sign-request` fetches).
+
+| File | Key prefix | Bytes | SHA-256 |
+|---|---|---|---|
+| `MRMS_RotationTrack60min_00.50_20261013-043200.grib2.gz` | `CONUS/RotationTrack60min_00.50/20261013/` | 291,825 | `3fc6c6c5ff7280c51078c471a162569fec38e217e0af3483f2b3b0ef019167e2` |
+| `MRMS_RadarOnly_QPE_01H_00.00_20261013-043200.grib2.gz` | `CONUS/RadarOnly_QPE_01H_00.00/20261013/` | 688,155 | `ac59cea2a533d03a6aac4f015a140674590faab83d9ca3bfb113507b28842cc5` |
+| `MRMS_FLASH_QPE_FFG01H_00.00_20261013-043000.grib2.gz` | `CONUS/FLASH_QPE_FFG01H_00.00/20261013/` | 147,619 | `2dc9d01807dbd22dfaff182565a55952f56b5f220864533538789b1fbf5dd098` |
+| `MRMS_MultiSensor_QPE_24H_Pass2_00.00_20261013-030000.grib2.gz` (**not committed**: 4.7 MB, over the 2 MB limit; `./gradlew downloadTestFixtures` puts it in `build/test-fixtures/mrms/`) | `CONUS/MultiSensor_QPE_24H_Pass2_00.00/20261013/` | 4,725,486 | `349bb80cd2e485ff9a8771f3462987398c8c05e82a149ad0f898cdbe4c5ccebb` |
+
+Decoded with NetCDF-Java (all template 5.41):
+
+| Field | Parameter (cat/num), level | Grid | No coverage | Zero | Values |
+|---|---|---|---|---|---|
+| RotationTrack60min | 3/3, type 102 at 500 m | **14,000 × 7,000 at 0.005°**, first point 54.9975° N, −129.9975° | none (the MRMS table gives 0 for missing and no coverage) | 97,784,554 | 3 … 49 (units 0.001 s⁻¹, whole numbers) |
+| RadarOnly_QPE_01H | 6/2, type 102 at 0 m | 7000 × 3500 at 0.01° | **−3** (8,257,230) | 15,190,723 | 0.1 … 39.2 mm |
+| MultiSensor_QPE_24H_Pass2 | 6/41, type 102 at 0 m | 7000 × 3500 at 0.01° | **−3** (1,512,918) | 14,866,789 | 0.1 … 385.5 mm |
+| FLASH_QPE_FFG01H | 12/26, type 1 (surface) | 7000 × 3500 at 0.01°, first longitude **230.004996°** (encoded) | **−999** (15,738,788) | 8,542,783 | 5 … 90 in steps of 5 (percent) |
+
+Reduced 2 × 2 by maximum, the rotation grid equals the reflectivity grid exactly; its codes are 24,408,713 ×
+code 1 (0 s⁻¹), 91,287 with a value, none no coverage, maximum code 491 (0.049 s⁻¹).
+
 ## Refreshing
 
 `scripts/capture-raster-fixtures.sh` fetches the newest file per product; update the table and the

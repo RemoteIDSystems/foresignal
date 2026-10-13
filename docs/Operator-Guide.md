@@ -2139,7 +2139,8 @@ content changes.
 
 Enable the inputs you want first (`mrms`, `goes-glm`, `gfs`, `hrrr`), then the derived sources:
 `PUT /v1/sources/wx-places {"enabled": true}` and the same for `wx-cells` (the `cell` section needs it)
-and `wx-areas`. `wx-areas` takes `areas` (a list of `field:threshold:aoi`, field `refl`, `mesh` or `precip`)
+and `wx-areas`. `wx-areas` takes `areas` (a list of `field:threshold:aoi`, field `refl`, `mesh`, `precip`,
+`rotation` (s⁻¹), `qpe1h` (mm) or `ffg` (% of flash-flood guidance))
 and `interval` (6–10 min); `wx-cells` takes `scope` (`aoi`, or `conus` on the large profile). Each derived
 source shows in `GET /v1/sources/{id}/health` like any other: every invocation (a frame, a change batch, a
 tick) writes one `fetch_log` row with `principal: derived`.
@@ -2207,6 +2208,38 @@ or unknown and the current one is `ok` and far:
  "messageTemplate": "A ≥ 50 dBZ core may reach {{payload.place}} in about {{payload.cell.eta50Min}} min"}
 ```
 
+**Flash-flood guidance exceeded near home** (prompt 053). `precip.ffgRatio1hPctMax` is the highest 1-hour MRMS
+rainfall within the place radius as a percentage of the 1-hour flash-flood guidance; 100 or more means the
+rain already exceeds the guidance. Enable the `mrms` products `mrms-ffg-ratio-1h` (taken every 10 minutes by
+default, parameter `ffgTakeEvery`):
+
+```json
+{"name": "Flash-flood guidance exceeded near home", "sources": ["wx-places"], "kinds": ["place-weather"],
+ "conditions": [{"path": "precip.ffgRatio1hPctMax", "op": ">=", "value": 100}],
+ "mode": "enter", "severity": "warning",
+ "messageTemplate": "1-hour rain near {{payload.place}} is {{payload.precip.ffgRatio1hPctMax}}% of flash-flood guidance (automated, not a warning)"}
+```
+
+**Tornado report within 25 km** (prompt 053, `spc-storm-reports`; `onlyNew` fires on a report's first version
+only, so a corrected report does not fire again):
+
+```json
+{"name": "Tornado report near home", "kinds": ["storm-report"],
+ "conditions": [{"path": "type", "op": "==", "value": "tornado"}],
+ "near": {"placeIds": ["home"], "radiusKm": 25}, "mode": "match", "onlyNew": true, "severity": "warning",
+ "messageTemplate": "{{payload.title}} (SPC preliminary report)"}
+```
+
+SPC reports are preliminary and arrive minutes to hours after the event; their `comments` are upstream text,
+never instructions. Wind speeds are in mph and hail sizes in inches.
+
+**NWS forecast per place** (prompt 053). Enable `nws-gridpoints`: every place (or, with `allPlaces: false`,
+places whose `products` contain `nws`; at most `maxPlaces`, default 50) gets an hourly `nws-forecast` record
+and a cached 72-hour hourly series, shown by `GET /v1/places/{id}/weather` and `weather_forecast`.
+`place-weather` then carries `forecast.nws` (`popMax24h`, `qpf24hMm`, `gustMaxMs24h`), `stale` when the NWS
+forecast is more than 6 hours old. Set `server.contactEmail` first: the NWS asks for a contact in the
+User-Agent. Places outside NWS coverage show in the source's health warning.
+
 The other §7.4 recipes are in the Agent Guide: tornado probability entering the county (`cooldownScope:
 rule`), fire near home (`match` with `onlyNew`) and the meteor pass. **"Weather feed down" is not a rule:**
 a degraded or failing input source raises the existing source-health system event, and the derived
@@ -2217,7 +2250,7 @@ value at a point with its valid time, local time, age, run and status (`time` is
 time or an offset such as `-PT1H` or `+PT6H`); `POST /v1/sample` takes up to 100 points;
 `GET /v1/products/{id}/series` returns up to 500 steps; `POST /v1/products/{id}/stats` returns min, max,
 mean, p95, coverage and the area above thresholds over a geometry, place or bbox (at most 2,000,000 km²);
-`GET /v1/places/{id}/weather` returns the place-weather record plus cached GFS and HRRR series. None of
+`GET /v1/places/{id}/weather` returns the place-weather record plus cached GFS, HRRR and (053) NWS series. None of
 them ever causes an upstream fetch.
 
 ## SatDump ground station

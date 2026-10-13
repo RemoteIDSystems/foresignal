@@ -83,7 +83,7 @@ public class PlaceWeatherController {
         }
         Geometry g = place.geometry() == null || place.geometry().isEmpty() ? place.area() : place.geometry();
         Point p = g instanceof Point point ? point : g.getInteriorPoint();
-        out.put("forecastSeries", forecasts.series(p.getX(), p.getY(), excluded));
+        out.put("forecastSeries", forecasts.series(place.id(), p.getX(), p.getY(), excluded));
         out.put("serverTime", samples.now().toString());
         return out;
     }

@@ -1,0 +1,69 @@
+{
+  "id": "ffg-ratio",
+  "version": 1,
+  "type": "discrete",
+  "units": "%",
+  "stops": [
+    {
+      "value": 25,
+      "color": "#a6f28f",
+      "label": "25"
+    },
+    {
+      "value": 50,
+      "color": "#3dba3d",
+      "label": "50"
+    },
+    {
+      "value": 75,
+      "color": "#ffff00",
+      "label": "75"
+    },
+    {
+      "value": 100,
+      "color": "#ff9900",
+      "label": "100"
+    },
+    {
+      "value": 150,
+      "color": "#ff0000",
+      "label": "150"
+    },
+    {
+      "value": 200,
+      "color": "#c800c8",
+      "label": "200"
+    }
+  ],
+  "categories": [],
+  "specials": [
+    {
+      "kind": "noCoverage",
+      "color": "transparent",
+      "label": "No coverage (no flash-flood guidance; not safe)"
+    },
+    {
+      "kind": "noEcho",
+      "color": "transparent",
+      "label": "No rain"
+    },
+    {
+      "kind": "noData",
+      "color": "transparent",
+      "label": "No data"
+    }
+  ],
+  "meaning": [
+    {
+      "min": 75,
+      "max": 100,
+      "text": "≥ 75%: rainfall approaching flash-flood guidance"
+    },
+    {
+      "min": 100,
+      "max": null,
+      "text": "≥ 100%: rainfall exceeds flash-flood guidance"
+    }
+  ],
+  "notice": "FLASH 1-hour QPE as a percentage of 1-hour flash-flood guidance; Foresignal palette"
+}
