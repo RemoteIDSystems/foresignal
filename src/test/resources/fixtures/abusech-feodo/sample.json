@@ -1,0 +1,61 @@
+[
+    {
+        "ip_address": "198.51.100.23",
+        "port": 443,
+        "status": "online",
+        "hostname": "c2.example.net",
+        "as_number": 64500,
+        "as_name": "EXAMPLE-AS Documentation",
+        "country": "DE",
+        "first_seen": "2026-10-01 08:15:00",
+        "last_online": "2026-10-12",
+        "malware": "Pikabot"
+    },
+    {
+        "ip_address": "2001:DB8::10",
+        "port": 8443,
+        "status": "online",
+        "hostname": null,
+        "as_number": 64501,
+        "as_name": "EXAMPLE6-AS",
+        "country": "XX",
+        "first_seen": "2026-10-02 09:00:00",
+        "last_online": null,
+        "malware": "Dridex"
+    },
+    {
+        "ip_address": "203.0.113.9",
+        "port": 0,
+        "status": "offline",
+        "country": "US",
+        "first_seen": "2026-10-03 10:00:00",
+        "last_online": "2026-10-04",
+        "malware": "Emotet"
+    },
+    {
+        "ip_address": "c2.example.org",
+        "port": 443,
+        "country": "US",
+        "first_seen": "2026-10-03 10:00:00",
+        "last_online": "2026-10-04",
+        "malware": "Emotet"
+    },
+    {
+        "ip_address": "192.0.2.77",
+        "port": 447,
+        "status": "offline",
+        "country": "fr",
+        "first_seen": null,
+        "last_online": null,
+        "malware": "TrickBot"
+    },
+    {
+        "ip_address": "198.51.100.23",
+        "port": 443,
+        "status": "online",
+        "country": "DE",
+        "first_seen": "2026-10-01 08:15:00",
+        "last_online": "2026-10-12",
+        "malware": "Pikabot"
+    }
+]

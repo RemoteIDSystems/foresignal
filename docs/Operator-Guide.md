@@ -207,6 +207,60 @@ source is `egress: LOCAL_ONLY`, like `opensky-states`: served to your own client
 share links or feeds. No key means no vessels from this source; keyless official AIS (`ais-kystverket`,
 `ais-digitraffic`) and a local AIS-catcher arrive later.
 
+### Cyber feeds and Certificate Transparency
+
+Prompt 076 adds five sources, all disabled until you enable them:
+
+- **`cisa-kev`** (the CISA Known Exploited Vulnerabilities catalog) and **`abusech-feodo`** (botnet C2 servers)
+  need no credential.
+- **`abusech-urlhaus`** needs a free abuse.ch Auth-Key from `auth.abuse.ch`:
+  `PUT /v1/sources/abusech-urlhaus/credentials` with `{"authKey": "…"}`. Malware URLs are stored as text and as a
+  defanged copy (`hxxp://`, `[.]`); Foresignal never fetches them, and `fieldSpecs` marks both `noLink`, so clients
+  must not render them as links. Commercial or for-profit use may require a Spamhaus subscription.
+- **`nvd-cves`** syncs NVD CVEs every two hours, filtered by `minCvss` (default 7.0) and optionally `vendors`
+  (CPE vendor names such as `microsoft`); KEV CVEs are always kept. An optional free NVD key (`apiKey`) removes
+  the 6-second pause between requests. Each kept CVE also gets a `cve-epss` record with its EPSS probability and
+  percentile as bands only (`epssBand`, `percentileBand`), refreshed daily for `epssRefreshDays` (default 30).
+  Notices: "This product uses the NVD API but is not endorsed or certified by the NVD." and "EPSS scores from
+  FIRST.org (first.org/epss)".
+- **`ct-domain-watch`** lists certificates issued for your own domains through the SSLMate Cert Spotter API:
+  set `domains` (up to 25; subdomains and matching wildcards are included) and, optionally, `expectedIssuers`
+  (issuer names or CAA domains such as `letsencrypt.org`). An issuance from any other issuer sets
+  `unexpectedIssuer: true`, which a rule can alert on. Unauthenticated use is limited to a few queries an hour for
+  personal or evaluation use; for more, set a Cert Spotter key (`apiKey`) and raise the source's budget. Domains
+  are polled round-robin, so a throttled run resumes where it stopped.
+
+**crt.sh is never polled, and Foresignal ships no CT log client.** If you prefer not to use the Cert Spotter API,
+run SSLMate's open-source monitor [`certspotter`](https://github.com/SSLMate/certspotter) (MPL-2.0) yourself and let
+its hook script post each discovery to a custom PUSH source (see "Inbound webhooks"):
+
+```json
+POST /v1/custom-sources
+{"id": "custom-ct", "name": "Certificate Transparency (certspotter)", "kinds": ["certificate-issuance"],
+ "observedAtMode": "RECEIVED", "titleField": "watchedDomain"}
+```
+
+Put your domains in `~/.certspotter/watchlist` (one per line; a leading dot includes subdomains) and this script in
+`~/.certspotter/hooks.d/foresignal` (executable; it needs `jq` and `curl`). `certspotter` sets the environment
+variables for each `discovered_cert` event:
+
+```sh
+#!/bin/sh
+[ "$EVENT" = "discovered_cert" ] || exit 0
+jq -n --arg id "$TBS_SHA256" --arg domain "$WATCH_ITEM" --arg cert "$CERT_SHA256" \
+      --arg pubkey "$PUBKEY_SHA256" --arg issuer "$ISSUER_DN" --arg nb "$NOT_BEFORE_RFC3339" \
+      --arg na "$NOT_AFTER_RFC3339" --arg log "$LOG_URI" \
+  '{records: [{externalId: $id, kind: "certificate-issuance", eventTime: $nb, validUntil: $na,
+               payload: {watchedDomain: $domain, issuerDn: $issuer, notBefore: $nb, notAfter: $na,
+                         certSha256: $cert, pubkeySha256: $pubkey, logUri: $log}}]}' |
+curl -fsS -X POST "http://foresignal.local:8080/v1/ingest/custom-ct" \
+     -H "X-Foresignal-Ingest-Key: $FORESIGNAL_INGEST_KEY" -H "Content-Type: application/json" --data-binary @-
+```
+
+The external id is the TBS digest, which a certificate and its precertificate share, so the pair becomes one
+entity. `ISSUER_DN` is the issuer's distinguished name as the CA wrote it; Cert Spotter's curated issuer names are
+not available to the self-hosted monitor.
+
 ### Local receivers
 
 Prompt 069 adds sources for hardware you run yourself on your own network. Each family has

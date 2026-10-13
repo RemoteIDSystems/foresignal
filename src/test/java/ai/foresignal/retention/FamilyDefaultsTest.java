@@ -172,6 +172,18 @@ class FamilyDefaultsTest {
             Map.entry("NhcCycloneConesAdapter", new Entry(new ai.foresignal.source.adapters.nhc.NhcCycloneConesAdapter(
                     "", (java.util.function.Supplier<io.micrometer.core.instrument.MeterRegistry>) null).descriptor(),
                     "event")),
+            // Prompt 076: KEV entries, C2 sightings, CVEs and their EPSS bands are the event class (1825 d); URLhaus
+            // malware URLs and CT-log hits are bulk-event (90 d).
+            Map.entry("CisaKevAdapter", new Entry(new ai.foresignal.source.adapters.cisa.CisaKevAdapter("")
+                    .descriptor(), "event")),
+            Map.entry("FeodoAdapter", new Entry(new ai.foresignal.source.adapters.abusech.FeodoAdapter("", null)
+                    .descriptor(), "event")),
+            Map.entry("UrlhausAdapter", new Entry(new ai.foresignal.source.adapters.abusech.UrlhausAdapter("")
+                    .descriptor(), "bulk-event")),
+            Map.entry("NvdCvesAdapter", new Entry(new ai.foresignal.source.adapters.nvd.NvdCvesAdapter("",
+                    java.time.Duration.ZERO, d -> { }).descriptor(), "event")),
+            Map.entry("CtDomainWatchAdapter", new Entry(new ai.foresignal.source.adapters.ct.CtDomainWatchAdapter("",
+                    java.time.Duration.ZERO, d -> { }).descriptor(), "bulk-event")),
             // Prompt 052: the derived weather sources, retained per Weather-Imagery-Design §2.4.
             Map.entry("WxPlacesGenerator", new Entry(
                     new ai.foresignal.source.adapters.wx.WxPlacesGenerator().descriptor(), "weather")),

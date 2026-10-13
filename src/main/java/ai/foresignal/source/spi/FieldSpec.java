@@ -1,5 +1,7 @@
 package ai.foresignal.source.spi;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.Set;
 
 /**
@@ -17,12 +19,31 @@ import java.util.Set;
  * @param datum the vertical datum ({@code MSL}, {@code WGS84}, {@code AGL}, {@code PRESSURE} or
  *     free text), only for vertical fields
  * @param kinds the kinds this spec applies to; empty means every kind of the source
+ * @param noLink a display hint: clients never render the value as a link (OpenAPI {@code FieldSpec.noLink},
+ *     prompt 076: URLhaus malware URLs are hostile). Serialized only when true
  */
 public record FieldSpec(
-        FieldType type, String unit, String label, String description, String datum, Set<String> kinds) {
+        FieldType type, String unit, String label, String description, String datum, Set<String> kinds,
+        @JsonInclude(JsonInclude.Include.NON_DEFAULT) boolean noLink) {
 
+    /** Copies the kinds; the canonical constructor is also the JSON creator. */
+    @JsonCreator
     public FieldSpec {
         kinds = kinds == null ? Set.of() : Set.copyOf(kinds);
+    }
+
+    /**
+     * A spec whose value may be rendered as a link (every spec before prompt 076).
+     *
+     * @param type the JSON type
+     * @param unit the UCUM unit, or null
+     * @param label the display label, or null
+     * @param description what the field means, or null
+     * @param datum the vertical datum, or null
+     * @param kinds the kinds this spec applies to; empty or null means every kind
+     */
+    public FieldSpec(FieldType type, String unit, String label, String description, String datum, Set<String> kinds) {
+        this(type, unit, label, description, datum, kinds, false);
     }
 
     /** A spec with only a type and unit, applying to every kind. */

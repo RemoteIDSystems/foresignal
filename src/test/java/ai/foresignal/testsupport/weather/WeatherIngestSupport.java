@@ -105,6 +105,11 @@ public abstract class WeatherIngestSupport {
         // stub as /{host}{path}; nhc-cyclone-cones uses 067's NHC property, also as /{host}{path}.
         registry.add(ai.foresignal.source.adapters.fire.FireSources.BASE_URL_PROPERTY, UPSTREAM::baseUrl);
         registry.add(ai.foresignal.source.adapters.radio.RadioBrowserAdapter.BASE_URL_PROPERTY, UPSTREAM::baseUrl);
+        // Prompt 076: the cyber sources (cisa-kev, abusech-*, nvd-cves, ct-domain-watch) share one property and move
+        // under the stub as /{host}{path}; the pauses between NVD/EPSS and Cert Spotter requests are zero here.
+        registry.add(ai.foresignal.source.adapters.nvd.NvdCvesAdapter.BASE_URL_PROPERTY, UPSTREAM::baseUrl);
+        registry.add(ai.foresignal.source.adapters.nvd.NvdCvesAdapter.PAUSE_PROPERTY, () -> "PT0S");
+        registry.add(ai.foresignal.source.adapters.ct.CtDomainWatchAdapter.PAUSE_PROPERTY, () -> "PT0S");
     }
 
     @Autowired protected FetchExecutor executor;
@@ -128,7 +133,7 @@ public abstract class WeatherIngestSupport {
             ai.foresignal.source.adapters.ioda.IodaOutagesAdapter.ID,
             "transit-mbta", "transit-alerts-mbta", "transit-mdb-mdb-9001", "gbfs-boulder-bcycle",
             "cctv-caltrans-d4", "feature-wfigs-incidents", "feed-ecdc-threats", "digitraffic-road", "open511-drivebc",
-            "nifc-perimeters", "nhc-cyclone-cones");
+            "nifc-perimeters", "nhc-cyclone-cones", "nvd-cves");
 
     /** Resets the stubs and the backoff of the weather sources. */
     @BeforeEach
