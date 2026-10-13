@@ -1,0 +1,193 @@
+{
+ "road_event_feed_info": {
+  "update_date": "2026-10-13T18:41:00Z",
+  "publisher": "Ville de Québec",
+  "version": "3.1",
+  "data_sources": [
+   {
+    "organization_name": "Quebec",
+    "location_method": "unknown"
+   }
+  ]
+ },
+ "type": "FeatureCollection",
+ "features": [
+  {
+   "id": "20260420071-1_1",
+   "type": "Feature",
+   "properties": {
+    "data_source_id": "TIC-Quebec/1",
+    "event_type": "work-zone",
+    "road_names": [
+     "Rue de Buade"
+    ],
+    "direction": "eastbound",
+    "beginning_accuracy": "estimated",
+    "ending_accuracy": "estimated",
+    "start_date": "2026-04-20T20:00:00Z",
+    "end_date": "2026-10-19T21:00:00Z",
+    "start_date_accuracy": "estimated",
+    "end_date_accuracy": "estimated",
+    "event_status": "active",
+    "vehicle_impact": "all-lanes-open",
+    "restrictions": [],
+    "description": "Québec, Rue de Buade entre Rue Ste-Famille et Rue des Jardins permis-terrasse, du 2026-04-20 16:00 jusqu'au 2026-10-19 17:00",
+    "update_date": "2026-04-20T19:14:24.41Z",
+    "lanes": [
+     {
+      "order": 1,
+      "status": "open",
+      "type": "lane"
+     },
+     {
+      "order": 2,
+      "status": "open",
+      "type": "sidewalk"
+     }
+    ],
+    "relationship": {
+     "parents": [
+      "20260420071-WZP"
+     ]
+    }
+   },
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      -71.2073208,
+      46.8137063
+     ],
+     [
+      -71.2070926,
+      46.8136747
+     ]
+    ]
+   }
+  },
+  {
+   "id": "ASSC-20260924-SPA-01_1",
+   "type": "Feature",
+   "properties": {
+    "data_source_id": "TIC-Quebec/1",
+    "event_type": "work-zone",
+    "road_names": [
+     "Rue Sheppard"
+    ],
+    "direction": "northbound",
+    "beginning_accuracy": "estimated",
+    "ending_accuracy": "estimated",
+    "start_date": "2026-10-23T10:00:00Z",
+    "end_date": "2026-10-23T21:00:00Z",
+    "start_date_accuracy": "estimated",
+    "end_date_accuracy": "estimated",
+    "event_status": "planned",
+    "vehicle_impact": "all-lanes-closed",
+    "restrictions": [],
+    "description": "Québec, Rue Sheppard entre Avenue Joseph-Rousseau et Avenue Preston dans les deux sens travaux d'utilités publiques, sur 2026-10-23 du 06:00 jusqu'au 17:00, déviation recommandées: via Avenue Joseph-Rousseau, Rue de Bergerville et Avenue Preston, via Avenue Joseph-Rousseau, Rue de Bergerville, Avenue Preston et Avenue Maguire, via Avenue Preston, RTE-175, Boulevard Laurier et Avenue Joseph-Rousseau, via Avenue Preston, RTE-175, Boulevard Laurier et Avenue William",
+    "update_date": "2026-10-08T17:40:37.56Z",
+    "lanes": [
+     {
+      "order": 1,
+      "status": "closed",
+      "type": "lane"
+     },
+     {
+      "order": 2,
+      "status": "closed",
+      "type": "unknown"
+     },
+     {
+      "order": 3,
+      "status": "open",
+      "type": "sidewalk"
+     }
+    ],
+    "relationship": {
+     "parents": [
+      "ASSC-20260924-SPA-01-WZP"
+     ]
+    }
+   },
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      -71.2520278,
+      46.7824997
+     ],
+     [
+      -71.25136,
+      46.78286
+     ],
+     [
+      -71.2506675,
+      46.78323
+     ]
+    ]
+   }
+  },
+  {
+   "id": "ASSC-20260924-SPA-01_1",
+   "type": "Feature",
+   "properties": {
+    "data_source_id": "TIC-Quebec/1",
+    "event_type": "work-zone",
+    "road_names": [
+     "Avenue des Grands-Pins"
+    ],
+    "direction": "southbound",
+    "beginning_accuracy": "estimated",
+    "ending_accuracy": "estimated",
+    "start_date": "2026-10-23T10:00:00Z",
+    "end_date": "2026-10-23T21:00:00Z",
+    "start_date_accuracy": "estimated",
+    "end_date_accuracy": "estimated",
+    "event_status": "planned",
+    "vehicle_impact": "all-lanes-closed",
+    "restrictions": [],
+    "description": "Québec, Avenue des Grands-Pins entre Rue Sheppard et RTE-175, Boulevard Laurier dans les deux sens travaux d'utilités publiques, sur 2026-10-23 du 06:00 jusqu'au 17:00",
+    "update_date": "2026-10-08T17:40:37.427Z",
+    "lanes": [
+     {
+      "order": 1,
+      "status": "closed",
+      "type": "lane"
+     },
+     {
+      "order": 2,
+      "status": "closed",
+      "type": "unknown"
+     },
+     {
+      "order": 3,
+      "status": "open",
+      "type": "sidewalk"
+     }
+    ],
+    "relationship": {
+     "parents": [
+      "ASSC-20260924-SPA-01-WZP"
+     ]
+    }
+   },
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      -71.2540417,
+      46.7851032
+     ],
+     [
+      -71.25251,
+      46.78383
+     ],
+     [
+      -71.25136,
+      46.78286
+     ]
+    ]
+   }
+  }
+ ]
+}

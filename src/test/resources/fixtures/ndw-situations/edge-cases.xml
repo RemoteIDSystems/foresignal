@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mc:messageContainer xmlns:sit="http://datex2.eu/schema/3/situation" xmlns:mc="http://datex2.eu/schema/3/messageContainer" xmlns:loc="http://datex2.eu/schema/3/locationReferencing" xmlns:com="http://datex2.eu/schema/3/common" modelBaseVersion="3">
+<mc:payload xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="sit:SituationPublication" lang="nl" modelBaseVersion="3">
+<com:publicationTime>2026-10-13T18:00:00Z</com:publicationTime>
+<sit:situation id="EDGE_WORKS">
+ <sit:overallSeverity>high</sit:overallSeverity>
+ <sit:situationVersionTime>2026-10-13T17:00:00Z</sit:situationVersionTime>
+ <sit:situationRecord xsi:type="sit:MaintenanceWorks" id="EDGE_WORKS_R1" version="1">
+  <sit:validity><com:validityTimeSpecification><com:overallStartTime>2026-10-20T20:00:00Z</com:overallStartTime><com:overallEndTime>2026-10-21T05:00:00Z</com:overallEndTime></com:validityTimeSpecification></sit:validity>
+  <sit:generalPublicComment><com:comment><com:values><com:value lang="nl">Werkzaamheden aan de A2. Rijstrook dicht.</com:value></com:values></com:comment></sit:generalPublicComment>
+  <sit:locationReference xsi:type="loc:SingleRoadLinearLocation"><loc:gmlLineString srsName="WGS 84"><loc:posList>52.0 5.0 52.1 5.1 52.2 5.2</loc:posList></loc:gmlLineString></sit:locationReference>
+  <sit:roadMaintenanceType>resurfacingWork</sit:roadMaintenanceType>
+ </sit:situationRecord>
+ <sit:situationRecord xsi:type="sit:RoadOrCarriagewayOrLaneManagement" id="EDGE_WORKS_R2" version="1">
+  <sit:validity><com:validityTimeSpecification><com:overallStartTime>2026-10-20T21:00:00Z</com:overallStartTime><com:overallEndTime>2026-10-21T06:00:00Z</com:overallEndTime></com:validityTimeSpecification></sit:validity>
+  <sit:cause><sit:causeType>roadMaintenance</sit:causeType></sit:cause>
+  <sit:locationReference xsi:type="loc:PointLocation"><loc:pointByCoordinates><loc:pointCoordinates><loc:latitude>52.3</loc:latitude><loc:longitude>5.3</loc:longitude></loc:pointCoordinates></loc:pointByCoordinates><loc:alertCPoint><loc:alertCAffectedDirection>both</loc:alertCAffectedDirection></loc:alertCPoint></sit:locationReference>
+  <sit:numberOfLanesRestricted>1</sit:numberOfLanesRestricted>
+  <sit:originalNumberOfLanes>3</sit:originalNumberOfLanes>
+  <sit:roadOrCarriagewayOrLaneManagementType>laneClosures</sit:roadOrCarriagewayOrLaneManagementType>
+ </sit:situationRecord>
+ <sit:situationRecord xsi:type="sit:SpeedManagement" id="EDGE_WORKS_R3" version="1">
+  <sit:validity><com:validityTimeSpecification><com:overallStartTime>2026-10-20T21:00:00Z</com:overallStartTime><com:overallEndTime>2026-10-21T04:00:00Z</com:overallEndTime></com:validityTimeSpecification></sit:validity>
+  <sit:speedManagementType>speedRestrictionInOperation</sit:speedManagementType>
+  <sit:temporarySpeedLimit>70</sit:temporarySpeedLimit>
+ </sit:situationRecord>
+</sit:situation>
+<sit:situation id="EDGE_WEATHER">
+ <sit:overallSeverity>lowest</sit:overallSeverity>
+ <sit:situationVersionTime>2026-10-13T17:05:00Z</sit:situationVersionTime>
+ <sit:situationRecord xsi:type="sit:PoorEnvironmentConditions" id="EDGE_WEATHER_R1" version="1">
+  <sit:validity><com:validityTimeSpecification><com:overallStartTime>2026-10-13T16:00:00Z</com:overallStartTime></com:validityTimeSpecification></sit:validity>
+  <sit:poorEnvironmentType>fog</sit:poorEnvironmentType>
+  <sit:locationReference xsi:type="loc:SingleRoadLinearLocation"><loc:gmlLineString srsName="WGS 84"><loc:posList>51.5 4.5</loc:posList></loc:gmlLineString></sit:locationReference>
+ </sit:situationRecord>
+</sit:situation>
+<sit:situation id="EDGE_ABNORMAL">
+ <sit:overallSeverity>medium</sit:overallSeverity>
+ <sit:situationVersionTime>2026-10-13T17:06:00Z</sit:situationVersionTime>
+ <sit:situationRecord xsi:type="sit:AbnormalTraffic" id="EDGE_ABNORMAL_R1" version="1">
+  <sit:validity><com:validityTimeSpecification><com:overallStartTime>2026-10-13T16:30:00Z</com:overallStartTime></com:validityTimeSpecification></sit:validity>
+  <sit:abnormalTrafficType>stationaryTraffic</sit:abnormalTrafficType>
+ </sit:situationRecord>
+</sit:situation>
+<sit:situation id="EDGE_CLOSED">
+ <sit:overallSeverity>highest</sit:overallSeverity>
+ <sit:situationVersionTime>2026-10-13T17:07:00Z</sit:situationVersionTime>
+ <sit:situationRecord xsi:type="sit:RoadOrCarriagewayOrLaneManagement" id="EDGE_CLOSED_R1" version="1">
+  <sit:validity><com:validityTimeSpecification><com:overallStartTime>2026-10-13T12:00:00Z</com:overallStartTime></com:validityTimeSpecification></sit:validity>
+  <sit:cause><sit:causeType>accident</sit:causeType></sit:cause>
+  <sit:roadOrCarriagewayOrLaneManagementType>roadClosed</sit:roadOrCarriagewayOrLaneManagementType>
+  <sit:locationReference xsi:type="loc:SingleRoadLinearLocation"><loc:gmlLineString srsName="WGS 84"><loc:posList>53.0 6.0 53.1 6.1</loc:posList></loc:gmlLineString></sit:locationReference>
+ </sit:situationRecord>
+</sit:situation>
+<sit:situation>
+ <sit:overallSeverity>low</sit:overallSeverity>
+ <sit:situationVersionTime>2026-10-13T17:08:00Z</sit:situationVersionTime>
+</sit:situation>
+<sit:situation id="EDGE_NO_VERSION_TIME">
+ <sit:overallSeverity>low</sit:overallSeverity>
+</sit:situation>
+</mc:payload>
+</mc:messageContainer>

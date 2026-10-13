@@ -1,0 +1,4530 @@
+{
+ "road_event_feed_info": {
+  "publisher": "UDOT",
+  "version": "4.0",
+  "license": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "data_sources": [
+   {
+    "data_source_id": "UDOT-construction",
+    "organization_name": "UDOT-TOC",
+    "update_date": "2023-03-19T07:03:52.1411634-06:00",
+    "update_frequency": 900,
+    "contact_name": "redacted",
+    "contact_email": "redacted@example.invalid"
+   }
+  ],
+  "update_date": "2023-03-19T07:04:04.8614897-06:00",
+  "update_frequency": 900,
+  "contact_name": "redacted",
+  "contact_email": "redacted@example.invalid"
+ },
+ "type": "FeatureCollection",
+ "features": [
+  {
+   "id": "2365_eastbound",
+   "type": "Feature",
+   "properties": {
+    "core_details": {
+     "event_type": "work-zone",
+     "data_source_id": "UDOT-Construction",
+     "road_names": [
+      "I-80"
+     ],
+     "direction": "eastbound",
+     "description": "The Utah Department of Transportation (UDOT) will improve I-80 between 1300 East and 2300 East. The pavement will be replaced with new concrete throughout, and a new lane will be added to eastbound I-80 between 1300 East and 2300 East. Expect lane shifts and lane closures between 1300 East and 2300 East and minor delays in the area during the project.",
+     "creation_date": "2022-01-10T18:53:49.643Z",
+     "update_date": "2022-01-10T18:53:49.643Z"
+    },
+    "start_date": "2021-12-01T07:00:00Z",
+    "end_date": "2022-12-31T07:00:00Z",
+    "start_date_accuracy": "estimated",
+    "end_date_accuracy": "estimated",
+    "beginning_accuracy": "estimated",
+    "ending_accuracy": "estimated",
+    "location_method": "unknown",
+    "vehicle_impact": "unknown",
+    "beginning_cross_street": "700 E / Salt Lake City",
+    "ending_cross_street": "2300 E / Holladay",
+    "beginning_milepost": 125,
+    "ending_milepost": 127,
+    "event_status": "active"
+   },
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      -111.855022,
+      40.719556
+     ],
+     [
+      -111.836362,
+      40.717367
+     ],
+     [
+      -111.834606,
+      40.716772
+     ],
+     [
+      -111.833043,
+      40.716002
+     ],
+     [
+      -111.831355,
+      40.715327
+     ],
+     [
+      -111.829568,
+      40.714835
+     ],
+     [
+      -111.827774,
+      40.714344
+     ],
+     [
+      -111.825987,
+      40.713849
+     ],
+     [
+      -111.824192,
+      40.713376
+     ],
+     [
+      -111.822413,
+      40.712896
+     ],
+     [
+      -111.820576,
+      40.712489
+     ],
+     [
+      -111.818724,
+      40.712591
+     ]
+    ]
+   }
+  },
+  {
+   "id": "2365_westbound",
+   "type": "Feature",
+   "properties": {
+    "core_details": {
+     "event_type": "work-zone",
+     "data_source_id": "UDOT-Construction",
+     "road_names": [
+      "I-80"
+     ],
+     "direction": "westbound",
+     "description": "The Utah Department of Transportation (UDOT) will improve I-80 between 1300 East and 2300 East. The pavement will be replaced with new concrete throughout, and a new lane will be added to eastbound I-80 between 1300 East and 2300 East. Expect lane shifts and lane closures between 1300 East and 2300 East and minor delays in the area during the project.",
+     "creation_date": "2022-01-10T18:53:49.643Z",
+     "update_date": "2022-01-10T18:53:49.643Z"
+    },
+    "start_date": "2021-12-01T07:00:00Z",
+    "end_date": "2022-12-31T07:00:00Z",
+    "start_date_accuracy": "estimated",
+    "end_date_accuracy": "estimated",
+    "beginning_accuracy": "estimated",
+    "ending_accuracy": "estimated",
+    "location_method": "unknown",
+    "vehicle_impact": "unknown",
+    "beginning_cross_street": "2300 E / Holladay",
+    "ending_cross_street": "700 E / Salt Lake City",
+    "beginning_milepost": 127,
+    "ending_milepost": 125,
+    "event_status": "active"
+   },
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      -111.818724,
+      40.712591
+     ],
+     [
+      -111.820576,
+      40.712489
+     ],
+     [
+      -111.822413,
+      40.712896
+     ],
+     [
+      -111.824192,
+      40.713376
+     ],
+     [
+      -111.825987,
+      40.713849
+     ],
+     [
+      -111.827774,
+      40.714344
+     ],
+     [
+      -111.829568,
+      40.714835
+     ],
+     [
+      -111.831355,
+      40.715327
+     ],
+     [
+      -111.833043,
+      40.716002
+     ],
+     [
+      -111.834606,
+      40.716772
+     ],
+     [
+      -111.836362,
+      40.717367
+     ],
+     [
+      -111.855022,
+      40.719556
+     ]
+    ]
+   }
+  },
+  {
+   "id": "2366_southbound",
+   "type": "Feature",
+   "properties": {
+    "core_details": {
+     "event_type": "work-zone",
+     "data_source_id": "UDOT-Construction",
+     "road_names": [
+      "I-215 E"
+     ],
+     "direction": "southbound",
+     "description": "The Utah Department of Transportation (UDOT) will improve I-215 East between 3300 South and 4500 South. The pavement will be replaced with new concrete throughout. Expect lane shifts and lane closures with minor delays during the project.",
+     "creation_date": "2022-01-10T18:57:08.41Z",
+     "update_date": "2022-01-10T18:57:08.41Z"
+    },
+    "start_date": "2021-12-01T07:00:00Z",
+    "end_date": "2022-12-31T00:00:00Z",
+    "start_date_accuracy": "estimated",
+    "end_date_accuracy": "estimated",
+    "beginning_accuracy": "estimated",
+    "ending_accuracy": "estimated",
+    "location_method": "unknown",
+    "vehicle_impact": "unknown",
+    "beginning_cross_street": "5200 S",
+    "ending_cross_street": "3500 S",
+    "beginning_milepost": 4,
+    "ending_milepost": 2,
+    "event_status": "active"
+   },
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      -111.805503,
+      40.670212
+     ],
+     [
+      -111.804872,
+      40.671571
+     ],
+     [
+      -111.803963,
+      40.672846
+     ],
+     [
+      -111.803019,
+      40.674104
+     ],
+     [
+      -111.802077,
+      40.675373
+     ],
+     [
+      -111.801131,
+      40.676628
+     ],
+     [
+      -111.800184,
+      40.677883
+     ],
+     [
+      -111.799255,
+      40.679155
+     ],
+     [
+      -111.798466,
+      40.680473
+     ],
+     [
+      -111.797946,
+      40.681858
+     ],
+     [
+      -111.797662,
+      40.683292
+     ],
+     [
+      -111.795673,
+      40.697671
+     ]
+    ]
+   }
+  },
+  {
+   "id": "2366_northbound",
+   "type": "Feature",
+   "properties": {
+    "core_details": {
+     "event_type": "work-zone",
+     "data_source_id": "UDOT-Construction",
+     "road_names": [
+      "I-215 E"
+     ],
+     "direction": "northbound",
+     "description": "The Utah Department of Transportation (UDOT) will improve I-215 East between 3300 South and 4500 South. The pavement will be replaced with new concrete throughout. Expect lane shifts and lane closures with minor delays during the project.",
+     "creation_date": "2022-01-10T18:57:08.41Z",
+     "update_date": "2022-01-10T18:57:08.41Z"
+    },
+    "start_date": "2021-12-01T07:00:00Z",
+    "end_date": "2022-12-31T00:00:00Z",
+    "start_date_accuracy": "estimated",
+    "end_date_accuracy": "estimated",
+    "beginning_accuracy": "estimated",
+    "ending_accuracy": "estimated",
+    "location_method": "unknown",
+    "vehicle_impact": "unknown",
+    "beginning_cross_street": "3500 S",
+    "ending_cross_street": "5200 S",
+    "beginning_milepost": 2,
+    "ending_milepost": 4,
+    "event_status": "active"
+   },
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      -111.795673,
+      40.697671
+     ],
+     [
+      -111.797662,
+      40.683292
+     ],
+     [
+      -111.797946,
+      40.681858
+     ],
+     [
+      -111.798466,
+      40.680473
+     ],
+     [
+      -111.799255,
+      40.679155
+     ],
+     [
+      -111.800184,
+      40.677883
+     ],
+     [
+      -111.801131,
+      40.676628
+     ],
+     [
+      -111.802077,
+      40.675373
+     ],
+     [
+      -111.803019,
+      40.674104
+     ],
+     [
+      -111.803963,
+      40.672846
+     ],
+     [
+      -111.804872,
+      40.671571
+     ],
+     [
+      -111.805503,
+      40.670212
+     ]
+    ]
+   }
+  },
+  {
+   "id": "2386",
+   "type": "Feature",
+   "properties": {
+    "core_details": {
+     "event_type": "work-zone",
+     "data_source_id": "UDOT-Construction",
+     "road_names": [
+      "US 40"
+     ],
+     "direction": "eastbound",
+     "description": "Eastbound (downhill) US-40 traffic will be reduced to a single lane 24 hours a day. This single lane configuration for eastbound traffic will extend through the project. Expect moderate to heavy delays.",
+     "creation_date": "2022-04-18T19:53:15.66Z",
+     "update_date": "2022-04-18T19:53:15.66Z"
+    },
+    "start_date": "2022-04-18T13:00:00Z",
+    "end_date": "2022-11-19T06:00:00Z",
+    "start_date_accuracy": "estimated",
+    "end_date_accuracy": "estimated",
+    "beginning_accuracy": "estimated",
+    "ending_accuracy": "estimated",
+    "location_method": "unknown",
+    "vehicle_impact": "unknown",
+    "beginning_cross_street": "2 mi N of Heber",
+    "ending_cross_street": "SR-32 Jct/ Heber",
+    "beginning_milepost": 11,
+    "ending_milepost": 13,
+    "event_status": "active"
+   },
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      -111.436969,
+      40.588743
+     ],
+     [
+      -111.434154,
+      40.574514
+     ],
+     [
+      -111.43325,
+      40.573235
+     ],
+     [
+      -111.432335,
+      40.571962
+     ],
+     [
+      -111.431467,
+      40.570666
+     ],
+     [
+      -111.430701,
+      40.569337
+     ],
+     [
+      -111.430054,
+      40.567965
+     ],
+     [
+      -111.429512,
+      40.56657
+     ],
+     [
+      -111.429055,
+      40.56516
+     ],
+     [
+      -111.428609,
+      40.563743
+     ],
+     [
+      -111.428134,
+      40.562337
+     ],
+     [
+      -111.427534,
+      40.560962
+     ]
+    ]
+   }
+  },
+  {
+   "id": "2477",
+   "type": "Feature",
+   "properties": {
+    "core_details": {
+     "event_type": "work-zone",
+     "data_source_id": "UDOT-Construction",
+     "road_names": [
+      "Redwood Rd"
+     ],
+     "direction": "northbound",
+     "description": "Water Main Break, Unknown Duration",
+     "creation_date": "2022-12-20T18:48:01Z",
+     "update_date": "2022-12-20T18:48:01Z"
+    },
+    "start_date": "2022-12-19T07:00:00Z",
+    "end_date": "2022-12-21T06:00:00Z",
+    "start_date_accuracy": "estimated",
+    "end_date_accuracy": "estimated",
+    "beginning_accuracy": "estimated",
+    "ending_accuracy": "estimated",
+    "location_method": "unknown",
+    "vehicle_impact": "unknown",
+    "beginning_cross_street": "3700 S / West Valley",
+    "ending_cross_street": "3700 S / West Valley",
+    "beginning_milepost": 53,
+    "ending_milepost": 53,
+    "event_status": "active"
+   },
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      -111.938881,
+      40.683441
+     ],
+     [
+      -111.938884,
+      40.684891
+     ],
+     [
+      -111.938886,
+      40.686341
+     ],
+     [
+      -111.938888,
+      40.687792
+     ],
+     [
+      -111.93889,
+      40.689238
+     ],
+     [
+      -111.938892,
+      40.690699
+     ]
+    ]
+   }
+  },
+  {
+   "id": "2417_southbound",
+   "type": "Feature",
+   "properties": {
+    "core_details": {
+     "event_type": "work-zone",
+     "data_source_id": "UDOT-Construction",
+     "road_names": [
+      "US 89"
+     ],
+     "direction": "southbound",
+     "description": "US-89 in Davis County will be:\nwidening U.S. 89 to three lanes in each direction.\nadding interchanges – bridges over U.S. 89 with on/off ramps – at 200 North/400 North, Oak Hills Drive, Gordon Avenue and Antelope Drive;\nand adding bridges over U.S. 89 at Nicholls Road and Crestwood Road.",
+     "creation_date": "2022-11-13T20:49:11Z",
+     "update_date": "2022-11-13T20:49:11Z"
+    },
+    "start_date": "2020-03-01T07:00:00Z",
+    "end_date": "2023-12-31T07:00:00Z",
+    "start_date_accuracy": "estimated",
+    "end_date_accuracy": "estimated",
+    "beginning_accuracy": "estimated",
+    "ending_accuracy": "estimated",
+    "location_method": "unknown",
+    "vehicle_impact": "unknown",
+    "beginning_cross_street": "I-15 Jct / Farmington",
+    "ending_cross_street": "I- 84 Jct / Weber Drive",
+    "beginning_milepost": 396,
+    "ending_milepost": 406,
+    "event_status": "active"
+   },
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      -111.901278,
+      40.988877
+     ],
+     [
+      -111.909957,
+      41.015921
+     ],
+     [
+      -111.910644,
+      41.014502
+     ],
+     [
+      -111.911307,
+      41.01307
+     ],
+     [
+      -111.911857,
+      41.011609
+     ],
+     [
+      -111.911963,
+      41.010106
+     ],
+     [
+      -111.911586,
+      41.008631
+     ],
+     [
+      -111.910877,
+      41.007209
+     ],
+     [
+      -111.910167,
+      41.005787
+     ],
+     [
+      -111.909445,
+      41.004372
+     ],
+     [
+      -111.908705,
+      41.002967
+     ],
+     [
+      -111.908713,
+      41.03024
+     ],
+     [
+      -111.908606,
+      41.028813
+     ],
+     [
+      -111.908498,
+      41.027387
+     ],
+     [
+      -111.9084,
+      41.025951
+     ],
+     [
+      -111.908303,
+      41.024519
+     ],
+     [
+      -111.908211,
+      41.023088
+     ],
+     [
+      -111.908325,
+      41.021664
+     ],
+     [
+      -111.908542,
+      41.020239
+     ],
+     [
+      -111.908777,
+      41.018802
+     ],
+     [
+      -111.909292,
+      41.017359
+     ],
+     [
+      -111.909951,
+      41.044526
+     ],
+     [
+      -111.909832,
+      41.043101
+     ],
+     [
+      -111.909711,
+      41.041665
+     ],
+     [
+      -111.90959,
+      41.040238
+     ],
+     [
+      -111.909468,
+      41.038811
+     ],
+     [
+      -111.909334,
+      41.037385
+     ],
+     [
+      -111.909199,
+      41.035954
+     ],
+     [
+      -111.9091,
+      41.034524
+     ],
+     [
+      -111.908993,
+      41.03309
+     ],
+     [
+      -111.90884,
+      41.031665
+     ],
+     [
+      -111.910497,
+      41.05884
+     ],
+     [
+      -111.910501,
+      41.057403
+     ],
+     [
+      -111.910506,
+      41.055976
+     ],
+     [
+      -111.91051,
+      41.054541
+     ],
+     [
+      -111.910509,
+      41.053121
+     ],
+     [
+      -111.910444,
+      41.051678
+     ],
+     [
+      -111.91037,
+      41.050247
+     ],
+     [
+      -111.910292,
+      41.04882
+     ],
+     [
+      -111.910215,
+      41.047393
+     ],
+     [
+      -111.910073,
+      41.045984
+     ],
+     [
+      -111.910901,
+      41.073172
+     ],
+     [
+      -111.910796,
+      41.071739
+     ],
+     [
+      -111.910758,
+      41.070308
+     ],
+     [
+      -111.910711,
+      41.068874
+     ],
+     [
+      -111.910652,
+      41.067437
+     ],
+     [
+      -111.910594,
+      41.066001
+     ],
+     [
+      -111.910555,
+      41.064571
+     ],
+     [
+      -111.910515,
+      41.063141
+     ],
+     [
+      -111.910489,
+      41.06171
+     ],
+     [
+      -111.910493,
+      41.060273
+     ],
+     [
+      -111.910772,
+      41.087519
+     ],
+     [
+      -111.910822,
+      41.086086
+     ],
+     [
+      -111.910872,
+      41.084653
+     ],
+     [
+      -111.910927,
+      41.08322
+     ],
+     [
+      -111.910989,
+      41.081786
+     ],
+     [
+      -111.911033,
+      41.080348
+     ],
+     [
+      -111.911047,
+      41.078912
+     ],
+     [
+      -111.911041,
+      41.07748
+     ],
+     [
+      -111.911023,
+      41.076043
+     ],
+     [
+      -111.911004,
+      41.074577
+     ],
+     [
+      -111.910256,
+      41.10187
+     ],
+     [
+      -111.910327,
+      41.100435
+     ],
+     [
+      -111.910388,
+      41.098997
+     ],
+     [
+      -111.910432,
+      41.097561
+     ],
+     [
+      -111.910465,
+      41.096129
+     ],
+     [
+      -111.91051,
+      41.094693
+     ],
+     [
+      -111.910555,
+      41.093258
+     ],
+     [
+      -111.910599,
+      41.091824
+     ],
+     [
+      -111.910654,
+      41.090392
+     ],
+     [
+      -111.910716,
+      41.088959
+     ],
+     [
+      -111.908775,
+      41.116167
+     ],
+     [
+      -111.908881,
+      41.114731
+     ],
+     [
+      -111.909025,
+      41.1133
+     ],
+     [
+      -111.909215,
+      41.111872
+     ],
+     [
+      -111.909404,
+      41.110443
+     ],
+     [
+      -111.909637,
+      41.109022
+     ],
+     [
+      -111.909824,
+      41.107596
+     ],
+     [
+      -111.909997,
+      41.106174
+     ],
+     [
+      -111.910115,
+      41.104741
+     ],
+     [
+      -111.910202,
+      41.103305
+     ],
+     [
+      -111.909198,
+      41.130323
+     ],
+     [
+      -111.908472,
+      41.12901
+     ],
+     [
+      -111.908015,
+      41.127624
+     ],
+     [
+      -111.907895,
+      41.126192
+     ],
+     [
+      -111.908011,
+      41.124765
+     ],
+     [
+      -111.908149,
+      41.123334
+     ],
+     [
+      -111.908278,
+      41.121899
+     ],
+     [
+      -111.908419,
+      41.120472
+     ],
+     [
+      -111.908556,
+      41.119037
+     ],
+     [
+      -111.908671,
+      41.117602
+     ],
+     [
+      -111.910087,
+      41.131604
+     ]
+    ]
+   }
+  },
+  {
+   "id": "2417_northbound",
+   "type": "Feature",
+   "properties": {
+    "core_details": {
+     "event_type": "work-zone",
+     "data_source_id": "UDOT-Construction",
+     "road_names": [
+      "US 89"
+     ],
+     "direction": "northbound",
+     "description": "US-89 in Davis County will be:\nwidening U.S. 89 to three lanes in each direction.\nadding interchanges – bridges over U.S. 89 with on/off ramps – at 200 North/400 North, Oak Hills Drive, Gordon Avenue and Antelope Drive;\nand adding bridges over U.S. 89 at Nicholls Road and Crestwood Road.",
+     "creation_date": "2022-11-13T20:49:11Z",
+     "update_date": "2022-11-13T20:49:11Z"
+    },
+    "start_date": "2020-03-01T07:00:00Z",
+    "end_date": "2023-12-31T07:00:00Z",
+    "start_date_accuracy": "estimated",
+    "end_date_accuracy": "estimated",
+    "beginning_accuracy": "estimated",
+    "ending_accuracy": "estimated",
+    "location_method": "unknown",
+    "vehicle_impact": "unknown",
+    "beginning_cross_street": "I- 84 Jct / Weber Drive",
+    "ending_cross_street": "I-15 Jct / Farmington",
+    "beginning_milepost": 406,
+    "ending_milepost": 396,
+    "event_status": "active"
+   },
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      -111.910087,
+      41.131604
+     ],
+     [
+      -111.908671,
+      41.117602
+     ],
+     [
+      -111.908556,
+      41.119037
+     ],
+     [
+      -111.908419,
+      41.120472
+     ],
+     [
+      -111.908278,
+      41.121899
+     ],
+     [
+      -111.908149,
+      41.123334
+     ],
+     [
+      -111.908011,
+      41.124765
+     ],
+     [
+      -111.907895,
+      41.126192
+     ],
+     [
+      -111.908015,
+      41.127624
+     ],
+     [
+      -111.908472,
+      41.12901
+     ],
+     [
+      -111.909198,
+      41.130323
+     ],
+     [
+      -111.910202,
+      41.103305
+     ],
+     [
+      -111.910115,
+      41.104741
+     ],
+     [
+      -111.909997,
+      41.106174
+     ],
+     [
+      -111.909824,
+      41.107596
+     ],
+     [
+      -111.909637,
+      41.109022
+     ],
+     [
+      -111.909404,
+      41.110443
+     ],
+     [
+      -111.909215,
+      41.111872
+     ],
+     [
+      -111.909025,
+      41.1133
+     ],
+     [
+      -111.908881,
+      41.114731
+     ],
+     [
+      -111.908775,
+      41.116167
+     ],
+     [
+      -111.910716,
+      41.088959
+     ],
+     [
+      -111.910654,
+      41.090392
+     ],
+     [
+      -111.910599,
+      41.091824
+     ],
+     [
+      -111.910555,
+      41.093258
+     ],
+     [
+      -111.91051,
+      41.094693
+     ],
+     [
+      -111.910465,
+      41.096129
+     ],
+     [
+      -111.910432,
+      41.097561
+     ],
+     [
+      -111.910388,
+      41.098997
+     ],
+     [
+      -111.910327,
+      41.100435
+     ],
+     [
+      -111.910256,
+      41.10187
+     ],
+     [
+      -111.911004,
+      41.074577
+     ],
+     [
+      -111.911023,
+      41.076043
+     ],
+     [
+      -111.911041,
+      41.07748
+     ],
+     [
+      -111.911047,
+      41.078912
+     ],
+     [
+      -111.911033,
+      41.080348
+     ],
+     [
+      -111.910989,
+      41.081786
+     ],
+     [
+      -111.910927,
+      41.08322
+     ],
+     [
+      -111.910872,
+      41.084653
+     ],
+     [
+      -111.910822,
+      41.086086
+     ],
+     [
+      -111.910772,
+      41.087519
+     ],
+     [
+      -111.910493,
+      41.060273
+     ],
+     [
+      -111.910489,
+      41.06171
+     ],
+     [
+      -111.910515,
+      41.063141
+     ],
+     [
+      -111.910555,
+      41.064571
+     ],
+     [
+      -111.910594,
+      41.066001
+     ],
+     [
+      -111.910652,
+      41.067437
+     ],
+     [
+      -111.910711,
+      41.068874
+     ],
+     [
+      -111.910758,
+      41.070308
+     ],
+     [
+      -111.910796,
+      41.071739
+     ],
+     [
+      -111.910901,
+      41.073172
+     ],
+     [
+      -111.910073,
+      41.045984
+     ],
+     [
+      -111.910215,
+      41.047393
+     ],
+     [
+      -111.910292,
+      41.04882
+     ],
+     [
+      -111.91037,
+      41.050247
+     ],
+     [
+      -111.910444,
+      41.051678
+     ],
+     [
+      -111.910509,
+      41.053121
+     ],
+     [
+      -111.91051,
+      41.054541
+     ],
+     [
+      -111.910506,
+      41.055976
+     ],
+     [
+      -111.910501,
+      41.057403
+     ],
+     [
+      -111.910497,
+      41.05884
+     ],
+     [
+      -111.90884,
+      41.031665
+     ],
+     [
+      -111.908993,
+      41.03309
+     ],
+     [
+      -111.9091,
+      41.034524
+     ],
+     [
+      -111.909199,
+      41.035954
+     ],
+     [
+      -111.909334,
+      41.037385
+     ],
+     [
+      -111.909468,
+      41.038811
+     ],
+     [
+      -111.90959,
+      41.040238
+     ],
+     [
+      -111.909711,
+      41.041665
+     ],
+     [
+      -111.909832,
+      41.043101
+     ],
+     [
+      -111.909951,
+      41.044526
+     ],
+     [
+      -111.909292,
+      41.017359
+     ],
+     [
+      -111.908777,
+      41.018802
+     ],
+     [
+      -111.908542,
+      41.020239
+     ],
+     [
+      -111.908325,
+      41.021664
+     ],
+     [
+      -111.908211,
+      41.023088
+     ],
+     [
+      -111.908303,
+      41.024519
+     ],
+     [
+      -111.9084,
+      41.025951
+     ],
+     [
+      -111.908498,
+      41.027387
+     ],
+     [
+      -111.908606,
+      41.028813
+     ],
+     [
+      -111.908713,
+      41.03024
+     ],
+     [
+      -111.908705,
+      41.002967
+     ],
+     [
+      -111.909445,
+      41.004372
+     ],
+     [
+      -111.910167,
+      41.005787
+     ],
+     [
+      -111.910877,
+      41.007209
+     ],
+     [
+      -111.911586,
+      41.008631
+     ],
+     [
+      -111.911963,
+      41.010106
+     ],
+     [
+      -111.911857,
+      41.011609
+     ],
+     [
+      -111.911307,
+      41.01307
+     ],
+     [
+      -111.910644,
+      41.014502
+     ],
+     [
+      -111.909957,
+      41.015921
+     ],
+     [
+      -111.901278,
+      40.988877
+     ]
+    ]
+   }
+  },
+  {
+   "id": "2579",
+   "type": "Feature",
+   "properties": {
+    "core_details": {
+     "event_type": "work-zone",
+     "data_source_id": "UDOT-Construction",
+     "road_names": [
+      "SR 203"
+     ],
+     "direction": "northbound",
+     "description": "The Utah Transit Authority (UTA) is building a new BRT system in Ogden that will run from the FrontRunner Station, through downtown Ogden, down 25th Street to Harrison Blvd., through the Weber State University (WSU) campus and to McKay-Dee Hospital. A section of the BRT line runs along Harrison Blvd. between 25th and 37th streets. BRT stations will be built on Harrison Blvd. at 28th, 32nd and 36th streets. *HARRISON BLVD NIGHT WORK: beginning Sunday, June 5 and continuing through late June, Harrison Blvd. will be reduced to one lane each direction in work zones between 31st and 37th streets Sunday through Thursday from 8 p.m. to 6 a.m. nightly to facilitate waterline work. Harrison Blvd. construction will continue through summer 2023.",
+     "creation_date": "2022-06-03T20:45:51.467Z",
+     "update_date": "2022-06-03T20:45:51.467Z"
+    },
+    "start_date": "2022-06-05T06:00:00Z",
+    "end_date": "2023-09-01T06:00:00Z",
+    "start_date_accuracy": "estimated",
+    "end_date_accuracy": "estimated",
+    "beginning_accuracy": "estimated",
+    "ending_accuracy": "estimated",
+    "location_method": "unknown",
+    "vehicle_impact": "unknown",
+    "beginning_cross_street": "Ogden",
+    "ending_cross_street": "Ogden High School",
+    "beginning_milepost": 3,
+    "ending_milepost": 4,
+    "event_status": "active"
+   },
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      -111.948756,
+      41.196646
+     ],
+     [
+      -111.948448,
+      41.211072
+     ]
+    ]
+   }
+  },
+  {
+   "id": "2595_eastbound",
+   "type": "Feature",
+   "properties": {
+    "core_details": {
+     "event_type": "work-zone",
+     "data_source_id": "UDOT-Construction",
+     "road_names": [
+      "I-84"
+     ],
+     "direction": "eastbound",
+     "description": "Pavement preservation and restriping, bridge maintenance on 19 bridges, barrier and cattle guard replacement on I-84, both east and westbound",
+     "creation_date": "2022-11-17T19:11:38Z",
+     "update_date": "2022-11-17T19:11:38Z"
+    },
+    "start_date": "2021-04-12T06:00:00Z",
+    "end_date": "2023-05-01T06:00:00Z",
+    "start_date_accuracy": "estimated",
+    "end_date_accuracy": "estimated",
+    "beginning_accuracy": "estimated",
+    "ending_accuracy": "estimated",
+    "location_method": "unknown",
+    "vehicle_impact": "unknown",
+    "beginning_cross_street": "2 mi E of Morgan",
+    "ending_cross_street": "4 mi N of Henefer",
+    "beginning_milepost": 108,
+    "ending_milepost": 111,
+    "event_status": "active"
+   },
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      -111.593671,
+      41.053935
+     ],
+     [
+      -111.580319,
+      41.059079
+     ],
+     [
+      -111.578536,
+      41.059613
+     ],
+     [
+      -111.576752,
+      41.060147
+     ],
+     [
+      -111.574969,
+      41.060682
+     ],
+     [
+      -111.573186,
+      41.061216
+     ],
+     [
+      -111.571396,
+      41.061721
+     ],
+     [
+      -111.56952,
+      41.062031
+     ],
+     [
+      -111.567612,
+      41.062109
+     ],
+     [
+      -111.565688,
+      41.062206
+     ],
+     [
+      -111.563885,
+      41.062664
+     ],
+     [
+      -111.56211,
+      41.063214
+     ],
+     [
+      -111.560335,
+      41.063764
+     ],
+     [
+      -111.55856,
+      41.064313
+     ],
+     [
+      -111.556785,
+      41.064863
+     ],
+     [
+      -111.55495,
+      41.065273
+     ],
+     [
+      -111.553047,
+      41.0654
+     ],
+     [
+      -111.551129,
+      41.065234
+     ],
+     [
+      -111.549329,
+      41.064778
+     ],
+     [
+      -111.54767,
+      41.064056
+     ],
+     [
+      -111.546199,
+      41.063125
+     ],
+     [
+      -111.544778,
+      41.062148
+     ]
+    ]
+   }
+  },
+  {
+   "id": "2595_westbound",
+   "type": "Feature",
+   "properties": {
+    "core_details": {
+     "event_type": "work-zone",
+     "data_source_id": "UDOT-Construction",
+     "road_names": [
+      "I-84"
+     ],
+     "direction": "westbound",
+     "description": "Pavement preservation and restriping, bridge maintenance on 19 bridges, barrier and cattle guard replacement on I-84, both east and westbound",
+     "creation_date": "2022-11-17T19:11:38Z",
+     "update_date": "2022-11-17T19:11:38Z"
+    },
+    "start_date": "2021-04-12T06:00:00Z",
+    "end_date": "2023-05-01T06:00:00Z",
+    "start_date_accuracy": "estimated",
+    "end_date_accuracy": "estimated",
+    "beginning_accuracy": "estimated",
+    "ending_accuracy": "estimated",
+    "location_method": "unknown",
+    "vehicle_impact": "unknown",
+    "beginning_cross_street": "4 mi N of Henefer",
+    "ending_cross_street": "2 mi E of Morgan",
+    "beginning_milepost": 111,
+    "ending_milepost": 108,
+    "event_status": "active"
+   },
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      -111.544778,
+      41.062148
+     ],
+     [
+      -111.546199,
+      41.063125
+     ],
+     [
+      -111.54767,
+      41.064056
+     ],
+     [
+      -111.549329,
+      41.064778
+     ],
+     [
+      -111.551129,
+      41.065234
+     ],
+     [
+      -111.553047,
+      41.0654
+     ],
+     [
+      -111.55495,
+      41.065273
+     ],
+     [
+      -111.556785,
+      41.064863
+     ],
+     [
+      -111.55856,
+      41.064313
+     ],
+     [
+      -111.560335,
+      41.063764
+     ],
+     [
+      -111.56211,
+      41.063214
+     ],
+     [
+      -111.563885,
+      41.062664
+     ],
+     [
+      -111.565688,
+      41.062206
+     ],
+     [
+      -111.567612,
+      41.062109
+     ],
+     [
+      -111.56952,
+      41.062031
+     ],
+     [
+      -111.571396,
+      41.061721
+     ],
+     [
+      -111.573186,
+      41.061216
+     ],
+     [
+      -111.574969,
+      41.060682
+     ],
+     [
+      -111.576752,
+      41.060147
+     ],
+     [
+      -111.578536,
+      41.059613
+     ],
+     [
+      -111.580319,
+      41.059079
+     ],
+     [
+      -111.593671,
+      41.053935
+     ]
+    ]
+   }
+  },
+  {
+   "id": "2742",
+   "type": "Feature",
+   "properties": {
+    "core_details": {
+     "event_type": "work-zone",
+     "data_source_id": "UDOT-Construction",
+     "road_names": [
+      "SR 24"
+     ],
+     "direction": "eastbound",
+     "description": "The Utah Department of Transportation (UDOT) is rehabilitating pavement and improving shoulders in several areas on State Route 24 (S.R. 24) between Torrey and Hanksville. New guardrail and drainage features are also included in the project. In total, the project will involve improvements to approximately 23 miles of roadway.",
+     "creation_date": "2022-03-11T20:47:47.277Z",
+     "update_date": "2022-03-11T20:47:47.277Z"
+    },
+    "start_date": "2022-03-11T07:00:00Z",
+    "end_date": "2022-11-28T07:00:00Z",
+    "start_date_accuracy": "estimated",
+    "end_date_accuracy": "estimated",
+    "beginning_accuracy": "estimated",
+    "ending_accuracy": "estimated",
+    "location_method": "unknown",
+    "vehicle_impact": "unknown",
+    "beginning_cross_street": "Torrey",
+    "ending_cross_street": "2 Mi N of Hanksville",
+    "beginning_milepost": 68,
+    "ending_milepost": 119,
+    "event_status": "active"
+   },
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      -111.430243,
+      38.299047
+     ],
+     [
+      -111.411776,
+      38.298983
+     ],
+     [
+      -111.40993,
+      38.298973
+     ],
+     [
+      -111.408087,
+      38.298955
+     ],
+     [
+      -111.406252,
+      38.298938
+     ],
+     [
+      -111.404398,
+      38.298935
+     ],
+     [
+      -111.402556,
+      38.298933
+     ],
+     [
+      -111.400787,
+      38.298603
+     ],
+     [
+      -111.399225,
+      38.297822
+     ],
+     [
+      -111.397565,
+      38.297223
+     ],
+     [
+      -111.395761,
+      38.297379
+     ],
+     [
+      -111.394161,
+      38.298088
+     ],
+     [
+      -111.392583,
+      38.298844
+     ],
+     [
+      -111.391579,
+      38.300004
+     ],
+     [
+      -111.391869,
+      38.301416
+     ],
+     [
+      -111.392533,
+      38.302767
+     ],
+     [
+      -111.393003,
+      38.304159
+     ],
+     [
+      -111.392597,
+      38.305544
+     ],
+     [
+      -111.391447,
+      38.30667
+     ],
+     [
+      -111.390156,
+      38.307753
+     ],
+     [
+      -111.389044,
+      38.308853
+     ],
+     [
+      -111.388169,
+      38.310136
+     ],
+     [
+      -111.387497,
+      38.311499
+     ],
+     [
+      -111.386835,
+      38.31285
+     ],
+     [
+      -111.386171,
+      38.314209
+     ],
+     [
+      -111.385507,
+      38.315571
+     ],
+     [
+      -111.384844,
+      38.316923
+     ],
+     [
+      -111.384145,
+      38.318264
+     ],
+     [
+      -111.382966,
+      38.319351
+     ],
+     [
+      -111.381376,
+      38.32008
+     ],
+     [
+      -111.379767,
+      38.320785
+     ],
+     [
+      -111.378158,
+      38.321499
+     ],
+     [
+      -111.376552,
+      38.322215
+     ],
+     [
+      -111.374949,
+      38.32293
+     ],
+     [
+      -111.373345,
+      38.323646
+     ],
+     [
+      -111.371741,
+      38.324362
+     ],
+     [
+      -111.370138,
+      38.325077
+     ],
+     [
+      -111.36853,
+      38.325794
+     ],
+     [
+      -111.366874,
+      38.326426
+     ],
+     [
+      -111.365079,
+      38.326344
+     ],
+     [
+      -111.363425,
+      38.325701
+     ],
+     [
+      -111.361657,
+      38.325392
+     ],
+     [
+      -111.3599,
+      38.325809
+     ],
+     [
+      -111.35812,
+      38.326181
+     ],
+     [
+      -111.356315,
+      38.325954
+     ],
+     [
+      -111.354554,
+      38.325519
+     ],
+     [
+      -111.352798,
+      38.325084
+     ],
+     [
+      -111.351042,
+      38.324648
+     ],
+     [
+      -111.349286,
+      38.32421
+     ],
+     [
+      -111.34753,
+      38.323771
+     ],
+     [
+      -111.345774,
+      38.323331
+     ],
+     [
+      -111.343982,
+      38.322955
+     ],
+     [
+      -111.342159,
+      38.322771
+     ],
+     [
+      -111.340329,
+      38.322613
+     ],
+     [
+      -111.338498,
+      38.322455
+     ],
+     [
+      -111.336658,
+      38.32231
+     ],
+     [
+      -111.334867,
+      38.322579
+     ],
+     [
+      -111.333097,
+      38.322956
+     ],
+     [
+      -111.331293,
+      38.322738
+     ],
+     [
+      -111.329485,
+      38.322456
+     ],
+     [
+      -111.327673,
+      38.322176
+     ],
+     [
+      -111.325836,
+      38.321945
+     ],
+     [
+      -111.324018,
+      38.321819
+     ],
+     [
+      -111.322181,
+      38.321661
+     ],
+     [
+      -111.320427,
+      38.321234
+     ],
+     [
+      -111.318734,
+      38.320659
+     ],
+     [
+      -111.317042,
+      38.320083
+     ],
+     [
+      -111.315349,
+      38.319508
+     ],
+     [
+      -111.313657,
+      38.318933
+     ],
+     [
+      -111.311965,
+      38.318357
+     ],
+     [
+      -111.310255,
+      38.317776
+     ],
+     [
+      -111.308575,
+      38.31721
+     ],
+     [
+      -111.306894,
+      38.316619
+     ],
+     [
+      -111.305383,
+      38.31579
+     ],
+     [
+      -111.304019,
+      38.314804
+     ],
+     [
+      -111.302665,
+      38.313818
+     ],
+     [
+      -111.301311,
+      38.312831
+     ],
+     [
+      -111.300051,
+      38.311783
+     ],
+     [
+      -111.299096,
+      38.310538
+     ],
+     [
+      -111.298012,
+      38.30938
+     ],
+     [
+      -111.296371,
+      38.308771
+     ],
+     [
+      -111.294577,
+      38.30846
+     ],
+     [
+      -111.292771,
+      38.308173
+     ],
+     [
+      -111.290929,
+      38.308148
+     ],
+     [
+      -111.289103,
+      38.308389
+     ],
+     [
+      -111.287268,
+      38.308357
+     ],
+     [
+      -111.285455,
+      38.308106
+     ],
+     [
+      -111.283648,
+      38.307843
+     ],
+     [
+      -111.281868,
+      38.307467
+     ],
+     [
+      -111.28034,
+      38.306669
+     ],
+     [
+      -111.279216,
+      38.305531
+     ],
+     [
+      -111.278163,
+      38.304339
+     ],
+     [
+      -111.277109,
+      38.303146
+     ],
+     [
+      -111.276055,
+      38.301954
+     ],
+     [
+      -111.274936,
+      38.300794
+     ],
+     [
+      -111.273724,
+      38.299704
+     ],
+     [
+      -111.272492,
+      38.298624
+     ],
+     [
+      -111.271261,
+      38.297544
+     ],
+     [
+      -111.270027,
+      38.296465
+     ],
+     [
+      -111.268744,
+      38.295416
+     ],
+     [
+      -111.267306,
+      38.294506
+     ],
+     [
+      -111.265803,
+      38.293663
+     ],
+     [
+      -111.264257,
+      38.292888
+     ],
+     [
+      -111.262658,
+      38.292167
+     ],
+     [
+      -111.260981,
+      38.291528
+     ],
+     [
+      -111.259176,
+      38.291341
+     ],
+     [
+      -111.257545,
+      38.290729
+     ],
+     [
+      -111.256025,
+      38.289934
+     ],
+     [
+      -111.254193,
+      38.289835
+     ],
+     [
+      -111.252391,
+      38.289612
+     ],
+     [
+      -111.250708,
+      38.289014
+     ],
+     [
+      -111.24916,
+      38.288224
+     ],
+     [
+      -111.247532,
+      38.287582
+     ],
+     [
+      -111.24571,
+      38.287422
+     ],
+     [
+      -111.243921,
+      38.287762
+     ],
+     [
+      -111.242106,
+      38.28791
+     ],
+     [
+      -111.2403,
+      38.287659
+     ],
+     [
+      -111.238503,
+      38.287906
+     ],
+     [
+      -111.236902,
+      38.288628
+     ],
+     [
+      -111.235146,
+      38.288953
+     ],
+     [
+      -111.233317,
+      38.288787
+     ],
+     [
+      -111.231435,
+      38.288736
+     ],
+     [
+      -111.22964,
+      38.288792
+     ],
+     [
+      -111.227912,
+      38.288332
+     ],
+     [
+      -111.226171,
+      38.28791
+     ],
+     [
+      -111.224406,
+      38.288307
+     ],
+     [
+      -111.222693,
+      38.288172
+     ],
+     [
+      -111.22161,
+      38.286999
+     ],
+     [
+      -111.220613,
+      38.285786
+     ],
+     [
+      -111.219594,
+      38.284571
+     ],
+     [
+      -111.218426,
+      38.283455
+     ],
+     [
+      -111.21702,
+      38.282516
+     ],
+     [
+      -111.215335,
+      38.282003
+     ],
+     [
+      -111.213697,
+      38.282553
+     ],
+     [
+      -111.212192,
+      38.283348
+     ],
+     [
+      -111.210337,
+      38.283326
+     ],
+     [
+      -111.208542,
+      38.283578
+     ],
+     [
+      -111.206754,
+      38.283864
+     ],
+     [
+      -111.204957,
+      38.28358
+     ],
+     [
+      -111.20314,
+      38.283764
+     ],
+     [
+      -111.201323,
+      38.283684
+     ],
+     [
+      -111.199508,
+      38.283502
+     ],
+     [
+      -111.197924,
+      38.284163
+     ],
+     [
+      -111.196585,
+      38.285121
+     ],
+     [
+      -111.194965,
+      38.284704
+     ],
+     [
+      -111.194588,
+      38.2833
+     ],
+     [
+      -111.194404,
+      38.281862
+     ],
+     [
+      -111.194013,
+      38.280442
+     ],
+     [
+      -111.193226,
+      38.279142
+     ],
+     [
+      -111.192073,
+      38.278019
+     ],
+     [
+      -111.190422,
+      38.277408
+     ],
+     [
+      -111.188614,
+      38.27755
+     ],
+     [
+      -111.186995,
+      38.278236
+     ],
+     [
+      -111.185395,
+      38.278942
+     ],
+     [
+      -111.18363,
+      38.279335
+     ],
+     [
+      -111.181823,
+      38.27963
+     ],
+     [
+      -111.180062,
+      38.280111
+     ],
+     [
+      -111.178887,
+      38.281167
+     ],
+     [
+      -111.178085,
+      38.282439
+     ],
+     [
+      -111.176398,
+      38.282623
+     ],
+     [
+      -111.17501,
+      38.281684
+     ],
+     [
+      -111.173308,
+      38.281225
+     ],
+     [
+      -111.171625,
+      38.281763
+     ],
+     [
+      -111.170194,
+      38.282668
+     ],
+     [
+      -111.168658,
+      38.283444
+     ],
+     [
+      -111.166851,
+      38.283338
+     ],
+     [
+      -111.165065,
+      38.28325
+     ],
+     [
+      -111.164215,
+      38.284437
+     ],
+     [
+      -111.164064,
+      38.285873
+     ],
+     [
+      -111.163321,
+      38.287197
+     ],
+     [
+      -111.162541,
+      38.288521
+     ],
+     [
+      -111.161258,
+      38.289419
+     ],
+     [
+      -111.159759,
+      38.288648
+     ],
+     [
+      -111.158405,
+      38.287709
+     ],
+     [
+      -111.15656,
+      38.287521
+     ],
+     [
+      -111.154817,
+      38.287229
+     ],
+     [
+      -111.153881,
+      38.285994
+     ],
+     [
+      -111.152496,
+      38.285089
+     ],
+     [
+      -111.150743,
+      38.284651
+     ],
+     [
+      -111.148963,
+      38.284258
+     ],
+     [
+      -111.147187,
+      38.284425
+     ],
+     [
+      -111.145752,
+      38.285324
+     ],
+     [
+      -111.1444,
+      38.286314
+     ],
+     [
+      -111.142941,
+      38.287176
+     ],
+     [
+      -111.141144,
+      38.287237
+     ],
+     [
+      -111.139811,
+      38.286301
+     ],
+     [
+      -111.139536,
+      38.284889
+     ],
+     [
+      -111.13934,
+      38.283454
+     ],
+     [
+      -111.138294,
+      38.282324
+     ],
+     [
+      -111.136583,
+      38.281766
+     ],
+     [
+      -111.134783,
+      38.28199
+     ],
+     [
+      -111.13308,
+      38.282527
+     ],
+     [
+      -111.13137,
+      38.283054
+     ],
+     [
+      -111.12958,
+      38.283413
+     ],
+     [
+      -111.127777,
+      38.283649
+     ],
+     [
+      -111.12617,
+      38.284355
+     ],
+     [
+      -111.124662,
+      38.285188
+     ],
+     [
+      -111.122911,
+      38.285318
+     ],
+     [
+      -111.121255,
+      38.2847
+     ],
+     [
+      -111.119461,
+      38.284976
+     ],
+     [
+      -111.118108,
+      38.284176
+     ],
+     [
+      -111.117264,
+      38.282945
+     ],
+     [
+      -111.115716,
+      38.282215
+     ],
+     [
+      -111.115695,
+      38.280842
+     ],
+     [
+      -111.11619,
+      38.27947
+     ],
+     [
+      -111.115237,
+      38.278303
+     ],
+     [
+      -111.113665,
+      38.277563
+     ],
+     [
+      -111.111875,
+      38.277696
+     ],
+     [
+      -111.110146,
+      38.278146
+     ],
+     [
+      -111.108497,
+      38.277628
+     ],
+     [
+      -111.107583,
+      38.276388
+     ],
+     [
+      -111.106675,
+      38.275131
+     ],
+     [
+      -111.1051,
+      38.274448
+     ],
+     [
+      -111.103282,
+      38.274233
+     ],
+     [
+      -111.101462,
+      38.274337
+     ],
+     [
+      -111.099761,
+      38.274875
+     ],
+     [
+      -111.098091,
+      38.275494
+     ],
+     [
+      -111.096312,
+      38.275836
+     ],
+     [
+      -111.094503,
+      38.27568
+     ],
+     [
+      -111.092734,
+      38.27528
+     ],
+     [
+      -111.090965,
+      38.274879
+     ],
+     [
+      -111.089195,
+      38.274478
+     ],
+     [
+      -111.087425,
+      38.274076
+     ],
+     [
+      -111.085654,
+      38.27367
+     ],
+     [
+      -111.083937,
+      38.273167
+     ],
+     [
+      -111.082574,
+      38.272209
+     ],
+     [
+      -111.081793,
+      38.270903
+     ],
+     [
+      -111.081107,
+      38.269557
+     ],
+     [
+      -111.079854,
+      38.268508
+     ],
+     [
+      -111.078174,
+      38.267955
+     ],
+     [
+      -111.076343,
+      38.26799
+     ],
+     [
+      -111.074619,
+      38.268493
+     ],
+     [
+      -111.072926,
+      38.269071
+     ],
+     [
+      -111.07124,
+      38.269649
+     ],
+     [
+      -111.069553,
+      38.270227
+     ],
+     [
+      -111.067867,
+      38.270804
+     ],
+     [
+      -111.06618,
+      38.271382
+     ],
+     [
+      -111.064487,
+      38.271961
+     ],
+     [
+      -111.062798,
+      38.272538
+     ],
+     [
+      -111.061109,
+      38.273114
+     ],
+     [
+      -111.059424,
+      38.273693
+     ],
+     [
+      -111.057741,
+      38.274277
+     ],
+     [
+      -111.056131,
+      38.275039
+     ],
+     [
+      -111.054754,
+      38.275957
+     ],
+     [
+      -111.053599,
+      38.277081
+     ],
+     [
+      -111.052716,
+      38.278345
+     ],
+     [
+      -111.051825,
+      38.279616
+     ],
+     [
+      -111.050852,
+      38.280842
+     ],
+     [
+      -111.0499,
+      38.282084
+     ],
+     [
+      -111.048868,
+      38.283299
+     ],
+     [
+      -111.04811,
+      38.284615
+     ],
+     [
+      -111.047654,
+      38.28601
+     ],
+     [
+      -111.047358,
+      38.287443
+     ],
+     [
+      -111.047142,
+      38.288889
+     ],
+     [
+      -111.047417,
+      38.290316
+     ],
+     [
+      -111.047276,
+      38.291728
+     ],
+     [
+      -111.045851,
+      38.292621
+     ],
+     [
+      -111.044278,
+      38.293352
+     ],
+     [
+      -111.043091,
+      38.294457
+     ],
+     [
+      -111.042488,
+      38.295819
+     ],
+     [
+      -111.042203,
+      38.297252
+     ],
+     [
+      -111.04194,
+      38.298686
+     ],
+     [
+      -111.041676,
+      38.30012
+     ],
+     [
+      -111.041409,
+      38.301555
+     ],
+     [
+      -111.04114,
+      38.302992
+     ],
+     [
+      -111.040871,
+      38.304429
+     ],
+     [
+      -111.040568,
+      38.305857
+     ],
+     [
+      -111.040091,
+      38.307271
+     ],
+     [
+      -111.039461,
+      38.308631
+     ],
+     [
+      -111.03871,
+      38.309949
+     ],
+     [
+      -111.037922,
+      38.31126
+     ],
+     [
+      -111.037136,
+      38.312575
+     ],
+     [
+      -111.036469,
+      38.313925
+     ],
+     [
+      -111.03613,
+      38.315348
+     ],
+     [
+      -111.03598,
+      38.316795
+     ],
+     [
+      -111.035798,
+      38.318243
+     ],
+     [
+      -111.035443,
+      38.319662
+     ],
+     [
+      -111.034979,
+      38.321063
+     ],
+     [
+      -111.034502,
+      38.322465
+     ],
+     [
+      -111.034024,
+      38.323867
+     ],
+     [
+      -111.033545,
+      38.325269
+     ],
+     [
+      -111.033069,
+      38.326672
+     ],
+     [
+      -111.032595,
+      38.328077
+     ],
+     [
+      -111.032112,
+      38.329474
+     ],
+     [
+      -111.031606,
+      38.330869
+     ],
+     [
+      -111.030675,
+      38.332116
+     ],
+     [
+      -111.02924,
+      38.333008
+     ],
+     [
+      -111.027501,
+      38.333468
+     ],
+     [
+      -111.025693,
+      38.333746
+     ],
+     [
+      -111.023881,
+      38.334017
+     ],
+     [
+      -111.022054,
+      38.334175
+     ],
+     [
+      -111.020228,
+      38.334042
+     ],
+     [
+      -111.018392,
+      38.333876
+     ],
+     [
+      -111.016559,
+      38.333749
+     ],
+     [
+      -111.01474,
+      38.333938
+     ],
+     [
+      -111.013074,
+      38.334553
+     ],
+     [
+      -111.011695,
+      38.335499
+     ],
+     [
+      -111.010422,
+      38.33655
+     ],
+     [
+      -111.009086,
+      38.337539
+     ],
+     [
+      -111.007548,
+      38.338357
+     ],
+     [
+      -111.005894,
+      38.338977
+     ],
+     [
+      -111.004128,
+      38.339401
+     ],
+     [
+      -111.002313,
+      38.33963
+     ],
+     [
+      -111.000489,
+      38.339824
+     ],
+     [
+      -110.998693,
+      38.340142
+     ],
+     [
+      -110.996989,
+      38.34067
+     ],
+     [
+      -110.995334,
+      38.341319
+     ],
+     [
+      -110.993686,
+      38.341968
+     ],
+     [
+      -110.992037,
+      38.342617
+     ],
+     [
+      -110.99039,
+      38.343267
+     ],
+     [
+      -110.988743,
+      38.343917
+     ],
+     [
+      -110.987096,
+      38.344567
+     ],
+     [
+      -110.985449,
+      38.345217
+     ],
+     [
+      -110.983809,
+      38.345846
+     ],
+     [
+      -110.982088,
+      38.346416
+     ],
+     [
+      -110.980339,
+      38.346896
+     ],
+     [
+      -110.978559,
+      38.347275
+     ],
+     [
+      -110.976753,
+      38.347548
+     ],
+     [
+      -110.97493,
+      38.347726
+     ],
+     [
+      -110.973087,
+      38.347805
+     ],
+     [
+      -110.971237,
+      38.347786
+     ],
+     [
+      -110.969401,
+      38.347727
+     ],
+     [
+      -110.967558,
+      38.347788
+     ],
+     [
+      -110.965724,
+      38.347978
+     ],
+     [
+      -110.963926,
+      38.348294
+     ],
+     [
+      -110.962176,
+      38.348745
+     ],
+     [
+      -110.96047,
+      38.349292
+     ],
+     [
+      -110.958771,
+      38.349855
+     ],
+     [
+      -110.957073,
+      38.350421
+     ],
+     [
+      -110.955375,
+      38.350987
+     ],
+     [
+      -110.953677,
+      38.351553
+     ],
+     [
+      -110.95198,
+      38.352119
+     ],
+     [
+      -110.950282,
+      38.352684
+     ],
+     [
+      -110.948585,
+      38.35325
+     ],
+     [
+      -110.946887,
+      38.353815
+     ],
+     [
+      -110.94519,
+      38.354381
+     ],
+     [
+      -110.943492,
+      38.354946
+     ],
+     [
+      -110.941794,
+      38.355512
+     ],
+     [
+      -110.940092,
+      38.356072
+     ],
+     [
+      -110.938389,
+      38.356643
+     ],
+     [
+      -110.93669,
+      38.35721
+     ],
+     [
+      -110.934995,
+      38.357773
+     ],
+     [
+      -110.933291,
+      38.358332
+     ],
+     [
+      -110.931592,
+      38.3589
+     ],
+     [
+      -110.929892,
+      38.359469
+     ],
+     [
+      -110.928194,
+      38.360034
+     ],
+     [
+      -110.926495,
+      38.360596
+     ],
+     [
+      -110.924797,
+      38.361158
+     ],
+     [
+      -110.923099,
+      38.36172
+     ],
+     [
+      -110.921399,
+      38.362286
+     ],
+     [
+      -110.9197,
+      38.362851
+     ],
+     [
+      -110.918,
+      38.363416
+     ],
+     [
+      -110.9163,
+      38.363982
+     ],
+     [
+      -110.9146,
+      38.364547
+     ],
+     [
+      -110.9129,
+      38.365111
+     ],
+     [
+      -110.911201,
+      38.365667
+     ],
+     [
+      -110.909432,
+      38.366068
+     ],
+     [
+      -110.907596,
+      38.366219
+     ],
+     [
+      -110.905771,
+      38.366096
+     ],
+     [
+      -110.903975,
+      38.36574
+     ],
+     [
+      -110.902207,
+      38.365352
+     ],
+     [
+      -110.900378,
+      38.365183
+     ],
+     [
+      -110.898588,
+      38.365549
+     ],
+     [
+      -110.89686,
+      38.366048
+     ],
+     [
+      -110.895123,
+      38.366541
+     ],
+     [
+      -110.893344,
+      38.366889
+     ],
+     [
+      -110.891502,
+      38.366979
+     ],
+     [
+      -110.889656,
+      38.366793
+     ],
+     [
+      -110.887932,
+      38.36635
+     ],
+     [
+      -110.886279,
+      38.365703
+     ],
+     [
+      -110.884597,
+      38.365111
+     ],
+     [
+      -110.882784,
+      38.364978
+     ],
+     [
+      -110.880956,
+      38.365103
+     ],
+     [
+      -110.879185,
+      38.364748
+     ],
+     [
+      -110.877801,
+      38.363807
+     ],
+     [
+      -110.877084,
+      38.362456
+     ],
+     [
+      -110.876684,
+      38.361016
+     ],
+     [
+      -110.875715,
+      38.359808
+     ],
+     [
+      -110.874088,
+      38.359181
+     ],
+     [
+      -110.872251,
+      38.359315
+     ],
+     [
+      -110.870782,
+      38.360139
+     ],
+     [
+      -110.869357,
+      38.361061
+     ],
+     [
+      -110.86761,
+      38.361504
+     ],
+     [
+      -110.865809,
+      38.36178
+     ],
+     [
+      -110.864175,
+      38.362446
+     ],
+     [
+      -110.86261,
+      38.36321
+     ],
+     [
+      -110.861052,
+      38.363983
+     ],
+     [
+      -110.859483,
+      38.364755
+     ],
+     [
+      -110.857913,
+      38.365525
+     ],
+     [
+      -110.856349,
+      38.366296
+     ],
+     [
+      -110.854785,
+      38.367067
+     ],
+     [
+      -110.853222,
+      38.367837
+     ],
+     [
+      -110.851635,
+      38.368572
+     ],
+     [
+      -110.849947,
+      38.369133
+     ],
+     [
+      -110.848141,
+      38.369433
+     ],
+     [
+      -110.846305,
+      38.369483
+     ],
+     [
+      -110.844458,
+      38.369465
+     ],
+     [
+      -110.842612,
+      38.369447
+     ],
+     [
+      -110.840766,
+      38.369429
+     ],
+     [
+      -110.838921,
+      38.369416
+     ],
+     [
+      -110.837077,
+      38.369404
+     ],
+     [
+      -110.83523,
+      38.369385
+     ],
+     [
+      -110.833384,
+      38.369366
+     ],
+     [
+      -110.83154,
+      38.369344
+     ],
+     [
+      -110.829706,
+      38.369294
+     ],
+     [
+      -110.827859,
+      38.369176
+     ],
+     [
+      -110.826033,
+      38.368993
+     ],
+     [
+      -110.824217,
+      38.368734
+     ],
+     [
+      -110.8224,
+      38.36845
+     ],
+     [
+      -110.820596,
+      38.368169
+     ],
+     [
+      -110.818793,
+      38.367887
+     ],
+     [
+      -110.816992,
+      38.367561
+     ],
+     [
+      -110.815593,
+      38.366667
+     ],
+     [
+      -110.814531,
+      38.365488
+     ],
+     [
+      -110.812872,
+      38.364952
+     ],
+     [
+      -110.811042,
+      38.365036
+     ],
+     [
+      -110.809204,
+      38.365169
+     ],
+     [
+      -110.807367,
+      38.365303
+     ],
+     [
+      -110.80553,
+      38.365437
+     ],
+     [
+      -110.803693,
+      38.365571
+     ],
+     [
+      -110.801855,
+      38.365705
+     ],
+     [
+      -110.800018,
+      38.36584
+     ],
+     [
+      -110.798179,
+      38.365972
+     ],
+     [
+      -110.796341,
+      38.366103
+     ],
+     [
+      -110.794502,
+      38.366235
+     ],
+     [
+      -110.792663,
+      38.366367
+     ],
+     [
+      -110.790824,
+      38.366499
+     ],
+     [
+      -110.788999,
+      38.366686
+     ],
+     [
+      -110.787202,
+      38.366999
+     ],
+     [
+      -110.785444,
+      38.367442
+     ],
+     [
+      -110.783722,
+      38.367946
+     ],
+     [
+      -110.781997,
+      38.368461
+     ],
+     [
+      -110.780272,
+      38.368976
+     ],
+     [
+      -110.778547,
+      38.36949
+     ],
+     [
+      -110.776821,
+      38.370005
+     ],
+     [
+      -110.775096,
+      38.370519
+     ],
+     [
+      -110.773371,
+      38.371034
+     ],
+     [
+      -110.771634,
+      38.371525
+     ],
+     [
+      -110.76983,
+      38.371828
+     ],
+     [
+      -110.767984,
+      38.371865
+     ],
+     [
+      -110.766155,
+      38.37171
+     ],
+     [
+      -110.764325,
+      38.371545
+     ],
+     [
+      -110.762495,
+      38.371379
+     ],
+     [
+      -110.760658,
+      38.371318
+     ],
+     [
+      -110.758865,
+      38.371629
+     ],
+     [
+      -110.757144,
+      38.372164
+     ],
+     [
+      -110.755322,
+      38.372271
+     ],
+     [
+      -110.75355,
+      38.371871
+     ],
+     [
+      -110.751878,
+      38.371269
+     ],
+     [
+      -110.750129,
+      38.370831
+     ],
+     [
+      -110.748344,
+      38.371079
+     ],
+     [
+      -110.746913,
+      38.371984
+     ],
+     [
+      -110.745664,
+      38.373049
+     ],
+     [
+      -110.744416,
+      38.374122
+     ],
+     [
+      -110.743169,
+      38.375195
+     ],
+     [
+      -110.741882,
+      38.376235
+     ],
+     [
+      -110.740363,
+      38.377024
+     ],
+     [
+      -110.738612,
+      38.377496
+     ],
+     [
+      -110.736831,
+      38.377878
+     ],
+     [
+      -110.735042,
+      38.378235
+     ],
+     [
+      -110.733262,
+      38.378074
+     ],
+     [
+      -110.731903,
+      38.377115
+     ],
+     [
+      -110.730813,
+      38.375948
+     ],
+     [
+      -110.729384,
+      38.375046
+     ],
+     [
+      -110.727666,
+      38.374545
+     ],
+     [
+      -110.725824,
+      38.374459
+     ],
+     [
+      -110.723974,
+      38.374455
+     ],
+     [
+      -110.722136,
+      38.374451
+     ],
+     [
+      -110.720296,
+      38.374446
+     ],
+     [
+      -110.718439,
+      38.374437
+     ],
+     [
+      -110.716639,
+      38.374421
+     ],
+     [
+      -110.714761,
+      38.374415
+     ],
+     [
+      -110.712908,
+      38.374416
+     ],
+     [
+      -110.711063,
+      38.374412
+     ],
+     [
+      -110.709215,
+      38.374408
+     ],
+     [
+      -110.707385,
+      38.37432
+     ],
+     [
+      -110.705655,
+      38.373987
+     ],
+     [
+      -110.704205,
+      38.374842
+     ],
+     [
+      -110.702556,
+      38.375502
+     ],
+     [
+      -110.701027,
+      38.376363
+     ],
+     [
+      -110.699901,
+      38.377475
+     ],
+     [
+      -110.699178,
+      38.378807
+     ],
+     [
+      -110.698642,
+      38.3802
+     ],
+     [
+      -110.69811,
+      38.381594
+     ],
+     [
+      -110.697578,
+      38.382986
+     ],
+     [
+      -110.697046,
+      38.384379
+     ],
+     [
+      -110.696513,
+      38.385771
+     ],
+     [
+      -110.695983,
+      38.387155
+     ],
+     [
+      -110.695445,
+      38.388549
+     ],
+     [
+      -110.694908,
+      38.389941
+     ],
+     [
+      -110.694377,
+      38.391331
+     ],
+     [
+      -110.693852,
+      38.392722
+     ],
+     [
+      -110.693413,
+      38.394138
+     ],
+     [
+      -110.693132,
+      38.395574
+     ],
+     [
+      -110.692857,
+      38.397007
+     ],
+     [
+      -110.692468,
+      38.398427
+     ],
+     [
+      -110.692008,
+      38.399843
+     ],
+     [
+      -110.691685,
+      38.401265
+     ],
+     [
+      -110.691867,
+      38.402702
+     ],
+     [
+      -110.692293,
+      38.404116
+     ],
+     [
+      -110.692728,
+      38.405528
+     ],
+     [
+      -110.693163,
+      38.406941
+     ]
+    ]
+   }
+  },
+  {
+   "id": "2761_eastbound",
+   "type": "Feature",
+   "properties": {
+    "core_details": {
+     "event_type": "work-zone",
+     "data_source_id": "UDOT-Construction",
+     "road_names": [
+      "I-70"
+     ],
+     "direction": "eastbound",
+     "description": "This project will improve overall user safety for the traveling public and extend the service life of the two bridges on I-70 over I-15 just southwest of Cove Fort.",
+     "creation_date": "2022-05-05T16:06:49.47Z",
+     "update_date": "2022-05-05T16:06:49.47Z"
+    },
+    "start_date": "2022-04-11T06:00:00Z",
+    "end_date": "2022-11-30T07:00:00Z",
+    "start_date_accuracy": "estimated",
+    "end_date_accuracy": "estimated",
+    "beginning_accuracy": "estimated",
+    "ending_accuracy": "estimated",
+    "location_method": "unknown",
+    "vehicle_impact": "unknown",
+    "beginning_cross_street": "Cove Fort",
+    "ending_cross_street": "Cove Fort",
+    "beginning_milepost": 0,
+    "ending_milepost": 2,
+    "event_status": "active"
+   },
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      -112.605666,
+      38.57588
+     ],
+     [
+      -112.590146,
+      38.583902
+     ],
+     [
+      -112.588575,
+      38.584693
+     ],
+     [
+      -112.587012,
+      38.585487
+     ],
+     [
+      -112.58545,
+      38.586263
+     ],
+     [
+      -112.583879,
+      38.587054
+     ],
+     [
+      -112.582326,
+      38.587846
+     ],
+     [
+      -112.58077,
+      38.588639
+     ],
+     [
+      -112.579239,
+      38.589458
+     ],
+     [
+      -112.577724,
+      38.590293
+     ],
+     [
+      -112.576182,
+      38.591099
+     ],
+     [
+      -112.574622,
+      38.591883
+     ]
+    ]
+   }
+  },
+  {
+   "id": "2761_westbound",
+   "type": "Feature",
+   "properties": {
+    "core_details": {
+     "event_type": "work-zone",
+     "data_source_id": "UDOT-Construction",
+     "road_names": [
+      "I-70"
+     ],
+     "direction": "westbound",
+     "description": "This project will improve overall user safety for the traveling public and extend the service life of the two bridges on I-70 over I-15 just southwest of Cove Fort.",
+     "creation_date": "2022-05-05T16:06:49.47Z",
+     "update_date": "2022-05-05T16:06:49.47Z"
+    },
+    "start_date": "2022-04-11T06:00:00Z",
+    "end_date": "2022-11-30T07:00:00Z",
+    "start_date_accuracy": "estimated",
+    "end_date_accuracy": "estimated",
+    "beginning_accuracy": "estimated",
+    "ending_accuracy": "estimated",
+    "location_method": "unknown",
+    "vehicle_impact": "unknown",
+    "beginning_cross_street": "Cove Fort",
+    "ending_cross_street": "Cove Fort",
+    "beginning_milepost": 2,
+    "ending_milepost": 0,
+    "event_status": "active"
+   },
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      -112.574622,
+      38.591883
+     ],
+     [
+      -112.576182,
+      38.591099
+     ],
+     [
+      -112.577724,
+      38.590293
+     ],
+     [
+      -112.579239,
+      38.589458
+     ],
+     [
+      -112.58077,
+      38.588639
+     ],
+     [
+      -112.582326,
+      38.587846
+     ],
+     [
+      -112.583879,
+      38.587054
+     ],
+     [
+      -112.58545,
+      38.586263
+     ],
+     [
+      -112.587012,
+      38.585487
+     ],
+     [
+      -112.588575,
+      38.584693
+     ],
+     [
+      -112.590146,
+      38.583902
+     ],
+     [
+      -112.605666,
+      38.57588
+     ]
+    ]
+   }
+  },
+  {
+   "id": "2832_northbound",
+   "type": "Feature",
+   "properties": {
+    "core_details": {
+     "event_type": "work-zone",
+     "data_source_id": "UDOT-Construction",
+     "road_names": [
+      "US 89"
+     ],
+     "direction": "northbound",
+     "description": "UDOT is removing the top layer of existing pavement and replacing it with new asphalt on a five-mile stretch of State Street through Murray, Millcreek and South Salt Lake. Other improvements include pedestrian ramps and median barriers.",
+     "creation_date": "2022-07-11T21:36:47.827Z",
+     "update_date": "2022-07-11T21:36:47.827Z"
+    },
+    "start_date": "2022-04-15T06:00:00Z",
+    "end_date": "2023-01-31T07:00:00Z",
+    "start_date_accuracy": "estimated",
+    "end_date_accuracy": "estimated",
+    "beginning_accuracy": "estimated",
+    "ending_accuracy": "estimated",
+    "location_method": "unknown",
+    "vehicle_impact": "unknown",
+    "beginning_cross_street": "Winchester St / Murray",
+    "ending_cross_street": "2900 S / SLC",
+    "beginning_milepost": 370,
+    "ending_milepost": 375,
+    "event_status": "active"
+   },
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      -111.889109,
+      40.638669
+     ],
+     [
+      -111.888384,
+      40.652965
+     ],
+     [
+      -111.888501,
+      40.650689
+     ],
+     [
+      -111.888421,
+      40.652134
+     ],
+     [
+      -111.888364,
+      40.65358
+     ],
+     [
+      -111.888327,
+      40.65503
+     ],
+     [
+      -111.888306,
+      40.656481
+     ],
+     [
+      -111.888266,
+      40.657942
+     ],
+     [
+      -111.888279,
+      40.65941
+     ],
+     [
+      -111.888284,
+      40.660873
+     ],
+     [
+      -111.888284,
+      40.662335
+     ],
+     [
+      -111.888276,
+      40.6673
+     ],
+     [
+      -111.8883,
+      40.665259
+     ],
+     [
+      -111.88828,
+      40.66671
+     ],
+     [
+      -111.888277,
+      40.668173
+     ],
+     [
+      -111.888257,
+      40.669639
+     ],
+     [
+      -111.888254,
+      40.671102
+     ],
+     [
+      -111.888262,
+      40.672565
+     ],
+     [
+      -111.888282,
+      40.674025
+     ],
+     [
+      -111.888271,
+      40.675484
+     ],
+     [
+      -111.888268,
+      40.676948
+     ],
+     [
+      -111.888247,
+      40.681626
+     ],
+     [
+      -111.888239,
+      40.679858
+     ],
+     [
+      -111.888246,
+      40.681327
+     ],
+     [
+      -111.888252,
+      40.682787
+     ],
+     [
+      -111.888248,
+      40.684249
+     ],
+     [
+      -111.888247,
+      40.68571
+     ],
+     [
+      -111.88825,
+      40.687169
+     ],
+     [
+      -111.888261,
+      40.688625
+     ],
+     [
+      -111.888276,
+      40.69008
+     ],
+     [
+      -111.888268,
+      40.691539
+     ],
+     [
+      -111.888256,
+      40.695952
+     ],
+     [
+      -111.888258,
+      40.69446
+     ],
+     [
+      -111.888256,
+      40.695923
+     ],
+     [
+      -111.888255,
+      40.697387
+     ],
+     [
+      -111.88826,
+      40.698842
+     ],
+     [
+      -111.888259,
+      40.700301
+     ],
+     [
+      -111.888267,
+      40.701788
+     ],
+     [
+      -111.888262,
+      40.703229
+     ],
+     [
+      -111.888246,
+      40.704671
+     ],
+     [
+      -111.888262,
+      40.706146
+     ],
+     [
+      -111.888254,
+      40.710175
+     ]
+    ]
+   }
+  },
+  {
+   "id": "2832_southbound",
+   "type": "Feature",
+   "properties": {
+    "core_details": {
+     "event_type": "work-zone",
+     "data_source_id": "UDOT-Construction",
+     "road_names": [
+      "US 89"
+     ],
+     "direction": "southbound",
+     "description": "UDOT is removing the top layer of existing pavement and replacing it with new asphalt on a five-mile stretch of State Street through Murray, Millcreek and South Salt Lake. Other improvements include pedestrian ramps and median barriers.",
+     "creation_date": "2022-07-11T21:36:47.827Z",
+     "update_date": "2022-07-11T21:36:47.827Z"
+    },
+    "start_date": "2022-04-15T06:00:00Z",
+    "end_date": "2023-01-31T07:00:00Z",
+    "start_date_accuracy": "estimated",
+    "end_date_accuracy": "estimated",
+    "beginning_accuracy": "estimated",
+    "ending_accuracy": "estimated",
+    "location_method": "unknown",
+    "vehicle_impact": "unknown",
+    "beginning_cross_street": "2900 S / SLC",
+    "ending_cross_street": "Winchester St / Murray",
+    "beginning_milepost": 375,
+    "ending_milepost": 370,
+    "event_status": "active"
+   },
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      -111.888254,
+      40.710175
+     ],
+     [
+      -111.888262,
+      40.706146
+     ],
+     [
+      -111.888246,
+      40.704671
+     ],
+     [
+      -111.888262,
+      40.703229
+     ],
+     [
+      -111.888267,
+      40.701788
+     ],
+     [
+      -111.888259,
+      40.700301
+     ],
+     [
+      -111.88826,
+      40.698842
+     ],
+     [
+      -111.888255,
+      40.697387
+     ],
+     [
+      -111.888256,
+      40.695923
+     ],
+     [
+      -111.888258,
+      40.69446
+     ],
+     [
+      -111.888256,
+      40.695952
+     ],
+     [
+      -111.888268,
+      40.691539
+     ],
+     [
+      -111.888276,
+      40.69008
+     ],
+     [
+      -111.888261,
+      40.688625
+     ],
+     [
+      -111.88825,
+      40.687169
+     ],
+     [
+      -111.888247,
+      40.68571
+     ],
+     [
+      -111.888248,
+      40.684249
+     ],
+     [
+      -111.888252,
+      40.682787
+     ],
+     [
+      -111.888246,
+      40.681327
+     ],
+     [
+      -111.888239,
+      40.679858
+     ],
+     [
+      -111.888247,
+      40.681626
+     ],
+     [
+      -111.888268,
+      40.676948
+     ],
+     [
+      -111.888271,
+      40.675484
+     ],
+     [
+      -111.888282,
+      40.674025
+     ],
+     [
+      -111.888262,
+      40.672565
+     ],
+     [
+      -111.888254,
+      40.671102
+     ],
+     [
+      -111.888257,
+      40.669639
+     ],
+     [
+      -111.888277,
+      40.668173
+     ],
+     [
+      -111.88828,
+      40.66671
+     ],
+     [
+      -111.8883,
+      40.665259
+     ],
+     [
+      -111.888276,
+      40.6673
+     ],
+     [
+      -111.888284,
+      40.662335
+     ],
+     [
+      -111.888284,
+      40.660873
+     ],
+     [
+      -111.888279,
+      40.65941
+     ],
+     [
+      -111.888266,
+      40.657942
+     ],
+     [
+      -111.888306,
+      40.656481
+     ],
+     [
+      -111.888327,
+      40.65503
+     ],
+     [
+      -111.888364,
+      40.65358
+     ],
+     [
+      -111.888421,
+      40.652134
+     ],
+     [
+      -111.888501,
+      40.650689
+     ],
+     [
+      -111.888384,
+      40.652965
+     ],
+     [
+      -111.889109,
+      40.638669
+     ]
+    ]
+   }
+  },
+  {
+   "id": "2839_southbound",
+   "type": "Feature",
+   "properties": {
+    "core_details": {
+     "event_type": "work-zone",
+     "data_source_id": "UDOT-Construction",
+     "road_names": [
+      "Redwood Rd"
+     ],
+     "direction": "southbound",
+     "description": "The purpose of this project is to improve traffic flow and safety, remove obstructions near the road, and enhance the Redwood Road corridor. Construction began mid-July 2022 and will end fall 2023.",
+     "creation_date": "2022-10-06T22:55:47.077Z",
+     "update_date": "2022-10-06T22:55:47.077Z"
+    },
+    "start_date": "2022-07-18T06:00:00Z",
+    "end_date": "2023-11-15T07:00:00Z",
+    "start_date_accuracy": "estimated",
+    "end_date_accuracy": "estimated",
+    "beginning_accuracy": "estimated",
+    "ending_accuracy": "estimated",
+    "location_method": "unknown",
+    "vehicle_impact": "unknown",
+    "beginning_cross_street": "4800 S / Taylorsville",
+    "ending_cross_street": "3000 S / West Valley",
+    "beginning_milepost": 51,
+    "ending_milepost": 54,
+    "event_status": "active"
+   },
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      -111.938801,
+      40.648572
+     ],
+     [
+      -111.938857,
+      40.676176
+     ],
+     [
+      -111.938856,
+      40.674722
+     ],
+     [
+      -111.938857,
+      40.673269
+     ],
+     [
+      -111.938866,
+      40.671815
+     ],
+     [
+      -111.938863,
+      40.670372
+     ],
+     [
+      -111.938872,
+      40.668916
+     ],
+     [
+      -111.938838,
+      40.667464
+     ],
+     [
+      -111.938829,
+      40.666011
+     ],
+     [
+      -111.938843,
+      40.664558
+     ],
+     [
+      -111.938832,
+      40.663101
+     ],
+     [
+      -111.938892,
+      40.690699
+     ],
+     [
+      -111.93889,
+      40.689238
+     ],
+     [
+      -111.938888,
+      40.687792
+     ],
+     [
+      -111.938886,
+      40.686341
+     ],
+     [
+      -111.938884,
+      40.684891
+     ],
+     [
+      -111.938881,
+      40.683441
+     ],
+     [
+      -111.938883,
+      40.68199
+     ],
+     [
+      -111.938889,
+      40.680531
+     ],
+     [
+      -111.93887,
+      40.67908
+     ],
+     [
+      -111.938859,
+      40.67763
+     ],
+     [
+      -111.938894,
+      40.692151
+     ]
+    ]
+   }
+  },
+  {
+   "id": "2839_northbound",
+   "type": "Feature",
+   "properties": {
+    "core_details": {
+     "event_type": "work-zone",
+     "data_source_id": "UDOT-Construction",
+     "road_names": [
+      "Redwood Rd"
+     ],
+     "direction": "northbound",
+     "description": "The purpose of this project is to improve traffic flow and safety, remove obstructions near the road, and enhance the Redwood Road corridor. Construction began mid-July 2022 and will end fall 2023.",
+     "creation_date": "2022-10-06T22:55:47.077Z",
+     "update_date": "2022-10-06T22:55:47.077Z"
+    },
+    "start_date": "2022-07-18T06:00:00Z",
+    "end_date": "2023-11-15T07:00:00Z",
+    "start_date_accuracy": "estimated",
+    "end_date_accuracy": "estimated",
+    "beginning_accuracy": "estimated",
+    "ending_accuracy": "estimated",
+    "location_method": "unknown",
+    "vehicle_impact": "unknown",
+    "beginning_cross_street": "3000 S / West Valley",
+    "ending_cross_street": "4800 S / Taylorsville",
+    "beginning_milepost": 54,
+    "ending_milepost": 51,
+    "event_status": "active"
+   },
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      -111.938894,
+      40.692151
+     ],
+     [
+      -111.938859,
+      40.67763
+     ],
+     [
+      -111.93887,
+      40.67908
+     ],
+     [
+      -111.938889,
+      40.680531
+     ],
+     [
+      -111.938883,
+      40.68199
+     ],
+     [
+      -111.938881,
+      40.683441
+     ],
+     [
+      -111.938884,
+      40.684891
+     ],
+     [
+      -111.938886,
+      40.686341
+     ],
+     [
+      -111.938888,
+      40.687792
+     ],
+     [
+      -111.93889,
+      40.689238
+     ],
+     [
+      -111.938892,
+      40.690699
+     ],
+     [
+      -111.938832,
+      40.663101
+     ],
+     [
+      -111.938843,
+      40.664558
+     ],
+     [
+      -111.938829,
+      40.666011
+     ],
+     [
+      -111.938838,
+      40.667464
+     ],
+     [
+      -111.938872,
+      40.668916
+     ],
+     [
+      -111.938863,
+      40.670372
+     ],
+     [
+      -111.938866,
+      40.671815
+     ],
+     [
+      -111.938857,
+      40.673269
+     ],
+     [
+      -111.938856,
+      40.674722
+     ],
+     [
+      -111.938857,
+      40.676176
+     ],
+     [
+      -111.938801,
+      40.648572
+     ]
+    ]
+   }
+  },
+  {
+   "id": "1217689248",
+   "type": "Feature",
+   "properties": {
+    "core_details": {
+     "event_type": "work-zone",
+     "data_source_id": "Nexar",
+     "road_names": [
+      "Unknown"
+     ],
+     "direction": "northbound",
+     "creation_date": "2023-03-19T12:37:43.1Z",
+     "update_date": "2023-03-19T12:37:43.1Z"
+    },
+    "start_date": "2023-03-19T13:03:55.4862502Z",
+    "end_date": "2023-03-19T13:18:55.4862502Z",
+    "start_date_accuracy": "estimated",
+    "end_date_accuracy": "estimated",
+    "beginning_accuracy": "estimated",
+    "ending_accuracy": "estimated",
+    "location_method": "unknown",
+    "vehicle_impact": "unknown",
+    "event_status": "active"
+   },
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      -111.9731244,
+      41.1054993
+     ],
+     [
+      -111.9731252,
+      41.1060344
+     ]
+    ]
+   }
+  },
+  {
+   "id": "1217689248",
+   "type": "Feature",
+   "properties": {
+    "core_details": {
+     "event_type": "work-zone",
+     "data_source_id": "Nexar",
+     "road_names": [
+      "Unknown"
+     ],
+     "direction": "northbound",
+     "creation_date": "2023-03-19T12:37:40.084Z",
+     "update_date": "2023-03-19T12:37:40.084Z"
+    },
+    "start_date": "2023-03-19T13:03:55.4862502Z",
+    "end_date": "2023-03-19T13:18:55.4862502Z",
+    "start_date_accuracy": "estimated",
+    "end_date_accuracy": "estimated",
+    "beginning_accuracy": "estimated",
+    "ending_accuracy": "estimated",
+    "location_method": "unknown",
+    "vehicle_impact": "unknown",
+    "event_status": "active"
+   },
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      -111.9731244,
+      41.1054993
+     ],
+     [
+      -111.9731252,
+      41.1060344
+     ]
+    ]
+   }
+  }
+ ]
+}

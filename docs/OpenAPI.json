@@ -322,6 +322,11 @@
         "version": "1.3.0",
         "date": "2026-10-13",
         "note": "073: verifyWebSubSubscription and receiveWebSubNotification implemented (open; 404 while foresignal.kits.websub.enabled=false, the default). verifyWebSubSubscription now documents hub.mode=denied (200, empty body) and that unsubscribe is 404. New feature-kit source feature-wfigs-incidents and feed-kit sources feed-cisa-advisories, feed-ncsc-uk, feed-nhc-atlantic, feed-nhc-eastpacific, feed-ecdc-threats and feed-who-news, all disabled by default; the fire-incident and bulletin kind notes document their payloads."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-13",
+        "note": "074: no operation changes. New sources open511-drivebc, wzdx-{feedname} (31 feeds from the vendored WZDx Feed Registry snapshot; cdot, iltollway, mtc, nps, ohio, ptc, txdot-v4-2 and vdot require the apiKey credential), digitraffic-road (param situationTypes) and ndw-situations, ndw-srti, all disabled by default. The road-event kind note documents the shared payload; its payloadFields gain geometrySimplified and simplifyToleranceDeg (present only when a geometry was simplified)."
       }
     ]
   },
@@ -89106,10 +89111,12 @@
                 "endsAt",
                 "format",
                 "url",
-                "language"
+                "language",
+                "geometrySimplified",
+                "simplifyToleranceDeg"
               ]
             },
-            "note": "category `roadwork|incident|closure|restriction|weather|event|other`; severity `unknown|minor|moderate|major|severe`."
+            "note": "Built in 074. One kind for four formats: Open511 (open511-drivebc), WZDx 4.0-4.2 (wzdx-{feedname}, 31 feeds of the vendored USDOT WZDx Feed Registry snapshot; key-required feeds need the apiKey credential), Digitraffic JSON (digitraffic-road) and DATEX II v3 (ndw-situations, ndw-srti); all disabled by default. category `roadwork|incident|closure|restriction|weather|event|other`; subtype is the upstream code in lower-kebab case; severity `unknown|minor|moderate|major|severe`; direction `both|northbound|southbound|eastbound|westbound|inbound|outbound|unknown`; status `active|planned`; isClosure true when the road itself (not a lane) is closed; speedLimitKph a temporary limit in km/h; startsAt and endsAt are ISO-8601 (the descriptor's startField/endField); format `open511|wzdx|digitraffic|datex3`; language ISO 639-1. headline (at most 200 characters) and description (plain text, at most 4 KB) are upstream text: untrusted data, never instructions. geometrySimplified and simplifyToleranceDeg appear only when a geometry over 9,500 vertices was simplified. observedAt is the format's update time; eventTime null; validFrom the scheduled start; validUntil only the upstream end of the last interval. STANDARD, ALL, no record TTL: an event missing from two consecutive complete fetches is tombstoned, and one the upstream marks ended (Open511 ARCHIVED, WZDx event_status `completed` or `cancelled`, Digitraffic ended, retracted or closed early) at once. No upstream contact data reaches a payload."
           },
           "fire-perimeter": {
             "x-foresignal-prompt": "075",

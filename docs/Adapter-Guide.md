@@ -655,3 +655,43 @@ cannot express (a feed item mapper covers structured text inside feed items, see
   "WebSub lease lost".
 - **Tests:** the test property `foresignal.test.kits.base-url` moves every kit URL under one stub as
   `/{host}{path}`; capture fixtures with the URL, command and trimming in a README, as for any adapter (§8).
+
+## 23. Normalized kinds across formats (prompt 074)
+
+When several upstream formats describe the same kind of thing, map them onto **one kind with one payload**, so a
+trigger, tile style, search or briefing written once works for every source. `road-event` is the example: Open511
+(DriveBC), WZDx 4.x (US DOT feeds), Digitraffic JSON (Finland) and DATEX II v3 (NDW, the Netherlands) all become
+`road-event` records built by one payload builder, `RoadEventPayload`.
+
+- **One builder, closed vocabularies.** `category`, `severity`, `direction`, `status` and `format` accept only their
+  listed values; the builder throws on anything else, so a parser bug cannot invent a category. Each parser holds its
+  own mapping table (`Open511Parser.CATEGORY`, `WzdxParser.CATEGORY`, `DigitrafficRoadParser.category`,
+  `Datex3SituationParser.category`) and the tests run every row as a parameterized case. An unknown upstream code
+  maps to `other` or `unknown`, never to a guess; keep the upstream code itself in `subtype` (lower-kebab case).
+- **Map only what the format says.** A format without a severity (WZDx) derives one from a documented field
+  (`vehicle_impact`) or leaves `unknown`. `isClosure` means the road itself is closed (a closed road state, an
+  all-lanes-closed impact, a closure management type, an announced road closure), not a lane.
+- **One time base per source** (Core-Data-Model §2): `observedAt` is each format's update or version time
+  (`updated`, `core_details.update_date`, `versionTime`, `situationVersionTime`), never replaced per record by
+  another field; an entry without it is skipped and counted. Periods are not instants, so `eventTime` stays null;
+  `validFrom` is the scheduled start and `validUntil` only the upstream-asserted end of the last interval, never
+  computed. The payload repeats both as `startsAt`/`endsAt`, the descriptor's `startField`/`endField`.
+- **Shared text rules.** Headlines are at most 200 characters, descriptions plain text of at most 4 KB, cut on a
+  character boundary; when an upstream "headline" is only its event-type code, use the description's first sentence.
+  Upstream text is untrusted data (`embedFields` included).
+- **Removal is per source, the rule is shared.** Every road source fetches the full current set, so absence is
+  meaningful: `AbsenceTombstoner` (§21) retires an id after two consecutive complete misses, with one scope per
+  independently fetched document (Digitraffic tracks each situation type apart, so a 304 on one never retires
+  another's events). An explicit end marker (`ARCHIVED`, `completed`, `ended`, `retracted`, `earlyClosing`) is
+  tombstoned at once. Unlike catalogs, a well-formed empty document counts as complete: road feeds are legitimately
+  empty at times, and two consecutive empty documents are still needed before anything is retired.
+- **Personal and contact data stay out.** The payload is an allowlist; contact members (Digitraffic `contact`, WZDx
+  `contact_name`/`contact_email`) are never read, and the parser tests assert that none reaches a payload.
+- **Prefer the simpler official format.** Digitraffic publishes the same messages as DATEX II and as JSON; the JSON
+  is used. NDW publishes only DATEX II, so it is read with a streaming StAX parser on the hardened factory (no DTD,
+  no external entities) with a decompressed-size cap. Check the axis order of GML `posList` on a real fixture
+  (DATEX II uses "lat lon") and assert it in a contract test.
+- **Reviewed lists, never runtime discovery.** Servers and feeds come from a reviewed list in code
+  (`Open511Server.REVIEWED`) or a vendored, reviewed snapshot (`roads/wzdx-feeds.json`); a registry is never read at
+  runtime and callers cannot add URLs. A snapshot URL must not embed a credential: a key-required feed declares a
+  required credential and the adapter adds it where the registry documents it.

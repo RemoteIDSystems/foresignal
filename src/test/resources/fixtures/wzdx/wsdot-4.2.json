@@ -1,0 +1,5514 @@
+{
+ "road_event_feed_info": {
+  "$id": "1",
+  "publisher": "Washington State DOT IT",
+  "update_frequency": 60,
+  "update_date": "2026-10-13T09:59:51.792+00:00",
+  "version": "4.2",
+  "data_sources": [
+   {
+    "data_source_id": "WSDOT-CIA",
+    "organization_name": "Unknown",
+    "update_frequency": 86400,
+    "update_date": "2022-06-14T23:09:35.4369671+00:00",
+    "lrs_type": "Use of milemarkers posted by the roadways. These are registered to a dynamic segmentation of statewide LRS basemap.",
+    "lrs_url": "https://www.wsdot.wa.gov/data/tools/geoportal/",
+    "location_verify_method": ""
+   },
+   {
+    "data_source_id": "WSDOT-WZDB",
+    "organization_name": "Unknown",
+    "update_frequency": 3600,
+    "update_date": "2025-02-28T19:00:03.5890462+00:00",
+    "lrs_type": "Use of milemarkers posted by the roadways. These are registered to a dynamic segmentation of statewide LRS basemap.",
+    "lrs_url": "https://www.wsdot.wa.gov/data/tools/geoportal/",
+    "location_verify_method": ""
+   }
+  ]
+ },
+ "feed_info": {
+  "publisher": "Washington State DOT IT",
+  "update_frequency": 60,
+  "update_date": "2026-10-13T09:59:51.792+00:00",
+  "version": "4.2",
+  "data_sources": [
+   {
+    "data_source_id": "WSDOT-CIA",
+    "organization_name": "Unknown",
+    "update_frequency": 86400,
+    "update_date": "2022-06-14T23:09:35.4369671+00:00",
+    "lrs_type": "Use of milemarkers posted by the roadways. These are registered to a dynamic segmentation of statewide LRS basemap.",
+    "lrs_url": "https://www.wsdot.wa.gov/data/tools/geoportal/",
+    "location_verify_method": ""
+   },
+   {
+    "data_source_id": "WSDOT-WZDB",
+    "organization_name": "Unknown",
+    "update_frequency": 3600,
+    "update_date": "2025-02-28T19:00:03.5890462+00:00",
+    "lrs_type": "Use of milemarkers posted by the roadways. These are registered to a dynamic segmentation of statewide LRS basemap.",
+    "lrs_url": "https://www.wsdot.wa.gov/data/tools/geoportal/",
+    "location_verify_method": ""
+   }
+  ]
+ },
+ "type": "FeatureCollection",
+ "features": [
+  {
+   "properties": {
+    "beginning_accuracy": "estimated",
+    "is_start_position_verified": false,
+    "ending_accuracy": "estimated",
+    "is_end_position_verified": false,
+    "start_date": "2025-03-31T00:00:00+00:00",
+    "end_date": "2027-11-30T00:00:00+00:00",
+    "start_date_accuracy": "verified",
+    "is_start_date_verified": true,
+    "end_date_accuracy": "verified",
+    "is_end_date_verified": true,
+    "event_status": "pending",
+    "vehicle_impact": "unknown",
+    "location_method": "unknown",
+    "worker_presence": {
+     "are_workers_present": false
+    },
+    "reduced_speed_limit_kph": 0.0,
+    "core_details": {
+     "data_source_id": "WSDOT-CIA",
+     "event_type": "work-zone",
+     "road_names": [
+      "090"
+     ],
+     "direction": "eastbound",
+     "description": "I-90/SR 202 Soderman Creek and UNT to Patterson Creek - Fish Passage",
+     "creation_date": "2024-05-31T21:29:37.173621+00:00",
+     "update_date": "2024-05-31T21:29:37.1738617+00:00"
+    }
+   },
+   "id": "40701-E",
+   "type": "Feature",
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      -121.938131,
+      47.525111
+     ],
+     [
+      -121.937045,
+      47.52368
+     ],
+     [
+      -121.936743,
+      47.523334
+     ],
+     [
+      -121.936331,
+      47.522946
+     ],
+     [
+      -121.935859,
+      47.522562
+     ],
+     [
+      -121.935627,
+      47.522405
+     ],
+     [
+      -121.935345,
+      47.522234
+     ],
+     [
+      -121.935027,
+      47.522048
+     ],
+     [
+      -121.93452,
+      47.521802
+     ],
+     [
+      -121.933928,
+      47.521554
+     ],
+     [
+      -121.933297,
+      47.52134
+     ],
+     [
+      -121.932712,
+      47.521183
+     ],
+     [
+      -121.930888,
+      47.520681
+     ],
+     [
+      -121.930383,
+      47.520526
+     ],
+     [
+      -121.929903,
+      47.520374
+     ],
+     [
+      -121.929287,
+      47.520146
+     ],
+     [
+      -121.928655,
+      47.519888
+     ],
+     [
+      -121.926877,
+      47.519144
+     ],
+     [
+      -121.925278,
+      47.518474
+     ],
+     [
+      -121.924012,
+      47.517943
+     ],
+     [
+      -121.922495,
+      47.517303
+     ],
+     [
+      -121.921687,
+      47.516943
+     ],
+     [
+      -121.921143,
+      47.516685
+     ]
+    ]
+   },
+   "bbox": [
+    -121.938131,
+    47.525111,
+    -121.921143,
+    47.516685
+   ]
+  },
+  {
+   "properties": {
+    "beginning_milepost": 2.53,
+    "ending_milepost": 2.22,
+    "beginning_accuracy": "estimated",
+    "is_start_position_verified": false,
+    "ending_accuracy": "estimated",
+    "is_end_position_verified": false,
+    "start_date": "2026-06-01T00:00:00+00:00",
+    "end_date": "2026-10-16T00:00:00+00:00",
+    "start_date_accuracy": "verified",
+    "is_start_date_verified": true,
+    "end_date_accuracy": "verified",
+    "is_end_date_verified": true,
+    "event_status": "active",
+    "vehicle_impact": "unknown",
+    "location_method": "unknown",
+    "worker_presence": {
+     "are_workers_present": false
+    },
+    "core_details": {
+     "data_source_id": "WSDOT-WZDB",
+     "event_type": "work-zone",
+     "road_names": [
+      "160"
+     ],
+     "direction": "westbound",
+     "description": "Contract - 009902 SR160 for removal of a fish barrier under SR 160",
+     "creation_date": "2026-05-28T07:44:00.55+00:00",
+     "update_date": "2026-06-01T07:19:22.244+00:00"
+    }
+   },
+   "id": "39844-W",
+   "type": "Feature",
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      -122.601575,
+      47.50486
+     ],
+     [
+      -122.594927,
+      47.504904
+     ]
+    ]
+   },
+   "bbox": [
+    -122.601575,
+    47.50486,
+    -122.594927,
+    47.504904
+   ]
+  },
+  {
+   "properties": {
+    "beginning_milepost": 173.5,
+    "ending_milepost": 174.0,
+    "beginning_accuracy": "estimated",
+    "is_start_position_verified": false,
+    "ending_accuracy": "estimated",
+    "is_end_position_verified": false,
+    "start_date": "2026-10-09T00:00:00+00:00",
+    "end_date": "2026-11-02T00:00:00+00:00",
+    "start_date_accuracy": "verified",
+    "is_start_date_verified": true,
+    "end_date_accuracy": "verified",
+    "is_end_date_verified": true,
+    "event_status": "pending",
+    "vehicle_impact": "unknown",
+    "location_method": "unknown",
+    "worker_presence": {
+     "are_workers_present": false
+    },
+    "core_details": {
+     "data_source_id": "WSDOT-WZDB",
+     "event_type": "work-zone",
+     "road_names": [
+      "005"
+     ],
+     "direction": "northbound",
+     "description": "Contract - L230 Light Rail Station",
+     "creation_date": "2025-03-06T15:57:11.079+00:00",
+     "update_date": "2026-10-08T11:23:12.671+00:00"
+    }
+   },
+   "id": "32948-N",
+   "type": "Feature",
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      -122.324222,
+      47.721984
+     ],
+     [
+      -122.32423,
+      47.723139
+     ],
+     [
+      -122.324205,
+      47.725641
+     ]
+    ]
+   },
+   "bbox": [
+    -122.324222,
+    47.721984,
+    -122.324205,
+    47.725641
+   ]
+  },
+  {
+   "properties": {
+    "beginning_accuracy": "estimated",
+    "is_start_position_verified": false,
+    "ending_accuracy": "estimated",
+    "is_end_position_verified": false,
+    "start_date": "2024-05-16T00:00:00+00:00",
+    "end_date": "2027-12-31T00:00:00+00:00",
+    "start_date_accuracy": "verified",
+    "is_start_date_verified": true,
+    "end_date_accuracy": "verified",
+    "is_end_date_verified": true,
+    "event_status": "pending",
+    "vehicle_impact": "unknown",
+    "location_method": "unknown",
+    "worker_presence": {
+     "are_workers_present": false
+    },
+    "reduced_speed_limit_kph": 0.0,
+    "core_details": {
+     "data_source_id": "WSDOT-CIA",
+     "event_type": "work-zone",
+     "road_names": [
+      "005"
+     ],
+     "direction": "northbound",
+     "description": "I-5/Yesler Way to Northgate Vic - Pavement, Deck, Joints & Drainage",
+     "creation_date": "2024-05-31T21:31:17.9902573+00:00",
+     "update_date": "2024-05-31T21:31:17.9990221+00:00"
+    }
+   },
+   "id": "40597-N",
+   "type": "Feature",
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      -122.322438,
+      47.646643
+     ],
+     [
+      -122.322448,
+      47.649611
+     ],
+     [
+      -122.322327,
+      47.656004
+     ],
+     [
+      -122.322317,
+      47.65637
+     ],
+     [
+      -122.322286,
+      47.656751
+     ],
+     [
+      -122.322181,
+      47.658026
+     ],
+     [
+      -122.322152,
+      47.658429
+     ]
+    ]
+   },
+   "bbox": [
+    -122.322438,
+    47.646643,
+    -122.322152,
+    47.658429
+   ]
+  },
+  {
+   "properties": {
+    "beginning_accuracy": "estimated",
+    "is_start_position_verified": false,
+    "ending_accuracy": "estimated",
+    "is_end_position_verified": false,
+    "start_date": "2028-03-15T00:00:00+00:00",
+    "end_date": "2028-11-01T00:00:00+00:00",
+    "start_date_accuracy": "verified",
+    "is_start_date_verified": true,
+    "end_date_accuracy": "verified",
+    "is_end_date_verified": true,
+    "event_status": "pending",
+    "vehicle_impact": "unknown",
+    "location_method": "unknown",
+    "worker_presence": {
+     "are_workers_present": false
+    },
+    "reduced_speed_limit_kph": 0.0,
+    "core_details": {
+     "data_source_id": "WSDOT-CIA",
+     "event_type": "work-zone",
+     "road_names": [
+      "104"
+     ],
+     "direction": "westbound",
+     "description": "SR 104/Unnamed Tributary to Lyon Creek - Fish Passage",
+     "creation_date": "2024-05-31T21:29:40.4656421+00:00",
+     "update_date": "2024-05-31T21:29:40.4657018+00:00"
+    }
+   },
+   "id": "40734-W",
+   "type": "Feature",
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      -122.30213,
+      47.769672
+     ],
+     [
+      -122.301966,
+      47.76956
+     ],
+     [
+      -122.3001,
+      47.768284
+     ],
+     [
+      -122.299866,
+      47.768128
+     ]
+    ]
+   },
+   "bbox": [
+    -122.30213,
+    47.769672,
+    -122.299866,
+    47.768128
+   ]
+  },
+  {
+   "properties": {
+    "beginning_accuracy": "estimated",
+    "is_start_position_verified": false,
+    "ending_accuracy": "estimated",
+    "is_end_position_verified": false,
+    "start_date": "2023-11-01T07:00:00+00:00",
+    "end_date": "2028-12-31T08:00:00+00:00",
+    "start_date_accuracy": "verified",
+    "is_start_date_verified": true,
+    "end_date_accuracy": "verified",
+    "is_end_date_verified": true,
+    "event_status": "pending",
+    "vehicle_impact": "unknown",
+    "location_method": "unknown",
+    "worker_presence": {
+     "are_workers_present": false
+    },
+    "reduced_speed_limit_kph": 0.0,
+    "core_details": {
+     "data_source_id": "WSDOT-CIA",
+     "event_type": "work-zone",
+     "road_names": [
+      "522"
+     ],
+     "direction": "eastbound",
+     "description": "I-405 Brickyard to SR 527 Improvement Project",
+     "creation_date": "2024-05-31T21:30:12.025799+00:00",
+     "update_date": "2024-05-31T21:30:12.0258239+00:00"
+    }
+   },
+   "id": "40516-E",
+   "type": "Feature",
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      -122.181936,
+      47.758734
+     ],
+     [
+      -122.18165,
+      47.758713
+     ],
+     [
+      -122.181095,
+      47.758654
+     ],
+     [
+      -122.179743,
+      47.758502
+     ]
+    ]
+   },
+   "bbox": [
+    -122.181936,
+    47.758734,
+    -122.179743,
+    47.758502
+   ]
+  },
+  {
+   "properties": {
+    "beginning_accuracy": "estimated",
+    "is_start_position_verified": false,
+    "ending_accuracy": "estimated",
+    "is_end_position_verified": false,
+    "start_date": "2027-07-15T00:00:00+00:00",
+    "end_date": "2028-12-20T00:00:00+00:00",
+    "start_date_accuracy": "verified",
+    "is_start_date_verified": true,
+    "end_date_accuracy": "verified",
+    "is_end_date_verified": true,
+    "event_status": "pending",
+    "vehicle_impact": "unknown",
+    "location_method": "unknown",
+    "worker_presence": {
+     "are_workers_present": false
+    },
+    "reduced_speed_limit_kph": 0.0,
+    "core_details": {
+     "data_source_id": "WSDOT-CIA",
+     "event_type": "work-zone",
+     "road_names": [
+      "529"
+     ],
+     "direction": "southbound",
+     "description": "SR 529/Union Slough & NB Steamboat Slough Bridges - Scour & Bridge Rehab",
+     "creation_date": "2024-05-31T21:30:35.2079164+00:00",
+     "update_date": "2024-05-31T21:30:35.2082445+00:00"
+    }
+   },
+   "id": "40797-S",
+   "type": "Feature",
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      -122.18459,
+      48.027952
+     ],
+     [
+      -122.1843,
+      48.029045
+     ],
+     [
+      -122.184155,
+      48.029592
+     ],
+     [
+      -122.184053,
+      48.029979
+     ],
+     [
+      -122.183823,
+      48.030849
+     ],
+     [
+      -122.183421,
+      48.032416
+     ],
+     [
+      -122.183243,
+      48.033094
+     ],
+     [
+      -122.183123,
+      48.03355
+     ],
+     [
+      -122.182996,
+      48.034021
+     ],
+     [
+      -122.182862,
+      48.03451
+     ],
+     [
+      -122.182789,
+      48.034777
+     ],
+     [
+      -122.182714,
+      48.035058
+     ]
+    ]
+   },
+   "bbox": [
+    -122.18459,
+    48.027952,
+    -122.182714,
+    48.035058
+   ]
+  },
+  {
+   "properties": {
+    "beginning_milepost": 109.4,
+    "ending_milepost": 109.2,
+    "beginning_accuracy": "estimated",
+    "is_start_position_verified": false,
+    "ending_accuracy": "estimated",
+    "is_end_position_verified": false,
+    "start_date": "2026-10-21T00:00:00+00:00",
+    "end_date": "2026-10-21T00:00:00+00:00",
+    "start_date_accuracy": "verified",
+    "is_start_date_verified": true,
+    "end_date_accuracy": "verified",
+    "is_end_date_verified": true,
+    "event_status": "pending",
+    "vehicle_impact": "unknown",
+    "location_method": "unknown",
+    "worker_presence": {
+     "are_workers_present": false
+    },
+    "core_details": {
+     "data_source_id": "WSDOT-WZDB",
+     "event_type": "work-zone",
+     "road_names": [
+      "005"
+     ],
+     "direction": "southbound",
+     "description": "Contract - XE3741 PCCP Panel Replacement",
+     "creation_date": "2026-10-08T20:37:43.98+00:00",
+     "update_date": "2026-10-08T20:37:43.98+00:00"
+    }
+   },
+   "id": "42090-S",
+   "type": "Feature",
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      -122.817991,
+      47.049503
+     ],
+     [
+      -122.815986,
+      47.050889
+     ],
+     [
+      -122.810594,
+      47.054649
+     ],
+     [
+      -122.809654,
+      47.055295
+     ],
+     [
+      -122.809313,
+      47.055542
+     ],
+     [
+      -122.808944,
+      47.055788
+     ],
+     [
+      -122.808571,
+      47.056028
+     ],
+     [
+      -122.808225,
+      47.056216
+     ],
+     [
+      -122.807907,
+      47.056375
+     ],
+     [
+      -122.807496,
+      47.056555
+     ],
+     [
+      -122.807086,
+      47.056719
+     ],
+     [
+      -122.80663,
+      47.056858
+     ],
+     [
+      -122.806208,
+      47.056975
+     ],
+     [
+      -122.805662,
+      47.057099
+     ],
+     [
+      -122.805,
+      47.057225
+     ],
+     [
+      -122.797121,
+      47.058555
+     ],
+     [
+      -122.794138,
+      47.059058
+     ],
+     [
+      -122.794045,
+      47.059074
+     ],
+     [
+      -122.788035,
+      47.060087
+     ],
+     [
+      -122.781372,
+      47.061225
+     ],
+     [
+      -122.77581,
+      47.062162
+     ],
+     [
+      -122.769695,
+      47.063193
+     ],
+     [
+      -122.768549,
+      47.063351
+     ],
+     [
+      -122.765362,
+      47.063684
+     ],
+     [
+      -122.759032,
+      47.064374
+     ],
+     [
+      -122.755403,
+      47.064772
+     ],
+     [
+      -122.752003,
+      47.065136
+     ],
+     [
+      -122.750827,
+      47.065253
+     ],
+     [
+      -122.749671,
+      47.065376
+     ],
+     [
+      -122.748801,
+      47.065498
+     ],
+     [
+      -122.745407,
+      47.065987
+     ],
+     [
+      -122.741506,
+      47.066571
+     ],
+     [
+      -122.738063,
+      47.067078
+     ],
+     [
+      -122.736034,
+      47.067383
+     ],
+     [
+      -122.735422,
+      47.067465
+     ],
+     [
+      -122.734835,
+      47.067534
+     ],
+     [
+      -122.734291,
+      47.067591
+     ],
+     [
+      -122.733659,
+      47.06765
+     ],
+     [
+      -122.733085,
+      47.067692
+     ],
+     [
+      -122.73254,
+      47.067723
+     ],
+     [
+      -122.731942,
+      47.067771
+     ],
+     [
+      -122.731329,
+      47.06781
+     ],
+     [
+      -122.73073,
+      47.067848
+     ],
+     [
+      -122.728527,
+      47.067979
+     ],
+     [
+      -122.726043,
+      47.068117
+     ],
+     [
+      -122.725336,
+      47.068151
+     ],
+     [
+      -122.724645,
+      47.068172
+     ],
+     [
+      -122.724038,
+      47.068172
+     ],
+     [
+      -122.723457,
+      47.068163
+     ],
+     [
+      -122.720279,
+      47.068139
+     ],
+     [
+      -122.719183,
+      47.068131
+     ],
+     [
+      -122.715893,
+      47.068115
+     ],
+     [
+      -122.715417,
+      47.068125
+     ],
+     [
+      -122.714946,
+      47.068151
+     ],
+     [
+      -122.714378,
+      47.068215
+     ],
+     [
+      -122.713811,
+      47.068314
+     ],
+     [
+      -122.713304,
+      47.068428
+     ],
+     [
+      -122.712827,
+      47.068558
+     ],
+     [
+      -122.712327,
+      47.068719
+     ],
+     [
+      -122.711755,
+      47.068924
+     ],
+     [
+      -122.711284,
+      47.06911
+     ],
+     [
+      -122.710582,
+      47.069376
+     ],
+     [
+      -122.709198,
+      47.069908
+     ],
+     [
+      -122.70587,
+      47.071178
+     ],
+     [
+      -122.704958,
+      47.071533
+     ],
+     [
+      -122.704183,
+      47.071835
+     ],
+     [
+      -122.703453,
+      47.072115
+     ],
+     [
+      -122.701225,
+      47.072971
+     ],
+     [
+      -122.700475,
+      47.073278
+     ],
+     [
+      -122.69974,
+      47.073608
+     ],
+     [
+      -122.699096,
+      47.073973
+     ],
+     [
+      -122.698543,
+      47.074303
+     ],
+     [
+      -122.696488,
+      47.075632
+     ],
+     [
+      -122.695325,
+      47.076381
+     ],
+     [
+      -122.695164,
+      47.076485
+     ],
+     [
+      -122.694671,
+      47.076768
+     ],
+     [
+      -122.694024,
+      47.077083
+     ],
+     [
+      -122.693459,
+      47.077329
+     ],
+     [
+      -122.692855,
+      47.077568
+     ],
+     [
+      -122.692266,
+      47.077759
+     ],
+     [
+      -122.691721,
+      47.077917
+     ],
+     [
+      -122.690646,
+      47.078191
+     ],
+     [
+      -122.6783,
+      47.081509
+     ],
+     [
+      -122.677541,
+      47.081705
+     ],
+     [
+      -122.67673,
+      47.081864
+     ],
+     [
+      -122.67591,
+      47.081991
+     ],
+     [
+      -122.675753,
+      47.082012
+     ],
+     [
+      -122.672933,
+      47.0824
+     ],
+     [
+      -122.671857,
+      47.082548
+     ],
+     [
+      -122.670139,
+      47.082799
+     ],
+     [
+      -122.669121,
+      47.082942
+     ]
+    ]
+   },
+   "bbox": [
+    -122.817991,
+    47.049503,
+    -122.669121,
+    47.082942
+   ]
+  },
+  {
+   "properties": {
+    "beginning_accuracy": "estimated",
+    "is_start_position_verified": false,
+    "ending_accuracy": "estimated",
+    "is_end_position_verified": false,
+    "start_date": "2028-05-01T00:00:00+00:00",
+    "end_date": "2028-09-21T00:00:00+00:00",
+    "start_date_accuracy": "verified",
+    "is_start_date_verified": true,
+    "end_date_accuracy": "verified",
+    "is_end_date_verified": true,
+    "event_status": "pending",
+    "vehicle_impact": "unknown",
+    "location_method": "unknown",
+    "worker_presence": {
+     "are_workers_present": false
+    },
+    "reduced_speed_limit_kph": 0.0,
+    "core_details": {
+     "data_source_id": "WSDOT-CIA",
+     "event_type": "work-zone",
+     "road_names": [
+      "005"
+     ],
+     "direction": "southbound",
+     "description": "I-5/SB Viaduct Bridge - Deck Rehabilitation and Joints",
+     "creation_date": "2024-05-31T21:30:01.7028893+00:00",
+     "update_date": "2024-05-31T21:30:01.7029338+00:00"
+    }
+   },
+   "id": "14604-S",
+   "type": "Feature",
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      -122.296608,
+      47.535671
+     ],
+     [
+      -122.296794,
+      47.535898
+     ],
+     [
+      -122.297208,
+      47.536344
+     ],
+     [
+      -122.297669,
+      47.536829
+     ],
+     [
+      -122.298217,
+      47.537322
+     ],
+     [
+      -122.298783,
+      47.537803
+     ],
+     [
+      -122.29916,
+      47.538114
+     ],
+     [
+      -122.299879,
+      47.538756
+     ],
+     [
+      -122.300781,
+      47.539529
+     ],
+     [
+      -122.301691,
+      47.540296
+     ],
+     [
+      -122.302197,
+      47.540723
+     ],
+     [
+      -122.302897,
+      47.541322
+     ],
+     [
+      -122.303758,
+      47.542079
+     ],
+     [
+      -122.303873,
+      47.54218
+     ],
+     [
+      -122.305093,
+      47.543321
+     ],
+     [
+      -122.307075,
+      47.545204
+     ],
+     [
+      -122.307456,
+      47.545561
+     ],
+     [
+      -122.308063,
+      47.546075
+     ],
+     [
+      -122.308559,
+      47.546466
+     ],
+     [
+      -122.309435,
+      47.547101
+     ],
+     [
+      -122.310146,
+      47.54757
+     ],
+     [
+      -122.311735,
+      47.548566
+     ],
+     [
+      -122.312054,
+      47.548772
+     ],
+     [
+      -122.313435,
+      47.549592
+     ],
+     [
+      -122.314529,
+      47.550255
+     ],
+     [
+      -122.314909,
+      47.550473
+     ],
+     [
+      -122.315302,
+      47.550708
+     ],
+     [
+      -122.315728,
+      47.550977
+     ],
+     [
+      -122.316052,
+      47.551228
+     ],
+     [
+      -122.316377,
+      47.551511
+     ],
+     [
+      -122.316621,
+      47.551757
+     ],
+     [
+      -122.316895,
+      47.552068
+     ],
+     [
+      -122.317112,
+      47.552387
+     ],
+     [
+      -122.317316,
+      47.552706
+     ],
+     [
+      -122.317649,
+      47.553286
+     ],
+     [
+      -122.317889,
+      47.553698
+     ],
+     [
+      -122.318695,
+      47.555043
+     ],
+     [
+      -122.319208,
+      47.555788
+     ],
+     [
+      -122.319782,
+      47.556619
+     ],
+     [
+      -122.320246,
+      47.557278
+     ],
+     [
+      -122.32053,
+      47.557717
+     ],
+     [
+      -122.320757,
+      47.55813
+     ],
+     [
+      -122.320993,
+      47.558647
+     ],
+     [
+      -122.321164,
+      47.559131
+     ],
+     [
+      -122.321321,
+      47.55967
+     ],
+     [
+      -122.321428,
+      47.560199
+     ],
+     [
+      -122.321463,
+      47.560561
+     ],
+     [
+      -122.321483,
+      47.560776
+     ],
+     [
+      -122.321475,
+      47.561422
+     ],
+     [
+      -122.32144,
+      47.561842
+     ],
+     [
+      -122.321373,
+      47.562199
+     ],
+     [
+      -122.321282,
+      47.562611
+     ],
+     [
+      -122.32121,
+      47.56301
+     ]
+    ]
+   },
+   "bbox": [
+    -122.296608,
+    47.535671,
+    -122.32121,
+    47.56301
+   ]
+  },
+  {
+   "properties": {
+    "beginning_accuracy": "estimated",
+    "is_start_position_verified": false,
+    "ending_accuracy": "estimated",
+    "is_end_position_verified": false,
+    "start_date": "2028-03-15T00:00:00+00:00",
+    "end_date": "2029-10-30T00:00:00+00:00",
+    "start_date_accuracy": "verified",
+    "is_start_date_verified": true,
+    "end_date_accuracy": "verified",
+    "is_end_date_verified": true,
+    "event_status": "pending",
+    "vehicle_impact": "unknown",
+    "location_method": "unknown",
+    "worker_presence": {
+     "are_workers_present": false
+    },
+    "reduced_speed_limit_kph": 0.0,
+    "core_details": {
+     "data_source_id": "WSDOT-CIA",
+     "event_type": "work-zone",
+     "road_names": [
+      "005"
+     ],
+     "direction": "northbound",
+     "description": "I-5/S 375th St to S 178th St - Seismic Retrofit",
+     "creation_date": "2024-05-31T21:30:53.8175667+00:00",
+     "update_date": "2024-05-31T21:30:53.817635+00:00"
+    }
+   },
+   "id": "40585-N",
+   "type": "Feature",
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      -122.322261,
+      47.264886
+     ],
+     [
+      -122.322007,
+      47.265118
+     ],
+     [
+      -122.321873,
+      47.265241
+     ],
+     [
+      -122.319144,
+      47.267751
+     ],
+     [
+      -122.318272,
+      47.268555
+     ],
+     [
+      -122.317804,
+      47.269009
+     ],
+     [
+      -122.317217,
+      47.269603
+     ],
+     [
+      -122.316726,
+      47.270125
+     ],
+     [
+      -122.316288,
+      47.270609
+     ],
+     [
+      -122.315609,
+      47.271403
+     ],
+     [
+      -122.315134,
+      47.271986
+     ],
+     [
+      -122.314491,
+      47.272829
+     ],
+     [
+      -122.313982,
+      47.273539
+     ],
+     [
+      -122.313456,
+      47.274342
+     ],
+     [
+      -122.31295,
+      47.275146
+     ],
+     [
+      -122.312511,
+      47.275854
+     ],
+     [
+      -122.310671,
+      47.278792
+     ],
+     [
+      -122.31058,
+      47.278936
+     ],
+     [
+      -122.309841,
+      47.280193
+     ],
+     [
+      -122.309553,
+      47.280721
+     ],
+     [
+      -122.309262,
+      47.281327
+     ],
+     [
+      -122.309033,
+      47.281845
+     ],
+     [
+      -122.308815,
+      47.282403
+     ],
+     [
+      -122.308177,
+      47.284249
+     ],
+     [
+      -122.307859,
+      47.285217
+     ],
+     [
+      -122.30738,
+      47.286579
+     ],
+     [
+      -122.307084,
+      47.287455
+     ],
+     [
+      -122.30686,
+      47.288108
+     ],
+     [
+      -122.306781,
+      47.288353
+     ],
+     [
+      -122.306444,
+      47.289327
+     ],
+     [
+      -122.306261,
+      47.289875
+     ],
+     [
+      -122.306158,
+      47.290179
+     ],
+     [
+      -122.305491,
+      47.292189
+     ],
+     [
+      -122.304159,
+      47.296148
+     ],
+     [
+      -122.30378,
+      47.297224
+     ],
+     [
+      -122.303368,
+      47.298516
+     ],
+     [
+      -122.302861,
+      47.300047
+     ],
+     [
+      -122.302769,
+      47.300325
+     ],
+     [
+      -122.30259,
+      47.300861
+     ],
+     [
+      -122.300709,
+      47.306415
+     ],
+     [
+      -122.300344,
+      47.307466
+     ],
+     [
+      -122.300158,
+      47.307973
+     ],
+     [
+      -122.299907,
+      47.308589
+     ],
+     [
+      -122.299697,
+      47.309103
+     ],
+     [
+      -122.298668,
+      47.311605
+     ],
+     [
+      -122.298143,
+      47.312889
+     ],
+     [
+      -122.297203,
+      47.315119
+     ],
+     [
+      -122.29716,
+      47.315222
+     ],
+     [
+      -122.296124,
+      47.317805
+     ],
+     [
+      -122.295558,
+      47.319177
+     ],
+     [
+      -122.295372,
+      47.319679
+     ],
+     [
+      -122.295186,
+      47.320192
+     ],
+     [
+      -122.295016,
+      47.320729
+     ],
+     [
+      -122.294851,
+      47.321266
+     ],
+     [
+      -122.294695,
+      47.32184
+     ],
+     [
+      -122.294566,
+      47.322333
+     ],
+     [
+      -122.294429,
+      47.322953
+     ],
+     [
+      -122.294323,
+      47.323506
+     ],
+     [
+      -122.294232,
+      47.324015
+     ],
+     [
+      -122.294162,
+      47.324577
+     ],
+     [
+      -122.294092,
+      47.325149
+     ],
+     [
+      -122.294041,
+      47.325527
+     ],
+     [
+      -122.293979,
+      47.32623
+     ],
+     [
+      -122.293936,
+      47.326747
+     ],
+     [
+      -122.293891,
+      47.327279
+     ],
+     [
+      -122.293638,
+      47.330349
+     ],
+     [
+      -122.293253,
+      47.334801
+     ],
+     [
+      -122.292648,
+      47.34183
+     ],
+     [
+      -122.292606,
+      47.342365
+     ],
+     [
+      -122.292573,
+      47.34286
+     ],
+     [
+      -122.292559,
+      47.34312
+     ],
+     [
+      -122.292551,
+      47.343544
+     ],
+     [
+      -122.292559,
+      47.343902
+     ],
+     [
+      -122.2926,
+      47.34454
+     ],
+     [
+      -122.292665,
+      47.345157
+     ],
+     [
+      -122.292747,
+      47.345673
+     ],
+     [
+      -122.292868,
+      47.346186
+     ],
+     [
+      -122.293009,
+      47.346731
+     ],
+     [
+      -122.293191,
+      47.347283
+     ],
+     [
+      -122.293391,
+      47.347798
+     ],
+     [
+      -122.293606,
+      47.348298
+     ],
+     [
+      -122.293908,
+      47.348905
+     ],
+     [
+      -122.294141,
+      47.349379
+     ],
+     [
+      -122.295027,
+      47.351156
+     ],
+     [
+      -122.295245,
+      47.351613
+     ],
+     [
+      -122.295519,
+      47.352236
+     ],
+     [
+      -122.29577,
+      47.352916
+     ],
+     [
+      -122.295805,
+      47.353027
+     ],
+     [
+      -122.295947,
+      47.353532
+     ],
+     [
+      -122.296079,
+      47.354077
+     ],
+     [
+      -122.29617,
+      47.35457
+     ],
+     [
+      -122.296246,
+      47.35509
+     ],
+     [
+      -122.296305,
+      47.355667
+     ],
+     [
+      -122.296338,
+      47.356194
+     ],
+     [
+      -122.296327,
+      47.356748
+     ],
+     [
+      -122.296299,
+      47.35726
+     ],
+     [
+      -122.296254,
+      47.357649
+     ],
+     [
+      -122.296195,
+      47.358051
+     ],
+     [
+      -122.296147,
+      47.358327
+     ],
+     [
+      -122.296035,
+      47.35888
+     ],
+     [
+      -122.295016,
+      47.362804
+     ],
+     [
+      -122.29462,
+      47.364353
+     ],
+     [
+      -122.29331,
+      47.369472
+     ],
+     [
+      -122.293196,
+      47.369912
+     ],
+     [
+      -122.292479,
+      47.372632
+     ],
+     [
+      -122.29194,
+      47.37468
+     ],
+     [
+      -122.29048,
+      47.380544
+     ],
+     [
+      -122.290333,
+      47.381326
+     ],
+     [
+      -122.29019,
+      47.382158
+     ],
+     [
+      -122.290094,
+      47.382939
+     ],
+     [
+      -122.290028,
+      47.383751
+     ],
+     [
+      -122.289984,
+      47.384507
+     ],
+     [
+      -122.289958,
+      47.385392
+     ],
+     [
+      -122.289976,
+      47.385935
+     ],
+     [
+      -122.290043,
+      47.386869
+     ],
+     [
+      -122.290127,
+      47.387819
+     ],
+     [
+      -122.290215,
+      47.388446
+     ],
+     [
+      -122.290329,
+      47.389193
+     ],
+     [
+      -122.29058,
+      47.390768
+     ],
+     [
+      -122.290669,
+      47.391311
+     ],
+     [
+      -122.290767,
+      47.392014
+     ],
+     [
+      -122.291001,
+      47.393517
+     ],
+     [
+      -122.291696,
+      47.398408
+     ],
+     [
+      -122.292083,
+      47.400955
+     ],
+     [
+      -122.292131,
+      47.401351
+     ],
+     [
+      -122.292176,
+      47.401763
+     ],
+     [
+      -122.292213,
+      47.402176
+     ],
+     [
+      -122.292231,
+      47.402573
+     ],
+     [
+      -122.292261,
+      47.403449
+     ],
+     [
+      -122.292251,
+      47.404199
+     ],
+     [
+      -122.292231,
+      47.404591
+     ],
+     [
+      -122.292212,
+      47.404966
+     ],
+     [
+      -122.292143,
+      47.405851
+     ],
+     [
+      -122.292051,
+      47.406642
+     ],
+     [
+      -122.291915,
+      47.407467
+     ],
+     [
+      -122.29176,
+      47.408202
+     ],
+     [
+      -122.291669,
+      47.408609
+     ],
+     [
+      -122.291371,
+      47.409672
+     ],
+     [
+      -122.290544,
+      47.412855
+     ],
+     [
+      -122.290106,
+      47.414512
+     ],
+     [
+      -122.289878,
+      47.415392
+     ],
+     [
+      -122.289608,
+      47.416265
+     ],
+     [
+      -122.289363,
+      47.416882
+     ],
+     [
+      -122.289098,
+      47.417443
+     ],
+     [
+      -122.288895,
+      47.417793
+     ],
+     [
+      -122.28865,
+      47.418216
+     ],
+     [
+      -122.288308,
+      47.418708
+     ],
+     [
+      -122.287986,
+      47.419157
+     ],
+     [
+      -122.287644,
+      47.419579
+     ],
+     [
+      -122.287287,
+      47.41999
+     ],
+     [
+      -122.286442,
+      47.420815
+     ],
+     [
+      -122.285776,
+      47.421365
+     ],
+     [
+      -122.285124,
+      47.421855
+     ],
+     [
+      -122.284519,
+      47.422278
+     ],
+     [
+      -122.28279,
+      47.423417
+     ],
+     [
+      -122.282436,
+      47.42364
+     ],
+     [
+      -122.279852,
+      47.425328
+     ],
+     [
+      -122.279217,
+      47.425747
+     ],
+     [
+      -122.277143,
+      47.427104
+     ],
+     [
+      -122.275777,
+      47.428005
+     ],
+     [
+      -122.274695,
+      47.428707
+     ],
+     [
+      -122.273823,
+      47.429268
+     ],
+     [
+      -122.273217,
+      47.429678
+     ],
+     [
+      -122.27254,
+      47.430162
+     ],
+     [
+      -122.271913,
+      47.430674
+     ],
+     [
+      -122.271549,
+      47.431044
+     ],
+     [
+      -122.271418,
+      47.431195
+     ],
+     [
+      -122.271021,
+      47.431651
+     ],
+     [
+      -122.270886,
+      47.431807
+     ],
+     [
+      -122.270608,
+      47.432234
+     ],
+     [
+      -122.270369,
+      47.432631
+     ],
+     [
+      -122.270161,
+      47.433043
+     ],
+     [
+      -122.270009,
+      47.433426
+     ],
+     [
+      -122.269882,
+      47.433805
+     ],
+     [
+      -122.269764,
+      47.434263
+     ],
+     [
+      -122.269674,
+      47.434685
+     ],
+     [
+      -122.269364,
+      47.436118
+     ],
+     [
+      -122.267678,
+      47.443755
+     ],
+     [
+      -122.267321,
+      47.44533
+     ],
+     [
+      -122.267067,
+      47.446177
+     ],
+     [
+      -122.266802,
+      47.446998
+     ],
+     [
+      -122.266646,
+      47.447401
+     ]
+    ]
+   },
+   "bbox": [
+    -122.322261,
+    47.264886,
+    -122.266646,
+    47.447401
+   ]
+  },
+  {
+   "properties": {
+    "beginning_accuracy": "estimated",
+    "is_start_position_verified": false,
+    "ending_accuracy": "estimated",
+    "is_end_position_verified": false,
+    "start_date": "2027-04-01T00:00:00+00:00",
+    "end_date": "2027-10-30T00:00:00+00:00",
+    "start_date_accuracy": "verified",
+    "is_start_date_verified": true,
+    "end_date_accuracy": "verified",
+    "is_end_date_verified": true,
+    "event_status": "pending",
+    "vehicle_impact": "unknown",
+    "location_method": "unknown",
+    "worker_presence": {
+     "are_workers_present": false
+    },
+    "reduced_speed_limit_kph": 0.0,
+    "core_details": {
+     "data_source_id": "WSDOT-CIA",
+     "event_type": "work-zone",
+     "road_names": [
+      "539"
+     ],
+     "direction": "northbound",
+     "description": "I-5/Guide Meridian I/C and SR 539/I-5 to Kellogg Road - Paving & ADA",
+     "creation_date": "2024-05-31T21:31:40.5627317+00:00",
+     "update_date": "2024-05-31T21:31:40.5627756+00:00"
+    }
+   },
+   "id": "40808-N",
+   "type": "Feature",
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      -122.486023,
+      48.7893
+     ],
+     [
+      -122.486026,
+      48.789735
+     ],
+     [
+      -122.485991,
+      48.791539
+     ],
+     [
+      -122.485986,
+      48.792314
+     ],
+     [
+      -122.485968,
+      48.793417
+     ],
+     [
+      -122.485945,
+      48.794773
+     ]
+    ]
+   },
+   "bbox": [
+    -122.486023,
+    48.7893,
+    -122.485945,
+    48.794773
+   ]
+  },
+  {
+   "properties": {
+    "beginning_milepost": 77.2,
+    "ending_milepost": 67.5,
+    "beginning_accuracy": "estimated",
+    "is_start_position_verified": false,
+    "ending_accuracy": "estimated",
+    "is_end_position_verified": false,
+    "start_date": "2026-10-12T00:00:00+00:00",
+    "end_date": "2026-10-20T00:00:00+00:00",
+    "start_date_accuracy": "verified",
+    "is_start_date_verified": true,
+    "end_date_accuracy": "verified",
+    "is_end_date_verified": true,
+    "event_status": "pending",
+    "vehicle_impact": "unknown",
+    "location_method": "unknown",
+    "worker_presence": {
+     "are_workers_present": false
+    },
+    "core_details": {
+     "data_source_id": "WSDOT-WZDB",
+     "event_type": "work-zone",
+     "road_names": [
+      "012"
+     ],
+     "direction": "westbound",
+     "description": "Contract - XE3743 US 12",
+     "creation_date": "2026-10-07T23:49:04.067+00:00",
+     "update_date": "2026-10-07T23:49:04.067+00:00"
+    }
+   },
+   "id": "42047-W",
+   "type": "Feature",
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      -122.857277,
+      46.545423
+     ],
+     [
+      -122.841116,
+      46.544446
+     ],
+     [
+      -122.832557,
+      46.543919
+     ],
+     [
+      -122.831908,
+      46.543892
+     ],
+     [
+      -122.831255,
+      46.543892
+     ],
+     [
+      -122.830565,
+      46.543898
+     ],
+     [
+      -122.822498,
+      46.544094
+     ],
+     [
+      -122.820468,
+      46.544145
+     ],
+     [
+      -122.814393,
+      46.544281
+     ],
+     [
+      -122.810373,
+      46.544383
+     ],
+     [
+      -122.809443,
+      46.544398
+     ],
+     [
+      -122.808438,
+      46.544388
+     ],
+     [
+      -122.807405,
+      46.544344
+     ],
+     [
+      -122.806865,
+      46.544314
+     ],
+     [
+      -122.801766,
+      46.543995
+     ],
+     [
+      -122.80116,
+      46.543947
+     ],
+     [
+      -122.800416,
+      46.543868
+     ],
+     [
+      -122.799599,
+      46.543766
+     ],
+     [
+      -122.798749,
+      46.543636
+     ],
+     [
+      -122.798033,
+      46.543509
+     ],
+     [
+      -122.796922,
+      46.543281
+     ],
+     [
+      -122.779492,
+      46.539422
+     ],
+     [
+      -122.773999,
+      46.538201
+     ],
+     [
+      -122.761597,
+      46.535452
+     ],
+     [
+      -122.756327,
+      46.534284
+     ],
+     [
+      -122.75102,
+      46.533106
+     ],
+     [
+      -122.747884,
+      46.532422
+     ],
+     [
+      -122.747422,
+      46.532339
+     ],
+     [
+      -122.746952,
+      46.532275
+     ],
+     [
+      -122.746385,
+      46.532233
+     ],
+     [
+      -122.7458,
+      46.532214
+     ],
+     [
+      -122.745244,
+      46.532208
+     ],
+     [
+      -122.743233,
+      46.532214
+     ],
+     [
+      -122.740502,
+      46.532204
+     ],
+     [
+      -122.739896,
+      46.532199
+     ],
+     [
+      -122.739788,
+      46.532197
+     ],
+     [
+      -122.720886,
+      46.532059
+     ],
+     [
+      -122.719981,
+      46.532054
+     ],
+     [
+      -122.718804,
+      46.532025
+     ],
+     [
+      -122.715327,
+      46.531962
+     ],
+     [
+      -122.71259,
+      46.531964
+     ],
+     [
+      -122.709663,
+      46.531991
+     ],
+     [
+      -122.699194,
+      46.532068
+     ],
+     [
+      -122.695194,
+      46.532081
+     ],
+     [
+      -122.678248,
+      46.5321
+     ],
+     [
+      -122.674862,
+      46.532073
+     ],
+     [
+      -122.666177,
+      46.531973
+     ],
+     [
+      -122.66122,
+      46.53193
+     ],
+     [
+      -122.65734,
+      46.531896
+     ],
+     [
+      -122.644911,
+      46.53187
+     ],
+     [
+      -122.644117,
+      46.531881
+     ],
+     [
+      -122.643456,
+      46.531917
+     ],
+     [
+      -122.642844,
+      46.531966
+     ],
+     [
+      -122.642214,
+      46.532031
+     ],
+     [
+      -122.641637,
+      46.532113
+     ],
+     [
+      -122.64109,
+      46.532207
+     ],
+     [
+      -122.640486,
+      46.532312
+     ],
+     [
+      -122.639847,
+      46.532419
+     ],
+     [
+      -122.639705,
+      46.53244
+     ]
+    ]
+   },
+   "bbox": [
+    -122.857277,
+    46.545423,
+    -122.639705,
+    46.53244
+   ]
+  },
+  {
+   "properties": {
+    "beginning_milepost": 0.36,
+    "ending_milepost": 0.36,
+    "beginning_accuracy": "estimated",
+    "is_start_position_verified": false,
+    "ending_accuracy": "estimated",
+    "is_end_position_verified": false,
+    "start_date": "2026-05-08T00:00:00+00:00",
+    "end_date": "2026-11-30T00:00:00+00:00",
+    "start_date_accuracy": "verified",
+    "is_start_date_verified": true,
+    "end_date_accuracy": "verified",
+    "is_end_date_verified": true,
+    "event_status": "active",
+    "vehicle_impact": "unknown",
+    "location_method": "unknown",
+    "worker_presence": {
+     "are_workers_present": false
+    },
+    "core_details": {
+     "data_source_id": "WSDOT-WZDB",
+     "event_type": "work-zone",
+     "road_names": [
+      "005"
+     ],
+     "direction": "northbound",
+     "description": "Contract - XE3452 I5 Yesler to Northgate Paving",
+     "creation_date": "2024-08-17T14:47:19.562+00:00",
+     "update_date": "2026-10-08T11:12:29.439+00:00"
+    }
+   },
+   "id": "30873-N",
+   "type": "Feature",
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      -122.326777,
+      47.603222
+     ],
+     [
+      -122.32692,
+      47.603366
+     ],
+     [
+      -122.327034,
+      47.603481
+     ],
+     [
+      -122.327287,
+      47.603763
+     ],
+     [
+      -122.328863,
+      47.605587
+     ],
+     [
+      -122.330225,
+      47.607209
+     ],
+     [
+      -122.330801,
+      47.607974
+     ],
+     [
+      -122.331065,
+      47.608444
+     ],
+     [
+      -122.331152,
+      47.608632
+     ],
+     [
+      -122.331219,
+      47.608823
+     ],
+     [
+      -122.331306,
+      47.609091
+     ],
+     [
+      -122.331382,
+      47.609439
+     ],
+     [
+      -122.331413,
+      47.60977
+     ],
+     [
+      -122.331432,
+      47.610006
+     ],
+     [
+      -122.331428,
+      47.610339
+     ],
+     [
+      -122.331376,
+      47.610699
+     ],
+     [
+      -122.331278,
+      47.611079
+     ],
+     [
+      -122.331153,
+      47.611457
+     ],
+     [
+      -122.330922,
+      47.612021
+     ],
+     [
+      -122.330623,
+      47.612731
+     ],
+     [
+      -122.330589,
+      47.612818
+     ],
+     [
+      -122.330173,
+      47.613823
+     ],
+     [
+      -122.329904,
+      47.614461
+     ],
+     [
+      -122.329528,
+      47.615418
+     ],
+     [
+      -122.329269,
+      47.61609
+     ],
+     [
+      -122.329175,
+      47.616342
+     ],
+     [
+      -122.328934,
+      47.617163
+     ],
+     [
+      -122.32883,
+      47.617619
+     ],
+     [
+      -122.328737,
+      47.618101
+     ],
+     [
+      -122.328693,
+      47.618476
+     ],
+     [
+      -122.328631,
+      47.619646
+     ],
+     [
+      -122.328649,
+      47.620367
+     ],
+     [
+      -122.328656,
+      47.620567
+     ],
+     [
+      -122.32866,
+      47.620692
+     ],
+     [
+      -122.328674,
+      47.621329
+     ],
+     [
+      -122.328698,
+      47.622036
+     ],
+     [
+      -122.328714,
+      47.623249
+     ],
+     [
+      -122.328722,
+      47.623603
+     ],
+     [
+      -122.328724,
+      47.624626
+     ],
+     [
+      -122.328727,
+      47.625483
+     ],
+     [
+      -122.328781,
+      47.626559
+     ],
+     [
+      -122.328786,
+      47.626789
+     ],
+     [
+      -122.32867,
+      47.627452
+     ],
+     [
+      -122.328604,
+      47.627745
+     ],
+     [
+      -122.328502,
+      47.628096
+     ],
+     [
+      -122.328425,
+      47.628271
+     ],
+     [
+      -122.328316,
+      47.628482
+     ],
+     [
+      -122.328178,
+      47.628719
+     ],
+     [
+      -122.327975,
+      47.629033
+     ],
+     [
+      -122.327819,
+      47.629244
+     ],
+     [
+      -122.327521,
+      47.629553
+     ],
+     [
+      -122.327113,
+      47.629934
+     ],
+     [
+      -122.326467,
+      47.630516
+     ],
+     [
+      -122.326265,
+      47.630708
+     ],
+     [
+      -122.325923,
+      47.630999
+     ],
+     [
+      -122.325573,
+      47.631322
+     ],
+     [
+      -122.324979,
+      47.63196
+     ],
+     [
+      -122.32482,
+      47.632122
+     ],
+     [
+      -122.32467,
+      47.632324
+     ],
+     [
+      -122.324459,
+      47.632704
+     ],
+     [
+      -122.324292,
+      47.633057
+     ],
+     [
+      -122.32411,
+      47.633496
+     ],
+     [
+      -122.323846,
+      47.634165
+     ],
+     [
+      -122.323755,
+      47.634422
+     ],
+     [
+      -122.323663,
+      47.634712
+     ],
+     [
+      -122.323577,
+      47.63503
+     ],
+     [
+      -122.323522,
+      47.635246
+     ],
+     [
+      -122.32344,
+      47.635588
+     ],
+     [
+      -122.323377,
+      47.635897
+     ],
+     [
+      -122.323327,
+      47.636197
+     ],
+     [
+      -122.323304,
+      47.636424
+     ],
+     [
+      -122.323285,
+      47.636618
+     ],
+     [
+      -122.323271,
+      47.636781
+     ],
+     [
+      -122.323268,
+      47.63694
+     ],
+     [
+      -122.323262,
+      47.637112
+     ],
+     [
+      -122.323345,
+      47.639745
+     ],
+     [
+      -122.323304,
+      47.641376
+     ],
+     [
+      -122.323208,
+      47.643198
+     ],
+     [
+      -122.322955,
+      47.646193
+     ],
+     [
+      -122.322903,
+      47.646655
+     ],
+     [
+      -122.322818,
+      47.647357
+     ],
+     [
+      -122.322715,
+      47.648434
+     ],
+     [
+      -122.322576,
+      47.655686
+     ],
+     [
+      -122.322565,
+      47.656185
+     ],
+     [
+      -122.322624,
+      47.657168
+     ],
+     [
+      -122.322663,
+      47.658028
+     ],
+     [
+      -122.322651,
+      47.658448
+     ],
+     [
+      -122.322636,
+      47.658976
+     ],
+     [
+      -122.322577,
+      47.659728
+     ],
+     [
+      -122.322442,
+      47.661341
+     ],
+     [
+      -122.322275,
+      47.663348
+     ],
+     [
+      -122.322309,
+      47.664446
+     ],
+     [
+      -122.322311,
+      47.664975
+     ],
+     [
+      -122.32236,
+      47.667538
+     ],
+     [
+      -122.322371,
+      47.667862
+     ],
+     [
+      -122.322369,
+      47.668324
+     ],
+     [
+      -122.322362,
+      47.668989
+     ],
+     [
+      -122.32231,
+      47.670447
+     ],
+     [
+      -122.322268,
+      47.670893
+     ],
+     [
+      -122.322227,
+      47.671232
+     ],
+     [
+      -122.322137,
+      47.6718
+     ],
+     [
+      -122.321937,
+      47.672631
+     ],
+     [
+      -122.321531,
+      47.673986
+     ],
+     [
+      -122.32148,
+      47.674188
+     ],
+     [
+      -122.321372,
+      47.674614
+     ],
+     [
+      -122.321304,
+      47.67498
+     ],
+     [
+      -122.321225,
+      47.67542
+     ],
+     [
+      -122.321159,
+      47.67579
+     ],
+     [
+      -122.321115,
+      47.676183
+     ],
+     [
+      -122.321041,
+      47.676721
+     ],
+     [
+      -122.321056,
+      47.678024
+     ],
+     [
+      -122.321099,
+      47.679664
+     ],
+     [
+      -122.321109,
+      47.679918
+     ],
+     [
+      -122.321147,
+      47.680466
+     ],
+     [
+      -122.321221,
+      47.680996
+     ],
+     [
+      -122.32133,
+      47.681497
+     ],
+     [
+      -122.321398,
+      47.681701
+     ],
+     [
+      -122.321482,
+      47.681893
+     ],
+     [
+      -122.321695,
+      47.682328
+     ],
+     [
+      -122.321836,
+      47.682573
+     ],
+     [
+      -122.322001,
+      47.682842
+     ],
+     [
+      -122.322177,
+      47.683083
+     ],
+     [
+      -122.322296,
+      47.683228
+     ],
+     [
+      -122.322462,
+      47.683428
+     ],
+     [
+      -122.322628,
+      47.683617
+     ],
+     [
+      -122.322746,
+      47.683735
+     ],
+     [
+      -122.322908,
+      47.683893
+     ],
+     [
+      -122.324463,
+      47.685111
+     ],
+     [
+      -122.325567,
+      47.685974
+     ],
+     [
+      -122.326547,
+      47.686737
+     ],
+     [
+      -122.327444,
+      47.687477
+     ],
+     [
+      -122.327847,
+      47.68784
+     ],
+     [
+      -122.328033,
+      47.688015
+     ],
+     [
+      -122.328265,
+      47.688296
+     ],
+     [
+      -122.328496,
+      47.688564
+     ],
+     [
+      -122.328732,
+      47.688949
+     ],
+     [
+      -122.328974,
+      47.689359
+     ],
+     [
+      -122.32913,
+      47.689638
+     ],
+     [
+      -122.329231,
+      47.689889
+     ],
+     [
+      -122.329357,
+      47.6902
+     ],
+     [
+      -122.329424,
+      47.690471
+     ],
+     [
+      -122.32954,
+      47.691495
+     ],
+     [
+      -122.329511,
+      47.692753
+     ],
+     [
+      -122.329493,
+      47.693458
+     ],
+     [
+      -122.329492,
+      47.694103
+     ],
+     [
+      -122.329504,
+      47.694805
+     ],
+     [
+      -122.32954,
+      47.695327
+     ],
+     [
+      -122.329595,
+      47.695922
+     ],
+     [
+      -122.329621,
+      47.696137
+     ],
+     [
+      -122.329698,
+      47.696784
+     ],
+     [
+      -122.329951,
+      47.698921
+     ],
+     [
+      -122.330093,
+      47.700071
+     ],
+     [
+      -122.330184,
+      47.701152
+     ],
+     [
+      -122.330166,
+      47.701603
+     ],
+     [
+      -122.330142,
+      47.702183
+     ],
+     [
+      -122.330035,
+      47.703616
+     ],
+     [
+      -122.329952,
+      47.704882
+     ],
+     [
+      -122.330157,
+      47.708419
+     ],
+     [
+      -122.330151,
+      47.708886
+     ],
+     [
+      -122.330144,
+      47.709068
+     ],
+     [
+      -122.330094,
+      47.709523
+     ],
+     [
+      -122.329986,
+      47.709904
+     ],
+     [
+      -122.329877,
+      47.710223
+     ],
+     [
+      -122.329748,
+      47.710485
+     ],
+     [
+      -122.329608,
+      47.710787
+     ],
+     [
+      -122.329473,
+      47.711025
+     ],
+     [
+      -122.329345,
+      47.711233
+     ],
+     [
+      -122.329101,
+      47.711586
+     ],
+     [
+      -122.328634,
+      47.712165
+     ],
+     [
+      -122.328232,
+      47.712686
+     ],
+     [
+      -122.3281,
+      47.712879
+     ],
+     [
+      -122.327356,
+      47.713796
+     ],
+     [
+      -122.326557,
+      47.714795
+     ]
+    ]
+   },
+   "bbox": [
+    -122.326777,
+    47.603222,
+    -122.326557,
+    47.714795
+   ]
+  },
+  {
+   "properties": {
+    "beginning_milepost": 21.5,
+    "ending_milepost": 23.0200005,
+    "beginning_accuracy": "estimated",
+    "is_start_position_verified": false,
+    "ending_accuracy": "estimated",
+    "is_end_position_verified": false,
+    "start_date": "2026-08-03T00:00:00+00:00",
+    "end_date": "2026-10-30T00:00:00+00:00",
+    "start_date_accuracy": "verified",
+    "is_start_date_verified": true,
+    "end_date_accuracy": "verified",
+    "is_end_date_verified": true,
+    "event_status": "active",
+    "vehicle_impact": "unknown",
+    "location_method": "unknown",
+    "worker_presence": {
+     "are_workers_present": false
+    },
+    "core_details": {
+     "data_source_id": "WSDOT-WZDB",
+     "event_type": "work-zone",
+     "road_names": [
+      "509"
+     ],
+     "direction": "northbound",
+     "description": "Contract - C9905 SR509 and I5 New Expressway",
+     "creation_date": "2025-03-21T08:27:51.829+00:00",
+     "update_date": "2026-10-13T06:42:12.592+00:00"
+    }
+   },
+   "id": "33167-N",
+   "type": "Feature",
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      -122.335269,
+      47.419095
+     ],
+     [
+      -122.335262,
+      47.419864
+     ],
+     [
+      -122.335243,
+      47.420951
+     ],
+     [
+      -122.335241,
+      47.421112
+     ],
+     [
+      -122.335224,
+      47.421922
+     ],
+     [
+      -122.335201,
+      47.422692
+     ],
+     [
+      -122.335205,
+      47.42329
+     ],
+     [
+      -122.335245,
+      47.423954
+     ],
+     [
+      -122.33531,
+      47.424802
+     ],
+     [
+      -122.335385,
+      47.425606
+     ],
+     [
+      -122.335459,
+      47.426364
+     ],
+     [
+      -122.335533,
+      47.427337
+     ],
+     [
+      -122.335632,
+      47.42864
+     ],
+     [
+      -122.335676,
+      47.429349
+     ],
+     [
+      -122.335743,
+      47.430275
+     ],
+     [
+      -122.335772,
+      47.430822
+     ],
+     [
+      -122.335791,
+      47.431279
+     ],
+     [
+      -122.335759,
+      47.431743
+     ],
+     [
+      -122.335683,
+      47.432268
+     ],
+     [
+      -122.335616,
+      47.432773
+     ],
+     [
+      -122.335452,
+      47.433953
+     ],
+     [
+      -122.335329,
+      47.434673
+     ],
+     [
+      -122.335232,
+      47.435441
+     ],
+     [
+      -122.335139,
+      47.436336
+     ],
+     [
+      -122.335125,
+      47.436442
+     ],
+     [
+      -122.334961,
+      47.437684
+     ],
+     [
+      -122.334889,
+      47.438225
+     ],
+     [
+      -122.334824,
+      47.438717
+     ],
+     [
+      -122.334705,
+      47.439563
+     ],
+     [
+      -122.334423,
+      47.441652
+     ],
+     [
+      -122.334178,
+      47.443432
+     ],
+     [
+      -122.334163,
+      47.443536
+     ],
+     [
+      -122.333956,
+      47.44519
+     ],
+     [
+      -122.333944,
+      47.445831
+     ],
+     [
+      -122.333949,
+      47.447507
+     ],
+     [
+      -122.333657,
+      47.447504
+     ],
+     [
+      -122.333034,
+      47.447488
+     ],
+     [
+      -122.332756,
+      47.447469
+     ],
+     [
+      -122.332463,
+      47.447433
+     ],
+     [
+      -122.332163,
+      47.447368
+     ],
+     [
+      -122.331893,
+      47.447288
+     ],
+     [
+      -122.331642,
+      47.447188
+     ],
+     [
+      -122.33139,
+      47.447081
+     ],
+     [
+      -122.331292,
+      47.447033
+     ],
+     [
+      -122.331065,
+      47.446921
+     ],
+     [
+      -122.330886,
+      47.44682
+     ],
+     [
+      -122.330673,
+      47.446665
+     ],
+     [
+      -122.330494,
+      47.446503
+     ],
+     [
+      -122.330365,
+      47.446364
+     ],
+     [
+      -122.330236,
+      47.446202
+     ],
+     [
+      -122.329516,
+      47.445139
+     ],
+     [
+      -122.329389,
+      47.444931
+     ],
+     [
+      -122.329289,
+      47.444734
+     ],
+     [
+      -122.329197,
+      47.444511
+     ],
+     [
+      -122.329125,
+      47.444287
+     ],
+     [
+      -122.329067,
+      47.444039
+     ],
+     [
+      -122.32897,
+      47.44351
+     ],
+     [
+      -122.328915,
+      47.443203
+     ],
+     [
+      -122.328889,
+      47.44303
+     ],
+     [
+      -122.328796,
+      47.44278
+     ],
+     [
+      -122.328665,
+      47.442557
+     ],
+     [
+      -122.3285,
+      47.442364
+     ],
+     [
+      -122.328276,
+      47.442193
+     ],
+     [
+      -122.328053,
+      47.442052
+     ],
+     [
+      -122.327705,
+      47.441863
+     ],
+     [
+      -122.327301,
+      47.441637
+     ],
+     [
+      -122.326302,
+      47.441091
+     ],
+     [
+      -122.324535,
+      47.440136
+     ],
+     [
+      -122.324083,
+      47.439892
+     ],
+     [
+      -122.323689,
+      47.439677
+     ],
+     [
+      -122.322806,
+      47.439196
+     ],
+     [
+      -122.322227,
+      47.438885
+     ],
+     [
+      -122.32239,
+      47.438821
+     ],
+     [
+      -122.322239,
+      47.439037
+     ],
+     [
+      -122.32186,
+      47.439506
+     ],
+     [
+      -122.321438,
+      47.440021
+     ],
+     [
+      -122.32111,
+      47.440429
+     ],
+     [
+      -122.320891,
+      47.440772
+     ],
+     [
+      -122.320729,
+      47.4411
+     ],
+     [
+      -122.32059,
+      47.441494
+     ],
+     [
+      -122.320492,
+      47.441988
+     ],
+     [
+      -122.320451,
+      47.442411
+     ],
+     [
+      -122.320445,
+      47.442806
+     ],
+     [
+      -122.32045,
+      47.442911
+     ],
+     [
+      -122.320466,
+      47.443298
+     ],
+     [
+      -122.320528,
+      47.443647
+     ],
+     [
+      -122.320593,
+      47.443955
+     ],
+     [
+      -122.320718,
+      47.44441
+     ],
+     [
+      -122.320861,
+      47.444838
+     ],
+     [
+      -122.32103,
+      47.445199
+     ],
+     [
+      -122.321223,
+      47.445562
+     ],
+     [
+      -122.321429,
+      47.445958
+     ],
+     [
+      -122.321708,
+      47.446435
+     ],
+     [
+      -122.323226,
+      47.44902
+     ],
+     [
+      -122.3251,
+      47.452202
+     ],
+     [
+      -122.325353,
+      47.45264
+     ],
+     [
+      -122.325637,
+      47.453111
+     ],
+     [
+      -122.325901,
+      47.453575
+     ],
+     [
+      -122.326352,
+      47.454351
+     ],
+     [
+      -122.329467,
+      47.459671
+     ],
+     [
+      -122.330704,
+      47.461782
+     ]
+    ]
+   },
+   "bbox": [
+    -122.335269,
+    47.419095,
+    -122.330704,
+    47.461782
+   ]
+  },
+  {
+   "properties": {
+    "beginning_accuracy": "estimated",
+    "is_start_position_verified": false,
+    "ending_accuracy": "estimated",
+    "is_end_position_verified": false,
+    "start_date": "2027-04-01T00:00:00+00:00",
+    "end_date": "2027-10-30T00:00:00+00:00",
+    "start_date_accuracy": "verified",
+    "is_start_date_verified": true,
+    "end_date_accuracy": "verified",
+    "is_end_date_verified": true,
+    "event_status": "pending",
+    "vehicle_impact": "unknown",
+    "location_method": "unknown",
+    "worker_presence": {
+     "are_workers_present": false
+    },
+    "reduced_speed_limit_kph": 0.0,
+    "core_details": {
+     "data_source_id": "WSDOT-CIA",
+     "event_type": "work-zone",
+     "road_names": [
+      "005"
+     ],
+     "direction": "northbound",
+     "description": "I-5/Guide Meridian I/C and SR 539/I-5 to Kellogg Road - Paving & ADA",
+     "creation_date": "2024-05-31T21:31:40.2868958+00:00",
+     "update_date": "2024-05-31T21:31:40.2869496+00:00"
+    }
+   },
+   "id": "40807-N",
+   "type": "Feature",
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      -122.472437,
+      48.779566
+     ],
+     [
+      -122.472908,
+      48.779879
+     ],
+     [
+      -122.473429,
+      48.780174
+     ],
+     [
+      -122.473847,
+      48.780391
+     ],
+     [
+      -122.474329,
+      48.780616
+     ],
+     [
+      -122.474787,
+      48.780812
+     ],
+     [
+      -122.475265,
+      48.781002
+     ],
+     [
+      -122.4757,
+      48.781153
+     ],
+     [
+      -122.476121,
+      48.781284
+     ],
+     [
+      -122.476552,
+      48.781405
+     ],
+     [
+      -122.477121,
+      48.781549
+     ],
+     [
+      -122.477747,
+      48.781676
+     ],
+     [
+      -122.478381,
+      48.78179
+     ],
+     [
+      -122.478994,
+      48.781884
+     ],
+     [
+      -122.479603,
+      48.781969
+     ],
+     [
+      -122.483286,
+      48.782471
+     ],
+     [
+      -122.485815,
+      48.782822
+     ],
+     [
+      -122.486573,
+      48.782929
+     ],
+     [
+      -122.487213,
+      48.783013
+     ],
+     [
+      -122.487856,
+      48.783086
+     ],
+     [
+      -122.488544,
+      48.783149
+     ],
+     [
+      -122.489333,
+      48.783189
+     ],
+     [
+      -122.492372,
+      48.783327
+     ],
+     [
+      -122.495874,
+      48.783495
+     ]
+    ]
+   },
+   "bbox": [
+    -122.472437,
+    48.779566,
+    -122.495874,
+    48.783495
+   ]
+  },
+  {
+   "properties": {
+    "beginning_milepost": 2.22,
+    "ending_milepost": 2.53,
+    "beginning_accuracy": "estimated",
+    "is_start_position_verified": false,
+    "ending_accuracy": "estimated",
+    "is_end_position_verified": false,
+    "start_date": "2026-09-13T00:00:00+00:00",
+    "end_date": "2026-10-16T00:00:00+00:00",
+    "start_date_accuracy": "verified",
+    "is_start_date_verified": true,
+    "end_date_accuracy": "verified",
+    "is_end_date_verified": true,
+    "event_status": "pending",
+    "vehicle_impact": "unknown",
+    "location_method": "unknown",
+    "worker_presence": {
+     "are_workers_present": false
+    },
+    "core_details": {
+     "data_source_id": "WSDOT-WZDB",
+     "event_type": "work-zone",
+     "road_names": [
+      "160"
+     ],
+     "direction": "eastbound",
+     "description": "Contract - 009902 SR160 for removal of a fish barrier under SR 160",
+     "creation_date": "2026-09-11T08:27:29.003+00:00",
+     "update_date": "2026-09-11T08:27:29.003+00:00"
+    }
+   },
+   "id": "41637-E",
+   "type": "Feature",
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      -122.601575,
+      47.50486
+     ],
+     [
+      -122.594927,
+      47.504904
+     ]
+    ]
+   },
+   "bbox": [
+    -122.601575,
+    47.50486,
+    -122.594927,
+    47.504904
+   ]
+  },
+  {
+   "properties": {
+    "beginning_accuracy": "estimated",
+    "is_start_position_verified": false,
+    "ending_accuracy": "estimated",
+    "is_end_position_verified": false,
+    "start_date": "2027-04-21T00:00:00+00:00",
+    "end_date": "2027-10-20T00:00:00+00:00",
+    "start_date_accuracy": "verified",
+    "is_start_date_verified": true,
+    "end_date_accuracy": "verified",
+    "is_end_date_verified": true,
+    "event_status": "pending",
+    "vehicle_impact": "unknown",
+    "location_method": "unknown",
+    "worker_presence": {
+     "are_workers_present": false
+    },
+    "reduced_speed_limit_kph": 0.0,
+    "core_details": {
+     "data_source_id": "WSDOT-CIA",
+     "event_type": "work-zone",
+     "road_names": [
+      "527"
+     ],
+     "direction": "northbound",
+     "description": "SR 527/Penny Creek - Fish Passage",
+     "creation_date": "2024-05-31T21:30:24.2163608+00:00",
+     "update_date": "2024-05-31T21:30:24.2163898+00:00"
+    }
+   },
+   "id": "40792-N",
+   "type": "Feature",
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      -122.216929,
+      47.848172
+     ],
+     [
+      -122.217016,
+      47.848382
+     ],
+     [
+      -122.217171,
+      47.848764
+     ],
+     [
+      -122.217491,
+      47.84955
+     ]
+    ]
+   },
+   "bbox": [
+    -122.216929,
+    47.848172,
+    -122.217491,
+    47.84955
+   ]
+  },
+  {
+   "properties": {
+    "beginning_accuracy": "estimated",
+    "is_start_position_verified": false,
+    "ending_accuracy": "estimated",
+    "is_end_position_verified": false,
+    "start_date": "2026-08-15T00:00:00+00:00",
+    "end_date": "2029-04-20T00:00:00+00:00",
+    "start_date_accuracy": "verified",
+    "is_start_date_verified": true,
+    "end_date_accuracy": "verified",
+    "is_end_date_verified": true,
+    "event_status": "pending",
+    "vehicle_impact": "unknown",
+    "location_method": "unknown",
+    "worker_presence": {
+     "are_workers_present": false
+    },
+    "reduced_speed_limit_kph": 0.0,
+    "core_details": {
+     "data_source_id": "WSDOT-CIA",
+     "event_type": "work-zone",
+     "road_names": [
+      "522"
+     ],
+     "direction": "eastbound",
+     "description": "SR 522/Paradise Lake Rd to Snohomish River Br - Interchange & Widening",
+     "creation_date": "2024-05-31T21:29:18.9187364+00:00",
+     "update_date": "2024-05-31T21:29:18.9188047+00:00"
+    }
+   },
+   "id": "20690-E",
+   "type": "Feature",
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      -122.112799,
+      47.798176
+     ],
+     [
+      -122.112767,
+      47.798272
+     ],
+     [
+      -122.111402,
+      47.802104
+     ],
+     [
+      -122.111239,
+      47.802573
+     ],
+     [
+      -122.110985,
+      47.803325
+     ],
+     [
+      -122.110489,
+      47.804712
+     ],
+     [
+      -122.109956,
+      47.806216
+     ],
+     [
+      -122.10981,
+      47.806621
+     ],
+     [
+      -122.109725,
+      47.806878
+     ],
+     [
+      -122.109647,
+      47.807072
+     ],
+     [
+      -122.109486,
+      47.807422
+     ],
+     [
+      -122.109189,
+      47.807908
+     ],
+     [
+      -122.108963,
+      47.808186
+     ],
+     [
+      -122.108762,
+      47.8084
+     ],
+     [
+      -122.108502,
+      47.808661
+     ],
+     [
+      -122.108214,
+      47.808921
+     ],
+     [
+      -122.107704,
+      47.8093
+     ],
+     [
+      -122.107337,
+      47.809536
+     ],
+     [
+      -122.10687,
+      47.809782
+     ],
+     [
+      -122.106113,
+      47.810116
+     ],
+     [
+      -122.10533,
+      47.810396
+     ],
+     [
+      -122.104894,
+      47.810543
+     ],
+     [
+      -122.104453,
+      47.810667
+     ],
+     [
+      -122.103717,
+      47.810869
+     ],
+     [
+      -122.102824,
+      47.81106
+     ],
+     [
+      -122.101242,
+      47.811397
+     ],
+     [
+      -122.097401,
+      47.812206
+     ],
+     [
+      -122.096832,
+      47.812322
+     ],
+     [
+      -122.096226,
+      47.812435
+     ],
+     [
+      -122.095726,
+      47.812509
+     ],
+     [
+      -122.095083,
+      47.812585
+     ],
+     [
+      -122.094464,
+      47.812635
+     ],
+     [
+      -122.093938,
+      47.812659
+     ],
+     [
+      -122.093311,
+      47.812655
+     ],
+     [
+      -122.092702,
+      47.812642
+     ],
+     [
+      -122.091985,
+      47.812602
+     ],
+     [
+      -122.08676,
+      47.812321
+     ],
+     [
+      -122.086439,
+      47.812302
+     ],
+     [
+      -122.085683,
+      47.812277
+     ],
+     [
+      -122.084998,
+      47.812261
+     ],
+     [
+      -122.084279,
+      47.812266
+     ],
+     [
+      -122.083513,
+      47.812294
+     ],
+     [
+      -122.08279,
+      47.812351
+     ],
+     [
+      -122.082137,
+      47.812421
+     ],
+     [
+      -122.081539,
+      47.812496
+     ],
+     [
+      -122.080882,
+      47.812606
+     ],
+     [
+      -122.08027,
+      47.812722
+     ],
+     [
+      -122.079629,
+      47.812879
+     ],
+     [
+      -122.079074,
+      47.813025
+     ],
+     [
+      -122.078564,
+      47.81317
+     ],
+     [
+      -122.078073,
+      47.813325
+     ],
+     [
+      -122.077288,
+      47.813596
+     ],
+     [
+      -122.076582,
+      47.813844
+     ],
+     [
+      -122.069511,
+      47.816374
+     ],
+     [
+      -122.066783,
+      47.817349
+     ],
+     [
+      -122.066325,
+      47.817526
+     ],
+     [
+      -122.06585,
+      47.817742
+     ],
+     [
+      -122.065478,
+      47.817926
+     ],
+     [
+      -122.064835,
+      47.818335
+     ],
+     [
+      -122.064292,
+      47.818735
+     ],
+     [
+      -122.063944,
+      47.819067
+     ],
+     [
+      -122.063617,
+      47.819418
+     ],
+     [
+      -122.063253,
+      47.819881
+     ],
+     [
+      -122.063034,
+      47.820192
+     ],
+     [
+      -122.062688,
+      47.820696
+     ],
+     [
+      -122.061743,
+      47.822072
+     ],
+     [
+      -122.061127,
+      47.822959
+     ],
+     [
+      -122.060064,
+      47.824501
+     ],
+     [
+      -122.059776,
+      47.824989
+     ],
+     [
+      -122.05942,
+      47.825708
+     ],
+     [
+      -122.059235,
+      47.826104
+     ],
+     [
+      -122.058717,
+      47.827235
+     ],
+     [
+      -122.058463,
+      47.827773
+     ],
+     [
+      -122.058198,
+      47.828275
+     ],
+     [
+      -122.057995,
+      47.828568
+     ],
+     [
+      -122.057819,
+      47.828791
+     ],
+     [
+      -122.057428,
+      47.829186
+     ],
+     [
+      -122.05691,
+      47.829588
+     ],
+     [
+      -122.056235,
+      47.829993
+     ],
+     [
+      -122.055589,
+      47.830269
+     ],
+     [
+      -122.054868,
+      47.830497
+     ],
+     [
+      -122.054018,
+      47.830669
+     ],
+     [
+      -122.053483,
+      47.830746
+     ],
+     [
+      -122.053028,
+      47.8308
+     ],
+     [
+      -122.051631,
+      47.830938
+     ],
+     [
+      -122.051433,
+      47.830956
+     ]
+    ]
+   },
+   "bbox": [
+    -122.112799,
+    47.798176,
+    -122.051433,
+    47.830956
+   ]
+  },
+  {
+   "properties": {
+    "beginning_accuracy": "estimated",
+    "is_start_position_verified": false,
+    "ending_accuracy": "estimated",
+    "is_end_position_verified": false,
+    "start_date": "2028-05-01T00:00:00+00:00",
+    "end_date": "2029-10-06T00:00:00+00:00",
+    "start_date_accuracy": "verified",
+    "is_start_date_verified": true,
+    "end_date_accuracy": "verified",
+    "is_end_date_verified": true,
+    "event_status": "pending",
+    "vehicle_impact": "unknown",
+    "location_method": "unknown",
+    "worker_presence": {
+     "are_workers_present": false
+    },
+    "reduced_speed_limit_kph": 0.0,
+    "core_details": {
+     "data_source_id": "WSDOT-CIA",
+     "event_type": "work-zone",
+     "road_names": [
+      "009"
+     ],
+     "direction": "southbound",
+     "description": "US 2/Mt Index River Rd & Beckler Rd and SR 9/Bickford Ave - Br Paintings",
+     "creation_date": "2024-05-31T21:30:53.3224848+00:00",
+     "update_date": "2024-05-31T21:30:53.3225247+00:00"
+    }
+   },
+   "id": "40583-S",
+   "type": "Feature",
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      -122.102456,
+      47.932362
+     ],
+     [
+      -122.102408,
+      47.932394
+     ],
+     [
+      -122.102177,
+      47.932571
+     ],
+     [
+      -122.10191,
+      47.932783
+     ],
+     [
+      -122.101772,
+      47.932915
+     ],
+     [
+      -122.101771,
+      47.932916
+     ]
+    ]
+   },
+   "bbox": [
+    -122.102456,
+    47.932362,
+    -122.101771,
+    47.932916
+   ]
+  },
+  {
+   "properties": {
+    "beginning_milepost": 13.8,
+    "ending_milepost": 12.5,
+    "beginning_accuracy": "estimated",
+    "is_start_position_verified": false,
+    "ending_accuracy": "estimated",
+    "is_end_position_verified": false,
+    "start_date": "2026-07-27T00:00:00+00:00",
+    "end_date": "2026-10-30T00:00:00+00:00",
+    "start_date_accuracy": "verified",
+    "is_start_date_verified": true,
+    "end_date_accuracy": "verified",
+    "is_end_date_verified": true,
+    "event_status": "active",
+    "vehicle_impact": "unknown",
+    "location_method": "unknown",
+    "worker_presence": {
+     "are_workers_present": false
+    },
+    "core_details": {
+     "data_source_id": "WSDOT-WZDB",
+     "event_type": "work-zone",
+     "road_names": [
+      "203"
+     ],
+     "direction": "southbound",
+     "description": "Contract - XE3732 SR203 paving",
+     "creation_date": "2026-07-09T15:06:45.062+00:00",
+     "update_date": "2026-10-08T17:36:21.028+00:00"
+    }
+   },
+   "id": "40583-S",
+   "type": "Feature",
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      -121.984592,
+      47.707761
+     ],
+     [
+      -121.98458,
+      47.707878
+     ],
+     [
+      -121.984539,
+      47.708201
+     ],
+     [
+      -121.984524,
+      47.708336
+     ],
+     [
+      -121.984573,
+      47.708398
+     ],
+     [
+      -121.984563,
+      47.708536
+     ],
+     [
+      -121.984565,
+      47.708626
+     ],
+     [
+      -121.984568,
+      47.708712
+     ],
+     [
+      -121.984577,
+      47.708783
+     ],
+     [
+      -121.984579,
+      47.708855
+     ],
+     [
+      -121.984573,
+      47.708912
+     ],
+     [
+      -121.984594,
+      47.70897
+     ],
+     [
+      -121.984615,
+      47.709012
+     ],
+     [
+      -121.984626,
+      47.709051
+     ],
+     [
+      -121.984631,
+      47.709086
+     ],
+     [
+      -121.984625,
+      47.70911
+     ],
+     [
+      -121.984616,
+      47.709134
+     ],
+     [
+      -121.984603,
+      47.709153
+     ],
+     [
+      -121.984587,
+      47.709172
+     ],
+     [
+      -121.984572,
+      47.709188
+     ],
+     [
+      -121.98452,
+      47.709231
+     ],
+     [
+      -121.984425,
+      47.709339
+     ],
+     [
+      -121.984368,
+      47.709423
+     ],
+     [
+      -121.984352,
+      47.709545
+     ],
+     [
+      -121.984351,
+      47.709652
+     ],
+     [
+      -121.984346,
+      47.709723
+     ],
+     [
+      -121.984344,
+      47.709783
+     ],
+     [
+      -121.984284,
+      47.709854
+     ],
+     [
+      -121.984275,
+      47.710326
+     ],
+     [
+      -121.984268,
+      47.711066
+     ],
+     [
+      -121.984268,
+      47.711216
+     ],
+     [
+      -121.98427,
+      47.713018
+     ],
+     [
+      -121.984273,
+      47.713488
+     ],
+     [
+      -121.984292,
+      47.71379
+     ],
+     [
+      -121.98436,
+      47.714088
+     ],
+     [
+      -121.984494,
+      47.714387
+     ],
+     [
+      -121.985256,
+      47.715871
+     ],
+     [
+      -121.985394,
+      47.716192
+     ],
+     [
+      -121.985483,
+      47.716507
+     ],
+     [
+      -121.985545,
+      47.716791
+     ],
+     [
+      -121.985866,
+      47.718282
+     ],
+     [
+      -121.985931,
+      47.718668
+     ],
+     [
+      -121.985986,
+      47.71901
+     ],
+     [
+      -121.985979,
+      47.719312
+     ],
+     [
+      -121.985898,
+      47.719633
+     ],
+     [
+      -121.985806,
+      47.719889
+     ],
+     [
+      -121.985672,
+      47.720268
+     ],
+     [
+      -121.9856,
+      47.720548
+     ],
+     [
+      -121.985599,
+      47.720859
+     ],
+     [
+      -121.985691,
+      47.721261
+     ],
+     [
+      -121.985979,
+      47.722191
+     ],
+     [
+      -121.986144,
+      47.722724
+     ],
+     [
+      -121.986432,
+      47.723584
+     ],
+     [
+      -121.98664,
+      47.724263
+     ],
+     [
+      -121.986719,
+      47.724608
+     ],
+     [
+      -121.986768,
+      47.724913
+     ],
+     [
+      -121.986849,
+      47.725648
+     ],
+     [
+      -121.986961,
+      47.72689
+     ],
+     [
+      -121.987066,
+      47.727923
+     ],
+     [
+      -121.987255,
+      47.729841
+     ],
+     [
+      -121.987432,
+      47.731574
+     ],
+     [
+      -121.987464,
+      47.732007
+     ],
+     [
+      -121.987456,
+      47.732321
+     ],
+     [
+      -121.987449,
+      47.732427
+     ],
+     [
+      -121.987444,
+      47.732496
+     ],
+     [
+      -121.987412,
+      47.732717
+     ],
+     [
+      -121.987405,
+      47.732764
+     ],
+     [
+      -121.987373,
+      47.733026
+     ],
+     [
+      -121.987331,
+      47.733299
+     ],
+     [
+      -121.987314,
+      47.733578
+     ],
+     [
+      -121.987311,
+      47.733853
+     ],
+     [
+      -121.987364,
+      47.735378
+     ],
+     [
+      -121.987407,
+      47.736557
+     ],
+     [
+      -121.987405,
+      47.736846
+     ],
+     [
+      -121.987374,
+      47.737152
+     ],
+     [
+      -121.987282,
+      47.737435
+     ],
+     [
+      -121.987117,
+      47.737865
+     ],
+     [
+      -121.986715,
+      47.73889
+     ],
+     [
+      -121.98652,
+      47.739367
+     ],
+     [
+      -121.986313,
+      47.739873
+     ],
+     [
+      -121.986217,
+      47.74012
+     ],
+     [
+      -121.986144,
+      47.740379
+     ],
+     [
+      -121.986109,
+      47.740587
+     ],
+     [
+      -121.986157,
+      47.740692
+     ],
+     [
+      -121.986134,
+      47.740878
+     ],
+     [
+      -121.986043,
+      47.741628
+     ],
+     [
+      -121.985934,
+      47.742392
+     ],
+     [
+      -121.98585,
+      47.742548
+     ],
+     [
+      -121.985771,
+      47.743089
+     ],
+     [
+      -121.985661,
+      47.744136
+     ],
+     [
+      -121.985634,
+      47.744392
+     ],
+     [
+      -121.985626,
+      47.744654
+     ],
+     [
+      -121.985637,
+      47.744883
+     ],
+     [
+      -121.985703,
+      47.745628
+     ],
+     [
+      -121.985783,
+      47.746362
+     ],
+     [
+      -121.985996,
+      47.74809
+     ],
+     [
+      -121.986025,
+      47.748389
+     ],
+     [
+      -121.986033,
+      47.748688
+     ],
+     [
+      -121.98603,
+      47.748956
+     ],
+     [
+      -121.985993,
+      47.749242
+     ],
+     [
+      -121.985941,
+      47.749495
+     ],
+     [
+      -121.985863,
+      47.749748
+     ],
+     [
+      -121.985736,
+      47.750032
+     ],
+     [
+      -121.985599,
+      47.750286
+     ],
+     [
+      -121.985402,
+      47.750557
+     ],
+     [
+      -121.985166,
+      47.750849
+     ],
+     [
+      -121.984861,
+      47.751142
+     ],
+     [
+      -121.984573,
+      47.75138
+     ],
+     [
+      -121.984236,
+      47.751613
+     ],
+     [
+      -121.983834,
+      47.75185
+     ],
+     [
+      -121.982996,
+      47.752313
+     ],
+     [
+      -121.975972,
+      47.756176
+     ],
+     [
+      -121.972737,
+      47.757958
+     ],
+     [
+      -121.969444,
+      47.759773
+     ],
+     [
+      -121.969279,
+      47.759863
+     ],
+     [
+      -121.963685,
+      47.762953
+     ],
+     [
+      -121.96326,
+      47.763183
+     ],
+     [
+      -121.962875,
+      47.763374
+     ],
+     [
+      -121.962443,
+      47.763559
+     ],
+     [
+      -121.962012,
+      47.763724
+     ],
+     [
+      -121.961545,
+      47.763903
+     ],
+     [
+      -121.961158,
+      47.76408
+     ],
+     [
+      -121.960729,
+      47.7643
+     ],
+     [
+      -121.960342,
+      47.76454
+     ],
+     [
+      -121.959808,
+      47.764902
+     ],
+     [
+      -121.95961,
+      47.765035
+     ],
+     [
+      -121.958238,
+      47.765957
+     ],
+     [
+      -121.957891,
+      47.766193
+     ],
+     [
+      -121.957517,
+      47.766478
+     ],
+     [
+      -121.957246,
+      47.766702
+     ],
+     [
+      -121.957106,
+      47.766831
+     ],
+     [
+      -121.956924,
+      47.767016
+     ],
+     [
+      -121.956707,
+      47.767279
+     ],
+     [
+      -121.956584,
+      47.767429
+     ],
+     [
+      -121.956359,
+      47.767751
+     ],
+     [
+      -121.956195,
+      47.768011
+     ],
+     [
+      -121.95605,
+      47.768306
+     ],
+     [
+      -121.955943,
+      47.768572
+     ],
+     [
+      -121.95585,
+      47.768812
+     ],
+     [
+      -121.955769,
+      47.769122
+     ],
+     [
+      -121.955732,
+      47.769405
+     ],
+     [
+      -121.955705,
+      47.769721
+     ],
+     [
+      -121.955702,
+      47.769956
+     ],
+     [
+      -121.955721,
+      47.770248
+     ],
+     [
+      -121.955762,
+      47.77052
+     ],
+     [
+      -121.955824,
+      47.770778
+     ],
+     [
+      -121.955917,
+      47.771069
+     ],
+     [
+      -121.95605,
+      47.771376
+     ],
+     [
+      -121.956192,
+      47.771674
+     ],
+     [
+      -121.956363,
+      47.771963
+     ],
+     [
+      -121.956532,
+      47.772234
+     ],
+     [
+      -121.956703,
+      47.772494
+     ],
+     [
+      -121.956859,
+      47.772737
+     ],
+     [
+      -121.95695,
+      47.77287
+     ],
+     [
+      -121.957079,
+      47.773045
+     ],
+     [
+      -121.957293,
+      47.773283
+     ],
+     [
+      -121.957554,
+      47.773541
+     ],
+     [
+      -121.960443,
+      47.776328
+     ],
+     [
+      -121.961599,
+      47.777433
+     ],
+     [
+      -121.961895,
+      47.777714
+     ],
+     [
+      -121.962131,
+      47.777956
+     ],
+     [
+      -121.962374,
+      47.778252
+     ],
+     [
+      -121.962607,
+      47.778571
+     ],
+     [
+      -121.962803,
+      47.778818
+     ],
+     [
+      -121.963029,
+      47.779067
+     ],
+     [
+      -121.96331,
+      47.779332
+     ],
+     [
+      -121.963641,
+      47.77958
+     ],
+     [
+      -121.964053,
+      47.779857
+     ],
+     [
+      -121.964864,
+      47.780351
+     ],
+     [
+      -121.965163,
+      47.780535
+     ],
+     [
+      -121.965498,
+      47.780763
+     ],
+     [
+      -121.965855,
+      47.78104
+     ],
+     [
+      -121.966167,
+      47.781346
+     ],
+     [
+      -121.96645,
+      47.781644
+     ],
+     [
+      -121.967364,
+      47.782676
+     ],
+     [
+      -121.967951,
+      47.783299
+     ],
+     [
+      -121.968479,
+      47.783823
+     ],
+     [
+      -121.969032,
+      47.78437
+     ],
+     [
+      -121.970672,
+      47.785986
+     ],
+     [
+      -121.971056,
+      47.786334
+     ],
+     [
+      -121.971463,
+      47.786638
+     ],
+     [
+      -121.972011,
+      47.786984
+     ],
+     [
+      -121.972477,
+      47.787273
+     ],
+     [
+      -121.972883,
+      47.78752
+     ],
+     [
+      -121.973223,
+      47.787751
+     ],
+     [
+      -121.973545,
+      47.788006
+     ],
+     [
+      -121.973795,
+      47.788241
+     ],
+     [
+      -121.974017,
+      47.788507
+     ],
+     [
+      -121.974205,
+      47.788814
+     ],
+     [
+      -121.974343,
+      47.789098
+     ],
+     [
+      -121.974436,
+      47.789399
+     ],
+     [
+      -121.974488,
+      47.789664
+     ],
+     [
+      -121.974542,
+      47.789989
+     ],
+     [
+      -121.974841,
+      47.79232
+     ],
+     [
+      -121.974899,
+      47.79263
+     ],
+     [
+      -121.974987,
+      47.792933
+     ],
+     [
+      -121.975105,
+      47.793231
+     ],
+     [
+      -121.975267,
+      47.793535
+     ],
+     [
+      -121.975483,
+      47.793908
+     ],
+     [
+      -121.977904,
+      47.798079
+     ],
+     [
+      -121.978439,
+      47.799
+     ],
+     [
+      -121.978662,
+      47.799401
+     ],
+     [
+      -121.978853,
+      47.799785
+     ],
+     [
+      -121.979045,
+      47.800239
+     ],
+     [
+      -121.979184,
+      47.800651
+     ],
+     [
+      -121.979692,
+      47.802163
+     ],
+     [
+      -121.979933,
+      47.80296
+     ],
+     [
+      -121.980197,
+      47.80382
+     ],
+     [
+      -121.98045,
+      47.804687
+     ],
+     [
+      -121.98069,
+      47.805416
+     ],
+     [
+      -121.982161,
+      47.809899
+     ],
+     [
+      -121.982368,
+      47.810528
+     ],
+     [
+      -121.982447,
+      47.810783
+     ],
+     [
+      -121.982517,
+      47.81103
+     ],
+     [
+      -121.982559,
+      47.811295
+     ],
+     [
+      -121.982566,
+      47.811382
+     ],
+     [
+      -121.98262,
+      47.811453
+     ],
+     [
+      -121.982634,
+      47.811586
+     ],
+     [
+      -121.98264,
+      47.811741
+     ],
+     [
+      -121.982636,
+      47.811852
+     ],
+     [
+      -121.982631,
+      47.811914
+     ],
+     [
+      -121.98262,
+      47.811987
+     ],
+     [
+      -121.982613,
+      47.812043
+     ],
+     [
+      -121.982616,
+      47.812082
+     ],
+     [
+      -121.982624,
+      47.812131
+     ],
+     [
+      -121.982647,
+      47.812172
+     ],
+     [
+      -121.982687,
+      47.812216
+     ],
+     [
+      -121.9827,
+      47.812245
+     ],
+     [
+      -121.982702,
+      47.812272
+     ],
+     [
+      -121.982694,
+      47.812294
+     ],
+     [
+      -121.982675,
+      47.812316
+     ],
+     [
+      -121.982645,
+      47.812338
+     ],
+     [
+      -121.98262,
+      47.812351
+     ],
+     [
+      -121.982527,
+      47.812432
+     ],
+     [
+      -121.982501,
+      47.812506
+     ],
+     [
+      -121.982448,
+      47.812636
+     ],
+     [
+      -121.982369,
+      47.812827
+     ],
+     [
+      -121.982304,
+      47.812879
+     ],
+     [
+      -121.982249,
+      47.813022
+     ],
+     [
+      -121.982122,
+      47.813323
+     ],
+     [
+      -121.981986,
+      47.81362
+     ],
+     [
+      -121.981864,
+      47.813911
+     ],
+     [
+      -121.981735,
+      47.814233
+     ],
+     [
+      -121.981707,
+      47.814316
+     ],
+     [
+      -121.981651,
+      47.814483
+     ],
+     [
+      -121.981628,
+      47.814552
+     ],
+     [
+      -121.98161,
+      47.814818
+     ],
+     [
+      -121.981635,
+      47.815154
+     ],
+     [
+      -121.981633,
+      47.815446
+     ],
+     [
+      -121.981585,
+      47.815688
+     ],
+     [
+      -121.981482,
+      47.815935
+     ],
+     [
+      -121.981373,
+      47.816131
+     ],
+     [
+      -121.981209,
+      47.816345
+     ],
+     [
+      -121.98101,
+      47.816535
+     ],
+     [
+      -121.980785,
+      47.8167
+     ],
+     [
+      -121.98055,
+      47.81685
+     ],
+     [
+      -121.980285,
+      47.817005
+     ],
+     [
+      -121.979102,
+      47.817699
+     ],
+     [
+      -121.978798,
+      47.817901
+     ],
+     [
+      -121.978525,
+      47.818102
+     ],
+     [
+      -121.978242,
+      47.818341
+     ],
+     [
+      -121.977984,
+      47.818583
+     ],
+     [
+      -121.97695,
+      47.819607
+     ],
+     [
+      -121.975291,
+      47.821271
+     ],
+     [
+      -121.974384,
+      47.822181
+     ],
+     [
+      -121.972019,
+      47.824551
+     ],
+     [
+      -121.971757,
+      47.824823
+     ],
+     [
+      -121.97154,
+      47.825087
+     ],
+     [
+      -121.971338,
+      47.825352
+     ],
+     [
+      -121.971152,
+      47.825647
+     ],
+     [
+      -121.970996,
+      47.825964
+     ],
+     [
+      -121.970884,
+      47.826245
+     ],
+     [
+      -121.970777,
+      47.826545
+     ],
+     [
+      -121.97071,
+      47.826828
+     ],
+     [
+      -121.970654,
+      47.827138
+     ],
+     [
+      -121.970335,
+      47.828788
+     ],
+     [
+      -121.970287,
+      47.829028
+     ],
+     [
+      -121.969525,
+      47.833018
+     ],
+     [
+      -121.969486,
+      47.833289
+     ],
+     [
+      -121.969446,
+      47.833583
+     ],
+     [
+      -121.969417,
+      47.833829
+     ],
+     [
+      -121.969395,
+      47.834115
+     ],
+     [
+      -121.96938,
+      47.834447
+     ],
+     [
+      -121.969372,
+      47.834726
+     ],
+     [
+      -121.969314,
+      47.841617
+     ],
+     [
+      -121.969321,
+      47.842057
+     ],
+     [
+      -121.969342,
+      47.842474
+     ],
+     [
+      -121.969398,
+      47.842836
+     ],
+     [
+      -121.969472,
+      47.843195
+     ],
+     [
+      -121.969524,
+      47.843395
+     ],
+     [
+      -121.96961,
+      47.843677
+     ],
+     [
+      -121.969687,
+      47.843881
+     ],
+     [
+      -121.969814,
+      47.844195
+     ],
+     [
+      -121.970026,
+      47.844674
+     ],
+     [
+      -121.970334,
+      47.845365
+     ]
+    ]
+   },
+   "bbox": [
+    -121.984592,
+    47.707761,
+    -121.970334,
+    47.845365
+   ]
+  }
+ ]
+}

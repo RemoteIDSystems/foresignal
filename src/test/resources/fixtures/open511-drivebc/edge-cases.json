@@ -1,0 +1,32 @@
+{
+ "events": [
+  {"id": "drivebc.ca/EDGE-ARCHIVED", "status": "ARCHIVED", "headline": "INCIDENT", "event_type": "INCIDENT",
+   "updated": "2026-10-13T10:00:00-07:00", "severity": "MAJOR",
+   "geography": {"type": "Point", "coordinates": [-123.1, 49.2]}, "schedule": {"intervals": ["2026-10-13T16:00/"]}},
+  {"status": "ACTIVE", "headline": "INCIDENT", "event_type": "INCIDENT", "updated": "2026-10-13T10:00:00-07:00",
+   "geography": {"type": "Point", "coordinates": [-123.1, 49.2]}},
+  {"id": "drivebc.ca/EDGE-NO-UPDATED", "status": "ACTIVE", "headline": "INCIDENT", "event_type": "INCIDENT",
+   "geography": {"type": "Point", "coordinates": [-123.1, 49.2]}},
+  {"id": "drivebc.ca/EDGE-BAD-GEOMETRY", "status": "ACTIVE", "headline": "INCIDENT", "event_type": "INCIDENT",
+   "updated": "2026-10-13T10:00:00-07:00", "geography": {"type": "LineString", "coordinates": 5}},
+  {"id": "drivebc.ca/EDGE-INTERVALS", "status": "ACTIVE", "headline": "Highway 99 night closures",
+   "event_type": "SPECIAL_EVENT", "event_subtypes": ["PARADE"], "severity": "MODERATE",
+   "updated": "2026-10-13T10:00:00-07:00", "description": "Night closures for a parade.\nUse Highway 1.",
+   "+ivr_message": "dropped", "+linear_reference_km": 12.5,
+   "roads": [{"name": "Highway 99", "direction": "N", "state": "SOME_LANES_CLOSED"},
+             {"name": "Highway 99", "direction": "S", "state": "CLOSED"}, {"name": "Main Street"}],
+   "schedule": {"intervals": ["2026-10-20T03:00/2026-10-20T11:00", "2026-10-19T03:00/2026-10-19T11:00",
+                              "2026-10-21T03:00/2026-10-21T11:00"]},
+   "geography": {"type": "MultiLineString", "coordinates": [[[-123.1, 49.2], [-123.2, 49.3]],
+                                                             [[-123.3, 49.4], [-123.4, 49.5]]]}},
+  {"id": "drivebc.ca/EDGE-OPEN-END", "status": "ACTIVE", "headline": "WEATHER_CONDITION",
+   "event_type": "WEATHER_CONDITION", "severity": "UNKNOWN", "updated": "2026-10-13T10:00:00-07:00",
+   "roads": [{"name": "Highway 3", "direction": "BOTH", "state": "ALL_LANES_OPEN"}],
+   "schedule": {"intervals": ["2026-10-01T00:00/2026-10-05T00:00", "2026-10-12T00:00/"]},
+   "geography": {"type": "Point", "coordinates": [-120.0, 49.5]}},
+  {"id": "drivebc.ca/EDGE-UNKNOWN-TYPE", "status": "ACTIVE", "event_type": "SOMETHING_NEW", "severity": "EXTREME",
+   "updated": "2026-10-13T10:00:00-07:00", "geography": null}
+ ],
+ "pagination": {"offset": "0", "next_url": "/events?format=json&status=ACTIVE&limit=500&offset=500"},
+ "meta": {"url": "/events", "up_url": "", "version": "v1"}
+}

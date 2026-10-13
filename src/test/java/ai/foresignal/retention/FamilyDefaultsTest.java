@@ -144,6 +144,16 @@ class FamilyDefaultsTest {
             Map.entry("CctvPackAdapter", new Entry(new ai.foresignal.source.adapters.cctv.CctvPackAdapter(
                     ai.foresignal.source.adapters.cctv.CctvPacks.reviewed("cctv-tfl"), null, null).descriptor(),
                     "reference")),
+            // Prompt 074: road events (incidents, closures, roadworks) are the event class (1825 d).
+            Map.entry("Open511Adapter", new Entry(new ai.foresignal.source.adapters.roads.Open511Adapter(
+                    ai.foresignal.source.adapters.roads.Open511Server.REVIEWED.getFirst(), null).descriptor(), "event")),
+            Map.entry("WzdxAdapter", new Entry(new ai.foresignal.source.adapters.roads.WzdxAdapter(
+                    ai.foresignal.source.adapters.roads.WzdxRegistry.load().getFirst(), null).descriptor(), "event")),
+            Map.entry("DigitrafficRoadAdapter", new Entry(new ai.foresignal.source.adapters.roads.DigitrafficRoadAdapter(
+                    "", () -> "dev", null).descriptor(), "event")),
+            Map.entry("NdwSituationsAdapter", new Entry(new ai.foresignal.source.adapters.roads.NdwSituationsAdapter(
+                    ai.foresignal.source.adapters.roads.NdwSituationsAdapter.FEEDS.getFirst(), null).descriptor(),
+                    "event")),
             // Prompt 052: the derived weather sources, retained per Weather-Imagery-Design §2.4.
             Map.entry("WxPlacesGenerator", new Entry(
                     new ai.foresignal.source.adapters.wx.WxPlacesGenerator().descriptor(), "weather")),

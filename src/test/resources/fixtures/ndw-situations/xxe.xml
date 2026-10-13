@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE foo [ <!ENTITY xxe SYSTEM "file:///etc/hostname"> ]>
+<mc:messageContainer xmlns:sit="http://datex2.eu/schema/3/situation" xmlns:mc="http://datex2.eu/schema/3/messageContainer">
+<sit:situation id="XXE"><sit:situationVersionTime>2026-10-13T17:00:00Z</sit:situationVersionTime>
+<sit:situationRecord><sit:generalPublicComment><sit:value>&xxe;</sit:value></sit:generalPublicComment></sit:situationRecord>
+</sit:situation></mc:messageContainer>

@@ -1,0 +1,360 @@
+{
+  "registry": "https://data.transportation.gov/resource/69qe-yiui.json",
+  "registryPage": "https://data.transportation.gov/d/69qe-yiui",
+  "registryLicense": "Public Domain U.S. Government",
+  "snapshotDate": "2026-10-13",
+  "registryRows": 43,
+  "rule": "active=true, format=geojson, version 4.x, no token in the URL; key-required rows only where the registry URL shows the key's query parameter",
+  "feeds": [
+    {
+      "feedname": "austin",
+      "issuingorganization": "City of Austin",
+      "state": "texas",
+      "version": "4.2",
+      "datafeed_frequency_update": "60m",
+      "url": "https://data.austintexas.gov/download/d9mm-cjw9"
+    },
+    {
+      "feedname": "cdot",
+      "issuingorganization": "Colorado DOT",
+      "state": "colorado",
+      "version": "4.2",
+      "datafeed_frequency_update": "5m",
+      "url": "https://data.cotrip.org/api/v1/wzdx",
+      "apiKey": {
+        "placement": "query",
+        "name": "apiKey"
+      },
+      "apikeyurl": "https://maps.cotrip.org/help/section/for-developers.html"
+    },
+    {
+      "feedname": "CivicLink_CrewCast",
+      "issuingorganization": "CivicLink",
+      "state": "n/a",
+      "version": "4.2",
+      "datafeed_frequency_update": "5m",
+      "url": "https://road-connect-community-bry7272.replit.app/api/wzdx/work-zones.geojson"
+    },
+    {
+      "feedname": "dedot",
+      "issuingorganization": "Delaware DOT",
+      "state": "delaware",
+      "version": "4.1",
+      "datafeed_frequency_update": "10m",
+      "url": "https://wzdx.e-dot.com/del_dot_feed_wzdx_v4.1.geojson"
+    },
+    {
+      "feedname": "hidot",
+      "issuingorganization": "Hawaii DOT",
+      "state": "hawaii",
+      "version": "4.1",
+      "datafeed_frequency_update": "168h",
+      "url": "https://ai.blyncsy.io/wzdx/hidot/feed"
+    },
+    {
+      "feedname": "iddot",
+      "issuingorganization": "Idaho DOT",
+      "state": "idaho",
+      "version": "4.1",
+      "datafeed_frequency_update": "1m",
+      "url": "https://511.idaho.gov/api/wzdx"
+    },
+    {
+      "feedname": "idot",
+      "issuingorganization": "Iowa DOT",
+      "state": "iowa",
+      "version": "4",
+      "datafeed_frequency_update": "1m",
+      "url": "https://iowa-atms.cloud-q-free.com/api/rest/dataprism/wzdx/wzdxfeed"
+    },
+    {
+      "feedname": "iltollway",
+      "issuingorganization": "Illinois Tollway",
+      "state": "illinois",
+      "version": "4.2",
+      "datafeed_frequency_update": "60m",
+      "url": "https://tims2go.tollway.state.il.us/wzdx/v4.2",
+      "apiKey": {
+        "placement": "query",
+        "name": "api_key"
+      },
+      "apikeyurl": null
+    },
+    {
+      "feedname": "indot",
+      "issuingorganization": "Indiana DOT",
+      "state": "indiana",
+      "version": "4.1",
+      "datafeed_frequency_update": "1m",
+      "url": "https://in.carsprogram.org/carsapi_v1/api/wzdx"
+    },
+    {
+      "feedname": "kansas",
+      "issuingorganization": "Kansas DOT",
+      "state": "kansas",
+      "version": "4",
+      "datafeed_frequency_update": "60s",
+      "url": "https://ks.carsprogram.org/carsapi_v1/api/wzdx"
+    },
+    {
+      "feedname": "kytc",
+      "issuingorganization": "Kentucky Transportation Cabinet",
+      "state": "kentucky",
+      "version": "4.1",
+      "datafeed_frequency_update": "30m",
+      "url": "https://storage.googleapis.com/kytc-its-2020-openrecords/public/feeds/WZDx/kytc_wzdx_v4.1.geojson"
+    },
+    {
+      "feedname": "ladotd",
+      "issuingorganization": "Louisiana DOTD",
+      "state": "louisiana",
+      "version": "4.1",
+      "datafeed_frequency_update": "10m",
+      "url": "https://wzdx.e-dot.com/la_dot_d_feed_wzdx_v4.1.geojson"
+    },
+    {
+      "feedname": "mcdot",
+      "issuingorganization": "Maricopa County DOT",
+      "state": "arizona",
+      "version": "4.2",
+      "datafeed_frequency_update": "1m",
+      "url": "https://wzdxapi.aztech.org/construction"
+    },
+    {
+      "feedname": "mdot",
+      "issuingorganization": "Maryland DOT",
+      "state": "maryland",
+      "version": "4.1",
+      "datafeed_frequency_update": "1m",
+      "url": "https://filter.ritis.org/wzdx_v4.1/mdot.geojson"
+    },
+    {
+      "feedname": "mndot",
+      "issuingorganization": "Minnesota DOT",
+      "state": "minnesota",
+      "version": "4",
+      "datafeed_frequency_update": "1m",
+      "url": "https://mn.carsprogram.org/carsapi_v1/api/wzdx"
+    },
+    {
+      "feedname": "msdot",
+      "issuingorganization": "Mississippi DOT",
+      "state": "mississippi",
+      "version": "4.2",
+      "datafeed_frequency_update": "2m",
+      "url": "https://api.mdottraffic.com/prod/v3/data/wzdx"
+    },
+    {
+      "feedname": "mtc",
+      "issuingorganization": "Metropolitan Transportation Commission San Francisco",
+      "state": "california",
+      "version": "4.1",
+      "datafeed_frequency_update": "5m",
+      "url": "https://api.511.org/traffic/wzdx",
+      "apiKey": {
+        "placement": "query",
+        "name": "api_key"
+      },
+      "apikeyurl": "https://511.org/open-data/token"
+    },
+    {
+      "feedname": "ncdot",
+      "issuingorganization": "North Carolina DOT",
+      "state": "north carolina",
+      "version": "4.2",
+      "datafeed_frequency_update": "4m",
+      "url": "https://drivenc.gov/api/wzdx"
+    },
+    {
+      "feedname": "nddot",
+      "issuingorganization": "North Dakota DOT",
+      "state": "North Dakota",
+      "version": "4",
+      "datafeed_frequency_update": "5m",
+      "url": "https://travelfiles.dot.nd.gov/geojson_nc/wzdx_geojson.json"
+    },
+    {
+      "feedname": "necdot",
+      "issuingorganization": "NHDOT/VTAOT/MEDOT",
+      "state": "New Hampshire, Vermont, Maine",
+      "version": "4.2",
+      "datafeed_frequency_update": "1m",
+      "url": "https://api.dx.ne-compass.com/wzdx-latest/"
+    },
+    {
+      "feedname": "njdot",
+      "issuingorganization": "New Jersey Institute of Technology",
+      "state": "new jersey",
+      "version": "4.1",
+      "datafeed_frequency_update": "2m",
+      "url": "https://smartworkzones.njit.edu/nj/wzdx"
+    },
+    {
+      "feedname": "nmdot",
+      "issuingorganization": "New Mexico DOT",
+      "state": "new mexico",
+      "version": "4.1",
+      "datafeed_frequency_update": "72h",
+      "url": "https://ai.blyncsy.io/wzdx/nmdot/feed"
+    },
+    {
+      "feedname": "nps",
+      "issuingorganization": "National Park Service",
+      "state": "nps",
+      "version": "4",
+      "datafeed_frequency_update": "60m",
+      "url": "https://developer.nps.gov/api/v1/roadevents?type=workzone",
+      "apiKey": {
+        "placement": "query",
+        "name": "api_key"
+      },
+      "apikeyurl": "https://www.nps.gov/subjects/developer/get-started.htm"
+    },
+    {
+      "feedname": "nysdot",
+      "issuingorganization": "New York DOT",
+      "state": "new york",
+      "version": "4.1",
+      "datafeed_frequency_update": "15m",
+      "url": "https://511ny.org/api/wzdx"
+    },
+    {
+      "feedname": "ohio",
+      "issuingorganization": "Ohio DOT",
+      "state": "ohio",
+      "version": "4.2",
+      "datafeed_frequency_update": "60m",
+      "url": "https://publicapi.ohgo.com/api/work-zones/wzdx/4.2",
+      "apiKey": {
+        "placement": "query",
+        "name": "api-key"
+      },
+      "apikeyurl": "https://publicapi.ohgo.com/accounts/registration"
+    },
+    {
+      "feedname": "ptc",
+      "issuingorganization": "Pennsylvania Turnpike Commission",
+      "state": "pennsylvania",
+      "version": "4.1",
+      "datafeed_frequency_update": "1m",
+      "url": "https://atms.paturnpike.com/api/WZDxWorkZoneFeed",
+      "apiKey": {
+        "placement": "query",
+        "name": "api_key"
+      },
+      "apikeyurl": "https://datahub.transportation.gov/api/views/69qe-yiui/files/de6330ba-7e11-4335-9a3f-caf24015dc1a?download=true&filename=WZDx_API_Key_Instructions.docx"
+    },
+    {
+      "feedname": "stcharlesco_v4",
+      "issuingorganization": "St. Charles County",
+      "state": "missouri",
+      "version": "4",
+      "datafeed_frequency_update": "60m",
+      "url": "https://scc.ridsi-dash.com:5000/wzdx.geojson"
+    },
+    {
+      "feedname": "txdot_v4_2",
+      "issuingorganization": "Texas DOT",
+      "state": "texas",
+      "version": "4.2",
+      "datafeed_frequency_update": "5m",
+      "url": "https://api.drivetexas.org/api/conditions.wzdx.geojson",
+      "apiKey": {
+        "placement": "query",
+        "name": "key"
+      },
+      "apikeyurl": "https://api.drivetexas.org/"
+    },
+    {
+      "feedname": "udot",
+      "issuingorganization": "Utah DOT",
+      "state": "utah",
+      "version": "4",
+      "datafeed_frequency_update": "15m",
+      "url": "https://udottraffic.utah.gov/wzdx/udot/v40/data"
+    },
+    {
+      "feedname": "vdot",
+      "issuingorganization": "Virginia DOT",
+      "state": "virginia",
+      "version": "4",
+      "datafeed_frequency_update": "1m",
+      "url": "https://data.511-atis-ttrip-prod.iteriscloud.com/smarterRoads/workzone/workZoneJSON/current/workZone.json",
+      "apiKey": {
+        "placement": "query",
+        "name": "token"
+      },
+      "apikeyurl": "https://smarterroads.vdot.virginia.gov/register"
+    },
+    {
+      "feedname": "wsdot",
+      "issuingorganization": "Washington State DOT",
+      "state": "washington",
+      "version": "4.2",
+      "datafeed_frequency_update": "1m",
+      "url": "https://wzdx.wsdot.wa.gov/api/v4/WorkZoneFeed"
+    }
+  ],
+  "excluded": [
+    {
+      "feedname": "cdot_cwz",
+      "version": "CWZ 1.0",
+      "reason": "version CWZ 1.0 is not 4.x"
+    },
+    {
+      "feedname": "fldot",
+      "version": "4.2",
+      "reason": "the URL embeds a token"
+    },
+    {
+      "feedname": "idot_cwz",
+      "version": "CWZ 1.0",
+      "reason": "version CWZ 1.0 is not 4.x"
+    },
+    {
+      "feedname": "massdot__cwz",
+      "version": "CWZ 1.0",
+      "reason": "version CWZ 1.0 is not 4.x"
+    },
+    {
+      "feedname": "mdot_4",
+      "version": "4",
+      "reason": "needs an API key but the registry does not document where it goes"
+    },
+    {
+      "feedname": "michigandot",
+      "version": null,
+      "reason": "inactive"
+    },
+    {
+      "feedname": "modot",
+      "version": "4.1",
+      "reason": "format json, not geojson"
+    },
+    {
+      "feedname": "odot",
+      "version": "4",
+      "reason": "the URL embeds a token"
+    },
+    {
+      "feedname": "ordot",
+      "version": "4",
+      "reason": "needs an API key but the registry does not document where it goes"
+    },
+    {
+      "feedname": "pbs",
+      "version": "CWZ 1.0",
+      "reason": "version CWZ 1.0 is not 4.x"
+    },
+    {
+      "feedname": "quebec",
+      "version": "3.1",
+      "reason": "version 3.1 is not 4.x"
+    },
+    {
+      "feedname": "wisdot",
+      "version": "4.1",
+      "reason": "format json, not geojson"
+    }
+  ]
+}
