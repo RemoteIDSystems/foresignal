@@ -404,3 +404,26 @@ connection attempt. Storing new credentials always restarts a running stream.
 `MutableClock`; an adapter test against `testsupport/websocket/LoopbackWebSocketServer` (subscription timing,
 fragments, oversize, back-pressure, errors, the bad-key rule, the watchdog, `update()`, no key in the logs); and an
 ingest IT through a real `StreamingSupervisor` built with short timings, as `AisStreamIngestIT` does.
+
+## 17. Strict usage policies, orbital elements and predicted passes (prompt 064)
+
+**Stop and alert a human.** An upstream whose policy says a machine client must stop on unexpected answers
+(CelesTrak: any non-200 other than its "not updated" 403, any redirect, a body of the wrong format) throws
+**`UpstreamHaltException(status, reason)`**. The reason must contain "automatic retries stopped". `FetchExecutor`
+then holds the source for 24 h with `BackoffRegistry.halt` (not clamped to the one-hour backoff ceiling, persisted
+as `source_health.backoff_halted`), records the failure, so health is `failing` with the reason, and publishes a
+`system.source_halted` notification. Only `POST /v1/sources/{id}/fetch` releases the hold early; an ordinary
+backoff still answers `409 IN_BACKOFF`. Set **`followRedirects(false)`** on the descriptor when a redirect must reach
+the adapter as a 3xx response instead of being followed. A status that is really "nothing new" (CelesTrak's 403) is
+`FetchResult.unchanged()`, never a failure.
+
+**Orbital elements.** `celestrak-gp` stores CCSDS OMM element sets; `ai.foresignal.space.OmmElements` reads them back
+from a payload. An adapter that needs elements takes the SPI type **`OrbitalElements`** (`byNorad`) through an
+`ObjectProvider`, as a SatDump station does; a DERIVED source reads `ctx.records().get("celestrak-gp", norad)`. Never
+build TLE text to propagate: TLE cannot carry catalog numbers of 100000 and above. Use
+`ai.foresignal.space.PassPredictor` (Orekit SGP4 through the TLE field constructor) and
+`ai.foresignal.space.GroundTracks`.
+
+**Predicted records.** Round predicted times (10 s), angles and geometry before emitting, so element refreshes do not
+churn versions; tombstone a prediction only when fresh elements no longer produce it, never because elements are
+missing.

@@ -13,6 +13,7 @@ import ai.foresignal.source.spi.SourceDescriptor;
 import ai.foresignal.source.spi.ValidatedParams;
 import java.time.Duration;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 import tools.jackson.core.JacksonException;
@@ -46,6 +47,18 @@ public final class SatDumpDescriptor {
 
     /** {@code inboxPath}: SatDump's output directory under the inbox, {@code INBOX_PATH}. */
     public static final String INBOX_PATH = "inboxPath";
+
+    /** The catalog numbers whose passes the station predicts (prompt 064). */
+    public static final String PREDICT_NORAD = "predictNorad";
+
+    /** The minimum elevation of a predicted pass (prompt 064). */
+    public static final String PREDICT_MIN_ELEVATION = "predictMinElevationDeg";
+
+    /** METEOR-M2 3 and METEOR-M2 4. */
+    public static final List<String> DEFAULT_PREDICT_NORAD = List.of("57166", "59051");
+
+    /** The default minimum elevation of a predicted pass, degrees. */
+    public static final double DEFAULT_PREDICT_MIN_ELEVATION = 10.0;
 
     /** {@code location}: {@code lat,lon[,altM]} or a place id. */
     public static final String LOCATION = "location";
@@ -144,6 +157,11 @@ public final class SatDumpDescriptor {
                 .param(ParamSpec.optional(POLAR_GLOB, ParamType.STRING,
                         "Which files of a ready polar pass folder are read as EPSG:4326/3857 GeoTIFF overlays, a glob"
                                 + " relative to the pass folder; ** crosses directories.", DEFAULT_POLAR_GLOB))
+                .param(ParamSpec.optional(PREDICT_NORAD, ParamType.STRING_LIST,
+                        "Catalog numbers whose passes over the station are predicted from celestrak-gp elements (prompt"
+                                + " 064) as status predicted; empty turns predictions off.", DEFAULT_PREDICT_NORAD))
+                .param(ParamSpec.optional(PREDICT_MIN_ELEVATION, ParamType.NUMBER,
+                        "The elevation a predicted pass must rise above, degrees.", DEFAULT_PREDICT_MIN_ELEVATION))
                 .credential(CredentialField.optional(INGEST_KEY,
                         "Optional. A key you choose (eik_ followed by at least 32 random characters) that a remote"
                                 + " station sends, like an ingest key, to POST /v1/ingest/" + sourceId(station)
@@ -186,6 +204,16 @@ public final class SatDumpDescriptor {
                 problems.put(POLAR_GLOB, e.getMessage());
             }
         }
+        for (String norad : predictNorad(params)) {
+            if (!norad.matches("\\d{1,9}")) {
+                problems.put(PREDICT_NORAD, "'" + norad + "' is not a catalog number of 1 to 9 digits");
+                break;
+            }
+        }
+        Double minEl = params.number(PREDICT_MIN_ELEVATION);
+        if (minEl != null && (minEl < 0 || minEl >= 90)) {
+            problems.put(PREDICT_MIN_ELEVATION, "must be 0 to 89, but was " + minEl);
+        }
         String names = params.string(SAT_NAMES);
         if (names != null && !names.isBlank()) {
             try {
@@ -195,6 +223,13 @@ public final class SatDumpDescriptor {
             }
         }
         return problems;
+    }
+
+    /** The {@code predictNorad} list, trimmed; the default when unset (prompt 064). */
+    public static List<String> predictNorad(ValidatedParams params) {
+        List<String> list = params.has(PREDICT_NORAD) ? params.stringList(PREDICT_NORAD) : null;
+        return (list == null ? DEFAULT_PREDICT_NORAD : list).stream().map(String::strip)
+                .filter(n -> !n.isEmpty()).toList();
     }
 
     /**

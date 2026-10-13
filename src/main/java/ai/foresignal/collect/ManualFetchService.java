@@ -19,6 +19,11 @@ import org.springframework.stereotype.Service;
  * normally and writes the fetch's {@code fetch_log} row, <strong>even while the source is
  * disabled</strong>: a manual fetch is one of the three things allowed to cause an upstream
  * request, alongside an enabled source and a probe. It consumes budget like any fetch.
+ *
+ * <p>A source <em>halted</em> by its upstream's usage policy (prompt 064, {@code UpstreamHaltException}) is
+ * released by a manual fetch: the hold exists so that a human investigates before Foresignal asks again, and
+ * fetch-now is that human's decision. An ordinary backoff (the upstream's own {@code Retry-After}) still
+ * refuses with {@code IN_BACKOFF}.
  */
 @Service
 public class ManualFetchService {
@@ -66,6 +71,7 @@ public class ManualFetchService {
         if (executor.isRunning(sourceId)) {
             throw alreadyRunning(sourceId);
         }
+        backoff.clearHalt(sourceId);
         if (backoff.isInBackoff(sourceId)) {
             throw inBackoff(sourceId);
         }

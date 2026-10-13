@@ -1,6 +1,7 @@
 package ai.foresignal.source.adapters.satdump;
 
 import ai.foresignal.source.spi.LiveImageHolder;
+import ai.foresignal.source.spi.OrbitalElements;
 import ai.foresignal.source.spi.PlacePoints;
 import ai.foresignal.source.spi.RemoteMediaReceivers;
 import ai.foresignal.source.spi.SourceAdapter;
@@ -43,14 +44,32 @@ public class SatDumpFamily implements SourceAdapterFamily {
      */
     public SatDumpFamily(@Value("${" + STATIONS_PROPERTY + ":}") String stations, ObjectProvider<PlacePoints> places,
             ObjectProvider<LiveImageHolder> liveImages, ObjectProvider<RemoteMediaReceivers> receivers) {
+        this(stations, places, liveImages, receivers, null);
+    }
+
+    /**
+     * Creates the family (prompt 064).
+     *
+     * @param stations the comma list of station names
+     * @param places resolves place-id locations (prompt 036), resolved lazily
+     * @param liveImages holds the polar plots, resolved lazily
+     * @param receivers where running stations register for pushed images (prompt 054), resolved lazily
+     * @param elements the current {@code celestrak-gp} element sets for predicted passes, resolved lazily
+     */
+    @org.springframework.beans.factory.annotation.Autowired
+    public SatDumpFamily(@Value("${" + STATIONS_PROPERTY + ":}") String stations, ObjectProvider<PlacePoints> places,
+            ObjectProvider<LiveImageHolder> liveImages, ObjectProvider<RemoteMediaReceivers> receivers,
+            ObjectProvider<OrbitalElements> elements) {
         List<SourceAdapter> built = new ArrayList<>();
         java.util.function.Supplier<PlacePoints> placeSupplier = places == null ? () -> null : places::getIfAvailable;
         java.util.function.Supplier<LiveImageHolder> imageSupplier =
                 liveImages == null ? () -> null : liveImages::getIfAvailable;
         java.util.function.Supplier<RemoteMediaReceivers> receiverSupplier =
                 receivers == null ? () -> null : receivers::getIfAvailable;
+        java.util.function.Supplier<OrbitalElements> elementSupplier =
+                elements == null ? () -> null : elements::getIfAvailable;
         for (String station : names(stations)) {
-            built.add(new SatDumpAdapter(station, placeSupplier, imageSupplier, receiverSupplier));
+            built.add(new SatDumpAdapter(station, placeSupplier, imageSupplier, receiverSupplier, elementSupplier));
         }
         this.adapters = List.copyOf(built);
         if (!adapters.isEmpty()) {

@@ -69,6 +69,14 @@ public class SourceHealthEntity {
     @Column(name = "backoff_until")
     private Instant backoffUntil;
 
+    /**
+     * True while {@link #backoffUntil} is a halt (prompt 064: an upstream whose usage policy says to stop
+     * and alert a human), which only the operator's fetch-now clears early. Nullable: rows written before
+     * 064 read as false.
+     */
+    @Column(name = "backoff_halted")
+    private Boolean backoffHalted;
+
     /** The most recent coverage a fetch reported, or null when none ever has. */
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "last_coverage")
@@ -196,6 +204,16 @@ public class SourceHealthEntity {
 
     public void setBackoffUntil(Instant backoffUntil) {
         this.backoffUntil = backoffUntil;
+    }
+
+    /** True while the backoff is a halt (prompt 064). */
+    public boolean isBackoffHalted() {
+        return Boolean.TRUE.equals(backoffHalted);
+    }
+
+    /** Marks the backoff as a halt, or not (prompt 064). */
+    public void setBackoffHalted(boolean backoffHalted) {
+        this.backoffHalted = backoffHalted;
     }
 
     public CoverageSample getLastCoverage() {

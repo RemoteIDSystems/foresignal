@@ -207,8 +207,11 @@ public final class DescriptorValidator {
                                 + "' is required and also has a default, which cannot both apply");
             }
             if (spec.hasDefault() && !spec.allowed().isEmpty()) {
+                // A string-list default (prompts 063 and 064) is checked element by element.
+                java.util.Collection<?> values = spec.defaultValue() instanceof java.util.Collection<?> c
+                        ? c : List.of(spec.defaultValue());
                 String rendered = String.valueOf(spec.defaultValue());
-                if (!spec.allowed().contains(rendered)) {
+                if (!values.stream().map(String::valueOf).allMatch(spec.allowed()::contains)) {
                     problems.add(
                             descriptor.id()
                                     + ": param '"

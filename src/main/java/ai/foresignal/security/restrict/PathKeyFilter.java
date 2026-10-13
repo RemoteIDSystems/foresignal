@@ -48,6 +48,13 @@ import org.springframework.web.util.UrlPathHelper;
  *       controllers see {@code /v1/<rest>}.
  * </ol>
  *
+ * <p>Prompt 064: the CelesTrak-compatible output ({@value #QUERY_KEY_PREFIX}…) is read by Gpredict and Look4Sat,
+ * which can send neither headers nor a {@code /v1/k/} path, so there a feed key ({@code fsf_}) is accepted as the
+ * query parameter {@value #QUERY_KEY_PARAM}. The same rules apply (unknown 401, gone 410, GET and HEAD only, the
+ * path must lie under one of the key's prefixes, failures count for {@link AuthFailureBackoff}); the request is
+ * not forwarded, and {@value #QUERY_KEY_ATTRIBUTE} is set so the response stays {@code Cache-Control: private}.
+ * The access log never contains the query string.
+ *
  * <p>Every {@code /v1/k/…} response carries {@code Referrer-Policy: no-referrer},
  * {@code X-Robots-Tag: noindex} and {@code Cache-Control: private} (controllers may refine the
  * latter: a feed key is always restricted so stays {@code private}; a tile key without data
@@ -67,6 +74,15 @@ public class PathKeyFilter extends OncePerRequestFilter implements Ordered {
 
     /** The path prefix of key-in-path URLs. */
     public static final String PREFIX = "/v1/k/";
+
+    /** The path prefix where a feed key may arrive as {@code ?key=} (prompt 064). */
+    public static final String QUERY_KEY_PREFIX = "/compat/celestrak/";
+
+    /** The query parameter carrying a feed key under {@link #QUERY_KEY_PREFIX}. */
+    public static final String QUERY_KEY_PARAM = "key";
+
+    /** Set (to {@code true}) on a request authenticated by a {@code ?key=} feed key (prompt 064). */
+    public static final String QUERY_KEY_ATTRIBUTE = "ai.foresignal.pathKey.query";
 
     /** The request attribute holding the redacted request URI, for the access log. */
     public static final String LOG_URI_ATTRIBUTE = "ai.foresignal.logUri";
@@ -148,6 +164,11 @@ public class PathKeyFilter extends OncePerRequestFilter implements Ordered {
         String path = uri.substring(Math.min(contextPath.length(), uri.length()));
         request.setAttribute(LOG_URI_ATTRIBUTE, redact(uri));
         if (!path.startsWith(PREFIX)) {
+            String queryKey = path.startsWith(QUERY_KEY_PREFIX) ? request.getParameter(QUERY_KEY_PARAM) : null;
+            if (queryKey != null && !queryKey.isBlank()) {
+                queryKey(request, response, chain, queryKey.strip(), path);
+                return;
+            }
             chain.doFilter(request, response);
             return;
         }
@@ -216,6 +237,55 @@ public class PathKeyFilter extends OncePerRequestFilter implements Ordered {
         ServletRequestPathUtils.clearParsedRequestPath(forwarded);
         forwarded.removeAttribute(UrlPathHelper.PATH_ATTRIBUTE);
         chain.doFilter(forwarded, response);
+    }
+
+    /** Resolves a {@code ?key=} feed key under {@link #QUERY_KEY_PREFIX} (prompt 064) and continues unforwarded. */
+    private void queryKey(HttpServletRequest request, HttpServletResponse response, FilterChain chain, String key,
+            String path) throws IOException, ServletException {
+        hygiene(response);
+        Optional<PathKeyResolver> resolver = resolvers.stream()
+                .filter(r -> !r.prefix().isEmpty() && key.startsWith(r.prefix()))
+                .findFirst();
+        PathKeyResolver.Resolution resolution = resolver.isEmpty()
+                || !key.startsWith(ai.foresignal.security.feed.FeedKeyService.KEY_PREFIX)
+                ? new PathKeyResolver.Invalid()
+                : resolver.get().resolve(key);
+        PathKeyResolver codes = resolver.orElse(DEFAULT_CODES);
+        String ip = request.getRemoteAddr();
+        switch (resolution) {
+            case PathKeyResolver.Invalid invalid -> {
+                if (!backedOff(ip, response)) {
+                    refuse(response, HttpStatus.UNAUTHORIZED, codes.invalidCode(), "The key in this URL is not valid.");
+                }
+            }
+            case PathKeyResolver.Gone gone -> {
+                if (!backedOff(ip, response)) {
+                    refuse(response, codes.goneStatus(), codes.goneCode(),
+                            "The key in this URL has expired or was revoked.");
+                }
+            }
+            case PathKeyResolver.Valid valid -> {
+                AuthFailureBackoff b = backoff.getIfAvailable();
+                if (b != null) {
+                    b.recordSuccess(ip);
+                }
+                String method = request.getMethod().toUpperCase(Locale.ROOT);
+                if (!"GET".equals(method) && !"HEAD".equals(method)) {
+                    response.setHeader(HttpHeaders.ALLOW, "GET, HEAD");
+                    refuse(response, HttpStatus.METHOD_NOT_ALLOWED, ErrorCodes.METHOD_NOT_ALLOWED,
+                            "Key URLs are read-only: GET and HEAD only.");
+                    return;
+                }
+                if (!safe(path) || !allowed(path, valid.prefixes())) {
+                    refuse(response, HttpStatus.FORBIDDEN, codes.outsidePrefixCode(),
+                            "This key is restricted to other paths.");
+                    return;
+                }
+                valid.principal().bind(request);
+                request.setAttribute(QUERY_KEY_ATTRIBUTE, Boolean.TRUE);
+                chain.doFilter(request, response);
+            }
+        }
     }
 
     /**

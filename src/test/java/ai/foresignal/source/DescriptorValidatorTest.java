@@ -217,4 +217,17 @@ class DescriptorValidatorTest {
         assertThat(DescriptorValidator.warnings(descriptor)).singleElement().asString().contains("private");
         assertThat(DescriptorValidator.warnings(valid().embedFields("note").build())).isEmpty();
     }
+
+    @Test
+    @DisplayName("a string-list default is checked element by element against allowed (prompts 063 and 064)")
+    void listDefaultAgainstAllowed() {
+        SourceDescriptor ok = valid().param(new ai.foresignal.source.spi.ParamSpec("groups",
+                ai.foresignal.source.spi.ParamType.STRING_LIST, "groups", List.of("a", "b"), false, List.of("a", "b", "c")))
+                .build();
+        assertThat(DescriptorValidator.problems(ok, null)).isEmpty();
+        SourceDescriptor bad = valid().param(new ai.foresignal.source.spi.ParamSpec("groups",
+                ai.foresignal.source.spi.ParamType.STRING_LIST, "groups", List.of("a", "z"), false, List.of("a", "b")))
+                .build();
+        assertThat(DescriptorValidator.problems(bad, null)).singleElement().asString().contains("groups");
+    }
 }

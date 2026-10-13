@@ -282,6 +282,11 @@
         "version": "1.3.0",
         "date": "2026-10-13",
         "note": "063: no operation changes. SourceHealth.details is returned (aisstream: compressionEnabled, perMessageDeflate, vessels) and omitted when empty; Record.title falls back to mmsi after hex. New source aisstream (STREAMING, kind vessel, egress LOCAL_ONLY)."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-13",
+        "note": "064: getCelestrakGp and getCelestrakGpAlias implemented (INTDES is a prefix match; ?key= takes a 035 feed key whose prefixes include /compat/celestrak/; a feed-key response is Cache-Control: private). SatellitePassPayload.status gains `missed`, and tca, aosAzimuthDeg, losAzimuthDeg, place and imminent are documented (satellite-passes sets validFrom = AOS). The reentry-prediction payload lists the optional TIP fields. New sources celestrak-gp, celestrak-socrates, launch-library, spacetrack-tip (LOCAL_ONLY) and satellite-passes (DERIVED); satdump-{station} gains predictNorad and predictMinElevationDeg. New system notification subtype system.source_halted (a source held for 24 h by its upstream's usage policy)."
       }
     ]
   },
@@ -33416,7 +33421,7 @@
         ],
         "operationId": "getCelestrakGp",
         "summary": "CelesTrak-compatible GP element sets",
-        "description": "CelesTrak-compatible GP output served from `celestrak-gp` heads, never by calling CelesTrak, so Gpredict (`GROUP=…&FORMAT=tle`), Look4Sat (`GROUP=active&FORMAT=csv`) and SatDump (`FORMAT=json`) can read elements from Foresignal. Query keys are uppercase as at CelesTrak; exactly one selector is required.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "CelesTrak-compatible GP output served from `celestrak-gp` heads, never by calling CelesTrak, so Gpredict (`GROUP=…&FORMAT=tle`), Look4Sat (`GROUP=active&FORMAT=csv`) and SatDump (`FORMAT=json`) can read elements from Foresignal. Query keys are uppercase as at CelesTrak; exactly one selector is required (`INTDES` matches as a prefix, so `1998-067` selects every piece). Clients that cannot send headers pass a 035 feed key as `?key=` (the key's prefixes must include `/compat/celestrak/`); a feed-key response is `Cache-Control: private, max-age=3600`. A caller whose restriction hides `celestrak-gp` or the `satellite` kind, or limits the area, gets `No GP data found`.\n\n**Scope:** `read` (open while `security.openReads` is on).",
         "parameters": [
           {
             "name": "GROUP",
@@ -33443,7 +33448,7 @@
             "name": "INTDES",
             "in": "query",
             "required": false,
-            "description": "International designator (e.g. `1998-067`)",
+            "description": "International designator, matched as a prefix (`1998-067` selects every piece, `1998-067A` one object)",
             "schema": {
               "type": "string"
             }
@@ -33489,7 +33494,7 @@
             "name": "key",
             "in": "query",
             "required": false,
-            "description": "035 path-bound feed key for clients that cannot send headers (Gpredict, Look4Sat)",
+            "description": "035 feed key (`fsf_…`) for clients that cannot send headers (Gpredict, Look4Sat); its prefixes must include `/compat/celestrak/` (064)",
             "schema": {
               "type": "string"
             }
@@ -33598,7 +33603,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "064",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -33617,7 +33622,7 @@
         ],
         "operationId": "getCelestrakGpAlias",
         "summary": "CelesTrak GP output (NORAD path alias)",
-        "description": "CelesTrak-compatible GP output served from `celestrak-gp` heads, never by calling CelesTrak, so Gpredict (`GROUP=…&FORMAT=tle`), Look4Sat (`GROUP=active&FORMAT=csv`) and SatDump (`FORMAT=json`) can read elements from Foresignal. Query keys are uppercase as at CelesTrak; exactly one selector is required. Alias of `/compat/celestrak/gp.php` at CelesTrak's historical path.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "CelesTrak-compatible GP output served from `celestrak-gp` heads, never by calling CelesTrak, so Gpredict (`GROUP=…&FORMAT=tle`), Look4Sat (`GROUP=active&FORMAT=csv`) and SatDump (`FORMAT=json`) can read elements from Foresignal. Query keys are uppercase as at CelesTrak; exactly one selector is required (`INTDES` matches as a prefix, so `1998-067` selects every piece). Clients that cannot send headers pass a 035 feed key as `?key=` (the key's prefixes must include `/compat/celestrak/`); a feed-key response is `Cache-Control: private, max-age=3600`. A caller whose restriction hides `celestrak-gp` or the `satellite` kind, or limits the area, gets `No GP data found`. Alias of `/compat/celestrak/gp.php` at CelesTrak's historical path.\n\n**Scope:** `read` (open while `security.openReads` is on).",
         "parameters": [
           {
             "name": "GROUP",
@@ -33644,7 +33649,7 @@
             "name": "INTDES",
             "in": "query",
             "required": false,
-            "description": "International designator (e.g. `1998-067`)",
+            "description": "International designator, matched as a prefix (`1998-067` selects every piece, `1998-067A` one object)",
             "schema": {
               "type": "string"
             }
@@ -33690,7 +33695,7 @@
             "name": "key",
             "in": "query",
             "required": false,
-            "description": "035 path-bound feed key for clients that cannot send headers (Gpredict, Look4Sat)",
+            "description": "035 feed key (`fsf_…`) for clients that cannot send headers (Gpredict, Look4Sat); its prefixes must include `/compat/celestrak/` (064)",
             "schema": {
               "type": "string"
             }
@@ -33799,7 +33804,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "064",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -88415,10 +88420,17 @@
             "payloadFields": {
               "spacetrack-tip": [
                 "window",
+                "lat",
+                "lon",
+                "inclination",
+                "direction",
+                "rev",
+                "highInterest",
+                "nextReport",
                 "geometryNote"
               ]
             },
-            "note": "Optional disabled source (LOCAL_ONLY). Unverified TIP fields (LAT, LON, INCL, DIRECTION, REV, HIGH_INTEREST, NEXT_REPORT) are parsed when present; eventTime = DECAY_EPOCH.",
+            "note": "Optional source, disabled by default, LOCAL_ONLY (Space-Track User Agreement). externalId = NORAD_CAT_ID; observedAt = MSG_EPOCH; eventTime = DECAY_EPOCH; `window` in minutes. The unverified TIP fields LAT, LON, INCL, DIRECTION, REV, HIGH_INTEREST and NEXT_REPORT become lat, lon, inclination, direction, rev, highInterest and nextReport when present; geometry Point(LON, LAT) with geometryNote.",
             "example": {
               "window": 120,
               "geometryNote": "predicted position at 10 km altitude, not an impact point"
@@ -88437,7 +88449,8 @@
                 "los",
                 "maxElevationDeg",
                 "aosAzimuthDeg",
-                "losAzimuthDeg"
+                "losAzimuthDeg",
+                "imminent"
               ],
               "satdump-{station}": [
                 "satellite",
@@ -88448,6 +88461,7 @@
                 "aos",
                 "los",
                 "maxElevationDeg",
+                "tca",
                 "status",
                 "station",
                 "rf",
@@ -88456,10 +88470,12 @@
                 "tle",
                 "satdumpVersion",
                 "title",
-                "attribution"
+                "attribution",
+                "aosAzimuthDeg",
+                "losAzimuthDeg"
               ]
             },
-            "note": "status `predicted` (064), then `receiving|recorded|decoded|failed` for SatDump station passes (049: `receiving` at AOS, `recorded` at LOS with `rf{}`, `decoded` when products join, `failed` when none arrived by LOS + 20 min although the station had lock); 064: geometry = ground track, tombstoned at LOS + 10 min. 049: externalId `{station}:{satKey}:{aosEpochMinute}`, eventTime = AOS, observedAt = the latest status time, geometry = the station point (054 upgrades it to footprints or swaths), retention 365 d; `products[]` = `{instrument, composite, mediaId, thumbMediaId}` (054 adds `productId`, `frameKey`, `tilesTemplate`); `pipelineId` and `satdumpVersion` only when the station reports them.",
+            "note": "status `predicted` (064), then `receiving|recorded|decoded|failed` for SatDump station passes (049: `receiving` at AOS, `recorded` at LOS with `rf{}`, `decoded` when products join, `failed` when none arrived by LOS + 20 min although the station had lock); 064: `satellite-passes` geometry = ground track (0.01°), times rounded to 10 s, tombstoned at LOS + 10 min; a SatDump station predicts its `predictNorad` satellites as `predicted` versions under its own externalId, reused by a session or dataset whose AOS is within ±5 min, and a predicted pass with no session by LOS + 20 min becomes `missed` (station healthy) or is tombstoned. 049: externalId `{station}:{satKey}:{aosEpochMinute}`, eventTime = AOS, observedAt = the latest status time, geometry = the station point (054 upgrades it to footprints or swaths), retention 365 d; `products[]` = `{instrument, composite, mediaId, thumbMediaId}` (054 adds `productId`, `frameKey`, `tilesTemplate`); `pipelineId` and `satdumpVersion` only when the station reports them.",
             "example": {
               "satellite": "METEOR-M2 3",
               "norad": 57166,
@@ -111176,13 +111192,14 @@
         "properties": {
           "status": {
             "type": "string",
-            "description": "`predicted` is added by 064",
+            "description": "`predicted` (064: Orekit from `celestrak-gp` elements), then `receiving`, `recorded`, `decoded` or `failed` (049); `missed` (064) when a predicted pass had no session by LOS + 20 min while the station was healthy (otherwise the predicted pass is tombstoned)",
             "enum": [
               "predicted",
               "receiving",
               "recorded",
               "decoded",
-              "failed"
+              "failed",
+              "missed"
             ]
           },
           "satellite": {
@@ -111364,6 +111381,27 @@
               "swath"
             ],
             "description": "Present when the record geometry is not the station point: `footprint` (the alpha-mask outline of the pass's polar GeoTIFF overlays, 054) or `swath` (an approximate SGP4 swath from the TLE, used when no GeoTIFF was usable; never tiled)"
+          },
+          "tca": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Predicted time of maximum elevation (064, predicted passes)"
+          },
+          "aosAzimuthDeg": {
+            "type": "number",
+            "description": "Predicted azimuth at AOS, degrees (064)"
+          },
+          "losAzimuthDeg": {
+            "type": "number",
+            "description": "Predicted azimuth at LOS, degrees (064)"
+          },
+          "place": {
+            "type": "string",
+            "description": "The place id (064 `satellite-passes`, externalId `place:{placeId}:{norad}:{aosEpochMinute}`)"
+          },
+          "imminent": {
+            "type": "boolean",
+            "description": "064 `satellite-passes`: true from 15 minutes before AOS until LOS (a new version near AOS, so `forecastHorizon` rules, which match `validFrom` = AOS on new versions only, and plain `imminent == true` rules can fire)"
           }
         },
         "required": [

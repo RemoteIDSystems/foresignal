@@ -2,6 +2,7 @@ package ai.foresignal.source.adapters.satdump;
 
 import ai.foresignal.source.spi.AdapterException;
 import ai.foresignal.source.spi.LiveImageHolder;
+import ai.foresignal.source.spi.OrbitalElements;
 import ai.foresignal.source.spi.PlacePoints;
 import ai.foresignal.source.spi.RecordSink;
 import ai.foresignal.source.spi.RemoteMediaReceivers;
@@ -29,6 +30,7 @@ public class SatDumpAdapter implements StreamingAdapter {
     private final Supplier<PlacePoints> places;
     private final Supplier<LiveImageHolder> liveImages;
     private final Supplier<RemoteMediaReceivers> receivers;
+    private final Supplier<OrbitalElements> elements;
 
     /**
      * Creates the adapter.
@@ -51,6 +53,21 @@ public class SatDumpAdapter implements StreamingAdapter {
      */
     public SatDumpAdapter(String station, Supplier<PlacePoints> places, Supplier<LiveImageHolder> liveImages,
             Supplier<RemoteMediaReceivers> receivers) {
+        this(station, places, liveImages, receivers, null);
+    }
+
+    /**
+     * Creates the adapter (prompt 064).
+     *
+     * @param station the station name
+     * @param places resolves place-id locations; may supply null
+     * @param liveImages holds the polar plot; may supply null
+     * @param receivers where a running station registers for pushed images; may be or supply null
+     * @param elements the current element sets for predicted passes; may be or supply null
+     */
+    public SatDumpAdapter(String station, Supplier<PlacePoints> places, Supplier<LiveImageHolder> liveImages,
+            Supplier<RemoteMediaReceivers> receivers, Supplier<OrbitalElements> elements) {
+        this.elements = elements == null ? () -> null : elements;
         this.station = station;
         this.receivers = receivers == null ? () -> null : receivers;
         this.descriptor = SatDumpDescriptor.build(station);
@@ -92,7 +109,8 @@ public class SatDumpAdapter implements StreamingAdapter {
      */
     public SatDumpStation newStation(StreamContext ctx, RecordSink sink) throws AdapterException {
         try {
-            return new SatDumpStation(station, ctx, sink, places.get(), liveImages.get(), receivers.get());
+            return new SatDumpStation(station, ctx, sink, places.get(), liveImages.get(), receivers.get(),
+                    elements.get());
         } catch (IllegalArgumentException e) {
             throw new AdapterException(descriptor.id() + ": " + e.getMessage(), e);
         }

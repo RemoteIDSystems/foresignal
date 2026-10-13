@@ -27,6 +27,8 @@ import org.slf4j.LoggerFactory;
  *   <li>the last failure was a refusal of this client (HTTP 451, or 403 from a source with
  *       {@code accessDeniedIsTerminal}; prompt 062) → {@code failing}, with
  *       {@link UpstreamAccessDeniedException#reason(int)}
+ *   <li>the last failure was an upstream halt ({@code UpstreamHaltException}, prompt 064) → {@code failing},
+ *       with the halt's own reason
  *   <li>in backoff, or ≥ {@value #FAILING_CONSECUTIVE_FAILURES} consecutive failures → {@code failing}
  *   <li>the last run failed (1–2 consecutive failures) → {@code degraded}
  *   <li>coverage dropped by ≥ 50% against the median of the ring → {@code degraded}
@@ -113,6 +115,12 @@ public final class HealthEvaluator {
             return HealthAssessment.of(HealthStatus.FAILING, UpstreamAccessDeniedException.reason(h.lastHttpStatus()));
         }
 
+        // 3. The upstream's usage policy said stop (prompt 064): failing with the halt reason, which tells
+        //    the operator to investigate and then fetch manually.
+        if (h.consecutiveFailures() > 0 && isHalt(h)) {
+            return HealthAssessment.of(HealthStatus.FAILING, haltReason(h.lastError()));
+        }
+
         // 3. Backoff, or too many failures in a row.
         if (in.backoffUntil() != null && in.backoffUntil().isAfter(in.now())) {
             return HealthAssessment.of(
@@ -189,6 +197,18 @@ public final class HealthEvaluator {
             }
         }
         return new HealthAssessment(status, reason, newestFrameAt);
+    }
+
+    /** True when the last failure was an {@code UpstreamHaltException} (prompt 064). */
+    static boolean isHalt(HealthSnapshot h) {
+        return h.lastError() != null && h.lastError().contains(ai.foresignal.source.spi.UpstreamHaltException.MARKER);
+    }
+
+    /** The halt reason without the exception class prefix {@code HealthTracker} stores in front of it. */
+    static String haltReason(String lastError) {
+        String prefix = ai.foresignal.source.spi.UpstreamHaltException.class.getSimpleName() + ": ";
+        int at = lastError.indexOf(prefix);
+        return at >= 0 ? lastError.substring(at + prefix.length()) : lastError;
     }
 
     /** True when the last failure was an {@link UpstreamAccessDeniedException} (prompt 062). */

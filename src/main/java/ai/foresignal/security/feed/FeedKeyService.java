@@ -49,7 +49,8 @@ import tools.jackson.databind.JsonNode;
  * {@code /v1/…} path without dot or empty segments that starts some {@code read} GET operation of
  * the spec; {@code restrictions} as a read token's, with at least one of {@code sources},
  * {@code kinds}, {@code area} or {@code bbox} and no {@code endpoints} (the prefixes are the
- * endpoint restriction); {@code expiresAt} in the future and at most 365 days ahead;
+ * endpoint restriction; prompt 064 also accepts {@code /compat/celestrak/…} prefixes, which the key reaches as
+ * {@code ?key=} because Gpredict and Look4Sat cannot send headers); {@code expiresAt} in the future and at most 365 days ahead;
  * {@code privateAccess: true} is refused until prompt 039.
  *
  * <p>Prompt 050's tile keys ({@code fsk_}, {@code type = tile_key}) are the path-carrier variant of
@@ -328,9 +329,11 @@ public class FeedKeyService implements PathKeyResolver {
                 continue;
             }
             String prefix = item.asString().strip();
-            if (!prefix.startsWith("/v1/") || prefix.startsWith(PathKeyFilter.PREFIX) || prefix.contains("?")
+            boolean compat = prefix.startsWith(PathKeyFilter.QUERY_KEY_PREFIX);
+            if ((!prefix.startsWith("/v1/") && !compat) || prefix.startsWith(PathKeyFilter.PREFIX) || prefix.contains("?")
                     || !safePrefix(prefix)) {
-                errors.add(new FieldError("prefixes", "'" + prefix + "' must be a plain /v1/ path"));
+                errors.add(new FieldError("prefixes", "'" + prefix + "' must be a plain /v1/ path (or a "
+                        + PathKeyFilter.QUERY_KEY_PREFIX + " path for a ?key= client)"));
                 continue;
             }
             if (!readable(prefix)) {

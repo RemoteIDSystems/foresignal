@@ -1,5 +1,3 @@
-getCelestrakGp 064
-getCelestrakGpAlias 064
 searchTransitCatalog 070
 verifyWebSubSubscription 073
 receiveWebSubNotification 073

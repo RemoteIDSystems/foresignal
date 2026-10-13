@@ -315,7 +315,7 @@ entity's first version only):
 | Kind | What a record is |
 |---|---|
 | `ground-station` | the station: `state` (`idle`, `tracking`, `receiving`, `locked`, `unknown`), `currentTarget`, `az`, `el`, `snrDb`, `nextAos`, `nextLos` |
-| `satellite-pass` | one pass: `status` `receiving` → `recorded` (with `rf{}`: `snrMaxDb`, `berMin`, `syncedFraction`, lock times) → `decoded` (with `products[]` and thumbnails) or `failed` |
+| `satellite-pass` | one pass: `status` `predicted` (prompt 064, from `celestrak-gp` elements for the station's `predictNorad` satellites) → `receiving` → `recorded` (with `rf{}`: `snrMaxDb`, `berMin`, `syncedFraction`, lock times) → `decoded` (with `products[]` and thumbnails) or `failed`; a predicted pass nobody received becomes `missed` (station healthy) or disappears |
 | `raster-frame` | a GOES/Elektro geostationary frame of a product `satdump-{station}-{satKey}-{region}-{channel}` |
 
 During an active autotrack pass, `GET /v1/ground-stations/satdump-{station}/polarplot.jpeg` serves the
@@ -329,6 +329,42 @@ running SatDump with `finish_processing: true`; the source health says so.
  "conditions": [{"path": "status", "op": "==", "value": "decoded"}], "mode": "enter",
  "messageTemplate": "{{payload.title}}"}
 ```
+
+## Space: satellites, passes, conjunctions and launches (prompt 064)
+
+| Source | Kind | What a record is |
+|---|---|---|
+| `celestrak-gp` | `satellite` | one GP element set (CCSDS OMM keys verbatim: `OBJECT_NAME`, `NORAD_CAT_ID`, `EPOCH`, `MEAN_MOTION`, …, plus `groups`); externalId = catalog number (up to 9 digits); no geometry |
+| `celestrak-socrates` | `conjunction` | a predicted close approach: `norad1`, `name1`, `norad2`, `name2`, `tca`, `tcaRangeKm`, `relSpeedKms`, `maxProb`; `eventTime` = TCA |
+| `launch-library` | `launch` | an orbital launch: `name`, `status`, `net`, `provider`, `rocket`, `missionName`, `orbit`, `padName`, `probability`; `eventTime` = NET, pad point geometry |
+| `spacetrack-tip` | `reentry-prediction` | optional, LOCAL_ONLY: predicted re-entry (`eventTime` = DECAY_EPOCH, `window` minutes) |
+| `satellite-passes` | `satellite-pass` | a predicted pass over a place: `satellite`, `norad`, `place`, `status: predicted`, `aos`, `tca`, `los`, `maxElevationDeg`, `aosAzimuthDeg`, `losAzimuthDeg`, `imminent`; ground-track geometry |
+
+**MCP:** there is no space-specific tool. `query_records` with `kind=satellite-pass` lists upcoming passes
+(add `source=satellite-passes` for places, or `source=satdump-{station}` for a ground station), and
+`kind=satellite` with `q=` finds element sets by name. Element sets carry no geometry; propagate them
+yourself, or read the passes.
+
+**Pass in 10 minutes.** Triggers only see new versions, so a pass predicted two days ahead cannot fire
+later by itself. `satellite-passes` therefore sets `validFrom` = AOS and writes one more version when a
+pass becomes `imminent` (15 minutes before AOS, on its 5-minute tick). Either rule works:
+
+```json
+{"name": "Good ISS pass soon", "kinds": ["satellite-pass"], "sources": ["satellite-passes"],
+ "conditions": [{"path": "norad", "op": "==", "value": 25544},
+                {"path": "maxElevationDeg", "op": ">", "value": 30}],
+ "forecastHorizon": "15m", "mode": "enter",
+ "messageTemplate": "{{payload.satellite}} pass over {{payload.place}} at {{payload.aos}}, max {{payload.maxElevationDeg}}°"}
+```
+
+```json
+{"name": "Imminent high pass", "kinds": ["satellite-pass"],
+ "conditions": [{"path": "imminent", "op": "==", "value": true},
+                {"path": "maxElevationDeg", "op": ">", "value": 30}], "mode": "enter"}
+```
+
+`forecastHorizon` matches versions whose `validFrom` is within the horizon of the moment they are
+evaluated, so give it at least the 15-minute imminent window; a shorter horizon may miss the version.
 
 ## Replaying the past (asOf)
 

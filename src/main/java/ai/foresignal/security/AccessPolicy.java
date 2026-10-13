@@ -62,6 +62,9 @@ import org.springframework.util.AntPathMatcher;
  * {@code DELETE /v1/tile-keys/{id}}) as {@code agent}. Key-in-path URLs ({@code /v1/k/**}) have no
  * rule: {@code PathKeyFilter} forwards them to their canonical path, which is what is evaluated.
  *
+ * <p>Prompt 064 adds {@code GET /compat/celestrak/**} (the CelesTrak-compatible GP output) as {@code read}; other
+ * methods on it are {@code admin}. It sits outside {@code /v1}, so without the rule it would be open.
+ *
  * <p>Prompt 025 adds {@code /mcp} and {@code /mcp/**} (the MCP server, also outside {@code /v1}):
  * {@code read}, with per-tool scope checks inside the server ({@code McpToolRegistry}).
  */
@@ -181,6 +184,10 @@ public class AccessPolicy {
                 rule(HttpMethod.GET, "/v1/ingest/**", AccessRequirement.INGEST_KEY_OR_ADMIN),
                 // The CloudEvents webhook validation handshake (ingestWebhookHandshake).
                 rule(HttpMethod.OPTIONS, "/v1/ingest/**", AccessRequirement.INGEST_KEY_OR_ADMIN),
+                // CelesTrak-compatible GP output (064), outside /v1: read, never open by accident.
+                rule(HttpMethod.GET, "/compat/celestrak/**", AccessRequirement.READ),
+                rule(HttpMethod.HEAD, "/compat/celestrak/**", AccessRequirement.READ),
+                rule(null, "/compat/celestrak/**", AccessRequirement.ADMIN),
                 // ntfy- and Gotify-compatible publish, outside /v1 (the key resolves the source).
                 rule(null, "/compat/ntfy", AccessRequirement.INGEST_KEY_OR_ADMIN),
                 rule(null, "/compat/ntfy/**", AccessRequirement.INGEST_KEY_OR_ADMIN),

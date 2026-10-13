@@ -5,7 +5,13 @@ import ai.foresignal.source.spi.InboxAccess;
 import ai.foresignal.source.spi.LiveImageHolder;
 import ai.foresignal.source.spi.MediaSink;
 import ai.foresignal.source.spi.NormalizedRecord;
+import ai.foresignal.source.spi.OrbitalElements;
 import ai.foresignal.source.spi.PlacePoints;
+import ai.foresignal.space.GroundTracks;
+import ai.foresignal.space.Observer;
+import ai.foresignal.space.OmmElements;
+import ai.foresignal.space.PassPredictor;
+import ai.foresignal.space.PredictedPass;
 import ai.foresignal.source.spi.MediaInput;
 import ai.foresignal.source.spi.MediaRef;
 import ai.foresignal.source.spi.MediaRole;
@@ -23,6 +29,8 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Optional;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -110,6 +118,13 @@ public final class SatDumpStation implements StreamHandle, RemoteMediaReceiver {
     private Map<String, Object> lastGroundStation;
     private RfSession session;
     private int apiFailures;
+    private final OrbitalElements elements;
+    private final List<String> predictNorad;
+    private final double predictMinElevation;
+    private Instant lastPrediction;
+    private Instant apiDownSince;
+    private Instant lastDownFrom;
+    private Instant lastDownTo;
     private int idlePolls;
     private Instant lastPolarplot;
     private Thread apiThread;
@@ -141,6 +156,23 @@ public final class SatDumpStation implements StreamHandle, RemoteMediaReceiver {
      */
     public SatDumpStation(String station, StreamContext ctx, RecordSink sink, PlacePoints places,
             LiveImageHolder liveImages, RemoteMediaReceivers receivers) {
+        this(station, ctx, sink, places, liveImages, receivers, null);
+    }
+
+    /**
+     * Creates the station (prompt 064).
+     *
+     * @param station the station name
+     * @param ctx the stream context
+     * @param sink where records go
+     * @param places resolves a place id {@code location}, or null when places are unavailable
+     * @param liveImages holds the polar plot, or null to skip it
+     * @param receivers where the station registers for pushed images while it runs, or null
+     * @param elements the current {@code celestrak-gp} element sets for predicted passes, or null for none
+     */
+    public SatDumpStation(String station, StreamContext ctx, RecordSink sink, PlacePoints places,
+            LiveImageHolder liveImages, RemoteMediaReceivers receivers, OrbitalElements elements) {
+        this.elements = elements;
         this.station = station;
         this.receivers = receivers;
         this.sourceId = ctx.sourceId();
@@ -163,6 +195,9 @@ public final class SatDumpStation implements StreamHandle, RemoteMediaReceiver {
         this.overlays = new PolarOverlays(station);
         this.glob = PolarGlob.orDefault(params.string(SatDumpDescriptor.POLAR_GLOB));
         this.store = new StationStore(ctx.state());
+        this.predictNorad = SatDumpDescriptor.predictNorad(params);
+        Double minEl = params.number(SatDumpDescriptor.PREDICT_MIN_ELEVATION);
+        this.predictMinElevation = minEl == null ? SatDumpDescriptor.DEFAULT_PREDICT_MIN_ELEVATION : minEl;
         this.log = ctx.log();
         restore();
     }
@@ -313,6 +348,11 @@ public final class SatDumpStation implements StreamHandle, RemoteMediaReceiver {
         boolean fetchPlot;
         synchronized (lock) {
             apiFailures = 0;
+            if (apiDownSince != null) {
+                lastDownFrom = apiDownSince;
+                lastDownTo = now;
+                apiDownSince = null;
+            }
             ctx.state().clearFailing();
             out = observe(snapshot, now);
             fetchPlot = session != null && snapshot.autotrack()
@@ -365,7 +405,7 @@ public final class SatDumpStation implements StreamHandle, RemoteMediaReceiver {
         if (session == null && active) {
             idlePolls = 0;
             String passKey = satKey;
-            session = new RfSession(book.passId(passKey, now), passKey, snapshot.target(), snapshot.mode(), now);
+            session = new RfSession(book.sessionPassId(passKey, now), passKey, snapshot.target(), snapshot.mode(), now);
             session.sample(now, snapshot);
             out.add(book.open(session, point()));
             flushSession(now);
@@ -404,6 +444,9 @@ public final class SatDumpStation implements StreamHandle, RemoteMediaReceiver {
     private List<NormalizedRecord> apiFailed(Instant now, AdapterException e) {
         synchronized (lock) {
             apiFailures++;
+            if (apiDownSince == null) {
+                apiDownSince = now;
+            }
             List<NormalizedRecord> out = new ArrayList<>();
             if (apiFailures == API_FAILURES_TO_FAIL) {
                 ctx.state().fail("SatDump /api unreachable for " + API_FAILURES_TO_FAIL + " consecutive polls: "
@@ -453,6 +496,8 @@ public final class SatDumpStation implements StreamHandle, RemoteMediaReceiver {
         List<NormalizedRecord> out = new ArrayList<>();
         synchronized (lock) {
             out.addAll(book.expire(now, point()));
+            out.addAll(book.expirePredicted(now, this::healthyBetween, point()));
+            out.addAll(predict(now));
         }
         out.addAll(scanUploads(now));
         if (inboxPath != null) {
@@ -690,6 +735,89 @@ public final class SatDumpStation implements StreamHandle, RemoteMediaReceiver {
 
     private double[] point() {
         return location.point(places);
+    }
+
+    // ------------------------------------------------------------------------- predicted passes (prompt 064)
+
+    /** How often the station's passes are predicted again. */
+    public static final Duration PREDICTION_PERIOD = Duration.ofMinutes(30);
+
+    /** How far ahead the station's passes are predicted. */
+    public static final Duration PREDICTION_HORIZON = Duration.ofHours(48);
+
+    /**
+     * Predicts the configured satellites over the station at most every {@link #PREDICTION_PERIOD}, from the
+     * {@code celestrak-gp} elements, and returns the new or changed {@code predicted} versions and the
+     * tombstones of withdrawn predictions. Called under the lock.
+     */
+    List<NormalizedRecord> predict(Instant now) {
+        if (elements == null || predictNorad.isEmpty()
+                || (lastPrediction != null && lastPrediction.plus(PREDICTION_PERIOD).isAfter(now))) {
+            return List.of();
+        }
+        double[] point = point();
+        if (point == null) {
+            return List.of();
+        }
+        lastPrediction = now;
+        Observer observer = new Observer(point[1], point[0],
+                location.altitudeM() == null ? 0.0 : location.altitudeM());
+        List<NormalizedRecord> out = new ArrayList<>();
+        for (String norad : predictNorad) {
+            Optional<OmmElements> e;
+            try {
+                e = elements.byNorad(Long.parseLong(norad));
+            } catch (NumberFormatException ex) {
+                continue;
+            }
+            if (e.isEmpty()) {
+                continue; // no elements: keep what was predicted, never withdraw on missing input
+            }
+            String satKey = names.key(norad);
+            if (satKey.equals(norad)) {
+                satKey = names.key(e.get().objectName());
+            }
+            List<PredictedPass> passes;
+            try {
+                passes = PassPredictor.predict(e.get(), observer, now, PREDICTION_HORIZON, predictMinElevation);
+            } catch (IllegalArgumentException ex) {
+                log.warn("{}: NORAD {} could not be propagated: {}", sourceId, norad, ex.getMessage());
+                continue;
+            }
+            Set<String> keep = new HashSet<>();
+            String display = names.displayName(satKey, e.get().objectName());
+            for (PredictedPass pass : passes) {
+                PredictedPass rounded = new PredictedPass(roundTen(pass.aos()), roundTen(pass.tca()),
+                        roundTen(pass.los()), pass.maxElevationDeg(), pass.aosAzimuthDeg(), pass.losAzimuthDeg(),
+                        pass.groundTrack());
+                Optional<NormalizedRecord> record = book.predict(satKey, display, (int) e.get().norad(), rounded,
+                        GroundTracks.geometry(pass.groundTrack()), now, point);
+                book.predictedMatch(satKey, rounded.aos()).ifPresent(p -> keep.add(p.externalId));
+                record.ifPresent(out::add);
+            }
+            out.addAll(book.withdraw(satKey, keep, now));
+        }
+        return out;
+    }
+
+    /**
+     * True when the station was healthy throughout {@code [from, to]}: no {@code /api} failure streak overlapped
+     * it. A station without {@code apiUrl} has no such signal and counts as healthy.
+     */
+    boolean healthyBetween(Instant from, Instant to) {
+        if (apiUrl == null) {
+            return true;
+        }
+        if (apiDownSince != null && apiDownSince.isBefore(to)) {
+            return false;
+        }
+        return lastDownFrom == null || !(lastDownFrom.isBefore(to) && lastDownTo.isAfter(from));
+    }
+
+    /** {@code t} rounded to the nearest 10 seconds, so element refreshes do not churn versions. */
+    static Instant roundTen(Instant t) {
+        long ms = t.toEpochMilli();
+        return Instant.ofEpochMilli(Math.round(ms / 10_000.0) * 10_000L);
     }
 
     private boolean probing() {

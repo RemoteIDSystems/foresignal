@@ -290,6 +290,15 @@ class AccessPolicyTest {
         assertScope("POST", "/v1/maps/static", Scope.ADMIN);
     }
 
+    @Test
+    @DisplayName("the CelesTrak-compatible output outside /v1 is read, never open; other methods are admin (064)")
+    void celestrakCompat() {
+        assertThat(requirement("GET", "/compat/celestrak/gp.php")).isEqualTo(AccessRequirement.READ);
+        assertThat(requirement("GET", "/compat/celestrak/NORAD/elements/gp.php")).isEqualTo(AccessRequirement.READ);
+        assertThat(requirement("HEAD", "/compat/celestrak/gp.php")).isEqualTo(AccessRequirement.READ);
+        assertScope("POST", "/compat/celestrak/gp.php", Scope.ADMIN);
+    }
+
     @ParameterizedTest
     @CsvSource({
         "POST, /compat/ntfy/custom-alerts",

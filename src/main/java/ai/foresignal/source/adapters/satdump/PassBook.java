@@ -24,7 +24,14 @@ import java.util.Optional;
  *       matches any satKey. With no match a new pass is minted from the product.
  *   <li>Versions: {@code receiving} at AOS, {@code recorded} at LOS (with {@code rf{}}), then
  *       {@code decoded}, or {@code failed} when no product arrived by LOS + 20 min although the session
- *       had lock. {@code predicted} belongs to prompt 064.
+ *       had lock.
+ *   <li>Predictions (prompt 064): {@link #predict} adds a {@code predicted} version under the same
+ *       {@code {station}:{satKey}:{aosEpochMinute}} id. An RF session or a {@code dataset.json} of the same satKey
+ *       whose AOS (or timestamp) is within ±5 min of a predicted pass reuses its id ({@link #predictedMatch}), so
+ *       {@code receiving}/{@code recorded}/{@code decoded} become later versions of the same record. A predicted
+ *       pass with no session by LOS + 20 min becomes {@code missed} when the station was healthy during the
+ *       window, and is tombstoned otherwise ({@link #expirePredicted}); one a fresh prediction no longer finds is
+ *       tombstoned ({@link #withdraw}).
  * </ul>
  *
  * <p>Geometry (prompt 054, §4.4): the actual footprint of the pass's GeoTIFF overlays, else the
@@ -48,6 +55,21 @@ public final class PassBook {
 
     /** No product by LOS + 20 min although the session had lock. */
     public static final String FAILED = "failed";
+
+    /** Predicted by Orekit from {@code celestrak-gp} elements (prompt 064). */
+    public static final String PREDICTED = "predicted";
+
+    /** Predicted, no session by LOS + 20 min, and the station was healthy (prompt 064). */
+    public static final String MISSED = "missed";
+
+    /** How far a session's start or a product's timestamp may be from a predicted AOS to reuse its id. */
+    public static final Duration PREDICTION_MATCH = Duration.ofMinutes(5);
+
+    /** How long after the predicted LOS a pass with no session is judged. */
+    public static final Duration MISSED_DEADLINE = Duration.ofMinutes(20);
+
+    /** The geometry source of a predicted ground track. */
+    public static final String TRACK = "predicted-track";
 
     /** The join margin on either side of the RF window. */
     public static final Duration JOIN_MARGIN = Duration.ofMinutes(5);
@@ -178,8 +200,11 @@ public final class PassBook {
             }
             long from = (pass.firstLock != null ? pass.firstLock : pass.aos) - JOIN_MARGIN.toMillis();
             // A pass minted from a product has no RF window: a second dataset of the same pass (another
-            // instrument) joins it when its timestamp is within a pass length of the first.
-            long to = pass.fromProduct ? pass.aos + DECODE_DEADLINE.toMillis()
+            // instrument) joins it when its timestamp is within a pass length of the first. A predicted pass
+            // (prompt 064) joins products from 5 min before its AOS to 5 min after its predicted LOS.
+            long to = PREDICTED.equals(pass.status)
+                    ? (pass.predictedLos != null ? pass.predictedLos : pass.aos) + PREDICTION_MATCH.toMillis()
+                    : pass.fromProduct ? pass.aos + DECODE_DEADLINE.toMillis()
                     : (pass.los != null ? pass.los : now.toEpochMilli()) + JOIN_MARGIN.toMillis();
             if (t >= from && t <= to) {
                 long distance = Math.abs(t - pass.aos);
@@ -300,6 +325,150 @@ public final class PassBook {
         return String.format(MISSING_DATASET_REASON, Instant.ofEpochMilli(newest.los));
     }
 
+    // ------------------------------------------------------------------------- predictions (prompt 064)
+
+    /**
+     * The predicted pass of {@code satKey} whose AOS is within ±{@link #PREDICTION_MATCH} of {@code at}, if any:
+     * the id an RF session or a product of that pass reuses.
+     */
+    public Optional<PassState> predictedMatch(String satKey, Instant at) {
+        if (satKey == null) {
+            return Optional.empty();
+        }
+        long t = at.toEpochMilli();
+        PassState best = null;
+        for (PassState pass : passes) {
+            if (PREDICTED.equals(pass.status) && satKey.equals(pass.satKey)
+                    && Math.abs(pass.aos - t) <= PREDICTION_MATCH.toMillis()
+                    && (best == null || Math.abs(pass.aos - t) < Math.abs(best.aos - t))) {
+                best = pass;
+            }
+        }
+        return Optional.ofNullable(best);
+    }
+
+    /**
+     * The id of the pass a session of {@code satKey} starting at {@code start} belongs to: a predicted pass's id
+     * when one matches, else a new one.
+     */
+    public String sessionPassId(String satKey, Instant start) {
+        return predictedMatch(satKey, start).map(p -> p.externalId).orElseGet(() -> passId(satKey, start));
+    }
+
+    /**
+     * Records a predicted pass (times already rounded by the caller). A pass already past {@code predicted} is
+     * left alone; an unchanged prediction emits nothing.
+     *
+     * @param satKey the satellite key
+     * @param satellite the display name
+     * @param norad the catalog number
+     * @param pass the prediction
+     * @param track the ground track geometry, or null
+     * @param now the prediction time, the version's {@code observedAt}
+     * @return the {@code predicted} record when it is new or changed
+     */
+    public Optional<NormalizedRecord> predict(String satKey, String satellite, Integer norad,
+            ai.foresignal.space.PredictedPass pass, org.locationtech.jts.geom.Geometry track, Instant now,
+            double[] point) {
+        long aos = pass.aos().toEpochMilli();
+        Optional<PassState> found = passes.stream()
+                .filter(p -> satKey.equals(p.satKey) && Math.abs(p.aos - aos) <= PREDICTION_MATCH.toMillis())
+                .findFirst();
+        Double maxEl = Math.round(pass.maxElevationDeg() * 10) / 10.0;
+        Double aosAz = (double) (Math.round(pass.aosAzimuthDeg()) % 360);
+        Double losAz = (double) (Math.round(pass.losAzimuthDeg()) % 360);
+        long los = pass.los().toEpochMilli();
+        long tca = pass.tca().toEpochMilli();
+        PassState state;
+        if (found.isPresent()) {
+            state = found.get();
+            if (!PREDICTED.equals(state.status)) {
+                return Optional.empty();
+            }
+            boolean changed = state.aos != aos || !java.util.Objects.equals(state.predictedLos, los)
+                    || !java.util.Objects.equals(state.tca, tca) || !java.util.Objects.equals(state.maxElevationDeg, maxEl)
+                    || !java.util.Objects.equals(state.aosAzimuthDeg, aosAz)
+                    || !java.util.Objects.equals(state.losAzimuthDeg, losAz);
+            boolean geometryChanged = track != null && geometry(state, track, TRACK);
+            if (!changed && !geometryChanged) {
+                return Optional.empty();
+            }
+        } else {
+            state = new PassState();
+            state.externalId = passId(satKey, pass.aos());
+            state.satKey = satKey;
+            passes.add(state);
+            if (track != null) {
+                geometry(state, track, TRACK);
+            }
+        }
+        state.satellite = satellite;
+        state.norad = norad;
+        state.aos = aos;
+        state.predictedLos = los;
+        state.tca = tca;
+        state.maxElevationDeg = maxEl;
+        state.aosAzimuthDeg = aosAz;
+        state.losAzimuthDeg = losAz;
+        state.status = PREDICTED;
+        state.statusAt = Math.max(state.statusAt, now.toEpochMilli());
+        passes.sort(Comparator.comparingLong(p -> p.aos));
+        return Optional.of(record(state, point));
+    }
+
+    /**
+     * Tombstones the future predicted passes of {@code satKey} that a fresh prediction no longer finds.
+     *
+     * @param keep the ids the fresh prediction produced
+     * @return the tombstones
+     */
+    public List<NormalizedRecord> withdraw(String satKey, java.util.Set<String> keep, Instant now) {
+        List<NormalizedRecord> out = new ArrayList<>();
+        java.util.Iterator<PassState> it = passes.iterator();
+        while (it.hasNext()) {
+            PassState pass = it.next();
+            if (PREDICTED.equals(pass.status) && satKey.equals(pass.satKey) && pass.aos > now.toEpochMilli()
+                    && !keep.contains(pass.externalId)) {
+                out.add(NormalizedRecord.tombstone(pass.externalId, KIND, now));
+                it.remove();
+            }
+        }
+        return out;
+    }
+
+    /**
+     * Judges the predicted passes with no session by their LOS + {@link #MISSED_DEADLINE}: {@code missed} when the
+     * station was healthy during the pass window, otherwise tombstoned.
+     *
+     * @param healthy whether the station was healthy between two instants (AOS, LOS)
+     * @return the {@code missed} records and the tombstones
+     */
+    public List<NormalizedRecord> expirePredicted(Instant now, java.util.function.BiPredicate<Instant, Instant> healthy,
+            double[] point) {
+        List<NormalizedRecord> out = new ArrayList<>();
+        java.util.Iterator<PassState> it = passes.iterator();
+        while (it.hasNext()) {
+            PassState pass = it.next();
+            if (!PREDICTED.equals(pass.status)) {
+                continue;
+            }
+            long los = pass.predictedLos != null ? pass.predictedLos : pass.aos;
+            long deadline = los + MISSED_DEADLINE.toMillis();
+            if (now.toEpochMilli() < deadline) {
+                continue;
+            }
+            if (healthy.test(Instant.ofEpochMilli(pass.aos), Instant.ofEpochMilli(los))) {
+                pass.status = MISSED;
+                pass.statusAt = Math.max(pass.statusAt, deadline);
+                out.add(record(pass, point));
+            } else {
+                out.add(NormalizedRecord.tombstone(pass.externalId, KIND, now));
+                it.remove();
+            }
+        }
+        return out;
+    }
+
     /** The longest geometry WKT kept in the adapter state; a longer one is simplified further. */
     static final int MAX_GEOMETRY_CHARS = 32_000;
 
@@ -357,7 +526,8 @@ public final class PassBook {
     /** Drops finished passes older than a day and keeps at most {@value #MAX_PASSES}. */
     void prune(Instant now) {
         long cutoff = now.minus(KEEP_FINISHED).toEpochMilli();
-        passes.removeIf(p -> (DECODED.equals(p.status) || FAILED.equals(p.status)) && p.statusAt < cutoff);
+        passes.removeIf(p -> (DECODED.equals(p.status) || FAILED.equals(p.status) || MISSED.equals(p.status))
+                && p.statusAt < cutoff);
         passes.sort(Comparator.comparingLong(p -> p.aos));
         while (passes.size() > MAX_PASSES) {
             passes.remove(0);
@@ -376,7 +546,11 @@ public final class PassBook {
                 .put("pipelineId", pass.pipelineId)
                 .put("frequencyHz", pass.frequencyHz)
                 .put("aos", Instant.ofEpochMilli(pass.aos).toString())
-                .put("los", pass.los == null ? null : Instant.ofEpochMilli(pass.los).toString())
+                .put("los", pass.los != null ? Instant.ofEpochMilli(pass.los).toString()
+                        : pass.predictedLos != null ? Instant.ofEpochMilli(pass.predictedLos).toString() : null)
+                .put("tca", pass.tca == null ? null : Instant.ofEpochMilli(pass.tca).toString())
+                .put("aosAzimuthDeg", pass.aosAzimuthDeg)
+                .put("losAzimuthDeg", pass.losAzimuthDeg)
                 .put("maxElevationDeg", pass.maxElevationDeg)
                 .put("status", pass.status)
                 .put("station", station)

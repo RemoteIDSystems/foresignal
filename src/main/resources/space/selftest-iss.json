@@ -1,0 +1,27 @@
+{
+  "comment": "Prompt 064 Orekit self-test. Elements: the CelesTrak GP element set of ISS (ZARYA) captured 2026-10-13 (GROUP=stations, FORMAT=csv). Expected pass computed independently with Skyfield 1.55 / sgp4 2.27 (WGS84 site, 10 deg mask).",
+  "elements": {
+    "OBJECT_NAME": "ISS (ZARYA)",
+    "OBJECT_ID": "1998-067A",
+    "EPOCH": "2026-10-13T02:41:20.970528",
+    "MEAN_MOTION": 15.48846742,
+    "ECCENTRICITY": 0.00067245,
+    "INCLINATION": 51.6319,
+    "RA_OF_ASC_NODE": 76.5194,
+    "ARG_OF_PERICENTER": 256.4602,
+    "MEAN_ANOMALY": 103.5638,
+    "EPHEMERIS_TYPE": 0,
+    "CLASSIFICATION_TYPE": "U",
+    "NORAD_CAT_ID": 25544,
+    "ELEMENT_SET_NO": 999,
+    "REV_AT_EPOCH": 59003,
+    "BSTAR": 0.00011499036,
+    "MEAN_MOTION_DOT": 0.00005858,
+    "MEAN_MOTION_DDOT": 0
+  },
+  "observer": {"lat": 30.2672, "lon": -97.7431, "altM": 150},
+  "from": "2026-10-13T06:00:00Z",
+  "horizonHours": 12,
+  "minElevationDeg": 10,
+  "expected": {"aos": "2026-10-13T12:06:33.584Z", "tca": "2026-10-13T12:09:51.165Z", "los": "2026-10-13T12:13:10.426Z", "maxElevationDeg": 50.776}
+}

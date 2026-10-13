@@ -49,7 +49,22 @@ public final class PassState {
     /** The highest elevation, or null. */
     public Double maxElevationDeg;
 
-    /** {@code receiving}, {@code recorded}, {@code decoded} or {@code failed}. */
+    /** The predicted LOS (prompt 064), or null for a pass that was never predicted. */
+    public Long predictedLos;
+
+    /** The predicted time of maximum elevation (prompt 064), or null. */
+    public Long tca;
+
+    /** The predicted azimuth at AOS, degrees (prompt 064), or null. */
+    public Double aosAzimuthDeg;
+
+    /** The predicted azimuth at LOS, degrees (prompt 064), or null. */
+    public Double losAzimuthDeg;
+
+    /**
+     * {@code predicted} or {@code missed} (prompt 064), {@code receiving}, {@code recorded}, {@code decoded} or
+     * {@code failed}.
+     */
     public String status;
 
     /** When the status was set; the record's {@code observedAt}. */

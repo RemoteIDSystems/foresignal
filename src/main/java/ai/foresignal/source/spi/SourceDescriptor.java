@@ -101,6 +101,9 @@ import java.util.Set;
  * @param defaultRetryAfter the backoff after an HTTP 429 that carries no {@code Retry-After} (prompt 062:
  *     30 s for adsb.lol, after God's Eye View's {@code adsb-lol.js}); null means the exponential ladder of
  *     {@code BackoffRegistry}. Internal, not in the OpenAPI {@code SourceDescriptor}
+ * @param followRedirects false when a redirect from this upstream must reach the adapter as a 3xx response
+ *     instead of being followed (prompt 064: CelesTrak's usage policy counts a 301 as an error a client must
+ *     stop on). True by default. Internal, not in the OpenAPI {@code SourceDescriptor}
  */
 public record SourceDescriptor(
         String id,
@@ -157,7 +160,8 @@ public record SourceDescriptor(
         Map<String, Map<String, Object>> kindPresentation,
         boolean acceptsRemoteMedia,
         boolean accessDeniedIsTerminal,
-        Duration defaultRetryAfter) {
+        Duration defaultRetryAfter,
+        boolean followRedirects) {
 
     /** Coordinate decimals kept for a private source unless it says otherwise (about 11 m). */
     public static final int DEFAULT_PRIVATE_PRECISION_DECIMALS = 4;
@@ -287,6 +291,7 @@ public record SourceDescriptor(
         private boolean acceptsRemoteMedia;
         private boolean accessDeniedIsTerminal;
         private Duration defaultRetryAfter;
+        private boolean followRedirects = true;
 
         private String name;
         private String description;
@@ -638,6 +643,15 @@ public record SourceDescriptor(
             return this;
         }
 
+        /**
+         * Whether {@code SourceHttp.get}, {@code getConditional} and {@code post} follow redirects (prompt
+         * 064); with false a 3xx comes back to the adapter as a response. True unless set.
+         */
+        public Builder followRedirects(boolean value) {
+            this.followRedirects = value;
+            return this;
+        }
+
         /** Sets the layer presentation hints of one kind. */
         public Builder kindPresentation(String kind, Map<String, Object> hints) {
             this.kindPresentation.put(kind, hints);
@@ -719,7 +733,8 @@ public record SourceDescriptor(
                     kindPresentation,
                     acceptsRemoteMedia,
                     accessDeniedIsTerminal,
-                    defaultRetryAfter);
+                    defaultRetryAfter,
+                    followRedirects);
         }
     }
 }

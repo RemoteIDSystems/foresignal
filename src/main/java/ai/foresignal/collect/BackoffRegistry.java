@@ -59,6 +59,9 @@ public class BackoffRegistry {
     /** Cached backoff deadlines, so the hot path does not query on every request. */
     private final Map<String, Instant> until = new ConcurrentHashMap<>();
 
+    /** Sources whose current backoff is a halt (prompt 064). */
+    private final java.util.Set<String> halted = ConcurrentHashMap.newKeySet();
+
     public BackoffRegistry(JdbcTemplate jdbc, Clock clock) {
         this.jdbc = jdbc;
         this.clock = clock;
@@ -89,9 +92,69 @@ public class BackoffRegistry {
     public void onSuccess(String sourceId) {
         AtomicInteger attempts = consecutive.remove(sourceId);
         Instant previous = until.remove(sourceId);
-        if (previous != null || (attempts != null && attempts.get() > 0)) {
+        boolean wasHalted = halted.remove(sourceId);
+        if (previous != null || wasHalted || (attempts != null && attempts.get() > 0)) {
             persist(sourceId, null);
         }
+    }
+
+    /**
+     * Holds a source for {@code hold} because the upstream's usage policy says to stop and alert a human
+     * (prompt 064, {@code UpstreamHaltException}). Unlike {@link #onThrottled} the hold is not clamped to
+     * {@link #MAX_BACKOFF}, and it is marked as a halt so that only {@link #clearHalt} (the operator's
+     * fetch-now) or its expiry releases it.
+     *
+     * @param hold how long to hold the source
+     * @return when the source may be fetched again
+     */
+    public Instant halt(String sourceId, Duration hold) {
+        Duration delay = hold == null || hold.isNegative() || hold.isZero() ? Duration.ofHours(24) : hold;
+        Instant deadline = clock.instant().plus(delay);
+        until.put(sourceId, deadline);
+        halted.add(sourceId);
+        persist(sourceId, deadline, true);
+        log.warn("{} is halted for {}s; automatic retries stopped until the operator fetches it manually",
+                sourceId, delay.toSeconds());
+        return deadline;
+    }
+
+    /** True while {@code sourceId} is held by {@link #halt} and the hold has not expired. */
+    public boolean isHalted(String sourceId) {
+        if (!isInBackoff(sourceId)) {
+            return false;
+        }
+        if (halted.contains(sourceId)) {
+            return true;
+        }
+        try {
+            Boolean stored = jdbc.query("select backoff_halted from source_health where source_id = ?",
+                    rs -> rs.next() ? (Boolean) rs.getObject(1) : null, sourceId);
+            if (Boolean.TRUE.equals(stored)) {
+                halted.add(sourceId);
+                return true;
+            }
+        } catch (RuntimeException e) {
+            log.debug("Could not read the halt flag of {}", sourceId, e);
+        }
+        return false;
+    }
+
+    /**
+     * Releases a halt (prompt 064): the operator investigated and asked for a fetch now. Does nothing to a
+     * plain backoff, which keeps honoring the upstream's own request.
+     *
+     * @return true when a halt was released
+     */
+    public boolean clearHalt(String sourceId) {
+        if (!isHalted(sourceId)) {
+            return false;
+        }
+        halted.remove(sourceId);
+        until.remove(sourceId);
+        consecutive.remove(sourceId);
+        persist(sourceId, null);
+        log.info("{}: the halt was released by a manual fetch", sourceId);
+        return true;
     }
 
     /** True while the source must not be fetched. */
@@ -124,6 +187,7 @@ public class BackoffRegistry {
     void clearCache() {
         consecutive.clear();
         until.clear();
+        halted.clear();
     }
 
     // ---------- delay arithmetic ----------
@@ -184,16 +248,24 @@ public class BackoffRegistry {
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     void persist(String sourceId, Instant deadline) {
+        persist(sourceId, deadline, false);
+    }
+
+    /** Writes the deadline and the halt flag (prompt 064) in their own short transaction. */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    void persist(String sourceId, Instant deadline, boolean halt) {
         try {
             jdbc.update(
                     """
                     insert into source_health (source_id, consecutive_failures, recent_record_counts,
-                                               adapter_state, backoff_until)
-                    values (?, 0, '[]'::jsonb, '{}'::jsonb, ?)
-                    on conflict (source_id) do update set backoff_until = excluded.backoff_until
+                                               adapter_state, backoff_until, backoff_halted)
+                    values (?, 0, '[]'::jsonb, '{}'::jsonb, ?, ?)
+                    on conflict (source_id) do update set backoff_until = excluded.backoff_until,
+                                                          backoff_halted = excluded.backoff_halted
                     """,
                     sourceId,
-                    deadline == null ? null : java.sql.Timestamp.from(deadline));
+                    deadline == null ? null : java.sql.Timestamp.from(deadline),
+                    halt);
         } catch (RuntimeException e) {
             // The in-memory deadline still holds for this process, so a write failure degrades
             // durability rather than politeness.

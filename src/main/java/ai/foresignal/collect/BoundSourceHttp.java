@@ -108,7 +108,7 @@ class BoundSourceHttp implements SourceHttp {
 
     @Override
     public UpstreamResponse get(URI uri, Map<String, String> headers) throws AdapterException {
-        return execute("GET", uri, headers, null, null, descriptor.maxResponseBytes(), true, 0);
+        return execute("GET", uri, headers, null, null, descriptor.maxResponseBytes(), descriptor.followRedirects(), 0);
     }
 
     @Override
@@ -119,7 +119,7 @@ class BoundSourceHttp implements SourceHttp {
                 .ifPresent(lastModified -> headers.put("If-Modified-Since", lastModified));
 
         UpstreamResponse response =
-                execute("GET", uri, headers, null, null, descriptor.maxResponseBytes(), true, 0);
+                execute("GET", uri, headers, null, null, descriptor.maxResponseBytes(), descriptor.followRedirects(), 0);
 
         if (response.status() == 200 && recorder == null) {
             // Store the new validators immediately; see PersistentAdapterStateStore for why this is
@@ -145,7 +145,7 @@ class BoundSourceHttp implements SourceHttp {
         if (contentType != null) {
             merged.put("Content-Type", contentType);
         }
-        return execute("POST", uri, merged, body, null, descriptor.maxResponseBytes(), true, 0);
+        return execute("POST", uri, merged, body, null, descriptor.maxResponseBytes(), descriptor.followRedirects(), 0);
     }
 
     @Override

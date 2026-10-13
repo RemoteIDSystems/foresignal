@@ -45089,7 +45089,7 @@
                 {
                   "key": "INTDES",
                   "value": "",
-                  "description": "International designator (e.g. `1998-067`)",
+                  "description": "International designator, matched as a prefix (`1998-067` selects every piece, `1998-067A` one object)",
                   "disabled": true
                 },
                 {
@@ -45113,12 +45113,12 @@
                 {
                   "key": "key",
                   "value": "",
-                  "description": "035 path-bound feed key for clients that cannot send headers (Gpredict, Look4Sat)",
+                  "description": "035 feed key (`fsf_\u2026`) for clients that cannot send headers (Gpredict, Look4Sat); its prefixes must include `/compat/celestrak/` (064)",
                   "disabled": true
                 }
               ]
             },
-            "description": "CelesTrak-compatible GP output served from `celestrak-gp` heads, never by calling CelesTrak, so Gpredict (`GROUP=\u2026&FORMAT=tle`), Look4Sat (`GROUP=active&FORMAT=csv`) and SatDump (`FORMAT=json`) can read elements from Foresignal. Query keys are uppercase as at CelesTrak; exactly one selector is required.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getCelestrakGp`",
+            "description": "CelesTrak-compatible GP output served from `celestrak-gp` heads, never by calling CelesTrak, so Gpredict (`GROUP=\u2026&FORMAT=tle`), Look4Sat (`GROUP=active&FORMAT=csv`) and SatDump (`FORMAT=json`) can read elements from Foresignal. Query keys are uppercase as at CelesTrak; exactly one selector is required (`INTDES` matches as a prefix, so `1998-067` selects every piece). Clients that cannot send headers pass a 035 feed key as `?key=` (the key's prefixes must include `/compat/celestrak/`); a feed-key response is `Cache-Control: private, max-age=3600`. A caller whose restriction hides `celestrak-gp` or the `satellite` kind, or limits the area, gets `No GP data found`.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getCelestrakGp`",
             "auth": {
               "type": "noauth"
             }
@@ -45173,7 +45173,7 @@
                 {
                   "key": "INTDES",
                   "value": "",
-                  "description": "International designator (e.g. `1998-067`)",
+                  "description": "International designator, matched as a prefix (`1998-067` selects every piece, `1998-067A` one object)",
                   "disabled": true
                 },
                 {
@@ -45197,12 +45197,12 @@
                 {
                   "key": "key",
                   "value": "",
-                  "description": "035 path-bound feed key for clients that cannot send headers (Gpredict, Look4Sat)",
+                  "description": "035 feed key (`fsf_\u2026`) for clients that cannot send headers (Gpredict, Look4Sat); its prefixes must include `/compat/celestrak/` (064)",
                   "disabled": true
                 }
               ]
             },
-            "description": "CelesTrak-compatible GP output served from `celestrak-gp` heads, never by calling CelesTrak, so Gpredict (`GROUP=\u2026&FORMAT=tle`), Look4Sat (`GROUP=active&FORMAT=csv`) and SatDump (`FORMAT=json`) can read elements from Foresignal. Query keys are uppercase as at CelesTrak; exactly one selector is required. Alias of `/compat/celestrak/gp.php` at CelesTrak's historical path.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getCelestrakGpAlias`",
+            "description": "CelesTrak-compatible GP output served from `celestrak-gp` heads, never by calling CelesTrak, so Gpredict (`GROUP=\u2026&FORMAT=tle`), Look4Sat (`GROUP=active&FORMAT=csv`) and SatDump (`FORMAT=json`) can read elements from Foresignal. Query keys are uppercase as at CelesTrak; exactly one selector is required (`INTDES` matches as a prefix, so `1998-067` selects every piece). Clients that cannot send headers pass a 035 feed key as `?key=` (the key's prefixes must include `/compat/celestrak/`); a feed-key response is `Cache-Control: private, max-age=3600`. A caller whose restriction hides `celestrak-gp` or the `satellite` kind, or limits the area, gets `No GP data found`. Alias of `/compat/celestrak/gp.php` at CelesTrak's historical path.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getCelestrakGpAlias`",
             "auth": {
               "type": "noauth"
             }

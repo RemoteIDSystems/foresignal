@@ -14,6 +14,7 @@ import ai.foresignal.source.spi.NormalizedRecord;
 import ai.foresignal.source.spi.PollingAdapter;
 import ai.foresignal.source.spi.SourceAdapter;
 import ai.foresignal.source.spi.SourceDescriptor;
+import ai.foresignal.source.spi.UpstreamHaltException;
 import ai.foresignal.source.spi.UpstreamQuotaDeferredException;
 import ai.foresignal.store.FetchStatus;
 import ai.foresignal.store.FetchTrigger;
@@ -65,6 +66,9 @@ import org.springframework.stereotype.Component;
  *   <tr><td>Budget refused</td><td>REFUSED</td><td>not a failure</td></tr>
  *   <tr><td>Upstream quota deferred ({@link UpstreamQuotaDeferredException}, prompt 062)</td><td>REFUSED</td>
  *       <td>counted as a refusal, not a failure</td></tr>
+ *   <tr><td>Upstream halt ({@link UpstreamHaltException}, prompt 064)</td><td>FAILED</td>
+ *       <td>{@code recordFailure}, {@code BackoffRegistry.halt} for the exception's hold (24 h), and a
+ *       {@value #HALT_EVENT} system notification; only a manual fetch releases it early</td></tr>
  *   <tr><td>In backoff</td><td>none</td><td>skipped, no health change</td></tr>
  *   <tr><td>Ingest queue full, or the writer failed the batch</td><td>FAILED</td><td>a warning,
  *       not an upstream failure</td></tr>
@@ -91,6 +95,9 @@ public class FetchExecutor {
 
     /** The error stored when the ingest queue stayed full. */
     public static final String QUEUE_FULL_ERROR = "ingest queue full";
+
+    /** The system notification subtype of an upstream halt (prompt 064). */
+    public static final String HALT_EVENT = "system.source_halted";
 
     /** The error stored on a DISCARDED row. */
     public static final String DISCARDED_ERROR = "source disabled while the fetch was in flight";
@@ -148,6 +155,17 @@ public class FetchExecutor {
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     public void setUsageMeter(UsageMeter usage) {
         this.usage = usage;
+    }
+
+    private org.springframework.context.ApplicationEventPublisher events;
+
+    /**
+     * Where an upstream halt's system notification is published (prompt 064). Optional, so a hand-built
+     * executor in a test works without one.
+     */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setEventPublisher(org.springframework.context.ApplicationEventPublisher events) {
+        this.events = events;
     }
 
     /** True while a fetch of {@code sourceId} is running. */
@@ -380,6 +398,10 @@ public class FetchExecutor {
             return FetchOutcome.withoutIngest(
                     sourceId, startedAt, elapsedMs(startNanos), false, 0, reason, id, FetchStatus.REFUSED);
         }
+        UpstreamHaltException halt = causeOf(error, UpstreamHaltException.class);
+        if (halt != null) {
+            onHalt(descriptor, halt);
+        }
         String message = health.errorMessage(sourceId, error);
         Integer status = HealthTracker.httpStatus(error);
         long id = fetchLog.write(
@@ -388,6 +410,37 @@ public class FetchExecutor {
         log.warn("{}: fetch failed: {}", sourceId, message);
         return FetchOutcome.withoutIngest(
                 sourceId, startedAt, elapsedMs(startNanos), false, 0, message, id, FetchStatus.FAILED);
+    }
+
+    /**
+     * Applies an upstream halt (prompt 064): holds the source for the exception's hold and tells the
+     * operator through a {@value #HALT_EVENT} system notification. The failure itself is then recorded like
+     * any other, so {@code last_error} carries the halt reason that {@link HealthEvaluator} reports.
+     */
+    private void onHalt(SourceDescriptor descriptor, UpstreamHaltException halt) {
+        String sourceId = descriptor.id();
+        Instant until = backoff.halt(sourceId, halt.hold());
+        log.error("{}: {}; held until {}", sourceId, halt.getMessage(), until);
+        if (events == null) {
+            return;
+        }
+        java.util.Map<String, Object> data = new java.util.LinkedHashMap<>();
+        data.put("sourceId", sourceId);
+        if (halt.status() > 0) {
+            data.put("httpStatus", halt.status());
+        }
+        data.put("heldUntil", until.toString());
+        try {
+            events.publishEvent(new ai.foresignal.notify.SystemEvent(HALT_EVENT, "critical",
+                    "Source " + sourceId + " halted",
+                    ai.foresignal.notify.MarkdownRenderer.escapeMarkdown(halt.getMessage())
+                            + ". Foresignal will not fetch **" + ai.foresignal.notify.MarkdownRenderer.escapeMarkdown(
+                                    sourceId) + "** again until " + until
+                            + " unless you fetch it manually after investigating.",
+                    "/v1/sources/" + sourceId + "/health", data));
+        } catch (RuntimeException e) {
+            log.warn("{}: could not publish the halt notification", sourceId, e);
+        }
     }
 
     // ------------------------------------------------------------------ helpers

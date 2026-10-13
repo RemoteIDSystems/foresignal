@@ -3141,6 +3141,77 @@ decommissioned in 2025.
 | Clients outside the LAN | Tile keys and the `web` profile as documented; nothing SatDump-specific |
 | Home location and places | `location` names a place when one exists, otherwise coordinates |
 
+## Space sources (prompt 064)
+
+All five start disabled. Enable them with `PUT /v1/sources/{id}`.
+
+**`celestrak-gp` (element sets).** CelesTrak's usage policy of 2026-05-22 is strict, and Foresignal
+follows it:
+- It fetches `GROUP=active` as CSV every 2 h (the policy's own check interval), one request at a time.
+  It then fetches at most two `memberGroups` whose membership is a day old, so each group about once a day.
+- A repeat inside one CelesTrak update gets a 403 "GP data has not updated since your last successful
+  download". That counts as not modified.
+- **Any other status, a redirect, or a body that is not CSV/JSON stops the source for 24 hours.** Its
+  health turns `failing` with "CelesTrak returned {status}; automatic retries stopped per CelesTrak usage
+  policy — investigate, then use fetch-now", and a `system.source_halted` notification goes to every
+  channel subscribed to `system`. More than 50 such errors in 2 h get an address firewalled.
+- Find out why (the fetch log and `GET /v1/sources/celestrak-gp/health` show the status), then
+  `POST /v1/sources/celestrak-gp/fetch`. A manual fetch releases the hold; an ordinary backoff still
+  answers `409 IN_BACKOFF`.
+- More than 60 MB in a day turns health `degraded` (CelesTrak may block above 100 MB a day).
+- `celestrak-socrates` (about 23 MB, refreshed every 10–11 h) follows the same rules and the same
+  CelesTrak error budget. Leave it disabled if you do not need conjunctions.
+
+**Feeding Gpredict, Look4Sat and SatDump.** Point clients at Foresignal instead of CelesTrak:
+`/compat/celestrak/gp.php` (or `/compat/celestrak/NORAD/elements/gp.php`) serves the stored element
+sets in CelesTrak's formats. It never calls CelesTrak. It needs `read` (open while `security.openReads`
+is on). For a client that cannot send headers, create a feed key whose prefixes include
+`/compat/celestrak/` and whose restriction names the source, and append it as `&key=`:
+
+```http
+POST /v1/feed-keys
+{"name": "Gpredict", "prefixes": ["/compat/celestrak/"], "restrictions": {"sources": ["celestrak-gp"]}}
+```
+
+| Client | URL |
+|---|---|
+| Gpredict | `https://foresignal.example/compat/celestrak/gp.php?GROUP=stations&FORMAT=tle&key=fsf_…` (one URL per group) |
+| Look4Sat | `https://foresignal.example/compat/celestrak/gp.php?GROUP=active&FORMAT=csv&key=fsf_…` |
+| SatDump | `kepler_settings.urls_to_fetch`: `http://foresignal.lan:8080/compat/celestrak/gp.php?GROUP=active&FORMAT=omm` |
+
+- Unknown `FORMAT` values (SatDump's `omm`) get CSV, as at CelesTrak. That is what SatDump needs: its
+  OMM reader (`ccsdsOmmToKepler`, checked in the SatDump tree of 2026-10-12) splits each line into the
+  17 CSV columns. `FORMAT=json` does **not** load in SatDump. SatDump's default source is orbicentral
+  (`http://orbicentral.net/gp.php?GROUP=active&FORMAT=omm`).
+- TLE formats leave out objects numbered 100000 and above (CelesTrak does not use alpha-5); use CSV or
+  JSON to get them.
+- `X-Foresignal-Elements-Age` gives the age of the newest element set in seconds. A `Warning` header
+  appears when it is over 3 days old, meaning `celestrak-gp` has stopped.
+
+**`satellite-passes`.** This source predicts passes of `norad` (default ISS 25544, METEOR-M2 3 57166 and
+METEOR-M2 4 59051) over every non-sensitive point place for 48 h, with Orekit, from the element sets.
+It needs `celestrak-gp` enabled.
+- The observer height is the place's `altitudeM` attribute, else 0 m.
+- A sensitive place is used only when you name it in `places`. Mark the source private if its passes
+  should not reach read tokens.
+- A SatDump station predicts its own `predictNorad` satellites (default 57166 and 59051, at
+  `predictMinElevationDeg` 10). Its `predicted` versions become `receiving`/`recorded`/`decoded` under the
+  same id when a session starts within 5 minutes of the predicted AOS. A predicted pass with no session
+  by LOS + 20 minutes becomes `missed` while `/api` answered throughout the pass, and is removed otherwise.
+- At startup a self-test predicts a bundled ISS pass. If Orekit's output drifts, the log says "Orekit
+  self-test FAILED".
+
+**`launch-library`.** It works anonymously: 15 requests an hour, polled every 15 minutes. With a Launch
+Library 2 token (`PUT /v1/sources/launch-library/credentials {"values": {"token": "…"}}`) you may lower
+the interval to 5 minutes. Do not lower it without a token: the upstream answers 429, and Foresignal
+backs off 30 minutes.
+
+**`spacetrack-tip`.** It needs your own Space-Track account (`identity` and `password`). The User
+Agreement allows one account per person or entity, and the credentials must never be shared. The data
+may not be passed to others without Space-Track's approval, so the source is `LOCAL_ONLY`: it is never
+served to feeds, sinks, federation or share links. It queries the last hour's TIP messages hourly. Space-Track
+limits TIP to once an hour, or every 10 minutes during a re-entry within 12 hours.
+
 ## Operating the instance
 
 ### Probes and the compose healthcheck

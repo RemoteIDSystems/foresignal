@@ -81,6 +81,8 @@ file carries an origin header naming its source file and this notice.
 | `src/main/java/ai/foresignal/source/adapters/aisstream/VesselStateStore.java` (merging static data into per-MMSI vessel state, the bounded cache) | `server/providers/vessels/ais-store.js` (`ingestAisStreamEnvelope`, `mergeAisStaticIntoLiveVessel`, `pruneAisStreamCache`) |
 | `src/main/java/ai/foresignal/source/adapters/aisstream/AisStreamSession.java` (liveness only from a recognized envelope, auth versus transport errors, report-fast/recycle-slow silence watchdog: 120 s and 2.5 times that) | `src/data/aisStreamAdapter.js` (`classifyAisFailure`, liveness credit) and `src/data/aisWatchdog.js` (`staleMs`, `recycleAfterMs`) |
 | `src/main/java/ai/foresignal/source/adapters/aisstream/AisStreamAdapter.java` (stream URL, default message types and world box, one connection per key, hourly retry of a rejected key) | `server/providers/vessels/ais-live.js` (`AISSTREAM_URL`, `AISSTREAM_DEFAULT_MESSAGE_TYPES`, `AISSTREAM_DEFAULT_BBOXES`, `AISSTREAM_AUTH_PROBE_MS`) |
+| `src/main/java/ai/foresignal/source/adapters/celestrak/CelestrakPolicy.java`, `CelestrakGpParser.java` and `CelestrakGroups.java` (an error page or empty body is a failure, never data; the `^[a-z0-9-]+$` group check; CelesTrak's descriptive-User-Agent practice, which `UpstreamClient` already follows, prompt 064) | `server/providers/space/celestrak.js` (`fetchUpstream`, the group pattern of `celestrakProxy`) and `src/data/spaceProviderRequests.js` (`celestrakTleUrl`) |
+| `src/main/java/ai/foresignal/source/adapters/launchlibrary/LaunchLibraryAdapter.java` (the optional `Authorization: Token` header, sent only when a token is set, prompt 064) | `server/providers/space/launch-library.js` (`launchLibraryRequestHeaders`) |
 
 `decode.js` (ecCodes WASM) is not ported: Foresignal decodes with NetCDF-Java. The particle layer
 (`src/layers/wind/*`) is not part of Foresignal; the Frontend Guide tells web clients which of its
@@ -244,13 +246,15 @@ Other runtime dependencies NetCDF-Java brings from Maven Central, all used unmod
 calls it), JDOM 2 (the JDOM license, Apache-style), Joda-Time (Apache-2.0), Protocol Buffers Java (BSD-3-Clause),
 Apache HttpClient, HttpCore and HttpMime 4 with Commons Logging and Commons Codec (Apache-2.0).
 
-### Orekit (prompt 054)
+### Orekit (prompts 054 and 064)
 
 - **Artifact:** `org.orekit:orekit` 13.1.9 (Maven Central), used unmodified. Runtime dependencies: Hipparchus 4.0.3
   (`org.hipparchus:hipparchus-core`, `-geometry`, `-ode`, `-fitting`, `-optim`, `-filtering` and `-stat`, Maven
   Central, Apache License, Version 2.0, Copyright the Hipparchus project; <https://hipparchus.org>).
 - **Use:** `ai.foresignal.orbit`: SGP4 propagation of a SatDump pass's TLE for its approximate swath (prompt 054);
-  prompt 064 reuses it for predicted passes. Loaded only on those code paths, with its own data context (below).
+  prompt 064 reuses it in `ai.foresignal.space.PassPredictor` (predicted passes, `ElevationDetector` and
+  `ElevationExtremumDetector` on a `TopocentricFrame`) and its startup self-test. Loaded only on those code paths,
+  with its own data context (below).
 - **License:** Apache License, Version 2.0 (the jar's `META-INF/LICENSE.txt`). Its `META-INF/NOTICE.txt` reads
   "OREKIT, Copyright 2002-2025 CS GROUP" and credits the authors whose work Orekit includes or translates, among them
   the SGP4 work of David A. Vallado, Paul Crawford, Richard Hujsak and T.S. Kelso, and of Felix R. Hoots and Ronald L.
