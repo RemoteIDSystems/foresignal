@@ -399,6 +399,41 @@ Foresignal ships none of these. Each fits the [External Data Protocol](External-
 | Argo ocean floats (GDAC / ERDDAP) | atomic, `observation` (temperature and salinity profiles by region) | `series` | public data; low volume |
 | GCN and IGWN multi-messenger alerts (gravitational waves, neutrinos, GRBs) | layer, `event` | `canonical-family` | public Kafka/JSON notices; rare, high-value events |
 | Local RF occupancy and interference (operator's SDRs) | atomic, `observation` per band and site | `series`; declared coverage feeds observability | the operator's own receivers |
+| **Your own browser** (capture as you browse) | atomic, `document` (`social-post`, `transcript`) | `social` | a Chrome extension or a scheduled headless browser using the operator's own signed-in session; see below |
+
+### Your own browser as a source
+
+The operator's own signed-in browser can feed Foresignal. A provider built as its own project captures what the operator already sees on Instagram, X, Telegram Web, TikTok, Facebook or any site, and pushes it as EDP items. No password or cookie leaves the browser.
+
+- **Capture-as-you-browse extension (preferred):** a small Chrome extension reads the page being viewed (author, caption, URL, post time, engagement counts, media links) and pushes `document` items with the source's ingest key. It can capture every post viewed, or only when the operator clicks "Send to Foresignal". The traffic is ordinary browsing.
+- **Scheduled headless browser:** a script on the server uses the operator's exported browser session to check listed accounts or hashtags. It runs unattended but is fragile, and the platform may challenge or limit the operator's account; that risk is the operator's call.
+- **Extras a provider can add:** reel and video thumbnails as `media` links (Foresignal fingerprints them to catch recycled footage), and local audio transcription sent as `transcript` documents.
+- **Evidence counting:** each item carries `origin` naming the platform account that published it, so many reposts of one video count as one source (EDP §3.4).
+
+Minimal manifest:
+
+```json
+{
+  "protocol": "foresignal-edp/1.0",
+  "source": {
+    "id": "my-browser-capture",
+    "name": "My browser capture",
+    "publisher": {"name": "Operator"},
+    "originator": {"id": "my-browser-capture", "class": "social"},
+    "access": {"route": "browser", "fragility": "medium"},
+    "private": true
+  },
+  "transport": {"push": true},
+  "streams": [
+    {"id": "posts", "mode": "atomic", "itemType": "document", "kind": "social-post",
+     "documentType": "social-post", "suggestedBindings": [{"target": "social"}]},
+    {"id": "transcripts", "mode": "atomic", "itemType": "document", "kind": "social-transcript",
+     "documentType": "transcript", "suggestedBindings": [{"target": "social"}]}
+  ]
+}
+```
+
+Bound with target `social` (138), captured posts join narratives and claims (136) and are compared with what Foresignal observes (137).
 
 ## Markets, attention and structural series (prompt 117, v1.3)
 
