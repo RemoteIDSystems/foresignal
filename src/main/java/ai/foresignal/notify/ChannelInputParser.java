@@ -38,13 +38,14 @@ import tools.jackson.databind.json.JsonMapper;
  * <p>Prompt 035: every {@code url} field Foresignal contacts (config or secret) and the email
  * {@code smtpHost} pass {@link OutboundUrlPolicy} profile {@code LAN_ALLOWED}; a refusal is reported
  * on its field and the whole 400 carries code {@code URL_NOT_ALLOWED}. A host that does not resolve
- * at save time is accepted; {@code ChannelSender} checks again on every send.
+ * at save time is accepted; {@code ChannelSender} checks again on every send. Prompt 060: the {@code mqtt}
+ * {@code brokerUrl} host gets the same check.
  */
 @Component
 public class ChannelInputParser {
 
     /** Types the spec lists that later prompts implement. */
-    static final Map<String, String> LATER_TYPES = Map.of("mqtt", "060", "meshtastic", "084", "meshcore", "084");
+    static final Map<String, String> LATER_TYPES = Map.of("meshtastic", "084", "meshcore", "084");
 
     /**
      * Built-in types with exactly one channel, created at startup (031: the "Push" channel); they can
@@ -309,6 +310,19 @@ public class ChannelInputParser {
             String problem = policy.saveHostProblem(host, ChannelSender.PROFILE);
             if (problem != null) {
                 out.add(new FieldError("config.smtpHost", problem));
+            }
+        }
+        if (ai.foresignal.notify.types.MqttChannel.ID.equals(type.id())
+                && config.get("brokerUrl") instanceof String broker) {
+            // Prompt 060: the broker host passes the same LAN_ALLOWED policy (private brokers are fine).
+            try {
+                String host = ai.foresignal.mqtt.MqttEndpoint.parse(broker).host();
+                String problem = policy.saveHostProblem(host, ChannelSender.PROFILE);
+                if (problem != null) {
+                    out.add(new FieldError("config.brokerUrl", problem));
+                }
+            } catch (IllegalArgumentException e) {
+                out.add(new FieldError("config.brokerUrl", e.getMessage()));
             }
         }
         return out;

@@ -1,11 +1,16 @@
 package ai.foresignal.api;
 
+import ai.foresignal.api.error.ConflictException;
+import ai.foresignal.api.error.ErrorCodes;
 import ai.foresignal.api.error.NotFoundException;
 import ai.foresignal.api.mapper.ChannelMapper;
 import ai.foresignal.api.support.Cursor;
 import ai.foresignal.api.support.CursorCodec;
 import ai.foresignal.api.support.QueryParams;
+import ai.foresignal.mqtt.channel.MqttChannelManager;
 import ai.foresignal.notify.ChannelService;
+import ai.foresignal.notify.types.MqttChannel;
+import ai.foresignal.store.NotificationChannelEntity;
 import ai.foresignal.store.DeliveryStatus;
 import ai.foresignal.store.NotificationDeliveryEntity;
 import ai.foresignal.store.NotificationDeliveryRepository;
@@ -34,7 +39,8 @@ import tools.jackson.databind.JsonNode;
 /**
  * The {@code Channels} operations (prompt 018): {@code listChannelTypes}, {@code listChannels},
  * {@code createChannel}, {@code getChannel}, {@code updateChannel}, {@code deleteChannel},
- * {@code testChannel} and {@code listChannelDeliveries}. Every operation needs {@code admin}
+ * {@code testChannel}, {@code listChannelDeliveries} and {@code republishMqttChannel} (prompt 060). Every
+ * operation needs {@code admin}
  * ({@code /v1/channels/**} in {@code AccessPolicy}); responses never include secret values.
  */
 @RestController
@@ -51,12 +57,15 @@ public class ChannelsController {
     private final ChannelService channels;
     private final ChannelMapper mapper;
     private final NotificationDeliveryRepository deliveries;
+    private final MqttChannelManager mqtt;
 
     /** Creates the controller. */
-    public ChannelsController(ChannelService channels, ChannelMapper mapper, NotificationDeliveryRepository deliveries) {
+    public ChannelsController(ChannelService channels, ChannelMapper mapper, NotificationDeliveryRepository deliveries,
+            MqttChannelManager mqtt) {
         this.channels = channels;
         this.mapper = mapper;
         this.deliveries = deliveries;
+        this.mqtt = mqtt;
     }
 
     /** {@code listChannelTypes}. */
@@ -114,6 +123,32 @@ public class ChannelsController {
         out.put("durationMs", result.durationMs());
         out.put("error", result.error());
         return out;
+    }
+
+    /**
+     * {@code republishMqttChannel} (prompt 060): 202 once every retained state and the Home Assistant discovery
+     * are queued for re-publication; 404 for an unknown or non-{@code mqtt} channel, 409
+     * {@code CHANNEL_DISABLED} for a disabled one.
+     */
+    @PostMapping("/{channelId}/mqtt/republish")
+    @Operation(operationId = "republishMqttChannel", tags = "Channels")
+    public ResponseEntity<Void> republishMqttChannel(@PathVariable String channelId) {
+        UUID id = id(channelId);
+        NotificationChannelEntity channel = channels.load(id);
+        if (!MqttChannel.ID.equals(channel.getType())) {
+            throw new NotFoundException("Channel " + channelId + " is not an mqtt channel.");
+        }
+        if (!channel.isEnabled()) {
+            throw new ConflictException(ErrorCodes.CHANNEL_DISABLED, "Channel " + channelId + " is disabled.");
+        }
+        if (!mqtt.republish(id)) {
+            mqtt.sync(id);
+            if (!mqtt.republish(id)) {
+                throw new ConflictException(ErrorCodes.CHANNEL_DISABLED,
+                        "Channel " + channelId + " has no MQTT connection; check its brokerUrl.");
+            }
+        }
+        return ResponseEntity.accepted().build();
     }
 
     /** {@code listChannelDeliveries}: newest first, keyset on id, optional {@code status}. */

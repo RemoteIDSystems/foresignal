@@ -114,8 +114,11 @@ class ChannelsControllerIT extends WireMockSupport {
         send(post("/v1/channels"), "{'name':'x','type':'carrier-pigeon'}").andExpect(status().isBadRequest());
         send(post("/v1/channels"), "{'name':'x','type':'webpush'}").andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors[0].message", containsString("built-in Push channel")));
+        send(post("/v1/channels"), "{'name':'x','type':'meshtastic'}").andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].message", containsString("084")));
+        // Prompt 060: mqtt is available and needs a brokerUrl.
         send(post("/v1/channels"), "{'name':'x','type':'mqtt'}").andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errors[0].message", containsString("060")));
+                .andExpect(jsonPath("$.errors[0].field", is("config.brokerUrl")));
         send(post("/v1/channels"), "{'name':'x','type':'slack'}").andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors[0].field", is("secrets.webhookUrl")));
         send(post("/v1/channels"), "{'name':'x','type':'ntfy','config':{'topic':'t'},'timezone':'Mars/Olympus',"

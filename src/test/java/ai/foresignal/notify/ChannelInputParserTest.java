@@ -82,9 +82,28 @@ class ChannelInputParserTest {
     @Test
     @DisplayName("later types and unknown types are refused; a non-object body is refused")
     void types() {
-        assertThat(fails("{'name':'m','type':'mqtt'}").getErrors().getFirst().message()).contains("060");
+        assertThat(fails("{'name':'m','type':'meshtastic'}").getErrors().getFirst().message()).contains("084");
         assertThat(fails("{'name':'m','type':'fax'}").getErrors().getFirst().message()).contains("unknown");
         assertThatThrownBy(() -> parser.parse(JSON.readTree("[]"), null)).isInstanceOf(ValidationException.class);
+    }
+
+    @Test
+    @DisplayName("060: mqtt needs a brokerUrl, whose host passes the LAN_ALLOWED outbound policy")
+    void mqtt() {
+        ChannelInputParser withMqtt = new ChannelInputParser(
+                new ChannelTypeRegistry(List.of(new ai.foresignal.notify.types.MqttChannel())), JSON,
+                ai.foresignal.testsupport.net.TestOutbound.offlinePolicy());
+        java.util.function.Function<String, ChannelInput> parse =
+                json -> withMqtt.parse(JSON.readTree(json.replace('\'', '"')), null);
+        assertThatThrownBy(() -> parse.apply("{'name':'m','type':'mqtt'}")).isInstanceOf(ValidationException.class)
+                .satisfies(e -> assertThat(((ValidationException) e).getErrors()).extracting(f -> f.field())
+                        .contains("config.brokerUrl"));
+        assertThatThrownBy(() -> parse.apply("{'name':'m','type':'mqtt','config':{'brokerUrl':'mqtt://169.254.169.254'}}"))
+                .isInstanceOf(ValidationException.class)
+                .satisfies(e -> assertThat(((ValidationException) e).getErrors()).extracting(f -> f.field())
+                        .containsExactly("config.brokerUrl"));
+        assertThat(parse.apply("{'name':'m','type':'mqtt','config':{'brokerUrl':'mqtts://192.168.1.5:8883',"
+                + "'haDiscovery':true}}").config()).containsEntry("haDiscovery", true);
     }
 
     @Test

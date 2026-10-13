@@ -257,6 +257,25 @@ Apache HttpClient, HttpCore and HttpMime 4 with Commons Logging and Commons Code
 - **License:** Apache License, Version 2.0 (the pom's `<licenses>`).
 - **Project:** <https://github.com/json-path/JsonPath>.
 
+### HiveMQ MQTT Client (prompt 060)
+
+- **Artifact:** `com.hivemq:hivemq-mqtt-client-shaded` 1.4.0 (Maven Central), used unmodified.
+- **Use:** `ai.foresignal.mqtt`: the supervised connections of the `mqtt` channel (MQTT 3.1.1 and 5, TLS,
+  WebSocket); the MQTT source adapters reuse them.
+- **License:** Apache License, Version 2.0 (the pom's `<licenses>`). Project: <https://github.com/hivemq/hivemq-mqtt-client>.
+- **Relocated inside the shaded jar** (under `com.hivemq.client.internal.shaded`), each checked in its own pom:
+  - Netty 4.1.137.Final (`io.netty:netty-buffer`, `-codec`, `-codec-http`, `-common`, `-handler`, `-transport`):
+    Apache License, Version 2.0;
+  - JCTools 4.0.7 (`org.jctools:jctools-core`): Apache License, Version 2.0;
+  - Dagger 2.42 (`com.google.dagger:dagger`) and `javax.inject`: Apache License, Version 2.0.
+- **Runtime dependencies** (not relocated):
+  - RxJava 2.2.21 (`io.reactivex.rxjava2:rxjava`): Apache License, Version 2.0;
+  - Reactive Streams 1.0.4 (`org.reactivestreams:reactive-streams`): MIT-0 (MIT No Attribution);
+  - JetBrains annotations 26.1.0 (`org.jetbrains:annotations`): Apache License, Version 2.0.
+- **Test only:** Testcontainers' `testcontainers-toxiproxy` 2.0.5 (MIT) with `eu.rekawek.toxiproxy:toxiproxy-java`
+  2.1.11 (Apache License, Version 2.0), and the `eclipse-mosquitto:2` and `ghcr.io/shopify/toxiproxy:2.12.0` images, which are not
+  distributed.
+
 ### GDAL (optional, not in the default image)
 
 - **Package:** `gdal-bin` from the base image's distribution, installed **only** when the image is built with

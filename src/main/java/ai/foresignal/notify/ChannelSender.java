@@ -42,6 +42,12 @@ import org.springframework.stereotype.Component;
  * ({@link OutboundUrlPolicy#checkHost}); JavaMail resolves it again right after, which the JVM's DNS
  * cache answers with the checked address, because connecting to a literal would break JavaMail's
  * server identity check. A refusal is an {@link OutboundUrlDeniedException}: a delivery failure.
+ *
+ * <p><strong>MQTT (prompt 060).</strong> A {@link PreparedRequest.Mqtt} body is published on the channel's
+ * supervised connection through the {@link MqttDeliveryGateway}, which applies the same policy to the broker
+ * host when it connects. PUBACK (QoS 1) or a completed write (QoS 0) is reported as status 200; a broker that
+ * is not connected, a refusal or a timeout is an {@link IOException}, so the delivery follows the retry
+ * ladder.
  */
 @Component
 public class ChannelSender {
@@ -60,6 +66,9 @@ public class ChannelSender {
     private final PinnedHttp pinned;
     private final PinnedHttp.ClientSpec spec;
 
+    /** The MQTT publisher (prompt 060), looked up lazily because it depends on the channel service. */
+    private org.springframework.beans.factory.ObjectProvider<MqttDeliveryGateway> mqttGateway;
+
     /** Creates the sender. */
     public ChannelSender(NotifyProperties properties, OutboundUrlPolicy policy, PinnedHttp pinned) {
         this.properties = properties;
@@ -70,6 +79,12 @@ public class ChannelSender {
         this.spec = new PinnedHttp.ClientSpec(properties.connectTimeout(), HttpClient.Version.HTTP_1_1);
     }
 
+    /** Injects the MQTT publisher (prompt 060); absent in hand-built unit tests. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setMqttGateway(org.springframework.beans.factory.ObjectProvider<MqttDeliveryGateway> gateway) {
+        this.mqttGateway = gateway;
+    }
+
     /**
      * Sends {@code request} and returns the response.
      *
@@ -77,6 +92,13 @@ public class ChannelSender {
      * @throws IOException when the destination cannot be reached or the exchange fails
      */
     public ChannelResponse send(PreparedRequest request) throws IOException {
+        if (request.body() instanceof PreparedRequest.Mqtt mqtt) {
+            MqttDeliveryGateway gateway = mqttGateway == null ? null : mqttGateway.getIfAvailable();
+            if (gateway == null) {
+                throw new IOException("MQTT is not available");
+            }
+            return gateway.publish(mqtt);
+        }
         if (request.body() instanceof PreparedRequest.Mail mail) {
             OutboundUrlDeniedException.require(policy.checkHost(mail.host(), PROFILE));
             return sendMail(mail);
@@ -119,6 +141,7 @@ public class ChannelSender {
                 contentType = "multipart/form-data; boundary=" + boundary;
             }
             case PreparedRequest.Mail mail -> throw new IllegalStateException("unreachable");
+            case PreparedRequest.Mqtt mqtt -> throw new IllegalStateException("unreachable");
         }
         if (contentType != null) {
             builder.header("Content-Type", contentType);

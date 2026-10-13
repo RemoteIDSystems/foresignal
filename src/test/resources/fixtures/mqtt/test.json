@@ -1,0 +1,13 @@
+{
+  "topic": "foresignal/test",
+  "qos": 1,
+  "retain": false,
+  "messageExpirySeconds": 86400,
+  "contentType": "application/json",
+  "payload": {
+    "event": "test",
+    "title": "Foresignal test notification",
+    "body": "If you can read this, the channel works.",
+    "at": "2026-05-01T12:00:00Z"
+  }
+}

@@ -53,7 +53,7 @@ Foresignal is a single Spring Boot process backed by one PostgreSQL database wit
 | Rate limiting | Bucket4j (`bucket4j_jdk17-core`) | One bucket set per source |
 | HTTP client | `java.net.http.HttpClient` | Wrapped by `UpstreamClient` |
 | WebSocket client | `java.net.http.WebSocket` | For streaming adapters |
-| MQTT | Eclipse Paho v5 | For streaming adapters |
+| MQTT | HiveMQ MQTT Client 1.4.0, shaded artifact (`com.hivemq:hivemq-mqtt-client-shaded`) | Prompt 060. MQTT 3.1.1 and 5, async API, WebSocket transport, Apache-2.0. Replaces Eclipse Paho, whose `org.eclipse.paho.mqttv5.client` last released 1.2.5 in July 2020 (treated as unmaintained). The shaded jar is used because the plain one declares Netty 4.1.137 and the Spring Boot 4.1 BOM resolves it to 4.2.17; the shaded jar carries its own relocated Netty 4.1. One supervised client per owner through `ai.foresignal.mqtt.MqttConnections` (§17.4); **the MQTT source adapters (083, 085) open their connections through `MqttConnections` too**, so `/v1/system` and the metrics see every connection |
 | Vectors | pgvector + `hibernate-vector` | Embeddings for semantic search (§20) |
 | MCP | MCP Java SDK (`io.modelcontextprotocol.sdk`) with the Spring WebMVC streamable-HTTP transport | `/mcp` (§18) |
 | LLM: Anthropic | Official Anthropic Java SDK `com.anthropic:anthropic-java` | Default model `claude-opus-5-5` (§19) |
@@ -97,6 +97,8 @@ ai.foresignal
 │                   EnrichmentWorker
 ├── notify          Notification channels, formatters per type, delivery worker, Web Push;
 │                   AlertMapService and ChannelMapConfig: map attachments of alerts (055)
+├── mqtt            Supervised MQTT client (MqttConnections, 060); mqtt.channel: the mqtt channel's
+│                   state topics and Home Assistant discovery
 ├── inbound         Custom push sources, ingest endpoint support
 ├── mapping         RecordMapping compiler and engine, device presets, preview, samples, LLM drafts (059)
 ├── mcp             MCP server and tool catalog
@@ -731,6 +733,7 @@ One delivery system serves alerts, briefings and system events across many desti
 | `pushover` | — | `appToken`, `userKey` | Priority from severity |
 | `email` | `smtpHost`, `smtpPort`, `tls` (`starttls`/`ssl`/`none`), `from`, `to[]` | `username`, `password` | Multipart text + HTML |
 | `webpush` | `quietHoursMode` (`defer`/`downgrade`/`drop`); one built-in channel "Push" | — | Fans out to Web Push and UnifiedPush subscriptions and to APNs and FCM devices (§24) |
+| `mqtt` | `brokerUrl` (`mqtt://`, `mqtts://`, `ws://`, `wss://`), `topicPrefix` (`foresignal`), `qos` (0/1), `protocolVersion` (`5`/`3.1.1`), `messageExpiry` (24 h), `payloadTemplate`, `publishHealth`, `publishSummary`, `summaryInterval` (60 s), `haDiscovery`, `haPrefix`, `haMaxRules`, `haMaxSources`, `haRetainDiscovery` | `username`, `password`, `caCertPem` | One PUBLISH per delivery on the channel's supervised connection, successful on PUBACK (QoS 1) or write (QoS 0); 50 msg/s; retained state topics and Home Assistant discovery beside it (§17.4) |
 
 - **Message model:** every event becomes a `NotificationMessage`: `event` (`alert`/`briefing`/`system`/`test`), `title`, `body` (markdown), `severity` (`info`/`warning`/`critical`), `url` (API link to the record, alert or run), `data` (the full alert or briefing-run JSON). A formatter per type converts markdown to the destination's format and escapes it correctly (for example Telegram HTML, Slack mrkdwn, Matrix HTML).
 - **Routing:** a channel subscribes to events, optionally limited by `rule_ids` and `min_severity`.
@@ -765,6 +768,48 @@ One delivery system serves alerts, briefings and system events across many desti
 
 - **Presence:** `client_presence` (`device_key`, `kind` desktop/mobile/web, `state` active/idle/background, `expires_at`). Clients heartbeat with `POST /v1/clients/presence` (ttl ≤ 300 s); an open inbox or alert stream counts as `background` only. A channel with `deferWhileActiveSeconds` (0–600) holds a non-critical `alert.fired` that long while any desktop is active (`deferred_reason = presence`). At claim time the send is marked `suppressed` if the alert was acknowledged, snoozed or resolved, or the notification read on a desktop, meanwhile. Critical alerts and system events are never deferred; stale presence fails open.
 - **Escalation:** `escalation_policy` (`steps` ≤ 5 with strictly increasing `afterMinutes` 1–1440, `channelIds`, `includePush`; optional `repeat {everyMinutes, maxTimes ≤ 10}`; `stopOn`: ack always, resolve and snooze by default) is referenced by `trigger_rule.escalation_policy_id`. When such a rule's alert fires, `alert_escalation` is created (the rule's own routing is the first notification). The `EscalationWorker` (15 s, `FOR UPDATE SKIP LOCKED`, advanced in the claim transaction) sends each due step as an `alert.escalated` notification titled `[Escalation <n>]` with fresh capabilities to the step's channels, repeats the last step, then marks the row `exhausted`. Quiet hours apply except to critical alerts. Ack, resolve and snooze (per `stopOn`) and a rule mute stop it at once: pending escalation deliveries become `suppressed` and Pushover receipts of escalation messages are canceled.
+
+### 17.4 MQTT channel and Home Assistant discovery (060)
+
+- **Client:** `MqttConnections` keeps one HiveMQ client per enabled `mqtt` channel (key `channel:<id>`), `Mqtt5AsyncClient` or, for `protocolVersion=3.1.1`, `Mqtt3AsyncClient`.
+  - Client id `foresignal-{installId}-{channelIdShort}`; keepalive 60 s; clean start off with a 1 h session expiry.
+  - Reconnect after 1 s, doubling to 120 s, ±20 % jitter. Publishing while disconnected fails at once, so the delivery ladder decides when to retry.
+  - TLS for `mqtts://` and `wss://`: the system trust store plus the optional `caCertPem`; hostname verification is never turned off.
+  - Last Will `{prefix}/status` = `offline`, retained, QoS 1; `online` retained on every (re)connect; `offline` and a normal DISCONNECT on graceful shutdown.
+  - The broker host passes the outbound URL policy (`LAN_ALLOWED`) when saved and before every connect attempt. A public host without TLS or credentials is saved with the warning `MQTT_INSECURE_PUBLIC_BROKER`.
+  - `/v1/system` `mqtt` block `{connections, connected, lastError}`; metric `foresignal.mqtt.connected{channel}`.
+- **Event deliveries** (the 018 pipeline; `ChannelSender` publishes a `PreparedRequest.Mqtt` body through `MqttDeliveryGateway`):
+
+  | Event | Topic | Retained | Payload |
+  |---|---|---|---|
+  | alert fired | `{prefix}/alerts/{severity}` | no, message expiry | `{event_type, id, ruleId, ruleName, severity, state, title, shortTitle, body, url, sourceId, externalId, kind, firedAt, point, tags, near?}` |
+  | alert acknowledged, snoozed, resolved | `{prefix}/alerts/updates` | no, message expiry | `{id, state, resolvedAt, acknowledgedBy}` |
+  | briefing run | `{prefix}/briefings/{briefingId}` | yes | `{runId, title, at, url, status, markdown}` (markdown ≤ 16 KB) |
+  | system event | `{prefix}/system/events` | no, message expiry | `NotificationMessage` JSON |
+  | channel test | `{prefix}/test` | no | `{event, title, body, at}` |
+
+- **State publisher** (`MqttStatePublisher`, not deliveries; all re-published on every reconnect and by `POST /v1/channels/{id}/mqtt/republish`):
+  - `{prefix}/rules/{ruleId}/state` `{state: firing|resolved|idle, alertId, severity, lastFiredAt}` on fire, acknowledgement and resolve; an empty retained payload when the rule is deleted.
+  - `{prefix}/sources/{sourceId}/health` `{status, reason, lastSuccessAt, lastDataAt}` on `SourceHealthChangedEvent` and every 10 min; private sources are never published.
+  - `{prefix}/summary`: the full glance (038), checked every `summaryInterval`, published only when it changed (`serverTime` ignored).
+- **Topic tree:**
+
+  ```
+  {prefix}/status                          online | offline (retained, Last Will)
+  {prefix}/alerts/{info|warning|critical}  alert fired
+  {prefix}/alerts/updates                  acknowledged, snoozed, resolved
+  {prefix}/briefings/{briefingId}          latest run (retained)
+  {prefix}/system/events                   system events
+  {prefix}/rules/{ruleId}/state            rule state (retained)
+  {prefix}/sources/{sourceId}/health       source health (retained)
+  {prefix}/summary                         glance (retained)
+  {prefix}/test                            channel test
+  {haPrefix}/status                        Home Assistant birth message (subscribed)
+  {haPrefix}/device/foresignal_{installId}/config   discovery
+  ```
+
+  Segments built from ids or names replace `+`, `#`, `/`, NUL and control characters with `_`. Payloads are UTF-8 JSON of at most 256 KB with the MQTT 5 content type `application/json`; private-source alerts follow 039.
+- **Home Assistant discovery** (`haDiscovery`, `HaDiscoveryPublisher`): one device-based config with `dev`, `o`, `availability` (`{prefix}/status`) and `cmps`: open-alert sensors per severity, failing and degraded source counts, the last briefing (timestamp), one `event` entity per severity, a `problem` binary_sensor per enabled rule (≤ `haMaxRules`, critical first, then by name) and per non-private source (≤ `haMaxSources`). Published on connect, after `online` on `{haPrefix}/status` (0–5 s random delay) and 5 s after the last rule or source change; retained only with `haRetainDiscovery`. A dropped component goes out as `{p}` first; disabling discovery, disabling or deleting the channel publishes an empty retained config. `device_tracker` entities for watched aircraft and vessels are deferred: Home Assistant only uses GPS trackers to place a device in its zones.
 
 ## 18. MCP server
 

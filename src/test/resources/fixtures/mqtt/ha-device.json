@@ -1,0 +1,135 @@
+{
+  "dev": {
+    "ids": [
+      "foresignal_abcd1234"
+    ],
+    "name": "Foresignal",
+    "mf": "Foresignal",
+    "mdl": "Foresignal broker",
+    "sw": "1.2.3",
+    "cu": "https://fs.example"
+  },
+  "o": {
+    "name": "Foresignal",
+    "sw": "1.2.3",
+    "url": "https://foresignal.ai"
+  },
+  "availability": [
+    {
+      "topic": "foresignal/status"
+    }
+  ],
+  "qos": 1,
+  "cmps": {
+    "alerts_open_critical": {
+      "p": "sensor",
+      "name": "Open critical alerts",
+      "unique_id": "foresignal_abcd1234_alerts_open_critical",
+      "state_topic": "foresignal/summary",
+      "value_template": "{{ value_json.alerts.open.critical | default(0) }}",
+      "state_class": "measurement",
+      "icon": "mdi:alert-octagon"
+    },
+    "alerts_open_warning": {
+      "p": "sensor",
+      "name": "Open warning alerts",
+      "unique_id": "foresignal_abcd1234_alerts_open_warning",
+      "state_topic": "foresignal/summary",
+      "value_template": "{{ value_json.alerts.open.warning | default(0) }}",
+      "state_class": "measurement",
+      "icon": "mdi:alert"
+    },
+    "alerts_open_info": {
+      "p": "sensor",
+      "name": "Open info alerts",
+      "unique_id": "foresignal_abcd1234_alerts_open_info",
+      "state_topic": "foresignal/summary",
+      "value_template": "{{ value_json.alerts.open.info | default(0) }}",
+      "state_class": "measurement",
+      "icon": "mdi:alert"
+    },
+    "sources_failing": {
+      "p": "sensor",
+      "name": "Failing sources",
+      "unique_id": "foresignal_abcd1234_sources_failing",
+      "state_topic": "foresignal/summary",
+      "value_template": "{{ value_json.sources.failing | default(0) }}",
+      "state_class": "measurement",
+      "icon": "mdi:database-alert"
+    },
+    "sources_degraded": {
+      "p": "sensor",
+      "name": "Degraded sources",
+      "unique_id": "foresignal_abcd1234_sources_degraded",
+      "state_topic": "foresignal/summary",
+      "value_template": "{{ value_json.sources.degraded | default(0) }}",
+      "state_class": "measurement",
+      "icon": "mdi:database-alert"
+    },
+    "last_briefing": {
+      "p": "sensor",
+      "name": "Last briefing",
+      "unique_id": "foresignal_abcd1234_last_briefing",
+      "device_class": "timestamp",
+      "state_topic": "foresignal/summary",
+      "value_template": "{{ value_json.briefing.at if value_json.briefing is defined else None }}"
+    },
+    "alerts_info": {
+      "p": "event",
+      "name": "Info alert",
+      "unique_id": "foresignal_abcd1234_alerts_info",
+      "state_topic": "foresignal/alerts/info",
+      "event_types": [
+        "info"
+      ],
+      "icon": "mdi:bell-alert"
+    },
+    "alerts_warning": {
+      "p": "event",
+      "name": "Warning alert",
+      "unique_id": "foresignal_abcd1234_alerts_warning",
+      "state_topic": "foresignal/alerts/warning",
+      "event_types": [
+        "warning"
+      ],
+      "icon": "mdi:bell-alert"
+    },
+    "alerts_critical": {
+      "p": "event",
+      "name": "Critical alert",
+      "unique_id": "foresignal_abcd1234_alerts_critical",
+      "state_topic": "foresignal/alerts/critical",
+      "event_types": [
+        "critical"
+      ],
+      "icon": "mdi:bell-alert"
+    },
+    "rule_00000000-0000-0000-0000-0000000000a1": {
+      "p": "binary_sensor",
+      "name": "Zeta",
+      "unique_id": "foresignal_abcd1234_rule_00000000-0000-0000-0000-0000000000a1",
+      "device_class": "problem",
+      "state_topic": "foresignal/rules/00000000-0000-0000-0000-0000000000a1/state",
+      "value_template": "{{ 'ON' if value_json.state == 'firing' else 'OFF' }}",
+      "json_attributes_topic": "foresignal/rules/00000000-0000-0000-0000-0000000000a1/state"
+    },
+    "rule_00000000-0000-0000-0000-0000000000a2": {
+      "p": "binary_sensor",
+      "name": "Alpha",
+      "unique_id": "foresignal_abcd1234_rule_00000000-0000-0000-0000-0000000000a2",
+      "device_class": "problem",
+      "state_topic": "foresignal/rules/00000000-0000-0000-0000-0000000000a2/state",
+      "value_template": "{{ 'ON' if value_json.state == 'firing' else 'OFF' }}",
+      "json_attributes_topic": "foresignal/rules/00000000-0000-0000-0000-0000000000a2/state"
+    },
+    "source_usgs-earthquakes": {
+      "p": "binary_sensor",
+      "name": "Source usgs-earthquakes",
+      "unique_id": "foresignal_abcd1234_source_usgs-earthquakes",
+      "device_class": "problem",
+      "state_topic": "foresignal/sources/usgs-earthquakes/health",
+      "value_template": "{{ 'ON' if value_json.status in ['degraded', 'failing'] else 'OFF' }}",
+      "json_attributes_topic": "foresignal/sources/usgs-earthquakes/health"
+    }
+  }
+}

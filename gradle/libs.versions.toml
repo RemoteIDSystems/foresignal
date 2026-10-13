@@ -69,6 +69,16 @@ orekit = "13.1.9"
 # from the application (build.gradle.kts): the mapping code always passes its own Jackson 3 configuration.
 # The Spring Boot BOM manages json-path at 2.10.0; build.gradle.kts overrides the BOM property.
 jsonPath = "3.0.0"
+# MQTT channel and Home Assistant discovery (060), reused by the MQTT source adapters (083, 085): HiveMQ MQTT
+# Client, Apache-2.0, MQTT 3.1.1 and 5, async API, WebSocket transport. Verified on Maven Central 2026-10-13:
+# 1.4.0 (2026-08-21) is the latest release of com.hivemq:hivemq-mqtt-client and -shaded. Chosen over Eclipse
+# Paho (org.eclipse.paho.mqttv5.client, last release 1.2.5 in July 2020, treated as unmaintained).
+# The SHADED artifact is used: the plain one declares Netty 4.1.137.Final, and the Spring Boot 4.1.1 BOM
+# resolves it to 4.2.17.Final (`./gradlew dependencyInsight --dependency netty-handler`), a major-line clash.
+# The shaded jar relocates its own Netty 4.1.137 (with the WebSocket codec and SSL handler), JCTools, Dagger
+# and javax.inject under com.hivemq.client.internal.shaded; it still depends on RxJava 2.2.21, Reactive Streams
+# 1.0.4 and org.jetbrains:annotations.
+hivemqMqttClient = "1.4.0"
 
 [libraries]
 # --- Versions managed by the Spring Boot BOM ---
@@ -137,11 +147,14 @@ libaec-native = { module = "edu.ucar.unidata:libaec-native", version.ref = "liba
 # SGP4 swaths of SatDump passes (054); 064 reuses it for predicted passes.
 orekit = { module = "org.orekit:orekit", version.ref = "orekit" }
 json-path = { module = "com.jayway.jsonpath:json-path", version.ref = "jsonPath" }
+hivemq-mqtt-client-shaded = { module = "com.hivemq:hivemq-mqtt-client-shaded", version.ref = "hivemqMqttClient" }
 
 # --- Test; versions from the Testcontainers BOM where unspecified ---
 testcontainers-bom = { module = "org.testcontainers:testcontainers-bom", version.ref = "testcontainers" }
 testcontainers-postgresql = { module = "org.testcontainers:testcontainers-postgresql" }
 testcontainers-junit-jupiter = { module = "org.testcontainers:testcontainers-junit-jupiter" }
+# Cuts the MQTT connection under the client to prove the Last Will (060); MIT (toxiproxy-java 2.1.11, Apache-2.0).
+testcontainers-toxiproxy = { module = "org.testcontainers:testcontainers-toxiproxy" }
 wiremock-standalone = { module = "org.wiremock:wiremock-standalone", version.ref = "wiremock" }
 awaitility = { module = "org.awaitility:awaitility", version.ref = "awaitility" }
 # In-process SMTP server for the email channel tests (018), Apache-2.0.

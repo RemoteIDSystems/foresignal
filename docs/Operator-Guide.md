@@ -386,6 +386,7 @@ alert's region snapshot; `config.units: "imperial"` prints `{{near.text}}` in mi
 | `homeassistant` | `baseUrl`, `mode`, `service`, `iosCritical`, `androidAlarmStream` | `webhookId` or `accessToken` | Below |
 | `apprise` | `serverUrl`, `configKey`, `tag` | `urls` | Below |
 | `zulip` | `site`, `stream`, `botEmail`, `topicTemplate` | `apiKey` | Below |
+| `mqtt` | `brokerUrl`, `topicPrefix`, `qos`, `protocolVersion`, `messageExpiry`, `payloadTemplate`, `publishHealth`, `publishSummary`, `summaryInterval`, `haDiscovery`, `haPrefix`, `haMaxRules`, `haMaxSources`, `haRetainDiscovery` | `username`, `password`, `caCertPem` | [MQTT and Home Assistant](#mqtt-and-home-assistant) |
 
 - **Microsoft Teams:** Office 365 connector webhooks were retired in May 2026, so a
   `*.webhook.office.com` or `outlook.office.com/webhook` URL is refused. In Teams, open the channel's
@@ -499,6 +500,113 @@ Foresignal defines (webhook, Home Assistant, Apprise) carry it as `foresignalOri
 carry the tag `foresignal-origin-<id>` and Gotify messages the extra `foresignal::origin`. When you
 loop a channel back into Foresignal (for example ntfy into an ingest endpoint), the ntfy- and Gotify-compatible ingest endpoints (prompt 024) drop
 messages carrying its own marker, so a notification can never feed itself.
+
+### MQTT and Home Assistant
+
+An `mqtt` channel publishes alerts, briefings and system events to your broker, keeps retained state
+topics (rule states, source health, a live summary) and, with `haDiscovery: true`, makes Foresignal
+appear in Home Assistant as a device without any YAML. Foresignal holds one connection per channel and
+reconnects on its own (1 s, doubling to 120 s).
+
+```json
+{"name": "MQTT broker", "type": "mqtt", "events": ["alert", "briefing", "system"],
+ "config": {"brokerUrl": "mqtts://broker.lan:8883", "topicPrefix": "foresignal", "haDiscovery": true},
+ "secrets": {"username": "foresignal", "password": "…"}}
+```
+
+- `brokerUrl` takes `mqtt://`, `mqtts://`, `ws://` and `wss://`. A LAN broker is fine. A broker on a
+  public address without TLS or without a username is saved with the warning
+  `MQTT_INSECURE_PUBLIC_BROKER` in the channel's `warnings`; it is not refused.
+- For a private CA, put its certificate (PEM) in the secret `caCertPem`. Hostname verification always
+  stays on.
+- `protocolVersion: "3.1.1"` is for old brokers; message expiry and the content type need MQTT 5.
+- `POST /v1/channels/{id}/test` publishes to `{prefix}/test` and reports the PUBACK latency in
+  `durationMs`. `POST /v1/channels/{id}/mqtt/republish` sends every retained state and the discovery
+  config again.
+
+**Mosquitto.** Give Foresignal its own user, and let it write only its own topics and the discovery
+prefix:
+
+```
+# mosquitto.conf
+listener 8883
+cafile /mosquitto/certs/ca.crt
+certfile /mosquitto/certs/server.crt
+keyfile /mosquitto/certs/server.key
+allow_anonymous false
+password_file /mosquitto/config/passwd
+acl_file /mosquitto/config/acl
+```
+
+```
+# /mosquitto/config/acl
+user foresignal
+topic write foresignal/#
+topic write homeassistant/#
+topic read homeassistant/status
+
+user homeassistant
+topic read foresignal/#
+topic readwrite homeassistant/#
+```
+
+Create the users with `mosquitto_passwd -c /mosquitto/config/passwd foresignal` (and without `-c`
+for the next one).
+
+**Topics** (`{prefix}` is `topicPrefix`, default `foresignal`):
+
+| Topic | Retained | Content |
+|---|---|---|
+| `{prefix}/status` | yes | `online`, or `offline` (Last Will, and on shutdown) |
+| `{prefix}/alerts/{severity}` | no, expires after `messageExpiry` | a fired alert: `event_type`, `id`, `ruleId`, `ruleName`, `severity`, `state`, `title`, `shortTitle`, `body`, `url`, `sourceId`, `externalId`, `kind`, `firedAt`, `point` (`[lon, lat]`), `tags`, `near` |
+| `{prefix}/alerts/updates` | no | `{id, state, resolvedAt, acknowledgedBy}` on acknowledge, snooze, resolve |
+| `{prefix}/briefings/{briefingId}` | yes | the latest run: `runId`, `title`, `at`, `url`, `status`, `markdown` (at most 16 KB) |
+| `{prefix}/system/events` | no | system events (a source failing, a delivery that gave up, …) |
+| `{prefix}/rules/{ruleId}/state` | yes | `{state: firing\|resolved\|idle, alertId, severity, lastFiredAt}`; cleared when the rule is deleted |
+| `{prefix}/sources/{sourceId}/health` | yes | `{status, reason, lastSuccessAt, lastDataAt}`; never for private sources |
+| `{prefix}/summary` | yes | the glance (`GET /v1/glance`), when it changes |
+
+Alerts of private sources carry only the rule name, severity and link unless the channel has
+`privatePayload: true`. `payloadTemplate` replaces the event payloads with your own JSON (the webhook
+`bodyTemplate` placeholders); keep an `event_type` member if Home Assistant should still see alerts.
+
+**Home Assistant.** With the MQTT integration set up and `haDiscovery: true`, a *Foresignal* device
+appears with sensors for open alerts per severity, failing and degraded sources and the last briefing,
+an event entity per severity (*Critical alert*, *Warning alert*, *Info alert*), and a problem sensor
+per enabled rule (at most `haMaxRules`, critical first) and per non-private source (at most
+`haMaxSources`). Entities show unavailable while Foresignal is down. Foresignal re-sends discovery when
+Home Assistant restarts (its `online` birth message) and 5 s after rules or sources change; the config
+is not retained unless you set `haRetainDiscovery: true`. Turning discovery off, or disabling or
+deleting the channel, removes the device. Watched aircraft and vessels are not exposed as
+`device_tracker` entities: Home Assistant uses GPS trackers only to place them in its zones.
+
+An automation on the critical alert event (the payload's members are the event's attributes):
+
+```yaml
+automation:
+  - alias: "Foresignal critical alert"
+    triggers:
+      - trigger: state
+        entity_id: event.foresignal_critical_alert
+    conditions:
+      - condition: template
+        value_template: "{{ trigger.from_state.state not in ['unavailable', 'unknown'] }}"
+    actions:
+      - action: notify.mobile_app_pixel
+        data:
+          title: "{{ trigger.to_state.attributes.shortTitle }}"
+          message: "{{ trigger.to_state.attributes.title }}"
+```
+
+Check the entity id under *Settings → Devices → Foresignal*; it follows the device and entity names.
+
+**Node-RED.** An *mqtt in* node on `foresignal/alerts/+` (QoS 1, output "a parsed JSON object") gives
+`msg.payload.severity`, `msg.payload.title` and `msg.payload.url`; `foresignal/alerts/updates` tells
+you when an alert is acknowledged or resolved, and `foresignal/status` whether Foresignal is up.
+
+**Displays.** Devices that subscribe to MQTT, such as an AWTRIX clock, can show
+`{prefix}/summary` (`alerts.open.critical`, `status`) or react to `{prefix}/alerts/critical`
+directly; give them a broker user that may only read `foresignal/#`.
 
 ## Inbound webhooks
 

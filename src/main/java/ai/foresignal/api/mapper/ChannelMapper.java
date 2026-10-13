@@ -15,10 +15,14 @@ import org.springframework.stereotype.Component;
 /**
  * Maps channels, channel types and deliveries to the OpenAPI {@code Channel}, {@code ChannelType}
  * and {@code NotificationDelivery} schemas (prompt 018). Secret values never appear; a channel lists
- * the names of its set secrets in {@code secretFields}.
+ * the names of its set secrets in {@code secretFields}, and, when there are any, its type's non-fatal {@code warnings} (prompt 060).
  */
 @Component
 public class ChannelMapper {
+
+    /** The types, for their {@code warnings} (prompt 060); null only in hand-built unit tests. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ai.foresignal.notify.ChannelTypeRegistry types;
 
     /** {@code Channel}. */
     public Map<String, Object> channel(ChannelService.View view) {
@@ -46,6 +50,28 @@ public class ChannelMapper {
         out.put("backlogCap", c.backlogCap());
         out.put("editInPlace", c.editInPlace());
         out.put("deferWhileActiveSeconds", c.deferWhileActiveSeconds());
+        List<Map<String, Object>> warnings = warnings(c);
+        if (!warnings.isEmpty()) {
+            out.put("warnings", warnings);
+        }
+        return out;
+    }
+
+    /** The type's non-fatal warnings about {@code c} (prompt 060: {@code MQTT_INSECURE_PUBLIC_BROKER}). */
+    List<Map<String, Object>> warnings(NotificationChannel c) {
+        if (types == null) {
+            return List.of();
+        }
+        List<Map<String, Object>> out = new ArrayList<>();
+        types.find(c.type()).ifPresent(type -> {
+            for (ai.foresignal.notify.ChannelWarning w : type.warnings(c.config() == null ? Map.of() : c.config(),
+                    c.secretFields())) {
+                Map<String, Object> item = new LinkedHashMap<>();
+                item.put("code", w.code());
+                item.put("message", w.message());
+                out.add(item);
+            }
+        });
         return out;
     }
 

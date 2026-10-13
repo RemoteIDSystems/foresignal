@@ -7,7 +7,9 @@ import java.util.Optional;
 
 /**
  * One destination type (prompt 018). Each type is a Spring bean; {@link ChannelTypeRegistry}
- * collects them, so {@code webpush} (031) and {@code mqtt} (060) join by declaring a bean.
+ * collects them, so {@code webpush} (031) and {@code mqtt} (060) join by declaring a bean. The
+ * {@code mqtt} type renders a {@link PreparedRequest.Mqtt} body that {@code ChannelSender} publishes on the
+ * channel's supervised connection.
  *
  * <p>A type turns a {@link NotificationMessage} into a {@link PreparedRequest} in the destination's
  * native format, and never performs I/O itself: {@code ChannelSender} sends what it prepares. Types
@@ -33,6 +35,17 @@ public interface ChannelType {
      * @return the problems, empty when valid
      */
     default List<FieldError> validate(Map<String, Object> config, Map<String, String> secrets) {
+        return List.of();
+    }
+
+    /**
+     * Non-fatal warnings about a saved channel, returned in its {@code warnings} (prompt 060:
+     * {@code MQTT_INSECURE_PUBLIC_BROKER}).
+     *
+     * @param config the channel's settings
+     * @param secretFields the names of the secrets that are set
+     */
+    default List<ChannelWarning> warnings(Map<String, Object> config, List<String> secretFields) {
         return List.of();
     }
 

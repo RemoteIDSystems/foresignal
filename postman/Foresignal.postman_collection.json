@@ -1077,7 +1077,7 @@
               ],
               "query": []
             },
-            "description": "Each supported type with its config and secret field specifications.\n\n**Scope:** `admin`.\n\noperationId: `listChannelTypes`",
+            "description": "Each supported type with its config and secret field specifications. 060 adds `mqtt` (config `MqttChannelConfig`; secrets `username`, `password`, `caCertPem`; not a fan-out type: each delivery is one publish).\n\n**Scope:** `admin`.\n\noperationId: `listChannelTypes`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -9762,7 +9762,7 @@
               ],
               "query": []
             },
-            "description": "Each supported type with its config and secret field specifications.\n\n**Scope:** `admin`.\n\noperationId: `listChannelTypes`",
+            "description": "Each supported type with its config and secret field specifications. 060 adds `mqtt` (config `MqttChannelConfig`; secrets `username`, `password`, `caCertPem`; not a fan-out type: each delivery is one publish).\n\n**Scope:** `admin`.\n\noperationId: `listChannelTypes`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -10431,6 +10431,67 @@
           }
         },
         {
+          "name": "Create a notification channel (MQTT with Home Assistant discovery (060))",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('channelId', j.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/channels",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "channels"
+              ],
+              "query": []
+            },
+            "description": "Create a notification channel\n\n**Scope:** `admin`.\n\noperationId: `createChannel`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"MQTT broker\",\n  \"type\": \"mqtt\",\n  \"config\": {\n    \"brokerUrl\": \"mqtts://broker.lan:8883\",\n    \"topicPrefix\": \"foresignal\",\n    \"qos\": 1,\n    \"haDiscovery\": true,\n    \"haPrefix\": \"homeassistant\"\n  },\n  \"secrets\": {\n    \"username\": \"foresignal\",\n    \"password\": \"REPLACE\"\n  },\n  \"events\": [\n    \"alert\",\n    \"briefing\",\n    \"system\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
           "name": "Create a notification channel (Webhook (HMAC signed))",
           "event": [
             {
@@ -10780,7 +10841,7 @@
               ],
               "query": []
             },
-            "description": "Forces re-publication of every retained state topic (`{prefix}/rules/{ruleId}/state`, `{prefix}/sources/{sourceId}/health`, `{prefix}/summary`, `{prefix}/status`) and, when `haDiscovery=true`, the Home Assistant device config. Publishing happens asynchronously on the channel's connection.\n\n**Scope:** `admin`.\n\noperationId: `republishMqttChannel`",
+            "description": "Forces re-publication of every retained state topic (`{prefix}/rules/{ruleId}/state`, `{prefix}/sources/{sourceId}/health`, `{prefix}/summary`) and, when `haDiscovery=true`, the Home Assistant device config. `{prefix}/status` is re-published as `online` on every (re)connect. Publishing happens asynchronously on the channel's connection.\n\n**Scope:** `admin`.\n\noperationId: `republishMqttChannel`",
             "auth": {
               "type": "bearer",
               "bearer": [

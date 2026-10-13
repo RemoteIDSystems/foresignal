@@ -151,7 +151,7 @@ public class WebhookChannel extends AbstractChannelType {
     }
 
     /** Substitutes the placeholders of {@code template}, JSON-escaped. */
-    static String renderTemplate(String template, NotificationMessage m) {
+    public static String renderTemplate(String template, NotificationMessage m) {
         StringBuilder out = new StringBuilder();
         int i = 0;
         while (i < template.length()) {

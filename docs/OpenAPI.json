@@ -262,6 +262,11 @@
         "version": "1.3.0",
         "date": "2026-10-13",
         "note": "059: previewMapping, suggestMapping, listMappingPresets, listCustomSourceSamples and testCustomSourceMapping are implemented. RecordMapping gains `spread` (copy an object's scalar members as fields), `geometry.fallback` and `quality.extra`, rejects unknown members, and lets a field name repeat (first value wins). CustomSourceFormats.mapping (the 024 JSON-Pointer shape, schema IngestRecordMapping) is removed: the mapping is CustomSourceInput.mapping. The alertmanager format gains receiverPrefix, resolvedValidFor and station and copies severity and alertname to the payload. The path-key format enum gains ecowitt, gmc and mapping; ingestRecordsFormatGet gains wu-pws and gmc and the WU `PASSWORD` query key. New error codes MAPPING_INVALID, EGRESS_CONFIRMATION_REQUIRED, MAPPING_NOT_SET and NO_SAMPLES."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-13",
+        "note": "060: republishMqttChannel is implemented; the mqtt channel type is available (ChannelInput.type, the listChannelTypes catalog with an mqtt example, MqttChannelConfig). MqttChannelConfig.haMaxRules and haMaxSources gain maximum 500, haPrefix gains the topicPrefix pattern, and summaryInterval must be at least 10s. Channel.warnings (MQTT_INSECURE_PUBLIC_BROKER) is returned when non-empty. SystemInfo.mqtt reports the supervised connections. New error code CHANNEL_DISABLED (409, republishMqttChannel)."
       }
     ]
   },
@@ -7096,7 +7101,7 @@
         ],
         "operationId": "listChannelTypes",
         "summary": "Channel type catalogue",
-        "description": "Each supported type with its config and secret field specifications.\n\n**Scope:** `admin`.",
+        "description": "Each supported type with its config and secret field specifications. 060 adds `mqtt` (config `MqttChannelConfig`; secrets `username`, `password`, `caCertPem`; not a fan-out type: each delivery is one publish).\n\n**Scope:** `admin`.",
         "responses": {
           "200": {
             "description": "Types",
@@ -7106,6 +7111,95 @@
                   "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/ChannelType"
+                  }
+                },
+                "examples": {
+                  "mqtt": {
+                    "summary": "The mqtt entry (060), abridged",
+                    "value": [
+                      {
+                        "id": "mqtt",
+                        "name": "MQTT",
+                        "description": "Publishes alerts, briefings, system events, source health and a live summary to an MQTT broker, with a Last Will and optional Home Assistant discovery",
+                        "configFields": [
+                          {
+                            "name": "brokerUrl",
+                            "type": "string",
+                            "required": true,
+                            "description": "Broker URL: mqtt://, mqtts://, ws:// or wss://, e.g. mqtts://broker.lan:8883"
+                          },
+                          {
+                            "name": "topicPrefix",
+                            "type": "string",
+                            "required": false,
+                            "description": "Topic prefix, 1-64 of A-Z a-z 0-9 _ - /, no wildcards",
+                            "default": "foresignal"
+                          },
+                          {
+                            "name": "qos",
+                            "type": "integer",
+                            "required": false,
+                            "description": "QoS of event messages: 0 or 1",
+                            "default": 1
+                          },
+                          {
+                            "name": "protocolVersion",
+                            "type": "enum",
+                            "required": false,
+                            "description": "MQTT protocol version",
+                            "default": "5",
+                            "allowed": [
+                              "5",
+                              "3.1.1"
+                            ]
+                          },
+                          {
+                            "name": "messageExpiry",
+                            "type": "string",
+                            "required": false,
+                            "description": "Message expiry of non-retained event messages (MQTT 5)",
+                            "default": "24h"
+                          },
+                          {
+                            "name": "haDiscovery",
+                            "type": "boolean",
+                            "required": false,
+                            "description": "Publish Home Assistant MQTT discovery",
+                            "default": false
+                          }
+                        ],
+                        "secretFields": [
+                          {
+                            "name": "username",
+                            "type": "string",
+                            "required": false,
+                            "description": "Broker user name"
+                          },
+                          {
+                            "name": "password",
+                            "type": "string",
+                            "required": false,
+                            "description": "Broker password"
+                          },
+                          {
+                            "name": "caCertPem",
+                            "type": "string",
+                            "required": false,
+                            "description": "Extra trusted CA certificate(s) in PEM for mqtts:// and wss://"
+                          }
+                        ],
+                        "events": [
+                          "alert",
+                          "briefing",
+                          "system"
+                        ],
+                        "capabilities": {
+                          "editInPlace": false,
+                          "attachments": false,
+                          "fanOut": false
+                        }
+                      }
+                    ]
                   }
                 }
               }
@@ -33088,7 +33182,7 @@
         ],
         "operationId": "republishMqttChannel",
         "summary": "Re-publish MQTT state and HA discovery",
-        "description": "Forces re-publication of every retained state topic (`{prefix}/rules/{ruleId}/state`, `{prefix}/sources/{sourceId}/health`, `{prefix}/summary`, `{prefix}/status`) and, when `haDiscovery=true`, the Home Assistant device config. Publishing happens asynchronously on the channel's connection.\n\n**Scope:** `admin`.",
+        "description": "Forces re-publication of every retained state topic (`{prefix}/rules/{ruleId}/state`, `{prefix}/sources/{sourceId}/health`, `{prefix}/summary`) and, when `haDiscovery=true`, the Home Assistant device config. `{prefix}/status` is re-published as `online` on every (re)connect. Publishing happens asynchronously on the channel's connection.\n\n**Scope:** `admin`.",
         "parameters": [
           {
             "name": "channelId",
@@ -33116,7 +33210,7 @@
             }
           },
           "409": {
-            "description": "Channel disabled",
+            "description": "CHANNEL_DISABLED: the channel is disabled, or has no broker connection (an unusable `brokerUrl`)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -33148,7 +33242,7 @@
         },
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "060",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -86514,6 +86608,12 @@
             "status": 409,
             "prompt": "059",
             "note": "testCustomSourceMapping with no captured samples"
+          },
+          {
+            "code": "CHANNEL_DISABLED",
+            "status": 409,
+            "prompt": "060",
+            "note": "republishMqttChannel on a disabled mqtt channel (or one without a broker connection)"
           }
         ]
       },
@@ -94754,7 +94854,7 @@
               "meshtastic",
               "meshcore"
             ],
-            "description": "teams accepts only Power Automate Workflows URLs (Office 365 connector URLs → 400); webpush is the built-in Push channel (031): created at startup with a fixed id, updatable but not creatable (400); its config takes quietHoursMode (defer|downgrade|drop)"
+            "description": "teams accepts only Power Automate Workflows URLs (Office 365 connector URLs → 400); webpush is the built-in Push channel (031): created at startup with a fixed id, updatable but not creatable (400); its config takes quietHoursMode (defer|downgrade|drop); mqtt (060) publishes on the operator's broker (config MqttChannelConfig, secrets username, password, caCertPem): events on {prefix}/alerts/{severity}, {prefix}/alerts/updates, {prefix}/briefings/{briefingId} and {prefix}/system/events, plus retained state and optional Home Assistant discovery; a public broker without TLS or credentials is saved with the warning MQTT_INSECURE_PUBLIC_BROKER"
           },
           "config": {
             "type": "object",
@@ -95186,7 +95286,7 @@
           },
           "warnings": {
             "type": "array",
-            "description": "Non-fatal configuration warnings, e.g. MQTT_INSECURE_PUBLIC_BROKER (060)",
+            "description": "Non-fatal configuration warnings, e.g. MQTT_INSECURE_PUBLIC_BROKER (060); absent when there are none",
             "items": {
               "type": "object",
               "properties": {
@@ -112831,12 +112931,14 @@
           "brokerUrl": {
             "type": "string",
             "pattern": "^(mqtt|mqtts|ws|wss)://",
-            "example": "mqtts://broker.lan:8883"
+            "example": "mqtts://broker.lan:8883",
+            "description": "mqtt://, mqtts://, ws:// or wss:// (WebSocket URLs may carry a path); no credentials, query or fragment. The host passes the outbound URL policy (profile LAN_ALLOWED)"
           },
           "topicPrefix": {
             "type": "string",
             "pattern": "^[A-Za-z0-9_\\-/]{1,64}$",
-            "default": "foresignal"
+            "default": "foresignal",
+            "description": "Topic prefix; leading and trailing slashes are dropped. No + or # wildcards"
           },
           "qos": {
             "type": "integer",
@@ -112844,7 +112946,8 @@
               0,
               1
             ],
-            "default": 1
+            "default": 1,
+            "description": "QoS of event messages; a delivery succeeds on PUBACK (1) or a completed write (0). Retained state and discovery always use QoS 1"
           },
           "protocolVersion": {
             "type": "string",
@@ -112856,7 +112959,7 @@
           },
           "messageExpiry": {
             "type": "string",
-            "description": "Message expiry for non-retained event messages",
+            "description": "MQTT 5 message expiry of non-retained event messages (ignored on 3.1.1). ISO-8601 duration or shorthand",
             "example": "60s",
             "default": "24h"
           },
@@ -112865,7 +112968,7 @@
               "string",
               "null"
             ],
-            "description": "Optional JSON with placeholders, like webhook `bodyTemplate`"
+            "description": "Optional JSON with JSON-escaped {{…}} placeholders, like webhook `bodyTemplate`; replaces every event payload except the channel test"
           },
           "publishHealth": {
             "type": "boolean",
@@ -112877,7 +112980,7 @@
           },
           "summaryInterval": {
             "type": "string",
-            "description": "ISO-8601 duration (P7D, PT15M) or shorthand (7d, 15m, 12h)",
+            "description": "How often `{prefix}/summary` is checked (at least 10s); it is published only when the glance changed. ISO-8601 duration (PT1M) or shorthand (60s, 15m)",
             "example": "60s",
             "default": "60s"
           },
@@ -112887,21 +112990,28 @@
           },
           "haPrefix": {
             "type": "string",
-            "default": "homeassistant"
+            "default": "homeassistant",
+            "description": "Home Assistant discovery prefix; Foresignal subscribes to `{haPrefix}/status` for the birth message",
+            "pattern": "^[A-Za-z0-9_\\-/]{1,64}$"
           },
           "haMaxRules": {
             "type": "integer",
             "minimum": 0,
-            "default": 50
+            "default": 50,
+            "maximum": 500,
+            "description": "Most enabled rules given a `problem` binary_sensor, critical first, then by name"
           },
           "haMaxSources": {
             "type": "integer",
             "minimum": 0,
-            "default": 100
+            "default": 100,
+            "maximum": 500,
+            "description": "Most non-private, non-disabled sources given a `problem` binary_sensor, by id"
           },
           "haRetainDiscovery": {
             "type": "boolean",
-            "default": false
+            "default": false,
+            "description": "Retain the discovery config. Off by default: Home Assistant prefers discovery re-published on its birth message, because retained configs can leave ghost entities"
           }
         },
         "required": [

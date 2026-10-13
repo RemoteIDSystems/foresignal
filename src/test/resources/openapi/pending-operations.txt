@@ -1,4 +1,3 @@
-republishMqttChannel 060
 getChannelInteractiveStatus 061
 getCelestrakGp 064
 getCelestrakGpAlias 064

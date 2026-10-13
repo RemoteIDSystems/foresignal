@@ -1,0 +1,13 @@
+{
+  "topic": "foresignal/alerts/updates",
+  "qos": 1,
+  "retain": false,
+  "messageExpirySeconds": 86400,
+  "contentType": "application/json",
+  "payload": {
+    "id": 7,
+    "state": "resolved",
+    "resolvedAt": "2026-05-01T12:05:00Z",
+    "acknowledgedBy": null
+  }
+}

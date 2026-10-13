@@ -77,6 +77,9 @@ dependencies {
     implementation(libs.json.path) {
         exclude(group = "net.minidev", module = "json-smart")
     }
+    // MQTT channel and HA discovery (060): the shaded HiveMQ client carries its own Netty 4.1, because the
+    // Spring Boot BOM would move the plain artifact's Netty to 4.2 (see the version catalog).
+    implementation(libs.hivemq.mqtt.client.shaded)
     runtimeOnly(libs.postgresql)
 
     testImplementation(platform(libs.testcontainers.bom))
@@ -85,6 +88,7 @@ dependencies {
     testImplementation(libs.spring.boot.webmvc.test)
     testImplementation(libs.testcontainers.postgresql)
     testImplementation(libs.testcontainers.junit.jupiter)
+    testImplementation(libs.testcontainers.toxiproxy)
     testImplementation(libs.wiremock.standalone)
     testImplementation(libs.awaitility)
     testImplementation(libs.greenmail)

@@ -1,0 +1,15 @@
+{
+  "topic": "foresignal/briefings/0b0b0b0b-0000-0000-0000-000000000001",
+  "qos": 1,
+  "retain": true,
+  "messageExpirySeconds": null,
+  "contentType": "application/json",
+  "payload": {
+    "runId": "0c0c0c0c-0000-0000-0000-000000000002",
+    "title": "Morning — 2026-05-01",
+    "at": "2026-05-01T06:01:00Z",
+    "url": "https://fs.example/v1/briefings/0b0b0b0b-0000-0000-0000-000000000001/runs/0c0c0c0c-0000-0000-0000-000000000002.html",
+    "status": "succeeded",
+    "markdown": "# Morning\n\nAll quiet."
+  }
+}

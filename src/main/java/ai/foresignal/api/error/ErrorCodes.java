@@ -184,6 +184,9 @@ public final class ErrorCodes {
     /** 401: a configured webhook signature verifier did not verify. */
     public static final String SIGNATURE_INVALID = "SIGNATURE_INVALID";
 
+    /** 409: the channel is disabled (prompt 060: {@code republishMqttChannel}). */
+    public static final String CHANNEL_DISABLED = "CHANNEL_DISABLED";
+
     /** 409: the push source is disabled. */
     public static final String SOURCE_DISABLED = "SOURCE_DISABLED";
 

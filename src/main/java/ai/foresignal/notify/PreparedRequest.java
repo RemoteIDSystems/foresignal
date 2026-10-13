@@ -9,10 +9,10 @@ import java.util.Objects;
 /**
  * One outbound request a channel type rendered: method, URL, headers and a body that is raw bytes,
  * form fields, multipart parts or an email (prompt 055: image attachments use the multipart body and
- * the email's inline images).
+ * the email's inline images; prompt 060: an MQTT publish on the channel's supervised connection).
  *
- * @param method {@code POST}, {@code PUT}, {@code PATCH} or {@code SMTP}
- * @param url the target URL ({@code smtp://host:port} for email)
+ * @param method {@code POST}, {@code PUT}, {@code PATCH}, {@code SMTP} or {@code PUBLISH}
+ * @param url the target URL ({@code smtp://host:port} for email, the {@code brokerUrl} for MQTT)
  * @param headers the request headers, in order
  * @param body the body
  */
@@ -27,7 +27,7 @@ public record PreparedRequest(String method, String url, Map<String, String> hea
     }
 
     /** The body of a request. */
-    public sealed interface Body permits Bytes, Form, Multipart, Mail {}
+    public sealed interface Body permits Bytes, Form, Multipart, Mail, Mqtt {}
 
     /**
      * A raw body.
@@ -136,6 +136,21 @@ public record PreparedRequest(String method, String url, Map<String, String> hea
     }
 
     /**
+     * An MQTT publish (prompt 060), sent on the channel's supervised connection rather than over HTTP.
+     *
+     * @param channelId the channel whose connection carries it
+     * @param message the topic, payload, QoS, retain flag, expiry and content type
+     */
+    public record Mqtt(java.util.UUID channelId, ai.foresignal.mqtt.MqttMessage message) implements Body {
+
+        /** Requires both. */
+        public Mqtt {
+            Objects.requireNonNull(channelId, "channelId");
+            Objects.requireNonNull(message, "message");
+        }
+    }
+
+    /**
      * An inline image of an email (prompt 055).
      *
      * @param contentId the {@code Content-ID} without angle brackets ({@code map}: {@code <img src="cid:map">})
@@ -145,8 +160,11 @@ public record PreparedRequest(String method, String url, Map<String, String> hea
      */
     public record Inline(String contentId, String filename, String contentType, byte[] bytes) {}
 
-    /** The body as UTF-8 text for a {@link Bytes} body, else null (tests, logging). */
+    /** The body as UTF-8 text for a {@link Bytes} body or an MQTT payload, else null (tests, logging). */
     public String bodyText() {
+        if (body instanceof Mqtt m) {
+            return m.message().text();
+        }
         return body instanceof Bytes b ? b.text() : null;
     }
 }

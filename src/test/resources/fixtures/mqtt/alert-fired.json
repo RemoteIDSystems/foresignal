@@ -1,0 +1,26 @@
+{
+  "topic": "foresignal/alerts/warning",
+  "qos": 1,
+  "retain": false,
+  "messageExpirySeconds": 86400,
+  "contentType": "application/json",
+  "payload": {
+    "event_type": "warning",
+    "id": 7,
+    "ruleId": "11111111-1111-1111-1111-111111111111",
+    "ruleName": "Quakes",
+    "severity": "warning",
+    "state": "firing",
+    "title": "[warning] M5.1 near Austin",
+    "shortTitle": "Quakes",
+    "body": "M5.1 near Austin",
+    "url": "https://fs.example/v1/alerts/7",
+    "sourceId": "usgs-earthquakes",
+    "externalId": "us7",
+    "kind": "earthquake",
+    "firedAt": "2026-05-01T12:00:00Z",
+    "point": [-97.74, 30.27],
+    "tags": ["quake"],
+    "near": "12 km NE of Austin, Texas"
+  }
+}

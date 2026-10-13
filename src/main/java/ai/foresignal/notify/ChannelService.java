@@ -59,6 +59,10 @@ public class ChannelService {
     private final NamedParameterJdbcTemplate jdbc;
     private final Clock clock;
 
+    /** Publishes {@link ChannelChangedEvent} (prompt 060); null only in hand-built unit tests. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private org.springframework.context.ApplicationEventPublisher events;
+
     /** Creates the service. */
     public ChannelService(NotificationChannelRepository channels, ChannelTypeRegistry types, ChannelInputParser parser,
             CredentialCipher cipher, AppSettingService settings, InstallIdService installId, ChannelSender sender,
@@ -145,6 +149,7 @@ public class ChannelService {
         e.setCreatedAt(now);
         apply(e, input, Map.of(), now);
         channels.save(e);
+        changed(e.getId(), e.getType(), false);
         return new View(view(e), new Stats(null, 0));
     }
 
@@ -163,6 +168,7 @@ public class ChannelService {
         e.setCreatedAt(now);
         apply(e, input, Map.of(), now);
         channels.save(e);
+        changed(e.getId(), e.getType(), false);
         return new View(view(e), new Stats(null, 0));
     }
 
@@ -176,6 +182,7 @@ public class ChannelService {
         apply(e, input, stored, now);
         channels.save(e);
         limiter.forget(id);
+        changed(id, e.getType(), false);
         // Quiet hours may have changed: let the worker re-evaluate deferred deliveries now.
         jdbc.update("""
                 update notification_delivery set next_attempt_at = :now
@@ -193,8 +200,16 @@ public class ChannelService {
                    set status = 'FAILED', last_error = 'channel deleted', next_attempt_at = null, leased_until = null
                  where channel_id = :id and status = 'PENDING'
                 """, new MapSqlParameterSource("id", id));
+        String type = e.getType();
         channels.delete(e);
         limiter.forget(id);
+        changed(id, type, true);
+    }
+
+    private void changed(UUID id, String type, boolean deleted) {
+        if (events != null) {
+            events.publishEvent(new ChannelChangedEvent(id, type, deleted));
+        }
     }
 
     /**
@@ -219,12 +234,15 @@ public class ChannelService {
                 .build();
         long started = System.nanoTime();
         try {
-            ChannelResponse response = sender.send(type.render(message, s));
+            PreparedRequest request = type.render(message, s);
+            ChannelResponse response = sender.send(request);
             long ms = Duration.ofNanos(System.nanoTime() - started).toMillis();
             boolean ok = response.success() || type.partialSuccess(response);
             String error = ok ? null : Redactor.error("HTTP " + response.status() + ": " + response.body(),
                     s.secrets().values());
-            return new TestResult(ok, response.status(), ms, error);
+            // Prompt 060: an MQTT test reports the PUBACK latency and has no HTTP status.
+            Integer status = request.body() instanceof PreparedRequest.Mqtt ? null : response.status();
+            return new TestResult(ok, status, ms, error);
         } catch (IOException | RuntimeException ex) {
             long ms = Duration.ofNanos(System.nanoTime() - started).toMillis();
             return new TestResult(false, null, ms,

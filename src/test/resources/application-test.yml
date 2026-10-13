@@ -41,6 +41,12 @@ foresignal:
   # The notification delivery worker does not poll in tests; they call DeliveryWorker.runOnce().
   notify:
     scheduled: false
+  # The MQTT summary and health refreshes do not run on their own; the 060 ITs call MqttStatePublisher
+  # directly. A short keepalive lets the broker notice a cut connection (Last Will) within seconds.
+  mqtt:
+    scheduled: false
+    keep-alive: 5s
+    connect-timeout: 3s
   # The push dispatch worker and sweeper do not run in tests (they call PushDispatchWorker.runOnce() and
   # PushSubscriptionService.sweep()), and the built-in Push channel is not created on startup, so other
   # notification tests see only their own channels; the push ITs create it with PushBootstrap.

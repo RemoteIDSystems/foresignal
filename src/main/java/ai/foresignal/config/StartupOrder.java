@@ -109,6 +109,12 @@ public final class StartupOrder {
     public static final int BRIEFINGS = 35;
 
     /**
+     * The {@code mqtt} channels' broker connections (prompt 060), after the briefing scheduler: connecting
+     * never blocks startup, and the retained state they publish reads rules, health and the glance.
+     */
+    public static final int MQTT = 37;
+
+    /**
      * The reference data's first-start load (prompt 040), last: it is queued on the loader's own thread
      * after a delay and never blocks startup or readiness.
      */
