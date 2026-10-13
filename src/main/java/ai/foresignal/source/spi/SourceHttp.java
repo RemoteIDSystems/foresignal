@@ -19,6 +19,23 @@ import java.util.Map;
  */
 public interface SourceHttp {
 
+    /** Adapter-state key prefix of the {@code ETag} that {@link #getConditional} stores. */
+    String ETAG_STATE_PREFIX = "etag:";
+
+    /** Adapter-state key prefix of the {@code Last-Modified} that {@link #getConditional} stores. */
+    String LAST_MODIFIED_STATE_PREFIX = "lastmod:";
+
+    /**
+     * Forgets the validators {@link #getConditional} stored under {@code stateKey}, so the next request
+     * is unconditional (prompt 047). An adapter calls it when a 200 body it was given could not be used
+     * (truncated or unparseable): the validators are stored as soon as the response arrives, and
+     * without this the next run would get a 304 and never see the content.
+     */
+    static void forgetValidators(AdapterStateStore state, String stateKey) {
+        state.remove(ETAG_STATE_PREFIX + stateKey);
+        state.remove(LAST_MODIFIED_STATE_PREFIX + stateKey);
+    }
+
     /** A GET. */
     UpstreamResponse get(URI uri) throws AdapterException;
 

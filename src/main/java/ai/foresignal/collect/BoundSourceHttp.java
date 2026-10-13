@@ -52,8 +52,8 @@ class BoundSourceHttp implements SourceHttp {
 
     private static final Logger log = LoggerFactory.getLogger(BoundSourceHttp.class);
 
-    static final String ETAG_STATE_PREFIX = "etag:";
-    static final String LAST_MODIFIED_STATE_PREFIX = "lastmod:";
+    static final String ETAG_STATE_PREFIX = SourceHttp.ETAG_STATE_PREFIX;
+    static final String LAST_MODIFIED_STATE_PREFIX = SourceHttp.LAST_MODIFIED_STATE_PREFIX;
 
     /** OpenSky sends this instead of Retry-After. */
     static final String OPENSKY_RETRY_AFTER_HEADER = "x-rate-limit-retry-after-seconds";
@@ -120,9 +120,10 @@ class BoundSourceHttp implements SourceHttp {
         UpstreamResponse response =
                 execute("GET", uri, headers, null, null, descriptor.maxResponseBytes(), true, 0);
 
-        if (response.status() == 200) {
+        if (response.status() == 200 && recorder == null) {
             // Store the new validators immediately; see PersistentAdapterStateStore for why this is
-            // not tied to the fetch's transaction.
+            // not tied to the fetch's transaction. A probe stores none (prompt 047): otherwise the next
+            // real fetch would get a 304 and never ingest what only the probe saw.
             String etag = response.header("etag");
             if (etag != null) {
                 state.put(ETAG_STATE_PREFIX + stateKey, etag);

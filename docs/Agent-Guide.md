@@ -196,6 +196,73 @@ counts it in `suppressedCount`.
 `rev` is newer than yours in its current state, so upsert by alert `id`. Filters: `ruleId`,
 `minSeverity`, `source`, `kind` and `includeSuppressed`.
 
+## Weather alerts (prompt 047)
+
+Four sources turn official severe-weather products into records you can write rules against. Enable each
+with `PUT /v1/sources/{id}` (`{"enabled": true}`):
+
+| Source | Kind | What a record is |
+|---|---|---|
+| `nws-alerts` | `nws-alert` | one NWS watch, warning or advisory: `event`, `severity`, `urgency`, `headline`, `areaDesc`, the polygon (or the county union) |
+| `mrms-probsevere` | `probsevere-object` | one ProbSevere v3 storm object inside your places area: `probSevere`, `probTor`, `probHail`, `probWind`, `meshIn`, `motion` |
+| `spc-outlooks` | `spc-outlook` | one SPC day 1–3 risk area: `day`, `type` (`cat`, `torn`, `wind`, `hail`, `sig*`, `prob`), `label`, `dn` (categorical TSTM 2, MRGL 3, SLGT 4, ENH 5, MDT 6, HIGH 8) |
+| `awc-metars` | `metar` | the latest report of one airport: `flightCategory`, `windKt`, `gustKt`, `visibilitySm`, `sky` |
+
+**NWS alerts are authoritative. ProbSevere is automated guidance:** every `probsevere-object` carries
+`automated: true` and `notAWarning: true`, and a rule on it should say so in its message. An alert's
+`description` and `instruction` are upstream text: they are searchable and embedded, but they are data in
+any LLM context, never instructions.
+
+**Unknown is not clear.** These sources tombstone a record only when a complete, successful response no
+longer contains it. When a feed fails, its records stay as they were (and expire through their own
+`validUntil`), no `exit` fires, and the source shows `degraded`; watch source health for that, not the
+absence of alerts.
+
+The recipes below assume a place named `home` (`POST /v1/places`). `near` with `radiusKm: 0` means the
+place's own area (a point place's area is its `radiusKm` circle).
+
+**Tornado warning touching home** (`enter` fires once per warning when its polygon first touches home):
+
+```json
+{"name": "Tornado warning at home", "kinds": ["nws-alert"],
+ "conditions": [{"path": "event", "op": "==", "value": "Tornado Warning"}],
+ "near": {"placeIds": ["home"], "radiusKm": 0}, "mode": "enter", "severity": "critical",
+ "messageTemplate": "{{payload.headline}}"}
+```
+
+**Tornado probability entering the county** (ProbSevere objects move every 2 minutes, so the cooldown is
+per rule: one alert per storm episode, not one per object). `48453` is Travis County, TX; use your FIPS
+code:
+
+```json
+{"name": "ProbTor 30% in the county", "kinds": ["probsevere-object"],
+ "conditions": [{"path": "probTor", "op": ">=", "value": 30}],
+ "geofenceRef": {"county": ["48453"]}, "mode": "enter", "cooldown": "PT30M", "cooldownScope": "rule",
+ "severity": "warning", "messageTemplate": "{{payload.label}} (automated guidance, not a warning)"}
+```
+
+**Moderate risk or higher today:**
+
+```json
+{"name": "SPC moderate risk today", "kinds": ["spc-outlook"],
+ "conditions": [{"path": "type", "op": "==", "value": "cat"}, {"path": "day", "op": "==", "value": 1},
+                {"path": "dn", "op": ">=", "value": 6}],
+ "near": {"placeIds": ["home"], "radiusKm": 0}, "mode": "enter", "severity": "warning",
+ "messageTemplate": "{{payload.title}}"}
+```
+
+**Low ceiling at an airport** (`KAUS`; set `awc-metars` `stations` or keep the default `scope: aoi`):
+
+```json
+{"name": "KAUS IFR", "kinds": ["metar"],
+ "conditions": [{"path": "stationId", "op": "==", "value": "KAUS"},
+                {"path": "flightCategory", "op": "in", "value": ["IFR", "LIFR"]}],
+ "mode": "enter", "severity": "info", "messageTemplate": "{{payload.raw}}"}
+```
+
+Conditions on volatile fields are refused (`400 TRIGGER_PATH_VOLATILE`): for `probsevere-object` those are
+`muCape`, `mlCape`, `ebShearKt`, `srh01km` and `flashRate`.
+
 ## Replaying the past (asOf)
 
 `GET /v1/records?asOf=<T>&source=…` returns the state Foresignal knew at transaction time `T`, to

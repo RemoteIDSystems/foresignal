@@ -1,5 +1,7 @@
 package ai.foresignal.collect;
 
+import ai.foresignal.source.spi.AdapterStateStore;
+
 import ai.foresignal.source.CredentialsAccess;
 import ai.foresignal.source.SourceService;
 import ai.foresignal.source.spi.SourceDescriptor;
@@ -130,7 +132,7 @@ public class FetchContextFactory {
                 credentials,
                 clock,
                 () -> lastSuccessAt(id),
-                upstream.stateStore(id)), descriptor, recorder != null);
+                stateFor(id, recorder)), descriptor, recorder != null);
     }
 
     /**
@@ -150,9 +152,18 @@ public class FetchContextFactory {
                 credentials,
                 clock,
                 () -> lastSuccessAt(id),
-                upstream.stateStore(id),
+                stateFor(id, recorder),
                 usage,
                 callbacks), descriptor, recorder != null);
+    }
+
+    /**
+     * The adapter state for one fetch or stream: the persistent store, or, while probing, an overlay
+     * that keeps the probe's writes in memory (prompt 047).
+     */
+    AdapterStateStore stateFor(String sourceId, RequestRecorder recorder) {
+        AdapterStateStore persistent = upstream.stateStore(sourceId);
+        return recorder == null ? persistent : new ProbeStateOverlay(persistent);
     }
 
     /** {@code source_health.last_success_at}, or empty when the source has never succeeded. */

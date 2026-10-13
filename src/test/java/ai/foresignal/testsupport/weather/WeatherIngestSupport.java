@@ -1,0 +1,138 @@
+package ai.foresignal.testsupport.weather;
+
+import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
+
+import ai.foresignal.collect.BackoffRegistry;
+import ai.foresignal.collect.FetchExecutor;
+import ai.foresignal.collect.FetchOutcome;
+import ai.foresignal.collect.UpstreamClient;
+import ai.foresignal.ingest.PersistReason;
+import ai.foresignal.source.SourceService;
+import ai.foresignal.source.SourceSettingsUpdate;
+import ai.foresignal.source.adapters.awc.AwcMetarsAdapter;
+import ai.foresignal.source.adapters.mrms.ProbSevereAdapter;
+import ai.foresignal.source.adapters.nws.NwsAlertsAdapter;
+import ai.foresignal.source.adapters.spc.SpcOutlooksAdapter;
+import ai.foresignal.source.spi.Budget;
+import ai.foresignal.store.FetchTrigger;
+import ai.foresignal.test.IntegrationTest;
+import ai.foresignal.test.MutableClock;
+import com.github.tomakehurst.wiremock.WireMockServer;
+import java.sql.Timestamp;
+import java.time.Instant;
+import java.util.List;
+import java.util.Map;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
+
+/**
+ * The shared context of the prompt 047 ingest ITs: the four weather adapters point at one stub server
+ * through their test base-URL properties (and S3 listings through {@code foresignal.test.s3-endpoint}),
+ * and each test drives real fetches with {@link FetchExecutor#execute(String, FetchTrigger)
+ * execute(id, MANUAL)}, so records reach the store through the real fetch path and ingest writer
+ * (Core-Data-Model §17).
+ *
+ * <p>The stub server is static and started once, so every subclass shares one cached Spring context:
+ * subclasses must not add configuration of their own. Stubs are reset before each test.
+ */
+@IntegrationTest
+@Import(MutableClock.TestConfig.class)
+public abstract class WeatherIngestSupport {
+
+    /** The stub upstream for all four sources. */
+    protected static final WireMockServer UPSTREAM = start();
+
+    private static WireMockServer start() {
+        WireMockServer server = new WireMockServer(wireMockConfig().dynamicPort().gzipDisabled(true));
+        server.start();
+        Runtime.getRuntime().addShutdownHook(new Thread(server::stop));
+        return server;
+    }
+
+    @DynamicPropertySource
+    static void upstream(DynamicPropertyRegistry registry) {
+        registry.add(NwsAlertsAdapter.BASE_URL_PROPERTY, UPSTREAM::baseUrl);
+        registry.add(ProbSevereAdapter.BASE_URL_PROPERTY, UPSTREAM::baseUrl);
+        registry.add(SpcOutlooksAdapter.BASE_URL_PROPERTY, UPSTREAM::baseUrl);
+        registry.add(AwcMetarsAdapter.BASE_URL_PROPERTY, UPSTREAM::baseUrl);
+        registry.add(UpstreamClient.S3_ENDPOINT_PROPERTY, UPSTREAM::baseUrl);
+    }
+
+    @Autowired protected FetchExecutor executor;
+    @Autowired protected SourceService sources;
+    @Autowired protected BackoffRegistry backoff;
+    @Autowired protected MutableClock clock;
+    @Autowired protected JdbcTemplate jdbc;
+
+    /** Resets the stubs and the backoff of the four sources. */
+    @BeforeEach
+    void resetUpstream() {
+        UPSTREAM.resetAll();
+        clearBackoff();
+    }
+
+    /** Clears any backoff a test caused. */
+    @AfterEach
+    void clearBackoff() {
+        for (String id : List.of(NwsAlertsAdapter.ID, ProbSevereAdapter.ID, SpcOutlooksAdapter.ID, AwcMetarsAdapter.ID)) {
+            backoff.onSuccess(id);
+        }
+    }
+
+    /** Sets {@code sourceId}'s parameters and a generous budget, enabled or not (no scheduler runs in tests). */
+    protected void configure(String sourceId, boolean enabled, Map<String, Object> params) {
+        sources.update(sourceId, new SourceSettingsUpdate(enabled, null, params, Budget.of(600, 100_000, 10_000), null,
+                false, null, false));
+    }
+
+    /** One manual fetch through the real executor and ingest writer. */
+    protected FetchOutcome fetch(String sourceId) {
+        return executor.execute(sourceId, FetchTrigger.MANUAL);
+    }
+
+    /** Versions of {@code sourceId}, optionally of one persist reason. */
+    protected int versions(String sourceId, PersistReason reason) {
+        Integer count = reason == null
+                ? jdbc.queryForObject("select count(*) from record_version where source_id = ?", Integer.class, sourceId)
+                : jdbc.queryForObject("select count(*) from record_version where source_id = ? and persist_reason = ?",
+                        Integer.class, sourceId, reason.code());
+        return count == null ? 0 : count;
+    }
+
+    /** Versions of one entity. */
+    protected int versions(String sourceId, String externalId) {
+        Integer count = jdbc.queryForObject(
+                "select count(*) from record_version where source_id = ? and external_id = ?", Integer.class, sourceId,
+                externalId);
+        return count == null ? 0 : count;
+    }
+
+    /** True when the entity's head is a tombstone; null when there is no head. */
+    protected Boolean tombstoned(String sourceId, String externalId) {
+        List<Boolean> rows = jdbc.queryForList(
+                "select tombstone from record_head where source_id = ? and external_id = ?", Boolean.class, sourceId,
+                externalId);
+        return rows.isEmpty() ? null : rows.get(0);
+    }
+
+    /** A timestamp column of {@code record_live}, or null. */
+    protected Instant live(String column, String sourceId, String externalId) {
+        List<Timestamp> rows = jdbc.queryForList(
+                "select " + column + " from record_live where source_id = ? and external_id = ?", Timestamp.class, sourceId,
+                externalId);
+        return rows.isEmpty() || rows.get(0) == null ? null : rows.get(0).toInstant();
+    }
+
+    /** A timestamp column of {@code record_head}, or null. */
+    protected Instant head(String column, String sourceId, String externalId) {
+        List<Timestamp> rows = jdbc.queryForList(
+                "select " + column + " from record_head where source_id = ? and external_id = ?", Timestamp.class, sourceId,
+                externalId);
+        return rows.isEmpty() || rows.get(0) == null ? null : rows.get(0).toInstant();
+    }
+}

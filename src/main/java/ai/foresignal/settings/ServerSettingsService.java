@@ -31,6 +31,8 @@ import tools.jackson.databind.JsonNode;
  *       verified {@code https://} link.
  *   <li>{@code push} (prompt 031): {@link PushSettings} — the VAPID contact, the private-host
  *       allowlist for push endpoints and the default payload language.
+ *   <li>{@code contactEmail} (prompt 047): an optional operator address appended to the upstream
+ *       User-Agent, at most 254 characters; null removes it.
  * </ul>
  *
  * <p>Responses carry {@code warnings} ({@link PublicBaseUrlWarnings}); {@code warnings} in a
@@ -39,7 +41,11 @@ import tools.jackson.databind.JsonNode;
 @Service
 public class ServerSettingsService {
 
-    static final Set<String> MEMBERS = Set.of("publicBaseUrl", "timezone", "clientLinks", "warnings", "push");
+    static final Set<String> MEMBERS = Set.of("publicBaseUrl", "timezone", "clientLinks", "warnings", "push",
+            "contactEmail");
+
+    /** A plain address check for {@code contactEmail}: one {@code @}, no spaces, no header-breaking characters. */
+    static final java.util.regex.Pattern EMAIL = java.util.regex.Pattern.compile("[^\\s@;()<>\",]+@[^\\s@;()<>\",]+\\.[^\\s@;()<>\",]+");
 
     static final Set<String> LINK_MEMBERS = Set.of("alert", "record", "briefingRun", "pair");
 
@@ -59,9 +65,10 @@ public class ServerSettingsService {
      * @param clientLinks the templates in force
      * @param warnings the warnings that apply
      * @param push the push settings in force (031)
+     * @param contactEmail the User-Agent contact (047), or null
      */
     public record View(String publicBaseUrl, String timezone, ClientLinks clientLinks, List<Warning> warnings,
-            PushSettings push) {}
+            PushSettings push, String contactEmail) {}
 
     private final AppSettingService settings;
     private final SecureRequestMonitor secureRequests;
@@ -89,7 +96,7 @@ public class ServerSettingsService {
             warnings.add(new Warning(w.code(), w.message()));
         }
         return new View(value.publicBaseUrl(), value.timezone() == null ? ServerSettings.DEFAULT_TIMEZONE : value.timezone(),
-                value.effectiveClientLinks(), warnings, value.effectivePush());
+                value.effectiveClientLinks(), warnings, value.effectivePush(), value.normalizedContactEmail());
     }
 
     /**
@@ -149,10 +156,20 @@ public class ServerSettingsService {
             }
         }
         ClientLinks links = clientLinks(body.get("clientLinks"), errors);
+        String contactEmail = null;
+        JsonNode contact = body.get("contactEmail");
+        if (contact != null && !contact.isNull()) {
+            String value = contact.isString() ? contact.asString().strip() : null;
+            if (value == null || value.length() > 254 || !EMAIL.matcher(value).matches()) {
+                errors.add(new FieldError("contactEmail", "must be an email address such as ops@example.org, or null"));
+            } else {
+                contactEmail = value;
+            }
+        }
         if (!errors.isEmpty()) {
             throw new ValidationException(ErrorCodes.VALIDATION_FAILED, "The server settings are not valid.", errors);
         }
-        return new ServerSettings(base, timezone, links, push);
+        return new ServerSettings(base, timezone, links, push, contactEmail);
     }
 
     private static String baseUrl(String raw, List<FieldError> errors) {

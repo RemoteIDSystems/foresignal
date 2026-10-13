@@ -1,5 +1,11 @@
 package ai.foresignal.retention;
 
+import ai.foresignal.source.adapters.awc.AwcMetarsAdapter;
+import ai.foresignal.source.adapters.mrms.ProbSevereAdapter;
+import ai.foresignal.source.adapters.nws.NwsAlertsAdapter;
+import ai.foresignal.source.adapters.spc.SpcOutlooksAdapter;
+import ai.foresignal.source.spi.AreaOfInterest;
+import ai.foresignal.source.spi.CountyGeometries;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import ai.foresignal.source.adapters.goes.GoesAbiAdapter;
@@ -52,6 +58,10 @@ class FamilyDefaultsTest {
      * {@code raster} (prompt 046) marks product sources: their only kind is {@code raster-frame}, kept
      * 7 days by Weather-Imagery-Design §2.4 ("versions outlive frames"). The Conventions table has no
      * class for frame records; the 042 report asked the owner which class they belong to.
+     * {@code weather} (prompt 047, provisional) marks weather record sources whose kinds the Conventions
+     * table does not name (ProbSevere objects, SPC outlooks, METARs): their retention is exactly the
+     * per-kind table of Weather-Imagery-Design §2.4. NWS alerts are "weather and CAP alerts", so
+     * {@code event}.
      */
     record Entry(SourceDescriptor descriptor, String analyticClass) {}
 
@@ -59,7 +69,17 @@ class FamilyDefaultsTest {
             "UsgsEarthquakesAdapter", new Entry(new UsgsEarthquakesAdapter("").descriptor(), "event"),
             "SystemCanaryAdapter", new Entry(new SystemCanaryAdapter().descriptor(), "system"),
             "MrmsAdapter", new Entry(new MrmsAdapter(null, "").descriptor(), "raster"),
-            "GoesAbiAdapter", new Entry(new GoesAbiAdapter(null, "").descriptor(), "raster"));
+            "GoesAbiAdapter", new Entry(new GoesAbiAdapter(null, "").descriptor(), "raster"),
+            "NwsAlertsAdapter", new Entry(new NwsAlertsAdapter((CountyGeometries) null, "").descriptor(), "event"),
+            "ProbSevereAdapter", new Entry(new ProbSevereAdapter((AreaOfInterest) null, "").descriptor(), "weather"),
+            "SpcOutlooksAdapter", new Entry(new SpcOutlooksAdapter("").descriptor(), "weather"),
+            "AwcMetarsAdapter", new Entry(new AwcMetarsAdapter((AreaOfInterest) null, "").descriptor(), "weather"));
+
+    /** Weather-Imagery-Design §2.4's per-kind record retention, for the {@code weather} class. */
+    static final Map<String, Duration> WEATHER_KIND_RETENTION = Map.of(
+            "probsevere-object", Duration.ofDays(3),
+            "spc-outlook", Duration.ofDays(14),
+            "metar", Duration.ofDays(7));
 
     /** The design's raster-frame record retention (Weather-Imagery-Design §2.4). */
     static final Duration RASTER_FRAME_RETENTION = Duration.ofDays(7);
@@ -84,6 +104,17 @@ class FamilyDefaultsTest {
                 assertThat(descriptor.products()).as("%s products", descriptor.id()).isNotEmpty();
                 assertThat(descriptor.kindRetention().get(ProductSpec.RECORD_KIND)).as("%s raster-frame retention",
                         descriptor.id()).isGreaterThanOrEqualTo(RASTER_FRAME_RETENTION);
+                continue;
+            }
+            if (analyticClass.equals("weather")) {
+                assertThat(descriptor.kinds()).as("%s kinds", descriptor.id()).hasSize(1);
+                String kind = descriptor.kinds().iterator().next();
+                assertThat(WEATHER_KIND_RETENTION).as("%s kind %s is in the §2.4 table", descriptor.id(), kind)
+                        .containsKey(kind);
+                assertThat(descriptor.kindRetention().get(kind)).as("%s kindRetention", descriptor.id())
+                        .isEqualTo(WEATHER_KIND_RETENTION.get(kind));
+                assertThat(descriptor.defaultRetention()).as("%s defaultRetention", descriptor.id())
+                        .isEqualTo(WEATHER_KIND_RETENTION.get(kind));
                 continue;
             }
             Duration minimum = CLASS_DEFAULTS.get(analyticClass);

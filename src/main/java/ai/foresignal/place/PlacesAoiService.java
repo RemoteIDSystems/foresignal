@@ -3,6 +3,7 @@ package ai.foresignal.place;
 import ai.foresignal.collect.HealthRule;
 import ai.foresignal.collect.HealthRuleContext;
 import ai.foresignal.source.HealthStatus;
+import ai.foresignal.source.spi.AreaOfInterest;
 import ai.foresignal.collect.HealthVerdict;
 import ai.foresignal.ingest.IngestStateReset;
 import ai.foresignal.trigger.Antimeridian;
@@ -40,10 +41,11 @@ import org.springframework.stereotype.Service;
  *
  * <p>With no places the AOI is {@code weather.defaultAoi} (the Texas box by default), and every
  * AOI-consuming source gets a health warning through the 006 {@link HealthRule} SPI. The AOI is
- * cached and recomputed on {@link PlaceChangedEvent}.
+ * cached and recomputed on {@link PlaceChangedEvent}. Adapters see it through the SPI type
+ * {@link AreaOfInterest} (prompt 047: {@code mrms-probsevere} and {@code awc-metars}).
  */
 @Service
-public class PlacesAoiService implements HealthRule, IngestStateReset {
+public class PlacesAoiService implements HealthRule, IngestStateReset, AreaOfInterest {
 
     private static final GeometryFactory WGS84 = new GeometryFactory(new PrecisionModel(), 4326);
 

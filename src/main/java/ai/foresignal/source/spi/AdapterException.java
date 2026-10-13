@@ -1,5 +1,7 @@
 package ai.foresignal.source.spi;
 
+import java.util.OptionalInt;
+
 /**
  * An adapter could not complete a fetch.
  *
@@ -17,5 +19,16 @@ public class AdapterException extends Exception {
 
     public AdapterException(String message, Throwable cause) {
         super(message, cause);
+    }
+
+    /**
+     * The HTTP status the upstream answered with, when this failure is an error status (400 or more).
+     *
+     * <p>Lets an adapter treat one status specially without importing the collector's exception type
+     * (prompt 047: {@code spc-outlooks} reads a 404 for one layer as "layer missing", not as a failed
+     * run). Empty for every other failure.
+     */
+    public OptionalInt httpStatus() {
+        return OptionalInt.empty();
     }
 }

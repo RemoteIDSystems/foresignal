@@ -147,7 +147,7 @@ ai.foresignal
 └── api             Controllers, DTOs, ProblemDetail handlers, pagination cursors
 ```
 
-Dependency rule: `api → (service packages) → store`. Adapters depend only on `source` SPI types and `collect.UpstreamClient`; they never touch the store, the scheduler or each other. Product adapters (046 on) may also use the decoders in `raster.decode`, which are stateless file readers like the shared parsers under `source.formats`; frames still reach the store only through `ctx.rasters()`.
+Dependency rule: `api → (service packages) → store`. Adapters depend only on `source` SPI types and `collect.UpstreamClient`; they never touch the store, the scheduler or each other. Product adapters (046 on) may also use the decoders in `raster.decode`, which are stateless file readers like the shared parsers under `source.formats`; frames still reach the store only through `ctx.rasters()`. Weather record adapters (047) reach the places AOI and the `ref_admin2` county outlines only through the SPI types `AreaOfInterest` and `CountyGeometries`, implemented by `place.PlacesAoiService` and `reference.CountyUnionService`.
 
 ## 4. Source adapter SPI
 

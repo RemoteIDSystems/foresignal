@@ -2,6 +2,7 @@ package ai.foresignal.security;
 
 import ai.foresignal.config.ForesignalVersion;
 import ai.foresignal.settings.AppSettingService;
+import ai.foresignal.settings.ServerSettings;
 import ai.foresignal.settings.SettingKeys;
 import java.security.SecureRandom;
 import org.springframework.beans.factory.InitializingBean;
@@ -51,9 +52,27 @@ public class InstallIdService implements InitializingBean {
         return cached;
     }
 
-    /** The User-Agent for every upstream request. */
+    /**
+     * The User-Agent for every upstream request.
+     *
+     * <p>It always carries a contact: the project URL, plus the operator's {@code server.contactEmail}
+     * when set (prompt 047; the NWS API asks for a contact in the User-Agent). It never imitates a
+     * browser.
+     */
     public String userAgent() {
-        return "Foresignal/" + version.version() + " (+https://foresignal.ai; install=" + installId() + ")";
+        String contact = contactEmail();
+        return "Foresignal/" + version.version() + " (+https://foresignal.ai; install=" + installId()
+                + (contact == null ? "" : "; contact=" + contact) + ")";
+    }
+
+    /** The operator's contact email from the server settings, or null. */
+    String contactEmail() {
+        try {
+            ServerSettings server = settings.getOrDefault(SettingKeys.SERVER, ServerSettings.class, ServerSettings::defaults);
+            return server == null ? null : server.normalizedContactEmail();
+        } catch (RuntimeException e) {
+            return null;
+        }
     }
 
     private String loadOrCreate() {

@@ -87,4 +87,18 @@ class ServerSettingsServiceTest {
                 .isEqualTo("foresignal://records/usgs/us1");
         assertThat(new ClientLinks(null, "x", null, null).withDefaults().alert()).isEqualTo(ClientLinks.DEFAULT_ALERT);
     }
+
+    @Test
+    @DisplayName("contactEmail (prompt 047): an address is kept, null clears it, anything else is refused")
+    void contactEmail() {
+        assertThat(parse("{\"publicBaseUrl\":null,\"contactEmail\":\" ops@example.org \"}").contactEmail())
+                .isEqualTo("ops@example.org");
+        assertThat(parse("{\"publicBaseUrl\":null,\"contactEmail\":null}").contactEmail()).isNull();
+        assertThat(parse("{\"publicBaseUrl\":null}").normalizedContactEmail()).isNull();
+        for (String bad : new String[] {"\"not-an-email\"", "5", "\"a@b\"", "\"a b@example.org\"",
+            "\"ops@example.org; install=x\"", "\"(x)@example.org\""}) {
+            assertThatThrownBy(() -> parse("{\"publicBaseUrl\":null,\"contactEmail\":" + bad + "}")).as(bad)
+                    .isInstanceOf(ValidationException.class);
+        }
+    }
 }

@@ -106,4 +106,14 @@ class InstallIdServiceIT {
         assertThat(second).hasSize(8);
         assertThat(first).hasSize(8);
     }
+
+    @Test
+    @DisplayName("server.contactEmail is appended to the User-Agent as a contact (prompt 047)")
+    void userAgentContact() {
+        settings.put(SettingKeys.SERVER, new ai.foresignal.settings.ServerSettings(null, null, null, null, " ops@example.org "));
+        InstallIdService service = freshService();
+
+        assertThat(service.userAgent()).isEqualTo("Foresignal/" + version.version() + " (+https://foresignal.ai; install="
+                + service.installId() + "; contact=ops@example.org)");
+    }
 }

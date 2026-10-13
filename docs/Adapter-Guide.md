@@ -120,6 +120,27 @@ Types: STRING, INTEGER (integral), NUMBER (any finite number), BOOLEAN, TIMESTAM
 - Official APIs only. No scraping. Fringe sources belong in external EDP providers (Conventions, "Operator choice").
 - Return `FetchResult.complete(...)` when the response is the full current set. That is informational: absent records are never auto-tombstoned. Emit explicit tombstones where the upstream says something was deleted (USGS `status: deleted`).
 
+### Tombstone only from a complete, successful response (prompt 047)
+
+An adapter whose upstream returns the whole current set may tombstone what disappeared from it, but **only from a response that arrived in full and parsed without error**. A feed outage, a 5xx, a body cut at `maxResponseBytes`, an unparseable document or a file older than the last one processed must never reach the tombstoning step, because stale data must never read as an all-clear (Weather-Imagery-Design §7.1, "unknown is not clear"). The pattern:
+
+1. Fetch, check `response.truncated()` and parse. Anything wrong throws (`UpstreamFormatException`, `UpstreamHttpException`) **before** step 2, so the run fails, health shows it, and nothing is tombstoned.
+2. Call `LiveIdSet.absentSince(ctx.state(), scope, currentIds)` (in `source.spi`). It returns the ids live in the previous complete snapshot of that scope and absent now, remembers the new set, and reports a just-gone id once more on the next run in case that run's ingest failed (a second tombstone of a tombstoned head is skipped by the decision table).
+3. Emit `NormalizedRecord.tombstone(id, kind, observedAt)` for each.
+
+The scope keeps independent snapshots apart. Examples:
+
+| Source | Complete set | Scope | Notes |
+|---|---|---|---|
+| `nws-alerts` | the whole `/alerts/active` response | the `area` selection | an alert superseded by an `Update`/`Cancel` (`references[].identifier`) is dropped from the set, so it is tombstoned at the superseding message's `sent` |
+| `mrms-probsevere` | the newest **successfully processed** file, within the places AOI | `aoi` | an object that leaves the AOI is tombstoned too; a file older than the last processed one is ignored |
+| `spc-outlooks` | each layer file fetched with 200 | one per day and type | a 304 changes nothing; a 404 degrades health (`AdapterStateStore.degrade`) and tombstones nothing |
+| `awc-metars` | (none) | | station reports retire through the 3-hour TTL instead; nothing is tombstoned |
+
+Two related rules:
+- When a 200 body from `getConditional` could not be used (truncated or unparseable), call `SourceHttp.forgetValidators(ctx.state(), stateKey)`: the validators were stored when the response arrived, and without this the next run would get a 304 and never see the content.
+- A probe never moves adapter state: during a probe `ctx.state()` is an in-memory overlay and `getConditional` stores no validators, so a probe cannot consume a live set or a cursor.
+
 ## 8. Fixtures and tests
 
 **Fixtures.** Capture a real response once with an identifiable User-Agent (for USGS: `curl -s -A "Foresignal-fixture-capture (+https://foresignal.ai)" <url>`), trim it to a reviewable size, and write a sibling `README.md` with the capture date, URL, command, notable response headers and the trimming method. Add hand-made fixtures for edge cases and for the transitions the writer must handle (a revision, a volatile-only change), and one for a format change. Keyed sources without a key build fixtures from published examples and mark them `synthetic: true` with "recapture with a real key" (Conventions).

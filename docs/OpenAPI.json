@@ -197,6 +197,11 @@
         "version": "1.3.0",
         "date": "2026-10-12",
         "note": "046: no new operations. The x-foresignal-products examples of mrms-reflectivity, mrms-precip-rate, mrms-mesh-60m and goes-east-ir match the shipped mrms and goes-east-abi sources (precip and MESH gain maxZoomForAnimation 7). A product whose decoder fails the startup self-test is disabled: its frame endpoints answer the existing 503 PRODUCT_UNAVAILABLE and SourceHealth carries the reason. FrameStats.flagMissing is now filled (mrms-precip-rate committed without its PrecipFlag band)."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-12",
+        "note": "047: no new operations. ServerSettings gains contactEmail (an operator contact appended to the upstream User-Agent). Record x-foresignal-kinds gains nws-alert, probsevere-object, spc-outlook and metar with payload fields and examples, for the new sources nws-alerts, mrms-probsevere, spc-outlooks and awc-metars. SourceHealth.statusReason carries adapter-reported degradations such as \"SPC layer {file} missing\"."
       }
     ]
   },
@@ -90572,6 +90577,214 @@
                 "groupKey"
               ]
             }
+          },
+          "nws-alert": {
+            "x-foresignal-prompt": "047",
+            "payloadFields": {
+              "nws-alerts": [
+                "event",
+                "eventCode",
+                "headline",
+                "severity",
+                "certainty",
+                "urgency",
+                "messageType",
+                "category",
+                "response",
+                "senderName",
+                "areaDesc",
+                "sent",
+                "effective",
+                "onset",
+                "expires",
+                "ends",
+                "ugc",
+                "same",
+                "vtec",
+                "motion",
+                "maxHailSizeIn",
+                "maxWindGustMph",
+                "tornadoDetection",
+                "thunderstormDamageThreat",
+                "description",
+                "instruction",
+                "web",
+                "geometrySource"
+              ]
+            },
+            "note": "externalId = properties.id; observedAt = sent, eventTime = onset ?? effective, validFrom = onset, validUntil = the later of expires and ends. Geometry: the polygon, else the ref_admin2 county union for county-only UGCs (geometrySource county-union), else none. description and instruction are untrusted upstream text (≤ 8 KB). Authoritative.",
+            "example": {
+              "event": "Tornado Warning",
+              "eventCode": {
+                "same": "TOR",
+                "nws": "TOW"
+              },
+              "headline": "Tornado Warning issued October 12 at 6:42PM CDT until October 12 at 7:15PM CDT by NWS Fort Worth TX",
+              "severity": "Extreme",
+              "certainty": "Observed",
+              "urgency": "Immediate",
+              "messageType": "Alert",
+              "category": "Met",
+              "response": "Shelter",
+              "senderName": "NWS Fort Worth TX",
+              "areaDesc": "Denton, TX; Collin, TX",
+              "sent": "2026-10-12T23:42:00Z",
+              "effective": "2026-10-12T23:42:00Z",
+              "onset": "2026-10-12T23:42:00Z",
+              "expires": "2026-10-13T00:15:00Z",
+              "ends": "2026-10-13T00:15:00Z",
+              "ugc": [
+                "TXC121",
+                "TXC085"
+              ],
+              "same": [
+                "048121",
+                "048085"
+              ],
+              "vtec": [
+                "/O.NEW.KFWD.TO.W.0042.261012T2342Z-261013T0015Z/"
+              ],
+              "motion": "2026-10-12T23:42:00-00:00...storm...245DEG...25KT...33.21,-97.13",
+              "tornadoDetection": "RADAR INDICATED",
+              "maxHailSizeIn": 1.0,
+              "description": "At 642 PM CDT, a severe thunderstorm capable of producing a tornado was located ...",
+              "instruction": "TAKE COVER NOW! Move to a basement or an interior room on the lowest floor of a sturdy building.",
+              "web": "http://www.weather.gov",
+              "geometrySource": "polygon"
+            }
+          },
+          "probsevere-object": {
+            "x-foresignal-prompt": "047",
+            "payloadFields": {
+              "mrms-probsevere": [
+                "probSevere",
+                "probTor",
+                "probHail",
+                "probWind",
+                "meshIn",
+                "compRefDbz",
+                "vil",
+                "echoTop50Kft",
+                "flashRate",
+                "muCape",
+                "mlCape",
+                "ebShearKt",
+                "srh01km",
+                "motion",
+                "label",
+                "automated",
+                "notAWarning"
+              ]
+            },
+            "note": "externalId = ProbSevere ID; observedAt = the file's validTime; objects inside the places-AOI envelope only; tombstoned when absent from the newest processed file. muCape, mlCape, ebShearKt, srh01km and flashRate are volatile. Automated guidance, never a warning.",
+            "example": {
+              "probSevere": 44,
+              "probTor": 26,
+              "probHail": 31,
+              "probWind": 18,
+              "meshIn": 1.25,
+              "compRefDbz": 62,
+              "vil": 48.0,
+              "echoTop50Kft": 38.0,
+              "flashRate": 41.0,
+              "muCape": 2810.0,
+              "mlCape": 2140.0,
+              "ebShearKt": 45.0,
+              "srh01km": 210.0,
+              "motion": {
+                "speedKmh": 45,
+                "bearingDeg": 60
+              },
+              "label": "ProbSevere 44% (tor 26%)",
+              "automated": true,
+              "notAWarning": true
+            }
+          },
+          "spc-outlook": {
+            "x-foresignal-prompt": "047",
+            "payloadFields": {
+              "spc-outlooks": [
+                "day",
+                "type",
+                "label",
+                "label2",
+                "dn",
+                "issue",
+                "valid",
+                "expire",
+                "title"
+              ]
+            },
+            "note": "externalId = day{d}:{type}:{LABEL} (day1:cat:MDT, day1:torn:0.10, day1:sigtorn:SIGN); observedAt = ISSUE, eventTime = VALID, validUntil = EXPIRE. dn is SPC's rank (categorical TSTM 2, MRGL 3, SLGT 4, ENH 5, MDT 6, HIGH 8). Labels absent from a re-fetched layer are tombstoned for that day and type.",
+            "example": {
+              "day": 1,
+              "type": "cat",
+              "label": "MDT",
+              "label2": "Moderate Risk",
+              "dn": 6,
+              "issue": "2026-10-12T19:48:00Z",
+              "valid": "2026-10-12T20:00:00Z",
+              "expire": "2026-10-13T12:00:00Z",
+              "title": "Day 1 Moderate Risk"
+            }
+          },
+          "metar": {
+            "x-foresignal-prompt": "047",
+            "payloadFields": {
+              "awc-metars": [
+                "raw",
+                "stationId",
+                "metarType",
+                "tempC",
+                "dewpointC",
+                "windDirDeg",
+                "windVariable",
+                "windKt",
+                "gustKt",
+                "visibilitySm",
+                "visibilityPlus",
+                "altimInHg",
+                "slpMb",
+                "wx",
+                "sky",
+                "flightCategory",
+                "elevationM"
+              ]
+            },
+            "note": "externalId = station id; observedAt = eventTime = observation_time; TTL 3 h anchored on the observation. Reused by 087 (TAF, PIREP, G-AIRMET).",
+            "example": {
+              "raw": "METAR KAUS 122353Z 13011KT 10SM SCT040 SCT050 BKN100 BKN200 30/24 A2991 RMK AO2 SLP118 T03000239 10333 20300 55001 $",
+              "stationId": "KAUS",
+              "metarType": "METAR",
+              "tempC": 30.0,
+              "dewpointC": 23.9,
+              "windDirDeg": 130,
+              "windKt": 11,
+              "visibilitySm": 10.0,
+              "visibilityPlus": true,
+              "altimInHg": 29.91,
+              "slpMb": 1011.8,
+              "sky": [
+                {
+                  "cover": "SCT",
+                  "baseFtAgl": 4000
+                },
+                {
+                  "cover": "SCT",
+                  "baseFtAgl": 5000
+                },
+                {
+                  "cover": "BKN",
+                  "baseFtAgl": 10000
+                },
+                {
+                  "cover": "BKN",
+                  "baseFtAgl": 20000
+                }
+              ],
+              "flightCategory": "VFR",
+              "elevationM": 148.0
+            }
           }
         }
       },
@@ -93183,6 +93396,16 @@
           },
           "push": {
             "$ref": "#/components/schemas/PushSettings"
+          },
+          "contactEmail": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "email",
+            "maxLength": 254,
+            "example": "ops@example.org",
+            "description": "Operator contact appended to the upstream User-Agent as `contact=…` (the NWS API asks for a contact); null for none"
           }
         },
         "required": [
@@ -93192,7 +93415,8 @@
           "023"
         ],
         "x-foresignal-property-prompts": {
-          "push": "031"
+          "push": "031",
+          "contactEmail": "047"
         }
       },
       "ApiTokenInput": {

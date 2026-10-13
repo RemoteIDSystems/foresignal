@@ -29,6 +29,11 @@ public class UpstreamHttpException extends AdapterException {
         return status;
     }
 
+    @Override
+    public java.util.OptionalInt httpStatus() {
+        return java.util.OptionalInt.of(status);
+    }
+
     public String getBodySnippet() {
         return bodySnippet;
     }

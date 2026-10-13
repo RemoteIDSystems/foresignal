@@ -2026,6 +2026,26 @@ After a NetCDF-Java upgrade, regenerate the checksums with
 `./gradlew --write-verification-metadata sha256 help`, then trim the file back to the `edu.ucar`
 components and the `<trusted-artifacts>` rule.
 
+## Severe weather records
+
+Prompt 047 adds four record sources (installed disabled, like every source):
+
+| Source | What it brings | Notes |
+|---|---|---|
+| `nws-alerts` | NWS watches, warnings and advisories | Every 60 s. Param `area` (state or marine codes, empty = national) and `minSeverity`. The NWS asks for a contact in the User-Agent: set `contactEmail` in the server settings (`PUT /v1/settings/server`), which Foresignal appends as `contact=…`. |
+| `mrms-probsevere` | MRMS ProbSevere v3 storm objects | Every 2 min, newest file only, inside the places area of interest (no places: the Texas box, with a health warning). Automated guidance, never a warning. |
+| `spc-outlooks` | SPC day 1–3 convective outlooks | Every 15 min, 17 conditional requests, mostly 304. A missing layer shows the source `degraded` with "SPC layer {file} missing". |
+| `awc-metars` | Airport METARs | Every 5 min (AWC allows 1 request per minute per thread). Param `scope` (`aoi`, `conus`, `global`) or a `stations` allowlist. A report stays current for 3 hours. |
+
+```json
+PUT /v1/settings/server
+{"publicBaseUrl": null, "contactEmail": "ops@example.org"}
+```
+
+None of these sources ever turns a failed fetch into an all-clear: a record is tombstoned only when a
+complete, successful response no longer contains it. When a feed is down its records stay, expire on
+their own, and the source shows `degraded`. Rule recipes are in the Agent Guide, "Weather alerts".
+
 ## Operating the instance
 
 ### Probes and the compose healthcheck
