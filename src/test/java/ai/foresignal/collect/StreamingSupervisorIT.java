@@ -273,4 +273,53 @@ class StreamingSupervisorIT {
         assertThatThrownBy(() -> s.start(CollectorTestSources.POLL)).isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> s.start(FakeAdapters.PUSH_ID)).isInstanceOf(IllegalArgumentException.class);
     }
+
+    @Test
+    @DisplayName("063: changed parameters go to the handle's update(); a handle that applies them is not restarted")
+    void paramsAppliedInPlace() {
+        fakeStreamingAdapter.acceptUpdates(true);
+        StreamingSupervisor s = defaultTestSupervisor();
+        s.start(STREAM);
+        await().atMost(Duration.ofSeconds(5)).until(() -> s.isConnected(STREAM));
+
+        assertThat(s.paramsChanged(STREAM)).isTrue();
+
+        assertThat(fakeStreamingAdapter.startCount()).isEqualTo(1);
+        assertThat(fakeStreamingAdapter.lastHandle().updates()).hasSize(1);
+        assertThat(fakeStreamingAdapter.lastHandle().isRunning()).isTrue();
+    }
+
+    @Test
+    @DisplayName("063: a handle that cannot apply new parameters is restarted; a stopped stream is left alone")
+    void paramsRestart() {
+        StreamingSupervisor s = defaultTestSupervisor();
+        assertThat(s.paramsChanged(STREAM)).as("not running").isFalse();
+        assertThat(fakeStreamingAdapter.startCount()).isZero();
+
+        s.start(STREAM);
+        await().atMost(Duration.ofSeconds(5)).until(() -> s.isConnected(STREAM));
+        FakeStreamingAdapter.Handle first = fakeStreamingAdapter.lastHandle();
+
+        assertThat(s.paramsChanged(STREAM)).isFalse();
+
+        await().atMost(Duration.ofSeconds(5)).until(() -> fakeStreamingAdapter.startCount() == 2);
+        assertThat(first.updates()).hasSize(1);
+        assertThat(first.isRunning()).isFalse();
+        assertThat(s.running()).containsExactly(STREAM);
+    }
+
+    @Test
+    @DisplayName("063: restart() closes and reopens a running stream at once")
+    void restart() {
+        StreamingSupervisor s = defaultTestSupervisor();
+        s.restart(STREAM);
+        assertThat(fakeStreamingAdapter.startCount()).as("not running: nothing to restart").isZero();
+
+        s.start(STREAM);
+        await().atMost(Duration.ofSeconds(5)).until(() -> fakeStreamingAdapter.startCount() == 1);
+        s.restart(STREAM);
+
+        await().atMost(Duration.ofSeconds(5)).until(() -> fakeStreamingAdapter.startCount() == 2);
+        assertThat(fakeStreamingAdapter.openHandles()).isEqualTo(1);
+    }
 }

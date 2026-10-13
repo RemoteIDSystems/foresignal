@@ -57,9 +57,12 @@ class UpstreamClientIsTheOnlyHttpClientTest {
             MAIN.resolve(Path.of("ai", "foresignal", "notify", "push", "NativePushHttp.java")),
             "native push to APNs, FCM and the OAuth token endpoint (032)");
 
-    /** The two ways to get an {@code HttpClient}. */
+    /**
+     * The two ways to get an {@code HttpClient}, and the Java-WebSocket client package, which only
+     * {@code collect/DeflateWebSocket} may use (063: the permessage-deflate path of {@code openWebSocket}).
+     */
     private static final List<String> CONSTRUCTIONS =
-            List.of("HttpClient.newHttpClient", "HttpClient.newBuilder");
+            List.of("HttpClient.newHttpClient", "HttpClient.newBuilder", "org.java_websocket.client");
 
     @Test
     @DisplayName("only the collect package (and the sanctioned outbound senders) constructs an HttpClient")

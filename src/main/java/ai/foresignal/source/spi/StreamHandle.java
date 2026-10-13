@@ -28,4 +28,20 @@ public interface StreamHandle extends AutoCloseable {
      * drop is noticed immediately.
      */
     default void onClose(Consumer<Throwable> callback) {}
+
+    /**
+     * Applies changed parameters to the running stream without reconnecting (prompt 063).
+     *
+     * <p>The supervisor calls it when an operator changes the source's parameters while the stream runs. An
+     * adapter whose upstream can change a subscription in place (aisstream resends its subscription, which
+     * replaces the previous one) applies {@code params} and returns true. Returning false asks the
+     * supervisor to restart the stream with the new parameters, which costs a connection attempt. The
+     * default returns false.
+     *
+     * @param params the new effective parameters
+     * @return true when applied in place, false to be restarted
+     */
+    default boolean update(ValidatedParams params) {
+        return false;
+    }
 }

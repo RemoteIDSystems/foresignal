@@ -80,6 +80,8 @@ dependencies {
     // MQTT channel and HA discovery (060): the shaded HiveMQ client carries its own Netty 4.1, because the
     // Spring Boot BOM would move the plain artifact's Netty to 4.2 (see the version catalog).
     implementation(libs.hivemq.mqtt.client.shaded)
+    // permessage-deflate WebSockets for streaming sources (063): used only inside ai.foresignal.collect.
+    implementation(libs.java.websocket)
     runtimeOnly(libs.postgresql)
 
     testImplementation(platform(libs.testcontainers.bom))

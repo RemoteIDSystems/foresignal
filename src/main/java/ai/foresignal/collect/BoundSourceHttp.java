@@ -6,6 +6,7 @@ import ai.foresignal.source.spi.S3Listing;
 import ai.foresignal.source.spi.SourceDescriptor;
 import ai.foresignal.source.spi.SourceHttp;
 import ai.foresignal.source.spi.UpstreamResponse;
+import ai.foresignal.source.spi.WebSocketOptions;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -310,6 +311,52 @@ class BoundSourceHttp implements SourceHttp {
             parent.backoff().onSuccess(sourceId);
             return socket;
         } catch (RuntimeException e) {
+            parent.usage().record(sourceId, 0, false);
+            throw UpstreamClient.io(
+                    "Could not open a WebSocket to " + redactedUrl(uri) + ": " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Opens a WebSocket with {@code options} (prompt 063).
+     *
+     * <p>Without {@code permessage-deflate} this is {@link #openWebSocket(URI, WebSocket.Listener, Map)}.
+     * With it, the connection is opened by {@link DeflateWebSocket}, after the same backoff check and budget
+     * unit, with the same User-Agent and the same request metering and backoff bookkeeping; the largest frame
+     * accepted is the descriptor's {@code maxResponseBytes}. Like the JDK path, no {@link FetchTrace} is
+     * recorded for a connection.
+     */
+    @Override
+    public WebSocket openWebSocket(
+            URI uri, WebSocket.Listener listener, Map<String, String> headers, WebSocketOptions options)
+            throws AdapterException {
+        if (options == null || !options.perMessageDeflate()) {
+            return openWebSocket(uri, listener, headers);
+        }
+        checkBackoff();
+        consumeBudget(0);
+
+        Map<String, String> handshake = new LinkedHashMap<>();
+        if (headers != null) {
+            headers.forEach(
+                    (name, value) -> {
+                        if (!"user-agent".equalsIgnoreCase(name)) {
+                            handshake.put(name, value);
+                        }
+                    });
+        }
+        handshake.put("User-Agent", parent.userAgent(descriptor));
+        try {
+            WebSocket socket = DeflateWebSocket.open(
+                    uri, listener, handshake, UpstreamClient.CONNECT_TIMEOUT, descriptor.maxResponseBytes());
+            parent.usage().record(sourceId, 0, true);
+            parent.backoff().onSuccess(sourceId);
+            return socket;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            parent.usage().record(sourceId, 0, false);
+            throw UpstreamClient.io("Interrupted while opening a WebSocket to " + redactedUrl(uri), e);
+        } catch (IOException | RuntimeException e) {
             parent.usage().record(sourceId, 0, false);
             throw UpstreamClient.io(
                     "Could not open a WebSocket to " + redactedUrl(uri) + ": " + e.getMessage(), e);

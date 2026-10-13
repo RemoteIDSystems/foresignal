@@ -44,7 +44,8 @@ public final class HealthMapper {
                 v.lastDataAt(),
                 v.budgetHoursRemaining(),
                 v.newestFrameAt(),
-                v.frameAgeSeconds());
+                v.frameAgeSeconds(),
+                v.details());
     }
 
     /** The API form of a coverage sample; null for null. */

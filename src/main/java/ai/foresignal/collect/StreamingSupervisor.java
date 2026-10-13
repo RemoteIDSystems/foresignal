@@ -171,6 +171,53 @@ public class StreamingSupervisor implements DisposableBean {
         return flushed;
     }
 
+    /**
+     * Applies changed parameters to a running stream (prompt 063).
+     *
+     * <p>The handle's {@link StreamHandle#update} gets the new effective parameters first; an adapter that
+     * can change its subscription in place (aisstream) does so without reconnecting. When it cannot, or when
+     * no connection is open at the moment, the stream is restarted, which costs one connection attempt. A
+     * stream that is not running is left alone: the next start reads the parameters anyway.
+     *
+     * @return true when the change was applied in place
+     */
+    public boolean paramsChanged(String sourceId) {
+        Runner runner = runners.get(sourceId);
+        if (runner == null) {
+            return false;
+        }
+        StreamHandle current = runner.handle;
+        if (current != null && runner.connected) {
+            try {
+                if (current.update(sources.effectiveParams(sourceId))) {
+                    log.info("{}: applied the changed parameters to the running stream", sourceId);
+                    return true;
+                }
+            } catch (RuntimeException e) {
+                log.warn("{}: the stream could not apply the changed parameters; restarting it", sourceId, e);
+            }
+        }
+        restart(sourceId);
+        return false;
+    }
+
+    /**
+     * Restarts a running stream at once, for example after its credentials changed (prompt 063): a stream
+     * waiting out the hourly retry of a rejected key should try the new key now. Not a reconnect on the
+     * ladder; it is what the operator asked for. A stream that is not running is left alone.
+     */
+    public synchronized void restart(String sourceId) {
+        if (!runners.containsKey(sourceId)) {
+            return;
+        }
+        stop(sourceId, properties.shutdownWait());
+        try {
+            start(sourceId);
+        } catch (RuntimeException e) {
+            log.error("Could not restart the stream of {}", sourceId, e);
+        }
+    }
+
     /** Stops every stream, flushing each, within {@code timeout} overall. */
     public void stopAll(Duration timeout) {
         long deadline = System.nanoTime() + timeout.toNanos();

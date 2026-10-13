@@ -9,6 +9,7 @@ import ai.foresignal.source.spi.SourceDescriptor;
 import ai.foresignal.source.spi.StreamContext;
 import ai.foresignal.source.spi.StreamHandle;
 import ai.foresignal.source.spi.StreamingAdapter;
+import ai.foresignal.source.spi.ValidatedParams;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -33,6 +34,7 @@ public class FakeStreamingAdapter implements StreamingAdapter {
 
     private volatile AdapterException startFailure;
     private volatile RecordSink sink;
+    private volatile boolean acceptUpdates;
 
     public FakeStreamingAdapter(SourceDescriptor descriptor) {
         this.descriptor = descriptor;
@@ -64,6 +66,15 @@ public class FakeStreamingAdapter implements StreamingAdapter {
         return this;
     }
 
+    /**
+     * Whether new handles apply {@link StreamHandle#update} in place (true) or ask to be restarted (false, the
+     * default, like an adapter that does not implement it). Prompt 063.
+     */
+    public FakeStreamingAdapter acceptUpdates(boolean accept) {
+        this.acceptUpdates = accept;
+        return this;
+    }
+
     /** Makes the next {@link #start} throw. */
     public FakeStreamingAdapter failOnStart(AdapterException failure) {
         this.startFailure = failure;
@@ -80,7 +91,7 @@ public class FakeStreamingAdapter implements StreamingAdapter {
         }
         this.sink = sink;
         onStart.forEach(sink::accept);
-        Handle handle = new Handle();
+        Handle handle = new Handle(acceptUpdates);
         handles.add(handle);
         return handle;
     }
@@ -119,6 +130,7 @@ public class FakeStreamingAdapter implements StreamingAdapter {
         startCount.set(0);
         sink = null;
         startFailure = null;
+        acceptUpdates = false;
     }
 
     /** The most recently started handle, or null. */
@@ -135,6 +147,24 @@ public class FakeStreamingAdapter implements StreamingAdapter {
         private final AtomicBoolean running = new AtomicBoolean(true);
         private final AtomicInteger closeCount = new AtomicInteger();
         private final List<Consumer<Throwable>> closeCallbacks = new CopyOnWriteArrayList<>();
+        private final List<ValidatedParams> updates = new CopyOnWriteArrayList<>();
+        private final boolean acceptUpdates;
+
+        Handle(boolean acceptUpdates) {
+            this.acceptUpdates = acceptUpdates;
+        }
+
+        /** Records {@code params}; applies them in place only when the adapter was told to accept updates. */
+        @Override
+        public boolean update(ValidatedParams params) {
+            updates.add(params);
+            return acceptUpdates;
+        }
+
+        /** The parameters passed to {@link #update}, oldest first. */
+        public List<ValidatedParams> updates() {
+            return List.copyOf(updates);
+        }
 
         @Override
         public void close() {

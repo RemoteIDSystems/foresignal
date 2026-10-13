@@ -40,6 +40,14 @@ class TitleResolverTest {
     }
 
     @Test
+    @DisplayName("063: a vessel without a name or call sign is titled by its MMSI")
+    void vesselFallback() {
+        assertThat(TitleResolver.resolve("name", Map.of("name", "RED FALCON", "mmsi", "235009802"))).isEqualTo("RED FALCON");
+        assertThat(TitleResolver.resolve("name", Map.of("callsign", "MFZL6", "mmsi", "235009802"))).isEqualTo("MFZL6");
+        assertThat(TitleResolver.resolve("name", Map.of("mmsi", "235009802", "sog", 3.0))).isEqualTo("235009802");
+    }
+
+    @Test
     @DisplayName("an absent or blank titleField falls back")
     void blankTitleFieldFallsBack() {
         assertThat(TitleResolver.resolve("headline", Map.of("headline", "   ", "name", "N"))).isEqualTo("N");

@@ -165,6 +165,48 @@ them yourself, the page does not answer automated requests). The source is `egre
 your own API clients, tiles, streams and notifications, but never re-served by sinks, federation, share links or feeds.
 Credit OpenSky as its descriptor's `attribution` asks (Schäfer et al., IPSN 2014).
 
+### Vessels from aisstream.io
+
+`aisstream` streams global AIS (vessel positions and static data) over a WebSocket and merges each vessel's messages
+into one complete record per MMSI. It needs a key, and stays disabled until one is stored (enabling without it is a
+`409 CREDENTIALS_REQUIRED`):
+
+1. Create a free account at <https://aisstream.io>, then an API key on its Account page. The key is shown once.
+2. Store it and enable the source:
+
+   ```json
+   PUT /v1/sources/aisstream/credentials
+   {"apiKey": "…"}
+   ```
+
+   ```json
+   PUT /v1/sources/aisstream
+   {"enabled": true, "params": {"bbox": ["-1.8,50.6,-0.9,50.95"]}}
+   ```
+
+**Use one key per Foresignal instance, and nowhere else.** aisstream allows 3 subscribed connections per account and 3
+open connections per IP, and Foresignal holds one connection per source. A key shared with another program or another
+instance makes connections fail in ways that look like a bad key. Storing a new key restarts the stream at once.
+
+**Size the `bbox` to what you need.** `bbox` takes 1 to 10 boxes, each `"minLon,minLat,maxLon,maxLat"`, as a JSON array
+of strings (a single string would be split at its commas); the default is the whole world. The world is thousands of
+messages a minute. Since September 2026 aisstream limits the bandwidth of connections that do not use compression and
+silently drops the excess; Foresignal negotiates `permessage-deflate`, and `GET /v1/sources/aisstream/health` shows
+`details.compressionEnabled` once aisstream confirms it. If it shows `false`, narrow the boxes. A box must not cross the
+antimeridian: split it in two. `messageTypes` limits the AIS message types (default all five the merge uses) and `mmsi`
+follows up to 50 vessels only. Changing `params` while the stream runs resends the subscription on the same connection.
+
+**Health.** A connection that has delivered no AIS message for 120 s shows `degraded` ("connected but silent for N
+s"); after 300 s Foresignal drops it and reconnects on the ladder (5 s, 15 s, 60 s, 300 s, then every 900 s). A rejected
+key (an error naming the key, or two closes in a row before aisstream confirms the subscription; aisstream answers an
+invalid key by closing the socket) is retried only hourly; fix the key and store it again. Each connection attempt counts
+against the budget (2 a minute, 144 a day).
+
+aisstream publishes no terms of use or redistribution clause, and asks you to proxy only what your clients need, so the
+source is `egress: LOCAL_ONLY`, like `opensky-states`: served to your own clients, never re-served by sinks, federation,
+share links or feeds. No key means no vessels from this source; keyless official AIS (`ais-kystverket`,
+`ais-digitraffic`) and a local AIS-catcher arrive later.
+
 ### History tiers
 
 Each source's descriptor fixes its `historyTier`:

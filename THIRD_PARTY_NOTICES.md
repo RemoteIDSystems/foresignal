@@ -59,7 +59,7 @@ SOFTWARE.
 
 ### Ported files
 
-Ported from God's Eye View commit `591f299d11f38a612629a274463196d57ae3862e` (prompts 051 and 062). Each
+Ported from God's Eye View commit `591f299d11f38a612629a274463196d57ae3862e` (prompts 051, 062 and 063). Each
 file carries an origin header naming its source file and this notice.
 
 | Foresignal file | GEV origin file |
@@ -77,6 +77,10 @@ file carries an origin header naming its source file and this notice.
 | `src/main/java/ai/foresignal/source/adapters/adsblol/AdsbLol.java` (30 s after a 429 without `Retry-After`) | `server/providers/aircraft/adsb-lol.js` (`RATE_LIMIT_COOLDOWN_MS`, `cooldownFor`) |
 | `src/main/java/ai/foresignal/source/adapters/opensky/OpenSkyTokens.java` (OAuth token cache, 60 s refresh margin) | `server/providers/aircraft/opensky.js` (`getOpenSkyToken`) |
 | `src/main/java/ai/foresignal/source/adapters/opensky/OpenSkyCredits.java` (credit governor on `x-rate-limit-remaining`) | `server/providers/aircraft/opensky.js` (credit governor, `openskyAdaptiveTtlMs`) |
+| `src/main/java/ai/foresignal/source/adapters/aisstream/AisStreamMessageParser.java` (recognized message types, the liveness rule, `AUTH_TEXT`, the SOG/COG/heading sentinels and `time_utc` parsing, prompt 063) | `src/data/aisStreamAdapter.js` (`AIS_RECOGNIZED_MESSAGE_TYPES`, `aisEnvelopeMmsi`, `isRecognizedAisEnvelope`, `parseAisEnvelope`, `AUTH_TEXT`) and `server/providers/vessels/ais-store.js` (`normalizedSpeedOverGround`, `normalizedCourseOverGround`, `normalizedHeading`, `normalizeAisTimestamp`) |
+| `src/main/java/ai/foresignal/source/adapters/aisstream/VesselStateStore.java` (merging static data into per-MMSI vessel state, the bounded cache) | `server/providers/vessels/ais-store.js` (`ingestAisStreamEnvelope`, `mergeAisStaticIntoLiveVessel`, `pruneAisStreamCache`) |
+| `src/main/java/ai/foresignal/source/adapters/aisstream/AisStreamSession.java` (liveness only from a recognized envelope, auth versus transport errors, report-fast/recycle-slow silence watchdog: 120 s and 2.5 times that) | `src/data/aisStreamAdapter.js` (`classifyAisFailure`, liveness credit) and `src/data/aisWatchdog.js` (`staleMs`, `recycleAfterMs`) |
+| `src/main/java/ai/foresignal/source/adapters/aisstream/AisStreamAdapter.java` (stream URL, default message types and world box, one connection per key, hourly retry of a rejected key) | `server/providers/vessels/ais-live.js` (`AISSTREAM_URL`, `AISSTREAM_DEFAULT_MESSAGE_TYPES`, `AISSTREAM_DEFAULT_BBOXES`, `AISSTREAM_AUTH_PROBE_MS`) |
 
 `decode.js` (ecCodes WASM) is not ported: Foresignal decodes with NetCDF-Java. The particle layer
 (`src/layers/wind/*`) is not part of Foresignal; the Frontend Guide tells web clients which of its
@@ -281,6 +285,16 @@ Apache HttpClient, HttpCore and HttpMime 4 with Commons Logging and Commons Code
 - **Test only:** Testcontainers' `testcontainers-toxiproxy` 2.0.5 (MIT) with `eu.rekawek.toxiproxy:toxiproxy-java`
   2.1.11 (Apache License, Version 2.0), and the `eclipse-mosquitto:2` and `ghcr.io/shopify/toxiproxy:2.12.0` images, which are not
   distributed.
+
+### Java-WebSocket (prompt 063)
+
+- **Artifact:** `org.java-websocket:Java-WebSocket` 1.6.0 (Maven Central), used unmodified. Its only runtime
+  dependency is `slf4j-api` (version from the Spring Boot BOM).
+- **Use:** `ai.foresignal.collect.DeflateWebSocket`, the `permessage-deflate` (RFC 7692) path of
+  `SourceHttp.openWebSocket(…, WebSocketOptions)`, which the JDK's WebSocket client cannot negotiate; first used by
+  `aisstream`. Its `WebSocketServer` is also the loopback server of the streaming tests.
+- **License:** MIT License (the pom's `<licenses>`; Copyright (c) 2010-2020 Nathan Rajlich in the source headers). Project:
+  <https://github.com/TooTallNate/Java-WebSocket>.
 
 ### GDAL (optional, not in the default image)
 

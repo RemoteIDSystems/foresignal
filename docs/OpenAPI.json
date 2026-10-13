@@ -277,6 +277,11 @@
         "version": "1.3.0",
         "date": "2026-10-13",
         "note": "062: no operation changes. SourceDescriptor.egress is described as enforced (opensky-states LOCAL_ONLY, adsb.lol OPEN); Record.title falls back to the aircraft registration (r) and ICAO address (hex) after title, name, callsign and place. New sources adsblol-mil, adsblol-area-1..3 and opensky-states (kind aircraft)."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-13",
+        "note": "063: no operation changes. SourceHealth.details is returned (aisstream: compressionEnabled, perMessageDeflate, vessels) and omitted when empty; Record.title falls back to mmsi after hex. New source aisstream (STREAMING, kind vessel, egress LOCAL_ONLY)."
       }
     ]
   },
@@ -87633,7 +87638,7 @@
           "details": {
             "type": "object",
             "additionalProperties": true,
-            "description": "Adapter-specific health details, e.g. aisstream `compressionEnabled` (063)"
+            "description": "Adapter-specific health details; omitted when there are none. aisstream (063): `compressionEnabled` (from its SubscriptionConfirmation), `perMessageDeflate` (whether the handshake negotiated it; present while connected) and `vessels` (vessels held in the merged state)"
           },
           "lastDoctorReport": {
             "oneOf": [
@@ -88101,7 +88106,7 @@
               "string",
               "null"
             ],
-            "description": "record_head.title (titleField, else title > name > callsign > place > r > hex)"
+            "description": "record_head.title (titleField, else title > name > callsign > place > r > hex > mmsi)"
           },
           "persistedObservedAt": {
             "type": "string",

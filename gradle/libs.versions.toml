@@ -79,6 +79,13 @@ jsonPath = "3.0.0"
 # and javax.inject under com.hivemq.client.internal.shaded; it still depends on RxJava 2.2.21, Reactive Streams
 # 1.0.4 and org.jetbrains:annotations.
 hivemqMqttClient = "1.4.0"
+# The permessage-deflate WebSocket client of SourceHttp.openWebSocket(..., WebSocketOptions) (063): TooTallNate
+# Java-WebSocket, MIT. Verified on Maven Central 2026-10-13: 1.6.0 is the latest release of
+# org.java-websocket:Java-WebSocket (Java 7 bytecode, class version 51); its only runtime dependency is slf4j-api (version from the
+# Spring Boot BOM). The JDK's java.net.http.WebSocket cannot negotiate extensions, and aisstream.io limits the
+# bandwidth of uncompressed connections since September 2026. Its WebSocketServer is also the loopback test
+# server of the aisstream tests.
+javaWebsocket = "1.6.0"
 
 [libraries]
 # --- Versions managed by the Spring Boot BOM ---
@@ -148,6 +155,7 @@ libaec-native = { module = "edu.ucar.unidata:libaec-native", version.ref = "liba
 orekit = { module = "org.orekit:orekit", version.ref = "orekit" }
 json-path = { module = "com.jayway.jsonpath:json-path", version.ref = "jsonPath" }
 hivemq-mqtt-client-shaded = { module = "com.hivemq:hivemq-mqtt-client-shaded", version.ref = "hivemqMqttClient" }
+java-websocket = { module = "org.java-websocket:Java-WebSocket", version.ref = "javaWebsocket" }
 
 # --- Test; versions from the Testcontainers BOM where unspecified ---
 testcontainers-bom = { module = "org.testcontainers:testcontainers-bom", version.ref = "testcontainers" }

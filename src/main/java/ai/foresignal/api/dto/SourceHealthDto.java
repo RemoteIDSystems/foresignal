@@ -1,7 +1,9 @@
 package ai.foresignal.api.dto;
 
 import ai.foresignal.source.HealthStatus;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import java.time.Instant;
+import java.util.Map;
 
 /**
  * The {@code SourceHealth} schema. Every value comes from {@code HealthService}; nothing is
@@ -33,6 +35,7 @@ import java.time.Instant;
  *     when that rate is 0
  * @param newestFrameAt product sources: newest frame time, or null
  * @param frameAgeSeconds product sources: age of the newest frame, or null
+ * @param details adapter-specific details (063), omitted when there are none
  */
 public record SourceHealthDto(
         String sourceId,
@@ -59,4 +62,5 @@ public record SourceHealthDto(
         Instant lastDataAt,
         Double budgetHoursRemaining,
         Instant newestFrameAt,
-        Long frameAgeSeconds) {}
+        Long frameAgeSeconds,
+        @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> details) {}

@@ -242,12 +242,49 @@ public class CollectorScheduler implements SmartLifecycle {
         if (event.affectsScheduling()) {
             reconcileNow();
         }
+        if (paramsChangedWhileEnabled(event)) {
+            // 063: a running stream applies new parameters in place (StreamHandle.update) or restarts.
+            onTimer(() -> supervisor.paramsChanged(event.sourceId()));
+        }
     }
 
-    /** Reconciles at once: a source may have gained or lost its required credentials. */
+    /**
+     * Reconciles at once: a source may have gained or lost its required credentials. A stream that is
+     * already running restarts with the new credentials (063), instead of waiting out the hourly retry of a
+     * rejected key.
+     */
     @EventListener
     public void onCredentialsChanged(SourceCredentialsChangedEvent event) {
         reconcileNow();
+        if (event.present()) {
+            onTimer(() -> supervisor.restart(event.sourceId()));
+        }
+    }
+
+    private static boolean paramsChangedWhileEnabled(SourceSettingsChangedEvent event) {
+        return event.before() != null
+                && event.before().enabled()
+                && event.after().enabled()
+                && !java.util.Objects.equals(event.before().params(), event.after().params());
+    }
+
+    /** Runs {@code task} on the timer thread, after any reconcile already queued; a no-op when stopped. */
+    private void onTimer(Runnable task) {
+        ScheduledExecutorService current = timer;
+        if (!running || current == null) {
+            return;
+        }
+        try {
+            current.execute(() -> {
+                try {
+                    task.run();
+                } catch (RuntimeException e) {
+                    log.warn("A streaming change failed", e);
+                }
+            });
+        } catch (RejectedExecutionException e) {
+            log.debug("The collector is stopping; a streaming change was not applied");
+        }
     }
 
     /** Reconciles at once when a dynamic source appears or disappears. */

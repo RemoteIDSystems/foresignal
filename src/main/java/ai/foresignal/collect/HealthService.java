@@ -81,6 +81,7 @@ public class HealthService implements SourceHealthLookup {
     private final BudgetGovernor budgets;
     private final AppSettingService appSettings;
     private final HealthEvaluator evaluator;
+    private final ObjectProvider<HealthDetailsContributor> detailsContributors;
     private final MeterRegistry meters;
     private final ApplicationEventPublisher events;
     private final Clock clock;
@@ -93,7 +94,10 @@ public class HealthService implements SourceHealthLookup {
 
     private record GaugeState(HealthStatus status, int consecutiveFailures) {}
 
-    /** Creates the service; contributed {@link HealthRule} beans are applied in their bean order. */
+    /**
+     * Creates the service; contributed {@link HealthRule} beans are applied in their bean order, and the
+     * {@link HealthDetailsContributor} beans fill {@code details} (063).
+     */
     public HealthService(
             SourceRegistry registry,
             SourceService sources,
@@ -105,6 +109,7 @@ public class HealthService implements SourceHealthLookup {
             BudgetGovernor budgets,
             AppSettingService appSettings,
             ObjectProvider<HealthRule> rules,
+            ObjectProvider<HealthDetailsContributor> detailsContributors,
             MeterRegistry meters,
             ApplicationEventPublisher events,
             Clock clock) {
@@ -118,6 +123,7 @@ public class HealthService implements SourceHealthLookup {
         this.budgets = budgets;
         this.appSettings = appSettings;
         this.evaluator = new HealthEvaluator(rules.orderedStream().toList());
+        this.detailsContributors = detailsContributors;
         this.meters = meters;
         this.events = events;
         this.clock = clock;
@@ -212,7 +218,28 @@ public class HealthService implements SourceHealthLookup {
                 snapshot.lastDataAt(),
                 HealthEvaluator.budgetHoursRemaining(budgetStatus, lastHour),
                 newestFrameAt,
-                frameAgeSeconds);
+                frameAgeSeconds,
+                details(descriptor));
+    }
+
+    /** The merged {@code details} of every contributor, or null when none has anything (063). */
+    Map<String, Object> details(SourceDescriptor descriptor) {
+        Map<String, Object> merged = new java.util.LinkedHashMap<>();
+        detailsContributors.orderedStream().forEach(contributor -> {
+            try {
+                Map<String, Object> entries = contributor.details(descriptor);
+                if (entries != null) {
+                    entries.forEach((key, value) -> {
+                        if (key != null && value != null) {
+                            merged.put(key, value);
+                        }
+                    });
+                }
+            } catch (RuntimeException e) {
+                log.warn("A health details contributor failed for {}", descriptor.id(), e);
+            }
+        });
+        return merged.isEmpty() ? null : java.util.Collections.unmodifiableMap(merged);
     }
 
     private HealthAssessment evaluate(

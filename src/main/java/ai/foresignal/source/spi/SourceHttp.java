@@ -131,4 +131,22 @@ public interface SourceHttp {
      */
     WebSocket openWebSocket(URI uri, WebSocket.Listener listener, Map<String, String> headers)
             throws AdapterException;
+
+    /**
+     * Opens a WebSocket with {@code options} (prompt 063).
+     *
+     * <p>With {@link WebSocketOptions#perMessageDeflate()} the connection offers {@code permessage-deflate}
+     * and the returned socket is a {@link MeteredWebSocket}. The budget unit, the backoff check, the
+     * User-Agent and the request metering are exactly those of {@link #openWebSocket(URI, WebSocket.Listener,
+     * Map)}; the listener receives whole messages ({@code last == true}) and gets the next one only after it
+     * calls {@code request(1)}, as with the JDK client.
+     *
+     * <p>The default ignores {@code options} (a test double); {@code UpstreamClient}'s implementation honors
+     * them.
+     */
+    default WebSocket openWebSocket(
+            URI uri, WebSocket.Listener listener, Map<String, String> headers, WebSocketOptions options)
+            throws AdapterException {
+        return openWebSocket(uri, listener, headers);
+    }
 }

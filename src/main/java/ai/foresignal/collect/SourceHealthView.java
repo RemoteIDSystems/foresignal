@@ -4,12 +4,13 @@ import ai.foresignal.source.HealthStatus;
 import ai.foresignal.source.spi.Budget;
 import ai.foresignal.store.CoverageSample;
 import java.time.Instant;
+import java.util.Map;
 
 /**
  * One source's health, shaped like the OpenAPI {@code SourceHealth} schema (FR-10).
  *
- * <p>{@code details}, {@code lastDoctorReport} and {@code spentUsdThisMonth} are added by the prompts
- * that own them (063, 140, 135) and are not here yet.
+ * <p>{@code lastDoctorReport} and {@code spentUsdThisMonth} are added by the prompts that own them (140,
+ * 135) and are not here yet; {@code details} arrived with 063.
  *
  * @param sourceId the source
  * @param status the derived status
@@ -36,6 +37,8 @@ import java.time.Instant;
  * @param budgetHoursRemaining hours until today's budget runs out at the last hour's rate, or null
  * @param newestFrameAt product sources: the newest frame, or null
  * @param frameAgeSeconds product sources: the newest frame's age, or null
+ * @param details adapter-specific details from the {@link HealthDetailsContributor}s, or null when there
+ *     are none (063: aisstream {@code compressionEnabled})
  */
 public record SourceHealthView(
         String sourceId,
@@ -62,4 +65,5 @@ public record SourceHealthView(
         Instant lastDataAt,
         Double budgetHoursRemaining,
         Instant newestFrameAt,
-        Long frameAgeSeconds) {}
+        Long frameAgeSeconds,
+        Map<String, Object> details) {}

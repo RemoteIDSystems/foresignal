@@ -187,7 +187,7 @@ raster context and render a tile. The object base URLs follow the test base URL 
 - **God's Eye View** (`~/Documents/GitLab/gods-eye-view`, MIT) may be ported to Java. Add a header comment naming the origin file and the MIT notice, and list it in `THIRD_PARTY_NOTICES.md`. The USGS adapter was written independently and ports nothing (GEV's earthquake layer filters to M2.5+ and rejects whole snapshots, which Foresignal does not want).
 - **ShadowBroker, Velocity, World Monitor (AGPL) and SatDump (GPL)** are reference material only. Read them for endpoints and quirks; never copy code.
 - **Adapter families:** one `SourceAdapterFamily` bean, one source per feed, each with its own settings, budget and health.
-- **Streaming adapters** (the first is `aisstream`, prompt 063) emit through the `RecordSink` they are given; the framework's `PolicyAwareRecordSink` batches, keeps latest-wins for SAMPLED and LATEST, and writes one `fetch_log` row per flush. Implement `StreamHandle.onClose`, report bytes with `ctx.reportBytes(n)`, and throw `CredentialsRejectedException` for a refused key.
+- **Streaming adapters** (the first is `aisstream`, prompt 063) emit through the `RecordSink` they are given; the framework's `PolicyAwareRecordSink` batches, keeps latest-wins for SAMPLED and LATEST, and writes one `fetch_log` row per flush. See §16 for the full pattern.
 - **PUSH sources** (custom sources and inbound webhooks, prompt 024) have no fetch; records arrive through the ingest API.
 - **DERIVED sources** make no upstream requests; `ctx.http()` throws for them. See §14.
 
@@ -331,3 +331,76 @@ re-deriving them (prompts 069 and 080):
   (SPI): the fetch is a `REFUSED` row and a refusal for health, never a failure.
 - A rule that spans credential fields goes in `SourceAdapter.checkCredentials` (for example "clientId and clientSecret
   together"); one that spans parameters goes in `checkParams`.
+
+## 16. Streaming adapters (prompt 063)
+
+`aisstream` (`ai.foresignal.source.adapters.aisstream`) is the reference; the later streaming adapters (082, 083, 085,
+089) follow it. The pieces:
+
+```
+source/adapters/aisstream/
+  AisStreamAdapter.java        @Component, implements StreamingAdapter: descriptor, checkParams, start()
+  AisStreamSession.java        one connection: WebSocket.Listener + StreamHandle (frames, liveness, watchdog)
+  AisStreamMessageParser.java  pure: String -> sealed Result (message, ignored, untimed, confirmation, error, ...)
+  VesselStateStore.java        per-entity merge into complete snapshots, bounded
+  AisStreamHealth.java         @Component HealthRule + HealthDetailsContributor
+```
+
+**Connecting.** `start(ctx, sink)` opens the connection with `ctx.http().openWebSocket(uri, listener, headers,
+options)` and returns a handle; the supervisor treats a returned handle as connected. The open is one budget unit, after
+the backoff check, with Foresignal's User-Agent, exactly like an HTTP request; the supervisor's ladder (5 s, 15 s, 60 s,
+300 s, then 900 s repeating, reset after 10 minutes connected) and the budget bound reconnects. Never reconnect from
+inside the adapter: end the stream and let the supervisor do it.
+
+**`WebSocketOptions`.** `WebSocketOptions.DEFLATE` opens the connection with `permessage-deflate` (RFC 7692) through
+`collect/DeflateWebSocket` (Java-WebSocket), because the JDK client cannot negotiate extensions; `DEFAULT` is the JDK
+client. Both present a `java.net.http.WebSocket` and drive a `WebSocket.Listener`, so the adapter is written once. The
+deflate socket is a `MeteredWebSocket`: report the deltas of `wireBytesReceived()` (compressed bytes) with
+`ctx.reportBytes(n)`, per tick rather than per message; on the JDK client report message sizes.
+
+**Subscription timing.** An upstream that wants a subscription frame gets it in `onOpen`, at once (aisstream closes a
+connection that has not subscribed within 3 s). Never log the frame: it carries the key. Give the subscription a
+`toString()` that redacts it.
+
+**Back-pressure.** Accumulate fragments until `last`, cap a message (aisstream: 256 KB, dropped and counted), hand the
+complete message to the sink, and only then call `webSocket.request(1)`. `sink.accept` blocks when the ingest queue is
+full; because the next message is requested only afterwards, the block reaches the socket and TCP slows the upstream,
+instead of messages piling up in memory.
+
+**Liveness.** Only a recognized data message proves the stream works: for AIS, a `MessageType` from the upstream's
+complete enum, a body under it and an MMSI. Handshakes, confirmations, error envelopes and malformed frames are not
+liveness. A list of recognized types that is missing one makes a subscription filtered to it read as dead, so copy the
+upstream's enum whole.
+
+**Errors: auth versus transport.** An error that names the credential ends the stream with
+`CredentialsRejectedException`, which the supervisor retries hourly; anything else ends it with a plain
+`AdapterException`, a ladder step. An upstream that answers a bad key by closing the socket without a word (aisstream
+does) needs a rule: two consecutive closes before any confirmation or data are a rejected key, the count resetting on a
+confirmation, on data and on a different key. End the stream by calling the `onClose` callbacks once, and replay the end
+to a callback registered after it (the supervisor registers after `start` returns).
+
+**Watchdogs: report fast, recycle slowly.** A `HealthRule` reports `degraded` ("connected but silent for N s") after a
+short silence (120 s); the session aborts the socket (never a close handshake, which a dead peer never answers) only
+after 2.5 times that (300 s), and the abort is a ladder step. Reporting quickly tells the operator; acting slowly keeps
+recovery from becoming a reconnect cycle against the upstream's connection limits. Use `ctx.clock()` for silence, so a
+`MutableClock` can drive it in tests.
+
+**Merged snapshots.** A protocol that splits an entity over several message types merges them per entity and emits the
+complete state on every message (rule 7). `observedAt` is the time of the newest message merged; a message without an
+upstream time is dropped and counted, never stamped with the receive time (the time base is fixed, Core-Data-Model §2).
+Late messages must not roll the state back. Hold an entity until it is usable (aisstream: until its first position).
+Bound the store and evict idle entities. Scrub sentinels before they reach the payload (rule 11), and emit a
+sentinel position as null geometry so the TRACK carry-forward applies (`POSITION_STALE`).
+
+**Parameter changes: `update()`.** When the operator changes a running stream's parameters, the supervisor calls
+`StreamHandle.update(params)`. Return true when the change was applied on the open connection (aisstream resends its
+subscription, at most once a second, newest wins); return false, the default, to be restarted, which costs a
+connection attempt. Storing new credentials always restarts a running stream.
+
+**Health details.** A `HealthDetailsContributor` bean adds entries to `SourceHealth.details` (aisstream:
+`compressionEnabled`, `perMessageDeflate`, `vessels`).
+
+**Tests.** A pure parser test over the fixtures; a store test with `SnapshotContract.assertStableStaticHash` and a
+`MutableClock`; an adapter test against `testsupport/websocket/LoopbackWebSocketServer` (subscription timing,
+fragments, oversize, back-pressure, errors, the bad-key rule, the watchdog, `update()`, no key in the logs); and an
+ingest IT through a real `StreamingSupervisor` built with short timings, as `AisStreamIngestIT` does.
