@@ -100,6 +100,9 @@ class FamilyDefaultsTest {
             Map.entry("GoesFdcAdapter", new Entry(new GoesFdcAdapter(null, (AreaOfInterest) null, "").descriptor(), "weather")),
             Map.entry("HmsSmokeAdapter", new Entry(new HmsSmokeAdapter("").descriptor(), "weather")),
             Map.entry("HmsFireAdapter", new Entry(new HmsFireAdapter("").descriptor(), "weather")),
+            // Prompt 065: nasa-firms writes fire-detection, retained 7 d by §2.4 like goes-fdc and hms-fire.
+            Map.entry("FirmsAdapter", new Entry(
+                    new ai.foresignal.source.adapters.firms.FirmsAdapter("").descriptor(), "weather")),
             // Prompt 052: the derived weather sources, retained per Weather-Imagery-Design §2.4.
             Map.entry("WxPlacesGenerator", new Entry(
                     new ai.foresignal.source.adapters.wx.WxPlacesGenerator().descriptor(), "weather")),

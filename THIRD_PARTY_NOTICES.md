@@ -59,7 +59,7 @@ SOFTWARE.
 
 ### Ported files
 
-Ported from God's Eye View commit `591f299d11f38a612629a274463196d57ae3862e` (prompts 051, 062 and 063). Each
+Ported from God's Eye View commit `591f299d11f38a612629a274463196d57ae3862e` (prompts 051, 062, 063, 064 and 065). Each
 file carries an origin header naming its source file and this notice.
 
 | Foresignal file | GEV origin file |
@@ -83,6 +83,8 @@ file carries an origin header naming its source file and this notice.
 | `src/main/java/ai/foresignal/source/adapters/aisstream/AisStreamAdapter.java` (stream URL, default message types and world box, one connection per key, hourly retry of a rejected key) | `server/providers/vessels/ais-live.js` (`AISSTREAM_URL`, `AISSTREAM_DEFAULT_MESSAGE_TYPES`, `AISSTREAM_DEFAULT_BBOXES`, `AISSTREAM_AUTH_PROBE_MS`) |
 | `src/main/java/ai/foresignal/source/adapters/celestrak/CelestrakPolicy.java`, `CelestrakGpParser.java` and `CelestrakGroups.java` (an error page or empty body is a failure, never data; the `^[a-z0-9-]+$` group check; CelesTrak's descriptive-User-Agent practice, which `UpstreamClient` already follows, prompt 064) | `server/providers/space/celestrak.js` (`fetchUpstream`, the group pattern of `celestrakProxy`) and `src/data/spaceProviderRequests.js` (`celestrakTleUrl`) |
 | `src/main/java/ai/foresignal/source/adapters/launchlibrary/LaunchLibraryAdapter.java` (the optional `Authorization: Token` header, sent only when a token is set, prompt 064) | `server/providers/space/launch-library.js` (`launchLibraryRequestHeaders`) |
+| `src/main/java/ai/foresignal/source/adapters/firms/FirmsCsvParser.java` (columns located by header name, the unpadded `acq_time`, `isLikelyCsv`, VIIRS letter versus MODIS numeric confidence, prompt 065) | `src/data/firmsCsv.js` (`isLikelyCsv`, `parseFirmsCsv`, `acquisitionMsUtc`) and `src/data/firmsAdapt.js` (`normalizeConfidence`) |
+| `src/main/java/ai/foresignal/source/adapters/firms/FirmsAdapter.java` (the four default products fetched sequentially, never without a key, errors as HTML or text rather than CSV, the 2 h forward slack, prompt 065) | `server/providers/firms.js` (`firmsProxy`, `fetchSource`, `refreshUpstream`) and `src/data/firmsCsv.js` (`FORWARD_SLACK_MS` of `filterTrailing24h`) |
 
 `decode.js` (ecCodes WASM) is not ported: Foresignal decodes with NetCDF-Java. The particle layer
 (`src/layers/wind/*`) is not part of Foresignal; the Frontend Guide tells web clients which of its

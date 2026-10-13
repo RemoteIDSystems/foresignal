@@ -2750,6 +2750,45 @@ the newest processed file is older than 2 minutes (GLM) or 15 minutes (FDC). An 
 missing NetCDF variable also shows `degraded` with the reason, and the file is skipped. Rule recipes are
 in the Agent Guide, "Lightning and fire".
 
+### NASA FIRMS (`nasa-firms`, prompt 065)
+
+`nasa-firms` brings NASA FIRMS near-real-time active-fire detections worldwide: VIIRS on NOAA-20, NOAA-21 and
+Suomi-NPP, and MODIS, by default; Landsat (`LANDSAT_NRT`, US and Canada only) can be added. Records are
+`fire-detection`, the kind `goes-fdc` and `hms-fire` write, so one "fire near home" rule covers all of them; fire
+radiative power is `frpMw` in all three. Each detection stays current for 24 hours after its acquisition time and
+is kept 7 days.
+
+**Obtaining a MAP_KEY.** FIRMS needs your own free MAP_KEY, and the source stays disabled until one is stored
+(enabling without it is a `409 CREDENTIALS_REQUIRED`, and no request is ever made without it):
+
+1. Open <https://firms.modaps.eosdis.nasa.gov/api/area/>, choose **Get MAP_KEY** and enter your e-mail address.
+   FIRMS e-mails the key.
+2. Store it and enable the source:
+
+   ```json
+   PUT /v1/sources/nasa-firms/credentials
+   {"mapKey": "…"}
+   ```
+
+   then `PUT /v1/sources/nasa-firms` with `{"enabled": true}`. A key FIRMS refuses makes every fetch fail with
+   "FIRMS refused the MAP_KEY", which the source's health shows. The key is part of the request URL; Foresignal masks it as `***` in fetch
+   traces, probes, the fetch log and errors.
+
+A key allows 5,000 transactions per 10 minutes, and a large request may count as several. The default schedule
+(every 30 minutes, four products one after another, plus yesterday's file for each product between 00:00 and
+06:00 UTC) stays far below that.
+
+**Setting `area` to reduce bytes.** By default each request asks for the whole world, and a busy day's VIIRS file
+for the world runs to many megabytes. If you only care about one region, set `area` to
+`west,south,east,north`, for example `PUT /v1/sources/nasa-firms` with `{"params": {"area": "-125,24,-66,50"}}` for
+the contiguous United States.
+The box must not cross the antimeridian. A small box can legitimately have no fires; this source does not treat
+zero results as normal, so a quiet small area can show a warning. Other parameters: `sources` (the products, in
+fetch order) and `window` (how old a detection may be when first emitted, 1h to 48h, default 24h).
+
+**Incremental fetching.** FIRMS always returns the whole day, so each run emits only detections from three hours
+before the newest one already ingested, per product; re-sent detections are touches, not new versions.
+
 ## Weather alerts
 
 Prompt 052 adds three **derived** sources (installed disabled). They make no upstream request: they read

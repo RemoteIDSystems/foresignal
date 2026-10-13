@@ -287,6 +287,11 @@
         "version": "1.3.0",
         "date": "2026-10-13",
         "note": "064: getCelestrakGp and getCelestrakGpAlias implemented (INTDES is a prefix match; ?key= takes a 035 feed key whose prefixes include /compat/celestrak/; a feed-key response is Cache-Control: private). SatellitePassPayload.status gains `missed`, and tca, aosAzimuthDeg, losAzimuthDeg, place and imminent are documented (satellite-passes sets validFrom = AOS). The reentry-prediction payload lists the optional TIP fields. New sources celestrak-gp, celestrak-socrates, launch-library, spacetrack-tip (LOCAL_ONLY) and satellite-passes (DERIVED); satdump-{station} gains predictNorad and predictMinElevationDeg. New system notification subtype system.source_halted (a source held for 24 h by its upstream's usage policy)."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-13",
+        "note": "065: no operation changes. New source nasa-firms (kind fire-detection, credential mapKey). Its FRP payload field is frpMw, as in goes-fdc and hms-fire (the kind docs said frp). FireDetectionPayload documents the nasa-firms fields (source, instrument, brightK, bright2K, scanKm, trackKm, daynight, version, confidenceClass, type); confidence also takes the raw FIRMS value (l, n or h, or an integer 0-100), and only satellite stays required, because nasa-firms records carry no method."
       }
     ]
   },
@@ -88561,7 +88566,7 @@
                 "source",
                 "satellite",
                 "instrument",
-                "frp",
+                "frpMw",
                 "brightK",
                 "bright2K",
                 "scanKm",
@@ -88603,12 +88608,12 @@
                 "source"
               ]
             },
-            "note": "Shared with 048 `goes-fdc` and `hms-fire`; confidenceClass `low|nominal|high`. `goes-fdc`: externalId g19:{col}:{row} (FDC CONUS pixel), mask 10-13 or 30-33, observedAt = scan start, eventTime = first sighting, frpMw and areaKm2 to 2 significant figures, tempK to 10 K; tombstoned after 3 processed scans without the pixel. `hms-fire`: externalId hms:{yearDay}:{hhmm}:{lat 4dp}:{lon 4dp}, observedAt = eventTime = detection time, frpMw left out when HMS reports -999, TTL 24 h.",
+            "note": "Shared with 048 `goes-fdc` and `hms-fire`; confidenceClass `low|nominal|high`. `nasa-firms` (065): externalId {SOURCE}:{acq_date}:{HHMM}:{lat 4dp}:{lon 4dp}, observedAt = eventTime = acq_date + acq_time (UTC), TTL 24 h from acquisition; frpMw is the FIRMS frp column (named as in goes-fdc and hms-fire); confidence is raw (l|n|h for VIIRS, 0-100 for MODIS), confidenceClass low below 30, nominal 30-79, high from 80 for MODIS; instrument VIIRS, MODIS or OLI from the product; type only for MODIS when present. `goes-fdc`: externalId g19:{col}:{row} (FDC CONUS pixel), mask 10-13 or 30-33, observedAt = scan start, eventTime = first sighting, frpMw and areaKm2 to 2 significant figures, tempK to 10 K; tombstoned after 3 processed scans without the pixel. `hms-fire`: externalId hms:{yearDay}:{hhmm}:{lat 4dp}:{lon 4dp}, observedAt = eventTime = detection time, frpMw left out when HMS reports -999, TTL 24 h.",
             "example": {
               "source": "VIIRS_NOAA20_NRT",
               "satellite": "N20",
               "instrument": "VIIRS",
-              "frp": 12.4,
+              "frpMw": 12.4,
               "brightK": 335.2,
               "bright2K": 290.1,
               "scanKm": 0.39,
@@ -110934,26 +110939,63 @@
       },
       "FireDetectionPayload": {
         "type": "object",
-        "description": "Payload of `fire-detection` records (goes-fdc `g19:{col}:{row}`, hms-fire `hms:…`)",
+        "description": "Payload of `fire-detection` records (goes-fdc `g19:{col}:{row}`, hms-fire `hms:…`, nasa-firms `{SOURCE}:{acq_date}:{HHMM}:{lat}:{lon}`)",
         "properties": {
           "maskCode": {
             "type": "integer"
           },
           "confidence": {
+            "type": [
+              "string",
+              "integer"
+            ],
+            "description": "goes-fdc: `processed`, `saturated`, `cloudy` or `high`. nasa-firms: the raw FIRMS value, `l`, `n` or `h` (VIIRS) or an integer 0-100 (MODIS)"
+          },
+          "confidenceClass": {
             "type": "string",
             "enum": [
-              "processed",
-              "saturated",
-              "cloudy",
+              "low",
+              "nominal",
               "high"
-            ]
+            ],
+            "description": "nasa-firms: VIIRS letters mapped; MODIS below 30 low, 30-79 nominal, from 80 high"
+          },
+          "instrument": {
+            "type": "string",
+            "description": "nasa-firms: VIIRS, MODIS or OLI, from the product"
+          },
+          "brightK": {
+            "type": "number",
+            "description": "nasa-firms: bright_ti4 (VIIRS) or brightness (MODIS), K"
+          },
+          "bright2K": {
+            "type": "number",
+            "description": "nasa-firms: bright_ti5 (VIIRS) or bright_t31 (MODIS), K"
+          },
+          "scanKm": {
+            "type": "number"
+          },
+          "trackKm": {
+            "type": "number"
+          },
+          "daynight": {
+            "type": "string",
+            "description": "nasa-firms: D or N"
+          },
+          "version": {
+            "type": "string",
+            "description": "nasa-firms: collection and processing, for example 2.0NRT"
+          },
+          "type": {
+            "type": "integer",
+            "description": "nasa-firms MODIS only, when present: 0 vegetation fire, 1 active volcano, 2 other static land source, 3 offshore"
           },
           "temporallyFiltered": {
             "type": "boolean"
           },
           "frpMw": {
             "type": "number",
-            "description": "2 significant figures"
+            "description": "Fire radiative power, MW. goes-fdc and hms-fire: 2 significant figures; nasa-firms: the FIRMS frp column as sent"
           },
           "tempK": {
             "type": "number",
@@ -110974,15 +111016,14 @@
           },
           "source": {
             "type": "string",
-            "description": "`HMS` for hms-fire"
+            "description": "`HMS` for hms-fire; the FIRMS product (for example `VIIRS_NOAA20_NRT`) for nasa-firms"
           },
           "label": {
             "type": "string"
           }
         },
         "required": [
-          "satellite",
-          "method"
+          "satellite"
         ],
         "x-foresignal-kind": "fire-detection",
         "x-foresignal-prompt": "048",

@@ -81,7 +81,18 @@ public final class AdapterHttpHarness {
 
     /** A fetch context for {@code adapter} with {@code params}, recording exchanges into {@code recorder}. */
     public DefaultFetchContext context(SourceAdapter adapter, Map<String, Object> params, RequestRecorder recorder) {
+        return context(adapter, params, recorder, null);
+    }
+
+    /**
+     * A fetch context whose {@code lastSuccessAt()} is {@code lastSuccess} (prompt 065: the FIRMS high-water mark
+     * advances only after a successful run).
+     *
+     * @param lastSuccess the source's last success, or null for none
+     */
+    public DefaultFetchContext context(SourceAdapter adapter, Map<String, Object> params, RequestRecorder recorder,
+            java.time.Instant lastSuccess) {
         return new DefaultFetchContext(adapter.descriptor(), client, recorder, () -> ValidatedParams.of(params),
-                credentialsAccess, clock, Optional::empty, client.stateStore(adapter.id()));
+                credentialsAccess, clock, () -> Optional.ofNullable(lastSuccess), client.stateStore(adapter.id()));
     }
 }
