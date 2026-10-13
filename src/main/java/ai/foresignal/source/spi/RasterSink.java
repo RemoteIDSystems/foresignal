@@ -71,4 +71,16 @@ public interface RasterSink {
     default boolean disabled(String productId) {
         return false;
     }
+
+    /**
+     * The GLM flash store (prompt 048): the only way an adapter writes lightning flashes, and the read
+     * API derived records use. During a probe the returned store is {@linkplain FlashSink#probing()
+     * probing} and writes nothing.
+     *
+     * @throws UnsupportedOperationException when no flash store is installed (a hand-built sink in a
+     *     unit test)
+     */
+    default FlashSink flashes() {
+        throw new UnsupportedOperationException("No GLM flash store is available in this context.");
+    }
 }

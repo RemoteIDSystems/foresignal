@@ -10,6 +10,11 @@ import ai.foresignal.ingest.PersistReason;
 import ai.foresignal.source.SourceService;
 import ai.foresignal.source.SourceSettingsUpdate;
 import ai.foresignal.source.adapters.awc.AwcMetarsAdapter;
+import ai.foresignal.source.adapters.goes.GoesAbiAdapter;
+import ai.foresignal.source.adapters.goes.GoesFdcAdapter;
+import ai.foresignal.source.adapters.goes.GoesGlmAdapter;
+import ai.foresignal.source.adapters.hms.HmsFireAdapter;
+import ai.foresignal.source.adapters.hms.HmsSmokeAdapter;
 import ai.foresignal.source.adapters.mrms.ProbSevereAdapter;
 import ai.foresignal.source.adapters.nws.NwsAlertsAdapter;
 import ai.foresignal.source.adapters.spc.SpcOutlooksAdapter;
@@ -31,7 +36,8 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
 /**
- * The shared context of the prompt 047 ingest ITs: the four weather adapters point at one stub server
+ * The shared context of the prompt 047 and 048 ingest ITs: the weather adapters (047's four, and 048's
+ * {@code goes-glm}, {@code goes-fdc}, {@code hms-smoke} and {@code hms-fire}) point at one stub server
  * through their test base-URL properties (and S3 listings through {@code foresignal.test.s3-endpoint}),
  * and each test drives real fetches with {@link FetchExecutor#execute(String, FetchTrigger)
  * execute(id, MANUAL)}, so records reach the store through the real fetch path and ingest writer
@@ -60,6 +66,8 @@ public abstract class WeatherIngestSupport {
         registry.add(ProbSevereAdapter.BASE_URL_PROPERTY, UPSTREAM::baseUrl);
         registry.add(SpcOutlooksAdapter.BASE_URL_PROPERTY, UPSTREAM::baseUrl);
         registry.add(AwcMetarsAdapter.BASE_URL_PROPERTY, UPSTREAM::baseUrl);
+        registry.add(GoesAbiAdapter.BASE_URL_PROPERTY, UPSTREAM::baseUrl);
+        registry.add(HmsSmokeAdapter.BASE_URL_PROPERTY, UPSTREAM::baseUrl);
         registry.add(UpstreamClient.S3_ENDPOINT_PROPERTY, UPSTREAM::baseUrl);
     }
 
@@ -69,7 +77,12 @@ public abstract class WeatherIngestSupport {
     @Autowired protected MutableClock clock;
     @Autowired protected JdbcTemplate jdbc;
 
-    /** Resets the stubs and the backoff of the four sources. */
+    /** The sources whose backoff is cleared around each test. */
+    protected static final List<String> SOURCES = List.of(NwsAlertsAdapter.ID, ProbSevereAdapter.ID,
+            SpcOutlooksAdapter.ID, AwcMetarsAdapter.ID, GoesGlmAdapter.ID, GoesFdcAdapter.ID, HmsSmokeAdapter.ID,
+            HmsFireAdapter.ID);
+
+    /** Resets the stubs and the backoff of the weather sources. */
     @BeforeEach
     void resetUpstream() {
         UPSTREAM.resetAll();
@@ -79,7 +92,7 @@ public abstract class WeatherIngestSupport {
     /** Clears any backoff a test caused. */
     @AfterEach
     void clearBackoff() {
-        for (String id : List.of(NwsAlertsAdapter.ID, ProbSevereAdapter.ID, SpcOutlooksAdapter.ID, AwcMetarsAdapter.ID)) {
+        for (String id : SOURCES) {
             backoff.onSuccess(id);
         }
     }

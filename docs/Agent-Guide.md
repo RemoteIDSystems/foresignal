@@ -263,6 +263,50 @@ code:
 Conditions on volatile fields are refused (`400 TRIGGER_PATH_VOLATILE`): for `probsevere-object` those are
 `muCape`, `mlCape`, `ebShearKt`, `srh01km` and `flashRate`.
 
+## Lightning and fire (prompt 048)
+
+Four more sources, all disabled until you enable them:
+
+| Source | Kind | What a record is |
+|---|---|---|
+| `goes-glm` | `lightning-cluster` | one cluster of GOES-19 GLM flashes inside your places area: `flashes5m` (3, 5, 10, 20, 50, 100 or 200 and up), `radiusKm`, `maxEnergyFj`, `label` |
+| `goes-fdc` | `fire-detection`, `fire-cluster` | one GOES-19 fire pixel (`confidence`, `frpMw`, `tempK`, `areaKm2`), and one cluster of nearby pixels (`pixels`, `frpTotalMw`, `frpMaxMw`, `firstSeenAt`) |
+| `hms-smoke` | `smoke-polygon` | one NOAA HMS analyst smoke polygon: `density` (light, medium, heavy), `densityRank` 1–3, `start`, `end` |
+| `hms-fire` | `fire-detection` | one NOAA HMS analyst fire point: `satellite`, `method`, `frpMw`, `source: "HMS"` |
+
+`goes-fdc` and `hms-fire` share the `fire-detection` kind, so one rule covers both. Lightning clusters
+carry `automated: true` and `notAWarning: true`.
+
+**GLM limits.** GLM's footprint over Texas is about 8–10 km and its detection efficiency is below 100 %:
+some flashes are never seen, and a flash's position is the center of a footprint, not a strike point.
+GLM-only lightning rules should use 15 km or more, and an all-clear built on GLM alone is advisory.
+Individual flashes are not records; the place metrics (nearest flash, counts within a radius) arrive with
+place weather (prompt 052).
+
+**Stale is not clear.** A stalled GLM or FDC feed freezes its clusters and detections: nothing is
+tombstoned, so no `exit` fires, and the source shows `degraded` ("newest input file is …s old") once its
+newest processed file is older than 2 minutes (GLM) or 15 minutes (FDC), which raises the source-health
+change event. Watch source health, not the absence of alerts. When files resume, the outage does not count
+toward a cluster's 10 quiet minutes, and an FDC pixel is tombstoned only after 3 scans that were actually
+processed.
+
+**Fire near home** (every new fire detection within 20 km, from either source; `onlyNew` fires on an
+entity's first version only):
+
+```json
+{"name": "Fire near home", "kinds": ["fire-detection"],
+ "near": {"placeIds": ["home"], "radiusKm": 20}, "mode": "match", "onlyNew": true, "severity": "warning",
+ "messageTemplate": "{{payload.label}}"}
+```
+
+**Lightning cluster near home** (`enter` fires when a cluster first comes within 15 km):
+
+```json
+{"name": "Lightning cluster near home", "kinds": ["lightning-cluster"],
+ "near": {"placeIds": ["home"], "radiusKm": 15}, "mode": "enter", "severity": "warning",
+ "messageTemplate": "{{payload.label}} (automated, not a warning)"}
+```
+
 ## Replaying the past (asOf)
 
 `GET /v1/records?asOf=<T>&source=…` returns the state Foresignal knew at transaction time `T`, to

@@ -120,6 +120,212 @@ public class NetcdfDecoder implements RasterDecoder {
         }
     }
 
+    /**
+     * Opens {@code file} in enhanced mode for reading several variables by name (prompt 048: GLM flash
+     * vectors, ABI fire characterization), as opposed to {@link #decode}, which reads one gridded field.
+     *
+     * @param file the downloaded file, under {@code rasters/tmp} ({@link SafeNetcdf})
+     * @param productId the product or source the read is for, carried into a
+     *     {@link SilentFormatChangeException} for a missing variable
+     * @return an open reader; close it
+     * @throws RasterFormatException when the file is not allowed or not readable
+     */
+    public Reader open(Path file, String productId) {
+        return new Reader(safe.openDataset(file), productId, file.getFileName().toString());
+    }
+
+    /**
+     * Named-variable access to one open NetCDF file (prompt 048). Enhanced mode applies
+     * {@code scale_factor}, {@code add_offset}, {@code _Unsigned} and {@code _FillValue}, so a fill sample
+     * reads as {@code NaN}. A missing variable is a {@link SilentFormatChangeException} with the reason
+     * {@code variable {name} missing}.
+     */
+    public static final class Reader implements AutoCloseable {
+
+        private final NetcdfDataset ds;
+        private final String productId;
+        private final String name;
+
+        Reader(NetcdfDataset ds, String productId, String name) {
+            this.ds = ds;
+            this.productId = productId;
+            this.name = name;
+        }
+
+        /** True when the file has variable {@code variable}. */
+        public boolean has(String variable) {
+            return ds.findVariable(variable) != null;
+        }
+
+        /** The shape of {@code variable}. */
+        public int[] shape(String variable) {
+            return require(variable).getShape();
+        }
+
+        /**
+         * Every value of {@code variable}, flattened row-major in file order, as floats ({@code NaN} for
+         * fill).
+         */
+        public float[] floats(String variable) {
+            try {
+                return NetcdfDecoder.floats(require(variable).read());
+            } catch (IOException e) {
+                throw new RasterFormatException("Cannot read " + variable + " of " + name + ": " + e.getMessage(), e);
+            }
+        }
+
+        /** Every value of {@code variable} as doubles ({@code NaN} for fill). */
+        public double[] doubles(String variable) {
+            try {
+                return (double[]) require(variable).read().get1DJavaArray(DataType.DOUBLE);
+            } catch (IOException e) {
+                throw new RasterFormatException("Cannot read " + variable + " of " + name + ": " + e.getMessage(), e);
+            }
+        }
+
+        /** The first value of {@code variable} (a scalar). */
+        public double scalar(String variable) {
+            try {
+                Array a = require(variable).read();
+                if (a.getSize() < 1) {
+                    throw new RasterFormatException("Variable " + variable + " of " + name + " is empty");
+                }
+                return a.getDouble(0);
+            } catch (IOException e) {
+                throw new RasterFormatException("Cannot read " + variable + " of " + name + ": " + e.getMessage(), e);
+            }
+        }
+
+        /**
+         * The values of {@code variable} at the flat indices {@code indices}, in that order. The variable
+         * is read once and dropped, so only one full variable is held at a time.
+         */
+        public float[] gather(String variable, int[] indices) {
+            float[] all = floats(variable);
+            float[] out = new float[indices.length];
+            for (int k = 0; k < indices.length; k++) {
+                int i = indices[k];
+                if (i < 0 || i >= all.length) {
+                    throw new RasterFormatException("Index " + i + " is outside " + variable + " (" + all.length + ")");
+                }
+                out[k] = all[i];
+            }
+            return out;
+        }
+
+        /** A string attribute of {@code variable}, or null. */
+        public String attribute(String variable, String attribute) {
+            return require(variable).findAttributeString(attribute, null);
+        }
+
+        /** A global string attribute, or null. */
+        public String globalString(String attribute) {
+            return NetcdfDecoder.globalString(ds, attribute);
+        }
+
+        /** A global ISO-8601 instant attribute ({@code time_coverage_start}), or null. */
+        public Instant globalTime(String attribute) {
+            return NetcdfDecoder.time(ds, attribute);
+        }
+
+        /**
+         * The geostationary fixed grid of the two-dimensional {@code variable} in file order: column
+         * {@code c} at {@code x[c]}, row {@code r} at {@code y[r]} (no reordering), from its
+         * {@code grid_mapping} ({@code goes_imager_projection}) and its {@code x}/{@code y} coordinates.
+         *
+         * @throws SilentFormatChangeException when the projection or a coordinate is missing
+         */
+        public FixedGrid fixedGrid(String variable) {
+            Variable v = require(variable);
+            int[] shape = v.getShape();
+            if (shape.length != 2) {
+                throw new RasterFormatException("Variable " + variable + " has " + shape.length
+                        + " dimensions; a fixed grid needs (y, x)");
+            }
+            DecodeRequest r = DecodeRequest.netcdf(productId, variable);
+            try {
+                String mappingName = v.findAttributeString("grid_mapping", "goes_imager_projection");
+                Variable projection = requireVariable(ds, mappingName, r);
+                double h = number(projection, "perspective_point_height", r);
+                double a = number(projection, "semi_major_axis", r);
+                double b = number(projection, "semi_minor_axis", r);
+                double lon0 = number(projection, "longitude_of_projection_origin", r);
+                String sweep = projection.findAttributeString("sweep_angle_axis", null);
+                if (sweep == null) {
+                    throw new SilentFormatChangeException(productId, "attribute sweep_angle_axis of " + mappingName
+                            + " missing");
+                }
+                int ny = shape[0];
+                int nx = shape[1];
+                double[] x = coordinate(ds, v.getDimension(1).getShortName(), nx, r);
+                double[] y = coordinate(ds, v.getDimension(0).getShortName(), ny, r);
+                double dx = nx > 1 ? (x[nx - 1] - x[0]) / (nx - 1) : 1e-9;
+                double dy = ny > 1 ? (y[ny - 1] - y[0]) / (ny - 1) : -1e-9;
+                GeosGrid grid = new GeosGrid(nx, ny, lon0, h, a, b, !"y".equals(sweep.trim()), x[0], dx, y[0], dy,
+                        new double[] {-180, -90, 180, 90});
+                return new FixedGrid(grid);
+            } catch (IOException e) {
+                throw new RasterFormatException("Cannot read the grid of " + variable + " in " + name + ": "
+                        + e.getMessage(), e);
+            }
+        }
+
+        private Variable require(String variable) {
+            Variable v = ds.findVariable(variable);
+            if (v == null) {
+                throw new SilentFormatChangeException(productId, missingVariable(variable));
+            }
+            return v;
+        }
+
+        /** Closes the file. */
+        @Override
+        public void close() {
+            try {
+                ds.close();
+            } catch (IOException e) {
+                // Nothing to recover: the file is read-only and deleted by its owner.
+            }
+        }
+    }
+
+    /**
+     * A geostationary fixed grid in file order (prompt 048): pixel centers as longitude and latitude,
+     * through {@link GeosGrid}.
+     */
+    public static final class FixedGrid {
+
+        private final GeosGrid grid;
+
+        FixedGrid(GeosGrid grid) {
+            this.grid = grid;
+        }
+
+        /** Columns. */
+        public int nx() {
+            return grid.nx();
+        }
+
+        /** Rows. */
+        public int ny() {
+            return grid.ny();
+        }
+
+        /**
+         * The center of pixel {@code (col, row)}.
+         *
+         * @return {@code {lon, lat}} in degrees, or {@code {NaN, NaN}} off the Earth
+         */
+        public double[] lonLat(int col, int row) {
+            return grid.indexToLonLat(col, row);
+        }
+
+        /** The center of the pixel at flat index {@code index} (row-major, file order). */
+        public double[] lonLat(int index) {
+            return lonLat(index % grid.nx(), index / grid.nx());
+        }
+    }
+
     /** The health reason for a missing variable, for example "variable CMI missing". */
     static String missingVariable(String name) {
         return "variable " + name + " missing";

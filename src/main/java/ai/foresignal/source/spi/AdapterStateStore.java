@@ -19,6 +19,17 @@ public interface AdapterStateStore {
      */
     String DEGRADED_REASON_KEY = "health.degraded";
 
+    /**
+     * The reserved key holding the time of the newest upstream input the adapter processed (prompt 048),
+     * an ISO-8601 instant: for {@code goes-glm} and {@code goes-fdc} the coverage end of the newest
+     * processed file. With {@link #MAX_INPUT_GAP_KEY}, the {@code InputAgeHealthRule} reports the source
+     * {@code degraded} once the input is older than the gap.
+     */
+    String NEWEST_INPUT_KEY = "health.newestInputAt";
+
+    /** The reserved key holding the largest tolerated input age, an ISO-8601 duration (prompt 048). */
+    String MAX_INPUT_GAP_KEY = "health.maxInputGap";
+
     /** The stored value, or empty. */
     Optional<String> get(String key);
 
@@ -46,6 +57,28 @@ public interface AdapterStateStore {
         }
         if (!reason.equals(get(DEGRADED_REASON_KEY).orElse(null))) {
             put(DEGRADED_REASON_KEY, reason);
+        }
+    }
+
+    /**
+     * Records that the adapter processed upstream input covering up to {@code newestInputAt}, and the
+     * largest age it tolerates (prompt 048: "newest file age" health). Writes only on change.
+     *
+     * @param newestInputAt the coverage end of the newest processed input
+     * @param maxGap the age after which the source shows {@code degraded}
+     */
+    default void recordInput(java.time.Instant newestInputAt, java.time.Duration maxGap) {
+        if (newestInputAt != null) {
+            String at = newestInputAt.toString();
+            if (!at.equals(get(NEWEST_INPUT_KEY).orElse(null))) {
+                put(NEWEST_INPUT_KEY, at);
+            }
+        }
+        if (maxGap != null) {
+            String gap = maxGap.toString();
+            if (!gap.equals(get(MAX_INPUT_GAP_KEY).orElse(null))) {
+                put(MAX_INPUT_GAP_KEY, gap);
+            }
         }
     }
 

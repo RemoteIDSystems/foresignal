@@ -2046,6 +2046,30 @@ None of these sources ever turns a failed fetch into an all-clear: a record is t
 complete, successful response no longer contains it. When a feed is down its records stay, expire on
 their own, and the source shows `degraded`. Rule recipes are in the Agent Guide, "Weather alerts".
 
+## Lightning and fire
+
+Prompt 048 adds four more sources (installed disabled):
+
+| Source | What it brings | Notes |
+|---|---|---|
+| `goes-glm` | GOES-19 GLM lightning | Every 30 s, every 20-second granule (about 1.1–1.9 GB a day). Flashes go to the flash store, not to records: a daily archive under `${FORESIGNAL_DATA_DIR}/rasters/glm/G19/{yyyymmdd}.bin` (16 bytes per flash, about 28 MB a day, kept 14 days, counted toward `FORESIGNAL_RASTER_DISK_QUOTA_GB`) and a 60-minute in-memory ring of the flashes inside the places area. Records are `lightning-cluster`. |
+| `goes-fdc` | GOES-19 fire detections | Every 5 min, newest scan only. Param `scope` (`aoi` default, or `conus`). Records `fire-detection` (one per pixel) and `fire-cluster`. |
+| `hms-smoke` | NOAA HMS analyst smoke polygons | Every 30 min, conditional requests; today's file, and yesterday's until 06:00 UTC. A 404 before the first analysis of the day is normal. |
+| `hms-fire` | NOAA HMS analyst fire points | Same schedule and files as `hms-smoke`; records share `fire-detection` with `goes-fdc`. |
+
+**The GLM ring scope.** `foresignal.raster.glm-ring-scope` (`FORESIGNAL_RASTER_GLM_RING_SCOPE`) is `aoi`
+by default: the ring keeps the flashes inside the union of your places' buffers (no places: the
+`weather.defaultAoi` box). The large profile (`FORESIGNAL_PROFILE=large`) may set `conus`; the small
+profile logs a warning and stays on `aoi`. The archive always keeps the full field of view, and the ring
+is rebuilt from it at startup and whenever a place changes. `GET /v1/system` reports
+`rasters.glm{ringFlashes, archiveBytes, newestFileAt}`.
+
+**Stale is not clear.** When the GLM or FDC feed stops, clusters and detections freeze: nothing is
+tombstoned and no `exit` rule fires. The source shows `degraded` with "newest input file is …s old" once
+the newest processed file is older than 2 minutes (GLM) or 15 minutes (FDC). An unreadable file or a
+missing NetCDF variable also shows `degraded` with the reason, and the file is skipped. Rule recipes are
+in the Agent Guide, "Lightning and fire".
+
 ## Operating the instance
 
 ### Probes and the compose healthcheck

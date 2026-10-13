@@ -103,6 +103,8 @@ foresignal:
     disk-quota-gb: ${FORESIGNAL_RASTER_DISK_QUOTA_GB:200}
     # Orphan files and rows younger than this are left alone by the hourly sweep (a commit in flight).
     orphan-grace: 10m
+    # The GLM ring (048): aoi (the places AOI) or conus (large profile only; the small profile stays on aoi).
+    glm-ring-scope: ${FORESIGNAL_RASTER_GLM_RING_SCOPE:aoi}
   media:
     # The media store (043). ImageGuard refuses larger files; MediaStore answers 413 MEDIA_TOO_LARGE.
     max-file-bytes: ${FORESIGNAL_MEDIA_MAX_FILE_BYTES:25MB}

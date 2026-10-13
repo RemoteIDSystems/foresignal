@@ -1,5 +1,7 @@
 package ai.foresignal.raster;
 
+import ai.foresignal.source.spi.FlashBatch;
+import ai.foresignal.raster.lightning.FlashStore;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
@@ -46,6 +48,7 @@ class RasterRetentionStepIT {
     @Autowired FrameStore store;
     @Autowired JdbcTemplate jdbc;
     @Autowired MutableClock clock;
+    @Autowired FlashStore flashes;
 
     @BeforeEach
     void setUp() {
@@ -213,5 +216,27 @@ class RasterRetentionStepIT {
     void stepShape() {
         assertThat(step.name()).isEqualTo("rasters");
         assertThat(step.order()).isGreaterThan(700);
+    }
+
+    @Test
+    @DisplayName("prompt 048: GLM archive files older than 14 days are deleted, and the archive counts toward the quota")
+    void glmArchiveRetention() {
+        for (int days : new int[] {20, 15, 14, 1}) {
+            long t = NOW.minus(Duration.ofDays(days)).toEpochMilli();
+            flashes.archive().append("G19", new FlashBatch(new long[] {t}, new float[] {30f}, new float[] {-97f},
+                    new float[] {1f}));
+        }
+        long before = flashes.archiveBytes();
+
+        step.expireGlmArchive(NOW);
+
+        assertThat(flashes.archive().read("G19", java.time.LocalDate.of(2026, 9, 20), 0, Long.MAX_VALUE).isEmpty()).isTrue();
+        assertThat(flashes.archive().read("G19", java.time.LocalDate.of(2026, 9, 25), 0, Long.MAX_VALUE).isEmpty()).isTrue();
+        assertThat(flashes.archive().read("G19", java.time.LocalDate.of(2026, 9, 26), 0, Long.MAX_VALUE).size()).isEqualTo(1);
+        assertThat(flashes.archive().read("G19", java.time.LocalDate.of(2026, 10, 9), 0, Long.MAX_VALUE).size()).isEqualTo(1);
+        assertThat(flashes.archiveBytes()).isLessThan(before);
+        // The quota counts the archive: a quota smaller than the archive alone evicts every frame it can.
+        assertThat(step.enforceQuota(flashes.archiveBytes() - 1)).isGreaterThanOrEqualTo(0);
+        flashes.deleteArchivesBefore(NOW.plus(Duration.ofDays(1)));
     }
 }

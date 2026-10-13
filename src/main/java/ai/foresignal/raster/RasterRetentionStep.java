@@ -1,5 +1,7 @@
 package ai.foresignal.raster;
 
+import org.springframework.beans.factory.ObjectProvider;
+import ai.foresignal.raster.lightning.FlashStore;
 import ai.foresignal.ingest.FetchLogEntry;
 import ai.foresignal.media.MediaQueries;
 import ai.foresignal.ingest.IngestQueue;
@@ -44,6 +46,9 @@ import tools.jackson.databind.json.JsonMapper;
  *       {@code foresignal.raster.disk-quota-gb} (default 200), evict the oldest frames across products
  *       ({@code /v1/system} degrades at 90 %, {@link RasterSystemBlock}). Media is never evicted for
  *       the quota; it follows its owning record.
+ *   <li><b>GLM archive</b> (prompt 048): delete {@code rasters/glm/{sat}/{yyyymmdd}.bin} files older
+ *       than {@value ai.foresignal.raster.lightning.FlashStore#ARCHIVE_DAYS} days. Their bytes count
+ *       toward the quota below, but only frames are evicted for it.
  *   <li><b>Orphan sweep</b>: delete files with no row and rows with no file (both only once older
  *       than {@code orphanGrace}, so a commit in flight is never touched), clear stale staging files,
  *       and <b>re-emit the {@code raster-frame} record</b> of any complete frame (or completed run)
@@ -79,10 +84,16 @@ public class RasterRetentionStep implements RetentionStep {
     private final JsonMapper json;
     private final MediaQueries media;
     private final AtomicLong arrival = new AtomicLong();
+    private final ObjectProvider<FlashStore> flashes;
 
-    /** Creates the step. */
+    /**
+     * Creates the step.
+     *
+     * @param flashes the GLM flash store (prompt 048), resolved lazily; null for none
+     */
     public RasterRetentionStep(ProductRegistry registry, RasterFrameQueries frames, FrameStore store, GridStore grids,
-            RasterSettings settings, IngestQueue queue, ProductUrls urls, JsonMapper json, MediaQueries media) {
+            RasterSettings settings, IngestQueue queue, ProductUrls urls, JsonMapper json, MediaQueries media,
+            ObjectProvider<FlashStore> flashes) {
         this.registry = registry;
         this.frames = frames;
         this.store = store;
@@ -92,6 +103,35 @@ public class RasterRetentionStep implements RetentionStep {
         this.urls = urls;
         this.json = json;
         this.media = media;
+        this.flashes = flashes;
+    }
+
+    /** The flash store, or null when none is installed. */
+    private FlashStore flashStore() {
+        return flashes == null ? null : flashes.getIfAvailable();
+    }
+
+    /**
+     * Deletes GLM archive files older than {@value ai.foresignal.raster.lightning.FlashStore#ARCHIVE_DAYS}
+     * days; returns the bytes deleted.
+     */
+    long expireGlmArchive(Instant now) {
+        FlashStore store = flashStore();
+        if (store == null) {
+            return 0;
+        }
+        long bytes = store.deleteArchivesBefore(now.minus(Duration.ofDays(FlashStore.ARCHIVE_DAYS)));
+        if (bytes > 0) {
+            log.info("GLM archive retention: {} bytes of files older than {} days deleted", bytes,
+                    FlashStore.ARCHIVE_DAYS);
+        }
+        return bytes;
+    }
+
+    /** The GLM archive's bytes on disk, or 0 without a flash store. */
+    private long glmBytes() {
+        FlashStore store = flashStore();
+        return store == null ? 0 : store.archiveBytes();
     }
 
     @Override
@@ -108,6 +148,7 @@ public class RasterRetentionStep implements RetentionStep {
     public void run(RetentionRun run) {
         Instant now = run.now();
         long deleted = thin(now);
+        expireGlmArchive(now);
         deleted += enforceQuota();
         SweepResult sweep = sweep(now);
         deleted += sweep.rowsDeleted();
@@ -142,12 +183,12 @@ public class RasterRetentionStep implements RetentionStep {
     }
 
     /**
-     * Evicts the oldest frames until the frame and media stores together fit {@code quota} bytes;
-     * returns the frames deleted.
+     * Evicts the oldest frames until the frame and media stores and the GLM archive together fit
+     * {@code quota} bytes; returns the frames deleted.
      */
     long enforceQuota(long quota) {
         RasterFrameQueries.Totals totals = frames.totals();
-        long bytes = totals.bytes() + media.totalBytes();
+        long bytes = totals.bytes() + media.totalBytes() + glmBytes();
         long deleted = 0;
         while (bytes > quota) {
             List<RasterFrameRow> oldest = frames.oldest(QUOTA_BATCH);

@@ -110,6 +110,22 @@ public final class Geo {
         return geometry;
     }
 
+    /** The mean Earth radius used by {@link #haversineKm}, km (IUGG). */
+    public static final double EARTH_RADIUS_KM = 6371.0088;
+
+    /**
+     * The great-circle distance between two WGS84 positions on the mean sphere, km (prompt 048: the GLM
+     * flash store and the lightning clustering).
+     */
+    public static double haversineKm(double lat1, double lon1, double lat2, double lon2) {
+        double dLat = Math.toRadians(lat2 - lat1);
+        double dLon = Math.toRadians(lon2 - lon1);
+        double s = Math.sin(dLat / 2);
+        double t = Math.sin(dLon / 2);
+        double a = s * s + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2)) * t * t;
+        return 2 * EARTH_RADIUS_KM * Math.asin(Math.min(1, Math.sqrt(a)));
+    }
+
     /** True for an exact (0,0) point, which is almost always a missing position (§3). */
     public static boolean isNullIsland(Geometry geometry) {
         if (geometry == null || !(geometry instanceof Point point) || point.isEmpty()) {

@@ -1,6 +1,10 @@
 package ai.foresignal.retention;
 
 import ai.foresignal.source.adapters.awc.AwcMetarsAdapter;
+import ai.foresignal.source.adapters.goes.GoesFdcAdapter;
+import ai.foresignal.source.adapters.goes.GoesGlmAdapter;
+import ai.foresignal.source.adapters.hms.HmsFireAdapter;
+import ai.foresignal.source.adapters.hms.HmsSmokeAdapter;
 import ai.foresignal.source.adapters.mrms.ProbSevereAdapter;
 import ai.foresignal.source.adapters.nws.NwsAlertsAdapter;
 import ai.foresignal.source.adapters.spc.SpcOutlooksAdapter;
@@ -61,25 +65,37 @@ class FamilyDefaultsTest {
      * {@code weather} (prompt 047, provisional) marks weather record sources whose kinds the Conventions
      * table does not name (ProbSevere objects, SPC outlooks, METARs): their retention is exactly the
      * per-kind table of Weather-Imagery-Design §2.4. NWS alerts are "weather and CAP alerts", so
-     * {@code event}.
+     * {@code event}. Prompt 048 adds the lightning and fire sources to {@code weather}: the Conventions
+     * table puts "GLM lightning" and "FIRMS pixels" in {@code bulk-event} (90 d), but a shorter window
+     * for a {@code bulk-event} kind is not overridden (only {@code event} and {@code series} are), and
+     * §2.4 names {@code lightning-cluster} 3 d and {@code fire-detection}, {@code fire-cluster},
+     * {@code smoke-polygon} 7 d.
      */
     record Entry(SourceDescriptor descriptor, String analyticClass) {}
 
-    static final Map<String, Entry> CLASSES = Map.of(
-            "UsgsEarthquakesAdapter", new Entry(new UsgsEarthquakesAdapter("").descriptor(), "event"),
-            "SystemCanaryAdapter", new Entry(new SystemCanaryAdapter().descriptor(), "system"),
-            "MrmsAdapter", new Entry(new MrmsAdapter(null, "").descriptor(), "raster"),
-            "GoesAbiAdapter", new Entry(new GoesAbiAdapter(null, "").descriptor(), "raster"),
-            "NwsAlertsAdapter", new Entry(new NwsAlertsAdapter((CountyGeometries) null, "").descriptor(), "event"),
-            "ProbSevereAdapter", new Entry(new ProbSevereAdapter((AreaOfInterest) null, "").descriptor(), "weather"),
-            "SpcOutlooksAdapter", new Entry(new SpcOutlooksAdapter("").descriptor(), "weather"),
-            "AwcMetarsAdapter", new Entry(new AwcMetarsAdapter((AreaOfInterest) null, "").descriptor(), "weather"));
+    static final Map<String, Entry> CLASSES = Map.ofEntries(
+            Map.entry("UsgsEarthquakesAdapter", new Entry(new UsgsEarthquakesAdapter("").descriptor(), "event")),
+            Map.entry("SystemCanaryAdapter", new Entry(new SystemCanaryAdapter().descriptor(), "system")),
+            Map.entry("MrmsAdapter", new Entry(new MrmsAdapter(null, "").descriptor(), "raster")),
+            Map.entry("GoesAbiAdapter", new Entry(new GoesAbiAdapter(null, "").descriptor(), "raster")),
+            Map.entry("NwsAlertsAdapter", new Entry(new NwsAlertsAdapter((CountyGeometries) null, "").descriptor(), "event")),
+            Map.entry("ProbSevereAdapter", new Entry(new ProbSevereAdapter((AreaOfInterest) null, "").descriptor(), "weather")),
+            Map.entry("SpcOutlooksAdapter", new Entry(new SpcOutlooksAdapter("").descriptor(), "weather")),
+            Map.entry("AwcMetarsAdapter", new Entry(new AwcMetarsAdapter((AreaOfInterest) null, "").descriptor(), "weather")),
+            Map.entry("GoesGlmAdapter", new Entry(new GoesGlmAdapter(null, "").descriptor(), "weather")),
+            Map.entry("GoesFdcAdapter", new Entry(new GoesFdcAdapter(null, (AreaOfInterest) null, "").descriptor(), "weather")),
+            Map.entry("HmsSmokeAdapter", new Entry(new HmsSmokeAdapter("").descriptor(), "weather")),
+            Map.entry("HmsFireAdapter", new Entry(new HmsFireAdapter("").descriptor(), "weather")));
 
     /** Weather-Imagery-Design §2.4's per-kind record retention, for the {@code weather} class. */
     static final Map<String, Duration> WEATHER_KIND_RETENTION = Map.of(
             "probsevere-object", Duration.ofDays(3),
             "spc-outlook", Duration.ofDays(14),
-            "metar", Duration.ofDays(7));
+            "metar", Duration.ofDays(7),
+            "lightning-cluster", Duration.ofDays(3),
+            "fire-detection", Duration.ofDays(7),
+            "fire-cluster", Duration.ofDays(7),
+            "smoke-polygon", Duration.ofDays(7));
 
     /** The design's raster-frame record retention (Weather-Imagery-Design §2.4). */
     static final Duration RASTER_FRAME_RETENTION = Duration.ofDays(7);
@@ -107,14 +123,15 @@ class FamilyDefaultsTest {
                 continue;
             }
             if (analyticClass.equals("weather")) {
-                assertThat(descriptor.kinds()).as("%s kinds", descriptor.id()).hasSize(1);
-                String kind = descriptor.kinds().iterator().next();
-                assertThat(WEATHER_KIND_RETENTION).as("%s kind %s is in the §2.4 table", descriptor.id(), kind)
-                        .containsKey(kind);
-                assertThat(descriptor.kindRetention().get(kind)).as("%s kindRetention", descriptor.id())
-                        .isEqualTo(WEATHER_KIND_RETENTION.get(kind));
+                assertThat(descriptor.kinds()).as("%s kinds", descriptor.id()).isNotEmpty();
+                for (String kind : descriptor.kinds()) {
+                    assertThat(WEATHER_KIND_RETENTION).as("%s kind %s is in the §2.4 table", descriptor.id(), kind)
+                            .containsKey(kind);
+                    assertThat(descriptor.kindRetention().get(kind)).as("%s kindRetention %s", descriptor.id(), kind)
+                            .isEqualTo(WEATHER_KIND_RETENTION.get(kind));
+                }
                 assertThat(descriptor.defaultRetention()).as("%s defaultRetention", descriptor.id())
-                        .isEqualTo(WEATHER_KIND_RETENTION.get(kind));
+                        .isEqualTo(WEATHER_KIND_RETENTION.get(descriptor.kinds().iterator().next()));
                 continue;
             }
             Duration minimum = CLASS_DEFAULTS.get(analyticClass);

@@ -108,7 +108,9 @@ ai.foresignal
 │                   frame-age health, RasterRetentionStep (042); GridDef projections and the
 │                   external catalog with its DERIVED source external-catalogue (045)
 │   ├── decode      RasterDecoder SPI, Grib2Decoder, NetcdfDecoder (NetCDF-Java), SafeNetcdf,
-│   │               NetcdfRuntime, DecoderSelfTest (046)
+│   │               NetcdfRuntime, DecoderSelfTest (046); NetcdfDecoder.Reader for named variables (048)
+│   ├── lightning   FlashStore behind ctx.rasters().flashes(): the 16-byte daily GLM FlashArchive
+│   │               (14 d) and the 60-minute places-AOI FlashRing (048)
 │   ├── render      TileRenderer, IndexMapCache, TileCache, RenderQueue, RasterCachePolicy,
 │   │               StyleRegistry, LegendService, LoopService, TileWarmer (045); MapRenderer (055)
 │   └── sample      Point and area sampling of frames (052)
@@ -147,7 +149,7 @@ ai.foresignal
 └── api             Controllers, DTOs, ProblemDetail handlers, pagination cursors
 ```
 
-Dependency rule: `api → (service packages) → store`. Adapters depend only on `source` SPI types and `collect.UpstreamClient`; they never touch the store, the scheduler or each other. Product adapters (046 on) may also use the decoders in `raster.decode`, which are stateless file readers like the shared parsers under `source.formats`; frames still reach the store only through `ctx.rasters()`. Weather record adapters (047) reach the places AOI and the `ref_admin2` county outlines only through the SPI types `AreaOfInterest` and `CountyGeometries`, implemented by `place.PlacesAoiService` and `reference.CountyUnionService`.
+Dependency rule: `api → (service packages) → store`. Adapters depend only on `source` SPI types and `collect.UpstreamClient`; they never touch the store, the scheduler or each other. Product adapters (046 on) may also use the decoders in `raster.decode`, which are stateless file readers like the shared parsers under `source.formats`; frames still reach the store only through `ctx.rasters()`. Weather record adapters (047) reach the places AOI and the `ref_admin2` county outlines only through the SPI types `AreaOfInterest` and `CountyGeometries`, implemented by `place.PlacesAoiService` and `reference.CountyUnionService`. The lightning and fire adapters (048) write GLM flashes only through the SPI type `FlashSink` (`ctx.rasters().flashes()`, implemented by `raster.lightning.FlashStore`), and read named NetCDF variables and fixed-grid pixel centers through `raster.decode.NetcdfDecoder.Reader`.
 
 ## 4. Source adapter SPI
 
@@ -569,8 +571,9 @@ File-based configuration is limited to bootstrap concerns, all overridable by en
 | `FORESIGNAL_DATA_DIR` | `./data` | Secret key file location |
 | `FORESIGNAL_RESET_ADMIN_TOKEN` | `false` | Regenerate admin token on start |
 | `FORESIGNAL_PROFILE` | `small` | Memory profile, `small` or `large` (§14): raster cache sizes, render pool, decode concurrency (042) |
-| `FORESIGNAL_RASTER_DISK_QUOTA_GB` | `200` | Raster frame store quota; oldest frames are evicted above it, `/v1/system` degrades at 90 % (042) |
+| `FORESIGNAL_RASTER_DISK_QUOTA_GB` | `200` | Raster frame store quota (the media store and the GLM archive count too); oldest frames are evicted above it, `/v1/system` degrades at 90 % (042) |
 | `FORESIGNAL_RASTER_FRAME_CACHE_MB`, `…_TILE_CACHE_MB`, `…_INDEX_CACHE_MB`, `…_RENDER_POOL`, `…_DECODE_CONCURRENCY` | profile | Override one profile value each (042) |
+| `FORESIGNAL_RASTER_GLM_RING_SCOPE` | `aoi` | The GLM flash ring's scope: `aoi` (the places AOI) or `conus` (large profile only) (048) |
 | `JAVA_TOOL_OPTIONS` `-Djava.io.tmpdir=/data/tmp -Djna.tmpdir=/data/tmp` | set by the Dockerfile and appended by compose | Temporary files, and the libaec native library JNA extracts and loads for GRIB2 template 5.42, go to `${FORESIGNAL_DATA_DIR}/tmp` on the data volume, which must allow executables (named volumes do); the application creates the directory at startup (046) |
 | `foresignal.raster.decoder-self-test.enabled` | `true` | The startup decoder self-test (046) |
 
