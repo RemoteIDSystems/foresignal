@@ -522,6 +522,22 @@ class SourceServiceIT {
         }
 
         @Test
+        @DisplayName("an adapter's cross-field credential rule is enforced: opensky-states needs both fields or neither (062)")
+        void crossFieldCredentials() {
+            assertThatThrownBy(() -> service.setCredentials("opensky-states", Map.of("clientId", "abc")))
+                    .isInstanceOf(ValidationException.class)
+                    .satisfies(e -> assertThat(((ValidationException) e).getErrors())
+                            .extracting(ai.foresignal.api.error.FieldError::field)
+                            .containsExactly("values.clientSecret"))
+                    .satisfies(e -> assertThat(e.toString()).doesNotContain("abc"));
+            assertThatThrownBy(() -> service.setCredentials("opensky-states", Map.of("clientSecret", "shh-secret")))
+                    .isInstanceOf(ValidationException.class);
+
+            service.setCredentials("opensky-states", Map.of("clientId", "abc", "clientSecret", "shh-secret"));
+            assertThat(credentialsAccess.forSource("opensky-states")).containsOnlyKeys("clientId", "clientSecret");
+        }
+
+        @Test
         void rejectsUndeclaredKeys() {
             assertThatThrownBy(
                             () -> service.setCredentials(NEEDS_CREDENTIALS, Map.of("apiKey", "a", "nope", "b")))

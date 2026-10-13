@@ -59,7 +59,7 @@ SOFTWARE.
 
 ### Ported files
 
-Ported from God's Eye View commit `591f299d11f38a612629a274463196d57ae3862e` (prompt 051). Each
+Ported from God's Eye View commit `591f299d11f38a612629a274463196d57ae3862e` (prompts 051 and 062). Each
 file carries an origin header naming its source file and this notice.
 
 | Foresignal file | GEV origin file |
@@ -71,6 +71,12 @@ file carries an origin header naming its source file and this notice.
 | `src/main/resources/raster/styles/wind-speed@1.json` (color stops) | `src/layers/wind/fields.js` (`WIND_FIELDS.speed`) |
 | `src/test/java/ai/foresignal/raster/model/WindResamplerTest.java` (test cases) | `src/data/windGrid.test.mjs` |
 | `src/test/java/ai/foresignal/raster/model/GribIdxTest.java` (test cases) | `src/data/windGfs.test.mjs` |
+| `src/main/java/ai/foresignal/source/formats/readsb/ReadsbAircraftMapper.java` (readsb field mapping, prompt 062) | `src/data/adsbLolFallback.js` (`normalizeAdsbLolAircraftState`) |
+| `src/main/java/ai/foresignal/source/formats/readsb/ReadsbDocument.java` (`now` in seconds or milliseconds) | `src/data/adsbLolFallback.js` (`normalizeAdsbLolPointResponse`) |
+| `src/main/java/ai/foresignal/source/formats/readsb/AircraftFields.java` (unit conversions, emitter categories) | `src/data/adsbLolFallback.js` (`FOOT_TO_M`, `KNOT_TO_MPS`, `FPM_TO_MPS`, `emitterCategory`) |
+| `src/main/java/ai/foresignal/source/adapters/adsblol/AdsbLol.java` (30 s after a 429 without `Retry-After`) | `server/providers/aircraft/adsb-lol.js` (`RATE_LIMIT_COOLDOWN_MS`, `cooldownFor`) |
+| `src/main/java/ai/foresignal/source/adapters/opensky/OpenSkyTokens.java` (OAuth token cache, 60 s refresh margin) | `server/providers/aircraft/opensky.js` (`getOpenSkyToken`) |
+| `src/main/java/ai/foresignal/source/adapters/opensky/OpenSkyCredits.java` (credit governor on `x-rate-limit-remaining`) | `server/providers/aircraft/opensky.js` (credit governor, `openskyAdaptiveTtlMs`) |
 
 `decode.js` (ecCodes WASM) is not ported: Foresignal decodes with NetCDF-Java. The particle layer
 (`src/layers/wind/*`) is not part of Foresignal; the Frontend Guide tells web clients which of its

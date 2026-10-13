@@ -25,6 +25,20 @@ public interface SourceAdapter {
         return java.util.Map.of();
     }
 
+    /**
+     * Checks rules that span several credential fields (prompt 062: {@code opensky-states} needs
+     * {@code clientId} and {@code clientSecret} together or neither).
+     *
+     * <p>{@code SourceService.setCredentials} reports every entry as a field error {@code values.<key>} of
+     * the 400 {@code VALIDATION_FAILED} problem, after the per-field checks. The default finds nothing.
+     *
+     * @param values the supplied credential values, never echoed in the problems
+     * @return credential field name to problem, in a stable order; empty when the combination is valid
+     */
+    default java.util.Map<String, String> checkCredentials(java.util.Map<String, String> values) {
+        return java.util.Map.of();
+    }
+
     /** Convenience for {@code descriptor().id()}. */
     default String id() {
         return descriptor().id();

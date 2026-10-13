@@ -14,6 +14,7 @@ import ai.foresignal.source.spi.NormalizedRecord;
 import ai.foresignal.source.spi.PollingAdapter;
 import ai.foresignal.source.spi.SourceAdapter;
 import ai.foresignal.source.spi.SourceDescriptor;
+import ai.foresignal.source.spi.UpstreamQuotaDeferredException;
 import ai.foresignal.store.FetchStatus;
 import ai.foresignal.store.FetchTrigger;
 import io.micrometer.core.instrument.Counter;
@@ -62,6 +63,8 @@ import org.springframework.stereotype.Component;
  *   <tr><td>Empty</td><td>OK with zero counts, here</td><td>{@code recordSuccess} with 0 seen;
  *       {@code last_data_at} untouched</td></tr>
  *   <tr><td>Budget refused</td><td>REFUSED</td><td>not a failure</td></tr>
+ *   <tr><td>Upstream quota deferred ({@link UpstreamQuotaDeferredException}, prompt 062)</td><td>REFUSED</td>
+ *       <td>counted as a refusal, not a failure</td></tr>
  *   <tr><td>In backoff</td><td>none</td><td>skipped, no health change</td></tr>
  *   <tr><td>Ingest queue full, or the writer failed the batch</td><td>FAILED</td><td>a warning,
  *       not an upstream failure</td></tr>
@@ -82,6 +85,9 @@ public class FetchExecutor {
 
     /** The error stored on a REFUSED row. */
     public static final String BUDGET_EXCEEDED_ERROR = "budget exceeded";
+
+    /** The start of the error stored on a REFUSED row for an upstream quota deferral (prompt 062). */
+    public static final String QUOTA_DEFERRED_ERROR = "upstream quota deferred";
 
     /** The error stored when the ingest queue stayed full. */
     public static final String QUEUE_FULL_ERROR = "ingest queue full";
@@ -131,6 +137,17 @@ public class FetchExecutor {
         this.meters = meters;
         this.properties = properties;
         this.clock = clock;
+    }
+
+    private UsageMeter usage;
+
+    /**
+     * The usage meter that counts a quota deferral as a refusal (prompt 062), so health's refusal rule
+     * sees it. Optional, so a hand-built executor in a test works without one.
+     */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setUsageMeter(UsageMeter usage) {
+        this.usage = usage;
     }
 
     /** True while a fetch of {@code sourceId} is running. */
@@ -346,6 +363,22 @@ public class FetchExecutor {
             return FetchOutcome.withoutIngest(
                     sourceId, startedAt, elapsedMs(startNanos), false, 0, BUDGET_EXCEEDED_ERROR, id,
                     FetchStatus.REFUSED);
+        }
+        UpstreamQuotaDeferredException deferred = causeOf(error, UpstreamQuotaDeferredException.class);
+        if (deferred != null) {
+            // Prompt 062: the adapter's own quota check refused before anything was sent. A refusal,
+            // like a spent budget, so the source degrades through the refusal rule instead of failing.
+            String reason = HealthTracker.truncate(QUOTA_DEFERRED_ERROR + ": " + deferred.getMessage()
+                    + " (retry at " + deferred.retryAt() + ")");
+            long id = fetchLog.write(
+                    entry(descriptor, trigger, FetchStatus.REFUSED, startedAt, now, traces, null, reason, null), 0);
+            if (usage != null) {
+                usage.recordRefused(sourceId);
+            }
+            health.recordRefused(sourceId);
+            log.info("{}: {}", sourceId, reason);
+            return FetchOutcome.withoutIngest(
+                    sourceId, startedAt, elapsedMs(startNanos), false, 0, reason, id, FetchStatus.REFUSED);
         }
         String message = health.errorMessage(sourceId, error);
         Integer status = HealthTracker.httpStatus(error);

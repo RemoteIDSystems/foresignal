@@ -1,0 +1,12 @@
+{"time":1791894300,"states":[
+["4b406a","HBYKG   ","Switzerland",1791894297,1791894298,7.0843,46.7357,876.3,false,56.62,109.09,-1.3,[123,456],905.2,"7000",false,0,2],
+["3c6444","DLH4AB  ","Germany",null,1791894290,null,null,null,false,null,null,null,null,null,null,false,0,9],
+["a1b2c3","UAL1    ","United States",1791894280,1791894295,-87.9047,41.9786,null,true,4.2,91.0,null,null,null,"1200",true,1,13],
+["e48d4c","","Brazil",1791894285,1791894296,-46.6,-23.5,3000.0,false,120.5,359.9,5.2,null,3100.0,null,false,2,14],
+["4ca7b3","FLARM1","Ireland",1791894286,1791894294,-6.2,53.4,450.0,false,30.0,180.0,0.0,null,470.0,null,false,3,20],
+["3c4b26",null,"Germany",1791894287,1791894293,8.5,50.0,1200.0,false,80.0,270.0,-2.5,null,1250.0,"0421",false,0,1],
+["3c4b27","TEST    ","Germany",1791894288,1791894292,8.6,50.1,1300.0,false,81.0,271.0,null,null,null,null,false,0,0],
+["3c4b28","SEVEN   ","Germany",1791894288,1791894292,8.7,50.2,1400.0,false,82.0,272.0,null,null,null,null,false,0,8],
+["3c4b29","TEN     ","Germany",1791894288,1791894292,8.8,50.3,1500.0,false,83.0,273.0,null,null,null,null,false,0,10],
+["3c4b2a","SIXTEEN ","Germany",1791894288,1791894292,8.9,50.4,1600.0,false,84.0,274.0,null,null,null,null,false,0,16]
+]}

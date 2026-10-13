@@ -8,7 +8,8 @@ import java.util.Map;
  * {@code record_head.title}).
  *
  * <p>The descriptor's {@code titleField} value if present, else the first present of
- * {@code title}, {@code name}, {@code callsign} and {@code place}; stringified, trimmed and cut to
+ * {@code title}, {@code name}, {@code callsign}, {@code place}, {@code r} and {@code hex} (prompt 062: an
+ * aircraft without a callsign is titled by its registration, else its ICAO address); stringified, trimmed and cut to
  * 256 characters; null when none yields text. The one resolver, reused by tiles (016), MCP (025)
  * and Ask (028). {@code kindDisplay.titleTemplate} is a client hint and is not used here.
  */
@@ -18,7 +19,7 @@ public final class TitleResolver {
     public static final int MAX_TITLE_LENGTH = 256;
 
     /** The fallback keys, in order. */
-    public static final List<String> FALLBACK_FIELDS = List.of("title", "name", "callsign", "place");
+    public static final List<String> FALLBACK_FIELDS = List.of("title", "name", "callsign", "place", "r", "hex");
 
     private TitleResolver() {}
 

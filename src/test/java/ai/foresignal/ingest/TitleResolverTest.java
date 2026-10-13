@@ -31,6 +31,15 @@ class TitleResolverTest {
     }
 
     @Test
+    @DisplayName("an aircraft without a callsign falls back to its registration, then its ICAO address (prompt 062)")
+    void aircraftFallback() {
+        assertThat(TitleResolver.resolve("flight", Map.of("flight", "UAL1", "r", "N1", "hex", "a1b2c3"))).isEqualTo("UAL1");
+        assertThat(TitleResolver.resolve("flight", Map.of("r", "N1", "hex", "a1b2c3"))).isEqualTo("N1");
+        assertThat(TitleResolver.resolve("flight", Map.of("hex", "~2ab098"))).isEqualTo("~2ab098");
+        assertThat(TitleResolver.resolve("flight", Map.of("place", "P", "hex", "a1b2c3"))).isEqualTo("P");
+    }
+
+    @Test
     @DisplayName("an absent or blank titleField falls back")
     void blankTitleFieldFallsBack() {
         assertThat(TitleResolver.resolve("headline", Map.of("headline", "   ", "name", "N"))).isEqualTo("N");

@@ -94,6 +94,13 @@ import java.util.Set;
  * @param acceptsRemoteMedia true when a remote station may push images and pass bundles to
  *     {@code POST /v1/ingest/{sourceId}/media} and {@code /rasters} (prompt 054: the {@code satdump-*}
  *     family); every other source answers those paths with {@code 404 NOT_FOUND}
+ * @param accessDeniedIsTerminal true when an HTTP 403 from this upstream means "this client is refused"
+ *     rather than "this request was wrong" (prompt 062: the adsb.lol sources). {@code UpstreamClient} then
+ *     treats a 403 like a 451: a one-hour backoff and {@code UpstreamAccessDeniedException}. Internal, not
+ *     in the OpenAPI {@code SourceDescriptor}
+ * @param defaultRetryAfter the backoff after an HTTP 429 that carries no {@code Retry-After} (prompt 062:
+ *     30 s for adsb.lol, after God's Eye View's {@code adsb-lol.js}); null means the exponential ladder of
+ *     {@code BackoffRegistry}. Internal, not in the OpenAPI {@code SourceDescriptor}
  */
 public record SourceDescriptor(
         String id,
@@ -148,7 +155,9 @@ public record SourceDescriptor(
         SourceAccess access,
         Set<String> hiddenKinds,
         Map<String, Map<String, Object>> kindPresentation,
-        boolean acceptsRemoteMedia) {
+        boolean acceptsRemoteMedia,
+        boolean accessDeniedIsTerminal,
+        Duration defaultRetryAfter) {
 
     /** Coordinate decimals kept for a private source unless it says otherwise (about 11 m). */
     public static final int DEFAULT_PRIVATE_PRECISION_DECIMALS = 4;
@@ -276,6 +285,8 @@ public record SourceDescriptor(
         private final Set<String> hiddenKinds = new LinkedHashSet<>();
         private final Map<String, Map<String, Object>> kindPresentation = new LinkedHashMap<>();
         private boolean acceptsRemoteMedia;
+        private boolean accessDeniedIsTerminal;
+        private Duration defaultRetryAfter;
 
         private String name;
         private String description;
@@ -612,6 +623,21 @@ public record SourceDescriptor(
             return this;
         }
 
+        /**
+         * Treats an HTTP 403 from this upstream as a refusal of the client (prompt 062): a one-hour backoff
+         * and {@code UpstreamAccessDeniedException}, like a 451.
+         */
+        public Builder accessDeniedIsTerminal(boolean value) {
+            this.accessDeniedIsTerminal = value;
+            return this;
+        }
+
+        /** The backoff after an HTTP 429 without {@code Retry-After}; null keeps the exponential ladder. */
+        public Builder defaultRetryAfter(Duration value) {
+            this.defaultRetryAfter = value;
+            return this;
+        }
+
         /** Sets the layer presentation hints of one kind. */
         public Builder kindPresentation(String kind, Map<String, Object> hints) {
             this.kindPresentation.put(kind, hints);
@@ -691,7 +717,9 @@ public record SourceDescriptor(
                     access,
                     hiddenKinds,
                     kindPresentation,
-                    acceptsRemoteMedia);
+                    acceptsRemoteMedia,
+                    accessDeniedIsTerminal,
+                    defaultRetryAfter);
         }
     }
 }

@@ -534,11 +534,37 @@ class BoundSourceHttp implements SourceHttp {
     private void throwForStatus(int status, HttpResponse<InputStream> response, UpstreamResponse result)
             throws AdapterException {
         String snippet = UpstreamHttpException.snippet(result.bodyAsString());
-        if (status == 429 || status == 503) {
-            Optional<Duration> retryAfter = retryAfterFrom(response);
-            parent.backoff().onThrottled(sourceId, retryAfter);
+        throw errorFor(status, response, snippet);
+    }
+
+    /**
+     * Applies the backoff an error status earns and returns the exception to throw (prompts 005 and 062).
+     *
+     * <ul>
+     *   <li><strong>Refused client:</strong> a 451, or a 403 from a source whose descriptor sets
+     *       {@code accessDeniedIsTerminal}, puts the source in a one-hour backoff and becomes
+     *       {@link UpstreamAccessDeniedException}. Nothing else is tried: no other User-Agent, no browser
+     *       headers, no other egress.
+     *   <li><strong>{@code Retry-After}</strong> (or OpenSky's {@code X-Rate-Limit-Retry-After-Seconds}) on
+     *       any 4xx or 5xx is honored, clamped to [5 s, 1 h] by {@link BackoffRegistry}.
+     *   <li><strong>429 without the header:</strong> the descriptor's {@code defaultRetryAfter} when it sets
+     *       one (30 s for adsb.lol), else the exponential ladder; a 503 without it uses the ladder.
+     * </ul>
+     */
+    private UpstreamHttpException errorFor(int status, HttpResponse<InputStream> response, String snippet) {
+        if (status == 451 || (status == 403 && descriptor.accessDeniedIsTerminal())) {
+            parent.backoff().onThrottled(sourceId, Optional.of(UpstreamAccessDeniedException.REFUSAL_BACKOFF));
+            return new UpstreamAccessDeniedException(status, snippet);
         }
-        throw new UpstreamHttpException(status, snippet);
+        Optional<Duration> retryAfter = retryAfterFrom(response);
+        if (retryAfter.isPresent()) {
+            parent.backoff().onThrottled(sourceId, retryAfter);
+        } else if (status == 429 && descriptor.defaultRetryAfter() != null) {
+            parent.backoff().onThrottled(sourceId, Optional.of(descriptor.defaultRetryAfter()));
+        } else if (status == 429 || status == 503) {
+            parent.backoff().onThrottled(sourceId, Optional.empty());
+        }
+        return new UpstreamHttpException(status, snippet);
     }
 
     private void handleErrorStatus(
@@ -546,9 +572,7 @@ class BoundSourceHttp implements SourceHttp {
             throws AdapterException {
         int status = response.statusCode();
         parent.usage().record(sourceId, 0, false);
-        if (status == 429 || status == 503) {
-            parent.backoff().onThrottled(sourceId, retryAfterFrom(response));
-        }
+        UpstreamHttpException error = errorFor(status, response, "");
         traces.add(
                 new FetchTrace(
                         sourceId,
@@ -563,7 +587,7 @@ class BoundSourceHttp implements SourceHttp {
                         Duration.between(startedAt, parent.clock().instant()),
                         startedAt,
                         "HTTP " + status));
-        throw new UpstreamHttpException(status, "");
+        throw error;
     }
 
     /**

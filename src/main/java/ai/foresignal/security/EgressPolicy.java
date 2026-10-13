@@ -8,6 +8,8 @@ import ai.foresignal.security.visibility.Viewer;
 import ai.foresignal.settings.AppSettingService;
 import ai.foresignal.settings.SettingKeys;
 import ai.foresignal.source.SourceRegistry;
+import ai.foresignal.source.spi.Egress;
+import ai.foresignal.source.spi.SourceDescriptor;
 import ai.foresignal.store.query.RecordRow;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -46,6 +48,16 @@ import org.springframework.stereotype.Component;
  *       ({@link #allowsPushPayload}).
  *   <li><em>Later paths:</em> {@link #allows(EgressPath, String, Viewer)} for exports, sinks,
  *       federation, share links and feeds.
+ * </ul>
+ *
+ * <p><strong>{@code LOCAL_ONLY} sources (prompt 062, EGR-2).</strong> A descriptor with
+ * {@code egress: LOCAL_ONLY} ({@code opensky-states}, whose terms forbid redistribution) is served to this
+ * instance's own API clients, tiles, SSE, MCP and notifications as usual, but never re-served:
+ * {@link #allows(EgressPath, String, Viewer)} refuses it on {@code SINK}, {@code FEDERATION},
+ * {@code SHARE} and {@code FEED}, for every viewer.
+ *
+ * <ul>
+ *   <li>Prompts 109 (operator override), 110, 112 and 113 call the hook.
  * </ul>
  */
 @Component
@@ -110,9 +122,41 @@ public class EgressPolicy {
         return !hiddenSources(viewer).contains(sourceId);
     }
 
+    // ------------------------------------------------------------------------- LOCAL_ONLY egress
+
+    /**
+     * The later paths a {@code LOCAL_ONLY} source may still take (prompt 062): an export to this
+     * instance's own API client. Sinks, federation, share links and feeds (feed keys) re-serve data to
+     * another party and are refused. Off-box cold-archive exports are 111's to refuse when it builds them.
+     */
+    static final Set<EgressPath> LOCAL_ONLY_PATHS = java.util.EnumSet.of(EgressPath.EXPORT);
+
+    /**
+     * True when {@code sourceId}'s descriptor declares {@code egress: LOCAL_ONLY} (prompt 062, EGR-2): its
+     * records are served to this instance's own API clients and notifications, never re-served. An
+     * unregistered source counts as local-only (fail closed). Prompt 109 adds the operator override.
+     */
+    public boolean isLocalOnly(String sourceId) {
+        if (sourceId == null || !registry.contains(sourceId)) {
+            return true;
+        }
+        SourceDescriptor descriptor = registry.descriptor(sourceId);
+        return descriptor == null || descriptor.egress() == Egress.LOCAL_ONLY;
+    }
+
+    /**
+     * {@link #allows(EgressPath, String, Viewer)} for a path with no viewer, such as a sink or a federated
+     * peer (prompt 062): a {@code LOCAL_ONLY} source never leaves on a re-serving path, and a private
+     * source never leaves without a viewer allowed to see it.
+     */
+    public boolean allows(String sourceId, EgressPath path) {
+        return allows(path, sourceId, null);
+    }
+
     /**
      * The later-path hook (prompt 039, §2): may a record of {@code sourceId} leave on {@code path} for
-     * {@code viewer}? A source that is not private always may (062 and 109 add their own rules here). A
+     * {@code viewer}? A {@code LOCAL_ONLY} source (062) leaves only on {@link #LOCAL_ONLY_PATHS}. Otherwise a
+     * source that is not private always may (109 adds the licence rules here). A
      * private source may leave on {@code EXPORT}, {@code SHARE}, {@code FEED} and {@code SINK} only for a
      * viewer that can see private sources, and never on {@code FEDERATION} (a peer instance is a remote
      * party). An unregistered source never leaves (fail closed).
@@ -120,6 +164,9 @@ public class EgressPolicy {
     public boolean allows(EgressPath path, String sourceId, Viewer viewer) {
         Objects.requireNonNull(path, "path");
         if (sourceId == null || !registry.contains(sourceId)) {
+            return false;
+        }
+        if (isLocalOnly(sourceId) && !LOCAL_ONLY_PATHS.contains(path)) {
             return false;
         }
         if (!isPrivate(sourceId)) {

@@ -1,0 +1,9 @@
+{"now":1791894243001,"messages":1234567,"aircraft":[
+{"hex":"A1B2C3","type":"adsb_icao","flight":"UAL123  ","r":"N12345","t":"B738","desc":"BOEING 737-800","alt_baro":"ground","alt_geom":650,"gs":12.3,"track":91.04,"squawk":"1200","emergency":"none","category":"A3","lat":41.978611,"lon":-87.904722,"nic":8,"nac_p":10,"sil":3,"gva":2,"sda":2,"rc":186,"version":2,"nav_qnh":1013.2,"seen_pos":0.4,"seen":0.2,"messages":5000,"rssi":-12.1,"mlat":[],"tisb":[]},
+{"type":"adsb_icao","flight":"NOHEX1  ","alt_baro":35000,"lat":42.0,"lon":-88.0,"seen":1.0},
+{"hex":"~2ab098","type":"tisb_trackfile","alt_baro":3500,"gs":101.2,"track":359.96,"lat":41.5,"lon":-88.1,"nic":0,"nac_p":0,"seen_pos":3.2,"seen":3.2,"mlat":[],"tisb":["lat","lon","altitude"]},
+{"hex":"abc123","type":"mlat","flight":"SWA9   ","alt_baro":12000,"alt_geom":12450,"gs":310.0,"track":180.0,"baro_rate":-1088,"squawk":"7700","emergency":"general","category":"A3","lat":41.7,"lon":-87.6,"nic":0,"seen_pos":1.5,"seen":1.5,"mlat":["lat","lon","gs","track"],"tisb":[],"dbFlags":10},
+{"hex":"4b7fcc","type":"mode_s","alt_baro":1575,"lastPosition":{"lat":48.593681,"lon":11.645753,"nic":0,"rc":0,"seen_pos":2620.732},"seen":41.8,"dbFlags":5},
+{"hex":"406f41","type":"mode_s","alt_baro":24000,"squawk":"7000","seen":12.0,"dbFlags":0},
+{"hex":"a05347","type":"adsb_icao","flight":"N123AB  ","alt_baro":5000,"alt_geom":5150,"gs":150.0,"track":45.0,"geom_rate":640,"nac_p":7,"nic":7,"lat":41.9,"lon":-87.7,"seen_pos":0.8,"seen":0.5,"dbFlags":8}
+]}

@@ -272,6 +272,11 @@
         "version": "1.3.0",
         "date": "2026-10-13",
         "note": "061: getChannelInteractiveStatus is implemented; Channel.interactive is returned for telegram and matrix channels; NotificationSettings.chatops.enabled is stored (global kill switch). InteractiveChatConfig and AllowedChat gain descriptions, askRateLimitPerHour and commandRateLimit gain maximum 100000, AllowedChat.name gains maxLength 200. AuditEvent.actorKind gains `chat` (chat commands are audited with the chat principal)."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-13",
+        "note": "062: no operation changes. SourceDescriptor.egress is described as enforced (opensky-states LOCAL_ONLY, adsb.lol OPEN); Record.title falls back to the aircraft registration (r) and ICAO address (hex) after title, name, callsign and place. New sources adsblol-mil, adsblol-area-1..3 and opensky-states (kind aircraft)."
       }
     ]
   },
@@ -86996,7 +87001,7 @@
               "LOCAL_ONLY"
             ],
             "default": "OPEN",
-            "description": "LOCAL_ONLY: served to this instance's own API clients and notifications, never re-served by sinks (110), federation (113), share links or feed keys (112) or off-box exports (062). MLAT positions are never redistributable regardless (069)."
+            "description": "LOCAL_ONLY: served to this instance's own API clients (reads, tiles, SSE, MCP, an export to the caller) and notifications, never re-served by sinks (110), federation (113), share links (112) or feeds and feed keys; off-box archive exports (111) refuse it too. Set by the upstream's terms: opensky-states is LOCAL_ONLY (062), the ODbL adsb.lol sources are OPEN. MLAT positions are never redistributable regardless (069)."
           },
           "egressOverridable": {
             "type": "boolean",
@@ -88096,7 +88101,7 @@
               "string",
               "null"
             ],
-            "description": "record_head.title (titleField, else title > name > callsign > place)"
+            "description": "record_head.title (titleField, else title > name > callsign > place > r > hex)"
           },
           "persistedObservedAt": {
             "type": "string",

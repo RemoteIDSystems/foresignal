@@ -24,6 +24,9 @@ import org.slf4j.LoggerFactory;
  * <ol>
  *   <li>not enabled → {@code disabled}
  *   <li>no attempt yet → {@code idle}
+ *   <li>the last failure was a refusal of this client (HTTP 451, or 403 from a source with
+ *       {@code accessDeniedIsTerminal}; prompt 062) → {@code failing}, with
+ *       {@link UpstreamAccessDeniedException#reason(int)}
  *   <li>in backoff, or ≥ {@value #FAILING_CONSECUTIVE_FAILURES} consecutive failures → {@code failing}
  *   <li>the last run failed (1–2 consecutive failures) → {@code degraded}
  *   <li>coverage dropped by ≥ 50% against the median of the ring → {@code degraded}
@@ -103,6 +106,13 @@ public final class HealthEvaluator {
             return HealthAssessment.of(HealthStatus.IDLE, REASON_IDLE);
         }
 
+        // 3. The upstream refused this client (prompt 062: HTTP 451, or 403 with accessDeniedIsTerminal).
+        //    Failing from the first refusal until a fetch succeeds, with the reason that points the
+        //    operator at the Operator Guide; the one-hour backoff keeps retries hourly.
+        if (h.consecutiveFailures() > 0 && isAccessDenied(h)) {
+            return HealthAssessment.of(HealthStatus.FAILING, UpstreamAccessDeniedException.reason(h.lastHttpStatus()));
+        }
+
         // 3. Backoff, or too many failures in a row.
         if (in.backoffUntil() != null && in.backoffUntil().isAfter(in.now())) {
             return HealthAssessment.of(
@@ -179,6 +189,14 @@ public final class HealthEvaluator {
             }
         }
         return new HealthAssessment(status, reason, newestFrameAt);
+    }
+
+    /** True when the last failure was an {@link UpstreamAccessDeniedException} (prompt 062). */
+    static boolean isAccessDenied(HealthSnapshot h) {
+        return h.lastHttpStatus() != null
+                && (h.lastHttpStatus() == 451 || h.lastHttpStatus() == 403)
+                && h.lastError() != null
+                && h.lastError().contains(UpstreamAccessDeniedException.REASON_PREFIX);
     }
 
     // ---------- silent-break rules ----------

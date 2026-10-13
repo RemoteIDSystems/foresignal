@@ -6,7 +6,7 @@ Authorities: Architecture §4.2 (adapter rules 1–6), Core-Data-Model §2–§5
 
 ## 1. Package layout
 
-One package per upstream under `ai.foresignal.source.adapters`, with no imports between adapter packages. Shared format parsers (readsb JSON, CAP 1.2, AIVDM, GeoJSON, KISS/AX.25) live under `ai.foresignal.source.formats.*`.
+One package per upstream under `ai.foresignal.source.adapters`, with no imports between adapter packages. Shared format parsers (readsb JSON, CAP 1.2, AIVDM, GeoJSON, KISS/AX.25) live under `ai.foresignal.source.formats.*`. Shared format code lives there, **not** under `adapters`, so any adapter may import it without breaking the no-cross-adapter rule: the readsb mapper and the aircraft descriptor defaults (`formats.readsb`, prompt 062) are used by `adsblol`, `opensky` and the local receivers (069), exactly as `formats.cap` is used by every CAP source. Code that only one adapter uses stays in that adapter's package.
 
 ```
 source/adapters/usgs/
@@ -100,7 +100,8 @@ How the USGS mapping plays out in the writer: a revision changes `mag`, `status`
 **Geometry is always 2D.** Never put a Z coordinate in a geometry. Vertical quantities live in payload fields declared in `fieldSpecs` with a UCUM unit and a `datum`: `MSL`, `WGS84`, `AGL`, `PRESSURE`, or free text when none fits.
 
 - New altitude and elevation fields use meters (`m`).
-- An upstream field kept verbatim in its domain-standard unit declares that unit: readsb `alt_baro` is `[ft_i]` with datum `PRESSURE`; USGS `depth` is `km` with datum "network-dependent reference, positive down".
+- An upstream field kept verbatim in its domain-standard unit declares that unit: USGS `depth` is `km` with datum "network-dependent reference, positive down".
+- The aircraft sources (prompt 062) convert to meters instead, so readsb and OpenSky share one payload: `alt_baro` is `m` (feet × 0.3048, rounded to 1 m) with datum "pressure altitude (1013.25 hPa)", and `alt_geom` is `m` with datum "WGS84 ellipsoid".
 - `DescriptorValidator` accepts a `datum` only on NUMBER or INTEGER fields in a UCUM length unit.
 
 USGS reads `coordinates[2]` into the payload key `depth` and builds the geometry from `coordinates[0..1]` only. A feature with two coordinates simply has no `depth`.
@@ -306,3 +307,27 @@ database rows. Put the label point in the record's geometry and set `geometryApp
 the payload, so clients and rules know it is not a measured position. No adapter of prompts 068 (IODA),
 076 (abuse.ch) or 090 (UNHCR, advisories) exists yet; when they are built they use this table.
 
+## 15. Aircraft sources and the shared readsb mapper (prompt 062)
+
+The global aircraft sources are the first TRACK sources on the v1.2 pipeline. Reuse their pieces rather than
+re-deriving them (prompts 069 and 080):
+
+- **`ReadsbDocument.parse(bytes)`** reads the top level of an adsb.lol (`ac`) or local readsb (`aircraft`) response;
+  `now` is seconds, or milliseconds when above 1e11 (adsb.lol sends milliseconds).
+- **`ReadsbAircraftMapper.map(entry, now, MapperOptions)`** turns one entry into one record: `externalId` = `hex`
+  lower-cased with any leading `~`, `observedAt = now − seen` always, geometry from `lat`/`lon`, else `lastPosition`
+  (flagged in `quality.extra`), else null (TRACK carry-forward). The payload is the allowlist of `AircraftFields` in
+  meters, knots, degrees and m/s, with `posSource`, `navDegraded` and the `dbFlags` bits; counters such as `messages`,
+  `rssi` and `seen` are left out.
+- **`AircraftDescriptors.global(builder[, ttl])`** applies TRACK, `ttlAnchor` OBSERVED, `observedAtMode` UPSTREAM, the
+  §5.3 SAMPLED policy, significant fields, thresholds (`alt_baro` 300 m, `track` 20°), motion, tiles, search, title,
+  entity keys, `aggBelowZoom` 7 and the `fieldSpecs` of every key. The default TTL is 6 minutes (Conventions);
+  `opensky-states` passes 15.
+- An upstream that answers **451**, or **403** with `accessDeniedIsTerminal(true)` on the descriptor, is a refusal of the
+  client: `UpstreamClient` sets a one-hour backoff and throws `UpstreamAccessDeniedException`, and health shows
+  `failing`. `defaultRetryAfter(Duration)` sets the backoff after a 429 without `Retry-After`. Both are internal
+  descriptor fields, not in the OpenAPI.
+- An adapter that checks an upstream's own quota before a request throws **`UpstreamQuotaDeferredException(retryAt)`**
+  (SPI): the fetch is a `REFUSED` row and a refusal for health, never a failure.
+- A rule that spans credential fields goes in `SourceAdapter.checkCredentials` (for example "clientId and clientSecret
+  together"); one that spans parameters goes in `checkParams`.

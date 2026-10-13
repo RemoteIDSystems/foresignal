@@ -86,6 +86,85 @@ until you store them with `PUT /v1/sources/{id}/credentials`.
 | What did each fetch do? | `GET /v1/sources/{id}/fetches` (below) |
 | What does the upstream send right now? | `POST /v1/sources/{id}/probe` (a diagnostic fetch that never ingests) |
 
+### Aircraft sources
+
+Prompt 062 adds the global aircraft sources, all disabled until you enable them:
+
+| Source | What it covers | Default interval · budget |
+|---|---|---|
+| `adsblol-mil` | Aircraft flagged military in adsb.lol's database, worldwide | 30 s · 4/min, 3,000/day |
+| `adsblol-area-1`, `-2`, `-3` | Every aircraft within `radiusNm` (≤ 250 nm, default 250) of a point you set | 60 s · 2/min, 1,500/day each |
+| `opensky-states` | Worldwide civil aircraft from the OpenSky Network | 300 s · 2/min, 1,500/day |
+
+There is no worldwide adsb.lol source: the adsb.lol API documents a 250 nm limit, so worldwide civil coverage comes from
+OpenSky. Set an area slot's center before enabling it:
+
+```json
+PUT /v1/sources/adsblol-area-1
+{"enabled": true, "params": {"lat": 41.98, "lon": -87.90, "radiusNm": 250}}
+```
+
+All five are TRACK sources: positions are sampled (a version when an aircraft deviates 1 km from its dead-reckoned
+track, turns 20° or changes altitude by 300 m, and at least every 240 s), and a callsign, registration, type, squawk,
+emergency, ground state or navigation-quality change is always kept. An aircraft that stops reporting expires after its
+TTL (6 minutes for adsb.lol, 15 for OpenSky). With those TTLs the 240 s keyframe stays valid for intervals up to 90 s
+(adsb.lol) and 630 s (OpenSky); if you poll more slowly, also shorten the keyframe in the source's `ingestPolicy`.
+
+### adsb.lol access
+
+adsb.lol is a community network; its API is free. Its terms (the description in `https://api.adsb.lol/api/openapi.json`
+and `https://github.com/adsblol/api`) say: "In the future, you will require an API key which you can get by feeding to
+adsb.lol." Feeding (running a receiver that sends data to adsb.lol) is the supported route to continued access, and it
+also gives access to adsb.lol's re-api and raw aggregated data. The data is ODbL: share-alike, with attribution
+("adsb.lol").
+
+Foresignal identifies itself on every request (`Foresignal/<version> (+https://foresignal.ai; install=<id>)`), honors
+`Retry-After` and waits 30 s after a 429 that has none. If adsb.lol answers **HTTP 451**, or **403**, Foresignal treats it as
+a refusal of this installation:
+
+- the source goes into a **one-hour backoff** and is retried hourly, never faster;
+- `GET /v1/sources/{id}/health` shows `failing` with the reason "upstream refused this client (HTTP 451); see Operator
+  Guide → adsb.lol access";
+- Foresignal never changes its User-Agent to look like a browser, adds browser headers or switches to another address to
+  get past the refusal.
+
+What to do: feed adsb.lol, or ask its maintainer (contact details in the API repository). When a key scheme is published,
+a later Foresignal release adds an optional `apiKey` credential; until then these sources take no credentials. An HTTP 200
+whose body is HTML rather than JSON is also treated as throttling: the fetch fails with "non-JSON 200, treated as
+throttling" and nothing is ingested.
+
+### OpenSky credentials and credits
+
+`opensky-states` runs anonymously unless you store API client credentials. Create an API client on your OpenSky account
+page and store both values together (one without the other is refused with `400`):
+
+```json
+PUT /v1/sources/opensky-states/credentials
+{"clientId": "…", "clientSecret": "…"}
+```
+
+Foresignal exchanges them for an OAuth2 token (valid 30 minutes, reused and refreshed a minute early) and never sends
+basic authentication, which OpenSky no longer accepts. A refused client id or secret shows as failing with "OpenSky refused
+the client credentials".
+
+OpenSky meters `/states/all` in **credits**: 400 a day anonymous, 4,000 for a standard account, 8,000 for an active feeder
+and 14,400 for a licensed account (refilled hourly, per OpenSky's documentation). One call costs 1 to 4 credits by the area
+of the `bbox` parameter (≤ 25 sq° 1, ≤ 100 2, ≤ 400 3, larger or the whole world 4). So:
+
+- a standard account polling the world can go down to the 90 s floor (`86,400 / (4,000 / 4)` ≈ 86 s);
+- **anonymous world polling needs an interval of at least 900 s** (400 / 4 = 100 calls a day); a small `bbox`, such as
+  `"bbox": "5,45,10,48"` (1 credit), allows more.
+
+After every response Foresignal stores OpenSky's `X-Rate-Limit-Remaining`. When today's balance (UTC day) would drop below
+the call's cost plus `creditReserve` (a parameter, default 40), the fetch is not sent: the fetch log shows a `REFUSED` row
+("upstream quota deferred", with the retry time, the next UTC midnight) and health shows `degraded`, not `failing`. A 429
+with `X-Rate-Limit-Retry-After-Seconds` puts the source in backoff for that long.
+
+OpenSky's data is for non-commercial research under its terms (`https://opensky-network.org/about/terms-of-use`; read
+them yourself, the page does not answer automated requests). The source is `egress: LOCAL_ONLY`: its records are served to
+your own API clients, tiles, streams and notifications, but never re-served by sinks, federation, share links or feeds.
+Credit OpenSky as its descriptor's `attribution` asks (Schäfer et al., IPSN 2014).
+
 ### History tiers
 
 Each source's descriptor fixes its `historyTier`:

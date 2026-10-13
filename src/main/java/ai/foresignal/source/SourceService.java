@@ -621,6 +621,14 @@ public class SourceService implements ApplicationRunner {
                 errors.add(new FieldError("values." + field.name(), "is required"));
             }
         }
+        if (errors.isEmpty()) {
+            // Prompt 062: rules that span fields, such as a client id that needs its secret.
+            registry.find(id)
+                    .flatMap(SourceRegistry.Registration::adapterIfPresent)
+                    .map(adapter -> adapter.checkCredentials(Map.copyOf(supplied)))
+                    .orElseGet(Map::of)
+                    .forEach((name, problem) -> errors.add(new FieldError("values." + name, problem)));
+        }
         if (!errors.isEmpty()) {
             throw new ValidationException("The credentials for " + id + " are not valid.", errors);
         }
