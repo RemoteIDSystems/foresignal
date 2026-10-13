@@ -615,6 +615,11 @@ cannot express (a feed item mapper covers structured text inside feed items, see
   (`updated|published|RECEIVED`), `interval` (15 min, at least 5 min), `budget`, `license` (the descriptor's `licence`), `termsUrl`, `attribution`,
   `homepage`, and optionally `itemMapper` (a reviewed `FeedItemMapper` registered in `FeedItemMappers`; prompt 075
   adds InciWeb's) and `websub`.
+- **Kit pieces in hand-written adapters** (prompt 075): a source whose mapping a spec cannot express (a custom id,
+  rounding, a volatile field, several layers, its own source id) calls the kit clients (`ArcGisQueryClient`,
+  `WfsJsonClient`), `FeatureGeometry`, `FeedParser` and `FeedRecords` from an adapter of its own, as `nifc-perimeters`,
+  `cwfis-*`, `nhc-cyclone-cones` and `inciweb-incidents` do. A client that keeps state (`ArcGisQueryClient`'s
+  `arcgis:meta`) and runs several times per fetch gets a `ScopedFetchContext` per run so the states stay apart.
 - **Validator rules** (`FeatureSpecValidator`, `FeedSpecValidator`, run by `KitSpecs` at startup): https URLs without
   user info or credential-looking query parameters (a key belongs in `credential {name, placement query|header, param}`,
   entered at runtime and redacted); id pattern, length and uniqueness across both kits (the registry adds the check

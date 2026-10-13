@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss xmlns:dc="http://purl.org/dc/elements/1.1/" version="2.0" xml:base="http://inciweb.wildfire.gov/">
+  <channel>
+    <title>InciWeb</title>
+    <link>http://inciweb.wildfire.gov/</link>
+    <description>Hand-made edge cases (prompt 075)</description>
+    <item>
+      <title>AKFAS Alaska Test Fire</title>
+      <link>https://inciweb.wildfire.gov/incident-information/akfas-alaska-test-fire</link>
+      <description>Last updated: 2026-10-12
+
+---
+
+The type of incident is Wildfire and involves the following unit(s) Alaska Fire Service.
+
+---
+
+State: Alaska
+
+---
+
+Incident Overview: No coordinates are published for this incident.</description>
+      <pubDate>Mon, 12 Oct 2026 08:00:00 -0800</pubDate>
+      <guid isPermaLink="false">900001</guid>
+    </item>
+    <item>
+      <title>AKFAS Fairbanks Test Fire</title>
+      <link>https://inciweb.wildfire.gov/incident-information/akfas-fairbanks-test-fire</link>
+      <description>Last updated: 2026-10-12 --- The type of incident is Wildfire and involves the following unit(s) Alaska Fire Service. --- State: Alaska --- Coordinates: Latitude: 64° 50 24  Longitude: 147° 43 12 --- Incident Overview: Inside the Alaska box.</description>
+      <pubDate>Mon, 12 Oct 2026 16:00:00 GMT</pubDate>
+      <guid isPermaLink="false">900002</guid>
+    </item>
+    <item>
+      <title>Smith Fire</title>
+      <link>https://inciweb.wildfire.gov/incident-information/smith-fire</link>
+      <description>Last updated: 2026-10-11 --- State: Oregon --- Coordinates: Latitude: 51° 30 0  Longitude: 0° 7 30 --- Incident Overview: The position falls outside the US envelope.</description>
+      <pubDate>Sun, 11 Oct 2026 16:00:00 GMT</pubDate>
+      <guid isPermaLink="false">900003</guid>
+    </item>
+    <item>
+      <title>GUGUF Guam Test Fire</title>
+      <link>https://inciweb.wildfire.gov/incident-information/guguf-guam-test-fire</link>
+      <description>Last updated: 2026-10-10 --- State: Guam --- Coordinates: Latitude: 13° 28 0  Longitude: 144° 47 0 --- Incident Overview: East of 180 degrees.</description>
+      <pubDate>Sat, 10 Oct 2026 16:00:00 GMT</pubDate>
+      <guid isPermaLink="false">900004</guid>
+    </item>
+    <item>
+      <title>MTBDF Bad Seconds Fire</title>
+      <link>https://inciweb.wildfire.gov/incident-information/mtbdf-bad-seconds-fire</link>
+      <description>Last updated: 2026-10-09 --- State: Montana --- Coordinates: Latitude: 46° 49 76  Longitude: 113° 55 73 --- Incident Overview: Seconds of 60 or more are refused.</description>
+      <pubDate>Fri, 09 Oct 2026 16:00:00 GMT</pubDate>
+      <guid isPermaLink="false">900005</guid>
+    </item>
+  </channel>
+</rss>

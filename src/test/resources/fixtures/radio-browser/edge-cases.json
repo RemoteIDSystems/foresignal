@@ -1,0 +1,68 @@
+[
+  {
+    "changeuuid": "00000000-0000-4000-8000-000000000001",
+    "stationuuid": "11111111-2222-4333-8444-555555555555",
+    "serveruuid": null,
+    "name": "\t\tTab Prefixed   Station\t",
+    "url": "http://stream.example.org/live",
+    "url_resolved": "http://stream.example.org/live.mp3",
+    "homepage": "javascript:alert(1)",
+    "favicon": "https://user:pass@example.org/icon.png",
+    "tags": "news, talk,news, , weather,a,b,c,d,e,f,g,h,i,j,k,l,m",
+    "country": "Nowhere",
+    "countrycode": "zz",
+    "iso_3166_2": "",
+    "state": "  ",
+    "language": "english,spanish",
+    "languagecodes": "en,es",
+    "votes": 12,
+    "lastchangetime": "2026-10-01 10:00:00",
+    "lastchangetime_iso8601": "2026-10-01T10:00:00Z",
+    "codec": "MP3",
+    "bitrate": 0,
+    "hls": 1,
+    "lastcheckok": 0,
+    "lastchecktime": "2026-10-12 04:04:33",
+    "lastchecktime_iso8601": "2026-10-12T04:04:33Z",
+    "lastcheckoktime": "2026-10-10 04:04:33",
+    "lastcheckoktime_iso8601": "2026-10-10T04:04:33Z",
+    "lastlocalchecktime": "2026-10-12 04:04:33",
+    "lastlocalchecktime_iso8601": "2026-10-12T04:04:33Z",
+    "clicktimestamp": "2026-10-13 19:29:23",
+    "clicktimestamp_iso8601": "2026-10-13T19:29:23Z",
+    "clickcount": 70,
+    "clicktrend": 3,
+    "ssl_error": 0,
+    "geo_lat": 0,
+    "geo_long": 0,
+    "geo_distance": null,
+    "has_extended_info": false
+  },
+  {
+    "stationuuid": "not-a-uuid",
+    "name": "Bad id",
+    "lastchangetime_iso8601": "2026-10-01T10:00:00Z",
+    "geo_lat": 10,
+    "geo_long": 10
+  },
+  {
+    "stationuuid": "22222222-3333-4444-8555-666666666666",
+    "name": "No change time",
+    "geo_lat": 10,
+    "geo_long": 10
+  },
+  {
+    "stationuuid": "33333333-4444-4555-8666-777777777777",
+    "name": "Out of range",
+    "lastchangetime_iso8601": "2026-10-01T10:00:00Z",
+    "geo_lat": 95.5,
+    "geo_long": 10
+  },
+  {
+    "stationuuid": "11111111-2222-4333-8444-555555555555",
+    "name": "Repeated id",
+    "lastchangetime_iso8601": "2026-10-02T10:00:00Z",
+    "geo_lat": 1,
+    "geo_long": 1
+  }
+]

@@ -1,0 +1,69 @@
+{
+ "currentVersion": 11.3,
+ "id": 6,
+ "name": "Forecast Track",
+ "type": "Feature Layer",
+ "geometryType": "esriGeometryPolyline",
+ "maxRecordCount": 2000,
+ "advancedQueryCapabilities": {
+  "supportsPagination": true
+ },
+ "fields": [
+  {
+   "name": "objectid",
+   "type": "esriFieldTypeOID"
+  },
+  {
+   "name": "stormname",
+   "type": "esriFieldTypeString"
+  },
+  {
+   "name": "stormtype",
+   "type": "esriFieldTypeString"
+  },
+  {
+   "name": "basin",
+   "type": "esriFieldTypeString"
+  },
+  {
+   "name": "advdate",
+   "type": "esriFieldTypeString"
+  },
+  {
+   "name": "advisnum",
+   "type": "esriFieldTypeString"
+  },
+  {
+   "name": "fcstprd",
+   "type": "esriFieldTypeDouble"
+  },
+  {
+   "name": "stormnum",
+   "type": "esriFieldTypeDouble"
+  },
+  {
+   "name": "idp_source",
+   "type": "esriFieldTypeString"
+  },
+  {
+   "name": "idp_filedate",
+   "type": "esriFieldTypeDate"
+  },
+  {
+   "name": "idp_ingestdate",
+   "type": "esriFieldTypeDate"
+  },
+  {
+   "name": "shape",
+   "type": "esriFieldTypeGeometry"
+  },
+  {
+   "name": "st_length(shape)",
+   "type": "esriFieldTypeDouble"
+  },
+  {
+   "name": "binnumber",
+   "type": "esriFieldTypeString"
+  }
+ ]
+}

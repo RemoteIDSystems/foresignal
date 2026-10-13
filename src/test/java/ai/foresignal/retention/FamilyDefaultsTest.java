@@ -154,6 +154,24 @@ class FamilyDefaultsTest {
             Map.entry("NdwSituationsAdapter", new Entry(new ai.foresignal.source.adapters.roads.NdwSituationsAdapter(
                     ai.foresignal.source.adapters.roads.NdwSituationsAdapter.FEEDS.getFirst(), null).descriptor(),
                     "event")),
+            // Prompt 075: fire perimeters and incidents and cyclone geometry are the event class (1825 d); one
+            // CwfisAdapter class serves three sources and is checked through cwfis-perimeters (event). cwfis-hotspots
+            // keeps fire-detection's 7 d (§2.4, as goes-fdc and nasa-firms) and cwfis-fwi-stations the state class
+            // (365 d); both are asserted in CwfisAdapterTest. The station directory is reference data (90 d).
+            Map.entry("NifcPerimetersAdapter", new Entry(new ai.foresignal.source.adapters.fire.NifcPerimetersAdapter(
+                    "", (java.util.function.Supplier<io.micrometer.core.instrument.MeterRegistry>) null).descriptor(),
+                    "event")),
+            Map.entry("InciwebIncidentsAdapter", new Entry(new ai.foresignal.source.adapters.fire.InciwebIncidentsAdapter(
+                    "", (java.util.function.Supplier<io.micrometer.core.instrument.MeterRegistry>) null).descriptor(),
+                    "event")),
+            Map.entry("CwfisAdapter", new Entry(new ai.foresignal.source.adapters.fire.CwfisAdapter(
+                    ai.foresignal.source.adapters.fire.CwfisLayer.reviewed("cwfis-perimeters"), "", null).descriptor(),
+                    "event")),
+            Map.entry("RadioBrowserAdapter", new Entry(new ai.foresignal.source.adapters.radio.RadioBrowserAdapter(
+                    "", new java.util.Random(1), null).descriptor(), "reference")),
+            Map.entry("NhcCycloneConesAdapter", new Entry(new ai.foresignal.source.adapters.nhc.NhcCycloneConesAdapter(
+                    "", (java.util.function.Supplier<io.micrometer.core.instrument.MeterRegistry>) null).descriptor(),
+                    "event")),
             // Prompt 052: the derived weather sources, retained per Weather-Imagery-Design §2.4.
             Map.entry("WxPlacesGenerator", new Entry(
                     new ai.foresignal.source.adapters.wx.WxPlacesGenerator().descriptor(), "weather")),

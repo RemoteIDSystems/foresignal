@@ -1,0 +1,133 @@
+{
+ "currentVersion": 11.3,
+ "id": 5,
+ "name": "Forecast Points",
+ "type": "Feature Layer",
+ "geometryType": "esriGeometryPoint",
+ "maxRecordCount": 2000,
+ "advancedQueryCapabilities": {
+  "supportsPagination": true
+ },
+ "fields": [
+  {
+   "name": "objectid",
+   "type": "esriFieldTypeOID"
+  },
+  {
+   "name": "stormname",
+   "type": "esriFieldTypeString"
+  },
+  {
+   "name": "stormtype",
+   "type": "esriFieldTypeString"
+  },
+  {
+   "name": "dvlbl",
+   "type": "esriFieldTypeString"
+  },
+  {
+   "name": "basin",
+   "type": "esriFieldTypeString"
+  },
+  {
+   "name": "advdate",
+   "type": "esriFieldTypeString"
+  },
+  {
+   "name": "advisnum",
+   "type": "esriFieldTypeString"
+  },
+  {
+   "name": "fcstprd",
+   "type": "esriFieldTypeDouble"
+  },
+  {
+   "name": "gust",
+   "type": "esriFieldTypeDouble"
+  },
+  {
+   "name": "maxwind",
+   "type": "esriFieldTypeDouble"
+  },
+  {
+   "name": "mslp",
+   "type": "esriFieldTypeDouble"
+  },
+  {
+   "name": "ssnum",
+   "type": "esriFieldTypeDouble"
+  },
+  {
+   "name": "datelbl",
+   "type": "esriFieldTypeString"
+  },
+  {
+   "name": "tcdvlp",
+   "type": "esriFieldTypeString"
+  },
+  {
+   "name": "tcdir",
+   "type": "esriFieldTypeDouble"
+  },
+  {
+   "name": "tcspd",
+   "type": "esriFieldTypeDouble"
+  },
+  {
+   "name": "fldatelbl",
+   "type": "esriFieldTypeString"
+  },
+  {
+   "name": "lat",
+   "type": "esriFieldTypeDouble"
+  },
+  {
+   "name": "lon",
+   "type": "esriFieldTypeDouble"
+  },
+  {
+   "name": "stormnum",
+   "type": "esriFieldTypeDouble"
+  },
+  {
+   "name": "stormsrc",
+   "type": "esriFieldTypeString"
+  },
+  {
+   "name": "timezone",
+   "type": "esriFieldTypeString"
+  },
+  {
+   "name": "validtime",
+   "type": "esriFieldTypeString"
+  },
+  {
+   "name": "tau",
+   "type": "esriFieldTypeDouble"
+  },
+  {
+   "name": "idp_source",
+   "type": "esriFieldTypeString"
+  },
+  {
+   "name": "idp_subset",
+   "type": "esriFieldTypeString"
+  },
+  {
+   "name": "idp_filedate",
+   "type": "esriFieldTypeDate"
+  },
+  {
+   "name": "idp_ingestdate",
+   "type": "esriFieldTypeDate"
+  },
+  {
+   "name": "shape",
+   "type": "esriFieldTypeGeometry"
+  },
+  {
+   "name": "binnumber",
+   "type": "esriFieldTypeString"
+  }
+ ]
+}

@@ -59,7 +59,7 @@ SOFTWARE.
 
 ### Ported files
 
-Ported from God's Eye View commit `591f299d11f38a612629a274463196d57ae3862e` (prompts 051, 062, 063, 064, 065, 067, 069, 070, 071 and 072). Each
+Ported from God's Eye View commit `591f299d11f38a612629a274463196d57ae3862e` (prompts 051, 062, 063, 064, 065, 067, 069, 070, 071, 072 and 075). Each
 file carries an origin header naming its source file and this notice.
 
 | Foresignal file | GEV origin file |
@@ -103,6 +103,16 @@ file carries an origin header naming its source file and this notice.
 | `src/main/java/ai/foresignal/source/adapters/cctv/Compass.java` (direction words and abbreviations, prompt 072) | `src/data/directionText.js` (`directionToHeading`) and `server/providers/cctv/sources.js` (`DRIVEBC_ORIENTATION_HEADINGS`) |
 | `src/main/java/ai/foresignal/source/adapters/cctv/CctvPackAdapter.java` (redirects refused, the OGC `rel=next` paging, the two DATEX documents, prompt 072) | `server/providers/cctv/sources.js` and `server/providers/cctv/catalog.js` |
 | `src/main/resources/cctv/packs/tallinn.json` and `warendorf.json` (copied unchanged; sibling `NOTICE`, prompt 072) | `config/cctv_sources.tallinn.json` and `config/cctv_sources.warendorf.json` |
+| `src/main/java/ai/foresignal/source/adapters/fire/NifcPerimeterMapper.java` (the WFIGS perimeter field list and per-feature normalization, prompt 075) | `server/providers/firePerimeters.js` (the query's `outFields`, `maxAllowableOffset`) and `src/layers/perimeters/records.js` (`normalizeFirePerimeterSnapshot`) |
+| `src/main/java/ai/foresignal/source/adapters/radio/RadioMirrors.java` (the mirror host pattern, discovery with the 6 h cache, the fallback mirrors, prompt 075) | `server/providers/radio/transport.js` (`radioMirrorOrigin`), `server/providers/radio/catalog.js` (`mirrors`, `fetchPath`) and `server/providers/radio/constants.js` (`RADIO_FALLBACK_MIRRORS`, `RADIO_MIRROR_CACHE_MS`) |
+| `src/main/java/ai/foresignal/source/adapters/radio/RadioBrowserParser.java` (text cleaning, the station UUID pattern, station normalization, prompt 075) | `src/sources/radioBrowser.js` (`cleanRadioText`, `RADIO_UUID_RE`, `normalizeRadioBrowserStation`) |
+| `src/main/java/ai/foresignal/source/adapters/nhc/NhcConeMapper.java` (the storm id read from `idp_source`, prompt 075) | `server/providers/cyclones.js` (the `idp_source` pattern of the forecast-layer parser) |
+
+Not ported (prompt 075): GEV's InciWeb routes (`fetchIndex`, the `POST /api/single-publication/` index, and
+`fetchPublication`, which scrapes incident pages; `server/providers/firePerimeters.js` and
+`src/layers/perimeters/inciweb.js`), the radio stream proxy and address pinning (`server/providers/radio/transport.js`
+apart from `radioMirrorOrigin`; Foresignal never fetches a stream) and the radio catalog's tag queries and
+click-count ordering.
 
 Not ported from `server/providers/cctv/` (prompt 072): the frame proxy and stream relay (`media.js`, `stream.js`,
 `range.js`), ground heights (`groundHeights.js`), the catalog cap and round-robin (`cap.js`), distance

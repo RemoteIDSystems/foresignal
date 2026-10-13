@@ -1,0 +1,73 @@
+{
+ "currentVersion": 11.3,
+ "id": 7,
+ "name": "Forecast Cone",
+ "type": "Feature Layer",
+ "geometryType": "esriGeometryPolygon",
+ "maxRecordCount": 2000,
+ "advancedQueryCapabilities": {
+  "supportsPagination": true
+ },
+ "fields": [
+  {
+   "name": "objectid",
+   "type": "esriFieldTypeOID"
+  },
+  {
+   "name": "stormname",
+   "type": "esriFieldTypeString"
+  },
+  {
+   "name": "stormtype",
+   "type": "esriFieldTypeString"
+  },
+  {
+   "name": "basin",
+   "type": "esriFieldTypeString"
+  },
+  {
+   "name": "advdate",
+   "type": "esriFieldTypeString"
+  },
+  {
+   "name": "advisnum",
+   "type": "esriFieldTypeString"
+  },
+  {
+   "name": "fcstprd",
+   "type": "esriFieldTypeDouble"
+  },
+  {
+   "name": "stormnum",
+   "type": "esriFieldTypeDouble"
+  },
+  {
+   "name": "idp_source",
+   "type": "esriFieldTypeString"
+  },
+  {
+   "name": "idp_filedate",
+   "type": "esriFieldTypeDate"
+  },
+  {
+   "name": "idp_ingestdate",
+   "type": "esriFieldTypeDate"
+  },
+  {
+   "name": "shape",
+   "type": "esriFieldTypeGeometry"
+  },
+  {
+   "name": "st_area(shape)",
+   "type": "esriFieldTypeDouble"
+  },
+  {
+   "name": "st_perimeter(shape)",
+   "type": "esriFieldTypeDouble"
+  },
+  {
+   "name": "binnumber",
+   "type": "esriFieldTypeString"
+  }
+ ]
+}

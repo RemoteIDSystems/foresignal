@@ -1,0 +1,160 @@
+{
+ "type": "FeatureCollection",
+ "numberReturned": 3,
+ "numberMatched": 3,
+ "crs": {
+  "type": "name",
+  "properties": {
+   "name": "urn:ogc:def:crs:EPSG::4326"
+  }
+ },
+ "features": [
+  {
+   "type": "Feature",
+   "id": "hotspots_last24hrs.32445154",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     36.72795105,
+     -119.7802887
+    ]
+   },
+   "geometry_name": "geometry",
+   "properties": {
+    "lat": 36.72795,
+    "lon": -119.78029,
+    "rep_date": "2026-10-12T21:24:00Z",
+    "source": "NASA_w",
+    "sensor": "VIIRS-I",
+    "satellite": "NOAA-21",
+    "agency": "CA",
+    "temp": null,
+    "rh": null,
+    "ws": null,
+    "wd": null,
+    "pcp": null,
+    "ffmc": 91.69871,
+    "dmc": 791.41077,
+    "dc": 1489.7445,
+    "isi": 9.748853,
+    "bui": 785.3515,
+    "fwi": 39.31673,
+    "fuel": "non_fuel",
+    "ros": 0,
+    "sfc": 0,
+    "tfc": 0,
+    "bfc": 0,
+    "hfi": 0,
+    "cfb": 0,
+    "age": 9,
+    "pcuring": 95,
+    "greenup": 1,
+    "elev": 77,
+    "ecozone": "11",
+    "sfl": 0,
+    "cfl": 0,
+    "frp": 2.97,
+    "estarea": null,
+    "pconif": 0
+   }
+  },
+  {
+   "type": "Feature",
+   "id": "hotspots_last24hrs.32445155",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     25.68040657,
+     -97.75192261
+    ]
+   },
+   "geometry_name": "geometry",
+   "properties": {
+    "lat": 25.680407,
+    "lon": -97.75192,
+    "rep_date": "2026-10-12T19:35:00Z",
+    "source": "HMS",
+    "sensor": "VIIRS-I",
+    "satellite": "NOAA-21",
+    "agency": "MX",
+    "temp": 33.2,
+    "rh": 63,
+    "ws": 25.5,
+    "wd": 149,
+    "pcp": 0,
+    "ffmc": 88.9,
+    "dmc": 13.4,
+    "dc": 98.9,
+    "isi": 13.3,
+    "bui": 20,
+    "fwi": 17.5,
+    "fuel": null,
+    "ros": 0,
+    "sfc": 0.77067673,
+    "tfc": 0.77067673,
+    "bfc": 0.53078026,
+    "hfi": 0,
+    "cfb": 0,
+    "age": 11,
+    "pcuring": null,
+    "greenup": null,
+    "elev": 13,
+    "ecozone": "9",
+    "sfl": 0.96,
+    "cfl": null,
+    "frp": 5.976,
+    "estarea": null,
+    "pconif": 0
+   }
+  },
+  {
+   "type": "Feature",
+   "id": "hotspots_last24hrs.32445156",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     30.22476959,
+     -94.61016846
+    ]
+   },
+   "geometry_name": "geometry",
+   "properties": {
+    "lat": 30.22477,
+    "lon": -94.61017,
+    "rep_date": "2026-10-12T19:40:00Z",
+    "source": "HMS",
+    "sensor": "VIIRS-I",
+    "satellite": "NOAA-21",
+    "agency": "TX",
+    "temp": null,
+    "rh": null,
+    "ws": null,
+    "wd": null,
+    "pcp": null,
+    "ffmc": 89.06893,
+    "dmc": 16.778704,
+    "dc": 175.84933,
+    "isi": 7.456131,
+    "bui": 27.09437,
+    "fwi": 13.029827,
+    "fuel": "O1b",
+    "ros": 0.48297447,
+    "sfc": 1.6382381,
+    "tfc": 1.6382381,
+    "bfc": 1.6382381,
+    "hfi": 237,
+    "cfb": 0,
+    "age": 10,
+    "pcuring": 30,
+    "greenup": 1,
+    "elev": 23,
+    "ecozone": "8",
+    "sfl": 2.2677395,
+    "cfl": 0.27858123,
+    "frp": 4.904,
+    "estarea": null,
+    "pconif": 0
+   }
+  }
+ ]
+}

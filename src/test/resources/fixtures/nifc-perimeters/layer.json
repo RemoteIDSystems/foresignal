@@ -1,0 +1,87 @@
+{
+ "currentVersion": 12,
+ "id": 0,
+ "name": "Perimeters",
+ "type": "Feature Layer",
+ "geometryType": "esriGeometryPolygon",
+ "objectIdField": "OBJECTID",
+ "maxRecordCount": 2000,
+ "editingInfo": {
+  "lastEditDate": 1791919634361,
+  "schemaLastEditDate": 1791919371598,
+  "dataLastEditDate": 1791919634361
+ },
+ "advancedQueryCapabilities": {
+  "supportsPagination": true
+ },
+ "fields": [
+  {
+   "name": "OBJECTID",
+   "type": "esriFieldTypeOID"
+  },
+  {
+   "name": "poly_IncidentName",
+   "type": "esriFieldTypeString"
+  },
+  {
+   "name": "poly_GISAcres",
+   "type": "esriFieldTypeDouble"
+  },
+  {
+   "name": "poly_DateCurrent",
+   "type": "esriFieldTypeDate"
+  },
+  {
+   "name": "attr_IncidentSize",
+   "type": "esriFieldTypeDouble"
+  },
+  {
+   "name": "attr_FireBehaviorGeneral",
+   "type": "esriFieldTypeString"
+  },
+  {
+   "name": "attr_FireCause",
+   "type": "esriFieldTypeString"
+  },
+  {
+   "name": "attr_FireDiscoveryDateTime",
+   "type": "esriFieldTypeDate"
+  },
+  {
+   "name": "attr_IncidentTypeCategory",
+   "type": "esriFieldTypeString"
+  },
+  {
+   "name": "attr_IrwinID",
+   "type": "esriFieldTypeString"
+  },
+  {
+   "name": "attr_PercentContained",
+   "type": "esriFieldTypeDouble"
+  },
+  {
+   "name": "attr_POOCounty",
+   "type": "esriFieldTypeString"
+  },
+  {
+   "name": "attr_POOState",
+   "type": "esriFieldTypeString"
+  },
+  {
+   "name": "attr_TotalIncidentPersonnel",
+   "type": "esriFieldTypeInteger"
+  },
+  {
+   "name": "attr_UniqueFireIdentifier",
+   "type": "esriFieldTypeString"
+  },
+  {
+   "name": "attr_CpxName",
+   "type": "esriFieldTypeString"
+  },
+  {
+   "name": "attr_IncidentComplexityLevel",
+   "type": "esriFieldTypeString"
+  }
+ ]
+}
