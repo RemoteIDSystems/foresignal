@@ -2,6 +2,7 @@ package ai.foresignal.security;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.http.HttpMethod;
@@ -30,13 +31,35 @@ class RasterAccessPolicyTest {
         "/v1/products/gfs/fields/20261010T180000Z~1a2b3c4d.json",
         "/v1/products/gfs/fields/latest.f32",
         "/v1/products/hrrr/vectors/latest/6/14/26.mvt",
-        "/v1/products/timeline"
+        "/v1/products/timeline",
+        // Prompt 052: sampling.
+        "/v1/sample",
+        "/v1/products/mrms-reflectivity/series"
     })
     void readRoutes(String path) {
         assertThat(policy.requirementFor(HttpMethod.GET, path))
                 .isInstanceOfSatisfying(AccessRequirement.RequiresScope.class, r -> {
                     assertThat(r.scope()).isEqualTo(Scope.READ);
                     assertThat(r.alwaysAuthenticated()).isFalse();
+                });
+    }
+
+    @ParameterizedTest(name = "READ: POST {0}")
+    @ValueSource(strings = {"/v1/sample", "/v1/products/mrms-reflectivity/stats"})
+    void samplingPostsAreRead(String path) {
+        assertThat(policy.requirementFor(HttpMethod.POST, path))
+                .isInstanceOfSatisfying(AccessRequirement.RequiresScope.class, r -> {
+                    assertThat(r.scope()).isEqualTo(Scope.READ);
+                    assertThat(r.alwaysAuthenticated()).isFalse();
+                });
+    }
+
+    @Test
+    void placeWeatherIsAlwaysAuthenticated() {
+        assertThat(policy.requirementFor(HttpMethod.GET, "/v1/places/home/weather"))
+                .isInstanceOfSatisfying(AccessRequirement.RequiresScope.class, r -> {
+                    assertThat(r.scope()).isEqualTo(Scope.READ);
+                    assertThat(r.alwaysAuthenticated()).isTrue();
                 });
     }
 

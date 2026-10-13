@@ -38,6 +38,10 @@ import org.springframework.util.AntPathMatcher;
  *
  * <p>Prompt 042 adds {@code GET /v1/products/**} and {@code GET /v1/styles/**} as {@code read}.
  *
+ * <p>Prompt 052 adds sampling as {@code read}: {@code GET} and {@code POST /v1/sample} and
+ * {@code POST /v1/products/{id}/stats} (the series is under {@code GET /v1/products/**}, the place weather under
+ * the always-authenticated {@code GET /v1/places/**}).
+ *
  * <p>Prompt 049 adds {@code GET /v1/ground-stations/**} as {@code read}. Prompt 043 adds
  * {@code GET /v1/media/**} as {@code read}; the news providers of prompt 133 under
  * {@code /v1/media/providers} stay {@code admin}, listed before it.
@@ -265,6 +269,10 @@ public class AccessPolicy {
                 // ---- Raster products and styles (042, Weather-Imagery-Design §6.11): reads ----
                 rule(HttpMethod.GET, "/v1/products", AccessRequirement.READ),
                 rule(HttpMethod.GET, "/v1/products/**", AccessRequirement.READ),
+                // ---- Sampling (052, Weather-Imagery-Design §6.5): reads, the POSTs included ----
+                rule(HttpMethod.GET, "/v1/sample", AccessRequirement.READ),
+                rule(HttpMethod.POST, "/v1/sample", AccessRequirement.READ),
+                rule(HttpMethod.POST, "/v1/products/*/stats", AccessRequirement.READ),
                 rule(HttpMethod.GET, "/v1/styles", AccessRequirement.READ),
                 rule(HttpMethod.GET, "/v1/styles/**", AccessRequirement.READ),
 

@@ -2098,7 +2098,8 @@ PUT /v1/settings/server
 
 None of these sources ever turns a failed fetch into an all-clear: a record is tombstoned only when a
 complete, successful response no longer contains it. When a feed is down its records stay, expire on
-their own, and the source shows `degraded`. Rule recipes are in the Agent Guide, "Weather alerts".
+their own, and the source shows `degraded`. Rule recipes are in the Agent Guide, "Weather alerts", and for the
+derived place weather below, "Weather alerts".
 
 ## Lightning and fire
 
@@ -2123,6 +2124,101 @@ tombstoned and no `exit` rule fires. The source shows `degraded` with "newest in
 the newest processed file is older than 2 minutes (GLM) or 15 minutes (FDC). An unreadable file or a
 missing NetCDF variable also shows `degraded` with the reason, and the file is skipped. Rule recipes are
 in the Agent Guide, "Lightning and fire".
+
+## Weather alerts
+
+Prompt 052 adds three **derived** sources (installed disabled). They make no upstream request: they read
+the frames and records the weather sources already stored, and write a record only when its rounded
+content changes.
+
+| Source | Kind | What a record is |
+|---|---|---|
+| `wx-places` | `place-weather` | one per place (`place:{id}`): radar, hail, rain rate, lightning, storm-cell ETA, smoke and GFS forecast sections, re-evaluated on every MRMS frame and every 60 s |
+| `wx-areas` | `wx-area` | one per configured area (`refl:50:aoi`, `mesh:25:home`): the area above a threshold inside the places AOI or a place, every 6–10 min |
+| `wx-cells` | `radar-cell` | one per tracked storm cell (`c-{ulid}`): maximum reflectivity, area, hail size, GLM flashes and centroid motion |
+
+Enable the inputs you want first (`mrms`, `goes-glm`, `gfs`, `hrrr`), then the derived sources:
+`PUT /v1/sources/wx-places {"enabled": true}` and the same for `wx-cells` (the `cell` section needs it)
+and `wx-areas`. `wx-areas` takes `areas` (a list of `field:threshold:aoi`, field `refl`, `mesh` or `precip`)
+and `interval` (6–10 min); `wx-cells` takes `scope` (`aoi`, or `conus` on the large profile). Each derived
+source shows in `GET /v1/sources/{id}/health` like any other: every invocation (a frame, a change batch, a
+tick) writes one `fetch_log` row with `principal: derived`.
+
+**Unknown is not clear.** Every section has a `status`: `ok`, `stale` (MRMS older than 6 min, GLM older
+than 2 min, model runs older than 12 h), `no-coverage` or `unavailable` (input disabled, failing or never
+seen). A section that is not `ok` keeps its last values and adds `asOf`, the time of the last good data;
+before any good data it carries only its status. "None within 100 km" is `999`, never null. So a stopped
+feed can never look like clear weather, and a derived record is never tombstoned because its input is
+stale; it is tombstoned only when its object disappears (a storm cell no longer present in a processed
+frame) or its place is deleted. **Deleting a place tombstones its `place-weather` record, which fires
+`exit` rules whose condition held** (a tombstone after a matching version is an exit).
+
+**GLM limits.** GLM's footprint over Texas is about 8–10 km and it detects less than every flash. GLM-only
+rules should use 15 km or more, and a lightning all-clear is advisory.
+
+**Write derived rules with `enter` and `exit`** (or an explicit cooldown), never a bare `match`: a
+place-weather record versions whenever any section changes, and `match` would fire on each version.
+Conditions are AND-only, so all-clear rules use the **verified-clear helpers**:
+`radar.verifiedNearest50Km10m` and `lightning.verifiedNearestKm30m` equal the metric while the section is
+`ok` and `0` otherwise. A condition `<= X` on them is therefore true when a storm is near **or** the data is
+unknown, and its `exit` fires only when the data is known **and** far.
+
+**≥ 50 dBZ within 20 km:**
+
+```json
+{"name": "Heavy echoes near home", "sources": ["wx-places"], "kinds": ["place-weather"],
+ "conditions": [{"path": "radar.nearest50Km10m", "op": "<=", "value": 20}],
+ "mode": "enter", "severity": "warning",
+ "messageTemplate": "≥ 50 dBZ within {{payload.radar.nearest50Km10m}} km of {{payload.place}} (automated, not a warning)"}
+```
+
+**Echoes cleared (verified only).** P is "near or unknown"; `exit` fires when the previous version was near
+or unknown and the current one is `ok` and far:
+
+```json
+{"name": "Echoes cleared at home", "sources": ["wx-places"], "kinds": ["place-weather"],
+ "conditions": [{"path": "radar.verifiedNearest50Km10m", "op": "<=", "value": 20}],
+ "mode": "exit", "severity": "info",
+ "messageTemplate": "No ≥ 50 dBZ within 20 km of {{payload.place}} for 10 min (verified radar)"}
+```
+
+**Lightning within 15 km, with an advisory all-clear:**
+
+```json
+{"name": "Lightning near home", "sources": ["wx-places"], "kinds": ["place-weather"],
+ "conditions": [{"path": "lightning.nearestKm15m", "op": "<=", "value": 15}],
+ "mode": "enter", "severity": "warning",
+ "messageTemplate": "Lightning {{payload.lightning.nearestKm15m}} km from {{payload.place}} (GLM, automated)"}
+```
+
+```json
+{"name": "Lightning all-clear at home", "sources": ["wx-places"], "kinds": ["place-weather"],
+ "conditions": [{"path": "lightning.verifiedNearestKm30m", "op": "<=", "value": 15}],
+ "mode": "exit", "severity": "info",
+ "messageTemplate": "No GLM lightning within 15 km of {{payload.place}} for 30 min (advisory)"}
+```
+
+**Storm core within 30 minutes:**
+
+```json
+{"name": "Storm core approaching home", "sources": ["wx-places"], "kinds": ["place-weather"],
+ "conditions": [{"path": "cell.eta50Min", "op": "<=", "value": 30}],
+ "mode": "enter", "severity": "warning",
+ "messageTemplate": "A ≥ 50 dBZ core may reach {{payload.place}} in about {{payload.cell.eta50Min}} min"}
+```
+
+The other §7.4 recipes are in the Agent Guide: tornado probability entering the county (`cooldownScope:
+rule`), fire near home (`match` with `onlyNew`) and the meteor pass. **"Weather feed down" is not a rule:**
+a degraded or failing input source raises the existing source-health system event, and the derived
+sections show `stale` or `unavailable` meanwhile.
+
+**Reading weather without rules.** `GET /v1/sample?lon&lat|place&products&time` returns each product's
+value at a point with its valid time, local time, age, run and status (`time` is `latest`, `now`, an ISO
+time or an offset such as `-PT1H` or `+PT6H`); `POST /v1/sample` takes up to 100 points;
+`GET /v1/products/{id}/series` returns up to 500 steps; `POST /v1/products/{id}/stats` returns min, max,
+mean, p95, coverage and the area above thresholds over a geometry, place or bbox (at most 2,000,000 km²);
+`GET /v1/places/{id}/weather` returns the place-weather record plus cached GFS and HRRR series. None of
+them ever causes an upstream fetch.
 
 ## SatDump ground station
 

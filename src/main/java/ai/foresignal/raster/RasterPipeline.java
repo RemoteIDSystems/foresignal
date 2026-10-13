@@ -170,6 +170,7 @@ public class RasterPipeline implements RasterSinkFactory {
         if (steps.isEmpty()) {
             return List.of();
         }
+        events.publishEvent(new RasterRunCompletedEvent(productId, run));
         List<Double> bounds = grids.find(steps.get(0).gridId()).map(g -> bounds(spec, g)).orElse(specBounds(spec));
         return List.of(RasterFrameRecords.forecastRun(spec, run, steps, bounds, urls.storedBase()),
                 RasterFrameRecords.partialTombstone(spec, run));

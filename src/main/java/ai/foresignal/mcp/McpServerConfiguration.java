@@ -66,9 +66,9 @@ public class McpServerConfiguration {
     /** The protocol handlers shared by both transports. */
     @Bean
     public McpProtocol mcpProtocol(McpToolRegistry tools, List<ForesignalMcpResource> resources,
-            List<ForesignalMcpPrompt> prompts, McpSessions sessions, McpJsonMapper mcpJsonMapper,
-            ForesignalVersion version) {
-        return new McpProtocol(tools, resources, prompts, sessions, mcpJsonMapper, version);
+            List<ForesignalMcpPrompt> prompts, List<ForesignalMcpResourceTemplate> templates, McpSessions sessions,
+            McpJsonMapper mcpJsonMapper, ForesignalVersion version) {
+        return new McpProtocol(tools, resources, prompts, templates, sessions, mcpJsonMapper, version);
     }
 
     /** Puts the request's {@link McpCaller} into the SDK transport context. */

@@ -374,7 +374,7 @@ public class HealthTracker {
      * <p>When the credentials cannot be loaded nothing can be masked, so the message is withheld
      * rather than stored unmasked — the same fail-closed choice {@link UpstreamClient} makes for traces.
      */
-    String errorMessage(String sourceId, Throwable error) {
+    public String errorMessage(String sourceId, Throwable error) {
         if (error == null) {
             return "unknown error";
         }
@@ -398,7 +398,7 @@ public class HealthTracker {
     }
 
     /** Cuts {@code text} to {@value #MAX_ERROR_LENGTH} characters, marker included. */
-    static String truncate(String text) {
+    public static String truncate(String text) {
         if (text.length() <= MAX_ERROR_LENGTH) {
             return text;
         }

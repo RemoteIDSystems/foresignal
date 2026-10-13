@@ -72,6 +72,17 @@ public abstract class RasterApiSupport {
         return HTTP.send(request(path, headers), HttpResponse.BodyHandlers.ofByteArray());
     }
 
+    /** POST a JSON body, as text (prompt 052). */
+    protected HttpResponse<String> post(String path, String body, String... headers) throws Exception {
+        HttpRequest.Builder b = HttpRequest.newBuilder(URI.create(path.startsWith("http") ? path
+                : "http://localhost:" + port + path)).timeout(Duration.ofSeconds(20))
+                .header("Content-Type", "application/json").POST(HttpRequest.BodyPublishers.ofString(body));
+        for (int i = 0; i < headers.length; i += 2) {
+            b.header(headers[i], headers[i + 1]);
+        }
+        return HTTP.send(b.build(), HttpResponse.BodyHandlers.ofString());
+    }
+
     private HttpRequest request(String path, String... headers) {
         HttpRequest.Builder b = HttpRequest.newBuilder(URI.create(path.startsWith("http") ? path
                 : "http://localhost:" + port + path)).timeout(Duration.ofSeconds(20)).GET();

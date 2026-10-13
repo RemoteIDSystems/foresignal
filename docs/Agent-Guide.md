@@ -280,8 +280,9 @@ carry `automated: true` and `notAWarning: true`.
 **GLM limits.** GLM's footprint over Texas is about 8–10 km and its detection efficiency is below 100 %:
 some flashes are never seen, and a flash's position is the center of a footprint, not a strike point.
 GLM-only lightning rules should use 15 km or more, and an all-clear built on GLM alone is advisory.
-Individual flashes are not records; the place metrics (nearest flash, counts within a radius) arrive with
-place weather (prompt 052).
+Individual flashes are not records; the place metrics (nearest flash, counts within a radius) are in the
+`lightning` section of `wx-places` `place-weather` records (prompt 052; recipes in the Operator Guide,
+"Weather alerts").
 
 **Stale is not clear.** A stalled GLM or FDC feed freezes its clusters and detections: nothing is
 tombstoned, so no `exit` fires, and the source shows `degraded` ("newest input file is …s old") once its
@@ -478,10 +479,14 @@ Every tool takes `detail`: `short` (the default, compact items, the whole result
 | `list_satellite_passes` | read | Passes of the operator's SatDump ground stations, newest AOS first: optional `station`, `since`, `status` (`receiving`, `recorded`, `decoded`, `failed`), `limit` ≤ 50; compact items, `detail=long` for full payloads with the RF statistics (049). |
 | `get_satellite_pass` | read | One pass by `id` (`{station}:{satKey}:{aosEpochMinute}`, or the item id `satdump-{station}:…`): metadata plus the first composite's 256 px thumbnail as image content with a text caption (049). |
 | `get_track` | read | The simplified path of one entity (`sourceId`, `externalId`) between `from` and `to` (same time forms; default the last 6 h), `maxPoints` ≤ 500 (100 with `detail=short`, which stays within 4 KB): segments of `[lon, lat, epochSeconds]` plus a summary with `distanceKm`, `durationSeconds`, `bbox`, `maxSpeedKmh`, `segments` and `approximate` (037). |
+| `list_products` | read | The weather and imagery products you may sample: `id`, `title`, `kind`, `units`, `coverage`, `latest` (newest frame or complete run) and `health` (`ok`, or `unavailable` with the reason); optional `category` (052). |
+| `sample_weather` | read | Product values at `lon`/`lat` or a `place` (needs a token), `time` `latest`, `now`, ISO or an offset (`-PT1H`, `+PT6H`), each with `validTime`, `localTime`, `ageMinutes`, `run`, `coverage` and `status`; plus `hazards`: NWS alerts covering the point (`automated: false`) and ProbSevere objects within 50 km (`automated: true`). A status other than `ok` is unknown, never clear (052). |
+| `weather_forecast` | read | A 3-hourly point forecast to 120 h (`hours`) from the stored GFS and HRRR runs: temperature, wind, gusts, precipitation per step and HRRR smoke, with each provider's `run` and `status` (052; NWS joins in 053). |
+| `area_weather_stats` | read | `POST /v1/products/{id}/stats` for a `place` or `bbox`: min, max, mean, p95, `coveragePct` and the area above each of `thresholds` (km²), with `validTime`, `localTime`, `ageMinutes`, `run`, `coverage` and `status` (052). |
 
-Later prompts add tools to the same registry: weather (052), `get_map_image` (055) and entities (098).
+Later prompts add tools to the same registry: `get_map_image` (055) and entities (098).
 
-**Resources:** `foresignal://sources`, `foresignal://kinds` and `foresignal://places` (036: names, shapes and radii; coordinates only for agent tokens; always needs a token). **Prompt:** `situation-report` (arguments `bbox`, `since`) asks the model to brief on an area from `source_health`, `query_records` and `list_alerts`, citing every fact.
+**Resources:** `foresignal://sources`, `foresignal://kinds`, `foresignal://places` (036: names, shapes and radii; coordinates only for agent tokens; always needs a token), `foresignal://products` (052) and the template `foresignal://products/{id}/legend` (052: a product's legend in its default style). **Prompt:** `situation-report` (arguments `bbox`, `since`) asks the model to brief on an area from `source_health`, `query_records` and `list_alerts`, citing every fact.
 
 ### Vocabulary
 

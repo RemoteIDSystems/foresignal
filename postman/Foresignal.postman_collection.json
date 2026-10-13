@@ -38717,7 +38717,7 @@
                 {
                   "key": "products",
                   "value": "",
-                  "description": "Products to sample",
+                  "description": "Products to sample (at most 20)",
                   "disabled": false
                 },
                 {
@@ -38735,12 +38735,12 @@
                 {
                   "key": "record",
                   "value": "",
-                  "description": "Sample at this record's current live position: `{sourceId}/{externalId}` (instead of lon/lat or place)",
+                  "description": "Sample at this record's current live position: `{sourceId}/{externalId}` (instead of lon/lat or place). Arrives with prompt 106; until then a request with `record` is 400 VALIDATION_FAILED",
                   "disabled": true
                 }
               ]
             },
-            "description": "Per product: value (or u/v with derived speed and direction), units, label, frame key, valid time, local time, age, run, method, status and attribution. Non-ok statuses carry `statusText`; no-coverage reads \"outside product coverage; this is not evidence of clear weather\". Never triggers an upstream fetch.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getSample`",
+            "description": "Per product: value (or u/v with derived speed and direction), units, label, frame key, valid time, local time, age, run, method, status and attribution. Non-ok statuses carry `statusText`; no-coverage reads \"outside product coverage; this is not evidence of clear weather\". Never triggers an upstream fetch. Time: `latest` is the newest frame (judged stale against now); `now`, an ISO time and a past offset choose the observation frame valid at or before the time; a future offset (and any time on a forecast product) uses the newest complete forecast run, taking the step valid at or before the time. Status order: unavailable (product disabled, source failing, no frame, frame expired), no-coverage, no-data, stale, ok; a non-ok value has `value: null`.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getSample`",
             "auth": {
               "type": "noauth"
             }
@@ -38788,7 +38788,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"points\": [\n    {\n      \"lon\": -97.74,\n      \"lat\": 30.27\n    },\n    {\n      \"place\": \"home\"\n    }\n  ],\n  \"products\": [\n    \"mrms-reflectivity\",\n    \"gfs-gust\"\n  ],\n  \"time\": \"latest\",\n  \"units\": \"metric\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -38874,7 +38874,7 @@
                 }
               ]
             },
-            "description": "Observed past plus forecast future at a point, each step with status, frame key and run (one run, never mixed). At most 500 steps; larger ranges \u2192 400 VALIDATION_FAILED.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getProductSeries`",
+            "description": "Observed past plus forecast future at a point, each step with status, frame key and run (one run, never mixed). At most 500 steps; larger ranges \u2192 400 VALIDATION_FAILED. Observation products: complete frames in `from`..`to` (default the last 6 h, never after now), `kind: observed`. Forecast products: the steps of one run (newest complete, or `run`) in `from`..`to`, `kind: forecast`. A disabled product's steps are `unavailable`.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getProductSeries`",
             "auth": {
               "type": "noauth"
             }
@@ -38918,13 +38918,13 @@
               ],
               "query": []
             },
-            "description": "min, max, mean, p95, coverage and the area above each threshold (spherical cell areas per grid type) over a geometry, place or bbox. Geometry \u2264 10,000 vertices and area \u2264 2,000,000 km\u00b2 (400 VALIDATION_FAILED beyond).\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `postProductStats`",
+            "description": "min, max, mean, p95, coverage and the area above each threshold (spherical cell areas per grid type) over a geometry, place or bbox. Geometry \u2264 10,000 vertices and area \u2264 2,000,000 km\u00b2 (400 VALIDATION_FAILED beyond). Thresholds are given in the requested unit system. A cell belongs to the area when its center lies inside; `coveragePct` is the share of those cells holding a value. A non-ok status (unavailable, no-coverage, stale) carries no statistics (`min`\u2026`p95` null, `thresholds` empty).\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `postProductStats`",
             "auth": {
               "type": "noauth"
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"bbox\": \"-98.5,29.5,-97.0,31.0\",\n  \"time\": \"latest\",\n  \"thresholds\": [\n    40,\n    50\n  ],\n  \"units\": \"metric\"\n}",
               "options": {
                 "raw": {
                   "language": "json"

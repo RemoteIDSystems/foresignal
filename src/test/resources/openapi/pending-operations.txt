@@ -1,8 +1,3 @@
-getSample 052
-postSample 052
-getProductSeries 052
-postProductStats 052
-getPlaceWeather 052
 ingestSourceMedia 054
 ingestSourceRasters 054
 getStaticMap 055

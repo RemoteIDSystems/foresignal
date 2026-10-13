@@ -66,16 +66,26 @@ public class McpProtocol {
     private final McpToolRegistry tools;
     private final List<ForesignalMcpResource> resources;
     private final List<ForesignalMcpPrompt> prompts;
+    private final List<ForesignalMcpResourceTemplate> templates;
     private final McpSessions sessions;
     private final McpJsonMapper mapper;
     private final ForesignalVersion version;
 
-    /** Creates the handlers. */
+    /** Creates the handlers without resource templates (the shape before prompt 052). */
     public McpProtocol(McpToolRegistry tools, List<ForesignalMcpResource> resources, List<ForesignalMcpPrompt> prompts,
             McpSessions sessions, McpJsonMapper mapper, ForesignalVersion version) {
+        this(tools, resources, prompts, List.of(), sessions, mapper, version);
+    }
+
+    /** Creates the handlers, with the resource templates of prompt 052 ({@code foresignal://products/{id}/legend}). */
+    public McpProtocol(McpToolRegistry tools, List<ForesignalMcpResource> resources, List<ForesignalMcpPrompt> prompts,
+            List<ForesignalMcpResourceTemplate> templates, McpSessions sessions, McpJsonMapper mapper,
+            ForesignalVersion version) {
         this.tools = tools;
         this.resources = resources.stream().sorted(Comparator.comparing(ForesignalMcpResource::uri)).toList();
         this.prompts = prompts.stream().sorted(Comparator.comparing(ForesignalMcpPrompt::name)).toList();
+        this.templates = templates == null ? List.of()
+                : templates.stream().sorted(Comparator.comparing(ForesignalMcpResourceTemplate::uriTemplate)).toList();
         this.sessions = sessions;
         this.mapper = mapper;
         this.version = version;
@@ -131,10 +141,8 @@ public class McpProtocol {
         out.put(McpSchema.METHOD_RESOURCES_READ, (McpRequestHandler<McpSchema.ReadResourceResult>) (exchange, params) ->
                 Mono.fromSupplier(() -> readResource(exchange, params, transport)));
         out.put(McpSchema.METHOD_RESOURCES_TEMPLATES_LIST,
-                (McpRequestHandler<McpSchema.ListResourceTemplatesResult>) (exchange, params) -> Mono.fromSupplier(() -> {
-                    caller(exchange);
-                    return new McpSchema.ListResourceTemplatesResult(List.of(), null);
-                }));
+                (McpRequestHandler<McpSchema.ListResourceTemplatesResult>) (exchange, params) -> Mono.fromSupplier(() ->
+                        new McpSchema.ListResourceTemplatesResult(listTemplates(caller(exchange)), null)));
         out.put(McpSchema.METHOD_PROMPT_LIST, (McpRequestHandler<McpSchema.ListPromptsResult>) (exchange, params) ->
                 Mono.fromSupplier(() -> new McpSchema.ListPromptsResult(listPrompts(caller(exchange)), null)));
         out.put(McpSchema.METHOD_PROMPT_GET, (McpRequestHandler<McpSchema.GetPromptResult>) (exchange, params) ->
@@ -191,6 +199,22 @@ public class McpProtocol {
         return out;
     }
 
+    /** The resource templates {@code caller} may read (prompt 052). */
+    List<McpSchema.ResourceTemplate> listTemplates(McpCaller caller) {
+        List<McpSchema.ResourceTemplate> out = new ArrayList<>();
+        for (ForesignalMcpResourceTemplate template : templates) {
+            if (allowed(template, caller)) {
+                out.add(McpSchema.ResourceTemplate.builder()
+                        .uriTemplate(template.uriTemplate())
+                        .name(template.name())
+                        .description(template.description())
+                        .mimeType(template.mimeType())
+                        .build());
+            }
+        }
+        return out;
+    }
+
     private McpSchema.ReadResourceResult readResource(McpAsyncServerExchange exchange, Object params, String transport) {
         McpCaller caller = caller(exchange);
         McpSchema.ReadResourceRequest request =
@@ -198,9 +222,10 @@ public class McpProtocol {
         ForesignalMcpResource resource = resources.stream()
                 .filter(r -> r.uri().equals(request.uri()))
                 .findFirst()
-                .orElseThrow(() -> McpError.builder(McpSchema.ErrorCodes.RESOURCE_NOT_FOUND)
-                        .message("Resource not found: " + request.uri())
-                        .build());
+                .orElse(null);
+        if (resource == null) {
+            return readTemplate(caller, request.uri(), exchange.sessionId(), transport);
+        }
         if (!allowed(resource, caller)) {
             throw McpError.builder(McpSchema.ErrorCodes.INVALID_REQUEST)
                     .message("The resource " + resource.uri() + " needs the " + resource.requiredScope().wireValue()
@@ -210,6 +235,28 @@ public class McpProtocol {
         String text = resource.read(new ToolContext(caller, exchange.sessionId(), transport));
         return new McpSchema.ReadResourceResult(
                 List.of(new McpSchema.TextResourceContents(resource.uri(), resource.mimeType(), text)));
+    }
+
+    /** Reads {@code uri} through the first template that matches it. */
+    McpSchema.ReadResourceResult readTemplate(McpCaller caller, String uri, String sessionId, String transport) {
+        ForesignalMcpResourceTemplate template = templates.stream()
+                .filter(t -> t.matches(uri))
+                .findFirst()
+                .orElseThrow(() -> McpError.builder(McpSchema.ErrorCodes.RESOURCE_NOT_FOUND)
+                        .message("Resource not found: " + uri)
+                        .build());
+        if (!allowed(template, caller)) {
+            throw McpError.builder(McpSchema.ErrorCodes.INVALID_REQUEST)
+                    .message("The resource " + uri + " needs the " + template.requiredScope().wireValue() + " scope.")
+                    .build();
+        }
+        String text;
+        try {
+            text = template.read(new ToolContext(caller, sessionId, transport), uri);
+        } catch (McpToolException e) {
+            throw McpError.builder(McpSchema.ErrorCodes.RESOURCE_NOT_FOUND).message(e.getMessage()).build();
+        }
+        return new McpSchema.ReadResourceResult(List.of(new McpSchema.TextResourceContents(uri, template.mimeType(), text)));
     }
 
     /** The prompts {@code caller} may get. */
@@ -268,6 +315,14 @@ public class McpProtocol {
         return allowed(resource.requiredScope(), caller);
     }
 
+    /** True when {@code caller} may read {@code template}'s resources. */
+    static boolean allowed(ForesignalMcpResourceTemplate template, McpCaller caller) {
+        if (caller.anonymous() && template.alwaysAuthenticated()) {
+            return false;
+        }
+        return allowed(template.requiredScope(), caller);
+    }
+
     static boolean allowed(Scope required, McpCaller caller) {
         if (caller.anonymous()) {
             return required == Scope.READ && caller.openReads();
@@ -279,6 +334,13 @@ public class McpProtocol {
     public Map<String, ForesignalMcpResource> resources() {
         Map<String, ForesignalMcpResource> out = new TreeMap<>();
         resources.forEach(r -> out.put(r.uri(), r));
+        return out;
+    }
+
+    /** The registered resource templates, by URI template (prompt 052). */
+    public Map<String, ForesignalMcpResourceTemplate> templates() {
+        Map<String, ForesignalMcpResourceTemplate> out = new TreeMap<>();
+        templates.forEach(t -> out.put(t.uriTemplate(), t));
         return out;
     }
 

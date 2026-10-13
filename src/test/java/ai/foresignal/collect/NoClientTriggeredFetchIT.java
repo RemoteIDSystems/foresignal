@@ -64,6 +64,11 @@ class NoClientTriggeredFetchIT {
             "/v1/products/gfs/fields/latest.f32",
             "/v1/products/hrrr/vectors/latest/6/14/24.mvt",
             "/v1/products/timeline?mode=seamless&past=mrms-reflectivity&future=hrrr-refc",
+            // Sampling (prompt 052): points and series never fetch.
+            "/v1/sample?lon=-97.7&lat=30.3&products=test-synth-obs,mrms-reflectivity,gfs-gust",
+            "/v1/sample?lon=-97.7&lat=30.3&products=test-synth-obs&time=-PT1H",
+            "/v1/products/test-synth-obs/series?lon=-97.7&lat=30.3",
+            "/v1/products/gfs/series?lon=-97.7&lat=30.3",
             // The media store (prompt 043); an unknown id still runs the whole read path.
             "/v1/media/01JA8Q3V7S2K9W4T6Y1B5N0M3C",
             "/v1/media/01JA8Q3V7S2K9W4T6Y1B5N0M3C/thumbnail?w=256",

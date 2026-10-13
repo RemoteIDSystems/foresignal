@@ -222,6 +222,11 @@
         "version": "1.3.0",
         "date": "2026-10-12",
         "note": "051: getProductFieldManifest, getProductFieldData, getProductVectorTile and getProductTimeline are implemented (read). FieldManifest: grid describes the snapped bbox subset; `unavailable` is always false (a disabled product answers 503); `encodings` is not emitted yet (108). getProductFieldData documents 406 NOT_ACCEPTABLE. getProductVectorTile: layer `wind`, extent 4096, 8×8 lattice per tile. getProductTimeline: default windows, at most 10 products, 503 PRODUCT_UNAVAILABLE; the response schema stays ProductTimeline (the prompt's `Timeline` name is taken by 037's histogram). Style gains `derive` (`speed`); wind-speed@1 is reseeded from God's Eye View WIND_FIELDS.speed (0–30 m/s) and derives speed from u/v; qpe@1 (mm) ships for gfs-apcp."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-12",
+        "note": "052: getSample, postSample, getProductSeries, postProductStats and getPlaceWeather are implemented (read; getPlaceWeather always authenticated). getSample's `record` parameter belongs to 106 and is 400 VALIDATION_FAILED until then. Descriptions document the time rules (latest/now/ISO/past offsets choose observation frames, future offsets the newest complete run), the status order, `value: null` for non-ok values, series defaults (last 6 h of observations; one run's steps for forecasts) and that non-ok stats carry no statistics. Record.x-foresignal-kinds gains place-weather, wx-area and radar-cell (sources wx-places, wx-areas, wx-cells, DERIVED). MCP gains list_products, sample_weather, weather_forecast and area_weather_stats, the resource foresignal://products and the resource template foresignal://products/{id}/legend."
       }
     ]
   },
@@ -29996,7 +30001,7 @@
         ],
         "operationId": "getSample",
         "summary": "Sample products at a point",
-        "description": "Per product: value (or u/v with derived speed and direction), units, label, frame key, valid time, local time, age, run, method, status and attribution. Non-ok statuses carry `statusText`; no-coverage reads \"outside product coverage; this is not evidence of clear weather\". Never triggers an upstream fetch.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "Per product: value (or u/v with derived speed and direction), units, label, frame key, valid time, local time, age, run, method, status and attribution. Non-ok statuses carry `statusText`; no-coverage reads \"outside product coverage; this is not evidence of clear weather\". Never triggers an upstream fetch. Time: `latest` is the newest frame (judged stale against now); `now`, an ISO time and a past offset choose the observation frame valid at or before the time; a future offset (and any time on a forecast product) uses the newest complete forecast run, taking the step valid at or before the time. Status order: unavailable (product disabled, source failing, no frame, frame expired), no-coverage, no-data, stale, ok; a non-ok value has `value: null`.\n\n**Scope:** `read` (open while `security.openReads` is on).",
         "parameters": [
           {
             "name": "lon",
@@ -30035,7 +30040,7 @@
             "name": "products",
             "in": "query",
             "required": true,
-            "description": "Products to sample",
+            "description": "Products to sample (at most 20)",
             "schema": {
               "type": "array",
               "items": {
@@ -30074,7 +30079,7 @@
             "name": "record",
             "in": "query",
             "required": false,
-            "description": "Sample at this record's current live position: `{sourceId}/{externalId}` (instead of lon/lat or place)",
+            "description": "Sample at this record's current live position: `{sourceId}/{externalId}` (instead of lon/lat or place). Arrives with prompt 106; until then a request with `record` is 400 VALIDATION_FAILED",
             "schema": {
               "type": "string"
             }
@@ -30153,7 +30158,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "052",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -30254,7 +30259,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "052",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -30282,7 +30287,7 @@
         ],
         "operationId": "getProductSeries",
         "summary": "Get a point time series",
-        "description": "Observed past plus forecast future at a point, each step with status, frame key and run (one run, never mixed). At most 500 steps; larger ranges → 400 VALIDATION_FAILED.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "Observed past plus forecast future at a point, each step with status, frame key and run (one run, never mixed). At most 500 steps; larger ranges → 400 VALIDATION_FAILED. Observation products: complete frames in `from`..`to` (default the last 6 h, never after now), `kind: observed`. Forecast products: the steps of one run (newest complete, or `run`) in `from`..`to`, `kind: forecast`. A disabled product's steps are `unavailable`.\n\n**Scope:** `read` (open while `security.openReads` is on).",
         "parameters": [
           {
             "name": "lon",
@@ -30435,7 +30440,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "052",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -30463,7 +30468,7 @@
         ],
         "operationId": "postProductStats",
         "summary": "Compute area statistics",
-        "description": "min, max, mean, p95, coverage and the area above each threshold (spherical cell areas per grid type) over a geometry, place or bbox. Geometry ≤ 10,000 vertices and area ≤ 2,000,000 km² (400 VALIDATION_FAILED beyond).\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "min, max, mean, p95, coverage and the area above each threshold (spherical cell areas per grid type) over a geometry, place or bbox. Geometry ≤ 10,000 vertices and area ≤ 2,000,000 km² (400 VALIDATION_FAILED beyond). Thresholds are given in the requested unit system. A cell belongs to the area when its center lies inside; `coveragePct` is the share of those cells holding a value. A non-ok status (unavailable, no-coverage, stale) carries no statistics (`min`…`p95` null, `thresholds` empty).\n\n**Scope:** `read` (open while `security.openReads` is on).",
         "requestBody": {
           "required": true,
           "content": {
@@ -30547,7 +30552,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "052",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -30640,7 +30645,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "052",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true,
         "security": [
           {
@@ -91035,6 +91040,136 @@
               "end": "2026-10-12T15:00:00Z",
               "satellite": "GOES-WEST",
               "label": "Medium smoke (HMS, GOES-WEST, 12:00-15:00 UTC)"
+            }
+          },
+          "place-weather": {
+            "x-foresignal-prompt": "052",
+            "payloadFields": {
+              "wx-places": [
+                "place",
+                "radiusKm",
+                "radar",
+                "hail",
+                "precip",
+                "lightning",
+                "cell",
+                "smoke",
+                "forecast",
+                "automated",
+                "notAWarning"
+              ]
+            },
+            "note": "externalId = place:{placeId}; one record per place, written only when the quantized payload changes (no heartbeat versions); no geometry (a place's position is sensitive). Each section (radar, hail, precip, lightning, cell, smoke, forecast.gfs) has status ok|stale|no-coverage|unavailable: when its input is older than maxGap (MRMS 6 min, GLM 2 min), comes from a failing source or lacks coverage, it keeps its previous values, sets the status and adds asOf (time of the last good data, fixed while not ok); before the first good data a section carries its status only. 999 = none within 100 km (and no approaching core for cell.eta50Min). Distances to 0.5 km below 10 km else 1 km, ETAs to 5 min, rates to 1 mm/h, dBZ to 0.5. radar.nearest50Km10m and lightning.nearestKm30m are rolling minimums. Verified-clear helpers radar.verifiedNearest50Km10m and lightning.verifiedNearestKm30m equal the metric while the section is ok and 0 otherwise, so `<= X` on them is true when near or unknown (use them for all-clear exit rules). GLM's footprint over Texas is about 8–10 km and its detection efficiency below 100%: GLM-only rules should use 15 km or more; all-clears are advisory. Tombstoned when the place is deleted (which can fire exit rules), never because input is stale. Automated guidance, never a warning.",
+            "example": {
+              "place": "Home",
+              "radiusKm": 20,
+              "radar": {
+                "status": "ok",
+                "maxDbzInRadius": 52.5,
+                "nearest40Km": 8,
+                "nearest50Km": 14,
+                "nearest50Km10m": 12,
+                "nearest60Km": 999,
+                "verifiedNearest50Km10m": 12
+              },
+              "hail": {
+                "status": "ok",
+                "meshMaxMmInRadius": 19,
+                "meshNearest25Km": 999
+              },
+              "precip": {
+                "status": "ok",
+                "rateMmH": 25
+              },
+              "lightning": {
+                "status": "stale",
+                "asOf": "2026-10-10T14:30:00Z",
+                "nearestKm15m": 6.0,
+                "nearestKm30m": 4.0,
+                "count15km15m": 14,
+                "verifiedNearestKm30m": 0
+              },
+              "cell": {
+                "status": "ok",
+                "eta50Min": 25,
+                "etaCellId": "c-01JA8Q3V7S2K9W4T6Y1B5N0M3C",
+                "etaSpeedKmh": 45,
+                "etaBearingDeg": 250
+              },
+              "smoke": {
+                "status": "ok",
+                "hrrrPm25Max24h": 38
+              },
+              "forecast": {
+                "gfs": {
+                  "status": "ok",
+                  "gustMax24h": 21,
+                  "precip24hMm": 30
+                },
+                "nws": {
+                  "status": "ok",
+                  "popMax24h": 70
+                }
+              },
+              "automated": true,
+              "notAWarning": true
+            }
+          },
+          "wx-area": {
+            "x-foresignal-prompt": "052",
+            "payloadFields": {
+              "wx-areas": [
+                "field",
+                "threshold",
+                "aoi",
+                "status",
+                "asOf",
+                "areaKm2",
+                "maxValue",
+                "coveragePct",
+                "automated",
+                "notAWarning"
+              ]
+            },
+            "note": "externalId = {field}:{threshold}:{aoi} (field refl, mesh or precip; aoi a place id or `aoi`), from the `areas` parameter (default refl:50:aoi, mesh:25:aoi), computed every 6–10 min (param `interval`, default 8 min). areaKm2 to 2 significant figures, maxValue to 0.5 dBZ (refl) or whole units, coveragePct an integer. Geometry = the thresholded mask polygons simplified and snapped to about 1 km, null when nothing reaches the threshold. Stale, failing or uncovered input keeps the previous values (geometry included) with a non-ok status and asOf. Tombstoned when its place is deleted or it leaves the `areas` parameter.",
+            "example": {
+              "field": "refl",
+              "threshold": 50,
+              "aoi": "home",
+              "status": "ok",
+              "areaKm2": 340,
+              "maxValue": 61.5,
+              "coveragePct": 100,
+              "automated": true,
+              "notAWarning": true
+            }
+          },
+          "radar-cell": {
+            "x-foresignal-prompt": "052",
+            "payloadFields": {
+              "wx-cells": [
+                "maxDbz",
+                "areaKm2",
+                "meshMax",
+                "glmFlashes5m",
+                "motion",
+                "automated",
+                "notAWarning"
+              ]
+            },
+            "note": "externalId = c-{ulid}. Per MRMS reflectivity frame inside the places AOI (scope=conus on the large profile): 40 dBZ mask, 3×3 opening, 8-connected union-find labeling, split at 50 dBZ cores, run-rectangle union to polygons snapped to about 500 m. maxDbz to 0.5, areaKm2 to 2 significant figures, meshMax whole mm (omitted without a current MESH frame), glmFlashes5m a bucket lower bound (0, 1, 3, 5, 10, 20, 50, 100, 200). motion (centroid-v1): nearest-centroid match to the previous frame within 30 km per 10 min of gap, least squares over the last 3 matches; speedKmh to 5, bearingDeg (direction of travel) to 10°. observedAt = frame valid time; eventTime = first seen. Unmatched cells get new ids; cells absent from a processed frame are tombstoned (a stale or missing frame tombstones nothing).",
+            "example": {
+              "maxDbz": 58.5,
+              "areaKm2": 120,
+              "meshMax": 19,
+              "glmFlashes5m": 14,
+              "motion": {
+                "speedKmh": 45,
+                "bearingDeg": 250,
+                "method": "centroid-v1"
+              },
+              "automated": true,
+              "notAWarning": true
             }
           }
         }

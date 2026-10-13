@@ -95,6 +95,13 @@ public final class StartupOrder {
      */
     public static final int DECODER_SELF_TEST = 28;
 
+    /**
+     * The DERIVED runtime (prompt 052): its change-bus subscription, ticker and the runners of enabled
+     * derived sources, after the writer, the trigger engine and the product catalog, before the scheduler
+     * starts the first fetch (Conventions, "Startup order": derived workers before the scheduler).
+     */
+    public static final int DERIVED = 29;
+
     /** The collector scheduler (prompt 010). */
     public static final int SCHEDULER = 30;
 

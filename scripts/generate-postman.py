@@ -273,6 +273,9 @@ BODIES = {
   "importSettings": {"sources": {"usgs-earthquakes": {"enabled": True, "interval": "60s"}},
                      "retention": {"default": "7d", "alerts": "90d", "usage": "30d", "sources": {}},
                      "cors": {"readOrigins": ["*"], "writeOrigins": []}, "triggers": [], "channels": []},
+  "postSample": {"points": [{"lon": -97.74, "lat": 30.27}, {"place": "home"}],
+                 "products": ["mrms-reflectivity", "gfs-gust"], "time": "latest", "units": "metric"},
+  "postProductStats": {"bbox": "-98.5,29.5,-97.0,31.0", "time": "latest", "thresholds": [40, 50], "units": "metric"},
 }
 
 # test scripts: capture ids / assert status

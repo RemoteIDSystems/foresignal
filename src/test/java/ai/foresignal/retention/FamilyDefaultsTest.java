@@ -69,7 +69,8 @@ class FamilyDefaultsTest {
      * table puts "GLM lightning" and "FIRMS pixels" in {@code bulk-event} (90 d), but a shorter window
      * for a {@code bulk-event} kind is not overridden (only {@code event} and {@code series} are), and
      * §2.4 names {@code lightning-cluster} 3 d and {@code fire-detection}, {@code fire-cluster},
-     * {@code smoke-polygon} 7 d.
+     * {@code smoke-polygon} 7 d. Prompt 052 adds the derived weather sources ({@code DerivedGenerator}s) to
+     * {@code weather}: §2.4 names {@code place-weather} 14 d, {@code wx-area} 7 d and {@code radar-cell} 3 d.
      */
     record Entry(SourceDescriptor descriptor, String analyticClass) {}
 
@@ -89,7 +90,14 @@ class FamilyDefaultsTest {
             Map.entry("GoesGlmAdapter", new Entry(new GoesGlmAdapter(null, "").descriptor(), "weather")),
             Map.entry("GoesFdcAdapter", new Entry(new GoesFdcAdapter(null, (AreaOfInterest) null, "").descriptor(), "weather")),
             Map.entry("HmsSmokeAdapter", new Entry(new HmsSmokeAdapter("").descriptor(), "weather")),
-            Map.entry("HmsFireAdapter", new Entry(new HmsFireAdapter("").descriptor(), "weather")));
+            Map.entry("HmsFireAdapter", new Entry(new HmsFireAdapter("").descriptor(), "weather")),
+            // Prompt 052: the derived weather sources, retained per Weather-Imagery-Design §2.4.
+            Map.entry("WxPlacesGenerator", new Entry(
+                    new ai.foresignal.source.adapters.wx.WxPlacesGenerator().descriptor(), "weather")),
+            Map.entry("WxAreasGenerator", new Entry(
+                    new ai.foresignal.source.adapters.wx.WxAreasGenerator().descriptor(), "weather")),
+            Map.entry("WxCellsGenerator", new Entry(
+                    new ai.foresignal.source.adapters.wx.WxCellsGenerator("small").descriptor(), "weather")));
 
     /** Weather-Imagery-Design §2.4's per-kind record retention, for the {@code weather} class. */
     static final Map<String, Duration> WEATHER_KIND_RETENTION = Map.of(
@@ -99,7 +107,10 @@ class FamilyDefaultsTest {
             "lightning-cluster", Duration.ofDays(3),
             "fire-detection", Duration.ofDays(7),
             "fire-cluster", Duration.ofDays(7),
-            "smoke-polygon", Duration.ofDays(7));
+            "smoke-polygon", Duration.ofDays(7),
+            "place-weather", Duration.ofDays(14),
+            "wx-area", Duration.ofDays(7),
+            "radar-cell", Duration.ofDays(3));
 
     /** The design's raster-frame record retention (Weather-Imagery-Design §2.4). */
     static final Duration RASTER_FRAME_RETENTION = Duration.ofDays(7);
@@ -165,7 +176,7 @@ class FamilyDefaultsTest {
     }
 
     private static Set<String> adapterClassNames() throws IOException {
-        Pattern adapter = Pattern.compile("class\\s+(\\w+)\\s+implements\\s+(?:PollingAdapter|StreamingAdapter|PushAdapter|DerivedAdapter)\\b");
+        Pattern adapter = Pattern.compile("class\\s+(\\w+)\\s+implements\\s+(?:PollingAdapter|StreamingAdapter|PushAdapter|DerivedAdapter|DerivedGenerator)\\b");
         Set<String> names = new TreeSet<>();
         try (Stream<Path> files = Files.walk(ADAPTERS)) {
             for (Path file : files.filter(f -> f.toString().endsWith(".java")).toList()) {

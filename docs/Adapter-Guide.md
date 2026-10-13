@@ -188,7 +188,7 @@ raster context and render a tile. The object base URLs follow the test base URL 
 - **Adapter families:** one `SourceAdapterFamily` bean, one source per feed, each with its own settings, budget and health.
 - **Streaming adapters** (the first is `aisstream`, prompt 063) emit through the `RecordSink` they are given; the framework's `PolicyAwareRecordSink` batches, keeps latest-wins for SAMPLED and LATEST, and writes one `fetch_log` row per flush. Implement `StreamHandle.onClose`, report bytes with `ctx.reportBytes(n)`, and throw `CredentialsRejectedException` for a refused key.
 - **PUSH sources** (custom sources and inbound webhooks, prompt 024) have no fetch; records arrive through the ingest API.
-- **DERIVED sources** (runtime in prompt 052) make no upstream requests; `ctx.http()` throws for them.
+- **DERIVED sources** make no upstream requests; `ctx.http()` throws for them. See §14.
 
 ## 10. Repair procedure
 
@@ -245,6 +245,54 @@ rule validation lists it in a warning.
   does not need to normalize them itself.
 - Adapters existing at prompt 036 (USGS earthquakes and the system canary) carry no such identifier,
   so none needed a change.
+
+## 14. Derived sources (052)
+
+A derived source computes records from data Foresignal already holds: committed changes, raster frames,
+places. The runtime is `ai.foresignal.derive` (prompt 099's intelligence sources reuse it); the weather
+generators (`wx-places`, `wx-areas`, `wx-cells`) live in `ai.foresignal.source.adapters.wx`.
+
+**The SPI.** Implement `DerivedGenerator` (a `SourceAdapter`) as a Spring bean whose descriptor declares
+`Mode.DERIVED`, **no `recordTtl`** (the registry refuses one) and `zeroResultsNormal(true)` (most invocations
+change nothing):
+
+- `DerivedInputs inputs(ValidatedParams)`: the change subscription (`sources` and/or `kinds`), the raster
+  products whose frame events you want, an optional `tick`, and `places` when place edits should reconcile.
+- `onChanges(ChangeBatch, ctx)`, `onFrame(RasterFrameEvent, ctx)`, `onTick(Instant, ctx)`: each optional.
+- `reconcile(List<HeadSnapshot> ownHeads, ctx)`: required; called at startup, when the source is enabled,
+  after a change-bus gap or an inbox overflow, and after a place edit when `places` is set.
+
+The `DerivedContext` gives `emit(record)`, `tombstone(kind, externalId)`, `state()` (the adapter state
+store), `rasters()` (read-only frames, sampling and the GLM ring), `records()` (`record_head ⋈ record_live`
+only), `places()`, `sourceStatus(id)` and `clock()`. Generators never write the store and never fetch.
+
+**The runner.** One virtual thread per enabled derived source, hooks called one at a time, so a generator may
+keep plain mutable state. Change batches queue up to `foresignal.derive.inbox-capacity` (64); on overflow
+they are dropped and a reconcile is scheduled. Frame events are coalesced per product (only the newest
+pending one is delivered), ticks are never queued twice. Each invocation is treated like a fetch:
+`recordAttempt`, one `fetch_log` row with `principal: derived`, one ingest batch of everything the
+invocation emitted, and `recordSuccess` or `recordFailure`. A generator that throws fails the invocation like
+a failed fetch.
+
+**Rules every generator keeps** (Weather-Imagery-Design §7.1):
+
+1. **Emit on change only.** Quantize the payload (distances, rates, areas) so a steady state is byte-identical;
+   the writer's content hash drops an identical version, and the runtime already skips an emit equal to the
+   entity's previous one. Never put frame ids, timestamps or ages in the payload.
+2. **`observedAt` is the input's time**: the frame's valid time, the change batch's ingest time, or the tick.
+   The runtime raises it to the entity's previous emit when it would go backwards, so a staleness change seen
+   on a tick never turns the next frame LATE.
+3. **Tombstone explicitly, only when the object disappeared or its subject was deleted** (a storm cell absent
+   from a processed frame, a deleted place). **Never tombstone because input is stale**, and never write
+   heartbeat versions. Remember that a tombstone after a matching version is an `exit` for rules.
+4. **Unknown is not clear.** A value whose input is stale, failing or uncovered keeps its previous value with a
+   non-ok `status` and an `asOf`; before any good data, carry the status only (omit the metric keys, never
+   null). Use a numeric sentinel (`999`) for "none within range".
+5. **Reconcile** rebuilds in-memory state from your own heads (and recent frames, for rolling windows), and
+   tombstones heads whose subject no longer exists.
+
+**No cycles.** At startup `DerivedGraph` builds the graph "A's records feed B's change subscription" from each
+generator's default inputs; a cycle (including a generator subscribed to its own kinds) fails startup.
 
 ## Country-level records (prompt 040)
 
