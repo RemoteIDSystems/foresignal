@@ -1,0 +1,129 @@
+{
+ "type": "FeatureCollection",
+ "crs": {
+  "type": "name",
+  "properties": {
+   "name": "EPSG:4326"
+  }
+ },
+ "properties": {
+  "exceededTransferLimit": true
+ },
+ "features": [
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -109.55396326627,
+     40.8857352327315
+    ]
+   },
+   "properties": {
+    "IrwinID": "{1B4FF51E-95DF-4E25-A871-BB406059EEA2}",
+    "IncidentName": "D1 Pondo RX",
+    "IncidentSize": 532,
+    "PercentContained": null,
+    "POOState": "US-UT",
+    "POOCounty": "Daggett",
+    "UniqueFireIdentifier": "2026-UTASF-100002",
+    "IncidentTypeCategory": "RX",
+    "FireCause": "Undetermined",
+    "FireDiscoveryDateTime": 1767644640000,
+    "ModifiedOnDateTime_dt": 1791582216973
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -123.317041542417,
+     39.3460189985356
+    ]
+   },
+   "properties": {
+    "IrwinID": "{6D9CD12D-7FA9-4A18-8A2C-20E0F73F0BE7}",
+    "IncidentName": "HOWARD FOREST FRP RX",
+    "IncidentSize": 13.1,
+    "PercentContained": null,
+    "POOState": "US-CA",
+    "POOCounty": "Mendocino",
+    "UniqueFireIdentifier": "2026-CAMEU-000269",
+    "IncidentTypeCategory": "RX",
+    "FireCause": "Undetermined",
+    "FireDiscoveryDateTime": 1767652791000,
+    "ModifiedOnDateTime_dt": 1791884474590
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -109.404612483251,
+     33.4673612578231
+    ]
+   },
+   "properties": {
+    "IrwinID": "{FB2E180F-7EC5-462C-865B-DF6938BB1FBD}",
+    "IncidentName": "D3 Hagen RX",
+    "IncidentSize": 5757,
+    "PercentContained": null,
+    "POOState": "US-AZ",
+    "POOCounty": "Greenlee",
+    "UniqueFireIdentifier": "2026-AZASF-000010",
+    "IncidentTypeCategory": "RX",
+    "FireCause": "Undetermined",
+    "FireDiscoveryDateTime": 1767711869000,
+    "ModifiedOnDateTime_dt": 1791554637003
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -112.057761261478,
+     36.3448944991185
+    ]
+   },
+   "properties": {
+    "IrwinID": "{C7410508-5508-464B-A2B0-E68C3853D9F5}",
+    "IncidentName": "CY26 NKRD- MISC PILES Rx",
+    "IncidentSize": 95,
+    "PercentContained": null,
+    "POOState": "US-AZ",
+    "POOCounty": "Coconino",
+    "UniqueFireIdentifier": "2026-AZKNF-000006",
+    "IncidentTypeCategory": "RX",
+    "FireCause": "Undetermined",
+    "FireDiscoveryDateTime": 1767625524000,
+    "ModifiedOnDateTime_dt": 1791387344957
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -109.360066358962,
+     31.7553510045103
+    ]
+   },
+   "properties": {
+    "IrwinID": "{32036D4A-05F5-47AF-8B9E-09E0C81C30BD}",
+    "IncidentName": "2026 DOUGLAS PILES RX",
+    "IncidentSize": 46.3,
+    "PercentContained": null,
+    "POOState": "US-AZ",
+    "POOCounty": "Cochise",
+    "UniqueFireIdentifier": "2026-AZCNF-000008",
+    "IncidentTypeCategory": "RX",
+    "FireCause": "Undetermined",
+    "FireDiscoveryDateTime": 1767304611000,
+    "ModifiedOnDateTime_dt": 1791496007253
+   }
+  }
+ ]
+}

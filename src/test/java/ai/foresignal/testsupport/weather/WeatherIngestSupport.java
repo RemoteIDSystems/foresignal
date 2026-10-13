@@ -40,7 +40,7 @@ import org.springframework.test.context.DynamicPropertySource;
  * {@code goes-glm}, {@code goes-fdc}, {@code hms-smoke} and {@code hms-fire}, and 053's {@code nws-gridpoints} and
  * {@code spc-storm-reports}, which share the NWS and SPC base-URL properties, and 064's {@code celestrak-gp} and
  * {@code celestrak-socrates}, 065's {@code nasa-firms}, 066's {@code gdelt-events} and 067's {@code nhc-cyclones}, {@code gdacs} and
- * {@code tsunami-warnings}, 068's {@code ioda-outages}, 070's {@code transit-*}, 071's {@code gbfs-*} and 072's {@code cctv-*}) point at one stub server
+ * {@code tsunami-warnings}, 068's {@code ioda-outages}, 070's {@code transit-*}, 071's {@code gbfs-*}, 072's {@code cctv-*} and 073's kit sources) point at one stub server
  * through their test base-URL properties (and S3 listings through {@code foresignal.test.s3-endpoint}),
  * and each test drives real fetches with {@link FetchExecutor#execute(String, FetchTrigger)
  * execute(id, MANUAL)}, so records reach the store through the real fetch path and ingest writer
@@ -96,6 +96,8 @@ public abstract class WeatherIngestSupport {
         registry.add(ai.foresignal.source.adapters.gbfs.GbfsFamily.BASE_URL_PROPERTY, UPSTREAM::baseUrl);
         // Prompt 072: the cctv-* sources too; every catalog URL moves under the stub as /{host}{path}.
         registry.add(ai.foresignal.source.adapters.cctv.CctvCatalogFamily.BASE_URL_PROPERTY, UPSTREAM::baseUrl);
+        // Prompt 073: every kit spec URL (feature-* and feed-*) moves under the stub as /{host}{path}.
+        registry.add(ai.foresignal.source.kit.KitUrls.BASE_URL_PROPERTY, UPSTREAM::baseUrl);
     }
 
     @Autowired protected FetchExecutor executor;
@@ -118,7 +120,7 @@ public abstract class WeatherIngestSupport {
             ai.foresignal.source.adapters.tsunami.TsunamiWarningsAdapter.ID,
             ai.foresignal.source.adapters.ioda.IodaOutagesAdapter.ID,
             "transit-mbta", "transit-alerts-mbta", "transit-mdb-mdb-9001", "gbfs-boulder-bcycle",
-            "cctv-caltrans-d4");
+            "cctv-caltrans-d4", "feature-wfigs-incidents", "feed-ecdc-threats");
 
     /** Resets the stubs and the backoff of the weather sources. */
     @BeforeEach

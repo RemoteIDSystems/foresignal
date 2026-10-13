@@ -63,7 +63,7 @@ aircraft** (not a 422 and not clamped to 250 nm), as VEL reported. It is undocum
 
 ## God's Eye View ports (prompts 036–040; MIT, portable code)
 
-Roadmap prompts: `local-adsb-*` → 036, `transit-*` → 037 (built in 070), `gbfs-*` → 038 (built in 071), `cctv-*` → 039 (built in 072), `nifc-perimeters`/`radio-browser`/`nhc-cyclone-cones` → 040.
+Roadmap prompts: `local-adsb-*` → 036, `transit-*` → 037 (built in 070), `gbfs-*` → 038 (built in 071), `cctv-*` → 039 (built in 072), `nifc-perimeters`/`radio-browser`/`nhc-cyclone-cones` → 040. The generic feature and feed kits (`feature-*`, `feed-*`) → 073.
 
 | Source id | Kind | Upstream | Protocol | Auth | Reference (GEV) | Notes |
 |---|---|---|---|---|---|---|
@@ -94,6 +94,21 @@ Roadmap prompts: `local-adsb-*` → 036, `transit-*` → 037 (built in 070), `gb
 | `nhc-cyclone-cones` | cyclone-track | NHC tropical MapServer layers (cone, track, points) | ArcGIS REST | none | `server/providers/cyclones.js` | Extends `nhc-cyclones`. |
 
 **Camera catalogs (prompt 072).** Frames are never stored: clients fetch them from the upstream host using `imageUrl`/`videoUrl`; see `frameAccess` (`direct`, `browser`, `key`, from `src/main/resources/cctv/hosts.json`) and `frameInsecure`. Payload `name, provider, region, road, direction, headingDeg, status, imageUrl, videoUrl, refreshSeconds, frameAccess, frameInsecure`; `headingDeg` only when the upstream publishes a direction for the camera (no synthetic heading). A frame URL off the pack's allowed origins is dropped and the camera kept. Every pack ships disabled; optional param `bbox`. A camera missing from two consecutive complete fetches is tombstoned. **Not ported: TxDOT** (GEV reads `its.txdot.gov/its/DistrictIts/GetCctvStatusListByDistrict`, the ITS web map's internal endpoint, which has no published terms; see "External provider ideas") and GEV's Shinjuku pack.
+
+### Generic feature and feed kits (prompt 073)
+
+Most "it's just a feature service" or "it's just a feed" sources are a **reviewed resource file**, not a hand-written adapter: `src/main/resources/kits/features/*.json` (ArcGIS FeatureServer/MapServer query, OGC API – Features, WFS 2.0 GeoJSON) and `src/main/resources/kits/feeds/*.json` (RSS 2.0, RSS 1.0, Atom 1.0, JSON Feed 1.0/1.1, with GeoRSS Simple, GeoRSS GML, W3C Basic Geo and JSON Feed `_geo`). Specs are validated at startup (every problem listed), never accepted over the API, and every kit source ships **disabled**. An operator overlay under `${FORESIGNAL_DATA_DIR}/kits/{features,feeds}/` is loaded only with `foresignal.kits.operator-specs.enabled=true`; overlay ids start with `op-` and every overlay URL must pass the outbound URL policy. The sources of prompts **075** (fire perimeters and cones), **079** (hydrology), **088** (PortWatch and maritime notices) and **094** (reference datasets) are built on these kits.
+
+| id | kind | Upstream | Protocol | Auth | Notes |
+|---|---|---|---|---|---|
+| `feature-wfigs-incidents` | fire-incident | NIFC WFIGS Incident Locations Current, `https://services3.arcgis.com/T4QMspbfLg3qTGWY/arcgis/rest/services/WFIGS_Incident_Locations_Current/FeatureServer/0` | ArcGIS query, GeoJSON, offset paging (page 2000, ≤ 10 pages) | none | **Built in prompt 073** (the starter spec proving the ArcGIS path). 10 min (min 5 min) · 12/min, 3,000/day. STANDARD, ALL, no TTL; id `IrwinID`; observedAt `ModifiedOnDateTime_dt` (volatile `modifiedAt`), eventTime `FireDiscoveryDateTime`; payload `irwinId, name, incidentType, sizeAcres ([acr_us]), percentContained (%), state, county, uniqueFireId, discoveredAt, modifiedAt`. `editingInfo` is published, so an unchanged layer is not queried. Absence tombstones after two complete misses. Retention 1825 d (`event`). Public domain. Verified 2026-10-13: `maxRecordCount` 2000, `supportsPagination` true. |
+| `feed-cisa-advisories` | bulletin | `https://www.cisa.gov/cybersecurity-advisories/all.xml` | RSS | none | **Built in prompt 073.** 60 min (1.2 MB). US public domain. **Answered `403 Access Denied` to the build host on 2026-10-13** (verified reachable on 2026-10-10 by the planner); recheck at 143. |
+| `feed-ncsc-uk` | bulletin | `https://www.ncsc.gov.uk/api/1/services/v1/all-rss-feed.xml` | RSS | none | **Built in prompt 073.** 15 min. OGL v3. |
+| `feed-nhc-atlantic`, `feed-nhc-eastpacific` | bulletin | `https://www.nhc.noaa.gov/index-at.xml`, `…/index-ep.xml` | RSS | none | **Built in prompt 073.** 15 min. US public domain. |
+| `feed-ecdc-threats` | bulletin | `https://www.ecdc.europa.eu/en/taxonomy/term/1307/feed` | RSS | none | **Built in prompt 073.** 15 min. ECDC reuse policy (attribution). |
+| `feed-who-news` | bulletin | `https://www.who.int/rss-feeds/news-english.xml` | RSS | none | **Built in prompt 073.** 15 min. WHO terms (attribution, non-commercial reuse). |
+
+**Feed-kit defaults:** one `bulletin` record per item; STANDARD, ALL, TTL 30 d anchored on receipt, observedAt receipt unless the spec says `updated` or `published` (an item without that date is skipped, never given the other); conditional GET; at most 200 items; feeds are windows, so absent items expire by TTL and are never tombstoned. Item text is plain text (HTML stripped) and untrusted. **WebSub** (`foresignal.kits.websub.enabled=false` by default) subscribes a spec with `websub: true` when the feed advertises a hub and `publicBaseUrl` is https; the poll then stretches to 6 h. Smithsonian GVP's weekly RSS answered 403 to Foresignal's User-Agent (2026-10) and is not included.
 
 **Reviewed transit feeds (prompt 070; endpoints verified 2026-10-13):**
 

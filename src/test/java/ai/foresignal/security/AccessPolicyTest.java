@@ -284,6 +284,17 @@ class AccessPolicyTest {
     }
 
     @Test
+    @DisplayName("073: only GET and POST /v1/websub/*/* are open; other methods and depths stay admin (fail closed)")
+    void webSubCallbacks() {
+        assertOpen("GET", "/v1/websub/feed-nhc-atlantic/abcdefghijklmnop");
+        assertOpen("POST", "/v1/websub/feed-nhc-atlantic/abcdefghijklmnop");
+        assertScope("PUT", "/v1/websub/feed-nhc-atlantic/abcdefghijklmnop", Scope.ADMIN);
+        assertScope("DELETE", "/v1/websub/feed-nhc-atlantic/abcdefghijklmnop", Scope.ADMIN);
+        assertScope("GET", "/v1/websub/feed-nhc-atlantic", Scope.ADMIN);
+        assertScope("GET", "/v1/websub/feed-nhc-atlantic/abcdefghijklmnop/extra", Scope.ADMIN);
+    }
+
+    @Test
     @DisplayName("055: GET /v1/maps/static is read (a place needs a token, checked by the controller); POST is admin")
     void staticMaps() {
         assertThat(requirement("GET", "/v1/maps/static")).isEqualTo(AccessRequirement.READ);

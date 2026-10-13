@@ -340,6 +340,15 @@ Apache HttpClient, HttpCore and HttpMime 4 with Commons Logging and Commons Code
   GTFS-Realtime bindings, also required by NetCDF-Java.
 - **License:** BSD 3-Clause License, Copyright 2008 Google Inc. Project: <https://github.com/protocolbuffers/protobuf>.
 
+### jsoup (prompt 073)
+
+- **Artifact:** `org.jsoup:jsoup` 1.23.2 (Maven Central), used unmodified. No required runtime dependencies (its optional
+  `re2j` is already a dependency).
+- **Use:** `ai.foresignal.source.kit.feed.FeedText`: feed-kit item titles and summaries become plain text with
+  `Jsoup.clean(…, Safelist.none())`; nothing is rendered as HTML.
+- **License:** MIT License (`META-INF/jsoup/LICENSE` in the jar: "Copyright (c) 2009-2026 Jonathan Hedley"). Project:
+  <https://jsoup.org/>.
+
 ### Mobility Database catalog snapshot (prompt 070)
 
 - **Data:** `src/main/resources/transit/mobility-gtfs-rt.csv`, a filtered copy (active, keyless, https GTFS-RT feeds;

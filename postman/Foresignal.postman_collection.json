@@ -50137,7 +50137,7 @@
                 }
               ]
             },
-            "description": "Hub intent verification. Echoes `hub.challenge` as `text/plain` only when `hub.mode`, `hub.topic` and the token match a pending or active subscription; otherwise 404. Returns 404 for everything while `foresignal.kits.websub.enabled=false` (default).\n\n**Scope:** `open` (no token; the unguessable path token identifies the subscription).\n\noperationId: `verifyWebSubSubscription`",
+            "description": "Hub intent verification. Echoes `hub.challenge` as `text/plain` only when `hub.mode=subscribe`, `hub.topic` and the token match a pending or active subscription; the lease (`hub.lease_seconds`, default 86400) starts then. `hub.mode=denied` with a matching topic and token marks the subscription lost and answers 200 with an empty body. Everything else, `unsubscribe` included (Foresignal never unsubscribes), is 404. Returns 404 for everything while `foresignal.kits.websub.enabled=false` (default).\n\n**Scope:** `open` (no token; the unguessable path token identifies the subscription).\n\noperationId: `verifyWebSubSubscription`",
             "auth": {
               "type": "noauth"
             }
@@ -50167,7 +50167,7 @@
               },
               {
                 "key": "Content-Type",
-                "value": "application/json"
+                "value": "application/atom+xml"
               }
             ],
             "url": {
@@ -50189,10 +50189,10 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<feed xmlns=\"http://www.w3.org/2005/Atom\">\n  <title>Example bulletins</title>\n  <id>tag:bulletins.example,2026:feed</id>\n  <updated>2026-10-13T12:00:00Z</updated>\n  <link rel=\"self\" href=\"https://bulletins.example/atom.xml\"/>\n  <link rel=\"hub\" href=\"https://hub.example/\"/>\n  <entry>\n    <title>Flood warning</title>\n    <id>tag:bulletins.example,2026:entry-1</id>\n    <link href=\"https://bulletins.example/e/1\"/>\n    <updated>2026-10-13T11:30:00Z</updated>\n    <summary>River levels rising.</summary>\n  </entry>\n</feed>\n",
               "options": {
                 "raw": {
-                  "language": "json"
+                  "language": "xml"
                 }
               }
             }

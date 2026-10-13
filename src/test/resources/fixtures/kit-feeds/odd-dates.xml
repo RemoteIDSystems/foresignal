@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Odd dates</title>
+    <link>https://bulletins.example/</link>
+    <item><title>Two-digit year EDT</title><guid>d-1</guid><pubDate>Tue, 13 Oct 26 13:17:38 EDT</pubDate></item>
+    <item><title>No day name, offset</title><guid>d-2</guid><pubDate>3 Oct 2026 07:05 +0530</pubDate></item>
+    <item><title>Old two-digit year</title><guid>d-3</guid><pubDate>Fri, 01 Jan 99 00:00:00 GMT</pubDate></item>
+    <item><title>Garbage</title><guid>d-4</guid><pubDate>yesterday</pubDate></item>
+    <item><title>No guid</title><link>https://bulletins.example/n</link><pubDate>Mon, 12 Oct 2026 10:00:00 PST</pubDate></item>
+  </channel>
+</rss>

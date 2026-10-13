@@ -1,5 +1,3 @@
-verifyWebSubSubscription 073
-receiveWebSubNotification 073
 getChannelAirtime 084
 listSeries 093
 getSeriesPoints 093

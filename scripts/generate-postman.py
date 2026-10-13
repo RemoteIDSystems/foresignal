@@ -108,6 +108,24 @@ RAW_BODIES = {
   # 036: a watchlist CSV import (header value[,label,notes,tags]; tags separated by ;).
   "importWatchlist": ("text/csv", "value,label,notes,tags\nA1B2C3,N123AB,Survey aircraft,survey;local\n"
                       "ADF7C8,N456CD,\"Medevac, county\",medical\n", "text"),
+  # 073: a WebSub content delivery, as a hub sends it (an Atom document). The X-Hub-Signature must be the HMAC of
+  # this exact body with the subscription secret; the placeholder below is refused with 403.
+  "receiveWebSubNotification": ("application/atom+xml",
+                                "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
+                                "<feed xmlns=\"http://www.w3.org/2005/Atom\">\n"
+                                "  <title>Example bulletins</title>\n"
+                                "  <id>tag:bulletins.example,2026:feed</id>\n"
+                                "  <updated>2026-10-13T12:00:00Z</updated>\n"
+                                "  <link rel=\"self\" href=\"https://bulletins.example/atom.xml\"/>\n"
+                                "  <link rel=\"hub\" href=\"https://hub.example/\"/>\n"
+                                "  <entry>\n"
+                                "    <title>Flood warning</title>\n"
+                                "    <id>tag:bulletins.example,2026:entry-1</id>\n"
+                                "    <link href=\"https://bulletins.example/e/1\"/>\n"
+                                "    <updated>2026-10-13T11:30:00Z</updated>\n"
+                                "    <summary>River levels rising.</summary>\n"
+                                "  </entry>\n"
+                                "</feed>\n", "xml"),
 }
 
 # multipart/form-data bodies (054, the remote SatDump pushes): Postman formdata entries. File parts are

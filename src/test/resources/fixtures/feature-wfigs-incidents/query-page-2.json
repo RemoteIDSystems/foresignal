@@ -1,0 +1,80 @@
+{
+ "type": "FeatureCollection",
+ "crs": {
+  "type": "name",
+  "properties": {
+   "name": "EPSG:4326"
+  }
+ },
+ "features": [
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -105.6968976774,
+     33.308828419593
+    ]
+   },
+   "properties": {
+    "IrwinID": "{942CCFF6-7EF4-42BC-AC49-CB867C89D512}",
+    "IncidentName": "2026 D1 PROGRAMMATIC PILES RX",
+    "IncidentSize": null,
+    "PercentContained": null,
+    "POOState": "US-NM",
+    "POOCounty": "Lincoln",
+    "UniqueFireIdentifier": "2026-NMLNF-000021",
+    "IncidentTypeCategory": "RX",
+    "FireCause": "Human",
+    "FireDiscoveryDateTime": 1769627197000,
+    "ModifiedOnDateTime_dt": 1791900663930
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -110.445651465573,
+     40.9659081732323
+    ]
+   },
+   "properties": {
+    "IrwinID": "{A65C47FE-6BC0-4562-8D6E-FA1B403DE09D}",
+    "IncidentName": "Spiderman Piles RX",
+    "IncidentSize": null,
+    "PercentContained": null,
+    "POOState": "US-UT",
+    "POOCounty": "Summit",
+    "UniqueFireIdentifier": "2026-UTUWF-200023",
+    "IncidentTypeCategory": "RX",
+    "FireCause": "Undetermined",
+    "FireDiscoveryDateTime": 1770138360000,
+    "ModifiedOnDateTime_dt": 1791725460277
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -81.9574202999987,
+     29.2169224891998
+    ]
+   },
+   "properties": {
+    "IrwinID": "{F6CFE8BA-B59D-4733-9E58-15034B31F208}",
+    "IncidentName": "Lynne",
+    "IncidentSize": 1.92,
+    "PercentContained": null,
+    "POOState": "US-FL",
+    "POOCounty": "Marion",
+    "UniqueFireIdentifier": "2026-FLFNF-000419",
+    "IncidentTypeCategory": "WF",
+    "FireCause": "Undetermined",
+    "FireDiscoveryDateTime": 1770723000000,
+    "ModifiedOnDateTime_dt": 1791909302213
+   }
+  }
+ ]
+}

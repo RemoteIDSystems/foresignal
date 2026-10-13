@@ -1,0 +1,75 @@
+[
+  {
+    "id": "feed-cisa-advisories",
+    "name": "CISA cybersecurity advisories",
+    "description": "CISA's combined advisories feed (alerts, ICS advisories, analysis reports): one bulletin record per item. The feed is about 1.2 MB, so it is polled hourly.",
+    "url": "https://www.cisa.gov/cybersecurity-advisories/all.xml",
+    "language": "en",
+    "interval": "60m",
+    "minInterval": "30m",
+    "budget": {"perMinute": 2, "perDay": 100},
+    "license": "US public domain",
+    "attribution": "Cybersecurity and Infrastructure Security Agency (CISA)",
+    "homepage": "https://www.cisa.gov/news-events/cybersecurity-advisories"
+  },
+  {
+    "id": "feed-ncsc-uk",
+    "name": "UK NCSC news, guidance and reports",
+    "description": "The UK National Cyber Security Centre's combined feed of news, blog posts, guidance and reports: one bulletin record per item.",
+    "url": "https://www.ncsc.gov.uk/api/1/services/v1/all-rss-feed.xml",
+    "language": "en",
+    "budget": {"perMinute": 2, "perDay": 200},
+    "license": "Open Government Licence v3.0",
+    "attribution": "Contains public sector information licensed under the Open Government Licence v3.0 (National Cyber Security Centre)",
+    "homepage": "https://www.ncsc.gov.uk/",
+    "termsUrl": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/"
+  },
+  {
+    "id": "feed-nhc-atlantic",
+    "name": "NHC Atlantic tropical weather",
+    "description": "The National Hurricane Center's Atlantic basin feed: the tropical weather outlook and, when storms are active, advisories and products. One bulletin record per item.",
+    "url": "https://www.nhc.noaa.gov/index-at.xml",
+    "language": "en-us",
+    "budget": {"perMinute": 2, "perDay": 200},
+    "license": "US public domain",
+    "attribution": "NOAA National Hurricane Center",
+    "homepage": "https://www.nhc.noaa.gov/aboutrss.shtml",
+    "termsUrl": "https://www.weather.gov/disclaimer"
+  },
+  {
+    "id": "feed-nhc-eastpacific",
+    "name": "NHC eastern Pacific tropical weather",
+    "description": "The National Hurricane Center's eastern North Pacific basin feed: the tropical weather outlook and, when storms are active, advisories and products. One bulletin record per item.",
+    "url": "https://www.nhc.noaa.gov/index-ep.xml",
+    "language": "en-us",
+    "budget": {"perMinute": 2, "perDay": 200},
+    "license": "US public domain",
+    "attribution": "NOAA National Hurricane Center",
+    "homepage": "https://www.nhc.noaa.gov/aboutrss.shtml",
+    "termsUrl": "https://www.weather.gov/disclaimer"
+  },
+  {
+    "id": "feed-ecdc-threats",
+    "name": "ECDC news and threat updates",
+    "description": "The European Centre for Disease Prevention and Control's news feed (outbreak updates and threat assessments): one bulletin record per item.",
+    "url": "https://www.ecdc.europa.eu/en/taxonomy/term/1307/feed",
+    "language": "en",
+    "budget": {"perMinute": 2, "perDay": 200},
+    "license": "ECDC reuse policy (reuse with attribution)",
+    "attribution": "European Centre for Disease Prevention and Control (ECDC)",
+    "homepage": "https://www.ecdc.europa.eu/en/news-events",
+    "termsUrl": "https://www.ecdc.europa.eu/en/copyright"
+  },
+  {
+    "id": "feed-who-news",
+    "name": "WHO news",
+    "description": "World Health Organization news releases in English: one bulletin record per item.",
+    "url": "https://www.who.int/rss-feeds/news-english.xml",
+    "language": "en",
+    "budget": {"perMinute": 2, "perDay": 200},
+    "license": "WHO terms of use (attribution, non-commercial reuse)",
+    "attribution": "World Health Organization (WHO)",
+    "homepage": "https://www.who.int/news",
+    "termsUrl": "https://www.who.int/about/policies/publishing/copyright"
+  }
+]

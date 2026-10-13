@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:georss="http://www.georss.org/georss"
+      xmlns:gml="http://www.opengis.net/gml" xml:lang="en">
+  <title type="text">Example Atom bulletins</title>
+  <id>tag:bulletins.example,2026:feed</id>
+  <updated>2026-10-13T12:00:00Z</updated>
+  <link rel="alternate" href="https://bulletins.example/"/>
+  <link rel="self" href="https://bulletins.example/atom.xml"/>
+  <link rel="hub" href="https://hub.example/"/>
+  <entry>
+    <title type="html">&lt;em&gt;Flood&lt;/em&gt; warning</title>
+    <id>tag:bulletins.example,2026:entry-1</id>
+    <link href="/e/1"/>
+    <link rel="enclosure" type="application/pdf" length="12345" href="https://bulletins.example/e/1.pdf"/>
+    <published>2026-10-13T10:00:00Z</published>
+    <updated>2026-10-13T11:30:00-04:00</updated>
+    <author><name>River Office</name></author>
+    <category term="flood" label="Flood"/>
+    <category term="warning"/>
+    <summary type="xhtml"><div xmlns="http://www.w3.org/1999/xhtml"><p>Levels <strong>rising</strong>.</p><p>Stay away.</p></div></summary>
+    <georss:where>
+      <gml:Polygon>
+        <gml:exterior><gml:LinearRing><gml:posList>45.0 -75.0 45.0 -74.0 46.0 -74.0 46.0 -75.0 45.0 -75.0</gml:posList></gml:LinearRing></gml:exterior>
+        <gml:interior><gml:LinearRing><gml:posList>45.2 -74.8 45.2 -74.2 45.8 -74.2 45.8 -74.8 45.2 -74.8</gml:posList></gml:LinearRing></gml:interior>
+      </gml:Polygon>
+    </georss:where>
+  </entry>
+  <entry>
+    <title>CRS84 point</title>
+    <id>tag:bulletins.example,2026:entry-2</id>
+    <link rel="alternate" href="javascript:alert(1)"/>
+    <updated>2026-10-13T09:00:00Z</updated>
+    <content type="text">Plain content, no summary.</content>
+    <georss:where><gml:Point srsName="urn:ogc:def:crs:OGC:1.3:CRS84"><gml:pos>-122.5 37.7</gml:pos></gml:Point></georss:where>
+  </entry>
+</feed>

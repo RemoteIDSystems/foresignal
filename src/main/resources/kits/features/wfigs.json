@@ -1,0 +1,38 @@
+[
+  {
+    "id": "feature-wfigs-incidents",
+    "name": "NIFC WFIGS incident locations (current)",
+    "description": "Current wildland fire incident locations from the NIFC Wildland Fire Interagency Geospatial Services (WFIGS) ArcGIS layer: one fire-incident record per IRWIN incident with its name, size, containment, state and county. observedAt is the incident's last modification; eventTime its discovery. An incident missing from two consecutive complete fetches is tombstoned.",
+    "kind": "fire-incident",
+    "protocol": "arcgis",
+    "url": "https://services3.arcgis.com/T4QMspbfLg3qTGWY/arcgis/rest/services/WFIGS_Incident_Locations_Current/FeatureServer/0",
+    "idField": "irwinId",
+    "titleField": "name",
+    "fields": {
+      "IrwinID": {"target": "irwinId", "type": "string"},
+      "IncidentName": {"target": "name", "type": "string"},
+      "IncidentTypeCategory": {"target": "incidentType", "type": "string"},
+      "IncidentSize": {"target": "sizeAcres", "type": "number", "unit": "[acr_us]"},
+      "PercentContained": {"target": "percentContained", "type": "number", "unit": "%"},
+      "POOState": {"target": "state", "type": "string"},
+      "POOCounty": {"target": "county", "type": "string"},
+      "UniqueFireIdentifier": {"target": "uniqueFireId", "type": "string"},
+      "FireDiscoveryDateTime": {"target": "discoveredAt", "type": "timestamp"},
+      "ModifiedOnDateTime_dt": {"target": "modifiedAt", "type": "timestamp"}
+    },
+    "time": {"observedAt": "modifiedAt", "eventTime": "discoveredAt", "format": "epoch-ms"},
+    "interval": "10m",
+    "minInterval": "5m",
+    "budget": {"perMinute": 12, "perDay": 3000},
+    "paging": {"pageSize": 2000, "maxPages": 10},
+    "absenceTombstones": true,
+    "zeroResultsNormal": false,
+    "volatileFields": ["modifiedAt"],
+    "searchFields": ["name", "uniqueFireId", "state", "county"],
+    "tileProperties": ["name", "incidentType", "sizeAcres", "percentContained"],
+    "license": "Public domain (US Government work)",
+    "attribution": "National Interagency Fire Center (NIFC), WFIGS",
+    "homepage": "https://data-nifc.opendata.arcgis.com/datasets/nifc::wfigs-incident-locations-current",
+    "termsUrl": "https://data-nifc.opendata.arcgis.com/"
+  }
+]

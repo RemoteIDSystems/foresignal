@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns="http://purl.org/rss/1.0/"
+         xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel rdf:about="https://bulletins.example/rss1">
+    <title>Example RSS 1.0 bulletins</title>
+    <link>https://bulletins.example/</link>
+    <description>Synthetic RSS 1.0 feed</description>
+    <dc:language>en</dc:language>
+    <items><rdf:Seq><rdf:li rdf:resource="https://bulletins.example/b/1"/><rdf:li rdf:resource="https://bulletins.example/b/2"/></rdf:Seq></items>
+  </channel>
+  <item rdf:about="https://bulletins.example/b/1">
+    <title>First &amp; foremost</title>
+    <link>https://bulletins.example/b/1</link>
+    <description>&lt;p&gt;Plain &lt;b&gt;bold&lt;/b&gt; text&lt;/p&gt;</description>
+    <dc:date>2026-10-12T08:30:00+02:00</dc:date>
+    <dc:creator>Duty Officer</dc:creator>
+    <dc:subject>advisory</dc:subject>
+  </item>
+  <item rdf:about="https://bulletins.example/b/2">
+    <title>Second</title>
+    <link>/b/2</link>
+    <dc:date>2026-10-12</dc:date>
+  </item>
+</rdf:RDF>

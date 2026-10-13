@@ -1,0 +1,28 @@
+{
+  "version": "https://jsonfeed.org/version/1.1",
+  "title": "Example JSON Feed",
+  "home_page_url": "https://bulletins.example/",
+  "feed_url": "https://bulletins.example/feed.json",
+  "language": "en",
+  "hubs": [{"type": "WebSub", "url": "https://hub.example/websub"}],
+  "items": [
+    {
+      "id": "j-1",
+      "title": "Quake felt",
+      "content_html": "<p>Shaking <a href=\"https://x.example\">reported</a>.</p><script>alert(1)</script>",
+      "url": "https://bulletins.example/j/1",
+      "date_published": "2026-10-13T06:00:00Z",
+      "date_modified": "2026-10-13T07:00:00Z",
+      "authors": [{"name": "Seismic Desk"}],
+      "tags": ["earthquake", "felt"],
+      "attachments": [{"url": "https://bulletins.example/j/1.png", "mime_type": "image/png", "size_in_bytes": 2048}],
+      "_geo": {"type": "Point", "coordinates": [139.7, 35.7]}
+    },
+    {
+      "id": 42,
+      "summary": "Numeric id and no title",
+      "external_url": "https://other.example/42",
+      "date_published": "2026-10-13T05:00:00"
+    }
+  ]
+}

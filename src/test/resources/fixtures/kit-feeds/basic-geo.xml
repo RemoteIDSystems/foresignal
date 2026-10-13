@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:geo="http://www.w3.org/2003/01/geo/wgs84_pos#">
+  <channel>
+    <title>Basic Geo</title>
+    <link>https://bulletins.example/</link>
+    <item><title>Direct</title><guid>bg-1</guid><geo:lat>51.5</geo:lat><geo:long>-0.12</geo:long></item>
+    <item><title>Nested</title><guid>bg-2</guid><geo:Point><geo:lat>48.85</geo:lat><geo:long>2.35</geo:long></geo:Point></item>
+  </channel>
+</rss>

@@ -218,6 +218,10 @@ public class AccessPolicy {
                 // Notification action capabilities: the capability in the path is the credential (033).
                 rule(HttpMethod.GET, "/v1/actions/*", AccessRequirement.OPEN),
                 rule(HttpMethod.POST, "/v1/actions/*", AccessRequirement.OPEN),
+                // WebSub callbacks of feed-kit sources: the unguessable path token identifies the subscription (073).
+                // Only GET (intent verification) and POST (content delivery) on exactly two segments are open.
+                rule(HttpMethod.GET, "/v1/websub/*/*", AccessRequirement.OPEN),
+                rule(HttpMethod.POST, "/v1/websub/*/*", AccessRequirement.OPEN),
 
                 // ---- Tokens, tickets, pairing and audit (023) ----
                 // The calling token reports its own device: read, before the admin /v1/tokens/** rule.

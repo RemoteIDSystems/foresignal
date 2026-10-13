@@ -1,0 +1,79 @@
+{
+ "currentVersion": 12,
+ "id": 0,
+ "name": "Incidents",
+ "type": "Feature Layer",
+ "geometryType": "esriGeometryPoint",
+ "objectIdField": "OBJECTID",
+ "maxRecordCount": 2000,
+ "advancedQueryCapabilities": {
+  "supportsPagination": true
+ },
+ "editingInfo": {
+  "lastEditDate": 1791913696835,
+  "schemaLastEditDate": 1791913696835,
+  "dataLastEditDate": 1791913696835
+ },
+ "fields": [
+  {
+   "name": "OBJECTID",
+   "type": "esriFieldTypeOID",
+   "alias": "OBJECTID"
+  },
+  {
+   "name": "IncidentSize",
+   "type": "esriFieldTypeDouble",
+   "alias": "IncidentSize"
+  },
+  {
+   "name": "FireCause",
+   "type": "esriFieldTypeString",
+   "alias": "FireCause"
+  },
+  {
+   "name": "FireDiscoveryDateTime",
+   "type": "esriFieldTypeDate",
+   "alias": "FireDiscoveryDateTime"
+  },
+  {
+   "name": "IncidentName",
+   "type": "esriFieldTypeString",
+   "alias": "IncidentName"
+  },
+  {
+   "name": "IncidentTypeCategory",
+   "type": "esriFieldTypeString",
+   "alias": "IncidentTypeCategory"
+  },
+  {
+   "name": "IrwinID",
+   "type": "esriFieldTypeString",
+   "alias": "IrwinID"
+  },
+  {
+   "name": "PercentContained",
+   "type": "esriFieldTypeDouble",
+   "alias": "PercentContained"
+  },
+  {
+   "name": "POOCounty",
+   "type": "esriFieldTypeString",
+   "alias": "POOCounty"
+  },
+  {
+   "name": "POOState",
+   "type": "esriFieldTypeString",
+   "alias": "POOState"
+  },
+  {
+   "name": "UniqueFireIdentifier",
+   "type": "esriFieldTypeString",
+   "alias": "UniqueFireIdentifier"
+  },
+  {
+   "name": "ModifiedOnDateTime_dt",
+   "type": "esriFieldTypeDate",
+   "alias": "ModifiedOnDateTime_dt"
+  }
+ ]
+}

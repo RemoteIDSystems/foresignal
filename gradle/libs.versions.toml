@@ -97,6 +97,9 @@ javaWebsocket = "1.6.0"
 # stopped at 0.0.4 and is not used.
 gtfsRealtimeBindings = "0.2.0"
 protobufJava = "4.36.1"
+# HTML to plain text for feed-kit item summaries (073): jsoup, MIT. Verified on Maven Central 2026-10-13: 1.23.2 is
+# the latest release (Java 8 bytecode); no required runtime dependencies (re2j is optional and already present).
+jsoup = "1.23.2"
 
 [libraries]
 # --- Versions managed by the Spring Boot BOM ---
@@ -169,6 +172,7 @@ hivemq-mqtt-client-shaded = { module = "com.hivemq:hivemq-mqtt-client-shaded", v
 java-websocket = { module = "org.java-websocket:Java-WebSocket", version.ref = "javaWebsocket" }
 gtfs-realtime-bindings = { module = "org.mobilitydata:gtfs-realtime-bindings", version.ref = "gtfsRealtimeBindings" }
 protobuf-java = { module = "com.google.protobuf:protobuf-java", version.ref = "protobufJava" }
+jsoup = { module = "org.jsoup:jsoup", version.ref = "jsoup" }
 
 # --- Test; versions from the Testcontainers BOM where unspecified ---
 testcontainers-bom = { module = "org.testcontainers:testcontainers-bom", version.ref = "testcontainers" }

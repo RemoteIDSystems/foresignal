@@ -89,6 +89,8 @@ dependencies {
     // GTFS-Realtime VehiclePositions and ServiceAlerts of the transit-* sources (070), with protobuf-java pinned.
     implementation(libs.gtfs.realtime.bindings)
     implementation(libs.protobuf.java)
+    // Feed-kit item text (073): HTML summaries become plain text with Safelist.none().
+    implementation(libs.jsoup)
     runtimeOnly(libs.postgresql)
 
     testImplementation(platform(libs.testcontainers.bom))

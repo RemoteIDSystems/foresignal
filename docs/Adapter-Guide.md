@@ -589,3 +589,69 @@ family is the first; prompts 074 and 075 follow the same pattern.
   `CREDENTIALS_REQUIRED`.
 - **Bundled catalogs** (Tallinn, Warendorf) are classpath resources with a sibling `NOTICE`; their fetch makes no
   request and runs daily.
+
+## 22. Kit sources (prompt 073)
+
+A **kit source** is a reviewed spec file, not a hand-written adapter. Two kits exist:
+
+- the **feature kit** (`ai.foresignal.source.kit.feature`): ArcGIS FeatureServer/MapServer query, OGC API – Features
+  and WFS 2.0 GeoJSON, one `KitFeatureAdapter` per entry of `src/main/resources/kits/features/*.json`;
+- the **feed kit** (`ai.foresignal.source.kit.feed`): RSS 2.0, RSS 1.0, Atom 1.0 and JSON Feed, one `KitFeedAdapter` per
+  entry of `src/main/resources/kits/feeds/*.json`.
+
+Each file is a JSON array of specs. Reach for a kit first; write an adapter only when the upstream needs logic a spec
+cannot express (a feed item mapper covers structured text inside feed items, see below).
+
+- **Writing a feature spec** (`FeatureSourceSpec`): `id` (`feature-…`), `name`, `kind`, `protocol`
+  (`arcgis|ogc|wfs`), `url` plus `layer`, `collection` or `typeName`, and `query` (`where` and `outFields` for ArcGIS,
+  property `filters`, a `bbox`, an OGC `datetime`). `fields` maps each upstream attribute to `{target, type, unit,
+  valueMap}`: only listed attributes reach the payload (adapter rule 8). Types are `string`, `number`, `integer`,
+  `boolean` and `timestamp`; units are UCUM. `constants` adds fixed values (`restrictionType`). `idField`, `titleField`
+  and every list (`significantFields`, `volatileFields`, `searchFields`, `tileProperties`) name **targets**. The mapper
+  trims text, coerces numbers from text, removes nulls, blanks and the sentinels `-999`, `-9999` and year-1 dates
+  (`0001-01-01…`), and rejects a feature without an id. ArcGIS dates arrive as epoch milliseconds.
+- **Writing a feed spec** (`FeedSourceSpec`): `id` (`feed-…`), `name`, `url`, `kind` (default `bulletin`),
+  `categories {include, exclude}`, `maxItems` (200), `recordTtl` (30 d, anchored on receipt), `observedAt`
+  (`updated|published|RECEIVED`), `interval` (15 min, at least 5 min), `budget`, `license` (the descriptor's `licence`), `termsUrl`, `attribution`,
+  `homepage`, and optionally `itemMapper` (a reviewed `FeedItemMapper` registered in `FeedItemMappers`; prompt 075
+  adds InciWeb's) and `websub`.
+- **Validator rules** (`FeatureSpecValidator`, `FeedSpecValidator`, run by `KitSpecs` at startup): https URLs without
+  user info or credential-looking query parameters (a key belongs in `credential {name, placement query|header, param}`,
+  entered at runtime and redacted); id pattern, length and uniqueness across both kits (the registry adds the check
+  against every other source); declared targets for every reference; known types and UCUM units; durations that
+  parse; `minInterval ≤ interval`; a keyframe that fits the TTL; paging caps; only `Accept` and `Digitraffic-User`
+  headers. A bad spec stops startup with **every** problem listed, each with its file, index, id and field path.
+- **The time-base rule** (Core-Data-Model §2): each time entry names exactly **one** field (`time.observedAt`,
+  `eventTime`, `validFrom`, `validUntil` for features; `observedAt` for feeds), or receipt. A feature or item without
+  that field is skipped and counted, never given another field's time. Revised-event layers follow USGS: observedAt is
+  the upstream's modification time and that field is volatile.
+- **Paging and completeness:** clients cap pages (`maxPages`, default 10) and features (`maxFeatures`, at most
+  50,000). ArcGIS pages while `exceededTransferLimit` is true, OGC follows `links[rel=next]` on the same server, WFS
+  pages while `numberReturned == count`. Only a **complete** fetch (the last page said so and no cap was hit) can
+  tombstone: with `absenceTombstones: true`, a feature missing from two consecutive complete, non-empty fetches is
+  tombstoned (`AbsenceTombstoner`, §21). Feeds are windows and never tombstone.
+- **ArcGIS change short-circuit:** the layer document's `editingInfo` edit date is compared with the last complete
+  fetch's; when equal, nothing is queried. Layers without `editingInfo` cache their metadata for 24 h and are queried
+  every run.
+- **WFS axis order:** GeoServer writes longitude first even for `EPSG::4326`, so `geometry.axisOrder` (`lonlat` by
+  default) decides; with a `bbox`, points that fit only when swapped are swapped and logged once.
+- **Simplification:** a geometry over 9,500 vertices is simplified with JTS `TopologyPreservingSimplifier` at doubling
+  tolerances from 0.0005° until it fits the 10,000-vertex store limit; the record carries `geometrySimplified: true`
+  and `simplifyToleranceDeg`.
+- **Feed text is untrusted:** titles and summaries are reduced to plain text with jsoup `Safelist.none()` (summaries
+  at most 4 KB), links must be absolute http(s), and nothing is rendered as HTML. Under prompt 028's rules, item text
+  reaching an LLM is data, never instructions.
+- **Operator overlay:** off by default. With `foresignal.kits.operator-specs.enabled=true`,
+  `${FORESIGNAL_DATA_DIR}/kits/features/*.json` and `${FORESIGNAL_DATA_DIR}/kits/feeds/*.json` are loaded at startup;
+  overlay ids must start with `op-`, and every overlay URL must pass `OutboundUrlPolicy` (`PUBLIC_ONLY`). Specs are
+  never accepted over the API.
+- **WebSub** (`foresignal.kits.websub.enabled=false` by default): only for a feed spec with `websub: true`, and only
+  when `server.publicBaseUrl` is https and the feed advertises a hub and a self link. The subscribe request goes
+  through the source's budgeted client; the hub must pass `OutboundUrlPolicy`; the secret (32 random bytes) is stored
+  encrypted (`websub_subscription.secret_enc`). The hub verifies at `GET /v1/websub/{sourceId}/{token}` and delivers to
+  `POST /v1/websub/{sourceId}/{token}` (signature `sha256=` or `sha1=` over the raw body, at most 2 MB, 60 a minute);
+  delivered items go through the shared push pipeline. While a subscription is active the poll stretches to 6 h;
+  renewal happens at 80 % of the lease, and a lost lease returns the source to polling with the health reason
+  "WebSub lease lost".
+- **Tests:** the test property `foresignal.test.kits.base-url` moves every kit URL under one stub as
+  `/{host}{path}`; capture fixtures with the URL, command and trimming in a README, as for any adapter (§8).
