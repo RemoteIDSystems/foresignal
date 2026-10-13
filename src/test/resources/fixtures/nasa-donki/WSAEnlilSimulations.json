@@ -1,0 +1,146 @@
+[
+ {
+  "simulationID": "WSA-ENLIL/48102/1",
+  "modelCompletionTime": "2026-08-15T01:02Z",
+  "au": 2.0,
+  "cmeInputs": [
+   {
+    "cmeStartTime": "2026-08-14T22:24Z",
+    "latitude": 36.0,
+    "longitude": -163.0,
+    "speed": 530.0,
+    "halfAngle": 35.0,
+    "time21_5": "2026-08-15T04:56Z",
+    "featureCode": "LE",
+    "isMostAccurate": true,
+    "levelOfData": 0,
+    "ipsList": [],
+    "CMEID": "2026-08-14T22:24:00-CME-001"
+   }
+  ],
+  "estimatedShockArrivalTime": null,
+  "isEarthGB": false,
+  "isEarthMinorImpact": false,
+  "rmin_re": null,
+  "kp_18": null,
+  "kp_90": null,
+  "kp_135": null,
+  "kp_180": null,
+  "estimatedDuration": null,
+  "impactList": null,
+  "link": "https://ccmc.gsfc.nasa.gov/DONKI/view/WSA-ENLIL/48102/-1"
+ },
+ {
+  "simulationID": "WSA-ENLIL/48103/1",
+  "modelCompletionTime": "2026-08-15T01:44Z",
+  "au": 5.5,
+  "cmeInputs": [
+   {
+    "cmeStartTime": "2026-08-14T22:24Z",
+    "latitude": 36.0,
+    "longitude": -163.0,
+    "speed": 530.0,
+    "halfAngle": 35.0,
+    "time21_5": "2026-08-15T04:56Z",
+    "featureCode": "LE",
+    "isMostAccurate": true,
+    "levelOfData": 0,
+    "ipsList": [],
+    "CMEID": "2026-08-14T22:24:00-CME-001"
+   }
+  ],
+  "estimatedShockArrivalTime": null,
+  "isEarthGB": false,
+  "isEarthMinorImpact": false,
+  "rmin_re": null,
+  "kp_18": null,
+  "kp_90": null,
+  "kp_135": null,
+  "kp_180": null,
+  "estimatedDuration": null,
+  "impactList": null,
+  "link": "https://ccmc.gsfc.nasa.gov/DONKI/view/WSA-ENLIL/48103/-1"
+ },
+ {
+  "simulationID": "WSA-ENLIL/48104/1",
+  "modelCompletionTime": "2026-08-15T02:09Z",
+  "au": 5.5,
+  "cmeInputs": [
+   {
+    "cmeStartTime": "2026-08-14T18:23Z",
+    "latitude": -2.0,
+    "longitude": 119.0,
+    "speed": 607.0,
+    "halfAngle": 40.0,
+    "time21_5": "2026-08-14T23:52Z",
+    "featureCode": "LE",
+    "isMostAccurate": true,
+    "levelOfData": 0,
+    "ipsList": [
+     {
+      "catalog": null,
+      "activityID": "2026-08-19T09:24:00-IPS-001",
+      "location": "STEREO A",
+      "eventTime": "2026-08-19T09:24Z",
+      "instruments": [
+       {
+        "displayName": "STEREO A: IMPACT"
+       },
+       {
+        "displayName": "STEREO A: PLASTIC"
+       }
+      ],
+      "linkedEvents": [],
+      "sentNotifications": [],
+      "link": null,
+      "submissionTime": null,
+      "versionId": 0
+     }
+    ],
+    "CMEID": "2026-08-14T18:23:00-CME-001"
+   }
+  ],
+  "estimatedShockArrivalTime": null,
+  "isEarthGB": false,
+  "isEarthMinorImpact": false,
+  "rmin_re": null,
+  "kp_18": null,
+  "kp_90": null,
+  "kp_135": null,
+  "kp_180": null,
+  "estimatedDuration": null,
+  "impactList": [
+   {
+    "location": "BepiColombo",
+    "arrivalTime": "2026-08-15T12:56Z",
+    "isGlancingBlow": false,
+    "isMinorImpact": false
+   },
+   {
+    "location": "Juno",
+    "arrivalTime": "2026-09-01T12:00Z",
+    "isGlancingBlow": true,
+    "isMinorImpact": false
+   },
+   {
+    "location": "Mars",
+    "arrivalTime": "2026-08-19T07:30Z",
+    "isGlancingBlow": false,
+    "isMinorImpact": false
+   },
+   {
+    "location": "Psyche",
+    "arrivalTime": "2026-08-19T07:57Z",
+    "isGlancingBlow": false,
+    "isMinorImpact": false
+   },
+   {
+    "location": "STEREO A",
+    "arrivalTime": "2026-08-18T12:00Z",
+    "isGlancingBlow": true,
+    "isMinorImpact": false
+   }
+  ],
+  "link": "https://ccmc.gsfc.nasa.gov/DONKI/view/WSA-ENLIL/48104/-1"
+ }
+]

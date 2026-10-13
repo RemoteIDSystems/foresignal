@@ -184,6 +184,33 @@ class FamilyDefaultsTest {
                     java.time.Duration.ZERO, d -> { }).descriptor(), "event")),
             Map.entry("CtDomainWatchAdapter", new Entry(new ai.foresignal.source.adapters.ct.CtDomainWatchAdapter("",
                     java.time.Duration.ZERO, d -> { }).descriptor(), "bulk-event")),
+            // Prompt 077: space weather alerts, flares, DONKI events, fireballs and close approaches are the event
+            // class (1825 d); Kp, solar wind, the current X-ray class and aurora at places are SAMPLED state (365 d;
+            // swpc-xray keeps flares 1825 d through kindRetention); SatNOGS stations are reference data (90 d);
+            // radiosonde telemetry is high-volume bulk-event data (90 d).
+            Map.entry("SwpcAlertsAdapter", new Entry(new ai.foresignal.source.adapters.space.swpc.SwpcAlertsAdapter("")
+                    .descriptor(), "event")),
+            Map.entry("SwpcKpAdapter", new Entry(new ai.foresignal.source.adapters.space.swpc.SwpcKpAdapter("")
+                    .descriptor(), "state")),
+            Map.entry("SwpcRtswAdapter", new Entry(new ai.foresignal.source.adapters.space.swpc.SwpcRtswAdapter("")
+                    .descriptor(), "state")),
+            Map.entry("SwpcXrayAdapter", new Entry(new ai.foresignal.source.adapters.space.swpc.SwpcXrayAdapter("")
+                    .descriptor(), "state")),
+            Map.entry("SwpcAuroraAdapter", new Entry(new ai.foresignal.source.adapters.space.swpc.SwpcAuroraAdapter(
+                    (java.util.function.Supplier<ai.foresignal.source.spi.PlacePoints>) null, "").descriptor(), "state")),
+            Map.entry("NasaDonkiAdapter", new Entry(new ai.foresignal.source.adapters.space.donki.NasaDonkiAdapter("")
+                    .descriptor(), "event")),
+            Map.entry("JplFireballsAdapter", new Entry(new ai.foresignal.source.adapters.space.jpl.JplFireballsAdapter("")
+                    .descriptor(), "event")),
+            Map.entry("JplCloseApproachesAdapter", new Entry(
+                    new ai.foresignal.source.adapters.space.jpl.JplCloseApproachesAdapter("").descriptor(), "event")),
+            Map.entry("SatnogsStationsAdapter", new Entry(
+                    new ai.foresignal.source.adapters.space.satnogs.SatnogsStationsAdapter("").descriptor(), "reference")),
+            Map.entry("SondehubAdapter", new Entry(new ai.foresignal.source.adapters.space.sondehub.SondehubAdapter(
+                    (java.util.function.Supplier<ai.foresignal.source.spi.PlacePoints>) null, "").descriptor(),
+                    "bulk-event")),
+            Map.entry("LocalSondeAdapter", new Entry(new ai.foresignal.source.adapters.space.localsonde.LocalSondeAdapter(
+                    new ai.foresignal.source.codec.AutoRxPayloadCodec()).descriptor(), "bulk-event")),
             // Prompt 052: the derived weather sources, retained per Weather-Imagery-Design §2.4.
             Map.entry("WxPlacesGenerator", new Entry(
                     new ai.foresignal.source.adapters.wx.WxPlacesGenerator().descriptor(), "weather")),
