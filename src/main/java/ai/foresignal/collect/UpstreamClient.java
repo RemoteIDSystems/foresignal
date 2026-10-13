@@ -74,6 +74,12 @@ public class UpstreamClient {
     private final HttpClient followingRedirects;
     private final HttpClient noRedirects;
 
+    /**
+     * The per-host gate of the sources whose descriptor sets {@code hostPacing} (prompt 080). One per client, so
+     * every source calling a host shares its gate.
+     */
+    private final HostPacer hostPacer = new HostPacer();
+
     private final BudgetGovernor budgets;
     private final BackoffRegistry backoff;
     private final UsageMeter usage;
@@ -249,6 +255,11 @@ public class UpstreamClient {
 
     Clock clock() {
         return clock;
+    }
+
+    /** The per-host request gate (prompt 080). */
+    HostPacer hostPacer() {
+        return hostPacer;
     }
 
     /** The User-Agent for {@code descriptor}: its override if it has one, else Foresignal's own. */

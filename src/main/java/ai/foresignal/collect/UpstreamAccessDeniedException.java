@@ -22,6 +22,9 @@ public class UpstreamAccessDeniedException extends UpstreamHttpException {
     /** The start of every refusal message, which {@link HealthEvaluator} recognizes in {@code last_error}. */
     public static final String REASON_PREFIX = "upstream refused this client";
 
+    /** The source-specific reason (prompt 080), or null. */
+    private final String detail;
+
     /**
      * Creates the exception.
      *
@@ -29,7 +32,20 @@ public class UpstreamAccessDeniedException extends UpstreamHttpException {
      * @param bodySnippet the truncated response body, possibly empty
      */
     public UpstreamAccessDeniedException(int status, String bodySnippet) {
+        this(status, bodySnippet, null);
+    }
+
+    /**
+     * Creates the exception with a source-specific reason (prompt 080).
+     *
+     * @param status 451 or 403
+     * @param bodySnippet the truncated response body, possibly empty
+     * @param detail the descriptor's {@code accessDeniedReasons} value the body matched, or null for the
+     *     generic reason
+     */
+    public UpstreamAccessDeniedException(int status, String bodySnippet, String detail) {
         super(status, bodySnippet);
+        this.detail = detail == null || detail.isBlank() ? null : detail;
     }
 
     /** The health reason of a refusal with {@code status}. */
@@ -37,9 +53,29 @@ public class UpstreamAccessDeniedException extends UpstreamHttpException {
         return REASON_PREFIX + " (HTTP " + status + "); see Operator Guide → adsb.lol access";
     }
 
+    /**
+     * The health reason of a refusal with {@code status} and a source-specific {@code detail} (prompt 080), for
+     * example {@code upstream refused this client (HTTP 403): access approval required (contact airplanes.live)}.
+     *
+     * @param detail the reason, or null for {@link #reason(int)}
+     */
+    public static String reason(int status, String detail) {
+        return detail == null || detail.isBlank() ? reason(status) : detailPrefix(status) + detail;
+    }
+
+    /** The text in front of a source-specific reason, which {@link HealthEvaluator} looks for in {@code last_error}. */
+    public static String detailPrefix(int status) {
+        return REASON_PREFIX + " (HTTP " + status + "): ";
+    }
+
+    /** The source-specific reason, or null. */
+    public String getDetail() {
+        return detail;
+    }
+
     /** The health reason of this refusal. */
     @Override
     public String getMessage() {
-        return reason(getStatus());
+        return reason(getStatus(), detail);
     }
 }

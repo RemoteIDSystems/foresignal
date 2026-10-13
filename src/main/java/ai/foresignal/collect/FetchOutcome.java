@@ -65,6 +65,12 @@ public record FetchOutcome(
     /** A run skipped because the source is in backoff. */
     public static final String SKIP_BACKOFF = "backoff";
 
+    /**
+     * A run skipped because a request waited the whole bounded wait for its host's pacing gate and was not sent
+     * (prompt 080, {@link HostPacingTimeoutException}).
+     */
+    public static final String SKIP_HOST_PACING = "host-pacing";
+
     /** Completes {@code byReason} so every reason is present. */
     public FetchOutcome {
         EnumMap<PersistReason, Integer> all = new EnumMap<>(PersistReason.class);

@@ -107,6 +107,15 @@ import java.util.Set;
  * @param egressOverridable true when the operator may override {@code egress} per source in
  *     {@code source_settings.egress} (prompt 069: the local receiver families, whose data is the operator's
  *     own); otherwise an override is refused with {@code 400 EGRESS_FIXED}. False by default
+ * @param hostPacing the minimum spacing between the starts of two requests to one upstream host, with at most
+ *     one request to that host in flight (prompt 080: {@code HostPacer}; 1.1 s for the adsb.fi and
+ *     airplanes.live sources, which allow one request per second). The gate is shared by every source that
+ *     requests the same host. Null (the default) means no pacing. Internal, not in the OpenAPI
+ *     {@code SourceDescriptor}
+ * @param accessDeniedReasons health reasons for a refusal of this client, keyed by a text the refusal's
+ *     response body contains (prompt 080: airplanes.live's 403 asks for an approval email). The first key the
+ *     body contains extends {@code UpstreamAccessDeniedException}'s reason with its value. Empty by default.
+ *     Internal, not in the OpenAPI {@code SourceDescriptor}
  */
 public record SourceDescriptor(
         String id,
@@ -165,7 +174,9 @@ public record SourceDescriptor(
         boolean accessDeniedIsTerminal,
         Duration defaultRetryAfter,
         boolean followRedirects,
-        boolean egressOverridable) {
+        boolean egressOverridable,
+        Duration hostPacing,
+        Map<String, String> accessDeniedReasons) {
 
     /** Coordinate decimals kept for a private source unless it says otherwise (about 11 m). */
     public static final int DEFAULT_PRIVATE_PRECISION_DECIMALS = 4;
@@ -219,6 +230,10 @@ public record SourceDescriptor(
         egress = egress == null ? Egress.OPEN : egress;
         hiddenKinds = hiddenKinds == null ? Set.of() : Set.copyOf(hiddenKinds);
         kindPresentation = kindPresentation == null ? Map.of() : copyPresentation(kindPresentation);
+        hostPacing = hostPacing == null || hostPacing.isZero() || hostPacing.isNegative() ? null : hostPacing;
+        accessDeniedReasons = accessDeniedReasons == null
+                ? Map.of()
+                : java.util.Collections.unmodifiableMap(new LinkedHashMap<>(accessDeniedReasons));
     }
 
     private static Map<String, Map<String, Object>> copyPresentation(Map<String, Map<String, Object>> given) {
@@ -297,6 +312,8 @@ public record SourceDescriptor(
         private Duration defaultRetryAfter;
         private boolean followRedirects = true;
         private boolean egressOverridable;
+        private Duration hostPacing;
+        private final Map<String, String> accessDeniedReasons = new LinkedHashMap<>();
 
         private String name;
         private String description;
@@ -666,6 +683,25 @@ public record SourceDescriptor(
             return this;
         }
 
+        /**
+         * Paces requests to each upstream host this source calls (prompt 080): one request in flight per host
+         * and at least {@code spacing} between request starts, shared with every other source calling that
+         * host. Null keeps requests unpaced.
+         */
+        public Builder hostPacing(Duration spacing) {
+            this.hostPacing = spacing;
+            return this;
+        }
+
+        /**
+         * Adds a refusal reason (prompt 080): when a refusal's body contains {@code bodyContains}, the health
+         * reason names {@code reason} instead of the generic refusal text. Keys are tried in insertion order.
+         */
+        public Builder accessDeniedReason(String bodyContains, String reason) {
+            this.accessDeniedReasons.put(bodyContains, reason);
+            return this;
+        }
+
         /** Sets the layer presentation hints of one kind. */
         public Builder kindPresentation(String kind, Map<String, Object> hints) {
             this.kindPresentation.put(kind, hints);
@@ -749,7 +785,9 @@ public record SourceDescriptor(
                     accessDeniedIsTerminal,
                     defaultRetryAfter,
                     followRedirects,
-                    egressOverridable);
+                    egressOverridable,
+                    hostPacing,
+                    accessDeniedReasons);
         }
     }
 }

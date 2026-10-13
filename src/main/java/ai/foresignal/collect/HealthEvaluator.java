@@ -26,7 +26,8 @@ import org.slf4j.LoggerFactory;
  *   <li>no attempt yet → {@code idle}
  *   <li>the last failure was a refusal of this client (HTTP 451, or 403 from a source with
  *       {@code accessDeniedIsTerminal}; prompt 062) → {@code failing}, with
- *       {@link UpstreamAccessDeniedException#reason(int)}
+ *       {@link UpstreamAccessDeniedException#reason(int)}, or the source-specific reason the refusal carried
+ *       (prompt 080)
  *   <li>the last failure was an upstream halt ({@code UpstreamHaltException}, prompt 064) → {@code failing},
  *       with the halt's own reason
  *   <li>in backoff, or ≥ {@value #FAILING_CONSECUTIVE_FAILURES} consecutive failures → {@code failing}
@@ -112,7 +113,7 @@ public final class HealthEvaluator {
         //    Failing from the first refusal until a fetch succeeds, with the reason that points the
         //    operator at the Operator Guide; the one-hour backoff keeps retries hourly.
         if (h.consecutiveFailures() > 0 && isAccessDenied(h)) {
-            return HealthAssessment.of(HealthStatus.FAILING, UpstreamAccessDeniedException.reason(h.lastHttpStatus()));
+            return HealthAssessment.of(HealthStatus.FAILING, accessDeniedReason(h));
         }
 
         // 3. The upstream's usage policy said stop (prompt 064): failing with the halt reason, which tells
@@ -209,6 +210,18 @@ public final class HealthEvaluator {
         String prefix = ai.foresignal.source.spi.UpstreamHaltException.class.getSimpleName() + ": ";
         int at = lastError.indexOf(prefix);
         return at >= 0 ? lastError.substring(at + prefix.length()) : lastError;
+    }
+
+    /**
+     * The reason of a refusal (prompts 062 and 080): the source-specific reason stored in {@code last_error} when
+     * the refusal carried one ({@link UpstreamAccessDeniedException#reason(int, String)}), else the generic
+     * {@link UpstreamAccessDeniedException#reason(int)}.
+     */
+    static String accessDeniedReason(HealthSnapshot h) {
+        int status = h.lastHttpStatus();
+        String prefix = UpstreamAccessDeniedException.detailPrefix(status);
+        int at = h.lastError().indexOf(prefix);
+        return at >= 0 ? h.lastError().substring(at) : UpstreamAccessDeniedException.reason(status);
     }
 
     /** True when the last failure was an {@link UpstreamAccessDeniedException} (prompt 062). */

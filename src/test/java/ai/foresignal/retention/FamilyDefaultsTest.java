@@ -256,6 +256,17 @@ class FamilyDefaultsTest {
                     new ai.foresignal.source.adapters.wx.WxCellsGenerator("small").descriptor(), "weather")),
             // Checkpoint 057: the SatDump station source (049), one per station, was missing. Its three kinds keep
             // their own §2.4 windows (ground-station 30 d, satellite-pass 365 d, raster-frame 7 d).
+            // Prompt 080: the rail and supplemental aircraft sources are TRACK (trackWindow, never a default).
+            Map.entry("AirplanesLiveMilAdapter", new Entry(
+                    new ai.foresignal.source.adapters.airplaneslive.AirplanesLiveMilAdapter("").descriptor(), "track")),
+            Map.entry("AdsbFiMilAdapter", new Entry(
+                    new ai.foresignal.source.adapters.adsbfi.AdsbFiMilAdapter("").descriptor(), "track")),
+            Map.entry("AdsbFiRegionAdapter", new Entry(new ai.foresignal.source.adapters.adsbfi.AdsbFiRegionFamily("")
+                    .adapters().getFirst().descriptor(), "track")),
+            Map.entry("DigitrafficRailAdapter", new Entry(new ai.foresignal.source.adapters.digitraffic.rail
+                    .DigitrafficRailAdapter("", () -> "dev").descriptor(), "track")),
+            Map.entry("AmtrakerAdapter", new Entry(
+                    new ai.foresignal.source.adapters.amtraker.AmtrakerAdapter("").descriptor(), "track")),
             Map.entry("SatDumpAdapter", new Entry(new ai.foresignal.source.adapters.satdump.SatDumpAdapter("itest", null,
                     null).descriptor(), "station")));
 

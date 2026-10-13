@@ -45,6 +45,10 @@ import org.slf4j.LoggerFactory;
  * <ol>
  *   <li><strong>backoff first</strong>, because a request we are not going to send must not cost a
  *       budget token — otherwise an upstream throttling us would also drain our daily allowance;
+ *   <li>then, for a source whose descriptor sets {@code hostPacing} (prompt 080), the per-host
+ *       {@link HostPacer} gate, held until the response has been read, so requests to one host never
+ *       overlap; a request that cannot get the gate within the bounded wait is not sent
+ *       ({@link HostPacingTimeoutException});
  *   <li>then the budget, refusing rather than queueing;
  *   <li>then the request, with Foresignal's User-Agent and a byte cap.
  * </ol>
@@ -413,13 +417,57 @@ class BoundSourceHttp implements SourceHttp {
             long expectedBytes)
             throws AdapterException {
 
-        Instant startedAt = parent.clock().instant();
-
         // 1. Backoff before budget: see the class note.
         checkBackoff();
 
-        // 2. Budget. A refusal sends nothing.
-        consumeBudget(expectedBytes);
+        // 2. Host pacing (prompt 080): wait for the host's gate before the budget, so a request that is
+        //    never sent costs nothing. The gate is held until the response has been read.
+        HostPacer.Permit permit = pace(uri);
+        try {
+            // 3. Budget. A refusal sends nothing.
+            consumeBudget(expectedBytes);
+            return send(method, uri, headers, body, contentType, maxBytes, allowRedirects, expectedBytes);
+        } finally {
+            if (permit != null) {
+                permit.close();
+            }
+        }
+    }
+
+    /**
+     * Waits for this source's host gate when its descriptor sets {@code hostPacing} (prompt 080).
+     *
+     * @return the held gate, or null when the source is not paced
+     * @throws HostPacingTimeoutException when the gate could not be had within the bounded wait
+     */
+    private HostPacer.Permit pace(URI uri) throws AdapterException {
+        if (descriptor.hostPacing() == null) {
+            return null;
+        }
+        HostPacer pacer = parent.hostPacer();
+        try {
+            return pacer.acquire(uri.getHost(), descriptor.hostPacing())
+                    .orElseThrow(() -> new HostPacingTimeoutException(
+                            sourceId, uri.getHost(), pacer.maxWait(), parent.clock().instant()));
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw UpstreamClient.io("Interrupted waiting for the request slot on " + uri.getHost(), e);
+        }
+    }
+
+    /** Sends one request whose backoff, pacing and budget have been checked. */
+    private UpstreamResponse send(
+            String method,
+            URI uri,
+            Map<String, String> headers,
+            byte[] body,
+            String contentType,
+            long maxBytes,
+            boolean allowRedirects,
+            long expectedBytes)
+            throws AdapterException {
+
+        Instant startedAt = parent.clock().instant();
 
         HttpRequest.Builder builder = requestBuilder(uri, headers);
         if ("POST".equals(method)) {
@@ -602,8 +650,9 @@ class BoundSourceHttp implements SourceHttp {
 
     private void throwForStatus(int status, HttpResponse<InputStream> response, UpstreamResponse result)
             throws AdapterException {
-        String snippet = UpstreamHttpException.snippet(result.bodyAsString());
-        throw errorFor(status, response, snippet);
+        String text = result.bodyAsString();
+        String snippet = UpstreamHttpException.snippet(text);
+        throw errorFor(status, response, snippet, text);
     }
 
     /**
@@ -613,17 +662,19 @@ class BoundSourceHttp implements SourceHttp {
      *   <li><strong>Refused client:</strong> a 451, or a 403 from a source whose descriptor sets
      *       {@code accessDeniedIsTerminal}, puts the source in a one-hour backoff and becomes
      *       {@link UpstreamAccessDeniedException}. Nothing else is tried: no other User-Agent, no browser
-     *       headers, no other egress.
+     *       headers, no other egress. When the body contains a key of the descriptor's
+     *       {@code accessDeniedReasons} (prompt 080), the exception carries that reason.
      *   <li><strong>{@code Retry-After}</strong> (or OpenSky's {@code X-Rate-Limit-Retry-After-Seconds}) on
      *       any 4xx or 5xx is honored, clamped to [5 s, 1 h] by {@link BackoffRegistry}.
      *   <li><strong>429 without the header:</strong> the descriptor's {@code defaultRetryAfter} when it sets
      *       one (30 s for adsb.lol), else the exponential ladder; a 503 without it uses the ladder.
      * </ul>
      */
-    private UpstreamHttpException errorFor(int status, HttpResponse<InputStream> response, String snippet) {
+    private UpstreamHttpException errorFor(
+            int status, HttpResponse<InputStream> response, String snippet, String body) {
         if (status == 451 || (status == 403 && descriptor.accessDeniedIsTerminal())) {
             parent.backoff().onThrottled(sourceId, Optional.of(UpstreamAccessDeniedException.REFUSAL_BACKOFF));
-            return new UpstreamAccessDeniedException(status, snippet);
+            return new UpstreamAccessDeniedException(status, snippet, refusalDetail(body));
         }
         Optional<Duration> retryAfter = retryAfterFrom(response);
         if (retryAfter.isPresent()) {
@@ -636,12 +687,29 @@ class BoundSourceHttp implements SourceHttp {
         return new UpstreamHttpException(status, snippet);
     }
 
+    /**
+     * The descriptor's refusal reason whose key the body contains (prompt 080), or null.
+     *
+     * @param body the refusal's response body, possibly empty
+     */
+    private String refusalDetail(String body) {
+        if (body == null || descriptor.accessDeniedReasons().isEmpty()) {
+            return null;
+        }
+        for (Map.Entry<String, String> reason : descriptor.accessDeniedReasons().entrySet()) {
+            if (body.contains(reason.getKey())) {
+                return reason.getValue();
+            }
+        }
+        return null;
+    }
+
     private void handleErrorStatus(
             HttpResponse<InputStream> response, Instant startedAt, String method, URI uri, long expected)
             throws AdapterException {
         int status = response.statusCode();
         parent.usage().record(sourceId, 0, false);
-        UpstreamHttpException error = errorFor(status, response, "");
+        UpstreamHttpException error = errorFor(status, response, "", "");
         traces.add(
                 new FetchTrace(
                         sourceId,

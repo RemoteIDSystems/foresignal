@@ -17,7 +17,18 @@ public class InBackoffException extends AdapterException {
     private final Instant until;
 
     public InBackoffException(String sourceId, Instant until) {
-        super("Source " + sourceId + " is in backoff until " + until);
+        this(sourceId, until, "Source " + sourceId + " is in backoff until " + until);
+    }
+
+    /**
+     * A skip with its own message (prompt 080: {@link HostPacingTimeoutException}).
+     *
+     * @param sourceId the source whose request was not sent
+     * @param until when the source may be fetched again
+     * @param message the message
+     */
+    protected InBackoffException(String sourceId, Instant until, String message) {
+        super(message);
         this.sourceId = sourceId;
         this.until = until;
     }

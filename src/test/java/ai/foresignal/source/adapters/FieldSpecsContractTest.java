@@ -18,8 +18,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
- * The 011 {@code fieldSpecs} contract for the three aircraft sources of prompt 062: every payload key of every
- * fixture is declared, with the declared JSON type.
+ * The 011 {@code fieldSpecs} contract for the three aircraft sources of prompt 062 and the readsb sources of 080:
+ * every payload key of every fixture is declared, with the declared JSON type.
  */
 class FieldSpecsContractTest {
 
@@ -45,6 +45,20 @@ class FieldSpecsContractTest {
         List<NormalizedRecord> records = readsb("adsblol-area", "point-41.98--87.90-250.json");
         assertThat(records).hasSize(30);
         FieldSpecContract.assertPayloadKeysDeclared(d, records);
+    }
+
+    @Test
+    @DisplayName("adsbfi-mil, adsbfi-region-* and airplaneslive-mil (prompt 080): the adsb.fi captures and edge cases")
+    void prompt080Aircraft() {
+        SourceDescriptor mil = new ai.foresignal.source.adapters.adsbfi.AdsbFiMilAdapter("").descriptor();
+        FieldSpecContract.assertPayloadKeysDeclared(mil, readsb("adsbfi-mil", "mil.json"));
+        FieldSpecContract.assertPayloadKeysDeclared(mil, readsb("adsbfi-mil", "edge.json"));
+        SourceDescriptor region = new ai.foresignal.source.adapters.adsbfi.AdsbFiRegionFamily("").adapters().getFirst()
+                .descriptor();
+        FieldSpecContract.assertPayloadKeysDeclared(region, readsb("adsbfi-region", "region-39.86--104.67-25.json"));
+        SourceDescriptor airplanes = new ai.foresignal.source.adapters.airplaneslive.AirplanesLiveMilAdapter("")
+                .descriptor();
+        FieldSpecContract.assertPayloadKeysDeclared(airplanes, readsb("airplaneslive-mil", "mil-synthetic.json"));
     }
 
     @Test

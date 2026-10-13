@@ -1,0 +1,11 @@
+{"ac":[
+{"hex":"ae57d5","type":"adsb_icao","flight":"C2011   ","r":"2011","t":"C30J","dbFlags":1,"desc":"Lockheed Martin HC-130J Hercules","alt_baro":7125,"alt_geom":7525,"gs":207.5,"track":304.99,"geom_rate":1984,"squawk":"2306","emergency":"none","category":"A3","nav_qnh":1015.2,"nav_altitude_fms":10016,"nav_heading":296.02,"nav_modes":["autopilot","lnav","tcas"],"lat":21.186342,"lon":-158.356018,"nic":9,"rc":75,"seen_pos":0.575,"version":2,"nic_baro":1,"nac_p":9,"nac_v":2,"sil":3,"sil_type":"perhour","gva":2,"sda":2,"alert":0,"spi":0,"mlat":[],"tisb":[],"messages":1931,"seen":0.6,"rssi":-19.6},
+{"hex":"ae05ac","type":"mlat","flight":"        ","r":"63-8029","t":"K35R","dbFlags":1,"desc":"BOEING KC-135R/T Stratotanker","alt_baro":25000,"gs":469.0,"track":36.0,"baro_rate":-76,"squawk":"5114","nav_qnh":1013.3,"nav_altitude_mcp":25008,"nav_modes":["althold"],"lat":61.443954,"lon":-149.475154,"nic":0,"rc":0,"seen_pos":4.486,"alert":0,"spi":0,"mlat":["gs","track","baro_rate","squawk","lat","lon","nic","rc"],"tisb":[],"messages":26043,"seen":0.2,"rssi":-5.9},
+{"hex":"ae4ff0","type":"mode_s","r":"168160","t":"H60","dbFlags":1,"desc":"SIKORSKY UH-60 Black Hawk","alt_baro":"ground","rr_lat":32.3,"rr_lon":-117.0,"lastPosition":{"lat":32.696347,"lon":-117.211028,"nic":0,"rc":0,"seen_pos":761.286},"alert":0,"spi":0,"mlat":[],"tisb":[],"messages":17430,"seen":0.8,"rssi":-13.3}
+]
+,"msg": "No error"
+,"now": 1791931814001
+,"total": 3
+,"ctime": 1791931814001
+,"ptime": 0
+}

@@ -83,6 +83,12 @@ public class ManualFetchService {
         if (FetchOutcome.SKIP_BACKOFF.equals(outcome.skipReason())) {
             throw inBackoff(sourceId);
         }
+        if (FetchOutcome.SKIP_HOST_PACING.equals(outcome.skipReason())) {
+            // Prompt 080: the host's request gate stayed busy; nothing was sent. Reported like a backoff.
+            throw new ConflictException(ConflictException.IN_BACKOFF,
+                    "'" + sourceId + "' could not get a request slot on its upstream host (" + outcome.error()
+                            + "); try again shortly.");
+        }
         if (outcome.status() == FetchStatus.REFUSED) {
             throw new BudgetExceededProblem(
                     "The budget for '" + sourceId + "' is spent; the fetch was not sent.");

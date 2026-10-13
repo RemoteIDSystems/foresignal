@@ -70,6 +70,8 @@ import org.springframework.stereotype.Component;
  *       <td>{@code recordFailure}, {@code BackoffRegistry.halt} for the exception's hold (24 h), and a
  *       {@value #HALT_EVENT} system notification; only a manual fetch releases it early</td></tr>
  *   <tr><td>In backoff</td><td>none</td><td>skipped, no health change</td></tr>
+ *   <tr><td>Host pacing gate busy for the bounded wait ({@link HostPacingTimeoutException}, prompt 080)</td>
+ *       <td>none</td><td>skipped ({@value FetchOutcome#SKIP_HOST_PACING}), no health change</td></tr>
  *   <tr><td>Ingest queue full, or the writer failed the batch</td><td>FAILED</td><td>a warning,
  *       not an upstream failure</td></tr>
  *   <tr><td>Any other failure, timeouts included</td><td>FAILED, redacted error and HTTP
@@ -364,6 +366,14 @@ public class FetchExecutor {
             DefaultFetchContext ctx,
             Throwable error) {
         String sourceId = descriptor.id();
+        HostPacingTimeoutException pacing = causeOf(error, HostPacingTimeoutException.class);
+        if (pacing != null) {
+            // Prompt 080: the host's request gate stayed busy for the whole bounded wait. Nothing was sent and
+            // no budget was spent; the next scheduled run tries again.
+            countSkip(sourceId, FetchOutcome.SKIP_HOST_PACING);
+            log.info("{}: {}", sourceId, pacing.getMessage());
+            return FetchOutcome.skipped(sourceId, startedAt, FetchOutcome.SKIP_HOST_PACING, pacing.getMessage());
+        }
         InBackoffException backoffError = causeOf(error, InBackoffException.class);
         if (backoffError != null) {
             countSkip(sourceId, FetchOutcome.SKIP_BACKOFF);

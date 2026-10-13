@@ -133,6 +133,19 @@ a later Foresignal release adds an optional `apiKey` credential; until then thes
 whose body is HTML rather than JSON is also treated as throttling: the fetch fails with "non-JSON 200, treated as
 throttling" and nothing is ingested.
 
+**adsb.fi and airplanes.live (prompt 080)** follow the same rules, and the generic refusal reason above points here for
+them too:
+
+- `adsbfi-mil` and `adsbfi-region-1..4` share the host `opendata.adsb.fi`, which allows one request per second and
+  temporarily restricts an address that keeps making invalid requests (400, 401, 403, 404, 429). Foresignal keeps
+  requests to that host strictly serial, at least 1.1 s apart, across all five sources; when a request cannot start
+  within 30 s the run is skipped with the reason "host pacing" and nothing is sent. adsb.fi data is for personal,
+  non-commercial use, with attribution to adsb.fi; the sources are `LOCAL_ONLY` by default.
+- `airplaneslive-mil` is refused today: airplanes.live answers every anonymous request with HTTP 403 and asks projects to
+  email `contact@airplanes.live` with links and a description. Health then reads "upstream refused this client (HTTP
+  403): access approval required (contact airplanes.live)", and the source is retried hourly. Enable `adsbfi-mil` for
+  military aircraft without that step.
+
 ### OpenSky credentials and credits
 
 `opensky-states` runs anonymously unless you store API client credentials. Create an API client on your OpenSky account
