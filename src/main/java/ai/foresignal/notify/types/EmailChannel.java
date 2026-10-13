@@ -1,6 +1,7 @@
 package ai.foresignal.notify.types;
 
 import ai.foresignal.api.error.FieldError;
+import ai.foresignal.notify.ChannelCapabilities;
 import ai.foresignal.notify.ChannelFieldSpec;
 import ai.foresignal.notify.ChannelRateLimit;
 import ai.foresignal.notify.ChannelSettings;
@@ -19,12 +20,19 @@ import org.springframework.stereotype.Component;
  * sending multipart/alternative plain text and HTML. Config {@code plainTextOnly} sends
  * {@code text/plain} only, for gateways such as Winlink. The origin marker travels as the
  * {@code X-Foresignal-Origin} MIME header. Lifecycle updates are follow-ups.
+ *
+ * <p>Prompt 055: a message with an image adds {@code <img src="cid:map">} to the HTML, and the sender
+ * builds {@code multipart/alternative} of the plain text and a {@code multipart/related} holding the HTML
+ * and the PNG ({@code Content-ID: <map>}). A plain-text-only channel sends no image.
  */
 @Component
 public class EmailChannel extends AbstractChannelType {
 
     /** The type id. */
     public static final String ID = "email";
+
+    /** The {@code Content-ID} of the inline map (prompt 055). */
+    public static final String CONTENT_ID = "map";
 
     private static final ChannelTypeSpec SPEC = new ChannelTypeSpec(ID, "Email",
             "SMTP email, multipart plain text and HTML (or plain text only)",
@@ -47,6 +55,11 @@ public class EmailChannel extends AbstractChannelType {
     @Override
     public ChannelTypeSpec spec() {
         return SPEC;
+    }
+
+    @Override
+    public ChannelCapabilities capabilities() {
+        return new ChannelCapabilities(false, true, false);
     }
 
     @Override
@@ -92,6 +105,9 @@ public class EmailChannel extends AbstractChannelType {
             if (!body.isBlank()) {
                 h.append("<p>").append(body).append("</p>");
             }
+            if (m.image() != null) {
+                h.append("<p><img src=\"cid:").append(CONTENT_ID).append("\" alt=\"Map\" style=\"max-width:100%\"></p>");
+            }
             for (NotificationMessage.Link link : buttons(m)) {
                 h.append("<p><a href=\"").append(MarkdownRenderer.escape(link.url(), MarkdownRenderer.Format.EMAIL_HTML)
                         .replace("\"", "&quot;")).append("\">")
@@ -102,10 +118,13 @@ public class EmailChannel extends AbstractChannelType {
                     .append("</p></body></html>");
             html = h.toString();
         }
+        NotificationMessage.Attachment image = m.image();
+        List<PreparedRequest.Inline> inlines = html == null || image == null ? List.of()
+                : List.of(new PreparedRequest.Inline(CONTENT_ID, image.filename(), image.contentType(), image.bytes()));
         PreparedRequest.Mail mail = new PreparedRequest.Mail(host, port, s.config("tls", "starttls"),
                 s.secret("username"), s.secret("password"), s.config("from", ""), s.list("to"),
                 m.title().replace('\n', ' '), text.toString(), html,
-                s.origin() == null ? Map.of() : Map.of(OriginMarker.HEADER, s.origin()));
+                s.origin() == null ? Map.of() : Map.of(OriginMarker.HEADER, s.origin()), inlines);
         return new PreparedRequest("SMTP", "smtp://" + host + ":" + port, Map.of(), mail);
     }
 }

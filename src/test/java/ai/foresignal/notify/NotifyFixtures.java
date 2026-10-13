@@ -65,6 +65,36 @@ public final class NotifyFixtures {
                 .data(data).tags(List.of("quake")).origin(ORIGIN).createdAt(T).alertId(7L).ruleId(RULE).build();
     }
 
+    /** The media URL of the test map (prompt 055). */
+    public static final String MAP_URL = "https://fs.example/v1/media/01JA0000000000000000000000";
+
+    /** A small PNG standing in for a rendered map (prompt 055): 4 × 3 pixels. */
+    public static byte[] mapPng() {
+        java.awt.image.BufferedImage image = new java.awt.image.BufferedImage(4, 3,
+                java.awt.image.BufferedImage.TYPE_INT_RGB);
+        image.setRGB(1, 1, 0xFF2266AA);
+        java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+        try {
+            javax.imageio.ImageIO.write(image, "png", out);
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
+        }
+        return out.toByteArray();
+    }
+
+    /** {@code message} carrying the test map as a loaded image attachment (prompt 055). */
+    public static NotificationMessage withMap(NotificationMessage message) {
+        byte[] png = mapPng();
+        return message.withAttachments(List.of(new NotificationMessage.Attachment("map.png", "image/png", png,
+                "01JA0000000000000000000000", png.length, MAP_URL)));
+    }
+
+    /** {@code message} carrying the test map as a link-only attachment (prompt 055). */
+    public static NotificationMessage withMapLink(NotificationMessage message) {
+        return message.withAttachments(List.of(new NotificationMessage.Attachment("map.png", "image/png", null,
+                "01JA0000000000000000000000", 4321, MAP_URL)));
+    }
+
     /** A lifecycle update of the canonical message. */
     public static NotificationMessage update(String subtype) {
         Map<String, Object> data = new LinkedHashMap<>();

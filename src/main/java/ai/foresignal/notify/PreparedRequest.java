@@ -8,7 +8,8 @@ import java.util.Objects;
 
 /**
  * One outbound request a channel type rendered: method, URL, headers and a body that is raw bytes,
- * form fields, multipart parts (prompt 055 only adds parts) or an email.
+ * form fields, multipart parts or an email (prompt 055: image attachments use the multipart body and
+ * the email's inline images).
  *
  * @param method {@code POST}, {@code PUT}, {@code PATCH} or {@code SMTP}
  * @param url the target URL ({@code smtp://host:port} for email)
@@ -103,6 +104,8 @@ public record PreparedRequest(String method, String url, Map<String, String> hea
      * @param text the plain-text part
      * @param html the HTML part, or null for a {@code text/plain}-only message
      * @param headers extra MIME headers
+     * @param inlines images the HTML references as {@code cid:} (prompt 055), sent in a
+     *     {@code multipart/related} with the HTML part
      */
     public record Mail(
             String host,
@@ -115,14 +118,32 @@ public record PreparedRequest(String method, String url, Map<String, String> hea
             String subject,
             String text,
             String html,
-            Map<String, String> headers) implements Body {
+            Map<String, String> headers,
+            List<Inline> inlines) implements Body {
 
         /** Copies. */
         public Mail {
             to = List.copyOf(to);
             headers = headers == null ? Map.of() : java.util.Collections.unmodifiableMap(new LinkedHashMap<>(headers));
+            inlines = inlines == null ? List.of() : List.copyOf(inlines);
+        }
+
+        /** A mail without inline images (the 018 shape). */
+        public Mail(String host, int port, String tls, String username, String password, String from, List<String> to,
+                String subject, String text, String html, Map<String, String> headers) {
+            this(host, port, tls, username, password, from, to, subject, text, html, headers, List.of());
         }
     }
+
+    /**
+     * An inline image of an email (prompt 055).
+     *
+     * @param contentId the {@code Content-ID} without angle brackets ({@code map}: {@code <img src="cid:map">})
+     * @param filename the file name
+     * @param contentType the media type
+     * @param bytes the content
+     */
+    public record Inline(String contentId, String filename, String contentType, byte[] bytes) {}
 
     /** The body as UTF-8 text for a {@link Bytes} body, else null (tests, logging). */
     public String bodyText() {

@@ -39,8 +39,9 @@ public final class NotificationJson {
             Map<String, Object> item = new LinkedHashMap<>();
             item.put("filename", a.filename());
             item.put("contentType", a.contentType());
-            item.put("bytes", a.bytes() == null ? 0 : a.bytes().length);
+            item.put("bytes", a.size());
             item.put("mediaId", a.mediaId());
+            item.put("url", a.url());
             attachments.add(item);
         }
         out.put("attachments", attachments);

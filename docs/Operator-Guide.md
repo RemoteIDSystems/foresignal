@@ -416,6 +416,53 @@ The edited text shows the new state, for example "✅ Resolved 14:02 CDT — …
 through. Set `editInPlace: false` on a channel to always get a follow-up instead. Pushover emergency
 alerts are canceled on acknowledge or resolve, so the phone stops repeating them.
 
+### Map attachments
+
+A geolocated alert can carry a static map: the alert's geometry over radar (or other products) on a
+Natural Earth basemap, with the frame's valid time, a legend, the attribution and the footer
+"Automated — not an official warning" (prompt 055). It is **off by default on every channel**, because
+the image leaves your network on a cloud chat service and shows where the alert is. Turn it on per channel
+in `config`:
+
+| Key | Default | Meaning |
+|---|---|---|
+| `attachMap` | `none` | `static` attaches a map to each geolocated alert |
+| `mapProducts` | `["mrms-reflectivity"]` | 1–4 products drawn; an alert on a `raster-frame` record defaults to the product that matched |
+| `mapRadiusKm` | `50` | radius around the alert geometry (the map always contains the whole geometry) |
+| `maxAttachmentBytes` | per type, below | the largest image sent on this channel |
+
+The map is rendered **once per alert** when it fires, at 800 px, after waiting up to 5 s for a frame newer
+than the alert, so it shows the weather that caused it. It is stored as media for 7 days (`role: map`) and
+reused by every channel. Rendering starts at once and runs alongside the enrichment wait: a send waits for
+its map at most 8 s, and never longer than the channel's `waitForEnrichmentSeconds` when that is set; past
+that the alert goes out as text. A `satellite-pass` alert attaches the pass composite's 256 px thumbnail
+instead of a map.
+
+| Type | How the image is sent | Default cap |
+|---|---|---|
+| `discord` | multipart `files[0]`, shown in the embed (`attachment://map.png`) | 8 MB |
+| `telegram` | `sendPhoto` with the text as caption (≤ 1,024 characters; longer text follows as a message) | 10 MB |
+| `ntfy` | `PUT` of the PNG with `Filename: map.png`, the text in the `Message` header | 15 MB |
+| `pushover` | multipart `attachment` | 5,242,880 bytes |
+| `email` | inline image (`cid:map`) in the HTML part; none with `plainTextOnly` | 10 MB |
+| every other type | the text plus a `[Map](…)` link to `{publicBaseUrl}/v1/media/{id}`; `webhook` also lists `attachments[{mediaId, url, contentType, bytes}]` in its default body | — |
+
+**Size control:** an image over the channel's `maxAttachmentBytes` is replaced by a 600 px map, then by
+the 256 px thumbnail, then the alert is sent as text only. The level chosen is shown on the delivery
+(`attachmentLevel`: `map-800`, `map-600`, `thumbnail` or `text-only`), with the media references in
+`attachments`; a retry resends the same image from the media store.
+
+**ntfy attachments** need attachments enabled on the server: set `attachment-cache-dir` (a directory or
+an S3 URL) and `base-url` in `server.yml` (ntfy's own option names; `attachment-file-size-limit` caps a
+file, 15M by default). ntfy.sh has them on. When the server answers `413` (too large, or the bandwidth
+limit) or `400` with code `40014` (attachments not allowed), Foresignal sends the text message instead and
+records `text-only`.
+
+**Links on the other types** point at the in-app media URL, which needs a token unless reads are open,
+and works only where `publicBaseUrl` is reachable (your LAN or a VPN). There are no signed URLs in v1.
+Private-source alerts never carry a map to a channel without `privatePayload: true`, and products of
+private sources are left off the map for such a channel.
+
 ### Quiet hours, pause, folding and grouping
 
 - **Quiet hours** (per channel): `{"start": "22:00", "end": "07:00", "days": ["MON", …],
@@ -2034,6 +2081,31 @@ without the Unidata host:
 After a NetCDF-Java upgrade, regenerate the checksums with
 `./gradlew --write-verification-metadata sha256 help`, then trim the file back to the `edu.ucar`
 components and the `<trusted-artifacts>` rule.
+
+## Static maps
+
+`GET /v1/maps/static` (read scope; prompt 055) draws a PNG from the bundled Natural Earth 1:50m basemap and
+Foresignal's own stored frames, so it works offline and **never fetches third-party tiles**. Give a box
+(`bbox`), a `center` with `radiusKm`, an `alert` id (the map centers on its record geometry, radius default
+50 km) or a `place` (a token is required; adds a marker and range rings), plus `products` (at most 4) with
+optional `style`s, `time` (`latest`, `now`, an ISO time or an offset), `width` (≤ 1280, default 800),
+`height` (default width × 0.75), `theme=light|dark` and `units=metric|imperial`. Every map shows each
+product's frame valid time (UTC, plus the place's local time), a legend, the attribution, a scale bar and
+the footer "Automated — not an official warning". A product without a usable frame is drawn as a note
+("MRMS reflectivity unavailable — not evidence of clear weather"), never left out silently. The MCP tool
+`get_map_image` returns the same map (≤ 512 px, ≤ 200 KB) with a text caption, and map attachments of
+alerts use it too.
+
+The response is immutable only when every frame is pinned (an ISO `time`, a versioned `style` per product,
+a pinned `run` for forecasts, no `place`); otherwise it gets a short max-age and an ETag. Renders run on
+the render pool within 2 s; under load the answer is `503 RENDER_BUSY` with `Retry-After: 1`.
+
+**Your own tile server (optional).** `FORESIGNAL_MAPS_BASEMAP_URL_TEMPLATE`, an XYZ template such as
+`http://tiles.lan:8080/{z}/{x}/{y}.png`, replaces the Natural Earth fills with tiles from a server **on your
+own network**: a host that does not resolve to a loopback or private address is refused (logged once per
+map) and Natural Earth is used. Tiles are fetched only while a map is drawn (at most 16 per map, 0.8 s
+each) and are never cached or passed on. Do **not** point it at `tile.openstreetmap.org`: the OpenStreetMap
+tile usage policy forbids this kind of use, and Foresignal refuses public hosts anyway.
 
 ## Forecast models (GFS and HRRR)
 

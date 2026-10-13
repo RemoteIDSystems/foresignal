@@ -46,6 +46,9 @@ import org.springframework.util.AntPathMatcher;
  * {@code GET /v1/media/**} as {@code read}; the news providers of prompt 133 under
  * {@code /v1/media/providers} stay {@code admin}, listed before it.
  *
+ * <p>Prompt 055 adds {@code GET /v1/maps/**} ({@code getStaticMap}) as {@code read}; a map of a place
+ * needs a token, which the controller enforces as the loop does.
+ *
  * <p>Prompt 050 adds the tile-key operations ({@code GET}/{@code POST /v1/tile-keys},
  * {@code DELETE /v1/tile-keys/{id}}) as {@code agent}. Key-in-path URLs ({@code /v1/k/**}) have no
  * rule: {@code PathKeyFilter} forwards them to their canonical path, which is what is evaluated.
@@ -280,6 +283,9 @@ public class AccessPolicy {
                 rule(HttpMethod.GET, "/v1/media/providers", AccessRequirement.ADMIN),
                 rule(HttpMethod.GET, "/v1/media/providers/**", AccessRequirement.ADMIN),
                 rule(HttpMethod.GET, "/v1/media/**", AccessRequirement.READ),
+
+                // ---- Static maps (055, Weather-Imagery-Design §6.11): reads; a place needs a token ----
+                rule(HttpMethod.GET, "/v1/maps/**", AccessRequirement.READ),
 
                 // ---- Ground stations (049, Weather-Imagery-Design §6.11): reads ----
                 rule(HttpMethod.GET, "/v1/ground-stations/**", AccessRequirement.READ),

@@ -23,7 +23,7 @@ import java.util.UUID;
  * @param links at most three link buttons
  * @param data the full event data (the alert JSON for alerts), or null
  * @param tags the tags
- * @param attachments image attachments; empty until prompt 055 fills them
+ * @param attachments image attachments (prompt 055: the map of a geolocated alert, added at send time)
  * @param updateOf the notification this one updates, or null
  * @param origin the install id of the sending instance (loop guard)
  * @param createdAt when created
@@ -129,14 +129,52 @@ public record NotificationMessage(
     }
 
     /**
-     * An image attachment (prompt 055 fills these; types without attachment support ignore them).
+     * An image attachment (prompt 055). The delivery stores only the media reference; the delivery worker
+     * loads the bytes from the media store at send time, so a retry resends them. Types that send images
+     * ({@link ChannelCapabilities#attachments()}) use {@link #bytes()}; the others ignore it and the message
+     * carries a link to {@link #url()} instead.
      *
-     * @param filename the file name
+     * @param filename the file name, for example {@code map.png}
      * @param contentType the media type
-     * @param bytes the content, or null when it loads from the media store
+     * @param bytes the content, or null when it is not loaded (link-only channels)
      * @param mediaId the media store id, or null
+     * @param size the content's size in bytes
+     * @param url {@code {publicBaseUrl}/v1/media/{id}}, or null
      */
-    public record Attachment(String filename, String contentType, byte[] bytes, String mediaId) {}
+    public record Attachment(String filename, String contentType, byte[] bytes, String mediaId, long size, String url) {
+
+        /** The 018 shape: the size from the bytes, no URL. */
+        public Attachment(String filename, String contentType, byte[] bytes, String mediaId) {
+            this(filename, contentType, bytes, mediaId, bytes == null ? 0 : bytes.length, null);
+        }
+
+        /** True when the content is loaded. */
+        public boolean loaded() {
+            return bytes != null && bytes.length > 0;
+        }
+    }
+
+    /** A copy carrying {@code newAttachments} (prompt 055: the delivery worker attaches the alert's map). */
+    public NotificationMessage withAttachments(List<Attachment> newAttachments) {
+        return new NotificationMessage(id, event, subtype, title, shortTitle, bodyMarkdown, severity, url, links, data,
+                tags, newAttachments, updateOf, origin, createdAt, alertId, ruleId, briefingRunId);
+    }
+
+    /** A copy with other link buttons (still capped at three). */
+    public NotificationMessage withLinks(List<Link> newLinks) {
+        return new NotificationMessage(id, event, subtype, title, shortTitle, bodyMarkdown, severity, url, newLinks, data,
+                tags, attachments, updateOf, origin, createdAt, alertId, ruleId, briefingRunId);
+    }
+
+    /** The first attachment whose bytes are loaded, or null. */
+    public Attachment image() {
+        for (Attachment a : attachments) {
+            if (a.loaded()) {
+                return a;
+            }
+        }
+        return null;
+    }
 
     /** Builds a {@link NotificationMessage}. */
     public static final class Builder {

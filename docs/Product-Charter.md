@@ -62,7 +62,7 @@ Open-source situational-awareness projects (ShadowBroker, God's Eye View, Veloci
 - Analysing private individuals, or accusing anyone of wrongdoing. Market findings describe aggregate activity only.
 - Sending email or chat messages other than notifications the operator configured.
 - Horizontal scale-out or clustering (single instance by design).
-- Proxying basemaps or third-party tiles. Foresignal hosts products derived from data it ingests; it never proxies basemaps or third-party tiles (GIBS and nowCOAST are external catalog entries clients fetch directly; Esri, Google 3D Tiles and OSM tiles are likewise fetched by clients).
+- Proxying basemaps or third-party tiles. Foresignal hosts products derived from data it ingests; it never proxies basemaps or third-party tiles (GIBS and nowCOAST are external catalog entries clients fetch directly; Esri, Google 3D Tiles and OSM tiles are likewise fetched by clients). Static map images (prompt 055: `/v1/maps/static`, `get_map_image`, alert map attachments) are such derived products: drawn from the bundled Natural Earth asset and Foresignal's own frames, with no proxied or fetched public basemap (an operator's own LAN tile server is the only optional exception).
 - Fringe and specialist source adapters in the core (web maps, scrapers, browser automation, prediction markets, niche feeds). They are separate projects that speak the [External Data Protocol](External-Data-Protocol.md); Foresignal accepts whatever the operator connects and does not police that choice.
 - Real-time sub-second latency guarantees.
 

@@ -22,6 +22,11 @@ import org.springframework.stereotype.Component;
  * 4,096 characters, severity color, url, timestamp). The response's message {@code id} is stored, and
  * a lifecycle update edits that message with {@code PATCH {webhookUrl}/messages/{id}}. Mentions are
  * disabled, so a payload containing {@code @everyone} pings nobody.
+ *
+ * <p>Prompt 055: a message with an image attachment is sent as {@code multipart/form-data} with a
+ * {@code payload_json} part (the same payload plus {@code attachments[{id: 0, filename}]}) and a
+ * {@code files[0]} part, and the embed shows it with {@code image.url = attachment://map.png}. An edit in
+ * place sends the embed as JSON; Discord keeps the uploaded file.
  */
 @Component
 public class DiscordChannel extends AbstractChannelType {
@@ -53,7 +58,7 @@ public class DiscordChannel extends AbstractChannelType {
 
     @Override
     public ChannelCapabilities capabilities() {
-        return new ChannelCapabilities(true, false, false);
+        return new ChannelCapabilities(true, true, false);
     }
 
     @Override
@@ -63,11 +68,26 @@ public class DiscordChannel extends AbstractChannelType {
 
     @Override
     public PreparedRequest render(NotificationMessage m, ChannelSettings s) {
+        NotificationMessage.Attachment image = m.image();
+        Map<String, Object> embed = embed(m, s);
+        if (image != null) {
+            embed.put("image", obj("url", "attachment://" + image.filename()));
+        }
         Map<String, Object> payload = obj(
                 "username", s.config("username", null),
-                "embeds", List.of(embed(m, s)),
+                "embeds", List.of(embed),
                 "allowed_mentions", obj("parse", List.of()));
-        return json("POST", withQuery(s.secret("webhookUrl"), "wait=true"), null, payload, s);
+        String url = withQuery(s.secret("webhookUrl"), "wait=true");
+        if (image == null) {
+            return json("POST", url, null, payload, s);
+        }
+        // Prompt 055: multipart with payload_json and files[0]; the embed shows it as attachment://map.png.
+        payload.put("attachments", List.of(obj("id", 0, "filename", image.filename())));
+        List<PreparedRequest.Part> parts = List.of(
+                new PreparedRequest.Part("payload_json", null, "application/json",
+                        JSON.writeValueAsString(payload).getBytes(java.nio.charset.StandardCharsets.UTF_8)),
+                new PreparedRequest.Part("files[0]", image.filename(), image.contentType(), image.bytes()));
+        return new PreparedRequest("POST", url, baseHeaders(s), new PreparedRequest.Multipart(parts));
     }
 
     @Override

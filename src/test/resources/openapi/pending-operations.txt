@@ -1,4 +1,3 @@
-getStaticMap 055
 getWeatherSettings 056
 updateWeatherSettings 056
 getMapStyle 058

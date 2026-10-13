@@ -103,6 +103,8 @@ public class ChannelMapper {
         out.put("edited", d.isEdited());
         out.put("note", d.getNote());
         out.put("escalationStep", d.getEscalationStep());
+        out.put("attachmentLevel", d.getAttachmentLevel());
+        out.put("attachments", d.getAttachments() == null ? List.of() : d.getAttachments());
         return out;
     }
 

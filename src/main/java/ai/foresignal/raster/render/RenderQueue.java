@@ -129,10 +129,19 @@ public class RenderQueue implements DisposableBean {
      * @throws ForesignalException {@code 503 RENDER_BUSY} with {@code Retry-After: 1} after the wait
      */
     public byte[] render(Object key, Priority priority, String client, Supplier<byte[]> work) {
+        return render(key, priority, client, work, maxWait);
+    }
+
+    /**
+     * Renders {@code key}, waiting at most {@code wait} (prompt 055: a static map has a 2-s budget).
+     *
+     * @throws ForesignalException {@code 503 RENDER_BUSY} with {@code Retry-After: 1} after the wait
+     */
+    public byte[] render(Object key, Priority priority, String client, Supplier<byte[]> work, Duration wait) {
         Job job = join(key, priority, client, work);
         job.waiters.incrementAndGet();
         try {
-            byte[] out = job.future.get(maxWait.toMillis(), TimeUnit.MILLISECONDS);
+            byte[] out = job.future.get(wait.toMillis(), TimeUnit.MILLISECONDS);
             job.waiters.decrementAndGet();
             return out;
         } catch (TimeoutException e) {

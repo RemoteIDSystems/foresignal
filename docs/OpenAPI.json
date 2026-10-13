@@ -237,6 +237,11 @@
         "version": "1.3.0",
         "date": "2026-10-13",
         "note": "054: ingestSourceMedia and ingestSourceRasters are implemented (scope open; the ingest key, or an admin token, is checked by the endpoint). A satdump-{station} source holds the key a remote station presents as its `ingestKey` credential, since built-in sources have no minted ingest key. RemoteRasterBundleMeta gains the optional `product` (the product directory of the bundle's files). /media answers 404 when the station's stream is not running, and both endpoints 429 RATE_LIMITED when the source's budget is spent. SatellitePassPayload gains `geometrySource` (footprint | swath; absent for the station point) and documents products[].productId, frameKey and tilesTemplate (polar overlays `satdump-{station}-{composite}`, temporal.type pass, coverage swath, style rgb@1, ladder 30 d) plus instrument and mediaId (049)."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-13",
+        "note": "055: getStaticMap is implemented (description: box precedence, snapping, notes, the pinned-frame cache rule, at most 4 products, default width 800). NotificationMessage.attachments items carry `url` ({publicBaseUrl}/v1/media/{id}) and `bytes` is the size; the webhook default body gains a top-level `attachments` array of {mediaId, url, contentType, bytes}. NotificationDelivery.attachmentLevel and attachments are filled for sends of fired alerts on channels with attachMap=static. ChannelType.capabilities.attachments is true for discord, telegram, ntfy, pushover and email. MapAttachmentConfig.maxAttachmentBytes accepts 1024 to 104857600; mapProducts 1 to 4 ids; mapRadiusKm 1 to 2000."
       }
     ]
   },
@@ -30947,13 +30952,13 @@
         ],
         "operationId": "getStaticMap",
         "summary": "Render a static map",
-        "description": "Basemap-free server-rendered PNG: Natural Earth land, water and boundaries, product frames, alert geometry, place marker and range rings, scale bar, frame valid times, legend, attribution and an \"Automated — not an official warning\" footer. Missing or stale frames are drawn as a labelled note, never omitted; nothing fetches third-party tiles. Immutable only when every frame is content-addressed and pinned; otherwise a short max-age with an ETag.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "Basemap-free server-rendered PNG: Natural Earth land, water and boundaries, product frames, alert geometry, place marker and range rings, scale bar, frame valid times (UTC plus the place's local time), legend, attribution and an \"Automated — not an official warning\" footer. The box is `bbox`, else `center` with `radiusKm` (default 50 km), else the alert's record geometry, else the place; it is snapped outwards to 0.01° once and widened to the map area's aspect, and `Foresignal-Image-Bounds` gives the result. Missing or stale frames are drawn as a labelled note (\"… unavailable — not evidence of clear weather\"), never omitted; a concrete ISO time at which an enabled product has no frame is 404 UNKNOWN_FRAME. Nothing fetches third-party tiles (an operator's LAN tile server, `FORESIGNAL_MAPS_BASEMAP_URL_TEMPLATE`, may replace the Natural Earth fills). Immutable only when every frame is pinned: a concrete ISO `time`, complete current frames, a pinned run for forecasts, a versioned style for every product and no `place`; otherwise a short max-age with an ETag checked before rendering. Rendered on the render pool within 2 s, else 503 RENDER_BUSY.\n\n**Scope:** `read` (open while `security.openReads` is on).",
         "parameters": [
           {
             "name": "products",
             "in": "query",
             "required": false,
-            "description": "Products to draw",
+            "description": "Products to draw, in order (at most 4)",
             "schema": {
               "type": "array",
               "items": {
@@ -31019,7 +31024,7 @@
             "name": "width",
             "in": "query",
             "required": false,
-            "description": "Width in px (≤ 1280)",
+            "description": "Width in px (≤ 1280, default 800)",
             "schema": {
               "type": "integer",
               "minimum": 64,
@@ -31041,7 +31046,7 @@
             "name": "alert",
             "in": "query",
             "required": false,
-            "description": "Alert id: draws and centres on the alert's record geometry",
+            "description": "Alert id: draws and centers on the alert's record geometry (an alert the caller may not read is 404 NOT_FOUND)",
             "schema": {
               "type": "integer",
               "format": "int64"
@@ -31075,7 +31080,7 @@
             "name": "theme",
             "in": "query",
             "required": false,
-            "description": "Colour theme",
+            "description": "Color theme (default light)",
             "schema": {
               "type": "string",
               "enum": [
@@ -31245,7 +31250,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "055",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -109526,16 +109531,21 @@
             "items": {
               "type": "string"
             },
-            "description": "Products drawn (default [\"mrms-reflectivity\"] or the product that matched the rule)"
+            "description": "Products drawn (default [\"mrms-reflectivity\"] or the product that matched the rule)",
+            "minItems": 1,
+            "maxItems": 4
           },
           "mapRadiusKm": {
             "type": "number",
             "default": 50,
-            "minimum": 1
+            "minimum": 1,
+            "maximum": 2000
           },
           "maxAttachmentBytes": {
             "type": "integer",
-            "description": "Per-type default: discord 8 MB, telegram 10 MB, ntfy 15 MB, pushover 5,242,880, email 10 MB"
+            "description": "Per-type default: discord 8 MB, telegram 10 MB, ntfy 15 MB, pushover 5,242,880, email 10 MB",
+            "minimum": 1024,
+            "maximum": 104857600
           }
         },
         "additionalProperties": true

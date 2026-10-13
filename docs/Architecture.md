@@ -95,7 +95,8 @@ ai.foresignal
 ├── stream          ChangeBus, ChangeBatch, SseHub, StreamFilter
 ├── trigger         TriggerRule, TriggerEngine, RuleSqlBuilder, Alert, AlertService,
 │                   EnrichmentWorker
-├── notify          Notification channels, formatters per type, delivery worker, Web Push
+├── notify          Notification channels, formatters per type, delivery worker, Web Push;
+│                   AlertMapService and ChannelMapConfig: map attachments of alerts (055)
 ├── inbound         Custom push sources, ingest endpoint support
 ├── mcp             MCP server and tool catalog
 ├── llm             Provider registry, LlmClient implementations, budgets, usage
@@ -116,7 +117,9 @@ ai.foresignal
 │   │               ModelRunIngest (the gfs/hrrr engine), FieldStore (.f32.gz fields), FieldService,
 │   │               VectorTileService (barb MVT), TimelineService
 │   ├── render      TileRenderer, IndexMapCache, TileCache, RenderQueue, RasterCachePolicy,
-│   │               StyleRegistry, LegendService, LoopService, TileWarmer (045); MapRenderer (055)
+│   │               StyleRegistry, LegendService, LoopService, TileWarmer (045); static maps (055):
+│   │               MapRenderer (Java2D), MapSpec, StaticMapService, BasemapStore (Natural Earth
+│   │               1:50m asset), OperatorBasemap (optional LAN tile server)
 │   ├── sample      Point and area sampling of frames (052)
 │   └── geotiff     GeoTIFF reader (TiffDirectory, GeoKeyParser, GeoTiffReader), alpha-mask
 │                   FootprintBuilder, Antimeridian split, optional GdalWarp subprocess (054)
@@ -584,6 +587,7 @@ File-based configuration is limited to bootstrap concerns, all overridable by en
 | `FORESIGNAL_RASTER_GLM_RING_SCOPE` | `aoi` | The GLM flash ring's scope: `aoi` (the places AOI) or `conus` (large profile only) (048) |
 | `FORESIGNAL_SATDUMP_STATIONS` | empty | SatDump ground stations: one `satdump-{station}` source per comma-separated name (049) |
 | `FORESIGNAL_RASTER_GDAL_ENABLED` | `auto` | The optional `gdalwarp` path for SatDump GeoTIFFs in another CRS or BigTIFF: `auto`, `true` or `false`; needs an image built with `--build-arg WITH_GDAL=true` (054) |
+| `FORESIGNAL_MAPS_BASEMAP_URL_TEMPLATE` | (empty) | Optional XYZ template of a tile server on the operator's own network for static maps; a host that does not resolve to a loopback or private address is refused, and Natural Earth is drawn instead (055) |
 | `JAVA_TOOL_OPTIONS` `-Djava.io.tmpdir=/data/tmp -Djna.tmpdir=/data/tmp` | set by the Dockerfile and appended by compose | Temporary files, and the libaec native library JNA extracts and loads for GRIB2 template 5.42, go to `${FORESIGNAL_DATA_DIR}/tmp` on the data volume, which must allow executables (named volumes do); the application creates the directory at startup (046) |
 | `foresignal.raster.decoder-self-test.enabled` | `true` | The startup decoder self-test (046) |
 

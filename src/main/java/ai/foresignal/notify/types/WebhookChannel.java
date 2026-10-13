@@ -120,7 +120,8 @@ public class WebhookChannel extends AbstractChannelType {
     }
 
     /**
-     * The default body with an {@code actions} array {@code [{action, label, url, expiresAt}]} when
+     * The default body with an {@code attachments} array {@code [{mediaId, url, contentType, bytes}]} when
+     * the message carries a map (prompt 055), and an {@code actions} array {@code [{action, label, url, expiresAt}]} when
      * the delivery carries capabilities (prompt 033).
      */
     static Map<String, Object> defaultBody(NotificationMessage m, String origin, List<NotificationAction> actions) {
@@ -130,6 +131,14 @@ public class WebhookChannel extends AbstractChannelType {
         out.put("message", NotificationJson.toMap(m));
         out.put("data", m.data());
         out.put(OriginMarker.JSON_FIELD, origin);
+        if (!m.attachments().isEmpty()) {
+            // Prompt 055: the map as metadata; the image itself is at the in-app URL.
+            List<Map<String, Object>> list = new ArrayList<>();
+            for (NotificationMessage.Attachment a : m.attachments()) {
+                list.add(obj("mediaId", a.mediaId(), "url", a.url(), "contentType", a.contentType(), "bytes", a.size()));
+            }
+            out.put("attachments", list);
+        }
         if (actions != null && !actions.isEmpty()) {
             List<Map<String, Object>> list = new ArrayList<>();
             for (NotificationAction action : actions) {

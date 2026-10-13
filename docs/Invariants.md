@@ -44,7 +44,7 @@ Format: `| id | invariant | owner | enforced by | tests |`
 | SRC-3 | Backoff after 429/503 survives restarts and is honoured before any request | 005 | `BackoffRegistry` | `BackoffRegistryTest`, `BackoffRegistryIT` |
 | SRC-4 | Usage counters are exact under concurrency and survive flushes | 005 | `UsageMeter` | `UsageMeterIT` |
 | SRC-5 | Credentials never appear in logs, traces or recorded URLs | 003, 005 | `UrlRedactor`, `RequestRecorder` | `UrlRedactorTest`, `RequestRecorderTest`, `FetchTraceTest` |
-| SRC-6 | Only enabled sources are fetched; a client request never causes an upstream fetch | 010 | scheduler | `CollectorSchedulerIT`, `NoClientTriggeredFetchIT` |
+| SRC-6 | Only enabled sources are fetched; a client request never causes an upstream fetch | 010 | scheduler | `CollectorSchedulerIT`, `NoClientTriggeredFetchIT`, `NoUpstreamFetchTest` (055: static maps make no outbound call, a public basemap URL is refused) |
 | SRC-7 | LAN-typed parameters resolve only to private addresses and are pinned at connect time | 004 | `ParamValidator`, `PinnedTarget` | `ParamValidatorTest`, `PinnedTargetTest`, `LocalAddressesTest` |
 
 ## Security and egress

@@ -272,6 +272,13 @@ class AccessPolicyTest {
                 .isInstanceOf(AccessRequirement.IngestKeyOrAdmin.class);
     }
 
+    @Test
+    @DisplayName("055: GET /v1/maps/static is read (a place needs a token, checked by the controller); POST is admin")
+    void staticMaps() {
+        assertThat(requirement("GET", "/v1/maps/static")).isEqualTo(AccessRequirement.READ);
+        assertScope("POST", "/v1/maps/static", Scope.ADMIN);
+    }
+
     @ParameterizedTest
     @CsvSource({
         "POST, /compat/ntfy/custom-alerts",

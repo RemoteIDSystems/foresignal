@@ -71,6 +71,12 @@ import org.springframework.stereotype.Component;
  * them from {@link ChannelSettings#actions()}, other types get confirm-page links in the body, and the
  * Push channel passes them to its fan-out. Quiet hours never hold back a critical escalation delivery.
  *
+ * <p>Prompt 055: before rendering a fired alert's send, {@link AlertMapService#attach} adds the alert's
+ * static map (an image on the five image types, a link elsewhere), or holds the send for up to 8 s while
+ * the map is made. A destination that refuses the image ({@link ChannelType#attachmentRefused}) gets the
+ * text at once, and the delivery records {@code text-only}; a type's {@link ChannelType#followUps} are sent
+ * after a successful send.
+ *
  * <p>Outcomes: 2xx is delivered and the type's {@link ChannelType#extractRef} is stored; a partial
  * success (Apprise 424) is delivered with a warning and never retried; 429 honors
  * {@code Retry-After} and counts as an attempt at most once per 10 minutes; any other failure
@@ -84,6 +90,10 @@ public class DeliveryWorker {
     /** The egress policy deciding private payloads (prompt 039); null only in hand-built unit tests. */
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private ai.foresignal.security.EgressPolicy egress;
+
+    /** The map attachments of geolocated alerts (prompt 055); null only in hand-built unit tests. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private AlertMapService alertMaps;
 
 
     private static final Logger log = LoggerFactory.getLogger(DeliveryWorker.class);
@@ -276,6 +286,15 @@ public class DeliveryWorker {
             deliveries.defer(d.getId(), deferral.get().until(), deferral.get().reason());
             return;
         }
+        if (alertMaps != null) {
+            // Prompt 055: the alert's map, as an image or a link; held briefly while it is being made.
+            AlertMapService.Outcome map = alertMaps.attach(d, stored, message, channel, type, now);
+            if (map.pending()) {
+                deliveries.reschedule(d.getId(), map.retryAt());
+                return;
+            }
+            message = map.message();
+        }
         if (fanOut != null) {
             fanOut.fanOut(d, message, channel, downgrade, now, minter.forDelivery(d, stored, channel));
             return;
@@ -339,8 +358,27 @@ public class DeliveryWorker {
             failed(d, channel, settings, e.getClass().getSimpleName() + ": " + e.getMessage(), now);
             return;
         }
+        if (!response.success() && message.image() != null && type.attachmentRefused(response)) {
+            // Prompt 055: the destination refused the image (ntfy 413, attachments disabled); send the text.
+            NotificationMessage.Attachment image = message.image();
+            NotificationMessage text = message.withAttachments(List.of());
+            if (image.url() != null) {
+                text = AlertMapService.withLink(text, image.url());
+            }
+            if (alertMaps != null) {
+                alertMaps.refused(d);
+            }
+            message = text;
+            try {
+                response = sender.send(type.render(text, settings));
+            } catch (IOException | RuntimeException e) {
+                failed(d, channel, settings, e.getClass().getSimpleName() + ": " + e.getMessage(), now);
+                return;
+            }
+        }
         if (response.success()) {
             deliveries.delivered(d.getId(), kind, type.extractRef(response).orElse(null), edited, null, now);
+            sendFollowUps(d, type, message, settings);
         } else if (type.partialSuccess(response)) {
             deliveries.delivered(d.getId(), kind, type.extractRef(response).orElse(null), edited,
                     Redactor.error("warning: HTTP " + response.status() + " (some targets failed; not retried): "
@@ -373,6 +411,22 @@ public class DeliveryWorker {
                     ? "HTTP " + response.status() + " (redirect not followed)"
                     : "HTTP " + response.status();
             failed(d, channel, settings, status + ": " + response.body(), now);
+        }
+    }
+
+    /** Sends a type's follow-up requests after a successful send (prompt 055); failures are only logged. */
+    private void sendFollowUps(NotificationDeliveryEntity d, ChannelType type, NotificationMessage message,
+            ChannelSettings settings) {
+        for (PreparedRequest followUp : type.followUps(message, settings)) {
+            try {
+                ChannelResponse response = sender.send(followUp);
+                if (!response.success()) {
+                    log.warn("Follow-up request of delivery {} answered HTTP {}", d.getId(), response.status());
+                }
+            } catch (IOException | RuntimeException e) {
+                log.warn("Follow-up request of delivery {} failed: {}", d.getId(),
+                        Redactor.redact(e.getMessage(), settings.secrets().values()));
+            }
         }
     }
 

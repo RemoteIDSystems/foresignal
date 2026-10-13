@@ -1,6 +1,8 @@
 package ai.foresignal.notify.types;
 
+import ai.foresignal.notify.ChannelCapabilities;
 import ai.foresignal.notify.ChannelFieldSpec;
+import ai.foresignal.notify.ChannelResponse;
 import ai.foresignal.notify.ChannelRateLimit;
 import ai.foresignal.notify.ChannelSettings;
 import ai.foresignal.notify.ChannelTypeSpec;
@@ -32,12 +34,20 @@ import org.springframework.stereotype.Component;
  * link views: {@code http} actions for the first two capabilities ({@code method=POST},
  * {@code clear=true}, so one tap acts without a token on the phone) and {@code view, Open} to the web
  * link, else the API link.
+ *
+ * <p>Prompt 055: a message with an image is a {@code PUT {serverUrl}/{topic}} whose body is the PNG, with
+ * {@code Filename: map.png} and the text in the {@code Message} header. The server needs attachments
+ * enabled ({@code attachment-cache-dir} and {@code base-url}); a 413, or a 400 with code 40014, makes the
+ * worker send the text message instead ({@link #attachmentRefused}).
  */
 @Component
 public class NtfyChannel extends AbstractChannelType {
 
     /** The type id. */
     public static final String ID = "ntfy";
+
+    /** ntfy's error code for "attachments not allowed" (server.errors.go, 40014). */
+    static final String ATTACHMENTS_DISALLOWED = "40014";
 
     /** ntfy's default message size limit, in bytes. */
     static final int BODY_MAX_BYTES = 4096;
@@ -59,6 +69,11 @@ public class NtfyChannel extends AbstractChannelType {
     @Override
     public ChannelTypeSpec spec() {
         return SPEC;
+    }
+
+    @Override
+    public ChannelCapabilities capabilities() {
+        return new ChannelCapabilities(false, true, false);
     }
 
     @Override
@@ -116,7 +131,33 @@ public class NtfyChannel extends AbstractChannelType {
         }
         body = Truncator.truncate(body, BODY_MAX_BYTES, Truncator.Unit.UTF8_BYTES, Truncator.Mode.MARKDOWN, m.url());
         String url = ChannelSettings.trimSlash(s.config("serverUrl", "https://ntfy.sh")) + "/" + s.config("topic", "");
+        NotificationMessage.Attachment image = m.image();
+        if (image != null) {
+            // Prompt 055: PUT the image as the body with Filename; the text travels in the Message header,
+            // newlines as the literal \n that ntfy turns back into newlines, non-ASCII RFC 2047 encoded.
+            headers.put("Content-Type", image.contentType());
+            headers.put("Filename", image.filename());
+            headers.put("Message", messageHeader(body));
+            return new PreparedRequest("PUT", url, headers, new PreparedRequest.Bytes(image.contentType(), image.bytes()));
+        }
         return new PreparedRequest("POST", url, headers, PreparedRequest.Bytes.text("text/markdown; charset=utf-8", body));
+    }
+
+    /**
+     * True when ntfy refused the attachment: 413 (code 41301, attachment too large or bandwidth reached) or
+     * 400 code 40014 (attachments not allowed on the server). The worker then sends the text instead.
+     */
+    @Override
+    public boolean attachmentRefused(ChannelResponse response) {
+        if (response.status() == 413) {
+            return true;
+        }
+        return response.status() == 400 && response.body() != null && response.body().contains(ATTACHMENTS_DISALLOWED);
+    }
+
+    /** {@code text} as an ntfy {@code Message} header: newlines as the literal {@code \n}, then {@link #header}. */
+    static String messageHeader(String text) {
+        return header(text.replace("\r\n", "\n").replace("\r", "\n").replace("\n", "\\n"));
     }
 
     /** A label without the separators of ntfy's short action format. */

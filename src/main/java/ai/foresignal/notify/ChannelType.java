@@ -11,7 +11,9 @@ import java.util.Optional;
  *
  * <p>A type turns a {@link NotificationMessage} into a {@link PreparedRequest} in the destination's
  * native format, and never performs I/O itself: {@code ChannelSender} sends what it prepares. Types
- * that do not support attachments ignore {@link NotificationMessage#attachments()} without error.
+ * that do not support attachments ignore {@link NotificationMessage#attachments()} without error; the
+ * five image types of prompt 055 ({@code discord}, {@code telegram}, {@code ntfy}, {@code pushover},
+ * {@code email}) send {@link NotificationMessage#image()} natively.
  */
 public interface ChannelType {
 
@@ -70,6 +72,24 @@ public interface ChannelType {
      */
     default boolean partialSuccess(ChannelResponse response) {
         return false;
+    }
+
+    /**
+     * True when a failed response means the destination refused the image attachment rather than the
+     * message (prompt 055: ntfy answers 413, or 400 code 40014 when attachments are disabled). The worker
+     * then sends the message again without the image, as text with a link, and records {@code text-only}.
+     */
+    default boolean attachmentRefused(ChannelResponse response) {
+        return false;
+    }
+
+    /**
+     * Requests sent after a successful send of {@code message} (prompt 055: Telegram puts the text that does
+     * not fit a photo caption in a follow-up {@code sendMessage}). Failures are logged and do not fail the
+     * delivery.
+     */
+    default List<PreparedRequest> followUps(NotificationMessage message, ChannelSettings settings) {
+        return List.of();
     }
 
     /** The per-channel rate limit. */

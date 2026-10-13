@@ -107,6 +107,21 @@ public class NotificationDeliveryEntity {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
+    /**
+     * The size-control level chosen for the map attachment (prompt 055): {@code map-800}, {@code map-600},
+     * {@code thumbnail} or {@code text-only}; null when the delivery carries no map.
+     */
+    @Column(name = "attachment_level", length = 16)
+    private String attachmentLevel;
+
+    /**
+     * The attachments as media references {@code [{filename, contentType, bytes, mediaId}]} (prompt 055);
+     * the bytes load from the media store at send time, so a retry resends the same image.
+     */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "attachments", columnDefinition = "jsonb")
+    private java.util.List<java.util.Map<String, Object>> attachments;
+
     protected NotificationDeliveryEntity() {
         // for JPA
     }
@@ -313,5 +328,25 @@ public class NotificationDeliveryEntity {
     /** Sets the escalation step. */
     public void setEscalationStep(Integer escalationStep) {
         this.escalationStep = escalationStep;
+    }
+
+    /** The map attachment's size-control level (prompt 055), or null. */
+    public String getAttachmentLevel() {
+        return attachmentLevel;
+    }
+
+    /** Sets the map attachment's size-control level. */
+    public void setAttachmentLevel(String attachmentLevel) {
+        this.attachmentLevel = attachmentLevel;
+    }
+
+    /** The attachments as media references (prompt 055), or null. */
+    public java.util.List<java.util.Map<String, Object>> getAttachments() {
+        return attachments;
+    }
+
+    /** Sets the attachments as media references. */
+    public void setAttachments(java.util.List<java.util.Map<String, Object>> attachments) {
+        this.attachments = attachments;
     }
 }

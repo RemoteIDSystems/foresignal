@@ -1,5 +1,6 @@
 package ai.foresignal.notify.types;
 
+import ai.foresignal.notify.ChannelCapabilities;
 import ai.foresignal.notify.ChannelFieldSpec;
 import ai.foresignal.notify.ChannelRateLimit;
 import ai.foresignal.notify.ChannelResponse;
@@ -25,6 +26,10 @@ import org.springframework.stereotype.Component;
  * follow-up is sent ({@link #beforeUpdate}). Prompt 033: a firing alert with an acknowledge capability
  * sends its confirm page as the URL, and {@code PushoverReceiptPoller} turns an acknowledged receipt
  * into a Foresignal acknowledgement.
+ *
+ * <p>Prompt 055: a message with an image is sent as {@code multipart/form-data} with the same fields and
+ * the image as the {@code attachment} part (Pushover's limit is 5,242,880 bytes, the default
+ * {@code maxAttachmentBytes}).
  */
 @Component
 public class PushoverChannel extends AbstractChannelType {
@@ -56,6 +61,11 @@ public class PushoverChannel extends AbstractChannelType {
     @Override
     public ChannelTypeSpec spec() {
         return SPEC;
+    }
+
+    @Override
+    public ChannelCapabilities capabilities() {
+        return new ChannelCapabilities(false, true, false);
     }
 
     @Override
@@ -98,6 +108,15 @@ public class PushoverChannel extends AbstractChannelType {
             form.put("sound", s.config("sound", null));
         }
         form.put("timestamp", Long.toString((m.createdAt() != null ? m.createdAt() : s.now()).getEpochSecond()));
+        NotificationMessage.Attachment image = m.image();
+        if (image != null) {
+            // Prompt 055: the same fields as multipart parts plus the image as "attachment".
+            List<PreparedRequest.Part> parts = new java.util.ArrayList<>();
+            form.forEach((name, value) -> parts.add(PreparedRequest.Part.field(name, value == null ? "" : value)));
+            parts.add(new PreparedRequest.Part("attachment", image.filename(), image.contentType(), image.bytes()));
+            return new PreparedRequest("POST", api(s) + "/1/messages.json", baseHeaders(s),
+                    new PreparedRequest.Multipart(parts));
+        }
         return form(api(s) + "/1/messages.json", form, null, s);
     }
 

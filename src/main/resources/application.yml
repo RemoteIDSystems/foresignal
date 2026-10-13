@@ -122,6 +122,12 @@ foresignal:
       # with WITH_GDAL=true): auto (use it when `gdalwarp --version` works), true (the same, warning when
       # it is missing) or false.
       enabled: ${FORESIGNAL_RASTER_GDAL_ENABLED:auto}
+  maps:
+    # Static maps (055) draw the bundled Natural Earth basemap. An optional XYZ template of a tile server on
+    # your own network (http://tiles.lan:8080/{z}/{x}/{y}.png) replaces its fills; a host that does not
+    # resolve to a loopback or private address is refused. Never point this at tile.openstreetmap.org
+    # (its usage policy forbids it) or any other public tile service.
+    basemap-url-template: ${FORESIGNAL_MAPS_BASEMAP_URL_TEMPLATE:}
   media:
     # The media store (043). ImageGuard refuses larger files; MediaStore answers 413 MEDIA_TOO_LARGE.
     max-file-bytes: ${FORESIGNAL_MEDIA_MAX_FILE_BYTES:25MB}

@@ -79,6 +79,10 @@ public class NotificationRouter implements AlertListener {
     private final Clock clock;
     private volatile Subscription subscription;
 
+    /** The map attachments of geolocated alerts (prompt 055); null only in hand-built unit tests. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private AlertMapService alertMaps;
+
     /** Creates the router. */
     public NotificationRouter(AlertBus bus, NotificationService service, NotificationStore store,
             ChannelService channels, TriggerRuleRepository rules, EnrichmentDeliveries enrichment, JsonMapper json,
@@ -149,7 +153,12 @@ public class NotificationRouter implements AlertListener {
         // A muted rule's alerts are recorded and kept in the inbox, but not routed (prompt 033).
         boolean muted = alert.ruleId() != null
                 && rules.findById(alert.ruleId()).map(r -> r.mutedAt(clock.instant())).orElse(false);
-        return service.publish(message, muted ? c -> false : null);
+        NotificationMessage persisted = service.publish(message, muted ? c -> false : null);
+        if (!muted && alertMaps != null) {
+            // Prompt 055: start the alert's map now, concurrently with the enrichment wait.
+            alertMaps.prepare(alert, persisted);
+        }
+        return persisted;
     }
 
     /**

@@ -28536,7 +28536,7 @@
                 {
                   "key": "products",
                   "value": "",
-                  "description": "Products to draw",
+                  "description": "Products to draw, in order (at most 4)",
                   "disabled": true
                 },
                 {
@@ -28572,7 +28572,7 @@
                 {
                   "key": "width",
                   "value": "",
-                  "description": "Width in px (\u2264 1280)",
+                  "description": "Width in px (\u2264 1280, default 800)",
                   "disabled": true
                 },
                 {
@@ -28584,7 +28584,7 @@
                 {
                   "key": "alert",
                   "value": "",
-                  "description": "Alert id: draws and centres on the alert's record geometry",
+                  "description": "Alert id: draws and centers on the alert's record geometry (an alert the caller may not read is 404 NOT_FOUND)",
                   "disabled": true
                 },
                 {
@@ -28602,7 +28602,7 @@
                 {
                   "key": "theme",
                   "value": "light",
-                  "description": "Colour theme",
+                  "description": "Color theme (default light)",
                   "disabled": true
                 },
                 {
@@ -28613,7 +28613,7 @@
                 }
               ]
             },
-            "description": "Basemap-free server-rendered PNG: Natural Earth land, water and boundaries, product frames, alert geometry, place marker and range rings, scale bar, frame valid times, legend, attribution and an \"Automated \u2014 not an official warning\" footer. Missing or stale frames are drawn as a labelled note, never omitted; nothing fetches third-party tiles. Immutable only when every frame is content-addressed and pinned; otherwise a short max-age with an ETag.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getStaticMap`",
+            "description": "Basemap-free server-rendered PNG: Natural Earth land, water and boundaries, product frames, alert geometry, place marker and range rings, scale bar, frame valid times (UTC plus the place's local time), legend, attribution and an \"Automated \u2014 not an official warning\" footer. The box is `bbox`, else `center` with `radiusKm` (default 50 km), else the alert's record geometry, else the place; it is snapped outwards to 0.01\u00b0 once and widened to the map area's aspect, and `Foresignal-Image-Bounds` gives the result. Missing or stale frames are drawn as a labelled note (\"\u2026 unavailable \u2014 not evidence of clear weather\"), never omitted; a concrete ISO time at which an enabled product has no frame is 404 UNKNOWN_FRAME. Nothing fetches third-party tiles (an operator's LAN tile server, `FORESIGNAL_MAPS_BASEMAP_URL_TEMPLATE`, may replace the Natural Earth fills). Immutable only when every frame is pinned: a concrete ISO `time`, complete current frames, a pinned run for forecasts, a versioned style for every product and no `place`; otherwise a short max-age with an ETag checked before rendering. Rendered on the render pool within 2 s, else 503 RENDER_BUSY.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getStaticMap`",
             "auth": {
               "type": "noauth"
             }

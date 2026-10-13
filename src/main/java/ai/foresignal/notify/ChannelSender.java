@@ -164,6 +164,36 @@ public class ChannelSender {
         return out.toByteArray();
     }
 
+    /**
+     * The body of an email with inline images (prompt 055): {@code multipart/alternative} of the plain text
+     * and a {@code multipart/related} that holds the HTML part and each image ({@code Content-ID: <id>},
+     * {@code Content-Disposition: inline}), so a client without HTML still reads the text.
+     */
+    static jakarta.mail.internet.MimeMultipart alternativeWithInlines(PreparedRequest.Mail mail)
+            throws jakarta.mail.MessagingException {
+        jakarta.mail.internet.MimeMultipart alternative = new jakarta.mail.internet.MimeMultipart("alternative");
+        jakarta.mail.internet.MimeBodyPart text = new jakarta.mail.internet.MimeBodyPart();
+        text.setText(mail.text(), "UTF-8");
+        alternative.addBodyPart(text);
+        jakarta.mail.internet.MimeMultipart related = new jakarta.mail.internet.MimeMultipart("related");
+        jakarta.mail.internet.MimeBodyPart html = new jakarta.mail.internet.MimeBodyPart();
+        html.setText(mail.html(), "UTF-8", "html");
+        related.addBodyPart(html);
+        for (PreparedRequest.Inline inline : mail.inlines()) {
+            jakarta.mail.internet.MimeBodyPart image = new jakarta.mail.internet.MimeBodyPart();
+            image.setDataHandler(new jakarta.activation.DataHandler(
+                    new jakarta.mail.util.ByteArrayDataSource(inline.bytes(), inline.contentType())));
+            image.setContentID("<" + inline.contentId() + ">");
+            image.setDisposition(jakarta.mail.Part.INLINE);
+            image.setFileName(inline.filename());
+            related.addBodyPart(image);
+        }
+        jakarta.mail.internet.MimeBodyPart relatedPart = new jakarta.mail.internet.MimeBodyPart();
+        relatedPart.setContent(related);
+        alternative.addBodyPart(relatedPart);
+        return alternative;
+    }
+
     private ChannelResponse sendMail(PreparedRequest.Mail mail) throws IOException {
         JavaMailSenderImpl sender = new JavaMailSenderImpl();
         sender.setHost(mail.host());
@@ -188,14 +218,22 @@ public class ChannelSender {
         sender.setJavaMailProperties(props);
         try {
             MimeMessage message = sender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, mail.html() != null, "UTF-8");
-            helper.setFrom(mail.from());
-            helper.setTo(mail.to().toArray(String[]::new));
-            helper.setSubject(mail.subject());
-            if (mail.html() != null) {
-                helper.setText(mail.text(), mail.html());
+            if (mail.html() != null && !mail.inlines().isEmpty()) {
+                message.setFrom(new jakarta.mail.internet.InternetAddress(mail.from()));
+                message.setRecipients(jakarta.mail.Message.RecipientType.TO,
+                        jakarta.mail.internet.InternetAddress.parse(String.join(",", mail.to())));
+                message.setSubject(mail.subject(), "UTF-8");
+                message.setContent(alternativeWithInlines(mail));
             } else {
-                helper.setText(mail.text(), false);
+                MimeMessageHelper helper = new MimeMessageHelper(message, mail.html() != null, "UTF-8");
+                helper.setFrom(mail.from());
+                helper.setTo(mail.to().toArray(String[]::new));
+                helper.setSubject(mail.subject());
+                if (mail.html() != null) {
+                    helper.setText(mail.text(), mail.html());
+                } else {
+                    helper.setText(mail.text(), false);
+                }
             }
             for (Map.Entry<String, String> header : mail.headers().entrySet()) {
                 message.setHeader(header.getKey(), header.getValue());

@@ -234,6 +234,22 @@ public class RasterRenderService {
         return queue.render(key, priority, client, work);
     }
 
+    /**
+     * Draws one frame over an image box on the calling thread, without the queue or the tile cache
+     * (prompt 055: {@link MapRenderer} composites overlays inside its own render job, which already holds a
+     * render thread; going through the queue again could wait on itself).
+     *
+     * @return the drawn raster (palette indices or passthrough colors)
+     */
+    public TileRenderer.Drawn drawDirect(ProductSpec spec, RasterFrameRow frame, StyleRegistry.Resolved style,
+            ImageRequest request) {
+        GridDef grid = projection(frame.gridId());
+        IndexMap map = indexMaps.image(frame.gridId(), grid, new IndexMapCache.ImageKey(frame.gridId(),
+                request.mercator(), request.west(), request.south(), request.east(), request.north(),
+                request.width(), request.height(), spec.bilinear()));
+        return TileRenderer.draw(store.read(frame.path()), styles.compiled(style.style(), spec), map);
+    }
+
     /** The projection of a stored grid. */
     public GridDef projection(String gridId) {
         return projections.computeIfAbsent(gridId, id -> {

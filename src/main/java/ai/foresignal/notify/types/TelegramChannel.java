@@ -65,7 +65,7 @@ public class TelegramChannel extends AbstractChannelType {
 
     @Override
     public ChannelCapabilities capabilities() {
-        return new ChannelCapabilities(true, false, false);
+        return new ChannelCapabilities(true, true, false);
     }
 
     @Override
@@ -75,6 +75,10 @@ public class TelegramChannel extends AbstractChannelType {
 
     @Override
     public PreparedRequest render(NotificationMessage m, ChannelSettings s) {
+        NotificationMessage.Attachment image = m.image();
+        if (image != null) {
+            return photo(m, image, s);
+        }
         Map<String, Object> payload = obj(
                 "chat_id", s.config("chatId", ""),
                 "text", text(m, TEXT_MAX),
@@ -110,9 +114,56 @@ public class TelegramChannel extends AbstractChannelType {
         return Optional.of(json("POST", method(s, "editMessageText"), null, payload, s));
     }
 
+    /**
+     * Prompt 055: {@code sendPhoto} as multipart ({@code chat_id}, {@code photo}, {@code caption} in HTML
+     * mode, the action keyboard as {@code reply_markup}). The caption is the whole message when it fits
+     * {@value #CAPTION_MAX} characters, else the bold title; the text then follows in {@link #followUps}.
+     */
+    PreparedRequest photo(NotificationMessage m, NotificationMessage.Attachment image, ChannelSettings s) {
+        List<PreparedRequest.Part> parts = new java.util.ArrayList<>();
+        parts.add(PreparedRequest.Part.field("chat_id", s.config("chatId", "")));
+        parts.add(new PreparedRequest.Part("photo", image.filename(), image.contentType(), image.bytes()));
+        parts.add(PreparedRequest.Part.field("caption", caption(m)));
+        parts.add(PreparedRequest.Part.field("parse_mode", "HTML"));
+        if (!s.actions().isEmpty()) {
+            parts.add(PreparedRequest.Part.field("reply_markup", JSON.writeValueAsString(keyboard(s.actions()))));
+        }
+        return new PreparedRequest("POST", method(s, "sendPhoto"), baseHeaders(s), new PreparedRequest.Multipart(parts));
+    }
+
+    /** The photo caption: the whole text when it fits, else the bold title. */
+    static String caption(NotificationMessage m) {
+        String full = text(m, TEXT_MAX);
+        if (full.length() <= CAPTION_MAX) {
+            return full;
+        }
+        String title = "<b>" + MarkdownRenderer.escape(m.title(), MarkdownRenderer.Format.TELEGRAM_HTML) + "</b>";
+        return Truncator.truncate(title, CAPTION_MAX, Truncator.Unit.CHARS, Truncator.Mode.HTML, null);
+    }
+
+    /** The text that did not fit the photo caption, as a {@code sendMessage} (prompt 055). */
+    @Override
+    public List<PreparedRequest> followUps(NotificationMessage m, ChannelSettings s) {
+        if (m.image() == null) {
+            return List.of();
+        }
+        String full = text(m, TEXT_MAX);
+        if (full.length() <= CAPTION_MAX) {
+            return List.of();
+        }
+        Map<String, Object> payload = obj(
+                "chat_id", s.config("chatId", ""),
+                "text", full,
+                "parse_mode", "HTML",
+                "link_preview_options", obj("is_disabled", true));
+        return List.of(json("POST", method(s, "sendMessage"), null, payload, s));
+    }
+
+    /** The message id, as {@code photo:<id>} for a photo (its edits change the caption). */
     @Override
     public Optional<String> extractRef(ChannelResponse response) {
-        return refAt(response, "result", "message_id");
+        boolean photo = parse(response).map(n -> n.path("result").has("photo")).orElse(false);
+        return refAt(response, "result", "message_id").map(id -> photo ? PHOTO_REF + id : id);
     }
 
     /** {@code <b>title</b>}, the body and the links, in Telegram HTML, cut to {@code max}. */
