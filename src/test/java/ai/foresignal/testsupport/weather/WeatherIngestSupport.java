@@ -40,7 +40,7 @@ import org.springframework.test.context.DynamicPropertySource;
  * {@code goes-glm}, {@code goes-fdc}, {@code hms-smoke} and {@code hms-fire}, and 053's {@code nws-gridpoints} and
  * {@code spc-storm-reports}, which share the NWS and SPC base-URL properties, and 064's {@code celestrak-gp} and
  * {@code celestrak-socrates}, 065's {@code nasa-firms}, 066's {@code gdelt-events} and 067's {@code nhc-cyclones}, {@code gdacs} and
- * {@code tsunami-warnings}) point at one stub server
+ * {@code tsunami-warnings}, and 068's {@code ioda-outages}) point at one stub server
  * through their test base-URL properties (and S3 listings through {@code foresignal.test.s3-endpoint}),
  * and each test drives real fetches with {@link FetchExecutor#execute(String, FetchTrigger)
  * execute(id, MANUAL)}, so records reach the store through the real fetch path and ingest writer
@@ -82,6 +82,8 @@ public abstract class WeatherIngestSupport {
         registry.add(ai.foresignal.source.adapters.nhc.NhcCyclonesAdapter.BASE_URL_PROPERTY, UPSTREAM::baseUrl);
         registry.add(ai.foresignal.source.adapters.gdacs.GdacsAdapter.BASE_URL_PROPERTY, UPSTREAM::baseUrl);
         registry.add(ai.foresignal.source.adapters.tsunami.TsunamiWarningsAdapter.BASE_URL_PROPERTY, UPSTREAM::baseUrl);
+        // Prompt 068: ioda-outages joins this context too.
+        registry.add(ai.foresignal.source.adapters.ioda.IodaOutagesAdapter.BASE_URL_PROPERTY, UPSTREAM::baseUrl);
     }
 
     @Autowired protected FetchExecutor executor;
@@ -101,7 +103,8 @@ public abstract class WeatherIngestSupport {
             ai.foresignal.source.adapters.gdelt.GdeltEventsAdapter.ID,
             ai.foresignal.source.adapters.nhc.NhcCyclonesAdapter.ID,
             ai.foresignal.source.adapters.gdacs.GdacsAdapter.ID,
-            ai.foresignal.source.adapters.tsunami.TsunamiWarningsAdapter.ID);
+            ai.foresignal.source.adapters.tsunami.TsunamiWarningsAdapter.ID,
+            ai.foresignal.source.adapters.ioda.IodaOutagesAdapter.ID);
 
     /** Resets the stubs and the backoff of the weather sources. */
     @BeforeEach

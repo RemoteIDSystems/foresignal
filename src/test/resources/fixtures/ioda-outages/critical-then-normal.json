@@ -1,0 +1,60 @@
+{
+ "type": "outages.alerts",
+ "metadata": {
+  "requestTime": "2026-10-13T15:18:25+00:00",
+  "responseTime": "2026-10-13T15:18:25+00:00"
+ },
+ "requestParameters": {
+  "from": "1791861505",
+  "until": "1791904705",
+  "datasource": null,
+  "limit": 500,
+  "page": null,
+  "relatedTo": null,
+  "entityType": null,
+  "entityCode": null,
+  "ignoreMethods": null,
+  "extendWindow": 0
+ },
+ "error": null,
+ "perf": null,
+ "data": [
+  {
+   "datasource": "bgp",
+   "entity": {
+    "code": "HT",
+    "name": "Haiti",
+    "subnames": [],
+    "type": "country",
+    "attrs": {
+     "fqid": "geo.netacuity.NA.HT"
+    }
+   },
+   "time": 1791873600,
+   "level": "critical",
+   "condition": "< 0.99",
+   "value": 574,
+   "historyValue": 658,
+   "method": "median"
+  },
+  {
+   "datasource": "bgp",
+   "entity": {
+    "code": "HT",
+    "name": "Haiti",
+    "subnames": [],
+    "type": "country",
+    "attrs": {
+     "fqid": "geo.netacuity.NA.HT"
+    }
+   },
+   "time": 1791876000,
+   "level": "normal",
+   "condition": "normal",
+   "value": 658,
+   "historyValue": 658,
+   "method": "median"
+  }
+ ],
+ "copyright": "This data is Copyright (c) 2021-2025 Georgia Tech Research Corporation. All Rights Reserved."
+}

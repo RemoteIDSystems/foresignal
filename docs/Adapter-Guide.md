@@ -304,8 +304,11 @@ use FIPS 10-4) and `byName` (case-, accent- and punctuation-insensitive, aliases
 "Czech Republic" and "Ivory Coast" included) return a `CountryRef` whose `labelLon`/`labelLat` is
 Natural Earth's label point, which always falls inside the country. It works with no network and no
 database rows. Put the label point in the record's geometry and set `geometryApproximate: true` in
-the payload, so clients and rules know it is not a measured position. No adapter of prompts 068 (IODA),
-076 (abuse.ch) or 090 (UNHCR, advisories) exists yet; when they are built they use this table.
+the payload, so clients and rules know it is not a measured position. `ioda-outages` (068) uses it; 076
+(abuse.ch) and 090 (UNHCR, advisories) will too. A record that knows its first-level region by name uses
+`Admin1Centroids.byName(iso2, name)` (068): the Natural Earth admin-1 label point from 040's `ref_admin1`, matched
+case-, accent- and punctuation-insensitively, cached per country and dropped on a reference reload. It reads the
+database, never the network, and misses until the reference datasets are loaded; treat a miss as "no geometry".
 
 ## 15. Aircraft sources and the shared readsb mapper (prompt 062)
 

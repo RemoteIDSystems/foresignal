@@ -114,6 +114,10 @@ class FamilyDefaultsTest {
                     new ai.foresignal.source.adapters.gdacs.GdacsAdapter("").descriptor(), "event")),
             Map.entry("TsunamiWarningsAdapter", new Entry(
                     new ai.foresignal.source.adapters.tsunami.TsunamiWarningsAdapter("").descriptor(), "event")),
+            // Prompt 068: outages are the event class (1825 d).
+            Map.entry("IodaOutagesAdapter", new Entry(
+                    new ai.foresignal.source.adapters.ioda.IodaOutagesAdapter("", null, null, null).descriptor(),
+                    "event")),
             // Prompt 052: the derived weather sources, retained per Weather-Imagery-Design §2.4.
             Map.entry("WxPlacesGenerator", new Entry(
                     new ai.foresignal.source.adapters.wx.WxPlacesGenerator().descriptor(), "weather")),

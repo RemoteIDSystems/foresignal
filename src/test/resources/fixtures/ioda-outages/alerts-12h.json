@@ -1,0 +1,818 @@
+{
+ "type": "outages.alerts",
+ "metadata": {
+  "requestTime": "2026-10-13T15:18:25+00:00",
+  "responseTime": "2026-10-13T15:18:25+00:00"
+ },
+ "requestParameters": {
+  "from": "1791861505",
+  "until": "1791904705",
+  "datasource": null,
+  "limit": 500,
+  "page": null,
+  "relatedTo": null,
+  "entityType": null,
+  "entityCode": null,
+  "ignoreMethods": null,
+  "extendWindow": 0
+ },
+ "error": null,
+ "perf": null,
+ "data": [
+  {
+   "datasource": "ping-slash24",
+   "entity": {
+    "code": "8643",
+    "name": "AS8643 (ATHENAnet)",
+    "subnames": [],
+    "type": "asn",
+    "attrs": {
+     "name": "ATHENAnet",
+     "org": "NATIONAL AND KAPODISTRIAN UNIVERSITY OF ATHENS",
+     "ip_count": "51712",
+     "fqid": "asn.8643"
+    }
+   },
+   "time": 1791861600,
+   "level": "critical",
+   "condition": "< 0.8",
+   "value": 40,
+   "historyValue": 56,
+   "method": "median"
+  },
+  {
+   "datasource": "ping-slash24",
+   "entity": {
+    "code": "37340",
+    "name": "AS37340 (Spectranet)",
+    "subnames": [],
+    "type": "asn",
+    "attrs": {
+     "fqid": "asn.37340",
+     "ip_count": "84480",
+     "name": "Spectranet",
+     "org": "SPECTRANET LIMITED"
+    }
+   },
+   "time": 1791861600,
+   "level": "normal",
+   "condition": "normal",
+   "value": 73,
+   "historyValue": 87,
+   "method": "median"
+  },
+  {
+   "datasource": "ping-slash24",
+   "entity": {
+    "code": "8643-1541",
+    "name": "ATHENAnet -- Attiki",
+    "subnames": [],
+    "type": "geoasn",
+    "attrs": {
+     "fqid": "geoasn.8643-1541",
+     "org": "NATIONAL AND KAPODISTRIAN UNIVERSITY OF ATHENS"
+    }
+   },
+   "time": 1791861600,
+   "level": "critical",
+   "condition": "< 0.8",
+   "value": 39,
+   "historyValue": 55,
+   "method": "median"
+  },
+  {
+   "datasource": "ping-slash24",
+   "entity": {
+    "code": "37340-NG",
+    "name": "Spectranet -- Nigeria",
+    "subnames": [],
+    "type": "geoasn",
+    "attrs": {
+     "fqid": "geoasn.37340-NG",
+     "org": "SPECTRANET LIMITED"
+    }
+   },
+   "time": 1791861600,
+   "level": "normal",
+   "condition": "normal",
+   "value": 73,
+   "historyValue": 87,
+   "method": "median"
+  },
+  {
+   "datasource": "ping-slash24",
+   "entity": {
+    "code": "37340-2935",
+    "name": "Spectranet -- Lagos",
+    "subnames": [],
+    "type": "geoasn",
+    "attrs": {
+     "fqid": "geoasn.37340-2935",
+     "org": "SPECTRANET LIMITED"
+    }
+   },
+   "time": 1791861600,
+   "level": "normal",
+   "condition": "normal",
+   "value": 73,
+   "historyValue": 87,
+   "method": "median"
+  },
+  {
+   "datasource": "bgp",
+   "entity": {
+    "code": "199775",
+    "name": "AS199775 (Connexin-Limited)",
+    "subnames": [],
+    "type": "asn",
+    "attrs": {
+     "org": "Connexin Limited",
+     "name": "Connexin-Limited",
+     "fqid": "asn.199775",
+     "ip_count": "8704"
+    }
+   },
+   "time": 1791862500,
+   "level": "normal",
+   "condition": "normal",
+   "value": 34,
+   "historyValue": 34,
+   "method": "median"
+  },
+  {
+   "datasource": "bgp",
+   "entity": {
+    "code": "1600",
+    "name": "AS1600 (DNIC-ASBLK-01550-01601)",
+    "subnames": [],
+    "type": "asn",
+    "attrs": {
+     "fqid": "asn.1600",
+     "ip_count": "196608",
+     "name": "DNIC-ASBLK-01550-01601",
+     "org": "United States Department of Defense (DoD)"
+    }
+   },
+   "time": 1791862800,
+   "level": "normal",
+   "condition": "normal",
+   "value": 768,
+   "historyValue": 768,
+   "method": "median"
+  },
+  {
+   "datasource": "merit-nt",
+   "entity": {
+    "code": "497",
+    "name": "Espírito Santo",
+    "subnames": [],
+    "type": "region",
+    "attrs": {
+     "fqid": "geo.netacuity.SA.BR.497",
+     "country_code": "BR",
+     "country_name": "Brazil",
+     "ne_region_id": "625"
+    }
+   },
+   "time": 1791863100,
+   "level": "critical",
+   "condition": "< 0.25",
+   "value": 6,
+   "historyValue": 26,
+   "method": "median"
+  },
+  {
+   "datasource": "bgp",
+   "entity": {
+    "code": "50670",
+    "name": "AS50670 (VTELJO)",
+    "subnames": [],
+    "type": "asn",
+    "attrs": {
+     "fqid": "asn.50670",
+     "ip_count": "19968",
+     "name": "VTELJO",
+     "org": "VTEL HOLDINGS LIMITED/JORDAN CO."
+    }
+   },
+   "time": 1791863100,
+   "level": "critical",
+   "condition": "< 0.99",
+   "value": 77,
+   "historyValue": 78,
+   "method": "median"
+  },
+  {
+   "datasource": "bgp",
+   "entity": {
+    "code": "11562",
+    "name": "AS11562 ()",
+    "subnames": [],
+    "type": "asn",
+    "attrs": {
+     "ip_count": "51200",
+     "org": "Net Uno, C.A.",
+     "fqid": "asn.11562",
+     "name": ""
+    }
+   },
+   "time": 1791863400,
+   "level": "normal",
+   "condition": "normal",
+   "value": 200,
+   "historyValue": 197,
+   "method": "median"
+  },
+  {
+   "datasource": "merit-nt",
+   "entity": {
+    "code": "497",
+    "name": "Espírito Santo",
+    "subnames": [],
+    "type": "region",
+    "attrs": {
+     "fqid": "geo.netacuity.SA.BR.497",
+     "country_code": "BR",
+     "country_name": "Brazil",
+     "ne_region_id": "625"
+    }
+   },
+   "time": 1791863460,
+   "level": "normal",
+   "condition": "normal",
+   "value": 7,
+   "historyValue": 26,
+   "method": "median"
+  },
+  {
+   "datasource": "ping-slash24",
+   "entity": {
+    "code": "8643",
+    "name": "AS8643 (ATHENAnet)",
+    "subnames": [],
+    "type": "asn",
+    "attrs": {
+     "name": "ATHENAnet",
+     "org": "NATIONAL AND KAPODISTRIAN UNIVERSITY OF ATHENS",
+     "ip_count": "51712",
+     "fqid": "asn.8643"
+    }
+   },
+   "time": 1791864000,
+   "level": "normal",
+   "condition": "normal",
+   "value": 45,
+   "historyValue": 56,
+   "method": "median"
+  },
+  {
+   "datasource": "bgp",
+   "entity": {
+    "code": "SS",
+    "name": "South Sudan",
+    "subnames": [],
+    "type": "country",
+    "attrs": {
+     "fqid": "geo.netacuity.AF.SS"
+    }
+   },
+   "time": 1791864300,
+   "level": "normal",
+   "condition": "normal",
+   "value": 113,
+   "historyValue": 113,
+   "method": "median"
+  },
+  {
+   "datasource": "bgp",
+   "entity": {
+    "code": "4504",
+    "name": "Nueva Esparta",
+    "subnames": [],
+    "type": "region",
+    "attrs": {
+     "fqid": "geo.netacuity.SA.VE.4504",
+     "country_code": "VE",
+     "country_name": "Venezuela",
+     "ne_region_id": "48"
+    }
+   },
+   "time": 1791864300,
+   "level": "normal",
+   "condition": "normal",
+   "value": 180,
+   "historyValue": 181,
+   "method": "median"
+  },
+  {
+   "datasource": "bgp",
+   "entity": {
+    "code": "4267",
+    "name": "Wakiso",
+    "subnames": [],
+    "type": "region",
+    "attrs": {
+     "fqid": "geo.netacuity.AF.UG.4267",
+     "country_code": "UG",
+     "country_name": "Uganda",
+     "ne_region_id": "3091"
+    }
+   },
+   "time": 1791864300,
+   "level": "normal",
+   "condition": "normal",
+   "value": 188,
+   "historyValue": 188,
+   "method": "median"
+  },
+  {
+   "datasource": "ping-slash24",
+   "entity": {
+    "code": "37340",
+    "name": "AS37340 (Spectranet)",
+    "subnames": [],
+    "type": "asn",
+    "attrs": {
+     "fqid": "asn.37340",
+     "ip_count": "84480",
+     "name": "Spectranet",
+     "org": "SPECTRANET LIMITED"
+    }
+   },
+   "time": 1791864600,
+   "level": "critical",
+   "condition": "< 0.8",
+   "value": 66,
+   "historyValue": 87,
+   "method": "median"
+  },
+  {
+   "datasource": "bgp",
+   "entity": {
+    "code": "4680",
+    "name": "Unknown Region in Democratic Republic Of The Congo",
+    "subnames": [],
+    "type": "region",
+    "attrs": {
+     "fqid": "geo.netacuity.AF.CD.4680",
+     "country_code": "CD",
+     "country_name": "Democratic Republic Of The Congo"
+    }
+   },
+   "time": 1791866400,
+   "level": "critical",
+   "condition": "< 0.99",
+   "value": 165,
+   "historyValue": 168,
+   "method": "median"
+  },
+  {
+   "datasource": "merit-nt",
+   "entity": {
+    "code": "497",
+    "name": "Espírito Santo",
+    "subnames": [],
+    "type": "region",
+    "attrs": {
+     "fqid": "geo.netacuity.SA.BR.497",
+     "country_code": "BR",
+     "country_name": "Brazil",
+     "ne_region_id": "625"
+    }
+   },
+   "time": 1791867600,
+   "level": "critical",
+   "condition": "< 0.25",
+   "value": 5,
+   "historyValue": 26,
+   "method": "median"
+  },
+  {
+   "datasource": "merit-nt",
+   "entity": {
+    "code": "497",
+    "name": "Espírito Santo",
+    "subnames": [],
+    "type": "region",
+    "attrs": {
+     "fqid": "geo.netacuity.SA.BR.497",
+     "country_code": "BR",
+     "country_name": "Brazil",
+     "ne_region_id": "625"
+    }
+   },
+   "time": 1791867960,
+   "level": "normal",
+   "condition": "normal",
+   "value": 7,
+   "historyValue": 26,
+   "method": "median"
+  },
+  {
+   "datasource": "gtr",
+   "entity": {
+    "code": "NF",
+    "name": "Norfolk Island",
+    "subnames": [],
+    "type": "country",
+    "attrs": {
+     "fqid": "geo.netacuity.OC.NF"
+    }
+   },
+   "time": 1791869400,
+   "level": "normal",
+   "condition": "normal",
+   "value": 244,
+   "historyValue": 265,
+   "method": "sarima"
+  },
+  {
+   "datasource": "bgp",
+   "entity": {
+    "code": "CD",
+    "name": "Democratic Republic Of The Congo",
+    "subnames": [],
+    "type": "country",
+    "attrs": {
+     "fqid": "geo.netacuity.AF.CD"
+    }
+   },
+   "time": 1791870000,
+   "level": "critical",
+   "condition": "< 0.99",
+   "value": 457,
+   "historyValue": 464,
+   "method": "median"
+  },
+  {
+   "datasource": "bgp",
+   "entity": {
+    "code": "BI",
+    "name": "Burundi",
+    "subnames": [],
+    "type": "country",
+    "attrs": {
+     "fqid": "geo.netacuity.AF.BI"
+    }
+   },
+   "time": 1791870000,
+   "level": "critical",
+   "condition": "< 0.99",
+   "value": 149,
+   "historyValue": 153,
+   "method": "median"
+  },
+  {
+   "datasource": "bgp",
+   "entity": {
+    "code": "694",
+    "name": "Sud-Kivu",
+    "subnames": [],
+    "type": "region",
+    "attrs": {
+     "fqid": "geo.netacuity.AF.CD.694",
+     "country_code": "CD",
+     "country_name": "Democratic Republic Of The Congo",
+     "ne_region_id": "1894"
+    }
+   },
+   "time": 1791870000,
+   "level": "critical",
+   "condition": "< 0.99",
+   "value": 26,
+   "historyValue": 28,
+   "method": "median"
+  },
+  {
+   "datasource": "bgp",
+   "entity": {
+    "code": "279",
+    "name": "Bujumbura Mairie",
+    "subnames": [],
+    "type": "region",
+    "attrs": {
+     "fqid": "geo.netacuity.AF.BI.279",
+     "country_code": "BI",
+     "country_name": "Burundi",
+     "ne_region_id": "3364"
+    }
+   },
+   "time": 1791870000,
+   "level": "critical",
+   "condition": "< 0.99",
+   "value": 147,
+   "historyValue": 151,
+   "method": "median"
+  },
+  {
+   "datasource": "ping-slash24",
+   "entity": {
+    "code": "3082",
+    "name": "Baluchistan",
+    "subnames": [],
+    "type": "region",
+    "attrs": {
+     "fqid": "geo.netacuity.AS.PK.3082",
+     "country_code": "PK",
+     "country_name": "Pakistan",
+     "ne_region_id": "1108"
+    }
+   },
+   "time": 1791870600,
+   "level": "normal",
+   "condition": "normal",
+   "value": 112,
+   "historyValue": 139,
+   "method": "median"
+  },
+  {
+   "datasource": "bgp",
+   "entity": {
+    "code": "BI",
+    "name": "Burundi",
+    "subnames": [],
+    "type": "country",
+    "attrs": {
+     "fqid": "geo.netacuity.AF.BI"
+    }
+   },
+   "time": 1791871500,
+   "level": "normal",
+   "condition": "normal",
+   "value": 153,
+   "historyValue": 153,
+   "method": "median"
+  },
+  {
+   "datasource": "bgp",
+   "entity": {
+    "code": "CD",
+    "name": "Democratic Republic Of The Congo",
+    "subnames": [],
+    "type": "country",
+    "attrs": {
+     "fqid": "geo.netacuity.AF.CD"
+    }
+   },
+   "time": 1791871500,
+   "level": "normal",
+   "condition": "normal",
+   "value": 463,
+   "historyValue": 464,
+   "method": "median"
+  },
+  {
+   "datasource": "ping-slash24",
+   "entity": {
+    "code": "3082",
+    "name": "Baluchistan",
+    "subnames": [],
+    "type": "region",
+    "attrs": {
+     "fqid": "geo.netacuity.AS.PK.3082",
+     "country_code": "PK",
+     "country_name": "Pakistan",
+     "ne_region_id": "1108"
+    }
+   },
+   "time": 1791873000,
+   "level": "critical",
+   "condition": "< 0.8",
+   "value": 110,
+   "historyValue": 139,
+   "method": "median"
+  },
+  {
+   "datasource": "bgp",
+   "entity": {
+    "code": "HT",
+    "name": "Haiti",
+    "subnames": [],
+    "type": "country",
+    "attrs": {
+     "fqid": "geo.netacuity.NA.HT"
+    }
+   },
+   "time": 1791873600,
+   "level": "critical",
+   "condition": "< 0.99",
+   "value": 574,
+   "historyValue": 658,
+   "method": "median"
+  },
+  {
+   "datasource": "bgp",
+   "entity": {
+    "code": "HT",
+    "name": "Haiti",
+    "subnames": [],
+    "type": "country",
+    "attrs": {
+     "fqid": "geo.netacuity.NA.HT"
+    }
+   },
+   "time": 1791874800,
+   "level": "normal",
+   "condition": "normal",
+   "value": 658,
+   "historyValue": 658,
+   "method": "median"
+  },
+  {
+   "datasource": "bgp",
+   "entity": {
+    "code": "LI",
+    "name": "Liechtenstein",
+    "subnames": [],
+    "type": "country",
+    "attrs": {
+     "fqid": "geo.netacuity.EU.LI"
+    }
+   },
+   "time": 1791876000,
+   "level": "normal",
+   "condition": "normal",
+   "value": 446,
+   "historyValue": 446,
+   "method": "median"
+  },
+  {
+   "datasource": "bgp",
+   "entity": {
+    "code": "HT",
+    "name": "Haiti",
+    "subnames": [],
+    "type": "country",
+    "attrs": {
+     "fqid": "geo.netacuity.NA.HT"
+    }
+   },
+   "time": 1791876900,
+   "level": "critical",
+   "condition": "< 0.99",
+   "value": 574,
+   "historyValue": 658,
+   "method": "median"
+  },
+  {
+   "datasource": "bgp",
+   "entity": {
+    "code": "HT",
+    "name": "Haiti",
+    "subnames": [],
+    "type": "country",
+    "attrs": {
+     "fqid": "geo.netacuity.NA.HT"
+    }
+   },
+   "time": 1791879000,
+   "level": "normal",
+   "condition": "normal",
+   "value": 658,
+   "historyValue": 658,
+   "method": "median"
+  },
+  {
+   "datasource": "ping-slash24",
+   "entity": {
+    "code": "3082",
+    "name": "Baluchistan",
+    "subnames": [],
+    "type": "region",
+    "attrs": {
+     "fqid": "geo.netacuity.AS.PK.3082",
+     "country_code": "PK",
+     "country_name": "Pakistan",
+     "ne_region_id": "1108"
+    }
+   },
+   "time": 1791879600,
+   "level": "normal",
+   "condition": "normal",
+   "value": 112,
+   "historyValue": 139,
+   "method": "median"
+  },
+  {
+   "datasource": "gtr",
+   "entity": {
+    "code": "NF",
+    "name": "Norfolk Island",
+    "subnames": [],
+    "type": "country",
+    "attrs": {
+     "fqid": "geo.netacuity.OC.NF"
+    }
+   },
+   "time": 1791880200,
+   "level": "critical",
+   "condition": "< 0.8",
+   "value": 179,
+   "historyValue": 259,
+   "method": "sarima"
+  },
+  {
+   "datasource": "ping-slash24",
+   "entity": {
+    "code": "3082",
+    "name": "Baluchistan",
+    "subnames": [],
+    "type": "region",
+    "attrs": {
+     "fqid": "geo.netacuity.AS.PK.3082",
+     "country_code": "PK",
+     "country_name": "Pakistan",
+     "ne_region_id": "1108"
+    }
+   },
+   "time": 1791880200,
+   "level": "critical",
+   "condition": "< 0.8",
+   "value": 108,
+   "historyValue": 139,
+   "method": "median"
+  },
+  {
+   "datasource": "ping-slash24",
+   "entity": {
+    "code": "1850",
+    "name": "Sistan and Baluchestan",
+    "subnames": [],
+    "type": "region",
+    "attrs": {
+     "fqid": "geo.netacuity.AS.IR.1850",
+     "country_code": "IR",
+     "country_name": "Iran (Islamic Republic Of)",
+     "ne_region_id": "3247"
+    }
+   },
+   "time": 1791883800,
+   "level": "critical",
+   "condition": "< 0.8",
+   "value": 36,
+   "historyValue": 75,
+   "method": "median"
+  },
+  {
+   "datasource": "ping-slash24",
+   "entity": {
+    "code": "1850",
+    "name": "Sistan and Baluchestan",
+    "subnames": [],
+    "type": "region",
+    "attrs": {
+     "fqid": "geo.netacuity.AS.IR.1850",
+     "country_code": "IR",
+     "country_name": "Iran (Islamic Republic Of)",
+     "ne_region_id": "3247"
+    }
+   },
+   "time": 1791886200,
+   "level": "normal",
+   "condition": "normal",
+   "value": 61,
+   "historyValue": 75,
+   "method": "median"
+  },
+  {
+   "datasource": "ping-slash24",
+   "entity": {
+    "code": "DM",
+    "name": "Dominica",
+    "subnames": [],
+    "type": "country",
+    "attrs": {
+     "fqid": "geo.netacuity.NA.DM"
+    }
+   },
+   "time": 1791899400,
+   "level": "critical",
+   "condition": "< 0.8",
+   "value": 35,
+   "historyValue": 55,
+   "method": "median"
+  },
+  {
+   "datasource": "ping-slash24",
+   "entity": {
+    "code": "853",
+    "name": "Saint George",
+    "subnames": [],
+    "type": "region",
+    "attrs": {
+     "fqid": "geo.netacuity.NA.DM.853",
+     "country_code": "DM",
+     "country_name": "Dominica",
+     "ne_region_id": "1434"
+    }
+   },
+   "time": 1791899400,
+   "level": "critical",
+   "condition": "< 0.8",
+   "value": 34,
+   "historyValue": 54,
+   "method": "median"
+  }
+ ],
+ "copyright": "This data is Copyright (c) 2021-2025 Georgia Tech Research Corporation. All Rights Reserved."
+}
