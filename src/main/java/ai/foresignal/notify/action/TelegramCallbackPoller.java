@@ -38,6 +38,9 @@ import tools.jackson.databind.json.JsonMapper;
  * the long-poll timeout ({@code foresignal.actions.long-poll}, 10 s) stays below the request
  * timeout. Errors back off from 5 s to 60 s.
  *
+ * <p>Prompt 061: an interactive channel is skipped here; its {@code TelegramConnector} polls the bot and
+ * hands {@code ea:} presses to the same handlers, so one consumer calls {@code getUpdates} per bot.
+ *
  * <p><b>The bot token must be dedicated to Foresignal:</b> {@code getUpdates} does not work while a
  * webhook is set for the bot, and two pollers of one bot steal each other's updates.
  */
@@ -136,7 +139,8 @@ public class TelegramCallbackPoller {
      */
     public int pollOnce(UUID channelId, int timeoutSeconds) throws IOException {
         NotificationChannelEntity channel = channels.findById(channelId).orElse(null);
-        if (channel == null || !channel.isEnabled() || !TelegramChannel.ID.equals(channel.getType())) {
+        if (channel == null || !channel.isEnabled() || !TelegramChannel.ID.equals(channel.getType())
+                || ai.foresignal.chatops.ChatopsManager.served(channel, chatopsEnabled())) {
             return 0;
         }
         ChannelSettings s = channelService.settingsFor(channel, 0, clock.instant());
@@ -178,7 +182,18 @@ public class TelegramCallbackPoller {
     }
 
     private boolean wanted(NotificationChannelEntity channel) {
+        // Prompt 061: an interactive channel's connector is the bot's only getUpdates consumer and dispatches the
+        // ea: presses to the same handlers, so this poller leaves it alone.
+        if (ai.foresignal.chatops.ChatopsManager.served(channel, chatopsEnabled())) {
+            return false;
+        }
         return handlers.stream().anyMatch(h -> h.wants(channel));
+    }
+
+    private boolean chatopsEnabled() {
+        return settings.getOrDefault(ai.foresignal.settings.SettingKeys.NOTIFICATIONS,
+                ai.foresignal.settings.NotificationSettings.class, ai.foresignal.settings.NotificationSettings::defaults)
+                .chatops().on();
     }
 
     /** A JSON POST to the Bot API. */

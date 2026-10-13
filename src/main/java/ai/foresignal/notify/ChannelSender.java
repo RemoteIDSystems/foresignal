@@ -92,6 +92,18 @@ public class ChannelSender {
      * @throws IOException when the destination cannot be reached or the exchange fails
      */
     public ChannelResponse send(PreparedRequest request) throws IOException {
+        return send(request, properties.requestTimeout());
+    }
+
+    /**
+     * {@link #send(PreparedRequest)} with an explicit HTTP request timeout, for long polls (prompt 061:
+     * Telegram {@code getUpdates} and Matrix {@code /sync} wait up to 50 s for news, longer than the
+     * channel request timeout). Mail and MQTT bodies ignore it.
+     *
+     * @throws OutboundUrlDeniedException when the outbound URL policy refuses the destination
+     * @throws IOException when the destination cannot be reached or the exchange fails
+     */
+    public ChannelResponse send(PreparedRequest request, java.time.Duration requestTimeout) throws IOException {
         if (request.body() instanceof PreparedRequest.Mqtt mqtt) {
             MqttDeliveryGateway gateway = mqttGateway == null ? null : mqttGateway.getIfAvailable();
             if (gateway == null) {
@@ -111,7 +123,7 @@ public class ChannelSender {
         }
         OutboundUrlPolicy.Allowed allowed = OutboundUrlDeniedException.require(policy.check(uri, PROFILE));
         HttpRequest.Builder builder = HttpRequest.newBuilder(PinnedHttp.pinnedUri(uri, allowed.pinned()))
-                .timeout(properties.requestTimeout());
+                .timeout(requestTimeout == null ? properties.requestTimeout() : requestTimeout);
         PinnedHttp.setHostHeader(builder, uri);
         String contentType = null;
         for (Map.Entry<String, String> header : request.headers().entrySet()) {

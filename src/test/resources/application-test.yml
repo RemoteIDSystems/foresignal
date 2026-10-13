@@ -57,6 +57,11 @@ foresignal:
   # worker do not run in tests; the ITs call pollOnce() and runOnce() (prompt 033).
   actions:
     scheduled: false
+  # Interactive chat connectors do not start on their own in tests, and commands run on the polling thread, so a test
+  # drives start() and poll() and sees the replies when poll() returns (prompt 061).
+  chatops:
+    scheduled: false
+    async-commands: false
   escalation:
     scheduled: false
   # The activity rollup job does not run on its own in tests; RollupJobIT calls RollupJob.runOnce() (prompt 038).

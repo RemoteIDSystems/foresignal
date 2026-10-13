@@ -27,8 +27,9 @@ import tools.jackson.databind.JsonNode;
  *
  * <p>An omitted {@code pauseBypassSeverity} is {@code critical} and an explicit null means nothing
  * bypasses. When the pause ends earlier than before (or is lifted), deliveries it deferred are
- * brought forward to the new end. {@code chatops} (061) and {@code imageLinks} (108) are accepted
- * and not stored until those prompts.
+ * brought forward to the new end. {@code chatops.enabled} (prompt 061) is the global kill switch
+ * of interactive chat channels (omitted: true). {@code imageLinks} (108) is accepted and not stored
+ * until that prompt.
  */
 @Service
 public class NotificationSettingsService {
@@ -103,10 +104,36 @@ public class NotificationSettingsService {
                 bypass = node.asString();
             }
         }
+        NotificationSettings.ChatOps chatops = chatops(body.get("chatops"), errors);
         if (!errors.isEmpty()) {
             throw new ValidationException("The notification settings are not valid.", errors);
         }
-        return new NotificationSettings(until, bypass);
+        return new NotificationSettings(until, bypass, chatops);
+    }
+
+    /** Parses {@code chatops} (prompt 061): an object whose only member is the boolean {@code enabled}. */
+    static NotificationSettings.ChatOps chatops(JsonNode node, List<FieldError> errors) {
+        if (node == null || node.isNull()) {
+            return NotificationSettings.ChatOps.defaults();
+        }
+        if (!node.isObject()) {
+            errors.add(new FieldError("chatops", "must be an object"));
+            return NotificationSettings.ChatOps.defaults();
+        }
+        for (String field : node.propertyNames()) {
+            if (!"enabled".equals(field)) {
+                errors.add(new FieldError("chatops." + field, "is not a chatops member"));
+            }
+        }
+        JsonNode enabled = node.get("enabled");
+        if (enabled == null || enabled.isNull()) {
+            return NotificationSettings.ChatOps.defaults();
+        }
+        if (!enabled.isBoolean()) {
+            errors.add(new FieldError("chatops.enabled", "must be true or false"));
+            return NotificationSettings.ChatOps.defaults();
+        }
+        return new NotificationSettings.ChatOps(enabled.asBoolean());
     }
 
     /** The API form of {@code value}. */
@@ -114,6 +141,7 @@ public class NotificationSettingsService {
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("pausedUntil", value.pausedUntil() == null ? null : value.pausedUntil().toString());
         out.put("pauseBypassSeverity", value.pauseBypassSeverity());
+        out.put("chatops", Map.of("enabled", value.chatops().on()));
         return out;
     }
 }

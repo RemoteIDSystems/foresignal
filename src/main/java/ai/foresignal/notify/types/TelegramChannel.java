@@ -27,6 +27,9 @@ import org.springframework.stereotype.Component;
  * {@code callback_data = "ea:" + token}; {@code TelegramCallbackPoller} executes them. A lifecycle
  * edit sends an empty keyboard, which removes the buttons.
  *
+ * <p>Prompt 061: with {@code interactive: true} the channel also accepts commands from its
+ * {@code allowedChats} ({@code ai.foresignal.chatops.TelegramConnector}).
+ *
  * <p>Link previews are disabled with {@code link_preview_options.is_disabled}, which replaced the
  * deprecated {@code disable_web_page_preview} parameter in Bot API 7.0.
  */
@@ -47,9 +50,9 @@ public class TelegramChannel extends AbstractChannelType {
 
     private static final ChannelTypeSpec SPEC = new ChannelTypeSpec(ID, "Telegram",
             "Telegram bot message (HTML); lifecycle updates edit the original message",
-            List.of(ChannelFieldSpec.required("chatId", ChannelFieldSpec.STRING, "Chat id (negative for groups)"),
+            fields(List.of(ChannelFieldSpec.required("chatId", ChannelFieldSpec.STRING, "Chat id (negative for groups)"),
                     ChannelFieldSpec.optional("apiBaseUrl", ChannelFieldSpec.URL, "Bot API base URL",
-                            "https://api.telegram.org")),
+                            "https://api.telegram.org")), true),
             List.of(ChannelFieldSpec.required("botToken", ChannelFieldSpec.STRING, "Bot token from @BotFather")),
             null);
 
@@ -61,6 +64,19 @@ public class TelegramChannel extends AbstractChannelType {
     @Override
     public ChannelTypeSpec spec() {
         return SPEC;
+    }
+
+    /** {@code base} plus the interactive fields of prompt 061. */
+    static List<ChannelFieldSpec> fields(List<ChannelFieldSpec> base, boolean telegram) {
+        List<ChannelFieldSpec> out = new java.util.ArrayList<>(base);
+        out.addAll(ai.foresignal.chatops.InteractiveConfig.fieldSpecs(telegram));
+        return List.copyOf(out);
+    }
+
+    /** Prompt 061: the interactive members ({@code allowedChats}, rate limits, {@code takeOverWebhook}). */
+    @Override
+    public List<ai.foresignal.api.error.FieldError> validate(Map<String, Object> config, Map<String, String> secrets) {
+        return ai.foresignal.chatops.InteractiveConfig.validate(ID, config);
     }
 
     @Override

@@ -10004,6 +10004,67 @@
           }
         },
         {
+          "name": "Create a notification channel (Telegram, interactive chat commands (061))",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('channelId', j.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/channels",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "channels"
+              ],
+              "query": []
+            },
+            "description": "Create a notification channel\n\n**Scope:** `admin`.\n\noperationId: `createChannel`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Telegram ops\",\n  \"type\": \"telegram\",\n  \"config\": {\n    \"chatId\": \"REPLACE_CHAT_ID\",\n    \"interactive\": true,\n    \"allowedChats\": [\n      {\n        \"chatId\": \"REPLACE_PRIVATE_CHAT_ID\",\n        \"name\": \"My phone\",\n        \"scope\": \"agent\"\n      },\n      {\n        \"chatId\": \"-100REPLACE_GROUP_ID\",\n        \"name\": \"Family group\",\n        \"scope\": \"read\",\n        \"userIds\": [\n          \"REPLACE_USER_ID\"\n        ]\n      }\n    ],\n    \"askRateLimitPerHour\": 10,\n    \"commandRateLimit\": 30,\n    \"takeOverWebhook\": false,\n    \"discoveryMode\": true\n  },\n  \"secrets\": {\n    \"botToken\": \"REPLACE_DEDICATED_BOT_TOKEN\"\n  },\n  \"events\": [\n    \"alert\",\n    \"system\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
           "name": "Create a notification channel (Matrix)",
           "event": [
             {
@@ -10888,7 +10949,7 @@
               ],
               "query": []
             },
-            "description": "Status of the chat-command connector of an interactive `telegram` or `matrix` channel: connection, last poll, last error, health (degraded when a Telegram bot has a foreign webhook without `takeOverWebhook`, or a Matrix room is encrypted; failing after 401/403), and the allowlisted chats with their scope.\n\n**Scope:** `admin`.\n\noperationId: `getChannelInteractiveStatus`",
+            "description": "Status of the chat-command connector of an interactive `telegram` or `matrix` channel: connection, last poll, last error, health (degraded when a Telegram bot has a foreign webhook without `takeOverWebhook`, or a Matrix room is encrypted; failing after 401/403), the discovery window, and the allowlisted chats with their scope and whether each is served (`active`, `reason`). A channel that is not served (not interactive, disabled, or `chatops.enabled` off) reports `status: idle` with the reason.\n\n**Scope:** `admin`.\n\noperationId: `getChannelInteractiveStatus`",
             "auth": {
               "type": "bearer",
               "bearer": [

@@ -16,6 +16,7 @@ import org.springframework.stereotype.Component;
  * Maps channels, channel types and deliveries to the OpenAPI {@code Channel}, {@code ChannelType}
  * and {@code NotificationDelivery} schemas (prompt 018). Secret values never appear; a channel lists
  * the names of its set secrets in {@code secretFields}, and, when there are any, its type's non-fatal {@code warnings} (prompt 060).
+ * A {@code telegram} or {@code matrix} channel also carries its {@code interactive} status (prompt 061).
  */
 @Component
 public class ChannelMapper {
@@ -23,6 +24,14 @@ public class ChannelMapper {
     /** The types, for their {@code warnings} (prompt 060); null only in hand-built unit tests. */
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private ai.foresignal.notify.ChannelTypeRegistry types;
+
+    /** The interactive chat supervisor (prompt 061); null only in hand-built unit tests. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private org.springframework.beans.factory.ObjectProvider<ai.foresignal.chatops.ChatopsManager> chatops;
+
+    /** The channel rows, for the interactive status (prompt 061); null only in hand-built unit tests. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ai.foresignal.store.NotificationChannelRepository channelRows;
 
     /** {@code Channel}. */
     public Map<String, Object> channel(ChannelService.View view) {
@@ -54,7 +63,26 @@ public class ChannelMapper {
         if (!warnings.isEmpty()) {
             out.put("warnings", warnings);
         }
+        Map<String, Object> interactive = interactive(c);
+        if (interactive != null) {
+            out.put("interactive", interactive);
+        }
         return out;
+    }
+
+    /**
+     * {@code Channel.interactive} (prompt 061): the {@code ChannelInteractiveStatus} of a {@code telegram} or
+     * {@code matrix} channel; null for other types.
+     */
+    Map<String, Object> interactive(NotificationChannel c) {
+        if (chatops == null || channelRows == null || !ai.foresignal.chatops.InteractiveConfig.supports(c.type())) {
+            return null;
+        }
+        ai.foresignal.chatops.ChatopsManager manager = chatops.getIfAvailable();
+        if (manager == null) {
+            return null;
+        }
+        return channelRows.findById(c.id()).map(manager::status).orElse(null);
     }
 
     /** The type's non-fatal warnings about {@code c} (prompt 060: {@code MQTT_INSECURE_PUBLIC_BROKER}). */

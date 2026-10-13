@@ -22,6 +22,9 @@ import org.springframework.stereotype.Component;
  * delivery is idempotent on the homeserver. The returned {@code event_id} is stored; a lifecycle
  * update sends a new event whose {@code body} starts with {@code "* "}, carrying {@code m.new_content}
  * and {@code m.relates_to {rel_type: "m.replace", event_id}} (an edit).
+ *
+ * <p>Prompt 061: with {@code interactive: true} the channel also accepts commands from its unencrypted
+ * {@code allowedChats} rooms ({@code ai.foresignal.chatops.MatrixConnector}).
  */
 @Component
 public class MatrixChannel extends AbstractChannelType {
@@ -34,8 +37,8 @@ public class MatrixChannel extends AbstractChannelType {
 
     private static final ChannelTypeSpec SPEC = new ChannelTypeSpec(ID, "Matrix",
             "Matrix room message (HTML); lifecycle updates edit the original event",
-            List.of(ChannelFieldSpec.required("homeserverUrl", ChannelFieldSpec.URL, "Homeserver base URL"),
-                    ChannelFieldSpec.required("roomId", ChannelFieldSpec.STRING, "Room id, e.g. !abc:example.org")),
+            TelegramChannel.fields(List.of(ChannelFieldSpec.required("homeserverUrl", ChannelFieldSpec.URL, "Homeserver base URL"),
+                    ChannelFieldSpec.required("roomId", ChannelFieldSpec.STRING, "Room id, e.g. !abc:example.org")), false),
             List.of(ChannelFieldSpec.required("accessToken", ChannelFieldSpec.STRING, "Bot user's access token")),
             null);
 
@@ -47,6 +50,12 @@ public class MatrixChannel extends AbstractChannelType {
     @Override
     public ChannelTypeSpec spec() {
         return SPEC;
+    }
+
+    /** Prompt 061: the interactive members ({@code allowedChats}, rate limits). */
+    @Override
+    public List<ai.foresignal.api.error.FieldError> validate(Map<String, Object> config, Map<String, String> secrets) {
+        return ai.foresignal.chatops.InteractiveConfig.validate(ID, config);
     }
 
     @Override

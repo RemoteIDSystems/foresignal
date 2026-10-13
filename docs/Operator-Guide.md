@@ -608,6 +608,70 @@ you when an alert is acknowledged or resolved, and `foresignal/status` whether F
 `{prefix}/summary` (`alerts.open.critical`, `status`) or react to `{prefix}/alerts/critical`
 directly; give them a broker user that may only read `foresignal/#`.
 
+### Chat commands
+
+A Telegram or Matrix channel can also take commands: list and acknowledge alerts, ask questions, read or run
+briefings and check health from the chat app you already get alerts in. Foresignal answers only chats you
+allowlist on the channel, and each chat gets `read` or `agent` scope (never `admin`), checked exactly like an
+API token of that scope.
+
+**Privacy.** Telegram bot chats are not end-to-end encrypted, and the Matrix rooms used here must be
+unencrypted. Telegram or your homeserver can read the alert titles, Ask answers and briefing excerpts
+Foresignal sends. Replies carry summaries and links, never raw payloads or secrets. Leave `privateAccess`
+off unless the chat may see your private sources.
+
+**Telegram.**
+1. Create a **dedicated** bot with @BotFather (`/newbot`). Interactive mode long-polls `getUpdates`, which works
+   for only one consumer per bot and not while a webhook is set: do not share the token with another program.
+   If the bot has a webhook, Foresignal reports `degraded` ("bot has a webhook; set takeOverWebhook or use a
+   dedicated bot"); set `takeOverWebhook: true` only if you want Foresignal to delete it.
+2. In groups, Telegram's **privacy mode** (on by default, `/setprivacy` in @BotFather) lets the bot see only
+   messages that start with `/` and replies to it. That is all Foresignal needs; keep it on.
+3. Create the channel with `interactive: true` and `discoveryMode: true`, then send `/whoami` to the bot from
+   each chat. It answers with that chat's id and your user id. Discovery turns itself off after 10 minutes
+   (the stored `discoveryMode` is set back to false); save the channel with `discoveryMode: true` to reopen it.
+4. Put the ids into `allowedChats`. A group (negative id) must list `userIds`, otherwise any member could
+   command.
+
+```json
+{"name": "Telegram ops", "type": "telegram",
+ "config": {"chatId": "123456789", "interactive": true,
+            "allowedChats": [{"chatId": "123456789", "name": "My phone", "scope": "agent"},
+                             {"chatId": "-1001234567890", "name": "Family", "scope": "read", "userIds": ["123456789"]}]},
+ "secrets": {"botToken": "…"}, "events": ["alert", "system"]}
+```
+
+**Matrix.** Create a separate bot account on your homeserver, invite it to an **unencrypted** room (an
+encrypted room is ignored and the channel reports "encrypted rooms are not supported"), and use its access
+token as the channel's `accessToken`. Allowlist the room id (`!abc:example.org`); a room with more than two
+members must list the allowed `userIds` (`@ana:example.org`). Matrix has no buttons, so proposed Ask actions
+come with a 6-character code: reply `/confirm CODE` or `/reject CODE`.
+
+**Scopes and commands.** Messages from chats or users that are not allowlisted are ignored without a reply
+(counted in `foresignal.chatops.rejected`). Every command is written to the audit log as
+`chat:{channelId}:{chatId}[:{userId}]`.
+
+| Command | Scope | What it does |
+|---|---|---|
+| `/help` | read | The commands this chat may use |
+| `/status` | read | The glance as text |
+| `/alerts [n] [critical\|warning\|info]` | read | Open alerts, newest first (at most 10); agent chats get Ack and Resolve buttons on Telegram |
+| `/alert <id>` | read | Rule, record title, kind, source, observed time, state and a link |
+| `/ack <id>`, `/resolve <id>` | agent | Acknowledge or resolve; recorded as the chat principal |
+| `/snooze <id> <duration>` | agent | Snooze for `30m`, `2h` … (at most 7 days) |
+| `/ask <question>` | read | Ask Foresignal; one conversation per chat, `/ask new` starts another. Proposed actions get Confirm/Reject buttons (Telegram) or a code (Matrix) in agent chats |
+| `/brief [id\|name]` | read | The latest briefing run (first 1,500 characters and a link) |
+| `/brief run <id\|name>` | agent | Run a briefing now; replies when it finishes |
+| `/sources` | read | Degraded and failing sources with reasons |
+| `/confirm <code>`, `/reject <code>` | agent | Decide a proposed Ask action (Matrix) |
+
+Limits: `commandRateLimit` commands per chat per 10 minutes (30) and `askRateLimitPerHour` questions (10);
+Ask also spends the LLM budget. `GET /v1/channels/{id}/interactive` shows whether the connector is connected,
+its last poll and error, the discovery window and which chats are served. If the platform refuses the token,
+the connector stops, a `system` event is sent to your other channels, and it starts again when you save the
+channel. `PUT /v1/settings/notifications` with `{"chatops": {"enabled": false}}` stops every interactive channel
+at once.
+
 ## Inbound webhooks
 
 Some data cannot be polled: an SDR decoder, AIS-catcher, Home Assistant, a script, an n8n flow,

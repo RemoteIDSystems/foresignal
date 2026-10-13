@@ -99,6 +99,8 @@ ai.foresignal
 │                   AlertMapService and ChannelMapConfig: map attachments of alerts (055)
 ├── mqtt            Supervised MQTT client (MqttConnections, 060); mqtt.channel: the mqtt channel's
 │                   state topics and Home Assistant discovery
+├── chatops         Interactive chat commands (061): Telegram and Matrix connectors, supervisor,
+│                   chat principals, command router
 ├── inbound         Custom push sources, ingest endpoint support
 ├── mapping         RecordMapping compiler and engine, device presets, preview, samples, LLM drafts (059)
 ├── mcp             MCP server and tool catalog
@@ -726,8 +728,8 @@ One delivery system serves alerts, briefings and system events across many desti
 | `discord` | `username` | `webhookUrl` | Embeds; colour by severity |
 | `teams` | — | `workflowUrl` (Workflows/Power Automate webhook) | Adaptive Card |
 | `google-chat` | — | `webhookUrl` | Card v2 |
-| `telegram` | `chatId` | `botToken` | Bot API `sendMessage`, HTML parse mode |
-| `matrix` | `homeserverUrl`, `roomId` | `accessToken` | `m.room.message` with `formatted_body` |
+| `telegram` | `chatId`; interactive: `interactive`, `allowedChats[]`, `askRateLimitPerHour`, `commandRateLimit`, `takeOverWebhook`, `discoveryMode` (§17.5) | `botToken` | Bot API `sendMessage`, HTML parse mode |
+| `matrix` | `homeserverUrl`, `roomId`; interactive: `interactive`, `allowedChats[]`, `askRateLimitPerHour`, `commandRateLimit`, `discoveryMode` (§17.5) | `accessToken` | `m.room.message` with `formatted_body` |
 | `ntfy` | `serverUrl` (default `https://ntfy.sh`), `topic` | `accessToken` (optional) | Title, priority from severity, tags, click URL |
 | `gotify` | `serverUrl` | `appToken` | Priority from severity |
 | `pushover` | — | `appToken`, `userKey` | Priority from severity |
@@ -810,6 +812,39 @@ One delivery system serves alerts, briefings and system events across many desti
 
   Segments built from ids or names replace `+`, `#`, `/`, NUL and control characters with `_`. Payloads are UTF-8 JSON of at most 256 KB with the MQTT 5 content type `application/json`; private-source alerts follow 039.
 - **Home Assistant discovery** (`haDiscovery`, `HaDiscoveryPublisher`): one device-based config with `dev`, `o`, `availability` (`{prefix}/status`) and `cmps`: open-alert sensors per severity, failing and degraded source counts, the last briefing (timestamp), one `event` entity per severity, a `problem` binary_sensor per enabled rule (≤ `haMaxRules`, critical first, then by name) and per non-private source (≤ `haMaxSources`). Published on connect, after `online` on `{haPrefix}/status` (0–5 s random delay) and 5 s after the last rule or source change; retained only with `haRetainDiscovery`. A dropped component goes out as `{p}` first; disabling discovery, disabling or deleting the channel publishes an empty retained config. `device_tracker` entities for watched aircraft and vessels are deferred: Home Assistant only uses GPS trackers to place a device in its zones.
+
+### 17.5 Interactive chat commands (061)
+
+The operator can talk back to Foresignal from the Telegram and Matrix channels already used for alerts. This is the one exception to the Charter non-goal on sending chat messages: Foresignal replies only to chat ids the operator allowlisted on an interactive channel.
+
+- **Configuration** (non-secret members of a `telegram` or `matrix` channel, OpenAPI `InteractiveChatConfig`):
+  - `interactive` (false), `allowedChats[]` (at most 50: `{chatId, name, scope: read|agent, userIds?, privateAccess?}`), `askRateLimitPerHour` (10), `commandRateLimit` (30 per 10 min), `takeOverWebhook` (Telegram, false), `discoveryMode` (false).
+  - Validation: `scope` is `read` or `agent`, never `admin`; a Telegram group or channel (negative id) must list `userIds`; Matrix rooms with more than two joined members and no `userIds` are ignored when the connector starts.
+  - Global kill switch: `NotificationSettings.chatops.enabled` (default true).
+- **Connector SPI** (`ai.foresignal.chatops.ChatConnector`): `start(ChannelConfig, CommandSink)`, `poll()`, `stop()`, `reply(ChatRef, ChatReply)` (text, optional button rows `{label, token}`, `replyTo`), `answerCallback(callbackRef, text)`. Connectors use only the bot interfaces (Bot API, Matrix client-server API with a bot account), never user sessions, and send through `ChannelSender`.
+- **Supervisor** (`ChatopsManager`): one virtual thread per served channel (enabled, interactive, kill switch on), on the 010 streaming-supervisor pattern: `start` once, then `poll` in a loop; backoff 1 s doubling to 5 min. On 401/403 the connector stops, `system.chatops_auth_failed` is raised and its health is `failing` until the channel is saved again. A blocked connector (foreign webhook) is `degraded` and retried at the longest backoff. Synced at startup, every 30 s and on `ChannelChangedEvent`; a changed config or secret restarts it. `Channel.interactive` and `GET /v1/channels/{id}/interactive` report `{interactive, chatopsEnabled, connected, status, statusReason, lastPollAt, lastError, discoveryModeUntil, chats[]}`.
+- **Cursors:** `chatops_cursor(channel_id PK, cursor text, updated_at)` holds the Telegram offset or the Matrix `next_batch`, so a restart neither re-processes nor drops updates. The first start skips the backlog (Telegram `getUpdates?offset=-1`, stored last + 1; Matrix: the first `/sync` is discarded).
+- **Telegram** (`TelegramConnector`): `getMe`; `getWebhookInfo` (a webhook with `takeOverWebhook` off → `degraded` "bot has a webhook; set takeOverWebhook or use a dedicated bot", otherwise `deleteWebhook`); `setMyCommands` scoped to each allowed chat; `getUpdates?timeout=50&offset=…&allowed_updates=["message","callback_query"]`; messages older than 2 min are ignored; `/cmd@BotName` is normalized and commands for other bots are ignored. Replies use `sendMessage` (HTML via 018's formatter, ≤ 4,096 characters, `reply_parameters.message_id`).
+  - **One poller per bot:** 033's `TelegramCallbackPoller` skips interactive channels. The connector's dispatcher is keyed on the `callback_data` prefix: `cc_` (chat-command tokens) goes to the router, `ea:` (033 signed actions) to the same `TelegramUpdateHandler`s the 033 poller calls.
+- **Matrix** (`MatrixConnector`): `whoami`; each allowed room is checked for an `m.room.encryption` state event (present → the room is ignored, `degraded` "encrypted rooms are not supported") and its joined members; `/sync` with the filter `{room: {rooms: [allowed], timeline: {types: ["m.room.message"], limit: 20}, state: {lazy_load_members: true}}, presence: {types: []}, account_data: {types: []}}`; the bot's own events and edits (`m.replace`) are ignored. Replies are rich replies (`m.relates_to.m.in_reply_to`) with `formatted_body` from 018's Matrix formatter and a deterministic transaction id.
+- **Pending confirmations:** `chatops_pending(token PK, channel_id, chat_id, user_id, action, ref, expires_at, used_at)`. Telegram buttons carry `cc_` + 16 base64url characters as `callback_data`; Matrix uses 6-character codes for `/confirm <code>` and `/reject <code>`. Each lasts 1 h, is single-use and is bound to the chat and the user it was shown to.
+- **Principals:** each allowlisted chat (and user, when `userIds` is set) is the principal `chat:{channelId}:{chatId}[:{userId}]` with the chat's scope and private grant. It is passed to the services as the same `McpCaller`/`AskCaller` a token produces (with a stable id derived from the name), so private sources, Ask thread and action ownership are decided exactly as for a token, and it counts as authenticated for `alwaysAuthenticated` services such as Ask.
+- **Router** (`CommandRouter`): unknown chats or users are ignored silently (counter `foresignal.chatops.rejected{channel}`, debug log). With `discoveryMode` on (10 minutes from when it is first seen or the channel is saved, then the stored flag turns itself off), `/whoami` from any chat replies with only its chat id and user id. Strict parsing (≤ 2,000 characters; unknown command → short help). Each command is allowed only when `AccessPolicy` allows the REST operation it mirrors to a token of the chat's scope:
+
+  | Command | Mirrors | Scope |
+  |---|---|---|
+  | `/help` | — | read |
+  | `/status` | `GET /v1/glance` (038 text glance, full counts) | read |
+  | `/alerts [n] [critical\|warning\|info]` | `GET /v1/alerts` (open alerts, ≤ 10, newest first; agent chats get Ack/Resolve buttons) | read |
+  | `/alert <id>` | `GET /v1/alerts/{id}` (rule, record summary, state, link; no payload) | read |
+  | `/ack`, `/resolve`, `/snooze <id> <duration>` | `POST /v1/alerts/{id}/…` (`acknowledged_by` = principal name) | agent |
+  | `/ask <question>`, `/ask new` | `POST /v1/ask` (one thread per chat principal; per-chat Ask limit and the LLM budget; proposed actions as Confirm/Reject buttons or codes for agent chats, listed only for read chats) | read |
+  | `/brief [id\|name]`, `/brief run <id\|name>` | `GET /v1/briefings/{id}/runs`, `POST /v1/briefings/{id}/run` | read / agent |
+  | `/sources` | `GET /v1/sources/health` (degraded and failing sources) | read |
+  | `/confirm <code>`, `/reject <code>` | `POST /v1/ask/actions/{id}/confirm`, `…/reject` | agent |
+
+- **Safety:** replies are summaries and links, never raw payloads or secrets; message text is only a command argument or an Ask question and is never executed; every command is audited in `audit_event` (actor kind `chat`, the principal, command, argument names, result, duration); per-chat command limit ("rate limited, retry in N s"); replies go through 018's per-destination rate limiter (Telegram 20/min per chat, Matrix 5/s per room). Private data reaches a chat only with `privateAccess`, and Ask still follows the 039 LLM egress rules.
+- **Privacy cost:** Telegram bot chats are not end-to-end encrypted, and the Matrix rooms used here are unencrypted. Alert titles, Ask answers and briefing excerpts sent to these chats are readable by the chat provider or homeserver.
 
 ## 18. MCP server
 

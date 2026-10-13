@@ -115,6 +115,12 @@ public final class StartupOrder {
     public static final int MQTT = 37;
 
     /**
+     * The interactive chat channels' connectors (prompt 061), after the MQTT channels: each connector runs on its
+     * own virtual thread, so starting them never blocks startup.
+     */
+    public static final int CHATOPS = 38;
+
+    /**
      * The reference data's first-start load (prompt 040), last: it is queued on the loader's own thread
      * after a delay and never blocks startup or readiness.
      */

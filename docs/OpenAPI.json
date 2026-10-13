@@ -267,6 +267,11 @@
         "version": "1.3.0",
         "date": "2026-10-13",
         "note": "060: republishMqttChannel is implemented; the mqtt channel type is available (ChannelInput.type, the listChannelTypes catalog with an mqtt example, MqttChannelConfig). MqttChannelConfig.haMaxRules and haMaxSources gain maximum 500, haPrefix gains the topicPrefix pattern, and summaryInterval must be at least 10s. Channel.warnings (MQTT_INSECURE_PUBLIC_BROKER) is returned when non-empty. SystemInfo.mqtt reports the supervised connections. New error code CHANNEL_DISABLED (409, republishMqttChannel)."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-13",
+        "note": "061: getChannelInteractiveStatus is implemented; Channel.interactive is returned for telegram and matrix channels; NotificationSettings.chatops.enabled is stored (global kill switch). InteractiveChatConfig and AllowedChat gain descriptions, askRateLimitPerHour and commandRateLimit gain maximum 100000, AllowedChat.name gains maxLength 200. AuditEvent.actorKind gains `chat` (chat commands are audited with the chat principal)."
       }
     ]
   },
@@ -33257,7 +33262,7 @@
         ],
         "operationId": "getChannelInteractiveStatus",
         "summary": "Interactive chat-command status",
-        "description": "Status of the chat-command connector of an interactive `telegram` or `matrix` channel: connection, last poll, last error, health (degraded when a Telegram bot has a foreign webhook without `takeOverWebhook`, or a Matrix room is encrypted; failing after 401/403), and the allowlisted chats with their scope.\n\n**Scope:** `admin`.",
+        "description": "Status of the chat-command connector of an interactive `telegram` or `matrix` channel: connection, last poll, last error, health (degraded when a Telegram bot has a foreign webhook without `takeOverWebhook`, or a Matrix room is encrypted; failing after 401/403), the discovery window, and the allowlisted chats with their scope and whether each is served (`active`, `reason`). A channel that is not served (not interactive, disabled, or `chatops.enabled` off) reports `status: idle` with the reason.\n\n**Scope:** `admin`.",
         "parameters": [
           {
             "name": "channelId",
@@ -33314,7 +33319,7 @@
         },
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "061",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -100352,9 +100357,10 @@
               "ingest_key",
               "pairing",
               "system",
-              "action"
+              "action",
+              "chat"
             ],
-            "description": "`action` = a notification action capability (033)"
+            "description": "`action` = a notification action capability (033); `chat` = a command from an allowlisted chat of an interactive channel (061; `tokenName` is the chat principal `chat:{channelId}:{chatId}[:{userId}]`)"
           },
           "tokenId": {
             "type": [
@@ -113028,14 +113034,16 @@
             "example": "-1001234567890"
           },
           "name": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 200
           },
           "scope": {
             "type": "string",
             "enum": [
               "read",
               "agent"
-            ]
+            ],
+            "description": "`read`: /help, /status, /alerts, /alert, /ask (proposed actions listed, not executable), /brief, /sources. `agent`: also /ack, /resolve, /snooze, /brief run and confirming proposed actions. Checked against the same AccessPolicy rule as the REST operation each command mirrors."
           },
           "userIds": {
             "type": "array",
@@ -113046,7 +113054,8 @@
           },
           "privateAccess": {
             "type": "boolean",
-            "default": false
+            "default": false,
+            "description": "The 039 private grant: the chat may see private sources (Ask still follows the LLM egress rules)"
           }
         },
         "required": [
@@ -113060,25 +113069,30 @@
         "properties": {
           "interactive": {
             "type": "boolean",
-            "default": false
+            "default": false,
+            "description": "Accept commands from `allowedChats` (`/alerts`, `/alert`, `/ack`, `/resolve`, `/snooze`, `/ask`, `/brief`, `/status`, `/sources`, `/help`, plus `/confirm` and `/reject` codes on Matrix). Telegram needs a bot used only by this Foresignal instance; Matrix rooms must be unencrypted."
           },
           "allowedChats": {
             "type": "array",
             "maxItems": 50,
             "items": {
               "$ref": "#/components/schemas/AllowedChat"
-            }
+            },
+            "description": "The chats that may command, each mapped to `read` or `agent` scope (never `admin`). Messages from any other chat or user are ignored silently. Telegram groups (negative ids) must list `userIds`; a Matrix room with more than two members and no `userIds` is ignored when the connector starts."
           },
           "askRateLimitPerHour": {
             "type": "integer",
             "minimum": 0,
-            "default": 10
+            "default": 10,
+            "description": "`/ask` questions per chat per hour (0 turns `/ask` off for chats); the LLM budget applies as well",
+            "maximum": 100000
           },
           "commandRateLimit": {
             "type": "integer",
             "minimum": 1,
             "default": 30,
-            "description": "Commands per chat per 10 minutes"
+            "description": "Commands per chat per 10 minutes",
+            "maximum": 100000
           },
           "takeOverWebhook": {
             "type": "boolean",

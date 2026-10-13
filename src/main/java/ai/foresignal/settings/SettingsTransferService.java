@@ -78,7 +78,7 @@ public class SettingsTransferService {
 
     /** Channel members that are output only, dropped before a channel is upserted. */
     static final Set<String> CHANNEL_OUTPUT_ONLY = Set.of("id", "secretFields", "createdAt", "updatedAt",
-            "lastDeliveryAt", "failedLast24h", "warnings");
+            "lastDeliveryAt", "failedLast24h", "warnings", "interactive");
 
     private final SourceRegistry registry;
     private final SourceService sources;

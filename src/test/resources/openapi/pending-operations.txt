@@ -1,4 +1,3 @@
-getChannelInteractiveStatus 061
 getCelestrakGp 064
 getCelestrakGpAlias 064
 searchTransitCatalog 070

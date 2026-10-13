@@ -39,7 +39,8 @@ import tools.jackson.databind.JsonNode;
 /**
  * The {@code Channels} operations (prompt 018): {@code listChannelTypes}, {@code listChannels},
  * {@code createChannel}, {@code getChannel}, {@code updateChannel}, {@code deleteChannel},
- * {@code testChannel}, {@code listChannelDeliveries} and {@code republishMqttChannel} (prompt 060). Every
+ * {@code testChannel}, {@code listChannelDeliveries}, {@code republishMqttChannel} (prompt 060) and
+ * {@code getChannelInteractiveStatus} (prompt 061). Every
  * operation needs {@code admin}
  * ({@code /v1/channels/**} in {@code AccessPolicy}); responses never include secret values.
  */
@@ -58,14 +59,16 @@ public class ChannelsController {
     private final ChannelMapper mapper;
     private final NotificationDeliveryRepository deliveries;
     private final MqttChannelManager mqtt;
+    private final ai.foresignal.chatops.ChatopsManager chatops;
 
     /** Creates the controller. */
     public ChannelsController(ChannelService channels, ChannelMapper mapper, NotificationDeliveryRepository deliveries,
-            MqttChannelManager mqtt) {
+            MqttChannelManager mqtt, ai.foresignal.chatops.ChatopsManager chatops) {
         this.channels = channels;
         this.mapper = mapper;
         this.deliveries = deliveries;
         this.mqtt = mqtt;
+        this.chatops = chatops;
     }
 
     /** {@code listChannelTypes}. */
@@ -149,6 +152,20 @@ public class ChannelsController {
             }
         }
         return ResponseEntity.accepted().build();
+    }
+
+    /**
+     * {@code getChannelInteractiveStatus} (prompt 061): the chat-command connector of a {@code telegram} or
+     * {@code matrix} channel; 404 for an unknown channel or another type.
+     */
+    @GetMapping("/{channelId}/interactive")
+    @Operation(operationId = "getChannelInteractiveStatus", tags = "Channels")
+    public Map<String, Object> getChannelInteractiveStatus(@PathVariable String channelId) {
+        NotificationChannelEntity channel = channels.load(id(channelId));
+        if (!ai.foresignal.chatops.InteractiveConfig.supports(channel.getType())) {
+            throw new NotFoundException("Channel " + channelId + " is not a telegram or matrix channel.");
+        }
+        return chatops.status(channel);
     }
 
     /** {@code listChannelDeliveries}: newest first, keyset on id, optional {@code status}. */

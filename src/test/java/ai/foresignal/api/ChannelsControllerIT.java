@@ -241,4 +241,35 @@ class ChannelsControllerIT extends WireMockSupport {
         send(put("/v1/settings/notifications"), "{'pauseBypassSeverity':'loud'}").andExpect(status().isBadRequest());
         send(put("/v1/settings/notifications"), "{'volume':'loud'}").andExpect(status().isBadRequest());
     }
+
+    @Test
+    @DisplayName("getChannelInteractiveStatus (061): idle before start, embedded as Channel.interactive, 404 for other types,"
+            + " invalid allowlists refused, the chatops kill switch stored")
+    void interactiveStatus() throws Exception {
+        String id = create("{'name':'tg','type':'telegram','config':{'chatId':'1','interactive':true,"
+                + "'allowedChats':[{'chatId':'123','name':'me','scope':'agent'}]},'secrets':{'botToken':'T'}}");
+        mvc.perform(auth(get("/v1/channels/" + id + "/interactive"))).andExpect(status().isOk())
+                .andExpect(jsonPath("$.interactive", is(true))).andExpect(jsonPath("$.chatopsEnabled", is(true)))
+                .andExpect(jsonPath("$.connected", is(false))).andExpect(jsonPath("$.status", is("idle")))
+                .andExpect(jsonPath("$.chats[0].chatId", is("123"))).andExpect(jsonPath("$.chats[0].scope", is("agent")))
+                .andExpect(jsonPath("$.chats[0].active", is(false)));
+        mvc.perform(auth(get("/v1/channels/" + id))).andExpect(status().isOk())
+                .andExpect(jsonPath("$.interactive.status", is("idle")));
+        String ntfy = create("{'name':'n','type':'ntfy','config':{'topic':'t'}}");
+        mvc.perform(auth(get("/v1/channels/" + ntfy + "/interactive"))).andExpect(status().isNotFound());
+        mvc.perform(auth(get("/v1/channels/" + ntfy))).andExpect(jsonPath("$.interactive").doesNotExist());
+        mvc.perform(get("/v1/channels/" + id + "/interactive")).andExpect(status().isUnauthorized());
+
+        send(post("/v1/channels"), "{'name':'g','type':'telegram','config':{'chatId':'1','interactive':true,"
+                + "'allowedChats':[{'chatId':'-100','scope':'admin'}]},'secrets':{'botToken':'T'}}")
+                .andExpect(status().isBadRequest())
+                .andExpect(content -> assertThat(content.getResponse().getContentAsString())
+                        .contains("allowedChats[0].scope").contains("allowedChats[0].userIds"));
+
+        send(put("/v1/settings/notifications"), "{'chatops':{'enabled':false}}").andExpect(status().isOk())
+                .andExpect(jsonPath("$.chatops.enabled", is(false)));
+        mvc.perform(auth(get("/v1/channels/" + id + "/interactive"))).andExpect(jsonPath("$.chatopsEnabled", is(false)))
+                .andExpect(jsonPath("$.statusReason", is("chatops.enabled is off")));
+        send(put("/v1/settings/notifications"), "{'chatops':{'enabled':'no'}}").andExpect(status().isBadRequest());
+    }
 }
