@@ -7,6 +7,7 @@ import ai.foresignal.net.OutboundUrlPolicy;
 import ai.foresignal.settings.Durations;
 import ai.foresignal.source.spi.ParamSpec;
 import ai.foresignal.source.spi.ParamType;
+import ai.foresignal.source.spi.SourceAdapter;
 import ai.foresignal.source.spi.SourceDescriptor;
 import ai.foresignal.source.spi.ValidatedParams;
 import java.net.InetAddress;
@@ -23,6 +24,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.locationtech.jts.geom.Envelope;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
@@ -44,11 +47,24 @@ public class ParamValidator {
 
     private final InboxFiles inboxFiles;
     private final OutboundUrlPolicy policy;
+    private final ObjectProvider<SourceRegistry> registry;
 
-    /** Creates the validator. */
+    /** Creates the validator without cross-parameter checks (tests). */
     public ParamValidator(InboxFiles inboxFiles, OutboundUrlPolicy policy) {
+        this(inboxFiles, policy, null);
+    }
+
+    /**
+     * Creates the validator.
+     *
+     * @param registry finds the adapter whose {@link SourceAdapter#checkParams} runs after the
+     *     per-parameter checks (prompt 049), resolved lazily; null for none
+     */
+    @Autowired
+    public ParamValidator(InboxFiles inboxFiles, OutboundUrlPolicy policy, ObjectProvider<SourceRegistry> registry) {
         this.inboxFiles = inboxFiles;
         this.policy = policy;
+        this.registry = registry;
     }
 
     /** A {@link ParamType#LAN_URL} refused by the outbound URL policy. */
@@ -107,7 +123,28 @@ public class ParamValidator {
             throw new ValidationException(
                     "The parameters for " + descriptor.id() + " are not valid.", errors);
         }
-        return new ValidatedParams(values, pinned);
+        ValidatedParams validated = new ValidatedParams(values, pinned);
+        crossCheck(descriptor, validated, errors);
+        if (!errors.isEmpty()) {
+            throw new ValidationException(
+                    "The parameters for " + descriptor.id() + " are not valid.", errors);
+        }
+        return validated;
+    }
+
+    /** Runs the adapter's {@link SourceAdapter#checkParams}, when there is an adapter (prompt 049). */
+    private void crossCheck(SourceDescriptor descriptor, ValidatedParams params, List<FieldError> errors) {
+        SourceRegistry sources = registry == null ? null : registry.getIfAvailable();
+        if (sources == null) {
+            return;
+        }
+        SourceAdapter adapter = sources.find(descriptor.id())
+                .flatMap(SourceRegistry.Registration::adapterIfPresent)
+                .orElse(null);
+        if (adapter == null) {
+            return;
+        }
+        adapter.checkParams(params).forEach((name, problem) -> errors.add(new FieldError(path(name), problem)));
     }
 
     private void coerceInto(

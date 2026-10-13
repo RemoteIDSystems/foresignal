@@ -2,11 +2,13 @@ package ai.foresignal.source;
 
 import ai.foresignal.api.error.InvalidInputException;
 import ai.foresignal.config.ForesignalProperties;
+import ai.foresignal.source.spi.InboxAccess;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.List;
 import java.util.stream.Stream;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,7 +28,7 @@ import org.springframework.stereotype.Component;
  * is exactly this time-of-check/time-of-use gap.
  */
 @Component
-public class InboxFiles {
+public class InboxFiles implements InboxAccess {
 
     private final Path root;
 
@@ -44,6 +46,7 @@ public class InboxFiles {
     }
 
     /** The inbox root, as an absolute normalized path. */
+    @Override
     public Path root() {
         return root;
     }
@@ -53,6 +56,7 @@ public class InboxFiles {
      *
      * @throws InvalidInputException when it is outside, or cannot be resolved
      */
+    @Override
     public Path requireInside(Path candidate) {
         Path real = realPath(candidate);
         Path realRoot = realPath(root);
@@ -75,6 +79,7 @@ public class InboxFiles {
      * <p>A symlink is rejected even when its target is inside the inbox: the inbox is writable by
      * design, so a link there is attacker-controllable and its target can change after the check.
      */
+    @Override
     public InputStream open(Path file) throws IOException {
         // Checked on the path as given, before resolving: requireInside returns a realpath, which
         // by definition is never a symlink, so testing the resolved path would always pass.
@@ -95,6 +100,7 @@ public class InboxFiles {
      * <p>Symlinks are skipped rather than failing the scan: one planted link should not stop an
      * inbox from being processed.
      */
+    @Override
     public List<Path> listRegularFiles(Path directory) throws IOException {
         Path checked = requireInside(directory);
         try (Stream<Path> entries = Files.list(checked)) {
@@ -105,6 +111,44 @@ public class InboxFiles {
                     .sorted()
                     .toList();
         }
+    }
+
+    /**
+     * Lists the directories directly under {@code directory}, each re-checked (prompt 049).
+     *
+     * <p>Symlinked directories are skipped, like symlinked files in {@link #listRegularFiles}.
+     */
+    @Override
+    public List<Path> listDirectories(Path directory) throws IOException {
+        Path checked = requireInside(directory);
+        try (Stream<Path> entries = Files.list(checked)) {
+            return entries
+                    .filter(path -> !Files.isSymbolicLink(path))
+                    .filter(path -> Files.isDirectory(path, LinkOption.NOFOLLOW_LINKS))
+                    .filter(this::isInsideQuietly)
+                    .sorted()
+                    .toList();
+        }
+    }
+
+    /**
+     * The size and modification time of a regular file, read without following a link (prompt 049).
+     *
+     * @throws InvalidInputException when it is a link or outside the inbox
+     * @throws IOException when it cannot be read or is not a regular file
+     */
+    @Override
+    public FileStat stat(Path file) throws IOException {
+        if (Files.isSymbolicLink(file)) {
+            throw new InvalidInputException("'" + file + "' is a symbolic link and will not be read.");
+        }
+        Path checked = requireInside(file);
+        BasicFileAttributes attributes =
+                Files.readAttributes(checked, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
+        if (!attributes.isRegularFile()) {
+            throw new IOException("'" + file + "' is not a regular file");
+        }
+        return new FileStat(checked, attributes.size(), attributes.lastModifiedTime().toInstant());
     }
 
     private boolean isInsideQuietly(Path path) {

@@ -2070,6 +2070,119 @@ the newest processed file is older than 2 minutes (GLM) or 15 minutes (FDC). An 
 missing NetCDF variable also shows `degraded` with the reason, and the file is skipped. Rule recipes are
 in the Agent Guide, "Lightning and fire".
 
+## SatDump ground station
+
+Prompt 049 makes your own [SatDump](https://github.com/SatDump/SatDump) station a source. Set
+`FORESIGNAL_SATDUMP_STATIONS` (property `foresignal.satdump.stations`) to a comma list of station names,
+for example `home`, and restart: each name becomes a `satdump-{station}` source, installed disabled like
+every source. A name is kebab-case and at most 56 characters.
+
+SatDump is GPL-3.0 and stays a separate program that you install and run. Foresignal talks to it only
+through HTTP (`/api`, `/polarplot.jpeg`) and the files it writes; no SatDump code is in Foresignal, and the
+Foresignal image contains no SatDump binaries or SatDump-produced images.
+
+### Station requirements (§4.0)
+
+- **`/api` needs the headless legacy CLI.** Only `satdump legacy live …` and `satdump legacy autotrack …`
+  serve it. In `live` mode pass `--http_server 0.0.0.0:8081` on the command line; in `autotrack` mode the
+  web server and the other options come from the config file:
+  `satdump legacy autotrack autotrack.json` with `"http_server": "0.0.0.0:8081"` in it. A station run from
+  the GUI works in **products-only mode** (inbox only, no RF statistics).
+- **`finish_processing: true`, and no server mode.** SatDump runs the offline pipeline (and writes
+  `dataset.json`, the products and the composites) only when `finish_processing` is true and no
+  `server_address`/`server_port` is set. Without it a pass is recorded but never decoded, and the source
+  shows "Pass ended {t} but no dataset.json after 20 min. Is `finish_processing: true` set, and server_mode
+  off?".
+- **Pin a SatDump version.** The `/api` shape and the `product.cbor` keys differ between versions (1.2.2
+  and 2.0.0-alpha differ). Foresignal keeps one fixture set per pinned version; a response that no longer
+  matches shows "SatDump /api shape changed (version drift?)".
+- Foresignal never requests `/fft.jpeg` (requesting it turns SatDump's FFT on) or `/schedule.jpeg`.
+
+### Parameters
+
+| Param | Type | Default | Meaning |
+|---|---|---|---|
+| `apiUrl` | LAN URL | — | SatDump's web server, for example `http://192.168.1.60:8081`. Local addresses only; resolved once and pinned. |
+| `inboxPath` | inbox path | — | SatDump's output directory under `FORESIGNAL_INBOX_DIR`, for example `satdump/home`. |
+| `location` | string | required | `lat,lon[,altM]` or a place id. |
+| `satNames` | JSON object | — | Name or NORAD number to `satKey`, overriding the built-in table (`src/main/resources/satdump/sat-names.json`). |
+| `apiInterval` | duration | `5s` | 2 s to 30 s. |
+| `scanInterval` | duration | `30s` | 5 s to 10 min. Each full scan costs one budget unit. |
+
+At least one of `apiUrl` and `inboxPath` is required (`400 VALIDATION_FAILED` otherwise). The budget is
+60 a minute and 50,000 a day; every request stays on your LAN.
+
+```json
+PUT /v1/sources/satdump-home
+{"enabled": true, "params": {"apiUrl": "http://192.168.1.60:8081", "inboxPath": "satdump/home", "location": "home"}}
+```
+
+### What it produces
+
+- **`ground-station`** (`externalId` = the station name, kept 30 days): `state`
+  (`idle | tracking | receiving | locked | unknown`), `currentTarget`, `frequencyHz`, `az`, `el`, `snrDb`,
+  `nextAos`, `nextLos`, `rotatorEngaged`, `satdumpMode`. Azimuth and elevation are rounded to 1° and SNR to
+  1 dB, so a version is written only when something changes. Without `apiUrl` there is one record in state
+  `unknown`.
+- **`satellite-pass`** (kept 365 days): `receiving` at AOS, `recorded` at LOS with the RF statistics
+  (`rf.snrMaxDb`, `snrMeanDb`, `berMin`, `berMean`, `syncedFraction`, lock times and elevations, and an
+  SNR-against-elevation series), then `decoded` when the pass folder's products arrive, or `failed` when
+  none arrived 20 minutes after LOS although the station had lock. Each composite is stored as media with
+  256 and 1024 px thumbnails (`products[].thumbMediaId`). The id is `{station}:{satKey}:{aosEpochMinute}`.
+- **Geostationary frames**: GOES-19/18 HRIT and Elektro-L xRIT folders become frames of dynamic products
+  `satdump-{station}-{satKey}-{region}-{channel}` (region `fd` when SatDump writes none), kept 72 hours and
+  rendered through the normal tile path. A frame is `partial` as soon as one channel arrives and becomes
+  complete after 120 s without changes or when the next timestamp folder appears. GK-2A needs KMA keys
+  obtained legitimately. FY-4 and MSG HRV are refused ("FY-4/MSG HRV has no usable projection.").
+- **Live polar plot** during an active autotrack pass: `GET /v1/ground-stations/satdump-home/polarplot.jpeg`
+  (read scope; `404 NO_ACTIVE_PASS` otherwise). Fetched every 15 s by the source, held in memory only,
+  never fetched because a client asked.
+
+The original images and the provenance files (`dataset.json`, `product.cbor`, any `.tif`) are copied to
+`${FORESIGNAL_DATA_DIR}/rasters/satdump/{station}/{passId}/`. `.cadu` and baseband files are never copied;
+SatDump's own retention keeps them. A BigTIFF is skipped ("BigTIFF not supported.").
+
+**Health.** The source is `failing` when `apiUrl` is set and `/api` has been unreachable for 3 polls in a
+row, and `degraded` for the reasons above. With no `apiUrl` it stays healthy on the inbox loop alone.
+
+### Same host or remote Pi (§4.7)
+
+- **Same host:** `docker compose --profile satdump up -d` runs a `satdump` service with
+  `network_mode: host`, `/dev/bus/usb` passed through and the output volume `satdump-output`, which the
+  broker mounts read-only at `/data/inbox/satdump/${SATDUMP_STATION:-home}`. Build the image yourself from
+  SatDump's own Dockerfile and pin the commit:
+  `git clone https://github.com/SatDump/SatDump && git -C SatDump checkout <commit> && docker build -t satdump:local SatDump`
+  (or set `SATDUMP_IMAGE`). Write `docker/satdump/autotrack.json` with `"http_server": "0.0.0.0:8081"`,
+  `"finish_processing": true` and `"output_folder": "/srv/output"`.
+- **Remote Pi at the antenna (recommended in v1):** run SatDump on the Pi and copy its output directory into
+  `${FORESIGNAL_INBOX_DIR}/satdump/{station}` with rsync or Syncthing; the 30-second rescan picks it up
+  (inotify is not trusted, so a sync tool that renames into place works). Point `apiUrl` at the Pi if it
+  is on your LAN.
+
+**Do not use SatDump's webhook plugin** as an ingest path: it posts plain text only.
+
+### Texas targets
+
+| Target | Frequency | Hardware |
+|---|---|---|
+| GOES-19 HRIT/EMWIN | 1694.1 MHz | about 1 m dish, LNA, LTE filter |
+| Meteor-M2-3 / M2-4 LRPT | 137.9 / 137.1 MHz | QFH or V-dipole |
+| Metop-B/C AHRPT (optional) | 1701.3 MHz | tracking dish |
+
+Drop `noaa_apt`, `noaa_dsb` and `noaa_hrpt` from SatDump's defaults: NOAA-15, -18 and -19 were
+decommissioned in 2025.
+
+### Open owner questions (Weather-Imagery-Design §1.5) and the defaults used
+
+| Question | Default until answered |
+|---|---|
+| SatDump version and mode at the station | 2.0.0-alpha headless `legacy autotrack`; fixtures are hand-written from that version's observed keys until a capture replaces them |
+| Bench server or remote Pi | Both work; the remote Pi with rsync/Syncthing is the documented default |
+| L-band dish for GOES HRIT, 137 MHz antenna | Both decoders are built; whatever arrives is used |
+| 32 GB or 64 GB host | `small` profile |
+| Clients outside the LAN | Tile keys and the `web` profile as documented; nothing SatDump-specific |
+| Home location and places | `location` names a place when one exists, otherwise coordinates |
+
 ## Operating the instance
 
 ### Probes and the compose healthcheck

@@ -85,6 +85,9 @@ caffeine = { module = "com.github.ben-manes.caffeine:caffeine" }
 # CSV output for the streaming formats (014); Jackson 3, version from the Jackson BOM that
 # Spring Boot imports (3.1.5 with Boot 4.1.1), Apache-2.0.
 jackson-dataformat-csv = { module = "tools.jackson.dataformat:jackson-dataformat-csv" }
+# SatDump product.cbor (049, Weather-Imagery-Design §3); Jackson 3, version from the Jackson BOM that
+# Spring Boot imports, Apache-2.0.
+jackson-dataformat-cbor = { module = "tools.jackson.dataformat:jackson-dataformat-cbor" }
 
 # Notification channel type `email` (018): JavaMailSender over Jakarta Mail; versions from the
 # Spring Boot BOM (angus-mail 2.0.5, EPL-2.0 / EDL-1.0 / GPL-2.0 with Classpath Exception).

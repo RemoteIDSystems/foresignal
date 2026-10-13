@@ -38,7 +38,8 @@ import org.springframework.util.AntPathMatcher;
  *
  * <p>Prompt 042 adds {@code GET /v1/products/**} and {@code GET /v1/styles/**} as {@code read}.
  *
- * <p>Prompt 043 adds {@code GET /v1/media/**} as {@code read}; the news providers of prompt 133 under
+ * <p>Prompt 049 adds {@code GET /v1/ground-stations/**} as {@code read}. Prompt 043 adds
+ * {@code GET /v1/media/**} as {@code read}; the news providers of prompt 133 under
  * {@code /v1/media/providers} stay {@code admin}, listed before it.
  *
  * <p>Prompt 025 adds {@code /mcp} and {@code /mcp/**} (the MCP server, also outside {@code /v1}):
@@ -262,6 +263,9 @@ public class AccessPolicy {
                 rule(HttpMethod.GET, "/v1/media/providers", AccessRequirement.ADMIN),
                 rule(HttpMethod.GET, "/v1/media/providers/**", AccessRequirement.ADMIN),
                 rule(HttpMethod.GET, "/v1/media/**", AccessRequirement.READ),
+
+                // ---- Ground stations (049, Weather-Imagery-Design §6.11): reads ----
+                rule(HttpMethod.GET, "/v1/ground-stations/**", AccessRequirement.READ),
 
                 // ---- Places (036): a home location is sensitive, so reads are always authenticated ----
                 rule(HttpMethod.GET, "/v1/places", AccessRequirement.READ_ALWAYS_AUTHENTICATED),

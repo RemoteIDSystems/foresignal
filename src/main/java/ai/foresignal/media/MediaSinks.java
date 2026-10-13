@@ -5,6 +5,7 @@ import ai.foresignal.source.spi.MediaInput;
 import ai.foresignal.source.spi.MediaRef;
 import ai.foresignal.source.spi.MediaSink;
 import ai.foresignal.source.spi.SourceDescriptor;
+import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
@@ -25,22 +26,30 @@ public class MediaSinks implements MediaSinkFactory {
     private final MediaStore store;
     private final ThumbnailService thumbnails;
     private final ImageGuard guard;
+    private final GuardedImages images;
 
     /** Creates the factory. */
-    public MediaSinks(MediaStore store, ThumbnailService thumbnails, ImageGuard guard) {
+    public MediaSinks(MediaStore store, ThumbnailService thumbnails, ImageGuard guard, GuardedImages images) {
         this.store = store;
         this.thumbnails = thumbnails;
         this.guard = guard;
+        this.images = images;
     }
 
     @Override
     public MediaSink forSource(SourceDescriptor descriptor, boolean probing) {
         String sourceId = descriptor.id();
-        return probing ? new ProbingSink(guard) : new StoringSink(sourceId, store, thumbnails);
+        return probing ? new ProbingSink(guard, images) : new StoringSink(sourceId, store, thumbnails, images);
     }
 
     /** Stores through the media store with the source id filled in. */
-    private record StoringSink(String sourceId, MediaStore store, ThumbnailService thumbnails) implements MediaSink {
+    private record StoringSink(String sourceId, MediaStore store, ThumbnailService thumbnails, GuardedImages images)
+            implements MediaSink {
+
+        @Override
+        public BufferedImage decode(byte[] bytes, String contentType) {
+            return images.decode(bytes, contentType);
+        }
 
         @Override
         public MediaRef store(MediaInput input) {
@@ -54,7 +63,12 @@ public class MediaSinks implements MediaSinkFactory {
     }
 
     /** Inspects and hashes, writes nothing, and returns a reference with a null id. */
-    private record ProbingSink(ImageGuard guard) implements MediaSink {
+    private record ProbingSink(ImageGuard guard, GuardedImages images) implements MediaSink {
+
+        @Override
+        public BufferedImage decode(byte[] bytes, String contentType) {
+            return images.decode(bytes, contentType);
+        }
 
         @Override
         public MediaRef store(MediaInput input) {

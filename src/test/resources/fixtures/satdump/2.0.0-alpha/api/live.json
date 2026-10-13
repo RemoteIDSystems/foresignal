@@ -1,0 +1,15 @@
+{
+    "psk_demod": {
+        "snr": 11.42,
+        "peak_snr": 14.8,
+        "freq": 137899850.0
+    },
+    "meteor_lrpt_decoder": {
+        "deframer_lock": true,
+        "viterbi_ber": 0.0841,
+        "viterbi_lock": 1,
+        "rs_avg": 3,
+        "viterbi_state": "SYNCED",
+        "deframer_state": "SYNCED"
+    }
+}

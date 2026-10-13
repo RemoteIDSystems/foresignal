@@ -4,6 +4,7 @@ import ai.foresignal.source.spi.AdapterStateStore;
 
 import ai.foresignal.source.CredentialsAccess;
 import ai.foresignal.source.SourceService;
+import ai.foresignal.source.spi.InboxAccess;
 import ai.foresignal.source.spi.SourceDescriptor;
 import java.sql.Timestamp;
 import java.time.Clock;
@@ -29,6 +30,7 @@ public class FetchContextFactory {
     private final Clock clock;
     private final ObjectProvider<RasterSinkFactory> rasters;
     private final ObjectProvider<MediaSinkFactory> media;
+    private final ObjectProvider<InboxAccess> inbox;
 
     /** Creates the factory without a raster pipeline ({@code ctx.rasters()} throws). */
     public FetchContextFactory(
@@ -66,7 +68,6 @@ public class FetchContextFactory {
      * @param media the media store behind {@code ctx.media()} (prompt 043), resolved lazily; null for
      *     none
      */
-    @org.springframework.beans.factory.annotation.Autowired
     public FetchContextFactory(
             UpstreamClient upstream,
             SourceService sources,
@@ -76,6 +77,29 @@ public class FetchContextFactory {
             Clock clock,
             ObjectProvider<RasterSinkFactory> rasters,
             ObjectProvider<MediaSinkFactory> media) {
+        this(upstream, sources, credentials, usage, jdbc, clock, rasters, media, null);
+    }
+
+    /**
+     * Creates the factory.
+     *
+     * @param rasters the raster pipeline behind {@code ctx.rasters()} (prompt 042), resolved lazily;
+     *     null for none
+     * @param media the media store behind {@code ctx.media()} (prompt 043), resolved lazily; null for
+     *     none
+     * @param inbox the inbox behind {@code ctx.inbox()} (prompt 049), resolved lazily; null for none
+     */
+    @org.springframework.beans.factory.annotation.Autowired
+    public FetchContextFactory(
+            UpstreamClient upstream,
+            SourceService sources,
+            CredentialsAccess credentials,
+            UsageMeter usage,
+            JdbcTemplate jdbc,
+            Clock clock,
+            ObjectProvider<RasterSinkFactory> rasters,
+            ObjectProvider<MediaSinkFactory> media,
+            ObjectProvider<InboxAccess> inbox) {
         this.upstream = upstream;
         this.sources = sources;
         this.credentials = credentials;
@@ -84,6 +108,7 @@ public class FetchContextFactory {
         this.clock = clock;
         this.rasters = rasters;
         this.media = media;
+        this.inbox = inbox;
     }
 
     /**
@@ -103,8 +128,11 @@ public class FetchContextFactory {
         return withMedia(ctx, descriptor, probing);
     }
 
-    /** Wires {@code ctx.media()} to the media store, probing when the context records a probe. */
+    /** Wires {@code ctx.media()} to the media store and {@code ctx.inbox()} to the inbox. */
     private <T extends DefaultFetchContext> T withMedia(T ctx, SourceDescriptor descriptor, boolean probing) {
+        if (inbox != null) {
+            ctx.inboxAccess(inbox::getIfAvailable);
+        }
         if (media != null) {
             ctx.mediaSink(() -> {
                 MediaSinkFactory factory = media.getIfAvailable();

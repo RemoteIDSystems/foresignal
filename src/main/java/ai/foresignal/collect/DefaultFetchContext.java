@@ -3,6 +3,7 @@ package ai.foresignal.collect;
 import ai.foresignal.source.CredentialsAccess;
 import ai.foresignal.source.spi.AdapterStateStore;
 import ai.foresignal.source.spi.FetchContext;
+import ai.foresignal.source.spi.InboxAccess;
 import ai.foresignal.source.spi.MediaSink;
 import ai.foresignal.source.spi.Mode;
 import ai.foresignal.source.spi.RasterSink;
@@ -44,6 +45,7 @@ public class DefaultFetchContext implements FetchContext {
 
     private Supplier<RasterSink> rasterSink;
     private Supplier<MediaSink> mediaSink;
+    private Supplier<InboxAccess> inboxSupplier;
     private MediaSink media;
     private SourceHttp http;
     private RasterSink rasters;
@@ -188,6 +190,28 @@ public class DefaultFetchContext implements FetchContext {
             media = mediaSink.get();
         }
         return media;
+    }
+
+    /**
+     * Sets where {@link #inbox()} comes from (prompt 049); the factory calls it when an inbox is
+     * installed.
+     */
+    public void inboxAccess(Supplier<InboxAccess> supplier) {
+        this.inboxSupplier = supplier;
+    }
+
+    /**
+     * The inbox (prompt 049).
+     *
+     * @throws UnsupportedOperationException when no inbox is installed
+     */
+    @Override
+    public InboxAccess inbox() {
+        InboxAccess access = inboxSupplier == null ? null : inboxSupplier.get();
+        if (access == null) {
+            throw new UnsupportedOperationException("No inbox is available to " + sourceId + ".");
+        }
+        return access;
     }
 
     /** The probe recorder, or null. */

@@ -77,6 +77,33 @@ public interface FetchContext {
     }
 
     /**
+     * The inbox directory (prompt 049): the only way an adapter reads files under
+     * {@code FORESIGNAL_INBOX_DIR}. Every read re-checks the realpath and refuses links.
+     *
+     * <p>Inherited by {@link StreamContext}.
+     *
+     * @throws UnsupportedOperationException when no inbox is installed (a hand-built context in a unit
+     *     test)
+     */
+    default InboxAccess inbox() {
+        throw new UnsupportedOperationException("No inbox is available to " + sourceId() + " in this context.");
+    }
+
+    /**
+     * Consumes one unit of this source's request budget without sending anything (prompt 049): a
+     * SatDump inbox scan costs one request (Weather-Imagery-Design §2.5), although it reads files
+     * rather than the network.
+     *
+     * <p>The default delegates to {@link SourceHttp#chargeRequest}.
+     *
+     * @param label what the unit pays for, for logs and traces (for example {@code inbox-scan})
+     * @throws AdapterException when the budget is spent; nothing should then be done
+     */
+    default void chargeRequest(String label) throws AdapterException {
+        http().chargeRequest(label);
+    }
+
+    /**
      * The logger for this source, named {@code foresignal.source.<id>}, so an operator can raise
      * one source's log level without touching the rest.
      */

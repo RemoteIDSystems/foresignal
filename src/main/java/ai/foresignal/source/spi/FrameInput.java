@@ -31,6 +31,9 @@ import java.util.Objects;
  * @param variable the upstream variable name, for probes and health reasons, or null
  * @param extraStats adapter-supplied entries merged into the frame's {@code stats} (for example
  *     {@code flagMissing}, prompt 046); never overrides the computed ones; empty when none
+ * @param footprint the frame's footprint when the adapter knows it better than the grid box clipped to
+ *     covered rows (prompt 049: a geostationary frame's visible disc), SRID 4326; null for the computed
+ *     one
  */
 public record FrameInput(
         String productId,
@@ -46,7 +49,8 @@ public record FrameInput(
         boolean partial,
         String upstreamKey,
         String variable,
-        java.util.Map<String, Object> extraStats) {
+        java.util.Map<String, Object> extraStats,
+        org.locationtech.jts.geom.MultiPolygon footprint) {
 
     /** Checks the required parts and that exactly one data form is given. */
     public FrameInput {
@@ -95,6 +99,7 @@ public record FrameInput(
         private String upstreamKey;
         private String variable;
         private final java.util.Map<String, Object> extraStats = new java.util.LinkedHashMap<>();
+        private org.locationtech.jts.geom.MultiPolygon footprint;
 
         private Builder(String productId) {
             this.productId = productId;
@@ -164,10 +169,16 @@ public record FrameInput(
             return this;
         }
 
+        /** The footprint, overriding the computed one (prompt 049). */
+        public Builder footprint(org.locationtech.jts.geom.MultiPolygon footprint) {
+            this.footprint = footprint;
+            return this;
+        }
+
         /** Builds the input. */
         public FrameInput build() {
             return new FrameInput(productId, validTime, referenceTime, forecastStep, obsStart, obsEnd, grid, bands,
-                    tempFile, decoder, partial, upstreamKey, variable, extraStats);
+                    tempFile, decoder, partial, upstreamKey, variable, extraStats, footprint);
         }
     }
 }

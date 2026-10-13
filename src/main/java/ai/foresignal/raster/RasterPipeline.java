@@ -16,6 +16,7 @@ import ai.foresignal.source.spi.SourceDescriptor;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.LinkedHashMap;
@@ -57,6 +58,7 @@ public class RasterPipeline implements RasterSinkFactory {
     private final JsonMapper json;
     private final Clock clock;
     private final ObjectProvider<FlashStore> flashes;
+    private final RasterPaths paths;
 
     /**
      * Creates the pipeline.
@@ -67,7 +69,7 @@ public class RasterPipeline implements RasterSinkFactory {
     public RasterPipeline(ProductRegistry registry, FrameStore store, GridStore grids, RasterFrameQueries frames,
             RasterDecodePool pool, ProductStatusTracker status, ProductUrls urls, ApplicationEventPublisher events,
             JsonMapper json, Clock clock,
-            ObjectProvider<FlashStore> flashes) {
+            ObjectProvider<FlashStore> flashes, RasterPaths paths) {
         this.registry = registry;
         this.store = store;
         this.grids = grids;
@@ -79,6 +81,7 @@ public class RasterPipeline implements RasterSinkFactory {
         this.json = json;
         this.clock = clock;
         this.flashes = flashes;
+        this.paths = paths;
     }
 
     /** The flash store, or throws when none is installed. */
@@ -123,7 +126,9 @@ public class RasterPipeline implements RasterSinkFactory {
                     spec.dtype().wireValue(), encoded.header().codec(), stats(encoded, input), input.upstreamKey(),
                     input.partial() ? RasterFrameRow.PARTIAL : RasterFrameRow.COMPLETE, false, false, now,
                     FrameThinning.initialExpiry(spec, input.validTime()));
-            frames.upsert(row, encoded.footprint() == null ? null : encoded.footprint().toText());
+            org.locationtech.jts.geom.MultiPolygon footprint = input.footprint() != null ? input.footprint()
+                    : encoded.footprint();
+            frames.upsert(row, footprint == null ? null : footprint.toText());
         } catch (UncheckedIOException | org.springframework.dao.DataAccessException e) {
             throw new AdapterException("Could not store frame " + spec.id() + "/" + frameId + ": " + e.getMessage(), e);
         }
@@ -160,6 +165,50 @@ public class RasterPipeline implements RasterSinkFactory {
         List<Double> bounds = grids.find(steps.get(0).gridId()).map(g -> bounds(spec, g)).orElse(specBounds(spec));
         return List.of(RasterFrameRecords.forecastRun(spec, run, steps, bounds, urls.storedBase()),
                 RasterFrameRecords.partialTombstone(spec, run));
+    }
+
+    /**
+     * Registers a dynamic product of {@code sourceId}; see {@link RasterSink#registerProduct}.
+     *
+     * @throws AdapterException when the registry refuses it
+     */
+    public void registerProduct(String sourceId, ProductSpec spec) throws AdapterException {
+        try {
+            ProductRegistry.Registered current = registry.find(spec.id()).orElse(null);
+            if (current != null && current.dynamic() && current.sourceId().equals(sourceId)
+                    && current.spec().equals(spec)) {
+                return;
+            }
+            registry.registerDynamic(sourceId, spec);
+        } catch (ai.foresignal.api.error.ForesignalException | IllegalArgumentException e) {
+            throw new AdapterException("Product " + spec.id() + " was refused: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Writes a provenance copy below {@code rasters/satdump/}; see {@link RasterSink#storeProvenance}.
+     *
+     * @throws AdapterException when the path leaves the directory or the write fails
+     */
+    public void storeProvenance(String relativePath, byte[] content) throws AdapterException {
+        Path base = paths.root().resolve("satdump").toAbsolutePath().normalize();
+        Path target = base.resolve(relativePath).normalize();
+        if (!target.startsWith(base) || target.equals(base)) {
+            throw new AdapterException("Provenance path '" + relativePath + "' leaves rasters/satdump/");
+        }
+        try {
+            Files.createDirectories(target.getParent());
+            Path staged = Files.createTempFile(paths.tmp(), "provenance-", ".part");
+            try {
+                Files.write(staged, content);
+                Files.move(staged, target, java.nio.file.StandardCopyOption.REPLACE_EXISTING,
+                        java.nio.file.StandardCopyOption.ATOMIC_MOVE);
+            } finally {
+                Files.deleteIfExists(staged);
+            }
+        } catch (IOException e) {
+            throw new AdapterException("Could not write provenance file " + relativePath + ": " + e.getMessage(), e);
+        }
     }
 
     /** Records a silent format change of {@code productId} for {@code sourceId}. */
@@ -276,6 +325,16 @@ public class RasterPipeline implements RasterSinkFactory {
         public boolean disabled(String productId) {
             return RasterPipeline.this.disabled(productId);
         }
+
+        @Override
+        public void registerProduct(ProductSpec spec) throws AdapterException {
+            RasterPipeline.this.registerProduct(sourceId, spec);
+        }
+
+        @Override
+        public void storeProvenance(String relativePath, byte[] content) throws AdapterException {
+            RasterPipeline.this.storeProvenance(relativePath, content);
+        }
     }
 
     /**
@@ -336,6 +395,16 @@ public class RasterPipeline implements RasterSinkFactory {
         @Override
         public FlashSink flashes() {
             return flashStore().probingView();
+        }
+
+        @Override
+        public void registerProduct(ProductSpec spec) {
+            // A probe registers nothing.
+        }
+
+        @Override
+        public void storeProvenance(String relativePath, byte[] content) {
+            // A probe writes nothing.
         }
 
         @Override

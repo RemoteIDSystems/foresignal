@@ -80,6 +80,9 @@ public final class ErrorCodes {
     /** 404: a tile layer that is neither a registered source id nor a kind of a visible source (016). */
     public static final String UNKNOWN_LAYER = "UNKNOWN_LAYER";
 
+    /** 404: a SatDump station has no active pass, so there is no polar plot (prompt 049). */
+    public static final String NO_ACTIVE_PASS = "NO_ACTIVE_PASS";
+
     /** 404: no place has this id (prompt 036). */
     public static final String UNKNOWN_PLACE = "UNKNOWN_PLACE";
 

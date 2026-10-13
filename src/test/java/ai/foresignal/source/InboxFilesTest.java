@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import ai.foresignal.api.error.InvalidInputException;
+import ai.foresignal.source.spi.InboxAccess;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -119,5 +120,34 @@ class InboxFilesTest {
     @Test
     void listsNothingFromAnEmptyInbox() throws IOException {
         assertThat(inbox.listRegularFiles(root)).isEmpty();
+    }
+
+    @Test
+    @DisabledOnOs(OS.WINDOWS)
+    void listsDirectoriesWithoutLinks() throws IOException {
+        Path real = Files.createDirectories(root.resolve("pass-a"));
+        Path outside = Files.createDirectories(tempDir.resolve("outside"));
+        Files.createSymbolicLink(root.resolve("linked"), outside);
+        Files.writeString(root.resolve("file.json"), "{}");
+
+        assertThat(inbox.listDirectories(root)).containsExactly(real);
+    }
+
+    @Test
+    @DisabledOnOs(OS.WINDOWS)
+    void statsRegularFilesAndRefusesLinks() throws IOException {
+        Path file = Files.writeString(root.resolve("dataset.json"), "{\"satellite\":\"x\"}");
+        Path outside = Files.writeString(tempDir.resolve("secret"), "secret");
+        Files.createSymbolicLink(root.resolve("link.json"), outside);
+
+        InboxAccess.FileStat stat = inbox.stat(file);
+        assertThat(stat.size()).isEqualTo(Files.size(file));
+        assertThat(stat.path()).isEqualTo(file.toRealPath());
+        assertThat(stat.modified()).isEqualTo(Files.getLastModifiedTime(file).toInstant());
+        assertThatThrownBy(() -> inbox.stat(root.resolve("link.json"))).isInstanceOf(InvalidInputException.class)
+                .hasMessageContaining("symbolic link");
+        assertThatThrownBy(() -> inbox.stat(root)).isInstanceOf(IOException.class);
+        assertThat(inbox.readAll(file, 100)).hasSize((int) Files.size(file));
+        assertThatThrownBy(() -> inbox.readAll(file, 3)).isInstanceOf(IOException.class);
     }
 }

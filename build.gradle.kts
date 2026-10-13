@@ -45,6 +45,7 @@ dependencies {
     implementation(libs.hibernate.spatial)
     implementation(libs.micrometer.registry.prometheus)
     implementation(libs.jackson.dataformat.csv)
+    implementation(libs.jackson.dataformat.cbor)
     implementation(libs.bucket4j.core)
     implementation(libs.spring.boot.starter.mail)
     implementation(libs.spring.boot.micrometer.tracing.opentelemetry)

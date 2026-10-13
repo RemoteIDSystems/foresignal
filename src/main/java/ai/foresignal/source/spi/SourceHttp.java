@@ -111,6 +111,19 @@ public interface SourceHttp {
     S3Listing listS3(String bucket, String prefix, String startAfter) throws AdapterException;
 
     /**
+     * Consumes one unit of the request budget without sending a request (prompt 049): for work that
+     * Weather-Imagery-Design §2.5 prices as a request although it is not one, such as a SatDump inbox
+     * scan.
+     *
+     * <p>The default does nothing (a test double); {@code UpstreamClient}'s implementation takes the
+     * unit and refuses with a budget error when it is spent.
+     *
+     * @param label what the unit pays for
+     * @throws AdapterException when the budget is spent
+     */
+    default void chargeRequest(String label) throws AdapterException {}
+
+    /**
      * Opens a WebSocket for a streaming adapter.
      *
      * <p>Counts as one budgeted request per connection attempt, so the descriptor's budget bounds

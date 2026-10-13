@@ -647,4 +647,39 @@ class ParamValidatorTest {
         assertThat(empty.pinnedAddress("missing")).isEmpty();
         assertThat(empty.stringList("missing")).isEmpty();
     }
+
+    @Test
+    @DisplayName("an adapter's cross-parameter check (prompt 049) adds field errors after the per-parameter checks")
+    void crossCheck() {
+        SourceDescriptor descriptor = base().param(ParamSpec.optional("a", ParamType.STRING, "a", null))
+                .param(ParamSpec.optional("b", ParamType.STRING, "b", null)).build();
+        ai.foresignal.source.spi.SourceAdapter adapter = new ai.foresignal.source.spi.SourceAdapter() {
+            @Override
+            public SourceDescriptor descriptor() {
+                return descriptor;
+            }
+
+            @Override
+            public Map<String, String> checkParams(ValidatedParams params) {
+                return params.has("a") || params.has("b") ? Map.of() : Map.of("a", "at least one of a and b is required");
+            }
+        };
+        SourceRegistry registry = org.mockito.Mockito.mock(SourceRegistry.class);
+        org.mockito.Mockito.when(registry.find("test-source"))
+                .thenReturn(java.util.Optional.of(new SourceRegistry.Registration(descriptor, adapter, false)));
+        @SuppressWarnings("unchecked")
+        org.springframework.beans.factory.ObjectProvider<SourceRegistry> provider =
+                org.mockito.Mockito.mock(org.springframework.beans.factory.ObjectProvider.class);
+        org.mockito.Mockito.when(provider.getIfAvailable()).thenReturn(registry);
+        ParamValidator checking = new ParamValidator(new InboxFiles(inboxRoot),
+                ai.foresignal.testsupport.net.TestOutbound.offlinePolicy(), provider);
+
+        try {
+            checking.validate(descriptor, Map.of());
+            throw new AssertionError("Expected validation to fail");
+        } catch (ValidationException e) {
+            assertThat(e.getErrors()).extracting(FieldError::field).containsExactly("params.a");
+        }
+        assertThat(checking.validate(descriptor, Map.of("b", "x")).string("b")).isEqualTo("x");
+    }
 }

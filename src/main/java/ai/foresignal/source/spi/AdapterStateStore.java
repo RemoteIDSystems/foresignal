@@ -30,6 +30,14 @@ public interface AdapterStateStore {
     /** The reserved key holding the largest tolerated input age, an ISO-8601 duration (prompt 048). */
     String MAX_INPUT_GAP_KEY = "health.maxInputGap";
 
+    /**
+     * The reserved key holding a fatal health problem the adapter found (prompt 049), for example a
+     * SatDump {@code /api} that has been unreachable for three polls while the stream itself keeps
+     * running. While it holds a reason, the {@code AdapterStateHealthRule} reports the source
+     * {@code failing} with that reason.
+     */
+    String FAILING_REASON_KEY = "health.failing";
+
     /** The stored value, or empty. */
     Optional<String> get(String key);
 
@@ -79,6 +87,29 @@ public interface AdapterStateStore {
             if (!gap.equals(get(MAX_INPUT_GAP_KEY).orElse(null))) {
                 put(MAX_INPUT_GAP_KEY, gap);
             }
+        }
+    }
+
+    /**
+     * Records a problem that keeps the source {@code failing} until it is cleared (prompt 049). Writes
+     * only when the reason changed.
+     *
+     * @param reason the health reason shown to the operator
+     */
+    default void fail(String reason) {
+        if (reason == null || reason.isBlank()) {
+            clearFailing();
+            return;
+        }
+        if (!reason.equals(get(FAILING_REASON_KEY).orElse(null))) {
+            put(FAILING_REASON_KEY, reason);
+        }
+    }
+
+    /** Clears a reason set by {@link #fail}, if any. */
+    default void clearFailing() {
+        if (get(FAILING_REASON_KEY).isPresent()) {
+            remove(FAILING_REASON_KEY);
         }
     }
 

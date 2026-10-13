@@ -9,6 +9,10 @@
 #   docker compose --profile local-llm up -d
 #                               # adds a local Ollama for the LLM features; nothing
 #                               # leaves the box (docs/Operator-Guide.md, "LLM")
+#   docker compose --profile satdump up -d
+#                               # adds a SatDump ground station on this host; the
+#                               # image is built by the operator from SatDump's own
+#                               # Dockerfile (docs/Operator-Guide.md, "SatDump ground station")
 services:
   db:
     # PostGIS plus pgvector for semantic search (027): postgis/postgis:17-3.5 with
@@ -63,10 +67,16 @@ services:
       # are always appended: java.io.tmpdir and jna.tmpdir on the data volume, where libaec's native
       # library is extracted and loaded, so the volume must allow executables (named volumes do).
       JAVA_TOOL_OPTIONS: ${FORESIGNAL_JAVA_TOOL_OPTIONS:--Xmx4g -XX:+UseG1GC} -Djava.io.tmpdir=/data/tmp -Djna.tmpdir=/data/tmp
+      # SatDump ground stations (049): one satdump-{station} source per comma-separated name.
+      FORESIGNAL_SATDUMP_STATIONS: ${FORESIGNAL_SATDUMP_STATIONS:-}
     # The container limit per profile: 6g (small) or 11g (large).
     mem_limit: ${FORESIGNAL_MEM_LIMIT:-6g}
     volumes:
       - foresignal-data:/data
+      # The SatDump output (049), read-only, at ${FORESIGNAL_INBOX_DIR}/satdump/{station}
+      # (FORESIGNAL_INBOX_DIR is /data/inbox in this file). Empty unless the satdump
+      # profile runs or a remote station syncs into it; inboxPath is then satdump/<station>.
+      - satdump-output:/data/inbox/satdump/${SATDUMP_STATION:-home}:ro
     # Localhost only by default; set FORESIGNAL_BIND=0.0.0.0 for LAN access.
     ports:
       - "${FORESIGNAL_BIND:-127.0.0.1}:8080:8080"
@@ -119,8 +129,32 @@ services:
       - "${FORESIGNAL_BIND:-127.0.0.1}:11434:11434"
     restart: unless-stopped
 
+  # The operator's SatDump ground station on this host (049, Weather-Imagery-Design §4.7).
+  # Only started with --profile satdump. Foresignal images contain no SatDump binaries or
+  # SatDump-produced images: build this image yourself from SatDump's own Dockerfile
+  # (git clone https://github.com/SatDump/SatDump && docker build -t satdump:local SatDump)
+  # and pin the commit. The headless legacy CLI is needed for /api; the autotrack config
+  # (./docker/satdump/autotrack.json, written by the operator) must set
+  # "http_server": "0.0.0.0:8081", "finish_processing": true, "output_folder": "/srv/output",
+  # and no server mode (no server_address/server_port).
+  satdump:
+    image: ${SATDUMP_IMAGE:-satdump:local}
+    profiles: ["satdump"]
+    command: ["satdump", "legacy", "autotrack", "/config/autotrack.json"]
+    init: true
+    network_mode: host
+    device_cgroup_rules:
+      - 'c 189:* rwm'
+    devices:
+      - /dev/bus/usb
+    volumes:
+      - satdump-output:/srv/output
+      - ./docker/satdump:/config:ro
+    restart: unless-stopped
+
 volumes:
   pgdata:
   foresignal-data:
   tailscale-state:
   ollama:
+  satdump-output:

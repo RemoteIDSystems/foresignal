@@ -1,0 +1,14 @@
+{
+  "comment": "SatDump satellite name normalization (prompt 049, Weather-Imagery-Design §4.4). Each key is the satKey used in pass ids and product ids; aliases are the names SatDump and CelesTrak use, compared after lower-casing and replacing every run of other characters with '-'. NORAD catalog numbers verified against CelesTrak GP on 2026-10-12. Operators extend or override it with the satNames source parameter.",
+  "satellites": [
+    {"key": "meteor-m2-3", "name": "Meteor-M2-3", "norad": 57166, "aliases": ["METEOR-M2 3", "Meteor-M2-3", "METEOR-M2-3", "Meteor-M 2-3", "Meteor-M N2-3"]},
+    {"key": "meteor-m2-4", "name": "Meteor-M2-4", "norad": 59051, "aliases": ["METEOR-M2 4", "Meteor-M2-4", "METEOR-M2-4", "Meteor-M 2-4", "Meteor-M N2-4"]},
+    {"key": "metop-b", "name": "Metop-B", "norad": 38771, "aliases": ["METOP-B", "MetOp-B", "Metop B"]},
+    {"key": "metop-c", "name": "Metop-C", "norad": 43689, "aliases": ["METOP-C", "MetOp-C", "Metop C"]},
+    {"key": "goes-19", "name": "GOES-19", "norad": 60133, "aliases": ["GOES 19", "GOES-19", "GOES19", "GOES-East"]},
+    {"key": "goes-18", "name": "GOES-18", "norad": 51850, "aliases": ["GOES 18", "GOES-18", "GOES18", "GOES-West"]},
+    {"key": "goes-16", "name": "GOES-16", "norad": 41866, "aliases": ["GOES 16", "GOES-16", "GOES16"]},
+    {"key": "elektro-l3", "name": "Elektro-L 3", "norad": 44903, "aliases": ["ELEKTRO-L 3", "Elektro-L3", "ELEKTRO-L3", "Elektro-L N3"]},
+    {"key": "elektro-l4", "name": "Elektro-L 4", "norad": 55506, "aliases": ["ELEKTRO-L 4", "Elektro-L4", "ELEKTRO-L4", "Elektro-L N4"]}
+  ]
+}

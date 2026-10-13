@@ -307,6 +307,28 @@ entity's first version only):
  "messageTemplate": "{{payload.label}} (automated, not a warning)"}
 ```
 
+## SatDump ground station (prompt 049)
+
+`satdump-{station}` sources (one per station the operator configured) bring the owner's own receiver:
+
+| Kind | What a record is |
+|---|---|
+| `ground-station` | the station: `state` (`idle`, `tracking`, `receiving`, `locked`, `unknown`), `currentTarget`, `az`, `el`, `snrDb`, `nextAos`, `nextLos` |
+| `satellite-pass` | one pass: `status` `receiving` → `recorded` (with `rf{}`: `snrMaxDb`, `berMin`, `syncedFraction`, lock times) → `decoded` (with `products[]` and thumbnails) or `failed` |
+| `raster-frame` | a GOES/Elektro geostationary frame of a product `satdump-{station}-{satKey}-{region}-{channel}` |
+
+During an active autotrack pass, `GET /v1/ground-stations/satdump-{station}/polarplot.jpeg` serves the
+live polar plot (`404 NO_ACTIVE_PASS` otherwise). A `failed` pass usually means the station is not
+running SatDump with `finish_processing: true`; the source health says so.
+
+**Meteor pass decoded:**
+
+```json
+{"name": "Meteor pass decoded", "kinds": ["satellite-pass"],
+ "conditions": [{"path": "status", "op": "==", "value": "decoded"}], "mode": "enter",
+ "messageTemplate": "{{payload.title}}"}
+```
+
 ## Replaying the past (asOf)
 
 `GET /v1/records?asOf=<T>&source=…` returns the state Foresignal knew at transaction time `T`, to
@@ -453,6 +475,8 @@ Every tool takes `detail`: `short` (the default, compact items, the whole result
 | `reverse_geocode` | read | The region of a point, computed offline from Natural Earth and GeoNames: `iso2` (null at sea), `admin1` (ISO 3166-2), `admin2` (US county FIPS), `sea`, names, and `near` with text such as "12 km NNE of Austin, TX" (GeoNames, CC BY 4.0; keep the `attribution`). Short record items of the other tools carry the same `near` text when the record is tagged (040). |
 | `export_entity` | admin | Everything retained about one entity (`sourceId`, `externalId`): current state, every version with observers, referencing alerts and a manifest with counts and SHA-256; `format` ndjson (default) or geojson; up to 1 MB, larger via `GET /v1/records/{sourceId}/{externalId}/export`. Audited. Never offered to Ask (039). |
 | `purge_entity` | admin | Erases one entity: a PURGED tombstone (its change carries `purged: true`), older versions deleted, embeddings deleted, alerts redacted (or deleted with `purgeAlerts`), notifications redacted; returns the `PurgeReport`. Irreversible; messages already delivered to external channels cannot be recalled. Audited. Never offered to Ask (039). |
+| `list_satellite_passes` | read | Passes of the operator's SatDump ground stations, newest AOS first: optional `station`, `since`, `status` (`receiving`, `recorded`, `decoded`, `failed`), `limit` ≤ 50; compact items, `detail=long` for full payloads with the RF statistics (049). |
+| `get_satellite_pass` | read | One pass by `id` (`{station}:{satKey}:{aosEpochMinute}`, or the item id `satdump-{station}:…`): metadata plus the first composite's 256 px thumbnail as image content with a text caption (049). |
 | `get_track` | read | The simplified path of one entity (`sourceId`, `externalId`) between `from` and `to` (same time forms; default the last 6 h), `maxPoints` ≤ 500 (100 with `detail=short`, which stays within 4 KB): segments of `[lon, lat, epochSeconds]` plus a summary with `distanceKm`, `durationSeconds`, `bbox`, `maxSpeedKmh`, `segments` and `approximate` (037). |
 
 Later prompts add tools to the same registry: weather (052), `get_map_image` (055) and entities (098).

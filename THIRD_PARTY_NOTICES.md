@@ -12,6 +12,7 @@ Foresignal's reuse policy (Architecture §16) is deliberately narrow:
 | ShadowBroker | AGPL-3.0 | Reference only — endpoints, parameters and upstream quirks. No code copied. |
 | Velocity | AGPL-3.0 | Reference only. No code copied. |
 | World Monitor | AGPL-3.0 | Reference only. No code copied. |
+| SatDump | GPL-3.0 | Reference only (prompt 049). **SatDump is not distributed with Foresignal**: no SatDump code, headers, structs or projection code is incorporated, and no Foresignal image contains SatDump binaries or SatDump-produced images. The operator builds and runs SatDump as a separate program (the compose `satdump` profile uses an image the operator builds from SatDump's own Dockerfile); Foresignal reads its output files and its HTTP `/api`. |
 
 Data fetched from upstream providers at runtime is **not** covered by Foresignal's
 licence. Each provider's terms continue to apply; see
@@ -163,6 +164,14 @@ section lists dependencies a prompt asked to record here.
 - **Use:** the raster frame cache with a byte weigher (prompt 042); prompt 045 adds the tile and index-map caches.
 - **License:** Apache License, Version 2.0 (<https://www.apache.org/licenses/LICENSE-2.0>).
 - **Project:** <https://github.com/ben-manes/caffeine>, Copyright Ben Manes.
+
+### Jackson CBOR dataformat
+
+- **Artifact:** `tools.jackson.dataformat:jackson-dataformat-cbor` 3.1.5 (Maven Central; the version the Jackson BOM
+  imported by Spring Boot 4.1.1 manages), used unmodified.
+- **Use:** reading SatDump's `product.cbor` files (prompt 049).
+- **License:** Apache License, Version 2.0 (<https://www.apache.org/licenses/LICENSE-2.0>).
+- **Project:** <https://github.com/FasterXML/jackson-dataformats-binary>, Copyright FasterXML, LLC.
 
 ### NetCDF-Java (GRIB2 and NetCDF4 decoders, prompt 046)
 

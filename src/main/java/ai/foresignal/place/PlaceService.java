@@ -37,6 +37,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.MultiPolygon;
+import ai.foresignal.source.spi.PlacePoints;
 import org.locationtech.jts.geom.util.GeometryFixer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -67,10 +68,11 @@ import tools.jackson.databind.JsonNode;
  * (fail closed). Tombstoned place-weather records (prompt 052) can still fire exit rules.
  *
  * <p>The service also installs {@link PlaceAreas}, so a token's {@code placeIds} restriction resolves
- * to the union of the places' areas.
+ * to the union of the places' areas, and implements {@link PlacePoints}, so an adapter parameter can
+ * name a place (prompt 049: a SatDump station's {@code location}).
  */
 @Service
-public class PlaceService implements PlaceLookup, IngestStateReset {
+public class PlaceService implements PlaceLookup, PlacePoints, IngestStateReset {
 
     private static final Logger log = LoggerFactory.getLogger(PlaceService.class);
 
@@ -267,6 +269,19 @@ public class PlaceService implements PlaceLookup, IngestStateReset {
     @Override
     public Optional<Geometry> origin(String placeId) {
         return find(placeId).map(PlaceView::geometry);
+    }
+
+    /**
+     * The place's representative point (prompt 049): the point itself, or the interior point of a
+     * polygon or route, as {@code {lon, lat}}.
+     */
+    @Override
+    public Optional<double[]> point(String placeId) {
+        return origin(placeId).filter(g -> !g.isEmpty()).map(g -> {
+            org.locationtech.jts.geom.Point p = g instanceof org.locationtech.jts.geom.Point point ? point
+                    : g.getInteriorPoint();
+            return new double[] {p.getX(), p.getY()};
+        });
     }
 
     // ------------------------------------------------------------------------- writes

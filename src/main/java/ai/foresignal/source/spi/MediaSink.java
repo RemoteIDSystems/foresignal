@@ -32,6 +32,22 @@ public interface MediaSink {
      */
     List<MediaRef> thumbnails(MediaRef original);
 
+    /**
+     * Decodes an image through {@code GuardedImages} (prompt 049): {@code ImageGuard} inspects the
+     * header first and nothing is decoded when it refuses. 16-bit grayscale PNGs decode to
+     * {@link java.awt.image.BufferedImage#TYPE_USHORT_GRAY}. Writes nothing, so a probing sink decodes
+     * too.
+     *
+     * @param bytes the image
+     * @param contentType the declared type, which must agree with the sniffed format
+     * @return the decoded image
+     * @throws ImageRejectedException when the guard refuses it
+     * @throws UnsupportedOperationException when this sink cannot decode (a test double)
+     */
+    default java.awt.image.BufferedImage decode(byte[] bytes, String contentType) {
+        throw new UnsupportedOperationException("This media sink cannot decode images.");
+    }
+
     /** True when this sink writes nothing (a probe). */
     default boolean probing() {
         return false;

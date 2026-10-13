@@ -85,6 +85,10 @@ foresignal:
   # directory, re-checked per file, so a symlink cannot redirect a read out of it.
   inbox-dir: ${FORESIGNAL_INBOX_DIR:${FORESIGNAL_DATA_DIR:./data}/inbox}
   reset-admin-token: ${FORESIGNAL_RESET_ADMIN_TOKEN:false}
+  # SatDump ground stations (049, Weather-Imagery-Design §4.1): one satdump-{station} source per
+  # comma-separated name, for example "home" or "home,pi". Empty means none.
+  satdump:
+    stations: ${FORESIGNAL_SATDUMP_STATIONS:}
   version: ${spring.application.version:unknown}
   # Memory profile (042, Weather-Imagery-Design §2.6): small (32 GB host) or large (64 GB host).
   # Selects the raster defaults below; never derived from MaxRAMPercentage.

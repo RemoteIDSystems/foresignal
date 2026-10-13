@@ -1,0 +1,14 @@
+# name,lon,lat,visible from GOES-19 (lon0 -75.2),visible from GOES-18 (lon0 -137.0),visible from Elektro-L 4 (lon0 76.0)
+# Hand-picked coastline points (city coordinates rounded to 0.1 degree) checked against the visible disc.
+Galveston TX,-94.8,29.3,true,true,false
+Miami FL,-80.2,25.8,true,true,false
+Halifax NS,-63.6,44.6,true,true,false
+Lima PE,-77.0,-12.0,true,true,false
+Rio de Janeiro BR,-43.2,-22.9,true,false,false
+Dakar SN,-17.4,14.7,true,false,false
+Honolulu HI,-157.9,21.3,false,true,false
+Anchorage AK,-149.9,61.2,false,true,false
+Cape Town ZA,18.4,-33.9,false,false,true
+Mumbai IN,72.8,19.1,false,false,true
+Perth AU,115.9,-32.0,false,false,true
+Tokyo JP,139.7,35.7,false,false,true

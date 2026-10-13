@@ -1,0 +1,24 @@
+{
+    "object_tracker": {
+        "object_name": "METEOR-M2 3",
+        "sat_current_pos": {
+            "az": 10.0,
+            "el": -12.5
+        },
+        "next_aos_time": 1791832865.0,
+        "next_los_time": 1791833620.0,
+        "next_event_in": 600.0,
+        "next_event_is_aos": true,
+        "rotator_engaged": false,
+        "rotator_tracking": false,
+        "rot_current_pos": {
+            "az": 0.0,
+            "el": 0.0
+        },
+        "rot_current_req_pos": {
+            "az": 0.0,
+            "el": 0.0
+        }
+    },
+    "frequency": 137900000
+}

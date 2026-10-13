@@ -11,6 +11,20 @@ public interface SourceAdapter {
     /** This source's immutable description. Must return the same value every call. */
     SourceDescriptor descriptor();
 
+    /**
+     * Checks rules that span several parameters, after each one passed its own {@link ParamSpec}
+     * (prompt 049: a SatDump station needs at least one of {@code apiUrl} and {@code inboxPath}).
+     *
+     * <p>{@code ParamValidator} reports every entry as a field error {@code params.<key>} of the 400
+     * {@code VALIDATION_FAILED} problem. The default finds nothing.
+     *
+     * @param params the coerced parameters with defaults applied
+     * @return parameter name to problem, in a stable order; empty when the combination is valid
+     */
+    default java.util.Map<String, String> checkParams(ValidatedParams params) {
+        return java.util.Map.of();
+    }
+
     /** Convenience for {@code descriptor().id()}. */
     default String id() {
         return descriptor().id();

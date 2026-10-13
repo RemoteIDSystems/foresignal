@@ -1,0 +1,53 @@
+{
+    "live_pipeline": {
+        "psk_demod": {
+            "snr": "9.6",
+            "peak_snr": [
+                12.1,
+                13.4
+            ],
+            "freq": 137899850.0
+        },
+        "meteor_lrpt_decoder": {
+            "deframer_lock": true,
+            "viterbi_ber": [
+                0.08,
+                0.12
+            ],
+            "viterbi_lock": 1,
+            "rs_avg": [
+                2,
+                4,
+                3,
+                3
+            ],
+            "viterbi_state": "SYNCED",
+            "deframer_state": "SYNCED"
+        }
+    },
+    "object_tracker": {
+        "object_name": "METEOR-M2 3",
+        "sat_current_pos": {
+            "az": 212.37,
+            "el": 38.62
+        },
+        "sat_azimuth_rate": 0.41,
+        "sat_elevation_rate": -0.12,
+        "sat_current_range": 1186.4,
+        "next_aos_time": 1791832865.0,
+        "next_los_time": 1791833620.0,
+        "next_event_in": 455.2,
+        "next_event_is_aos": false,
+        "rotator_engaged": true,
+        "rotator_tracking": true,
+        "rot_current_pos": {
+            "az": 212.0,
+            "el": 38.5
+        },
+        "rot_current_req_pos": {
+            "az": 212.4,
+            "el": 38.6
+        }
+    },
+    "frequency": 137900000
+}

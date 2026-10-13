@@ -149,7 +149,7 @@ ai.foresignal
 └── api             Controllers, DTOs, ProblemDetail handlers, pagination cursors
 ```
 
-Dependency rule: `api → (service packages) → store`. Adapters depend only on `source` SPI types and `collect.UpstreamClient`; they never touch the store, the scheduler or each other. Product adapters (046 on) may also use the decoders in `raster.decode`, which are stateless file readers like the shared parsers under `source.formats`; frames still reach the store only through `ctx.rasters()`. Weather record adapters (047) reach the places AOI and the `ref_admin2` county outlines only through the SPI types `AreaOfInterest` and `CountyGeometries`, implemented by `place.PlacesAoiService` and `reference.CountyUnionService`. The lightning and fire adapters (048) write GLM flashes only through the SPI type `FlashSink` (`ctx.rasters().flashes()`, implemented by `raster.lightning.FlashStore`), and read named NetCDF variables and fixed-grid pixel centers through `raster.decode.NetcdfDecoder.Reader`.
+Dependency rule: `api → (service packages) → store`. Adapters depend only on `source` SPI types and `collect.UpstreamClient`; they never touch the store, the scheduler or each other. Product adapters (046 on) may also use the decoders in `raster.decode`, which are stateless file readers like the shared parsers under `source.formats`; frames still reach the store only through `ctx.rasters()`. Weather record adapters (047) reach the places AOI and the `ref_admin2` county outlines only through the SPI types `AreaOfInterest` and `CountyGeometries`, implemented by `place.PlacesAoiService` and `reference.CountyUnionService`. The lightning and fire adapters (048) write GLM flashes only through the SPI type `FlashSink` (`ctx.rasters().flashes()`, implemented by `raster.lightning.FlashStore`), and read named NetCDF variables and fixed-grid pixel centers through `raster.decode.NetcdfDecoder.Reader`. The SatDump station adapter (049) reads its inbox only through the SPI type `InboxAccess` (`ctx.inbox()`, implemented by `source.InboxFiles`), decodes images only through `MediaSink.decode` (`media.GuardedImages`), registers its dynamic products and writes provenance copies only through `RasterSink.registerProduct` and `RasterSink.storeProvenance`, builds geostationary grids with `raster.decode.GeosGrids`, resolves a place-id location through `PlacePoints` (`place.PlaceService`) and holds the live polar plot through `LiveImageHolder` (`media.LiveImageStore`).
 
 ## 4. Source adapter SPI
 
@@ -574,6 +574,7 @@ File-based configuration is limited to bootstrap concerns, all overridable by en
 | `FORESIGNAL_RASTER_DISK_QUOTA_GB` | `200` | Raster frame store quota (the media store and the GLM archive count too); oldest frames are evicted above it, `/v1/system` degrades at 90 % (042) |
 | `FORESIGNAL_RASTER_FRAME_CACHE_MB`, `…_TILE_CACHE_MB`, `…_INDEX_CACHE_MB`, `…_RENDER_POOL`, `…_DECODE_CONCURRENCY` | profile | Override one profile value each (042) |
 | `FORESIGNAL_RASTER_GLM_RING_SCOPE` | `aoi` | The GLM flash ring's scope: `aoi` (the places AOI) or `conus` (large profile only) (048) |
+| `FORESIGNAL_SATDUMP_STATIONS` | empty | SatDump ground stations: one `satdump-{station}` source per comma-separated name (049) |
 | `JAVA_TOOL_OPTIONS` `-Djava.io.tmpdir=/data/tmp -Djna.tmpdir=/data/tmp` | set by the Dockerfile and appended by compose | Temporary files, and the libaec native library JNA extracts and loads for GRIB2 template 5.42, go to `${FORESIGNAL_DATA_DIR}/tmp` on the data volume, which must allow executables (named volumes do); the application creates the directory at startup (046) |
 | `foresignal.raster.decoder-self-test.enabled` | `true` | The startup decoder self-test (046) |
 
@@ -881,7 +882,7 @@ The Flutter apps receive **visible** alerts through APNs (iOS, iPadOS, macOS) an
 | ShadowBroker | AGPL-3.0 | Reference only: endpoints, parameters, quirks. No code copied. |
 | Velocity | AGPL-3.0 | Reference only |
 | World Monitor | AGPL-3.0 | Reference only |
-| SatDump | GPL-3.0 | Reference only. Foresignal talks to a separately run SatDump through files and HTTP; never copy code, headers, structs or projection code. |
+| SatDump | GPL-3.0 | Reference only. A separate, operator-supplied process: Foresignal talks to it only through files (its output directory under the inbox) and HTTP (`/api`, `/polarplot.jpeg`); no SatDump code, headers, structs or projection code in Foresignal, and no SatDump binaries or SatDump-produced images in the Foresignal image. Parsers are written from observed output and fixtures (049); the geostationary maths comes from the public CGMS and GOES-R PUG specifications. |
 | MeshCore | MIT | Protocol reference for mesh sources and channels (`docs/companion_protocol.md`, `docs/payloads.md`); talk to companions through `meshcore_py` or the bridge script. |
 | MeshDTN | Owner's project (firmware and app are MIT forks of MeshCore and meshcore-open) | Foresignal's store-carry-forward mesh partner: the specifications define what Foresignal sends over mesh. |
 

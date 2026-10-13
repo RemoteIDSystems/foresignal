@@ -7,7 +7,8 @@ import org.springframework.context.annotation.Import;
 
 /**
  * The raster test context (prompt 042): prompt 010's collector sources (with the
- * {@code MutableClock} and {@code TestRecords}) plus the {@link SyntheticRasterAdapter}. Every 042
+ * {@code MutableClock} and {@code TestRecords}) plus the {@link SyntheticRasterAdapter}, and from prompt 049
+ * the SatDump station {@code satdump-itest}. Every 042
  * integration test is a {@code @WebIntegrationTest} importing exactly this, so they share one cached
  * context (checkpoint 041: count contexts before adding one).
  */
@@ -19,5 +20,20 @@ public class RasterTestSources {
     @Bean
     public SyntheticRasterAdapter syntheticRasterAdapter() {
         return new SyntheticRasterAdapter();
+    }
+
+    /** The SatDump station of the prompt 049 ITs: {@code satdump-itest}, installed disabled like every source. */
+    public static final String SATDUMP_STATION = "itest";
+
+    /**
+     * A SatDump station source for the prompt 049 ITs (no new context: it joins this one), with the real
+     * places and live-image beans.
+     */
+    @Bean
+    public ai.foresignal.source.adapters.satdump.SatDumpAdapter satDumpTestStation(
+            org.springframework.beans.factory.ObjectProvider<ai.foresignal.source.spi.PlacePoints> places,
+            org.springframework.beans.factory.ObjectProvider<ai.foresignal.source.spi.LiveImageHolder> liveImages) {
+        return new ai.foresignal.source.adapters.satdump.SatDumpAdapter(SATDUMP_STATION, places::getIfAvailable,
+                liveImages::getIfAvailable);
     }
 }

@@ -316,6 +316,17 @@ class BoundSourceHttp implements SourceHttp {
         }
     }
 
+    /**
+     * Takes one budget unit and meters it as a successful zero-byte request (prompt 049). No backoff
+     * check: nothing is sent upstream, so an upstream's throttling has no say over it.
+     */
+    @Override
+    public void chargeRequest(String label) throws AdapterException {
+        consumeBudget(0);
+        parent.usage().record(sourceId, 0, true);
+        log.debug("{}: charged one budget unit for {}", sourceId, label);
+    }
+
     // ---------- the single request path ----------
 
     /**

@@ -10,7 +10,10 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
-/** A reason recorded with {@code AdapterStateStore.degrade} degrades the source (prompt 047). */
+/**
+ * A reason recorded with {@code AdapterStateStore.degrade} degrades the source (prompt 047); one recorded
+ * with {@code fail} makes it failing (prompt 049).
+ */
 @IntegrationTest
 class AdapterStateHealthRuleIT {
 
@@ -33,6 +36,22 @@ class AdapterStateHealthRuleIT {
         assertThat(verdict.reason()).isEqualTo("SPC layer day3otlk_prob.lyr.geojson missing");
 
         upstream.stateStore(SpcOutlooksAdapter.ID).clearDegraded();
+        assertThat(rule.evaluate(context())).isEmpty();
+    }
+
+    @Test
+    @DisplayName("a failing reason (prompt 049) wins over a degraded one, and clears like it")
+    void failing() {
+        var state = upstream.stateStore(SpcOutlooksAdapter.ID);
+        state.degrade("SatDump /api shape changed (version drift?)");
+        state.fail("SatDump /api unreachable for 3 consecutive polls: refused");
+        var verdict = rule.evaluate(context()).orElseThrow();
+        assertThat(verdict.status()).isEqualTo(HealthStatus.FAILING);
+        assertThat(verdict.reason()).isEqualTo("SatDump /api unreachable for 3 consecutive polls: refused");
+
+        state.clearFailing();
+        assertThat(rule.evaluate(context()).orElseThrow().status()).isEqualTo(HealthStatus.DEGRADED);
+        state.clearDegraded();
         assertThat(rule.evaluate(context())).isEmpty();
     }
 }
