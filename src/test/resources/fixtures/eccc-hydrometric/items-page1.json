@@ -1,0 +1,165 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -75.10464,
+          45.19161
+        ]
+      },
+      "properties": {
+        "IDENTIFIER": "02LB022.2026-10-13T21:45:00Z",
+        "STATION_NUMBER": "02LB022",
+        "STATION_NAME": "PAYNE RIVER NEAR BERWICK",
+        "PROV_TERR_STATE_LOC": "ON",
+        "DATETIME": "2026-10-13T21:45:00Z",
+        "DATETIME_LST": "2026-10-13T16:45:00-05:00",
+        "LEVEL": 6.198,
+        "DISCHARGE": 1.15,
+        "LEVEL_SYMBOL_EN": null,
+        "LEVEL_SYMBOL_FR": null,
+        "DISCHARGE_SYMBOL_EN": null,
+        "DISCHARGE_SYMBOL_FR": null
+      },
+      "id": "02LB022.2026-10-13T21:45:00Z"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -75.70617,
+          45.43142
+        ]
+      },
+      "properties": {
+        "IDENTIFIER": "02LA015.2026-10-13T21:45:00Z",
+        "STATION_NUMBER": "02LA015",
+        "STATION_NAME": "OUTAOUAIS (RIVIERE DES) A HULL",
+        "PROV_TERR_STATE_LOC": "QC",
+        "DATETIME": "2026-10-13T21:45:00Z",
+        "DATETIME_LST": "2026-10-13T16:45:00-05:00",
+        "LEVEL": 41.316,
+        "DISCHARGE": null,
+        "LEVEL_SYMBOL_EN": null,
+        "LEVEL_SYMBOL_FR": null,
+        "DISCHARGE_SYMBOL_EN": null,
+        "DISCHARGE_SYMBOL_FR": null
+      },
+      "id": "02LA015.2026-10-13T21:45:00Z"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -75.22608,
+          45.10108
+        ]
+      },
+      "properties": {
+        "IDENTIFIER": "02LB009.2026-10-13T21:45:00Z",
+        "STATION_NUMBER": "02LB009",
+        "STATION_NAME": "SOUTH NATION RIVER AT CHESTERVILLE",
+        "PROV_TERR_STATE_LOC": "ON",
+        "DATETIME": "2026-10-13T21:45:00Z",
+        "DATETIME_LST": "2026-10-13T16:45:00-05:00",
+        "LEVEL": 6.305,
+        "DISCHARGE": null,
+        "LEVEL_SYMBOL_EN": null,
+        "LEVEL_SYMBOL_FR": null,
+        "DISCHARGE_SYMBOL_EN": null,
+        "DISCHARGE_SYMBOL_FR": null
+      },
+      "id": "02LB009.2026-10-13T21:45:00Z"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -75.69294,
+          45.43992
+        ]
+      },
+      "properties": {
+        "IDENTIFIER": "02LA027.2026-10-13T21:45:00Z",
+        "STATION_NUMBER": "02LA027",
+        "STATION_NAME": "RIDEAU RIVER ABOVE RIDEAU FALLS",
+        "PROV_TERR_STATE_LOC": "ON",
+        "DATETIME": "2026-10-13T21:45:00Z",
+        "DATETIME_LST": "2026-10-13T16:45:00-05:00",
+        "LEVEL": 4.882,
+        "DISCHARGE": null,
+        "LEVEL_SYMBOL_EN": null,
+        "LEVEL_SYMBOL_FR": null,
+        "DISCHARGE_SYMBOL_EN": null,
+        "DISCHARGE_SYMBOL_FR": null
+      },
+      "id": "02LA027.2026-10-13T21:45:00Z"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -75.10464,
+          45.19161
+        ]
+      },
+      "properties": {
+        "IDENTIFIER": "02LB022.2026-10-13T21:40:00Z",
+        "STATION_NUMBER": "02LB022",
+        "STATION_NAME": "PAYNE RIVER NEAR BERWICK",
+        "PROV_TERR_STATE_LOC": "ON",
+        "DATETIME": "2026-10-13T21:40:00Z",
+        "DATETIME_LST": "2026-10-13T16:40:00-05:00",
+        "LEVEL": 6.198,
+        "DISCHARGE": 1.15,
+        "LEVEL_SYMBOL_EN": null,
+        "LEVEL_SYMBOL_FR": null,
+        "DISCHARGE_SYMBOL_EN": null,
+        "DISCHARGE_SYMBOL_FR": null
+      },
+      "id": "02LB022.2026-10-13T21:40:00Z"
+    }
+  ],
+  "numberMatched": 201,
+  "numberReturned": 5,
+  "links": [
+    {
+      "type": "application/geo+json",
+      "rel": "self",
+      "title": "This document as GeoJSON",
+      "href": "https://api.weather.gc.ca/collections/hydrometric-realtime/items?f=json&limit=5&bbox=-76,45,-75,45.6&datetime=2026-10-13T20%3A14%3A07Z%2F..&sortby=-DATETIME"
+    },
+    {
+      "rel": "alternate",
+      "type": "application/ld+json",
+      "title": "This document as RDF (JSON-LD)",
+      "href": "https://api.weather.gc.ca/collections/hydrometric-realtime/items?f=jsonld&limit=5&bbox=-76,45,-75,45.6&datetime=2026-10-13T20%3A14%3A07Z%2F..&sortby=-DATETIME"
+    },
+    {
+      "type": "text/html",
+      "rel": "alternate",
+      "title": "This document as HTML",
+      "href": "https://api.weather.gc.ca/collections/hydrometric-realtime/items?f=html&limit=5&bbox=-76,45,-75,45.6&datetime=2026-10-13T20%3A14%3A07Z%2F..&sortby=-DATETIME"
+    },
+    {
+      "type": "application/geo+json",
+      "rel": "next",
+      "title": "Items (next)",
+      "href": "https://api.weather.gc.ca/collections/hydrometric-realtime/items?offset=5&limit=5&bbox=-76,45,-75,45.6&datetime=2026-10-13T20%3A14%3A07Z%2F..&sortby=-DATETIME"
+    },
+    {
+      "type": "application/json",
+      "title": "Hydrometric Data - Real-time",
+      "rel": "collection",
+      "href": "https://api.weather.gc.ca/collections/hydrometric-realtime"
+    }
+  ],
+  "timeStamp": "2026-10-13T22:14:08.039280Z"
+}

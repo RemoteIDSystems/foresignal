@@ -70,6 +70,18 @@ public interface SourceHttp {
         throw new UnsupportedOperationException("This SourceHttp cannot send extra headers on a conditional GET");
     }
 
+    /**
+     * A HEAD request (prompt 079: {@code usdm} confirms a map date without downloading the map). Budgeted, metered
+     * and traced like a GET; the response has headers and an empty body. Redirects follow the descriptor.
+     *
+     * <p>The default refuses (a test double); {@code UpstreamClient}'s implementation sends it.
+     *
+     * @throws UnsupportedOperationException from the default
+     */
+    default UpstreamResponse head(URI uri) throws AdapterException {
+        throw new UnsupportedOperationException("This SourceHttp cannot send a HEAD request");
+    }
+
     /** A POST. */
     UpstreamResponse post(URI uri, String contentType, byte[] body, Map<String, String> headers)
             throws AdapterException;

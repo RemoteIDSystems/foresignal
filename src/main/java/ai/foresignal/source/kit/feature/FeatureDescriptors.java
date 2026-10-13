@@ -39,6 +39,14 @@ public final class FeatureDescriptors {
 
     /** The descriptor of {@code spec}'s source. */
     public static SourceDescriptor descriptor(FeatureSourceSpec spec) {
+        return builder(spec).build();
+    }
+
+    /**
+     * The descriptor builder of {@code spec}'s source, for a hand-written adapter that adds what a spec cannot say,
+     * such as operator parameters (prompt 079's {@code eccc-hydrometric}).
+     */
+    public static SourceDescriptor.Builder builder(FeatureSourceSpec spec) {
         FeatureSourceSpec.BudgetSpec budget = spec.budget();
         SourceDescriptor.Builder b = SourceDescriptor.builder(spec.id())
                 .name(spec.name())
@@ -96,7 +104,7 @@ public final class FeatureDescriptors {
                 "Present and true when the geometry was simplified to fit the 10,000-vertex limit", null, Set.of()));
         b.fieldSpec(FeatureGeometry.TOLERANCE_KEY, new FieldSpec(FieldType.NUMBER, "deg", "Simplification tolerance",
                 "The tolerance the geometry was simplified with", null, Set.of()));
-        return b.build();
+        return b;
     }
 
     /**

@@ -40,7 +40,7 @@ import org.springframework.test.context.DynamicPropertySource;
  * {@code goes-glm}, {@code goes-fdc}, {@code hms-smoke} and {@code hms-fire}, and 053's {@code nws-gridpoints} and
  * {@code spc-storm-reports}, which share the NWS and SPC base-URL properties, and 064's {@code celestrak-gp} and
  * {@code celestrak-socrates}, 065's {@code nasa-firms}, 066's {@code gdelt-events} and 067's {@code nhc-cyclones}, {@code gdacs} and
- * {@code tsunami-warnings}, 068's {@code ioda-outages}, 070's {@code transit-*}, 071's {@code gbfs-*}, 072's {@code cctv-*}, 073's kit sources, 074's road-event sources, 075's fire, radio and cyclone-cone sources, 076's cyber sources, 077's space sources and 078's environmental sources) point at one stub server
+ * {@code tsunami-warnings}, 068's {@code ioda-outages}, 070's {@code transit-*}, 071's {@code gbfs-*}, 072's {@code cctv-*}, 073's kit sources, 074's road-event sources, 075's fire, radio and cyclone-cone sources, 076's cyber sources, 077's space sources, 078's environmental sources and 079's hydrology and coast sources) point at one stub server
  * through their test base-URL properties (and S3 listings through {@code foresignal.test.s3-endpoint}),
  * and each test drives real fetches with {@link FetchExecutor#execute(String, FetchTrigger)
  * execute(id, MANUAL)}, so records reach the store through the real fetch path and ingest writer
@@ -117,6 +117,9 @@ public abstract class WeatherIngestSupport {
         // sensor-community, airnow-hourly) share one property and move under the stub as /{host}{path}; the
         // airq-local-* slots take the stub's loopback address as their LAN URL.
         registry.add(ai.foresignal.source.adapters.env.EnvSources.BASE_URL_PROPERTY, UPSTREAM::baseUrl);
+        // Prompt 079: the hydrology and coast sources (usgs-water, nwps-gauges, snotel, usdm, noaa-coops-tides,
+        // ea-flood-warnings, eccc-hydrometric) share one property and move under the stub as /{host}{path}.
+        registry.add(ai.foresignal.source.adapters.hydro.HydroSources.BASE_URL_PROPERTY, UPSTREAM::baseUrl);
     }
 
     @Autowired protected FetchExecutor executor;
@@ -141,7 +144,7 @@ public abstract class WeatherIngestSupport {
             "transit-mbta", "transit-alerts-mbta", "transit-mdb-mdb-9001", "gbfs-boulder-bcycle",
             "cctv-caltrans-d4", "feature-wfigs-incidents", "feed-ecdc-threats", "digitraffic-road", "open511-drivebc",
             "nifc-perimeters", "nhc-cyclone-cones", "nvd-cves", "swpc-rtsw", "swpc-aurora", "local-sonde",
-            "airq-local-1");
+            "airq-local-1", "nwps-gauges", "usdm");
 
     /** Resets the stubs and the backoff of the weather sources. */
     @BeforeEach

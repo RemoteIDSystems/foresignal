@@ -33,7 +33,8 @@ import java.util.regex.Pattern;
  *   <li><strong>References:</strong> {@code idField}, {@code titleField}, every time field, {@code significantFields},
  *       {@code volatileFields}, {@code searchFields} and {@code tileProperties} name declared targets (or constants);
  *   <li><strong>Time base:</strong> each time entry names exactly one timestamp target, or {@code RECEIVED} for
- *       {@code observedAt}; never a list or fallback (Core-Data-Model §2);
+ *       {@code observedAt}; never a list or fallback (Core-Data-Model §2); {@code latestPerKey} needs a
+ *       {@code time.observedAt} field (prompt 079);
  *   <li><strong>Schedule:</strong> durations parse, {@code minInterval ≤ interval}, and a {@code recordTtl} leaves
  *       room for a keyframe: {@code recordTtl − interval − 30 s > 0} (Core-Data-Model §5.1);
  *   <li><strong>Limits:</strong> page size 1–10,000, at most 100 pages, at most 50,000 features; only {@code Accept}
@@ -360,6 +361,9 @@ public final class FeatureSpecValidator {
         }
         if ("OBSERVED".equals(anchor) && spec.time().observedAtReceived()) {
             p.add("ttlAnchor: OBSERVED needs time.observedAt to name a field");
+        }
+        if (spec.keepsLatestPerKey() && spec.time().observedAtReceived()) {
+            p.add("latestPerKey: needs time.observedAt to name a field");
         }
         FeatureSourceSpec.BudgetSpec budget = spec.budget();
         if (budget == null || budget.perMinute() == null || budget.perDay() == null) {

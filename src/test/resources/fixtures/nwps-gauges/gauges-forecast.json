@@ -1,0 +1,124 @@
+{
+  "gauges": [
+    {
+      "lid": "AKFM7",
+      "name": "Current River at Akers",
+      "rfc": {
+        "abbreviation": "LMRFC",
+        "name": "Lower Mississippi River Forecast Center"
+      },
+      "wfo": {
+        "abbreviation": "SGF",
+        "name": "Springfield"
+      },
+      "state": {
+        "abbreviation": "MO",
+        "name": "Missouri"
+      },
+      "latitude": 37.375694,
+      "longitude": -91.552778,
+      "pedts": {
+        "observed": "HGIRG",
+        "forecast": "HGIFF"
+      },
+      "status": {
+        "observed": {
+          "primary": 0.72,
+          "primaryUnit": "ft",
+          "secondary": 0.195,
+          "secondaryUnit": "kcfs",
+          "floodCategory": "low_threshold",
+          "validTime": "2026-10-13T21:30:00Z"
+        },
+        "forecast": {
+          "primary": 0.7,
+          "primaryUnit": "ft",
+          "secondary": 0.187,
+          "secondaryUnit": "kcfs",
+          "floodCategory": "low_threshold",
+          "validTime": "2026-10-13T23:00:00Z"
+        }
+      }
+    },
+    {
+      "lid": "ALNI2",
+      "name": "Mississippi River at Mel Price (Alton) Lock and Dam",
+      "rfc": {
+        "abbreviation": "NCRFC",
+        "name": "North Central River Forecast Center"
+      },
+      "wfo": {
+        "abbreviation": "LSX",
+        "name": "St. Charles"
+      },
+      "state": {
+        "abbreviation": "IL",
+        "name": "Illinois"
+      },
+      "latitude": 38.866388888889,
+      "longitude": -90.146388888889,
+      "pedts": {
+        "observed": "HTIRG",
+        "forecast": "HTIFF"
+      },
+      "status": {
+        "observed": {
+          "primary": 11.22,
+          "primaryUnit": "ft",
+          "secondary": 176,
+          "secondaryUnit": "kcfs",
+          "floodCategory": "no_flooding",
+          "validTime": "2026-10-13T21:30:00Z"
+        },
+        "forecast": {
+          "primary": 11.1,
+          "primaryUnit": "ft",
+          "secondary": 174,
+          "secondaryUnit": "kcfs",
+          "floodCategory": "no_flooding",
+          "validTime": "2026-10-14T00:00:00Z"
+        }
+      }
+    },
+    {
+      "lid": "CTVI2",
+      "name": "Kaskaskia River at Chesterville",
+      "rfc": {
+        "abbreviation": "NCRFC",
+        "name": "North Central River Forecast Center"
+      },
+      "wfo": {
+        "abbreviation": "ILX",
+        "name": "Lincoln"
+      },
+      "state": {
+        "abbreviation": "IL",
+        "name": "Illinois"
+      },
+      "latitude": 39.7028,
+      "longitude": -88.3877,
+      "pedts": {
+        "observed": "HGIRG",
+        "forecast": "HGIFF"
+      },
+      "status": {
+        "observed": {
+          "primary": -999,
+          "primaryUnit": "",
+          "secondary": -999,
+          "secondaryUnit": "",
+          "floodCategory": "out_of_service",
+          "validTime": "0001-01-01T00:00:00Z"
+        },
+        "forecast": {
+          "primary": -999,
+          "primaryUnit": "",
+          "secondary": -999,
+          "secondaryUnit": "",
+          "floodCategory": "out_of_service",
+          "validTime": "0001-01-01T00:00:00Z"
+        }
+      }
+    }
+  ]
+}

@@ -4,12 +4,14 @@ import ai.foresignal.source.kit.KitUrls;
 import ai.foresignal.source.spi.AdapterException;
 import ai.foresignal.source.spi.FetchContext;
 import ai.foresignal.source.spi.UpstreamFormatException;
+import ai.foresignal.source.spi.UpstreamResponse;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import tools.jackson.databind.JsonNode;
 
@@ -67,13 +69,31 @@ public final class OgcFeaturesClient {
      *     that is not a FeatureCollection, or a next link to another server
      */
     public FeatureFetch fetch(FetchContext ctx, Request request) throws AdapterException {
+        return fetch(ctx, request, response -> { });
+    }
+
+    /**
+     * Fetches the collection, handing every page's response to {@code onPage} before it is parsed (prompt 079:
+     * {@code usgs-water} reads {@code X-RateLimit-Remaining}).
+     *
+     * @param ctx the fetch context
+     * @param request the query
+     * @param onPage sees each page's response, headers included
+     * @return the features
+     * @throws AdapterException when a request fails
+     * @throws UpstreamFormatException as {@link #fetch(FetchContext, Request)}
+     */
+    public FeatureFetch fetch(FetchContext ctx, Request request, Consumer<UpstreamResponse> onPage)
+            throws AdapterException {
         URI first = firstPage(request);
         Map<String, String> headers = new LinkedHashMap<>(request.headers());
         headers.putIfAbsent("Accept", ACCEPT);
         List<JsonNode> features = new ArrayList<>();
         URI page = first;
         for (int n = 1; n <= request.maxPages(); n++) {
-            FeatureHttp.Page response = FeatureHttp.get(ctx, page, headers, "OGC items page " + n);
+            UpstreamResponse raw = ctx.http().get(page, headers);
+            onPage.accept(raw);
+            FeatureHttp.Page response = new FeatureHttp.Page(FeatureHttp.parse(raw, "OGC items page " + n), raw);
             checkType(response.response().contentType());
             JsonNode root = response.root();
             JsonNode list = root.get("features");

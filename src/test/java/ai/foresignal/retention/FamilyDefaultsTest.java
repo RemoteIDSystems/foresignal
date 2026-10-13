@@ -229,6 +229,24 @@ class FamilyDefaultsTest {
                     "", () -> null).descriptor(), "state")),
             Map.entry("AirqLocalAdapter", new Entry(new ai.foresignal.source.adapters.env.airq.AirqLocalAdapter(1)
                     .descriptor(), "state")),
+            // Prompt 079: gauge, snow and tide readings are sensor status, the state class (365 d); the weekly drought
+            // map and the EA flood warnings are hazards, the event class (1825 d).
+            Map.entry("UsgsWaterAdapter", new Entry(new ai.foresignal.source.adapters.hydro.usgswater.UsgsWaterAdapter(
+                    "", () -> null).descriptor(), "state")),
+            Map.entry("NwpsGaugesAdapter", new Entry(new ai.foresignal.source.adapters.hydro.nwps.NwpsGaugesAdapter("",
+                    () -> null).descriptor(), "state")),
+            Map.entry("SnotelAdapter", new Entry(new ai.foresignal.source.adapters.hydro.snotel.SnotelAdapter("",
+                    () -> null).descriptor(), "state")),
+            Map.entry("UsdmAdapter", new Entry(new ai.foresignal.source.adapters.hydro.usdm.UsdmAdapter("")
+                    .descriptor(), "event")),
+            Map.entry("NoaaCoopsTidesAdapter", new Entry(
+                    new ai.foresignal.source.adapters.hydro.coops.NoaaCoopsTidesAdapter("").descriptor(), "state")),
+            Map.entry("EaFloodWarningsAdapter", new Entry(
+                    new ai.foresignal.source.adapters.hydro.ea.EaFloodWarningsAdapter("", () -> null).descriptor(),
+                    "event")),
+            Map.entry("EcccHydrometricAdapter", new Entry(
+                    new ai.foresignal.source.adapters.hydro.eccc.EcccHydrometricAdapter("", () -> null).descriptor(),
+                    "state")),
             // Prompt 052: the derived weather sources, retained per Weather-Imagery-Design §2.4.
             Map.entry("WxPlacesGenerator", new Entry(
                     new ai.foresignal.source.adapters.wx.WxPlacesGenerator().descriptor(), "weather")),

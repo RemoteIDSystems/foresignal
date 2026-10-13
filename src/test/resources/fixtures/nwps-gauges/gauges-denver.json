@@ -1,0 +1,164 @@
+{
+  "gauges": [
+    {
+      "lid": "BBCC2",
+      "name": "Bear Creek (CO) at Evergreen",
+      "rfc": {
+        "abbreviation": "MBRFC",
+        "name": "Missouri Basin River Forecast Center"
+      },
+      "wfo": {
+        "abbreviation": "BOU",
+        "name": "Boulder"
+      },
+      "state": {
+        "abbreviation": "CO",
+        "name": "Colorado"
+      },
+      "latitude": 39.6322,
+      "longitude": -105.3211,
+      "pedts": {
+        "observed": "HGIRZ",
+        "forecast": ""
+      },
+      "status": {
+        "observed": {
+          "primary": 0.94,
+          "primaryUnit": "ft",
+          "secondary": -999,
+          "secondaryUnit": "kcfs",
+          "floodCategory": "no_flooding",
+          "validTime": "2026-10-13T21:40:00Z"
+        },
+        "forecast": {
+          "primary": -999,
+          "primaryUnit": "",
+          "secondary": -999,
+          "secondaryUnit": "",
+          "floodCategory": "fcst_not_current",
+          "validTime": "0001-01-01T00:00:00Z"
+        }
+      }
+    },
+    {
+      "lid": "CGCC2",
+      "name": "Bear Creek (CO) above Idledale",
+      "rfc": {
+        "abbreviation": "MBRFC",
+        "name": "Missouri Basin River Forecast Center"
+      },
+      "wfo": {
+        "abbreviation": "BOU",
+        "name": "Boulder"
+      },
+      "state": {
+        "abbreviation": "CO",
+        "name": "Colorado"
+      },
+      "latitude": 39.6661,
+      "longitude": -105.2753,
+      "pedts": {
+        "observed": "QRIRZ",
+        "forecast": ""
+      },
+      "status": {
+        "observed": {
+          "primary": 0,
+          "primaryUnit": "kcfs",
+          "secondary": -999,
+          "secondaryUnit": "ft",
+          "floodCategory": "obs_not_current",
+          "validTime": "2026-10-13T21:40:00Z"
+        },
+        "forecast": {
+          "primary": -999,
+          "primaryUnit": "",
+          "secondary": -999,
+          "secondaryUnit": "",
+          "floodCategory": "fcst_not_current",
+          "validTime": "0001-01-01T00:00:00Z"
+        }
+      }
+    },
+    {
+      "lid": "DNVC2",
+      "name": "South Platte River at Denver",
+      "rfc": {
+        "abbreviation": "MBRFC",
+        "name": "Missouri Basin River Forecast Center"
+      },
+      "wfo": {
+        "abbreviation": "BOU",
+        "name": "Boulder"
+      },
+      "state": {
+        "abbreviation": "CO",
+        "name": "Colorado"
+      },
+      "latitude": 39.7594,
+      "longitude": -105.0039,
+      "pedts": {
+        "observed": "HGIRG",
+        "forecast": "HGIFF"
+      },
+      "status": {
+        "observed": {
+          "primary": 2.47,
+          "primaryUnit": "ft",
+          "secondary": 0.0552,
+          "secondaryUnit": "kcfs",
+          "floodCategory": "no_flooding",
+          "validTime": "2026-10-13T20:45:00Z"
+        },
+        "forecast": {
+          "primary": -999,
+          "primaryUnit": "",
+          "secondary": -999,
+          "secondaryUnit": "",
+          "floodCategory": "fcst_not_current",
+          "validTime": "0001-01-01T00:00:00Z"
+        }
+      }
+    },
+    {
+      "lid": "GSEC2",
+      "name": "Goldsmith Gulch (CO) near Cherry Hills Village",
+      "rfc": {
+        "abbreviation": "MBRFC",
+        "name": "Missouri Basin River Forecast Center"
+      },
+      "wfo": {
+        "abbreviation": "BOU",
+        "name": "Boulder"
+      },
+      "state": {
+        "abbreviation": "CO",
+        "name": "Colorado"
+      },
+      "latitude": 39.6561,
+      "longitude": -104.9022,
+      "pedts": {
+        "observed": "HGIRZ",
+        "forecast": ""
+      },
+      "status": {
+        "observed": {
+          "primary": -999,
+          "primaryUnit": "",
+          "secondary": -999,
+          "secondaryUnit": "",
+          "floodCategory": "obs_not_current",
+          "validTime": "0001-01-01T00:00:00Z"
+        },
+        "forecast": {
+          "primary": -999,
+          "primaryUnit": "",
+          "secondary": -999,
+          "secondaryUnit": "",
+          "floodCategory": "fcst_not_current",
+          "validTime": "0001-01-01T00:00:00Z"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,73 @@
+[
+  {
+    "stationTriplet": "1344:CO:SNTL",
+    "stationId": "1344",
+    "stateCode": "CO",
+    "networkCode": "SNTL",
+    "name": "Alta Lakes",
+    "dcoCode": "CO",
+    "countyName": "San Miguel",
+    "huc": "140300030103",
+    "elevation": 11290.0,
+    "latitude": 37.88929,
+    "longitude": -107.84484,
+    "dataTimeZone": -8.0,
+    "shefId": "ALCC2",
+    "operator": "NRCS",
+    "beginDate": "2025-09-25 00:00",
+    "endDate": "2100-01-01 00:00",
+    "associatedHucs": [
+      "140300030101",
+      "140300030102",
+      "140300030106"
+    ]
+  },
+  {
+    "stationTriplet": "1030:CO:SNTL",
+    "stationId": "1030",
+    "stateCode": "CO",
+    "networkCode": "SNTL",
+    "name": "Arapaho Ridge",
+    "dcoCode": "CO",
+    "countyName": "Grand",
+    "huc": "140100010604",
+    "elevation": 10960.0,
+    "latitude": 40.35098,
+    "longitude": -106.38141,
+    "dataTimeZone": -8.0,
+    "shefId": "ARPC2",
+    "operator": "NRCS",
+    "beginDate": "2002-08-01 00:00",
+    "endDate": "2100-01-01 00:00",
+    "associatedHucs": [
+      "101800010101",
+      "140100010703",
+      "140100010704",
+      "140100010705"
+    ]
+  },
+  {
+    "stationTriplet": "335:CO:SNTL",
+    "stationId": "335",
+    "stateCode": "CO",
+    "networkCode": "SNTL",
+    "name": "Berthoud Summit",
+    "dcoCode": "CO",
+    "countyName": "Grand",
+    "huc": "140100010202",
+    "elevation": 11300.0,
+    "latitude": 39.80364,
+    "longitude": -105.77786,
+    "dataTimeZone": -8.0,
+    "shefId": "BTSC2",
+    "operator": "NRCS",
+    "beginDate": "1963-09-01 00:00",
+    "endDate": "2100-01-01 00:00",
+    "associatedHucs": [
+      "101900040103",
+      "101900040201",
+      "101900040202",
+      "140100010201"
+    ]
+  }
+]

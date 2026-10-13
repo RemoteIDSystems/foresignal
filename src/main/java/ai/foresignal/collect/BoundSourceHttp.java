@@ -151,6 +151,12 @@ class BoundSourceHttp implements SourceHttp {
         return response;
     }
 
+    /** A HEAD through the single request path: budgeted, metered and traced like a GET (prompt 079). */
+    @Override
+    public UpstreamResponse head(URI uri) throws AdapterException {
+        return execute("HEAD", uri, Map.of(), null, null, descriptor.maxResponseBytes(), descriptor.followRedirects(), 0);
+    }
+
     @Override
     public UpstreamResponse post(
             URI uri, String contentType, byte[] body, Map<String, String> headers)
@@ -421,6 +427,8 @@ class BoundSourceHttp implements SourceHttp {
                     body == null
                             ? HttpRequest.BodyPublishers.noBody()
                             : HttpRequest.BodyPublishers.ofByteArray(body));
+        } else if ("HEAD".equals(method)) {
+            builder.method("HEAD", HttpRequest.BodyPublishers.noBody());
         } else {
             builder.GET();
         }

@@ -1,0 +1,293 @@
+[
+  {
+    "stationTriplet": "1344:CO:SNTL",
+    "data": [
+      {
+        "stationElement": {
+          "elementCode": "PREC",
+          "ordinal": 1,
+          "durationName": "DAILY",
+          "dataPrecision": 2,
+          "storedUnitCode": "in",
+          "originalUnitCode": "in",
+          "beginDate": "2025-09-25 10:00",
+          "endDate": "2100-01-01 00:00",
+          "derivedData": false
+        },
+        "values": [
+          {
+            "date": "2026-10-11",
+            "value": 0.6
+          },
+          {
+            "date": "2026-10-12",
+            "value": 0.9
+          }
+        ]
+      },
+      {
+        "stationElement": {
+          "elementCode": "SNWD",
+          "ordinal": 1,
+          "durationName": "DAILY",
+          "dataPrecision": 0,
+          "storedUnitCode": "in",
+          "originalUnitCode": "in",
+          "beginDate": "2025-09-25 10:00",
+          "endDate": "2100-01-01 00:00",
+          "derivedData": false
+        },
+        "values": [
+          {
+            "date": "2026-10-11",
+            "value": 0
+          },
+          {
+            "date": "2026-10-12",
+            "value": 0
+          }
+        ]
+      },
+      {
+        "stationElement": {
+          "elementCode": "TOBS",
+          "ordinal": 1,
+          "durationName": "DAILY",
+          "dataPrecision": 1,
+          "storedUnitCode": "degF",
+          "originalUnitCode": "degF",
+          "beginDate": "2025-09-25 10:00",
+          "endDate": "2100-01-01 00:00",
+          "derivedData": false
+        },
+        "values": [
+          {
+            "date": "2026-10-11",
+            "value": 36.5
+          },
+          {
+            "date": "2026-10-12",
+            "value": 33.6
+          }
+        ]
+      },
+      {
+        "stationElement": {
+          "elementCode": "WTEQ",
+          "ordinal": 1,
+          "durationName": "DAILY",
+          "dataPrecision": 1,
+          "storedUnitCode": "in",
+          "originalUnitCode": "in",
+          "beginDate": "2025-09-25 10:00",
+          "endDate": "2100-01-01 00:00",
+          "derivedData": false
+        },
+        "values": [
+          {
+            "date": "2026-10-11",
+            "value": 0.0
+          },
+          {
+            "date": "2026-10-12",
+            "value": 0.0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "stationTriplet": "335:CO:SNTL",
+    "data": [
+      {
+        "stationElement": {
+          "elementCode": "PREC",
+          "ordinal": 1,
+          "durationName": "DAILY",
+          "dataPrecision": 2,
+          "storedUnitCode": "in",
+          "originalUnitCode": "in",
+          "beginDate": "1978-10-01 00:00",
+          "endDate": "2100-01-01 00:00",
+          "derivedData": false
+        },
+        "values": [
+          {
+            "date": "2026-10-11",
+            "value": 0.0
+          },
+          {
+            "date": "2026-10-12",
+            "value": 0.0
+          }
+        ]
+      },
+      {
+        "stationElement": {
+          "elementCode": "SNWD",
+          "ordinal": 1,
+          "durationName": "DAILY",
+          "dataPrecision": 0,
+          "storedUnitCode": "in",
+          "originalUnitCode": "in",
+          "beginDate": "2002-07-03 14:00",
+          "endDate": "2100-01-01 00:00",
+          "derivedData": false
+        },
+        "values": [
+          {
+            "date": "2026-10-11",
+            "value": 0
+          },
+          {
+            "date": "2026-10-12",
+            "value": 1
+          }
+        ]
+      },
+      {
+        "stationElement": {
+          "elementCode": "TOBS",
+          "ordinal": 1,
+          "durationName": "DAILY",
+          "dataPrecision": 1,
+          "storedUnitCode": "degF",
+          "originalUnitCode": "degF",
+          "beginDate": "1978-10-01 00:00",
+          "endDate": "2100-01-01 00:00",
+          "derivedData": false
+        },
+        "values": [
+          {
+            "date": "2026-10-11",
+            "value": 42.1
+          },
+          {
+            "date": "2026-10-12",
+            "value": 38.8
+          }
+        ]
+      },
+      {
+        "stationElement": {
+          "elementCode": "WTEQ",
+          "ordinal": 1,
+          "durationName": "DAILY",
+          "dataPrecision": 1,
+          "storedUnitCode": "in",
+          "originalUnitCode": "in",
+          "beginDate": "1978-10-01 00:00",
+          "endDate": "2100-01-01 00:00",
+          "derivedData": false
+        },
+        "values": [
+          {
+            "date": "2026-10-11",
+            "value": 0.0
+          },
+          {
+            "date": "2026-10-12",
+            "value": 0.1
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "stationTriplet": "1030:CO:SNTL",
+    "data": [
+      {
+        "stationElement": {
+          "elementCode": "PREC",
+          "ordinal": 1,
+          "durationName": "DAILY",
+          "dataPrecision": 2,
+          "storedUnitCode": "in",
+          "originalUnitCode": "in",
+          "beginDate": "2002-08-14 00:00",
+          "endDate": "2100-01-01 00:00",
+          "derivedData": false
+        },
+        "values": [
+          {
+            "date": "2026-10-11",
+            "value": 0.4
+          },
+          {
+            "date": "2026-10-12",
+            "value": 0.4
+          }
+        ]
+      },
+      {
+        "stationElement": {
+          "elementCode": "SNWD",
+          "ordinal": 1,
+          "durationName": "DAILY",
+          "dataPrecision": 0,
+          "storedUnitCode": "in",
+          "originalUnitCode": "in",
+          "beginDate": "2002-08-14 06:00",
+          "endDate": "2100-01-01 00:00",
+          "derivedData": false
+        },
+        "values": [
+          {
+            "date": "2026-10-11",
+            "value": 0
+          },
+          {
+            "date": "2026-10-12",
+            "value": 0
+          }
+        ]
+      },
+      {
+        "stationElement": {
+          "elementCode": "TOBS",
+          "ordinal": 1,
+          "durationName": "DAILY",
+          "dataPrecision": 1,
+          "storedUnitCode": "degF",
+          "originalUnitCode": "degF",
+          "beginDate": "2002-08-14 06:00",
+          "endDate": "2100-01-01 00:00",
+          "derivedData": false
+        },
+        "values": [
+          {
+            "date": "2026-10-11",
+            "value": 37.2
+          },
+          {
+            "date": "2026-10-12",
+            "value": 34.0
+          }
+        ]
+      },
+      {
+        "stationElement": {
+          "elementCode": "WTEQ",
+          "ordinal": 1,
+          "durationName": "DAILY",
+          "dataPrecision": 1,
+          "storedUnitCode": "in",
+          "originalUnitCode": "in",
+          "beginDate": "2002-08-14 00:00",
+          "endDate": "2100-01-01 00:00",
+          "derivedData": false
+        },
+        "values": [
+          {
+            "date": "2026-10-11",
+            "value": 0.0
+          },
+          {
+            "date": "2026-10-12",
+            "value": 0.1
+          }
+        ]
+      }
+    ]
+  }
+]

@@ -242,6 +242,17 @@ class FeatureSpecValidatorTest {
     }
 
     @Test
+    @DisplayName("latestPerKey (prompt 079) needs time.observedAt to name a field")
+    void latestPerKey() {
+        assertThat(problems(map("latestPerKey", true, "time", Map.of("observedAt", "RECEIVED"))))
+                .contains("latestPerKey: needs time.observedAt to name a field");
+        assertThat(problems(map("latestPerKey", false, "time", Map.of("observedAt", "RECEIVED"))))
+                .noneMatch(p -> p.startsWith("latestPerKey"));
+        assertThat(KitTestSpecs.arcgis(URL, map("latestPerKey", true)).keepsLatestPerKey()).isTrue();
+        assertThat(KitTestSpecs.arcgis(URL).keepsLatestPerKey()).isFalse();
+    }
+
+    @Test
     @DisplayName("the overlay is off by default; when on, ids need op- and URLs pass the outbound URL policy")
     void overlay(@TempDir Path dir) throws Exception {
         Path features = Files.createDirectories(dir.resolve("kits").resolve("features"));

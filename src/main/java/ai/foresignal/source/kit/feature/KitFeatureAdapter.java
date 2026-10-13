@@ -13,12 +13,11 @@ import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.TreeMap;
 import java.util.function.Supplier;
 import tools.jackson.databind.JsonNode;
@@ -33,7 +32,8 @@ import tools.jackson.databind.JsonNode;
  *       {@link WfsJsonClient}) fetches the layer, page by page, within {@code maxPages} and {@code maxFeatures};
  *   <li>an unchanged ArcGIS layer is {@link FetchResult#unchanged()} with no query sent;
  *   <li>each feature becomes a record, or is rejected and counted in {@value #REJECTED_METRIC}
- *       ({@code source}, {@code reason}); a repeated id keeps its first feature;
+ *       ({@code source}, {@code reason}); a repeated id keeps its first feature, or with {@code latestPerKey}
+ *       (prompt 079) its newest by {@code observedAt};
  *   <li>with {@code absenceTombstones}, a feature missing from two consecutive <em>complete</em> fetches is tombstoned
  *       ({@link AbsenceTombstoner}); a truncated fetch (a cap hit) or an empty layer tombstones nothing.
  * </ol>
@@ -103,17 +103,25 @@ public class KitFeatureAdapter implements PollingAdapter {
             return FetchResult.unchanged();
         }
         List<NormalizedRecord> records = new ArrayList<>();
-        Set<String> ids = new HashSet<>();
+        Map<String, Integer> indexById = new HashMap<>();
         Map<String, Integer> rejected = new TreeMap<>();
         for (JsonNode feature : fetch) {
             FeatureMapper.Mapped mapped = FeatureMapper.map(spec, feature);
             if (!mapped.accepted()) {
                 rejected.merge(mapped.reason(), 1, Integer::sum);
-            } else if (ids.add(mapped.record().externalId())) {
-                records.add(mapped.record());
-            } else {
-                rejected.merge("duplicate-id", 1, Integer::sum);
+                continue;
             }
+            NormalizedRecord record = mapped.record();
+            Integer at = indexById.get(record.externalId());
+            if (at == null) {
+                indexById.put(record.externalId(), records.size());
+                records.add(record);
+                continue;
+            }
+            if (spec.keepsLatestPerKey() && newer(record, records.get(at))) {
+                records.set(at, record);
+            }
+            rejected.merge("duplicate-id", 1, Integer::sum);
         }
         count(ctx, rejected);
         ctx.log().debug("{}: {} feature(s) in {} page(s) ({}), {} record(s), rejected {}", ctx.sourceId(),
@@ -133,6 +141,12 @@ public class KitFeatureAdapter implements PollingAdapter {
         List<NormalizedRecord> out = new ArrayList<>(records);
         out.addAll(AbsenceTombstoner.tombstones(gone, spec.kind(), ctx.now()));
         return FetchResult.complete(out);
+    }
+
+    /** True when {@code candidate} was observed after {@code current} ({@code latestPerKey}). */
+    public static boolean newer(NormalizedRecord candidate, NormalizedRecord current) {
+        return candidate.observedAt() != null
+                && (current.observedAt() == null || candidate.observedAt().isAfter(current.observedAt()));
     }
 
     private ArcGisQueryClient.Request arcgisRequest(Map<String, String> headers, Map<String, String> extraQuery) {
@@ -214,6 +228,6 @@ public class KitFeatureAdapter implements PollingAdapter {
                 spec.geometry(), spec.absenceTombstones(), spec.zeroResultsNormal(), spec.significantFields(),
                 spec.volatileFields(), spec.searchFields(), spec.tileProperties(), spec.license(), spec.termsUrl(),
                 spec.attribution(), spec.homepage(), spec.headers(), spec.credential(), spec.retention(),
-                spec.maxResponseBytes());
+                spec.maxResponseBytes(), spec.latestPerKey());
     }
 }

@@ -51,6 +51,9 @@ import java.util.Map;
  * @param credential the optional runtime credential and where it goes
  * @param retention the default raw retention (default 1825 d, the {@code event} class)
  * @param maxResponseBytes the cap on one response body (default 16 MB)
+ * @param latestPerKey true when the layer holds several rows per entity (a time series per station, prompt 079):
+ *     a repeated {@code idField} value then keeps the row with the newest {@code observedAt} instead of the first;
+ *     needs {@code time.observedAt} to name a field
  */
 public record FeatureSourceSpec(
         String id,
@@ -89,7 +92,8 @@ public record FeatureSourceSpec(
         Map<String, String> headers,
         CredentialSpec credential,
         String retention,
-        Integer maxResponseBytes) {
+        Integer maxResponseBytes,
+        Boolean latestPerKey) {
 
     /** ArcGIS FeatureServer or MapServer query. */
     public static final String ARCGIS = "arcgis";
@@ -137,6 +141,11 @@ public record FeatureSourceSpec(
     /** The output format, {@value #GEOJSON} when unset. */
     public String effectiveFormat() {
         return format == null || format.isBlank() ? GEOJSON : format;
+    }
+
+    /** True when a repeated id keeps its newest row ({@code latestPerKey}). */
+    public boolean keepsLatestPerKey() {
+        return Boolean.TRUE.equals(latestPerKey);
     }
 
     /** True when absence tombstones are on. */

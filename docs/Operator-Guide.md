@@ -380,6 +380,63 @@ changes, and otherwise every 8 minutes.
 embedded or sent to a remote LLM) and `egress: LOCAL_ONLY`, which you may change to `OPEN` as for the other
 local receivers.
 
+### Flood watching
+
+Prompt 079 adds river, snow, drought and coastal water sources (see the Source Catalog, "Hydrology and coast"). All
+ship disabled. Two of them publish an official flood category you can trigger on: `nwps-gauges` (NOAA river gauges,
+`floodCategory` `no_flooding|action|minor|moderate|major|…`) and `noaa-coops-tides` (NOAA tide gauges,
+`floodCategory` `none|action|minor|moderate|major`, from the station's NOS flood thresholds converted to meters above
+MLLW).
+
+**1. Scope the sources to your place.** Take the box from your place (a box a little larger than the area you care
+about; `nwps-gauges` accepts up to 10° × 10°, `usgs-water` 5° × 5°) and pick the tide stations near you from
+`tidesandcurrents.noaa.gov` (seven-digit ids; Great Lakes stations are not supported):
+
+```json
+PUT /v1/sources/nwps-gauges
+{"enabled": true, "params": {"bbox": "-98.2,29.9,-97.3,30.7"}}
+
+PUT /v1/sources/noaa-coops-tides
+{"enabled": true, "params": {"stations": ["8771450", "8771341"]}}
+```
+
+`nwps-gauges` reads each gauge's flood stages once a day (at most 10 gauges per run, so a large box has all its
+thresholds after a few hours); `maxGauges` (at most 300) caps the cost. `noaa-coops-tides` polls every 6 minutes,
+one request per station.
+
+**2. A river flood rule.** One alert when a gauge near home enters minor flood or worse, resolved when it falls back:
+
+```json
+POST /v1/triggers
+{"name": "River flooding near home", "sources": ["nwps-gauges"], "mode": "enter", "autoResolve": true,
+ "near": {"placeIds": ["home"], "radiusKm": 30},
+ "conditions": [{"path": "floodCategory", "op": "in", "value": ["minor", "moderate", "major"]}],
+ "messageTemplate": "{{payload.name}}: {{payload.floodCategory}} flooding, stage {{payload.stage}} {{payload.stageUnit}}",
+ "severity": "warning"}
+```
+
+For an earlier warning, watch the forecast (`forecastCategory`, present only while NWPS has a current forecast) or
+the margin to the minor flood stage: `{"path": "stageToMinor", "op": "<", "value": 1}` (feet, negative once in flood).
+
+**3. A coastal flood rule.** The same shape on the tide gauges:
+
+```json
+POST /v1/triggers
+{"name": "Coastal flooding", "sources": ["noaa-coops-tides"], "mode": "enter", "autoResolve": true,
+ "conditions": [{"path": "floodCategory", "op": "in", "value": ["minor", "moderate", "major"]}],
+ "messageTemplate": "{{payload.name}}: water {{payload.waterLevelM}} m above MLLW ({{payload.floodCategory}})",
+ "severity": "warning"}
+```
+
+Each record also carries the next predicted high and low water (`nextHighTime`, `nextHighM`, `nextLowTime`,
+`nextLowM`) and the station's thresholds (`minorFloodM`, `moderateFloodM`, `majorFloodM`) in meters above MLLW.
+
+**Other sources.** `usgs-water` gives raw USGS discharge and gage height (no flood category: combine it with
+`nwps-gauges`, whose `usgsId` names the co-located USGS site); `snotel` gives snow water equivalent for melt-driven
+floods; `usdm` gives the weekly drought map; `ea-flood-warnings` (England) and `eccc-hydrometric` (Canada) are the
+optional equivalents outside the US. The USDM map requires its attribution wherever it is shown; Foresignal carries it
+in the source descriptor.
+
 ### History tiers
 
 Each source's descriptor fixes its `historyTier`:

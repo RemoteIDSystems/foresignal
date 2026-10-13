@@ -1,0 +1,165 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -75.80808,
+          45.34358
+        ]
+      },
+      "properties": {
+        "IDENTIFIER": "02KF015.2026-10-13T21:40:00Z",
+        "STATION_NUMBER": "02KF015",
+        "STATION_NAME": "GRAHAM CREEK AT NEPEAN",
+        "PROV_TERR_STATE_LOC": "ON",
+        "DATETIME": "2026-10-13T21:40:00Z",
+        "DATETIME_LST": "2026-10-13T16:40:00-05:00",
+        "LEVEL": 0.839,
+        "DISCHARGE": 0.131,
+        "LEVEL_SYMBOL_EN": null,
+        "LEVEL_SYMBOL_FR": null,
+        "DISCHARGE_SYMBOL_EN": null,
+        "DISCHARGE_SYMBOL_FR": null
+      },
+      "id": "02KF015.2026-10-13T21:40:00Z"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -75.70617,
+          45.43142
+        ]
+      },
+      "properties": {
+        "IDENTIFIER": "02LA015.2026-10-13T21:40:00Z",
+        "STATION_NUMBER": "02LA015",
+        "STATION_NAME": "OUTAOUAIS (RIVIERE DES) A HULL",
+        "PROV_TERR_STATE_LOC": "QC",
+        "DATETIME": "2026-10-13T21:40:00Z",
+        "DATETIME_LST": "2026-10-13T16:40:00-05:00",
+        "LEVEL": 41.317,
+        "DISCHARGE": null,
+        "LEVEL_SYMBOL_EN": null,
+        "LEVEL_SYMBOL_FR": null,
+        "DISCHARGE_SYMBOL_EN": null,
+        "DISCHARGE_SYMBOL_FR": null
+      },
+      "id": "02LA015.2026-10-13T21:40:00Z"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -75.22608,
+          45.10108
+        ]
+      },
+      "properties": {
+        "IDENTIFIER": "02LB009.2026-10-13T21:40:00Z",
+        "STATION_NUMBER": "02LB009",
+        "STATION_NAME": "SOUTH NATION RIVER AT CHESTERVILLE",
+        "PROV_TERR_STATE_LOC": "ON",
+        "DATETIME": "2026-10-13T21:40:00Z",
+        "DATETIME_LST": "2026-10-13T16:40:00-05:00",
+        "LEVEL": 6.305,
+        "DISCHARGE": null,
+        "LEVEL_SYMBOL_EN": null,
+        "LEVEL_SYMBOL_FR": null,
+        "DISCHARGE_SYMBOL_EN": null,
+        "DISCHARGE_SYMBOL_FR": null
+      },
+      "id": "02LB009.2026-10-13T21:40:00Z"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -75.69697,
+          45.3815
+        ]
+      },
+      "properties": {
+        "IDENTIFIER": "02LA004.2026-10-13T21:40:00Z",
+        "STATION_NUMBER": "02LA004",
+        "STATION_NAME": "RIDEAU RIVER AT OTTAWA",
+        "PROV_TERR_STATE_LOC": "ON",
+        "DATETIME": "2026-10-13T21:40:00Z",
+        "DATETIME_LST": "2026-10-13T16:40:00-05:00",
+        "LEVEL": 3.041,
+        "DISCHARGE": 34.8,
+        "LEVEL_SYMBOL_EN": null,
+        "LEVEL_SYMBOL_FR": null,
+        "DISCHARGE_SYMBOL_EN": null,
+        "DISCHARGE_SYMBOL_FR": null
+      },
+      "id": "02LA004.2026-10-13T21:40:00Z"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -75.41272,
+          45.22833
+        ]
+      },
+      "properties": {
+        "IDENTIFIER": "02LB020.2026-10-13T21:40:00Z",
+        "STATION_NUMBER": "02LB020",
+        "STATION_NAME": "SOUTH CASTOR RIVER AT KENMORE",
+        "PROV_TERR_STATE_LOC": "ON",
+        "DATETIME": "2026-10-13T21:40:00Z",
+        "DATETIME_LST": "2026-10-13T16:40:00-05:00",
+        "LEVEL": 1.257,
+        "DISCHARGE": 0.508,
+        "LEVEL_SYMBOL_EN": null,
+        "LEVEL_SYMBOL_FR": null,
+        "DISCHARGE_SYMBOL_EN": null,
+        "DISCHARGE_SYMBOL_FR": null
+      },
+      "id": "02LB020.2026-10-13T21:40:00Z"
+    }
+  ],
+  "numberMatched": 201,
+  "numberReturned": 5,
+  "links": [
+    {
+      "type": "application/geo+json",
+      "rel": "self",
+      "title": "This document as GeoJSON",
+      "href": "https://api.weather.gc.ca/collections/hydrometric-realtime/items?f=json&limit=5&bbox=-76,45,-75,45.6&datetime=2026-10-13T20%3A14%3A07Z%2F..&sortby=-DATETIME"
+    },
+    {
+      "rel": "alternate",
+      "type": "application/ld+json",
+      "title": "This document as RDF (JSON-LD)",
+      "href": "https://api.weather.gc.ca/collections/hydrometric-realtime/items?f=jsonld&limit=5&bbox=-76,45,-75,45.6&datetime=2026-10-13T20%3A14%3A07Z%2F..&sortby=-DATETIME"
+    },
+    {
+      "type": "text/html",
+      "rel": "alternate",
+      "title": "This document as HTML",
+      "href": "https://api.weather.gc.ca/collections/hydrometric-realtime/items?f=html&limit=5&bbox=-76,45,-75,45.6&datetime=2026-10-13T20%3A14%3A07Z%2F..&sortby=-DATETIME"
+    },
+    {
+      "type": "application/geo+json",
+      "rel": "prev",
+      "title": "Items (prev)",
+      "href": "https://api.weather.gc.ca/collections/hydrometric-realtime/items?offset=0&limit=5&bbox=-76,45,-75,45.6&datetime=2026-10-13T20%3A14%3A07Z%2F..&sortby=-DATETIME"
+    },
+    {
+      "type": "application/json",
+      "title": "Hydrometric Data - Real-time",
+      "rel": "collection",
+      "href": "https://api.weather.gc.ca/collections/hydrometric-realtime"
+    }
+  ],
+  "timeStamp": "2026-10-13T22:14:14.929315Z"
+}

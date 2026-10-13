@@ -1,0 +1,119 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "monitoring_location_name": "BIG DRY CREEK BELOW C-470 AT HIGHLANDS RANCH, CO",
+        "site_type_code": "ST",
+        "state_name": "Colorado"
+      },
+      "id": "USGS-06710150",
+      "geometry": null
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "monitoring_location_name": "BEAR CREEK ABOVE EVERGREEN, CO",
+        "site_type_code": "ST",
+        "state_name": "Colorado"
+      },
+      "id": "USGS-06710385",
+      "geometry": null
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "monitoring_location_name": "LAKEWOOD GULCH AT DENVER, CO",
+        "site_type_code": "ST",
+        "state_name": "Colorado"
+      },
+      "id": "USGS-06711780",
+      "geometry": null
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "monitoring_location_name": "SAND CRK ABV BURLINGTON DITCH NR COMMERCE CITY, CO",
+        "site_type_code": "ST",
+        "state_name": "Colorado"
+      },
+      "id": "USGS-06714360",
+      "geometry": null
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "monitoring_location_name": "LITTLE DRY CREEK AT WESTMINSTER, CO",
+        "site_type_code": "ST",
+        "state_name": "Colorado"
+      },
+      "id": "USGS-06719840",
+      "geometry": null
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "monitoring_location_name": "FOURMILE CREEK AT LOGAN MILL ROAD NEAR CRISMAN, CO",
+        "site_type_code": "ST",
+        "state_name": "Colorado"
+      },
+      "id": "USGS-06727410",
+      "geometry": null
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "monitoring_location_name": "SAND CREEK AT MOUTH NR COMMERCE CITY,CO",
+        "site_type_code": "ST",
+        "state_name": "Colorado"
+      },
+      "id": "USGS-394839104570300",
+      "geometry": null
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "monitoring_location_name": "GRAVEL PIT AT ROCKY FLATS PLANT",
+        "site_type_code": "LK",
+        "state_name": "Colorado"
+      },
+      "id": "USGS-395331105134400",
+      "geometry": null
+    }
+  ],
+  "numberReturned": 8,
+  "links": [
+    {
+      "type": "application/geo+json",
+      "rel": "self",
+      "title": "This document as GeoJSON",
+      "href": "https://api.waterdata.usgs.gov/ogcapi/v1/collections/monitoring-locations/items?f=json&limit=1000&id=USGS-06710385,USGS-06710150,USGS-394839104570300,USGS-06714360,USGS-06711780,USGS-06719840,USGS-395331105134400,USGS-06727410&properties=monitoring_location_name,site_type_code,state_name&skipGeometry=true"
+    },
+    {
+      "rel": "alternate",
+      "type": "application/ld+json",
+      "title": "This document as RDF (JSON-LD)",
+      "href": "https://api.waterdata.usgs.gov/ogcapi/v1/collections/monitoring-locations/items?f=jsonld&limit=1000&id=USGS-06710385,USGS-06710150,USGS-394839104570300,USGS-06714360,USGS-06711780,USGS-06719840,USGS-395331105134400,USGS-06727410&properties=monitoring_location_name,site_type_code,state_name&skipGeometry=true"
+    },
+    {
+      "type": "text/html",
+      "rel": "alternate",
+      "title": "This document as HTML",
+      "href": "https://api.waterdata.usgs.gov/ogcapi/v1/collections/monitoring-locations/items?f=html&limit=1000&id=USGS-06710385,USGS-06710150,USGS-394839104570300,USGS-06714360,USGS-06711780,USGS-06719840,USGS-395331105134400,USGS-06727410&properties=monitoring_location_name,site_type_code,state_name&skipGeometry=true"
+    },
+    {
+      "type": "text/csv; charset=utf-8",
+      "rel": "alternate",
+      "title": "This document as CSV",
+      "href": "https://api.waterdata.usgs.gov/ogcapi/v1/collections/monitoring-locations/items?f=csv&limit=1000&id=USGS-06710385,USGS-06710150,USGS-394839104570300,USGS-06714360,USGS-06711780,USGS-06719840,USGS-395331105134400,USGS-06727410&properties=monitoring_location_name,site_type_code,state_name&skipGeometry=true"
+    },
+    {
+      "type": "application/json",
+      "title": "Monitoring locations",
+      "rel": "collection",
+      "href": "https://api.waterdata.usgs.gov/ogcapi/v1/collections/monitoring-locations"
+    }
+  ],
+  "timeStamp": "2026-10-13T22:10:54.862621Z"
+}
