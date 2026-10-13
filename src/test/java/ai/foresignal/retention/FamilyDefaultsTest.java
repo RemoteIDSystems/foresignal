@@ -103,6 +103,10 @@ class FamilyDefaultsTest {
             // Prompt 065: nasa-firms writes fire-detection, retained 7 d by §2.4 like goes-fdc and hms-fire.
             Map.entry("FirmsAdapter", new Entry(
                     new ai.foresignal.source.adapters.firms.FirmsAdapter("").descriptor(), "weather")),
+            // Prompt 066: gdelt-events writes conflict-event; Conventions puts GDELT events in bulk-event (90 d).
+            Map.entry("GdeltEventsAdapter", new Entry(
+                    new ai.foresignal.source.adapters.gdelt.GdeltEventsAdapter("", null, null).descriptor(),
+                    "bulk-event")),
             // Prompt 052: the derived weather sources, retained per Weather-Imagery-Design §2.4.
             Map.entry("WxPlacesGenerator", new Entry(
                     new ai.foresignal.source.adapters.wx.WxPlacesGenerator().descriptor(), "weather")),

@@ -292,6 +292,11 @@
         "version": "1.3.0",
         "date": "2026-10-13",
         "note": "065: no operation changes. New source nasa-firms (kind fire-detection, credential mapKey). Its FRP payload field is frpMw, as in goes-fdc and hms-fire (the kind docs said frp). FireDetectionPayload documents the nasa-firms fields (source, instrument, brightK, bright2K, scanKm, trackKm, daynight, version, confidenceClass, type); confidence also takes the raw FIRMS value (l, n or h, or an integer 0-100), and only satellite stays required, because nasa-firms records carry no method."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-13",
+        "note": "066: no operation changes. New source gdelt-events (kind conflict-event, no credential). The conflict-event kind note documents its time base, TTL, codes, location precision and summary."
       }
     ]
   },
@@ -88711,7 +88716,7 @@
                 "geometryApproximate"
               ]
             },
-            "note": "acled is LOCAL_ONLY (081)."
+            "note": "acled is LOCAL_ONLY (081). `gdelt-events` (066): externalId GlobalEventID; observedAt = DATEADDED (UTC), eventTime = start of the UTC Day; TTL 24 h from receipt; CAMEO root codes 13-20 by default; event codes are strings that keep their leading zeros; geoPrecision country|adm1|city, geometryApproximate true for country and adm1 centroids; actionGeoCountry is FIPS 10-4 and actionGeoCountryIso its ISO 3166-1 alpha-2 when the country table knows it; summary (the only embedded field) is \"{actor1Name|Unknown actor} — {cameoRoot} — {actor2Name} in {actionGeoName}\", at most 200 characters, built from codes and names only; sourceUrl is untrusted and never fetched. Machine-coded from news: a record does not confirm that the event happened."
           },
           "cyclone": {
             "x-foresignal-prompt": "067",

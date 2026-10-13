@@ -1,0 +1,3 @@
+90443 8768bad35cf2f5e245598013a24497d7 https://downloads.example.net/mirror/payload/20261013143000.export.CSV.zip
+135393 7e40ab6dc4a8b33ad2e8db4de2ce9dd2 http://data.gdeltproject.org/gdeltv2/20261013143000.mentions.CSV.zip
+6652460 879e365ee5a07c725e485f31eb24b5c7 http://data.gdeltproject.org/gdeltv2/20261013143000.gkg.csv.zip
