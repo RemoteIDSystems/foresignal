@@ -1,0 +1,734 @@
+{
+ "last_updated": 1791910061,
+ "ttl": 29,
+ "data": {
+  "stations": [
+   {
+    "station_id": "1",
+    "external_id": "ad4bd5d4-b824-11ef-86f9-0224060a328f",
+    "name": "E 10th/Red River",
+    "physical_configuration": "REGULAR",
+    "lat": 30.270155,
+    "lon": -97.735364,
+    "altitude": 0.0,
+    "address": "E 10th/Red River",
+    "capacity": 15,
+    "is_charging_station": false,
+    "geofenced_capacity": 0,
+    "rental_methods": [
+     "key",
+     "transitcard",
+     "creditcard",
+     "phone"
+    ],
+    "is_virtual_station": false,
+    "groups": [
+     "Central"
+    ],
+    "obcn": "1",
+    "short_name": "1",
+    "nearby_distance": 250.0,
+    "_bluetooth_id": "d740",
+    "_ride_code_support": true,
+    "rental_uris": {}
+   },
+   {
+    "station_id": "2",
+    "external_id": "ad4bdd35-b824-11ef-86f9-0224060a328f",
+    "name": "W 11th/Congress @ The Texas Capitol",
+    "physical_configuration": "REGULAR",
+    "lat": 30.272551000000004,
+    "lon": -97.741225,
+    "altitude": 0.0,
+    "address": "W 11th/Congress @ The Texas Capitol",
+    "capacity": 11,
+    "is_charging_station": false,
+    "geofenced_capacity": 0,
+    "rental_methods": [
+     "key",
+     "transitcard",
+     "creditcard",
+     "phone"
+    ],
+    "is_virtual_station": false,
+    "groups": [
+     "Central"
+    ],
+    "obcn": "2",
+    "short_name": "2",
+    "nearby_distance": 500.0,
+    "_bluetooth_id": "d380",
+    "_ride_code_support": true,
+    "rental_uris": {}
+   },
+   {
+    "station_id": "3",
+    "external_id": "ad4be041-b824-11ef-86f9-0224060a328f",
+    "name": "E 11th/Salina",
+    "physical_configuration": "REGULAR",
+    "lat": 30.266422,
+    "lon": -97.721623,
+    "altitude": 0.0,
+    "address": "E 11th/Salina",
+    "capacity": 11,
+    "is_charging_station": false,
+    "geofenced_capacity": 0,
+    "rental_methods": [
+     "key",
+     "transitcard",
+     "creditcard",
+     "phone"
+    ],
+    "is_virtual_station": false,
+    "groups": [
+     "East"
+    ],
+    "obcn": "3",
+    "short_name": "3",
+    "nearby_distance": 500.0,
+    "_bluetooth_id": "faa3",
+    "_ride_code_support": true,
+    "rental_uris": {}
+   },
+   {
+    "station_id": "4",
+    "external_id": "ad4be2a0-b824-11ef-86f9-0224060a328f",
+    "name": "E 11th/San Jacinto",
+    "physical_configuration": "REGULAR",
+    "lat": 30.27186394444277,
+    "lon": -97.73817027649022,
+    "altitude": 0.0,
+    "address": "E 11th/San Jacinto",
+    "capacity": 11,
+    "is_charging_station": false,
+    "geofenced_capacity": 0,
+    "rental_methods": [
+     "key",
+     "transitcard",
+     "creditcard",
+     "phone"
+    ],
+    "is_virtual_station": false,
+    "groups": [
+     "Central"
+    ],
+    "obcn": "4",
+    "short_name": "4",
+    "nearby_distance": 500.0,
+    "_bluetooth_id": "5743",
+    "_ride_code_support": true,
+    "rental_uris": {}
+   },
+   {
+    "station_id": "5",
+    "external_id": "ad4be4de-b824-11ef-86f9-0224060a328f",
+    "name": "E 12th/San Jacinto @ State Capitol Visitors G",
+    "physical_configuration": "REGULAR",
+    "lat": 30.273499000000005,
+    "lon": -97.738097,
+    "altitude": 0.0,
+    "address": "E 12th/San Jacinto @ State Capitol Visitors Garage",
+    "capacity": 11,
+    "is_charging_station": false,
+    "geofenced_capacity": 0,
+    "rental_methods": [
+     "key",
+     "transitcard",
+     "creditcard",
+     "phone"
+    ],
+    "is_virtual_station": false,
+    "groups": [
+     "Central"
+    ],
+    "obcn": "5",
+    "short_name": "5",
+    "nearby_distance": 500.0,
+    "_bluetooth_id": "3aa2",
+    "_ride_code_support": true,
+    "rental_uris": {}
+   },
+   {
+    "station_id": "6",
+    "external_id": "ad4bed63-b824-11ef-86f9-0224060a328f",
+    "name": "E 13th/Trinity @ Waterloo Greenway",
+    "physical_configuration": "REGULAR",
+    "lat": 30.274063,
+    "lon": -97.736657,
+    "altitude": 0.0,
+    "address": "E 13th/Trinity @ Waterloo Greenway",
+    "capacity": 11,
+    "is_charging_station": false,
+    "geofenced_capacity": 0,
+    "rental_methods": [
+     "key",
+     "transitcard",
+     "creditcard",
+     "phone"
+    ],
+    "is_virtual_station": false,
+    "groups": [
+     "Central"
+    ],
+    "obcn": "6",
+    "short_name": "6",
+    "nearby_distance": 500.0,
+    "_bluetooth_id": "0719",
+    "_ride_code_support": true,
+    "rental_uris": {}
+   },
+   {
+    "station_id": "7",
+    "external_id": "ad4bf028-b824-11ef-86f9-0224060a328f",
+    "name": "W 21st/Guadalupe",
+    "physical_configuration": "REGULAR",
+    "lat": 30.283985000000005,
+    "lon": -97.74198,
+    "altitude": 0.0,
+    "address": "W 21st/Guadalupe",
+    "capacity": 11,
+    "is_charging_station": false,
+    "geofenced_capacity": 0,
+    "rental_methods": [
+     "key",
+     "transitcard",
+     "creditcard",
+     "phone"
+    ],
+    "is_virtual_station": false,
+    "groups": [
+     "Campus"
+    ],
+    "obcn": "7",
+    "short_name": "7",
+    "nearby_distance": 500.0,
+    "_bluetooth_id": "aee6",
+    "_ride_code_support": true,
+    "rental_uris": {}
+   },
+   {
+    "station_id": "8",
+    "external_id": "ad4bf418-b824-11ef-86f9-0224060a328f",
+    "name": "BRG/Jester Circle",
+    "physical_configuration": "REGULAR",
+    "lat": 30.281353600836376,
+    "lon": -97.73649021631262,
+    "altitude": 0.0,
+    "address": "BRG/Jester Circle",
+    "capacity": 17,
+    "is_charging_station": false,
+    "geofenced_capacity": 0,
+    "rental_methods": [
+     "key",
+     "transitcard",
+     "creditcard",
+     "phone"
+    ],
+    "is_virtual_station": false,
+    "groups": [
+     "Campus"
+    ],
+    "obcn": "8",
+    "short_name": "8",
+    "nearby_distance": 500.0,
+    "_bluetooth_id": "5808",
+    "_ride_code_support": true,
+    "rental_uris": {}
+   },
+   {
+    "station_id": "9",
+    "external_id": "ad4bf6f0-b824-11ef-86f9-0224060a328f",
+    "name": "W 21st/University",
+    "physical_configuration": "REGULAR",
+    "lat": 30.283535,
+    "lon": -97.73953,
+    "altitude": 0.0,
+    "address": "W 21st/University",
+    "capacity": 19,
+    "is_charging_station": false,
+    "geofenced_capacity": 0,
+    "rental_methods": [
+     "key",
+     "transitcard",
+     "creditcard",
+     "phone"
+    ],
+    "is_virtual_station": false,
+    "groups": [
+     "Campus"
+    ],
+    "obcn": "9",
+    "short_name": "9",
+    "nearby_distance": 500.0,
+    "_bluetooth_id": "d891",
+    "_ride_code_support": true,
+    "rental_uris": {}
+   },
+   {
+    "station_id": "10",
+    "external_id": "ad4bf998-b824-11ef-86f9-0224060a328f",
+    "name": "W 22.5/Rio Grande",
+    "physical_configuration": "REGULAR",
+    "lat": 30.28617,
+    "lon": -97.745201,
+    "altitude": 0.0,
+    "address": "W 22.5/Rio Grande",
+    "capacity": 5,
+    "is_charging_station": false,
+    "geofenced_capacity": 0,
+    "rental_methods": [
+     "key",
+     "transitcard",
+     "creditcard",
+     "phone"
+    ],
+    "is_virtual_station": false,
+    "groups": [
+     "Campus"
+    ],
+    "obcn": "10",
+    "short_name": "10",
+    "nearby_distance": 500.0,
+    "_bluetooth_id": "aa63",
+    "_ride_code_support": true,
+    "rental_uris": {}
+   },
+   {
+    "station_id": "12",
+    "external_id": "ad4c0373-b824-11ef-86f9-0224060a328f",
+    "name": "W 23rd/San Gabriel",
+    "physical_configuration": "REGULAR",
+    "lat": 30.287401,
+    "lon": -97.747718,
+    "altitude": 0.0,
+    "address": "W 23rd/San Gabriel",
+    "capacity": 11,
+    "is_charging_station": false,
+    "geofenced_capacity": 0,
+    "rental_methods": [
+     "key",
+     "transitcard",
+     "creditcard",
+     "phone"
+    ],
+    "is_virtual_station": false,
+    "groups": [
+     "Campus"
+    ],
+    "obcn": "12",
+    "short_name": "12",
+    "nearby_distance": 500.0,
+    "_bluetooth_id": "010b",
+    "_ride_code_support": true,
+    "rental_uris": {}
+   },
+   {
+    "station_id": "13",
+    "external_id": "ad4c06f8-b824-11ef-86f9-0224060a328f",
+    "name": "E 23rd/San Jacinto @ DKR Stadium",
+    "physical_configuration": "REGULAR",
+    "lat": 30.285500000000003,
+    "lon": -97.733492,
+    "altitude": 0.0,
+    "address": "E 23rd/San Jacinto @ DKR Stadium",
+    "capacity": 23,
+    "is_charging_station": false,
+    "geofenced_capacity": 0,
+    "rental_methods": [
+     "key",
+     "transitcard",
+     "creditcard",
+     "phone"
+    ],
+    "is_virtual_station": false,
+    "groups": [
+     "Campus"
+    ],
+    "obcn": "13",
+    "short_name": "13",
+    "nearby_distance": 500.0,
+    "_bluetooth_id": "e11a",
+    "_ride_code_support": true,
+    "rental_uris": {}
+   },
+   {
+    "station_id": "14",
+    "external_id": "ad4c0a14-b824-11ef-86f9-0224060a328f",
+    "name": "W 26th/Nueces",
+    "physical_configuration": "REGULAR",
+    "lat": 30.290703000000004,
+    "lon": -97.742942,
+    "altitude": 0.0,
+    "address": "2600 Nueces Street",
+    "capacity": 13,
+    "is_charging_station": false,
+    "geofenced_capacity": 0,
+    "rental_methods": [
+     "key",
+     "transitcard",
+     "creditcard",
+     "phone"
+    ],
+    "is_virtual_station": false,
+    "groups": [
+     "Campus"
+    ],
+    "obcn": "14",
+    "short_name": "14",
+    "nearby_distance": 500.0,
+    "_bluetooth_id": "e8a5",
+    "_ride_code_support": true,
+    "rental_uris": {}
+   },
+   {
+    "station_id": "15",
+    "external_id": "ad4c0c67-b824-11ef-86f9-0224060a328f",
+    "name": "W 28th/Rio Grande",
+    "physical_configuration": "ELECTRICBIKESTATION",
+    "lat": 30.293155,
+    "lon": -97.744154,
+    "altitude": 0.0,
+    "address": "W 28th/Rio Grande",
+    "capacity": 19,
+    "is_charging_station": true,
+    "geofenced_capacity": 0,
+    "rental_methods": [
+     "key",
+     "transitcard",
+     "creditcard",
+     "phone"
+    ],
+    "is_virtual_station": false,
+    "groups": [
+     "Campus"
+    ],
+    "obcn": "15",
+    "short_name": "15",
+    "nearby_distance": 500.0,
+    "_bluetooth_id": "",
+    "_ride_code_support": true,
+    "rental_uris": {}
+   },
+   {
+    "station_id": "16",
+    "external_id": "ad4c12b4-b824-11ef-86f9-0224060a328f",
+    "name": "E 2nd/Congress",
+    "physical_configuration": "REGULAR",
+    "lat": 30.264095,
+    "lon": -97.743535,
+    "altitude": 0.0,
+    "address": "E 2nd/Congress",
+    "capacity": 15,
+    "is_charging_station": false,
+    "geofenced_capacity": 0,
+    "rental_methods": [
+     "key",
+     "transitcard",
+     "creditcard",
+     "phone"
+    ],
+    "is_virtual_station": false,
+    "groups": [
+     "Central"
+    ],
+    "obcn": "16",
+    "short_name": "16",
+    "nearby_distance": 500.0,
+    "_bluetooth_id": "08d8",
+    "_ride_code_support": true,
+    "rental_uris": {}
+   },
+   {
+    "station_id": "17",
+    "external_id": "ad4c15d5-b824-11ef-86f9-0224060a328f",
+    "name": "W 2nd/Lavaca @ City Hall",
+    "physical_configuration": "ELECTRICBIKESTATION",
+    "lat": 30.264759999999995,
+    "lon": -97.746728,
+    "altitude": 0.0,
+    "address": "W 2nd/Lavaca @ City Hall",
+    "capacity": 23,
+    "is_charging_station": true,
+    "geofenced_capacity": 0,
+    "rental_methods": [
+     "key",
+     "transitcard",
+     "creditcard",
+     "phone"
+    ],
+    "is_virtual_station": false,
+    "groups": [
+     "Central"
+    ],
+    "obcn": "17",
+    "short_name": "17",
+    "nearby_distance": 500.0,
+    "_bluetooth_id": "",
+    "_ride_code_support": true,
+    "rental_uris": {}
+   },
+   {
+    "station_id": "18",
+    "external_id": "ad4c1952-b824-11ef-86f9-0224060a328f",
+    "name": "W 3rd/Nueces",
+    "physical_configuration": "REGULAR",
+    "lat": 30.266971999999996,
+    "lon": -97.749462,
+    "altitude": 0.0,
+    "address": "W 3rd/Nueces",
+    "capacity": 11,
+    "is_charging_station": false,
+    "geofenced_capacity": 0,
+    "rental_methods": [
+     "key",
+     "transitcard",
+     "creditcard",
+     "phone"
+    ],
+    "is_virtual_station": false,
+    "groups": [
+     "West"
+    ],
+    "obcn": "18",
+    "short_name": "18",
+    "nearby_distance": 500.0,
+    "_bluetooth_id": "06c0",
+    "_ride_code_support": true,
+    "rental_uris": {}
+   },
+   {
+    "station_id": "20",
+    "external_id": "ad4c2187-b824-11ef-86f9-0224060a328f",
+    "name": "W 3rd/West",
+    "physical_configuration": "REGULAR",
+    "lat": 30.267756,
+    "lon": -97.751763,
+    "altitude": 0.0,
+    "address": "W 3rd/West",
+    "capacity": 11,
+    "is_charging_station": false,
+    "geofenced_capacity": 0,
+    "rental_methods": [
+     "key",
+     "transitcard",
+     "creditcard",
+     "phone"
+    ],
+    "is_virtual_station": false,
+    "groups": [
+     "West"
+    ],
+    "obcn": "20",
+    "short_name": "20",
+    "nearby_distance": 500.0,
+    "_bluetooth_id": "b4bd",
+    "_ride_code_support": true,
+    "rental_uris": {}
+   },
+   {
+    "station_id": "21",
+    "external_id": "ad4c250f-b824-11ef-86f9-0224060a328f",
+    "name": "W 4th/Congress",
+    "physical_configuration": "ELECTRICBIKESTATION",
+    "lat": 30.266354905259277,
+    "lon": -97.74379181324481,
+    "altitude": 0.0,
+    "address": "102 West 4th Street",
+    "capacity": 15,
+    "is_charging_station": true,
+    "geofenced_capacity": 0,
+    "rental_methods": [
+     "key",
+     "transitcard",
+     "creditcard",
+     "phone"
+    ],
+    "is_virtual_station": false,
+    "groups": [
+     "Central"
+    ],
+    "obcn": "21",
+    "short_name": "21",
+    "nearby_distance": 500.0,
+    "_bluetooth_id": "",
+    "_ride_code_support": true,
+    "rental_uris": {}
+   },
+   {
+    "station_id": "22",
+    "external_id": "ad4c2778-b824-11ef-86f9-0224060a328f",
+    "name": "W 4th/Guadalupe @ Republic Square",
+    "physical_configuration": "REGULAR",
+    "lat": 30.267378511084083,
+    "lon": -97.74749820226235,
+    "altitude": 0.0,
+    "address": "W 4th/Guadalupe @ Republic Square",
+    "capacity": 11,
+    "is_charging_station": false,
+    "geofenced_capacity": 0,
+    "rental_methods": [
+     "key",
+     "transitcard",
+     "creditcard",
+     "phone"
+    ],
+    "is_virtual_station": false,
+    "groups": [
+     "West"
+    ],
+    "obcn": "22",
+    "short_name": "22",
+    "nearby_distance": 500.0,
+    "_bluetooth_id": "2f1b",
+    "_ride_code_support": true,
+    "rental_uris": {}
+   },
+   {
+    "station_id": "23",
+    "external_id": "ad4c2e5b-b824-11ef-86f9-0224060a328f",
+    "name": "E 5th/Neches @ Downtown Station",
+    "physical_configuration": "REGULAR",
+    "lat": 30.265863646955363,
+    "lon": -97.73882935478242,
+    "altitude": 0.0,
+    "address": "E 5th/Neches @ Downtown Station",
+    "capacity": 15,
+    "is_charging_station": false,
+    "geofenced_capacity": 0,
+    "rental_methods": [
+     "key",
+     "transitcard",
+     "creditcard",
+     "phone"
+    ],
+    "is_virtual_station": false,
+    "groups": [
+     "Central"
+    ],
+    "obcn": "23",
+    "short_name": "23",
+    "nearby_distance": 500.0,
+    "_bluetooth_id": "55e0",
+    "_ride_code_support": true,
+    "rental_uris": {}
+   },
+   {
+    "station_id": "24",
+    "external_id": "ad4c3101-b824-11ef-86f9-0224060a328f",
+    "name": "W 5th/Bowie",
+    "physical_configuration": "REGULAR",
+    "lat": 30.269210000000005,
+    "lon": -97.753495,
+    "altitude": 0.0,
+    "address": "W 5th/Bowie",
+    "capacity": 15,
+    "is_charging_station": false,
+    "geofenced_capacity": 0,
+    "rental_methods": [
+     "key",
+     "transitcard",
+     "creditcard",
+     "phone"
+    ],
+    "is_virtual_station": false,
+    "groups": [
+     "West"
+    ],
+    "obcn": "24",
+    "short_name": "24",
+    "nearby_distance": 500.0,
+    "_bluetooth_id": "f998",
+    "_ride_code_support": true,
+    "rental_uris": {}
+   },
+   {
+    "station_id": "25",
+    "external_id": "ad4c36b4-b824-11ef-86f9-0224060a328f",
+    "name": "W 5th/Campbell",
+    "physical_configuration": "REGULAR",
+    "lat": 30.274782000000002,
+    "lon": -97.764786,
+    "altitude": 0.0,
+    "address": "W 5th/Campbell",
+    "capacity": 15,
+    "is_charging_station": false,
+    "geofenced_capacity": 0,
+    "rental_methods": [
+     "key",
+     "transitcard",
+     "creditcard",
+     "phone"
+    ],
+    "is_virtual_station": false,
+    "groups": [
+     "West"
+    ],
+    "obcn": "25",
+    "short_name": "25",
+    "nearby_distance": 500.0,
+    "_bluetooth_id": "3c1e",
+    "_ride_code_support": true,
+    "rental_uris": {}
+   },
+   {
+    "station_id": "26",
+    "external_id": "ad4c56cf-b824-11ef-86f9-0224060a328f",
+    "name": "E 6th/Chalmers",
+    "physical_configuration": "REGULAR",
+    "lat": 30.262684,
+    "lon": -97.724284,
+    "altitude": 0.0,
+    "address": "E 6th/Chalmers",
+    "capacity": 11,
+    "is_charging_station": false,
+    "geofenced_capacity": 0,
+    "rental_methods": [
+     "key",
+     "transitcard",
+     "creditcard",
+     "phone"
+    ],
+    "is_virtual_station": false,
+    "groups": [
+     "East"
+    ],
+    "obcn": "26",
+    "short_name": "26",
+    "nearby_distance": 500.0,
+    "_bluetooth_id": "5763",
+    "_ride_code_support": true,
+    "rental_uris": {}
+   },
+   {
+    "station_id": "28",
+    "external_id": "ad4c60de-b824-11ef-86f9-0224060a328f",
+    "name": "W 6th/Lavaca",
+    "physical_configuration": "REGULAR",
+    "lat": 30.268949000000003,
+    "lon": -97.745223,
+    "altitude": 0.0,
+    "address": "W 6th/Lavaca",
+    "capacity": 7,
+    "is_charging_station": false,
+    "geofenced_capacity": 0,
+    "rental_methods": [
+     "key",
+     "transitcard",
+     "creditcard",
+     "phone"
+    ],
+    "is_virtual_station": false,
+    "groups": [
+     "Central"
+    ],
+    "obcn": "28",
+    "short_name": "28",
+    "nearby_distance": 500.0,
+    "_bluetooth_id": "f771",
+    "_ride_code_support": true,
+    "rental_uris": {}
+   }
+  ]
+ },
+ "version": "2.3"
+}

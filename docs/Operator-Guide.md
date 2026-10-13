@@ -3361,6 +3361,39 @@ their time base (their vehicle timestamps are unknown), send no extra headers (a
 catalog may therefore be refused; use `entur-norway` instead), and the snapshot is refreshed only when a developer
 reruns `scripts/update-mobility-catalog.py`.
 
+## Bikeshare (prompt 071)
+
+Foresignal ships 30 reviewed docked bikeshare systems, each a `gbfs-{id}` source of `bikeshare-station` records. All
+are disabled until you enable them with `PUT /v1/sources/{id}`:
+
+| Operator family | Sources |
+|---|---|
+| Lyft-operated | `gbfs-nyc-citibike`, `gbfs-chicago-divvy`, `gbfs-dc-capital-bikeshare`, `gbfs-sf-bay-wheels` |
+| Own hosts | `gbfs-boston-bluebikes`, `gbfs-portland-biketown`, `gbfs-buffalo-reddy` |
+| publicbikesystem.net | `gbfs-austin-capmetro`, `gbfs-honolulu-biki`, `gbfs-chattanooga-bikechatt`, `gbfs-tucson-tugo`, `gbfs-fort-worth-trinity` |
+| BCycle | `gbfs-philadelphia-indego`, `gbfs-la-metro-bike`, `gbfs-boulder-bcycle`, `gbfs-milwaukee-bublr`, `gbfs-madison-bcycle`, `gbfs-nashville-bcycle`, `gbfs-salt-lake-greenbike`, `gbfs-san-antonio-bcycle`, `gbfs-cincinnati-red-bike`, `gbfs-el-paso-bcycle`, `gbfs-indianapolis-pacers`, `gbfs-memphis-bcycle`, `gbfs-des-moines-bcycle`, `gbfs-omaha-heartland`, `gbfs-lincoln-bikelnk`, `gbfs-greenville-sc-bcycle`, `gbfs-las-vegas-rtc-bike-share`, `gbfs-santa-barbara-bcycle` |
+
+Each station is one record: a new version is written when its service state changes (name, capacity, installed,
+renting, returning, or `availability`: `out-of-service`, `empty`, `low` at 2 bikes or fewer, `full`, `ok`), while bike
+and dock counts arrive as live updates. Rules on `availability` therefore fire on the transitions that matter without
+storing a version for every bike taken. The default poll is 60 s; the source honors the feed's own `ttl` and does not
+ask again while the last status is still valid. The `language` parameter (default `en`) picks the name of a GBFS 3.0
+station where the operator publishes several. No reviewed feed declares a data license, so each source's license reads
+"operator terms" and links to the operator's data page: read it before re-serving the data.
+
+**Redirects are refused.** A system that starts answering with a redirect fails its runs with "redirect refused"
+until the reviewed URL is updated in code; the redirect target is never requested.
+
+### Proposing another system
+
+Systems are added only by a code change to `GbfsSystems` (`src/main/java/ai/foresignal/source/adapters/gbfs/`),
+reviewed like any other change; there is no property or API that adds a URL, and Foresignal never follows a feed's
+`gbfs.json` to discover one. A proposal names the system's `station_information.json` and `station_status.json` URLs
+(https, docked stations), the GBFS version, and the license from its `system_information.json` (`license_id` or
+`license_url`, GBFS 2.3 and later) or, when it declares none, the operator's data terms page. The host allowlist is
+derived from the list, so a new host needs nothing else. MobilityData's `systems.csv` is a good place to find
+candidates.
+
 ## Operating the instance
 
 ### Probes and the compose healthcheck

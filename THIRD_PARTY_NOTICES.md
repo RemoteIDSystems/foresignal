@@ -59,7 +59,7 @@ SOFTWARE.
 
 ### Ported files
 
-Ported from God's Eye View commit `591f299d11f38a612629a274463196d57ae3862e` (prompts 051, 062, 063, 064, 065, 067, 069 and 070). Each
+Ported from God's Eye View commit `591f299d11f38a612629a274463196d57ae3862e` (prompts 051, 062, 063, 064, 065, 067, 069, 070 and 071). Each
 file carries an origin header naming its source file and this notice.
 
 | Foresignal file | GEV origin file |
@@ -93,6 +93,10 @@ file carries an origin header naming its source file and this notice.
 | `src/main/java/ai/foresignal/source/adapters/transit/GtfsRtVehicleParser.java` (plausible positions, vehicle id else entity id, bearing folding, negative speeds dropped, 6-decimal coordinates, newest duplicate kept, an over-long string drops the record, prompt 070) | `src/data/gtfsRealtime.js` (`isPlausibleVehiclePosition`, `normalizeVehicleEntity`, `decodeVehiclePositions`) |
 | `src/main/java/ai/foresignal/source/adapters/transit/GtfsRt.java` (the entity cap and the 256-character string bound, prompt 070) | `src/data/gtfsRealtime.js` (`GTFS_MAX_ENTITIES`, `GTFS_MAX_STRING_CHARS`, `readBoundedString`) |
 | `src/main/java/ai/foresignal/source/adapters/transit/TransitVehicleAdapter.java` and `TransitAlertsAdapter.java` (only registered feed URLs are fetched, with conditional requests and identifying headers, prompt 070; documentation only, no code beyond the rules above) | `src/sources/transitService.js` (`fetchTransitFeed`, `createTransitService`) |
+| `src/main/java/ai/foresignal/source/adapters/gbfs/GbfsSystems.java` (the reviewed bikeshare system registry: ids, cities, providers, feed URLs, the BCycle URL builder, https-only and endpoint-file validation, unique ids, prompt 071) | `src/layers/bikeshare/registry.js` (`RAW_GBFS_CITY_REGISTRY`, `buildBcycleUrls`, `bcycleEntry`, `normalizeRegistryEntry`) |
+| `src/main/java/ai/foresignal/source/adapters/gbfs/GbfsSystems.java` (the host and path allowlist, prompt 071) | `src/data/gbfsSource.js` (`GBFS_ALLOWED_HOSTS`, `isAllowedGbfsHost`, `isAllowedGbfsPath`) |
+| `src/main/java/ai/foresignal/source/adapters/gbfs/GbfsAdapter.java` and `GbfsDescriptors.java` (no redirects followed, any 3xx refused with the redirect host reported, the 5 MB body cap, prompt 071) | `server/providers/gbfs.js` (`fetchGbfsUpstream`, `gbfsRedirectHost`, `GBFS_MAX_BODY_BYTES`) |
+| `src/main/java/ai/foresignal/source/adapters/gbfs/GbfsParser.java` (station field normalization, boolean coercion, non-negative integers, the stations-array lookup, prompt 071) | `src/sources/gbfsStations.js` (`normalizeGbfsBool`, `toNonNegativeInteger`, `extractStationsArray`, `parseStationInformation`, `parseStationStatus`) |
 
 `decode.js` (ecCodes WASM) is not ported: Foresignal decodes with NetCDF-Java. The particle layer
 (`src/layers/wind/*`) is not part of Foresignal; the Frontend Guide tells web clients which of its

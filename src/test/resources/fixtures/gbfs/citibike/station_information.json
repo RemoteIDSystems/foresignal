@@ -1,0 +1,359 @@
+{
+ "data": {
+  "stations": [
+   {
+    "station_id": "3eb10c63-ea4c-4161-b07d-a29034f7367a",
+    "name": "Brook Ave & E 141 St",
+    "short_name": "7740.08",
+    "lon": -73.917875,
+    "lat": 40.809619,
+    "region_id": "71",
+    "capacity": 0,
+    "rental_uris": {
+     "android": "https://bkn.lft.to/lastmile_qr_scan",
+     "ios": "https://bkn.lft.to/lastmile_qr_scan"
+    },
+    "is_charging": false
+   },
+   {
+    "station_id": "ba33c334-e17d-4478-ae3c-9c2f4dbfbb51",
+    "name": "51 Ave & 61 St",
+    "short_name": "5923.02",
+    "lon": -73.90387,
+    "lat": 40.73568,
+    "region_id": "71",
+    "capacity": 0,
+    "rental_uris": {
+     "android": "https://bkn.lft.to/lastmile_qr_scan",
+     "ios": "https://bkn.lft.to/lastmile_qr_scan"
+    },
+    "is_charging": false
+   },
+   {
+    "station_id": "06439006-11b6-44f0-8545-c9d39035f32a",
+    "name": "Vesey St & Church St",
+    "short_name": "5216.06",
+    "lon": -74.01047229766846,
+    "lat": 40.71221958009051,
+    "region_id": "71",
+    "capacity": 78,
+    "rental_uris": {
+     "android": "https://bkn.lft.to/lastmile_qr_scan",
+     "ios": "https://bkn.lft.to/lastmile_qr_scan"
+    },
+    "is_charging": false
+   },
+   {
+    "station_id": "1986707977001495180",
+    "name": "21 St & 20 Ave",
+    "short_name": "7363.03",
+    "lon": -73.91273114065842,
+    "lat": 40.78393602019729,
+    "region_id": "71",
+    "capacity": 19,
+    "rental_uris": {
+     "android": "https://bkn.lft.to/lastmile_qr_scan",
+     "ios": "https://bkn.lft.to/lastmile_qr_scan"
+    },
+    "is_charging": false
+   },
+   {
+    "station_id": "1795146692060860976",
+    "name": "Longfellow Ave & Aldus St",
+    "short_name": "7983.02",
+    "lon": -73.88762910982096,
+    "lat": 40.82319448542357,
+    "region_id": "71",
+    "capacity": 24,
+    "rental_uris": {
+     "android": "https://bkn.lft.to/lastmile_qr_scan",
+     "ios": "https://bkn.lft.to/lastmile_qr_scan"
+    },
+    "is_charging": false
+   },
+   {
+    "station_id": "1822663031356509142",
+    "name": "Matthews Ct & Coney Island Ave",
+    "short_name": "3034.02",
+    "lon": -73.96951,
+    "lat": 40.64235,
+    "region_id": "71",
+    "capacity": 0,
+    "rental_uris": {
+     "android": "https://bkn.lft.to/lastmile_qr_scan",
+     "ios": "https://bkn.lft.to/lastmile_qr_scan"
+    },
+    "is_charging": false
+   },
+   {
+    "station_id": "2235294222661977076",
+    "name": "Livonia Ave & Powell St",
+    "short_name": "3678.05",
+    "lon": -73.90231,
+    "lat": 40.66363,
+    "region_id": "71",
+    "capacity": 0,
+    "rental_uris": {
+     "android": "https://bkn.lft.to/lastmile_qr_scan",
+     "ios": "https://bkn.lft.to/lastmile_qr_scan"
+    },
+    "is_charging": false
+   },
+   {
+    "station_id": "7a6fc75f-a605-4dd6-b567-b2bbbfb862f3",
+    "name": "65 Pl & 53 Ave",
+    "short_name": "5764.02",
+    "lon": -73.90022,
+    "lat": 40.73145,
+    "region_id": "71",
+    "capacity": 19,
+    "rental_uris": {
+     "android": "https://bkn.lft.to/lastmile_qr_scan",
+     "ios": "https://bkn.lft.to/lastmile_qr_scan"
+    },
+    "is_charging": false
+   },
+   {
+    "station_id": "dd482585-3028-453f-a98d-55019db9b26c",
+    "name": "2 Ave & 36 St",
+    "short_name": "3460.01",
+    "lon": -74.00870203971863,
+    "lat": 40.65708866668485,
+    "region_id": "71",
+    "capacity": 43,
+    "rental_uris": {
+     "android": "https://bkn.lft.to/lastmile_qr_scan",
+     "ios": "https://bkn.lft.to/lastmile_qr_scan"
+    },
+    "is_charging": false
+   },
+   {
+    "station_id": "66dbe96d-0aca-11e7-82f6-3863bb44ef7c",
+    "name": "W 26 St & 10 Ave",
+    "short_name": "6382.05",
+    "lon": -74.002950346,
+    "lat": 40.749717753,
+    "region_id": "71",
+    "capacity": 0,
+    "rental_uris": {
+     "android": "https://bkn.lft.to/lastmile_qr_scan",
+     "ios": "https://bkn.lft.to/lastmile_qr_scan"
+    },
+    "is_charging": false
+   },
+   {
+    "station_id": "7938263e-e5b8-4ca7-b8bf-1adbaae5fead",
+    "name": "Southern Blvd & E 149 St",
+    "short_name": "7788.13",
+    "lon": -73.904192,
+    "lat": 40.811892,
+    "region_id": "71",
+    "capacity": 0,
+    "rental_uris": {
+     "android": "https://bkn.lft.to/lastmile_qr_scan",
+     "ios": "https://bkn.lft.to/lastmile_qr_scan"
+    },
+    "is_charging": false
+   },
+   {
+    "station_id": "1862788202397235246",
+    "name": "Bailey Ave & W 229 St",
+    "short_name": "8741.01",
+    "lon": -73.90467,
+    "lat": 40.87449,
+    "region_id": "71",
+    "capacity": 21,
+    "rental_uris": {
+     "android": "https://bkn.lft.to/lastmile_qr_scan",
+     "ios": "https://bkn.lft.to/lastmile_qr_scan"
+    },
+    "is_charging": false
+   },
+   {
+    "station_id": "2235287757793011418",
+    "name": "Utica Ave & E New York Ave",
+    "short_name": "3671.02",
+    "lon": -73.93141,
+    "lat": 40.66304,
+    "region_id": "71",
+    "capacity": 16,
+    "rental_uris": {
+     "android": "https://bkn.lft.to/lastmile_qr_scan",
+     "ios": "https://bkn.lft.to/lastmile_qr_scan"
+    },
+    "is_charging": false
+   },
+   {
+    "station_id": "7f402242-dc1b-4a48-ba21-58c4fa7216b4",
+    "name": "53 Ave & 62 St",
+    "short_name": "5806.01",
+    "lon": -73.90159,
+    "lat": 40.73169,
+    "region_id": "71",
+    "capacity": 19,
+    "rental_uris": {
+     "android": "https://bkn.lft.to/lastmile_qr_scan",
+     "ios": "https://bkn.lft.to/lastmile_qr_scan"
+    },
+    "is_charging": false
+   },
+   {
+    "station_id": "18a2cbb6-91f2-4393-82fb-b40a8ba90f20",
+    "name": "Amsterdam Ave & W 175 St",
+    "short_name": "8278.05",
+    "lon": -73.933651,
+    "lat": 40.844044,
+    "region_id": "71",
+    "capacity": 23,
+    "rental_uris": {
+     "android": "https://bkn.lft.to/lastmile_qr_scan",
+     "ios": "https://bkn.lft.to/lastmile_qr_scan"
+    },
+    "is_charging": false
+   },
+   {
+    "station_id": "66dce9b5-0aca-11e7-82f6-3863bb44ef7c",
+    "name": "Division Ave & Marcy Ave",
+    "short_name": "5084.03",
+    "lon": -73.95796783,
+    "lat": 40.70708701,
+    "region_id": "71",
+    "capacity": 33,
+    "rental_uris": {
+     "android": "https://bkn.lft.to/lastmile_qr_scan",
+     "ios": "https://bkn.lft.to/lastmile_qr_scan"
+    },
+    "is_charging": false
+   },
+   {
+    "station_id": "66db2a71-0aca-11e7-82f6-3863bb44ef7c",
+    "name": "Barrow St & Hudson St",
+    "short_name": "5805.05",
+    "lon": -74.00674436,
+    "lat": 40.73172428,
+    "region_id": "71",
+    "capacity": 44,
+    "rental_uris": {
+     "android": "https://bkn.lft.to/lastmile_qr_scan",
+     "ios": "https://bkn.lft.to/lastmile_qr_scan"
+    },
+    "is_charging": false
+   },
+   {
+    "station_id": "bc9c9006-3d40-400d-8b5c-17f56e6dfcee",
+    "name": "Amsterdam Ave & W 162 St",
+    "short_name": "8172.07",
+    "lon": -73.939789,
+    "lat": 40.83618,
+    "region_id": "71",
+    "capacity": 27,
+    "rental_uris": {
+     "android": "https://bkn.lft.to/lastmile_qr_scan",
+     "ios": "https://bkn.lft.to/lastmile_qr_scan"
+    },
+    "is_charging": false
+   },
+   {
+    "station_id": "545a32d3-b74c-4dc2-b82c-a6d185dd4666",
+    "name": "Sheridan Ave & E 168 St",
+    "short_name": "8160.03",
+    "lon": -73.9154,
+    "lat": 40.835334,
+    "region_id": "71",
+    "capacity": 22,
+    "rental_uris": {
+     "android": "https://bkn.lft.to/lastmile_qr_scan",
+     "ios": "https://bkn.lft.to/lastmile_qr_scan"
+    },
+    "is_charging": false
+   },
+   {
+    "station_id": "9af90faf-0b9b-451b-9cb0-20ff421ca1d9",
+    "name": "E 165 St & Fox St",
+    "short_name": "7966.02",
+    "lon": -73.894025,
+    "lat": 40.82394,
+    "region_id": "71",
+    "capacity": 27,
+    "rental_uris": {
+     "android": "https://bkn.lft.to/lastmile_qr_scan",
+     "ios": "https://bkn.lft.to/lastmile_qr_scan"
+    },
+    "is_charging": false
+   },
+   {
+    "station_id": "b4a320d6-2611-4940-96ca-17fb297ec826",
+    "name": "Sunken Meadow Comfort Station",
+    "short_name": "7571.01",
+    "lon": -73.91906,
+    "lat": 40.79558,
+    "region_id": "71",
+    "capacity": 25,
+    "rental_uris": {
+     "android": "https://bkn.lft.to/lastmile_qr_scan",
+     "ios": "https://bkn.lft.to/lastmile_qr_scan"
+    },
+    "is_charging": false
+   },
+   {
+    "station_id": "ab6aadd8-fa45-43aa-abea-c8e01ec5a0c8",
+    "name": "Stagg St & Morgan Ave",
+    "short_name": "5170.01",
+    "lon": -73.93372,
+    "lat": 40.710681,
+    "region_id": "71",
+    "capacity": 23,
+    "rental_uris": {
+     "android": "https://bkn.lft.to/lastmile_qr_scan",
+     "ios": "https://bkn.lft.to/lastmile_qr_scan"
+    },
+    "is_charging": false
+   },
+   {
+    "station_id": "1814901062206225038",
+    "name": "Lenox Rd & E 43 St",
+    "short_name": "3495.08",
+    "lon": -73.93765,
+    "lat": 40.65496,
+    "region_id": "71",
+    "capacity": 21,
+    "rental_uris": {
+     "android": "https://bkn.lft.to/lastmile_qr_scan",
+     "ios": "https://bkn.lft.to/lastmile_qr_scan"
+    },
+    "is_charging": false
+   },
+   {
+    "station_id": "98ebf9c6-1d94-4e21-9007-c623875fdb5e",
+    "name": "E 144 St & Brook Ave",
+    "short_name": "7777.02",
+    "lon": -73.917037,
+    "lat": 40.811675,
+    "region_id": "71",
+    "capacity": 19,
+    "rental_uris": {
+     "android": "https://bkn.lft.to/lastmile_qr_scan",
+     "ios": "https://bkn.lft.to/lastmile_qr_scan"
+    },
+    "is_charging": false
+   },
+   {
+    "station_id": "66db408f-0aca-11e7-82f6-3863bb44ef7c",
+    "name": "Harrison St & Hudson St",
+    "short_name": "5400.05",
+    "lon": -74.0090009,
+    "lat": 40.71870987,
+    "region_id": "71",
+    "capacity": 39,
+    "rental_uris": {
+     "android": "https://bkn.lft.to/lastmile_qr_scan",
+     "ios": "https://bkn.lft.to/lastmile_qr_scan"
+    },
+    "is_charging": false
+   }
+  ]
+ },
+ "last_updated": 1791910007,
+ "ttl": 60,
+ "version": "2.3"
+}

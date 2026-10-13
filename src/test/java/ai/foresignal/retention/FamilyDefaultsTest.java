@@ -137,6 +137,9 @@ class FamilyDefaultsTest {
                     ai.foresignal.source.adapters.transit.TransitFeeds.reviewed("mbta"), null, null).descriptor(), "track")),
             Map.entry("TransitAlertsAdapter", new Entry(new ai.foresignal.source.adapters.transit.TransitAlertsAdapter(
                     ai.foresignal.source.adapters.transit.TransitFeeds.reviewed("mbta"), null).descriptor(), "event")),
+            // Prompt 071: bikeshare station status is LATEST station state, the state class (365 d).
+            Map.entry("GbfsAdapter", new Entry(new ai.foresignal.source.adapters.gbfs.GbfsAdapter(
+                    ai.foresignal.source.adapters.gbfs.GbfsSystems.reviewed("nyc-citibike"), null).descriptor(), "state")),
             // Prompt 052: the derived weather sources, retained per Weather-Imagery-Design §2.4.
             Map.entry("WxPlacesGenerator", new Entry(
                     new ai.foresignal.source.adapters.wx.WxPlacesGenerator().descriptor(), "weather")),

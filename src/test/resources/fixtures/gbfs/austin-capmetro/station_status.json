@@ -1,0 +1,959 @@
+{
+ "last_updated": 1791910061,
+ "ttl": 29,
+ "data": {
+  "stations": [
+   {
+    "station_id": "1",
+    "num_bikes_available": 3,
+    "num_bikes_disabled": 0,
+    "is_charging_station": false,
+    "status": "IN_SERVICE",
+    "traffic": null,
+    "num_docks_available": 12,
+    "num_docks_disabled": 0,
+    "last_reported": 1791909991,
+    "is_installed": true,
+    "is_renting": true,
+    "is_returning": true,
+    "vehicle_docks_available": [
+     {
+      "vehicle_type_ids": [
+       "EFIT",
+       "BOOST",
+       "FIT"
+      ],
+      "count": 12
+     }
+    ],
+    "vehicle_types_available": [
+     {
+      "vehicle_type_id": "FIT",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "BOOST",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "EFIT",
+      "count": 3
+     }
+    ]
+   },
+   {
+    "station_id": "2",
+    "num_bikes_available": 1,
+    "num_bikes_disabled": 0,
+    "is_charging_station": false,
+    "status": "IN_SERVICE",
+    "traffic": null,
+    "num_docks_available": 10,
+    "num_docks_disabled": 0,
+    "last_reported": 1791909974,
+    "is_installed": true,
+    "is_renting": true,
+    "is_returning": true,
+    "vehicle_docks_available": [
+     {
+      "vehicle_type_ids": [
+       "EFIT",
+       "BOOST",
+       "FIT"
+      ],
+      "count": 10
+     }
+    ],
+    "vehicle_types_available": [
+     {
+      "vehicle_type_id": "FIT",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "BOOST",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "EFIT",
+      "count": 1
+     }
+    ]
+   },
+   {
+    "station_id": "3",
+    "num_bikes_available": 1,
+    "num_bikes_disabled": 0,
+    "is_charging_station": false,
+    "status": "IN_SERVICE",
+    "traffic": null,
+    "num_docks_available": 10,
+    "num_docks_disabled": 0,
+    "last_reported": 1791910022,
+    "is_installed": true,
+    "is_renting": true,
+    "is_returning": true,
+    "vehicle_docks_available": [
+     {
+      "vehicle_type_ids": [
+       "EFIT",
+       "BOOST",
+       "FIT"
+      ],
+      "count": 10
+     }
+    ],
+    "vehicle_types_available": [
+     {
+      "vehicle_type_id": "FIT",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "BOOST",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "EFIT",
+      "count": 1
+     }
+    ]
+   },
+   {
+    "station_id": "4",
+    "num_bikes_available": 1,
+    "num_bikes_disabled": 0,
+    "is_charging_station": false,
+    "status": "IN_SERVICE",
+    "traffic": null,
+    "num_docks_available": 10,
+    "num_docks_disabled": 0,
+    "last_reported": 1791909958,
+    "is_installed": true,
+    "is_renting": true,
+    "is_returning": true,
+    "vehicle_docks_available": [
+     {
+      "vehicle_type_ids": [
+       "EFIT",
+       "BOOST",
+       "FIT"
+      ],
+      "count": 10
+     }
+    ],
+    "vehicle_types_available": [
+     {
+      "vehicle_type_id": "FIT",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "BOOST",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "EFIT",
+      "count": 1
+     }
+    ]
+   },
+   {
+    "station_id": "5",
+    "num_bikes_available": 0,
+    "num_bikes_disabled": 0,
+    "is_charging_station": false,
+    "status": "IN_SERVICE",
+    "traffic": null,
+    "num_docks_available": 11,
+    "num_docks_disabled": 0,
+    "last_reported": 1791909944,
+    "is_installed": true,
+    "is_renting": true,
+    "is_returning": true,
+    "vehicle_docks_available": [
+     {
+      "vehicle_type_ids": [
+       "EFIT",
+       "BOOST",
+       "FIT"
+      ],
+      "count": 11
+     }
+    ],
+    "vehicle_types_available": [
+     {
+      "vehicle_type_id": "FIT",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "BOOST",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "EFIT",
+      "count": 0
+     }
+    ]
+   },
+   {
+    "station_id": "6",
+    "num_bikes_available": 3,
+    "num_bikes_disabled": 0,
+    "is_charging_station": false,
+    "status": "IN_SERVICE",
+    "traffic": null,
+    "num_docks_available": 8,
+    "num_docks_disabled": 0,
+    "last_reported": 1791909941,
+    "is_installed": true,
+    "is_renting": true,
+    "is_returning": true,
+    "vehicle_docks_available": [
+     {
+      "vehicle_type_ids": [
+       "EFIT",
+       "BOOST",
+       "FIT"
+      ],
+      "count": 8
+     }
+    ],
+    "vehicle_types_available": [
+     {
+      "vehicle_type_id": "FIT",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "BOOST",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "EFIT",
+      "count": 3
+     }
+    ]
+   },
+   {
+    "station_id": "7",
+    "num_bikes_available": 0,
+    "num_bikes_disabled": 0,
+    "is_charging_station": false,
+    "status": "IN_SERVICE",
+    "traffic": null,
+    "num_docks_available": 11,
+    "num_docks_disabled": 0,
+    "last_reported": 1791910002,
+    "is_installed": true,
+    "is_renting": true,
+    "is_returning": true,
+    "vehicle_docks_available": [
+     {
+      "vehicle_type_ids": [
+       "EFIT",
+       "BOOST",
+       "FIT"
+      ],
+      "count": 11
+     }
+    ],
+    "vehicle_types_available": [
+     {
+      "vehicle_type_id": "FIT",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "BOOST",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "EFIT",
+      "count": 0
+     }
+    ]
+   },
+   {
+    "station_id": "8",
+    "num_bikes_available": 1,
+    "num_bikes_disabled": 0,
+    "is_charging_station": false,
+    "status": "IN_SERVICE",
+    "traffic": null,
+    "num_docks_available": 16,
+    "num_docks_disabled": 0,
+    "last_reported": 1791909992,
+    "is_installed": true,
+    "is_renting": true,
+    "is_returning": true,
+    "vehicle_docks_available": [
+     {
+      "vehicle_type_ids": [
+       "EFIT",
+       "BOOST",
+       "FIT"
+      ],
+      "count": 16
+     }
+    ],
+    "vehicle_types_available": [
+     {
+      "vehicle_type_id": "FIT",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "BOOST",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "EFIT",
+      "count": 1
+     }
+    ]
+   },
+   {
+    "station_id": "9",
+    "num_bikes_available": 11,
+    "num_bikes_disabled": 0,
+    "is_charging_station": false,
+    "status": "IN_SERVICE",
+    "traffic": null,
+    "num_docks_available": 8,
+    "num_docks_disabled": 0,
+    "last_reported": 1791909996,
+    "is_installed": true,
+    "is_renting": true,
+    "is_returning": true,
+    "vehicle_docks_available": [
+     {
+      "vehicle_type_ids": [
+       "EFIT",
+       "BOOST",
+       "FIT"
+      ],
+      "count": 8
+     }
+    ],
+    "vehicle_types_available": [
+     {
+      "vehicle_type_id": "FIT",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "BOOST",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "EFIT",
+      "count": 11
+     }
+    ]
+   },
+   {
+    "station_id": "10",
+    "num_bikes_available": 0,
+    "num_bikes_disabled": 0,
+    "is_charging_station": false,
+    "status": "IN_SERVICE",
+    "traffic": null,
+    "num_docks_available": 5,
+    "num_docks_disabled": 0,
+    "last_reported": 1791909944,
+    "is_installed": true,
+    "is_renting": true,
+    "is_returning": true,
+    "vehicle_docks_available": [
+     {
+      "vehicle_type_ids": [
+       "EFIT",
+       "BOOST",
+       "FIT"
+      ],
+      "count": 5
+     }
+    ],
+    "vehicle_types_available": [
+     {
+      "vehicle_type_id": "FIT",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "BOOST",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "EFIT",
+      "count": 0
+     }
+    ]
+   },
+   {
+    "station_id": "12",
+    "num_bikes_available": 1,
+    "num_bikes_disabled": 0,
+    "is_charging_station": false,
+    "status": "IN_SERVICE",
+    "traffic": null,
+    "num_docks_available": 10,
+    "num_docks_disabled": 0,
+    "last_reported": 1791910008,
+    "is_installed": true,
+    "is_renting": true,
+    "is_returning": true,
+    "vehicle_docks_available": [
+     {
+      "vehicle_type_ids": [
+       "EFIT",
+       "BOOST",
+       "FIT"
+      ],
+      "count": 10
+     }
+    ],
+    "vehicle_types_available": [
+     {
+      "vehicle_type_id": "FIT",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "BOOST",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "EFIT",
+      "count": 1
+     }
+    ]
+   },
+   {
+    "station_id": "13",
+    "num_bikes_available": 12,
+    "num_bikes_disabled": 0,
+    "is_charging_station": false,
+    "status": "IN_SERVICE",
+    "traffic": null,
+    "num_docks_available": 11,
+    "num_docks_disabled": 0,
+    "last_reported": 1791909946,
+    "is_installed": true,
+    "is_renting": true,
+    "is_returning": true,
+    "vehicle_docks_available": [
+     {
+      "vehicle_type_ids": [
+       "EFIT",
+       "BOOST",
+       "FIT"
+      ],
+      "count": 11
+     }
+    ],
+    "vehicle_types_available": [
+     {
+      "vehicle_type_id": "FIT",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "BOOST",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "EFIT",
+      "count": 12
+     }
+    ]
+   },
+   {
+    "station_id": "14",
+    "num_bikes_available": 0,
+    "num_bikes_disabled": 2,
+    "is_charging_station": false,
+    "status": "IN_SERVICE",
+    "traffic": null,
+    "num_docks_available": 11,
+    "num_docks_disabled": 0,
+    "last_reported": 1791910006,
+    "is_installed": true,
+    "is_renting": true,
+    "is_returning": true,
+    "vehicle_docks_available": [
+     {
+      "vehicle_type_ids": [
+       "EFIT",
+       "BOOST",
+       "FIT"
+      ],
+      "count": 11
+     }
+    ],
+    "vehicle_types_available": [
+     {
+      "vehicle_type_id": "FIT",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "BOOST",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "EFIT",
+      "count": 0
+     }
+    ]
+   },
+   {
+    "station_id": "15",
+    "num_bikes_available": 8,
+    "num_bikes_disabled": 0,
+    "is_charging_station": true,
+    "status": "IN_SERVICE",
+    "traffic": null,
+    "num_docks_available": 11,
+    "num_docks_disabled": 0,
+    "last_reported": 1791910039,
+    "is_installed": true,
+    "is_renting": true,
+    "is_returning": true,
+    "vehicle_docks_available": [
+     {
+      "vehicle_type_ids": [
+       "EFIT",
+       "BOOST",
+       "FIT"
+      ],
+      "count": 11
+     }
+    ],
+    "vehicle_types_available": [
+     {
+      "vehicle_type_id": "FIT",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "BOOST",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "EFIT",
+      "count": 8
+     }
+    ]
+   },
+   {
+    "station_id": "16",
+    "num_bikes_available": 2,
+    "num_bikes_disabled": 0,
+    "is_charging_station": false,
+    "status": "IN_SERVICE",
+    "traffic": null,
+    "num_docks_available": 13,
+    "num_docks_disabled": 0,
+    "last_reported": 1791910023,
+    "is_installed": true,
+    "is_renting": true,
+    "is_returning": true,
+    "vehicle_docks_available": [
+     {
+      "vehicle_type_ids": [
+       "EFIT",
+       "BOOST",
+       "FIT"
+      ],
+      "count": 13
+     }
+    ],
+    "vehicle_types_available": [
+     {
+      "vehicle_type_id": "FIT",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "BOOST",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "EFIT",
+      "count": 2
+     }
+    ]
+   },
+   {
+    "station_id": "17",
+    "num_bikes_available": 7,
+    "num_bikes_disabled": 1,
+    "is_charging_station": true,
+    "status": "IN_SERVICE",
+    "traffic": null,
+    "num_docks_available": 15,
+    "num_docks_disabled": 0,
+    "last_reported": 1791909979,
+    "is_installed": true,
+    "is_renting": true,
+    "is_returning": true,
+    "vehicle_docks_available": [
+     {
+      "vehicle_type_ids": [
+       "EFIT",
+       "BOOST",
+       "FIT"
+      ],
+      "count": 15
+     }
+    ],
+    "vehicle_types_available": [
+     {
+      "vehicle_type_id": "FIT",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "BOOST",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "EFIT",
+      "count": 7
+     }
+    ]
+   },
+   {
+    "station_id": "18",
+    "num_bikes_available": 1,
+    "num_bikes_disabled": 0,
+    "is_charging_station": false,
+    "status": "IN_SERVICE",
+    "traffic": null,
+    "num_docks_available": 10,
+    "num_docks_disabled": 0,
+    "last_reported": 1791910006,
+    "is_installed": true,
+    "is_renting": true,
+    "is_returning": true,
+    "vehicle_docks_available": [
+     {
+      "vehicle_type_ids": [
+       "EFIT",
+       "BOOST",
+       "FIT"
+      ],
+      "count": 10
+     }
+    ],
+    "vehicle_types_available": [
+     {
+      "vehicle_type_id": "FIT",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "BOOST",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "EFIT",
+      "count": 1
+     }
+    ]
+   },
+   {
+    "station_id": "20",
+    "num_bikes_available": 0,
+    "num_bikes_disabled": 0,
+    "is_charging_station": false,
+    "status": "IN_SERVICE",
+    "traffic": null,
+    "num_docks_available": 11,
+    "num_docks_disabled": 0,
+    "last_reported": 1791910056,
+    "is_installed": true,
+    "is_renting": true,
+    "is_returning": true,
+    "vehicle_docks_available": [
+     {
+      "vehicle_type_ids": [
+       "EFIT",
+       "BOOST",
+       "FIT"
+      ],
+      "count": 11
+     }
+    ],
+    "vehicle_types_available": [
+     {
+      "vehicle_type_id": "FIT",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "BOOST",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "EFIT",
+      "count": 0
+     }
+    ]
+   },
+   {
+    "station_id": "21",
+    "num_bikes_available": 4,
+    "num_bikes_disabled": 0,
+    "is_charging_station": true,
+    "status": "IN_SERVICE",
+    "traffic": null,
+    "num_docks_available": 11,
+    "num_docks_disabled": 0,
+    "last_reported": 1791910052,
+    "is_installed": true,
+    "is_renting": true,
+    "is_returning": true,
+    "vehicle_docks_available": [
+     {
+      "vehicle_type_ids": [
+       "EFIT",
+       "BOOST",
+       "FIT"
+      ],
+      "count": 11
+     }
+    ],
+    "vehicle_types_available": [
+     {
+      "vehicle_type_id": "FIT",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "BOOST",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "EFIT",
+      "count": 4
+     }
+    ]
+   },
+   {
+    "station_id": "22",
+    "num_bikes_available": 1,
+    "num_bikes_disabled": 0,
+    "is_charging_station": false,
+    "status": "IN_SERVICE",
+    "traffic": null,
+    "num_docks_available": 10,
+    "num_docks_disabled": 0,
+    "last_reported": 1791909984,
+    "is_installed": true,
+    "is_renting": true,
+    "is_returning": true,
+    "vehicle_docks_available": [
+     {
+      "vehicle_type_ids": [
+       "EFIT",
+       "BOOST",
+       "FIT"
+      ],
+      "count": 10
+     }
+    ],
+    "vehicle_types_available": [
+     {
+      "vehicle_type_id": "FIT",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "BOOST",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "EFIT",
+      "count": 1
+     }
+    ]
+   },
+   {
+    "station_id": "23",
+    "num_bikes_available": 5,
+    "num_bikes_disabled": 0,
+    "is_charging_station": false,
+    "status": "IN_SERVICE",
+    "traffic": null,
+    "num_docks_available": 10,
+    "num_docks_disabled": 0,
+    "last_reported": 1791910045,
+    "is_installed": true,
+    "is_renting": true,
+    "is_returning": true,
+    "vehicle_docks_available": [
+     {
+      "vehicle_type_ids": [
+       "EFIT",
+       "BOOST",
+       "FIT"
+      ],
+      "count": 10
+     }
+    ],
+    "vehicle_types_available": [
+     {
+      "vehicle_type_id": "FIT",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "BOOST",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "EFIT",
+      "count": 5
+     }
+    ]
+   },
+   {
+    "station_id": "24",
+    "num_bikes_available": 1,
+    "num_bikes_disabled": 0,
+    "is_charging_station": false,
+    "status": "IN_SERVICE",
+    "traffic": null,
+    "num_docks_available": 14,
+    "num_docks_disabled": 0,
+    "last_reported": 1791910057,
+    "is_installed": true,
+    "is_renting": true,
+    "is_returning": true,
+    "vehicle_docks_available": [
+     {
+      "vehicle_type_ids": [
+       "EFIT",
+       "BOOST",
+       "FIT"
+      ],
+      "count": 14
+     }
+    ],
+    "vehicle_types_available": [
+     {
+      "vehicle_type_id": "FIT",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "BOOST",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "EFIT",
+      "count": 1
+     }
+    ]
+   },
+   {
+    "station_id": "25",
+    "num_bikes_available": 2,
+    "num_bikes_disabled": 0,
+    "is_charging_station": false,
+    "status": "IN_SERVICE",
+    "traffic": null,
+    "num_docks_available": 13,
+    "num_docks_disabled": 0,
+    "last_reported": 1791910000,
+    "is_installed": true,
+    "is_renting": true,
+    "is_returning": true,
+    "vehicle_docks_available": [
+     {
+      "vehicle_type_ids": [
+       "EFIT",
+       "BOOST",
+       "FIT"
+      ],
+      "count": 13
+     }
+    ],
+    "vehicle_types_available": [
+     {
+      "vehicle_type_id": "FIT",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "BOOST",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "EFIT",
+      "count": 2
+     }
+    ]
+   },
+   {
+    "station_id": "26",
+    "num_bikes_available": 0,
+    "num_bikes_disabled": 0,
+    "is_charging_station": false,
+    "status": "IN_SERVICE",
+    "traffic": null,
+    "num_docks_available": 11,
+    "num_docks_disabled": 0,
+    "last_reported": 1791910001,
+    "is_installed": true,
+    "is_renting": true,
+    "is_returning": true,
+    "vehicle_docks_available": [
+     {
+      "vehicle_type_ids": [
+       "EFIT",
+       "BOOST",
+       "FIT"
+      ],
+      "count": 11
+     }
+    ],
+    "vehicle_types_available": [
+     {
+      "vehicle_type_id": "FIT",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "BOOST",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "EFIT",
+      "count": 0
+     }
+    ]
+   },
+   {
+    "station_id": "28",
+    "num_bikes_available": 2,
+    "num_bikes_disabled": 0,
+    "is_charging_station": false,
+    "status": "IN_SERVICE",
+    "traffic": null,
+    "num_docks_available": 5,
+    "num_docks_disabled": 0,
+    "last_reported": 1791910052,
+    "is_installed": true,
+    "is_renting": true,
+    "is_returning": true,
+    "vehicle_docks_available": [
+     {
+      "vehicle_type_ids": [
+       "EFIT",
+       "BOOST",
+       "FIT"
+      ],
+      "count": 5
+     }
+    ],
+    "vehicle_types_available": [
+     {
+      "vehicle_type_id": "FIT",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "BOOST",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "EFIT",
+      "count": 2
+     }
+    ]
+   }
+  ]
+ },
+ "version": "2.3"
+}

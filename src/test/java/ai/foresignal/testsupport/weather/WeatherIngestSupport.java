@@ -40,7 +40,7 @@ import org.springframework.test.context.DynamicPropertySource;
  * {@code goes-glm}, {@code goes-fdc}, {@code hms-smoke} and {@code hms-fire}, and 053's {@code nws-gridpoints} and
  * {@code spc-storm-reports}, which share the NWS and SPC base-URL properties, and 064's {@code celestrak-gp} and
  * {@code celestrak-socrates}, 065's {@code nasa-firms}, 066's {@code gdelt-events} and 067's {@code nhc-cyclones}, {@code gdacs} and
- * {@code tsunami-warnings}, 068's {@code ioda-outages}, and 070's {@code transit-*}) point at one stub server
+ * {@code tsunami-warnings}, 068's {@code ioda-outages}, 070's {@code transit-*} and 071's {@code gbfs-*}) point at one stub server
  * through their test base-URL properties (and S3 listings through {@code foresignal.test.s3-endpoint}),
  * and each test drives real fetches with {@link FetchExecutor#execute(String, FetchTrigger)
  * execute(id, MANUAL)}, so records reach the store through the real fetch path and ingest writer
@@ -92,6 +92,8 @@ public abstract class WeatherIngestSupport {
                 () -> "transit/test-catalog.csv");
         registry.add(ai.foresignal.source.adapters.transit.TransitFamily.CATALOG_FEEDS_PROPERTY,
                 () -> "mdb-9001,mdb-9003,mdb-9005");
+        // Prompt 071: the gbfs-* sources join this context too; every GBFS URL moves under the stub as /{host}{path}.
+        registry.add(ai.foresignal.source.adapters.gbfs.GbfsFamily.BASE_URL_PROPERTY, UPSTREAM::baseUrl);
     }
 
     @Autowired protected FetchExecutor executor;
@@ -113,7 +115,7 @@ public abstract class WeatherIngestSupport {
             ai.foresignal.source.adapters.gdacs.GdacsAdapter.ID,
             ai.foresignal.source.adapters.tsunami.TsunamiWarningsAdapter.ID,
             ai.foresignal.source.adapters.ioda.IodaOutagesAdapter.ID,
-            "transit-mbta", "transit-alerts-mbta", "transit-mdb-mdb-9001");
+            "transit-mbta", "transit-alerts-mbta", "transit-mdb-mdb-9001", "gbfs-boulder-bcycle");
 
     /** Resets the stubs and the backoff of the weather sources. */
     @BeforeEach

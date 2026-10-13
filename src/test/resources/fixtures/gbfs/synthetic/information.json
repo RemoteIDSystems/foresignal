@@ -1,0 +1,13 @@
+{
+ "last_updated": 1791910000,
+ "ttl": 60,
+ "version": "2.3",
+ "data": {
+  "stations": [
+   {"station_id": "S1", "name": "First & Main", "address": "1 Main St", "lat": 40.015, "lon": -105.27, "capacity": 10, "region_id": "r1"},
+   {"station_id": "S2", "name": "Second & Oak", "lat": 40.02, "lon": -105.28, "capacity": 8},
+   {"station_id": "S3", "name": "No Position"},
+   {"station_id": "S4", "name": "Null Island", "lat": 0, "lon": 0, "capacity": 4}
+  ]
+ }
+}

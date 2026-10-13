@@ -307,6 +307,11 @@
         "version": "1.3.0",
         "date": "2026-10-13",
         "note": "070: searchTransitCatalog is implemented. TransitCatalogEntry.entityType is the catalog's |-joined entity types (a pattern instead of a single-value enum: Mobility Database rows such as tu|vp and sa|tu|vp serve several), and TransitCatalogEntry gains sourceIds (a row serving vp and sa registers two sources). New sources transit-{id} and transit-alerts-{id} (reviewed feeds mbta, capmetro-austin, metrotransit-msp, hsl-helsinki, ovapi-nl, entur-norway, translink-seq) and transit-mdb-{id} / transit-alerts-mdb-{id} from foresignal.transit.catalog-feeds; the transit-vehicle and transit-alert kind notes document their time bases."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-13",
+        "note": "071: no operation changes. New sources gbfs-{id}, one per reviewed docked bikeshare system (30 systems); the bikeshare-station kind note documents the LATEST policy, the time base and availability. Descriptor followRedirects is internal and not part of the API."
       }
     ]
   },
@@ -89004,7 +89009,7 @@
                 "system"
               ]
             },
-            "note": "availability `out-of-service|empty|low|full|ok`."
+            "note": "STANDARD, LATEST {keyframe 20m, edgeMinInterval 30s}, TTL 30 min (anchored on receipt); significant name, capacity, isInstalled, isRenting, isReturning, availability, so bike and dock counts are live updates. observedAt = station_status.last_reported (a station without one is dropped). availability `out-of-service|empty|low|full|ok`: out-of-service when not installed or not renting, empty at 0 bikes, low at 2 or fewer, full at 0 docks, else ok. ebikesAvailable only from GBFS 1.x/2.x feeds. system is the reviewed system id. One source per reviewed docked system; redirects refused (071)."
           },
           "camera": {
             "x-foresignal-prompt": "072",

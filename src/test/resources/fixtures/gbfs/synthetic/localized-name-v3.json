@@ -1,0 +1,12 @@
+{
+ "last_updated": "2026-10-13T16:46:40Z",
+ "ttl": 0,
+ "version": "3.0",
+ "data": {
+  "stations": [
+   {"station_id": "V1", "name": [{"text": "Gare Centrale", "language": "fr"}, {"text": "Central Station", "language": "en"}], "address": "1 Station Sq", "lat": 45.5, "lon": -73.57, "capacity": 20},
+   {"station_id": "V2", "name": [{"text": "Parc du Mont-Royal", "language": "fr"}], "lat": 45.51, "lon": -73.58, "capacity": 12},
+   {"station_id": "V3", "name": [{"text": "Old Port", "language": "en-CA"}, {"text": "Vieux-Port", "language": "fr-CA"}], "lat": 45.505, "lon": -73.55, "capacity": 15}
+  ]
+ }
+}

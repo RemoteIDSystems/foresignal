@@ -1,0 +1,11 @@
+{
+ "last_updated": 1791910000,
+ "ttl": 60,
+ "version": "1.1",
+ "data": {
+  "stations": [
+   {"station_id": "S1", "num_bikes_available": 4, "num_docks_available": 6, "num_bikes_available_types": {"electric": 2, "smart": 0, "classic": 2}, "is_installed": 1, "is_renting": 0, "is_returning": 1, "last_reported": 1791909990},
+   {"station_id": "S2", "num_bikes_available": 4, "num_docks_available": 4, "is_installed": "true", "is_renting": "yes", "is_returning": "0", "last_reported": "1791909990"}
+  ]
+ }
+}

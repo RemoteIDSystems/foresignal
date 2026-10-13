@@ -187,6 +187,21 @@ raster context and render a tile. The object base URLs follow the test base URL 
 - **God's Eye View** (`~/Documents/GitLab/gods-eye-view`, MIT) may be ported to Java. Add a header comment naming the origin file and the MIT notice, and list it in `THIRD_PARTY_NOTICES.md`. The USGS adapter was written independently and ports nothing (GEV's earthquake layer filters to M2.5+ and rejects whole snapshots, which Foresignal does not want).
 - **ShadowBroker, Velocity, World Monitor (AGPL) and SatDump (GPL)** are reference material only. Read them for endpoints and quirks; never copy code.
 - **Adapter families:** one `SourceAdapterFamily` bean, one source per feed, each with its own settings, budget and health.
+  - **Reviewed lists** (`TransitFeeds`, 070; `GbfsSystems`, 071) are validated at startup, and an invalid list stops
+    Foresignal. Derive any host allowlist from the list itself and check every URL's scheme, host and path there, as
+    `GbfsSystems.problems` does. Never discover URLs at runtime (GBFS `gbfs.json`, for example): discovery lets
+    upstream data choose what Foresignal requests.
+  - **Test rebasing:** a family takes a `foresignal.test.adapters.{family}.base-url` property that moves every URL to
+    a WireMock base. When feeds share a path on different hosts (every `*.publicbikesystem.net` GBFS system), keep the
+    host as the first path segment (`GbfsSystem.rebased`).
+  - **Redirects:** a family whose upstream must not redirect sets `followRedirects(false)`. The 3xx then reaches the
+    adapter as a response, and the adapter fails the run with an `UpstreamFormatException` naming the host (GBFS:
+    `redirect refused: {host}`). That is a failure, not a backoff.
+  - **Catalog additions** come only from a vendored, reviewed resource plus a bootstrap property and a restart
+    (070's Mobility Database resolver, `MobilityCatalog`). GBFS systems are added only in code today. A resolver like
+    070's could follow over MobilityData's `systems.csv` (CC BY 3.0, so it needs attribution in
+    `THIRD_PARTY_NOTICES.md` and in each source's descriptor). It would still have to apply the GBFS path rule and
+    refuse redirects.
 - **Streaming adapters** (the first is `aisstream`, prompt 063) emit through the `RecordSink` they are given; the framework's `PolicyAwareRecordSink` batches, keeps latest-wins for SAMPLED and LATEST, and writes one `fetch_log` row per flush. See §16 for the full pattern.
 - **PUSH sources** (custom sources and inbound webhooks, prompt 024) have no fetch; records arrive through the ingest API.
 - **DERIVED sources** make no upstream requests; `ctx.http()` throws for them. See §14.

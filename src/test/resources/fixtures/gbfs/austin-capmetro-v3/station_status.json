@@ -1,0 +1,884 @@
+{
+ "last_updated": "2026-10-13T16:51:23Z",
+ "ttl": 18,
+ "data": {
+  "stations": [
+   {
+    "station_id": "1",
+    "num_vehicles_available": 3,
+    "num_vehicles_disabled": 0,
+    "num_docks_available": 12,
+    "num_docks_disabled": 0,
+    "last_reported": "2026-10-13T16:50:39.557Z",
+    "is_installed": true,
+    "is_renting": true,
+    "is_returning": true,
+    "vehicle_docks_available": [
+     {
+      "vehicle_type_ids": [
+       "EFIT",
+       "BOOST",
+       "FIT"
+      ],
+      "count": 12
+     }
+    ],
+    "vehicle_types_available": [
+     {
+      "vehicle_type_id": "FIT",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "BOOST",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "EFIT",
+      "count": 3
+     }
+    ]
+   },
+   {
+    "station_id": "2",
+    "num_vehicles_available": 1,
+    "num_vehicles_disabled": 0,
+    "num_docks_available": 10,
+    "num_docks_disabled": 0,
+    "last_reported": "2026-10-13T16:50:28.673Z",
+    "is_installed": true,
+    "is_renting": true,
+    "is_returning": true,
+    "vehicle_docks_available": [
+     {
+      "vehicle_type_ids": [
+       "EFIT",
+       "BOOST",
+       "FIT"
+      ],
+      "count": 10
+     }
+    ],
+    "vehicle_types_available": [
+     {
+      "vehicle_type_id": "FIT",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "BOOST",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "EFIT",
+      "count": 1
+     }
+    ]
+   },
+   {
+    "station_id": "3",
+    "num_vehicles_available": 1,
+    "num_vehicles_disabled": 0,
+    "num_docks_available": 10,
+    "num_docks_disabled": 0,
+    "last_reported": "2026-10-13T16:49:09.92Z",
+    "is_installed": true,
+    "is_renting": true,
+    "is_returning": true,
+    "vehicle_docks_available": [
+     {
+      "vehicle_type_ids": [
+       "EFIT",
+       "BOOST",
+       "FIT"
+      ],
+      "count": 10
+     }
+    ],
+    "vehicle_types_available": [
+     {
+      "vehicle_type_id": "FIT",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "BOOST",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "EFIT",
+      "count": 1
+     }
+    ]
+   },
+   {
+    "station_id": "4",
+    "num_vehicles_available": 1,
+    "num_vehicles_disabled": 0,
+    "num_docks_available": 10,
+    "num_docks_disabled": 0,
+    "last_reported": "2026-10-13T16:50:12.898Z",
+    "is_installed": true,
+    "is_renting": true,
+    "is_returning": true,
+    "vehicle_docks_available": [
+     {
+      "vehicle_type_ids": [
+       "EFIT",
+       "BOOST",
+       "FIT"
+      ],
+      "count": 10
+     }
+    ],
+    "vehicle_types_available": [
+     {
+      "vehicle_type_id": "FIT",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "BOOST",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "EFIT",
+      "count": 1
+     }
+    ]
+   },
+   {
+    "station_id": "5",
+    "num_vehicles_available": 0,
+    "num_vehicles_disabled": 0,
+    "num_docks_available": 11,
+    "num_docks_disabled": 0,
+    "last_reported": "2026-10-13T16:49:58.36Z",
+    "is_installed": true,
+    "is_renting": true,
+    "is_returning": true,
+    "vehicle_docks_available": [
+     {
+      "vehicle_type_ids": [
+       "EFIT",
+       "BOOST",
+       "FIT"
+      ],
+      "count": 11
+     }
+    ],
+    "vehicle_types_available": [
+     {
+      "vehicle_type_id": "FIT",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "BOOST",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "EFIT",
+      "count": 0
+     }
+    ]
+   },
+   {
+    "station_id": "6",
+    "num_vehicles_available": 3,
+    "num_vehicles_disabled": 0,
+    "num_docks_available": 8,
+    "num_docks_disabled": 0,
+    "last_reported": "2026-10-13T16:49:56.095Z",
+    "is_installed": true,
+    "is_renting": true,
+    "is_returning": true,
+    "vehicle_docks_available": [
+     {
+      "vehicle_type_ids": [
+       "EFIT",
+       "BOOST",
+       "FIT"
+      ],
+      "count": 8
+     }
+    ],
+    "vehicle_types_available": [
+     {
+      "vehicle_type_id": "FIT",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "BOOST",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "EFIT",
+      "count": 3
+     }
+    ]
+   },
+   {
+    "station_id": "7",
+    "num_vehicles_available": 0,
+    "num_vehicles_disabled": 0,
+    "num_docks_available": 11,
+    "num_docks_disabled": 0,
+    "last_reported": "2026-10-13T16:50:56.561Z",
+    "is_installed": true,
+    "is_renting": true,
+    "is_returning": true,
+    "vehicle_docks_available": [
+     {
+      "vehicle_type_ids": [
+       "EFIT",
+       "BOOST",
+       "FIT"
+      ],
+      "count": 11
+     }
+    ],
+    "vehicle_types_available": [
+     {
+      "vehicle_type_id": "FIT",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "BOOST",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "EFIT",
+      "count": 0
+     }
+    ]
+   },
+   {
+    "station_id": "8",
+    "num_vehicles_available": 1,
+    "num_vehicles_disabled": 0,
+    "num_docks_available": 16,
+    "num_docks_disabled": 0,
+    "last_reported": "2026-10-13T16:50:46.95Z",
+    "is_installed": true,
+    "is_renting": true,
+    "is_returning": true,
+    "vehicle_docks_available": [
+     {
+      "vehicle_type_ids": [
+       "EFIT",
+       "BOOST",
+       "FIT"
+      ],
+      "count": 16
+     }
+    ],
+    "vehicle_types_available": [
+     {
+      "vehicle_type_id": "FIT",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "BOOST",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "EFIT",
+      "count": 1
+     }
+    ]
+   },
+   {
+    "station_id": "9",
+    "num_vehicles_available": 12,
+    "num_vehicles_disabled": 0,
+    "num_docks_available": 7,
+    "num_docks_disabled": 0,
+    "last_reported": "2026-10-13T16:50:51.218Z",
+    "is_installed": true,
+    "is_renting": true,
+    "is_returning": true,
+    "vehicle_docks_available": [
+     {
+      "vehicle_type_ids": [
+       "EFIT",
+       "BOOST",
+       "FIT"
+      ],
+      "count": 7
+     }
+    ],
+    "vehicle_types_available": [
+     {
+      "vehicle_type_id": "FIT",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "BOOST",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "EFIT",
+      "count": 12
+     }
+    ]
+   },
+   {
+    "station_id": "10",
+    "num_vehicles_available": 1,
+    "num_vehicles_disabled": 0,
+    "num_docks_available": 4,
+    "num_docks_disabled": 0,
+    "last_reported": "2026-10-13T16:49:58.738Z",
+    "is_installed": true,
+    "is_renting": true,
+    "is_returning": true,
+    "vehicle_docks_available": [
+     {
+      "vehicle_type_ids": [
+       "EFIT",
+       "BOOST",
+       "FIT"
+      ],
+      "count": 4
+     }
+    ],
+    "vehicle_types_available": [
+     {
+      "vehicle_type_id": "FIT",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "BOOST",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "EFIT",
+      "count": 1
+     }
+    ]
+   },
+   {
+    "station_id": "12",
+    "num_vehicles_available": 1,
+    "num_vehicles_disabled": 0,
+    "num_docks_available": 10,
+    "num_docks_disabled": 0,
+    "last_reported": "2026-10-13T16:51:02.95Z",
+    "is_installed": true,
+    "is_renting": true,
+    "is_returning": true,
+    "vehicle_docks_available": [
+     {
+      "vehicle_type_ids": [
+       "EFIT",
+       "BOOST",
+       "FIT"
+      ],
+      "count": 10
+     }
+    ],
+    "vehicle_types_available": [
+     {
+      "vehicle_type_id": "FIT",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "BOOST",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "EFIT",
+      "count": 1
+     }
+    ]
+   },
+   {
+    "station_id": "13",
+    "num_vehicles_available": 13,
+    "num_vehicles_disabled": 0,
+    "num_docks_available": 10,
+    "num_docks_disabled": 0,
+    "last_reported": "2026-10-13T16:50:00.274Z",
+    "is_installed": true,
+    "is_renting": true,
+    "is_returning": true,
+    "vehicle_docks_available": [
+     {
+      "vehicle_type_ids": [
+       "EFIT",
+       "BOOST",
+       "FIT"
+      ],
+      "count": 10
+     }
+    ],
+    "vehicle_types_available": [
+     {
+      "vehicle_type_id": "FIT",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "BOOST",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "EFIT",
+      "count": 13
+     }
+    ]
+   },
+   {
+    "station_id": "14",
+    "num_vehicles_available": 1,
+    "num_vehicles_disabled": 2,
+    "num_docks_available": 10,
+    "num_docks_disabled": 0,
+    "last_reported": "2026-10-13T16:51:00.363Z",
+    "is_installed": true,
+    "is_renting": true,
+    "is_returning": true,
+    "vehicle_docks_available": [
+     {
+      "vehicle_type_ids": [
+       "EFIT",
+       "BOOST",
+       "FIT"
+      ],
+      "count": 10
+     }
+    ],
+    "vehicle_types_available": [
+     {
+      "vehicle_type_id": "FIT",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "BOOST",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "EFIT",
+      "count": 1
+     }
+    ]
+   },
+   {
+    "station_id": "15",
+    "num_vehicles_available": 8,
+    "num_vehicles_disabled": 0,
+    "num_docks_available": 11,
+    "num_docks_disabled": 0,
+    "last_reported": "2026-10-13T16:49:24.154Z",
+    "is_installed": true,
+    "is_renting": true,
+    "is_returning": true,
+    "vehicle_docks_available": [
+     {
+      "vehicle_type_ids": [
+       "EFIT",
+       "BOOST",
+       "FIT"
+      ],
+      "count": 11
+     }
+    ],
+    "vehicle_types_available": [
+     {
+      "vehicle_type_id": "FIT",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "BOOST",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "EFIT",
+      "count": 8
+     }
+    ]
+   },
+   {
+    "station_id": "16",
+    "num_vehicles_available": 2,
+    "num_vehicles_disabled": 0,
+    "num_docks_available": 13,
+    "num_docks_disabled": 0,
+    "last_reported": "2026-10-13T16:49:10.637Z",
+    "is_installed": true,
+    "is_renting": true,
+    "is_returning": true,
+    "vehicle_docks_available": [
+     {
+      "vehicle_type_ids": [
+       "EFIT",
+       "BOOST",
+       "FIT"
+      ],
+      "count": 13
+     }
+    ],
+    "vehicle_types_available": [
+     {
+      "vehicle_type_id": "FIT",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "BOOST",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "EFIT",
+      "count": 2
+     }
+    ]
+   },
+   {
+    "station_id": "17",
+    "num_vehicles_available": 7,
+    "num_vehicles_disabled": 1,
+    "num_docks_available": 15,
+    "num_docks_disabled": 0,
+    "last_reported": "2026-10-13T16:50:23.065Z",
+    "is_installed": true,
+    "is_renting": true,
+    "is_returning": true,
+    "vehicle_docks_available": [
+     {
+      "vehicle_type_ids": [
+       "EFIT",
+       "BOOST",
+       "FIT"
+      ],
+      "count": 15
+     }
+    ],
+    "vehicle_types_available": [
+     {
+      "vehicle_type_id": "FIT",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "BOOST",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "EFIT",
+      "count": 7
+     }
+    ]
+   },
+   {
+    "station_id": "18",
+    "num_vehicles_available": 1,
+    "num_vehicles_disabled": 0,
+    "num_docks_available": 10,
+    "num_docks_disabled": 0,
+    "last_reported": "2026-10-13T16:51:01.244Z",
+    "is_installed": true,
+    "is_renting": true,
+    "is_returning": true,
+    "vehicle_docks_available": [
+     {
+      "vehicle_type_ids": [
+       "EFIT",
+       "BOOST",
+       "FIT"
+      ],
+      "count": 10
+     }
+    ],
+    "vehicle_types_available": [
+     {
+      "vehicle_type_id": "FIT",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "BOOST",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "EFIT",
+      "count": 1
+     }
+    ]
+   },
+   {
+    "station_id": "20",
+    "num_vehicles_available": 0,
+    "num_vehicles_disabled": 0,
+    "num_docks_available": 11,
+    "num_docks_disabled": 0,
+    "last_reported": "2026-10-13T16:49:43.509Z",
+    "is_installed": true,
+    "is_renting": true,
+    "is_returning": true,
+    "vehicle_docks_available": [
+     {
+      "vehicle_type_ids": [
+       "EFIT",
+       "BOOST",
+       "FIT"
+      ],
+      "count": 11
+     }
+    ],
+    "vehicle_types_available": [
+     {
+      "vehicle_type_id": "FIT",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "BOOST",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "EFIT",
+      "count": 0
+     }
+    ]
+   },
+   {
+    "station_id": "21",
+    "num_vehicles_available": 4,
+    "num_vehicles_disabled": 0,
+    "num_docks_available": 11,
+    "num_docks_disabled": 0,
+    "last_reported": "2026-10-13T16:49:37.034Z",
+    "is_installed": true,
+    "is_renting": true,
+    "is_returning": true,
+    "vehicle_docks_available": [
+     {
+      "vehicle_type_ids": [
+       "EFIT",
+       "BOOST",
+       "FIT"
+      ],
+      "count": 11
+     }
+    ],
+    "vehicle_types_available": [
+     {
+      "vehicle_type_id": "FIT",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "BOOST",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "EFIT",
+      "count": 4
+     }
+    ]
+   },
+   {
+    "station_id": "22",
+    "num_vehicles_available": 1,
+    "num_vehicles_disabled": 0,
+    "num_docks_available": 10,
+    "num_docks_disabled": 0,
+    "last_reported": "2026-10-13T16:50:39.799Z",
+    "is_installed": true,
+    "is_renting": true,
+    "is_returning": true,
+    "vehicle_docks_available": [
+     {
+      "vehicle_type_ids": [
+       "EFIT",
+       "BOOST",
+       "FIT"
+      ],
+      "count": 10
+     }
+    ],
+    "vehicle_types_available": [
+     {
+      "vehicle_type_id": "FIT",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "BOOST",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "EFIT",
+      "count": 1
+     }
+    ]
+   },
+   {
+    "station_id": "23",
+    "num_vehicles_available": 5,
+    "num_vehicles_disabled": 0,
+    "num_docks_available": 10,
+    "num_docks_disabled": 0,
+    "last_reported": "2026-10-13T16:49:32.476Z",
+    "is_installed": true,
+    "is_renting": true,
+    "is_returning": true,
+    "vehicle_docks_available": [
+     {
+      "vehicle_type_ids": [
+       "EFIT",
+       "BOOST",
+       "FIT"
+      ],
+      "count": 10
+     }
+    ],
+    "vehicle_types_available": [
+     {
+      "vehicle_type_id": "FIT",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "BOOST",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "EFIT",
+      "count": 5
+     }
+    ]
+   },
+   {
+    "station_id": "24",
+    "num_vehicles_available": 1,
+    "num_vehicles_disabled": 0,
+    "num_docks_available": 14,
+    "num_docks_disabled": 0,
+    "last_reported": "2026-10-13T16:49:44.66Z",
+    "is_installed": true,
+    "is_renting": true,
+    "is_returning": true,
+    "vehicle_docks_available": [
+     {
+      "vehicle_type_ids": [
+       "EFIT",
+       "BOOST",
+       "FIT"
+      ],
+      "count": 14
+     }
+    ],
+    "vehicle_types_available": [
+     {
+      "vehicle_type_id": "FIT",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "BOOST",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "EFIT",
+      "count": 1
+     }
+    ]
+   },
+   {
+    "station_id": "25",
+    "num_vehicles_available": 2,
+    "num_vehicles_disabled": 0,
+    "num_docks_available": 13,
+    "num_docks_disabled": 0,
+    "last_reported": "2026-10-13T16:50:53.827Z",
+    "is_installed": true,
+    "is_renting": true,
+    "is_returning": true,
+    "vehicle_docks_available": [
+     {
+      "vehicle_type_ids": [
+       "EFIT",
+       "BOOST",
+       "FIT"
+      ],
+      "count": 13
+     }
+    ],
+    "vehicle_types_available": [
+     {
+      "vehicle_type_id": "FIT",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "BOOST",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "EFIT",
+      "count": 2
+     }
+    ]
+   },
+   {
+    "station_id": "26",
+    "num_vehicles_available": 0,
+    "num_vehicles_disabled": 0,
+    "num_docks_available": 11,
+    "num_docks_disabled": 0,
+    "last_reported": "2026-10-13T16:50:55.168Z",
+    "is_installed": true,
+    "is_renting": true,
+    "is_returning": true,
+    "vehicle_docks_available": [
+     {
+      "vehicle_type_ids": [
+       "EFIT",
+       "BOOST",
+       "FIT"
+      ],
+      "count": 11
+     }
+    ],
+    "vehicle_types_available": [
+     {
+      "vehicle_type_id": "FIT",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "BOOST",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "EFIT",
+      "count": 0
+     }
+    ]
+   },
+   {
+    "station_id": "28",
+    "num_vehicles_available": 1,
+    "num_vehicles_disabled": 0,
+    "num_docks_available": 6,
+    "num_docks_disabled": 0,
+    "last_reported": "2026-10-13T16:49:39.61Z",
+    "is_installed": true,
+    "is_renting": true,
+    "is_returning": true,
+    "vehicle_docks_available": [
+     {
+      "vehicle_type_ids": [
+       "EFIT",
+       "BOOST",
+       "FIT"
+      ],
+      "count": 6
+     }
+    ],
+    "vehicle_types_available": [
+     {
+      "vehicle_type_id": "FIT",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "BOOST",
+      "count": 0
+     },
+     {
+      "vehicle_type_id": "EFIT",
+      "count": 1
+     }
+    ]
+   }
+  ]
+ },
+ "version": "3.0"
+}
