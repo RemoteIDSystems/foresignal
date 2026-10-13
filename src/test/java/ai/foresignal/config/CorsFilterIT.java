@@ -50,7 +50,7 @@ class CorsFilterIT {
                                 .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "GET"))
                 .andExpect(status().isOk())
                 .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, ORIGIN))
-                .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_MAX_AGE, "600"));
+                .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_MAX_AGE, "86400"));
     }
 
     @Test
@@ -63,8 +63,8 @@ class CorsFilterIT {
                 .andExpect(
                         header().string(
                                         HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS,
-                                        "Authorization, Content-Type, Accept, Last-Event-ID, Mcp-Session-Id, MCP-Protocol-Version"))
-                .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS, "Location, Mcp-Session-Id"));
+                                        CorsFilter.ALLOWED_HEADERS))
+                .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS, CorsFilter.EXPOSED_HEADERS));
     }
 
     @Test

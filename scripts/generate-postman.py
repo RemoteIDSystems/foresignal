@@ -18,6 +18,8 @@ PATH_VARS = {"sourceId": "sourceId", "externalId": "externalId", "ruleId": "rule
              "token": "actionToken", "notificationId": "notificationId", "policyId": "escalationPolicyId",
              # 035: feed keys.
              "feedKeyId": "feedKeyId",
+             # 050: tile keys.
+             "tileKeyId": "tileKeyId",
              # 036: places, saved views and watchlists.
              "placeId": "placeId", "viewId": "viewId", "watchlistId": "watchlistId"}
 
@@ -220,6 +222,9 @@ BODIES = {
   "createFeedKey": {"name": "home-assistant-map", "prefixes": ["/v1/records"],
                     "restrictions": {"kinds": ["earthquake"], "bbox": [-100.5, 32.0, -91.5, 40.0]},
                     "expiresAt": "2027-10-01T00:00:00Z"},
+  # 050: tile keys for header-less map clients (MapLibre, maplibre_gl, Cesium, EventSource).
+  "createTileKey": {"name": "living-room-tablet", "prefixes": ["/v1/products/", "/v1/styles", "/v1/changes/stream"],
+                    "ttl": "7d", "restrictions": {"bbox": [-100.5, 32.0, -91.5, 40.0]}},
   "updateRateLimits": {"read": 600, "tiles": 1200, "stream": {"opensPerMinute": 30, "concurrent": 8}, "expensive": 20,
                        "write": 120, "anonymous": 120, "metricsPerMinute": None},
   "updateOutboundSettings": {"allowHosts": ["ollama"], "allowCidrs": [], "denyHosts": [], "denyCidrs": ["192.168.50.0/24"]},
@@ -288,6 +293,7 @@ CAPTURE = {
   "getNotification": "const j = pm.response.json(); if (j.actions && j.actions.length) pm.collectionVariables.set('actionToken', j.actions[0].url.split('/v1/actions/')[1]);",
   "createEscalationPolicy": "const j = pm.response.json(); pm.collectionVariables.set('escalationPolicyId', j.id);",
   "createFeedKey": "const j = pm.response.json(); pm.collectionVariables.set('feedKeyId', j.id); console.log('New feed key URLs (shown once):', j.urls);",
+  "createTileKey": "const j = pm.response.json(); pm.collectionVariables.set('tileKeyId', j.id); console.log('New tile key URL base (shown once):', j.urlBase);",
   "createPlace": "const j = pm.response.json(); pm.collectionVariables.set('placeId', j.id);",
   "createView": "const j = pm.response.json(); pm.collectionVariables.set('viewId', j.id);",
   "createWatchlist": "const j = pm.response.json(); pm.collectionVariables.set('watchlistId', j.id);",
@@ -551,7 +557,7 @@ collection = {
       ("lastSeq", "0"), ("cursor", ""), ("pairingCodeId", ""), ("pairingCode", ""), ("ticket", ""),
       ("ingestFormat", "alertmanager"), ("ntfyAction", "publish"), ("edpSourceId", "ext-hormuz-transits"), ("edpIngestKey", ""),
       ("registrationToken", ""), ("registrationTokenId", ""), ("pushProviderId", "ios-apns"), ("pushDeviceId", ""),
-      ("notificationId", ""), ("actionToken", ""), ("escalationPolicyId", ""), ("feedKeyId", ""),
+      ("notificationId", ""), ("actionToken", ""), ("escalationPolicyId", ""), ("feedKeyId", ""), ("tileKeyId", ""),
       ("placeId", "home"), ("viewId", ""), ("watchlistId", ""),
       ("tileLayer", "earthquake"), ("tileZ", "0"), ("tileX", "0"), ("tileY", "0")]],
 }

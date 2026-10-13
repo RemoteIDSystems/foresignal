@@ -197,7 +197,7 @@ public class TokenService {
     /** Every token, newest first. */
     @Transactional(readOnly = true)
     public List<ApiTokenEntity> list() {
-        return tokens.findAllByOrderByCreatedAtDesc().stream().filter(t -> !t.isFeedKey()).toList();
+        return tokens.findAllByOrderByCreatedAtDesc().stream().filter(t -> !t.isPathKey()).toList();
     }
 
     /**
@@ -207,7 +207,7 @@ public class TokenService {
      */
     @Transactional(readOnly = true)
     public ApiTokenEntity get(UUID id) {
-        return tokens.findById(id).filter(t -> !t.isFeedKey()).orElseThrow(() -> NotFoundException.of("Token", id));
+        return tokens.findById(id).filter(t -> !t.isPathKey()).orElseThrow(() -> NotFoundException.of("Token", id));
     }
 
     /**
@@ -216,7 +216,7 @@ public class TokenService {
      */
     @Transactional(readOnly = true)
     public Optional<AuthenticatedToken> current(UUID id) {
-        return tokens.findById(id).filter(t -> !t.isFeedKey() && t.isActive(clock.instant()))
+        return tokens.findById(id).filter(t -> !t.isPathKey() && t.isActive(clock.instant()))
                 .map(AuthenticatedToken::of);
     }
 
@@ -237,7 +237,7 @@ public class TokenService {
      */
     @Transactional
     public void revoke(UUID id) {
-        ApiTokenEntity entity = tokens.findById(id).filter(t -> !t.isFeedKey())
+        ApiTokenEntity entity = tokens.findById(id).filter(t -> !t.isPathKey())
                 .orElseThrow(() -> NotFoundException.of("Token", id));
         if (entity.isBootstrap()) {
             throw new ConflictException(ErrorCodes.BOOTSTRAP_TOKEN,
@@ -270,7 +270,7 @@ public class TokenService {
             return Optional.empty();
         }
         ApiTokenEntity entity = found.get();
-        if (!hasher.matches(presented, entity.getTokenHash()) || entity.isFeedKey()
+        if (!hasher.matches(presented, entity.getTokenHash()) || entity.isPathKey()
                 || !entity.isActive(clock.instant())) {
             return Optional.empty();
         }

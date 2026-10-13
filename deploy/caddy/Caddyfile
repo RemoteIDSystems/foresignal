@@ -1,0 +1,84 @@
+# Foresignal behind Caddy: the `web` compose profile (prompt 050, Weather-Imagery-Design §6.7).
+#
+#   FORESIGNAL_HOSTNAME=foresignal.local docker compose --profile web up -d
+#
+# Caddy terminates TLS with HTTP/1.1, HTTP/2 and HTTP/3 (443/tcp and 443/udp) and proxies the API to
+# the broker over the compose network. Map clients get multiplexed tile requests and many SSE streams
+# over one connection; plain http://<host>:8080 stays available for agents and tools.
+#
+# The bundled web client (built separately, copied into ./deploy/web) is served from the same origin,
+# so its API calls need no CORS preflight.
+#
+# Certificates: `tls internal` (the default here) issues the site certificate from Caddy's own local
+# certificate authority. Clients must trust that authority's root, which lives in the caddy-data volume
+# at /data/caddy/pki/authorities/local/root.crt (see the Operator Guide, "Remote access and TLS").
+#
+# Trusted proxies: Foresignal honors X-Forwarded-For/-Proto only from FORESIGNAL_TRUSTED_PROXIES. Caddy
+# reaches the broker from the compose network, so set that variable to the network's range, for
+# example FORESIGNAL_TRUSTED_PROXIES='172\.(1[6-9]|2[0-9]|3[01])\.\d{1,3}\.\d{1,3}'. Otherwise the
+# audit log, rate limits and auth-failure backoff see every client as Caddy's address.
+#
+# Set the server setting publicBaseUrl to https://<FORESIGNAL_HOSTNAME>, so feed-key and tile-key URLs
+# and notification links use the HTTPS name.
+
+{$FORESIGNAL_HOSTNAME:foresignal.local} {
+	tls internal
+
+	# A public certificate by DNS-01 instead (no inbound port 80 needed). This needs a Caddy binary
+	# built with your DNS provider's module, which the stock image does not contain. Build one with
+	# xcaddy, for example:
+	#   xcaddy build --with github.com/caddy-dns/cloudflare
+	# (or a Dockerfile FROM caddy:2.11.7-builder-alpine running that command), then replace
+	# `tls internal` above with:
+	# tls {
+	# 	dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	# }
+
+	# Access log with credentials removed (prompts 035 and 050): feed and tile keys travel in the path
+	# as /v1/k/{key}/..., stream tickets as ?ticket=. Only the key's first eight characters (the same
+	# prefix the key listings show) are kept. Syntax per Caddy's "filter" log format (RE2).
+	log {
+		output stdout
+		format filter {
+			request>uri regexp "(/v1/k/[^/?]{8})[^/?]*|(ticket=)[^&]+" "${1}${2}…"
+		}
+	}
+
+	# zstd or gzip for text and JSON. PNG tiles are already compressed and are never re-encoded;
+	# server-sent events are left alone so events are not held in a compressor.
+	encode zstd gzip {
+		match {
+			header Content-Type application/json*
+			header Content-Type application/geo+json*
+			header Content-Type application/problem+json*
+			header Content-Type application/x-ndjson*
+			header Content-Type application/geo+json-seq*
+			header Content-Type application/vnd.mapbox-vector-tile*
+			header Content-Type application/javascript*
+			header Content-Type image/svg+xml*
+			header Content-Type text/html*
+			header Content-Type text/css*
+			header Content-Type text/javascript*
+			header Content-Type text/csv*
+			header Content-Type text/plain*
+		}
+	}
+
+	# The API, MCP and the health probes go to the broker. /docs (Swagger UI) is not proxied here; use
+	# http://<host>:8080/docs, or add its paths to this matcher.
+	@foresignal path /v1/* /mcp* /actuator/health*
+	handle @foresignal {
+		reverse_proxy foresignal:8080 {
+			# Server-sent events (/v1/changes/stream, /v1/events/stream, /v1/alerts/stream) must not
+			# be buffered.
+			flush_interval -1
+		}
+	}
+
+	# Everything else is the separately built web client, with a single-page-app fallback.
+	handle {
+		root * /srv/web
+		try_files {path} /index.html
+		file_server
+	}
+}

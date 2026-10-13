@@ -233,11 +233,11 @@ public class SourceVisibility {
     }
 
     /**
-     * {@link #visible(String, Optional, ReadRestriction)} for a request principal (a feed key has no
-     * {@link CurrentToken}; its grant is on the principal).
+     * {@link #visible(String, Optional, ReadRestriction)} for a request principal (a feed key or tile key
+     * has no {@link CurrentToken}; its grant is on the principal, and a tile key never has one).
      */
     public boolean visible(String sourceId, Optional<CurrentToken> token, RequestPrincipal principal) {
-        if (token.isEmpty() && principal != null && principal.isFeedKey()) {
+        if (token.isEmpty() && principal != null && principal.isPathKey()) {
             if (isPrivate(sourceId) && !canSeePrivate(principal)) {
                 return false;
             }

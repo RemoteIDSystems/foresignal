@@ -31,13 +31,17 @@ import org.springframework.web.util.UrlPathHelper;
  * <p>Runs before {@code TokenFilter}. For a {@code /v1/k/…} request it:
  *
  * <ol>
- *   <li>picks the {@link PathKeyResolver} by key prefix ({@code fsf_} feed keys here; 050 and 112 add
- *       theirs) and resolves the key in constant time. Unknown → {@code 401 INVALID_FEED_KEY};
- *       expired or revoked → {@code 410 FEED_KEY_GONE}. Each refusal counts as a failed credential
- *       for {@link AuthFailureBackoff};
+ *   <li>picks the {@link PathKeyResolver} by key prefix ({@code fsf_} feed keys, {@code fsk_} tile keys
+ *       from prompt 050; 112 adds {@code fss_}) and resolves the key in constant time. Unknown →
+ *       {@code 401} with the resolver's {@link PathKeyResolver#invalidCode()} ({@code INVALID_FEED_KEY},
+ *       {@code INVALID_TILE_KEY}); expired or revoked → its {@link PathKeyResolver#goneStatus()} and
+ *       {@link PathKeyResolver#goneCode()} ({@code 410 FEED_KEY_GONE} for feed keys, {@code 401
+ *       INVALID_TILE_KEY} for tile keys). Each refusal counts as a failed credential for
+ *       {@link AuthFailureBackoff};
  *   <li>allows only {@code GET} and {@code HEAD} ({@code 405} otherwise);
  *   <li>requires the canonical path {@code /v1/<rest>} to start with one of the key's prefixes on a
- *       segment boundary ({@code 403 RESTRICTED} otherwise); dot segments, empty segments and
+ *       segment boundary ({@code 403} with {@link PathKeyResolver#outsidePrefixCode()} otherwise:
+ *       {@code RESTRICTED} for feed keys, {@code INSUFFICIENT_SCOPE} for tile keys); dot segments, empty segments and
  *       encoded separators are refused ({@code 400});
  *   <li>binds the key's {@link RequestPrincipal} and forwards the request, unchanged otherwise, to the
  *       canonical path within the same filter chain, so the token filter, the rate limiter and the
@@ -46,10 +50,12 @@ import org.springframework.web.util.UrlPathHelper;
  *
  * <p>Every {@code /v1/k/…} response carries {@code Referrer-Policy: no-referrer},
  * {@code X-Robots-Tag: noindex} and {@code Cache-Control: private} (controllers may refine the
- * latter, never to {@code public}, because the principal is restricted). The key never appears in a
- * response body. For every request the filter also sets the request attribute
- * {@value #LOG_URI_ATTRIBUTE}: the request URI with any path key replaced by {@code …}, which the
- * Tomcat access-log pattern in {@code application.yml} logs instead of the raw request line.
+ * latter: a feed key is always restricted so stays {@code private}; a tile key without data
+ * restrictions gets the canonical path's own rule, {@code public} only while {@code openReads} covers
+ * it, prompt 050). The key never appears in a response body. For every request the filter also sets
+ * the request attribute {@value #LOG_URI_ATTRIBUTE}: the request URI with any path key replaced by its
+ * first eight characters and {@code …} ({@link #redact}), which the Tomcat access-log pattern in
+ * {@code application.yml} logs instead of the raw request line.
  */
 @Component
 public class PathKeyFilter extends OncePerRequestFilter implements Ordered {
@@ -66,7 +72,26 @@ public class PathKeyFilter extends OncePerRequestFilter implements Ordered {
     /** The request attribute holding the original (key-bearing) URI; never logged. */
     static final String ORIGINAL_URI_ATTRIBUTE = "ai.foresignal.pathKey.originalUri";
 
-    private static final Pattern KEY_SEGMENT = Pattern.compile("(/v1/k/)[^/?#\\s]+");
+    private static final Pattern KEY_SEGMENT = Pattern.compile("(/v1/k/)([^/?#\\s]+)");
+
+    /** Characters of a key kept by {@link #redact} (the same as the stored, listed key prefix). */
+    public static final int REDACTED_KEEP = 8;
+
+    /** Keys shorter than this are replaced entirely, so the kept characters never reveal most of one. */
+    static final int REDACT_MIN_LENGTH = 16;
+
+    /** The refusal codes used when no resolver owns the key's prefix (the feed-key defaults). */
+    private static final PathKeyResolver DEFAULT_CODES = new PathKeyResolver() {
+        @Override
+        public String prefix() {
+            return "";
+        }
+
+        @Override
+        public Resolution resolve(String key) {
+            return new Invalid();
+        }
+    };
 
     private final List<PathKeyResolver> resolvers;
     private final ProblemWriter problems;
@@ -85,12 +110,25 @@ public class PathKeyFilter extends OncePerRequestFilter implements Ordered {
         return ORDER;
     }
 
-    /** {@code path} with any {@code /v1/k/{key}} segment replaced by {@code /v1/k/…}; null stays null. */
+    /**
+     * {@code path} with any {@code /v1/k/{key}} segment replaced by the key's first eight characters
+     * and {@code …} ({@code /v1/k/fsk_AbCd…/products/…}, prompt 050), or by {@code …} alone when the key
+     * is shorter than {@value #REDACT_MIN_LENGTH} characters; null stays null.
+     */
     public static String redact(String path) {
         if (path == null || !path.contains(PREFIX)) {
             return path;
         }
-        return KEY_SEGMENT.matcher(path).replaceAll("$1…");
+        return KEY_SEGMENT.matcher(path).replaceAll(m -> java.util.regex.Matcher.quoteReplacement(
+                m.group(1) + keyHint(m.group(2))));
+    }
+
+    /** The redacted form of one key: its first eight characters and {@code …}, or {@code …} for a short key. */
+    public static String keyHint(String key) {
+        if (key == null || key.length() < REDACT_MIN_LENGTH) {
+            return "…";
+        }
+        return key.substring(0, REDACTED_KEEP) + "…";
     }
 
     @Override
@@ -116,28 +154,30 @@ public class PathKeyFilter extends OncePerRequestFilter implements Ordered {
         PathKeyResolver.Resolution resolution = resolver.isEmpty() || key.isEmpty()
                 ? new PathKeyResolver.Invalid()
                 : resolver.get().resolve(key);
+        PathKeyResolver codes = resolver.orElse(DEFAULT_CODES);
         String ip = request.getRemoteAddr();
         switch (resolution) {
             case PathKeyResolver.Invalid invalid -> {
                 if (!backedOff(ip, response)) {
-                    refuse(response, HttpStatus.UNAUTHORIZED, ErrorCodes.INVALID_FEED_KEY,
+                    refuse(response, HttpStatus.UNAUTHORIZED, codes.invalidCode(),
                             "The key in this URL is not valid.");
                 }
                 return;
             }
             case PathKeyResolver.Gone gone -> {
                 if (!backedOff(ip, response)) {
-                    refuse(response, HttpStatus.GONE, ErrorCodes.FEED_KEY_GONE,
+                    refuse(response, codes.goneStatus(), codes.goneCode(),
                             "The key in this URL has expired or was revoked.");
                 }
                 return;
             }
-            case PathKeyResolver.Valid valid -> forward(request, response, chain, valid, contextPath, rest, ip);
+            case PathKeyResolver.Valid valid ->
+                    forward(request, response, chain, valid, codes, contextPath, rest, ip);
         }
     }
 
     private void forward(HttpServletRequest request, HttpServletResponse response, FilterChain chain,
-            PathKeyResolver.Valid valid, String contextPath, String rest, String ip)
+            PathKeyResolver.Valid valid, PathKeyResolver codes, String contextPath, String rest, String ip)
             throws IOException, ServletException {
         AuthFailureBackoff b = backoff.getIfAvailable();
         if (b != null) {
@@ -157,7 +197,7 @@ public class PathKeyFilter extends OncePerRequestFilter implements Ordered {
         }
         String canonical = "/v1" + rest;
         if (!allowed(canonical, valid.prefixes())) {
-            refuse(response, HttpStatus.FORBIDDEN, ErrorCodes.RESTRICTED,
+            refuse(response, HttpStatus.FORBIDDEN, codes.outsidePrefixCode(),
                     "This key is restricted to other paths.");
             return;
         }

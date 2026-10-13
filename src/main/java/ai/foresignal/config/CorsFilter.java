@@ -28,7 +28,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
  *
  * <p>Runs before {@link ai.foresignal.security.TokenFilter} so a preflight is answered even when the
  * real request would be rejected — otherwise a browser reports an opaque CORS error and hides the
- * 401 that explains the problem.
+ * 401 that explains the problem. It also runs before {@code PathKeyFilter}, so key-in-path URLs
+ * ({@code /v1/k/**}, prompts 035 and 050) get the same headers.
  */
 @Component
 public class CorsFilter extends OncePerRequestFilter implements Ordered {
@@ -36,17 +37,31 @@ public class CorsFilter extends OncePerRequestFilter implements Ordered {
     /** Lower than {@link ai.foresignal.security.TokenFilter#ORDER}. */
     public static final int ORDER = Ordered.HIGHEST_PRECEDENCE + 10;
 
-    /** Request headers a browser may send; the MCP ones serve browser MCP clients (prompt 025). */
-    static final String ALLOWED_HEADERS =
-            "Authorization, Content-Type, Accept, Last-Event-ID, Mcp-Session-Id, MCP-Protocol-Version";
+    /**
+     * Request headers a browser may send; the MCP ones serve browser MCP clients (prompt 025), and
+     * {@code If-None-Match} and {@code Foresignal-Prefetch} serve map clients (prompt 050,
+     * Weather-Imagery-Design §6.7). {@code Foresignal-Prefetch} is not CORS-safelisted, so sending it
+     * costs a preflight; {@code ?prefetch=1} marks a prefetch without one.
+     */
+    static final String ALLOWED_HEADERS = "Authorization, Content-Type, Accept, Last-Event-ID, If-None-Match, "
+            + "Foresignal-Prefetch, Mcp-Session-Id, MCP-Protocol-Version";
 
-    /** Response headers a browser may read; {@code Mcp-Session-Id} carries the MCP session (prompt 025). */
-    static final String EXPOSED_HEADERS = "Location, Mcp-Session-Id";
-    static final String MAX_AGE_SECONDS = "600";
+    /**
+     * Response headers a browser may read: {@code Location}, {@code Mcp-Session-Id} (the MCP session,
+     * prompt 025) and the raster headers map clients need (prompt 050): the frame time of an alias,
+     * the bounds of an image, the expired-frame marker, {@code Retry-After} on {@code 503 RENDER_BUSY}
+     * and {@code 429}, {@code Link} to the current frame key, and {@code ETag}.
+     */
+    static final String EXPOSED_HEADERS = "Location, Mcp-Session-Id, Foresignal-Frame-Time, Foresignal-Image-Bounds, "
+            + "Foresignal-Frame-Expired, Retry-After, Link, ETag";
+
+    /** How long a browser may cache a preflight answer: one day (prompt 050). */
+    static final String MAX_AGE_SECONDS = "86400";
 
     private final CorsSettingsService corsSettings;
     private volatile CorsSettings cached;
 
+    /** Creates the filter over the stored CORS settings. */
     public CorsFilter(CorsSettingsService corsSettings) {
         this.corsSettings = corsSettings;
     }

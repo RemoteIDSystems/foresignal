@@ -146,6 +146,12 @@ public final class ErrorCodes {
     /** 410: a feed key in a {@code /v1/k/{key}/…} path has expired or was revoked (prompt 035). */
     public static final String FEED_KEY_GONE = "FEED_KEY_GONE";
 
+    /**
+     * 401: a {@code /v1/k/{key}/…} path carries an unknown, expired or revoked tile key ({@code fsk_},
+     * prompt 050).
+     */
+    public static final String INVALID_TILE_KEY = "INVALID_TILE_KEY";
+
     /** 409: the bootstrap admin token cannot be revoked; rotate it instead (prompt 023). */
     public static final String BOOTSTRAP_TOKEN = "BOOTSTRAP_TOKEN";
 

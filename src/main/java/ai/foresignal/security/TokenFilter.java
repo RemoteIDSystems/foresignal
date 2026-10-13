@@ -183,7 +183,8 @@ public class TokenFilter extends OncePerRequestFilter implements Ordered {
         }
         String bearer = bearerToken(request);
 
-        Optional<RequestPrincipal> pathKey = RequestPrincipal.of(request).filter(RequestPrincipal::isFeedKey);
+        // A feed key or tile key (050) bound by PathKeyFilter: no bearer parsing, READ operations only.
+        Optional<RequestPrincipal> pathKey = RequestPrincipal.of(request).filter(RequestPrincipal::isPathKey);
         if (pathKey.isPresent()) {
             feedKey(request, response, chain, requirement, pathKey.get());
             return;
@@ -424,8 +425,9 @@ public class TokenFilter extends OncePerRequestFilter implements Ordered {
     }
 
     /**
-     * A request a {@code PathKeyFilter} bound to a feed key: allowed only on {@code read} operations
-     * that are not {@code alwaysAuthenticated} (and on open ones); {@code 403 RESTRICTED} otherwise.
+     * A request a {@code PathKeyFilter} bound to a feed key or a tile key (prompt 050): allowed only on
+     * {@code read} operations that are not {@code alwaysAuthenticated} (and on open ones), evaluated on
+     * the canonical path; {@code 403 RESTRICTED} otherwise.
      */
     private void feedKey(HttpServletRequest request, HttpServletResponse response, FilterChain chain,
             AccessRequirement requirement, RequestPrincipal principal) throws IOException, ServletException {
@@ -435,7 +437,7 @@ public class TokenFilter extends OncePerRequestFilter implements Ordered {
         if (!allowed) {
             request.setAttribute(REJECTION_ATTRIBUTE, ErrorCodes.RESTRICTED);
             problems.write(response, problems.problem(HttpStatus.FORBIDDEN, ErrorCodes.RESTRICTED,
-                    "A feed key reads only data endpoints."));
+                    (principal.isTileKey() ? "A tile key" : "A feed key") + " reads only data endpoints."));
             return;
         }
         request.setAttribute(SCOPE_ATTRIBUTE, Scope.READ);

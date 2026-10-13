@@ -200,7 +200,8 @@ public class ChangesTopic implements EventTopic<ChangeFilter>, ChangeListener, L
         if (resolver == null) {
             return principal.restriction();
         }
-        boolean token = principal.scope() != null && !principal.id().startsWith("feed:");
+        boolean token = principal.scope() != null && !principal.id().startsWith("feed:")
+                && !principal.id().startsWith("tilekey:");
         return resolver.narrow(principal.restriction(), scope, token);
     }
 

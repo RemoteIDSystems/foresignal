@@ -9,6 +9,10 @@
 #   docker compose --profile local-llm up -d
 #                               # adds a local Ollama for the LLM features; nothing
 #                               # leaves the box (docs/Operator-Guide.md, "LLM")
+#   FORESIGNAL_HOSTNAME=foresignal.local docker compose --profile web up -d
+#                               # adds Caddy with HTTP/2 and HTTP/3 and its own local
+#                               # certificate authority, for map clients and the web
+#                               # client (docs/Operator-Guide.md, "Remote access and TLS")
 #   docker compose --profile satdump up -d
 #                               # adds a SatDump ground station on this host; the
 #                               # image is built by the operator from SatDump's own
@@ -52,7 +56,7 @@ services:
       # ecs (default under the docker profile), gelf, logstash or text.
       FORESIGNAL_LOG_FORMAT: ${FORESIGNAL_LOG_FORMAT:-ecs}
       # Proxies whose X-Forwarded-For/-Proto are honoured (023): a regex or CIDR list,
-      # loopback only by default. The tailscale profile proxies over this compose
+      # loopback only by default. The tailscale and web profiles proxy over this compose
       # network: set e.g. 172\.(1[6-9]|2[0-9]|3[01])\.\d{1,3}\.\d{1,3}
       FORESIGNAL_TRUSTED_PROXIES: '${FORESIGNAL_TRUSTED_PROXIES:-127\.0\.0\.1|0:0:0:0:0:0:0:1|::1}'
       # Memory profile (042, Weather-Imagery-Design §2.6): small for a 32 GB host, large for 64 GB.
@@ -114,6 +118,36 @@ services:
       - foresignal
     restart: unless-stopped
 
+  # HTTPS with HTTP/2 and HTTP/3 for map clients and the web client (050,
+  # Weather-Imagery-Design §6.7). Only started with --profile web. Caddy issues the
+  # site certificate from its own local CA (`tls internal`, deploy/caddy/Caddyfile);
+  # clients trust /data/caddy/pki/authorities/local/root.crt from the caddy-data
+  # volume. It proxies /v1, /mcp and the health probes to the broker over the
+  # compose network and serves a separately built web client from ./deploy/web, so
+  # that client is same-origin. Set FORESIGNAL_TRUSTED_PROXIES to the compose network
+  # (see the foresignal service) so forwarded client addresses are honored. Plain
+  # :8080 stays for agents and tools.
+  caddy:
+    image: caddy:2.11.7-alpine
+    profiles: ["web"]
+    environment:
+      # The site name clients use; it must resolve to this host (mDNS, DNS or hosts file).
+      FORESIGNAL_HOSTNAME: ${FORESIGNAL_HOSTNAME:-foresignal.local}
+    ports:
+      - "80:80"
+      - "443:443/tcp"
+      # HTTP/3 (QUIC).
+      - "443:443/udp"
+    volumes:
+      - caddy-data:/data
+      - caddy-config:/config
+      - ./deploy/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      # Optional: a separately built web client; empty by default.
+      - ./deploy/web:/srv/web:ro
+    depends_on:
+      - foresignal
+    restart: unless-stopped
+
   # A local LLM for Ask, briefings, enrichment and search (026). Only started
   # with --profile local-llm. Configure it as an `ollama` provider with baseUrl
   # http://ollama:11434, then pull models:
@@ -158,3 +192,5 @@ volumes:
   tailscale-state:
   ollama:
   satdump-output:
+  caddy-data:
+  caddy-config:

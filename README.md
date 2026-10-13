@@ -169,6 +169,7 @@ the database and is managed through the API.
 - [Invariants](docs/Invariants.md) — the rules every checkpoint verifies
 - [Conventions](docs/Conventions.md) — cross-cutting build rules and sources of truth
 - [Operator Guide](docs/Operator-Guide.md) — running, tuning and backing up an instance
+- [Frontend Guide](docs/Frontend-Guide.md) — map clients: tile keys, templates, retries and per-client recipes
 - [Adapter Guide](docs/Adapter-Guide.md) — writing a source adapter
 
 ## Licence

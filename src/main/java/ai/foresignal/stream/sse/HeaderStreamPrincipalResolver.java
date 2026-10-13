@@ -28,9 +28,10 @@ public class HeaderStreamPrincipalResolver implements StreamPrincipalResolver {
     public StreamPrincipal resolve(HttpServletRequest request) {
         ReadRestriction restriction = RequestPrincipal.restrictionOf(request);
         Optional<RequestPrincipal> principal = RequestPrincipal.of(request);
-        if (principal.isPresent() && principal.get().isFeedKey()) {
-            // A feed key (prompt 035) is its own principal, keyed on its id, with the read scope.
-            return new StreamPrincipal("feed:" + principal.get().id(), Scope.READ, request.getRemoteAddr(),
+        if (principal.isPresent() && principal.get().isPathKey()) {
+            // A feed key (prompt 035) or tile key (prompt 050) is its own principal, keyed on its id
+            // (feed:<id>, tilekey:<id>), with the read scope.
+            return new StreamPrincipal(principal.get().clientKey(), Scope.READ, request.getRemoteAddr(),
                     restriction, principal.get().privateAccess());
         }
         Optional<CurrentToken> current = CurrentToken.of(request);

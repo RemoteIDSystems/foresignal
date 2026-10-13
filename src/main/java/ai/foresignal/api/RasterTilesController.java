@@ -471,7 +471,10 @@ public class RasterTilesController {
         return caller.publicCache() && !visibility.isPrivate(product.sourceId());
     }
 
-    /** The fairness key: the token, else the client IP. */
+    /**
+     * The fairness key: the tile key ({@code tilekey:<id>}, prompt 050), the feed key or the token
+     * (the bound principal's {@link RequestPrincipal#clientKey()}), else the client IP.
+     */
     static String clientKey(HttpServletRequest request) {
         String key = RequestPrincipal.of(request).map(RequestPrincipal::clientKey).orElse(null);
         return key != null ? key : "ip:" + request.getRemoteAddr();

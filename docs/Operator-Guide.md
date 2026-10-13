@@ -840,6 +840,15 @@ Caddy), close the perimeter:
   365 days. `GET /v1/feed-keys` lists keys without values; `DELETE /v1/feed-keys/{id}` revokes one,
   after which its URLs answer `410`. Treat the URL as a password: responses carry
   `Referrer-Policy: no-referrer` and `X-Robots-Tag: noindex`, and are never cached publicly.
+- **Tile keys for map clients** (MapLibre, maplibre_gl, Cesium, a web map's `EventSource`): an `agent`
+  token mints `POST /v1/tile-keys {"name":"kitchen-tablet","prefixes":["/v1/products/","/v1/styles","/v1/changes/stream"],"ttl":"7d"}`
+  and gets the `fsk_` key and its `urlBase` once. They are the same path carrier as feed keys, with map
+  prefixes only (`/v1/products/`, `/v1/styles`, `/v1/media/`, `/v1/tiles/`, `/v1/maps/static`,
+  `/v1/sample`, `/v1/ground-stations/`, `/v1/changes/stream`, `/v1/events/stream`), a lifetime of at
+  most 30 days, an optional restriction, and never private sources. An unknown, expired or revoked key
+  answers `401 INVALID_TILE_KEY`. Mint one per device and rotate weekly; `docs/Frontend-Guide.md` has
+  the client recipes. Responses through a tile key follow the normal cache rule, so content-addressed
+  tiles stay cacheable (`public` only while `openReads` is on and the key has no restriction).
 - **Limits.** Every client is rate-limited per minute. Defaults: read 600, tiles 1,200, streams 30
   opens and 8 open at once, expensive (search, Ask, LLM tools, sampling) 20, write 120, and
   anonymous 120 per IP. Change them with `PUT /v1/settings/ratelimits`; they apply immediately. To
@@ -851,9 +860,9 @@ Caddy), close the perimeter:
   Repeated wrong credentials from one address get `429` with a growing `Retry-After`, up to 5
   minutes, while a correct token from the same address always works. Clients should honor
   `Retry-After`.
-- **Log redaction.** Feed keys are credentials in the path. Foresignal's access log (off unless
-  `FORESIGNAL_ACCESS_LOG=true`) logs the URI with `/v1/k/{key}` replaced and without the query
-  string. `docker/caddy/Caddyfile.example` redacts both the key and `?ticket=` values in Caddy's
+- **Log redaction.** Feed and tile keys are credentials in the path. Foresignal's access log (off
+  unless `FORESIGNAL_ACCESS_LOG=true`) logs the URI with the key cut to its first eight characters
+  (`/v1/k/fsk_AbCd…/…`, the same prefix the key listings show) and without the query string. `docker/caddy/Caddyfile.example` redacts both the key and `?ticket=` values in Caddy's
   log; do the same in any other proxy that logs request lines.
 - **Outbound URLs.** Channel URLs, LLM `baseUrl`s, push endpoints and other operator-supplied URLs
   are checked against the outbound URL policy on save and on every send: link-local and cloud
@@ -903,7 +912,7 @@ Behind Tailscale Serve or Caddy, Foresignal sees the proxy's address. Tomcat hon
 (`tailscale serve --bg 8080`, Caddy on the host). A proxy in another container reaches Foresignal
 from the Docker network, so trust that network, for example
 `FORESIGNAL_TRUSTED_PROXIES='172\.(1[6-9]|2[0-9]|3[01])\.\d{1,3}\.\d{1,3}'` for the compose
-`tailscale` profile. Never trust addresses a client can reach directly: a client could then forge its
+`tailscale` and `web` profiles. Never trust addresses a client can reach directly: a client could then forge its
 IP. The resolved client IP is what the audit log and the pairing limits use.
 
 ### Deep links (`clientLinks`)
@@ -2291,7 +2300,71 @@ install is reachable only from the host itself.
 public name pointing at the host, ports 80 and 443 open) or `tls internal` for a LAN-only name. It
 sets `flush_interval -1`, which SSE needs. Foresignal trusts its forwarded headers only when
 `FORESIGNAL_TRUSTED_PROXIES` matches the proxy's address (see [Trusted proxies](#trusted-proxies)).
-Prompt 050 adds a Caddy compose profile.
+
+**For map clients: the `web` profile.** Map clients fetch many tiles at once and hold SSE streams open.
+Over plain HTTP/1.1 a browser allows about six connections per host, so tiles queue behind each other
+and every open stream costs a connection. The `web` profile puts Caddy in front of the broker with
+HTTP/2 and HTTP/3 over TLS:
+
+```sh
+FORESIGNAL_HOSTNAME=foresignal.local \
+FORESIGNAL_TRUSTED_PROXIES='172\.(1[6-9]|2[0-9]|3[01])\.\d{1,3}\.\d{1,3}' \
+  docker compose --profile web up -d
+```
+
+- The `caddy` service (pinned `caddy:2.11.7-alpine`) publishes `80`, `443/tcp` and `443/udp` (HTTP/3)
+  on every interface, and loads `deploy/caddy/Caddyfile`. Its state lives in the `caddy-data` and
+  `caddy-config` volumes.
+- `FORESIGNAL_HOSTNAME` is the site name (default `foresignal.local`); it must resolve to the host
+  through mDNS, your DNS or the clients' hosts files.
+- **Certificates:** `tls internal` by default: Caddy runs its own local certificate authority and
+  issues the site certificate from it. Clients must trust that authority's root (below). For a
+  publicly trusted certificate without opening port 80, use DNS-01: build a Caddy binary with your DNS
+  provider's module (`xcaddy build --with github.com/caddy-dns/cloudflare`, or a Dockerfile `FROM
+  caddy:2.11.7-builder-alpine` running that command), use that image, and replace `tls internal`
+  with the commented `tls { dns … }` block in the Caddyfile. The stock image has no DNS modules.
+- **Routes:** `/v1/*`, `/mcp*` and `/actuator/health*` go to the broker (with `flush_interval -1` for
+  SSE); everything else is served from `./deploy/web` with a single-page-app fallback. Copy a separately
+  built web client there: it is then same-origin with the API, so it makes no CORS preflights.
+- **Compression:** zstd or gzip for JSON, vector tiles and text; PNG tiles and SSE are never
+  re-encoded.
+- **Trusted proxies:** Caddy reaches the broker from the compose network, so set
+  `FORESIGNAL_TRUSTED_PROXIES` to that network as above (check it with
+  `docker network inspect`; the compose network is named after the project, for example
+  `foresignal_default`). Otherwise every client appears as Caddy's address in
+  the audit log, the rate limits and the auth-failure backoff.
+- Set `publicBaseUrl` to `https://<FORESIGNAL_HOSTNAME>` so feed-key and tile-key URLs, notification
+  links and pairing codes use the HTTPS name.
+- Plain `http://<host>:8080` keeps working for agents, scripts and tools.
+- Caddy's access log (container stdout) keeps only the first eight characters of a path key and
+  removes `?ticket=` values.
+
+**Trusting Caddy's local CA.** Export the root certificate once:
+
+```sh
+docker compose cp caddy:/data/caddy/pki/authorities/local/root.crt ./foresignal-root.crt
+```
+
+Then install `foresignal-root.crt` on each client:
+
+- **macOS:** open it in Keychain Access, add it to the System keychain, open the certificate, and set
+  "When using this certificate" to **Always Trust** (or
+  `sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain foresignal-root.crt`).
+- **Windows:** `certutil -addstore -f Root foresignal-root.crt` from an administrator prompt, or
+  double-click it and import it into **Trusted Root Certification Authorities** for the local machine.
+- **Linux:** Debian and Ubuntu: copy it to `/usr/local/share/ca-certificates/foresignal-root.crt` and
+  run `sudo update-ca-certificates`; Fedora: copy it to `/etc/pki/ca-trust/source/anchors/` and run
+  `sudo update-ca-trust`. Firefox keeps its own store: import it under Settings → Privacy & Security →
+  Certificates, or enable `security.enterprise_roots.enabled`.
+- **Android:** Settings → Security → Encryption & credentials → Install a certificate → CA certificate.
+  Browsers then trust it, but **apps targeting API level 24 or later do not trust user-installed CAs**
+  unless their `network_security_config` allows them. A Flutter client that talks to the `web` profile
+  must ship that configuration, for example a `res/xml/network_security_config.xml` with
+  `<trust-anchors><certificates src="system"/><certificates src="user"/></trust-anchors>`, referenced
+  from `AndroidManifest.xml` with `android:networkSecurityConfig`.
+- **iOS and iPadOS:** send the file to the device (AirDrop, Mail or a download), install the profile under
+  Settings → General → VPN & Device Management, then enable full trust under Settings → General →
+  About → Certificate Trust Settings. Apps then trust it too.
 
 Whichever you use:
 

@@ -4,7 +4,7 @@
     "title": "Foresignal API",
     "version": "1.3.0",
     "summary": "Headless intelligence broker: ingest, version and re-serve public telemetry.",
-    "description": "All configuration is done through this API. The MCP server is at `/mcp` (MCP streamable HTTP, protocol versions 2024-11-05 to 2025-11-25) and is not an OpenAPI operation; it exposes the same data, the alert lifecycle and watch management as MCP tools, resources (`foresignal://sources`, `foresignal://kinds`) and the `situation-report` prompt (025, docs/Agent-Guide.md), plus the cost-bearing `search` tool (027) and the briefing tools `list_briefings`, `get_briefing_run`, `get_digest` (read), `create_briefing` and the cost-bearing `run_briefing` (agent) (029). It takes the same bearer tokens: `/mcp/**` needs `read` (open while `openReads` is on), tools are listed by the caller's scope and each checks its own (`read` tools; `agent` for writes such as `create_watch` and `set_alert_status`; cost-bearing tools always need a token), a session is bound to the token that opened it, and every tool call is audited (argument names only). The older HTTP+SSE transport (protocol 2024-11-05) is served at `/mcp/sse` with messages at `/mcp/message` only when `foresignal.mcp.legacy-sse.enabled=true`, for older clients. `GET /v1/system` reports its state under `mcp`. Reads of data are open on the local network; all writes and settings reads require the admin bearer token printed on first start. Errors are RFC 9457 problem+json. Timestamps are ISO-8601 UTC. `/v1` is additive-only once released.\n\n**Key-in-path carriers.** Header-less clients use keys in the path: feed keys (`fsf_`, 035) as `/v1/k/{key}/<any allowed GET/HEAD path>`, tile keys (`fsk_`, 050) as `/v1/k/{key}/products/...` and `/v1/k/{key}/tiles/...`, share links (`fss_`, 112) as `/v1/k/{key}`. These are transports for the documented operations, not separate operations. A feed key reaches only `GET`/`HEAD` of `read` operations that are not always-authenticated, under the key's path prefixes, with the key's mandatory read restriction (unknown key 401 INVALID_FEED_KEY, expired or revoked 410 FEED_KEY_GONE, another method 405, a path outside the prefixes 403 RESTRICTED). Responses carry `Referrer-Policy: no-referrer`, `X-Robots-Tag: noindex` and `Cache-Control: private`; the key is never echoed except by `createFeedKey`.\n\n**Restrictions and limits (035).** Restricted tokens, feed keys and the anonymous profile (`security.anonymous`, applied to tokenless reads while `openReads` is on) see only records and alerts inside their `ReadRestriction` on every read path (records, history, versions, changes, kinds, tiles, streams, search, alerts, the inbox, the digest, briefings, MCP tools and Ask): request filters are intersected with the restriction, and a single record or alert outside it is 404. Every client is rate-limited per class (`RateLimitSettings`); over a limit, or after repeated failed credentials from one address, the answer is 429 RATE_LIMITED with `Retry-After`. Device ingest URLs (039) and signed action links (033) use their own documented paths.\n\n**Status annotations.** Every operation has `x-foresignal-prompt` (the build prompt that implements it), optional `x-foresignal-extended-by`, and `x-foresignal-status` (`planned` until implemented). Clients can mock the whole API from this document and filter by status.\n\n**Outside this document:** the MCP server (`/mcp`, plus the legacy SSE transport when enabled), Actuator endpoints (`/actuator/**`), and sink listeners on their own ports (110).",
+    "description": "All configuration is done through this API. The MCP server is at `/mcp` (MCP streamable HTTP, protocol versions 2024-11-05 to 2025-11-25) and is not an OpenAPI operation; it exposes the same data, the alert lifecycle and watch management as MCP tools, resources (`foresignal://sources`, `foresignal://kinds`) and the `situation-report` prompt (025, docs/Agent-Guide.md), plus the cost-bearing `search` tool (027) and the briefing tools `list_briefings`, `get_briefing_run`, `get_digest` (read), `create_briefing` and the cost-bearing `run_briefing` (agent) (029). It takes the same bearer tokens: `/mcp/**` needs `read` (open while `openReads` is on), tools are listed by the caller's scope and each checks its own (`read` tools; `agent` for writes such as `create_watch` and `set_alert_status`; cost-bearing tools always need a token), a session is bound to the token that opened it, and every tool call is audited (argument names only). The older HTTP+SSE transport (protocol 2024-11-05) is served at `/mcp/sse` with messages at `/mcp/message` only when `foresignal.mcp.legacy-sse.enabled=true`, for older clients. `GET /v1/system` reports its state under `mcp`. Reads of data are open on the local network; all writes and settings reads require the admin bearer token printed on first start. Errors are RFC 9457 problem+json. Timestamps are ISO-8601 UTC. `/v1` is additive-only once released.\n\n**Key-in-path carriers.** Header-less clients use keys in the path: feed keys (`fsf_`, 035) as `/v1/k/{key}/<any allowed GET/HEAD path>`, tile keys (`fsk_`, 050) as `/v1/k/{key}/products/...`, `/v1/k/{key}/tiles/...` and `/v1/k/{key}/changes/stream` for map clients (MapLibre, maplibre_gl, Cesium, `EventSource`), share links (`fss_`, 112) as `/v1/k/{key}`. These are transports for the documented operations, not separate operations. A feed key reaches only `GET`/`HEAD` of `read` operations that are not always-authenticated, under the key's path prefixes, with the key's mandatory read restriction (unknown key 401 INVALID_FEED_KEY, expired or revoked 410 FEED_KEY_GONE, another method 405, a path outside the prefixes 403 RESTRICTED). A tile key reaches the same operations under its prefixes (a subset of `/v1/products/`, `/v1/styles`, `/v1/media/`, `/v1/tiles/`, `/v1/maps/static`, `/v1/sample`, `/v1/ground-stations/`, `/v1/changes/stream`, `/v1/events/stream`), with its optional restriction and never private sources (unknown, expired or revoked key 401 INVALID_TILE_KEY, another method 405, a path outside the prefixes 403 INSUFFICIENT_SCOPE). Responses carry `Referrer-Policy: no-referrer` and `X-Robots-Tag: noindex`; `Cache-Control` defaults to `private`, and a tile-key response takes the canonical path's own rule (`public` only while `openReads` covers it). Logs show only the key's first eight characters; the key is never echoed except by `createFeedKey` and `createTileKey`. CORS exposes `Foresignal-Frame-Time`, `Foresignal-Image-Bounds`, `Foresignal-Frame-Expired`, `Retry-After`, `Link` and `ETag`, allows `Authorization`, `If-None-Match` and `Foresignal-Prefetch`, and caches preflights for a day; `?prefetch=1` marks a render prefetch without the preflight the header causes.\n\n**Restrictions and limits (035).** Restricted tokens, feed keys and the anonymous profile (`security.anonymous`, applied to tokenless reads while `openReads` is on) see only records and alerts inside their `ReadRestriction` on every read path (records, history, versions, changes, kinds, tiles, streams, search, alerts, the inbox, the digest, briefings, MCP tools and Ask): request filters are intersected with the restriction, and a single record or alert outside it is 404. Every client is rate-limited per class (`RateLimitSettings`); over a limit, or after repeated failed credentials from one address, the answer is 429 RATE_LIMITED with `Retry-After`. Device ingest URLs (039) and signed action links (033) use their own documented paths.\n\n**Status annotations.** Every operation has `x-foresignal-prompt` (the build prompt that implements it), optional `x-foresignal-extended-by`, and `x-foresignal-status` (`planned` until implemented). Clients can mock the whole API from this document and filter by status.\n\n**Outside this document:** the MCP server (`/mcp`, plus the legacy SSE transport when enabled), Actuator endpoints (`/actuator/**`), and sink listeners on their own ports (110).",
     "license": {
       "name": "MIT",
       "identifier": "MIT"
@@ -212,6 +212,11 @@
         "version": "1.3.0",
         "date": "2026-10-12",
         "note": "049: getGroundStationPolarplot is implemented (read; `image/jpeg`; 404 NO_ACTIVE_PASS; `Cache-Control: private, max-age=5`). Record x-foresignal-kinds: ground-station and satellite-pass gain the `satdump-{station}` payload fields and examples; the SatDump pass statuses are `receiving|recorded|decoded|failed` (`failed` replaces the earlier `missed`, matching Weather-Imagery-Design §4.4). New SatDump dynamic raster products `satdump-{station}-{satKey}-{region}-{channel}` appear in /v1/products. SourceHealth.statusReason carries the SatDump reasons (\"SatDump /api shape changed (version drift?)\", \"Pass ended {t} but no dataset.json after 20 min. …\", \"FY-4/MSG HRV has no usable projection.\", \"BigTIFF not supported.\"), and a source can now be failing from an adapter-reported reason (SatDump /api unreachable for 3 polls)."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-12",
+        "note": "050: listTileKeys, createTileKey and revokeTileKey are implemented (agent). Tile keys are api_token rows with type = tile_key (the feed-key model of 035; no carrier column, since both kinds are carried in the path), resolved by 035's PathKeyFilter. Unknown, expired and revoked tile keys are 401 INVALID_TILE_KEY (new error code); a path outside the prefixes is 403 INSUFFICIENT_SCOPE. TileKey.restrictions omits the always-on private exclusion. info.description documents the tile-key carrier, its cache rule, key redaction in logs, and the CORS header set (exposed raster headers, If-None-Match and Foresignal-Prefetch allowed, preflight max-age 86400)."
       }
     ]
   },
@@ -28816,7 +28821,7 @@
         ],
         "operationId": "listTileKeys",
         "summary": "List tile keys",
-        "description": "Path-carrier feed keys (`carrier=path`) without plaintext: prefix, name, prefixes, restrictions, expiry and last use.\n\n**Scope:** `agent`.",
+        "description": "Tile keys, the path-carrier variant of feed keys (`api_token` rows with `type = tile_key`), newest first, without plaintext: prefix, name, prefixes, restrictions, expiry and last use.\n\n**Scope:** `agent`.",
         "parameters": [
           {
             "name": "cursor",
@@ -28893,7 +28898,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "050",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -28906,7 +28911,7 @@
         ],
         "operationId": "createTileKey",
         "summary": "Create a tile key",
-        "description": "Mints a read-only `fsk_…` key for header-less map clients, usable as `/v1/k/{key}/…`, limited to the allowed canonical prefixes and optional restrictions, with a TTL of at most 30 days. Returns the plaintext key and `urlBase` once. Tile keys never grant access to private sources; an invalid key on `/v1/k/**` is 401 INVALID_TILE_KEY and a path outside its prefixes 403 INSUFFICIENT_SCOPE.\n\n**Scope:** `agent`.",
+        "description": "Mints a read-only `fsk_…` key for header-less map clients, usable as `/v1/k/{key}/…`, limited to the allowed canonical prefixes and optional restrictions, with a TTL of at most 30 days. Returns the plaintext key and `urlBase` once. Tile keys never grant access to private sources, carry no private grant and are refused `restrictions.excludePrivate: false`, `endpoints` and `placeIds`; an unknown, expired or revoked key on `/v1/k/**` is 401 INVALID_TILE_KEY, a path outside its prefixes 403 INSUFFICIENT_SCOPE, and a method other than GET/HEAD 405. Responses through the key follow the canonical path's cache rule (`public` only while `openReads` covers it and the key has no data restriction).\n\n**Scope:** `agent`.",
         "requestBody": {
           "required": true,
           "content": {
@@ -28980,7 +28985,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "050",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -29007,7 +29012,7 @@
         ],
         "operationId": "revokeTileKey",
         "summary": "Revoke a tile key",
-        "description": "Revokes the key; cached lookups are invalidated within 5 s.\n\n**Scope:** `agent`.",
+        "description": "Revokes the key. Lookups are not cached, so the key answers 401 INVALID_TILE_KEY from the next request on (well within the 5 s allowed), and its open streams are reset (`reason: revoked`).\n\n**Scope:** `agent`.",
         "responses": {
           "204": {
             "description": "Revoked"
@@ -29045,7 +29050,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "050",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -86245,6 +86250,12 @@
             "code": "FEED_KEY_GONE",
             "status": 410,
             "prompt": "035"
+          },
+          {
+            "code": "INVALID_TILE_KEY",
+            "status": 401,
+            "prompt": "050",
+            "note": "Unknown, expired or revoked tile key (fsk_) in a /v1/k/{key}/… path"
           },
           {
             "code": "UNKNOWN_PLACE",
@@ -163746,7 +163757,7 @@
         "in": "query",
         "name": "feedKey",
         "x-foresignal-in": "path",
-        "description": "Feed key (`fsf_<base64url>`, 035) carried as the path segment after `/v1/k/`, not as a query parameter: `/v1/k/{key}/<rest>` serves `GET`/`HEAD /v1/<rest>` when `/v1/<rest>` starts with one of the key's prefixes. OpenAPI has no path-segment API key, so this scheme documents the carrier only and no operation lists it; see `info.description`. Unknown key → 401 INVALID_FEED_KEY; expired or revoked → 410 FEED_KEY_GONE; another method → 405; a path outside the prefixes or an operation that is not a `read` data operation → 403 RESTRICTED."
+        "description": "Feed key (`fsf_<base64url>`, 035) carried as the path segment after `/v1/k/`, not as a query parameter: `/v1/k/{key}/<rest>` serves `GET`/`HEAD /v1/<rest>` when `/v1/<rest>` starts with one of the key's prefixes. OpenAPI has no path-segment API key, so this scheme documents the carrier only and no operation lists it; see `info.description`. Unknown key → 401 INVALID_FEED_KEY; expired or revoked → 410 FEED_KEY_GONE; another method → 405; a path outside the prefixes or an operation that is not a `read` data operation → 403 RESTRICTED. Tile keys (`fsk_`, 050) use the same carrier with their own refusals: unknown, expired or revoked → 401 INVALID_TILE_KEY; outside the prefixes → 403 INSUFFICIENT_SCOPE (see `createTileKey`)."
       },
       "ingestKeyPath": {
         "type": "apiKey",

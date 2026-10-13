@@ -44,6 +44,13 @@ public class ApiTokenEntity {
     /** {@code type} of a feed key (prompt 035). */
     public static final String TYPE_FEED_KEY = "feed_key";
 
+    /**
+     * {@code type} of a tile key (prompt 050): the path-carrier feed-key variant for header-less map
+     * clients ({@code fsk_}, scope {@code read}, prefixes from {@code TileKeyPolicy.ALLOWED_PREFIXES},
+     * at most 30 days).
+     */
+    public static final String TYPE_TILE_KEY = "tile_key";
+
     /** Characters of the token kept in {@code token_prefix}. */
     public static final int PREFIX_LENGTH = 8;
 
@@ -285,7 +292,10 @@ public class ApiTokenEntity {
         this.privateAccess = privateAccess;
     }
 
-    /** {@value #TYPE_TOKEN} or {@value #TYPE_FEED_KEY} (prompt 035); a null stored type reads as a token. */
+    /**
+     * {@value #TYPE_TOKEN}, {@value #TYPE_FEED_KEY} (prompt 035) or {@value #TYPE_TILE_KEY} (prompt 050); a
+     * null stored type reads as a token.
+     */
     public String getType() {
         return type == null ? TYPE_TOKEN : type;
     }
@@ -298,6 +308,19 @@ public class ApiTokenEntity {
     /** True for a feed key (prompt 035). */
     public boolean isFeedKey() {
         return TYPE_FEED_KEY.equals(type);
+    }
+
+    /** True for a tile key (prompt 050). */
+    public boolean isTileKey() {
+        return TYPE_TILE_KEY.equals(type);
+    }
+
+    /**
+     * True for any key carried in a {@code /v1/k/{key}/…} path (a feed key or a tile key): such rows are
+     * never bearer tokens and never appear in the token APIs.
+     */
+    public boolean isPathKey() {
+        return isFeedKey() || isTileKey();
     }
 
     /** A feed key's allowed canonical path prefixes, or null for a token. */

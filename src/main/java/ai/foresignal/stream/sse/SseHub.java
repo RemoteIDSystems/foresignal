@@ -291,14 +291,15 @@ public class SseHub {
 
     /**
      * Resets and closes every open stream of the revoked token, whether opened with the token itself or
-     * with a ticket it minted (prompt 023), and of a revoked feed key (prompt 039).
+     * with a ticket it minted (prompt 023), and of a revoked feed key (prompt 039) or tile key (prompt 050).
      */
     @EventListener
     public void onTokenRevoked(ApiTokenRevokedEvent event) {
         // A token (or a ticket it minted) and a feed key (prompt 035) are keyed differently; a revoked
         // grant loses its streams with a reset either way (prompt 039).
         int closed = revokePrincipal(StreamPrincipal.tokenId(event.tokenId()), "revoked")
-                + revokePrincipal("feed:" + event.tokenId(), "revoked");
+                + revokePrincipal("feed:" + event.tokenId(), "revoked")
+                + revokePrincipal("tilekey:" + event.tokenId(), "revoked");
         if (closed > 0) {
             log.info("Reset {} stream(s) of a revoked token or feed key", closed);
         }

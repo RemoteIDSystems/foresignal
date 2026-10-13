@@ -1,6 +1,3 @@
-listTileKeys 050
-createTileKey 050
-revokeTileKey 050
 getProductFieldManifest 051
 getProductFieldData 051
 getProductVectorTile 051

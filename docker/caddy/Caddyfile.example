@@ -1,7 +1,7 @@
 # Foresignal behind Caddy (021) - the alternative to Tailscale Serve.
 #
 # Copy to docker/caddy/Caddyfile, replace the host name, and run Caddy on the
-# same host (prompt 050 adds a Caddy compose profile). Caddy obtains and renews
+# same host (or use the `web` compose profile and deploy/caddy/Caddyfile, 050). Caddy obtains and renews
 # a public certificate automatically when the name resolves to this host and
 # ports 80 and 443 reach it.
 #

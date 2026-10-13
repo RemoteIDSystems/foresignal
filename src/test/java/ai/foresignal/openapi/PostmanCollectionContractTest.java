@@ -384,11 +384,14 @@ class PostmanCollectionContractTest {
         // parser is an instance method of PushSubscriptionService that checks the endpoint against the outbound
         // policy (PushSubscriptionsIT); verifyPushSubscription's body is the code, compared with the stored row;
         // ingestRecordsPathKey's body is read by the format named in the path (PersonalLocationIngestIT).
+        // 050: createTileKey validates its restriction against the registered sources, which needs the
+        // application context; TileKeyServiceIT covers it.
         Set<String> schemaOnly = Set.of("createTrigger", "updateTrigger", "updateRetention", "importSettings",
                 "updateEventStreamFilter", "createToken", "createPairingCode", "ntfyPublish", "ntfyPublishPut",
                 "createRegistrationToken", "putPushProvider", "testPushProvider", "executeAction", "createFeedKey",
                 "createPlace", "updatePlace", "createView", "updateView", "importWatchlist",
-                "updateLlmSettings", "createPushSubscription", "verifyPushSubscription", "ingestRecordsPathKey");
+                "updateLlmSettings", "createPushSubscription", "verifyPushSubscription", "ingestRecordsPathKey",
+                "createTileKey");
         List<String> uncovered = OpenApiSpec.routes().stream()
                 .filter(SpecOperation::implemented)
                 .filter(op -> op.node().has("requestBody"))

@@ -51,6 +51,11 @@ import tools.jackson.databind.JsonNode;
  * {@code kinds}, {@code area} or {@code bbox} and no {@code endpoints} (the prefixes are the
  * endpoint restriction); {@code expiresAt} in the future and at most 365 days ahead;
  * {@code privateAccess: true} is refused until prompt 039.
+ *
+ * <p>Prompt 050's tile keys ({@code fsk_}, {@code type = tile_key}) are the path-carrier variant of
+ * the same model: {@code ai.foresignal.access.TileKeyService} is a thin facade over the shared
+ * storage, listing, revocation and lookup methods here ({@link #mint}, {@link #listOfType},
+ * {@link #revokeOfType}, {@link #resolveOfType}), so one table, one hasher and one lookup serve both.
  */
 @Service
 public class FeedKeyService implements PathKeyResolver {
@@ -150,18 +155,37 @@ public class FeedKeyService implements PathKeyResolver {
         if (!errors.isEmpty()) {
             throw new ValidationException(ErrorCodes.VALIDATION_FAILED, "The feed key input is not valid.", errors);
         }
+        TokenRestrictions stored = new TokenRestrictions(parsed.sources(), parsed.kinds(), parsed.bbox(), null,
+                parsed.area(), !grant, parsed.maxRequestsPerMinute());
+        return mint(ApiTokenEntity.TYPE_FEED_KEY, KEY_PREFIX, name, prefixes, stored, expiresAt, grant);
+    }
+
+    /**
+     * Stores a new path key of {@code type} (a feed key here, a tile key for prompt 050): a fresh
+     * random value with {@code keyPrefix}, hashed, scope {@code read}, owned by a new service principal.
+     *
+     * @param type {@link ApiTokenEntity#TYPE_FEED_KEY} or {@link ApiTokenEntity#TYPE_TILE_KEY}
+     * @param keyPrefix the plaintext prefix, for example {@value #KEY_PREFIX}
+     * @param name the validated name
+     * @param prefixes the validated canonical path prefixes
+     * @param restrictions the restriction to store
+     * @param expiresAt the validated expiry
+     * @param privateAccess the 039 private grant
+     * @return the stored row with its plaintext value, shown once
+     */
+    @Transactional
+    public CreatedKey mint(String type, String keyPrefix, String name, List<String> prefixes,
+            TokenRestrictions restrictions, Instant expiresAt, boolean privateAccess) {
         PrincipalEntity principal = principals.createFor(name, PrincipalKind.SERVICE);
-        String key = generate();
+        String key = generate(keyPrefix);
         Instant now = clock.instant();
         ApiTokenEntity entity = new ApiTokenEntity(UUID.randomUUID(), name, Scope.READ, hasher.hash(key),
                 key.substring(0, ApiTokenEntity.PREFIX_LENGTH), TokenCreatedVia.API, principal.getId(), now);
-        entity.setType(ApiTokenEntity.TYPE_FEED_KEY);
+        entity.setType(type);
         entity.setPrefixes(prefixes);
         entity.setExpiresAt(expiresAt);
-        TokenRestrictions stored = new TokenRestrictions(parsed.sources(), parsed.kinds(), parsed.bbox(), null,
-                parsed.area(), !grant, parsed.maxRequestsPerMinute());
-        entity.setRestrictions(stored);
-        entity.setPrivateAccess(grant);
+        entity.setRestrictions(restrictions);
+        entity.setPrivateAccess(privateAccess);
         tokens.saveAndFlush(entity);
         return new CreatedKey(entity, key);
     }
@@ -169,7 +193,13 @@ public class FeedKeyService implements PathKeyResolver {
     /** Every feed key, newest first. */
     @Transactional(readOnly = true)
     public List<ApiTokenEntity> list() {
-        return tokens.findAllByOrderByCreatedAtDesc().stream().filter(ApiTokenEntity::isFeedKey).toList();
+        return listOfType(ApiTokenEntity.TYPE_FEED_KEY);
+    }
+
+    /** Every path key of {@code type}, newest first. */
+    @Transactional(readOnly = true)
+    public List<ApiTokenEntity> listOfType(String type) {
+        return tokens.findAllByOrderByCreatedAtDesc().stream().filter(t -> type.equals(t.getType())).toList();
     }
 
     /**
@@ -179,8 +209,20 @@ public class FeedKeyService implements PathKeyResolver {
      */
     @Transactional
     public void revoke(UUID id) {
-        ApiTokenEntity entity = tokens.findById(id).filter(ApiTokenEntity::isFeedKey)
-                .orElseThrow(() -> NotFoundException.of("Feed key", id));
+        revokeOfType(ApiTokenEntity.TYPE_FEED_KEY, id, "Feed key");
+    }
+
+    /**
+     * Revokes the path key {@code id} of {@code type}. Lookups are not cached, so the key stops
+     * working with the next request; its open streams are reset after the commit.
+     *
+     * @param label the noun for the 404, for example {@code Tile key}
+     * @throws NotFoundException when there is no such key of that type
+     */
+    @Transactional
+    public void revokeOfType(String type, UUID id, String label) {
+        ApiTokenEntity entity = tokens.findById(id).filter(t -> type.equals(t.getType()))
+                .orElseThrow(() -> NotFoundException.of(label, id));
         if (entity.getRevokedAt() == null) {
             entity.setRevokedAt(clock.instant());
             tokens.saveAndFlush(entity);
@@ -213,11 +255,36 @@ public class FeedKeyService implements PathKeyResolver {
     @Override
     @Transactional(readOnly = true)
     public Resolution resolve(String key) {
-        if (key == null || !key.startsWith(KEY_PREFIX)) {
+        return resolveOfType(key, KEY_PREFIX, ApiTokenEntity.TYPE_FEED_KEY, entity -> {
+            // A feed key hides private sources unless it was created with the 039 private grant.
+            ReadRestriction restriction = ReadRestriction.of(entity.getRestrictions(), true)
+                    .withExcludePrivate(!entity.isPrivateAccess())
+                    .withEndpoints(null).withExcludeSensitive(true);
+            return new RequestPrincipal(RequestPrincipal.Kind.FEED_KEY, entity.getId(), entity.getName(),
+                    Scope.READ, restriction, entity.isPrivateAccess());
+        });
+    }
+
+    /**
+     * The one path-key lookup (prompt 035, reused by prompt 050): the key's SHA-256 finds the row,
+     * a constant-time comparison confirms it, and the row must be of {@code type}. Unknown →
+     * {@link Invalid}; expired or revoked → {@link Gone}; otherwise the use is recorded (throttled
+     * like tokens) and {@code principal} builds the bound principal.
+     *
+     * @param key the presented key
+     * @param keyPrefix the plaintext prefix the key must start with
+     * @param type the row type it must have
+     * @param principal builds the principal of an active row
+     */
+    @Transactional(readOnly = true)
+    public Resolution resolveOfType(String key, String keyPrefix, String type,
+            java.util.function.Function<ApiTokenEntity, RequestPrincipal> principal) {
+        if (key == null || !key.startsWith(keyPrefix)) {
             return new Invalid();
         }
         Optional<ApiTokenEntity> found = tokens.findByTokenHash(hasher.hash(key));
-        if (found.isEmpty() || !found.get().isFeedKey() || !hasher.matches(key, found.get().getTokenHash())) {
+        if (found.isEmpty() || !type.equals(found.get().getType())
+                || !hasher.matches(key, found.get().getTokenHash())) {
             return new Invalid();
         }
         ApiTokenEntity entity = found.get();
@@ -225,22 +292,16 @@ public class FeedKeyService implements PathKeyResolver {
             return new Gone();
         }
         tokenService.recordUse(entity.getId());
-        // A feed key hides private sources unless it was created with the 039 private grant.
-        ReadRestriction restriction = ReadRestriction.of(entity.getRestrictions(), true)
-                .withExcludePrivate(!entity.isPrivateAccess())
-                .withEndpoints(null).withExcludeSensitive(true);
-        RequestPrincipal principal = new RequestPrincipal(RequestPrincipal.Kind.FEED_KEY, entity.getId(),
-                entity.getName(), Scope.READ, restriction, entity.isPrivateAccess());
         List<String> prefixes = entity.getPrefixes() == null ? List.of() : entity.getPrefixes();
-        return new Valid(principal, prefixes);
+        return new Valid(principal.apply(entity), prefixes);
     }
 
     // ------------------------------------------------------------------------- helpers
 
-    private String generate() {
+    private String generate(String keyPrefix) {
         byte[] entropy = new byte[ENTROPY_BYTES];
         random.nextBytes(entropy);
-        return KEY_PREFIX + Base64.getUrlEncoder().withoutPadding().encodeToString(entropy);
+        return keyPrefix + Base64.getUrlEncoder().withoutPadding().encodeToString(entropy);
     }
 
     private static String name(JsonNode node, List<FieldError> errors) {

@@ -42,6 +42,10 @@ import org.springframework.util.AntPathMatcher;
  * {@code GET /v1/media/**} as {@code read}; the news providers of prompt 133 under
  * {@code /v1/media/providers} stay {@code admin}, listed before it.
  *
+ * <p>Prompt 050 adds the tile-key operations ({@code GET}/{@code POST /v1/tile-keys},
+ * {@code DELETE /v1/tile-keys/{id}}) as {@code agent}. Key-in-path URLs ({@code /v1/k/**}) have no
+ * rule: {@code PathKeyFilter} forwards them to their canonical path, which is what is evaluated.
+ *
  * <p>Prompt 025 adds {@code /mcp} and {@code /mcp/**} (the MCP server, also outside {@code /v1}):
  * {@code read}, with per-tool scope checks inside the server ({@code McpToolRegistry}).
  */
@@ -207,6 +211,11 @@ public class AccessPolicy {
                 // Feed keys (035): admin; /v1/settings/ratelimits and /v1/settings/outbound fall under /v1/settings/**.
                 rule(null, "/v1/feed-keys", AccessRequirement.ADMIN),
                 rule(null, "/v1/feed-keys/*", AccessRequirement.ADMIN),
+                // Tile keys (050): agent. /v1/k/** has no rule on purpose: only PathKeyFilter's forward
+                // to the canonical path reaches a controller; anything else falls to the admin default.
+                rule(HttpMethod.GET, "/v1/tile-keys", AccessRequirement.AGENT),
+                rule(HttpMethod.POST, "/v1/tile-keys", AccessRequirement.AGENT),
+                rule(HttpMethod.DELETE, "/v1/tile-keys/*", AccessRequirement.AGENT),
                 // Testing a provider spends LLM tokens (always authenticated, 026).
                 rule(HttpMethod.POST, "/v1/llm/providers/*/test", AccessRequirement.ADMIN_ALWAYS_AUTHENTICATED),
                 rule(null, "/v1/llm/**", AccessRequirement.ADMIN),

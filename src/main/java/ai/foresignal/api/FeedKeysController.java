@@ -54,7 +54,7 @@ public class FeedKeysController {
         FeedKeyService.CreatedKey created = feedKeys.create(body);
         List<String> prefixes = created.entity().getPrefixes();
         return FeedKeyDto.of(created.entity(), created.key(),
-                FeedKeyService.urls(baseUrl(request), created.key(), prefixes));
+                FeedKeyService.urls(baseUrl(settings, request), created.key(), prefixes));
     }
 
     /** {@code revokeFeedKey}: 204; the key answers 410 from then on. */
@@ -71,8 +71,8 @@ public class FeedKeysController {
         feedKeys.revoke(id);
     }
 
-    /** {@code server.publicBaseUrl} when set, else the request's own origin. */
-    private String baseUrl(HttpServletRequest request) {
+    /** {@code server.publicBaseUrl} when set, else the request's own origin (shared with tile keys, 050). */
+    static String baseUrl(AppSettingService settings, HttpServletRequest request) {
         ServerSettings server = settings.getOrDefault(SettingKeys.SERVER, ServerSettings.class, ServerSettings::defaults);
         String configured = server.normalizedPublicBaseUrl();
         if (configured != null) {

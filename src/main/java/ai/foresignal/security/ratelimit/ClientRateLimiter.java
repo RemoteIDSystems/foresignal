@@ -138,7 +138,8 @@ public class ClientRateLimiter {
     }
 
     /**
-     * The client key of {@code request}: the principal's {@code token:<id>} or {@code feed:<id>}, the
+     * The client key of {@code request}: the principal's {@code token:<id>}, {@code feed:<id>} or
+     * {@code tilekey:<id>} (prompt 050), the
      * accepted token's {@code token:<id>} when no principal was bound, otherwise {@code ip:} plus the
      * resolved client address.
      */

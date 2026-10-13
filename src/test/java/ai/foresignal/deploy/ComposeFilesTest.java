@@ -61,7 +61,12 @@ class ComposeFilesTest {
         Map<String, Object> compose = compose();
         Map<String, Object> services = (Map<String, Object>) compose.get("services");
         List<String> mappings = new ArrayList<>();
-        services.values().forEach(s -> {
+        services.forEach((name, s) -> {
+            // The opt-in web profile's Caddy (050) exists to serve LAN map clients on 80/443; its
+            // ports are asserted by ComposeConfigTest.
+            if ("caddy".equals(name)) {
+                return;
+            }
             Object ports = ((Map<String, Object>) s).get("ports");
             if (ports != null) {
                 ((List<Object>) ports).forEach(p -> mappings.add(String.valueOf(p)));
@@ -96,12 +101,15 @@ class ComposeFilesTest {
         assertThat((Map<String, Object>) compose.get("volumes")).containsKey("tailscale-state");
 
         Map<String, Object> services = (Map<String, Object>) compose.get("services");
-        // Only the optional services carry a profile: tailscale, and (026) ollama under local-llm (checkpoint 041).
+        // Only the optional services carry a profile: tailscale, (026) ollama under local-llm (checkpoint 041),
+        // (049) satdump and (050) caddy under web.
         services.forEach((name, s) -> {
             Object profiles = ((Map<String, Object>) s).get("profiles");
             switch (name) {
                 case "tailscale" -> { }
                 case "ollama" -> assertThat((List<Object>) profiles).as("profiles of ollama").containsExactly("local-llm");
+                case "satdump" -> assertThat((List<Object>) profiles).as("profiles of satdump").containsExactly("satdump");
+                case "caddy" -> assertThat((List<Object>) profiles).as("profiles of caddy").containsExactly("web");
                 default -> assertThat(profiles).as("profiles of %s", name).isNull();
             }
         });
