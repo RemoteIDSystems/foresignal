@@ -27,6 +27,10 @@ import org.springframework.stereotype.Component;
  * <p>Frame time is the newest complete valid time for observation products and the newest ingest
  * time for forecast products, whose valid times lie in the future. A source with products but no
  * frame yet gets no frame-age verdict.
+ *
+ * <p>Forecast products of a source whose run cadence is known ({@link ForecastRunCadence}, prompt
+ * 051) are judged against the run cadence instead of their step spacing: degraded when the newest
+ * frame was ingested more than two runs ago.
  */
 @Component
 public class FrameAgeHealthRule implements HealthRule {
@@ -34,12 +38,25 @@ public class FrameAgeHealthRule implements HealthRule {
     private final ProductRegistry registry;
     private final RasterFrameQueries frames;
     private final ProductStatusTracker status;
+    private final java.util.List<ForecastRunCadence> cadences;
 
-    /** Creates the rule. */
+    /** Creates the rule without run cadences (tests). */
     public FrameAgeHealthRule(ProductRegistry registry, RasterFrameQueries frames, ProductStatusTracker status) {
+        this(registry, frames, status, java.util.List.of());
+    }
+
+    /**
+     * Creates the rule.
+     *
+     * @param cadences the run cadences of forecast sources (prompt 051)
+     */
+    @org.springframework.beans.factory.annotation.Autowired
+    public FrameAgeHealthRule(ProductRegistry registry, RasterFrameQueries frames, ProductStatusTracker status,
+            java.util.List<ForecastRunCadence> cadences) {
         this.registry = registry;
         this.frames = frames;
         this.status = status;
+        this.cadences = cadences == null ? java.util.List.of() : java.util.List.copyOf(cadences);
     }
 
     @Override
@@ -55,12 +72,30 @@ public class FrameAgeHealthRule implements HealthRule {
             (p.spec().isForecast() ? forecasts : observations).add(p.id());
         }
         Map<String, Instant> newest = frames.newestFrameTimes(observations, forecasts);
-        return verdict(products, newest, status, context.now());
+        java.time.Duration runEvery = null;
+        for (ForecastRunCadence c : cadences) {
+            Optional<java.time.Duration> d = c.runCadence(context.sourceId());
+            if (d.isPresent()) {
+                runEvery = d.get();
+                break;
+            }
+        }
+        return verdict(products, newest, status, context.now(), runEvery);
     }
 
-    /** The combined verdict over {@code products} (pure, for tests). */
+    /** The combined verdict over {@code products} (pure, for tests), without a run cadence. */
     static Optional<HealthVerdict> verdict(List<ProductRegistry.Registered> products, Map<String, Instant> newest,
             ProductStatusTracker status, Instant now) {
+        return verdict(products, newest, status, now, null);
+    }
+
+    /**
+     * The combined verdict over {@code products} (pure, for tests).
+     *
+     * @param runEvery the source's forecast run cadence, or null to judge forecasts by their steps
+     */
+    static Optional<HealthVerdict> verdict(List<ProductRegistry.Registered> products, Map<String, Instant> newest,
+            ProductStatusTracker status, Instant now, java.time.Duration runEvery) {
         Instant newestOverall = null;
         HealthVerdict worst = null;
         for (ProductRegistry.Registered product : products) {
@@ -84,8 +119,9 @@ public class FrameAgeHealthRule implements HealthRule {
             if (spec.temporal() == null) {
                 continue;
             }
-            Optional<HealthVerdict> age = FrameAgeRule.verdict(frameAt, spec.temporal().cadence(), spec.temporal().maxGap(),
-                    now);
+            boolean byRun = spec.isForecast() && runEvery != null;
+            Optional<HealthVerdict> age = byRun ? FrameAgeRule.verdict(frameAt, runEvery, runEvery.multipliedBy(2), now)
+                    : FrameAgeRule.verdict(frameAt, spec.temporal().cadence(), spec.temporal().maxGap(), now);
             if (age.isPresent() && age.get().status() != HealthStatus.HEALTHY) {
                 worst = worse(worst, HealthVerdict.degraded(spec.id() + ": " + age.get().reason(), frameAt));
             }

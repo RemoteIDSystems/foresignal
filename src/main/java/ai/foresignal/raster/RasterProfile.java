@@ -62,6 +62,14 @@ public enum RasterProfile {
     }
 
     /**
+     * The default HRRR run cadence (prompt 051, Weather-Imagery-Design §2.6): every 6 h in the small
+     * profile, every 3 h in the large one. The {@code hrrr} source's {@code runEvery} overrides it.
+     */
+    public java.time.Duration hrrrRunEvery() {
+        return java.time.Duration.ofHours(this == SMALL ? 6 : 3);
+    }
+
+    /**
      * The profile named {@code value}; null or blank is {@link #SMALL}.
      *
      * @throws IllegalArgumentException for any other name

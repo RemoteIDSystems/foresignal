@@ -31,7 +31,11 @@ import ucar.unidata.io.RandomAccessFile;
  * units of the basic angle over its subdivisions, or micro-degrees when the basic angle is 0), because NetCDF-Java exposes them as floats that would
  * turn MRMS's 230.005° into 230.00499°. Samples are reordered to rows north to south and columns
  * west to east whatever the scanning mode (flags 0x80 and 0x40); a column-major (0x20) message is
- * refused. Other grid templates are refused until a product needs them.
+ * refused. Template 3.30 (Lambert conformal, HRRR; prompt 051) is read from its raw octets too and
+ * becomes an {@code lcc} grid whose first point is the south-west cell. The resolution and component
+ * flags (flag table 3.3) are reported in the metadata as {@code componentFlags}, and bit 5 as
+ * {@code gridRelativeWinds}: the adapter rotates such winds to earth-relative. Other grid templates
+ * are refused until a product needs them.
  *
  * <p>Missing samples (the bitmap) are {@code NaN}; MRMS's in-band sentinels (−999, −99, −3) are
  * ordinary values here and are mapped by the adapter.
@@ -47,6 +51,15 @@ public class Grib2Decoder implements RasterDecoder {
 
     /** GRIB2 scanning mode flag: adjacent points are consecutive in j (column-major). */
     static final int SCAN_J_CONSECUTIVE = 0x20;
+
+    /** GRIB2 flag table 3.3, bit 5: u and v are resolved along the grid's x and y axes (prompt 051). */
+    static final int GRID_RELATIVE_WINDS = 0x08;
+
+    /** The NCEP sphere (shape of the earth 6), meters. */
+    static final double NCEP_SPHERE_RADIUS = 6_371_229.0;
+
+    /** The GRIB1-era sphere (shape of the earth 0), meters. */
+    static final double SPHERE_6367470 = 6_367_470.0;
 
     private static final double LEVEL_TOLERANCE = 1e-3;
 
@@ -122,7 +135,7 @@ public class Grib2Decoder implements RasterDecoder {
         if ((scanMode & SCAN_J_CONSECUTIVE) != 0) {
             throw new RasterFormatException("GRIB2 scanning mode " + scanMode + " (column-major) is not supported");
         }
-        LatLonBox box = latLonBox(gds);
+        NativeGrid box = nativeGrid(gds);
         GridDefinition grid = box.definition();
         Instant reference = Instant.ofEpochMilli(record.getReferenceDate().getMillis());
         Instant valid = validTime(reference, record.getPDS());
@@ -135,6 +148,8 @@ public class Grib2Decoder implements RasterDecoder {
         metadata.put("dataTemplate", record.getDataRepresentationSection().getDataTemplate());
         metadata.put("gridTemplate", gds.template);
         metadata.put("scanMode", scanMode);
+        metadata.put("componentFlags", box.componentFlags());
+        metadata.put("gridRelativeWinds", (box.componentFlags() & GRID_RELATIVE_WINDS) != 0);
         metadata.put("center", record.getId().getCenter_id());
         metadata.put("message", messageNumber);
         if (r.headerOnly()) {
@@ -190,6 +205,146 @@ public class Grib2Decoder implements RasterDecoder {
         }
     }
 
+    /** A native grid read from a grid definition section, with its dimensions and component flags. */
+    sealed interface NativeGrid permits LatLonBox, LambertBox {
+
+        /** Columns. */
+        int nx();
+
+        /** Rows. */
+        int ny();
+
+        /** The resolution and component flags (flag table 3.3). */
+        int componentFlags();
+
+        /** The grid definition stored with the frame. */
+        GridDefinition definition();
+    }
+
+    /** The native grid of {@code gds}: template 3.0 or 3.30; others are refused. */
+    static NativeGrid nativeGrid(Grib2Gds gds) {
+        return gds.template == 30 ? lambertBox(gds) : latLonBox(gds);
+    }
+
+    /**
+     * A Lambert conformal grid read from a template 3.30 section (prompt 051).
+     *
+     * @param nx columns
+     * @param ny rows
+     * @param lat1 first standard parallel, degrees
+     * @param lat2 second standard parallel, degrees
+     * @param lov central meridian, degrees in −180..180
+     * @param radius sphere radius, meters
+     * @param swLat latitude of the south-west cell center, degrees
+     * @param swLon longitude of the south-west cell center, degrees in −180..180
+     * @param dx column step, meters
+     * @param dy row step, meters
+     * @param componentFlags the resolution and component flags
+     */
+    record LambertBox(int nx, int ny, double lat1, double lat2, double lov, double radius, double swLat, double swLon,
+            double dx, double dy, int componentFlags) implements NativeGrid {
+
+        /** The {@code lcc} definition, its box walked along the grid's outline. */
+        @Override
+        public GridDefinition definition() {
+            Map<String, Object> params = params();
+            GridDefinition provisional = new GridDefinition(GridDefinition.LCC, nx, ny, -180, -90, 180, 90, params);
+            ai.foresignal.raster.GridDef grid = ai.foresignal.raster.GridDef.of(provisional);
+            double west = Double.POSITIVE_INFINITY;
+            double east = Double.NEGATIVE_INFINITY;
+            double south = Double.POSITIVE_INFINITY;
+            double north = Double.NEGATIVE_INFINITY;
+            int steps = 200;
+            for (int k = 0; k <= steps; k++) {
+                double i = -0.5 + (nx * (double) k) / steps;
+                double j = -0.5 + (ny * (double) k) / steps;
+                for (double[] ij : new double[][] {{i, -0.5}, {i, ny - 0.5}, {-0.5, j}, {nx - 0.5, j}}) {
+                    double[] ll = grid.indexToLonLat(ij[0], ij[1]);
+                    if (Double.isNaN(ll[0]) || Double.isNaN(ll[1])) {
+                        continue;
+                    }
+                    west = Math.min(west, ll[0]);
+                    east = Math.max(east, ll[0]);
+                    south = Math.min(south, ll[1]);
+                    north = Math.max(north, ll[1]);
+                }
+            }
+            return new GridDefinition(GridDefinition.LCC, nx, ny, round(Math.max(-180, west)),
+                    round(Math.max(-90, south)), round(Math.min(180, east)), round(Math.min(90, north)), params);
+        }
+
+        private Map<String, Object> params() {
+            Map<String, Object> params = new LinkedHashMap<>();
+            params.put("lat1", round(lat1));
+            params.put("lat2", round(lat2));
+            params.put("lov", round(lov));
+            params.put("radius", radius);
+            params.put("la1", round(swLat));
+            params.put("lo1", round(swLon));
+            params.put("dx", round(dx));
+            params.put("dy", round(dy));
+            return params;
+        }
+    }
+
+    /**
+     * The Lambert conformal grid of a template 3.30 section, read from its raw octets (WMO GRIB2
+     * template 3.30: 15 shape of the earth, 16–20 radius, 31–38 Nx/Ny, 39–46 La1/Lo1 in 10⁻⁶ degrees,
+     * 47 resolution and component flags, 48–55 LaD/LoV, 56–63 Dx/Dy in millimeters, 65 scanning mode,
+     * 66–73 Latin1/Latin2). The first grid point is moved to the south-west cell, whatever the
+     * scanning mode.
+     *
+     * @throws RasterFormatException for a non-spherical earth or a short section
+     */
+    static LambertBox lambertBox(Grib2Gds gds) {
+        byte[] raw = gds.getRawBytes();
+        if (raw.length < 73) {
+            throw new RasterFormatException("GRIB2 template 3.30 section is " + raw.length + " octets; 73 needed");
+        }
+        int shape = raw[14] & 0xFF;
+        double radius = switch (shape) {
+            case 0 -> SPHERE_6367470;
+            case 6 -> NCEP_SPHERE_RADIUS;
+            case 1 -> {
+                int scale = raw[15] & 0xFF;
+                long value = unsigned32(raw, 17);
+                yield value / Math.pow(10, scale);
+            }
+            default -> throw new RasterFormatException("GRIB2 Lambert grid on earth shape " + shape
+                    + " (not a sphere) is not supported");
+        };
+        int nx = (int) unsigned32(raw, 31);
+        int ny = (int) unsigned32(raw, 35);
+        double la1 = signed32(raw, 39) * 1e-6;
+        double lo1 = normalizeLon(unsigned32(raw, 43) * 1e-6);
+        int flags = raw[46] & 0xFF;
+        double lov = normalizeLon(unsigned32(raw, 52) * 1e-6);
+        double dx = unsigned32(raw, 56) * 1e-3;
+        double dy = unsigned32(raw, 60) * 1e-3;
+        int scan = raw[64] & 0xFF;
+        double lat1 = signed32(raw, 66) * 1e-6;
+        double lat2 = signed32(raw, 70) * 1e-6;
+        if (nx <= 0 || ny <= 0 || !(dx > 0) || !(dy > 0)) {
+            throw new RasterFormatException("GRIB2 Lambert grid has invalid dimensions or steps");
+        }
+        double swLat = la1;
+        double swLon = lo1;
+        boolean iNegative = (scan & SCAN_I_NEGATIVE) != 0;
+        boolean jPositive = (scan & SCAN_J_POSITIVE) != 0;
+        if (iNegative || !jPositive) {
+            LambertBox first = new LambertBox(nx, ny, lat1, lat2, lov, radius, la1, lo1, dx, dy, flags);
+            ai.foresignal.raster.LccGrid grid = (ai.foresignal.raster.LccGrid) ai.foresignal.raster.GridDef.of(
+                    new GridDefinition(GridDefinition.LCC, nx, ny, -180, -90, 180, 90, first.params()));
+            double[] xy = grid.forward(lo1, la1);
+            double x = xy[0] - (iNegative ? (nx - 1) * dx : 0);
+            double y = xy[1] - (jPositive ? 0 : (ny - 1) * dy);
+            double[] sw = grid.inverse(x, y);
+            swLon = sw[0];
+            swLat = sw[1];
+        }
+        return new LambertBox(nx, ny, lat1, lat2, lov, radius, swLat, swLon, dx, dy, flags);
+    }
+
     /**
      * A latitude/longitude grid read from a template 3.0 section.
      *
@@ -199,11 +354,19 @@ public class Grib2Decoder implements RasterDecoder {
      * @param northLat center latitude of the northernmost row
      * @param dx column step, degrees
      * @param dy row step, degrees (positive)
+     * @param componentFlags the resolution and component flags (octet 55)
      */
-    record LatLonBox(int nx, int ny, double westLon, double northLat, double dx, double dy) {
+    record LatLonBox(int nx, int ny, double westLon, double northLat, double dx, double dy, int componentFlags)
+            implements NativeGrid {
+
+        /** A box without component flags (earth-relative). */
+        LatLonBox(int nx, int ny, double westLon, double northLat, double dx, double dy) {
+            this(nx, ny, westLon, northLat, dx, dy, 0);
+        }
 
         /** The grid definition: edges half a cell outside the centers, longitudes in −180..180. */
-        GridDefinition definition() {
+        @Override
+        public GridDefinition definition() {
             Map<String, Object> params = new LinkedHashMap<>();
             double lo1 = normalizeLon(westLon);
             params.put("lo1", round(lo1));
@@ -262,7 +425,8 @@ public class Grib2Decoder implements RasterDecoder {
         }
         double westLon = (scan & SCAN_I_NEGATIVE) == 0 ? lo1 : lo2;
         double northLat = Math.max(la1, la2);
-        return new LatLonBox(nx, ny, westLon, northLat, di, dj);
+        int flags = raw.length >= 55 ? raw[54] & 0xFF : 0;
+        return new LatLonBox(nx, ny, westLon, northLat, di, dj, flags);
     }
 
     /**

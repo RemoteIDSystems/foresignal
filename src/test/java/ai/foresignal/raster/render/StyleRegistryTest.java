@@ -21,10 +21,11 @@ class StyleRegistryTest {
     private final StyleRegistry styles = new StyleRegistry();
 
     @Test
-    @DisplayName("ships the nine prompt 045 styles, each compiling to at most 256 colors with entry 0 transparent")
+    @DisplayName("ships the nine prompt 045 styles plus qpe@1 (051), each compiling to at most 256 colors with entry 0 transparent")
     void shippedStyles() {
         assertThat(styles.all()).extracting(StyleDefinition::ref).containsExactly("ir-enhanced@1", "ir-gray@1",
-                "mesh@1", "nws-reflectivity@1", "precip-rate@1", "rgb@1", "smoke@1", "temperature@1", "wind-speed@1");
+                "mesh@1", "nws-reflectivity@1", "precip-rate@1", "qpe@1", "rgb@1", "smoke@1", "temperature@1",
+                "wind-speed@1");
         ProductSpec u8 = ProductSpec.builder("p").dtype(RasterDtype.U8).build();
         ProductSpec u16 = ProductSpec.builder("q").dtype(RasterDtype.U16).build();
         ProductSpec f32 = ProductSpec.builder("r").dtype(RasterDtype.F32).build();

@@ -161,7 +161,7 @@ public class StyleRegistry {
         Object version = m.get("version");
         return new StyleDefinition((String) m.get("id"), version instanceof Number n ? n.intValue() : 0,
                 (String) m.get("type"), (String) m.get("units"), stops, categories, specials, meaning,
-                (String) m.get("notice"), (String) m.get("passthrough"));
+                (String) m.get("notice"), (String) m.get("passthrough"), (String) m.get("derive"));
     }
 
     private static Double number(Object v) {

@@ -174,7 +174,7 @@ MapLibre GL JS 6 ships as ES modules only and needs WebGL2.
 ### A raster source from TileJSON, swapped per frame event
 
 ```js
-import maplibregl from "maplibre-gl";
+import * as maplibregl from "maplibre-gl";   // 6.x has named exports only, no default export
 
 const base = "https://foresignal.local";            // or a tile key's urlBase plus keyed()
 const product = "mrms-reflectivity";
@@ -396,4 +396,97 @@ Browsers allow about six connections per origin over HTTP/1.1, and every open `E
 
 ## Wind particles
 
-Reserved for prompt 051 (the GFS field endpoints and the particle layer port).
+Animated particles are a **web-only progressive enhancement** over the `gfs` wind field. Every client,
+web included, can show wind without them:
+
+- **Barbs:** the vector tiles `/v1/products/{id}/vectors/{frameKey}/{z}/{x}/{y}.mvt?run=…` (`gfs`,
+  `hrrr`; layer `wind`; points every 32 px of a 256 px tile with `speedMs`, `fromDeg`, `barbKt`).
+  MapLibre and maplibre_gl draw them as a symbol layer with `icon-rotate: ["get", "fromDeg"]` and an
+  icon per `barbKt`; flutter_map as a `MarkerLayer` or a `CustomPainter`; Cesium as billboards rotated
+  by `fromDeg`. `fromDeg` is where the wind blows **from**, so a barb's staff points that way. HRRR's
+  winds are already rotated to earth-relative.
+- **Speed raster:** any tile URL of `gfs` or `hrrr` with `style=wind-speed@1` (the products' default
+  style) colors √(u² + v²); its legend is `/v1/products/{id}/legend?style=wind-speed@1`.
+
+Flutter (both map packages) and Cesium use those two. The rest of this section is for web clients that
+want particles.
+
+### The field endpoints
+
+```text
+GET /v1/products/gfs/fields/{frameKey}.json?run=latest&res=1            manifest (JSON)
+GET /v1/products/gfs/fields/{frameKey}.f32?run=<runIso>&res=1           data, Content-Encoding: gzip
+```
+
+- `res=1` is 360 × 181 points (521,280 bytes raw, about 280 KB on the wire); `res=0.25` is 1440 × 721
+  (8,305,920 bytes raw, about 6 MB), so pass a `bbox` with 0.25°. A box is snapped outward to grid
+  points and may cross 0°: `bbox=-10,30,10,40` gives 21 columns starting at `lo1 = 350`.
+- The data is planar little-endian Float32: all of `u`, then all of `v` (`components[].offset`), rows
+  north to south from `la1`, columns east from `lo1` (0..359 for the whole grid), m/s, earth-relative.
+- The manifest's `dataUrl` is content-addressed (frame key, pinned run, snapped box): it is cached
+  immutably, so fetch exactly that URL. The browser's `fetch` decompresses the gzip body itself.
+- Follow `frameKey` from the product's frames, TileJSON, or the `gfs` run event on SSE
+  (`{run, steps[], validTimes[], tilesTemplate}`); a concrete time needs `run`.
+
+### Reusing the God's Eye View layer
+
+God's Eye View (MIT, <https://github.com/bilawalsidhu/gods-eye-view>) ships its particle layer in
+`src/layers/wind/`. Four modules are framework-neutral and can be copied into a web client, keeping the
+MIT notice (copyright 2026 Bilawal Sidhu) with them:
+
+| Module | What it gives you |
+|---|---|
+| `model.js` | `sampleWind(field, lon, lat)` (bilinear, seam-wrapped), `advectParticle`, `metersPerDegreeLon`, `windSpeed` |
+| `streamlines.js` | `bakeWindStreamlines(field)` and `groupWindPaths`: equal-area seeded streamlines baked once per field |
+| `fields.js` | `WIND_FIELDS` (the 0–30 m/s speed ramp Foresignal's `wind-speed@1` also uses), `windTrailColor`, `trailEraseAlpha`, `createFieldRaster` |
+| `source.js` | `createWindSource`: fetches GEV's own manifest and grid; replace it with the adapter below |
+
+`rendering.js` and `gpuRendering.js` draw through Cesium (`viewer.scene`, primitives), so they do not
+carry over. In MapLibre GL JS, draw the particles in a custom layer (`CustomLayerInterface`: `onAdd(map,
+gl)`, `render(gl, options)` with `options.modelViewProjectionMatrix`, `onRemove`), positioning each
+particle with `maplibregl.MercatorCoordinate.fromLngLat` and calling `map.triggerRepaint()` while
+animating.
+
+### The manifest adapter (replaces `source.js`)
+
+GEV's `source.js` accepts only its own grid URL (a `/api/wind/grid/…` pattern) and a whole-globe grid
+(`nx · dx = 360`). Foresignal's manifest names its data by `dataUrl` instead, and a `bbox` subset is
+narrower than the globe, so check those instead:
+
+```js
+// Returns the snapshot shape model.js and fields.js expect: {...manifest, u, v} with manifest.grid.
+export async function loadForesignalWind(base, frameKey, { run = "latest", res = "1", bbox, signal } = {}) {
+  const q = new URLSearchParams({ run, res, ...(bbox ? { bbox } : {}) });
+  const manifestUrl = `${base}/v1/products/gfs/fields/${encodeURIComponent(frameKey)}.json?${q}`;
+  const response = await fetch(manifestUrl, { signal, redirect: "follow" });
+  if (!response.ok) throw new Error(`Wind manifest HTTP ${response.status}`);
+  const m = await response.json();
+  const g = m?.grid;
+  const count = g?.nx * g?.ny;
+  const dataPrefix = `${base}/v1/products/gfs/fields/`;
+  if (m?.schemaVersion !== 1 || m.units !== "m/s" || m.unavailable
+      || !Number.isInteger(g?.nx) || !Number.isInteger(g?.ny) || g.nx < 1 || g.ny < 1
+      || ![g.lo1, g.la1, g.dx, g.dy].every(Number.isFinite) || g.dx <= 0 || g.dy <= 0
+      || m.byteLength !== count * 8
+      || m.components?.[0]?.name !== "u" || m.components[0].offset !== 0
+      || m.components?.[1]?.name !== "v" || m.components[1].offset !== count * 4
+      || typeof m.dataUrl !== "string" || !m.dataUrl.startsWith(dataPrefix)) {
+    throw new Error("Malformed Foresignal wind manifest");
+  }
+  const data = await fetch(m.dataUrl, { signal });           // gzip is decoded by the browser
+  if (!data.ok) throw new Error(`Wind data HTTP ${data.status}`);
+  const bytes = await data.arrayBuffer();
+  if (bytes.byteLength !== m.byteLength) throw new Error("Malformed Foresignal wind data");
+  const values = new Float32Array(bytes);                    // little-endian on every browser platform
+  if (!values.every(Number.isFinite)) throw new Error("Malformed Foresignal wind data");
+  return { ...m, u: values.slice(0, count), v: values.slice(count) };
+}
+```
+
+With a tile key, `base` is the key's `urlBase` and `dataUrl` comes back canonical: rewrite it with the
+`keyed()` helper from "Getting in" before fetching. With a `bbox`, `sampleWind` still wraps columns
+modulo `nx`, so seed and keep particles inside the box (`lo1` east by `nx · dx`, `la1` south by
+`(ny − 1) · dy`); `streamlines.js` seeds the whole globe, so filter its seeds to the box too. Optionally
+check `sha256` with `crypto.subtle.digest("SHA-256", bytes)`. `stale: true` means the field is not from
+the newest complete run (a `previous` or pinned run). Show `attribution` (NOAA GFS, public domain) with
+the layer.

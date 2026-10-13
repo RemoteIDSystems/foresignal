@@ -34735,7 +34735,7 @@
                 }
               ]
             },
-            "description": "GEV `schemaVersion: 1` manifest for the planar u/v Float32 field (`gfs` only in v1), with cycle, grid, component offsets, byte length, sha256, attribution and a content-addressed `dataUrl`. A concrete forecast time without `run` \u2192 400 RUN_REQUIRED.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getProductFieldManifest`",
+            "description": "GEV `schemaVersion: 1` manifest for the planar u/v Float32 field (`gfs` only in v1: a `kind=field` product with two bands and global coverage), with cycle, grid, component offsets, byte length, sha256 of the raw (uncompressed) data, attribution and a content-addressed `dataUrl` (`\u2026/fields/{frameKey}.f32?run=<runIso>&res=<res>[&bbox=<snapped>]`; the run is always pinned). `stale` is true when the frame's run is not the newest complete run; a disabled product answers 503 rather than an `unavailable` manifest. With `bbox`, `grid` describes the snapped subset (`lo1` in 0..360, so `nx\u00b7dx` is less than 360). A concrete forecast time without `run` \u2192 400 RUN_REQUIRED.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getProductFieldManifest`",
             "auth": {
               "type": "noauth"
             }
@@ -34807,7 +34807,7 @@
                 }
               ]
             },
-            "description": "Planar little-endian Float32, u then v, rows north\u2192south, longitudes 0..359 (1\u00b0: 360\u00d7181, 521,280 bytes raw; 0.25\u00b0: 1440\u00d7721), served precompressed with `Content-Encoding: gzip`. 406 only when the client refuses gzip.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getProductFieldData`",
+            "description": "Planar little-endian Float32, u then v, rows north\u2192south, longitudes 0..359 (1\u00b0: 360\u00d7181, 521,280 bytes raw; 0.25\u00b0: 1440\u00d7721, 8,305,920 bytes raw), written once at ingest and served precompressed with `Content-Encoding: gzip`. 406 NOT_ACCEPTABLE only when `Accept-Encoding` refuses gzip (`gzip;q=0`, or only `identity`); no header accepts it. `bbox` is snapped outward to grid points, wraps across 0\u00b0, and is cut on the fly from the file of the requested resolution (cached in the tile cache). The ETag is derived from the raw data's sha256.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getProductFieldData`",
             "auth": {
               "type": "noauth"
             }
@@ -34876,7 +34876,7 @@
                 }
               ]
             },
-            "description": "Mapbox Vector Tile of thinned wind points (about 32 px spacing per zoom) for `gfs` and `hrrr`, with properties `speedMs` (0.1), `fromDeg` (integer) and `barbKt` (5-kt bucket). Cached and render-queued like raster tiles, with the same cache rule.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getProductVectorTile`",
+            "description": "Mapbox Vector Tile (layer `wind`, extent 4096) of wind points for the u/v products (`gfs`, `hrrr`): the frame sampled bilinearly on a 32 px lattice inside the 256 px tile (8\u00d78 points at pixel centers, so the on-screen density is the same at every zoom), each with `speedMs` (m/s, 0.1), `fromDeg` (the direction the wind blows from, `(270 \u2212 atan2(v,u)\u00b7180/\u03c0) mod 360`, integer) and `barbKt` (knots rounded to a 5-kt bucket). HRRR's grid-relative winds are rotated to earth-relative at ingest. Built by PostGIS `ST_AsMVT`; an empty tile is an empty body. Cached and render-queued like raster tiles, with the same cache rule; zooms above the native max zoom are 400 TILE_OUT_OF_RANGE (clients overzoom).\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getProductVectorTile`",
             "auth": {
               "type": "noauth"
             }
@@ -34952,7 +34952,7 @@
                 }
               ]
             },
-            "description": "Ticks marked `observed|forecast` with the frame chosen per product per tick (honouring `maxGap`), the single run used per forecast product, `nowIndex` and expanded tile templates. `mode=seamless` joins a `past` observed product to a `future` forecast product; external entries get synthesised ticks with `availability: unverified`. More than 500 ticks \u2192 400 VALIDATION_FAILED.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getProductTimeline`",
+            "description": "Ticks marked `observed|forecast`: the union of the products' frame valid times in the window, with the frame chosen per product per tick (at or before the tick with the smallest gap, honoring `maxGap`; a product with none is absent at that tick), the single run used per forecast product (its newest complete run, never mixed; `runs`), `nowIndex` (the tick nearest now) and expanded, content-addressed tile templates. `mode=seamless` joins a `past` observed product (ticks up to now) to a `future` forecast product (ticks after now). External catalog entries get synthesized ticks every `timeDimension.period` up to `now \u2212 defaultLag`, with `availability: unverified` and the external template's `{time}` filled. Default window: now \u2212 6 h to now (+ 48 h when a forecast product is named); seamless now \u2212 3 h to now + 18 h. At most 10 products. More than 500 ticks \u2192 400 VALIDATION_FAILED.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getProductTimeline`",
             "auth": {
               "type": "noauth"
             }

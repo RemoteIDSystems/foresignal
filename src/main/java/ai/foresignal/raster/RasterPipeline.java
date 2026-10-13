@@ -40,7 +40,9 @@ import tools.jackson.databind.json.JsonMapper;
  * head, which the hourly orphan sweep re-emits.
  *
  * <p>After every commit a {@link RasterFrameCommittedEvent} is published (prompt 045 warms tiles from
- * it).
+ * it). A forecast frame of a global {@code kind=field} product with two physical bands also gets its
+ * God's Eye View wind fields written on the decode pool ({@link ai.foresignal.raster.model.FieldStore},
+ * prompt 051), listed in the frame's {@code stats.fields}.
  */
 @Component
 public class RasterPipeline implements RasterSinkFactory {
@@ -59,17 +61,19 @@ public class RasterPipeline implements RasterSinkFactory {
     private final Clock clock;
     private final ObjectProvider<FlashStore> flashes;
     private final RasterPaths paths;
+    private final ai.foresignal.raster.model.FieldStore fieldStore;
 
     /**
      * Creates the pipeline.
      *
      * @param flashes the GLM flash store behind {@code ctx.rasters().flashes()} (prompt 048), resolved
      *     lazily; null for none
+     * @param fieldStore writes the God's Eye View wind fields of global field products (prompt 051)
      */
     public RasterPipeline(ProductRegistry registry, FrameStore store, GridStore grids, RasterFrameQueries frames,
             RasterDecodePool pool, ProductStatusTracker status, ProductUrls urls, ApplicationEventPublisher events,
             JsonMapper json, Clock clock,
-            ObjectProvider<FlashStore> flashes, RasterPaths paths) {
+            ObjectProvider<FlashStore> flashes, RasterPaths paths, ai.foresignal.raster.model.FieldStore fieldStore) {
         this.registry = registry;
         this.store = store;
         this.grids = grids;
@@ -82,6 +86,7 @@ public class RasterPipeline implements RasterSinkFactory {
         this.clock = clock;
         this.flashes = flashes;
         this.paths = paths;
+        this.fieldStore = fieldStore;
     }
 
     /** The flash store, or throws when none is installed. */
@@ -111,7 +116,9 @@ public class RasterPipeline implements RasterSinkFactory {
             throw new AdapterException("Product " + spec.id() + " is " + (spec.isForecast() ? "a forecast" : "not a forecast")
                     + " product, but the frame " + (input.isForecast() ? "has" : "has no") + " run and step");
         }
-        EncodedFrame encoded = encode(spec, input);
+        java.util.concurrent.atomic.AtomicReference<Map<String, Object>> fieldFiles =
+                new java.util.concurrent.atomic.AtomicReference<>();
+        EncodedFrame encoded = encode(spec, input, fieldFiles);
         String frameId = input.isForecast()
                 ? FrameKeys.forecastFrameId(input.referenceTime(), input.forecastStep())
                 : FrameKeys.observationFrameId(input.validTime());
@@ -123,7 +130,8 @@ public class RasterPipeline implements RasterSinkFactory {
                     encoded.decoded());
             row = new RasterFrameRow(spec.id(), frameId, input.validTime(), input.referenceTime(), input.forecastStep(),
                     input.obsStart(), input.obsEnd(), gridId, stored.relativePath(), stored.bytes(), stored.sha256(),
-                    spec.dtype().wireValue(), encoded.header().codec(), stats(encoded, input), input.upstreamKey(),
+                    spec.dtype().wireValue(), encoded.header().codec(), withFields(stats(encoded, input), fieldFiles.get()),
+                    input.upstreamKey(),
                     input.partial() ? RasterFrameRow.PARTIAL : RasterFrameRow.COMPLETE, false, false, now,
                     FrameThinning.initialExpiry(spec, input.validTime()));
             org.locationtech.jts.geom.MultiPolygon footprint = input.footprint() != null ? input.footprint()
@@ -229,11 +237,19 @@ public class RasterPipeline implements RasterSinkFactory {
         return product.spec();
     }
 
-    private EncodedFrame encode(ProductSpec spec, FrameInput input) throws AdapterException {
+    private EncodedFrame encode(ProductSpec spec, FrameInput input,
+            java.util.concurrent.atomic.AtomicReference<Map<String, Object>> fieldFiles) throws AdapterException {
         try {
             return pool.run(() -> {
                 DecodedBands bands = input.bands() != null ? input.bands() : input.decoder().decode(input.tempFile());
-                return FrameEncoder.encode(spec, input.grid(), bands, input.partial());
+                EncodedFrame encoded = FrameEncoder.encode(spec, input.grid(), bands, input.partial());
+                if (fieldStore != null && ai.foresignal.raster.model.FieldStore.applies(spec, input.grid(), bands,
+                        input.isForecast())) {
+                    // Prompt 051: the God's Eye View fields of a global wind product, from the decoded floats.
+                    fieldFiles.set(fieldStore.write(spec.id(), input.referenceTime(), input.forecastStep(), input.grid(),
+                            bands.physical().get(0), bands.physical().get(1)));
+                }
+                return encoded;
             });
         } catch (SilentFormatChangeException e) {
             status.formatChanged(spec.id(), e.getMessage(), clock.instant());
@@ -269,6 +285,16 @@ public class RasterPipeline implements RasterSinkFactory {
         }
         Map<String, Object> merged = new LinkedHashMap<>(encoded.stats());
         input.extraStats().forEach(merged::putIfAbsent);
+        return merged;
+    }
+
+    /** {@code stats} plus the {@code fields} member when field files were written (prompt 051). */
+    static Map<String, Object> withFields(Map<String, Object> stats, Map<String, Object> fields) {
+        if (fields == null || fields.isEmpty()) {
+            return stats;
+        }
+        Map<String, Object> merged = new LinkedHashMap<>(stats);
+        merged.put(ai.foresignal.raster.model.FieldStore.STATS_KEY, fields);
         return merged;
     }
 

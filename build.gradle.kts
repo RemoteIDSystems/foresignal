@@ -193,7 +193,9 @@ tasks.check {
 // pins. Tests that need one skip with a logged reason when it is absent. Not wired to anything; run
 // ./gradlew downloadTestFixtures before a test run that should cover them. Anonymous HTTPS against the
 // public NOAA bucket, the same object scripts/capture-raster-fixtures.sh captured.
-data class PinnedFixture(val path: String, val url: String, val sha256: String, val bytes: Long)
+// A fixture with a `range` is one or more GRIB2 messages read from a larger object with a ranged GET
+// (prompt 051: HRRR messages planned from the step's .idx), answered 206.
+data class PinnedFixture(val path: String, val url: String, val sha256: String, val bytes: Long, val range: String? = null)
 val pinnedFixtures = listOf(
     PinnedFixture(
         "goes/OR_ABI-L2-CMIPC-M6C13_G19_s20262851201170_e20262851203554_c20262851204053.nc",
@@ -201,6 +203,27 @@ val pinnedFixtures = listOf(
             "OR_ABI-L2-CMIPC-M6C13_G19_s20262851201170_e20262851203554_c20262851204053.nc",
         "bace11ee913a15467b047a76beb12d241589349431e74424a6fe6d09833cc556",
         3_807_021L,
+    ),
+    PinnedFixture(
+        "hrrr/hrrr-f01-ugrd-vgrd.grib2",
+        "https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.20261012/conus/hrrr.t12z.wrfsfcf01.grib2",
+        "ac2ea3d466bf3032f82c5bf62501473159892e25af628802d65c6785f3f7df04",
+        4_763_230L,
+        "bytes=52027080-56790309",
+    ),
+    PinnedFixture(
+        "hrrr/hrrr-f01-gust.grib2",
+        "https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.20261012/conus/hrrr.t12z.wrfsfcf01.grib2",
+        "8e2a8b1e33027f098e51e1687649258f039a4906a822b56d50a4aef04fc603b4",
+        1_252_096L,
+        "bytes=3314894-4566989",
+    ),
+    PinnedFixture(
+        "hrrr/hrrr-f01-massden.grib2",
+        "https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.20261012/conus/hrrr.t12z.wrfsfcf01.grib2",
+        "31d8b170fa096b3b846ff17b4b7676165822b0dff706ea2005e870a9a9659556",
+        984_361L,
+        "bytes=51042719-52027079",
     ),
 )
 tasks.register("downloadTestFixtures") {
@@ -232,7 +255,9 @@ tasks.register("downloadTestFixtures") {
             connection.connectTimeout = 30_000
             connection.readTimeout = 120_000
             connection.instanceFollowRedirects = false
-            if (connection.responseCode != 200) {
+            fixture.range?.let { connection.setRequestProperty("Range", it) }
+            val expectedStatus = if (fixture.range == null) 200 else 206
+            if (connection.responseCode != expectedStatus) {
                 throw GradleException("downloadTestFixtures: ${fixture.url} answered ${connection.responseCode}")
             }
             connection.inputStream.use { input -> part.outputStream().use { input.copyTo(it) } }

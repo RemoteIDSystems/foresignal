@@ -78,6 +78,10 @@ class FamilyDefaultsTest {
             Map.entry("SystemCanaryAdapter", new Entry(new SystemCanaryAdapter().descriptor(), "system")),
             Map.entry("MrmsAdapter", new Entry(new MrmsAdapter(null, "").descriptor(), "raster")),
             Map.entry("GoesAbiAdapter", new Entry(new GoesAbiAdapter(null, "").descriptor(), "raster")),
+            Map.entry("GfsAdapter", new Entry(new ai.foresignal.source.adapters.gfs.GfsAdapter(
+                    new ai.foresignal.raster.model.ModelRunIngest(null, null), "").descriptor(), "raster")),
+            Map.entry("HrrrAdapter", new Entry(new ai.foresignal.source.adapters.hrrr.HrrrAdapter(
+                    new ai.foresignal.raster.model.ModelRunIngest(null, null), "small", "").descriptor(), "raster")),
             Map.entry("NwsAlertsAdapter", new Entry(new NwsAlertsAdapter((CountyGeometries) null, "").descriptor(), "event")),
             Map.entry("ProbSevereAdapter", new Entry(new ProbSevereAdapter((AreaOfInterest) null, "").descriptor(), "weather")),
             Map.entry("SpcOutlooksAdapter", new Entry(new SpcOutlooksAdapter("").descriptor(), "weather")),

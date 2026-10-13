@@ -90,6 +90,31 @@ public final class ProductAdapterHarness {
         }
     }
 
+    /** A fetch context with params (prompt 051: the model sources' {@code pathTemplate}, {@code steps}, …). */
+    public record ParamContext(SourceDescriptor descriptor, SourceHttp http, Clock clock, MapState state,
+            RasterSink sink, ValidatedParams params) implements FetchContext {
+
+        @Override
+        public String sourceId() {
+            return descriptor.id();
+        }
+
+        @Override
+        public Map<String, String> credentials() {
+            return Map.of();
+        }
+
+        @Override
+        public Optional<Instant> lastSuccessAt() {
+            return Optional.empty();
+        }
+
+        @Override
+        public RasterSink rasters() {
+            return sink;
+        }
+    }
+
     /** A committed frame, with its bands when the sink decoded it. */
     public record Committed(FrameInput frame, DecodedBands bands) {}
 
@@ -100,6 +125,7 @@ public final class ProductAdapterHarness {
     public static final class RecordingSink implements RasterSink {
 
         private final List<Committed> committed = new ArrayList<>();
+        private final List<String> completedRuns = new ArrayList<>();
         private final Map<String, String> formatChanges = new LinkedHashMap<>();
         private final Set<String> disabled = new HashSet<>();
         private boolean decode;
@@ -150,9 +176,22 @@ public final class ProductAdapterHarness {
                     .build();
         }
 
+        /**
+         * Records the completion (prompt 051) and returns one run record; MRMS and GOES never call it.
+         */
         @Override
-        public List<NormalizedRecord> completeRun(String productId, Instant referenceTime) {
-            return List.of();
+        public synchronized List<NormalizedRecord> completeRun(String productId, Instant referenceTime) {
+            completedRuns.add(productId + "@" + referenceTime);
+            return List.of(NormalizedRecord.builder(productId, ProductSpec.RECORD_KIND)
+                    .observedAt(referenceTime)
+                    .put("productId", productId)
+                    .put("run", referenceTime.toString())
+                    .build());
+        }
+
+        /** The completed runs, as {@code productId@referenceTime}, in order. */
+        public synchronized List<String> completedRuns() {
+            return List.copyOf(completedRuns);
         }
 
         @Override

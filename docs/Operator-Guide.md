@@ -2035,6 +2035,51 @@ After a NetCDF-Java upgrade, regenerate the checksums with
 `./gradlew --write-verification-metadata sha256 help`, then trim the file back to the `edu.ucar`
 components and the `<trusted-artifacts>` rule.
 
+## Forecast models (GFS and HRRR)
+
+Prompt 051 adds two forecast model sources. Both start disabled; enable them with
+`PUT /v1/sources/{id}` and `{"enabled": true}`.
+
+| Source | Products | Runs and steps | Poll | Default budget |
+|---|---|---|---|---|
+| `gfs` | `gfs` (10 m wind, u/v), `gfs-gust`, `gfs-t2m`, `gfs-apcp` (precipitation since the run started) | 4 runs a day; f000–f048 every 3 h, f054–f120 every 6 h | 15 min | 60/min, 3,000/day, 1,000 MB/day |
+| `hrrr` | `hrrr` (10 m wind, u/v), `hrrr-refc`, `hrrr-gust`, `hrrr-smoke` | every 3 h, or every 6 h with `FORESIGNAL_PROFILE=small`; f00–f18 | 10 min | 60/min, 4,000/day, 2,000 MB/day |
+
+Neither source downloads whole files (a GFS step is about 0.5 GB, an HRRR step about 150 MB). Each
+step's `.idx` inventory names every message and its byte offset; Foresignal reads only the messages
+it needs, with ranged requests, each charged to `mbPerDay` before it is sent. Expect about 0.4–0.5 GB
+a day for `gfs`, and about 0.6 GB (small profile) or 1.1 GB (large) for `hrrr`, whose 10 m winds are
+stored uncompressed upstream. At most 10 steps are read per poll, so a run completes over a few polls.
+Disk: the current and the previous complete run are kept per product (about 29 steps × 4 products
+for GFS), plus the GFS wind fields at 1° and 0.25° (about 6 MB compressed per step).
+
+**What clients see.** A forecast product gets one `raster-frame` record version per **completed** run
+(every configured step has a frame), not one per step; `{productId}:partial` reports a run in progress.
+Tiles of a forecast frame need a run: a concrete time without `run=` answers `400 RUN_REQUIRED`
+(`run=latest`, `previous` or the run time). The `gfs` product also serves God's Eye View wind fields
+(`/v1/products/gfs/fields/…`) for web particle layers, and both wind products serve barb vector tiles
+(`/v1/products/{id}/vectors/…`) and the `wind-speed@1` raster style. See the Frontend Guide.
+
+**HRRR cadence by profile.** The small profile ingests every other HRRR run (00, 06, 12, 18z), which
+halves the downloads; set the source's `runEvery` param to `3h` to ingest every run anyway, or `6h` on
+a large host to save bandwidth. `runEvery` must be whole hours dividing 24.
+
+**GFSv17.** NCEP plans GFS v17 (PNS 26-29/26-30). If its file layout changes, set the `gfs` source's
+`pathTemplate` param instead of waiting for a release, for example
+`{"params": {"pathTemplate": "gfs.{yyyyMMdd}/{HH}/atmos/gfs.t{HH}z.pgrb2.0p25.f{FFF}"}}` (the
+default; tokens `{yyyyMMdd}`, `{HH}`, `{FFF}` three-digit step, `{FF}` two-digit step). Fields are
+found by variable and level in the `.idx`, never by position, so new or reordered fields do not
+matter. The `steps` param (for example `["0-48/3", "54-120/6"]`) and `availabilityLag` can be changed
+the same way.
+
+**Health.** A model source degrades when:
+- its newest frame was ingested more than two runs ago (12 h for GFS, 6 h or 12 h for HRRR);
+- the first `.idx` of the newest run is still missing 2 h after `availabilityLag` (3.5 h for GFS,
+  50 min for HRRR): the reason names the missing object;
+- an `.idx` lacks a field: "possible format change: GFS idx missing GUST:surface". No frame is written
+  for that product (a missing wind field stops the whole step), so a format change never produces
+  empty frames.
+
 ## Severe weather records
 
 Prompt 047 adds four record sources (installed disabled, like every source):

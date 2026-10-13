@@ -7,7 +7,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.http.HttpMethod;
 
 /**
- * The prompt 045 raster routes are {@code read} (covered by 042's {@code GET /v1/products/**} and
+ * The prompt 045 raster routes (and the prompt 051 fields, vectors and timeline) are {@code read} (covered by 042's {@code GET /v1/products/**} and
  * {@code /v1/styles/**} rules), never always-authenticated, and not open to writes.
  */
 class RasterAccessPolicyTest {
@@ -25,7 +25,12 @@ class RasterAccessPolicyTest {
         "/v1/styles",
         "/v1/styles/nws-reflectivity@1",
         "/v1/products/mrms-reflectivity/legend",
-        "/v1/products/mrms-reflectivity/legend.png"
+        "/v1/products/mrms-reflectivity/legend.png",
+        // Prompt 051: fields, barb vectors and the timeline.
+        "/v1/products/gfs/fields/20261010T180000Z~1a2b3c4d.json",
+        "/v1/products/gfs/fields/latest.f32",
+        "/v1/products/hrrr/vectors/latest/6/14/26.mvt",
+        "/v1/products/timeline"
     })
     void readRoutes(String path) {
         assertThat(policy.requirementFor(HttpMethod.GET, path))

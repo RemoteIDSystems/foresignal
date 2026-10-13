@@ -49,7 +49,8 @@ import tools.jackson.databind.json.JsonMapper;
  *   <li><b>GLM archive</b> (prompt 048): delete {@code rasters/glm/{sat}/{yyyymmdd}.bin} files older
  *       than {@value ai.foresignal.raster.lightning.FlashStore#ARCHIVE_DAYS} days. Their bytes count
  *       toward the quota below, but only frames are evicted for it.
- *   <li><b>Orphan sweep</b>: delete files with no row and rows with no file (both only once older
+ *   <li><b>Orphan sweep</b>: delete files with no row (including the wind field files of a run with no
+ *       frame left, prompt 051) and rows with no file (both only once older
  *       than {@code orphanGrace}, so a commit in flight is never touched), clear stale staging files,
  *       and <b>re-emit the {@code raster-frame} record</b> of any complete frame (or completed run)
  *       newer than its record head, which covers a crash between the frame commit and the enqueue.
@@ -85,15 +86,17 @@ public class RasterRetentionStep implements RetentionStep {
     private final MediaQueries media;
     private final AtomicLong arrival = new AtomicLong();
     private final ObjectProvider<FlashStore> flashes;
+    private final ai.foresignal.raster.model.FieldStore fieldStore;
 
     /**
      * Creates the step.
      *
      * @param flashes the GLM flash store (prompt 048), resolved lazily; null for none
+     * @param fieldStore the wind field files (prompt 051), swept with their runs
      */
     public RasterRetentionStep(ProductRegistry registry, RasterFrameQueries frames, FrameStore store, GridStore grids,
             RasterSettings settings, IngestQueue queue, ProductUrls urls, JsonMapper json, MediaQueries media,
-            ObjectProvider<FlashStore> flashes) {
+            ObjectProvider<FlashStore> flashes, ai.foresignal.raster.model.FieldStore fieldStore) {
         this.registry = registry;
         this.frames = frames;
         this.store = store;
@@ -104,6 +107,7 @@ public class RasterRetentionStep implements RetentionStep {
         this.json = json;
         this.media = media;
         this.flashes = flashes;
+        this.fieldStore = fieldStore;
     }
 
     /** The flash store, or null when none is installed. */
@@ -237,6 +241,12 @@ public class RasterRetentionStep implements RetentionStep {
     SweepResult sweep(Instant now) {
         Instant graceCutoff = now.minus(settings.orphanGrace());
         long files = sweepFiles(graceCutoff);
+        if (fieldStore != null) {
+            // Prompt 051: wind field files whose run has no frame left.
+            files += fieldStore.sweep(product -> frames.runs(product).stream()
+                    .map(r -> ai.foresignal.raster.model.ModelCycleSelector.cycleKey(r.run()))
+                    .collect(java.util.stream.Collectors.toSet()), graceCutoff);
+        }
         long rows = sweepRows(graceCutoff);
         long reemitted = reemit(graceCutoff, now);
         return new SweepResult(files, rows, reemitted);

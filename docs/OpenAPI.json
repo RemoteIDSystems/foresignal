@@ -217,6 +217,11 @@
         "version": "1.3.0",
         "date": "2026-10-12",
         "note": "050: listTileKeys, createTileKey and revokeTileKey are implemented (agent). Tile keys are api_token rows with type = tile_key (the feed-key model of 035; no carrier column, since both kinds are carried in the path), resolved by 035's PathKeyFilter. Unknown, expired and revoked tile keys are 401 INVALID_TILE_KEY (new error code); a path outside the prefixes is 403 INSUFFICIENT_SCOPE. TileKey.restrictions omits the always-on private exclusion. info.description documents the tile-key carrier, its cache rule, key redaction in logs, and the CORS header set (exposed raster headers, If-None-Match and Foresignal-Prefetch allowed, preflight max-age 86400)."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-12",
+        "note": "051: getProductFieldManifest, getProductFieldData, getProductVectorTile and getProductTimeline are implemented (read). FieldManifest: grid describes the snapped bbox subset; `unavailable` is always false (a disabled product answers 503); `encodings` is not emitted yet (108). getProductFieldData documents 406 NOT_ACCEPTABLE. getProductVectorTile: layer `wind`, extent 4096, 8×8 lattice per tile. getProductTimeline: default windows, at most 10 products, 503 PRODUCT_UNAVAILABLE; the response schema stays ProductTimeline (the prompt's `Timeline` name is taken by 037's histogram). Style gains `derive` (`speed`); wind-speed@1 is reseeded from God's Eye View WIND_FIELDS.speed (0–30 m/s) and derives speed from u/v; qpe@1 (mm) ships for gfs-apcp."
       }
     ]
   },
@@ -29088,7 +29093,7 @@
         ],
         "operationId": "getProductFieldManifest",
         "summary": "Get a wind field manifest",
-        "description": "GEV `schemaVersion: 1` manifest for the planar u/v Float32 field (`gfs` only in v1), with cycle, grid, component offsets, byte length, sha256, attribution and a content-addressed `dataUrl`. A concrete forecast time without `run` → 400 RUN_REQUIRED.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "GEV `schemaVersion: 1` manifest for the planar u/v Float32 field (`gfs` only in v1: a `kind=field` product with two bands and global coverage), with cycle, grid, component offsets, byte length, sha256 of the raw (uncompressed) data, attribution and a content-addressed `dataUrl` (`…/fields/{frameKey}.f32?run=<runIso>&res=<res>[&bbox=<snapped>]`; the run is always pinned). `stale` is true when the frame's run is not the newest complete run; a disabled product answers 503 rather than an `unavailable` manifest. With `bbox`, `grid` describes the snapped subset (`lo1` in 0..360, so `nx·dx` is less than 360). A concrete forecast time without `run` → 400 RUN_REQUIRED.\n\n**Scope:** `read` (open while `security.openReads` is on).",
         "parameters": [
           {
             "name": "run",
@@ -29198,7 +29203,7 @@
             }
           },
           "404": {
-            "description": "Unknown product (UNKNOWN_PRODUCT) or frame (UNKNOWN_FRAME); a stale `sha8` also returns UNKNOWN_FRAME with a `Link` to the current key",
+            "description": "Unknown product (UNKNOWN_PRODUCT) or frame (UNKNOWN_FRAME, also a frame without field files); a stale `sha8` also returns UNKNOWN_FRAME with a `Link` to the current key",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -29277,7 +29282,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "051",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -29316,7 +29321,7 @@
         ],
         "operationId": "getProductFieldData",
         "summary": "Download wind field data",
-        "description": "Planar little-endian Float32, u then v, rows north→south, longitudes 0..359 (1°: 360×181, 521,280 bytes raw; 0.25°: 1440×721), served precompressed with `Content-Encoding: gzip`. 406 only when the client refuses gzip.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "Planar little-endian Float32, u then v, rows north→south, longitudes 0..359 (1°: 360×181, 521,280 bytes raw; 0.25°: 1440×721, 8,305,920 bytes raw), written once at ingest and served precompressed with `Content-Encoding: gzip`. 406 NOT_ACCEPTABLE only when `Accept-Encoding` refuses gzip (`gzip;q=0`, or only `identity`); no header accepts it. `bbox` is snapped outward to grid points, wraps across 0°, and is cut on the fly from the file of the requested resolution (cached in the tile cache). The ETag is derived from the raw data's sha256.\n\n**Scope:** `read` (open while `security.openReads` is on).",
         "parameters": [
           {
             "name": "run",
@@ -29432,7 +29437,7 @@
             }
           },
           "400": {
-            "description": "RUN_REQUIRED or VALIDATION_FAILED",
+            "description": "RUN_REQUIRED or VALIDATION_FAILED (product without field data, bad `res` or bbox)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -29442,7 +29447,7 @@
             }
           },
           "404": {
-            "description": "Unknown product (UNKNOWN_PRODUCT) or frame (UNKNOWN_FRAME); a stale `sha8` also returns UNKNOWN_FRAME with a `Link` to the current key",
+            "description": "Unknown product (UNKNOWN_PRODUCT) or frame (UNKNOWN_FRAME, also a frame without field files); a stale `sha8` also returns UNKNOWN_FRAME with a `Link` to the current key",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -29460,7 +29465,7 @@
             }
           },
           "406": {
-            "description": "Client does not accept gzip",
+            "description": "Client does not accept gzip (NOT_ACCEPTABLE)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -29531,7 +29536,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "051",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -29601,7 +29606,7 @@
         ],
         "operationId": "getProductVectorTile",
         "summary": "Get a wind barb vector tile",
-        "description": "Mapbox Vector Tile of thinned wind points (about 32 px spacing per zoom) for `gfs` and `hrrr`, with properties `speedMs` (0.1), `fromDeg` (integer) and `barbKt` (5-kt bucket). Cached and render-queued like raster tiles, with the same cache rule.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "Mapbox Vector Tile (layer `wind`, extent 4096) of wind points for the u/v products (`gfs`, `hrrr`): the frame sampled bilinearly on a 32 px lattice inside the 256 px tile (8×8 points at pixel centers, so the on-screen density is the same at every zoom), each with `speedMs` (m/s, 0.1), `fromDeg` (the direction the wind blows from, `(270 − atan2(v,u)·180/π) mod 360`, integer) and `barbKt` (knots rounded to a 5-kt bucket). HRRR's grid-relative winds are rotated to earth-relative at ingest. Built by PostGIS `ST_AsMVT`; an empty tile is an empty body. Cached and render-queued like raster tiles, with the same cache rule; zooms above the native max zoom are 400 TILE_OUT_OF_RANGE (clients overzoom).\n\n**Scope:** `read` (open while `security.openReads` is on).",
         "parameters": [
           {
             "name": "run",
@@ -29807,7 +29812,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "051",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -29823,7 +29828,7 @@
         ],
         "operationId": "getProductTimeline",
         "summary": "Get the cross-product timeline",
-        "description": "Ticks marked `observed|forecast` with the frame chosen per product per tick (honouring `maxGap`), the single run used per forecast product, `nowIndex` and expanded tile templates. `mode=seamless` joins a `past` observed product to a `future` forecast product; external entries get synthesised ticks with `availability: unverified`. More than 500 ticks → 400 VALIDATION_FAILED.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "Ticks marked `observed|forecast`: the union of the products' frame valid times in the window, with the frame chosen per product per tick (at or before the tick with the smallest gap, honoring `maxGap`; a product with none is absent at that tick), the single run used per forecast product (its newest complete run, never mixed; `runs`), `nowIndex` (the tick nearest now) and expanded, content-addressed tile templates. `mode=seamless` joins a `past` observed product (ticks up to now) to a `future` forecast product (ticks after now). External catalog entries get synthesized ticks every `timeDimension.period` up to `now − defaultLag`, with `availability: unverified` and the external template's `{time}` filled. Default window: now − 6 h to now (+ 48 h when a forecast product is named); seamless now − 3 h to now + 18 h. At most 10 products. More than 500 ticks → 400 VALIDATION_FAILED.\n\n**Scope:** `read` (open while `security.openReads` is on).",
         "parameters": [
           {
             "name": "products",
@@ -29961,11 +29966,21 @@
                 }
               }
             }
+          },
+          "503": {
+            "description": "A named product is disabled (PRODUCT_UNAVAILABLE)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
           }
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "051",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -107166,6 +107181,17 @@
               "null"
             ],
             "description": "Ramp origin and licence (viridis CC0, cmocean MIT, GEV MIT)"
+          },
+          "derive": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "speed",
+              null
+            ],
+            "description": "`speed`: the style colors the vector magnitude √(u²+v²) of a frame's first two bands (051, `wind-speed`); a one-band frame's value is used as is"
           }
         },
         "required": [
@@ -107806,7 +107832,7 @@
                 },
                 "availability": {
                   "type": "string",
-                  "description": "`unverified` for synthesised external ticks",
+                  "description": "`unverified` for synthesized external ticks",
                   "enum": [
                     "available",
                     "unverified"

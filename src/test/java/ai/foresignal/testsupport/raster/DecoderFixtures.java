@@ -79,6 +79,58 @@ public final class DecoderFixtures {
         }
     }
 
+    /** Where {@code downloadTestFixtures} puts the HRRR messages (prompt 051). */
+    public static final Path HRRR_DIR = Path.of("build", "test-fixtures", "hrrr");
+
+    /** HRRR f01 UGRD and VGRD at 10 m, one coalesced range (4.76 MB, downloaded). */
+    public static final String HRRR_UV = "hrrr-f01-ugrd-vgrd.grib2";
+
+    /** HRRR f01 GUST:surface (downloaded). */
+    public static final String HRRR_GUST = "hrrr-f01-gust.grib2";
+
+    /** HRRR f01 MASSDEN:8 m above ground (downloaded). */
+    public static final String HRRR_MASSDEN = "hrrr-f01-massden.grib2";
+
+    /** HRRR f01 REFC:entire atmosphere (committed, 424 KB). */
+    public static final String HRRR_REFC = "hrrr-f01-refc.grib2";
+
+    /** The bytes of a committed GFS fixture ({@code fixtures/gfs/}). */
+    public static byte[] gfsBytes(String name) {
+        return bytes("fixtures/gfs/" + name);
+    }
+
+    /** The bytes of a committed HRRR fixture ({@code fixtures/hrrr/}). */
+    public static byte[] hrrrBytes(String name) {
+        return bytes("fixtures/hrrr/" + name);
+    }
+
+    /** Copies the committed GFS fixture {@code name} into {@code dir}. */
+    public static Path gfs(String name, Path dir) {
+        return copy("fixtures/gfs/" + name, dir.resolve(name));
+    }
+
+    /** Copies the committed HRRR fixture {@code name} into {@code dir}. */
+    public static Path hrrr(String name, Path dir) {
+        return copy("fixtures/hrrr/" + name, dir.resolve(name));
+    }
+
+    /**
+     * The bytes of a downloaded HRRR message, or skips the test with a logged reason when
+     * {@code ./gradlew downloadTestFixtures} has not been run.
+     */
+    public static byte[] hrrrDownloadedOrSkip(String name) {
+        Path file = HRRR_DIR.resolve(name);
+        if (!Files.isRegularFile(file)) {
+            log.warn("Skipping: {} is absent; run ./gradlew downloadTestFixtures to fetch it", file);
+        }
+        Assumptions.assumeTrue(Files.isRegularFile(file), "HRRR fixture absent: run ./gradlew downloadTestFixtures");
+        try {
+            return Files.readAllBytes(file);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
     /** The downloaded GOES file, if present. */
     public static Optional<Path> goes() {
         Path file = GOES_DIR.resolve(GOES_C13);

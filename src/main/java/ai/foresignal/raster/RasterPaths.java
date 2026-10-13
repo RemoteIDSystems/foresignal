@@ -51,7 +51,7 @@ public class RasterPaths {
 
     /** Creates every directory of the layout; existing ones are left alone. */
     public final void createLayout() {
-        List<Path> dirs = List.of(tmp(), frames(), root.resolve("fields"), root.resolve("glm"),
+        List<Path> dirs = List.of(tmp(), frames(), fields(), root.resolve("glm"),
                 root.resolve("satdump"), selfTest(), dataDir.resolve("media"), netcdfCache(), dataDir.resolve("tmp"));
         for (Path dir : dirs) {
             try {
@@ -84,6 +84,14 @@ public class RasterPaths {
     /** {@code cache/netcdf/}: NetCDF-Java's pinned {@code DiskCache} and {@code DiskCache2} root (046). */
     public Path netcdfCache() {
         return dataDir.resolve("cache").resolve("netcdf");
+    }
+
+    /**
+     * {@code rasters/fields/}: precompressed GEV-format wind fields,
+     * {@code {productId}/{run}/{file}.f32.gz} (prompt 051, Weather-Imagery-Design §2.4).
+     */
+    public Path fields() {
+        return root.resolve("fields");
     }
 
     /** {@code rasters/frames/}. */

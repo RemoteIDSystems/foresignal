@@ -22,7 +22,9 @@ import java.util.Set;
  * {@code specials} color the product's special codes ({@code noCoverage}, {@code noEcho},
  * {@code noData}); a special the style does not list is transparent. Values are physical, in the
  * style's {@code units}: physical = {@code code × scale + offset}. A style whose {@code passthrough}
- * is {@code rgba8} draws an rgba8 frame's own colors ({@code rgb@1}).
+ * is {@code rgba8} draws an rgba8 frame's own colors ({@code rgb@1}). A style whose {@code derive} is
+ * {@value #DERIVE_SPEED} colors the vector magnitude {@code √(u² + v²)} of a frame's first two bands
+ * (a one-band frame's value is used as is; prompt 051, {@code wind-speed}).
  *
  * @param id the style name, kebab-case
  * @param version the version, at least 1
@@ -34,9 +36,14 @@ import java.util.Set;
  * @param meaning plain-language meanings of value ranges
  * @param notice ramp origin and license, or null
  * @param passthrough {@code rgba8} for a passthrough style, else null
+ * @param derive {@value #DERIVE_SPEED} to color the magnitude of bands 0 and 1, else null (prompt 051)
  */
 public record StyleDefinition(String id, int version, String type, String units, List<Stop> stops,
-        List<Category> categories, List<Special> specials, List<Meaning> meaning, String notice, String passthrough) {
+        List<Category> categories, List<Special> specials, List<Meaning> meaning, String notice, String passthrough,
+        String derive) {
+
+    /** {@code derive}: the vector magnitude of bands 0 and 1. */
+    public static final String DERIVE_SPEED = "speed";
 
     /** Interpolated stops. */
     public static final String CONTINUOUS = "continuous";
@@ -79,6 +86,21 @@ public record StyleDefinition(String id, int version, String type, String units,
         if (passthrough != null && !passthrough.equals("rgba8")) {
             throw new IllegalArgumentException("Style " + id + " passthrough must be rgba8");
         }
+        if (derive != null && (!DERIVE_SPEED.equals(derive) || CATEGORICAL.equals(type) || passthrough != null)) {
+            throw new IllegalArgumentException("Style " + id + " derive must be speed, on a continuous or discrete style");
+        }
+    }
+
+    /** A definition without {@code derive}. */
+    public StyleDefinition(String id, int version, String type, String units, List<Stop> stops,
+            List<Category> categories, List<Special> specials, List<Meaning> meaning, String notice,
+            String passthrough) {
+        this(id, version, type, units, stops, categories, specials, meaning, notice, passthrough, null);
+    }
+
+    /** True when the style colors the magnitude of bands 0 and 1. */
+    public boolean derivesSpeed() {
+        return DERIVE_SPEED.equals(derive);
     }
 
     /** {@code id@version}. */
@@ -190,6 +212,9 @@ public record StyleDefinition(String id, int version, String type, String units,
         }
         out.put("meaning", me);
         out.put("notice", notice);
+        if (derive != null) {
+            out.put("derive", derive);
+        }
         return out;
     }
 }

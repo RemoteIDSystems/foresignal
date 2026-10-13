@@ -3,50 +3,36 @@
   "version": 1,
   "type": "continuous",
   "units": "m/s",
+  "derive": "speed",
   "stops": [
     {
       "value": 0,
-      "color": "#440154",
+      "color": "#133a67",
       "label": null
     },
     {
-      "value": 5,
-      "color": "#472d7b",
+      "value": 6,
+      "color": "#2876a3",
       "label": null
     },
     {
-      "value": 10,
-      "color": "#3b528b",
+      "value": 12,
+      "color": "#66c9d1",
       "label": null
     },
     {
-      "value": 15,
-      "color": "#2c728e",
+      "value": 18,
+      "color": "#c8dfac",
       "label": null
     },
     {
-      "value": 20,
-      "color": "#21918c",
-      "label": null
-    },
-    {
-      "value": 25,
-      "color": "#27ad81",
+      "value": 24,
+      "color": "#f1cf79",
       "label": null
     },
     {
       "value": 30,
-      "color": "#5cc863",
-      "label": null
-    },
-    {
-      "value": 35,
-      "color": "#aadc32",
-      "label": null
-    },
-    {
-      "value": 40,
-      "color": "#fde725",
+      "color": "#ee9761",
       "label": null
     }
   ],
@@ -80,5 +66,5 @@
       "text": "≥ 32.7 m/s: hurricane force"
     }
   ],
-  "notice": "viridis colormap (Smith and van der Walt, matplotlib), CC0 1.0"
+  "notice": "God's Eye View WIND_FIELDS.speed (src/layers/wind/fields.js, 0-30 m/s), https://github.com/bilawalsidhu/gods-eye-view, Copyright (c) 2026 Bilawal Sidhu, MIT License (THIRD_PARTY_NOTICES.md)"
 }

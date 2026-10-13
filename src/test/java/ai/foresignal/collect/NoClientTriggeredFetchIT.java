@@ -59,6 +59,11 @@ class NoClientTriggeredFetchIT {
             "/v1/styles/nws-reflectivity@1",
             "/v1/products/test-synth-obs/legend",
             "/v1/products/test-synth-obs/legend.png",
+            // Fields, barb vectors and the timeline (prompt 051).
+            "/v1/products/gfs/fields/latest.json",
+            "/v1/products/gfs/fields/latest.f32",
+            "/v1/products/hrrr/vectors/latest/6/14/24.mvt",
+            "/v1/products/timeline?mode=seamless&past=mrms-reflectivity&future=hrrr-refc",
             // The media store (prompt 043); an unknown id still runs the whole read path.
             "/v1/media/01JA8Q3V7S2K9W4T6Y1B5N0M3C",
             "/v1/media/01JA8Q3V7S2K9W4T6Y1B5N0M3C/thumbnail?w=256",

@@ -87,4 +87,19 @@ class FrameAgeHealthRuleTest {
         assertThat(FrameAgeHealthRule.verdict(List.of(OBS), Map.of(OBS.id(), NOW.minusSeconds(60)), tracker, NOW)
                 .get().status()).isEqualTo(HealthStatus.HEALTHY);
     }
+
+    @Test
+    @DisplayName("forecast products are judged by the run cadence when known: degraded beyond two runs (051)")
+    void runCadence() {
+        java.time.Duration six = java.time.Duration.ofHours(6);
+        Map<String, Instant> sevenHours = Map.of(FCST.id(), NOW.minusSeconds(7 * 3600));
+        assertThat(FrameAgeHealthRule.verdict(List.of(FCST), sevenHours, tracker, NOW).get().status())
+                .as("by steps: maxGap 3 h").isEqualTo(HealthStatus.DEGRADED);
+        assertThat(FrameAgeHealthRule.verdict(List.of(FCST), sevenHours, tracker, NOW, six).get().status())
+                .as("by runs: 2 × 6 h").isEqualTo(HealthStatus.HEALTHY);
+        assertThat(FrameAgeHealthRule.verdict(List.of(FCST), Map.of(FCST.id(), NOW.minusSeconds(13 * 3600)), tracker, NOW,
+                six).get().status()).isEqualTo(HealthStatus.DEGRADED);
+        assertThat(FrameAgeHealthRule.verdict(List.of(OBS), Map.of(OBS.id(), NOW.minusSeconds(600)), tracker, NOW, six)
+                .get().status()).as("observations keep their maxGap").isEqualTo(HealthStatus.DEGRADED);
+    }
 }

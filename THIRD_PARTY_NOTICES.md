@@ -59,10 +59,22 @@ SOFTWARE.
 
 ### Ported files
 
-No files have been ported yet. Later prompts add a row per ported file.
+Ported from God's Eye View commit `591f299d11f38a612629a274463196d57ae3862e` (prompt 051). Each
+file carries an origin header naming its source file and this notice.
 
 | Foresignal file | GEV origin file |
 |---|---|
+| `src/main/java/ai/foresignal/raster/model/GribIdx.java` | `server/providers/wind/gfs.js` (`parseGfsIdx`) |
+| `src/main/java/ai/foresignal/raster/model/IdxRangePlanner.java` | `server/providers/wind/gfs.js` (`windMessageRanges`) and the 8 MB message budget of `server/providers/wind/decode.js` |
+| `src/main/java/ai/foresignal/raster/model/ModelCycleSelector.java` | `server/providers/wind/catalog.js` (`selectLatestGfsCycle`, `gfsObjectKey`) |
+| `src/main/java/ai/foresignal/raster/model/WindResampler.java` | `server/providers/wind/grid.js` (`resampleWindGrid`) |
+| `src/main/resources/raster/styles/wind-speed@1.json` (color stops) | `src/layers/wind/fields.js` (`WIND_FIELDS.speed`) |
+| `src/test/java/ai/foresignal/raster/model/WindResamplerTest.java` (test cases) | `src/data/windGrid.test.mjs` |
+| `src/test/java/ai/foresignal/raster/model/GribIdxTest.java` (test cases) | `src/data/windGfs.test.mjs` |
+
+`decode.js` (ecCodes WASM) is not ported: Foresignal decodes with NetCDF-Java. The particle layer
+(`src/layers/wind/*`) is not part of Foresignal; the Frontend Guide tells web clients which of its
+modules they may reuse under this notice.
 
 ---
 
@@ -274,7 +286,8 @@ scientific colormaps. Each style's `notice` field names its origin.
 
 ### viridis
 
-- **Used by:** `wind-speed@1`.
+- **Used by:** no shipped style since prompt 051, which reseeded `wind-speed@1` from God's Eye View
+  (`WIND_FIELDS.speed`, MIT; see the God's Eye View section above). Kept for the record of 045.
 - **Source:** the `_viridis_data` table of matplotlib's `lib/matplotlib/_cm_listed.py`
   (<https://github.com/matplotlib/matplotlib>); "mpl-colormaps by Nathaniel Smith & Stefan van der Walt"
   (<https://github.com/BIDS/colormap>).

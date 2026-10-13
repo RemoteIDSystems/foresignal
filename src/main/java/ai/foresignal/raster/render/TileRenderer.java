@@ -13,8 +13,10 @@ import java.nio.ByteOrder;
  *
  * <p>Nearest sampling reads one code per pixel through the code table (u8, u16, i16) or the value
  * ramp (f32). Bilinear sampling (spec {@code resample: bilinear}) interpolates the physical values of
- * the non-special neighbours; a pixel whose nearest cell holds a special code keeps that code. An
- * rgba8 frame draws its own colors (32-bit PNG, the {@code rgb@1} passthrough).
+ * the non-special neighbors; a pixel whose nearest cell holds a special code keeps that code. An
+ * rgba8 frame draws its own colors (32-bit PNG, the {@code rgb@1} passthrough). A
+ * {@code derive: speed} style ({@code wind-speed}) on a frame with two or more bands draws the
+ * magnitude of bands 0 and 1 (prompt 051): the speed raster of a u/v wind product.
  */
 public final class TileRenderer {
 
@@ -74,6 +76,9 @@ public final class TileRenderer {
             }
             return new Drawn(w, h, null, argb, style, empty);
         }
+        if (style.style().derivesSpeed() && header.bands() >= 2 && header.dtype() != RasterDtype.RGBA8) {
+            return drawSpeed(data, header, style, map);
+        }
         byte[] pixels = new byte[w * h];
         int[] palette = style.palette();
         byte[] table = style.table();
@@ -128,7 +133,67 @@ public final class TileRenderer {
         return new Drawn(w, h, pixels, null, style, empty);
     }
 
-    /** The raw code of band 0 at {@code cell}. */
+    /**
+     * Draws the vector magnitude {@code √(u² + v²)} of bands 0 and 1 (a {@code derive: speed} style,
+     * prompt 051): nearest sampling takes one cell's components; bilinear sampling interpolates
+     * {@code u} and {@code v} separately over the corners where neither is special, then takes the
+     * magnitude. A cell where either component is special keeps that special code's color.
+     */
+    static Drawn drawSpeed(ByteBuffer data, FsgHeader header, CompiledStyle style, IndexMap map) {
+        int w = map.width();
+        int h = map.height();
+        int cells = header.nx() * header.ny();
+        RasterDtype dtype = header.dtype();
+        byte[] pixels = new byte[w * h];
+        int[] palette = style.palette();
+        boolean empty = true;
+        int[] nearest = map.nearest();
+        int[] corners = map.corners();
+        float[] weights = map.weights();
+        boolean bilinear = map.bilinear();
+        for (int p = 0; p < pixels.length; p++) {
+            int cell = nearest[p];
+            if (cell < 0) {
+                continue;
+            }
+            double cu = code(data, dtype, cell);
+            double cv = code(data, dtype, cell + cells);
+            int index;
+            if (style.isSpecial(cu) || style.isSpecial(cv)) {
+                index = style.indexOfCode(style.isSpecial(cu) ? cu : cv);
+            } else if (bilinear) {
+                double su = 0;
+                double sv = 0;
+                double weight = 0;
+                for (int k = 0; k < 4; k++) {
+                    int c = corners[p * 4 + k];
+                    float wk = weights[p * 4 + k];
+                    if (c < 0 || wk <= 0) {
+                        continue;
+                    }
+                    double ku = code(data, dtype, c);
+                    double kv = code(data, dtype, c + cells);
+                    if (style.isSpecial(ku) || style.isSpecial(kv)) {
+                        continue;
+                    }
+                    su += wk * style.spec().physical(ku);
+                    sv += wk * style.spec().physical(kv);
+                    weight += wk;
+                }
+                index = weight > 0 ? style.indexOfValue(Math.hypot(su / weight, sv / weight))
+                        : style.indexOfValue(Math.hypot(style.spec().physical(cu), style.spec().physical(cv)));
+            } else {
+                index = style.indexOfValue(Math.hypot(style.spec().physical(cu), style.spec().physical(cv)));
+            }
+            pixels[p] = (byte) index;
+            if (palette[index] >>> 24 != 0) {
+                empty = false;
+            }
+        }
+        return new Drawn(w, h, pixels, null, style, empty);
+    }
+
+    /** The raw code of band 0 at {@code cell} (a later band's sample at {@code cell + band × cells}). */
     static double code(ByteBuffer data, RasterDtype dtype, int cell) {
         return switch (dtype) {
             case U8 -> data.get(cell) & 0xFF;

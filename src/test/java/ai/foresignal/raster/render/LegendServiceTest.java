@@ -79,7 +79,8 @@ class LegendServiceTest {
         Map<String, Object> legend = legends.legend(RenderFixtures.temperature(false),
                 STYLES.resolve("wind-speed@1").style(), false);
         List<Map<String, Object>> ticks = (List<Map<String, Object>>) legend.get("ticks");
-        assertThat(ticks).extracting(t -> t.get("label")).containsExactly("0", "10", "20", "30", "40");
+        // wind-speed@1 is seeded from God's Eye View's 0–30 m/s ramp (prompt 051).
+        assertThat(ticks).extracting(t -> t.get("label")).containsExactly("0", "7.5", "15", "23", "30");
     }
 
     @Test
