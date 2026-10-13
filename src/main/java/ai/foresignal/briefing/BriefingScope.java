@@ -13,9 +13,8 @@ import java.util.UUID;
  * <p>Prompt 036 adds {@code placeIds} (the places' areas bound the scope and the digest heading names
  * them) and {@code viewId} (a saved view's predicate). Prompt 040 adds {@code country}, {@code admin1}
  * and {@code county} (region filters, matched through {@code record_region} and the alert region
- * snapshot). The spec's later members ({@code places}, {@code weatherProducts} from 056) are not part of
- * this record yet; {@link BriefingValidator} refuses them when non-empty, and {@link ScopeResolver} is the
- * hook that prompt extends.
+ * snapshot). Prompt 056 adds {@code places} (places of the "Weather at places" section; empty for none) and
+ * {@code weatherProducts} (the products shown there; empty for the products backing {@code place-weather}).
  *
  * @param sources source ids
  * @param kinds kinds
@@ -27,10 +26,20 @@ import java.util.UUID;
  * @param country ISO2 codes (prompt 040); empty for any
  * @param admin1 ISO 3166-2 codes (prompt 040); empty for any
  * @param county US county FIPS5 codes (prompt 040); empty for any
+ * @param places places of the "Weather at places" section (prompt 056); empty for none
+ * @param weatherProducts products of that section (prompt 056); empty for the default set
  */
 public record BriefingScope(List<String> sources, List<String> kinds, String bbox, List<UUID> ruleIds,
         boolean includeHealth, List<String> placeIds, String viewId, List<String> country, List<String> admin1,
-        List<String> county) {
+        List<String> county, List<String> places, List<String> weatherProducts) {
+
+    /** A scope without the weather section (the shape before prompt 056). */
+    public BriefingScope(List<String> sources, List<String> kinds, String bbox, List<UUID> ruleIds,
+            boolean includeHealth, List<String> placeIds, String viewId, List<String> country, List<String> admin1,
+            List<String> county) {
+        this(sources, kinds, bbox, ruleIds, includeHealth, placeIds, viewId, country, admin1, county, List.of(),
+                List.of());
+    }
 
     /** A scope without region filters (the shape before prompt 040). */
     public BriefingScope(List<String> sources, List<String> kinds, String bbox, List<UUID> ruleIds,
@@ -55,6 +64,8 @@ public record BriefingScope(List<String> sources, List<String> kinds, String bbo
         country = country == null ? List.of() : List.copyOf(country);
         admin1 = admin1 == null ? List.of() : List.copyOf(admin1);
         county = county == null ? List.of() : List.copyOf(county);
+        places = places == null ? List.of() : List.copyOf(places);
+        weatherProducts = weatherProducts == null ? List.of() : List.copyOf(weatherProducts);
     }
 
     /** The scope's region filters (prompt 040), or null when it has none. */
@@ -80,6 +91,8 @@ public record BriefingScope(List<String> sources, List<String> kinds, String bbo
         out.put("country", country);
         out.put("admin1", admin1);
         out.put("county", county);
+        out.put("places", places);
+        out.put("weatherProducts", weatherProducts);
         return out;
     }
 
@@ -102,7 +115,8 @@ public record BriefingScope(List<String> sources, List<String> kinds, String bbo
         return new BriefingScope(strings(map.get("sources")), strings(map.get("kinds")),
                 bbox == null ? null : bbox.toString(), rules, !(health instanceof Boolean b) || b,
                 strings(map.get("placeIds")), view == null ? null : view.toString(), strings(map.get("country")),
-                strings(map.get("admin1")), strings(map.get("county")));
+                strings(map.get("admin1")), strings(map.get("county")), strings(map.get("places")),
+                strings(map.get("weatherProducts")));
     }
 
     private static List<String> strings(Object value) {

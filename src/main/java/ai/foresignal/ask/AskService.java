@@ -247,6 +247,8 @@ public class AskService {
                 && toolCaller.restriction().allowsSource(source)
                 && (scope.sources().isEmpty() || scope.sources().contains(source));
         Run run = new Run(prepared, toolCaller, allowed, scope.bboxFilter(), listener);
+        // Prompt 056: get_map_image images go to providers that take images in tool results; others get the caption.
+        run.imagesAccepted = config.type() == ai.foresignal.llm.LlmProviderType.ANTHROPIC;
         LlmClient client = llm.client(providerId);
 
         boolean supportsTools = !Boolean.FALSE.equals(
@@ -282,7 +284,8 @@ public class AskService {
         messages.add(user);
         ChatRequest request = new ChatRequest(AskPrompts.SYSTEM, messages, specs, null, Effort.MEDIUM, Purpose.ASK,
                 run.listener.streaming(), run.deltaSink());
-        ToolLoop loop = new ToolLoop(client, call -> execute(run, call),
+        ToolLoop.RichToolExecutor executor = call -> execute(run, call);
+        ToolLoop loop = new ToolLoop(client, executor,
                 new ToolLoop.Limits(MAX_ITERATIONS, DEADLINE, settings.askMaxTokens()), clock);
         ToolLoop.Result result = loop.run(request);
         List<ChatMessage> appended = result.conversation().subList(run.prepared.history().size() + 1,
@@ -353,13 +356,18 @@ public class AskService {
 
     // ------------------------------------------------------------------------- tools
 
-    /** Runs one tool call for the loop; a failure is thrown so the loop returns it as an error result. */
-    private String execute(Run run, ToolCall call) throws ToolFailure {
+    /**
+     * Runs one tool call for the loop; a failure is thrown so the loop returns it as an error result. An image result
+     * (prompt 056, {@code get_map_image}) keeps its caption in the data and passes its images when the provider takes
+     * them.
+     */
+    private ToolLoop.ToolOutput execute(Run run, ToolCall call) throws ToolFailure {
         String name = call.name();
         run.listener.progress(name, "calling", argumentSummary(call.input()));
         run.toolCalls.incrementAndGet();
         try {
             JsonNode data;
+            List<ai.foresignal.llm.client.ToolResult.Image> images = List.of();
             if (actionTools.isActionTool(name)) {
                 ProposedAction proposal = actionTools.propose(name, call.input(), run.prepared.caller());
                 run.proposals.add(proposal);
@@ -379,10 +387,19 @@ public class AskService {
                     throw new ToolFailure(text);
                 }
                 JsonNode raw = result.structured() != null ? result.structured() : StringNode.valueOf(text);
+                List<ai.foresignal.llm.client.ToolResult.Image> found = images(result);
+                if (!found.isEmpty() && raw instanceof ObjectNode object) {
+                    ObjectNode withCaption = object.deepCopy();
+                    withCaption.put("caption", text);
+                    raw = withCaption;
+                }
                 data = run.accept(name, raw);
+                if (run.imagesAccepted) {
+                    images = found;
+                }
             }
             run.listener.progress(name, "done", resultSummary(data));
-            return AskPrompts.wrap(name, data, json);
+            return new ToolLoop.ToolOutput(AskPrompts.wrap(name, data, json), images);
         } catch (ToolFailure e) {
             run.listener.progress(name, "done", "error");
             throw e;
@@ -393,6 +410,17 @@ public class AskService {
             run.listener.progress(name, "done", "error");
             throw new ToolFailure(e.getMessage());
         }
+    }
+
+    /** The image blocks of a tool result (prompt 056). */
+    private static List<ai.foresignal.llm.client.ToolResult.Image> images(ToolResult result) {
+        List<ai.foresignal.llm.client.ToolResult.Image> out = new ArrayList<>();
+        for (ToolResult.Content block : result.content()) {
+            if (block instanceof ToolResult.Image image) {
+                out.add(new ai.foresignal.llm.client.ToolResult.Image(image.data(), image.mimeType()));
+            }
+        }
+        return out;
     }
 
     private static String text(ToolResult result) {
@@ -469,12 +497,23 @@ public class AskService {
         if (answer.isBlank()) {
             answer = "No answer was produced.";
         }
-        if (!run.deltaSeen.get()) {
-            run.listener.delta(answer);
-        }
-
         CitationVerifier.Verification verification = verifier.verify(answer, run.citable);
         warnings.addAll(verification.warnings());
+        // Prompt 056: a non-ok weather status the answer does not state gets the standard caveat and a warning.
+        List<CitationSet.WeatherIssue> unaddressed = ai.foresignal.weather.WeatherAnswerGuard.unaddressed(answer,
+                run.citable.weatherIssues());
+        String caveat = null;
+        if (refusalCategory == null && !unaddressed.isEmpty()) {
+            caveat = ai.foresignal.weather.WeatherAnswerGuard.caveat(unaddressed);
+            answer = answer + "\n\n" + caveat;
+            warnings.add(ai.foresignal.weather.WeatherAnswerGuard.warning(unaddressed));
+        }
+        if (!run.deltaSeen.get()) {
+            run.listener.delta(answer);
+        } else if (caveat != null) {
+            run.listener.delta("\n\n" + caveat);
+        }
+
         List<String> allWarnings = List.copyOf(new LinkedHashSet<>(warnings));
         List<Map<String, Object>> citations = new ArrayList<>();
         for (AskCitation citation : verification.citations()) {
@@ -675,6 +714,7 @@ public class AskService {
         final BboxFilter area;
         final AskListener listener;
         CitationSet citable = new CitationSet();
+        volatile boolean imagesAccepted;
         final List<ProposedAction> proposals = Collections.synchronizedList(new ArrayList<>());
         final AtomicInteger toolCalls = new AtomicInteger();
         final AtomicBoolean deltaSeen = new AtomicBoolean();

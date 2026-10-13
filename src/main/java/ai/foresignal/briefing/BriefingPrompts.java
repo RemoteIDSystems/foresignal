@@ -31,6 +31,9 @@ public final class BriefingPrompts {
             entities observed in the period. When "gap" is true, say that counts are incomplete.
             6. Write concise markdown: a one-line headline, then a few short sections. If nothing notable \
             happened, say so briefly.
+            7. Weather sections with status other than ok are unknown, not clear; never state that weather is \
+            clear or calm unless the relevant section is ok, and say which data is stale or unavailable. Weather \
+            values are automated and are not official warnings; give the run and valid time of forecast values.
             """;
 
     private BriefingPrompts() {}

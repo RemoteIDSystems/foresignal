@@ -40,6 +40,41 @@ public final class ToolLoop {
     }
 
     /**
+     * What a {@link RichToolExecutor} returns (prompt 056): the result text and any images.
+     *
+     * @param text the result text, usually JSON
+     * @param images images for providers that accept them in tool results
+     */
+    public record ToolOutput(String text, List<ToolResult.Image> images) {
+
+        /** Copies the images. */
+        public ToolOutput {
+            text = text == null ? "" : text;
+            images = images == null ? List.of() : List.copyOf(images);
+        }
+    }
+
+    /**
+     * A {@link ToolExecutor} whose results may carry images (prompt 056: {@code get_map_image}). The loop calls
+     * {@link #executeRich}; {@link #execute} returns its text.
+     */
+    public interface RichToolExecutor extends ToolExecutor {
+
+        /**
+         * Runs {@code call}.
+         *
+         * @return the text and images
+         * @throws Exception when the tool fails; the message is returned to the model
+         */
+        ToolOutput executeRich(ToolCall call) throws Exception;
+
+        @Override
+        default String execute(ToolCall call) throws Exception {
+            return executeRich(call).text();
+        }
+    }
+
+    /**
      * The loop's limits.
      *
      * @param maxIterations chat calls at most
@@ -171,16 +206,18 @@ public final class ToolLoop {
         // deadline. shutdownNow() interrupts stragglers and returns at once.
         ExecutorService pool = Executors.newVirtualThreadPerTaskExecutor();
         try {
-            List<Future<String>> futures = new ArrayList<>(calls.size());
+            List<Future<ToolOutput>> futures = new ArrayList<>(calls.size());
             for (ToolCall call : calls) {
-                futures.add(pool.submit(() -> executor.execute(call)));
+                futures.add(pool.submit(() -> executor instanceof RichToolExecutor rich ? rich.executeRich(call)
+                        : new ToolOutput(executor.execute(call), List.of())));
             }
             for (int i = 0; i < calls.size(); i++) {
                 ToolCall call = calls.get(i);
-                Future<String> future = futures.get(i);
+                Future<ToolOutput> future = futures.get(i);
                 long waitMs = Math.max(0, Duration.between(clock.instant(), deadline).toMillis());
                 try {
-                    results.add(ToolResult.ok(call, future.get(waitMs, TimeUnit.MILLISECONDS)));
+                    ToolOutput output = future.get(waitMs, TimeUnit.MILLISECONDS);
+                    results.add(ToolResult.ok(call, output.text(), output.images()));
                 } catch (ExecutionException e) {
                     Throwable cause = e.getCause() == null ? e : e.getCause();
                     results.add(ToolResult.error(call, "Tool " + call.name() + " failed: " + describe(cause)));

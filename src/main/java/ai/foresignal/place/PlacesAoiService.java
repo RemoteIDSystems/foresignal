@@ -43,6 +43,10 @@ import org.springframework.stereotype.Service;
  * AOI-consuming source gets a health warning through the 006 {@link HealthRule} SPI. The AOI is
  * cached and recomputed on {@link PlaceChangedEvent}. Adapters see it through the SPI type
  * {@link AreaOfInterest} (prompt 047: {@code mrms-probsevere} and {@code awc-metars}).
+ *
+ * <p>Prompt 056: {@code weather.defaultAoi} and {@code weather.aoiBufferKm} are app settings
+ * ({@code PUT /v1/settings/weather}); until one is stored they come from {@link WeatherAoiProperties}. Changing
+ * either recomputes the AOI ({@link ai.foresignal.weather.WeatherSettingsChangedEvent}).
  */
 @Service
 public class PlacesAoiService implements HealthRule, IngestStateReset, AreaOfInterest {
@@ -75,6 +79,10 @@ public class PlacesAoiService implements HealthRule, IngestStateReset, AreaOfInt
     private final AtomicLong versions = new AtomicLong();
     private final Set<String> consumers = ConcurrentHashMap.newKeySet();
     private volatile Aoi cached;
+
+    /** The stored weather settings (prompt 056); null in hand-built unit tests, which use the properties. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ai.foresignal.weather.WeatherSettingsService weatherSettings;
 
     /** Creates the service. */
     public PlacesAoiService(JdbcTemplate jdbc, WeatherAoiProperties properties, ApplicationEventPublisher events) {
@@ -127,6 +135,38 @@ public class PlacesAoiService implements HealthRule, IngestStateReset, AreaOfInt
         events.publishEvent(new PlacesAoiChangedEvent(aoi.version()));
     }
 
+    /**
+     * Recomputes after the weather settings changed {@code defaultAoi} or {@code aoiBufferKm} (prompt 056) and
+     * publishes {@link PlacesAoiChangedEvent}.
+     */
+    @EventListener
+    public void onWeatherSettingsChanged(ai.foresignal.weather.WeatherSettingsChangedEvent event) {
+        if (!event.aoiChanged()) {
+            return;
+        }
+        Aoi aoi = compute();
+        cached = aoi;
+        events.publishEvent(new PlacesAoiChangedEvent(aoi.version()));
+    }
+
+    /** The effective {@code weather.aoiBufferKm}: the stored setting, else the property. */
+    double bufferKm() {
+        ai.foresignal.weather.WeatherSettings stored = weatherSettings == null ? null : weatherSettings.get();
+        return stored == null ? properties.aoiBufferKm() : stored.aoiBufferKm();
+    }
+
+    /** The effective {@code weather.defaultAoi} text: the stored setting, else the property. */
+    String defaultAoi() {
+        ai.foresignal.weather.WeatherSettings stored = weatherSettings == null ? null : weatherSettings.get();
+        return stored == null ? properties.defaultAoi() : stored.defaultAoi();
+    }
+
+    /** The effective default box {@code [minLon, minLat, maxLon, maxLat]}. */
+    double[] defaultBox() {
+        ai.foresignal.weather.WeatherSettings stored = weatherSettings == null ? null : weatherSettings.get();
+        return stored == null ? properties.defaultBox() : stored.defaultBox();
+    }
+
     /** Forgets the cached AOI (the test cleaner truncated the places). */
     @Override
     public void resetState() {
@@ -135,14 +175,14 @@ public class PlacesAoiService implements HealthRule, IngestStateReset, AreaOfInt
 
     /** Computes the AOI from the database. */
     Aoi compute() {
-        double buffer = properties.aoiBufferKm();
+        double buffer = bufferKm();
         long version = versions.incrementAndGet();
         Object[] row = jdbc.queryForObject(UNION_SQL, (rs, i) -> new Object[] {rs.getBytes("aoi"), rs.getLong("n")},
                 buffer, buffer);
         long count = row == null ? 0 : (Long) row[1];
         byte[] wkb = row == null ? null : (byte[]) row[0];
         if (count == 0 || wkb == null) {
-            double[] box = properties.defaultBox();
+            double[] box = defaultBox();
             MultiPolygon geometry = Antimeridian.toMulti(WGS84.toGeometry(new Envelope(box[0], box[2], box[1], box[3])));
             return new Aoi(version, geometry, box, 0, buffer, true);
         }
@@ -162,7 +202,7 @@ public class PlacesAoiService implements HealthRule, IngestStateReset, AreaOfInt
             return Optional.of(HealthVerdict.healthy(null));
         }
         return Optional.of(new HealthVerdict(HealthStatus.DEGRADED,
-                "No places are defined, so the default area of interest (" + properties.defaultAoi()
+                "No places are defined, so the default area of interest (" + defaultAoi()
                         + ") is used; add places with POST /v1/places", null));
     }
 

@@ -67,6 +67,12 @@ import tools.jackson.databind.json.JsonMapper;
  * versions) and {@code context.anchor} (anchor seq and km-rounded distance); templates get
  * {@code {{place.name}}}, {@code {{place.distanceKm}}} and {@code {{anchor.distanceKm}}}, never
  * coordinates.
+ *
+ * <p><b>Prompt 056.</b> Before the transaction that inserts a chunk's alerts, the geolocated ones get
+ * {@code context.weather} from {@link ai.foresignal.weather.AlertWeatherContext} (in parallel, each within its
+ * 500 ms budget; a failure stores {@code {status: unavailable}}), unless the rule's {@code weatherContext} or the
+ * global {@code weather.alertContext} is {@code off}. The context is stored with the alert before any event is
+ * published, and its fields are template variables ({@code {{context.weather.summary}}} …).
  */
 @Component
 public class TriggerEngine implements ChangeListener, IngestStateReset {
@@ -101,6 +107,13 @@ public class TriggerEngine implements ChangeListener, IngestStateReset {
     /** Region tags for {@code {{near.*}}} and the alert's region snapshot (prompt 040); null in unit tests. */
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private ai.foresignal.reference.RegionTagger regionTagger;
+
+    /** Alert weather context (prompt 056); null in unit tests. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ai.foresignal.weather.AlertWeatherContext alertWeather;
+
+    /** Rules whose {@code weatherContext} is {@code off} (prompt 056). */
+    private volatile Set<UUID> weatherOff = Set.of();
     private final Map<UUID, AlertPass.State> states = new ConcurrentHashMap<>();
     private volatile List<RuleSpec> rules = List.of();
     private volatile Subscription subscription;
@@ -195,7 +208,11 @@ public class TriggerEngine implements ChangeListener, IngestStateReset {
 
     private void reloadRules() {
         List<RuleSpec> compiled = new ArrayList<>();
+        Set<UUID> off = new HashSet<>();
         for (TriggerRuleEntity rule : repository.findByEnabledTrue()) {
+            if ("off".equals(rule.getWeatherContext())) {
+                off.add(rule.getId());
+            }
             try {
                 compiled.add(specs.compile(rule));
             } catch (RuntimeException e) {
@@ -204,6 +221,7 @@ public class TriggerEngine implements ChangeListener, IngestStateReset {
             }
         }
         rules = List.copyOf(compiled);
+        weatherOff = Set.copyOf(off);
         anchors.watch(compiled.stream().filter(RuleSpec::anchored).map(RuleSpec::anchor).toList());
     }
 
@@ -282,10 +300,11 @@ public class TriggerEngine implements ChangeListener, IngestStateReset {
             return;
         }
         List<RuleStormEvent> storms = new ArrayList<>();
+        Map<AlertPass.Fire, Map<String, Object>> weather = weather(plans);
         boolean disabledAny = alerts.write(writer -> {
             boolean disabled = false;
             for (Plan plan : plans) {
-                disabled |= apply(writer, plan, now, storms);
+                disabled |= apply(writer, plan, now, storms, weather);
             }
             return disabled;
         });
@@ -379,10 +398,11 @@ public class TriggerEngine implements ChangeListener, IngestStateReset {
             }
         }
         List<RuleStormEvent> storms = new ArrayList<>();
+        Map<AlertPass.Fire, Map<String, Object>> weather = weather(plans);
         boolean disabledAny = alerts.write(writer -> {
             boolean disabled = false;
             for (Plan plan : plans) {
-                disabled |= apply(writer, plan, now, storms);
+                disabled |= apply(writer, plan, now, storms, weather);
             }
             settings.put(SettingKeys.TRIGGER_CURSOR, to);
             return disabled;
@@ -454,12 +474,60 @@ public class TriggerEngine implements ChangeListener, IngestStateReset {
         return seeds;
     }
 
-    private boolean apply(AlertStore.Writer writer, Plan plan, Instant now, List<RuleStormEvent> storms) {
+    /**
+     * The weather contexts of the plans' unsuppressed, geolocated fires (prompt 056), computed before the insert
+     * transaction; empty when alert weather context is unavailable or off.
+     */
+    private Map<AlertPass.Fire, Map<String, Object>> weather(List<Plan> plans) {
+        ai.foresignal.weather.AlertWeatherContext service = alertWeather;
+        if (service == null) {
+            return Map.of();
+        }
+        List<AlertPass.Fire> fires = new ArrayList<>();
+        List<ai.foresignal.weather.AlertWeatherContext.Job> jobs = new ArrayList<>();
+        Boolean enabled = null;
+        for (Plan plan : plans) {
+            if (weatherOff.contains(plan.rule().id())) {
+                continue;
+            }
+            for (AlertPass.Op op : plan.result().ops()) {
+                if (op instanceof AlertPass.Fire fire && fire.suppressedReason() == null && fire.row().geometry() != null
+                        && !fire.row().geometry().isBlank()) {
+                    if (enabled == null) {
+                        enabled = service.enabledFor(null);
+                    }
+                    if (!enabled) {
+                        return Map.of();
+                    }
+                    fires.add(fire);
+                    jobs.add(new ai.foresignal.weather.AlertWeatherContext.Job(fire.row().geometry(),
+                            fire.row().observedAt()));
+                }
+            }
+        }
+        if (jobs.isEmpty()) {
+            return Map.of();
+        }
+        try {
+            List<Map<String, Object>> contexts = service.computeAll(jobs);
+            Map<AlertPass.Fire, Map<String, Object>> out = new java.util.IdentityHashMap<>();
+            for (int i = 0; i < fires.size() && i < contexts.size(); i++) {
+                out.put(fires.get(i), contexts.get(i));
+            }
+            return out;
+        } catch (RuntimeException e) {
+            log.warn("Alert weather contexts failed; the alerts are stored without them: {}", e.getMessage());
+            return Map.of();
+        }
+    }
+
+    private boolean apply(AlertStore.Writer writer, Plan plan, Instant now, List<RuleStormEvent> storms,
+            Map<AlertPass.Fire, Map<String, Object>> weather) {
         RuleSpec rule = plan.rule();
         AlertPass.Result result = plan.result();
         for (AlertPass.Op op : result.ops()) {
             switch (op) {
-                case AlertPass.Fire fire -> insert(writer, rule, fire, now, plan.anchor());
+                case AlertPass.Fire fire -> insert(writer, rule, fire, now, plan.anchor(), weather.get(fire));
                 case AlertPass.Resolve resolve -> writer.resolveOpen(rule.id(), resolve.row().sourceId(),
                         resolve.row().externalId(), resolve.row().seq(), resolve.row().resolvedBy(), resolve.row().seq(), now);
             }
@@ -490,7 +558,7 @@ public class TriggerEngine implements ChangeListener, IngestStateReset {
     }
 
     private void insert(AlertStore.Writer writer, RuleSpec rule, AlertPass.Fire fire, Instant now,
-            AnchorContext anchor) {
+            AnchorContext anchor, Map<String, Object> weather) {
         MatchRow row = fire.row();
         Map<String, Object> payload = row.payload() == null ? null : json.readValue(row.payload(), MAP);
         String title = registry.find(row.sourceId())
@@ -499,13 +567,22 @@ public class TriggerEngine implements ChangeListener, IngestStateReset {
         AlertContexts.Built context = AlertContexts.build(rule, row, anchor == null ? null : anchor.point(),
                 anchor == null ? null : anchor.seq(), places.getIfAvailable());
         ai.foresignal.reference.RegionTags region = region(row);
+        Map<String, Object> contextJson = context.json();
+        Map<String, String> vars = context.vars();
+        if (weather != null) {
+            // Prompt 056: context.weather, stored with the alert and usable in the rule's template.
+            contextJson = contextJson == null ? new java.util.LinkedHashMap<>() : new java.util.LinkedHashMap<>(contextJson);
+            contextJson.put("weather", weather);
+            vars = new HashMap<>(vars);
+            vars.putAll(ai.foresignal.weather.WeatherTemplateVars.of(weather));
+        }
         String message = MessageTemplate.render(rule.template(), new MessageTemplate.Context(
                 rule.name(), row.sourceId(), row.externalId(), row.kind(), title, rule.severity().wire(),
                 row.observedAt(), row.eventTime(), row.validFrom(), payload, region),
-                new MessageTemplate.Extras(java.time.ZoneOffset.UTC, now, context.vars(), null));
+                new MessageTemplate.Extras(java.time.ZoneOffset.UTC, now, vars, null));
         String snapshot = AlertSnapshots.build(row, payload, json);
         writer.insert(new AlertStore.NewAlert(rule, row, now, message, snapshot, fire.suppressedReason(),
-                context.json() == null ? null : json.writeValueAsString(context.json()),
+                contextJson == null ? null : json.writeValueAsString(contextJson),
                 region == null ? null : json.writeValueAsString(region.toMap())));
     }
 

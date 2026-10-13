@@ -962,7 +962,7 @@
                 {
                   "key": "include",
                   "value": "",
-                  "description": "`context` returns the full `alert.context` on list items (default: only `context.weather.summary`)",
+                  "description": "`context` returns the full `alert.context` on list items (default: only `context.weather.summary`, and `context` is null for an alert without a weather context)",
                   "disabled": true
                 },
                 {
@@ -2184,7 +2184,7 @@
                 {
                   "key": "include",
                   "value": "",
-                  "description": "`context` returns the full `alert.context` on list items (default: only `context.weather.summary`)",
+                  "description": "`context` returns the full `alert.context` on list items (default: only `context.weather.summary`, and `context` is null for an alert without a weather context)",
                   "disabled": true
                 },
                 {
@@ -8809,7 +8809,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Morning brief (LLM)\",\n  \"enabled\": true,\n  \"schedule\": \"0 7 * * 1-5\",\n  \"timezone\": \"America/Chicago\",\n  \"scope\": {\n    \"kinds\": [\n      \"earthquake\"\n    ],\n    \"includeHealth\": true\n  },\n  \"lookback\": \"24h\",\n  \"mode\": \"llm\",\n  \"instructions\": \"Lead with anything critical. Keep it under 250 words.\",\n  \"channelIds\": [\n    \"{{channelId}}\"\n  ]\n}",
+              "raw": "{\n  \"name\": \"Morning brief (LLM)\",\n  \"enabled\": true,\n  \"schedule\": \"0 7 * * 1-5\",\n  \"timezone\": \"America/Chicago\",\n  \"scope\": {\n    \"kinds\": [\n      \"earthquake\"\n    ],\n    \"includeHealth\": true,\n    \"places\": [\n      \"{{placeId}}\"\n    ],\n    \"weatherProducts\": [\n      \"mrms-reflectivity\",\n      \"mrms-mesh-60m\",\n      \"gfs-gust\",\n      \"hrrr-smoke\"\n    ]\n  },\n  \"lookback\": \"24h\",\n  \"mode\": \"llm\",\n  \"instructions\": \"Lead with anything critical. Keep it under 250 words.\",\n  \"channelIds\": [\n    \"{{channelId}}\"\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -9152,12 +9152,12 @@
                 {
                   "key": "places",
                   "value": "",
-                  "description": "Place ids: adds the \"Weather at places\" section (`Digest.weatherAtPlaces`, prompt 056; refused with 400 until then)",
+                  "description": "Place ids: adds the \"Weather at places\" section (`Digest.weatherAtPlaces`, prompt 056); unknown ids are 400, and a caller without a token is 401",
                   "disabled": true
                 }
               ]
             },
-            "description": "Counts by persist reason since `sinceSeq` (new, changed, removed, edges; routine reported separately), entities active from `record_live`, alerts since `sinceAlertId`, notable records with persisted seqs and source health. `gap=true` when `sinceSeq` is below the retention floor (counts incomplete). Pass `next.sinceSeq`/`next.sinceAlertId` on the following call. ETag on (toSeq, untilAlertId, params); 304 support. Private sources appear only as counts unless the caller may see them; naming one the caller may not see is a 400 (unknown source), as is an unknown kind. `places` is refused with 400 until prompt 056.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getDigest`",
+            "description": "Counts by persist reason since `sinceSeq` (new, changed, removed, edges; routine reported separately), entities active from `record_live`, alerts since `sinceAlertId`, notable records with persisted seqs and source health. `gap=true` when `sinceSeq` is below the retention floor (counts incomplete). Pass `next.sinceSeq`/`next.sinceAlertId` on the following call. ETag on (toSeq, untilAlertId, params); 304 support. Private sources appear only as counts unless the caller may see them; naming one the caller may not see is a 400 (unknown source), as is an unknown kind. `places` (056) adds the \"Weather at places\" section (`weatherAtPlaces`, also under `sections.weatherAtPlaces`): each place must exist (400 otherwise) and the caller needs a token (401 without one; places are never anonymous).\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getDigest`",
             "auth": {
               "type": "noauth"
             }
@@ -40935,7 +40935,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"alertContext\": \"auto\",\n  \"defaultAoi\": \"-106.65,25.84,-93.51,36.50\",\n  \"aoiBufferKm\": 150\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -47655,7 +47655,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Watched tails on the corridor\",\n  \"enabled\": true,\n  \"kinds\": [\n    \"aircraft\"\n  ],\n  \"conditions\": [\n    {\n      \"path\": \"callsign\",\n      \"op\": \"in\",\n      \"value\": [\n        \"N123AB\",\n        \"N456CD\"\n      ]\n    }\n  ],\n  \"geofence\": {\n    \"type\": \"LineString\",\n    \"coordinates\": [\n      [\n        -97.75,\n        30.25\n      ],\n      [\n        -97.0,\n        32.9\n      ]\n    ]\n  },\n  \"bufferMeters\": 5000,\n  \"mode\": \"enter\",\n  \"hysteresisMeters\": 200,\n  \"cooldown\": \"15m\",\n  \"severity\": \"warning\",\n  \"tags\": [\n    \"watchlist\"\n  ],\n  \"messageTemplate\": \"{{payload.callsign}} entered the corridor at {{observedAt}}\"\n}",
+              "raw": "{\n  \"name\": \"Watched tails on the corridor\",\n  \"enabled\": true,\n  \"kinds\": [\n    \"aircraft\"\n  ],\n  \"conditions\": [\n    {\n      \"path\": \"callsign\",\n      \"op\": \"in\",\n      \"value\": [\n        \"N123AB\",\n        \"N456CD\"\n      ]\n    }\n  ],\n  \"geofence\": {\n    \"type\": \"LineString\",\n    \"coordinates\": [\n      [\n        -97.75,\n        30.25\n      ],\n      [\n        -97.0,\n        32.9\n      ]\n    ]\n  },\n  \"bufferMeters\": 5000,\n  \"mode\": \"enter\",\n  \"hysteresisMeters\": 200,\n  \"cooldown\": \"15m\",\n  \"severity\": \"warning\",\n  \"tags\": [\n    \"watchlist\"\n  ],\n  \"messageTemplate\": \"{{payload.callsign}} entered the corridor at {{observedAt}}\",\n  \"weatherContext\": \"off\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -47753,7 +47753,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Vessels entering Strait of Hormuz\",\n  \"enabled\": true,\n  \"kind\": \"vessel\",\n  \"mode\": \"enter\",\n  \"geofence\": {\n    \"type\": \"Polygon\",\n    \"coordinates\": [\n      [\n        [\n          55.8,\n          26.0\n        ],\n        [\n          57.2,\n          26.0\n        ],\n        [\n          57.2,\n          27.0\n        ],\n        [\n          55.8,\n          27.0\n        ],\n        [\n          55.8,\n          26.0\n        ]\n      ]\n    ]\n  },\n  \"cooldown\": \"1h\",\n  \"messageTemplate\": \"{{payload.name}} ({{externalId}}) entered Hormuz\"\n}",
+              "raw": "{\n  \"name\": \"Vessels entering Strait of Hormuz\",\n  \"enabled\": true,\n  \"kind\": \"vessel\",\n  \"mode\": \"enter\",\n  \"geofence\": {\n    \"type\": \"Polygon\",\n    \"coordinates\": [\n      [\n        [\n          55.8,\n          26.0\n        ],\n        [\n          57.2,\n          26.0\n        ],\n        [\n          57.2,\n          27.0\n        ],\n        [\n          55.8,\n          27.0\n        ],\n        [\n          55.8,\n          26.0\n        ]\n      ]\n    ]\n  },\n  \"cooldown\": \"1h\",\n  \"messageTemplate\": \"{{payload.name}} ({{externalId}}) entered Hormuz. {{context.weather.summary}}\",\n  \"weatherContext\": \"auto\"\n}",
               "options": {
                 "raw": {
                   "language": "json"

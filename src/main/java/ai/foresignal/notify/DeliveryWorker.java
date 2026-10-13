@@ -490,8 +490,10 @@ public class DeliveryWorker {
             return privacy(m, channel);
         }
         Map<String, Object> data = withLatestSummary(m);
+        // Prompt 056: the default body of six types appends the weather summary line when present.
         AlertTemplates.Text text = AlertTemplates.render(channel.getTitleTemplate(), channel.getBodyTemplate(), data,
-                m.url(), zone, now, ChannelUnits.imperial(channel.getConfig()));
+                m.url(), zone, now, ChannelUnits.imperial(channel.getConfig()),
+                AlertTemplates.WEATHER_LINE_TYPES.contains(channel.getType()));
         return privacy(m.withText(text.title(), text.body()), channel);
     }
 

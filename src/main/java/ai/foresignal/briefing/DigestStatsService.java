@@ -119,16 +119,28 @@ public class DigestStatsService {
      * @param hiddenSources sources counted but never listed
      * @param zone the timezone section headings use
      * @param briefing the briefing scope for contributors, or null
+     * @param restriction the caller's read restriction
+     * @param places places of the "Weather at places" section for a digest without a briefing ({@code /v1/digest
+     *     ?places=}, prompt 056); a briefing's own come from its scope
      */
     public record Request(Long sinceSeq, Instant periodFrom, Instant periodTo, Long sinceAlertId,
             ScopeResolver.Resolved scope, int perKind, Set<String> hiddenSources, ZoneId zone, BriefingScope briefing,
-            ai.foresignal.security.restrict.ReadRestriction restriction) {
+            ai.foresignal.security.restrict.ReadRestriction restriction, List<String> places) {
 
-        /** Copies the hidden sources; a null restriction becomes none. */
+        /** Copies the hidden sources and places; a null restriction becomes none. */
         public Request {
             hiddenSources = hiddenSources == null ? Set.of() : Set.copyOf(hiddenSources);
             zone = zone == null ? ZoneOffset.UTC : zone;
             restriction = restriction == null ? ai.foresignal.security.restrict.ReadRestriction.NONE : restriction;
+            places = places == null ? List.of() : List.copyOf(places);
+        }
+
+        /** A request without digest places (the shape before prompt 056). */
+        public Request(Long sinceSeq, Instant periodFrom, Instant periodTo, Long sinceAlertId,
+                ScopeResolver.Resolved scope, int perKind, Set<String> hiddenSources, ZoneId zone,
+                BriefingScope briefing, ai.foresignal.security.restrict.ReadRestriction restriction) {
+            this(sinceSeq, periodFrom, periodTo, sinceAlertId, scope, perKind, hiddenSources, zone, briefing,
+                    restriction, List.of());
         }
 
         /** An unrestricted request (the shape before prompt 035). */
@@ -356,8 +368,12 @@ public class DigestStatsService {
     private List<BriefingSection> sections(DigestStats stats, Request request) {
         List<BriefingSection> out = new ArrayList<>();
         ScopeResolver.Resolved scope = request.scope();
+        BriefingScope briefing = request.briefing();
+        List<String> places = briefing != null ? briefing.places() : request.places();
+        List<String> products = briefing != null ? briefing.weatherProducts() : List.of();
         BriefingSectionContributor.Context context = new BriefingSectionContributor.Context(stats, scope.sources(),
-                scope.kinds(), scope.bbox(), stats.fromTime(), stats.toTime(), request.zone(), request.briefing());
+                scope.kinds(), scope.bbox(), stats.fromTime(), stats.toTime(), request.zone(), briefing,
+                request.hiddenSources(), places, products);
         contributors.orderedStream().forEach(contributor -> {
             try {
                 contributor.contribute(context).ifPresent(out::add);

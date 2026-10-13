@@ -14,7 +14,8 @@ import tools.jackson.databind.node.ObjectNode;
  * <p>The system prompts are constants: no dates, no per-request values, so the provider's prompt cache
  * reuses them across questions. Today's date, the time zone and the question's scope go in a final
  * block of the user turn. Tool results are always wrapped as {@code {"tool": …, "data": …}} and never
- * mixed with instructions.
+ * mixed with instructions. Prompt 056 adds rule 7: weather citations, run, validTime and age, and "unknown is not
+ * clear".
  */
 public final class AskPrompts {
 
@@ -34,7 +35,11 @@ public final class AskPrompts {
             5. You cannot change anything in Foresignal. To suggest a change (a watch, a briefing, acknowledging, \
             resolving or snoozing an alert), call the matching propose_* tool; a person confirms or rejects it. \
             Never say a change was made.
-            6. Answer in concise markdown.""";
+            6. Answer in concise markdown.
+            7. Weather: cite every weather value as [wx:...] using the citationId the tool returned, and give its \
+            run (for forecasts), validTime and age. A status of no-coverage, no-data, stale or unavailable means \
+            unknown, never clear or calm weather; say so with the status. Weather outputs are automated and are not \
+            official warnings; NWS alerts are the official warnings.""";
 
     /** The system prompt of tools mode. */
     public static final String SYSTEM = """

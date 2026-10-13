@@ -84,13 +84,19 @@ public final class SettingKeys {
     public static final String INSTALL_ID = "install.id";
 
     /**
+     * The weather settings ({@code WeatherSettings}, prompt 056): {@code alertContext}, {@code defaultAoi} and
+     * {@code aoiBufferKm}.
+     */
+    public static final String WEATHER = "weather";
+
+    /**
      * Every key above. {@link AppSettingService#invalidateCache()} announces each of them, so a
      * component holding its own copy of a setting drops it too. A new key belongs in this list.
      */
     public static final List<String> ALL =
             List.of(RETENTION, CORS, TRIGGER_CURSOR, TRIGGERS, STREAM_LIMITS, SECURITY, SERVER, NOTIFICATIONS,
                     WATCHDOG, INSTALL_ID, LLM, SEARCH_INDEX, EMBEDDING_CURSOR, RATELIMITS, OUTBOUND, STATS_ROLLUP_CURSOR,
-                    STATS, GLANCE, METRICS, VISIBILITY, REGION_CURSOR, REGION_TAGGING);
+                    STATS, GLANCE, METRICS, VISIBILITY, REGION_CURSOR, REGION_TAGGING, WEATHER);
 
     private SettingKeys() {}
 }

@@ -242,6 +242,11 @@
         "version": "1.3.0",
         "date": "2026-10-13",
         "note": "055: getStaticMap is implemented (description: box precedence, snapping, notes, the pinned-frame cache rule, at most 4 products, default width 800). NotificationMessage.attachments items carry `url` ({publicBaseUrl}/v1/media/{id}) and `bytes` is the size; the webhook default body gains a top-level `attachments` array of {mediaId, url, contentType, bytes}. NotificationDelivery.attachmentLevel and attachments are filled for sends of fired alerts on channels with attachMap=static. ChannelType.capabilities.attachments is true for discord, telegram, ntfy, pushover and email. MapAttachmentConfig.maxAttachmentBytes accepts 1024 to 104857600; mapProducts 1 to 4 ids; mapRadiusKm 1 to 2000."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-13",
+        "note": "056: getWeatherSettings and updateWeatherSettings are implemented. Alert.context.weather (WeatherContext) is computed for geolocated alerts unless weather.alertContext or the rule's weatherContext is off; listAlerts items carry only context.weather.summary unless include=context. getDigest accepts places (400 unknown place, 401 without a token) and returns weatherAtPlaces. PlaceWeatherDigest.now gains alertsStatus and period gains notes. AskCitation ids gain the wx: forms; NotificationMessage.data of alerts carries context."
       }
     ]
   },
@@ -4321,7 +4326,8 @@
         ],
         "x-foresignal-prompt": "017",
         "x-foresignal-extended-by": [
-          "100"
+          "100",
+          "056"
         ],
         "x-foresignal-status": "implemented"
       }
@@ -4506,7 +4512,8 @@
         ],
         "x-foresignal-prompt": "017",
         "x-foresignal-extended-by": [
-          "100"
+          "100",
+          "056"
         ],
         "x-foresignal-status": "implemented"
       },
@@ -4918,7 +4925,7 @@
             "name": "include",
             "in": "query",
             "required": false,
-            "description": "`context` returns the full `alert.context` on list items (default: only `context.weather.summary`)",
+            "description": "`context` returns the full `alert.context` on list items (default: only `context.weather.summary`, and `context` is null for an alert without a weather context)",
             "schema": {
               "type": "array",
               "items": {
@@ -5010,7 +5017,8 @@
         "x-foresignal-prompt": "017",
         "x-foresignal-extended-by": [
           "035, 039, 040",
-          "115"
+          "115",
+          "056"
         ],
         "x-foresignal-status": "implemented"
       }
@@ -5377,7 +5385,8 @@
         ],
         "x-foresignal-prompt": "017",
         "x-foresignal-extended-by": [
-          "035, 039"
+          "035, 039",
+          "056"
         ],
         "x-foresignal-status": "implemented"
       }
@@ -9829,7 +9838,10 @@
           }
         ],
         "x-foresignal-prompt": "029",
-        "x-foresignal-status": "implemented"
+        "x-foresignal-status": "implemented",
+        "x-foresignal-extended-by": [
+          "056"
+        ]
       }
     },
     "/v1/briefings/preview": {
@@ -10090,7 +10102,10 @@
           }
         ],
         "x-foresignal-prompt": "029",
-        "x-foresignal-status": "implemented"
+        "x-foresignal-status": "implemented",
+        "x-foresignal-extended-by": [
+          "056"
+        ]
       },
       "delete": {
         "tags": [
@@ -16322,7 +16337,7 @@
         ],
         "operationId": "getDigest",
         "summary": "Catch-up digest since a cursor",
-        "description": "Counts by persist reason since `sinceSeq` (new, changed, removed, edges; routine reported separately), entities active from `record_live`, alerts since `sinceAlertId`, notable records with persisted seqs and source health. `gap=true` when `sinceSeq` is below the retention floor (counts incomplete). Pass `next.sinceSeq`/`next.sinceAlertId` on the following call. ETag on (toSeq, untilAlertId, params); 304 support. Private sources appear only as counts unless the caller may see them; naming one the caller may not see is a 400 (unknown source), as is an unknown kind. `places` is refused with 400 until prompt 056.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "Counts by persist reason since `sinceSeq` (new, changed, removed, edges; routine reported separately), entities active from `record_live`, alerts since `sinceAlertId`, notable records with persisted seqs and source health. `gap=true` when `sinceSeq` is below the retention floor (counts incomplete). Pass `next.sinceSeq`/`next.sinceAlertId` on the following call. ETag on (toSeq, untilAlertId, params); 304 support. Private sources appear only as counts unless the caller may see them; naming one the caller may not see is a 400 (unknown source), as is an unknown kind. `places` (056) adds the \"Weather at places\" section (`weatherAtPlaces`, also under `sections.weatherAtPlaces`): each place must exist (400 otherwise) and the caller needs a token (401 without one; places are never anonymous).\n\n**Scope:** `read` (open while `security.openReads` is on).",
         "parameters": [
           {
             "name": "sinceSeq",
@@ -16417,13 +16432,15 @@
             "name": "places",
             "in": "query",
             "required": false,
-            "description": "Place ids: adds the \"Weather at places\" section (`Digest.weatherAtPlaces`, prompt 056; refused with 400 until then)",
+            "description": "Place ids: adds the \"Weather at places\" section (`Digest.weatherAtPlaces`, prompt 056); unknown ids are 400, and a caller without a token is 401",
             "schema": {
               "type": "array",
               "items": {
                 "type": "string"
               }
-            }
+            },
+            "style": "form",
+            "explode": true
           }
         ],
         "responses": {
@@ -16505,6 +16522,9 @@
           {
             "bearerToken": []
           }
+        ],
+        "x-foresignal-extended-by": [
+          "056"
         ]
       }
     },
@@ -85605,7 +85625,7 @@
         },
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "056",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -85673,7 +85693,7 @@
         },
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "056",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -92106,7 +92126,8 @@
           "enrichWindow": "030",
           "escalationPolicyId": "033",
           "near": "036",
-          "geofenceRef": "040"
+          "geofenceRef": "040",
+          "weatherContext": "056"
         }
       },
       "TriggerRule": {
@@ -96184,7 +96205,7 @@
         "properties": {
           "id": {
             "type": "string",
-            "description": "<sourceId>:<externalId>, briefing:<id> or alert:<id>"
+            "description": "<sourceId>:<externalId>, briefing:<id>, alert:<id>, or (056) wx:<productId>@<frameKey> for a weather frame and wx:<productId>@<run>/<step> for a forecast step (GFS and HRRR providers: wx:gfs@<run>/<step>, NWS: wx:nws@<updatedAt>/<hours>)"
           },
           "seq": {
             "type": [
@@ -96203,7 +96224,8 @@
               "alert",
               "briefing",
               "weather"
-            ]
+            ],
+            "description": "weather (056): a value a weather tool returned; productId, frameKey, run, step, validTime and ageMinutes are set only for this type"
           },
           "productId": {
             "type": [
@@ -96604,7 +96626,7 @@
             "items": {
               "type": "string"
             },
-            "description": "Products for the section (default: those backing place-weather); unknown ids → 400"
+            "description": "Products for the section (default: those backing place-weather: mrms-reflectivity, mrms-mesh-60m, mrms-precip-rate, hrrr-smoke, gfs-gust, gfs-apcp); they choose the radar and MESH values and the GFS and HRRR rows (lightning, NWS alerts and the NWS forecast are always shown); unknown ids → 400"
           }
         },
         "x-foresignal-extended-by": [
@@ -96616,7 +96638,9 @@
           "viewId": "036",
           "country": "040",
           "admin1": "040",
-          "county": "040"
+          "county": "040",
+          "places": "056",
+          "weatherProducts": "056"
         }
       },
       "BriefingInput": {
@@ -99545,7 +99569,7 @@
               "null"
             ],
             "additionalProperties": true,
-            "description": "Full event data (alert or briefing-run JSON)"
+            "description": "Full event data (alert or briefing-run JSON). Alert data carries `context` (056): the computed alert context with `context.weather` (`WeatherContext`, its `summary` sentence and sections) when the alert has one"
           },
           "tags": {
             "type": "array",
@@ -109552,7 +109576,7 @@
       },
       "WeatherContext": {
         "type": "object",
-        "description": "Deterministic weather facts around an alert geometry (056); non-ok sections mean unknown",
+        "description": "Deterministic weather facts around an alert geometry (056), computed from stored frames and record heads at the alert's observed_at within a 500 ms budget (a section that misses it is unavailable); non-ok sections carry statusText and no values and mean unknown, never clear",
         "properties": {
           "status": {
             "type": "string",
@@ -109643,7 +109667,7 @@
           },
           "lightning": {
             "type": "object",
-            "description": "Lightning section",
+            "description": "GOES GLM flashes within 20 km over the 15 minutes before the time; stale when no GLM file ended within 2 minutes of it. GLM's footprint over Texas is about 8–10 km and its detection efficiency is below 100%, so a zero count is advisory",
             "properties": {
               "status": {
                 "$ref": "#/components/schemas/WeatherSectionStatus"
@@ -109755,7 +109779,7 @@
           },
           "wind": {
             "type": "object",
-            "description": "GFS/HRRR 10-m wind at the nearest valid time",
+            "description": "10-m wind of the newest complete HRRR run (else GFS) at the step nearest the time, with run, validTime and step; gustMs from the same model's gust product",
             "properties": {
               "status": {
                 "$ref": "#/components/schemas/WeatherSectionStatus"
@@ -109801,7 +109825,7 @@
           },
           "smoke": {
             "type": "object",
-            "description": "HRRR near-surface smoke",
+            "description": "HRRR near-surface smoke (µg/m³) at the step nearest the time",
             "properties": {
               "status": {
                 "$ref": "#/components/schemas/WeatherSectionStatus"
@@ -109845,7 +109869,7 @@
       },
       "AlertContext": {
         "type": "object",
-        "description": "Computed alert context (`alert.context`); list responses carry only `weather.summary` unless `include=context`",
+        "description": "Computed alert context (`alert.context`); `weather` (056) is the deterministic weather context of a geolocated alert, stored before dispatch; list responses carry only `weather.summary` unless `include=context`",
         "properties": {
           "weather": {
             "$ref": "#/components/schemas/WeatherContext"
@@ -109909,7 +109933,7 @@
       },
       "PlaceWeatherDigest": {
         "type": "object",
-        "description": "\"Weather at places\" digest section for one place (056); stale sections are labelled, never omitted",
+        "description": "\"Weather at places\" digest section for one place (056); stale sections are labeled, never omitted",
         "properties": {
           "placeId": {
             "type": "string"
@@ -110006,6 +110030,25 @@
                     "event"
                   ]
                 }
+              },
+              "alertsStatus": {
+                "type": "object",
+                "description": "Status of the NWS alerts list (056): not ok when the nws-alerts source is disabled, failing or not visible, so an empty list is unknown, not quiet",
+                "properties": {
+                  "status": {
+                    "$ref": "#/components/schemas/WeatherSectionStatus"
+                  },
+                  "asOf": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "statusText": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "status"
+                ]
               }
             }
           },
@@ -110029,19 +110072,22 @@
                 "type": [
                   "number",
                   "null"
-                ]
+                ],
+                "description": "Largest radar.maxDbzInRadius of the ok place-weather versions in the window (null when none was ok); omitted when weatherProducts excludes mrms-reflectivity"
               },
               "maxMeshMm": {
                 "type": [
                   "number",
                   "null"
-                ]
+                ],
+                "description": "Largest hail.meshMaxMmInRadius of the ok place-weather versions (null when none); omitted when weatherProducts excludes mrms-mesh-60m"
               },
               "lightningTotal": {
                 "type": [
                   "integer",
                   "null"
-                ]
+                ],
+                "description": "GOES GLM flashes within the place radius over the window, from the 14-day flash archive (the largest count over satellites); null when GLM is unavailable"
               },
               "hazardsEntered": {
                 "type": "array",
@@ -110069,6 +110115,13 @@
                     "at"
                   ]
                 }
+              },
+              "notes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Why a period value is unknown or partial, for example \"lightning total unavailable: GOES GLM is disabled or not installed\""
               }
             }
           },

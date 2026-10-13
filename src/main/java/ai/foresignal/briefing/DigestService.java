@@ -34,13 +34,28 @@ public class DigestService {
     /** The default {@code limit}. */
     public static final int DEFAULT_LIMIT = 5;
 
+    /** The section key of "Weather at places" (prompt 056). */
+    public static final String WEATHER_SECTION = "weatherAtPlaces";
+
     private final DigestStatsService stats;
     private final SourceRegistry registry;
+    private final java.util.function.Predicate<String> placeExists;
 
-    /** Creates the service. */
+    /** Creates the service without places (every place id is then unknown). */
     public DigestService(DigestStatsService stats, SourceRegistry registry) {
+        this(stats, registry, null);
+    }
+
+    /** Creates the service with the place check of prompt 056. */
+    @org.springframework.beans.factory.annotation.Autowired
+    public DigestService(DigestStatsService stats, SourceRegistry registry,
+            org.springframework.beans.factory.ObjectProvider<ai.foresignal.trigger.PlaceLookup> places) {
         this.stats = stats;
         this.registry = registry;
+        this.placeExists = id -> {
+            ai.foresignal.trigger.PlaceLookup lookup = places == null ? null : places.getIfAvailable();
+            return lookup != null && lookup.geometry(id).isPresent();
+        };
     }
 
     /**
@@ -53,7 +68,8 @@ public class DigestService {
      * @param bbox {@code minLon,minLat,maxLon,maxLat}, or null
      * @param limit notable records per kind (1–20)
      * @param includeHealth whether source health is included
-     * @param places place ids for "Weather at places" (prompt 056); refused until then
+     * @param places place ids for "Weather at places" (prompt 056); each must exist, and a caller without a token
+     *     is refused (places are never anonymous)
      */
     public record Params(Long sinceSeq, Long sinceAlertId, List<String> sources, List<String> kinds, String bbox,
             int limit, boolean includeHealth, List<String> places) {
@@ -104,7 +120,16 @@ public class DigestService {
             errors.add(new FieldError("sinceAlertId", "must not be negative"));
         }
         if (!params.places().isEmpty()) {
-            errors.add(new FieldError("places", "the \"Weather at places\" section is not available until prompt 056"));
+            if (caller.anonymous()) {
+                throw new ai.foresignal.api.error.ForesignalException(org.springframework.http.HttpStatus.UNAUTHORIZED,
+                        ai.foresignal.api.error.ErrorCodes.UNAUTHORIZED,
+                        "The \"Weather at places\" section needs a token: places are never anonymous.");
+            }
+            for (String place : params.places()) {
+                if (placeExists == null || !placeExists.test(place)) {
+                    errors.add(new FieldError("places", "unknown place: " + place));
+                }
+            }
         }
         BboxFilter bbox = null;
         try {
@@ -119,12 +144,14 @@ public class DigestService {
                 params.includeHealth());
         DigestStatsService.Request request = new DigestStatsService.Request(
                 params.sinceSeq() == null ? stats.defaultSinceSeq() : params.sinceSeq(), null, null,
-                params.sinceAlertId(), scope, params.limit(), hidden, ZoneOffset.UTC, null, caller.restriction());
+                params.sinceAlertId(), scope, params.limit(), hidden, ZoneOffset.UTC, null, caller.restriction(),
+                params.places());
         DigestStatsService.Bounds bounds = stats.bounds(request);
         String canonical = "digest\n" + bounds.toSeq() + "\n" + bounds.untilAlertId() + "\n" + bounds.fromSeq() + "\n"
                 + bounds.sinceAlertId() + "\n" + new TreeSet<>(params.sources()) + "\n" + new TreeSet<>(params.kinds())
                 + "\n" + (bbox == null ? "" : bbox.canonical()) + "\n" + params.limit() + "\n" + params.includeHealth()
-                + "\n" + caller.readCaller().canonical() + "\n" + new TreeSet<>(hidden);
+                + "\n" + caller.readCaller().canonical() + "\n" + new TreeSet<>(hidden) + "\n"
+                + new TreeSet<>(params.places());
         return new Prepared(request, bounds, ETags.forDocument(canonical));
     }
 
@@ -138,6 +165,12 @@ public class DigestService {
         next.put("sinceSeq", digest.toSeq());
         next.put("sinceAlertId", prepared.bounds().untilAlertId());
         out.put("next", next);
+        // Prompt 056: the "Weather at places" section, also at the top level (Digest.weatherAtPlaces).
+        for (BriefingSection section : digest.sections()) {
+            if (WEATHER_SECTION.equals(section.key()) && section.data().get("places") != null) {
+                out.put("weatherAtPlaces", section.data().get("places"));
+            }
+        }
         return out;
     }
 

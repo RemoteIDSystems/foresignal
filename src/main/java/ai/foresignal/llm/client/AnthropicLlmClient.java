@@ -15,6 +15,7 @@ import com.anthropic.errors.UnauthorizedException;
 import com.anthropic.errors.UnprocessableEntityException;
 import com.anthropic.helpers.BetaMessageAccumulator;
 import com.anthropic.models.beta.AnthropicBeta;
+import com.anthropic.models.beta.messages.BetaBase64ImageSource;
 import com.anthropic.models.beta.messages.BetaCacheControlEphemeral;
 import com.anthropic.models.beta.messages.BetaContentBlock;
 import com.anthropic.models.beta.messages.BetaContentBlockParam;
@@ -208,11 +209,24 @@ public class AnthropicLlmClient implements LlmClient {
                 case ChatMessage.ToolResults results -> {
                     List<BetaContentBlockParam> blocks = new ArrayList<>();
                     for (ToolResult result : results.results()) {
-                        blocks.add(BetaContentBlockParam.ofToolResult(BetaToolResultBlockParam.builder()
+                        BetaToolResultBlockParam.Builder block = BetaToolResultBlockParam.builder()
                                 .toolUseId(result.toolCallId())
-                                .content(result.content())
-                                .isError(result.isError())
-                                .build()));
+                                .isError(result.isError());
+                        if (result.images().isEmpty() || result.isError()) {
+                            block.content(result.content());
+                        } else {
+                            // Prompt 056: get_map_image images travel in the tool result with the caption text.
+                            List<BetaToolResultBlockParam.Content.Block> parts = new ArrayList<>();
+                            parts.add(BetaToolResultBlockParam.Content.Block.ofText(result.content()));
+                            for (ToolResult.Image image : result.images()) {
+                                parts.add(BetaToolResultBlockParam.Content.Block.ofImage(BetaBase64ImageSource.builder()
+                                        .data(image.base64())
+                                        .mediaType(BetaBase64ImageSource.MediaType.of(image.mimeType()))
+                                        .build()));
+                            }
+                            block.contentOfBlocks(parts);
+                        }
+                        blocks.add(BetaContentBlockParam.ofToolResult(block.build()));
                     }
                     out.add(BetaMessageParam.builder()
                             .role(BetaMessageParam.Role.USER)

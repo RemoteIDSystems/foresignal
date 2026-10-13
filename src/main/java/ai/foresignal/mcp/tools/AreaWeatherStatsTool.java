@@ -40,6 +40,7 @@ import tools.jackson.databind.node.ObjectNode;
  * {@code POST /v1/products/{id}/stats} — min, max, mean, p95, coverage and the area above each threshold of one
  * product over a place or a bounding box. Carries {@code validTime}, {@code localTime}, {@code ageMinutes},
  * {@code run}, {@code coverage} and {@code status}; a non-ok status carries no statistics. Returns no records.
+ * Prompt 056 adds {@code citationId} ({@code wx:{productId}@{frameKey}}, forecasts {@code wx:{productId}@{run}/{step}}).
  */
 @Component
 public class AreaWeatherStatsTool implements ForesignalMcpTool {
@@ -139,6 +140,13 @@ public class AreaWeatherStatsTool implements ForesignalMcpTool {
         result.put("localTime", valid == null ? null : Instant.parse(valid.toString()).atZone(zone).toOffsetDateTime()
                 .truncatedTo(ChronoUnit.SECONDS).toString());
         result.put("coverage", product.spec().spatial() == null ? null : product.spec().spatial().coverage());
+        // Prompt 056: the citation id Ask answers use for this value.
+        String citationId = ai.foresignal.weather.WeatherCitations.of(product.id(),
+                result.get("frameKey") == null ? null : result.get("frameKey").toString(),
+                result.get("run") == null ? null : result.get("run").toString(), step(result, product));
+        if (citationId != null) {
+            result.put("citationId", citationId);
+        }
         if (detail == Detail.SHORT) {
             result.remove("attribution");
         }
@@ -147,6 +155,21 @@ public class AreaWeatherStatsTool implements ForesignalMcpTool {
             out.put("placeId", placeId);
         }
         return ToolResult.json(shaper.object(out, detail));
+    }
+
+    /** The forecast step of a stats result in hours, or null for an observation. */
+    private static Integer step(Map<String, Object> result, ProductRegistry.Registered product) {
+        Object run = result.get("run");
+        Object valid = result.get("validTime");
+        if (run == null || valid == null) {
+            return null;
+        }
+        try {
+            return ai.foresignal.weather.WeatherCitations.stepHours(Instant.parse(run.toString()),
+                    Instant.parse(valid.toString()));
+        } catch (RuntimeException e) {
+            return null;
+        }
     }
 
     /** The polygon of {@code minLon,minLat,maxLon,maxLat}. */

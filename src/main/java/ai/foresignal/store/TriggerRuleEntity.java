@@ -144,6 +144,13 @@ public class TriggerRuleEntity {
     private long enrichWindowSeconds = 86_400;
 
     /**
+     * {@code auto} or {@code off} (prompt 056): whether the rule's geolocated alerts get {@code context.weather}
+     * (subject to the global {@code weather.alertContext}). Null, as on rows from before 056, means {@code auto}.
+     */
+    @Column(name = "weather_context", length = 8, columnDefinition = "varchar(8) default 'auto'")
+    private String weatherContext = "auto";
+
+    /**
      * Automatic resolution: {@code onInverseEdge}, {@code onTombstone}, {@code onExpiry} (booleans)
      * and {@code staleAfterSeconds} (number or null). Null means off.
      */
@@ -455,6 +462,16 @@ public class TriggerRuleEntity {
     /** Sets whether alerts are enriched. */
     public void setEnrich(boolean enrich) {
         this.enrich = enrich;
+    }
+
+    /** The weather-context mode ({@code auto} or {@code off}; null means {@code auto}). */
+    public String getWeatherContext() {
+        return weatherContext;
+    }
+
+    /** Sets the weather-context mode. */
+    public void setWeatherContext(String weatherContext) {
+        this.weatherContext = weatherContext;
     }
 
     /** The enrichment radius in kilometers. */

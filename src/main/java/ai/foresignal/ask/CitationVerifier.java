@@ -40,6 +40,9 @@ public class CitationVerifier {
     /** The most uncited-claim warnings listed one by one. */
     public static final int MAX_UNCITED = 10;
 
+    /** The prefix of weather citations (prompt 056). */
+    public static final String WX = "wx";
+
     /** The warning when an answer with citable material cites nothing. */
     public static final String NO_CITATIONS = "answer contains no citations";
 
@@ -128,6 +131,16 @@ public class CitationVerifier {
             return citable.hasAlert(id)
                     ? new AskCitation("alert:" + id, null, orElse(citable.alertTitle(id), "Alert " + id), AskCitation.ALERT)
                     : null;
+        }
+        if (lower.equals(WX)) {
+            String id = WX + ":" + rest;
+            CitationSet.Weather value = citable.weather(id);
+            if (value == null) {
+                return null;
+            }
+            String title = value.title() != null && !value.title().isBlank() ? value.title()
+                    : value.productId() + (value.validTime() == null ? "" : " valid " + value.validTime());
+            return new AskCitation(id, null, title, AskCitation.WEATHER, value);
         }
         if (lower.equals(AskCitation.BRIEFING)) {
             String id = stripSeq(rest);

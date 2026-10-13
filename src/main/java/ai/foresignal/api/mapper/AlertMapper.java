@@ -12,10 +12,51 @@ import org.springframework.stereotype.Component;
  * Maps alerts to the {@code Alert} and {@code AlertEvent} schemas (prompt 017). Prompt 030 adds the
  * enrichment members {@code summary}, {@code enrichedAt} and {@code summaryCitations} (an empty
  * array until the alert is enriched). Prompt 040 adds {@code region}. Prompt 036 adds {@code sensitive} and {@code context}
- * ({@code near} place versions, {@code anchor} distance).
+ * ({@code near} place versions, {@code anchor} distance). Prompt 056 adds {@code context.weather}; list items
+ * ({@link #listItem}) carry only {@code context.weather.summary} unless {@code include=context}.
  */
 @Component
 public class AlertMapper {
+
+    private static final tools.jackson.databind.json.JsonMapper JSON = tools.jackson.databind.json.JsonMapper.builder()
+            .build();
+
+    /**
+     * The {@code Alert} object of a list item (prompt 056): with {@code fullContext} the whole {@code context};
+     * otherwise {@code context} is {@code {"weather": {"summary": …}}} when the alert has a weather context, else
+     * null.
+     *
+     * @param alert the alert
+     * @param fullContext true for {@code include=context}
+     */
+    public Map<String, Object> listItem(AlertView alert, boolean fullContext) {
+        Map<String, Object> out = alert(alert, null);
+        if (!fullContext) {
+            out.put("context", summaryOnly(alert.context()));
+        }
+        return out;
+    }
+
+    /** {@code {"weather": {"summary": …}}} of a stored context, or null without a weather summary. */
+    @SuppressWarnings("unchecked")
+    static Map<String, Object> summaryOnly(String context) {
+        if (context == null || context.isBlank()) {
+            return null;
+        }
+        try {
+            Map<String, Object> map = JSON.readValue(context, Map.class);
+            if (map != null && map.get("weather") instanceof Map<?, ?> weather && weather.get("summary") != null) {
+                Map<String, Object> w = new LinkedHashMap<>();
+                w.put("summary", weather.get("summary"));
+                Map<String, Object> out = new LinkedHashMap<>();
+                out.put("weather", w);
+                return out;
+            }
+        } catch (RuntimeException e) {
+            return null;
+        }
+        return null;
+    }
 
     /**
      * The {@code Alert} object of {@code alert}.

@@ -138,7 +138,10 @@ public class AlertsController {
             @RequestParam(required = false) String includeSuppressed,
             @RequestParam(required = false) String cursor,
             @RequestParam(required = false) String limit,
+            @RequestParam(required = false) List<String> include,
             HttpServletRequest request) {
+        // include=context (prompt 056): the whole alert.context; otherwise only context.weather.summary.
+        boolean fullContext = QueryParams.enumSet("include", include, List.of("context")).contains("context");
         Set<UUID> rules = ruleId == null ? Set.of() : Set.of(uuid("ruleId", ruleId));
         Instant sinceValue = QueryParams.instant("since", since);
         Boolean ack = acknowledged == null ? null : QueryParams.bool("acknowledged", acknowledged, false);
@@ -167,7 +170,7 @@ public class AlertsController {
         }
         List<Map<String, Object>> items = new ArrayList<>();
         for (AlertView alert : page) {
-            items.add(mapper.alert(alert, null));
+            items.add(mapper.listItem(alert, fullContext));
         }
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("items", items);

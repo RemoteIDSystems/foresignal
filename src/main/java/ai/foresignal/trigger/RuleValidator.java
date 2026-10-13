@@ -250,6 +250,7 @@ public class RuleValidator {
             Severity severity = enumValue("severity", Severity.WARNING, Severity::fromWire);
             boolean enrich = bool("enrich", false);
             double enrichRadiusKm = number("enrichRadiusKm", 100, 1, 1000);
+            String weatherContext = weatherContext();
             Duration enrichWindow = duration("enrichWindow", Duration.ofHours(24), false);
             if (enrichWindow.compareTo(Duration.ofMinutes(10)) < 0 || enrichWindow.compareTo(Duration.ofDays(7)) > 0) {
                 error("enrichWindow", "must be between 10m and 7d");
@@ -313,7 +314,20 @@ public class RuleValidator {
                     fence.bufferMeters(), hysteresis > 0 ? hysteresis : 0, inner, outer, fence.near(), mode, onlyNew,
                     reappearAsEnter, cooldown, cooldownScope, severity, enrich, enrichRadiusKm, enrichWindow,
                     autoResolve, maxAlertsPerHour, autoDisableOnStorm, activeFrom, activeUntil, activeWindow,
-                    forecastHorizon, template, warnings, geofenceRef);
+                    forecastHorizon, template, warnings, geofenceRef, weatherContext);
+        }
+
+        /** {@code weatherContext} (prompt 056): {@code auto} (default) or {@code off}. */
+        private String weatherContext() {
+            JsonNode node = body.get("weatherContext");
+            if (node == null || node.isNull()) {
+                return "auto";
+            }
+            if (!node.isString() || !("auto".equals(node.asString()) || "off".equals(node.asString()))) {
+                error("weatherContext", "must be auto or off");
+                return "auto";
+            }
+            return node.asString();
         }
 
         /**

@@ -45,6 +45,7 @@ import org.locationtech.jts.geom.MultiPolygon;
  * @param messageTemplate the template, or null
  * @param warnings non-fatal findings (unknown kinds)
  * @param geofenceRef the region preset used as the geofence (prompt 040), or null
+ * @param weatherContext {@code auto} or {@code off} (prompt 056)
  */
 public record ValidatedRule(
         String name,
@@ -78,7 +79,23 @@ public record ValidatedRule(
         Duration forecastHorizon,
         String messageTemplate,
         List<String> warnings,
-        GeofenceRef geofenceRef) {
+        GeofenceRef geofenceRef,
+        String weatherContext) {
+
+    /** A rule with automatic weather context (the shape before prompt 056). */
+    public ValidatedRule(String name, boolean enabled, List<String> sources, List<String> kinds, List<String> tags,
+            List<TriggerCondition> conditions, MultiPolygon geofence, Map<String, Object> geofenceRoute,
+            Double bufferMeters, double hysteresisMeters, MultiPolygon geofenceInner, MultiPolygon geofenceOuter,
+            Map<String, Object> near, TriggerMode mode, boolean onlyNew, boolean reappearAsEnter, Duration cooldown,
+            CooldownScope cooldownScope, Severity severity, boolean enrich, double enrichRadiusKm,
+            Duration enrichWindow, AutoResolve autoResolve, Integer maxAlertsPerHour, boolean autoDisableOnStorm,
+            Instant activeFrom, Instant activeUntil, ActiveWindow activeWindow, Duration forecastHorizon,
+            String messageTemplate, List<String> warnings, GeofenceRef geofenceRef) {
+        this(name, enabled, sources, kinds, tags, conditions, geofence, geofenceRoute, bufferMeters, hysteresisMeters,
+                geofenceInner, geofenceOuter, near, mode, onlyNew, reappearAsEnter, cooldown, cooldownScope, severity,
+                enrich, enrichRadiusKm, enrichWindow, autoResolve, maxAlertsPerHour, autoDisableOnStorm, activeFrom,
+                activeUntil, activeWindow, forecastHorizon, messageTemplate, warnings, geofenceRef, "auto");
+    }
 
     /** A rule without a geofence preset (the shape before prompt 040). */
     public ValidatedRule(String name, boolean enabled, List<String> sources, List<String> kinds, List<String> tags,
@@ -95,8 +112,9 @@ public record ValidatedRule(
                 activeUntil, activeWindow, forecastHorizon, messageTemplate, warnings, null);
     }
 
-    /** Copies the lists. */
+    /** Copies the lists; a null weather-context mode is {@code auto}. */
     public ValidatedRule {
+        weatherContext = weatherContext == null ? "auto" : weatherContext;
         sources = List.copyOf(sources);
         kinds = List.copyOf(kinds);
         tags = List.copyOf(tags);
@@ -132,6 +150,7 @@ public record ValidatedRule(
         rule.setSeverity(severity.wire());
         rule.setEnrich(enrich);
         rule.setEnrichRadiusKm(enrichRadiusKm);
+        rule.setWeatherContext(weatherContext);
         rule.setEnrichWindowSeconds(enrichWindow.toSeconds());
         rule.setAutoResolve(autoResolve == null ? null : autoResolve.toStorage());
         rule.setMaxAlertsPerHour(maxAlertsPerHour);

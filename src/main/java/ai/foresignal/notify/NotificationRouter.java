@@ -138,7 +138,8 @@ public class NotificationRouter implements AlertListener {
         Map<String, Object> data = data(alert);
         String url = alertUrl(alert.id());
         ZoneId zone = channels.zone(null);
-        AlertTemplates.Text text = AlertTemplates.render(null, null, data, url, zone, clock.instant());
+        // Prompt 056: the stored notification keeps the weather summary line with the message.
+        AlertTemplates.Text text = AlertTemplates.render(null, null, data, url, zone, clock.instant(), false, true);
         NotificationMessage message = NotificationMessage.builder(NotificationMessage.ALERT, "alert.fired", text.title(),
                         alert.severity())
                 .shortTitle(alert.ruleName())
@@ -168,7 +169,8 @@ public class NotificationRouter implements AlertListener {
     public EnrichmentDeliveries.Result enriched(AlertView alert) {
         Map<String, Object> data = data(alert);
         String url = alertUrl(alert.id());
-        AlertTemplates.Text text = AlertTemplates.render(null, null, data, url, channels.zone(null), clock.instant());
+        AlertTemplates.Text text = AlertTemplates.render(null, null, data, url, channels.zone(null), clock.instant(),
+                false, true);
         return enrichment.summaryArrived(alert, data, text.title(), text.body());
     }
 
@@ -369,6 +371,16 @@ public class NotificationRouter implements AlertListener {
             }
         }
         data.put("region", region);
+        // The computed alert context (prompts 036 and 056), for {{context.weather.*}} and webhook consumers.
+        Object context = null;
+        if (a.context() != null) {
+            try {
+                context = json.readValue(a.context(), Map.class);
+            } catch (RuntimeException e) {
+                context = null;
+            }
+        }
+        data.put("context", context);
         return data;
     }
 

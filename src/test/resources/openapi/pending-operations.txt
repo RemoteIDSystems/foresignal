@@ -1,5 +1,3 @@
-getWeatherSettings 056
-updateWeatherSettings 056
 getMapStyle 058
 getMapSprite 058
 getMapIcon 058

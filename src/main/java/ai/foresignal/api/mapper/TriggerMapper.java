@@ -60,6 +60,7 @@ public class TriggerMapper {
         out.put("severity", r.getSeverity());
         out.put("enrich", r.isEnrich());
         out.put("enrichRadiusKm", r.getEnrichRadiusKm());
+        out.put("weatherContext", r.getWeatherContext() == null ? "auto" : r.getWeatherContext());
         out.put("enrichWindow", Durations.format(Duration.ofSeconds(r.getEnrichWindowSeconds())));
         AutoResolve auto = AutoResolve.fromStorage(r.getAutoResolve());
         out.put("autoResolve", auto == null ? null : auto.toApi());

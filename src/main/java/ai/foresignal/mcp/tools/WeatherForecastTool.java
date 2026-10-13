@@ -32,7 +32,8 @@ import tools.jackson.databind.node.ObjectNode;
  * 120 h from the stored GFS and HRRR runs (NWS joins in prompt 053). Each provider carries its {@code run},
  * {@code status} and {@code coverage}; each step its {@code validTime}, {@code localTime} and
  * {@code ageMinutes} (negative for the future). Compact output of 4 KB or less, {@code detail=long} up to
- * 50 KB. Reads stored runs only; returns no records.
+ * 50 KB. Reads stored runs only; returns no records. Prompt 056 adds each step's {@code citationId}
+ * ({@code wx:{provider}@{run}/{step}}; NWS steps count from the forecast's {@code updatedAt}).
  */
 @Component
 public class WeatherForecastTool implements ForesignalMcpTool {
@@ -147,6 +148,17 @@ public class WeatherForecastTool implements ForesignalMcpTool {
                 step.put("validTime", t.toString());
                 step.put("localTime", t.atZone(point.zone()).toOffsetDateTime().truncatedTo(ChronoUnit.SECONDS).toString());
                 step.put("ageMinutes", SampleService.ageMinutes(t, now));
+                // Prompt 056: wx:{provider}@{run}/{step} (GFS, HRRR), wx:nws@{updatedAt}/{hours} (NWS).
+                String run = (String) series.get("run");
+                String base = run != null ? run : series.get("updatedAt") == null ? null : String.valueOf(series.get("updatedAt"));
+                if (base != null) {
+                    try {
+                        step.put("citationId", ai.foresignal.weather.WeatherCitations.forecast(provider, base,
+                                ai.foresignal.weather.WeatherCitations.stepHours(Instant.parse(base), t)));
+                    } catch (RuntimeException e) {
+                        // an unparseable run time leaves the step without a citation id
+                    }
+                }
                 items.add(step);
             }
         }

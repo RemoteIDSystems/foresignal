@@ -270,6 +270,14 @@ public class GetMapImageTool implements ForesignalMcpTool {
                 item.put("frameKey", layer.frame().frameKey());
                 item.put("validTime", layer.frame().validTime().toString());
                 item.put("ageMinutes", age(layer.frame().validTime(), now));
+                // Prompt 056: the citation id Ask answers use for this frame.
+                String run = layer.frame().referenceTime() == null ? null
+                        : ai.foresignal.raster.FrameKeys.runIso(layer.frame().referenceTime());
+                if (run != null) {
+                    item.put("run", run);
+                }
+                item.put("citationId", ai.foresignal.weather.WeatherCitations.of(layer.spec().id(),
+                        layer.frame().frameKey(), run, layer.frame().forecastStep()));
             }
             if (layer.reason() != null) {
                 item.put("statusText", layer.reason());

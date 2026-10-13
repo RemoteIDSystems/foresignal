@@ -9,7 +9,9 @@ import java.util.TreeMap;
 /**
  * Everything the tools returned that an answer may cite (prompt 028; shared with briefings 029 and
  * enrichment 030): record ids with every persisted seq returned for them, alert ids and briefing run
- * ids, plus the returned text, which the uncited-claim check searches for names.
+ * ids, plus the returned text, which the uncited-claim check searches for names. Prompt 056 adds weather
+ * values ({@code wx:{productId}@{frameKey}}, forecasts {@code wx:{productId}@{run}/{step}}) and the non-ok
+ * weather statuses the answer guard checks.
  *
  * <p>Filled while tools run, possibly in parallel, so every method is synchronized.
  */
@@ -22,6 +24,57 @@ public final class CitationSet {
     private final Map<String, String> alerts = new HashMap<>();
     private final Map<String, String> briefings = new HashMap<>();
     private final StringBuilder corpus = new StringBuilder();
+    private final Map<String, Weather> weather = new LinkedHashMap<>();
+    private final Map<String, WeatherIssue> weatherIssues = new LinkedHashMap<>();
+
+    /**
+     * A weather value a tool returned (prompt 056).
+     *
+     * @param citationId {@code wx:{productId}@{frameKey}} or {@code wx:{productId}@{run}/{step}}
+     * @param title a short title, or null
+     * @param productId the product (or forecast provider)
+     * @param frameKey the frame key, or null
+     * @param run the forecast run, or null
+     * @param step the forecast step in hours, or null
+     * @param validTime the valid time, or null
+     * @param ageMinutes the age at answer time, or null
+     */
+    public record Weather(String citationId, String title, String productId, String frameKey, String run, Integer step,
+            String validTime, Double ageMinutes) {}
+
+    /**
+     * A weather result whose status was not {@code ok} (prompt 056).
+     *
+     * @param productId the product (or provider, or section)
+     * @param status the status ({@code stale}, {@code no-coverage}, {@code no-data}, {@code unavailable})
+     * @param statusText its explanation, or null
+     */
+    public record WeatherIssue(String productId, String status, String statusText) {}
+
+    /** Adds a weather value (the first one returned for an id wins). */
+    public synchronized void addWeather(Weather value) {
+        weather.putIfAbsent(value.citationId(), value);
+    }
+
+    /** True when a tool returned the weather value {@code citationId}. */
+    public synchronized boolean hasWeather(String citationId) {
+        return weather.containsKey(citationId);
+    }
+
+    /** The weather value {@code citationId}, or null. */
+    public synchronized Weather weather(String citationId) {
+        return weather.get(citationId);
+    }
+
+    /** Adds a non-ok weather status (one per product and status). */
+    public synchronized void addWeatherIssue(WeatherIssue issue) {
+        weatherIssues.putIfAbsent(issue.productId() + "\u0000" + issue.status(), issue);
+    }
+
+    /** The non-ok weather statuses returned, in order. */
+    public synchronized java.util.List<WeatherIssue> weatherIssues() {
+        return java.util.List.copyOf(weatherIssues.values());
+    }
 
     /**
      * Adds a record version.
@@ -56,7 +109,7 @@ public final class CitationSet {
 
     /** True when nothing citable was returned. */
     public synchronized boolean isEmpty() {
-        return records.isEmpty() && alerts.isEmpty() && briefings.isEmpty();
+        return records.isEmpty() && alerts.isEmpty() && briefings.isEmpty() && weather.isEmpty();
     }
 
     /** The highest seq returned for record {@code id}. */

@@ -149,10 +149,11 @@ BODIES = {
                     "conditions": [{"path": "callsign", "op": "in", "value": ["N123AB", "N456CD"]}],
                     "geofence": {"type": "LineString", "coordinates": [[-97.75, 30.25], [-97.0, 32.9]]}, "bufferMeters": 5000,
                     "mode": "enter", "hysteresisMeters": 200, "cooldown": "15m", "severity": "warning", "tags": ["watchlist"],
-                    "messageTemplate": "{{payload.callsign}} entered the corridor at {{observedAt}}"},
+                    "messageTemplate": "{{payload.callsign}} entered the corridor at {{observedAt}}", "weatherContext": "off"},
   "updateTrigger": {"name": "Vessels entering Strait of Hormuz", "enabled": True, "kind": "vessel", "mode": "enter",
                     "geofence": {"type": "Polygon", "coordinates": [[[55.8, 26.0], [57.2, 26.0], [57.2, 27.0], [55.8, 27.0], [55.8, 26.0]]]},
-                    "cooldown": "1h", "messageTemplate": "{{payload.name}} ({{externalId}}) entered Hormuz"},
+                    "cooldown": "1h", "messageTemplate": "{{payload.name}} ({{externalId}}) entered Hormuz. {{context.weather.summary}}",
+                    "weatherContext": "auto"},
   "snoozeTrigger": {"for": "2h"},
   "acknowledgeAlert": {"note": "Looking into it"},
   "resolveAlert": {"note": "Handled on site", "feedback": "useful"},
@@ -209,7 +210,10 @@ BODIES = {
                      "instructions": None, "channelIds": ["{{channelId}}"], "maxItemsPerKind": 5},
   # Kinds must belong to a registered source (BriefingValidator); aircraft and vessel adapters arrive later (041).
   "updateBriefing": {"name": "Morning brief (LLM)", "enabled": True, "schedule": "0 7 * * 1-5", "timezone": "America/Chicago",
-                     "scope": {"kinds": ["earthquake"], "includeHealth": True}, "lookback": "24h", "mode": "llm",
+                     # Prompt 056: "Weather at places" for a place created with createPlace (placeId); products optional.
+                     "scope": {"kinds": ["earthquake"], "includeHealth": True, "places": ["{{placeId}}"],
+                               "weatherProducts": ["mrms-reflectivity", "mrms-mesh-60m", "gfs-gust", "hrrr-smoke"]},
+                     "lookback": "24h", "mode": "llm",
                      "instructions": "Lead with anything critical. Keep it under 250 words.", "channelIds": ["{{channelId}}"]},
   "previewBriefing": {"name": "Preview", "schedule": "0 7 * * *", "scope": {"kinds": ["earthquake"]}, "lookback": "24h", "mode": "digest"},
   "createPushSubscription": {"name": "Laptop browser", "subscription": {"endpoint": "https://push.example/REPLACE",
@@ -282,6 +286,8 @@ BODIES = {
                              "failUrl": "https://hc-ping.com/REPLACE-WITH-CHECK-UUID/fail", "interval": "60s",
                              "method": "GET", "canary": {"enabled": False, "interval": "1h"}},
   "updateCors": {"readOrigins": ["*"], "writeOrigins": ["http://localhost:5173"]},
+  # Prompt 056: changing defaultAoi or aoiBufferKm recomputes the places AOI.
+  "updateWeatherSettings": {"alertContext": "auto", "defaultAoi": "-106.65,25.84,-93.51,36.50", "aoiBufferKm": 150},
   # 039: a device-scoped ingest key bound to one entity, and entity purges (keep alerts, redacted).
   "createIngestDevice": {"externalId": "family-phone-1", "name": "Family phone 1"},
   "purgeDevice": {"purgeAlerts": False},

@@ -1,6 +1,7 @@
 package ai.foresignal.notify;
 
 import ai.foresignal.trigger.MessageTemplate;
+import ai.foresignal.weather.WeatherTemplateVars;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.HashMap;
@@ -17,6 +18,12 @@ import java.util.Map;
  * notification's {@code data} (the alert JSON the router stores), so a channel's templates can be
  * applied at send time. Prompt 040 adds the region placeholders ({@code {{near.text}}} …) from the
  * alert's region snapshot, in miles for a channel with {@code config.units: imperial}.
+ *
+ * <p>Prompt 056 adds the weather variables from the alert's {@code context.weather}
+ * ({@link WeatherTemplateVars}: {@code {{context.weather.summary}}}, {@code {{context.weather.radar.maxDbz}}} …;
+ * empty when the alert has none). The default body of {@code discord}, {@code telegram}, {@code email},
+ * {@code ntfy}, {@code pushover} and {@code slack} ({@link #WEATHER_LINE_TYPES}), and of the stored notification,
+ * appends the summary line when present ({@link #DEFAULT_BODY_WITH_WEATHER}).
  */
 public final class AlertTemplates {
 
@@ -29,6 +36,14 @@ public final class AlertTemplates {
      */
     public static final String DEFAULT_BODY =
             "{{message}}\n\n{{source}}/{{externalId}} · {{kind}} · observed {{observedAt|local}}\n\n{{summary}}";
+
+    /** The default body with the weather summary line (prompt 056). */
+    public static final String DEFAULT_BODY_WITH_WEATHER = "{{message}}\n\n{{source}}/{{externalId}} · {{kind}} · observed"
+            + " {{observedAt|local}}\n\n{{context.weather.summary}}\n\n{{summary}}";
+
+    /** The channel types whose default body carries the weather summary line (prompt 056). */
+    public static final java.util.Set<String> WEATHER_LINE_TYPES = java.util.Set.of("discord", "telegram", "email",
+            "ntfy", "pushover", "slack");
 
     private AlertTemplates() {}
 
@@ -61,13 +76,22 @@ public final class AlertTemplates {
      */
     public static Text render(String titleTemplate, String bodyTemplate, Map<String, Object> data, String url,
             ZoneId zone, Instant now, boolean imperial) {
+        return render(titleTemplate, bodyTemplate, data, url, zone, now, imperial, false);
+    }
+
+    /**
+     * {@link #render(String, String, Map, String, ZoneId, Instant, boolean)} with the weather line (prompt 056):
+     * with {@code weatherLine}, a missing body template defaults to {@link #DEFAULT_BODY_WITH_WEATHER}.
+     */
+    public static Text render(String titleTemplate, String bodyTemplate, Map<String, Object> data, String url,
+            ZoneId zone, Instant now, boolean imperial, boolean weatherLine) {
         Map<String, Object> d = data == null ? Map.of() : data;
         MessageTemplate.Context context = new MessageTemplate.Context(
                 text(d.get("ruleName")), text(d.get("sourceId")), text(d.get("externalId")), text(d.get("kind")),
                 text(d.get("recordTitle")), text(d.get("severity")), instant(d.get("observedAt")),
                 instant(d.get("eventTime")), instant(d.get("validFrom")), payload(d),
                 d.get("region") instanceof Map<?, ?> region ? ai.foresignal.reference.RegionTags.fromMap(region) : null);
-        Map<String, String> vars = new HashMap<>();
+        Map<String, String> vars = new HashMap<>(WeatherTemplateVars.fromAlertContext(d.get("context")));
         vars.put("severity", text(d.get("severity")));
         vars.put("summary", text(d.get("summary")));
         vars.put("url", url == null ? "" : url);
@@ -75,7 +99,8 @@ public final class AlertTemplates {
         vars.put("message", text(d.get("message")));
         String title = MessageTemplate.render(blankToNull(titleTemplate, DEFAULT_TITLE), context,
                 new MessageTemplate.Extras(zone, now, vars, null, imperial));
-        String body = MessageTemplate.render(blankToNull(bodyTemplate, DEFAULT_BODY), context,
+        String body = MessageTemplate.render(blankToNull(bodyTemplate,
+                weatherLine ? DEFAULT_BODY_WITH_WEATHER : DEFAULT_BODY), context,
                 new MessageTemplate.Extras(zone, now, vars, MarkdownRenderer::escapeMarkdown, imperial));
         return new Text(title.replace('\n', ' ').strip(), tidy(body));
     }

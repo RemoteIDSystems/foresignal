@@ -33,7 +33,27 @@ public interface BriefingSectionContributor {
      * @param periodTo the period end
      * @param zone the timezone headings use
      * @param briefing the briefing scope when this is a briefing run or preview, else null
+     * @param hiddenSources sources the reader may not see (prompt 056: their records are never listed)
+     * @param places places of the "Weather at places" section (prompt 056): the briefing scope's, else those of
+     *     {@code /v1/digest?places=}; empty for none
+     * @param weatherProducts products of that section (prompt 056); empty for the default set
      */
     record Context(DigestStats stats, List<String> sources, List<String> kinds, BboxFilter bbox, Instant periodFrom,
-            Instant periodTo, ZoneId zone, BriefingScope briefing) {}
+            Instant periodTo, ZoneId zone, BriefingScope briefing, java.util.Set<String> hiddenSources,
+            List<String> places, List<String> weatherProducts) {
+
+        /** Copies the collections. */
+        public Context {
+            hiddenSources = hiddenSources == null ? java.util.Set.of() : java.util.Set.copyOf(hiddenSources);
+            places = places == null ? List.of() : List.copyOf(places);
+            weatherProducts = weatherProducts == null ? List.of() : List.copyOf(weatherProducts);
+        }
+
+        /** A context without the prompt 056 members. */
+        public Context(DigestStats stats, List<String> sources, List<String> kinds, BboxFilter bbox,
+                Instant periodFrom, Instant periodTo, ZoneId zone, BriefingScope briefing) {
+            this(stats, sources, kinds, bbox, periodFrom, periodTo, zone, briefing, java.util.Set.of(), List.of(),
+                    List.of());
+        }
+    }
 }

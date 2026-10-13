@@ -21,7 +21,8 @@ import tools.jackson.databind.node.ObjectNode;
  * Shared plumbing of the weather MCP tools (prompt 052; Weather-Imagery-Design §6.9): where to sample (a
  * coordinate, or a place, which needs a token) and the compact form of a sampled value, which always carries
  * {@code validTime}, {@code localTime}, {@code ageMinutes}, {@code run}, {@code coverage} and {@code status}
- * (with the no-coverage text).
+ * (with the no-coverage text). Prompt 056 adds {@code citationId} ({@code wx:{productId}@{frameKey}}, forecasts
+ * {@code wx:{productId}@{run}/{step}}), which Ask answers cite.
  */
 @Component
 public class WeatherToolSupport {
@@ -109,6 +110,14 @@ public class WeatherToolSupport {
         n.put("status", v.status().wireValue());
         if (v.statusText() != null) {
             n.put("statusText", v.statusText());
+        }
+        String citationId = ai.foresignal.weather.WeatherCitations.of(v.productId(), v.frameKey(), v.run(), v.step());
+        if (citationId != null) {
+            n.put("citationId", citationId);
+            n.put("frameKey", v.frameKey());
+            if (v.step() != null) {
+                n.put("step", v.step());
+            }
         }
         return n;
     }

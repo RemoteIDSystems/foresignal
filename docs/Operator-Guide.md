@@ -220,7 +220,10 @@ POST /v1/triggers
   storm (default 120); `activeWindow` limits a rule to certain hours.
 - **Templates:** `{{payload.<field>}}`, `{{title}}`, `{{source}}`, `{{externalId}}`,
   `{{observedAt}}` and the other placeholders the spec lists, plus the region placeholders of
-  [Reference data and region tags](#reference-data-and-region-tags) (`{{near.text}}` …).
+  [Reference data and region tags](#reference-data-and-region-tags) (`{{near.text}}` …) and the weather
+  placeholders of [Alert weather context](#alert-weather-context) (`{{context.weather.summary}}` …).
+- **Weather context:** `weatherContext` (`auto`, the default, or `off`) decides whether the rule's geolocated
+  alerts get `context.weather` (prompt 056).
 - **Region presets:** `"geofenceRef": {"country": ["UA"]}` (or `admin1: ["US-TX"]`,
   `county: ["48453"]`) instead of a polygon. It needs the reference data loaded (otherwise
   `409 REFERENCE_DATA_MISSING`) and cannot be combined with `geofence`, `near` or `hysteresisMeters`.
@@ -359,7 +362,8 @@ every rule), `minSeverity`, `titleTemplate` and `bodyTemplate` (the trigger plac
 `{{severity}}`, `{{summary}}`, `{{url}}`, `{{ruleName}}` and `{{message}}`; `{{observedAt|local}}`
 prints `2026-05-01 07:00 CDT` in the channel timezone and `{{observedAt|ago}}` prints `3 min ago`),
 `waitForEnrichmentSeconds`, `timezone`, `quietHours`, `groupWindowSeconds`, `backlogCap` and
-`editInPlace`. The region placeholders (`{{near.text}}`, `{{country.name}}` …, prompt 040) read the
+`editInPlace`. The weather placeholders `{{context.weather.summary}}` and `{{context.weather.<section>.<field>}}`
+(prompt 056) read the alert's weather context; see [Alert weather context](#alert-weather-context). The region placeholders (`{{near.text}}`, `{{country.name}}` …, prompt 040) read the
 alert's region snapshot; `config.units: "imperial"` prints `{{near.text}}` in miles. Links in messages use the `server` setting's `publicBaseUrl` (default
 `http://localhost:8080`); set it to the address your phone can reach.
 
@@ -1167,7 +1171,9 @@ POST /v1/briefings
 - **Period.** `lookback` (1h to 7d) back from the run; without one, since the previous run (capped at
   7 days), or 24 hours for the first run.
 - **Scope.** `sources`, `kinds` and `bbox` limit the records; `ruleIds` limits the alert section;
-  `includeHealth` adds the source health section. Empty lists mean everything.
+  `includeHealth` adds the source health section. Empty lists mean everything. `places` (prompt 056) adds
+  "Weather at places" for those places and `weatherProducts` picks its products; see
+  [Alert weather context](#alert-weather-context).
 - **Channels.** The run is published as a `briefing` notification to `channelIds`, or to every
   channel subscribed to `briefing` when the list is empty. A channel that does not exist, is disabled
   or is not subscribed to `briefing` is reported in `warnings` when you save the briefing; it is not
@@ -2324,6 +2330,67 @@ time or an offset such as `-PT1H` or `+PT6H`); `POST /v1/sample` takes up to 100
 mean, p95, coverage and the area above thresholds over a geometry, place or bbox (at most 2,000,000 km²);
 `GET /v1/places/{id}/weather` returns the place-weather record plus cached GFS, HRRR and (053) NWS series. None of
 them ever causes an upstream fetch.
+
+## Alert weather context
+
+Prompt 056 gives every geolocated alert a deterministic weather block, `context.weather`, computed when the
+alert fires and stored with it **before** it is dispatched, so the `alert.fired` event, every channel and the
+enrichment see the same facts. It is computed from stored frames, the GLM flash ring and current records only
+(never an upstream fetch) within a 500 ms budget; a part that misses the budget is `unavailable`, and a failure
+stores `{"status": "unavailable"}` without delaying or blocking delivery.
+
+| Section | What it holds |
+|---|---|
+| `radar` | MRMS reflectivity maximum within 10 km of the record's geometry (`maxDbz`), and the nearest `radar-cell` within 100 km (`nearestCell`: `id`, `distanceKm`, `motion {speedKmh, bearingDeg, method}`, `meshMaxMm`) |
+| `lightning` | GOES GLM flashes within 20 km over the 15 minutes before the alert (`flashes20km15m`); `stale` when no GLM file ended within 2 minutes |
+| `precip` | MRMS rain rate at the geometry (`rateMmH`), plus the 1-hour QPE (`qpe1hMm`) when `mrms-qpe-1h` is current |
+| `warnings` | up to five active NWS alerts intersecting the geometry (`id`, `event`, `severity`, `expires`), each `untrusted: true` because its text is upstream data |
+| `wind` | 10-m wind and gust of the newest HRRR run (else GFS) at the step nearest the alert (`productId`, `speedMs`, `gustMs`, `fromDeg`, `run`, `validTime`, `step`) |
+| `smoke` | HRRR near-surface smoke at the nearest step (`pm25UgM3`, `run`, `validTime`, `step`) |
+| `summary` | one sentence built from the sections, for example "Radar max 52 dBZ within 10 km; cell 8 km away moving ENE at 45 km/h; 14 GLM flashes within 20 km (15 min); NWS Severe Thunderstorm Warning in effect. Automated — not an official warning." |
+
+Every section has `status` `ok`, `stale`, `no-coverage` or `unavailable`. **Unknown is not clear:** a non-ok
+section carries `statusText` (and `asOf`, the time of its last good data, when known) and no values, and the
+summary words it as unknown ("lightning data stale since 14:30 UTC", "radar data has no coverage here (not
+evidence of clear weather)", "smoke data unavailable"), never as absence. A product whose source is disabled
+gives an `unavailable` section, not a missing one. GLM's footprint over Texas is about 8–10 km and its detection
+efficiency is below 100%, so a zero flash count is advisory.
+
+- **Switching it off.** `PUT /v1/settings/weather` (admin) `{"alertContext": "off"}` turns it off everywhere;
+  a rule's `"weatherContext": "off"` turns it off for that rule (default `auto`). It also stays off while no
+  weather input (radar, rain, model or smoke product, GLM or NWS alerts) is enabled.
+- **The same settings** hold `defaultAoi` (the area used while no places exist, 047) and `aoiBufferKm` (the
+  minimum buffer around each place, 036); changing either recomputes the places area of interest. Until you
+  store a value they come from the configuration properties `foresignal.weather.default-aoi` and
+  `foresignal.weather.aoi-buffer-km`.
+- **Reading it.** `GET /v1/alerts/{id}` returns the whole `context`; `GET /v1/alerts` lists carry only
+  `context.weather.summary` unless you add `include=context`. Webhook bodies carry it in `data.context`.
+- **Templates.** Rule templates and channel `titleTemplate`/`bodyTemplate` can use
+  `{{context.weather.summary}}` and every field by its path: `{{context.weather.radar.maxDbz}}`,
+  `{{context.weather.radar.nearestCell.motion.speedKmh}}`, `{{context.weather.lightning.flashes20km15m}}`,
+  `{{context.weather.lightning.status}}`, `{{context.weather.wind.gustMs}}`,
+  `{{context.weather.warnings.items.0.event}}` … A missing context or field prints nothing. The default body
+  of `discord`, `telegram`, `email`, `ntfy`, `pushover` and `slack` appends the summary line when there is one,
+  and the stored notification keeps it with the message.
+- **Enrichment** receives the block as the labeled data section `alert.context.weather`, inside the untrusted
+  data envelope, and is told that a section other than `ok` is unknown, not clear.
+
+```json
+POST /v1/triggers
+{"name": "Storm cell near the farm", "sources": ["wx-cells"], "near": {"placeIds": ["farm"], "radiusKm": 30},
+ "mode": "enter", "conditions": [{"path": "maxDbz", "op": ">=", "value": 55}],
+ "messageTemplate": "{{payload.maxDbz}} dBZ cell near the farm. {{context.weather.summary}}"}
+```
+
+**Weather at places in briefings.** A briefing scope with `places` (and optionally `weatherProducts`, by default
+the products behind place weather) adds a "Weather at places" table per place, in the place's timezone: **now**
+(radar and lightning from the place's `place-weather` record, active NWS alerts), **the period** (maximum dBZ and
+MESH, the GLM flash total within the place radius from the 14-day flash archive, and hazards that entered the
+area; "partial period" when the window reaches past retention) and **the next 24–72 h** (the NWS gridpoint summary
+and the GFS and HRRR maxima, each with its run and valid time). Stale or unavailable parts are labeled
+("Lightning: data stale since 14:30"), never left out or shown as calm. `GET /v1/digest?places=home,farm` adds the
+same section as `weatherAtPlaces` (it needs a token). The place-weather rule recipes are in
+[Weather alerts](#weather-alerts).
 
 ## SatDump ground station
 

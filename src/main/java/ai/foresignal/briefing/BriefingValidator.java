@@ -76,10 +76,10 @@ public class BriefingValidator {
 
     /** Scope members this prompt implements. */
     static final Set<String> SCOPE_MEMBERS = Set.of("sources", "kinds", "bbox", "ruleIds", "includeHealth", "placeIds",
-            "viewId", "country", "admin1", "county");
+            "viewId", "country", "admin1", "county", "places", "weatherProducts");
 
-    /** Scope members of later prompts: accepted only when empty. */
-    static final Map<String, String> LATER_SCOPE_MEMBERS = Map.of("places", "056", "weatherProducts", "056");
+    /** Scope members of later prompts: accepted only when empty (none since prompt 056). */
+    static final Map<String, String> LATER_SCOPE_MEMBERS = Map.of();
 
     /** The window over which the frequency floor is checked. */
     private static final Duration FLOOR_WINDOW = Duration.ofDays(400);
@@ -92,6 +92,13 @@ public class BriefingValidator {
     private final NotificationChannelRepository channels;
     private final java.util.function.Predicate<String> placeExists;
     private final java.util.function.Predicate<String> viewExists;
+
+    /**
+     * The installed products, for {@code scope.weatherProducts} (prompt 056); null in hand-built unit tests, where
+     * every product id is unknown.
+     */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ai.foresignal.raster.ProductRegistry products;
 
     /** Validates the scope's region codes (prompt 040); null only in hand-built unit tests. */
     @org.springframework.beans.factory.annotation.Autowired(required = false)
@@ -367,8 +374,21 @@ public class BriefingValidator {
         if (regionCodes != null && errors.isEmpty()) {
             regionCodes.validate(dedupe(country), dedupe(admin1), dedupe(county), "scope.");
         }
+        // "Weather at places" (prompt 056): every place and product must exist.
+        List<String> places = strings(node, "places", errors);
+        for (String place : places) {
+            if (!placeExists.test(place)) {
+                errors.add(new FieldError("scope.places", "unknown place: " + place));
+            }
+        }
+        List<String> weatherProducts = strings(node, "weatherProducts", errors);
+        for (String product : weatherProducts) {
+            if (products == null || products.find(product).isEmpty()) {
+                errors.add(new FieldError("scope.weatherProducts", "unknown product: " + product));
+            }
+        }
         return new BriefingScope(dedupe(sources), dedupe(kinds), bbox, ruleIds, includeHealth, dedupe(placeIds), viewId,
-                dedupe(country), dedupe(admin1), dedupe(county));
+                dedupe(country), dedupe(admin1), dedupe(county), dedupe(places), dedupe(weatherProducts));
     }
 
     private static List<String> upper(List<String> values) {
