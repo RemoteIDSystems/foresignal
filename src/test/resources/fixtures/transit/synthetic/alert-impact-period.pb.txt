@@ -1,0 +1,83 @@
+header {
+  gtfs_realtime_version: "2.0"
+  incrementality: FULL_DATASET
+  timestamp: 1791907200
+}
+entity {
+  id: "A"
+  alert {
+    communication_period {
+      start: 1791820800
+      end: 1792080000
+    }
+    impact_period {
+      start: 1791910800
+      end: 1791914400
+    }
+    impact_period {
+      start: 1791997200
+      end: 1792000800
+    }
+    informed_entity {
+      agency_id: "1"
+      route_id: "Red"
+      route_type: 1
+    }
+    cause: SPECIAL_EVENT
+    effect: DETOUR
+    url {
+      translation {
+        text: "https://www.example.org/alerts/A"
+        language: "en"
+      }
+    }
+    header_text {
+      translation {
+        text: "Red Line detour"
+        language: "en"
+      }
+      translation {
+        text: "Desvío de la Línea Roja"
+        language: "es"
+      }
+    }
+    description_text {
+      translation {
+        text: "Shuttle buses replace trains between Alewife and Harvard."
+        language: "en"
+      }
+    }
+    severity_level: WARNING
+    cause_detail {
+      translation {
+        text: "Marathon"
+        language: "en"
+      }
+    }
+    effect_detail {
+      translation {
+        text: "Shuttle buses"
+        language: "en"
+      }
+    }
+  }
+}
+entity {
+  id: "B"
+  alert {
+    impact_period {
+      start: 1791903600
+    }
+    informed_entity {
+      stop_id: "place-pktrm"
+    }
+    cause: MAINTENANCE
+    effect: ACCESSIBILITY_ISSUE
+    header_text {
+      translation {
+        text: "Elevator out of service at Park Street"
+        language: "en"
+      }
+    }
+  }
+}

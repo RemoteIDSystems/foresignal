@@ -101,6 +101,12 @@ foresignal:
   # wxstation-davis, wxstation-ecowitt), 1 to 16. Every slot is disabled until configured.
   local-receivers:
     slots: ${FORESIGNAL_LOCAL_RECEIVERS_SLOTS:2}
+  # Transit (070): comma-separated Mobility Database ids from the vendored snapshot
+  # (src/main/resources/transit/mobility-gtfs-rt.csv) to register as transit-mdb-{id} and
+  # transit-alerts-mdb-{id}. Read at startup only: a restart is required, because transit URLs
+  # are never accepted at runtime. Find ids with GET /v1/transit/catalog.
+  transit:
+    catalog-feeds: ${FORESIGNAL_TRANSIT_CATALOG_FEEDS:}
   version: ${spring.application.version:unknown}
   # Memory profile (042, Weather-Imagery-Design §2.6): small (32 GB host) or large (64 GB host).
   # Selects the raster defaults below; never derived from MaxRAMPercentage.

@@ -132,6 +132,11 @@ class FamilyDefaultsTest {
                     new ai.foresignal.source.adapters.local.DavisWllAdapter(1).descriptor(), "state")),
             Map.entry("EcowittAdapter", new Entry(
                     new ai.foresignal.source.adapters.local.EcowittAdapter(1, null).descriptor(), "state")),
+            // Prompt 070: transit vehicles are TRACK (trackWindow, never a default); service alerts are the event class.
+            Map.entry("TransitVehicleAdapter", new Entry(new ai.foresignal.source.adapters.transit.TransitVehicleAdapter(
+                    ai.foresignal.source.adapters.transit.TransitFeeds.reviewed("mbta"), null, null).descriptor(), "track")),
+            Map.entry("TransitAlertsAdapter", new Entry(new ai.foresignal.source.adapters.transit.TransitAlertsAdapter(
+                    ai.foresignal.source.adapters.transit.TransitFeeds.reviewed("mbta"), null).descriptor(), "event")),
             // Prompt 052: the derived weather sources, retained per Weather-Imagery-Design §2.4.
             Map.entry("WxPlacesGenerator", new Entry(
                     new ai.foresignal.source.adapters.wx.WxPlacesGenerator().descriptor(), "weather")),

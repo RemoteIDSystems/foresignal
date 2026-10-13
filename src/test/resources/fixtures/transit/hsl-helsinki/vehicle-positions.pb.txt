@@ -1,0 +1,751 @@
+header {
+  gtfs_realtime_version: "2.0"
+  incrementality: FULL_DATASET
+  timestamp: 1791908285
+}
+entity {
+  id: "vehicle_position_18/165"
+  vehicle {
+    trip {
+      start_time: "18:50:00"
+      start_date: "20261013"
+      schedule_relationship: SCHEDULED
+      route_id: "9785K"
+      direction_id: 0
+    }
+    position {
+      latitude: 60.272118
+      longitude: 25.086975
+      bearing: 42.0
+      odometer: 15087.0
+      speed: 18.82
+    }
+    current_status: IN_TRANSIT_TO
+    timestamp: 1791908284
+    stop_id: "4930225"
+    vehicle {
+      id: "18/165"
+    }
+  }
+}
+entity {
+  id: "vehicle_position_18/167"
+  vehicle {
+    trip {
+      start_time: "19:00:00"
+      start_date: "20261013"
+      schedule_relationship: SCHEDULED
+      route_id: "9841"
+      direction_id: 0
+    }
+    position {
+      latitude: 60.245068
+      longitude: 25.145815
+      bearing: 71.0
+      odometer: 5740.0
+      speed: 13.48
+    }
+    current_status: IN_TRANSIT_TO
+    timestamp: 1791908284
+    stop_id: "1600203"
+    vehicle {
+      id: "18/167"
+    }
+  }
+}
+entity {
+  id: "vehicle_position_18/162"
+  vehicle {
+    trip {
+      start_time: "18:47:00"
+      start_date: "20261013"
+      schedule_relationship: SCHEDULED
+      route_id: "1831K"
+      direction_id: 1
+    }
+    position {
+      latitude: 60.213505
+      longitude: 25.083359
+      bearing: 242.0
+      odometer: 16939.0
+      speed: 3.03
+    }
+    current_status: INCOMING_AT
+    timestamp: 1791908284
+    stop_id: "1453122"
+    vehicle {
+      id: "18/162"
+    }
+  }
+}
+entity {
+  id: "vehicle_position_18/163"
+  vehicle {
+    trip {
+      start_time: "18:10:00"
+      start_date: "20261013"
+      schedule_relationship: SCHEDULED
+      route_id: "9787K"
+      direction_id: 0
+    }
+    position {
+      latitude: 60.397205
+      longitude: 25.29865
+      bearing: 25.0
+      odometer: 38763.0
+      speed: 13.92
+    }
+    current_status: IN_TRANSIT_TO
+    timestamp: 1791908284
+    stop_id: "9225203"
+    vehicle {
+      id: "18/163"
+    }
+  }
+}
+entity {
+  id: "vehicle_position_18/164"
+  vehicle {
+    trip {
+      start_time: "18:57:00"
+      start_date: "20261013"
+      schedule_relationship: SCHEDULED
+      route_id: "9844"
+      direction_id: 1
+    }
+    position {
+      latitude: 60.25305
+      longitude: 25.183271
+      bearing: 250.0
+      odometer: 12707.0
+      speed: 14.83
+    }
+    current_status: INCOMING_AT
+    timestamp: 1791908285
+    stop_id: "1600212"
+    vehicle {
+      id: "18/164"
+    }
+  }
+}
+entity {
+  id: "vehicle_position_50/163"
+  vehicle {
+    trip {
+      start_time: "18:48:00"
+      start_date: "20261013"
+      schedule_relationship: SCHEDULED
+      route_id: "31M2"
+      direction_id: 1
+    }
+    position {
+      latitude: 60.16499
+      longitude: 24.846197
+      bearing: 281.0
+      odometer: 0.0
+      speed: 21.83
+    }
+    current_status: IN_TRANSIT_TO
+    timestamp: 1791908285
+    stop_id: "2222602"
+    vehicle {
+      id: "50/163"
+    }
+  }
+}
+entity {
+  id: "vehicle_position_50/161"
+  vehicle {
+    trip {
+      start_time: "18:37:00"
+      start_date: "20261013"
+      schedule_relationship: SCHEDULED
+      route_id: "31M1"
+      direction_id: 1
+    }
+    position {
+      latitude: 60.15985
+      longitude: 24.739462
+      bearing: 90.0
+      odometer: 0.0
+      speed: 10.0
+    }
+    current_status: STOPPED_AT
+    timestamp: 1791908284
+    stop_id: "2314602"
+    vehicle {
+      id: "50/161"
+    }
+  }
+}
+entity {
+  id: "vehicle_position_50/167"
+  vehicle {
+    trip {
+      start_time: "18:40:00"
+      start_date: "20261013"
+      schedule_relationship: SCHEDULED
+      route_id: "31M1"
+      direction_id: 0
+    }
+    position {
+      latitude: 60.186024
+      longitude: 24.991753
+      bearing: 90.0
+      odometer: 0.0
+      speed: 24.02
+    }
+    current_status: IN_TRANSIT_TO
+    timestamp: 1791908284
+    stop_id: "1420601"
+    vehicle {
+      id: "50/167"
+    }
+  }
+}
+entity {
+  id: "vehicle_position_50/147"
+  vehicle {
+    trip {
+      start_time: "19:15:00"
+      start_date: "20261013"
+      schedule_relationship: SCHEDULED
+      route_id: "31M2"
+      direction_id: 0
+    }
+    position {
+      latitude: 60.180878
+      longitude: 24.832539
+      bearing: 158.0
+      odometer: 0.0
+      speed: 18.75
+    }
+    current_status: IN_TRANSIT_TO
+    timestamp: 1791908284
+    stop_id: "2222601"
+    vehicle {
+      id: "50/147"
+    }
+  }
+}
+entity {
+  id: "vehicle_position_50/153"
+  vehicle {
+    trip {
+      start_time: "18:29:00"
+      start_date: "20261013"
+      schedule_relationship: SCHEDULED
+      route_id: "31M1"
+      direction_id: 1
+    }
+    position {
+      latitude: 60.141724
+      longitude: 24.669256
+      bearing: 280.0
+      odometer: 0.0
+      speed: 2.2
+    }
+    current_status: STOPPED_AT
+    timestamp: 1791908284
+    stop_id: "2412602"
+    vehicle {
+      id: "50/153"
+    }
+  }
+}
+entity {
+  id: "vehicle_position_22/964"
+  vehicle {
+    trip {
+      start_time: "18:32:00"
+      start_date: "20261013"
+      schedule_relationship: SCHEDULED
+      route_id: "1079"
+      direction_id: 1
+    }
+    position {
+      latitude: 60.216335
+      longitude: 25.051289
+      bearing: 105.0
+      odometer: 16661.0
+      speed: 0.26
+    }
+    current_status: INCOMING_AT
+    timestamp: 1791908284
+    stop_id: "1402121"
+    vehicle {
+      id: "22/964"
+    }
+  }
+}
+entity {
+  id: "vehicle_position_18/146"
+  vehicle {
+    trip {
+      start_time: "18:51:00"
+      start_date: "20261013"
+      schedule_relationship: SCHEDULED
+      route_id: "1831K"
+      direction_id: 0
+    }
+    position {
+      latitude: 60.25637
+      longitude: 25.195929
+      bearing: 59.0
+      odometer: 13837.0
+      speed: 16.59
+    }
+    current_status: IN_TRANSIT_TO
+    timestamp: 1791908284
+    stop_id: "1602201"
+    vehicle {
+      id: "18/146"
+    }
+  }
+}
+entity {
+  id: "vehicle_position_22/969"
+  vehicle {
+    trip {
+      start_time: "18:59:00"
+      start_date: "20261013"
+      schedule_relationship: SCHEDULED
+      route_id: "1056"
+      direction_id: 0
+    }
+    position {
+      latitude: 60.221638
+      longitude: 24.947
+      bearing: 325.0
+      odometer: 5098.0
+      speed: 8.02
+    }
+    current_status: IN_TRANSIT_TO
+    timestamp: 1791908284
+    stop_id: "1283130"
+    vehicle {
+      id: "22/969"
+    }
+  }
+}
+entity {
+  id: "vehicle_position_22/963"
+  vehicle {
+    trip {
+      start_time: "18:48:00"
+      start_date: "20261013"
+      schedule_relationship: SCHEDULED
+      route_id: "1056"
+      direction_id: 0
+    }
+    position {
+      latitude: 60.229404
+      longitude: 24.89517
+      bearing: 351.0
+      odometer: 8812.0
+      speed: 6.75
+    }
+    current_status: INCOMING_AT
+    timestamp: 1791908284
+    stop_id: "1293132"
+    vehicle {
+      id: "22/963"
+    }
+  }
+}
+entity {
+  id: "vehicle_position_50/181"
+  vehicle {
+    trip {
+      start_time: "18:55:00"
+      start_date: "20261013"
+      schedule_relationship: SCHEDULED
+      route_id: "31M2"
+      direction_id: 1
+    }
+    position {
+      latitude: 60.170216
+      longitude: 24.934956
+      bearing: 259.0
+      odometer: 0.0
+      speed: 14.9
+    }
+    current_status: IN_TRANSIT_TO
+    timestamp: 1791908284
+    stop_id: "1040602"
+    vehicle {
+      id: "50/181"
+    }
+  }
+}
+entity {
+  id: "vehicle_position_18/155"
+  vehicle {
+    trip {
+      start_time: "18:47:00"
+      start_date: "20261013"
+      schedule_relationship: SCHEDULED
+      route_id: "9973"
+      direction_id: 1
+    }
+    position {
+      latitude: 60.33252
+      longitude: 25.06046
+      bearing: 357.0
+      odometer: 11896.0
+      speed: 3.43
+    }
+    timestamp: 1791908252
+    vehicle {
+      id: "18/155"
+    }
+  }
+}
+entity {
+  id: "vehicle_position_18/157"
+  vehicle {
+    trip {
+      start_time: "19:15:00"
+      start_date: "20261013"
+      schedule_relationship: SCHEDULED
+      route_id: "9844"
+      direction_id: 0
+    }
+    position {
+      latitude: 60.21245
+      longitude: 25.082125
+      bearing: 38.0
+      odometer: 501.0
+      speed: 0.11
+    }
+    current_status: IN_TRANSIT_TO
+    timestamp: 1791908284
+    stop_id: "1453119"
+    vehicle {
+      id: "18/157"
+    }
+  }
+}
+entity {
+  id: "vehicle_position_18/150"
+  vehicle {
+    trip {
+      start_time: "18:42:00"
+      start_date: "20261013"
+      schedule_relationship: SCHEDULED
+      route_id: "9842"
+      direction_id: 0
+    }
+    position {
+      latitude: 60.287403
+      longitude: 25.33304
+      bearing: 250.0
+      odometer: 21170.0
+      speed: 10.62
+    }
+    current_status: INCOMING_AT
+    timestamp: 1791908284
+    stop_id: "9208219"
+    vehicle {
+      id: "18/150"
+    }
+  }
+}
+entity {
+  id: "vehicle_position_18/152"
+  vehicle {
+    trip {
+      start_time: "18:00:00"
+      start_date: "20261013"
+      schedule_relationship: SCHEDULED
+      route_id: "9788"
+      direction_id: 1
+    }
+    position {
+      latitude: 60.17604
+      longitude: 24.950123
+      bearing: 179.0
+      odometer: 57616.0
+      speed: 0.23
+    }
+    current_status: IN_TRANSIT_TO
+    timestamp: 1791908284
+    stop_id: "1020201"
+    vehicle {
+      id: "18/152"
+    }
+  }
+}
+entity {
+  id: "vehicle_position_18/153"
+  vehicle {
+    trip {
+      start_time: "19:08:00"
+      start_date: "20261013"
+      schedule_relationship: SCHEDULED
+      route_id: "9976"
+      direction_id: 0
+    }
+    position {
+      latitude: 60.427685
+      longitude: 25.100073
+      bearing: 194.0
+      odometer: 4304.0
+      speed: 5.68
+    }
+    current_status: INCOMING_AT
+    timestamp: 1791908284
+    stop_id: "9010238"
+    vehicle {
+      id: "18/153"
+    }
+  }
+}
+entity {
+  id: "vehicle_position_50/177"
+  vehicle {
+    trip {
+      start_time: "18:33:00"
+      start_date: "20261013"
+      schedule_relationship: SCHEDULED
+      route_id: "31M1"
+      direction_id: 0
+    }
+    position {
+      latitude: 60.209854
+      longitude: 25.07695
+      bearing: 75.0
+      odometer: 0.0
+      speed: 12.24
+    }
+    current_status: STOPPED_AT
+    timestamp: 1791908284
+    stop_id: "1453601"
+    vehicle {
+      id: "50/177"
+    }
+  }
+}
+entity {
+  id: "vehicle_position_50/171"
+  vehicle {
+    trip {
+      start_time: "19:00:00"
+      start_date: "20261013"
+      schedule_relationship: SCHEDULED
+      route_id: "31M2"
+      direction_id: 0
+    }
+    position {
+      latitude: 60.18262
+      longitude: 24.950312
+      bearing: 24.0
+      odometer: 0.0
+      speed: 16.16
+    }
+    current_status: IN_TRANSIT_TO
+    timestamp: 1791908284
+    stop_id: "1121601"
+    vehicle {
+      id: "50/171"
+    }
+  }
+}
+entity {
+  id: "vehicle_position_18/1205"
+  vehicle {
+    trip {
+      start_time: "18:52:00"
+      start_date: "20261013"
+      schedule_relationship: SCHEDULED
+      route_id: "2162"
+      direction_id: 0
+    }
+    position {
+      latitude: 60.19129
+      longitude: 24.588676
+      bearing: 23.0
+      odometer: 9340.0
+      speed: 4.96
+    }
+    current_status: IN_TRANSIT_TO
+    timestamp: 1791908283
+    stop_id: "2511253"
+    vehicle {
+      id: "18/1205"
+    }
+  }
+}
+entity {
+  id: "vehicle_position_18/1203"
+  vehicle {
+    trip {
+      start_time: "19:13:00"
+      start_date: "20261013"
+      schedule_relationship: SCHEDULED
+      route_id: "2118"
+      direction_id: 1
+    }
+    position {
+      latitude: 60.201305
+      longitude: 24.662277
+      bearing: 171.0
+      odometer: 1074.0
+      speed: 8.48
+    }
+    current_status: IN_TRANSIT_TO
+    timestamp: 1791908284
+    stop_id: "2613001"
+    vehicle {
+      id: "18/1203"
+    }
+  }
+}
+entity {
+  id: "vehicle_position_18/1200"
+  vehicle {
+    trip {
+      start_time: "18:43:00"
+      start_date: "20261013"
+      schedule_relationship: SCHEDULED
+      route_id: "2118"
+      direction_id: 1
+    }
+    position {
+      latitude: 60.1753
+      longitude: 24.807304
+      bearing: 70.0
+      odometer: 12599.0
+      speed: 7.01
+    }
+    timestamp: 1791908263
+    vehicle {
+      id: "18/1200"
+    }
+  }
+}
+entity {
+  id: "vehicle_position_40/112"
+  vehicle {
+    trip {
+      start_time: "19:21:00"
+      start_date: "20261013"
+      schedule_relationship: SCHEDULED
+      route_id: "1001"
+      direction_id: 0
+    }
+    position {
+      latitude: 60.158436
+      longitude: 24.934156
+      bearing: 252.0
+      odometer: 0.0
+      speed: 0.0
+    }
+    current_status: STOPPED_AT
+    timestamp: 1791908284
+    stop_id: "1050417"
+    vehicle {
+      id: "40/112"
+    }
+  }
+}
+entity {
+  id: "vehicle_position_40/110"
+  vehicle {
+    trip {
+      start_time: "18:44:00"
+      start_date: "20261013"
+      schedule_relationship: SCHEDULED
+      route_id: "1007H"
+      direction_id: 0
+    }
+    position {
+      latitude: 60.192432
+      longitude: 24.960953
+      bearing: 335.0
+      odometer: 6769.0
+      speed: 0.0
+    }
+    current_status: INCOMING_AT
+    timestamp: 1791908285
+    stop_id: "1220424"
+    vehicle {
+      id: "40/110"
+    }
+  }
+}
+entity {
+  id: "vehicle_position_40/108"
+  vehicle {
+    trip {
+      start_time: "19:12:00"
+      start_date: "20261013"
+      schedule_relationship: SCHEDULED
+      route_id: "100HF"
+      direction_id: 0
+    }
+    position {
+      latitude: 60.19117
+      longitude: 24.941757
+      bearing: 274.0
+      odometer: 1404.0
+      speed: 6.63
+    }
+    current_status: INCOMING_AT
+    timestamp: 1791908284
+    stop_id: "1122413"
+    vehicle {
+      id: "40/108"
+    }
+  }
+}
+entity {
+  id: "vehicle_position_40/102"
+  vehicle {
+    trip {
+      start_time: "19:13:00"
+      start_date: "20261013"
+      schedule_relationship: SCHEDULED
+      route_id: "100HI"
+      direction_id: 0
+    }
+    position {
+      latitude: 60.19008
+      longitude: 24.915722
+      bearing: 311.0
+      odometer: 1619.0
+      speed: 5.62
+    }
+    current_status: IN_TRANSIT_TO
+    timestamp: 1791908284
+    stop_id: "1180437"
+    vehicle {
+      id: "40/102"
+    }
+  }
+}
+entity {
+  id: "vehicle_position_18/1209"
+  vehicle {
+    trip {
+      start_time: "19:08:00"
+      start_date: "20261013"
+      schedule_relationship: SCHEDULED
+      route_id: "2162"
+      direction_id: 0
+    }
+    position {
+      latitude: 60.158184
+      longitude: 24.61572
+      bearing: 252.0
+      odometer: 3094.0
+      speed: 7.67
+    }
+    current_status: IN_TRANSIT_TO
+    timestamp: 1791908284
+    stop_id: "2423219"
+    vehicle {
+      id: "18/1209"
+    }
+  }
+}

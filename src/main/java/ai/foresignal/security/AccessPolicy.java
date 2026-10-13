@@ -274,6 +274,8 @@ public class AccessPolicy {
                 rule(HttpMethod.GET, "/v1/history/**", AccessRequirement.READ),
                 // The event-density timeline (037).
                 rule(HttpMethod.GET, "/v1/timeline", AccessRequirement.READ),
+                // ---- Transit catalog search (070): admin, read-only; feeds are enabled by property, never by POST ----
+                rule(HttpMethod.GET, "/v1/transit/catalog", AccessRequirement.ADMIN),
                 // ---- Reference data (040): reads are read scope, loading is admin ----
                 rule(HttpMethod.POST, "/v1/reference/load", AccessRequirement.ADMIN),
                 rule(HttpMethod.GET, "/v1/reference", AccessRequirement.READ),

@@ -1,0 +1,704 @@
+header {
+  gtfs_realtime_version: "1.0"
+  incrementality: FULL_DATASET
+  timestamp: 1791908279
+}
+entity {
+  id: "TRO:ServiceJourney:495_260819123100208_1003-20261013-3690207514"
+  vehicle {
+    trip {
+      trip_id: "TRO:ServiceJourney:495_260819123100208_1003"
+      start_date: "20261013"
+      route_id: "TRO:Line:1_495"
+    }
+    position {
+      latitude: 70.06175
+      longitude: 21.872692
+      bearing: 93.67
+    }
+    current_stop_sequence: 31
+    current_status: STOPPED_AT
+    timestamp: 1791895289
+    congestion_level: RUNNING_SMOOTHLY
+    stop_id: "NSR:Quay:103042"
+    vehicle {
+      id: "3690207514"
+    }
+    occupancy_status: EMPTY
+  }
+}
+entity {
+  id: "NOR:ServiceJourney:8372_251012124855347_1023-20261013-3390101712"
+  vehicle {
+    trip {
+      trip_id: "NOR:ServiceJourney:8372_251012124855347_1023"
+      start_date: "20261013"
+      route_id: "NOR:Line:12_8372"
+    }
+    position {
+      latitude: 66.3267
+      longitude: 14.18673
+    }
+    current_stop_sequence: 18
+    current_status: STOPPED_AT
+    timestamp: 1791904969
+    congestion_level: RUNNING_SMOOTHLY
+    stop_id: "NSR:Quay:86471"
+    vehicle {
+      id: "3390101712"
+    }
+  }
+}
+entity {
+  id: "AKT:ServiceJourney:80938_62_15_105600_107340_1072211-20261013-3360111808"
+  vehicle {
+    trip {
+      trip_id: "AKT:ServiceJourney:80938_62_15_105600_107340_1072211"
+      start_date: "20261013"
+      route_id: "AKT:Line:2322"
+    }
+    position {
+      latitude: 58.223297
+      longitude: 7.6860757
+      bearing: 192.6
+    }
+    current_stop_sequence: 15
+    current_status: STOPPED_AT
+    timestamp: 1791896735
+    congestion_level: RUNNING_SMOOTHLY
+    stop_id: "NSR:Quay:43439"
+    vehicle {
+      id: "3360111808"
+    }
+    occupancy_status: FEW_SEATS_AVAILABLE
+  }
+}
+entity {
+  id: "BRA:ServiceJourney:6332_260827084904069_1031-20261013-3620702579"
+  vehicle {
+    trip {
+      trip_id: "BRA:ServiceJourney:6332_260827084904069_1031"
+      start_date: "20261013"
+      route_id: "BRA:Line:4_6332"
+    }
+    position {
+      latitude: 60.56691
+      longitude: 9.105317
+      bearing: 131.8
+    }
+    current_stop_sequence: 24
+    current_status: STOPPED_AT
+    timestamp: 1791904977
+    congestion_level: RUNNING_SMOOTHLY
+    stop_id: "NSR:Quay:28406"
+    vehicle {
+      id: "3620702579"
+    }
+  }
+}
+entity {
+  id: "NOR:ServiceJourney:8472_251012124858991_1035-20261013-3690102062"
+  vehicle {
+    trip {
+      trip_id: "NOR:ServiceJourney:8472_251012124858991_1035"
+      start_date: "20261013"
+      route_id: "NOR:Line:12_8472"
+    }
+    position {
+      latitude: 66.93296
+      longitude: 15.434698
+      odometer: 1537.09
+    }
+    current_stop_sequence: 15
+    current_status: INCOMING_AT
+    timestamp: 1791897519
+    congestion_level: RUNNING_SMOOTHLY
+    stop_id: "NSR:Quay:86307"
+    vehicle {
+      id: "3690102062"
+    }
+  }
+}
+entity {
+  id: "NOR:ServiceJourney:8421_251012124859669_2103-20261013-259681000"
+  vehicle {
+    trip {
+      trip_id: "NOR:ServiceJourney:8421_251012124859669_2103"
+      start_date: "20261013"
+      route_id: "NOR:Line:12_8421"
+    }
+    position {
+      latitude: 66.72035
+      longitude: 13.476267
+      bearing: 157.0
+    }
+    current_status: IN_TRANSIT_TO
+    timestamp: 1791874342
+    congestion_level: RUNNING_SMOOTHLY
+    stop_id: "NSR:Quay:82749"
+    vehicle {
+      id: "259681000"
+    }
+  }
+}
+entity {
+  id: "AKT:ServiceJourney:65996_112_10_102000_102840_1072272-20261013-3360111158"
+  vehicle {
+    trip {
+      trip_id: "AKT:ServiceJourney:65996_112_10_102000_102840_1072272"
+      start_date: "20261013"
+      route_id: "AKT:Line:2331"
+    }
+    position {
+      latitude: 58.09967
+      longitude: 6.759127
+      odometer: 444.96899999999994
+    }
+    current_stop_sequence: 9
+    current_status: IN_TRANSIT_TO
+    timestamp: 1791894248
+    congestion_level: RUNNING_SMOOTHLY
+    stop_id: "NSR:Quay:40454"
+    vehicle {
+      id: "3360111158"
+    }
+    occupancy_status: FEW_SEATS_AVAILABLE
+  }
+}
+entity {
+  id: "BOR:DeadRun:260907141051673_0-20261013-3390123097"
+  vehicle {
+    trip {
+      trip_id: "BOR:DeadRun:260907141051673_0"
+      start_date: "20261013"
+    }
+    position {
+      latitude: 58.10247
+      longitude: 7.969622
+      odometer: 0.0
+    }
+    current_stop_sequence: 2
+    current_status: INCOMING_AT
+    timestamp: 1791896251
+    congestion_level: RUNNING_SMOOTHLY
+    stop_id: "NSR:Quay:39927"
+    vehicle {
+      id: "3390123097"
+    }
+    occupancy_status: FEW_SEATS_AVAILABLE
+  }
+}
+entity {
+  id: "NOR:ServiceJourney:8518_251012124857871_1003-20261013-3690102058"
+  vehicle {
+    trip {
+      trip_id: "NOR:ServiceJourney:8518_251012124857871_1003"
+      start_date: "20261013"
+      route_id: "NOR:Line:12_8518"
+    }
+    position {
+      latitude: 67.275566
+      longitude: 14.844807
+      bearing: 67.2
+      odometer: 25.9652
+    }
+    current_stop_sequence: 6
+    current_status: IN_TRANSIT_TO
+    timestamp: 1791891330
+    congestion_level: RUNNING_SMOOTHLY
+    stop_id: "NSR:Quay:85051"
+    vehicle {
+      id: "3690102058"
+    }
+  }
+}
+entity {
+  id: "BRA:ServiceJourney:6054_260630061451612_1025-20261013-3620802395"
+  vehicle {
+    trip {
+      trip_id: "BRA:ServiceJourney:6054_260630061451612_1025"
+      start_date: "20261013"
+      route_id: "BRA:Line:4_6054"
+    }
+    position {
+      latitude: 59.767826
+      longitude: 9.998593
+      bearing: 255.62
+    }
+    current_stop_sequence: 6
+    current_status: STOPPED_AT
+    timestamp: 1791901455
+    congestion_level: RUNNING_SMOOTHLY
+    stop_id: "NSR:Quay:28875"
+    vehicle {
+      id: "3620802395"
+    }
+  }
+}
+entity {
+  id: "AKT:ServiceJourney:71471_122_11_93600_94560_40001176-20261013-3390123750"
+  vehicle {
+    trip {
+      trip_id: "AKT:ServiceJourney:71471_122_11_93600_94560_40001176"
+      start_date: "20261013"
+      route_id: "AKT:Line:1926"
+    }
+    position {
+      latitude: 58.571434
+      longitude: 8.48135
+      odometer: 1739.061
+    }
+    current_stop_sequence: 6
+    current_status: INCOMING_AT
+    timestamp: 1791889453
+    congestion_level: RUNNING_SMOOTHLY
+    stop_id: "NSR:Quay:38978"
+    vehicle {
+      id: "3390123750"
+    }
+    occupancy_status: FEW_SEATS_AVAILABLE
+  }
+}
+entity {
+  id: "TRO:ServiceJourney:462_260819123103955_1009-20261013-3690202089"
+  vehicle {
+    trip {
+      trip_id: "TRO:ServiceJourney:462_260819123103955_1009"
+      start_date: "20261013"
+      route_id: "TRO:Line:1_462"
+    }
+    position {
+      latitude: 69.16993
+      longitude: 20.039646
+      bearing: 284.33
+    }
+    current_stop_sequence: 25
+    current_status: STOPPED_AT
+    timestamp: 1791902821
+    congestion_level: RUNNING_SMOOTHLY
+    stop_id: "NSR:Quay:94597"
+    vehicle {
+      id: "3690202089"
+    }
+    occupancy_status: EMPTY
+  }
+}
+entity {
+  id: "AKT:ServiceJourney:74866_366_17_90960_92220_40001493-20261013-3390123003"
+  vehicle {
+    trip {
+      trip_id: "AKT:ServiceJourney:74866_366_17_90960_92220_40001493"
+      start_date: "20261013"
+      route_id: "AKT:Line:1010"
+    }
+    position {
+      latitude: 58.163765
+      longitude: 7.982234
+    }
+    current_stop_sequence: 17
+    current_status: STOPPED_AT
+    timestamp: 1791889053
+    congestion_level: RUNNING_SMOOTHLY
+    stop_id: "NSR:Quay:41561"
+    vehicle {
+      id: "3390123003"
+    }
+    occupancy_status: FEW_SEATS_AVAILABLE
+  }
+}
+entity {
+  id: "NOR:ServiceJourney:8751_251012124855922_1002-20261013-257147000"
+  vehicle {
+    trip {
+      trip_id: "NOR:ServiceJourney:8751_251012124855922_1002"
+      start_date: "20261013"
+      route_id: "NOR:Line:12_8751"
+    }
+    position {
+      latitude: 68.1666
+      longitude: 14.662118
+      bearing: 31.0
+    }
+    current_status: IN_TRANSIT_TO
+    timestamp: 1791874906
+    congestion_level: RUNNING_SMOOTHLY
+    stop_id: "NSR:Quay:82811"
+    vehicle {
+      id: "257147000"
+    }
+  }
+}
+entity {
+  id: "VKT:ServiceJourney:16352-20261013-754681"
+  vehicle {
+    trip {
+      trip_id: "VKT:ServiceJourney:16352"
+      start_time: "15:23:00"
+      start_date: "20261013"
+      route_id: "VKT:Line:50"
+    }
+    position {
+      latitude: 59.23988
+      longitude: 10.469248
+      bearing: 264.0
+      odometer: 12416.0
+      speed: 0.0
+    }
+    current_stop_sequence: 30
+    current_status: STOPPED_AT
+    timestamp: 1791907449
+    congestion_level: RUNNING_SMOOTHLY
+    stop_id: "NSR:Quay:32855"
+    vehicle {
+      id: "754681"
+    }
+  }
+}
+entity {
+  id: "TRO:ServiceJourney:465_260819123099500_1007-20261013-3690206107"
+  vehicle {
+    trip {
+      trip_id: "TRO:ServiceJourney:465_260819123099500_1007"
+      start_date: "20261013"
+      route_id: "TRO:Line:1_465"
+    }
+    position {
+      latitude: 69.838264
+      longitude: 19.987625
+      bearing: 173.24
+    }
+    current_stop_sequence: 18
+    current_status: STOPPED_AT
+    timestamp: 1791895354
+    congestion_level: RUNNING_SMOOTHLY
+    stop_id: "NSR:Quay:93496"
+    vehicle {
+      id: "3690206107"
+    }
+    occupancy_status: EMPTY
+  }
+}
+entity {
+  id: "OST:ServiceJourney:154_260325121472729_32-20261013-OST:Vehicle:254_NO1689"
+  vehicle {
+    trip {
+      trip_id: "OST:ServiceJourney:154_260325121472729_32"
+      start_date: "20261013"
+      route_id: "OST:Line:1_154"
+    }
+    position {
+      latitude: 59.265297
+      longitude: 11.1290865
+      bearing: 190.02
+      odometer: 6213.999999999999
+      speed: 0.0
+    }
+    timestamp: 1791908277
+    congestion_level: RUNNING_SMOOTHLY
+    vehicle {
+      id: "OST:Vehicle:254_NO1689"
+    }
+  }
+}
+entity {
+  id: "AKT:ServiceJourney:79911_162_68_118200_121380_3910361-20261013-3390123093"
+  vehicle {
+    trip {
+      trip_id: "AKT:ServiceJourney:79911_162_68_118200_121380_3910361"
+      start_date: "20261013"
+      route_id: "AKT:Line:36"
+    }
+    position {
+      latitude: 58.336945
+      longitude: 8.228947
+    }
+    current_stop_sequence: 68
+    current_status: STOPPED_AT
+    timestamp: 1791905236
+    congestion_level: RUNNING_SMOOTHLY
+    stop_id: "NSR:Quay:111458"
+    vehicle {
+      id: "3390123093"
+    }
+    occupancy_status: FEW_SEATS_AVAILABLE
+  }
+}
+entity {
+  id: "BOR:DeadRun:260907141044602_0-20261013-3390123090"
+  vehicle {
+    trip {
+      trip_id: "BOR:DeadRun:260907141044602_0"
+      start_date: "20261013"
+    }
+    position {
+      latitude: 58.102554
+      longitude: 7.969769
+    }
+    current_stop_sequence: 2
+    current_status: STOPPED_AT
+    timestamp: 1791904140
+    congestion_level: RUNNING_SMOOTHLY
+    stop_id: "NSR:Quay:39927"
+    vehicle {
+      id: "3390123090"
+    }
+    occupancy_status: FEW_SEATS_AVAILABLE
+  }
+}
+entity {
+  id: "OST:ServiceJourney:9_260325121472417_9011-20261013-3620502536"
+  vehicle {
+    trip {
+      trip_id: "OST:ServiceJourney:9_260325121472417_9011"
+      start_date: "20261013"
+      route_id: "OST:Line:1_9"
+    }
+    position {
+      latitude: 59.91152
+      longitude: 10.758523
+      bearing: 297.4
+    }
+    current_stop_sequence: 67
+    current_status: STOPPED_AT
+    timestamp: 1791900996
+    congestion_level: RUNNING_SMOOTHLY
+    stop_id: "NSR:Quay:11969"
+    vehicle {
+      id: "3620502536"
+    }
+  }
+}
+entity {
+  id: "TRO:ServiceJourney:28_260918107587996_1069-20261013-3510509064"
+  vehicle {
+    trip {
+      trip_id: "TRO:ServiceJourney:28_260918107587996_1069"
+      start_date: "20261013"
+      route_id: "TRO:Line:1_28"
+    }
+    position {
+      latitude: 69.608116
+      longitude: 18.93916
+    }
+    current_stop_sequence: 47
+    current_status: STOPPED_AT
+    timestamp: 1791898187
+    congestion_level: RUNNING_SMOOTHLY
+    stop_id: "NSR:Quay:91888"
+    vehicle {
+      id: "3510509064"
+    }
+    occupancy_status: EMPTY
+  }
+}
+entity {
+  id: "BRA:ServiceJourney:6001_260630061451286_1120-20261013-3620803478"
+  vehicle {
+    trip {
+      trip_id: "BRA:ServiceJourney:6001_260630061451286_1120"
+      start_date: "20261013"
+      route_id: "BRA:Line:4_6001"
+    }
+    position {
+      latitude: 59.743946
+      longitude: 10.235856
+      bearing: 47.09
+    }
+    current_stop_sequence: 17
+    current_status: STOPPED_AT
+    timestamp: 1791890440
+    congestion_level: RUNNING_SMOOTHLY
+    stop_id: "NSR:Quay:110562"
+    vehicle {
+      id: "3620803478"
+    }
+  }
+}
+entity {
+  id: "FIN:ServiceJourney:5727-20261013-3800586950"
+  vehicle {
+    trip {
+      trip_id: "FIN:ServiceJourney:5727"
+      start_date: "20261013"
+      route_id: "FIN:Line:2500"
+    }
+    position {
+      latitude: 70.334984
+      longitude: 22.289762
+      bearing: 351.0
+    }
+    current_stop_sequence: 2
+    current_status: INCOMING_AT
+    timestamp: 1791908273
+    congestion_level: RUNNING_SMOOTHLY
+    stop_id: "NSR:Quay:97950"
+    vehicle {
+      id: "3800586950"
+    }
+  }
+}
+entity {
+  id: "VKT:ServiceJourney:16886-20261013-754838"
+  vehicle {
+    trip {
+      trip_id: "VKT:ServiceJourney:16886"
+      start_time: "16:10:00"
+      start_date: "20261013"
+      route_id: "VKT:Line:54"
+    }
+    position {
+      latitude: 59.270035
+      longitude: 10.412303
+      bearing: -1.0
+      speed: 0.0
+    }
+    current_stop_sequence: 8
+    current_status: IN_TRANSIT_TO
+    timestamp: 1791908275
+    congestion_level: RUNNING_SMOOTHLY
+    stop_id: "NSR:Quay:32910"
+    vehicle {
+      id: "754838"
+    }
+  }
+}
+entity {
+  id: "BRA:ServiceJourney:6108_260630061448186_1006-20261013-3620703283"
+  vehicle {
+    trip {
+      trip_id: "BRA:ServiceJourney:6108_260630061448186_1006"
+      start_date: "20261013"
+      route_id: "BRA:Line:4_6108"
+    }
+    position {
+      latitude: 60.164955
+      longitude: 10.257732
+    }
+    current_stop_sequence: 22
+    current_status: STOPPED_AT
+    timestamp: 1791894601
+    congestion_level: RUNNING_SMOOTHLY
+    stop_id: "NSR:Quay:29621"
+    vehicle {
+      id: "3620703283"
+    }
+  }
+}
+entity {
+  id: "AKT:ServiceJourney:72192_32_21_108000_112020_40001070-20261013-3390123723"
+  vehicle {
+    trip {
+      trip_id: "AKT:ServiceJourney:72192_32_21_108000_112020_40001070"
+      start_date: "20261013"
+      route_id: "AKT:Line:108"
+    }
+    position {
+      latitude: 58.46013
+      longitude: 8.764672
+    }
+    current_stop_sequence: 21
+    current_status: STOPPED_AT
+    timestamp: 1791900575
+    congestion_level: RUNNING_SMOOTHLY
+    stop_id: "NSR:Quay:42763"
+    vehicle {
+      id: "3390123723"
+    }
+    occupancy_status: FEW_SEATS_AVAILABLE
+  }
+}
+entity {
+  id: "TRO:ServiceJourney:470_260819123100138_1022-20261013-3690206110"
+  vehicle {
+    trip {
+      trip_id: "TRO:ServiceJourney:470_260819123100138_1022"
+      start_date: "20261013"
+      route_id: "TRO:Line:1_470"
+    }
+    position {
+      latitude: 69.494446
+      longitude: 20.829052
+    }
+    current_stop_sequence: 5
+    current_status: STOPPED_AT
+    timestamp: 1791894412
+    congestion_level: RUNNING_SMOOTHLY
+    stop_id: "NSR:Quay:95234"
+    vehicle {
+      id: "3690206110"
+    }
+    occupancy_status: EMPTY
+  }
+}
+entity {
+  id: "ATB:ServiceJourney:10_260311106201062_126-20261013-1700"
+  vehicle {
+    trip {
+      trip_id: "ATB:ServiceJourney:10_260311106201062_126"
+      start_time: "15:23:00"
+      start_date: "20261013"
+      route_id: "ATB:Line:2_10"
+    }
+    position {
+      latitude: 63.38788
+      longitude: 10.399452
+      bearing: 243.0
+      odometer: 807.0
+    }
+    current_stop_sequence: 37
+    current_status: STOPPED_AT
+    timestamp: 1791907998
+    congestion_level: RUNNING_SMOOTHLY
+    stop_id: "NSR:Quay:102716"
+    vehicle {
+      id: "1700"
+    }
+  }
+}
+entity {
+  id: "KOL:ServiceJourney:1112_260907053644417_2079-20261013-4012"
+  vehicle {
+    trip {
+      trip_id: "KOL:ServiceJourney:1112_260907053644417_2079"
+      start_time: "16:11:00"
+      start_date: "20261013"
+      route_id: "KOL:Line:8_1112"
+    }
+    position {
+      latitude: 58.953552
+      longitude: 5.6838384
+      bearing: 64.0
+    }
+    current_status: IN_TRANSIT_TO
+    timestamp: 1791908275
+    congestion_level: RUNNING_SMOOTHLY
+    stop_id: "NSR:Quay:47249"
+    vehicle {
+      id: "4012"
+    }
+    occupancy_status: MANY_SEATS_AVAILABLE
+  }
+}
+entity {
+  id: "BRA:ServiceJourney:6004_260630061451327_1047-20261013-3620802381"
+  vehicle {
+    trip {
+      trip_id: "BRA:ServiceJourney:6004_260630061451327_1047"
+      start_date: "20261013"
+      route_id: "BRA:Line:4_6004"
+    }
+    position {
+      latitude: 59.70218
+      longitude: 10.274075
+      bearing: 106.41
+    }
+    current_stop_sequence: 47
+    current_status: STOPPED_AT
+    timestamp: 1791897020
+    congestion_level: RUNNING_SMOOTHLY
+    stop_id: "NSR:Quay:29549"
+    vehicle {
+      id: "3620802381"
+    }
+  }
+}

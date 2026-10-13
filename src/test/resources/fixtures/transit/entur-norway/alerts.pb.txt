@@ -1,0 +1,807 @@
+header {
+  gtfs_realtime_version: "1.0"
+  incrementality: FULL_DATASET
+  timestamp: 1791908279
+}
+entity {
+  id: "GCO:SituationNumber:9-0-800-36500-0_4_NSR:Quay:482402_286"
+  alert {
+    active_period {
+      start: 1791908100
+      end: 1791910800
+    }
+    informed_entity {
+      trip {
+        trip_id: "KOL:ServiceJourney:5200_250903083242700_1022"
+        start_date: "20261013"
+      }
+      stop_id: "NSR:Quay:48240"
+    }
+    header_text {
+      translation {
+        text: "Bestillingsanløp"
+      }
+    }
+    description_text {
+      translation {
+        text: "Bestilling ikke mottatt."
+      }
+    }
+  }
+}
+entity {
+  id: "VYG:SituationNumber:et-vehicle-c1c93241-3474-46cb-ada8-0adcceccd1eb-236-2026-10-13-28"
+  alert {
+    active_period {
+      start: 1791922952
+      end: 1791938012
+    }
+    informed_entity {
+      trip {
+        trip_id: "VYG:ServiceJourney:c1c93241-3474-46cb-ada8-0adcceccd1eb-236-2026-10-13-28"
+      }
+    }
+    header_text {
+      translation {
+        text: "Vy kjører taxi på strekningen"
+      }
+    }
+    description_text {
+      translation {
+        text: "Vy kjører taxi på strekningen"
+      }
+    }
+  }
+}
+entity {
+  id: "NSB:SituationNumber:9f605d50-9a65-47a6-b064-ef0cbbaa7352"
+  alert {
+    active_period {
+      start: 1791900835
+      end: 1791918840
+    }
+  }
+}
+entity {
+  id: "ATB:SituationNumber:27156-stopPoint"
+  alert {
+    active_period {
+      start: 1790646900
+      end: 1796079540
+    }
+    informed_entity {
+      stop_id: "NSR:Quay:72034"
+    }
+    header_text {
+      translation {
+        text: "Holdeplass flyttet."
+      }
+    }
+    description_text {
+      translation {
+        text: "Holdeplassen flyttet ca 100m nord."
+      }
+    }
+  }
+}
+entity {
+  id: "GCO:SituationNumber:3-0-445-35981-1_4_NSR:Quay:848154_286"
+  alert {
+    active_period {
+      start: 1791903000
+      end: 1791909900
+    }
+    informed_entity {
+      trip {
+        trip_id: "NOR:ServiceJourney:8445_260715142231860_2006"
+        start_date: "20261013"
+      }
+      stop_id: "NSR:Quay:84815"
+    }
+    header_text {
+      translation {
+        text: "Ingen bestilling mottatt"
+      }
+    }
+    description_text {
+      translation {
+        text: "Ingen bestilling mottatt"
+      }
+    }
+  }
+}
+entity {
+  id: "NSB:SituationNumber:261623a2-c651-4457-99ed-969a4d78719d"
+  alert {
+    active_period {
+      start: 1791900836
+      end: 1791918845
+    }
+  }
+}
+entity {
+  id: "GCO:SituationNumber:4-0-960-33166-1_2_trip_286"
+  alert {
+    active_period {
+      start: 1791923400
+      end: 1791924600
+    }
+    informed_entity {
+      trip {
+        trip_id: "ATB:ServiceJourney:960_260106098641651_26"
+        start_date: "20261013"
+      }
+    }
+    header_text {
+      translation {
+        text: "Innstilt"
+      }
+    }
+    description_text {
+      translation {
+        text: "Innstilt grunnet værforhold."
+      }
+    }
+  }
+}
+entity {
+  id: "NSB:SituationNumber:b13ef5df-6acb-4823-92bc-44ed4547acd5"
+  alert {
+    active_period {
+      start: 1791900835
+      end: 1791918837
+    }
+  }
+}
+entity {
+  id: "VYX:SituationNumber:280"
+  alert {
+    active_period {
+      start: 1680559200
+      end: 1823551199
+    }
+    informed_entity {
+      route_id: "VYX:Line:164"
+      stop_id: "NSR:Quay:30529"
+    }
+    header_text {
+      translation {
+        text: "Info S174"
+      }
+    }
+    description_text {
+      translation {
+        text: "I retning Sandefjord lufthavn Torp vil S174 vente på tog som ankommer Torp stasjon."
+      }
+      translation {
+        text: "In the direction of Sandefjord Airport Torp, S174 will wait for trains arriving at Torp station."
+      }
+    }
+  }
+}
+entity {
+  id: "VYG:SituationNumber:et-vehicle-a82a0d57-4bc3-4a84-942a-002c20e6af9b-236-2026-10-13-1"
+  alert {
+    active_period {
+      start: 1791899246
+      end: 1791914306
+    }
+    informed_entity {
+      trip {
+        trip_id: "VYG:ServiceJourney:a82a0d57-4bc3-4a84-942a-002c20e6af9b-236-2026-10-13-1"
+      }
+    }
+    header_text {
+      translation {
+        text: "Vy kjører taxi på strekningen"
+      }
+    }
+    description_text {
+      translation {
+        text: "Vy kjører taxi på strekningen"
+      }
+    }
+  }
+}
+entity {
+  id: "ATB:SituationNumber:26995-stopPoint"
+  alert {
+    active_period {
+      start: 1789458960
+      end: 1811800740
+    }
+    informed_entity {
+      stop_id: "NSR:Quay:74505"
+    }
+    header_text {
+      translation {
+        text: "Dalpro - bussholdeplassen er stengt"
+      }
+    }
+    description_text {
+      translation {
+        text: "Dalpro - bussholdeplassen er stengt"
+      }
+    }
+  }
+}
+entity {
+  id: "NSB:SituationNumber:326ef776-1cf3-4f2c-aa47-c193e15cf287"
+  alert {
+    active_period {
+      start: 1791881090
+      end: 1791909360
+    }
+    informed_entity {
+      trip {
+        trip_id: "VYG:ServiceJourney:2847-HVK_444079-R"
+        start_date: "20261013"
+      }
+    }
+    header_text {
+      translation {
+        text: "Færre vogner"
+      }
+      translation {
+        text: "Fewer carriages"
+      }
+    }
+    description_text {
+      translation {
+        text: "Denne avgangen kjører dessverre med 3 vogner i stedet for 6 vogner. Dette skyldes at vi mangler et togsett."
+      }
+      translation {
+        text: "Unfortunately, this departure runs with 3 carriages instead of 6 carriages. This is because we are a train set short."
+      }
+    }
+  }
+}
+entity {
+  id: "GCO:SituationNumber:3-0-414-37140-1_2_trip_286"
+  alert {
+    active_period {
+      start: 1791912300
+      end: 1791916200
+    }
+    informed_entity {
+      trip {
+        trip_id: "NOR:ServiceJourney:8414_251012124859795_2104"
+        start_date: "20261013"
+      }
+    }
+    header_text {
+      translation {
+        text: "Innstilt"
+      }
+    }
+    description_text {
+      translation {
+        text: "Innstilt grunnet værforhold."
+      }
+    }
+  }
+}
+entity {
+  id: "GCO:SituationNumber:4-0-960-33164-0_2_trip_287"
+  alert {
+    active_period {
+      start: 1791988800
+      end: 1791990000
+    }
+    informed_entity {
+      trip {
+        trip_id: "ATB:ServiceJourney:960_260106098641609_17"
+        start_date: "20261014"
+      }
+    }
+    header_text {
+      translation {
+        text: "Innstilt"
+      }
+    }
+    description_text {
+      translation {
+        text: "Innstilt grunnet værforhold."
+      }
+    }
+  }
+}
+entity {
+  id: "NSB:SituationNumber:6bbd4521-136b-420a-a126-52471b985f28"
+  alert {
+    active_period {
+      start: 1791900835
+      end: 1791918843
+    }
+  }
+}
+entity {
+  id: "NSB:SituationNumber:e4fe95f0-83ae-4db7-b9fe-6531a0f66eca"
+  alert {
+    active_period {
+      start: 1791900836
+      end: 1791918844
+    }
+  }
+}
+entity {
+  id: "RUT:SituationNumber:740615"
+  alert {
+    active_period {
+      start: 1781041500
+      end: 1801184400
+    }
+    informed_entity {
+      route_id: "RUT:Line:3013"
+      stop_id: "NSR:StopPlace:61068"
+    }
+    header_text {
+      translation {
+        text: "Holdeplass Abbediengen betjenes i Sigurd Iversens vei"
+      }
+      translation {
+        text: "The Abbediengen stop is served on Sigurd Iversens vei"
+      }
+    }
+    description_text {
+      translation {
+        text: "Gjelder i retning Skøyen."
+      }
+      translation {
+        text: "Applies in the direction of Skøyen."
+      }
+    }
+  }
+}
+entity {
+  id: "VYG:SituationNumber:et-vehicle-c1c93241-3474-46cb-ada8-0adcceccd1eb-236-2026-10-13-27"
+  alert {
+    active_period {
+      start: 1791922052
+      end: 1791937112
+    }
+    informed_entity {
+      trip {
+        trip_id: "VYG:ServiceJourney:c1c93241-3474-46cb-ada8-0adcceccd1eb-236-2026-10-13-27"
+      }
+    }
+    header_text {
+      translation {
+        text: "Vy kjører taxi på strekningen"
+      }
+    }
+    description_text {
+      translation {
+        text: "Vy kjører taxi på strekningen"
+      }
+    }
+  }
+}
+entity {
+  id: "GCO:SituationNumber:4-0-960-30120-1_2_trip_286"
+  alert {
+    active_period {
+      start: 1791919800
+      end: 1791921000
+    }
+    informed_entity {
+      trip {
+        trip_id: "ATB:ServiceJourney:960_260106098641650_24"
+        start_date: "20261013"
+      }
+    }
+    header_text {
+      translation {
+        text: "Innstilt"
+      }
+    }
+    description_text {
+      translation {
+        text: "Innstilt grunnet værforhold."
+      }
+    }
+  }
+}
+entity {
+  id: "ATB:SituationNumber:27325-stopPoint"
+  alert {
+    active_period {
+      start: 1791301440
+      end: 1798757940
+    }
+    informed_entity {
+      stop_id: "NSR:Quay:72617"
+    }
+    url {
+      translation {
+        text: "https://www.atb.no/driftsmeldinger/#8817913013929a4667335944842365aee5c167c1280e"
+      }
+    }
+    header_text {
+      translation {
+        text: "Weidemannsveien - bussholdeplassen er stengt"
+      }
+    }
+    description_text {
+      translation {
+        text: "Weidemannsveien - bussholdeplassen er stengt"
+      }
+    }
+  }
+}
+entity {
+  id: "VYG:SituationNumber:et-vehicle-c1c93241-3474-46cb-ada8-0adcceccd1eb-236-2026-10-13-10"
+  alert {
+    active_period {
+      start: 1791906752
+      end: 1791921812
+    }
+    informed_entity {
+      trip {
+        trip_id: "VYG:ServiceJourney:c1c93241-3474-46cb-ada8-0adcceccd1eb-236-2026-10-13-10"
+      }
+    }
+    header_text {
+      translation {
+        text: "Vy kjører taxi på strekningen"
+      }
+    }
+    description_text {
+      translation {
+        text: "Vy kjører taxi på strekningen"
+      }
+    }
+  }
+}
+entity {
+  id: "RUT:SituationNumber:823732"
+  alert {
+    active_period {
+      start: 1787115600
+      end: 1792015140
+    }
+    informed_entity {
+      route_id: "RUT:Line:500"
+      stop_id: "NSR:Quay:10179"
+    }
+    informed_entity {
+      route_id: "RUT:Line:3500"
+      stop_id: "NSR:Quay:10179"
+    }
+    header_text {
+      translation {
+        text: "Buss 500 og 500N stopper ikke ved Drøbak kirke i retning mot Oslo"
+      }
+      translation {
+        text: "Bus 500 and 500N not stopping at Drøbak kirke in direction towards Oslo."
+      }
+    }
+    description_text {
+      translation {
+        text: "Nærmeste holdeplass er Drøbak torg. Dette skyldes gravearbeider i Kirkegata"
+      }
+      translation {
+        text: "The nearest stop is Drøbak torg. This is due to road works in Kirkegata."
+      }
+    }
+  }
+}
+entity {
+  id: "GCO:SituationNumber:Torghatten_la_deviation_1RAQz5D8ohVFKHnIwgL6WbLM-la_departure_1pEMOezr0HHhNyN5uAXKiiwI_normal_286"
+  alert {
+    active_period {
+      start: 1791913500
+      end: 1791918900
+    }
+    informed_entity {
+      trip {
+        trip_id: "NOR:ServiceJourney:8782_251012124901493_1110"
+        start_date: "20261013"
+      }
+    }
+    url {
+      translation {
+        text: "https://www.torghatten.no/our-routes/deviations"
+      }
+    }
+    header_text {
+      translation {
+        text: "Rute 18-782: Avgang innstilt"
+      }
+    }
+    description_text {
+      translation {
+        text: "Avgangen kl. 19:45, Røst ferjekai - Værøy ferjekai er innstilt."
+      }
+    }
+  }
+}
+entity {
+  id: "ATB:SituationNumber:27421-stopPoint"
+  alert {
+    active_period {
+      start: 1791899160
+      end: 1791917236
+    }
+    informed_entity {
+      stop_id: "NSR:Quay:75519"
+    }
+    header_text {
+      translation {
+        text: "Stop Byneset kirke is closed."
+      }
+      translation {
+        text: "Byneset kirke - bussholdeplassen er stengt"
+      }
+    }
+    description_text {
+      translation {
+        text: "This is due to __ and will be effective from 2026-10-13 15:46 to 2026-10-13 23:59."
+      }
+      translation {
+        text: "Dette er pga.__og vil starte fra2026-10-13 15:46til2026-10-13 23:59"
+      }
+    }
+  }
+}
+entity {
+  id: "GCO:SituationNumber:1-0-330-39783-1_2_trip_286"
+  alert {
+    active_period {
+      start: 1791902400
+      end: 1791908400
+    }
+    informed_entity {
+      trip {
+        trip_id: "FIN:ServiceJourney:6573"
+        start_date: "20261013"
+      }
+    }
+    header_text {
+      translation {
+        text: "Innstilt"
+      }
+    }
+    description_text {
+      translation {
+        text: "Innstilt grunnet værforhold."
+      }
+    }
+  }
+}
+entity {
+  id: "AKT:SituationNumber:TX1032657"
+  alert {
+    active_period {
+      start: 1791921600
+      end: 1791948600
+    }
+    informed_entity {
+      stop_id: "NSR:Quay:37999"
+    }
+    informed_entity {
+      stop_id: "NSR:Quay:101501"
+    }
+    header_text {
+      translation {
+        text: "Forsinkelser"
+      }
+    }
+    description_text {
+      translation {
+        text: "Forsinkelser kan oppstå grunnet stengt Vesterveien"
+      }
+    }
+  }
+}
+entity {
+  id: "MOR:SituationNumber:9150000040164993"
+  alert {
+    active_period {
+      start: 1789991700
+      end: 1792360740
+    }
+    informed_entity {
+      stop_id: "NSR:Quay:68883"
+    }
+    header_text {
+      translation {
+        text: "Test"
+      }
+    }
+  }
+}
+entity {
+  id: "RUT:SituationNumber:2026-72020-1"
+  alert {
+    active_period {
+      start: 1791900180
+      end: 1791920042
+    }
+    informed_entity {
+      trip {
+        trip_id: "RUT:ServiceJourney:9a4e128f701308433ca19876a4a45ce5"
+      }
+      stop_id: "NSR:Quay:10428"
+    }
+    informed_entity {
+      trip {
+        trip_id: "RUT:ServiceJourney:9a4e128f701308433ca19876a4a45ce5"
+      }
+      stop_id: "NSR:Quay:10441"
+    }
+    informed_entity {
+      trip {
+        trip_id: "RUT:ServiceJourney:9a4e128f701308433ca19876a4a45ce5"
+      }
+      stop_id: "NSR:Quay:10446"
+    }
+    informed_entity {
+      trip {
+        trip_id: "RUT:ServiceJourney:9a4e128f701308433ca19876a4a45ce5"
+      }
+      stop_id: "NSR:Quay:10450"
+    }
+    informed_entity {
+      trip {
+        trip_id: "RUT:ServiceJourney:9a4e128f701308433ca19876a4a45ce5"
+      }
+      stop_id: "NSR:Quay:10516"
+    }
+    informed_entity {
+      trip {
+        trip_id: "RUT:ServiceJourney:9a4e128f701308433ca19876a4a45ce5"
+      }
+      stop_id: "NSR:Quay:10548"
+    }
+    informed_entity {
+      trip {
+        trip_id: "RUT:ServiceJourney:9a4e128f701308433ca19876a4a45ce5"
+      }
+      stop_id: "NSR:Quay:10524"
+    }
+    informed_entity {
+      trip {
+        trip_id: "RUT:ServiceJourney:9a4e128f701308433ca19876a4a45ce5"
+      }
+      stop_id: "NSR:Quay:10529"
+    }
+    informed_entity {
+      trip {
+        trip_id: "RUT:ServiceJourney:9a4e128f701308433ca19876a4a45ce5"
+      }
+      stop_id: "NSR:Quay:10533"
+    }
+    informed_entity {
+      trip {
+        trip_id: "RUT:ServiceJourney:9a4e128f701308433ca19876a4a45ce5"
+      }
+      stop_id: "NSR:Quay:10536"
+    }
+    header_text {
+      translation {
+        text: "Departure does not call from Mortensrud T to Bjørndal"
+      }
+      translation {
+        text: "Avgangen stopper ikke fra Mortensrud T til Bjørndal"
+      }
+    }
+    description_text {
+      translation {
+        text: "The departure from Jernbanetorget at 16:03 in direction Bjørndal does not call from Mortensrud T at 16:24 to Bjørndal at 16:34. This is due to heavy traffic and queues."
+      }
+      translation {
+        text: "Avgangen fra Jernbanetorget kl. 16:03 i retning Bjørndal stopper ikke fra og med Mortensrud T kl. 16:24 til og med Bjørndal kl. 16:34. Dette skyldes mye trafikk og kø."
+      }
+    }
+  }
+}
+entity {
+  id: "VYB:SituationNumber:485"
+  alert {
+    active_period {
+      start: 1773097200
+      end: 1798757999
+    }
+    informed_entity {
+      stop_id: "NSR:Quay:99385"
+    }
+    header_text {
+      translation {
+        text: "Västerås"
+      }
+    }
+    description_text {
+      translation {
+        text: "Nytt holdeplassområde ved Västerås Resecentrum fra 16. mars. Den nye holdeplassen ligger på stasjonens vestside, rett ved jernbanespor 1B. Du finner den ved å følge parkeringsplassen til den bortre enden. "
+      }
+      translation {
+        text: "Nytt hållplatsläge vid Västerås Resecentrum från 16 mars. Den nya hållplatsen är belägen på stationens västra sida, direkt intill järnvägsspår 1B. Du hittar den genom att följa parkeringsplatsen till dess bortre ände."
+      }
+      translation {
+        text: "New bus stop location at Västerås Central Station starting March 16. The new bus stop is located along railway track 1B on the western side of the station building, at the far end of the parking lot."
+      }
+    }
+  }
+}
+entity {
+  id: "NSB:SituationNumber:ac7fb1df-f678-43d7-8c03-7a70ee7d6c48"
+  alert {
+    active_period {
+      start: 1791907056
+      end: 1792010700
+    }
+    informed_entity {
+      trip {
+        trip_id: "VYG:ServiceJourney:232_443727-R"
+        start_date: "20261014"
+      }
+      stop_id: "NSR:StopPlace:302"
+    }
+    informed_entity {
+      trip {
+        trip_id: "VYG:ServiceJourney:232_443727-R"
+        start_date: "20261014"
+      }
+      stop_id: "NSR:StopPlace:15"
+    }
+    informed_entity {
+      trip {
+        trip_id: "VYG:ServiceJourney:232_443727-R"
+        start_date: "20261014"
+      }
+      stop_id: "NSR:StopPlace:67"
+    }
+    informed_entity {
+      trip {
+        trip_id: "VYG:ServiceJourney:232_443727-R"
+        start_date: "20261014"
+      }
+      stop_id: "NSR:StopPlace:105"
+    }
+    informed_entity {
+      trip {
+        trip_id: "VYG:ServiceJourney:232_443727-R"
+        start_date: "20261014"
+      }
+      stop_id: "NSR:StopPlace:478"
+    }
+    informed_entity {
+      trip {
+        trip_id: "VYG:ServiceJourney:232_443727-R"
+        start_date: "20261014"
+      }
+      stop_id: "NSR:StopPlace:336"
+    }
+    informed_entity {
+      trip {
+        trip_id: "VYG:ServiceJourney:232_443727-R"
+        start_date: "20261014"
+      }
+      stop_id: "NSR:StopPlace:338"
+    }
+    informed_entity {
+      trip {
+        trip_id: "VYG:ServiceJourney:232_443727-R"
+        start_date: "20261014"
+      }
+      stop_id: "NSR:StopPlace:494"
+    }
+    header_text {
+      translation {
+        text: "Innstilt Gjøvik–Roa"
+      }
+      translation {
+        text: "Cancelled Gjøvik–Roa"
+      }
+    }
+    description_text {
+      translation {
+        text: "Toget er innstilt mellom Gjøvik og Roa. Dette skyldes arbeid på sporet."
+      }
+      translation {
+        text: "The train has been cancelled between Gjøvik and Roa. This is due to work on the track."
+      }
+    }
+  }
+}

@@ -86,6 +86,17 @@ hivemqMqttClient = "1.4.0"
 # bandwidth of uncompressed connections since September 2026. Its WebSocketServer is also the loopback test
 # server of the aisstream tests.
 javaWebsocket = "1.6.0"
+# GTFS-Realtime bindings of the transit-* sources (070): MobilityData's org.mobilitydata:gtfs-realtime-bindings,
+# Apache-2.0. Verified on Maven Central 2026-10-13: 0.2.0 (2026-07-29) is the latest release; its classes are
+# com.google.transit.realtime.GtfsRealtime, generated from a proto that already has Alert communication_period,
+# impact_period, cause_detail, effect_detail, image and Cause SPECIAL_EVENT. Its only runtime dependency is
+# com.google.protobuf:protobuf-java 4.34.0 (BSD-3-Clause). protobuf-java is pinned to 4.36.1 (verified on Maven Central
+# 2026-10-13), the version NetCDF-Java cdm-core 5.11.0 declares: the Spring Boot 4.1.1 BOM would otherwise resolve
+# 4.35.1, older than cdm-core's, and protobuf accepts a runtime newer than the 4.34.0 the bindings were generated
+# with within major 4. build.gradle.kts overrides the BOM property. The old com.google.transit:gtfs-realtime-bindings
+# stopped at 0.0.4 and is not used.
+gtfsRealtimeBindings = "0.2.0"
+protobufJava = "4.36.1"
 
 [libraries]
 # --- Versions managed by the Spring Boot BOM ---
@@ -156,6 +167,8 @@ orekit = { module = "org.orekit:orekit", version.ref = "orekit" }
 json-path = { module = "com.jayway.jsonpath:json-path", version.ref = "jsonPath" }
 hivemq-mqtt-client-shaded = { module = "com.hivemq:hivemq-mqtt-client-shaded", version.ref = "hivemqMqttClient" }
 java-websocket = { module = "org.java-websocket:Java-WebSocket", version.ref = "javaWebsocket" }
+gtfs-realtime-bindings = { module = "org.mobilitydata:gtfs-realtime-bindings", version.ref = "gtfsRealtimeBindings" }
+protobuf-java = { module = "com.google.protobuf:protobuf-java", version.ref = "protobufJava" }
 
 # --- Test; versions from the Testcontainers BOM where unspecified ---
 testcontainers-bom = { module = "org.testcontainers:testcontainers-bom", version.ref = "testcontainers" }

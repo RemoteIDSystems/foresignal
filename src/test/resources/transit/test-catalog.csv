@@ -1,0 +1,10 @@
+id,provider,location.country_code,entity_type,urls.direct_download,urls.license,static_reference
+mdb-9001,Example Transit Authority,US,vp,https://feeds.example/vp.pb,https://feeds.example/license,mdb-9000
+mdb-9002,Example Transit Authority,US,sa,https://feeds.example/alerts.pb,,mdb-9000
+mdb-9003,Exemple Mobilités,FR,sa|tu|vp,https://exemple.example/gtfs-rt.pb,https://www.etalab.gouv.fr/licence-ouverte-open-licence,
+mdb-9004,Trip Updates Only Co,US,tu,https://feeds.example/tu.pb,,
+mdb-9005,Private Address Bus,DE,vp,https://10.1.2.3/vp.pb,,
+mdb-9006,No Type Lines,CA,,https://notype.example/rt.pb,,
+odpt-Some_City-AllLines-vp,Some City Transport Bureau With A Long Name,JP,vp,https://odpt.example/some-city/very/long/vehicle_positions.pb,,
+bad-row,,US,vp,https://feeds.example/missing-provider.pb,,
+http-row,Plain HTTP,US,vp,http://feeds.example/insecure.pb,,

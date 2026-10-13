@@ -47716,7 +47716,7 @@
                 }
               ]
             },
-            "description": "Read-only search of the vendored CC0 MobilityData snapshot (keyless, active, https GTFS-RT feeds) with whether each feed is already enabled. Feeds are enabled only through the bootstrap property `foresignal.transit.catalog-feeds` and a restart; URLs are never accepted at runtime, so there is no POST.\n\n**Scope:** `admin`.\n\noperationId: `searchTransitCatalog`",
+            "description": "Read-only search of the vendored CC0 MobilityData snapshot (keyless, active, https GTFS-RT feeds) with whether each feed is already enabled. Feeds are enabled only through the bootstrap property `foresignal.transit.catalog-feeds` and a restart; URLs are never accepted at runtime, so there is no POST. Rows are ordered by id; `entityType` matches a row that serves that entity type among others (`tu|vp` matches `vp`). An unknown cursor is `400 INVALID_CURSOR`.\n\n**Scope:** `admin`.\n\noperationId: `searchTransitCatalog`",
             "auth": {
               "type": "bearer",
               "bearer": [

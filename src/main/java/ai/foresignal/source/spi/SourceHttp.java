@@ -52,6 +52,24 @@ public interface SourceHttp {
      */
     UpstreamResponse getConditional(URI uri, String stateKey) throws AdapterException;
 
+    /**
+     * {@link #getConditional(URI, String)} with extra request headers (prompt 070: Entur's mandatory
+     * {@code ET-Client-Name}). The validators and the stored state are exactly those of the two-argument form;
+     * a {@code User-Agent} among {@code headers} is ignored, so the request always carries Foresignal's own.
+     *
+     * <p>The default handles no headers only (a test double); {@code UpstreamClient}'s implementation sends them.
+     *
+     * @param headers extra request headers, possibly empty
+     * @throws UnsupportedOperationException from the default when {@code headers} is not empty
+     */
+    default UpstreamResponse getConditional(URI uri, String stateKey, Map<String, String> headers)
+            throws AdapterException {
+        if (headers == null || headers.isEmpty()) {
+            return getConditional(uri, stateKey);
+        }
+        throw new UnsupportedOperationException("This SourceHttp cannot send extra headers on a conditional GET");
+    }
+
     /** A POST. */
     UpstreamResponse post(URI uri, String contentType, byte[] body, Map<String, String> headers)
             throws AdapterException;

@@ -3322,6 +3322,45 @@ may not be passed to others without Space-Track's approval, so the source is `LO
 served to feeds, sinks, federation or share links. It queries the last hour's TIP messages hourly. Space-Track
 limits TIP to once an hour, or every 10 minutes during a re-entry within 12 hours.
 
+## Transit (prompt 070)
+
+Foresignal ships seven reviewed GTFS-Realtime feeds (`docs/Source-Catalog.md`, "Reviewed transit feeds"): each has a
+`transit-{id}` vehicle source and, where the operator publishes alerts, a `transit-alerts-{id}` source. All are
+disabled until you enable them with `PUT /v1/sources/{id}`. Vehicles are TRACK records with a 5-minute TTL; keep the
+interval at or below 30 s (the default), or shorten the keyframe of the ingest policy with it (225 s at 45 s), because
+`keyframe ≤ ttl − interval − 30 s` must hold. The policy validator checks that only against the default interval, so it
+will not stop a slower interval on its own. The alerts source takes a `language` parameter (default `en`)
+that picks the translation of the alert texts. Entur requires an identifying header; Foresignal sends
+`ET-Client-Name: foresignal-{installId}` automatically.
+
+### Adding a transit feed from the Mobility Database
+
+More keyless feeds can be enabled by id from the vendored Mobility Database snapshot
+(`src/main/resources/transit/mobility-gtfs-rt.csv`; the snapshot date is in the README beside it). Foresignal never
+accepts a transit URL at runtime, so the steps are:
+
+1. **Search.** `GET /v1/transit/catalog?country=FR&q=bus&entityType=vp` (admin token) lists matching rows with their
+   `id`, provider, URL, license URL and whether each is already `enabled`. `entityType` is `vp` (vehicle positions),
+   `sa` (service alerts) or `tu` (trip updates, which Foresignal does not ingest).
+2. **Check the license.** Open the row's `licenseUrl`. When it is empty the catalog does not know the license, and the
+   source's license reads "see provider terms": read the provider's own terms before you enable the feed. Catalog feeds
+   are egress OPEN (their records may be re-served on every path); the per-source license override arrives with
+   prompt 109, so until then do not enable a feed whose terms forbid redistribution.
+3. **Set the property.** Add the ids, comma-separated, to `foresignal.transit.catalog-feeds` (environment variable
+   `FORESIGNAL_TRANSIT_CATALOG_FEEDS`), for example `FORESIGNAL_TRANSIT_CATALOG_FEEDS=mdb-1602,mdb-1603`.
+4. **Restart.** The family reads the property only at startup: a `vp` row becomes `transit-mdb-{id}` and an `sa` row
+   `transit-alerts-mdb-{id}` (a row serving both registers both). The search result's `sourceIds` names them. Each URL
+   must pass the outbound URL policy (public addresses only); a refused URL, an id missing from the snapshot and a
+   trip-updates-only row are skipped with a warning in the log.
+5. **Enable** the new sources with `PUT /v1/sources/{id}` like any other.
+
+Why a restart: the set of transit URLs is fixed when Foresignal starts, and each one came from code or from the
+reviewed snapshot. An API that accepted a feed URL would let any admin-token holder point Foresignal at an arbitrary
+host, which is the open-proxy hole the static feed lists exist to close. Catalog feeds use the header timestamp as
+their time base (their vehicle timestamps are unknown), send no extra headers (an Entur sub-feed listed in the
+catalog may therefore be refused; use `entur-norway` instead), and the snapshot is refreshed only when a developer
+reruns `scripts/update-mobility-catalog.py`.
+
 ## Operating the instance
 
 ### Probes and the compose healthcheck

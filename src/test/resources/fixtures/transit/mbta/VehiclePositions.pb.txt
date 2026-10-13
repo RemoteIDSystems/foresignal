@@ -1,0 +1,895 @@
+header {
+  gtfs_realtime_version: "2.0"
+  incrementality: FULL_DATASET
+  timestamp: 1791908282
+}
+entity {
+  id: "y3202"
+  vehicle {
+    trip {
+      trip_id: "78174219"
+      start_time: "12:15:00"
+      start_date: "20261013"
+      schedule_relationship: SCHEDULED
+      route_id: "85"
+      direction_id: 0
+    }
+    position {
+      latitude: 42.337486
+      longitude: -71.094696
+      bearing: 295.0
+    }
+    current_stop_sequence: 3
+    current_status: IN_TRANSIT_TO
+    timestamp: 1791908276
+    stop_id: "71391"
+    vehicle {
+      id: "y3202"
+      label: "3202"
+    }
+    occupancy_status: MANY_SEATS_AVAILABLE
+    occupancy_percentage: 20
+  }
+}
+entity {
+  id: "G-10038"
+  vehicle {
+    trip {
+      trip_id: "77745752"
+      start_time: "11:31:00"
+      start_date: "20261013"
+      schedule_relationship: SCHEDULED
+      route_id: "Green-B"
+      direction_id: 1
+    }
+    position {
+      latitude: 42.3518
+      longitude: -71.07081
+      bearing: 60.0
+    }
+    current_stop_sequence: 590
+    current_status: INCOMING_AT
+    timestamp: 1791908180
+    stop_id: "70158"
+    vehicle {
+      id: "G-10038"
+      label: "3817-3686"
+    }
+    multi_carriage_details {
+      label: "3817"
+      occupancy_status: NO_DATA_AVAILABLE
+      carriage_sequence: 1
+    }
+    multi_carriage_details {
+      label: "3686"
+      occupancy_status: NO_DATA_AVAILABLE
+      carriage_sequence: 2
+    }
+  }
+}
+entity {
+  id: "y2015"
+  vehicle {
+    trip {
+      trip_id: "78477947"
+      start_time: "11:49:00"
+      start_date: "20261013"
+      schedule_relationship: SCHEDULED
+      route_id: "83"
+      direction_id: 1
+    }
+    position {
+      latitude: 42.36525
+      longitude: -71.10533
+      bearing: 270.0
+    }
+    current_stop_sequence: 25
+    current_status: STOPPED_AT
+    timestamp: 1791908267
+    stop_id: "2444"
+    vehicle {
+      id: "y2015"
+      label: "2015"
+    }
+    occupancy_status: MANY_SEATS_AVAILABLE
+    occupancy_percentage: 0
+  }
+}
+entity {
+  id: "y1788"
+  vehicle {
+    trip {
+      trip_id: "78181576"
+      start_time: "12:20:00"
+      start_date: "20261013"
+      schedule_relationship: SCHEDULED
+      route_id: "43"
+      direction_id: 1
+    }
+    position {
+      latitude: 42.3371
+      longitude: -71.08817
+      bearing: 180.0
+    }
+    current_stop_sequence: 1
+    current_status: STOPPED_AT
+    timestamp: 1791908276
+    stop_id: "17869"
+    vehicle {
+      id: "y1788"
+      label: "1788"
+    }
+    occupancy_status: MANY_SEATS_AVAILABLE
+    occupancy_percentage: 0
+  }
+}
+entity {
+  id: "y1280"
+  vehicle {
+    trip {
+      trip_id: "78591458"
+      start_time: "12:11:00"
+      start_date: "20261013"
+      schedule_relationship: SCHEDULED
+      route_id: "751"
+      direction_id: 1
+    }
+    position {
+      latitude: 42.338787
+      longitude: -71.0737
+      bearing: 16.0
+    }
+    current_stop_sequence: 6
+    current_status: STOPPED_AT
+    timestamp: 1791908277
+    stop_id: "1788"
+    vehicle {
+      id: "y1280"
+      label: "1280"
+    }
+    occupancy_status: MANY_SEATS_AVAILABLE
+    occupancy_percentage: 20
+  }
+}
+entity {
+  id: "y1845"
+  vehicle {
+    trip {
+      trip_id: "78182069"
+      start_time: "11:43:00"
+      start_date: "20261013"
+      schedule_relationship: SCHEDULED
+      route_id: "1"
+      direction_id: 1
+    }
+    position {
+      latitude: 42.33456
+      longitude: -71.07476
+      bearing: 135.0
+    }
+    current_stop_sequence: 18
+    current_status: STOPPED_AT
+    timestamp: 1791908269
+    stop_id: "854"
+    vehicle {
+      id: "y1845"
+      label: "1845"
+    }
+    occupancy_status: FEW_SEATS_AVAILABLE
+    occupancy_percentage: 60
+  }
+}
+entity {
+  id: "y1699"
+  vehicle {
+    trip {
+      trip_id: "78940820"
+      start_time: "12:17:00"
+      start_date: "20261013"
+      schedule_relationship: SCHEDULED
+      route_id: "42"
+      direction_id: 0
+    }
+    position {
+      latitude: 42.32886
+      longitude: -71.08488
+      bearing: 270.0
+    }
+    current_stop_sequence: 2
+    current_status: IN_TRANSIT_TO
+    timestamp: 1791908274
+    stop_id: "1178"
+    vehicle {
+      id: "y1699"
+      label: "1699"
+    }
+    occupancy_status: MANY_SEATS_AVAILABLE
+    occupancy_percentage: 20
+  }
+}
+entity {
+  id: "1833"
+  vehicle {
+    trip {
+      trip_id: "FBWMLConstruction-860273-637"
+      start_time: "11:50:00"
+      start_date: "20261013"
+      schedule_relationship: SCHEDULED
+      route_id: "CR-Needham"
+      direction_id: 0
+    }
+    position {
+      latitude: 42.27942
+      longitude: -71.16844
+      speed: 7.6
+    }
+    current_stop_sequence: 80
+    current_status: IN_TRANSIT_TO
+    timestamp: 1791908274
+    stop_id: "NB-0109-S"
+    vehicle {
+      id: "1833"
+      label: "1833"
+    }
+  }
+}
+entity {
+  id: "y0827"
+  vehicle {
+    trip {
+      trip_id: "78854193"
+      start_time: "12:10:00"
+      start_date: "20261013"
+      schedule_relationship: SCHEDULED
+      route_id: "26"
+      direction_id: 1
+    }
+    position {
+      latitude: 42.290215
+      longitude: -71.07069
+    }
+    current_stop_sequence: 4
+    current_status: STOPPED_AT
+    timestamp: 1791908273
+    stop_id: "371"
+    vehicle {
+      id: "y0827"
+      label: "0827"
+    }
+    occupancy_status: MANY_SEATS_AVAILABLE
+    occupancy_percentage: 0
+  }
+}
+entity {
+  id: "y1863"
+  vehicle {
+    trip {
+      trip_id: "78182078"
+      start_time: "12:19:00"
+      start_date: "20261013"
+      schedule_relationship: SCHEDULED
+      route_id: "1"
+      direction_id: 1
+    }
+    position {
+      latitude: 42.372967
+      longitude: -71.11745
+    }
+    current_stop_sequence: 1
+    current_status: STOPPED_AT
+    timestamp: 1791908268
+    stop_id: "110"
+    vehicle {
+      id: "y1863"
+      label: "1863"
+    }
+    occupancy_status: FEW_SEATS_AVAILABLE
+    occupancy_percentage: 40
+  }
+}
+entity {
+  id: "y1784"
+  vehicle {
+    trip {
+      trip_id: "78182097"
+      start_time: "12:07:00"
+      start_date: "20261013"
+      schedule_relationship: SCHEDULED
+      route_id: "1"
+      direction_id: 1
+    }
+    position {
+      latitude: 42.36323
+      longitude: -71.100075
+    }
+    current_stop_sequence: 8
+    current_status: IN_TRANSIT_TO
+    timestamp: 1791908269
+    stop_id: "73"
+    vehicle {
+      id: "y1784"
+      label: "1784"
+    }
+    occupancy_status: FEW_SEATS_AVAILABLE
+    occupancy_percentage: 60
+  }
+}
+entity {
+  id: "y1832"
+  vehicle {
+    trip {
+      trip_id: "78180813"
+      start_time: "11:40:00"
+      start_date: "20261013"
+      schedule_relationship: SCHEDULED
+      route_id: "11"
+      direction_id: 0
+    }
+    position {
+      latitude: 42.3369
+      longitude: -71.02511
+      bearing: 356.0
+    }
+    current_stop_sequence: 29
+    current_status: STOPPED_AT
+    timestamp: 1791908275
+    stop_id: "30272"
+    vehicle {
+      id: "y1832"
+      label: "1832"
+    }
+    occupancy_status: MANY_SEATS_AVAILABLE
+    occupancy_percentage: 0
+  }
+}
+entity {
+  id: "1821"
+  vehicle {
+    trip {
+      trip_id: "FBWMLConstruction-859784-1065"
+      start_time: "11:45:00"
+      start_date: "20261013"
+      schedule_relationship: SCHEDULED
+      route_id: "CR-Greenbush"
+      direction_id: 0
+    }
+    position {
+      latitude: 42.220314
+      longitude: -70.9189
+      speed: 13.0
+    }
+    current_stop_sequence: 40
+    current_status: IN_TRANSIT_TO
+    timestamp: 1791908274
+    stop_id: "GRB-0162-S"
+    vehicle {
+      id: "1821"
+      label: "1821"
+    }
+  }
+}
+entity {
+  id: "y2028"
+  vehicle {
+    trip {
+      trip_id: "78266636"
+      start_time: "11:42:00"
+      start_date: "20261013"
+      schedule_relationship: SCHEDULED
+      route_id: "104"
+      direction_id: 0
+    }
+    position {
+      latitude: 42.42143
+      longitude: -71.05823
+      bearing: 315.0
+    }
+    current_stop_sequence: 25
+    current_status: STOPPED_AT
+    timestamp: 1791908273
+    stop_id: "5361"
+    vehicle {
+      id: "y2028"
+      label: "2028"
+    }
+    occupancy_status: MANY_SEATS_AVAILABLE
+    occupancy_percentage: 20
+  }
+}
+entity {
+  id: "y3336"
+  vehicle {
+    trip {
+      trip_id: "78517311"
+      start_time: "12:06:00"
+      start_date: "20261013"
+      schedule_relationship: SCHEDULED
+      route_id: "465"
+      direction_id: 0
+    }
+    position {
+      latitude: 42.549793
+      longitude: -70.93176
+    }
+    current_stop_sequence: 16
+    current_status: STOPPED_AT
+    timestamp: 1791908260
+    stop_id: "4614"
+    vehicle {
+      id: "y3336"
+      label: "3336"
+    }
+    occupancy_status: MANY_SEATS_AVAILABLE
+    occupancy_percentage: 20
+  }
+}
+entity {
+  id: "y3141"
+  vehicle {
+    trip {
+      trip_id: "78476548"
+      start_time: "11:55:00"
+      start_date: "20261013"
+      schedule_relationship: SCHEDULED
+      route_id: "69"
+      direction_id: 0
+    }
+    position {
+      latitude: 42.374527
+      longitude: -71.11468
+      bearing: 331.0
+    }
+    current_stop_sequence: 15
+    current_status: STOPPED_AT
+    timestamp: 1791908279
+    stop_id: "2166"
+    vehicle {
+      id: "y3141"
+      label: "3141"
+    }
+    occupancy_status: MANY_SEATS_AVAILABLE
+    occupancy_percentage: 40
+  }
+}
+entity {
+  id: "y2064"
+  vehicle {
+    trip {
+      trip_id: "78477922"
+      start_time: "12:14:00"
+      start_date: "20261013"
+      schedule_relationship: SCHEDULED
+      route_id: "83"
+      direction_id: 1
+    }
+    position {
+      latitude: 42.39249
+      longitude: -71.126
+      bearing: 80.0
+    }
+    current_stop_sequence: 6
+    current_status: IN_TRANSIT_TO
+    timestamp: 1791908278
+    stop_id: "2429"
+    vehicle {
+      id: "y2064"
+      label: "2064"
+    }
+    occupancy_status: MANY_SEATS_AVAILABLE
+    occupancy_percentage: 20
+  }
+}
+entity {
+  id: "y1458"
+  vehicle {
+    trip {
+      trip_id: "78260251"
+      start_time: "12:21:00"
+      start_date: "20261013"
+      schedule_relationship: SCHEDULED
+      route_id: "104"
+      direction_id: 1
+    }
+    position {
+      latitude: 42.42626
+      longitude: -71.07385
+      bearing: 180.0
+    }
+    current_stop_sequence: 1
+    current_status: STOPPED_AT
+    timestamp: 1791908265
+    stop_id: "53270"
+    vehicle {
+      id: "y1458"
+      label: "1458"
+    }
+    occupancy_status: MANY_SEATS_AVAILABLE
+    occupancy_percentage: 0
+  }
+}
+entity {
+  id: "R-548C2630"
+  vehicle {
+    trip {
+      trip_id: "ADDED-1584994783"
+      start_time: "12:12:00"
+      start_date: "20261013"
+      schedule_relationship: ADDED
+      route_id: "Red"
+      direction_id: 1
+    }
+    position {
+      latitude: 42.22099
+      longitude: -71.00101
+      bearing: 330.0
+    }
+    current_stop_sequence: 10
+    current_status: IN_TRANSIT_TO
+    timestamp: 1791908261
+    stop_id: "70104"
+    vehicle {
+      id: "R-548C2630"
+      label: "1861"
+    }
+    multi_carriage_details {
+      label: "1861"
+      occupancy_status: NO_DATA_AVAILABLE
+      carriage_sequence: 1
+    }
+    multi_carriage_details {
+      label: "1860"
+      occupancy_status: NO_DATA_AVAILABLE
+      carriage_sequence: 2
+    }
+    multi_carriage_details {
+      label: "1870"
+      occupancy_status: NO_DATA_AVAILABLE
+      carriage_sequence: 3
+    }
+    multi_carriage_details {
+      label: "1871"
+      occupancy_status: NO_DATA_AVAILABLE
+      carriage_sequence: 4
+    }
+    multi_carriage_details {
+      label: "1878"
+      occupancy_status: NO_DATA_AVAILABLE
+      carriage_sequence: 5
+    }
+    multi_carriage_details {
+      label: "1879"
+      occupancy_status: NO_DATA_AVAILABLE
+      carriage_sequence: 6
+    }
+  }
+}
+entity {
+  id: "G-10162"
+  vehicle {
+    trip {
+      trip_id: "77745566"
+      start_time: "11:49:00"
+      start_date: "20261013"
+      schedule_relationship: SCHEDULED
+      route_id: "Green-D"
+      direction_id: 0
+    }
+    position {
+      latitude: 42.34791
+      longitude: -71.08631
+      bearing: 285.0
+    }
+    current_stop_sequence: 120
+    current_status: STOPPED_AT
+    timestamp: 1791908276
+    stop_id: "70153"
+    vehicle {
+      id: "G-10162"
+      label: "3842-3670"
+    }
+    multi_carriage_details {
+      label: "3842"
+      occupancy_status: NO_DATA_AVAILABLE
+      carriage_sequence: 1
+    }
+    multi_carriage_details {
+      label: "3670"
+      occupancy_status: NO_DATA_AVAILABLE
+      carriage_sequence: 2
+    }
+  }
+}
+entity {
+  id: "y2099"
+  vehicle {
+    trip {
+      trip_id: "78477392"
+      start_time: "11:50:00"
+      start_date: "20261013"
+      schedule_relationship: SCHEDULED
+      route_id: "350"
+      direction_id: 0
+    }
+    position {
+      latitude: 42.48186
+      longitude: -71.187195
+      bearing: 305.0
+    }
+    current_stop_sequence: 38
+    current_status: STOPPED_AT
+    timestamp: 1791908278
+    stop_id: "16881"
+    vehicle {
+      id: "y2099"
+      label: "2099"
+    }
+    occupancy_status: MANY_SEATS_AVAILABLE
+    occupancy_percentage: 40
+  }
+}
+entity {
+  id: "y3354"
+  vehicle {
+    trip {
+      trip_id: "78517231"
+      start_time: "11:47:00"
+      start_date: "20261013"
+      schedule_relationship: SCHEDULED
+      route_id: "116"
+      direction_id: 0
+    }
+    position {
+      latitude: 42.41633
+      longitude: -71.008255
+    }
+    current_stop_sequence: 25
+    current_status: IN_TRANSIT_TO
+    timestamp: 1791908272
+    stop_id: "5768"
+    vehicle {
+      id: "y3354"
+      label: "3354"
+    }
+    occupancy_status: FULL
+    occupancy_percentage: 100
+  }
+}
+entity {
+  id: "y2042"
+  vehicle {
+    trip {
+      trip_id: "78259087"
+      start_time: "12:10:00"
+      start_date: "20261013"
+      schedule_relationship: SCHEDULED
+      route_id: "105"
+      direction_id: 1
+    }
+    position {
+      latitude: 42.425175
+      longitude: -71.06799
+    }
+    current_stop_sequence: 3
+    current_status: IN_TRANSIT_TO
+    timestamp: 1791908278
+    stop_id: "5373"
+    vehicle {
+      id: "y2042"
+      label: "2042"
+    }
+    occupancy_status: MANY_SEATS_AVAILABLE
+    occupancy_percentage: 20
+  }
+}
+entity {
+  id: "y2074"
+  vehicle {
+    trip {
+      trip_id: "78266607"
+      start_time: "12:06:00"
+      start_date: "20261013"
+      schedule_relationship: SCHEDULED
+      route_id: "104"
+      direction_id: 1
+    }
+    position {
+      latitude: 42.417408
+      longitude: -71.04967
+      bearing: 143.0
+    }
+    current_stop_sequence: 10
+    current_status: IN_TRANSIT_TO
+    timestamp: 1791908277
+    stop_id: "5353"
+    vehicle {
+      id: "y2074"
+      label: "2074"
+    }
+    occupancy_status: MANY_SEATS_AVAILABLE
+    occupancy_percentage: 20
+  }
+}
+entity {
+  id: "y1682"
+  vehicle {
+    trip {
+      trip_id: "78941459"
+      start_time: "12:09:00"
+      start_date: "20261013"
+      schedule_relationship: SCHEDULED
+      route_id: "31"
+      direction_id: 0
+    }
+    position {
+      latitude: 42.29304
+      longitude: -71.09649
+      bearing: 160.0
+    }
+    current_stop_sequence: 5
+    current_status: STOPPED_AT
+    timestamp: 1791908275
+    stop_id: "523"
+    vehicle {
+      id: "y1682"
+      label: "1682"
+    }
+    occupancy_status: MANY_SEATS_AVAILABLE
+    occupancy_percentage: 0
+  }
+}
+entity {
+  id: "G-10040"
+  vehicle {
+    trip {
+      trip_id: "77745684"
+      start_time: "11:39:00"
+      start_date: "20261013"
+      schedule_relationship: SCHEDULED
+      route_id: "Green-B"
+      direction_id: 0
+    }
+    position {
+      latitude: 42.34845
+      longitude: -71.13712
+      bearing: 315.0
+    }
+    current_stop_sequence: 240
+    current_status: STOPPED_AT
+    timestamp: 1791908270
+    stop_id: "70127"
+    vehicle {
+      id: "G-10040"
+      label: "3627-3859"
+    }
+    multi_carriage_details {
+      label: "3627"
+      occupancy_status: NO_DATA_AVAILABLE
+      carriage_sequence: 1
+    }
+    multi_carriage_details {
+      label: "3859"
+      occupancy_status: NO_DATA_AVAILABLE
+      carriage_sequence: 2
+    }
+  }
+}
+entity {
+  id: "y2070"
+  vehicle {
+    trip {
+      trip_id: "78266899"
+      start_time: "12:16:00"
+      start_date: "20261013"
+      schedule_relationship: SCHEDULED
+      route_id: "90"
+      direction_id: 1
+    }
+    position {
+      latitude: 42.394173
+      longitude: -71.120995
+      bearing: 131.0
+    }
+    current_stop_sequence: 3
+    current_status: IN_TRANSIT_TO
+    timestamp: 1791908276
+    stop_id: "2674"
+    vehicle {
+      id: "y2070"
+      label: "2070"
+    }
+    occupancy_status: MANY_SEATS_AVAILABLE
+    occupancy_percentage: 20
+  }
+}
+entity {
+  id: "y1409"
+  vehicle {
+    trip {
+      trip_id: "78260714"
+      start_time: "12:10:00"
+      start_date: "20261013"
+      schedule_relationship: SCHEDULED
+      route_id: "101"
+      direction_id: 0
+    }
+    position {
+      latitude: 42.3941
+      longitude: -71.0871
+      bearing: 48.0
+    }
+    current_stop_sequence: 5
+    current_status: IN_TRANSIT_TO
+    timestamp: 1791908279
+    stop_id: "2723"
+    vehicle {
+      id: "y1409"
+      label: "1409"
+    }
+    occupancy_status: MANY_SEATS_AVAILABLE
+    occupancy_percentage: 0
+  }
+}
+entity {
+  id: "y2055"
+  vehicle {
+    trip {
+      trip_id: "78475915"
+      start_time: "12:10:00"
+      start_date: "20261013"
+      schedule_relationship: SCHEDULED
+      route_id: "67"
+      direction_id: 0
+    }
+    position {
+      latitude: 42.410973
+      longitude: -71.1582
+      bearing: 349.0
+    }
+    current_stop_sequence: 5
+    current_status: IN_TRANSIT_TO
+    timestamp: 1791908276
+    stop_id: "23532"
+    vehicle {
+      id: "y2055"
+      label: "2055"
+    }
+    occupancy_status: MANY_SEATS_AVAILABLE
+    occupancy_percentage: 20
+  }
+}
+entity {
+  id: "G-10068"
+  vehicle {
+    trip {
+      trip_id: "77745564"
+      start_time: "11:57:00"
+      start_date: "20261013"
+      schedule_relationship: SCHEDULED
+      route_id: "Green-D"
+      direction_id: 0
+    }
+    position {
+      latitude: 42.35929
+      longitude: -71.05951
+      bearing: 215.0
+    }
+    current_stop_sequence: 60
+    current_status: INCOMING_AT
+    timestamp: 1791908205
+    stop_id: "70198"
+    vehicle {
+      id: "G-10068"
+      label: "3886-3704"
+    }
+    multi_carriage_details {
+      label: "3886"
+      occupancy_status: NO_DATA_AVAILABLE
+      carriage_sequence: 1
+    }
+    multi_carriage_details {
+      label: "3704"
+      occupancy_status: NO_DATA_AVAILABLE
+      carriage_sequence: 2
+    }
+  }
+}

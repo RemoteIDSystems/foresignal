@@ -1,0 +1,6360 @@
+header {
+  gtfs_realtime_version: "2.0"
+  incrementality: FULL_DATASET
+  timestamp: 1791908252
+}
+entity {
+  id: "1000001"
+  alert {
+    active_period {
+      start: 1752760920
+    }
+    informed_entity {
+      agency_id: "1"
+      route_id: "CR-Providence"
+      route_type: 2
+      stop_id: "NEC-1851-03"
+    }
+    informed_entity {
+      agency_id: "1"
+      route_id: "CR-Providence"
+      route_type: 2
+      stop_id: "place-NEC-1851"
+    }
+    cause: UNKNOWN_CAUSE
+    effect: UNKNOWN_EFFECT
+    url {
+      translation {
+        text: "https://www.dot.ri.gov/projects/PVDStation/index.php"
+        language: "en"
+      }
+      translation {
+        text: "https://www.dot.ri.gov/projects/PVDStation/index.php?locale=es-419"
+        language: "es-419"
+      }
+      translation {
+        text: "https://www.dot.ri.gov/projects/PVDStation/index.php?locale=pt-BR"
+        language: "pt-BR"
+      }
+      translation {
+        text: "https://www.dot.ri.gov/projects/PVDStation/index.php?locale=fr-FR"
+        language: "fr-FR"
+      }
+      translation {
+        text: "https://www.dot.ri.gov/projects/PVDStation/index.php?locale=ht-HT"
+        language: "ht-HT"
+      }
+      translation {
+        text: "https://www.dot.ri.gov/projects/PVDStation/index.php?locale=zh-CN"
+        language: "zh-CN"
+      }
+      translation {
+        text: "https://www.dot.ri.gov/projects/PVDStation/index.php?locale=vi-VN"
+        language: "vi-VN"
+      }
+      translation {
+        text: "https://www.dot.ri.gov/projects/PVDStation/index.php?locale=zh-TW"
+        language: "zh-TW"
+      }
+    }
+    header_text {
+      translation {
+        text: "To accommodate renovations at Providence Station, construction barriers have been installed and the southern stairwell to Track 1 is out of service. Staircase access is available to Track 3 and Track 5."
+        language: "en"
+      }
+      translation {
+        text: "Para acomodar las reformas en Providence Estación, se instalaron barreras de construcción y la escalera sur hacia la vía 1 es Fuera de servicio. El acceso por escaleras está disponible a las vías 3 y 5."
+        language: "es-419"
+      }
+      translation {
+        text: "Para acomodar as reformas na Estação Providence , foram instaladas barreiras de obras e a escada sul da Pista 1 é fora de serviço. O acesso às pistas 3 e 5 é feito por escadas."
+        language: "pt-BR"
+      }
+      translation {
+        text: "Pour permettre les rénovations sur Providence Station, des barrières de travaux ont été installées et la cage d'escalier sud de la voie 1 est hors service. Des escaliers permettent d'accéder aux voies 3 et 5."
+        language: "fr-FR"
+      }
+      translation {
+        text: "Pou fè renovasyon nan Estasyon Providence, yo enstale baryè konstriksyon epi eskalye sid ki mennen nan Ray 1 an pa an sèvis. Gen eskalye pou monte sou Ray 3 ak Ray 5."
+        language: "ht-HT"
+      }
+      translation {
+        text: "为了适应Providence车站的翻修工程，建筑施工屏障已经安装，通往 1 号轨道的南楼梯间暂停服务。 楼梯可通往 3 号和 5 号轨道。"
+        language: "zh-CN"
+      }
+      translation {
+        text: "Để phù hợp với việc cải tạo tại Nhà ga Providence , các rào chắn động thi công đã được lắp đặt và cầu thang phía nam tới Đường 1 đang hoạt động liên tục. Lối vào cầu thang có sẵn cho Đường 3 và Đường 5."
+        language: "vi-VN"
+      }
+      translation {
+        text: "為了配合Providence 車站的翻新工程，已安裝了建築施工障礙物，通往 1 號軌道的南側樓梯間已暫停服務。 3 號軌道和 5 號軌道有樓梯通道。"
+        language: "zh-TW"
+      }
+    }
+    description_text {
+      translation {
+        text: "Affected lines:\nFoxboro Event Service\nProvidence/Stoughton Line"
+        language: "en"
+      }
+      translation {
+        text: "Líneas afectadas:\nFoxboro Event Service\nProvidence/Stoughton Line"
+        language: "es-419"
+      }
+      translation {
+        text: "Linhas afetadas:\nFoxboro Event Service\nProvidence/Stoughton Line"
+        language: "pt-BR"
+      }
+      translation {
+        text: "Lignes concernées :\nFoxboro Event Service\nProvidence/Stoughton Line"
+        language: "fr-FR"
+      }
+      translation {
+        text: "Liy ki afekte yo:\n Foxboro Event Service\n Providence/Stoughton Line"
+        language: "ht-HT"
+      }
+      translation {
+        text: "受影响的线路：\nFoxboro Event Service\nProvidence/Stoughton Line"
+        language: "zh-CN"
+      }
+      translation {
+        text: "Các dòng bị ảnh hưởng:\nFoxboro Event Service\nProvidence/Stoughton Line"
+        language: "vi-VN"
+      }
+      translation {
+        text: "受影響的線條：\nFoxboro Event Service\nProvidence/Stoughton Line"
+        language: "zh-TW"
+      }
+    }
+    severity_level: INFO
+    cause_detail {
+      translation {
+        text: "UNKNOWN_CAUSE"
+        language: "en"
+      }
+    }
+    effect_detail {
+      translation {
+        text: "STATION_ISSUE"
+        language: "en"
+      }
+    }
+  }
+}
+entity {
+  id: "1000002"
+  alert {
+    active_period {
+      start: 1740769620
+    }
+    informed_entity {
+      agency_id: "1"
+      route_id: "CR-Worcester"
+      route_type: 2
+      stop_id: "WML-0147-01"
+    }
+    informed_entity {
+      agency_id: "1"
+      route_id: "CR-Worcester"
+      route_type: 2
+      stop_id: "WML-0147-02"
+    }
+    informed_entity {
+      agency_id: "1"
+      route_id: "CR-Worcester"
+      route_type: 2
+      stop_id: "place-WML-0147"
+    }
+    cause: UNKNOWN_CAUSE
+    effect: UNKNOWN_EFFECT
+    header_text {
+      translation {
+        text: "There is no accessible path connecting the inbound and outbound platforms at Wellesley Square Station. The existing path includes steep slopes and is long. Designs are underway to provide for a fully compliant pathway."
+        language: "en"
+      }
+      translation {
+        text: "No hay un camino accesible que conecte los andenes de entrada y salida en la estación de Wellesley Square. El sendero actual tiene pendientes pronunciadas y es largo. Se están diseñando para proporcionar una vía totalmente conforme."
+        language: "es-419"
+      }
+      translation {
+        text: "Não existe um caminho acessível que ligue as plataformas do sentido centro e do sentido bairro na estação Wellesley Square. O percurso existente inclui declives acentuados e é longo. Estão em andamento projetos para garantir um percurso totalmente em conformidade com as normas."
+        language: "pt-BR"
+      }
+      translation {
+        text: "Il n'y a pas de chemin accessible reliant les quais À l’arrivée et En partance de la Station de Wellesley Square. Le chemin existant comporte des pentes raides et est long. Des projets sont en cours pour mettre en place un parcours entièrement conforme."
+        language: "fr-FR"
+      }
+      translation {
+        text: "Pa gen okenn chemen aksesib ki konekte platfòm Rive ak Derape yo nan estasyon Wellesley Square. Chemen ki egziste a gen pant apik epi li long. Desen yo ap fèt pou bay yon chemen ki konfòm nèt."
+        language: "ht-HT"
+      }
+      translation {
+        text: "在Wellesley Square车站没有连接进站和出站站台的无障碍路径。现有的道路坡度大、长度长。目前正在进行设计，以提供一条完全合规的通道。"
+        language: "zh-CN"
+      }
+      translation {
+        text: "Không có con đường có thể tiếp cận được kết nối các sân ga vào và ra tại Ga Wellesley Square. Con đường hiện có bao gồm các sườn dốc và dài. Các thiết kế đang được tiến hành để cung cấp một con đường tuân thủ đầy đủ."
+        language: "vi-VN"
+      }
+      translation {
+        text: "Wellesley Square 車站沒有連接進站和出站月臺的無障礙通道。現有的道路包括陡峭的斜坡，而且路途遙遠。目前正在進行設計，以提供完全符合規定的通道。"
+        language: "zh-TW"
+      }
+    }
+    description_text {
+      translation {
+        text: "There are accessible mini-high platforms at the western end of both the Track 1 and Track 2 sides. However, the existing pedestrian path between the two sides is long and includes steep slopes, especially on the Crest Road bridge over the tracks. Designs are underway to provide for a fully compliant pathway."
+        language: "en"
+      }
+      translation {
+        text: "Hay un mini andén de alta altitud accesible en el extremo occidental de ambos lados de la Vía 1 y la Vía 2. Sin embargo, el camino peatonal existente entre ambos lados es largo e incluye pendientes pronunciadas, especialmente en el puente de Crest Road sobre las vías. Se están diseñando para proporcionar una vía totalmente conforme."
+        language: "es-419"
+      }
+      translation {
+        text: "Existem plataformas elevadas de acesso facilitado na extremidade oeste dos lados da Pista 1 e da Pista 2. No entanto, o caminho pedonal existente entre os dois lados é longo e inclui declives acentuados, especialmente na ponte da Crest Road sobre os trilhos. Estão em andamento projetos para garantir um percurso totalmente em conformidade com as normas."
+        language: "pt-BR"
+      }
+      translation {
+        text: "Il y a des mini-quais de accessible s à l'extrémité ouest des côtés des voies 1 et 2. Cependant, le chemin piétonnier existant entre les deux rives est long et comporte des pentes raides, notamment sur le pont de Crest Road qui enjambe la voie ferrée. Les travaux de conception sont en cours afin de mettre en place un parcours entièrement conforme."
+        language: "fr-FR"
+      }
+      translation {
+        text: "Genyen mini platfòm wo aksesib nan bout lwès tou de bò Ray 1 ak Ray 2 yo. Sepandan, chemen pyeton ki egziste deja ant de bò yo a long epi li gen pant apik, sitou sou pon Crest Road ki anlè ray tren yo. Desen yo ap fèt pou bay yon chemen ki konfòm nèt."
+        language: "ht-HT"
+      }
+      translation {
+        text: "1 号轨道和 2 号轨道西端均设有无障碍迷你高站台。然而，目前连接两侧的人行道路程较长，且包含陡坡，尤其是跨越铁轨的克雷斯特路桥段。目前正在进行设计工作，以建立一条完全符合规范的通道。"
+        language: "zh-CN"
+      }
+      translation {
+        text: "Có thể tiếp cận sân ga mini-high ở đầu phía tây của cả hai mặt Đường 1 và Đường 2. Tuy nhiên, con đường dành cho người đi bộ hiện có giữa hai bên là dài và bao gồm các sườn dốc, đặc biệt là trên cầu Crest Road bắc qua đường ray. Các thiết kế đang được tiến hành để cung cấp một con đường tuân thủ đầy đủ."
+        language: "vi-VN"
+      }
+      translation {
+        text: "1號及2號月台的西端均設有無障礙小型月台。 然而，兩側之間現有的行人步道路程較長，且包含陡坡，特別是在跨越鐵軌的克雷斯特路橋上。目前正在進行相關規劃，以建立一條完全符合規範的通道。"
+        language: "zh-TW"
+      }
+    }
+    severity_level: INFO
+    cause_detail {
+      translation {
+        text: "UNKNOWN_CAUSE"
+        language: "en"
+      }
+    }
+    effect_detail {
+      translation {
+        text: "STATION_ISSUE"
+        language: "en"
+      }
+    }
+  }
+}
+entity {
+  id: "1000003"
+  alert {
+    active_period {
+      start: 1738784940
+    }
+    informed_entity {
+      agency_id: "1"
+      route_id: "CR-Fitchburg"
+      route_type: 2
+      stop_id: "FR-0301-01"
+    }
+    informed_entity {
+      agency_id: "1"
+      route_id: "CR-Fitchburg"
+      route_type: 2
+      stop_id: "FR-0301-02"
+    }
+    informed_entity {
+      agency_id: "1"
+      route_id: "CR-Fitchburg"
+      route_type: 2
+      stop_id: "place-FR-0301"
+    }
+    cause: UNKNOWN_CAUSE
+    effect: UNKNOWN_EFFECT
+    header_text {
+      translation {
+        text: "Littleton/Route 495 passengers can expect occasional traffic and detours when accessing the station due to the Foster Street reconstruction work."
+        language: "en"
+      }
+      translation {
+        text: "Littleton/Route 495 pasajero puede esperar tránsito ocasional y desvíos al acceder a la estación debido a las obras de reconstrucción de Foster Street."
+        language: "es-419"
+      }
+      translation {
+        text: "O passageiro Littleton/Route 495 pode esperar trânsito e desvios ocasionais ao acessar a estação devido às obras de reconstrução da Foster Street."
+        language: "pt-BR"
+      }
+      translation {
+        text: "Les passagers Littleton/Route 495 peuvent s'attendre à des ralentissements et à des déviations occasionnelles lors de l'accès à la station en raison des travaux de reconstruction de Foster Street."
+        language: "fr-FR"
+      }
+      translation {
+        text: "Ou ka atann trafik ak devyasyon detanzantan sou pasaj Littleton/Route 495 akòz travay rekonstriksyon Foster Street la."
+        language: "ht-HT"
+      }
+      translation {
+        text: "由于福斯特街重建工作Littleton/Route 495乘客在前往车站时可能会遇到偶尔的交通和绕行。"
+        language: "zh-CN"
+      }
+      translation {
+        text: "Khách hàng Littleton/Route 495 thỉnh thoảng có thể phải giao thông và đường vòng khi vào nhà ga do công trình tái thiết Phố Foster."
+        language: "vi-VN"
+      }
+      translation {
+        text: "Littleton/Route 495 由於福斯特街正在進行重建工程，乘客前往車站時可能會遇到偶發的交通阻塞及改道情況。"
+        language: "zh-TW"
+      }
+    }
+    description_text {
+      translation {
+        text: "Scheduled to complete sometime in 2027, the reconstruction of Foster Street includes widening and resurfacing, with the addition of bicycle lanes."
+        language: "en"
+      }
+      translation {
+        text: "Prevista para finalizar en algún momento de 2027, la reconstrucción de Foster Street incluye ensanchamiento y reasfaltado, con la incorporación de carriles bici."
+        language: "es-419"
+      }
+      translation {
+        text: "Com previsão de conclusão em algum momento de 2027, a reconstrução da Rua Foster inclui o alargamento e recapeamento da via, com a adição de ciclovias."
+        language: "pt-BR"
+      }
+      translation {
+        text: "Prévue pour s’achever en 2027, la reconstruction de Foster Street comprend l’élargissement et la resurfaçage, avec l’ajout de pistes cyclables."
+        language: "fr-FR"
+      }
+      translation {
+        text: "Rekonstriksyon Foster Street la, ki prevwa pou fini nan lane 2027, gen ladan l elajisman ak resifasaj, ansanm ak adisyon liy bisiklèt."
+        language: "ht-HT"
+      }
+      translation {
+        text: "福斯特街的重建工程计划于 2027 年完成，包括拓宽和重新铺设路面，并增设自行车道。"
+        language: "zh-CN"
+      }
+      translation {
+        text: "Dự kiến hoàn thành vào năm 2027, việc tái thiết Phố Foster bao gồm mở rộng và tái tạo bề mặt, với việc bổ sung làn đường dành cho xe đạp."
+        language: "vi-VN"
+      }
+      translation {
+        text: "福斯特街的重建工程計劃於 2027 年完成，包括拓寬和重新鋪設路面，並增設自行車道。"
+        language: "zh-TW"
+      }
+    }
+    severity_level: INFO
+    cause_detail {
+      translation {
+        text: "UNKNOWN_CAUSE"
+        language: "en"
+      }
+    }
+    effect_detail {
+      translation {
+        text: "STATION_ISSUE"
+        language: "en"
+      }
+    }
+  }
+}
+entity {
+  id: "1000004"
+  alert {
+    active_period {
+      start: 1688153340
+    }
+    informed_entity {
+      agency_id: "1"
+      route_id: "CR-NewBedford"
+      route_type: 2
+      stop_id: "MM-0219-S"
+    }
+    informed_entity {
+      agency_id: "1"
+      route_id: "CR-NewBedford"
+      route_type: 2
+      stop_id: "place-MM-0219"
+    }
+    cause: UNKNOWN_CAUSE
+    effect: UNKNOWN_EFFECT
+    header_text {
+      translation {
+        text: "The Riverside Ave entrance at Campello Station is currently closed. Passengers may continue to use the Plain St entrance."
+        language: "en"
+      }
+      translation {
+        text: "La entrada de Riverside Ave en la estación Campello está actualmente cerrada. Los pasajeros pueden seguir empleando la entrada de Plain St."
+        language: "es-419"
+      }
+      translation {
+        text: "A entrada da Avenida Riverside na Estação Campello está atualmente fechada. Os passageiros podem continuar a usar a entrada da Plain St."
+        language: "pt-BR"
+      }
+      translation {
+        text: "L'entrée de l'avenue Riverside à la station Campello est actuellement fermée. Les passagers peuvent continuer à utiliser l'entrée de la rue Plain."
+        language: "fr-FR"
+      }
+      translation {
+        text: "Antre Riverside Ave nan Estasyon Campello a fèmen kounye a. Pasaje yo ka kontinye itilize antre Plain St la."
+        language: "ht-HT"
+      }
+      translation {
+        text: "Campello Station的Riverside Ave入口目前已关闭。乘客可以继续使用普莱恩街入口。"
+        language: "zh-CN"
+      }
+      translation {
+        text: "Lối vào Riverside Ave tại Nhà ga Campello hiện đang đã đóng. Hành khách có thể tiếp tục sử dụng lối vào Plain St."
+        language: "vi-VN"
+      }
+      translation {
+        text: "Campello Station 的 Riverside Ave 入口目前關閉。乘客可繼續使用平原街入口。"
+        language: "zh-TW"
+      }
+    }
+    description_text {
+      translation {
+        text: "Affected lines:\nFall River/New Bedford Line"
+        language: "en"
+      }
+      translation {
+        text: "Líneas afectadas:\nFall River/New Bedford Line"
+        language: "es-419"
+      }
+      translation {
+        text: "Linhas afetadas:\nFall River/New Bedford Line"
+        language: "pt-BR"
+      }
+      translation {
+        text: "Lignes concernées :\nFall River/New Bedford Line"
+        language: "fr-FR"
+      }
+      translation {
+        text: "Liy ki afekte yo:\n Fall River/New Bedford Line"
+        language: "ht-HT"
+      }
+      translation {
+        text: "受影响的线路：\nFall River/New Bedford Line"
+        language: "zh-CN"
+      }
+      translation {
+        text: "Các dòng bị ảnh hưởng:\nFall River/New Bedford Line"
+        language: "vi-VN"
+      }
+      translation {
+        text: "受影響的線條：\nFall River/New Bedford Line"
+        language: "zh-TW"
+      }
+    }
+    severity_level: INFO
+    cause_detail {
+      translation {
+        text: "UNKNOWN_CAUSE"
+        language: "en"
+      }
+    }
+    effect_detail {
+      translation {
+        text: "STATION_ISSUE"
+        language: "en"
+      }
+    }
+  }
+}
+entity {
+  id: "1001042"
+  alert {
+    active_period {
+      start: 1773255499
+    }
+    informed_entity {
+      route_id: "CR-Providence"
+      route_type: 2
+      stop_id: "NEC-1659-03"
+    }
+    informed_entity {
+      route_id: "CR-Providence"
+      route_type: 2
+      stop_id: "NEC-1659-B"
+    }
+    informed_entity {
+      route_id: "CR-Providence"
+      route_type: 2
+      stop_id: "place-NEC-1659"
+    }
+    cause: UNKNOWN_CAUSE
+    effect: OTHER_EFFECT
+    header_text {
+      translation {
+        text: "From March through June, 2026, Wickford Junction Garage will be undergoing renovation. Visitors can expect one level at a time to be inaccessible as crews work to complete each floor. "
+        language: "en"
+      }
+      translation {
+        text: "De marzo a junio de 2026, el Garage Wickford Junction estará en proceso de renovación. Los visitantes pueden esperar que un nivel a la vez sea inaccesible mientras los equipos trabajan para completar cada planta."
+        language: "es-419"
+      }
+      translation {
+        text: "De Março a Junho de 2026, a Wickford Junction Garage estará em reforma. Os visitantes podem esperar que um andar de cada vez fique inacessível enquanto as equipes trabalham para concluir cada piso."
+        language: "pt-BR"
+      }
+      translation {
+        text: "De mars à juin 2026, le garage Wickford Junction sera en cours de rénovation. Les visiteurs peuvent s'attendre à ce qu'un niveau à la fois soit inaccessible pendant que les équipes travaillent à l'achèvement de chaque étage."
+        language: "fr-FR"
+      }
+      translation {
+        text: "Soti mas rive jen 2026, Wickford Junction Garage an pral anba renovasyon. Vizitè yo ka atann yon nivo alafwa ki p ap aksesib pandan ekip yo ap travay pou fini chak etaj."
+        language: "ht-HT"
+      }
+      translation {
+        text: "从2026年3月到6月，Wickford Junction Garage将进行翻新。在工作人员完成每一层的施工过程中，游客可能会发现每一层都无法进入。"
+        language: "zh-CN"
+      }
+      translation {
+        text: "Từ tháng 3 đến tháng 6 năm 2026, Wickford Junction Garage sẽ được cải tạo. Du khách có thể mong đợi một tầng tại một thời điểm không thể tiếp cận được khi các đội làm việc để hoàn thành từng tầng."
+        language: "vi-VN"
+      }
+      translation {
+        text: "從 2026 年 3 月到 6 月，Wickford Junction Garage 將進行翻新。在工作人員完成每層樓的施工時，遊客可以預期每層樓都無法進入。"
+        language: "zh-TW"
+      }
+    }
+    severity_level: SEVERE
+    cause_detail {
+      translation {
+        text: "UNKNOWN_CAUSE"
+        language: "en"
+      }
+    }
+    effect_detail {
+      translation {
+        text: "PARKING_ISSUE"
+        language: "en"
+      }
+    }
+  }
+}
+entity {
+  id: "1001814"
+  alert {
+    active_period {
+      start: 1758956400
+    }
+    informed_entity {
+      agency_id: "1"
+      route_id: "Orange"
+      route_type: 1
+      stop_id: "70006"
+    }
+    informed_entity {
+      agency_id: "1"
+      route_id: "Orange"
+      route_type: 1
+      stop_id: "70007"
+    }
+    informed_entity {
+      agency_id: "1"
+      route_id: "Orange"
+      route_type: 1
+      stop_id: "place-jaksn"
+    }
+    cause: UNKNOWN_CAUSE
+    effect: UNKNOWN_EFFECT
+    url {
+      translation {
+        text: "http://www.mbta.com/JacksonSquare"
+        language: "en"
+      }
+      translation {
+        text: "http://www.mbta.com/JacksonSquare?locale=es-419"
+        language: "es-419"
+      }
+      translation {
+        text: "http://www.mbta.com/JacksonSquare?locale=pt-BR"
+        language: "pt-BR"
+      }
+      translation {
+        text: "http://www.mbta.com/JacksonSquare?locale=fr-FR"
+        language: "fr-FR"
+      }
+      translation {
+        text: "http://www.mbta.com/JacksonSquare?locale=ht-HT"
+        language: "ht-HT"
+      }
+      translation {
+        text: "http://www.mbta.com/JacksonSquare?locale=zh-CN"
+        language: "zh-CN"
+      }
+      translation {
+        text: "http://www.mbta.com/JacksonSquare?locale=vi-VN"
+        language: "vi-VN"
+      }
+      translation {
+        text: "http://www.mbta.com/JacksonSquare?locale=zh-TW"
+        language: "zh-TW"
+      }
+    }
+    header_text {
+      translation {
+        text: "The platform at Jackson Square is undergoing renovations to improve safety and accessibility. Sections of the platform are unlevel, which may make it difficult for some riders to board and exit trains."
+        language: "en"
+      }
+      translation {
+        text: "El andén de Jackson Square está siendo renovado para mejorar la seguridad y la accesibilidad. Algunas secciones del andén no están niveladas, lo que puede dificultar que algunos pasajeros suban y bajen de los trenes."
+        language: "es-419"
+      }
+      translation {
+        text: "A plataforma da estação Jackson Square está passando por reformas para melhorar a segurança e a acessibilidade. Algumas partes da plataforma são desniveladas, o que pode dificultar o embarque e o desembarque de alguns passageiros."
+        language: "pt-BR"
+      }
+      translation {
+        text: "Le quai de Jackson Square est en cours de rénovation pour améliorer la sécurité et l'accessibilité. Certaines sections du quai ne sont pas de niveau, ce qui peut rendre difficile de monter à bord et de sortir de certains passagers."
+        language: "fr-FR"
+      }
+      translation {
+        text: "Platfòm nan Jackson Square ap sibi renovasyon pou amelyore sekirite ak aksesibilite. Gen seksyon nan platfòm lan ki pa plat, sa ki ka fè li difisil pou kèk pasaje monte epi desann nan tren yo."
+        language: "ht-HT"
+      }
+      translation {
+        text: "Jackson Square的站台正在进行翻新，以提高安全性和无障碍性。站台的部分路段不平坦，这可能会使一些乘客难以上车和下车。"
+        language: "zh-CN"
+      }
+      translation {
+        text: "Sân ga tại Jackson Square đang được cải tạo để cải thiện sự an toàn và khả năng tiếp cận. Các phần của sân ga không bằng phẳng, điều này có thể gây khó khăn cho một số hành khách lên và ra khỏi tàu."
+        language: "vi-VN"
+      }
+      translation {
+        text: "Jackson Square的平台正在進行翻新，以提高安全性和無障礙。月臺的部分不平坦，這可能會使某些乘客難上車和離開火車。"
+        language: "zh-TW"
+      }
+    }
+    description_text {
+      translation {
+        text: "Please see station personnel or use a station call box to request assistance."
+        language: "en"
+      }
+      translation {
+        text: "Por favor, consulte al personal de la estación o emplee una cabina telefónica para aplicar asistencia."
+        language: "es-419"
+      }
+      translation {
+        text: "Por favor, dirija-se a um funcionário da estação ou utilize o interfone da estação para solicitar assistência."
+        language: "pt-BR"
+      }
+      translation {
+        text: "Veuillez vous adresser au personnel de la station ou utiliser la boîte d'appel de la station pour demander de l'aide."
+        language: "fr-FR"
+      }
+      translation {
+        text: "Tanpri al wè pèsonèl estasyon an oubyen itilize yon bwat apèl estasyon an pou mande asistans."
+        language: "ht-HT"
+      }
+      translation {
+        text: "请咨询车站工作人员或使用车站呼叫箱寻求帮助。"
+        language: "zh-CN"
+      }
+      translation {
+        text: "Vui lòng gặp nhân viên Nhà ga hoặc sử dụng hộp gọi Nhà ga để yêu cầu hỗ trợ."
+        language: "vi-VN"
+      }
+      translation {
+        text: "請洽詢車站人員或使用電台呼叫箱尋求協助。"
+        language: "zh-TW"
+      }
+    }
+    severity_level: INFO
+    cause_detail {
+      translation {
+        text: "UNKNOWN_CAUSE"
+        language: "en"
+      }
+    }
+    effect_detail {
+      translation {
+        text: "STATION_ISSUE"
+        language: "en"
+      }
+    }
+  }
+}
+entity {
+  id: "1001815"
+  alert {
+    active_period {
+      start: 1621976880
+    }
+    informed_entity {
+      route_id: "741"
+      route_type: 3
+      stop_id: "74612"
+    }
+    informed_entity {
+      route_id: "741"
+      route_type: 3
+      stop_id: "place-crtst"
+    }
+    informed_entity {
+      route_id: "742"
+      route_type: 3
+      stop_id: "74612"
+    }
+    informed_entity {
+      route_id: "742"
+      route_type: 3
+      stop_id: "place-crtst"
+    }
+    informed_entity {
+      route_id: "743"
+      route_type: 3
+      stop_id: "74612"
+    }
+    informed_entity {
+      route_id: "743"
+      route_type: 3
+      stop_id: "place-crtst"
+    }
+    cause: MAINTENANCE
+    effect: ACCESSIBILITY_ISSUE
+    header_text {
+      translation {
+        text: "Courthouse Escalator 415 (Airport/Design Center platform to lobby) unavailable due to ongoing construction at the station."
+        language: "en"
+      }
+      translation {
+        text: "Courthouse Escalator 415 (Airport/Design Center platform to lobby) no disponible debido a construcción en curso en la estación."
+        language: "es-419"
+      }
+      translation {
+        text: "A escada rolante 415 do Courthouse (plataforma Airport/Design Center para o saguão) está indisponível devido a obras em andamento na Estação."
+        language: "pt-BR"
+      }
+      translation {
+        text: "L'escalator 415 du Courthouse (de la plate-forme de l'Airport/du Design Center au hall d'entrée) n'est pas disponible en raison des travaux de construction en cours à la station."
+        language: "fr-FR"
+      }
+      translation {
+        text: "Courthouse Eskalatè nimewo 415 la (platfòm Airport/Design Center pou ale nan lobi a) pa disponib akòz konstriksyon k ap kontinye nan estasyon an."
+        language: "ht-HT"
+      }
+      translation {
+        text: "由于车站正在施工，Courthouse Ecalator 415（Airport/Design Center到大厅的站台）不可使用。"
+        language: "zh-CN"
+      }
+      translation {
+        text: "Thang cuốn Courthouse 415 (Airport/Design Center platform đến sảnh) không có sẵn do đang diễn ra động thi công tại Nhà ga."
+        language: "vi-VN"
+      }
+      translation {
+        text: "Courthouse Escalator 415 (Airport/Design Center 月臺到大堂) 由於車站正在進行建築施工，不可使用。"
+        language: "zh-TW"
+      }
+    }
+    severity_level: INFO
+    cause_detail {
+      translation {
+        text: "MAINTENANCE"
+        language: "en"
+      }
+    }
+    effect_detail {
+      translation {
+        text: "ESCALATOR_CLOSURE"
+        language: "en"
+      }
+    }
+  }
+}
+entity {
+  id: "1001816"
+  alert {
+    active_period {
+      start: 1621976880
+    }
+    informed_entity {
+      route_id: "741"
+      route_type: 3
+      stop_id: "74612"
+    }
+    informed_entity {
+      route_id: "741"
+      route_type: 3
+      stop_id: "place-crtst"
+    }
+    informed_entity {
+      route_id: "742"
+      route_type: 3
+      stop_id: "74612"
+    }
+    informed_entity {
+      route_id: "742"
+      route_type: 3
+      stop_id: "place-crtst"
+    }
+    informed_entity {
+      route_id: "743"
+      route_type: 3
+      stop_id: "74612"
+    }
+    informed_entity {
+      route_id: "743"
+      route_type: 3
+      stop_id: "place-crtst"
+    }
+    cause: MAINTENANCE
+    effect: ACCESSIBILITY_ISSUE
+    header_text {
+      translation {
+        text: "Courthouse Escalator 417 (Airport/Design Center platform to south lobby) is unavailable due to ongoing construction at the station."
+        language: "en"
+      }
+      translation {
+        text: "Courthouse escalera mecánica 417 (Airport/Design Center andén al vestíbulo sur) no está disponible debido a la construcción en curso en la estación."
+        language: "es-419"
+      }
+      translation {
+        text: "Courthouse Escalator 417 (plataforma Airport/Design Center para lobby sul) está indisponível devido ao andamento das obras na estação."
+        language: "pt-BR"
+      }
+      translation {
+        text: "L'escalator 417 Courthouse (quai Airport/Design Center vers le hall sud) est indisponible en raison de travaux en cours à la station."
+        language: "fr-FR"
+      }
+      translation {
+        text: "Courthouse Escalator 417 (Airport/Design Center to south lobby) is pa available due to ki pral konstwi at the estasyon."
+        language: "ht-HT"
+      }
+      translation {
+        text: "由于车站正在展开建筑施工， Courthouse自动扶梯 417（ Airport / Design Center站台至南大厅）不可使用。"
+        language: "zh-CN"
+      }
+      translation {
+        text: "Thang cuốn Courthouse 417 (Airport/Design Center sân ga đến sảnh phía nam) hiện chưa có sẵn do đang diễn ra động thi công tại nhà ga."
+        language: "vi-VN"
+      }
+      translation {
+        text: "Courthouse 417號電扶梯（Airport ／Design Center 月台通往南大廳）因車站正在進行建築施工，目前無法使用。"
+        language: "zh-TW"
+      }
+    }
+    severity_level: INFO
+    cause_detail {
+      translation {
+        text: "MAINTENANCE"
+        language: "en"
+      }
+    }
+    effect_detail {
+      translation {
+        text: "ESCALATOR_CLOSURE"
+        language: "en"
+      }
+    }
+  }
+}
+entity {
+  id: "1001817"
+  alert {
+    active_period {
+      start: 1647353580
+    }
+    informed_entity {
+      route_id: "Blue"
+      route_type: 1
+      stop_id: "70038"
+    }
+    informed_entity {
+      route_id: "Blue"
+      route_type: 1
+      stop_id: "70838"
+    }
+    informed_entity {
+      route_id: "Blue"
+      route_type: 1
+      stop_id: "door-bomnl-main"
+    }
+    informed_entity {
+      route_id: "Blue"
+      route_type: 1
+      stop_id: "place-bomnl"
+    }
+    cause: MAINTENANCE
+    effect: ACCESSIBILITY_ISSUE
+    header_text {
+      translation {
+        text: "Bowdoin Escalator 125 (Lobby to street) is unavailable until further notice, pending replacement."
+        language: "en"
+      }
+      translation {
+        text: "La escalera mecánica 125 de Bowdoin (del vestíbulo a la calle) no está disponible hasta nuevo aviso, pendiente de su reemplazo."
+        language: "es-419"
+      }
+      translation {
+        text: "A escada rolante 125 de Bowdoin (do saguão para a rua) está indisponível até novo aviso, aguardando substituição."
+        language: "pt-BR"
+      }
+      translation {
+        text: "L'escalator 125 de Bowdoin (du hall à la rue) est indisponible jusqu'à nouvel ordre, dans l'attente de son remplacement."
+        language: "fr-FR"
+      }
+      translation {
+        text: "Eskalatè Bowdoin nimewo 125 la (ki soti nan lobi a pou rive nan lari a) pa disponib jiskaske yo ba ou plis avi, annatandan ranplasman."
+        language: "ht-HT"
+      }
+      translation {
+        text: "Bowdoin Escalator 125（大堂到街道）不可使用，直至另行通知，等待更换。"
+        language: "zh-CN"
+      }
+      translation {
+        text: "Bowdoin Escalator 125 (Lobby to street) không có sẵn cho đến khi có thông báo mới, đang chờ thay thế."
+        language: "vi-VN"
+      }
+      translation {
+        text: "Bowdoin 自動扶梯 125 號（大堂到街）不可使用，直至另行通知，待更換。"
+        language: "zh-TW"
+      }
+    }
+    description_text {
+      translation {
+        text: "The escalator will remain out of service for the foreseeable future. This decision was made after a thorough inspection determined that corrosion on the escalator’s steel truss was so severe that it could not be repaired further and that a complete replacement of the escalator would be required. Replacing the escalator at this location requires a more extended unit meeting modern escalator safety requirements. This longer unit will require significant alteration to the station entrance to meet code requirements. The MBTA has currently begun design work to understand what station upgrades will be needed.\n\nDue to these complexities, we expect the escalator will remain out of service for a significant time. We recognize the challenges this poses to our riders, and please know we are working to identify a solution as quickly as possible. In the meantime, Government Center Station, which is fully accessible and serves the Blue Line, is under a quarter-mile from Bowdoin Station."
+        language: "en"
+      }
+      translation {
+        text: "La escalera mecánica permanecerá fuera de servicio durante un futuro previsible. Esta decisión se tomó tras una inspección exhaustiva que determinó que la corrosión en la estructura de acero de la escalera mecánica era tan grave que no podía reparar más y que sería necesario reemplazar completamente la escalera mecánica. Reemplazar la escalera mecánica en este lugar requiere una unidad más extendida que cumpla con los requisitos modernos de seguridad de las escaleras mecánicas. Esta unidad más larga requerirá modificaciones significativas en la entrada de la estación para cumplir con los requisitos del código. Actualmente, la MBTA comenzó trabajos de diseño para entender qué mejoras de la estación serán necesarias.\n\nDebido a estas complejidades, esperamos que la escalera mecánica permanezca fuera de servicio durante un tiempo significativo. Reconocemos los retos que esto supone para nuestros pasajeros y, por favor, sabemos que estamos trabajando para identificar una solución lo antes posible. Mientras tanto, la estación Government Center, que es totalmente accesible y da servicio a la Blue Line, está a menos de un cuarto de milla de la estación de Bowdoin."
+        language: "es-419"
+      }
+      translation {
+        text: "A escada rolante permanecerá fora de serviço por tempo indeterminado. Essa decisão foi tomada após uma inspeção minuciosa que determinou que a corrosão na estrutura de aço da escada rolante era tão severa que não poderia ser reparada e que seria necessária a substituição completa da escada rolante. A substituição da escada rolante neste local exige uma unidade mais ampla que atenda aos requisitos de segurança modernos para escadas rolantes. Essa unidade mais longa exigirá alterações significativas na entrada da estação para atender aos requisitos do código. A MBTA iniciou recentemente os trabalhos de projeto para entender quais melhorias serão necessárias nas estações.\n\nDevido a essas complexidades, prevemos que a escada rolante permanecerá fora de serviço por um período considerável. Reconhecemos os desafios que isso representa para os nossos passageiros e, por favor, saibam que estamos trabalhando para identificar uma solução o mais rápido possível. Enquanto isso, a Government Center Estação, que é totalmente acessível e serve a Blue Line, fica a menos de 400 metros da Bowdoin Estação."
+        language: "pt-BR"
+      }
+      translation {
+        text: "L'escalator restera hors service dans un avenir prévisible. Cette décision a été prise après qu'une inspection approfondie a permis de déterminer que la corrosion de la poutrelle en acier de l'escalier mécanique était si importante qu'elle ne pouvait plus être réparée et qu'un remplacement complet de l'escalier mécanique s'imposait. Le remplacement de l'escalator à cet endroit nécessite une unité plus étendue répondant aux exigences modernes en matière de sécurité des escalators. Cette unité plus longue nécessitera une modification importante de l'entrée de la station pour répondre aux exigences du code. La MBTA a entamé des travaux de conception afin de déterminer les améliorations à apporter aux gares.\n\nEn raison de ces complexités, nous nous attendons à ce que l'escalator reste hors service pendant une longue période. Nous sommes conscients des difficultés que cela pose à nos passagers, et sachez que nous nous efforçons de trouver une solution le plus rapidement possible. En attendant, la station Government Center, qui est entièrement accessible et dessert la Blue Line, se trouve à moins d'un quart de mille de la station Bowdoin."
+        language: "fr-FR"
+      }
+      translation {
+        text: "Eskalatè a ap rete pa an sèvis pou yon bon bout tan. Yo te pran desizyon sa a apre yon enspeksyon apwofondi te detèmine ke korozyon sou travès asye eskalye a te tèlman grav ke yo pa t ka repare li plis e ke yo t ap bezwen ranplase eskalye a nèt. Ranplase eskalye mekanik la nan kote sa a mande yon inite ki pi long ki satisfè egzijans sekirite eskalye mekanik modèn yo. Inite ki pi long sa a ap mande pou gwo modifikasyon nan antre estasyon an pou satisfè egzijans kòd yo. MBTA a kòmanse travay konsepsyon kounye a pou konprann ki amelyorasyon estasyon ki pral nesesè.\n\nAkòz konpleksite sa yo, nou prevwa eskalye mekanik la ap rete pa an sèvis pandan yon bon bout tan. Nou rekonèt defi sa poze pou pasaje nou yo, epi tanpri konnen n ap travay pou jwenn yon solisyon pi vit posib. Antretan, Estasyon Government Center la, ki aksesib nèt epi ki desèvi Blue Line a, sitiye a mwens pase yon ka mil de Estasyon Bowdoin."
+        language: "ht-HT"
+      }
+      translation {
+        text: "在可预见的将来，自动扶梯将继续暂停服务。该决定是在一项全面检查确定自动扶梯钢桁架上的腐蚀严重以至于无法进一步修复并且需要完全更换自动扶梯之后做出的。在此位置更换自动扶梯需要更长的设备，以满足现代自动扶梯的安全要求。这个较长的单位需要对车站入口进行重大改动才能满足法规要求。MBTA目前已开始设计工作，以了解需要进行哪些车站升级。由于这些复杂性，我们预计自动扶梯将在很长一段时间内暂停服务。我们意识到这给我们的乘客带来的挑战，请注意，我们正在努力尽快找到解决方案。同时，Government Center Station距离Bowdoin Station不到四分之一英里，该站完全无障碍并为Blue Line提供服务。"
+        language: "zh-CN"
+      }
+      translation {
+        text: "Thang cuốn sẽ ngừng hoạt động trong tương lai gần. Quyết định này được đưa ra sau khi một cuộc kiểm tra kỹ lưỡng xác định rằng sự ăn mòn trên giàn thép của thang cuốn nghiêm trọng đến mức không thể sửa chữa thêm và cần phải thay thế hoàn toàn thang cuốn. Việc thay thế thang cuốn tại địa điểm này đòi hỏi một đơn vị mở rộng hơn đáp ứng các yêu cầu an toàn thang cuốn hiện đại. Đơn vị dài hơn này sẽ yêu cầu thay đổi đáng kể lối vào Nhà ga để đáp ứng các yêu cầu mã. MBTA hiện đã bắt đầu công việc thiết kế để hiểu những nâng cấp Nhà ga nào sẽ cần thiết.\n\nDo những phức tạp này, chúng tôi hy vọng thang cuốn sẽ không hoạt động trong một thời gian đáng kể. Chúng tôi nhận ra những thách thức mà điều này đặt ra cho các hành khách của chúng tôi và xin biết rằng chúng tôi đang làm việc để xác định giải pháp càng nhanh càng tốt. Trong khi đó, Ga Government Center, nơi có thể tiếp cận đầy đủ và phục vụ Blue Line, cách Ga Bowdoin chưa đầy một phần tư dặm."
+        language: "vi-VN"
+      }
+      translation {
+        text: "在可預見的將來，自動扶梯將繼續停用。這個決定是在徹底檢查後，確定自動扶梯的鋼架上的腐蝕嚴重，無法進一步維修，並且需要完全更換自動扶梯。在這個位置更換自動扶梯需要更擴展的單位，符合現代自動扶梯安全要求。這個較長的單元將需要對車站入口進行大幅更改以滿足代碼要求。MBTA 目前已開始設計工作，以了解需要什麼車站升級。由於這些複雜性，我們預計自動扶梯將長期暫停服務。我們明白這對我們的乘客帶來的挑戰，並且請知道我們正在努力盡快找出解決方案。與此同時，Government Center Station 距離 Bowdoin 站有不到 1/4 英里的無障礙交通，提供服務 Blue Line 的交通便利。"
+        language: "zh-TW"
+      }
+    }
+    severity_level: INFO
+    cause_detail {
+      translation {
+        text: "MAINTENANCE"
+        language: "en"
+      }
+    }
+    effect_detail {
+      translation {
+        text: "ESCALATOR_CLOSURE"
+        language: "en"
+      }
+    }
+  }
+}
+entity {
+  id: "1001818"
+  alert {
+    active_period {
+      start: 1679494800
+    }
+    informed_entity {
+      route_id: "10"
+      route_type: 3
+      stop_id: "place-andrw"
+    }
+    informed_entity {
+      route_id: "16"
+      route_type: 3
+      stop_id: "place-andrw"
+    }
+    informed_entity {
+      route_id: "17"
+      route_type: 3
+      stop_id: "place-andrw"
+    }
+    informed_entity {
+      route_id: "171"
+      route_type: 3
+      stop_id: "place-andrw"
+    }
+    informed_entity {
+      route_id: "18"
+      route_type: 3
+      stop_id: "place-andrw"
+    }
+    informed_entity {
+      route_id: "708"
+      route_type: 3
+      stop_id: "place-andrw"
+    }
+    informed_entity {
+      route_id: "9"
+      route_type: 3
+      stop_id: "place-andrw"
+    }
+    informed_entity {
+      route_id: "Red"
+      route_type: 1
+      stop_id: "70083"
+    }
+    informed_entity {
+      route_id: "Red"
+      route_type: 1
+      stop_id: "door-andrw-busway"
+    }
+    informed_entity {
+      route_id: "Red"
+      route_type: 1
+      stop_id: "place-andrw"
+    }
+    cause: MAINTENANCE
+    effect: ACCESSIBILITY_ISSUE
+    header_text {
+      translation {
+        text: "Andrew Escalator 123 (Ashmont/Braintree platform to busway) is unavailable until further notice, pending replacement."
+        language: "en"
+      }
+      translation {
+        text: "La escalera mecánica Andrew 123 (del Andén Ashmont/Braintree a la Vía exclusiva para autobuses) No disponible Hasta nuevo aviso, pendiente de su reemplazo."
+        language: "es-419"
+      }
+      translation {
+        text: "A escada rolante Andrew 123 (plataforma Ashmont/Braintree para o corredor de ônibus) está indisponível até novo aviso, aguardando substituição."
+        language: "pt-BR"
+      }
+      translation {
+        text: "L'escalator Andrew 123 (quai Ashmont/Braintree vers la voie du bus) est indisponible jusqu'à nouvel ordre, dans l'attente de son remplacement."
+        language: "fr-FR"
+      }
+      translation {
+        text: "Eskalatè Andrew nimewo 123 la (platfòm Ashmont/Braintree pou rive nan wout bis la) pa disponib jiskaske yo bay lòt avi, annatandan yo ranplase li."
+        language: "ht-HT"
+      }
+      translation {
+        text: "Andrew Escalator 123（Ashmont/Braintree 站台至巴士专用道）直至另行通知不可使用，等待更换。"
+        language: "zh-CN"
+      }
+      translation {
+        text: "Andrew Escalator 123 (sân ga Ashmont/Braintree đến làn đường dành cho xe buýt) không khả dụng cho đến khi có thông báo mới, đang chờ thay thế."
+        language: "vi-VN"
+      }
+      translation {
+        text: "Andrew Escalator 123 號（Ashmont/Braintree 月臺到巴士專用道）不可使用，直至另行通知，待更換。"
+        language: "zh-TW"
+      }
+    }
+    severity_level: INFO
+    cause_detail {
+      translation {
+        text: "MAINTENANCE"
+        language: "en"
+      }
+    }
+    effect_detail {
+      translation {
+        text: "ESCALATOR_CLOSURE"
+        language: "en"
+      }
+    }
+  }
+}
+entity {
+  id: "1001819"
+  alert {
+    active_period {
+      start: 1718283840
+    }
+    informed_entity {
+      route_id: "131"
+      route_type: 3
+      stop_id: "place-ogmnl"
+    }
+    informed_entity {
+      route_id: "137"
+      route_type: 3
+      stop_id: "place-ogmnl"
+    }
+    informed_entity {
+      route_id: "CR-Haverhill"
+      route_type: 2
+      stop_id: "WR-0053-S"
+    }
+    informed_entity {
+      route_id: "CR-Haverhill"
+      route_type: 2
+      stop_id: "place-ogmnl"
+    }
+    informed_entity {
+      route_id: "Orange"
+      route_type: 1
+      stop_id: "place-ogmnl"
+    }
+    cause: UNKNOWN_CAUSE
+    effect: ACCESSIBILITY_ISSUE
+    header_text {
+      translation {
+        text: "Oak Grove Escalator 105 (Commuter Rail platform to unpaid lobby) unavailable"
+        language: "en"
+      }
+      translation {
+        text: "Escalera mecánica Oak Grove 105 (andén del tren de cercanías a la zona no paga) no disponible"
+        language: "es-419"
+      }
+      translation {
+        text: "Oak Grove Escalator 105 (Trem suburbano plataforma para área não paga) indisponível"
+        language: "pt-BR"
+      }
+      translation {
+        text: "Escalator 105 d'Oak Grove (du quai du Train de banlieue au hall non payant) indisponible"
+        language: "fr-FR"
+      }
+      translation {
+        text: "Eskalatè Oak Grove 105 (Platfòm Tren banlye pou ale nan mouvman ki pa peye) pa disponib"
+        language: "ht-HT"
+      }
+      translation {
+        text: "Oak Grove 自动扶梯 105（通勤铁路站台通往非付费候车厅）不可使用"
+        language: "zh-CN"
+      }
+      translation {
+        text: "Thang cuốn Oak Grove 105 (Sân ga Đường sắt ngoại ô đến sảnh chờ không được trả tiền) không có sẵn"
+        language: "vi-VN"
+      }
+      translation {
+        text: "Oak Grove自動扶梯 105（通勤鐵路月台到非付費候車廳）不可使用"
+        language: "zh-TW"
+      }
+    }
+    severity_level: INFO
+    cause_detail {
+      translation {
+        text: "UNKNOWN_CAUSE"
+        language: "en"
+      }
+    }
+    effect_detail {
+      translation {
+        text: "ESCALATOR_CLOSURE"
+        language: "en"
+      }
+    }
+  }
+}
+entity {
+  id: "1001820"
+  alert {
+    active_period {
+      start: 1743424620
+    }
+    informed_entity {
+      route_id: "Blue"
+      route_type: 1
+      stop_id: "place-state"
+    }
+    informed_entity {
+      route_id: "Orange"
+      route_type: 1
+      stop_id: "70023"
+    }
+    informed_entity {
+      route_id: "Orange"
+      route_type: 1
+      stop_id: "door-state-devonshire"
+    }
+    informed_entity {
+      route_id: "Orange"
+      route_type: 1
+      stop_id: "door-state-state"
+    }
+    informed_entity {
+      route_id: "Orange"
+      route_type: 1
+      stop_id: "place-state"
+    }
+    cause: UNKNOWN_CAUSE
+    effect: ACCESSIBILITY_ISSUE
+    header_text {
+      translation {
+        text: "State Escalator 6 (Oak Grove platform to Old State House lobby) unavailable"
+        language: "en"
+      }
+      translation {
+        text: "Escalera mecánica State 6 (andén de Oak Grove hacia el vestíbulo del Old State House) No disponible"
+        language: "es-419"
+      }
+      translation {
+        text: "Escada rolante State 6 (plataforma Oak Grove para o saguão da Old State House) indisponível"
+        language: "pt-BR"
+      }
+      translation {
+        text: "Escalator State 6 (du quai Oak Grove au hall de l'Old State House) indisponible"
+        language: "fr-FR"
+      }
+      translation {
+        text: "State Eskalatè 6 (platfòm Oak Grove pou ale nan lobi Old State House la) pa disponib"
+        language: "ht-HT"
+      }
+      translation {
+        text: "State Escalator 6 (Oak Grove 站台 to Old State House lobby) 不可使用"
+        language: "zh-CN"
+      }
+      translation {
+        text: "Thang cuốn State 6 (sân ga Oak Grove đến sảnh Old State House) không có sẵn"
+        language: "vi-VN"
+      }
+      translation {
+        text: "State 自動扶梯 6（Oak Grove 月臺到老州大廳）不可使用"
+        language: "zh-TW"
+      }
+    }
+    severity_level: INFO
+    cause_detail {
+      translation {
+        text: "UNKNOWN_CAUSE"
+        language: "en"
+      }
+    }
+    effect_detail {
+      translation {
+        text: "ESCALATOR_CLOSURE"
+        language: "en"
+      }
+    }
+  }
+}
+entity {
+  id: "1001821"
+  alert {
+    active_period {
+      start: 1745421120
+    }
+    informed_entity {
+      route_id: "101"
+      route_type: 3
+      stop_id: "place-mlmnl"
+    }
+    informed_entity {
+      route_id: "104"
+      route_type: 3
+      stop_id: "place-mlmnl"
+    }
+    informed_entity {
+      route_id: "105"
+      route_type: 3
+      stop_id: "place-mlmnl"
+    }
+    informed_entity {
+      route_id: "106"
+      route_type: 3
+      stop_id: "place-mlmnl"
+    }
+    informed_entity {
+      route_id: "108"
+      route_type: 3
+      stop_id: "place-mlmnl"
+    }
+    informed_entity {
+      route_id: "131"
+      route_type: 3
+      stop_id: "place-mlmnl"
+    }
+    informed_entity {
+      route_id: "132"
+      route_type: 3
+      stop_id: "place-mlmnl"
+    }
+    informed_entity {
+      route_id: "137"
+      route_type: 3
+      stop_id: "place-mlmnl"
+    }
+    informed_entity {
+      route_id: "411"
+      route_type: 3
+      stop_id: "place-mlmnl"
+    }
+    informed_entity {
+      route_id: "430"
+      route_type: 3
+      stop_id: "place-mlmnl"
+    }
+    informed_entity {
+      route_id: "97"
+      route_type: 3
+      stop_id: "place-mlmnl"
+    }
+    informed_entity {
+      route_id: "99"
+      route_type: 3
+      stop_id: "place-mlmnl"
+    }
+    informed_entity {
+      route_id: "CR-Haverhill"
+      route_type: 2
+      stop_id: "WR-0045-S"
+    }
+    informed_entity {
+      route_id: "CR-Haverhill"
+      route_type: 2
+      stop_id: "place-mlmnl"
+    }
+    informed_entity {
+      route_id: "Orange"
+      route_type: 1
+      stop_id: "place-mlmnl"
+    }
+    cause: MAINTENANCE
+    effect: ACCESSIBILITY_ISSUE
+    header_text {
+      translation {
+        text: "Malden Center Escalator 312 (Street level to Commuter Rail platform) unavailable due to maintenance."
+        language: "en"
+      }
+      translation {
+        text: "La escalera mecánica 312 de Malden Center (desde el nivel de la calle hasta el andén del tren de cercanías) no está disponible debido a mantenimiento."
+        language: "es-419"
+      }
+      translation {
+        text: "Malden Center Escalator 312 (Rua ao nível do Trem suburbano plataforma) indisponível devido a manutenção."
+        language: "pt-BR"
+      }
+      translation {
+        text: "L'escalator 312 du Malden Center (du niveau de la rue au quai du Train de banlieue) est indisponible pour cause de maintenance."
+        language: "fr-FR"
+      }
+      translation {
+        text: "Eskalatè Malden Center 312 la (Nivo lari a rive nan platfòm tren banlye a) pa disponib akòz antretyen."
+        language: "ht-HT"
+      }
+      translation {
+        text: "由于维护，Malden Center 自动扶梯 312（街道至通勤铁路平台）不可用。"
+        language: "zh-CN"
+      }
+      translation {
+        text: "Thang cuốn Malden Center 312 (Tầng đường đến sân ga Đường sắt ngoại ô) không có sẵn do bảo trì."
+        language: "vi-VN"
+      }
+      translation {
+        text: "由於維護，Malden Center 312 號自動扶梯（街道樓層到通勤鐵路月臺）不可使用。"
+        language: "zh-TW"
+      }
+    }
+    severity_level: INFO
+    cause_detail {
+      translation {
+        text: "MAINTENANCE"
+        language: "en"
+      }
+    }
+    effect_detail {
+      translation {
+        text: "ESCALATOR_CLOSURE"
+        language: "en"
+      }
+    }
+  }
+}
+entity {
+  id: "1001859"
+  alert {
+    active_period {
+      start: 1773385200
+    }
+    informed_entity {
+      agency_id: "1"
+      route_id: "60"
+      route_type: 3
+      stop_id: "1521"
+    }
+    informed_entity {
+      agency_id: "1"
+      route_id: "65"
+      route_type: 3
+      stop_id: "1521"
+    }
+    cause: CONSTRUCTION
+    effect: STOP_MOVED
+    header_text {
+      translation {
+        text: "The Route 60 & 65 outbound stop at Brookline Ave @ Longwood Ave has moved due to construction. Please board buses at Brookline Ave @ Deaconess Rd."
+        language: "en"
+      }
+      translation {
+        text: "La parada de salida de la ciudad de las rutas 60 & 65 en Brookline Ave @ Longwood Ave se trasladó debido a la construcción. Abordar los Autobuses en Brookline Ave @ Deaconess Rd."
+        language: "es-419"
+      }
+      translation {
+        text: "O ponto sentido bairro da linha 60 e 65 na Brookline Ave @ Longwood Ave mudou devido a obras. Favor embarcar nos ônibus na Brookline Ave @ Deaconess Rd."
+        language: "pt-BR"
+      }
+      translation {
+        text: "L'arrêt en partance des lignes 60 & 65 à Brookline Ave @ Longwood Ave a été déplacé en raison de travaux. Veuillez monter à bord des bus à Brookline Ave @ Deaconess Rd."
+        language: "fr-FR"
+      }
+      translation {
+        text: "Arè derape Route 60 & 65 nan Brookline Ave @ Longwood Ave deplase akòz konstriksyon. Tanpri moun ap monte bis yo nan Brookline Ave @ Deaconess Rd."
+        language: "ht-HT"
+      }
+      translation {
+        text: "受建筑施工影响，Route 60 & 65 出站站点 Brookline Ave @ Longwood Ave 已发生站点迁移。请在 Brookline Ave @ Deaconess Rd 上车巴士。"
+        language: "zh-CN"
+      }
+      translation {
+        text: "Điểm dừng hướng đi ra ngoại thành của Tuyến 60 & 65 tại Brookline Ave @ Longwood Ave đã di chuyển do động thi công. Vui lòng lên xe buýt tại Brookline Ave @ Deaconess Rd."
+        language: "vi-VN"
+      }
+      translation {
+        text: "受建築施工影響，60 號與 65 號路線位於 Brookline Ave @ Longwood Ave 的出站停靠站已遷移。請在 Brookline Ave @ Deaconess Rd 上車搭乘巴士。"
+        language: "zh-TW"
+      }
+    }
+    severity_level: INFO
+    cause_detail {
+      translation {
+        text: "CONSTRUCTION"
+        language: "en"
+      }
+    }
+    effect_detail {
+      translation {
+        text: "STOP_MOVE"
+        language: "en"
+      }
+    }
+  }
+}
+entity {
+  id: "1001861"
+  alert {
+    active_period {
+      start: 1751266800
+    }
+    informed_entity {
+      agency_id: "1"
+      route_id: "Orange"
+      route_type: 1
+      stop_id: "70006"
+    }
+    informed_entity {
+      agency_id: "1"
+      route_id: "Orange"
+      route_type: 1
+      stop_id: "70007"
+    }
+    informed_entity {
+      agency_id: "1"
+      route_id: "Orange"
+      route_type: 1
+      stop_id: "place-jaksn"
+    }
+    cause: CONSTRUCTION
+    effect: UNKNOWN_EFFECT
+    url {
+      translation {
+        text: "http://www.mbta.com/JacksonSquare"
+        language: "en"
+      }
+      translation {
+        text: "http://www.mbta.com/JacksonSquare?locale=es-419"
+        language: "es-419"
+      }
+      translation {
+        text: "http://www.mbta.com/JacksonSquare?locale=pt-BR"
+        language: "pt-BR"
+      }
+      translation {
+        text: "http://www.mbta.com/JacksonSquare?locale=fr-FR"
+        language: "fr-FR"
+      }
+      translation {
+        text: "http://www.mbta.com/JacksonSquare?locale=ht-HT"
+        language: "ht-HT"
+      }
+      translation {
+        text: "http://www.mbta.com/JacksonSquare?locale=zh-CN"
+        language: "zh-CN"
+      }
+      translation {
+        text: "http://www.mbta.com/JacksonSquare?locale=vi-VN"
+        language: "vi-VN"
+      }
+      translation {
+        text: "http://www.mbta.com/JacksonSquare?locale=zh-TW"
+        language: "zh-TW"
+      }
+    }
+    header_text {
+      translation {
+        text: "The stairway connecting the Jackson Square lobby and the south end of the platform is closed until winter 2026. Use the stairway at the north end of the platform. This closure is for the construction of a new stairway and a second elevator."
+        language: "en"
+      }
+      translation {
+        text: "La escalera que conecta el vestíbulo de Jackson Square con el extremo sur del andén está cerrada hasta el invierno de 2026. Emplea la escalera en el extremo norte del andén. Este cierre es para la construcción de una nueva escalera y un segundo ascensor."
+        language: "es-419"
+      }
+      translation {
+        text: "A escadaria que liga o saguão da Jackson Square à extremidade sul da plataforma estará fechada até o inverno de 2026. Utilize a escadaria na extremidade norte da plataforma. Esta interdição deve-se à realização de novas obras de uma escadaria e de um segundo elevador."
+        language: "pt-BR"
+      }
+      translation {
+        text: "L'escalier reliant le hall du Jackson Square et l'extrémité sud du quai est fermé jusqu'à l'hiver 2026. Utilisez l'escalier situé à l'extrémité Nord du quai. Cette fermeture concerne les travaux d'un nouvel escalier et d'un deuxième ascenseur."
+        language: "fr-FR"
+      }
+      translation {
+        text: "Eskalye ki konekte lobi Jackson Square la ak bout sid platfòm lan fèmen jiska sezon ivè 2026. Sèvi ak eskalye ki nan bout nò platfòm nan. Fèmti sa a se pou konstriksyon yon nouvo eskalye ak yon dezyèm asansè."
+        language: "ht-HT"
+      }
+      translation {
+        text: "连接Jackson Square大堂和站台南端的楼梯将已关闭至 2026 年冬季。使用站台北端的楼梯。此次关闭是为了建筑施工新的楼梯和第二部电梯。"
+        language: "zh-CN"
+      }
+      translation {
+        text: "Cầu thang nối sảnh Jackson Square và đầu phía nam của sân ga đã đóng cho đến mùa đông 2026. Sử dụng cầu thang ở đầu Phía Bắc của sân ga. Việc đóng đường này là để xây dựng một cầu thang mới và thang máy thứ hai."
+        language: "vi-VN"
+      }
+      translation {
+        text: "連接 Jackson Square 大堂和月台南端的樓梯已關閉直到 2026 年冬季。使用月臺北端的樓梯。這個關閉是用於建築施工新樓梯和第二部電梯。"
+        language: "zh-TW"
+      }
+    }
+    description_text {
+      translation {
+        text: "Please see station personnel or use a station call box to request assistance."
+        language: "en"
+      }
+      translation {
+        text: "Por favor, consulte al personal de la estación o emplee una cabina telefónica para aplicar asistencia."
+        language: "es-419"
+      }
+      translation {
+        text: "Por favor, dirija-se a um funcionário da estação ou utilize o interfone da estação para solicitar assistência."
+        language: "pt-BR"
+      }
+      translation {
+        text: "Veuillez vous adresser au personnel de la station ou utiliser la boîte d'appel de la station pour demander de l'aide."
+        language: "fr-FR"
+      }
+      translation {
+        text: "Tanpri al wè pèsonèl estasyon an oubyen itilize yon bwat apèl estasyon an pou mande asistans."
+        language: "ht-HT"
+      }
+      translation {
+        text: "请咨询车站工作人员或使用车站呼叫箱寻求帮助。"
+        language: "zh-CN"
+      }
+      translation {
+        text: "Vui lòng gặp nhân viên Nhà ga hoặc sử dụng hộp gọi Nhà ga để yêu cầu hỗ trợ."
+        language: "vi-VN"
+      }
+      translation {
+        text: "請洽詢車站人員或使用電台呼叫箱尋求協助。"
+        language: "zh-TW"
+      }
+    }
+    severity_level: INFO
+    cause_detail {
+      translation {
+        text: "CONSTRUCTION"
+        language: "en"
+      }
+    }
+    effect_detail {
+      translation {
+        text: "STATION_ISSUE"
+        language: "en"
+      }
+    }
+  }
+}
+entity {
+  id: "1001863"
+  alert {
+    active_period {
+      start: 1772828760
+    }
+    informed_entity {
+      agency_id: "1"
+      route_id: "429"
+      route_type: 3
+      stop_id: "66721"
+      direction_id: 0
+    }
+    informed_entity {
+      agency_id: "1"
+      route_id: "429"
+      route_type: 3
+      stop_id: "66731"
+      direction_id: 0
+    }
+    cause: CONSTRUCTION
+    effect: DETOUR
+    header_text {
+      translation {
+        text: "Route 429 outbound is detoured due to construction, skipping Oxford St @ Washington St & Oxford St @ Market St. The closest outbound stops with service are Lynn Station & Market St @ Liberty St."
+        language: "en"
+      }
+      translation {
+        text: "La ruta 429 salida de la ciudad se desvía debido a construcción, desvío Oxford St @ Washington St y Oxford St @ Market St. Las atajada de salida de la ciudad más cercanas con servicio son Lynn estación y Market St @ Liberty St."
+        language: "es-419"
+      }
+      translation {
+        text: "Route 429 sentido bairro é desvio devido a obras, desvio Oxford St @ Washington St & Oxford St @ Market St. As paradas sentido bairro mais próximas com serviço são Lynn estação & Market St @ Liberty St"
+        language: "pt-BR"
+      }
+      translation {
+        text: "La route 429 en partie est déviée à cause de Travaux, Contourner Oxford St @ Washington St et Oxford St @ Market St. Les arrêts en partance les plus proches avec service sont Lynn station et Market St @ Liberty St."
+        language: "fr-FR"
+      }
+      translation {
+        text: "Route 429 derape se detou akòz konstriksyon, kontoune Oxford St @ Washington St & Oxford St @ Market St Arè derape ki pi pre yo ak sèvis yo se Lynn estasyon & Market St @ Liberty St"
+        language: "ht-HT"
+      }
+      translation {
+        text: "由于建筑施工，429 号线出站为绕行，绕行Oxford St @ Washington St & Oxford St @ Market St 。 最近提供服务的出站站是Lynn Station & Market St @ Liberty St 。"
+        language: "zh-CN"
+      }
+      translation {
+        text: "Route 429 hướng đi ra ngoại thành là đường vòng due to động thi công, đường vòng Oxford St @ Washington St & Oxford St @ Market St. Các điểm dừng gần nhất hướng đi ra ngoại thành có dịch vụ là Lynn nhà ga & Market St @ Liberty St."
+        language: "vi-VN"
+      }
+      translation {
+        text: "由於建築施工，429 號線出站為繞行，繞行Oxford St @ Washington St & Oxford St @ Market St 。 最近提供服務的出站站是Lynn Station & Market St @ Liberty St 。"
+        language: "zh-TW"
+      }
+    }
+    severity_level: SEVERE
+    cause_detail {
+      translation {
+        text: "CONSTRUCTION"
+        language: "en"
+      }
+    }
+    effect_detail {
+      translation {
+        text: "DETOUR"
+        language: "en"
+      }
+    }
+  }
+}
+entity {
+  id: "1001864"
+  alert {
+    active_period {
+      start: 1636053240
+    }
+    informed_entity {
+      route_id: "426"
+      route_type: 3
+      stop_id: "14748"
+    }
+    informed_entity {
+      route_id: "426"
+      route_type: 3
+      stop_id: "ER-0115"
+    }
+    informed_entity {
+      route_id: "426"
+      route_type: 3
+      stop_id: "ER-0115-01"
+    }
+    informed_entity {
+      route_id: "426"
+      route_type: 3
+      stop_id: "ER-0115-02"
+    }
+    informed_entity {
+      route_id: "426"
+      route_type: 3
+      stop_id: "place-ER-0115"
+    }
+    informed_entity {
+      route_id: "429"
+      route_type: 3
+      stop_id: "14748"
+    }
+    informed_entity {
+      route_id: "429"
+      route_type: 3
+      stop_id: "ER-0115"
+    }
+    informed_entity {
+      route_id: "429"
+      route_type: 3
+      stop_id: "ER-0115-01"
+    }
+    informed_entity {
+      route_id: "429"
+      route_type: 3
+      stop_id: "ER-0115-02"
+    }
+    informed_entity {
+      route_id: "429"
+      route_type: 3
+      stop_id: "place-ER-0115"
+    }
+    informed_entity {
+      route_id: "435"
+      route_type: 3
+      stop_id: "14748"
+    }
+    informed_entity {
+      route_id: "435"
+      route_type: 3
+      stop_id: "ER-0115"
+    }
+    informed_entity {
+      route_id: "435"
+      route_type: 3
+      stop_id: "ER-0115-01"
+    }
+    informed_entity {
+      route_id: "435"
+      route_type: 3
+      stop_id: "ER-0115-02"
+    }
+    informed_entity {
+      route_id: "435"
+      route_type: 3
+      stop_id: "place-ER-0115"
+    }
+    informed_entity {
+      route_id: "436"
+      route_type: 3
+      stop_id: "14748"
+    }
+    informed_entity {
+      route_id: "436"
+      route_type: 3
+      stop_id: "ER-0115"
+    }
+    informed_entity {
+      route_id: "436"
+      route_type: 3
+      stop_id: "ER-0115-01"
+    }
+    informed_entity {
+      route_id: "436"
+      route_type: 3
+      stop_id: "ER-0115-02"
+    }
+    informed_entity {
+      route_id: "436"
+      route_type: 3
+      stop_id: "place-ER-0115"
+    }
+    informed_entity {
+      route_id: "439"
+      route_type: 3
+      stop_id: "14748"
+    }
+    informed_entity {
+      route_id: "439"
+      route_type: 3
+      stop_id: "ER-0115"
+    }
+    informed_entity {
+      route_id: "439"
+      route_type: 3
+      stop_id: "ER-0115-01"
+    }
+    informed_entity {
+      route_id: "439"
+      route_type: 3
+      stop_id: "ER-0115-02"
+    }
+    informed_entity {
+      route_id: "439"
+      route_type: 3
+      stop_id: "place-ER-0115"
+    }
+    informed_entity {
+      route_id: "441"
+      route_type: 3
+      stop_id: "14748"
+    }
+    informed_entity {
+      route_id: "441"
+      route_type: 3
+      stop_id: "ER-0115"
+    }
+    informed_entity {
+      route_id: "441"
+      route_type: 3
+      stop_id: "ER-0115-01"
+    }
+    informed_entity {
+      route_id: "441"
+      route_type: 3
+      stop_id: "ER-0115-02"
+    }
+    informed_entity {
+      route_id: "441"
+      route_type: 3
+      stop_id: "place-ER-0115"
+    }
+    informed_entity {
+      route_id: "442"
+      route_type: 3
+      stop_id: "14748"
+    }
+    informed_entity {
+      route_id: "442"
+      route_type: 3
+      stop_id: "ER-0115"
+    }
+    informed_entity {
+      route_id: "442"
+      route_type: 3
+      stop_id: "ER-0115-01"
+    }
+    informed_entity {
+      route_id: "442"
+      route_type: 3
+      stop_id: "ER-0115-02"
+    }
+    informed_entity {
+      route_id: "442"
+      route_type: 3
+      stop_id: "place-ER-0115"
+    }
+    informed_entity {
+      route_id: "455"
+      route_type: 3
+      stop_id: "14748"
+    }
+    informed_entity {
+      route_id: "455"
+      route_type: 3
+      stop_id: "ER-0115"
+    }
+    informed_entity {
+      route_id: "455"
+      route_type: 3
+      stop_id: "ER-0115-01"
+    }
+    informed_entity {
+      route_id: "455"
+      route_type: 3
+      stop_id: "ER-0115-02"
+    }
+    informed_entity {
+      route_id: "455"
+      route_type: 3
+      stop_id: "place-ER-0115"
+    }
+    informed_entity {
+      route_id: "456"
+      route_type: 3
+      stop_id: "14748"
+    }
+    informed_entity {
+      route_id: "456"
+      route_type: 3
+      stop_id: "ER-0115"
+    }
+    informed_entity {
+      route_id: "456"
+      route_type: 3
+      stop_id: "ER-0115-01"
+    }
+    informed_entity {
+      route_id: "456"
+      route_type: 3
+      stop_id: "ER-0115-02"
+    }
+    informed_entity {
+      route_id: "456"
+      route_type: 3
+      stop_id: "place-ER-0115"
+    }
+    cause: UNKNOWN_CAUSE
+    effect: OTHER_EFFECT
+    header_text {
+      translation {
+        text: "Lynn Parking Garage is partially closed, but has sufficient parking capacity to accommodate daily demand."
+        language: "en"
+      }
+      translation {
+        text: "El Parking Garage de Lynn está parcialmente cerrado, pero cuenta con suficiente capacidad de Parking para satisfacer la demanda diaria."
+        language: "es-419"
+      }
+      translation {
+        text: "O estacionamento Lynn Parking Garage está parcialmente fechado, mas possui capacidade suficiente para atender à demanda diária."
+        language: "pt-BR"
+      }
+      translation {
+        text: "Le Lynn Parking Garage est partiellement fermé, mais sa capacité est suffisante pour répondre à la demande quotidienne."
+        language: "fr-FR"
+      }
+      translation {
+        text: "Parking Lynn nan fèmen pasyèlman, men li gen ase kapasite Parking pou akomode demann chak jou a."
+        language: "ht-HT"
+      }
+      translation {
+        text: "Lynn Parking Garage已部分关闭，但有足够的Parking容量来满足日常需求。"
+        language: "zh-CN"
+      }
+      translation {
+        text: "Lynn Parking Garage đóng cửa một phần, nhưng có đủ chỗ Parking để đáp ứng nhu cầu hàng ngày."
+        language: "vi-VN"
+      }
+      translation {
+        text: "林恩 Parking Garage 部分已關閉，但有足夠的停車容量以滿足日常需求。"
+        language: "zh-TW"
+      }
+    }
+    severity_level: WARNING
+    cause_detail {
+      translation {
+        text: "UNKNOWN_CAUSE"
+        language: "en"
+      }
+    }
+    effect_detail {
+      translation {
+        text: "PARKING_ISSUE"
+        language: "en"
+      }
+    }
+  }
+}
+entity {
+  id: "1001867"
+  alert {
+    active_period {
+      start: 1791889200
+      end: 1791961200
+    }
+    active_period {
+      start: 1791975600
+      end: 1792047600
+    }
+    active_period {
+      start: 1792062000
+      end: 1792134000
+    }
+    active_period {
+      start: 1792148400
+      end: 1792220400
+    }
+    active_period {
+      start: 1792407600
+      end: 1792479600
+    }
+    active_period {
+      start: 1792494000
+      end: 1792566000
+    }
+    active_period {
+      start: 1792580400
+      end: 1792652400
+    }
+    active_period {
+      start: 1792666800
+      end: 1792738800
+    }
+    active_period {
+      start: 1792753200
+      end: 1792825200
+    }
+    active_period {
+      start: 1793012400
+      end: 1793084400
+    }
+    active_period {
+      start: 1793098800
+      end: 1793170800
+    }
+    active_period {
+      start: 1793185200
+      end: 1793257200
+    }
+    active_period {
+      start: 1793271600
+      end: 1793343600
+    }
+    active_period {
+      start: 1793358000
+      end: 1793430000
+    }
+    active_period {
+      start: 1793620800
+      end: 1793692800
+    }
+    active_period {
+      start: 1793707200
+      end: 1793779200
+    }
+    active_period {
+      start: 1793793600
+      end: 1793865600
+    }
+    active_period {
+      start: 1793880000
+      end: 1793952000
+    }
+    active_period {
+      start: 1793966400
+      end: 1794038400
+    }
+    active_period {
+      start: 1794225600
+      end: 1794297600
+    }
+    active_period {
+      start: 1794312000
+      end: 1794384000
+    }
+    active_period {
+      start: 1794398400
+      end: 1794470400
+    }
+    active_period {
+      start: 1794484800
+      end: 1794556800
+    }
+    active_period {
+      start: 1794571200
+      end: 1794643200
+    }
+    active_period {
+      start: 1794830400
+      end: 1794902400
+    }
+    active_period {
+      start: 1794916800
+      end: 1794988800
+    }
+    active_period {
+      start: 1795003200
+      end: 1795075200
+    }
+    active_period {
+      start: 1795089600
+      end: 1795161600
+    }
+    active_period {
+      start: 1795176000
+      end: 1795248000
+    }
+    active_period {
+      start: 1795435200
+      end: 1795507200
+    }
+    active_period {
+      start: 1795521600
+      end: 1795593600
+    }
+    active_period {
+      start: 1795608000
+      end: 1795680000
+    }
+    active_period {
+      start: 1795694400
+      end: 1795766400
+    }
+    active_period {
+      start: 1795780800
+      end: 1795852800
+    }
+    active_period {
+      start: 1796040000
+      end: 1796112000
+    }
+    active_period {
+      start: 1796126400
+      end: 1796198400
+    }
+    active_period {
+      start: 1796212800
+      end: 1796284800
+    }
+    active_period {
+      start: 1796299200
+      end: 1796371200
+    }
+    active_period {
+      start: 1796385600
+      end: 1796457600
+    }
+    active_period {
+      start: 1796644800
+      end: 1796716800
+    }
+    active_period {
+      start: 1796731200
+      end: 1796803200
+    }
+    active_period {
+      start: 1796817600
+      end: 1796889600
+    }
+    active_period {
+      start: 1796904000
+      end: 1796976000
+    }
+    active_period {
+      start: 1796990400
+      end: 1797062400
+    }
+    active_period {
+      start: 1797249600
+      end: 1797321600
+    }
+    active_period {
+      start: 1797336000
+      end: 1797408000
+    }
+    active_period {
+      start: 1797422400
+      end: 1797494400
+    }
+    active_period {
+      start: 1797508800
+      end: 1797580800
+    }
+    active_period {
+      start: 1797595200
+      end: 1797667200
+    }
+    active_period {
+      start: 1797854400
+      end: 1797926400
+    }
+    active_period {
+      start: 1797940800
+      end: 1798012800
+    }
+    active_period {
+      start: 1798027200
+      end: 1798099200
+    }
+    active_period {
+      start: 1798113600
+      end: 1798185600
+    }
+    active_period {
+      start: 1798200000
+      end: 1798272000
+    }
+    active_period {
+      start: 1798459200
+      end: 1798531200
+    }
+    active_period {
+      start: 1798545600
+      end: 1798617600
+    }
+    active_period {
+      start: 1798632000
+      end: 1798704000
+    }
+    active_period {
+      start: 1798718400
+      end: 1798790400
+    }
+    active_period {
+      start: 1798804800
+      end: 1798876800
+    }
+    active_period {
+      start: 1799064000
+      end: 1799136000
+    }
+    active_period {
+      start: 1799150400
+      end: 1799222400
+    }
+    active_period {
+      start: 1799236800
+      end: 1799308800
+    }
+    active_period {
+      start: 1799323200
+      end: 1799395200
+    }
+    active_period {
+      start: 1799409600
+      end: 1799481600
+    }
+    active_period {
+      start: 1799668800
+      end: 1799740800
+    }
+    active_period {
+      start: 1799755200
+      end: 1799827200
+    }
+    active_period {
+      start: 1799841600
+      end: 1799913600
+    }
+    active_period {
+      start: 1799928000
+      end: 1800000000
+    }
+    active_period {
+      start: 1800014400
+      end: 1800086400
+    }
+    active_period {
+      start: 1800273600
+      end: 1800345600
+    }
+    active_period {
+      start: 1800360000
+      end: 1800432000
+    }
+    active_period {
+      start: 1800446400
+      end: 1800518400
+    }
+    active_period {
+      start: 1800532800
+      end: 1800604800
+    }
+    active_period {
+      start: 1800619200
+      end: 1800691200
+    }
+    active_period {
+      start: 1800878400
+      end: 1800950400
+    }
+    active_period {
+      start: 1800964800
+      end: 1801036800
+    }
+    active_period {
+      start: 1801051200
+      end: 1801123200
+    }
+    active_period {
+      start: 1801137600
+      end: 1801209600
+    }
+    active_period {
+      start: 1801224000
+      end: 1801296000
+    }
+    active_period {
+      start: 1801483200
+      end: 1801555200
+    }
+    active_period {
+      start: 1801569600
+      end: 1801641600
+    }
+    active_period {
+      start: 1801656000
+      end: 1801728000
+    }
+    active_period {
+      start: 1801742400
+      end: 1801814400
+    }
+    active_period {
+      start: 1801828800
+      end: 1801900800
+    }
+    active_period {
+      start: 1802088000
+      end: 1802160000
+    }
+    active_period {
+      start: 1802174400
+      end: 1802246400
+    }
+    active_period {
+      start: 1802260800
+      end: 1802332800
+    }
+    active_period {
+      start: 1802347200
+      end: 1802419200
+    }
+    active_period {
+      start: 1802433600
+      end: 1802505600
+    }
+    active_period {
+      start: 1802692800
+      end: 1802764800
+    }
+    active_period {
+      start: 1802779200
+      end: 1802851200
+    }
+    active_period {
+      start: 1802865600
+      end: 1802937600
+    }
+    active_period {
+      start: 1802952000
+      end: 1803024000
+    }
+    active_period {
+      start: 1803038400
+      end: 1803110400
+    }
+    active_period {
+      start: 1803297600
+      end: 1803369600
+    }
+    active_period {
+      start: 1803384000
+      end: 1803456000
+    }
+    active_period {
+      start: 1803470400
+      end: 1803542400
+    }
+    active_period {
+      start: 1803556800
+      end: 1803628800
+    }
+    active_period {
+      start: 1803643200
+      end: 1803715200
+    }
+    active_period {
+      start: 1803902400
+      end: 1803974400
+    }
+    active_period {
+      start: 1803988800
+      end: 1804060800
+    }
+    active_period {
+      start: 1804075200
+      end: 1804147200
+    }
+    active_period {
+      start: 1804161600
+      end: 1804233600
+    }
+    active_period {
+      start: 1804248000
+      end: 1804320000
+    }
+    active_period {
+      start: 1804507200
+      end: 1804579200
+    }
+    active_period {
+      start: 1804593600
+      end: 1804665600
+    }
+    active_period {
+      start: 1804680000
+      end: 1804752000
+    }
+    active_period {
+      start: 1804766400
+      end: 1804838400
+    }
+    active_period {
+      start: 1804852800
+      end: 1804924800
+    }
+    active_period {
+      start: 1805108400
+      end: 1805180400
+    }
+    active_period {
+      start: 1805194800
+      end: 1805266800
+    }
+    active_period {
+      start: 1805281200
+      end: 1805353200
+    }
+    active_period {
+      start: 1805367600
+      end: 1805439600
+    }
+    active_period {
+      start: 1805454000
+      end: 1805526000
+    }
+    active_period {
+      start: 1805713200
+      end: 1805785200
+    }
+    active_period {
+      start: 1805799600
+      end: 1805871600
+    }
+    active_period {
+      start: 1805886000
+      end: 1805958000
+    }
+    active_period {
+      start: 1805972400
+      end: 1806044400
+    }
+    active_period {
+      start: 1806058800
+      end: 1806130800
+    }
+    active_period {
+      start: 1806318000
+      end: 1806390000
+    }
+    active_period {
+      start: 1806404400
+      end: 1806476400
+    }
+    active_period {
+      start: 1806490800
+      end: 1806562800
+    }
+    active_period {
+      start: 1806577200
+      end: 1806649200
+    }
+    active_period {
+      start: 1806663600
+      end: 1806735600
+    }
+    active_period {
+      start: 1806922800
+      end: 1806994800
+    }
+    active_period {
+      start: 1807009200
+      end: 1807081200
+    }
+    active_period {
+      start: 1807095600
+      end: 1807167600
+    }
+    active_period {
+      start: 1807182000
+      end: 1807254000
+    }
+    active_period {
+      start: 1807268400
+      end: 1807340400
+    }
+    active_period {
+      start: 1807527600
+      end: 1807599600
+    }
+    active_period {
+      start: 1807614000
+      end: 1807686000
+    }
+    active_period {
+      start: 1807700400
+      end: 1807772400
+    }
+    active_period {
+      start: 1807786800
+      end: 1807858800
+    }
+    active_period {
+      start: 1807873200
+      end: 1807945200
+    }
+    active_period {
+      start: 1808132400
+      end: 1808204400
+    }
+    active_period {
+      start: 1808218800
+      end: 1808290800
+    }
+    active_period {
+      start: 1808305200
+      end: 1808377200
+    }
+    active_period {
+      start: 1808391600
+      end: 1808463600
+    }
+    active_period {
+      start: 1808478000
+      end: 1808550000
+    }
+    active_period {
+      start: 1808737200
+      end: 1808809200
+    }
+    active_period {
+      start: 1808823600
+      end: 1808895600
+    }
+    active_period {
+      start: 1808910000
+      end: 1808982000
+    }
+    active_period {
+      start: 1808996400
+      end: 1809068400
+    }
+    active_period {
+      start: 1809082800
+      end: 1809154800
+    }
+    active_period {
+      start: 1809342000
+      end: 1809414000
+    }
+    active_period {
+      start: 1809428400
+      end: 1809500400
+    }
+    active_period {
+      start: 1809514800
+      end: 1809586800
+    }
+    active_period {
+      start: 1809601200
+      end: 1809673200
+    }
+    active_period {
+      start: 1809687600
+      end: 1809759600
+    }
+    active_period {
+      start: 1809946800
+      end: 1810018800
+    }
+    active_period {
+      start: 1810033200
+      end: 1810105200
+    }
+    active_period {
+      start: 1810119600
+      end: 1810191600
+    }
+    active_period {
+      start: 1810206000
+      end: 1810278000
+    }
+    active_period {
+      start: 1810292400
+      end: 1810364400
+    }
+    active_period {
+      start: 1810551600
+      end: 1810623600
+    }
+    active_period {
+      start: 1810638000
+      end: 1810710000
+    }
+    active_period {
+      start: 1810724400
+      end: 1810796400
+    }
+    active_period {
+      start: 1810810800
+      end: 1810882800
+    }
+    active_period {
+      start: 1810897200
+      end: 1810969200
+    }
+    active_period {
+      start: 1811156400
+      end: 1811228400
+    }
+    active_period {
+      start: 1811242800
+      end: 1811314800
+    }
+    active_period {
+      start: 1811329200
+      end: 1811401200
+    }
+    active_period {
+      start: 1811415600
+      end: 1811487600
+    }
+    active_period {
+      start: 1811502000
+      end: 1811574000
+    }
+    active_period {
+      start: 1811761200
+      end: 1811833200
+    }
+    active_period {
+      start: 1811847600
+      end: 1811919600
+    }
+    active_period {
+      start: 1811934000
+      end: 1812006000
+    }
+    active_period {
+      start: 1812020400
+      end: 1812092400
+    }
+    active_period {
+      start: 1812106800
+      end: 1812178800
+    }
+    active_period {
+      start: 1812366000
+      end: 1812438000
+    }
+    active_period {
+      start: 1812452400
+      end: 1812524400
+    }
+    active_period {
+      start: 1812538800
+      end: 1812610800
+    }
+    active_period {
+      start: 1812625200
+      end: 1812697200
+    }
+    active_period {
+      start: 1812711600
+      end: 1812783600
+    }
+    active_period {
+      start: 1812970800
+      end: 1813042800
+    }
+    active_period {
+      start: 1813057200
+      end: 1813129200
+    }
+    active_period {
+      start: 1813143600
+      end: 1813215600
+    }
+    active_period {
+      start: 1813230000
+      end: 1813302000
+    }
+    active_period {
+      start: 1813316400
+      end: 1813388400
+    }
+    active_period {
+      start: 1813575600
+      end: 1813647600
+    }
+    active_period {
+      start: 1813662000
+      end: 1813734000
+    }
+    active_period {
+      start: 1813748400
+      end: 1813820400
+    }
+    active_period {
+      start: 1813834800
+      end: 1813906800
+    }
+    active_period {
+      start: 1813921200
+      end: 1813993200
+    }
+    active_period {
+      start: 1814180400
+      end: 1814252400
+    }
+    active_period {
+      start: 1814266800
+      end: 1814338800
+    }
+    active_period {
+      start: 1814353200
+      end: 1814425200
+    }
+    active_period {
+      start: 1814439600
+      end: 1814511600
+    }
+    active_period {
+      start: 1814526000
+      end: 1814598000
+    }
+    active_period {
+      start: 1814785200
+      end: 1814857200
+    }
+    active_period {
+      start: 1814871600
+      end: 1814943600
+    }
+    active_period {
+      start: 1814958000
+      end: 1815030000
+    }
+    active_period {
+      start: 1815044400
+      end: 1815116400
+    }
+    active_period {
+      start: 1815130800
+      end: 1815202800
+    }
+    active_period {
+      start: 1815390000
+      end: 1815462000
+    }
+    active_period {
+      start: 1815476400
+      end: 1815548400
+    }
+    active_period {
+      start: 1815562800
+      end: 1815634800
+    }
+    active_period {
+      start: 1815649200
+      end: 1815721200
+    }
+    active_period {
+      start: 1815735600
+      end: 1815807600
+    }
+    active_period {
+      start: 1815994800
+      end: 1816066800
+    }
+    active_period {
+      start: 1816081200
+      end: 1816153200
+    }
+    active_period {
+      start: 1816167600
+      end: 1816239600
+    }
+    active_period {
+      start: 1816254000
+      end: 1816326000
+    }
+    active_period {
+      start: 1816340400
+      end: 1816412400
+    }
+    active_period {
+      start: 1816599600
+      end: 1816671600
+    }
+    active_period {
+      start: 1816686000
+      end: 1816758000
+    }
+    active_period {
+      start: 1816772400
+      end: 1816844400
+    }
+    active_period {
+      start: 1816858800
+      end: 1816930800
+    }
+    active_period {
+      start: 1816945200
+      end: 1817017200
+    }
+    active_period {
+      start: 1817204400
+      end: 1817276400
+    }
+    active_period {
+      start: 1817290800
+      end: 1817362800
+    }
+    active_period {
+      start: 1817377200
+      end: 1817449200
+    }
+    active_period {
+      start: 1817463600
+      end: 1817535600
+    }
+    active_period {
+      start: 1817550000
+      end: 1817622000
+    }
+    active_period {
+      start: 1817809200
+      end: 1817881200
+    }
+    active_period {
+      start: 1817895600
+      end: 1817967600
+    }
+    active_period {
+      start: 1817982000
+      end: 1818054000
+    }
+    active_period {
+      start: 1818068400
+      end: 1818140400
+    }
+    active_period {
+      start: 1818154800
+      end: 1818226800
+    }
+    active_period {
+      start: 1818414000
+      end: 1818486000
+    }
+    active_period {
+      start: 1818500400
+      end: 1818572400
+    }
+    active_period {
+      start: 1818586800
+      end: 1818658800
+    }
+    active_period {
+      start: 1818673200
+      end: 1818745200
+    }
+    active_period {
+      start: 1818759600
+      end: 1818831600
+    }
+    active_period {
+      start: 1819018800
+      end: 1819090800
+    }
+    active_period {
+      start: 1819105200
+      end: 1819177200
+    }
+    active_period {
+      start: 1819191600
+      end: 1819263600
+    }
+    active_period {
+      start: 1819278000
+      end: 1819350000
+    }
+    active_period {
+      start: 1819364400
+      end: 1819436400
+    }
+    active_period {
+      start: 1819623600
+      end: 1819695600
+    }
+    active_period {
+      start: 1819710000
+      end: 1819782000
+    }
+    active_period {
+      start: 1819796400
+      end: 1819868400
+    }
+    active_period {
+      start: 1819882800
+      end: 1819954800
+    }
+    active_period {
+      start: 1819969200
+      end: 1820041200
+    }
+    active_period {
+      start: 1820228400
+      end: 1820300400
+    }
+    active_period {
+      start: 1820314800
+      end: 1820386800
+    }
+    active_period {
+      start: 1820401200
+      end: 1820473200
+    }
+    active_period {
+      start: 1820487600
+      end: 1820559600
+    }
+    active_period {
+      start: 1820574000
+      end: 1820646000
+    }
+    active_period {
+      start: 1820833200
+      end: 1820905200
+    }
+    active_period {
+      start: 1820919600
+      end: 1820991600
+    }
+    active_period {
+      start: 1821006000
+      end: 1821078000
+    }
+    active_period {
+      start: 1821092400
+      end: 1821164400
+    }
+    active_period {
+      start: 1821178800
+      end: 1821250800
+    }
+    active_period {
+      start: 1821438000
+      end: 1821510000
+    }
+    active_period {
+      start: 1821524400
+      end: 1821596400
+    }
+    active_period {
+      start: 1821610800
+      end: 1821682800
+    }
+    active_period {
+      start: 1821697200
+      end: 1821769200
+    }
+    active_period {
+      start: 1821783600
+      end: 1821855600
+    }
+    active_period {
+      start: 1822042800
+      end: 1822114800
+    }
+    active_period {
+      start: 1822129200
+      end: 1822201200
+    }
+    active_period {
+      start: 1822215600
+      end: 1822287600
+    }
+    active_period {
+      start: 1822302000
+      end: 1822374000
+    }
+    active_period {
+      start: 1822388400
+      end: 1822460400
+    }
+    active_period {
+      start: 1822647600
+      end: 1822719600
+    }
+    active_period {
+      start: 1822734000
+      end: 1822806000
+    }
+    active_period {
+      start: 1822820400
+      end: 1822892400
+    }
+    active_period {
+      start: 1822906800
+      end: 1822978800
+    }
+    active_period {
+      start: 1822993200
+      end: 1823065200
+    }
+    active_period {
+      start: 1823252400
+      end: 1823324400
+    }
+    active_period {
+      start: 1823338800
+      end: 1823410800
+    }
+    active_period {
+      start: 1823425200
+      end: 1823497200
+    }
+    informed_entity {
+      agency_id: "1"
+      route_id: "77"
+      route_type: 3
+      stop_id: "2312"
+    }
+    informed_entity {
+      agency_id: "1"
+      route_id: "96"
+      route_type: 3
+      stop_id: "2312"
+    }
+    cause: UNKNOWN_CAUSE
+    effect: STOP_MOVED
+    header_text {
+      translation {
+        text: "The Route 77 & 96 outbound stop at Massachusetts Ave @ Wendell St moves about 100 feet south, from 7 AM - 4 PM weekdays, due to construction."
+        language: "en"
+      }
+      translation {
+        text: "La parada de salida de la ciudad de las rutas 77 & 96 en Massachusetts Ave @ Wendell St se desplaza unos 100 pies hacia el sur, de 7:00 a 16:00 entre semana, debido a la construcción."
+        language: "es-419"
+      }
+      translation {
+        text: "O ponto sentido bairro das linhas 77 e 96 na Massachusetts Ave @ Wendell St muda cerca de 100 pés ao sul, das 7h às 16h em dias úteis, devido a obras."
+        language: "pt-BR"
+      }
+      translation {
+        text: "L'arrêt en partance des lignes 77 & 96 à Massachusetts Ave @ Wendell St est déplacé d'environ 100 pieds vers le sud, de 7 h à 16 h en semaine, en raison de travaux."
+        language: "fr-FR"
+      }
+      translation {
+        text: "Arè derape Route 77 & 96 nan Massachusetts Ave @ Wendell St deplase apeprè 100 pye nan sid, soti 7 AM - 4 PM jou lasemèn, akòz konstriksyon."
+        language: "ht-HT"
+      }
+      translation {
+        text: "受建筑施工影响，工作日上午 7 点至下午 4 点，Route 77 & 96 出站站点 Massachusetts Ave @ Wendell St 向南移动约 100 英尺。"
+        language: "zh-CN"
+      }
+      translation {
+        text: "Điểm dừng hướng đi ra ngoại thành của Tuyến 77 & 96 tại Massachusetts Ave @ Wendell St dời về phía nam khoảng 100 feet, từ 7 giờ sáng đến 4 giờ chiều các ngày trong tuần, do động thi công."
+        language: "vi-VN"
+      }
+      translation {
+        text: "受建築施工影響，平日上午 7 時至下午 4 時，77 號與 96 號路線位於 Massachusetts Ave @ Wendell St 的出站停靠站將向南移動約 100 英尺。"
+        language: "zh-TW"
+      }
+    }
+    severity_level: INFO
+    cause_detail {
+      translation {
+        text: "UNKNOWN_CAUSE"
+        language: "en"
+      }
+    }
+    effect_detail {
+      translation {
+        text: "STOP_MOVE"
+        language: "en"
+      }
+    }
+  }
+}
+entity {
+  id: "1001875"
+  alert {
+    active_period {
+      start: 1791928800
+      end: 1791961200
+    }
+    active_period {
+      start: 1792015200
+      end: 1792047600
+    }
+    active_period {
+      start: 1792101600
+      end: 1792134000
+    }
+    active_period {
+      start: 1792188000
+      end: 1792220400
+    }
+    active_period {
+      start: 1792447200
+      end: 1792479600
+    }
+    active_period {
+      start: 1792533600
+      end: 1792566000
+    }
+    active_period {
+      start: 1792620000
+      end: 1792652400
+    }
+    active_period {
+      start: 1792706400
+      end: 1792738800
+    }
+    active_period {
+      start: 1792792800
+      end: 1792825200
+    }
+    active_period {
+      start: 1793052000
+      end: 1793084400
+    }
+    active_period {
+      start: 1793138400
+      end: 1793170800
+    }
+    active_period {
+      start: 1793224800
+      end: 1793257200
+    }
+    active_period {
+      start: 1793311200
+      end: 1793343600
+    }
+    active_period {
+      start: 1793397600
+      end: 1793430000
+    }
+    active_period {
+      start: 1793660400
+      end: 1793692800
+    }
+    active_period {
+      start: 1793746800
+      end: 1793779200
+    }
+    active_period {
+      start: 1793833200
+      end: 1793865600
+    }
+    active_period {
+      start: 1793919600
+      end: 1793952000
+    }
+    active_period {
+      start: 1794006000
+      end: 1794038400
+    }
+    active_period {
+      start: 1794265200
+      end: 1794297600
+    }
+    active_period {
+      start: 1794351600
+      end: 1794384000
+    }
+    active_period {
+      start: 1794438000
+      end: 1794470400
+    }
+    active_period {
+      start: 1794524400
+      end: 1794556800
+    }
+    active_period {
+      start: 1794610800
+      end: 1794643200
+    }
+    active_period {
+      start: 1794870000
+      end: 1794902400
+    }
+    active_period {
+      start: 1794956400
+      end: 1794988800
+    }
+    active_period {
+      start: 1795042800
+      end: 1795075200
+    }
+    active_period {
+      start: 1795129200
+      end: 1795161600
+    }
+    active_period {
+      start: 1795215600
+      end: 1795248000
+    }
+    active_period {
+      start: 1795474800
+      end: 1795507200
+    }
+    active_period {
+      start: 1795561200
+      end: 1795593600
+    }
+    active_period {
+      start: 1795647600
+      end: 1795680000
+    }
+    active_period {
+      start: 1795734000
+      end: 1795766400
+    }
+    active_period {
+      start: 1795820400
+      end: 1795852800
+    }
+    active_period {
+      start: 1796079600
+      end: 1796112000
+    }
+    active_period {
+      start: 1796166000
+      end: 1796198400
+    }
+    active_period {
+      start: 1796252400
+      end: 1796284800
+    }
+    active_period {
+      start: 1796338800
+      end: 1796371200
+    }
+    active_period {
+      start: 1796425200
+      end: 1796457600
+    }
+    active_period {
+      start: 1796684400
+      end: 1796716800
+    }
+    active_period {
+      start: 1796770800
+      end: 1796803200
+    }
+    active_period {
+      start: 1796857200
+      end: 1796889600
+    }
+    active_period {
+      start: 1796943600
+      end: 1796976000
+    }
+    active_period {
+      start: 1797030000
+      end: 1797062400
+    }
+    active_period {
+      start: 1797289200
+      end: 1797321600
+    }
+    active_period {
+      start: 1797375600
+      end: 1797408000
+    }
+    active_period {
+      start: 1797462000
+      end: 1797494400
+    }
+    active_period {
+      start: 1797548400
+      end: 1797580800
+    }
+    active_period {
+      start: 1797634800
+      end: 1797667200
+    }
+    active_period {
+      start: 1797894000
+      end: 1797926400
+    }
+    active_period {
+      start: 1797980400
+      end: 1798012800
+    }
+    active_period {
+      start: 1798066800
+      end: 1798099200
+    }
+    active_period {
+      start: 1798153200
+      end: 1798185600
+    }
+    active_period {
+      start: 1798239600
+      end: 1798272000
+    }
+    active_period {
+      start: 1798498800
+      end: 1798531200
+    }
+    active_period {
+      start: 1798585200
+      end: 1798617600
+    }
+    active_period {
+      start: 1798671600
+      end: 1798704000
+    }
+    active_period {
+      start: 1798758000
+      end: 1798790400
+    }
+    active_period {
+      start: 1798844400
+      end: 1798876800
+    }
+    active_period {
+      start: 1799103600
+      end: 1799136000
+    }
+    active_period {
+      start: 1799190000
+      end: 1799222400
+    }
+    active_period {
+      start: 1799276400
+      end: 1799308800
+    }
+    active_period {
+      start: 1799362800
+      end: 1799395200
+    }
+    active_period {
+      start: 1799449200
+      end: 1799481600
+    }
+    active_period {
+      start: 1799708400
+      end: 1799740800
+    }
+    active_period {
+      start: 1799794800
+      end: 1799827200
+    }
+    active_period {
+      start: 1799881200
+      end: 1799913600
+    }
+    active_period {
+      start: 1799967600
+      end: 1800000000
+    }
+    active_period {
+      start: 1800054000
+      end: 1800086400
+    }
+    active_period {
+      start: 1800313200
+      end: 1800345600
+    }
+    active_period {
+      start: 1800399600
+      end: 1800432000
+    }
+    active_period {
+      start: 1800486000
+      end: 1800518400
+    }
+    active_period {
+      start: 1800572400
+      end: 1800604800
+    }
+    active_period {
+      start: 1800658800
+      end: 1800691200
+    }
+    active_period {
+      start: 1800918000
+      end: 1800950400
+    }
+    active_period {
+      start: 1801004400
+      end: 1801036800
+    }
+    active_period {
+      start: 1801090800
+      end: 1801123200
+    }
+    active_period {
+      start: 1801177200
+      end: 1801209600
+    }
+    active_period {
+      start: 1801263600
+      end: 1801296000
+    }
+    active_period {
+      start: 1801522800
+      end: 1801555200
+    }
+    active_period {
+      start: 1801609200
+      end: 1801641600
+    }
+    active_period {
+      start: 1801695600
+      end: 1801728000
+    }
+    active_period {
+      start: 1801782000
+      end: 1801814400
+    }
+    active_period {
+      start: 1801868400
+      end: 1801900800
+    }
+    active_period {
+      start: 1802127600
+      end: 1802160000
+    }
+    active_period {
+      start: 1802214000
+      end: 1802246400
+    }
+    active_period {
+      start: 1802300400
+      end: 1802332800
+    }
+    active_period {
+      start: 1802386800
+      end: 1802419200
+    }
+    active_period {
+      start: 1802473200
+      end: 1802505600
+    }
+    active_period {
+      start: 1802732400
+      end: 1802764800
+    }
+    active_period {
+      start: 1802818800
+      end: 1802851200
+    }
+    active_period {
+      start: 1802905200
+      end: 1802937600
+    }
+    active_period {
+      start: 1802991600
+      end: 1803024000
+    }
+    active_period {
+      start: 1803078000
+      end: 1803110400
+    }
+    active_period {
+      start: 1803337200
+      end: 1803369600
+    }
+    active_period {
+      start: 1803423600
+      end: 1803456000
+    }
+    active_period {
+      start: 1803510000
+      end: 1803542400
+    }
+    active_period {
+      start: 1803596400
+      end: 1803628800
+    }
+    active_period {
+      start: 1803682800
+      end: 1803715200
+    }
+    active_period {
+      start: 1803942000
+      end: 1803974400
+    }
+    active_period {
+      start: 1804028400
+      end: 1804060800
+    }
+    active_period {
+      start: 1804114800
+      end: 1804147200
+    }
+    active_period {
+      start: 1804201200
+      end: 1804233600
+    }
+    active_period {
+      start: 1804287600
+      end: 1804320000
+    }
+    active_period {
+      start: 1804546800
+      end: 1804579200
+    }
+    active_period {
+      start: 1804633200
+      end: 1804665600
+    }
+    active_period {
+      start: 1804719600
+      end: 1804752000
+    }
+    active_period {
+      start: 1804806000
+      end: 1804838400
+    }
+    active_period {
+      start: 1804892400
+      end: 1804924800
+    }
+    active_period {
+      start: 1805148000
+      end: 1805180400
+    }
+    active_period {
+      start: 1805234400
+      end: 1805266800
+    }
+    active_period {
+      start: 1805320800
+      end: 1805353200
+    }
+    active_period {
+      start: 1805407200
+      end: 1805439600
+    }
+    active_period {
+      start: 1805493600
+      end: 1805526000
+    }
+    active_period {
+      start: 1805752800
+      end: 1805785200
+    }
+    active_period {
+      start: 1805839200
+      end: 1805871600
+    }
+    active_period {
+      start: 1805925600
+      end: 1805958000
+    }
+    active_period {
+      start: 1806012000
+      end: 1806044400
+    }
+    active_period {
+      start: 1806098400
+      end: 1806130800
+    }
+    active_period {
+      start: 1806357600
+      end: 1806390000
+    }
+    active_period {
+      start: 1806444000
+      end: 1806476400
+    }
+    active_period {
+      start: 1806530400
+      end: 1806562800
+    }
+    active_period {
+      start: 1806616800
+      end: 1806649200
+    }
+    active_period {
+      start: 1806703200
+      end: 1806735600
+    }
+    active_period {
+      start: 1806962400
+      end: 1806994800
+    }
+    active_period {
+      start: 1807048800
+      end: 1807081200
+    }
+    active_period {
+      start: 1807135200
+      end: 1807167600
+    }
+    active_period {
+      start: 1807221600
+      end: 1807254000
+    }
+    active_period {
+      start: 1807308000
+      end: 1807340400
+    }
+    active_period {
+      start: 1807567200
+      end: 1807599600
+    }
+    active_period {
+      start: 1807653600
+      end: 1807686000
+    }
+    active_period {
+      start: 1807740000
+      end: 1807772400
+    }
+    active_period {
+      start: 1807826400
+      end: 1807858800
+    }
+    active_period {
+      start: 1807912800
+      end: 1807945200
+    }
+    active_period {
+      start: 1808172000
+      end: 1808204400
+    }
+    active_period {
+      start: 1808258400
+      end: 1808290800
+    }
+    active_period {
+      start: 1808344800
+      end: 1808377200
+    }
+    active_period {
+      start: 1808431200
+      end: 1808463600
+    }
+    active_period {
+      start: 1808517600
+      end: 1808550000
+    }
+    active_period {
+      start: 1808776800
+      end: 1808809200
+    }
+    active_period {
+      start: 1808863200
+      end: 1808895600
+    }
+    active_period {
+      start: 1808949600
+      end: 1808982000
+    }
+    active_period {
+      start: 1809036000
+      end: 1809068400
+    }
+    active_period {
+      start: 1809122400
+      end: 1809154800
+    }
+    active_period {
+      start: 1809381600
+      end: 1809414000
+    }
+    active_period {
+      start: 1809468000
+      end: 1809500400
+    }
+    active_period {
+      start: 1809554400
+      end: 1809586800
+    }
+    active_period {
+      start: 1809640800
+      end: 1809673200
+    }
+    active_period {
+      start: 1809727200
+      end: 1809759600
+    }
+    active_period {
+      start: 1809986400
+      end: 1810018800
+    }
+    active_period {
+      start: 1810072800
+      end: 1810105200
+    }
+    active_period {
+      start: 1810159200
+      end: 1810191600
+    }
+    active_period {
+      start: 1810245600
+      end: 1810278000
+    }
+    active_period {
+      start: 1810332000
+      end: 1810364400
+    }
+    active_period {
+      start: 1810591200
+      end: 1810623600
+    }
+    active_period {
+      start: 1810677600
+      end: 1810710000
+    }
+    active_period {
+      start: 1810764000
+      end: 1810796400
+    }
+    active_period {
+      start: 1810850400
+      end: 1810882800
+    }
+    active_period {
+      start: 1810936800
+      end: 1810969200
+    }
+    active_period {
+      start: 1811196000
+      end: 1811228400
+    }
+    active_period {
+      start: 1811282400
+      end: 1811314800
+    }
+    active_period {
+      start: 1811368800
+      end: 1811401200
+    }
+    active_period {
+      start: 1811455200
+      end: 1811487600
+    }
+    active_period {
+      start: 1811541600
+      end: 1811574000
+    }
+    active_period {
+      start: 1811800800
+      end: 1811833200
+    }
+    active_period {
+      start: 1811887200
+      end: 1811919600
+    }
+    active_period {
+      start: 1811973600
+      end: 1812006000
+    }
+    active_period {
+      start: 1812060000
+      end: 1812092400
+    }
+    active_period {
+      start: 1812146400
+      end: 1812178800
+    }
+    active_period {
+      start: 1812405600
+      end: 1812438000
+    }
+    active_period {
+      start: 1812492000
+      end: 1812524400
+    }
+    active_period {
+      start: 1812578400
+      end: 1812610800
+    }
+    active_period {
+      start: 1812664800
+      end: 1812697200
+    }
+    active_period {
+      start: 1812751200
+      end: 1812783600
+    }
+    active_period {
+      start: 1813010400
+      end: 1813042800
+    }
+    active_period {
+      start: 1813096800
+      end: 1813129200
+    }
+    active_period {
+      start: 1813183200
+      end: 1813215600
+    }
+    active_period {
+      start: 1813269600
+      end: 1813302000
+    }
+    active_period {
+      start: 1813356000
+      end: 1813388400
+    }
+    active_period {
+      start: 1813615200
+      end: 1813647600
+    }
+    active_period {
+      start: 1813701600
+      end: 1813734000
+    }
+    active_period {
+      start: 1813788000
+      end: 1813820400
+    }
+    active_period {
+      start: 1813874400
+      end: 1813906800
+    }
+    active_period {
+      start: 1813960800
+      end: 1813993200
+    }
+    active_period {
+      start: 1814220000
+      end: 1814252400
+    }
+    active_period {
+      start: 1814306400
+      end: 1814338800
+    }
+    active_period {
+      start: 1814392800
+      end: 1814425200
+    }
+    active_period {
+      start: 1814479200
+      end: 1814511600
+    }
+    active_period {
+      start: 1814565600
+      end: 1814598000
+    }
+    active_period {
+      start: 1814824800
+      end: 1814857200
+    }
+    active_period {
+      start: 1814911200
+      end: 1814943600
+    }
+    active_period {
+      start: 1814997600
+      end: 1815030000
+    }
+    active_period {
+      start: 1815084000
+      end: 1815116400
+    }
+    active_period {
+      start: 1815170400
+      end: 1815202800
+    }
+    active_period {
+      start: 1815429600
+      end: 1815462000
+    }
+    active_period {
+      start: 1815516000
+      end: 1815548400
+    }
+    active_period {
+      start: 1815602400
+      end: 1815634800
+    }
+    active_period {
+      start: 1815688800
+      end: 1815721200
+    }
+    active_period {
+      start: 1815775200
+      end: 1815807600
+    }
+    active_period {
+      start: 1816034400
+      end: 1816066800
+    }
+    active_period {
+      start: 1816120800
+      end: 1816153200
+    }
+    active_period {
+      start: 1816207200
+      end: 1816239600
+    }
+    active_period {
+      start: 1816293600
+      end: 1816326000
+    }
+    active_period {
+      start: 1816380000
+      end: 1816412400
+    }
+    active_period {
+      start: 1816639200
+      end: 1816671600
+    }
+    active_period {
+      start: 1816725600
+      end: 1816758000
+    }
+    active_period {
+      start: 1816812000
+      end: 1816844400
+    }
+    active_period {
+      start: 1816898400
+      end: 1816930800
+    }
+    active_period {
+      start: 1816984800
+      end: 1817017200
+    }
+    active_period {
+      start: 1817244000
+      end: 1817276400
+    }
+    active_period {
+      start: 1817330400
+      end: 1817362800
+    }
+    active_period {
+      start: 1817416800
+      end: 1817449200
+    }
+    active_period {
+      start: 1817503200
+      end: 1817535600
+    }
+    active_period {
+      start: 1817589600
+      end: 1817622000
+    }
+    active_period {
+      start: 1817848800
+      end: 1817881200
+    }
+    active_period {
+      start: 1817935200
+      end: 1817967600
+    }
+    active_period {
+      start: 1818021600
+      end: 1818054000
+    }
+    active_period {
+      start: 1818108000
+      end: 1818140400
+    }
+    active_period {
+      start: 1818194400
+      end: 1818226800
+    }
+    active_period {
+      start: 1818453600
+      end: 1818486000
+    }
+    active_period {
+      start: 1818540000
+      end: 1818572400
+    }
+    active_period {
+      start: 1818626400
+      end: 1818658800
+    }
+    active_period {
+      start: 1818712800
+      end: 1818745200
+    }
+    active_period {
+      start: 1818799200
+      end: 1818831600
+    }
+    active_period {
+      start: 1819058400
+      end: 1819090800
+    }
+    active_period {
+      start: 1819144800
+      end: 1819177200
+    }
+    active_period {
+      start: 1819231200
+      end: 1819263600
+    }
+    active_period {
+      start: 1819317600
+      end: 1819350000
+    }
+    active_period {
+      start: 1819404000
+      end: 1819436400
+    }
+    active_period {
+      start: 1819663200
+      end: 1819695600
+    }
+    active_period {
+      start: 1819749600
+      end: 1819782000
+    }
+    active_period {
+      start: 1819836000
+      end: 1819868400
+    }
+    active_period {
+      start: 1819922400
+      end: 1819954800
+    }
+    active_period {
+      start: 1820008800
+      end: 1820041200
+    }
+    active_period {
+      start: 1820268000
+      end: 1820300400
+    }
+    active_period {
+      start: 1820354400
+      end: 1820386800
+    }
+    active_period {
+      start: 1820440800
+      end: 1820473200
+    }
+    active_period {
+      start: 1820527200
+      end: 1820559600
+    }
+    active_period {
+      start: 1820613600
+      end: 1820646000
+    }
+    active_period {
+      start: 1820872800
+      end: 1820905200
+    }
+    active_period {
+      start: 1820959200
+      end: 1820991600
+    }
+    active_period {
+      start: 1821045600
+      end: 1821078000
+    }
+    active_period {
+      start: 1821132000
+      end: 1821164400
+    }
+    active_period {
+      start: 1821218400
+      end: 1821250800
+    }
+    active_period {
+      start: 1821477600
+      end: 1821510000
+    }
+    active_period {
+      start: 1821564000
+      end: 1821596400
+    }
+    active_period {
+      start: 1821650400
+      end: 1821682800
+    }
+    active_period {
+      start: 1821736800
+      end: 1821769200
+    }
+    active_period {
+      start: 1821823200
+      end: 1821855600
+    }
+    active_period {
+      start: 1822082400
+      end: 1822114800
+    }
+    active_period {
+      start: 1822168800
+      end: 1822201200
+    }
+    active_period {
+      start: 1822255200
+      end: 1822287600
+    }
+    active_period {
+      start: 1822341600
+      end: 1822374000
+    }
+    active_period {
+      start: 1822428000
+      end: 1822460400
+    }
+    active_period {
+      start: 1822687200
+      end: 1822719600
+    }
+    active_period {
+      start: 1822773600
+      end: 1822806000
+    }
+    active_period {
+      start: 1822860000
+      end: 1822892400
+    }
+    active_period {
+      start: 1822946400
+      end: 1822978800
+    }
+    active_period {
+      start: 1823032800
+      end: 1823065200
+    }
+    active_period {
+      start: 1823292000
+      end: 1823324400
+    }
+    active_period {
+      start: 1823378400
+      end: 1823410800
+    }
+    active_period {
+      start: 1823464800
+      end: 1823497200
+    }
+    informed_entity {
+      agency_id: "1"
+      route_id: "742"
+      route_type: 3
+      stop_id: "30249"
+      direction_id: 0
+    }
+    informed_entity {
+      agency_id: "1"
+      route_id: "742"
+      route_type: 3
+      stop_id: "31257"
+      direction_id: 1
+    }
+    cause: UNKNOWN_CAUSE
+    effect: DETOUR
+    header_text {
+      translation {
+        text: "SL2 is detoured weekdays from 6 PM until end of service and skipping Northern Ave @ Tide St. Closest outbound stops are Northern Ave @ Harbor St & 23 Drydock Ave. Closest inbound stops are Drydock Ave @ Design Center Place & Northern Ave opp Harbor St."
+        language: "en"
+      }
+      translation {
+        text: "La SL2 se desvía de lunes a viernes desde las 18:00 hasta fin del servicio y desvío Northern Ave @ Tide St. Las atajada más cercanas a salida de la ciudad son Northern Ave @ Harbor St y 23 Drydock Ave. Las atajada más cercanas a la ciudad son Drydock Ave @ Design Center Place y Northern Ave opp Harbor St."
+        language: "es-419"
+      }
+      translation {
+        text: "SL2 é desvio nos dias úteis das 18h até o fim da operação e desvio Northern Ave @ Tide St. As paradas mais próximas do sentido bairro são Northern Ave @ Harbor St e 23 Drydock Ave As paradas mais próximas do sentido centro são Drydock Ave @ Design Center Place e Northern Ave opp Harbor St"
+        language: "pt-BR"
+      }
+      translation {
+        text: "SL2 est déviation en semaine de 18h jusqu’à fin de service et contourner Northern Ave @ Tide St. Les arrêts en partance les plus proches sont Northern Ave @ Harbor St et 23 Drydock Ave. Les arrêts à l’arrivée les plus proches sont Drydock Ave @ Design Center Place et Northern Ave opp Harbor St."
+        language: "fr-FR"
+      }
+      translation {
+        text: "SL2 ap detou jou lasemèn apati 6 PM jiska fen sèvis ak kontoune Northern Ave @ Tide St Arè derape ki pi pre yo se Northern Ave @ Harbor St ak 23 Drydock Ave Arè ki pi pre yo se Drydock Ave @ Design Center Place ak Northern Ave opp Harbor St"
+        language: "ht-HT"
+      }
+      translation {
+        text: "SL2 每周日下午 6 点至运营结束绕行，并绕行Northern Ave @ Tide St 。最近的出站站是Northern Ave @ Harbor St和23 Drydock Ave 。 最近的进站站台是Drydock Ave @ Design Center Place & Northern Ave opp Harbor St 。"
+        language: "zh-CN"
+      }
+      translation {
+        text: "SL2 là đường vòng các ngày trong tuần từ 6 giờ chiều cho đến khi kết thúc dịch vụ và đường vòng Northern Ave @ Tide St. Các điểm dừng hướng đi ra ngoại thành gần nhất là Northern Ave @ Harbor St & 23 Drydock Ave. Các điểm dừng gần nhất vào trung tâm là Drydock Ave @ Design Center Place & Northern Ave opp Harbor St."
+        language: "vi-VN"
+      }
+      translation {
+        text: "SL2 每週日下午 6 點至營業結束為繞行，並繞行Northern Ave @ Tide St 。最近的出站站是Northern Ave @ Harbor St和23 Drydock Ave 。 最近的 進 站是Drydock Ave @ Design Center Place & Northern Ave opp Harbor St 。"
+        language: "zh-TW"
+      }
+    }
+    description_text {
+      translation {
+        text: "Skipped outbound stops:\nNorthern Ave @ Tide St\n\nSkipped inbound stops:\nNorthern Ave @ Tide St"
+        language: "en"
+      }
+      translation {
+        text: "Paradas de salida de la ciudad saltadas:\nNorthern Ave @ Tide St\n\nParadas de entrada a la ciudad saltadas:\nNorthern Ave @ Tide St"
+        language: "es-419"
+      }
+      translation {
+        text: "Paradas de Sentido bairro ignoradas:\n Northern Ave @ Tide St\n\n Paradas de Sentido centro ignoradas:\n Northern Ave @ Tide St"
+        language: "pt-BR"
+      }
+      translation {
+        text: "Arrêts sortants ignorés :\nNorthern Ave @ Tide St\n\nArrêts entrants ignorés :\nNorthern Ave @ Tide St"
+        language: "fr-FR"
+      }
+      translation {
+        text: "Arè Derape sote yo:\nNorthern Ave @ Tide St\n\nArè Rive sote:\nNorthern Ave @ Tide St"
+        language: "ht-HT"
+      }
+      translation {
+        text: "跳过了出站停靠点：\nNorthern Ave @ Tide St\n\n跳过入境停靠点：\nNorthern Ave @ Tide St"
+        language: "zh-CN"
+      }
+      translation {
+        text: "Bỏ qua các điểm dừng Hướng đi ra ngoại thành:\nNorthern Ave @ Tide St\n\nBỏ qua các điểm dừng Hướng đi vào trung tâm:\nNorthern Ave @ Tide St"
+        language: "vi-VN"
+      }
+      translation {
+        text: "跳過出站：\nNorthern Ave @ Tide St\n\n跳過的進站站點：\nNorthern Ave @ Tide St"
+        language: "zh-TW"
+      }
+    }
+    severity_level: SEVERE
+    cause_detail {
+      translation {
+        text: "UNKNOWN_CAUSE"
+        language: "en"
+      }
+    }
+    effect_detail {
+      translation {
+        text: "DETOUR"
+        language: "en"
+      }
+    }
+  }
+}
+entity {
+  id: "1007352"
+  alert {
+    active_period {
+      start: 1719491580
+    }
+    informed_entity {
+      route_id: "Boat-F1"
+      route_type: 4
+      stop_id: "Boat-Hull"
+    }
+    informed_entity {
+      route_id: "Boat-F2H"
+      route_type: 4
+      stop_id: "Boat-Hull"
+    }
+    cause: UNKNOWN_CAUSE
+    effect: OTHER_EFFECT
+    header_text {
+      translation {
+        text: "Hingham/Hull Ferry: Portions of the Town of Hull parking lot at the Hull ferry terminal are blocked off for sewer pump station construction work. More information is available at https://www.town.hull.ma.us/"
+        language: "en"
+      }
+      translation {
+        text: "Hingham/Hull Ferry: Partes del parqueadero del Pueblo de Hull en la terminal de ferris de Hull están cerradas para trabajos de construcción de bombas de alcantarillado en la estación de construcción. Más información está disponible en https://www.town.hull.ma.us/"
+        language: "es-419"
+      }
+      translation {
+        text: "Hingham/Hull Ferry: Partes do estacionamento da cidade de Hull , no terminal de balsas Hull estão bloqueadas devido a obras de bombeamento de esgoto na Estação Obras. Mais informações estão disponíveis em https://www.town.hull.ma.us/"
+        language: "pt-BR"
+      }
+      translation {
+        text: "Hingham/Hull Ferry: Des portions du parking de la ville de Hull au terminus de Hull ferry sont bloquées pour des travaux sur la station de pompage des égouts. Pour plus d'informations, consultez le site https://www.town.hull.ma.us/"
+        language: "fr-FR"
+      }
+      translation {
+        text: "Hingham/Hull Ferry: Gen yon pòsyon nan pakin Vil Hull nan tèminal bato Hull la bloke pou travay konstriksyon ponp egou. Gen plis enfòmasyon ki disponib nan https://www.town.hull.ma.us/"
+        language: "ht-HT"
+      }
+      translation {
+        text: "Hingham/Hull Ferry ： Hull渡轮终点站Hull镇停车场的部分区域被封锁，以进行下水道泵车站建筑施工工作。 更多信息请访问 https://www.town.hull.ma.us/"
+        language: "zh-CN"
+      }
+      translation {
+        text: "Hingham/Hull Ferry: Một phần bãi đậu xe của Thị trấn Hull tại Hull Phút ga cuối bị chặn để thực hiện công trình bơm thoát nước Nhà ga động thi công. Xem thêm thông tin tại https://www.town.hull.ma.us/"
+        language: "vi-VN"
+      }
+      translation {
+        text: "Hingham/Hull Ferry:Hull Hull 渡輪 終點站的部分停車場因污水泵車站建築施工而被封鎖。 更多資訊請參考 https://www.town.hull.ma.us/"
+        language: "zh-TW"
+      }
+    }
+    severity_level: WARNING
+    cause_detail {
+      translation {
+        text: "UNKNOWN_CAUSE"
+        language: "en"
+      }
+    }
+    effect_detail {
+      translation {
+        text: "PARKING_ISSUE"
+        language: "en"
+      }
+    }
+  }
+}
+entity {
+  id: "1007353"
+  alert {
+    active_period {
+      start: 1755618900
+    }
+    informed_entity {
+      route_id: "Boat-F1"
+      route_type: 4
+      stop_id: "Boat-Hingham"
+    }
+    informed_entity {
+      route_id: "Boat-F2H"
+      route_type: 4
+      stop_id: "Boat-Hingham"
+    }
+    cause: UNKNOWN_CAUSE
+    effect: OTHER_EFFECT
+    header_text {
+      translation {
+        text: "Hingham Ferry Parking Notice: Passengers should allow for extra time to park and to access the ferry in Hingham due to work being done for the new dock. In addition, Route 220 buses are bypassing the shipyard and are remaining on Route 3A."
+        language: "en"
+      }
+      translation {
+        text: "Aviso de parqueadero Hingham ferry: el pasajero debería permitir tiempo extra para parquear y acceder a la ferry en Hingham debido a los trabajos en la nueva mula. Además, los colectivos de la Ruta 220 están desvíados del astillero y permanecen en la Ruta 3A."
+        language: "es-419"
+      }
+      translation {
+        text: "Aviso de estacionamento Hingham Balsa: os passageiros devem reservar tempo extra para estacionar e acessar a balsa em Hingham devido às obras em andamento para o novo píer. Além disso, os ônibus da linha 220 estão desviando do estaleiro e permanecendo na linha 3A."
+        language: "pt-BR"
+      }
+      translation {
+        text: "Hingham Avis de stationnement de ferry : les passants doivent prévoir un délai supplémentaire pour se garer et accéder au site ferry à Hingham en raison des travaux effectués sur le nouveau quai. En outre, les bus de la ligne 220 contournent le chantier naval et restent sur la ligne 3A."
+        language: "fr-FR"
+      }
+      translation {
+        text: "Avi sou pakin Hingham bato: Yo ta dwe bay plis tan pou pake epi pou jwenn aksè nan pakin nan Hingham akòz travay k ap fèt pou nouvo waf la. Anplis de sa, Wout 220 Bis la ap pase nan chantye naval la epi yo rete sou Wout 3A."
+        language: "ht-HT"
+      }
+      translation {
+        text: "Hingham渡轮停车须知：由于新码头正在进行施工，乘客应留出额外的时间停车并进Hingham渡轮。 此外，220 号巴士绕造船厂行驶，并保留在 3A 号路线上。"
+        language: "zh-CN"
+      }
+      translation {
+        text: "Thông báo đỗ xe tại khu vực đón khách Hingham : Khách vui lòng dành thêm thời gian để đỗ xe và lên khu vực đón khách tại Hingham do công trình xây dựng bến tàu mới đang được tiến hành. Ngoài ra, Tuyến 220 Xe bubu nằm trên đường vòng quanh nhà máy đóng tàu và nằm trên Tuyến 3A."
+        language: "vi-VN"
+      }
+      translation {
+        text: "Hingham 渡輪停車通知：由於新碼頭正在施工，乘客應預留額外的時間在Hingham 停車和進入渡輪。 此外，Route 220 巴士繞行船廠，並留在 Route 3A。"
+        language: "zh-TW"
+      }
+    }
+    description_text {
+      translation {
+        text: "Pedestrian Access:\nThere is no access between the Hingham Ferry Terminal and DCR building. Pedestrian access to and from the ferry dock is through and around the west side of the Hingham Ferry Terminal. Some sidewalk access at the Terminal may also be restricted during this work.\n\nShipyard Drive:\nShipyard Drive is closed to traffic in front of the Hingham Ferry Terminal. Traffic is being rerouted through the Hingham Parking lot. Drop-offs and pick-ups have been relocated to the parking lot. Traffic police and signage will be in place to direct traffic."
+        language: "en"
+      }
+      translation {
+        text: "Acceso peatonal:\nNo hay acceso entre el Hingham ferry Terminal y el edificio de DCR. El acceso peatonal hacia y desde la muella ferry es a través y alrededor del lado del Este del ferry Hingham Terminal. Durante este trabajo, también puede restringir el acceso a las aceras en la Terminal.\n\nCampaña en los astilleros:\nShipyard Drive está cerrado hasta Tránsito frente al Hingham ferry Terminal. Tránsito está siendo desviado a través del parqueadero Hingham . Las entregas y recogidas se trasladaron al parqueadero. La policía de Tránsito y la señalización estarán instaladas para dirigir la ciudad."
+        language: "es-419"
+      }
+      translation {
+        text: "Acesso para pedestres:\n Não há acesso entre o terminal de balsas Hingham e o edifício da DCR. O acesso de pedestres ao cais de balsas e a partir dele é feito através do lado oeste do terminal de balsas Hingham , contornando-o. O acesso a algumas calçadas no terminal também poderá ser restringido durante a obra.\n\nAlameda do Estaleiro:\n A Shipyard Drive está fechada ao trânsito em frente ao terminal de balsas Hingham . O trânsito está sendo desviado pelo estacionamento de Hingham. Os pontos de embarque e desembarque foram transferidos para o estacionamento. Haverá policiais de trânsito e sinalização para orientar o tráfego."
+        language: "pt-BR"
+      }
+      translation {
+        text: "Accès pour les piétons :\nIl n'y a pas d'accès entre le terminus du ferry Hingham et le bâtiment du DCR. L'accès des piétons au quai ferry se fait par le côté ouest du terminus du ferry Hingham. L'accès à certains trottoirs au niveau du terminus peut également être restreint pendant ces travaux.\n\nShipyard Drive :\nShipyard Drive est fermé à la circulation devant le terminus du ferry Hingham. Le trafic est redirigé vers le parking Hingham. Les dépôts et les ramassages ont été déplacés sur le parking. Une police de la circulation et une signalisation seront mises en place pour diriger le trafic."
+        language: "fr-FR"
+      }
+      translation {
+        text: "Aksè pou pyeton:\n Pa gen aksè ant tèminal Hingham bato a ak bilding DCR a. Aksè pyeton pou ale ak pou soti nan bato waf la se nan epi alantou bò Lwès tèminal bato Hingham lan. Aksè nan kèk twotwa nan tèminal la ka limite tou pandan travay sa a.\n\nChantiye Naval Drive:\n Shipyard Drive fèmen pou trafik devan tèminal bato Hingham . Yo ap redireksyon trafik la nan pakin Hingham nan. Yo deplase kote pou depoze ak vin chèche pasaje yo nan pakin nan. Pral gen lapolis trafik ak siyaj pou dirije trafik la."
+        language: "ht-HT"
+      }
+      translation {
+        text: "行人通道：\n Hingham渡轮终点站和 DCR 大楼之间没有通道。 往返渡轮码头的行人通道是穿过Hingham渡轮终点站的西行侧。 施工期间，终点站的部分人行道通行可能会受到限制。\n\n造船厂大道：\n Shipyard Drive 已关闭Hingham渡轮终点站前的交通。 交通路线正在改道，途经Hingham停车场。 上下车地点已迁至停车场。交通警察和标志牌将到位指挥交通。"
+        language: "zh-CN"
+      }
+      translation {
+        text: "Lối đi dành cho người đi bộ:\n Không có lối đi nào giữa khu vực Hingham tăng ga cuối và tòa nhà DCR. Người đi bộ đến và đi từ Bến phà đi qua và xung quanh phía Hướng Tây của Hingham Phú ga cuối. Một số lối đi bộ tại ga cuối cũng có thể bị hạn chế trong quá trình thi công này.\n\nĐường Shipyard Drive:\n Shipyard Drive được đóng vào giao thông phía trước Hingham Phút ga cuối. Tuyến giao thông đang được chuyển hướng qua bãi đậu xe Hingham . Dịch vụ trả khách và đón khách đã được chuyển đến bãi đậu xe. giao thông sẽ được cảnh sát và biển báo hướng dẫn."
+        language: "vi-VN"
+      }
+      translation {
+        text: "行人通道：\n Hingham 渡輪終點站與 DCR 大樓之間沒有通道。 行人往返渡輪碼頭須經過Hingham 渡輪終點站的西行一側。 在此工程期間，終點站的部分人行道通道可能也會受到限制。\n\nShipyard Drive:\nShipyard Drive 已關閉至Hingham 渡輪終點站前的交通。 交通將改經 Hingham 停車場。上落客車已移至停車場。交通警察和指示牌將到位，以指導交通。"
+        language: "zh-TW"
+      }
+    }
+    severity_level: WARNING
+    cause_detail {
+      translation {
+        text: "UNKNOWN_CAUSE"
+        language: "en"
+      }
+    }
+    effect_detail {
+      translation {
+        text: "PARKING_ISSUE"
+        language: "en"
+      }
+    }
+  }
+}
+entity {
+  id: "1007380"
+  alert {
+    active_period {
+      start: 1777399223
+    }
+    informed_entity {
+      route_id: "426"
+      route_type: 3
+      stop_id: "ER-0115"
+    }
+    informed_entity {
+      route_id: "426"
+      route_type: 3
+      stop_id: "ER-0115-01"
+    }
+    informed_entity {
+      route_id: "426"
+      route_type: 3
+      stop_id: "ER-0115-02"
+    }
+    informed_entity {
+      route_id: "429"
+      route_type: 3
+      stop_id: "ER-0115"
+    }
+    informed_entity {
+      route_id: "429"
+      route_type: 3
+      stop_id: "ER-0115-01"
+    }
+    informed_entity {
+      route_id: "429"
+      route_type: 3
+      stop_id: "ER-0115-02"
+    }
+    informed_entity {
+      route_id: "435"
+      route_type: 3
+      stop_id: "ER-0115"
+    }
+    informed_entity {
+      route_id: "435"
+      route_type: 3
+      stop_id: "ER-0115-01"
+    }
+    informed_entity {
+      route_id: "435"
+      route_type: 3
+      stop_id: "ER-0115-02"
+    }
+    informed_entity {
+      route_id: "436"
+      route_type: 3
+      stop_id: "ER-0115"
+    }
+    informed_entity {
+      route_id: "436"
+      route_type: 3
+      stop_id: "ER-0115-01"
+    }
+    informed_entity {
+      route_id: "436"
+      route_type: 3
+      stop_id: "ER-0115-02"
+    }
+    informed_entity {
+      route_id: "439"
+      route_type: 3
+      stop_id: "ER-0115"
+    }
+    informed_entity {
+      route_id: "439"
+      route_type: 3
+      stop_id: "ER-0115-01"
+    }
+    informed_entity {
+      route_id: "439"
+      route_type: 3
+      stop_id: "ER-0115-02"
+    }
+    informed_entity {
+      route_id: "441"
+      route_type: 3
+      stop_id: "ER-0115"
+    }
+    informed_entity {
+      route_id: "441"
+      route_type: 3
+      stop_id: "ER-0115-01"
+    }
+    informed_entity {
+      route_id: "441"
+      route_type: 3
+      stop_id: "ER-0115-02"
+    }
+    informed_entity {
+      route_id: "442"
+      route_type: 3
+      stop_id: "ER-0115"
+    }
+    informed_entity {
+      route_id: "442"
+      route_type: 3
+      stop_id: "ER-0115-01"
+    }
+    informed_entity {
+      route_id: "442"
+      route_type: 3
+      stop_id: "ER-0115-02"
+    }
+    informed_entity {
+      route_id: "455"
+      route_type: 3
+      stop_id: "ER-0115"
+    }
+    informed_entity {
+      route_id: "455"
+      route_type: 3
+      stop_id: "ER-0115-01"
+    }
+    informed_entity {
+      route_id: "455"
+      route_type: 3
+      stop_id: "ER-0115-02"
+    }
+    informed_entity {
+      route_id: "456"
+      route_type: 3
+      stop_id: "ER-0115"
+    }
+    informed_entity {
+      route_id: "456"
+      route_type: 3
+      stop_id: "ER-0115-01"
+    }
+    informed_entity {
+      route_id: "456"
+      route_type: 3
+      stop_id: "ER-0115-02"
+    }
+    informed_entity {
+      route_id: "426"
+      route_type: 3
+      stop_id: "ER-0115"
+    }
+    informed_entity {
+      route_id: "426"
+      route_type: 3
+      stop_id: "ER-0115-01"
+    }
+    informed_entity {
+      route_id: "426"
+      route_type: 3
+      stop_id: "ER-0115-02"
+    }
+    informed_entity {
+      route_id: "429"
+      route_type: 3
+      stop_id: "ER-0115"
+    }
+    informed_entity {
+      route_id: "429"
+      route_type: 3
+      stop_id: "ER-0115-01"
+    }
+    informed_entity {
+      route_id: "429"
+      route_type: 3
+      stop_id: "ER-0115-02"
+    }
+    informed_entity {
+      route_id: "435"
+      route_type: 3
+      stop_id: "ER-0115"
+    }
+    informed_entity {
+      route_id: "435"
+      route_type: 3
+      stop_id: "ER-0115-01"
+    }
+    informed_entity {
+      route_id: "435"
+      route_type: 3
+      stop_id: "ER-0115-02"
+    }
+    informed_entity {
+      route_id: "436"
+      route_type: 3
+      stop_id: "ER-0115"
+    }
+    informed_entity {
+      route_id: "436"
+      route_type: 3
+      stop_id: "ER-0115-01"
+    }
+    informed_entity {
+      route_id: "436"
+      route_type: 3
+      stop_id: "ER-0115-02"
+    }
+    informed_entity {
+      route_id: "439"
+      route_type: 3
+      stop_id: "ER-0115"
+    }
+    informed_entity {
+      route_id: "439"
+      route_type: 3
+      stop_id: "ER-0115-01"
+    }
+    informed_entity {
+      route_id: "439"
+      route_type: 3
+      stop_id: "ER-0115-02"
+    }
+    informed_entity {
+      route_id: "441"
+      route_type: 3
+      stop_id: "ER-0115"
+    }
+    informed_entity {
+      route_id: "441"
+      route_type: 3
+      stop_id: "ER-0115-01"
+    }
+    informed_entity {
+      route_id: "441"
+      route_type: 3
+      stop_id: "ER-0115-02"
+    }
+    informed_entity {
+      route_id: "442"
+      route_type: 3
+      stop_id: "ER-0115"
+    }
+    informed_entity {
+      route_id: "442"
+      route_type: 3
+      stop_id: "ER-0115-01"
+    }
+    informed_entity {
+      route_id: "442"
+      route_type: 3
+      stop_id: "ER-0115-02"
+    }
+    informed_entity {
+      route_id: "455"
+      route_type: 3
+      stop_id: "ER-0115"
+    }
+    informed_entity {
+      route_id: "455"
+      route_type: 3
+      stop_id: "ER-0115-01"
+    }
+    informed_entity {
+      route_id: "455"
+      route_type: 3
+      stop_id: "ER-0115-02"
+    }
+    informed_entity {
+      route_id: "456"
+      route_type: 3
+      stop_id: "ER-0115"
+    }
+    informed_entity {
+      route_id: "456"
+      route_type: 3
+      stop_id: "ER-0115-01"
+    }
+    informed_entity {
+      route_id: "456"
+      route_type: 3
+      stop_id: "ER-0115-02"
+    }
+    cause: MAINTENANCE
+    effect: ACCESSIBILITY_ISSUE
+    header_text {
+      translation {
+        text: "Lynn Elevators 929 (Street to parking garage) and 930 (Street to parking garage) are unavailable until further notice. Please use the accessible parking spaces on the ground level of the garage while the elevators are out of service."
+        language: "en"
+      }
+      translation {
+        text: "Los ascensores Lynn 929 (de la calle al garaje de estacionamiento) y la 930 (de la calle al garaje de estacionamiento) no disponibles hasta nuevo aviso. Por favor, emplee las plazas de parqueadero accesibles en la planta baja del garaje mientras los ascensores estén fuera de servicio."
+        language: "es-419"
+      }
+      translation {
+        text: "Os elevadores Lynn 929 (da rua para a garagem) e 930 (da rua para a garagem) estão indisponíveis até novo aviso. Por favor, utilize as vagas de estacionamento acessíveis no piso térreo da garagem enquanto os elevadores estiverem fora de serviço."
+        language: "pt-BR"
+      }
+      translation {
+        text: "Les ascenseurs Lynn 929 (de la rue au parking) et 930 (de la rue au parking) sont indisponibles jusqu'à nouvel ordre. Veuillez utiliser les places de parking accessibles au rez-de-chaussée du garage pendant que les ascenseurs sont hors service."
+        language: "fr-FR"
+      }
+      translation {
+        text: "Asansè Lynn nimewo 929 (ki soti nan lari pou ale nan pakin) ak nimewo 930 (ki soti nan lari pou ale nan pakin) pa disponib jiskaske nou ba ou plis avi. Tanpri itilize espas pakin aksesib ki nan nivo tè garaj la pandan asansè yo pa an sèvis."
+        language: "ht-HT"
+      }
+      translation {
+        text: "Lynn电梯 929（街道至停车库）和 930（街道至停车库）不可使用洗衣溶液通知。 电梯暂停服务期间，请使用车库地面的无障碍停车位。"
+        language: "zh-CN"
+      }
+      translation {
+        text: "Thang máy Lynn 929 (Từ đường đến gara) và 930 (Từ đường tới gara) hiện chưa có sẵn cho đến khi có thông báo mới. Vui lòng sử dụng chỗ đỗ xe có thể tiếp cận được ở tầng trệt của gara trong khi thang máy hoạt động liên tục."
+        language: "vi-VN"
+      }
+      translation {
+        text: "Lynn 電梯 929 (街道至停車場) 及 930 (街道至停車場) 暫停使用，直至另行通知。電梯停用時，請使用車庫地面的無障礙停車位。"
+        language: "zh-TW"
+      }
+    }
+    severity_level: WARNING
+    cause_detail {
+      translation {
+        text: "MAINTENANCE"
+        language: "en"
+      }
+    }
+    effect_detail {
+      translation {
+        text: "ACCESS_ISSUE"
+        language: "en"
+      }
+    }
+  }
+}
+entity {
+  id: "1008495"
+  alert {
+    active_period {
+      start: 1777977660
+    }
+    informed_entity {
+      agency_id: "1"
+      route_id: "556"
+      route_type: 3
+      stop_id: "77242"
+      direction_id: 1
+    }
+    cause: MAINTENANCE
+    effect: DETOUR
+    header_text {
+      translation {
+        text: "Route 556 inbound is detoured, skipping Hammond St @ Plympton St due to maintenance. The closest stops with service are 184 Hammond St & Hammond St @ Lawrence St."
+        language: "en"
+      }
+      translation {
+        text: "La entrada de la Ruta 556 a la ciudad está desviada, desvío Hammond St @ Plympton St debido al mantenimiento. Las atajada más cercanas con servicio son 184 Hammond St & Hammond St @ Lawrence St."
+        language: "es-419"
+      }
+      translation {
+        text: "A Rota 556 sentido centro está desvio, desvio Hammond St @ Plympton St devido a manutenção. Os pontos de ônibus mais próximos com serviço são 184 Hammond St e Hammond St @ Lawrence St."
+        language: "pt-BR"
+      }
+      translation {
+        text: "La route 556 à l’arrivée est déviation, contourner Hammond St @ Plympton St due à maintenance. Les arrêts les plus proches avec service sont 184 Hammond St & Hammond St @ Lawrence St."
+        language: "fr-FR"
+      }
+      translation {
+        text: "Route 556 rive se detou, kontoune Hammond St @ Plympton St akòz stabilité. Arè ki pi pre yo ki gen sèvis yo se 184 Hammond St & Hammond St @ Lawrence St."
+        language: "ht-HT"
+      }
+      translation {
+        text: "Route 556 进站是绕行，绕行Hammond St @ Plympton St ，因为维护。 最近的公交站点是 184 Hammond St 和 Hammond St @ Lawrence St。"
+        language: "zh-CN"
+      }
+      translation {
+        text: "Tuyến 556 hướng đi vào trung tâm là đường vòng, đường vòng Hammond St @ Plympton St due to bảo trì. Các điểm dừng gần nhất có dịch vụ là 184 Hammond St & Hammond St @ Lawrence St."
+        language: "vi-VN"
+      }
+      translation {
+        text: "Route 556 進站是繞行，繞行Hammond St @ Plympton St因為維護。 最近的公車站是 184 Hammond St 和 Hammond St @ Lawrence St。"
+        language: "zh-TW"
+      }
+    }
+    severity_level: SEVERE
+    cause_detail {
+      translation {
+        text: "MAINTENANCE"
+        language: "en"
+      }
+    }
+    effect_detail {
+      translation {
+        text: "DETOUR"
+        language: "en"
+      }
+    }
+  }
+}
+entity {
+  id: "1009001"
+  alert {
+    active_period {
+      start: 1778163202
+    }
+    informed_entity {
+      route_id: "10"
+      route_type: 3
+      stop_id: "place-andrw"
+    }
+    informed_entity {
+      route_id: "16"
+      route_type: 3
+      stop_id: "place-andrw"
+    }
+    informed_entity {
+      route_id: "17"
+      route_type: 3
+      stop_id: "place-andrw"
+    }
+    informed_entity {
+      route_id: "171"
+      route_type: 3
+      stop_id: "place-andrw"
+    }
+    informed_entity {
+      route_id: "18"
+      route_type: 3
+      stop_id: "place-andrw"
+    }
+    informed_entity {
+      route_id: "708"
+      route_type: 3
+      stop_id: "place-andrw"
+    }
+    informed_entity {
+      route_id: "9"
+      route_type: 3
+      stop_id: "place-andrw"
+    }
+    informed_entity {
+      route_id: "Red"
+      route_type: 1
+      stop_id: "70083"
+    }
+    informed_entity {
+      route_id: "Red"
+      route_type: 1
+      stop_id: "door-andrw-busway"
+    }
+    informed_entity {
+      route_id: "Red"
+      route_type: 1
+      stop_id: "place-andrw"
+    }
+    cause: UNKNOWN_CAUSE
+    effect: ACCESSIBILITY_ISSUE
+    header_text {
+      translation {
+        text: "Andrew Escalator 124 (Ashmont/Braintree platform to busway) is unavailable."
+        language: "en"
+      }
+      translation {
+        text: "Andrew Escalera mecánica 124 (Ashmont/Braintree Andén a Vía exclusiva para colectivos) no está disponible."
+        language: "es-419"
+      }
+      translation {
+        text: "A escada rolante Andrew 124 (plataforma Ashmont/Braintree para o corredor de ônibus) está indisponível."
+        language: "pt-BR"
+      }
+      translation {
+        text: "Andrew L'escalator 124 (Ashmont/Braintree quai à voie du bus) est indispensable."
+        language: "fr-FR"
+      }
+      translation {
+        text: "Andrew Escalator 124 (Ashmont/Braintree metòd pou wout bis) is pa disponib."
+        language: "ht-HT"
+      }
+      translation {
+        text: "Andrew自动扶梯 124（ Ashmont/Braintree站台至巴士专用道）不可使用。"
+        language: "zh-CN"
+      }
+      translation {
+        text: "Andrew Escalator 124 (Ashmont/Braintree sân ga to làn đường dành cho xe buu) hiện không có sẵn."
+        language: "vi-VN"
+      }
+      translation {
+        text: "Andrew Escalator 124 (Ashmont/Braintree 月臺 to 巴士專用道) 不可使用。"
+        language: "zh-TW"
+      }
+    }
+    severity_level: WARNING
+    cause_detail {
+      translation {
+        text: "UNKNOWN_CAUSE"
+        language: "en"
+      }
+    }
+    effect_detail {
+      translation {
+        text: "ESCALATOR_CLOSURE"
+        language: "en"
+      }
+    }
+  }
+}
+entity {
+  id: "1009729"
+  alert {
+    active_period {
+      start: 1778550514
+    }
+    informed_entity {
+      route_id: "350"
+      route_type: 3
+      stop_id: "place-alfcl"
+    }
+    informed_entity {
+      route_id: "62"
+      route_type: 3
+      stop_id: "place-alfcl"
+    }
+    informed_entity {
+      route_id: "67"
+      route_type: 3
+      stop_id: "place-alfcl"
+    }
+    informed_entity {
+      route_id: "76"
+      route_type: 3
+      stop_id: "place-alfcl"
+    }
+    informed_entity {
+      route_id: "Red"
+      route_type: 1
+      stop_id: "70061"
+    }
+    informed_entity {
+      route_id: "Red"
+      route_type: 1
+      stop_id: "Alewife-01"
+    }
+    informed_entity {
+      route_id: "Red"
+      route_type: 1
+      stop_id: "Alewife-02"
+    }
+    informed_entity {
+      route_id: "Red"
+      route_type: 1
+      stop_id: "node-alfcl-buswayplatform-middle"
+    }
+    informed_entity {
+      route_id: "Red"
+      route_type: 1
+      stop_id: "place-alfcl"
+    }
+    cause: MAINTENANCE
+    effect: ACCESSIBILITY_ISSUE
+    header_text {
+      translation {
+        text: "Alewife Escalator 353 (Main concourse to busway) is unavailable due to maintenance."
+        language: "en"
+      }
+      translation {
+        text: "Alewife Escalera mecánica 353 (vestíbulo principal hacia la Vía exclusiva para colectivos) no está disponible debido a Mantenimiento."
+        language: "es-419"
+      }
+      translation {
+        text: "A escada rolante Alewife 353 (saguão principal do corredor de ônibus) está indisponível devido a manutenção."
+        language: "pt-BR"
+      }
+      translation {
+        text: "Alewife L'escalator 353 (du hall principal à la voie du bus) est indisponible à cause de maintenance."
+        language: "fr-FR"
+      }
+      translation {
+        text: "Alewife Escalator 353 (Main concourse to wout bis) is pa disponib akòz mezi."
+        language: "ht-HT"
+      }
+      translation {
+        text: "Alewife Escalator 353（巴士专用道主广场）因维护而不可使用。"
+        language: "zh-CN"
+      }
+      translation {
+        text: "Thang cuốn Alewife 353 (Phòng chờ chính tới làn đường dành cho xe bu bu) hiện không có sẵn do bảo trì."
+        language: "vi-VN"
+      }
+      translation {
+        text: "Alewife Escalator 353 (Main concourse to 巴士專用道) 不可使用，原因是維護。"
+        language: "zh-TW"
+      }
+    }
+    severity_level: WARNING
+    cause_detail {
+      translation {
+        text: "MAINTENANCE"
+        language: "en"
+      }
+    }
+    effect_detail {
+      translation {
+        text: "ESCALATOR_CLOSURE"
+        language: "en"
+      }
+    }
+  }
+}
+entity {
+  id: "1009804"
+  alert {
+    active_period {
+      start: 1778597727
+    }
+    informed_entity {
+      route_id: "350"
+      route_type: 3
+      stop_id: "place-alfcl"
+    }
+    informed_entity {
+      route_id: "62"
+      route_type: 3
+      stop_id: "place-alfcl"
+    }
+    informed_entity {
+      route_id: "67"
+      route_type: 3
+      stop_id: "place-alfcl"
+    }
+    informed_entity {
+      route_id: "76"
+      route_type: 3
+      stop_id: "place-alfcl"
+    }
+    informed_entity {
+      route_id: "Red"
+      route_type: 1
+      stop_id: "70061"
+    }
+    informed_entity {
+      route_id: "Red"
+      route_type: 1
+      stop_id: "Alewife-01"
+    }
+    informed_entity {
+      route_id: "Red"
+      route_type: 1
+      stop_id: "Alewife-02"
+    }
+    informed_entity {
+      route_id: "Red"
+      route_type: 1
+      stop_id: "place-alfcl"
+    }
+    cause: MAINTENANCE
+    effect: ACCESSIBILITY_ISSUE
+    header_text {
+      translation {
+        text: "Alewife Escalator 351 (Main concourse to platform) is unavailable due to maintenance."
+        language: "en"
+      }
+      translation {
+        text: "Alewife Escalera mecánica 351 (vestíbulo principal hacia Andén) No está disponible debido a Mantenimiento."
+        language: "es-419"
+      }
+      translation {
+        text: "A escada rolante Alewife 351 (do saguão principal para a plataforma) está indisponível devido a manutenção."
+        language: "pt-BR"
+      }
+      translation {
+        text: "L'escalator 351 d'Alewife (du hall principal au quai) est indisponible pour cause de maintenance."
+        language: "fr-FR"
+      }
+      translation {
+        text: "Eskalatè Alewife 351 (koup prensipal pou ale sou platfòm nan) pa disponib akòz antretyen."
+        language: "ht-HT"
+      }
+      translation {
+        text: "Alewife自动扶梯 351（通往站台的主大厅）由于维护而不可使用。"
+        language: "zh-CN"
+      }
+      translation {
+        text: "Thang cuốn Alewife 351 (Phòng chờ chính tới sân ga) hiện không có sẵn do bảo trì."
+        language: "vi-VN"
+      }
+      translation {
+        text: "Alewife Escalator 351 (Main concourse to 月臺) 不可使用，原因是維護。"
+        language: "zh-TW"
+      }
+    }
+    severity_level: WARNING
+    cause_detail {
+      translation {
+        text: "MAINTENANCE"
+        language: "en"
+      }
+    }
+    effect_detail {
+      translation {
+        text: "ESCALATOR_CLOSURE"
+        language: "en"
+      }
+    }
+  }
+}
+entity {
+  id: "1014476"
+  alert {
+    active_period {
+      start: 1781420400
+    }
+    informed_entity {
+      agency_id: "1"
+      route_id: "558"
+      route_type: 3
+      stop_id: "7827"
+    }
+    informed_entity {
+      agency_id: "1"
+      route_id: "558"
+      route_type: 3
+      stop_id: "7828"
+    }
+    informed_entity {
+      agency_id: "1"
+      route_id: "558"
+      route_type: 3
+      stop_id: "7829"
+    }
+    informed_entity {
+      agency_id: "1"
+      route_id: "558"
+      route_type: 3
+      stop_id: "7830"
+    }
+    cause: CONSTRUCTION
+    effect: STOP_MOVED
+    header_text {
+      translation {
+        text: "Route 558: Four stops have moved due to construction. Moved inbound stops: Commonwealth Ave @ Islington Rd & Commonwealth Ave opp Marriott. Moved outbound stops: Commonwealth Ave @ Islington Rd & Commonwealth Ave @ Marriott."
+        language: "en"
+      }
+      translation {
+        text: "Ruta 558: Cuatro atajada se desplazaron debido a la construcción. Moved entrada a la ciudad paradas: Commonwealth Ave @ Islington Rd & Commonwealth Ave opp Marriott. Salida de la ciudad paradas: Commonwealth Ave @ Islington Rd & Commonwealth Ave @ Marriott."
+        language: "es-419"
+      }
+      translation {
+        text: "Rota 558: Quatro paradas foram realocadas devido a obras. Paradas do Sentido Centro: Commonwealth Ave @ Islington Rd e Commonwealth Ave opp Marriott. Pontos de parada sentido bairro: Commonwealth Ave @ Islington Rd e Commonwealth Ave @ Marriott."
+        language: "pt-BR"
+      }
+      translation {
+        text: "Ligne 558 : Quatre arrêts ont été déplacés en raison de travaux. Moved à l’arrivée arrêts : Commonwealth Ave @ Islington Rd & Commonwealth Ave opp Marriott. Arrêts en partance déplacés : Commonwealth Ave @ Islington Rd et Commonwealth Ave @ Marriott."
+        language: "fr-FR"
+      }
+      translation {
+        text: "Wout 558: Kat arè yo te deplase akòz konstriksyon. Arè bò larivyè yo deplase: Commonwealth Ave @ Islington Rd & Commonwealth Ave opp Marriott. Arè derape yo deplase: Commonwealth Ave @ Islington Rd ak Commonwealth Ave @ Marriott."
+        language: "ht-HT"
+      }
+      translation {
+        text: "558 路：由于建筑施工，四个站点已移动。 已移入站台： Commonwealth Ave @ Islington Rd & Commonwealth Ave opp Marriott 。 出站站点已更改： Commonwealth Ave @ Islington Rd & Commonwealth Ave @ Marriott 。"
+        language: "zh-CN"
+      }
+      translation {
+        text: "Tuyến 558: Bốn điểm dừng đã di chuyển do động thi công. Moved hướng đi vào trung tâm stops: Commonwealth Ave @ Islington Rd & Commonwealth Ave opp Marriott. Moved hướng đi ra ngoại thành stops: Commonwealth Ave @ Islington Rd & Commonwealth Ave @ Marriott."
+        language: "vi-VN"
+      }
+      translation {
+        text: "558 路：由於建築施工，四個站點已移動。 已移動的 進 站停靠點： Commonwealth Ave @ Islington Rd & Commonwealth Ave opp Marriott 。 出站站點已更改： Commonwealth Ave @ Islington Rd & Commonwealth Ave @ Marriott 。"
+        language: "zh-TW"
+      }
+    }
+    severity_level: INFO
+    cause_detail {
+      translation {
+        text: "CONSTRUCTION"
+        language: "en"
+      }
+    }
+    effect_detail {
+      translation {
+        text: "STOP_MOVE"
+        language: "en"
+      }
+    }
+  }
+}
+entity {
+  id: "1018209"
+  alert {
+    active_period {
+      start: 1782403980
+    }
+    informed_entity {
+      agency_id: "1"
+      route_id: "CR-Franklin"
+      route_type: 2
+      stop_id: "FB-0109-01"
+    }
+    informed_entity {
+      agency_id: "1"
+      route_id: "CR-Franklin"
+      route_type: 2
+      stop_id: "FB-0109-02"
+    }
+    informed_entity {
+      agency_id: "1"
+      route_id: "CR-Franklin"
+      route_type: 2
+      stop_id: "place-FB-0109"
+    }
+    cause: UNKNOWN_CAUSE
+    effect: UNKNOWN_EFFECT
+    url {
+      translation {
+        text: "https://www.mbta.com/projects/accessibility-improvements"
+        language: "en"
+      }
+      translation {
+        text: "https://www.mbta.com/projects/accessibility-improvements?locale=es-419"
+        language: "es-419"
+      }
+      translation {
+        text: "https://www.mbta.com/projects/accessibility-improvements?locale=pt-BR"
+        language: "pt-BR"
+      }
+      translation {
+        text: "https://www.mbta.com/projects/accessibility-improvements?locale=fr-FR"
+        language: "fr-FR"
+      }
+      translation {
+        text: "https://www.mbta.com/projects/accessibility-improvements?locale=ht-HT"
+        language: "ht-HT"
+      }
+      translation {
+        text: "https://www.mbta.com/projects/accessibility-improvements?locale=zh-CN"
+        language: "zh-CN"
+      }
+      translation {
+        text: "https://www.mbta.com/projects/accessibility-improvements?locale=vi-VN"
+        language: "vi-VN"
+      }
+      translation {
+        text: "https://www.mbta.com/projects/accessibility-improvements?locale=zh-TW"
+        language: "zh-TW"
+      }
+    }
+    header_text {
+      translation {
+        text: "The Endicott Mini-high platform project has begun. Passengers and local residents can expect pedestrian path changes to platform, construction vehicles, and construction activity during the day through the Winter of 2026."
+        language: "en"
+      }
+      translation {
+        text: "El proyecto del andén Mini-high de Endicott ha comenzado. Los pasajeros y residentes locales pueden esperar cambios en las rutas peatonales hacia el andén, vehículos de construcción y actividad de construcción durante el día hasta el invierno de 2026."
+        language: "es-419"
+      }
+      translation {
+        text: "O projeto da minuplataforma de Endicott foi iniciado. Passageiros e residentes locais podem esperar alterações nos caminhos de pedestres até a plataforma, veículos de obras e atividade de obras durante o dia até o inverno de 2026."
+        language: "pt-BR"
+      }
+      translation {
+        text: "Le projet de mini-quai haut d'Endicott a débuté. Les passagers et les riverains peuvent s'attendre à des modifications des chemins piétonniers menant au quai, à la présence de véhicules de travaux et à des travaux en journée jusqu'à l'hiver 2026."
+        language: "fr-FR"
+      }
+      translation {
+        text: "Pwojè platfòm Endicott Mini-high la te kòmanse. Pasaje yo ak rezidan lokal yo ka atann yo chanjman nan chemen pyeton ki mennen nan platfòm la, machin konstriksyon, ak aktivite konstriksyon pandan lajounen jiska sezon fredi 2026 la."
+        language: "ht-HT"
+      }
+      translation {
+        text: "Endicott 迷你高站台项目已经开工。在 2026 年冬季之前，乘客和当地居民在此期间的白天可能会遇到站台人行道变更、建筑施工车辆以及建筑施工作业。"
+        language: "zh-CN"
+      }
+      translation {
+        text: "Dự án sân ga mini cao Endicott đã bắt đầu. Hành khách và cư dân địa phương có thể thấy sự thay đổi về lối đi dành cho người đi bộ đến sân ga, xe thi công và hoạt động thi công trong ngày cho đến hết Mùa đông năm 2026."
+        language: "vi-VN"
+      }
+      translation {
+        text: "Endicott 小型高月臺專案已經開始。乘客與當地居民預期在 2026 年冬季前之白天，人行道會通往月臺進行變更、且有建築施工車輛及建築施工活動。"
+        language: "zh-TW"
+      }
+    }
+    description_text {
+      translation {
+        text: "Affected lines:\nFranklin/Foxboro Line"
+        language: "en"
+      }
+      translation {
+        text: "Líneas afectadas:\nFranklin/Foxboro Line"
+        language: "es-419"
+      }
+      translation {
+        text: "Linhas afetadas:\nFranklin/Foxboro Line"
+        language: "pt-BR"
+      }
+      translation {
+        text: "Lignes affectées :\nFranklin/Foxboro Line"
+        language: "fr-FR"
+      }
+      translation {
+        text: "Liy ki afekte yo:\nFranklin/Foxboro Line"
+        language: "ht-HT"
+      }
+      translation {
+        text: "受影响的线路：\n Franklin/Foxboro Line"
+        language: "zh-CN"
+      }
+      translation {
+        text: "Các tuyến bị ảnh hưởng:\nFranklin/Foxboro Line"
+        language: "vi-VN"
+      }
+      translation {
+        text: "受影響的線路：\n Franklin/Foxboro Line"
+        language: "zh-TW"
+      }
+    }
+    severity_level: INFO
+    cause_detail {
+      translation {
+        text: "UNKNOWN_CAUSE"
+        language: "en"
+      }
+    }
+    effect_detail {
+      translation {
+        text: "STATION_ISSUE"
+        language: "en"
+      }
+    }
+  }
+}
+entity {
+  id: "1019682"
+  alert {
+    active_period {
+      start: 1792116000
+      end: 1792134000
+    }
+    active_period {
+      start: 1792202400
+      end: 1792220400
+    }
+    active_period {
+      start: 1792288800
+      end: 1792306800
+    }
+    active_period {
+      start: 1792375200
+      end: 1792393200
+    }
+    active_period {
+      start: 1792720800
+      end: 1792738800
+    }
+    active_period {
+      start: 1792807200
+      end: 1792825200
+    }
+    active_period {
+      start: 1792893600
+      end: 1792911600
+    }
+    active_period {
+      start: 1792980000
+      end: 1792998000
+    }
+    active_period {
+      start: 1793325600
+      end: 1793343600
+    }
+    active_period {
+      start: 1793412000
+      end: 1793430000
+    }
+    active_period {
+      start: 1793498400
+      end: 1793520000
+    }
+    active_period {
+      start: 1793588400
+      end: 1793606400
+    }
+    active_period {
+      start: 1793934000
+      end: 1793952000
+    }
+    active_period {
+      start: 1794020400
+      end: 1794038400
+    }
+    active_period {
+      start: 1794106800
+      end: 1794124800
+    }
+    active_period {
+      start: 1794193200
+      end: 1794211200
+    }
+    active_period {
+      start: 1794538800
+      end: 1794556800
+    }
+    active_period {
+      start: 1794625200
+      end: 1794643200
+    }
+    active_period {
+      start: 1794711600
+      end: 1794729600
+    }
+    active_period {
+      start: 1794798000
+      end: 1794816000
+    }
+    active_period {
+      start: 1795143600
+      end: 1795161600
+    }
+    active_period {
+      start: 1795230000
+      end: 1795248000
+    }
+    active_period {
+      start: 1795316400
+      end: 1795334400
+    }
+    active_period {
+      start: 1795402800
+      end: 1795420800
+    }
+    active_period {
+      start: 1795748400
+      end: 1795766400
+    }
+    active_period {
+      start: 1795834800
+      end: 1795852800
+    }
+    active_period {
+      start: 1795921200
+      end: 1795939200
+    }
+    active_period {
+      start: 1796007600
+      end: 1796025600
+    }
+    active_period {
+      start: 1796353200
+      end: 1796371200
+    }
+    active_period {
+      start: 1796439600
+      end: 1796457600
+    }
+    active_period {
+      start: 1796526000
+      end: 1796544000
+    }
+    active_period {
+      start: 1796612400
+      end: 1796630400
+    }
+    active_period {
+      start: 1796958000
+      end: 1796976000
+    }
+    active_period {
+      start: 1797044400
+      end: 1797062400
+    }
+    active_period {
+      start: 1797130800
+      end: 1797148800
+    }
+    active_period {
+      start: 1797217200
+      end: 1797235200
+    }
+    active_period {
+      start: 1797562800
+      end: 1797580800
+    }
+    active_period {
+      start: 1797649200
+      end: 1797667200
+    }
+    active_period {
+      start: 1797735600
+      end: 1797753600
+    }
+    active_period {
+      start: 1797822000
+      end: 1797840000
+    }
+    active_period {
+      start: 1798167600
+      end: 1798185600
+    }
+    active_period {
+      start: 1798254000
+      end: 1798272000
+    }
+    active_period {
+      start: 1798340400
+      end: 1798358400
+    }
+    active_period {
+      start: 1798426800
+      end: 1798444800
+    }
+    active_period {
+      start: 1798772400
+      end: 1798790400
+    }
+    active_period {
+      start: 1798858800
+      end: 1798876800
+    }
+    active_period {
+      start: 1798945200
+      end: 1798963200
+    }
+    active_period {
+      start: 1799031600
+      end: 1799049600
+    }
+    active_period {
+      start: 1799377200
+      end: 1799395200
+    }
+    active_period {
+      start: 1799463600
+      end: 1799481600
+    }
+    active_period {
+      start: 1799550000
+      end: 1799568000
+    }
+    active_period {
+      start: 1799636400
+      end: 1799654400
+    }
+    active_period {
+      start: 1799982000
+      end: 1800000000
+    }
+    active_period {
+      start: 1800068400
+      end: 1800086400
+    }
+    active_period {
+      start: 1800154800
+      end: 1800172800
+    }
+    active_period {
+      start: 1800241200
+      end: 1800259200
+    }
+    active_period {
+      start: 1800586800
+      end: 1800604800
+    }
+    active_period {
+      start: 1800673200
+      end: 1800691200
+    }
+    active_period {
+      start: 1800759600
+      end: 1800777600
+    }
+    active_period {
+      start: 1800846000
+      end: 1800864000
+    }
+    active_period {
+      start: 1801191600
+      end: 1801209600
+    }
+    active_period {
+      start: 1801278000
+      end: 1801296000
+    }
+    active_period {
+      start: 1801364400
+      end: 1801382400
+    }
+    active_period {
+      start: 1801450800
+      end: 1801468800
+    }
+    active_period {
+      start: 1801796400
+      end: 1801814400
+    }
+    active_period {
+      start: 1801882800
+      end: 1801900800
+    }
+    active_period {
+      start: 1801969200
+      end: 1801987200
+    }
+    active_period {
+      start: 1802055600
+      end: 1802073600
+    }
+    active_period {
+      start: 1802401200
+      end: 1802419200
+    }
+    active_period {
+      start: 1802487600
+      end: 1802505600
+    }
+    active_period {
+      start: 1802574000
+      end: 1802592000
+    }
+    active_period {
+      start: 1802660400
+      end: 1802678400
+    }
+    active_period {
+      start: 1803006000
+      end: 1803024000
+    }
+    active_period {
+      start: 1803092400
+      end: 1803110400
+    }
+    active_period {
+      start: 1803178800
+      end: 1803196800
+    }
+    active_period {
+      start: 1803265200
+      end: 1803283200
+    }
+    active_period {
+      start: 1803610800
+      end: 1803628800
+    }
+    active_period {
+      start: 1803697200
+      end: 1803715200
+    }
+    active_period {
+      start: 1803783600
+      end: 1803801600
+    }
+    active_period {
+      start: 1803870000
+      end: 1803888000
+    }
+    active_period {
+      start: 1804215600
+      end: 1804233600
+    }
+    active_period {
+      start: 1804302000
+      end: 1804320000
+    }
+    active_period {
+      start: 1804388400
+      end: 1804406400
+    }
+    active_period {
+      start: 1804474800
+      end: 1804492800
+    }
+    active_period {
+      start: 1804820400
+      end: 1804838400
+    }
+    active_period {
+      start: 1804906800
+      end: 1804924800
+    }
+    active_period {
+      start: 1804993200
+      end: 1805007600
+    }
+    active_period {
+      start: 1805076000
+      end: 1805094000
+    }
+    active_period {
+      start: 1805421600
+      end: 1805439600
+    }
+    active_period {
+      start: 1805508000
+      end: 1805526000
+    }
+    active_period {
+      start: 1805594400
+      end: 1805612400
+    }
+    active_period {
+      start: 1805680800
+      end: 1805698800
+    }
+    active_period {
+      start: 1806026400
+      end: 1806044400
+    }
+    active_period {
+      start: 1806112800
+      end: 1806130800
+    }
+    active_period {
+      start: 1806199200
+      end: 1806217200
+    }
+    active_period {
+      start: 1806285600
+      end: 1806303600
+    }
+    active_period {
+      start: 1806631200
+      end: 1806649200
+    }
+    active_period {
+      start: 1806717600
+      end: 1806735600
+    }
+    active_period {
+      start: 1806804000
+      end: 1806822000
+    }
+    active_period {
+      start: 1806890400
+      end: 1806908400
+    }
+    active_period {
+      start: 1807236000
+      end: 1807254000
+    }
+    active_period {
+      start: 1807322400
+      end: 1807340400
+    }
+    active_period {
+      start: 1807408800
+      end: 1807426800
+    }
+    active_period {
+      start: 1807495200
+      end: 1807513200
+    }
+    active_period {
+      start: 1807840800
+      end: 1807858800
+    }
+    active_period {
+      start: 1807927200
+      end: 1807945200
+    }
+    active_period {
+      start: 1808013600
+      end: 1808031600
+    }
+    active_period {
+      start: 1808100000
+      end: 1808118000
+    }
+    active_period {
+      start: 1808445600
+      end: 1808463600
+    }
+    active_period {
+      start: 1808532000
+      end: 1808550000
+    }
+    active_period {
+      start: 1808618400
+      end: 1808636400
+    }
+    active_period {
+      start: 1808704800
+      end: 1808722800
+    }
+    active_period {
+      start: 1809050400
+      end: 1809068400
+    }
+    active_period {
+      start: 1809136800
+      end: 1809154800
+    }
+    active_period {
+      start: 1809223200
+      end: 1809241200
+    }
+    active_period {
+      start: 1809309600
+      end: 1809327600
+    }
+    active_period {
+      start: 1809655200
+      end: 1809673200
+    }
+    active_period {
+      start: 1809741600
+      end: 1809759600
+    }
+    active_period {
+      start: 1809828000
+      end: 1809846000
+    }
+    active_period {
+      start: 1809914400
+      end: 1809932400
+    }
+    active_period {
+      start: 1810260000
+      end: 1810278000
+    }
+    active_period {
+      start: 1810346400
+      end: 1810364400
+    }
+    active_period {
+      start: 1810432800
+      end: 1810450800
+    }
+    active_period {
+      start: 1810519200
+      end: 1810537200
+    }
+    active_period {
+      start: 1810864800
+      end: 1810882800
+    }
+    active_period {
+      start: 1810951200
+      end: 1810969200
+    }
+    active_period {
+      start: 1811037600
+      end: 1811055600
+    }
+    active_period {
+      start: 1811124000
+      end: 1811142000
+    }
+    active_period {
+      start: 1811469600
+      end: 1811487600
+    }
+    active_period {
+      start: 1811556000
+      end: 1811574000
+    }
+    active_period {
+      start: 1811642400
+      end: 1811660400
+    }
+    active_period {
+      start: 1811728800
+      end: 1811746800
+    }
+    active_period {
+      start: 1812074400
+      end: 1812092400
+    }
+    active_period {
+      start: 1812160800
+      end: 1812178800
+    }
+    active_period {
+      start: 1812247200
+      end: 1812265200
+    }
+    active_period {
+      start: 1812333600
+      end: 1812351600
+    }
+    active_period {
+      start: 1812679200
+      end: 1812697200
+    }
+    active_period {
+      start: 1812765600
+      end: 1812783600
+    }
+    active_period {
+      start: 1812852000
+      end: 1812870000
+    }
+    active_period {
+      start: 1812938400
+      end: 1812956400
+    }
+    active_period {
+      start: 1813284000
+      end: 1813302000
+    }
+    active_period {
+      start: 1813370400
+      end: 1813388400
+    }
+    active_period {
+      start: 1813456800
+      end: 1813474800
+    }
+    active_period {
+      start: 1813543200
+      end: 1813561200
+    }
+    active_period {
+      start: 1813888800
+      end: 1813906800
+    }
+    active_period {
+      start: 1813975200
+      end: 1813993200
+    }
+    active_period {
+      start: 1814061600
+      end: 1814079600
+    }
+    active_period {
+      start: 1814148000
+      end: 1814166000
+    }
+    active_period {
+      start: 1814493600
+      end: 1814511600
+    }
+    active_period {
+      start: 1814580000
+      end: 1814598000
+    }
+    active_period {
+      start: 1814666400
+      end: 1814684400
+    }
+    active_period {
+      start: 1814752800
+      end: 1814770800
+    }
+    active_period {
+      start: 1815098400
+      end: 1815116400
+    }
+    active_period {
+      start: 1815184800
+      end: 1815202800
+    }
+    active_period {
+      start: 1815271200
+      end: 1815289200
+    }
+    active_period {
+      start: 1815357600
+      end: 1815375600
+    }
+    active_period {
+      start: 1815703200
+      end: 1815721200
+    }
+    active_period {
+      start: 1815789600
+      end: 1815807600
+    }
+    active_period {
+      start: 1815876000
+      end: 1815894000
+    }
+    active_period {
+      start: 1815962400
+      end: 1815980400
+    }
+    active_period {
+      start: 1816308000
+      end: 1816326000
+    }
+    active_period {
+      start: 1816394400
+      end: 1816412400
+    }
+    active_period {
+      start: 1816480800
+      end: 1816498800
+    }
+    active_period {
+      start: 1816567200
+      end: 1816585200
+    }
+    active_period {
+      start: 1816912800
+      end: 1816930800
+    }
+    active_period {
+      start: 1816999200
+      end: 1817017200
+    }
+    active_period {
+      start: 1817085600
+      end: 1817103600
+    }
+    active_period {
+      start: 1817172000
+      end: 1817190000
+    }
+    active_period {
+      start: 1817517600
+      end: 1817535600
+    }
+    active_period {
+      start: 1817604000
+      end: 1817622000
+    }
+    active_period {
+      start: 1817690400
+      end: 1817708400
+    }
+    active_period {
+      start: 1817776800
+      end: 1817794800
+    }
+    active_period {
+      start: 1818122400
+      end: 1818140400
+    }
+    active_period {
+      start: 1818208800
+      end: 1818226800
+    }
+    active_period {
+      start: 1818295200
+      end: 1818313200
+    }
+    active_period {
+      start: 1818381600
+      end: 1818399600
+    }
+    active_period {
+      start: 1818727200
+      end: 1818745200
+    }
+    active_period {
+      start: 1818813600
+      end: 1818831600
+    }
+    active_period {
+      start: 1818900000
+      end: 1818918000
+    }
+    active_period {
+      start: 1818986400
+      end: 1819004400
+    }
+    active_period {
+      start: 1819332000
+      end: 1819350000
+    }
+    active_period {
+      start: 1819418400
+      end: 1819436400
+    }
+    active_period {
+      start: 1819504800
+      end: 1819522800
+    }
+    active_period {
+      start: 1819591200
+      end: 1819609200
+    }
+    active_period {
+      start: 1819936800
+      end: 1819954800
+    }
+    active_period {
+      start: 1820023200
+      end: 1820041200
+    }
+    active_period {
+      start: 1820109600
+      end: 1820127600
+    }
+    active_period {
+      start: 1820196000
+      end: 1820214000
+    }
+    active_period {
+      start: 1820541600
+      end: 1820559600
+    }
+    active_period {
+      start: 1820628000
+      end: 1820646000
+    }
+    active_period {
+      start: 1820714400
+      end: 1820732400
+    }
+    active_period {
+      start: 1820800800
+      end: 1820818800
+    }
+    active_period {
+      start: 1821146400
+      end: 1821164400
+    }
+    active_period {
+      start: 1821232800
+      end: 1821250800
+    }
+    active_period {
+      start: 1821319200
+      end: 1821337200
+    }
+    active_period {
+      start: 1821405600
+      end: 1821423600
+    }
+    active_period {
+      start: 1821751200
+      end: 1821769200
+    }
+    active_period {
+      start: 1821837600
+      end: 1821855600
+    }
+    active_period {
+      start: 1821924000
+      end: 1821942000
+    }
+    active_period {
+      start: 1822010400
+      end: 1822028400
+    }
+    active_period {
+      start: 1822356000
+      end: 1822374000
+    }
+    active_period {
+      start: 1822442400
+      end: 1822460400
+    }
+    active_period {
+      start: 1822528800
+      end: 1822546800
+    }
+    active_period {
+      start: 1822615200
+      end: 1822633200
+    }
+    active_period {
+      start: 1822960800
+      end: 1822978800
+    }
+    active_period {
+      start: 1823047200
+      end: 1823065200
+    }
+    active_period {
+      start: 1823133600
+      end: 1823151600
+    }
+    active_period {
+      start: 1823220000
+      end: 1823238000
+    }
+    informed_entity {
+      agency_id: "1"
+      route_id: "16"
+      route_type: 3
+      stop_id: "11587"
+      direction_id: 0
+    }
+    informed_entity {
+      agency_id: "1"
+      route_id: "16"
+      route_type: 3
+      stop_id: "1587"
+      direction_id: 0
+    }
+    informed_entity {
+      agency_id: "1"
+      route_id: "16"
+      route_type: 3
+      stop_id: "21587"
+      direction_id: 0
+    }
+    informed_entity {
+      agency_id: "1"
+      route_id: "16"
+      route_type: 3
+      stop_id: "10522"
+      direction_id: 1
+    }
+    informed_entity {
+      agency_id: "1"
+      route_id: "16"
+      route_type: 3
+      stop_id: "2922"
+      direction_id: 1
+    }
+    informed_entity {
+      agency_id: "1"
+      route_id: "16"
+      route_type: 3
+      stop_id: "522"
+      direction_id: 1
+    }
+    cause: CONSTRUCTION
+    effect: DETOUR
+    header_text {
+      translation {
+        text: "Route 16 is detoured from 10 PM to 6 AM Thursdays through Sundays due to construction. Closest outbound stops are Columbia Rd @ Seaver St and Arborway opp Courthouse. Closest inbound stops are Arborway @ Courthouse and Blue Hill Ave @ Ellington St."
+        language: "en"
+      }
+    }
+    description_text {
+      translation {
+        text: "Skipped outbound stops:\nFranklin Park Zoo @ Entrance\nCircuit Dr @ Glen Ln\nCircuit Dr opp Shattuck Hospital\n\nSkipped inbound stops:\nCircuit Dr @ Shattuck Hospital\nCircuit Dr @ Glen Ln\nGlen Ln @ Blue Hill Ave - Franklin Park Zoo"
+        language: "en"
+      }
+      translation {
+        text: "Desvío salida de la ciudad paradas:\nFranklin Park Zoo @ Entrance\nCircuit Dr @ Glen Ln\nCircuit Dr opp Shattuck Hospital\n\ndesvío entrada a la ciudad paradas:\nCircuit Dr @ Shattuck Hospital\nCircuit Dr @ Glen Ln\nGlen Ln @ Blue Hill Ave - Franklin Park Zoo"
+        language: "es-419"
+      }
+      translation {
+        text: "desvio sentido paradas:\nFranklin Park Zoo @ Entrance\nCircuit Dr @ Glen Ln\nCircuit Dr opp Shattuck Hospital\n\ndispersão sentido centro paradas:\nCircuit Dr @ Shattuck Hospital\nCircuit Dr @ Glen Ln\nGlen Ln @ Blue Hill Ave - Franklin Park Zoo"
+        language: "pt-BR"
+      }
+      translation {
+        text: "contourner en partance stops :\nFranklin Park Zoo @ Entrance\nCircuit Dr @ Glen Ln\nCircuit Dr opp Shattuck Hospital\n\ncontourner à l’arrivée stops :\nCircuit Dr @ Shattuck Hospital\nCircuit Dr @ Glen Ln\nGlen Ln @ Blue Hill Ave - Franklin Park Zoo"
+        language: "fr-FR"
+      }
+      translation {
+        text: "kontoune derape sispann:\nFranklin Park Zoo @ Entrance\nCircuit Dr @ Glen Ln\nCircuit Dr opp Shattuck Hospital\n\nArè Kontoune Rive yo:\nCircuit Dr @ Shattuck Hospital\nCircuit Dr @ Glen Ln\nGlen Ln @ Blue Hill Ave - Franklin Park Zoo"
+        language: "ht-HT"
+      }
+      translation {
+        text: "绕行出站停靠站:\n Franklin Park Zoo @ Entrance\n Circuit Dr @ Glen Ln\n Circuit Dr opp Shattuck Hospital\n\n绕行进站停止：\n Circuit Dr @ Shattuck Hospital\n Circuit Dr @ Glen Ln\n Glen Ln @ Blue Hill Ave - Franklin Park Zoo"
+        language: "zh-CN"
+      }
+      translation {
+        text: "đường vòng hướng đi ra ngoại thành stops:\nFranklin Park Zoo @ Entrance\nCircuit Dr @ Glen Ln\nCircuit Dr opp Shattuck Hospital\n\nđường vòng hướng đi vào trung tâm stops:\nCircuit Dr @ Shattuck Hospital\nCircuit Dr @ Glen Ln\nGlen Ln @ Blue Hill Ave - Franklin Park Zoo"
+        language: "vi-VN"
+      }
+      translation {
+        text: "繞行出站停靠站:\n Franklin Park Zoo @ Entrance\n Circuit Dr @ Glen Ln\n Circuit Dr opp Shattuck Hospital\n\n繞行進站停止：\n Circuit Dr @ Shattuck Hospital\n Circuit Dr @ Glen Ln\n Glen Ln @ Blue Hill Ave - Franklin Park Zoo"
+        language: "zh-TW"
+      }
+    }
+    severity_level: SEVERE
+    cause_detail {
+      translation {
+        text: "CONSTRUCTION"
+        language: "en"
+      }
+    }
+    effect_detail {
+      translation {
+        text: "DETOUR"
+        language: "en"
+      }
+    }
+  }
+}
+entity {
+  id: "1021672"
+  alert {
+    active_period {
+      start: 1783953133
+      end: 1794891540
+    }
+    informed_entity {
+      route_id: "CR-Lowell"
+      route_type: 2
+      stop_id: "NHRML-0127"
+    }
+    informed_entity {
+      route_id: "CR-Lowell"
+      route_type: 2
+      stop_id: "NHRML-0127-01"
+    }
+    informed_entity {
+      route_id: "CR-Lowell"
+      route_type: 2
+      stop_id: "NHRML-0127-02"
+    }
+    informed_entity {
+      route_id: "CR-Lowell"
+      route_type: 2
+      stop_id: "NHRML-0127-B"
+    }
+    informed_entity {
+      route_id: "CR-Lowell"
+      route_type: 2
+      stop_id: "place-NHRML-0127"
+    }
+    informed_entity {
+      route_id: "CR-Lowell"
+      route_type: 2
+      stop_id: "NHRML-0127"
+    }
+    informed_entity {
+      route_id: "CR-Lowell"
+      route_type: 2
+      stop_id: "NHRML-0127-01"
+    }
+    informed_entity {
+      route_id: "CR-Lowell"
+      route_type: 2
+      stop_id: "NHRML-0127-02"
+    }
+    informed_entity {
+      route_id: "CR-Lowell"
+      route_type: 2
+      stop_id: "NHRML-0127-B"
+    }
+    informed_entity {
+      route_id: "CR-Lowell"
+      route_type: 2
+      stop_id: "place-NHRML-0127"
+    }
+    cause: UNKNOWN_CAUSE
+    effect: OTHER_EFFECT
+    header_text {
+      translation {
+        text: "Select areas of the Anderson/Woburn MBTA Daily Lot and Gated Overnight Lot will be temporarily closed for major paving and infrastructure improvement work."
+        language: "en"
+      }
+      translation {
+        text: "Algunas zonas del Anderson/Woburn Daily Lot de la MBTA y del Parking Nocturno con Vallas serán cerradas temporalmente para trabajos importantes de pavimentación y mejora de infraestructuras."
+        language: "es-419"
+      }
+      translation {
+        text: "Algumas áreas do estacionamento diário e do estacionamento noturno com portão da MBTA Anderson/Woburn serão temporariamente fechadas para grandes obras de pavimentação e melhoria da infraestrutura."
+        language: "pt-BR"
+      }
+      translation {
+        text: "Certaines zones du terrain quotidien Anderson/Woburn MBTA et du parking fermé pour la nuit seront temporairement fermées pour d’importants travaux de pavage et d’amélioration des infrastructures."
+        language: "fr-FR"
+      }
+      translation {
+        text: "Kèk zòn nan pakin chak jou Anderson/Woburn MBTA a ak pakin lannwit ki gen baryè a pral fèmen tanporèman pou gwo travay pavaj ak amelyorasyon enfrastrikti."
+        language: "ht-HT"
+      }
+      translation {
+        text: "Anderson/Woburn MBTA 日间停车场和封闭式过夜停车场的部分区域将暂时关闭，进行重大铺路和基础设施改善工程。"
+        language: "zh-CN"
+      }
+      translation {
+        text: "Một số khu vực của Anderson/Woburn Lô hàng ngày MBTA và Lô qua đêm có cổng sẽ tạm thời đóng cho công việc lát đá và cải thiện cơ sở hạ tầng lớn."
+        language: "vi-VN"
+      }
+      translation {
+        text: "Anderson/Woburn MBTA 日間停車場和封閉式過夜停車場的部分區域將暫時關閉，以進行重大鋪路和基礎設施改善工作。"
+        language: "zh-TW"
+      }
+    }
+    description_text {
+      translation {
+        text: "Beginning July 13, 2026, the Woburn Anderson Regional Transportation Center will undergo a major paving and infrastructure improvement project, with work expected to be completed by November 16, 2026. \n\nTo support these critical renovations and enhance the long-term safety and functionality of the facility, select areas of the MBTA Daily Lot and the gated Overnight Lot will be temporarily closed throughout the construction period.\n\nMotorists and facility users are encouraged to plan accordingly and carefully follow all posted signage, traffic control measures, and parking restrictions to ensure a safe and efficient experience during the project."
+        language: "en"
+      }
+      translation {
+        text: "A partir del 13 de julio de 2026, el Centro Regional de Transporte Woburn Anderson llevará a cabo un importante proyecto de pavimentación e infraestructuras, con trabajos previstos para el 16 de noviembre de 2026. \n\nPara apoyar estas renovaciones críticas y mejorar la seguridad y funcionalidad a largo plazo de la instalación, algunas áreas del Solar Diario de la MBTA y del Solar Nocturno con puertas estarán cerradas temporalmente durante todo el periodo de construcción.\n\nSe anima a los conductores y a los usuarios de las instalaciones a planear en consecuencia y seguir cuidadosamente toda la señalización señalizada, las medidas de control de tránsito y las restricciones de parqueadero para garantizar una experiencia segura y eficiente durante el proyecto."
+        language: "es-419"
+      }
+      translation {
+        text: "A partir de 13 de julho de 2026, o Centro Regional de Transportes de Woburn Anderson passará por um grande projeto de pavimentação e melhoria da infraestrutura, com previsão de conclusão em 16 de novembro de 2026. \n\nPara dar suporte a essas reformas essenciais e aprimorar a segurança e a funcionalidade das instalações a longo prazo, algumas áreas do estacionamento diário do MBTA e do estacionamento noturno fechado serão temporariamente fechadas durante todo o período das obras.\n\nRecomenda-se aos motoristas e usuários das instalações que se planejem adequadamente e sigam atentamente toda a sinalização, as medidas de controle de tráfego e as restrições de estacionamento para garantir uma experiência segura e eficiente durante a obra."
+        language: "pt-BR"
+      }
+      translation {
+        text: "À partir du 13 juillet 2026, le Centre régional de transport de Woburn Anderson entamera un important projet d’amélioration du pavage et des infrastructures, dont les travaux devraient être achevés d’ici le 16 novembre 2026. \n\nPour soutenir ces rénovations cruciales et renforcer la sécurité et la fonctionnalité à long terme de l’installation, certaines zones du Daily Lot MBTA et du Parking de Nuit Fermé seront temporairement fermées tout au long de la période des travaux.\n\nLes automobilistes et les usagers des installations sont encouragés à planifier en conséquence et à respecter attentivement toute la signalisation, les mesures de contrôle de la circulation et les restrictions de stationnement afin d’assurer une expérience sûre et efficace pendant le projet."
+        language: "fr-FR"
+      }
+      translation {
+        text: "Apati 13 jiyè 2026, Sant Transpò Rejyonal Woburn Anderson pral sibi yon gwo pwojè pavaj ak amelyorasyon enfrastrikti, epi yo prevwa travay la ap fini anvan 16 novanm 2026. \n\nPou sipòte renovasyon enpòtan sa yo epi amelyore sekirite ak fonksyonalite etablisman an alontèm, kèk zòn nan pakin MBTA a chak jou ak pakin lannwit ki gen baryè a pral fèmen tanporèman pandan tout peryòd konstriksyon an.\n\nYo ankouraje chofè yo ak moun ki itilize enstalasyon yo pou planifye kòmsadwa epi swiv ak anpil atansyon tout siyaj ki afiche yo, mezi kontwòl trafik yo, ak restriksyon pakin yo pou asire yon eksperyans an sekirite epi efikas pandan pwojè a."
+        language: "ht-HT"
+      }
+      translation {
+        text: "从 2026 年 7 月 13 日起，沃本安德森地区交通中心将进行一项大型铺路和基础设施改善工程，预计该工程将于 2026 年 11 月 16 日完成。为了支持这些重要的翻新工程，并提高设施的长期安全性和功能性，MBTA 日间停车场和封闭式过夜停车场的部分区域将在整个施工期间暂时关闭。\n\n为确保施工期间安全高效的体验，我们鼓励驾车人士和设施使用者提前做好规划，并严格遵守所有张贴的标志、交通管制措施和停车限制。"
+        language: "zh-CN"
+      }
+      translation {
+        text: "Bắt đầu từ ngày 13 tháng 7 năm 2026, Trung tâm Giao thông Khu vực Woburn Anderson sẽ trải qua một dự án cải tạo lớn về mặt đường và cơ sở hạ tầng, dự kiến hoàn thành vào ngày 16 tháng 11 năm 2026. \n\nĐể hỗ trợ những cải tạo quan trọng này và tăng cường an toàn và chức năng lâu dài của cơ sở, một số khu vực của Lô hàng ngày MBTA và Lô qua đêm có cổng sẽ tạm thời đóng trong suốt thời gian hoạt động thi công.\n\nNgười lái xe và người sử dụng cơ sở được khuyến khích lập kế hoạch phù hợp và tuân thủ cẩn thận tất cả các biển báo đã đăng, các biện pháp kiểm soát giao thông và hạn chế đỗ xe để đảm bảo trải nghiệm an toàn và hiệu quả trong quá trình dự án."
+        language: "vi-VN"
+      }
+      translation {
+        text: "從 2026 年 7 月 13 日起，沃本安德森地區交通中心將進行一項大型鋪路和基礎設施改善工程，預計該工程將於 2026 年 11 月 16 日完成。為了支援這些重要的翻新工程，並提高設施的長期安全性和功能性，MBTA 日間停車場和封閉式過夜停車場的特定區域將在整個施工期間暫時關閉。\n\n為確保施工期間安全且有效率的體驗，我們鼓勵駕駛人和設施使用者提前做好規劃，並嚴格遵守所有張貼的標誌、交通管制措施和停車限制。"
+        language: "zh-TW"
+      }
+    }
+    severity_level: SEVERE
+    cause_detail {
+      translation {
+        text: "UNKNOWN_CAUSE"
+        language: "en"
+      }
+    }
+    effect_detail {
+      translation {
+        text: "PARKING_ISSUE"
+        language: "en"
+      }
+    }
+  }
+}

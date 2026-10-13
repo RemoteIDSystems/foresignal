@@ -1,0 +1,58 @@
+header {
+  gtfs_realtime_version: "2.0"
+  incrementality: FULL_DATASET
+  timestamp: 1791907200
+}
+entity {
+  id: "e1"
+  vehicle {
+    trip {
+      trip_id: "t1"
+      start_date: "20261013"
+      route_id: "Red"
+      direction_id: 1
+    }
+    position {
+      latitude: 42.35
+      longitude: -71.06
+      bearing: 95.0
+      speed: 8.5
+    }
+    current_stop_sequence: 4
+    current_status: IN_TRANSIT_TO
+    timestamp: 1791907190
+    stop_id: "stop-1"
+    vehicle {
+      id: "v1"
+      label: "Bus e1"
+      license_plate: "ABC-123"
+    }
+    occupancy_status: MANY_SEATS_AVAILABLE
+  }
+}
+entity {
+  id: "e2"
+  vehicle {
+    trip {
+      trip_id: "t2"
+      start_date: "20261013"
+      route_id: "39"
+      direction_id: 1
+    }
+    position {
+      latitude: 42.34
+      longitude: -71.1
+      bearing: 95.0
+      speed: 8.5
+    }
+    current_stop_sequence: 4
+    current_status: IN_TRANSIT_TO
+    stop_id: "stop-1"
+    vehicle {
+      id: "v2"
+      label: "Bus e2"
+      license_plate: "ABC-123"
+    }
+    occupancy_status: MANY_SEATS_AVAILABLE
+  }
+}

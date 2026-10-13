@@ -113,7 +113,21 @@ class BoundSourceHttp implements SourceHttp {
 
     @Override
     public UpstreamResponse getConditional(URI uri, String stateKey) throws AdapterException {
+        return getConditional(uri, stateKey, Map.of());
+    }
+
+    /** The conditional GET with the adapter's extra headers (prompt 070); the validators win over a duplicate. */
+    @Override
+    public UpstreamResponse getConditional(URI uri, String stateKey, Map<String, String> extraHeaders)
+            throws AdapterException {
         Map<String, String> headers = new LinkedHashMap<>();
+        if (extraHeaders != null) {
+            extraHeaders.forEach((name, value) -> {
+                if (!"if-none-match".equalsIgnoreCase(name) && !"if-modified-since".equalsIgnoreCase(name)) {
+                    headers.put(name, value);
+                }
+            });
+        }
         state.get(ETAG_STATE_PREFIX + stateKey).ifPresent(etag -> headers.put("If-None-Match", etag));
         state.get(LAST_MODIFIED_STATE_PREFIX + stateKey)
                 .ifPresent(lastModified -> headers.put("If-Modified-Since", lastModified));

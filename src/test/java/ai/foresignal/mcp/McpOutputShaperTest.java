@@ -216,7 +216,8 @@ class McpOutputShaperTest {
         assertThat(TitleResolver.resolve((String) null, payload)).isEqualTo("T");
         assertThat(TitleResolver.resolve("place", payload)).isEqualTo("P");
         assertThat(TitleResolver.resolve("missing", Map.of("callsign", "C", "place", "P"))).isEqualTo("C");
-        assertThat(TitleResolver.FALLBACK_FIELDS).containsExactly("title", "name", "callsign", "place");
+        assertThat(TitleResolver.FALLBACK_FIELDS).containsExactly("title", "name", "callsign", "place", "r", "hex", "mmsi",
+                "routeId");
     }
 
     @Test

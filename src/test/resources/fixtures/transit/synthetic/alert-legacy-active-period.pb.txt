@@ -1,0 +1,46 @@
+header {
+  gtfs_realtime_version: "2.0"
+  incrementality: FULL_DATASET
+  timestamp: 1791907200
+}
+entity {
+  id: "L"
+  alert {
+    active_period {
+      start: 1791900000
+      end: 1791914400
+    }
+    active_period {
+      start: 1791993600
+      end: 1791997200
+    }
+    informed_entity {
+      route_id: "1006"
+      trip {
+        trip_id: "1006_20261013_1"
+      }
+    }
+    cause: CONSTRUCTION
+    effect: REDUCED_SERVICE
+    header_text {
+      translation {
+        text: "Raitiolinja 6: poikkeusreitti"
+        language: "fi"
+      }
+      translation {
+        text: "Tram 6: diversion"
+        language: "en"
+      }
+    }
+    description_text {
+      translation {
+        text: "Ratatyöt Hämeentiellä."
+        language: "fi"
+      }
+      translation {
+        text: "Track works on Hämeentie."
+        language: "en"
+      }
+    }
+  }
+}

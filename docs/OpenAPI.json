@@ -302,6 +302,11 @@
         "version": "1.3.0",
         "date": "2026-10-13",
         "note": "069: no new operations. SecuritySettings.exposeMlat is now accepted by updateSecuritySettings (it was refused with 400) and enforced on anonymous record reads. updateSource accepts egress only for egressOverridable descriptors (400 EGRESS_FIXED otherwise, added to the Problem codes); SourceSettings.egress returns the override. ParamSpec.allowed lists URL schemes for lan-url params, which may now be tcp:// and udp://. New sources local-adsb-{n}, local-sbs-{n}, local-gpsd-{n}, station-readsb-{n}, wxstation-davis-{n}, wxstation-ecowitt-{n}; the weather-observation kind lists the station fields, and posSource gains adsc."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-13",
+        "note": "070: searchTransitCatalog is implemented. TransitCatalogEntry.entityType is the catalog's |-joined entity types (a pattern instead of a single-value enum: Mobility Database rows such as tu|vp and sa|tu|vp serve several), and TransitCatalogEntry gains sourceIds (a row serving vp and sa registers two sources). New sources transit-{id} and transit-alerts-{id} (reviewed feeds mbta, capmetro-austin, metrotransit-msp, hsl-helsinki, ovapi-nl, entur-norway, translink-seq) and transit-mdb-{id} / transit-alerts-mdb-{id} from foresignal.transit.catalog-feeds; the transit-vehicle and transit-alert kind notes document their time bases."
       }
     ]
   },
@@ -33844,7 +33849,7 @@
         ],
         "operationId": "searchTransitCatalog",
         "summary": "Search the Mobility Database GTFS-RT snapshot",
-        "description": "Read-only search of the vendored CC0 MobilityData snapshot (keyless, active, https GTFS-RT feeds) with whether each feed is already enabled. Feeds are enabled only through the bootstrap property `foresignal.transit.catalog-feeds` and a restart; URLs are never accepted at runtime, so there is no POST.\n\n**Scope:** `admin`.",
+        "description": "Read-only search of the vendored CC0 MobilityData snapshot (keyless, active, https GTFS-RT feeds) with whether each feed is already enabled. Feeds are enabled only through the bootstrap property `foresignal.transit.catalog-feeds` and a restart; URLs are never accepted at runtime, so there is no POST. Rows are ordered by id; `entityType` matches a row that serves that entity type among others (`tu|vp` matches `vp`). An unknown cursor is `400 INVALID_CURSOR`.\n\n**Scope:** `admin`.",
         "parameters": [
           {
             "name": "country",
@@ -33945,7 +33950,7 @@
         },
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "070",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -88957,7 +88962,8 @@
                 "mode",
                 "agency"
               ]
-            }
+            },
+            "note": "TRACK, TTL 5 min (ttlAnchor observed), SAMPLED {15s, 240s, 150 m, thresholds, edgeMin 8s}; significant routeId, tripId, directionId, label, mode; threshold bearing 30 degrees. observedAt is fixed per feed: the vehicle timestamp (VEHICLE; untimed vehicles are dropped and counted) or the header timestamp (HEADER, and every transit-mdb-{id}). Enums by GTFS-RT proto name; bearing in degrees, speedMs in m/s; mode bus|tram|subway|rail|ferry|unknown; licensePlate is never stored. Geometry Point, quality.positionSource reported (070)."
           },
           "transit-alert": {
             "x-foresignal-prompt": "070",
@@ -88975,7 +88981,8 @@
                 "impactPeriods",
                 "informed"
               ]
-            }
+            },
+            "note": "STANDARD, ALL, no TTL. observedAt = header timestamp; validFrom = eventTime = earliest impact_period start (else the deprecated active_period); validUntil = latest end only when every period has one. Texts in the translation chosen by the source's language param (default en), at most 4 KB each; periods are ISO {start, end} pairs (at most 20); informed holds up to 50 {agencyId, routeId, routeType, stopId, tripId}. No geometry. An alert missing from a later FULL_DATASET feed, or marked is_deleted, is tombstoned (070)."
           },
           "bikeshare-station": {
             "x-foresignal-prompt": "071",
@@ -113696,11 +113703,9 @@
           },
           "entityType": {
             "type": "string",
-            "enum": [
-              "vp",
-              "tu",
-              "sa"
-            ]
+            "pattern": "^((vp|tu|sa)(\\|(vp|tu|sa))*)?$",
+            "description": "The GTFS-RT entity types the URL serves, `|`-joined as in the catalog (`vp` vehicle positions, `tu` trip updates, `sa` service alerts; for example `tu|vp`); empty when the catalog declares none",
+            "example": "vp"
           },
           "directDownloadUrl": {
             "type": "string",
@@ -113727,7 +113732,14 @@
               "string",
               "null"
             ],
-            "description": "`transit-mdb-{id}` or `transit-alerts-mdb-{id}` when enabled (trip updates are not ingested)"
+            "description": "The first registered source id (`transit-mdb-{id}` or `transit-alerts-mdb-{id}`) when enabled; trip updates are not ingested. `{id}` is the catalog id lower-cased with other characters replaced by hyphens (shortened with a hash suffix past 64 characters)"
+          },
+          "sourceIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Every source id registered for the row (a `sa|tu|vp` row registers both `transit-mdb-{id}` and `transit-alerts-mdb-{id}`); empty when not enabled"
           }
         },
         "required": [

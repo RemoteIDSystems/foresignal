@@ -40,7 +40,7 @@ import org.springframework.test.context.DynamicPropertySource;
  * {@code goes-glm}, {@code goes-fdc}, {@code hms-smoke} and {@code hms-fire}, and 053's {@code nws-gridpoints} and
  * {@code spc-storm-reports}, which share the NWS and SPC base-URL properties, and 064's {@code celestrak-gp} and
  * {@code celestrak-socrates}, 065's {@code nasa-firms}, 066's {@code gdelt-events} and 067's {@code nhc-cyclones}, {@code gdacs} and
- * {@code tsunami-warnings}, and 068's {@code ioda-outages}) point at one stub server
+ * {@code tsunami-warnings}, 068's {@code ioda-outages}, and 070's {@code transit-*}) point at one stub server
  * through their test base-URL properties (and S3 listings through {@code foresignal.test.s3-endpoint}),
  * and each test drives real fetches with {@link FetchExecutor#execute(String, FetchTrigger)
  * execute(id, MANUAL)}, so records reach the store through the real fetch path and ingest writer
@@ -84,6 +84,14 @@ public abstract class WeatherIngestSupport {
         registry.add(ai.foresignal.source.adapters.tsunami.TsunamiWarningsAdapter.BASE_URL_PROPERTY, UPSTREAM::baseUrl);
         // Prompt 068: ioda-outages joins this context too.
         registry.add(ai.foresignal.source.adapters.ioda.IodaOutagesAdapter.BASE_URL_PROPERTY, UPSTREAM::baseUrl);
+        // Prompt 070: the transit sources join this context too: every transit URL moves to the stub, the Mobility
+        // Database snapshot is the test catalog (hosts under the reserved .example name, so the startup URL check
+        // never queries DNS), and two of its rows are enabled.
+        registry.add(ai.foresignal.source.adapters.transit.TransitFamily.BASE_URL_PROPERTY, UPSTREAM::baseUrl);
+        registry.add(ai.foresignal.source.adapters.transit.MobilityCatalog.RESOURCE_PROPERTY,
+                () -> "transit/test-catalog.csv");
+        registry.add(ai.foresignal.source.adapters.transit.TransitFamily.CATALOG_FEEDS_PROPERTY,
+                () -> "mdb-9001,mdb-9003,mdb-9005");
     }
 
     @Autowired protected FetchExecutor executor;
@@ -104,7 +112,8 @@ public abstract class WeatherIngestSupport {
             ai.foresignal.source.adapters.nhc.NhcCyclonesAdapter.ID,
             ai.foresignal.source.adapters.gdacs.GdacsAdapter.ID,
             ai.foresignal.source.adapters.tsunami.TsunamiWarningsAdapter.ID,
-            ai.foresignal.source.adapters.ioda.IodaOutagesAdapter.ID);
+            ai.foresignal.source.adapters.ioda.IodaOutagesAdapter.ID,
+            "transit-mbta", "transit-alerts-mbta", "transit-mdb-mdb-9001");
 
     /** Resets the stubs and the backoff of the weather sources. */
     @BeforeEach

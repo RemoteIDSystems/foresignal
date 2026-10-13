@@ -1,0 +1,2045 @@
+header {
+  gtfs_realtime_version: "2.0"
+  incrementality: FULL_DATASET
+  timestamp: 1791908019
+}
+entity {
+  id: "315885"
+  alert {
+    active_period {
+      start: 1788589380
+      end: 1793397540
+    }
+    informed_entity {
+      stop_id: "1392501"
+    }
+    informed_entity {
+      stop_id: "1392551"
+    }
+    cause: CONSTRUCTION
+    effect: DETOUR
+    url {
+      translation {
+        text: "https://vayla.fi/-/tapanilan-ja-puistolan-asemien-perusparannustyot-jatkuvat-tapanilan-alikulkutunneli-suljetaan-7.9.-30.10.2026"
+        language: "en"
+      }
+      translation {
+        text: "https://vayla.fi/-/tapanilan-ja-puistolan-asemien-perusparannustyot-jatkuvat-tapanilan-alikulkutunneli-suljetaan-7.9.-30.10.2026"
+        language: "fi"
+      }
+      translation {
+        text: "https://vayla.fi/-/tapanilan-ja-puistolan-asemien-perusparannustyot-jatkuvat-tapanilan-alikulkutunneli-suljetaan-7.9.-30.10.2026"
+        language: "sv"
+      }
+    }
+    header_text {
+      translation {
+        text: "The northern underpass at Tapanila station closed from 7 Sept-30 Oct"
+        language: "en"
+      }
+      translation {
+        text: "Tapanilan aseman pohjoinen alikulku suljettu 7.9.-30.10."
+        language: "fi"
+      }
+      translation {
+        text: "Norra gångtunneln vid Mosabacka station stängd 7.9–30.10."
+        language: "sv"
+      }
+    }
+    description_text {
+      translation {
+        text: "The northern underpass at the Sammaltori end of Tapanila station will be closed from 7 Sept to 30 Oct. Access to the station is via Falkullantie. Reason: renovation work"
+        language: "en"
+      }
+      translation {
+        text: "Tapanilan aseman pohjoinen alikulku eli Sammaltorin pää suljettu 7.9.-30.10. Kulku asemalle Falkullantien kautta. Syy: aseman korjaustyöt"
+        language: "fi"
+      }
+      translation {
+        text: "Norra gångtunneln vid Mosabacka station i Mosstorget-änden stängd 7.9–30.10. Till stationen via Fallkullavägen. Orsak: reparationsarbeten"
+        language: "sv"
+      }
+    }
+    severity_level: INFO
+  }
+}
+entity {
+  id: "316090"
+  alert {
+    active_period {
+      start: 1788742800
+      end: 1792026000
+    }
+    informed_entity {
+      stop_id: "1140453"
+    }
+    informed_entity {
+      stop_id: "1140452"
+    }
+    cause: CONSTRUCTION
+    effect: DETOUR
+    url {
+      translation {
+        text: "https://www.hsl.fi/en/hsl/news/service-updates/2026/09/kaupunginpuutarha-tram-stops-to-be-closed-temporarily-from-8-september"
+        language: "en"
+      }
+      translation {
+        text: "https://www.hsl.fi/hsl/uutiset/liikennetiedote/2026/09/kaupunginpuutarhan-ratikkapysakit-suljetaan-valiaikaisesti-8.9.-alkaen"
+        language: "fi"
+      }
+      translation {
+        text: "https://www.hsl.fi/sv/hrt/nyheter/liikennetiedotteet/2026/09/sparvagnshallplatserna-stadstradgarden-stangs-tillfalligt-8.9"
+        language: "sv"
+      }
+    }
+    header_text {
+      translation {
+        text: "Kaupunginpuutarha stops expected to be closed until the end of October"
+        language: "en"
+      }
+      translation {
+        text: "Kaupunginpuutarhan pysäkit suljettuna arviolta lokakuun loppuun"
+        language: "fi"
+      }
+      translation {
+        text: "Hållplatserna Stadsträdgården stängda beräknas till ända oktober"
+        language: "sv"
+      }
+    }
+    description_text {
+      translation {
+        text: "Tram routes 1, 1T and 8. The Kaupunginpuutarha stops (H0243, H0244) on Helsinginkatu are expected to be  closed until the end of October. Reason: stop improvement works."
+        language: "en"
+      }
+      translation {
+        text: "Ratikat 1, 1T ja 8. Kaupunginpuutarhan pysäkit (H0243, H0244) Helsinginkadulla suljettuna arviolta lokakuun loppuun. Syy: pysäkin parannustyöt"
+        language: "fi"
+      }
+      translation {
+        text: "Spårvagnarna 1, 1T och 8. Hållplatserna Stadsträdgården (H0243, H0244) på Helsingegatan stängda beräknas till ända oktober. Orsak: förbättringsarbeten"
+        language: "sv"
+      }
+    }
+    severity_level: INFO
+  }
+}
+entity {
+  id: "318387"
+  alert {
+    active_period {
+      start: 1791968400
+      end: 1792429200
+    }
+    informed_entity {
+      route_id: "4300"
+    }
+    informed_entity {
+      route_id: "4311"
+    }
+    informed_entity {
+      route_id: "4335"
+    }
+    informed_entity {
+      stop_id: "4120203"
+    }
+    informed_entity {
+      route_id: "5530"
+    }
+    informed_entity {
+      route_id: "2321"
+    }
+    informed_entity {
+      route_id: "4335B"
+    }
+    cause: CONSTRUCTION
+    effect: OTHER_EFFECT
+    url {
+      translation {
+        text: "https://www.hsl.fi/en/hsl/news/service-updates/2026/06/koivuvaarankuja-stop-in-hamevaara-to-be-temporarily-closed-from-3-july"
+        language: "en"
+      }
+      translation {
+        text: "https://www.hsl.fi/hsl/uutiset/liikennetiedote/2026/06/koivuvaarankujan-pysakki-hamevaarassa-palaa-kayttoon-21.9"
+        language: "fi"
+      }
+      translation {
+        text: "https://www.hsl.fi/sv/hrt/nyheter/liikennetiedotteet/2026/06/hallplats-bjorkbergagranden-i-tavastberga-dras-in-tillfalligt-3.7"
+        language: "sv"
+      }
+    }
+    header_text {
+      translation {
+        text: "Koivuvaarankuja stop in Hämevaara to reopen on 19 October"
+        language: "en"
+      }
+      translation {
+        text: "Koivuvaarankujan pysäkki Hämevaarassa palaa käyttöön ma 19.10."
+        language: "fi"
+      }
+      translation {
+        text: "Hållplats Björkbergagränden i Tavastberga öppnas åter 19.10"
+        language: "sv"
+      }
+    }
+    description_text {
+      translation {
+        text: "The Koivuvaarankuja (V1203) bus stop on Rajatorpantie will reopen on Mon, 19 Oct. The stop is served by bus routes 300, 311, 321, 335 and 530 towards Lehtikallio."
+        language: "en"
+      }
+      translation {
+        text: "Pysäkki Koivuvaarankuja (V1203) Rajatorpantiellä palaa käyttöön maanantaina 19.10. Pysäkkiä käyttävät bussit 300, 311, 321, 335 ja 530 Lehtikallion suuntaan."
+        language: "fi"
+      }
+      translation {
+        text: "Hållplats Björkbergagränden (V1203) på Råtorpsvägen öppnas åter måndagen den 19 oktober. Hållplats trafikeras av bussarna 300, 311, 321, 335 och 530."
+        language: "sv"
+      }
+    }
+    severity_level: INFO
+  }
+}
+entity {
+  id: "318403"
+  alert {
+    active_period {
+      start: 1791730800
+      end: 1792116000
+    }
+    informed_entity {
+      route_id: "3001R"
+    }
+    informed_entity {
+      route_id: "3001T"
+    }
+    informed_entity {
+      stop_id: "5010554"
+    }
+    informed_entity {
+      stop_id: "5010504"
+    }
+    cause: MAINTENANCE
+    effect: OTHER_EFFECT
+    url {
+      translation {
+        text: "https://www.hsl.fi/en/hsl/news/service-updates/2026/08/changes-to-r-and-t-train-services-at-night-sunfri-from-16-august-to-27-november--rail-replacement-bus-runs-between-jarvenpaa-and-jokela"
+        language: "en"
+      }
+      translation {
+        text: "https://www.hsl.fi/hsl/uutiset/liikennetiedote/2026/08/r--ja-t-junilla-poikkeuksia-supe-valisina-oina-16.8.-27.11.--bussikorvauksia-jarvenpaan-ja-jokelan-valilla"
+        language: "fi"
+      }
+      translation {
+        text: "https://www.hsl.fi/sv/hrt/nyheter/liikennetiedotteet/2026/08/andringar-i-tagtrafiken-nattetid-16.8-27.11"
+        language: "sv"
+      }
+    }
+    header_text {
+      translation {
+        text: "Changes to R and T train services Järvenpää-Jokela from 16 Aug to 18 Dec"
+        language: "en"
+      }
+      translation {
+        text: "R- ja T-junilla poikkeuksia Järvenpää-Jokela öisin 16.8.-18.12."
+        language: "fi"
+      }
+      translation {
+        text: "Ändringar för R- och T-tågen nätterna mellan söndag-fredag 16.8-18.12"
+        language: "sv"
+      }
+    }
+    description_text {
+      translation {
+        text: "Changes to R and T train services at night from 16 Aug to 18 Dec. from 0.25am to 4.10am. Replacement bus 969X Järvenpää-Jokela. Reason: track work. See the Journey Planner."
+        language: "en"
+      }
+      translation {
+        text: "R- ja T-junilla poikkeuksia 16.8.-18.12. su-pe välisinä öinä klo 0.25-4.10. Korvaava bussi 969X Järvenpää-Jokela. Syy: ratatyöt. Katso aikataulut Reittioppaasta."
+        language: "fi"
+      }
+      translation {
+        text: "Ändringar för R- och T-tågen nätterna mellan sön-fre 16.8-18.12 kl. 0.25-4.10. Ersättningsbuss 969X Träskända-Jokela. Orsak: banarbeten. Kolla tidtabellerna via Reseplaneraren."
+        language: "sv"
+      }
+    }
+    severity_level: INFO
+  }
+}
+entity {
+  id: "318405"
+  alert {
+    active_period {
+      start: 1795968000
+      end: 1796418000
+    }
+    informed_entity {
+      route_id: "3001R"
+    }
+    informed_entity {
+      route_id: "3001T"
+    }
+    informed_entity {
+      stop_id: "5010554"
+    }
+    informed_entity {
+      stop_id: "5010504"
+    }
+    cause: MAINTENANCE
+    effect: OTHER_EFFECT
+    url {
+      translation {
+        text: "https://www.hsl.fi/en/hsl/news/service-updates/2026/08/changes-to-r-and-t-train-services-at-night-sunfri-from-16-august-to-27-november--rail-replacement-bus-runs-between-jarvenpaa-and-jokela"
+        language: "en"
+      }
+      translation {
+        text: "https://www.hsl.fi/hsl/uutiset/liikennetiedote/2026/08/r--ja-t-junilla-poikkeuksia-supe-valisina-oina-16.8.-27.11.--bussikorvauksia-jarvenpaan-ja-jokelan-valilla"
+        language: "fi"
+      }
+      translation {
+        text: "https://www.hsl.fi/sv/hrt/nyheter/liikennetiedotteet/2026/08/andringar-i-tagtrafiken-nattetid-16.8-27.11"
+        language: "sv"
+      }
+    }
+    header_text {
+      translation {
+        text: "Changes to R and T train services Järvenpää-Jokela from 16 Aug to 18 Dec"
+        language: "en"
+      }
+      translation {
+        text: "R- ja T-junilla poikkeuksia Järvenpää-Jokela öisin 16.8.-18.12."
+        language: "fi"
+      }
+      translation {
+        text: "Ändringar för R- och T-tågen nätterna mellan söndag-fredag 16.8-18.12"
+        language: "sv"
+      }
+    }
+    description_text {
+      translation {
+        text: "Changes to R and T train services at night from 16 Aug to 18 Dec. from 0.25am to 4.10am. Replacement bus 969X Järvenpää-Jokela. Reason: track work. See the Journey Planner."
+        language: "en"
+      }
+      translation {
+        text: "R- ja T-junilla poikkeuksia 16.8.-18.12. su-pe välisinä öinä klo 0.25-4.10. Korvaava bussi 969X Järvenpää-Jokela. Syy: ratatyöt. Katso aikataulut Reittioppaasta."
+        language: "fi"
+      }
+      translation {
+        text: "Ändringar för R- och T-tågen nätterna mellan sön-fre 16.8-18.12 kl. 0.25-4.10. Ersättningsbuss 969X Träskända-Jokela. Orsak: banarbeten. Kolla tidtabellerna via Reseplaneraren."
+        language: "sv"
+      }
+    }
+    severity_level: INFO
+  }
+}
+entity {
+  id: "319265"
+  alert {
+    active_period {
+      start: 1790024460
+      end: 1792443540
+    }
+    informed_entity {
+      route_id: "4717"
+    }
+    informed_entity {
+      route_id: "4739"
+    }
+    informed_entity {
+      route_id: "9788"
+    }
+    informed_entity {
+      route_id: "4717N"
+    }
+    informed_entity {
+      route_id: "1071"
+    }
+    informed_entity {
+      route_id: "9787B"
+    }
+    informed_entity {
+      route_id: "1078"
+    }
+    informed_entity {
+      route_id: "2502"
+    }
+    informed_entity {
+      route_id: "9785K"
+    }
+    informed_entity {
+      route_id: "1079N"
+    }
+    informed_entity {
+      stop_id: "1111112"
+    }
+    informed_entity {
+      route_id: "1078N"
+    }
+    informed_entity {
+      route_id: "9787A"
+    }
+    informed_entity {
+      route_id: "4731N"
+    }
+    informed_entity {
+      route_id: "4717K"
+    }
+    informed_entity {
+      route_id: "1074N"
+    }
+    informed_entity {
+      route_id: "1073N"
+    }
+    informed_entity {
+      route_id: "9787"
+    }
+    informed_entity {
+      route_id: "1077"
+    }
+    informed_entity {
+      route_id: "9785"
+    }
+    informed_entity {
+      route_id: "1077N"
+    }
+    informed_entity {
+      route_id: "1023"
+    }
+    informed_entity {
+      route_id: "4711K"
+    }
+    informed_entity {
+      route_id: "4721N"
+    }
+    informed_entity {
+      route_id: "1075"
+    }
+    informed_entity {
+      route_id: "4711"
+    }
+    informed_entity {
+      route_id: "9788K"
+    }
+    informed_entity {
+      route_id: "9787K"
+    }
+    informed_entity {
+      route_id: "4721"
+    }
+    informed_entity {
+      route_id: "9788B"
+    }
+    informed_entity {
+      route_id: "4731"
+    }
+    informed_entity {
+      route_id: "4718A"
+    }
+    informed_entity {
+      route_id: "4718"
+    }
+    cause: MAINTENANCE
+    effect: DETOUR
+    url {
+      translation {
+        text: "https://www.hsl.fi/en/hsl/news/service-updates/2026/09/route-and-stop-changes-for-northbound-buses-in-hakaniemi-from-21-september"
+        language: "en"
+      }
+      translation {
+        text: "https://www.hsl.fi/hsl/uutiset/liikennetiedote/2026/09/poikkeuksia-pohjoisen-suuntaan-kulkevien-bussien-reitteihin-ja-pysakkeihin-hakaniemessa-21.9.-alkaen"
+        language: "fi"
+      }
+      translation {
+        text: "https://www.hsl.fi/sv/hrt/nyheter/liikennetiedotteet/2026/09/rutt-och-hallplatsandringar-i-hagnas-for-bussar-som-kor-norrut-fran-21.9"
+        language: "sv"
+      }
+    }
+    header_text {
+      translation {
+        text: "The Hakaniemi stop H2403 (bay 16) is closed from 21 September. Route and stop changes for several buses."
+        language: "en"
+      }
+      translation {
+        text: "Hakaniemessä pysäkki H2403 (laituri 16) on suljettu 21.9. alkaen. Muutoksia reitteihin ja pysäkkeihin."
+        language: "fi"
+      }
+      translation {
+        text: "Hållplatsen Hagnäs H2403 (bussplattform 16) stängs fr.o.m. 21.9. Ändringar i rutterna och hållplatserna."
+        language: "sv"
+      }
+    }
+    description_text {
+      translation {
+        text: "The Hakaniemi stop H2403 (bay 16) is closed from 21 September. Route and stop changes for several northbound buses for approximately one month."
+        language: "en"
+      }
+      translation {
+        text: "Hakaniemessä pysäkki H2403 (laituri 16) on suljettu 21.9. alkaen työmaan vuoksi. Muutoksia reitteihin ja pysäkkeihin pohjoisen suuntaan ajaville busseille noin kuukauden ajan."
+        language: "fi"
+      }
+      translation {
+        text: "Hållplatsen Hagnäs H2403 (bussplattform 16) stängs fr.o.m. 21.9 p.g.a vägarbeten. Ändringar i rutterna och hållplatserna för bussar norrut i ca en månad."
+        language: "sv"
+      }
+    }
+    severity_level: INFO
+  }
+}
+entity {
+  id: "320689"
+  alert {
+    active_period {
+      start: 1791145800
+      end: 1792814400
+    }
+    informed_entity {
+      stop_id: "4730551"
+    }
+    informed_entity {
+      stop_id: "4810551"
+    }
+    informed_entity {
+      stop_id: "9040506"
+    }
+    informed_entity {
+      stop_id: "4810298"
+    }
+    informed_entity {
+      stop_id: "9090502"
+    }
+    informed_entity {
+      route_id: "3001K"
+    }
+    informed_entity {
+      stop_id: "9090501"
+    }
+    informed_entity {
+      stop_id: "4740551"
+    }
+    informed_entity {
+      stop_id: "9040505"
+    }
+    informed_entity {
+      stop_id: "4730501"
+    }
+    informed_entity {
+      stop_id: "4810501"
+    }
+    informed_entity {
+      route_id: "3001R"
+    }
+    informed_entity {
+      stop_id: "9040501"
+    }
+    informed_entity {
+      stop_id: "9040502"
+    }
+    informed_entity {
+      route_id: "3001D"
+    }
+    informed_entity {
+      route_id: "3001Z"
+    }
+    informed_entity {
+      stop_id: "4810225"
+    }
+    informed_entity {
+      stop_id: "4740501"
+    }
+    cause: MAINTENANCE
+    effect: REDUCED_SERVICE
+    url {
+      translation {
+        text: "https://www.hsl.fi/en/hsl/news/service-updates/2026/09/reduced-k-train-service-on-524-october-due-to-track-works--changes-also-to-d-r-and-z-trains"
+        language: "en"
+      }
+      translation {
+        text: "https://www.hsl.fi/hsl/uutiset/liikennetiedote/2026/09/k-junat-kulkevat-tavallista-harvemmin-ratatoiden-vuoksi--5.24.10."
+        language: "fi"
+      }
+      translation {
+        text: "https://www.hsl.fi/sv/hrt/nyheter/liikennetiedotteet/2026/09/k-tag-har-glesare-trafik-5-24.10-pa-grund-av-banarbeten"
+        language: "sv"
+      }
+    }
+    header_text {
+      translation {
+        text: "Reduced K train service on 5-24 October"
+        language: "en"
+      }
+      translation {
+        text: "K-junat kulkevat tavallista harvemmin ratatöiden vuoksi 5.-24.10."
+        language: "fi"
+      }
+      translation {
+        text: "K-tågen har glesare trafik än vanligt 5-24.10"
+        language: "sv"
+      }
+    }
+    description_text {
+      translation {
+        text: "K trains will operate a reduced service on 5-24 October. Changes also to D, R and Z train services on weekdays. Reason: track work. Check the changes in the Journey Planner."
+        language: "en"
+      }
+      translation {
+        text: "K-junat kulkevat tavallista harvemmin 5.-24.10. Myös D-, R- ja Z-junilla poikkeuksia arkisin. Syy: ratatyöt. Tarkista poikkeukset Reittioppaasta."
+        language: "fi"
+      }
+      translation {
+        text: "K-tågen har glesare trafik än vanligt 5-24.10. Förändringar också för D-, R- och Z-tåg på vardagar. Orsak: banarbeten. Kolla avvikelserna i Reseplaneraren."
+        language: "sv"
+      }
+    }
+    severity_level: INFO
+  }
+}
+entity {
+  id: "321951"
+  alert {
+    active_period {
+      start: 1790608920
+      end: 1792097700
+    }
+    informed_entity {
+      stop_id: "1111116"
+    }
+    informed_entity {
+      stop_id: "1111112"
+    }
+    informed_entity {
+      stop_id: "1112103"
+    }
+    informed_entity {
+      stop_id: "1111114"
+    }
+    informed_entity {
+      stop_id: "1111142"
+    }
+    cause: CONSTRUCTION
+    effect: OTHER_EFFECT
+    url {
+      translation {
+        text: "https://www.hsl.fi/en/hakaniemi"
+        language: "en"
+      }
+      translation {
+        text: "https://www.hsl.fi/hakaniemi"
+        language: "fi"
+      }
+      translation {
+        text: "https://www.hsl.fi/hagnas"
+        language: "sv"
+      }
+    }
+    header_text {
+      translation {
+        text: "Access to Hakaniemi Metro Station at the Hakaniemi market square side is closed from Thu 1 Oct."
+        language: "en"
+      }
+      translation {
+        text: "Hakaniemen aseman torin puolen kulkuyhteys metroon poissa käytöstä 1.10. alkaen."
+        language: "fi"
+      }
+      translation {
+        text: "Gångförbindelse på Hagnäs torgs sida av Hagnäs station är ur bruk från tors 1.10."
+        language: "sv"
+      }
+    }
+    description_text {
+      translation {
+        text: "From Thu 1 Oct: access between the Metro and street level at Hakaniemi station on the Hakaniemi market square side of the station is closed for 7 months. Entrance and exit available via Toinen linja and Porthaninkatu only. More info: hsl.fi/en/hakaniemi"
+        language: "en"
+      }
+      translation {
+        text: "To 1.10. alkaen: Hakaniemen aseman torin puolen kulkuyhteys metron ja katutason välillä on poissa käytöstä 7kk ajan. Kulku metroon tai metrosta käytössä ainoastaan Toisen linjan ja Porthaninkadun puolelta asemaa. Lisätiedot: hsl.fi/hakaniemi"
+        language: "fi"
+      }
+      translation {
+        text: "Fr.o.m. tors 1.10: passage mellan metron och gatunivån på Hagnäs torgs sida av Hagnäs station stängd i 7 mån. Passagen endast via Andra linjens och Porthansgatans sida. Tilläggsinfo: hsl.fi/hagnas"
+        language: "sv"
+      }
+    }
+    severity_level: INFO
+  }
+}
+entity {
+  id: "322436"
+  alert {
+    active_period {
+      start: 1790769600
+      end: 1793483940
+    }
+    informed_entity {
+      stop_id: "2612501"
+    }
+    informed_entity {
+      stop_id: "2612551"
+    }
+    cause: MAINTENANCE
+    effect: OTHER_EFFECT
+    url {
+      translation {
+        text: "https://www.hsl.fi/en/hsl/news/service-updates/2026/09/tuomarila-station-to-open-on-5-october--station-not-yet-fully-accessible"
+        language: "en"
+      }
+      translation {
+        text: "https://www.hsl.fi/hsl/uutiset/liikennetiedote/2026/09/tuomarilan-asema-aukeaa-liikenteelle-5.10.--asemalle-ei-esteetonta-kulkua-toistaiseksi"
+        language: "fi"
+      }
+      translation {
+        text: "https://www.hsl.fi/sv"
+        language: "sv"
+      }
+    }
+    header_text {
+      translation {
+        text: "Lift access at Tuomarila station will not be available until the end of October"
+        language: "en"
+      }
+      translation {
+        text: "Tuomarilan asemalla hissiyhteys käytössä vasta lokakuun lopussa"
+        language: "fi"
+      }
+      translation {
+        text: "Hissförbindelsen vid Domsby station tas i bruk i slutet av oktober"
+        language: "sv"
+      }
+    }
+    description_text {
+      translation {
+        text: "There is no lift access to Tuomarila station. The lift access will be available by the end of October."
+        language: "en"
+      }
+      translation {
+        text: "Tuomarilan asemalla ei ole hissiyhteyttä. Hissiyhteys saadaan käyttöön lokakuun loppuun mennessä."
+        language: "fi"
+      }
+      translation {
+        text: "Det finns ingen hissförbindelse till Domsby stationen. Hissarna tas i bruk senast i slutet av oktober."
+        language: "sv"
+      }
+    }
+    severity_level: INFO
+  }
+}
+entity {
+  id: "322708"
+  alert {
+    active_period {
+      start: 1791513900
+      end: 1792184340
+    }
+    informed_entity {
+      agency_id: "HSL"
+    }
+    cause: OTHER_CAUSE
+    effect: OTHER_EFFECT
+    url {
+      translation {
+        text: "https://www.hsl.fi/en/hsl/news/service-updates/2026/09/changes-to-bus-services-during-the-autumn-school-break-1216-october"
+        language: "en"
+      }
+      translation {
+        text: "https://www.hsl.fi/hsl/uutiset/liikennetiedote/2026/09/bussiliikenteessa-poikkeuksia-syyslomaviikolla"
+        language: "fi"
+      }
+      translation {
+        text: "https://www.hsl.fi/sv/hrt/nyheter/liikennetiedotteet/2026/09/andringar-i-busstrafiken-under-hostlovet-1216.10"
+        language: "sv"
+      }
+    }
+    header_text {
+      translation {
+        text: "During the autumn school break, 12-16 October, some bus routes do not operate, and some operate to special timetables."
+        language: "en"
+      }
+      translation {
+        text: "Koulujen syyslomaviikolla, 12.-16.10., on osalla busseista aikataulupoikkeuksia ja osa bussilinjoista ei kulje."
+        language: "fi"
+      }
+      translation {
+        text: "Under skolornas höstlov, 12.-16.10, kör vissa bussar enligt avvikande tidtabeller och vissa är inte i trafik."
+        language: "sv"
+      }
+    }
+    description_text {
+      translation {
+        text: "During the autumn school break, 12-16 October, some bus routes do not operate, and some operate to special timetables. See up-to-date timetables in the Journey Planner."
+        language: "en"
+      }
+      translation {
+        text: "Koulujen syyslomaviikolla, 12.-16.10., on osalla busseista aikataulupoikkeuksia ja osa bussilinjoista ei kulje. Löydät ajantasaiset aikataulut Reittioppaasta."
+        language: "fi"
+      }
+      translation {
+        text: "Under skolornas höstlov, 12.-16.10, kör vissa bussar enligt avvikande tidtabeller och en del av busslinjerna är inte i trafik. Reseplaneraren visar aktuella tidtabeller."
+        language: "sv"
+      }
+    }
+    severity_level: INFO
+  }
+}
+entity {
+  id: "322736"
+  alert {
+    active_period {
+      start: 1790860560
+      end: 1793376000
+    }
+    informed_entity {
+      stop_id: "1452114"
+    }
+    informed_entity {
+      route_id: "1805"
+    }
+    informed_entity {
+      stop_id: "1452109"
+    }
+    informed_entity {
+      stop_id: "1452141"
+    }
+    informed_entity {
+      stop_id: "1452139"
+    }
+    informed_entity {
+      stop_id: "1452111"
+    }
+    cause: OTHER_CAUSE
+    effect: DETOUR
+    url {
+      translation {
+        text: "https://www.hsl.fi/en"
+        language: "en"
+      }
+      translation {
+        text: "https://www.hsl.fi/hsl/uutiset/liikennetiedote/2026/10/lahibussi-805-poikkeusreitilla-puotilassa-yleisotapahtuman-takia-2.10.---1.11"
+        language: "fi"
+      }
+      translation {
+        text: "https://www.hsl.fi/sv"
+        language: "sv"
+      }
+    }
+    header_text {
+      translation {
+        text: "Neighborhood bus 805 will be diverted in Puotila from 2 to 30 October. The bus will not run via Puotilan kartano."
+        language: "en"
+      }
+      translation {
+        text: "Lähibussi 805 on poikkeusreitillä Puotilassa 2.-30.10. Bussi ei aja Puotilan kartanon lenkkiä."
+        language: "fi"
+      }
+      translation {
+        text: "Närbuss 805 kör en avvikande rutt i Botby 2-30.10. Bussen kör inte via Botby gård."
+        language: "sv"
+      }
+    }
+    description_text {
+      translation {
+        text: "Neighborhood bus 805 will be diverted in Puotila from 2 to 30 October. The bus will not run via Puotilan kartano when heading towards Itäkeskus, but along Rusthollarintie instead."
+        language: "en"
+      }
+      translation {
+        text: "Lähibussi 805 on poikkeusreitillä Puotilassa 2.-30.10. Bussi ei aja Itäkeskuksen suuntaan mennessä Puotilan kartanon lenkkiä vaan Rusthollarintietä pitkin."
+        language: "fi"
+      }
+      translation {
+        text: "Närbuss 805 kör en avvikande rutt i Botby 2-30.10. Bussen kör inte via Botby gård i riktning mot Östra centrum, utan längs Rusthållarvägen."
+        language: "sv"
+      }
+    }
+    severity_level: WARNING
+  }
+}
+entity {
+  id: "322962"
+  alert {
+    active_period {
+      start: 1791914400
+      end: 1791927000
+    }
+    informed_entity {
+      stop_id: "4610551"
+    }
+    informed_entity {
+      route_id: "3001K"
+    }
+    informed_entity {
+      stop_id: "9040505"
+    }
+    cause: MAINTENANCE
+    effect: DETOUR
+    url {
+      translation {
+        text: "https://www.hsl.fi/en/hsl/news/service-updates/2026/09/changes-to-l-i-p-and-k-train-services-and-train-departure-platforms-on-1116-october"
+        language: "en"
+      }
+      translation {
+        text: "https://www.hsl.fi/hsl/uutiset/liikennetiedote/2026/09/l--i--p--ja-k-junilla-poikkeuksia-oisin-11.16.10.--raidemuutoksia-myos-muilla-junilla"
+        language: "fi"
+      }
+      translation {
+        text: "https://www.hsl.fi/sv/hrt/nyheter/liikennetiedotteet/2026/09/andringar-for-l-i-p-och-k-tag-nattetid-11-16.10"
+        language: "sv"
+      }
+    }
+    header_text {
+      translation {
+        text: "The 11.29pm K train from Kerava will not stop at Oulunkylä or Käpylä on the night of Tue 13 Oct."
+        language: "en"
+      }
+      translation {
+        text: "K-juna Keravalta klo 23.29 ei pysähdy Oulunkylässä ja Käpylässä ti-ke yönä 13.-14.10."
+        language: "fi"
+      }
+      translation {
+        text: "K-tåget från Kervo kl. 23.29 stannar inte i Åggelby och Kottby natten mellan tis-ons 13-14.10."
+        language: "sv"
+      }
+    }
+    description_text {
+      translation {
+        text: "The 11.29pm K train from Kerava will not stop at Oulunkylä or Käpylä on the night of Tue 13 Oct. Reason: track work. See changes in the Journey Planner."
+        language: "en"
+      }
+      translation {
+        text: "K-juna Keravalta kello 23.29 ei pysähdy Oulunkylässä eikä Käpylässä ti-ke yönä 13.-14.10. Syy: ratatyöt. Näet poikkeukset Reittioppaasta."
+        language: "fi"
+      }
+      translation {
+        text: "K-tåget från Kervo kl. 23.29 stannar inte i Åggelby och Kottby natten mellan tisdag och onsdag 13-14.10. Orsak: banarbeten. Se ändringarna i Reseplaneraren."
+        language: "sv"
+      }
+    }
+    severity_level: WARNING
+  }
+}
+entity {
+  id: "323999"
+  alert {
+    active_period {
+      start: 1791279000
+      end: 1792184340
+    }
+    informed_entity {
+      stop_id: "1291182"
+    }
+    cause: MAINTENANCE
+    effect: DETOUR
+    url {
+      translation {
+        text: "https://www.hsl.fi/en"
+        language: "en"
+      }
+      translation {
+        text: "https://www.hsl.fi/hsl/uutiset/liikennetiedote/2026/09/valimokujan-pysakki-vihdintiella-siirtyy-8.10"
+        language: "fi"
+      }
+      translation {
+        text: "https://www.hsl.fi/sv"
+        language: "sv"
+      }
+    }
+    header_text {
+      translation {
+        text: "Valimokuja stop (H1565) on Vihdintie relocated on 8 October"
+        language: "en"
+      }
+      translation {
+        text: "Pysäkki Valimokuja (H1565) Vihdintiellä siirtyy to 8.10."
+        language: "fi"
+      }
+      translation {
+        text: "Hållplatsen Gjuterigränden (H1565) på Vichtisvägen flyttas tor den 8.10"
+        language: "sv"
+      }
+    }
+    description_text {
+      translation {
+        text: "The Valimokuja stop (H1565) on Vihdintie will be relocated from the start of morning services on Thursday, 8 October. The stop will be relocated about 120m north towards the Vihdintie bridge."
+        language: "en"
+      }
+      translation {
+        text: "Pysäkki Valimokuja (H1565) Vihdintiellä siirtyy torstaina 8.10. aamuliikenteen alusta. Pysäkki siirtyy noin 120 m pohjoiseen kohti Vihdintien siltaa."
+        language: "fi"
+      }
+      translation {
+        text: "Hållplatsen Gjuterigränden (H1565) på Vichtisvägen flyttas torsdagen den 8.10 från morgontrafikens början. Hållplatsen flyttas cirka 120 m norrut mot bron över Vichtisvägen."
+        language: "sv"
+      }
+    }
+    severity_level: INFO
+  }
+}
+entity {
+  id: "324022"
+  alert {
+    active_period {
+      start: 1791286200
+      end: 1792803600
+    }
+    informed_entity {
+      stop_id: "9040506"
+    }
+    informed_entity {
+      stop_id: "9040501"
+    }
+    informed_entity {
+      stop_id: "9040502"
+    }
+    informed_entity {
+      stop_id: "9040505"
+    }
+    cause: MAINTENANCE
+    effect: OTHER_EFFECT
+    url {
+      translation {
+        text: "https://www.hsl.fi/en/hsl/news/service-updates/2026/09/reduced-k-train-service-on-524-october-due-to-track-works--changes-also-to-d-r-and-z-trains"
+        language: "en"
+      }
+      translation {
+        text: "https://www.hsl.fi/hsl/uutiset/liikennetiedote/2026/09/k-junat-kulkevat-tavallista-harvemmin-ratatoiden-vuoksi--5.24.10."
+        language: "fi"
+      }
+      translation {
+        text: "https://www.hsl.fi/sv/hrt/nyheter/liikennetiedotteet/2026/09/k-tag-har-glesare-trafik-5-24.10-pa-grund-av-banarbeten"
+        language: "sv"
+      }
+    }
+    header_text {
+      translation {
+        text: "Trains use platforms 4 to 6 at Kerava on 5–24 October"
+        language: "en"
+      }
+      translation {
+        text: "Keravalla junat 4-6 raiteilta 5.-24.10."
+        language: "fi"
+      }
+      translation {
+        text: "I Kerava använder tågen spår 4-6 från 5 till 24.10."
+        language: "sv"
+      }
+    }
+    description_text {
+      translation {
+        text: "Trains use platforms 4 to 6 at Kerava on 5–24 October. Platform 1 is closed. Reason: renovation of the Kannisto railway bridge. Check the station displays for up-to-date platform information."
+        language: "en"
+      }
+      translation {
+        text: "Keravalla junat käyttävät 5.-24.10. raiteita 4-6. Raide 1 on poissa käytöstä. Syy: Kanniston rautatiesillan peruskorjaus. Tarkista junan lähtöraide aseman näytöltä."
+        language: "fi"
+      }
+      translation {
+        text: "Tågen använder spår 4-6 i Kervo 5-24.10. Spår 1 är ur bruk. Orsak: renovering av järnvägsbron. Den rätta plattformen anges på stationens skärmar."
+        language: "sv"
+      }
+    }
+    severity_level: INFO
+  }
+}
+entity {
+  id: "324040"
+  alert {
+    active_period {
+      start: 1791439200
+      end: 1791919800
+    }
+    informed_entity {
+      route_id: "4717"
+    }
+    informed_entity {
+      stop_id: "4930219"
+    }
+    informed_entity {
+      route_id: "4717N"
+    }
+    informed_entity {
+      route_id: "4572"
+    }
+    informed_entity {
+      route_id: "4587BK"
+    }
+    informed_entity {
+      route_id: "4587"
+    }
+    informed_entity {
+      stop_id: "4930218"
+    }
+    informed_entity {
+      route_id: "4717K"
+    }
+    cause: CONSTRUCTION
+    effect: DETOUR
+    url {
+      translation {
+        text: "https://www.hsl.fi/en/hsl/news/service-updates/2026/10/fazerinkuja-stops-in-vaarala-to-be-closed-from-13-october"
+        language: "en"
+      }
+      translation {
+        text: "https://www.hsl.fi/hsl/uutiset/liikennetiedote/2026/10/fazerinkujan-pysakit-poistuvat-kaytosta-vaaralassa-13.10.-alkaen"
+        language: "fi"
+      }
+      translation {
+        text: "https://www.hsl.fi/sv/hrt/nyheter/liikennetiedotteet/2026/10/hallplatserna-fazersgranden-indragna-i-fagersta-fran-13.10"
+        language: "sv"
+      }
+    }
+    header_text {
+      translation {
+        text: "Fazerinkuja stops in Vaarala to be closed from 13 October"
+        language: "en"
+      }
+      translation {
+        text: "Fazerinkujan pysäkit poistuvat käytöstä Vaaralassa 13.10. alkaen"
+        language: "fi"
+      }
+      translation {
+        text: "Hållplatserna Fazersgränden indragna i Fagersta från 13.10"
+        language: "sv"
+      }
+    }
+    description_text {
+      translation {
+        text: "The Fazerinkuja (V9318 and V9319) stops on Fazerintie will be closed from Tues 13 Oct. The change affects buses 572, 587 and 717K. Reason: construction of the Vantaa light rail."
+        language: "en"
+      }
+      translation {
+        text: "Fazerinkujan pysäkit (V9318 ja V9319) Fazerintiellä poistuvat käytöstä ti 13.10. alkaen. Muutos koskee busseja 572, 587 ja 717K. Syy: Vantaan ratikan työmaa."
+        language: "fi"
+      }
+      translation {
+        text: "Hållplatserna Fazersgränden (V9318 och V9319) på Fazersvägen dras in tis den 13 oktober. Ändringen gäller bussarna 572, 587 och 717K. Orsak: byggandet av Vandaspåran."
+        language: "sv"
+      }
+    }
+    severity_level: INFO
+  }
+}
+entity {
+  id: "324071"
+  alert {
+    active_period {
+      start: 1791680400
+      end: 1792010700
+    }
+    informed_entity {
+      route_id: "1069"
+    }
+    informed_entity {
+      stop_id: "1284149"
+    }
+    informed_entity {
+      route_id: "1056"
+    }
+    cause: OTHER_CAUSE
+    effect: OTHER_EFFECT
+    header_text {
+      translation {
+        text: "The Käpylä station stop will be moved about 20 m on Mon 12 Oct. Estimated duration: Wed 14 Oct. Reason: bridge inspectio"
+        language: "en"
+      }
+      translation {
+        text: "Käpylän aseman pysäkki siirtyy n. 20 metriä ma 12.10. Arvioitu kesto: ke 14.10. asti. Syy: sillan tarkastustyöt."
+        language: "fi"
+      }
+      translation {
+        text: "Hållplatsen Kottby station flyttas ca 20 meter måndag 12.10. Beräknad tid: till onsdag 14.10. Orsak: broinspektion."
+        language: "sv"
+      }
+    }
+    description_text {
+      translation {
+        text: "The Käpylä station stop (H3139) on Panuntie will be relocated about 20 meters on Mon 12 Oct. Estimated duration: until Wed 14 Oct. Reason: bridge inspection."
+        language: "en"
+      }
+      translation {
+        text: "Käpylän aseman pysäkki (H3139) Panuntiellä siirtyy n. 20 metriä ma 12.10. Arvioitu kesto: ke 14.10. asti. Syy: sillan tarkastustyöt."
+        language: "fi"
+      }
+      translation {
+        text: "Hållplatsen Kottby station (H3139) på Panuntie flyttas ca 20 meter måndag 12.10. Beräknad tid: till onsdag 14.10. Orsak: broinspektion."
+        language: "sv"
+      }
+    }
+    severity_level: INFO
+  }
+}
+entity {
+  id: "324401"
+  alert {
+    active_period {
+      start: 1791390540
+      end: 1791925140
+    }
+    informed_entity {
+      stop_id: "1040601"
+    }
+    informed_entity {
+      stop_id: "1040602"
+    }
+    informed_entity {
+      stop_id: "1040284"
+    }
+    informed_entity {
+      stop_id: "1040201"
+    }
+    informed_entity {
+      stop_id: "1040148"
+    }
+    cause: CONSTRUCTION
+    effect: OTHER_EFFECT
+    url {
+      translation {
+        text: "https://www.hsl.fi/en/hsl/news/service-updates/2026/09/new-entrance-at-kamppi-metro-station-to-open-on-12-october"
+        language: "en"
+      }
+      translation {
+        text: "https://www.hsl.fi/hsl/uutiset/liikennetiedote/2026/09/kampin-metroaseman-sisaankaynti-fredrikinkadulle-aukeaa-12.10"
+        language: "fi"
+      }
+      translation {
+        text: "https://www.hsl.fi/sv/hrt/nyheter/liikennetiedotteet/2026/09/ny-ingang-till-kampens-metrostation-oppnar-12.10"
+        language: "sv"
+      }
+    }
+    header_text {
+      translation {
+        text: "The entrance to Kamppi metro station on Fredrikinkatu opens on 12 October."
+        language: "en"
+      }
+      translation {
+        text: "Kampin metroaseman sisäänkäynti Fredrikinkadulle avautuu 12.10."
+        language: "fi"
+      }
+      translation {
+        text: "Kampens metrostations ingång mot Fredriksgatan öppnar 12.10."
+        language: "sv"
+      }
+    }
+    description_text {
+      translation {
+        text: "The western entrance to Kamppi metro station on Fredrikinkatu opes Monday, 12 October. Changing from trunk bus routes 20 and 30 to the metro becomes easier."
+        language: "en"
+      }
+      translation {
+        text: "Kampin metroaseman läntinen sisäänkäynti Fredrikinkadulle avautuu maanantaina 12.10. Vaihtaminen runkolinjoilta 20 ja 30 metroon helpottuu"
+        language: "fi"
+      }
+      translation {
+        text: "Kampens metrostations västra ingång mot Fredriksgatan öppnar måndagen den 12.10. Det blir lättare att byta från stombusslinjerna 20 och 30 till metron."
+        language: "sv"
+      }
+    }
+    severity_level: INFO
+  }
+}
+entity {
+  id: "324618"
+  alert {
+    active_period {
+      start: 1791456540
+      end: 1793340000
+    }
+    informed_entity {
+      stop_id: "1291551"
+    }
+    informed_entity {
+      stop_id: "1291501"
+    }
+    cause: OTHER_CAUSE
+    effect: OTHER_EFFECT
+    header_text {
+      translation {
+        text: "The lift serving platforms 1 and 2 at the Helsinki end of Huopalahti station is out of service."
+        language: "en"
+      }
+      translation {
+        text: "Huopalahden aseman Helsingin puoleinen hissi raiteille 1 ja 2 ei ole käytössä."
+        language: "fi"
+      }
+      translation {
+        text: "Hiss till spår 1 och 2 i riktning mot Helsingfors på Hoplax station är ur funktion."
+        language: "sv"
+      }
+    }
+    description_text {
+      translation {
+        text: "The lift serving platforms 1 and 2 at the Helsinki end of Huopalahti station is out of service. Please use the lift from the Eliel Saarisen tie tunnel to access platforms 1 and 2. The lift is expected to be back in service by October 30."
+        language: "en"
+      }
+      translation {
+        text: "Huopalahden aseman Helsingin puoleinen hissi raiteille 1 ja 2 ei ole käytössä. Toimiva hissi raiteille 1 ja 2 kulkee Eliel Saarisen tien tunnelista. Hissin arvioitu korjausaika on 30.10. mennessä."
+        language: "fi"
+      }
+      translation {
+        text: "Hiss till spår 1 och 2 i riktning mot Helsingfors på Hoplax station är ur funktion. En fungerande hiss till spår 1 och 2 finns i tunneln från Eliel Saarinens väg. Hissen beräknas vara reparerad senast 30.10"
+        language: "sv"
+      }
+    }
+    severity_level: INFO
+  }
+}
+entity {
+  id: "325430"
+  alert {
+    active_period {
+      start: 1791766800
+      end: 1792357140
+    }
+    informed_entity {
+      route_id: "1001T"
+    }
+    informed_entity {
+      route_id: "1001H"
+    }
+    informed_entity {
+      stop_id: "1140451"
+    }
+    informed_entity {
+      route_id: "1001K"
+    }
+    informed_entity {
+      route_id: "1001"
+    }
+    informed_entity {
+      stop_id: "1140450"
+    }
+    cause: CONSTRUCTION
+    effect: DETOUR
+    url {
+      translation {
+        text: "https://www.hsl.fi/en/hsl/news/service-updates/2026/10/opera-tram-stops-to-be-temporarily-relocated-on-14-october"
+        language: "en"
+      }
+      translation {
+        text: "https://www.hsl.fi/hsl/uutiset/liikennetiedote/2026/10/oopperan-ratikkapysakit-helsinginkadulla-siirtyvat-14.10"
+        language: "fi"
+      }
+    }
+    header_text {
+      translation {
+        text: "Ooppera tram stops on Helsinginkatu to be relocated on 14 October"
+        language: "en"
+      }
+      translation {
+        text: "Oopperan ratikkapysäkit Helsinginkadulla siirtyvät 14.10."
+        language: "fi"
+      }
+      translation {
+        text: "Hållplatserna Operan på Helsingegatan flyttas 14.10"
+        language: "sv"
+      }
+    }
+    description_text {
+      translation {
+        text: "Trams: 1, 1T, 8: Ooppera tram stops on Helsinginkatu will be temporarily relocated about 30 meters towards Mannerheimintie on 14 October."
+        language: "en"
+      }
+      translation {
+        text: "Ratikat 1, 1T, 8T: Oopperan ratikkapysäkit Helsinginkadulla siirtyvät väliaikaisesti ke 14.10. noin 30 metriä kohti Mannerheimintietä peruskorjaustöiden edetessä."
+        language: "fi"
+      }
+      translation {
+        text: "Spårvagnar: 1, 1T, 8: Hållplatserna Operan på Helsingegatan flyttas tillfälligt cirka 30 meter i riktning mot Mannerheimvägen ons 14 oktober."
+        language: "sv"
+      }
+    }
+    severity_level: INFO
+  }
+}
+entity {
+  id: "325438"
+  alert {
+    active_period {
+      start: 1791781200
+      end: 1791939600
+    }
+    informed_entity {
+      route_id: "1022B"
+    }
+    informed_entity {
+      stop_id: "1050107"
+    }
+    informed_entity {
+      route_id: "1022"
+    }
+    informed_entity {
+      route_id: "1022K"
+    }
+    cause: CONSTRUCTION
+    effect: OTHER_EFFECT
+    header_text {
+      translation {
+        text: "Departure stop of bus 22 in Punavuori changes on 14 October"
+        language: "en"
+      }
+      translation {
+        text: "Bussin 22 lähtöpysäkki Punavuoressa vaihtuu 14.10."
+        language: "fi"
+      }
+      translation {
+        text: "Buss 22 avgångshållplats i Rödbergen ändras 14.10."
+        language: "sv"
+      }
+    }
+    description_text {
+      translation {
+        text: "From 14 Oct,  bus 22 will depart from the Merimiehenkatu (H1172) stop in Punavuori. The bus will continue to serve the Uudenmaankatu stop (H1170) in the direction of Punavuori. Reason: construction work."
+        language: "en"
+      }
+      translation {
+        text: "Bussin 22 lähtöpysäkki 14.10. alkaen Punavuoressa Merimiehenkatu (H1172). Pysäkki Uudenmaankatu (H1170) edelleen linjan käytössä suunnassa kohti Punavuorta. Syy: työmaan päättyminen"
+        language: "fi"
+      }
+      translation {
+        text: "Buss 22 avgångshållplats i Rödbergen flyttas 14.10. till Sjömansgatan (H1172). Hållplatsen Nylandsgatan (H1170) används buss i riktning mot Rödbergen. Orsak: byggarbetet avslutas."
+        language: "sv"
+      }
+    }
+    severity_level: WARNING
+  }
+}
+entity {
+  id: "325460"
+  alert {
+    active_period {
+      start: 1791781200
+      end: 1793329200
+    }
+    informed_entity {
+      stop_id: "2631202"
+    }
+    cause: MAINTENANCE
+    effect: DETOUR
+    url {
+      translation {
+        text: "https://www.hsl.fi/en/hsl/news/service-updates/2026/09/jorvi-stop-on-turuntie-to-be-relocated-temporarily-from-13-to-29-october"
+        language: "en"
+      }
+      translation {
+        text: "https://www.hsl.fi/hsl/uutiset/liikennetiedote/2026/09/jorvin-pysakki-turuntien-varrella-siirtyy-valiaikaisesti-13.-29.10"
+        language: "fi"
+      }
+      translation {
+        text: "https://www.hsl.fi/sv"
+        language: "sv"
+      }
+    }
+    header_text {
+      translation {
+        text: "Jorvi (E6302) stop on Turuntie will be temporarily relocated from 13 October"
+        language: "en"
+      }
+      translation {
+        text: "Pysäkki Jorvi (E6302) Turuntien varrella siirtyy väliaikaisesti 13.-29.10."
+        language: "fi"
+      }
+      translation {
+        text: "Hållplatsen Jorv (E6302) på Åbovägen flyttas tillfälligt 13-29.10."
+        language: "sv"
+      }
+    }
+    description_text {
+      translation {
+        text: "The Jorvi (E6302) stop on Turuntie will be relocated temporarily about 60 m towards the Karvasmäentie junction from 13 October. The stop will return to its original location on Friday morning, 30 October."
+        language: "en"
+      }
+      translation {
+        text: "Pysäkki Jorvi (E6302) Turuntiellä Jorvin sairaalan vieressä siirtyy väliaikaisesti 13.-29.10. Pysäkki siirtyy noin 60 metriä kohti Karvasvämentien risteystä ja kiertoliittymää."
+        language: "fi"
+      }
+      translation {
+        text: "Hållplatsen Jorv (E6302) på Åbovägen flyttas tillfälligt 13-29.10. Hållplatsen flyttas cirka 60 meter mot korsningen med Karvasbackavägen och rondellen."
+        language: "sv"
+      }
+    }
+    severity_level: INFO
+  }
+}
+entity {
+  id: "325469"
+  alert {
+    active_period {
+      start: 1791790200
+      end: 1791919800
+    }
+    informed_entity {
+      stop_id: "4910201"
+    }
+    informed_entity {
+      stop_id: "4950207"
+    }
+    informed_entity {
+      stop_id: "4910212"
+    }
+    informed_entity {
+      route_id: "1095N"
+    }
+    informed_entity {
+      stop_id: "4910222"
+    }
+    informed_entity {
+      route_id: "4588B"
+    }
+    informed_entity {
+      stop_id: "4910217"
+    }
+    informed_entity {
+      stop_id: "4910207"
+    }
+    informed_entity {
+      stop_id: "4910218"
+    }
+    informed_entity {
+      stop_id: "4910205"
+    }
+    informed_entity {
+      stop_id: "4950213"
+    }
+    informed_entity {
+      route_id: "4588"
+    }
+    informed_entity {
+      stop_id: "4950210"
+    }
+    informed_entity {
+      stop_id: "4910204"
+    }
+    informed_entity {
+      stop_id: "4950209"
+    }
+    informed_entity {
+      stop_id: "4910202"
+    }
+    informed_entity {
+      stop_id: "4910213"
+    }
+    informed_entity {
+      stop_id: "4910224"
+    }
+    informed_entity {
+      stop_id: "4910203"
+    }
+    cause: CONSTRUCTION
+    effect: OTHER_EFFECT
+    url {
+      translation {
+        text: "https://www.hsl.fi/en"
+        language: "en"
+      }
+      translation {
+        text: "https://www.hsl.fi/"
+        language: "fi"
+      }
+      translation {
+        text: "https://www.hsl.fi/sv"
+        language: "sv"
+      }
+    }
+    header_text {
+      translation {
+        text: "Buses 95N, 588 and 588B to resume their normal route in Länsimäki on 12 Oct"
+        language: "en"
+      }
+      translation {
+        text: "Bussit 95N, 588 ja 588B palaavat normaalireitille Länsimäessä ma 12.10."
+        language: "fi"
+      }
+      translation {
+        text: "Bussarna 95N, 588 och 588B återgår till sin vanliga rutt i Västerkulla 12.10."
+        language: "sv"
+      }
+    }
+    description_text {
+      translation {
+        text: "Buses 95N, 588 and 588B will resume their normal route in Länsimäki on Mon 12 Oct. The buses will run along Keihästie."
+        language: "en"
+      }
+      translation {
+        text: "Bussit 95N, 588 ja 588B palaavat normaalireiteilleen Länsimäessä 12.10. Bussit kulkevat jälleen Keihästien kautta."
+        language: "fi"
+      }
+      translation {
+        text: "Bussarna 95N, 588 och 588B återgår till sin vanliga rutt via Spjutvägen mån den 12 oktober."
+        language: "sv"
+      }
+    }
+    severity_level: INFO
+  }
+}
+entity {
+  id: "325495"
+  alert {
+    active_period {
+      start: 1791802800
+      end: 1792443540
+    }
+    informed_entity {
+      stop_id: "6304006"
+    }
+    informed_entity {
+      stop_id: "6304005"
+    }
+    cause: MAINTENANCE
+    effect: DETOUR
+    url {
+      translation {
+        text: "https://www.hsl.fi/en"
+        language: "en"
+      }
+      translation {
+        text: "https://www.hsl.fi/"
+        language: "fi"
+      }
+      translation {
+        text: "https://www.hsl.fi/sv"
+        language: "sv"
+      }
+    }
+    header_text {
+      translation {
+        text: "Störsvik th stops (So3116 and So3117) on Rannikkotie will be relocated on 12 October"
+        language: "en"
+      }
+      translation {
+        text: "Pysäkit Störsvik th (So3116 ja So3117) Rannikkotiellä siirtyvät ma 12.10."
+        language: "fi"
+      }
+      translation {
+        text: "Hållplatserna Störsvik th (So3116 och So3117) på Kustvägen flyttas 12.10."
+        language: "sv"
+      }
+    }
+    description_text {
+      translation {
+        text: "The Störsvik th stops (So3116 and So3117) in Pikkala at the intersection of Rannikkotie and Störsvikintie will be relocated to the bridge on Rannikkotie on Monday, 12 October. Reason: roadworks."
+        language: "en"
+      }
+      translation {
+        text: "Pysäkit Störsvik th (So3116 ja So3117) Pikkalassa Rannikkotien ja Störsvikintien risteyksessä siirtyvät  Rannikkotien sillan päälle ma 12.10. Syy: Tietyö."
+        language: "fi"
+      }
+      translation {
+        text: "Hållplatserna Störsvik th (So3116 och So3117) i Pickala vid korsningen mellan Kustvägen och Störsviksvägen flyttas till bron på Kustvägen mån den 12.10. Orsak: vägarbete."
+        language: "sv"
+      }
+    }
+    severity_level: INFO
+  }
+}
+entity {
+  id: "325533"
+  alert {
+    active_period {
+      start: 1791812220
+      end: 1792026840
+    }
+    informed_entity {
+      stop_id: "1111116"
+    }
+    cause: MAINTENANCE
+    effect: OTHER_EFFECT
+    url {
+      translation {
+        text: "https://www.hsl.fi/en/hsl/news/service-updates/2026/10/hakaniemi-stop-h2400-to-be-closed-from-15-october"
+        language: "en"
+      }
+      translation {
+        text: "https://www.hsl.fi/hsl/uutiset/liikennetiedote/2026/10/hakaniemessa-pysakki-h2400-laituri-11-on-suljettu-15.10.-alkaen"
+        language: "fi"
+      }
+      translation {
+        text: "https://www.hsl.fi/sv/hrt/nyheter/liikennetiedotteet/2026/10/hallplats-hagnas-h2400-plattform-11-ar-stangd-fran-15.10"
+        language: "sv"
+      }
+    }
+    header_text {
+      translation {
+        text: "Hakaniemi stop (H2400, bay 11) for buses towards South is closed temporarily from Thu 15 October. Bay 10 is in use."
+        language: "en"
+      }
+      translation {
+        text: "Hakaniemen pysäkki H2400 (laituri 11) Rautatientorin suuntaan on poissa käytöstä to 15.10. alkaen. Käytössä laituri 10."
+        language: "fi"
+      }
+      translation {
+        text: "Hållplats Hagnäs (H2400, plattform 11) i riktning mot Järnvägstorget stängs tillfälligt 15.10. Plattform 10 är i bruk."
+        language: "sv"
+      }
+    }
+    description_text {
+      translation {
+        text: "Hakaniemi stop (H2400, bay 11) for buses towards South is closed temporarily from Thu 15 October. Replacement stop is 60 m backwards (H2402, bay 10). Estimated duration: until the end of November."
+        language: "en"
+      }
+      translation {
+        text: "Hakaniemen pysäkki H2400 (laituri 11) Rautatientorin suuntaan on poissa käytöstä to 15.10. alkaen. Korvaava pysäkki on n. 60 m taaksepäin (H2402, laituri 10). Arvioitu kesto: marraskuun loppuun asti."
+        language: "fi"
+      }
+      translation {
+        text: "Hållplats Hagnäs (H2400, plattform 11) i riktning mot Järnvägstorget stängs tillfälligt 15.10. Ersättande hållplats är ca 60 m bakåt (H2402, plattform 10). Beräknade tid: till slutet av november."
+        language: "sv"
+      }
+    }
+    severity_level: INFO
+  }
+}
+entity {
+  id: "325535"
+  alert {
+    active_period {
+      start: 1792026900
+      end: 1792097940
+    }
+    informed_entity {
+      stop_id: "1111116"
+    }
+    cause: MAINTENANCE
+    effect: OTHER_EFFECT
+    url {
+      translation {
+        text: "https://www.hsl.fi/en/hsl/news/service-updates/2026/10/hakaniemi-stop-h2400-to-be-closed-from-15-october"
+        language: "en"
+      }
+      translation {
+        text: "https://www.hsl.fi/hsl/uutiset/liikennetiedote/2026/10/hakaniemessa-pysakki-h2400-laituri-11-on-suljettu-15.10.-alkaen"
+        language: "fi"
+      }
+      translation {
+        text: "https://www.hsl.fi/sv/hrt/nyheter/liikennetiedotteet/2026/10/hallplats-hagnas-h2400-plattform-11-ar-stangd-fran-15.10"
+        language: "sv"
+      }
+    }
+    header_text {
+      translation {
+        text: "Hakaniemi stop (H2400, bay 11) for buses towards South is closed temporarily from Thu 15 October. Bay 10 is in use."
+        language: "en"
+      }
+      translation {
+        text: "Hakaniemen pysäkki H2400 (laituri 11) Rautatientorin suuntaan on poissa käytöstä to 15.10. alkaen. Laituri 10 käytössä."
+        language: "fi"
+      }
+      translation {
+        text: "Hållplats Hagnäs (H2400, plattform 11) i riktning mot Järnvägstorget stängs tillfälligt 15.10. Plattform 10 är i bruk."
+        language: "sv"
+      }
+    }
+    description_text {
+      translation {
+        text: "Hakaniemi stop (H2400, bay 11) for buses towards South is closed temporarily from Thu 15 October. Replacement stop is 60 m backwards (H2402, bay 10). Estimated duration: until the end of November."
+        language: "en"
+      }
+      translation {
+        text: "Hakaniemen pysäkki H2400 (laituri 11) Rautatientorin suuntaan on poissa käytöstä to 15.10. alkaen. Korvaava pysäkki on n. 60 m taaksepäin (H2402, laituri 10). Arvioitu kesto: marraskuun loppuun asti."
+        language: "fi"
+      }
+      translation {
+        text: "Hållplats Hagnäs (H2400, plattform 11) i riktning mot Järnvägstorget stängs tillfälligt 15.10. Ersättande hållplats är ca 60 m bakåt (H2402, plattform 10). Beräknade tid: till slutet av november."
+        language: "sv"
+      }
+    }
+    severity_level: WARNING
+  }
+}
+entity {
+  id: "325536"
+  alert {
+    active_period {
+      start: 1791812220
+      end: 1792026840
+    }
+    informed_entity {
+      route_id: "1073"
+    }
+    informed_entity {
+      route_id: "1074"
+    }
+    informed_entity {
+      route_id: "1074B"
+    }
+    cause: MAINTENANCE
+    effect: OTHER_EFFECT
+    url {
+      translation {
+        text: "https://www.hsl.fi/en/hsl/news/service-updates/2026/10/hakaniemi-stop-h2400-to-be-closed-from-15-october"
+        language: "en"
+      }
+      translation {
+        text: "https://www.hsl.fi/hsl/uutiset/liikennetiedote/2026/10/hakaniemessa-pysakki-h2400-laituri-11-on-suljettu-15.10.-alkaen"
+        language: "fi"
+      }
+      translation {
+        text: "https://www.hsl.fi/sv/hrt/nyheter/liikennetiedotteet/2026/10/hallplats-hagnas-h2400-plattform-11-ar-stangd-fran-15.10"
+        language: "sv"
+      }
+    }
+    header_text {
+      translation {
+        text: "Bus routes 73 and 74 will terminate temporarily at the Hakaniemi stop H2521 (bay 21) from Thu, 15 October."
+        language: "en"
+      }
+      translation {
+        text: "Bussien 73 ja 74 Hakaniemen päätepysäkki siirtyy 15.10. alkaen väliaikaisesti pysäkille H2521 (laituri 21)."
+        language: "fi"
+      }
+      translation {
+        text: "Ändhållplats för busslinjerna 73 och 74 i Hagnäs flyttas 15.10 tillfälligt till hållplats H2521 (plattform 21)."
+        language: "sv"
+      }
+    }
+    description_text {
+      translation {
+        text: "Bus routes 73 and 74 will terminate temporarily at the Hakaniemi stop H2521 (bay 21) from Thu, 15 October. Estimated duration: until the end of November."
+        language: "en"
+      }
+      translation {
+        text: "Bussien 73 ja 74 Hakaniemen päätepysäkki siirtyy 15.10. alkaen väliaikaisesti pysäkille H2521 (laituri 21). Arvioitu kesto: marraskuun loppuun asti."
+        language: "fi"
+      }
+      translation {
+        text: "Ändhållplats för busslinjerna 73 och 74 i Hagnäs flyttas 15.10 tillfälligt till hållplats H2521 (plattform 21). Beräknade tid: till slutet av november."
+        language: "sv"
+      }
+    }
+    severity_level: INFO
+  }
+}
+entity {
+  id: "325537"
+  alert {
+    active_period {
+      start: 1792026900
+      end: 1792097940
+    }
+    informed_entity {
+      route_id: "1073"
+    }
+    informed_entity {
+      route_id: "1074"
+    }
+    informed_entity {
+      route_id: "1074B"
+    }
+    cause: MAINTENANCE
+    effect: OTHER_EFFECT
+    url {
+      translation {
+        text: "https://www.hsl.fi/en/hsl/news/service-updates/2026/10/hakaniemi-stop-h2400-to-be-closed-from-15-october"
+        language: "en"
+      }
+      translation {
+        text: "https://www.hsl.fi/hsl/uutiset/liikennetiedote/2026/10/hakaniemessa-pysakki-h2400-laituri-11-on-suljettu-15.10.-alkaen"
+        language: "fi"
+      }
+      translation {
+        text: "https://www.hsl.fi/sv/hrt/nyheter/liikennetiedotteet/2026/10/hallplats-hagnas-h2400-plattform-11-ar-stangd-fran-15.10"
+        language: "sv"
+      }
+    }
+    header_text {
+      translation {
+        text: "Bus routes 73 and 74 will terminate temporarily at the Hakaniemi stop H2521 (bay 21) from Thu, 15 October."
+        language: "en"
+      }
+      translation {
+        text: "Bussien 73 ja 74 Hakaniemen päätepysäkki siirtyy 15.10. alkaen väliaikaisesti pysäkille H2521 (laituri 21)."
+        language: "fi"
+      }
+      translation {
+        text: "Ändhållplats för busslinjerna 73 och 74 i Hagnäs flyttas 15.10 tillfälligt till hållplats H2521 (plattform 21)."
+        language: "sv"
+      }
+    }
+    description_text {
+      translation {
+        text: "Bus routes 73 and 74 will terminate temporarily at the Hakaniemi stop H2521 (bay 21) from Thu, 15 October. Estimated duration: until the end of November."
+        language: "en"
+      }
+      translation {
+        text: "Bussien 73 ja 74 Hakaniemen päätepysäkki siirtyy 15.10. alkaen väliaikaisesti pysäkille H2521 (laituri 21). Arvioitu kesto: marraskuun loppuun asti."
+        language: "fi"
+      }
+      translation {
+        text: "Ändhållplats för busslinjerna 73 och 74 i Hagnäs flyttas 15.10 tillfälligt till hållplats H2521 (plattform 21). Beräknade tid: till slutet av november."
+        language: "sv"
+      }
+    }
+    severity_level: WARNING
+  }
+}
+entity {
+  id: "325671"
+  alert {
+    active_period {
+      start: 1791867600
+      end: 1791943200
+    }
+    informed_entity {
+      stop_id: "1291119"
+    }
+    informed_entity {
+      stop_id: "1291219"
+    }
+    cause: CONSTRUCTION
+    effect: DETOUR
+    url {
+      translation {
+        text: "https://www.hsl.fi/en/hsl/news/service-updates/2026/09/talontie-bus-stops-in-haaga-to-be-temporarily-relocated-on-14-october"
+        language: "en"
+      }
+      translation {
+        text: "https://www.hsl.fi/hsl/uutiset/liikennetiedote/2026/09/talontien-pysakit-haagassa-siirtyvat-tilapaisesti-14.10"
+        language: "fi"
+      }
+      translation {
+        text: "https://www.hsl.fi/sv/hrt/nyheter/liikennetiedotteet/2026/09/hallplatserna-hemmansvagen-i-haga-flyttas-tillfalligt-14.10"
+        language: "sv"
+      }
+    }
+    header_text {
+      translation {
+        text: "Talontie (H1512 and H1514) stops in Haaga will be temporarily relocated on Wed 14 October"
+        language: "en"
+      }
+      translation {
+        text: "Pysäkit Talontie (H1512 ja H1514) Haagassa siirtyvät tilapäisesti ke 14.10."
+        language: "fi"
+      }
+      translation {
+        text: "Hållplatserna Hemmansvägen (H1512 och H1514) i Haga flyttas tillfälligt ons den 14.10"
+        language: "sv"
+      }
+    }
+    description_text {
+      translation {
+        text: "The Talontie (H1512 and H1514) stops on Vihdintie in Haaga will be temporarily relocated about 150 m north along Vihdintie, to the north of the Viertotien aukio intersection, on Wednesday 14 October."
+        language: "en"
+      }
+      translation {
+        text: "Pysäkit Talontie (H1512 ja H1514) Vihdintiellä Haagassa siirtyvät tilapäisesti keskiviikkona 14.10. Pysäkit siirtyvät noin 150 metriä Vihdintietä pohjoiseen Viertotien aukion risteyksen pohjoispuolelle."
+        language: "fi"
+      }
+      translation {
+        text: "Hållplatserna Hemmansvägen (H1512 och H1514) på Vichtisvägen i Haga flyttas tillfälligt onsdagen den 14 oktober. Hållplatserna flyttas ca 150 meter längs Vichtisvägen till den norra sidan av korsningen med Chausséplanen."
+        language: "sv"
+      }
+    }
+    severity_level: INFO
+  }
+}
+entity {
+  id: "325673"
+  alert {
+    active_period {
+      start: 1791954000
+      end: 1792029600
+    }
+    informed_entity {
+      stop_id: "1291119"
+    }
+    informed_entity {
+      stop_id: "1291219"
+    }
+    cause: CONSTRUCTION
+    effect: DETOUR
+    url {
+      translation {
+        text: "https://www.hsl.fi/en/hsl/news/service-updates/2026/09/talontie-bus-stops-in-haaga-to-be-temporarily-relocated-on-14-october"
+        language: "en"
+      }
+      translation {
+        text: "https://www.hsl.fi/hsl/uutiset/liikennetiedote/2026/09/talontien-pysakit-haagassa-siirtyvat-tilapaisesti-14.10"
+        language: "fi"
+      }
+      translation {
+        text: "https://www.hsl.fi/sv/hrt/nyheter/liikennetiedotteet/2026/09/hallplatserna-hemmansvagen-i-haga-flyttas-tillfalligt-14.10"
+        language: "sv"
+      }
+    }
+    header_text {
+      translation {
+        text: "Talontie (H1512 and H1514) stops in Haaga will be temporarily relocated on Wed 14 October"
+        language: "en"
+      }
+      translation {
+        text: "Pysäkit Talontie (H1512 ja H1514) Haagassa siirtyvät tilapäisesti ke 14.10."
+        language: "fi"
+      }
+      translation {
+        text: "Hållplatserna Hemmansvägen (H1512 och H1514) i Haga flyttas tillfälligt ons den 14.10"
+        language: "sv"
+      }
+    }
+    description_text {
+      translation {
+        text: "The Talontie (H1512 and H1514) stops on Vihdintie in Haaga will be temporarily relocated about 150 m north along Vihdintie, to the north of the Viertotien aukio intersection, on Wednesday 14 October."
+        language: "en"
+      }
+      translation {
+        text: "Pysäkit Talontie (H1512 ja H1514) Vihdintiellä Haagassa siirtyvät tilapäisesti keskiviikkona 14.10. Pysäkit siirtyvät noin 150 metriä Vihdintietä pohjoiseen Viertotien aukion risteyksen pohjoispuolelle."
+        language: "fi"
+      }
+      translation {
+        text: "Hållplatserna Hemmansvägen (H1512 och H1514) på Vichtisvägen i Haga flyttas tillfälligt onsdagen den 14 oktober. Hållplatserna flyttas ca 150 meter längs Vichtisvägen till den norra sidan av korsningen med Chausséplanen."
+        language: "sv"
+      }
+    }
+    severity_level: WARNING
+  }
+}
+entity {
+  id: "325739"
+  alert {
+    active_period {
+      start: 1791885360
+      end: 1792529940
+    }
+    informed_entity {
+      stop_id: "1111209"
+    }
+    informed_entity {
+      stop_id: "1111431"
+    }
+    informed_entity {
+      route_id: "1023"
+    }
+    informed_entity {
+      route_id: "2502"
+    }
+    cause: OTHER_CAUSE
+    effect: OTHER_EFFECT
+    url {
+      translation {
+        text: "https://www.hsl.fi/hsl/uutiset/liikennetiedote/2026/09/bussit-23-ja-502-poikkeusreitilla-hakaniemessa-ti-29.9.-alkaen"
+        language: "fi"
+      }
+    }
+    header_text {
+      translation {
+        text: "Buses 23 and 502: Bus stop Kallion virastotalo (H0253) on Siltasaarenkatu in Hakaniemi to return back to use on 17.10."
+        language: "en"
+      }
+      translation {
+        text: "Bussit 23 ja 502: Siltasaarenkadulla Hakaniemessä oleva Kallion virastotalon pysäkki (H0253) palaa käyttöön 17.10."
+        language: "fi"
+      }
+      translation {
+        text: "Bussarna 23 och 502: Hållplats Berghälls ämbetshus (H0253) på Broholmsgatan i Hagnäs återgår i bruk den 17.10."
+        language: "sv"
+      }
+    }
+    description_text {
+      translation {
+        text: "Buses 23 and 502: Bus stop Kallion virastotalo (H0253) on Siltasaarenkatu in Hakaniemi to return back to use on 17 October. The temporary stop Kallion virastotalo (H2310) in Tokoinranta to be not served anymore."
+        language: "en"
+      }
+      translation {
+        text: "Bussit 23 ja 502: Siltasaarenkadulla Hakaniemessä oleva Kallion virastotalon pysäkki (H0253) palaa käyttöön 17.10. Väliaikainen pysäkki Kallion virastotalo (H2310) Tokoinrannassa jää pois reitiltä."
+        language: "fi"
+      }
+      translation {
+        text: "Bussarna 23 och 502: Hållplats Berghälls ämbetshus (H0253) på Broholmsgatan i Hagnäs återgår i bruk den 17.10. Bussarna körs ej via tillfälligt hållplats Berghälls ämbetshus (H2310) i Tokoistranden."
+        language: "sv"
+      }
+    }
+    severity_level: INFO
+  }
+}

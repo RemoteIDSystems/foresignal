@@ -40,6 +40,10 @@ repositories {
 // RecordMapping (059) needs Jayway JsonPath 3.0.0 (Jackson 3 providers); the Spring Boot BOM pins 2.10.0
 // (its json-path.version property), which would otherwise win for the test classpath's copy.
 extra["json-path.version"] = libs.versions.jsonPath.get()
+// protobuf-java (070): the Spring Boot BOM manages 4.35.1, below NetCDF-Java cdm-core's 4.36.1; the catalog pins
+// 4.36.1, which satisfies both cdm-core and gtfs-realtime-bindings (generated with 4.34.0; protobuf allows a newer
+// runtime of the same major).
+extra["protobuf-java.version"] = libs.versions.protobufJava.get()
 
 dependencies {
     implementation(libs.spring.boot.starter.web)
@@ -82,6 +86,9 @@ dependencies {
     implementation(libs.hivemq.mqtt.client.shaded)
     // permessage-deflate WebSockets for streaming sources (063): used only inside ai.foresignal.collect.
     implementation(libs.java.websocket)
+    // GTFS-Realtime VehiclePositions and ServiceAlerts of the transit-* sources (070), with protobuf-java pinned.
+    implementation(libs.gtfs.realtime.bindings)
+    implementation(libs.protobuf.java)
     runtimeOnly(libs.postgresql)
 
     testImplementation(platform(libs.testcontainers.bom))
