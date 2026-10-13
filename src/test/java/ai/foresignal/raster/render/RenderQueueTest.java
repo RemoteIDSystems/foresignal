@@ -75,6 +75,51 @@ class RenderQueueTest {
     }
 
     @Test
+    @DisplayName("warming does not starve a waiting client: after one warming render the interactive one goes next")
+    void warmingDoesNotStarveInteractive() throws Exception {
+        RenderQueue q = queue(1, Duration.ofSeconds(10));
+        CountDownLatch started = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        block(q, started, release);
+        await(started);
+        List<String> order = Collections.synchronizedList(new ArrayList<>());
+        List<CompletableFuture<byte[]>> all = new ArrayList<>();
+        for (int i = 0; i < 40; i++) {
+            String id = "w" + i;
+            all.add(q.submit(id, RenderQueue.Priority.WARM, "warm", () -> mark(order, id)));
+        }
+        all.add(q.submit("i", RenderQueue.Priority.INTERACTIVE, "token:a", () -> mark(order, "i")));
+        release.countDown();
+        CompletableFuture.allOf(all.toArray(CompletableFuture[]::new)).get(10, TimeUnit.SECONDS);
+        assertThat(order.get(0)).as("the newest frame still goes first").isEqualTo("w0");
+        assertThat(order.indexOf("i")).as("the client waits behind one warming render, not forty").isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("a client asking for a tile queued for warming promotes it instead of waiting for the warming batch")
+    void interactivePromotesQueuedWarming() throws Exception {
+        RenderQueue q = queue(1, Duration.ofSeconds(10));
+        CountDownLatch started = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        block(q, started, release);
+        await(started);
+        List<String> order = Collections.synchronizedList(new ArrayList<>());
+        List<CompletableFuture<byte[]>> all = new ArrayList<>();
+        for (int i = 0; i < 40; i++) {
+            String id = "w" + i;
+            all.add(q.submit(id, RenderQueue.Priority.WARM, "warm", () -> mark(order, id)));
+        }
+        CompletableFuture<byte[]> client = q.submit("w39", RenderQueue.Priority.INTERACTIVE, "token:a",
+                () -> mark(order, "never"));
+        assertThat(q.depth()).as("promotion moves the render, it does not add one").isEqualTo(40);
+        release.countDown();
+        CompletableFuture.allOf(all.toArray(CompletableFuture[]::new)).get(10, TimeUnit.SECONDS);
+        client.get(10, TimeUnit.SECONDS);
+        assertThat(order).hasSize(40).doesNotContain("never");
+        assertThat(order.indexOf("w39")).isEqualTo(1);
+    }
+
+    @Test
     @DisplayName("clients take turns within a priority: a burst from one client does not starve another")
     void fairness() throws Exception {
         RenderQueue q = queue(1, Duration.ofSeconds(10));

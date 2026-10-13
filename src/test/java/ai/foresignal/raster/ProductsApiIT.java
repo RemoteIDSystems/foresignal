@@ -55,6 +55,8 @@ class ProductsApiIT {
     @Autowired TokenService tokens;
     @Autowired MutableClock clock;
     @Autowired JsonMapper json;
+    @Autowired ProductRegistry registry;
+    @Autowired ai.foresignal.raster.render.StyleRegistry styles;
     @Autowired SyntheticRasterAdapter adapter;
     @Autowired org.springframework.jdbc.core.JdbcTemplate jdbc;
 
@@ -268,8 +270,13 @@ class ProductsApiIT {
     void noUpstreamFetch() throws Exception {
         seedObservations();
         int before = adapter.fetchCount();
+        // Checkpoint 057: tiles, images, samples, series and the timeline read stored frames only, too.
         for (String path : List.of("/v1/products", "/v1/products/" + OBS, "/v1/products/" + OBS + "/frames",
-                "/v1/products/" + OBS + "/frames/latest", "/v1/products/" + FCST + "/frames/latest")) {
+                "/v1/products/" + OBS + "/frames/latest", "/v1/products/" + FCST + "/frames/latest",
+                "/v1/products/" + OBS + "/tiles/latest/0/0/0.png", "/v1/products/" + OBS + "/tiles/latest/5/7/13.png",
+                "/v1/products/" + OBS + "/image/latest.png?bbox=-100,30,-95,35&width=64",
+                "/v1/sample?lon=-97.7&lat=30.3&products=" + OBS, "/v1/products/" + OBS + "/series?lon=-97.7&lat=30.3",
+                "/v1/products/timeline?products=" + OBS)) {
             get(path);
         }
         assertThat(adapter.fetchCount()).isEqualTo(before);
@@ -291,5 +298,30 @@ class ProductsApiIT {
         assertThat(rasters.get("diskQuotaGb").asDouble()).isEqualTo(200.0);
         assertThat(rasters.get("caches").get("frame").get("maxBytes").asLong()).isEqualTo(768L * 1024 * 1024);
         assertThat(List.of(system.get("status").asString())).containsAnyOf("ok", "degraded");
+    }
+
+    @Test
+    @DisplayName("categorical products are never interpolated: no registered product samples bilinearly through a categorical style")
+    void categoricalNeverBilinear() {
+        // Checkpoint 057 (Weather-Imagery-Design §6.3, nearest vs bilinear per product): a categorical style colors
+        // raw codes, so blending neighboring codes would invent categories.
+        int bilinear = 0;
+        for (ProductRegistry.Registered product : registry.all()) {
+            ai.foresignal.source.spi.ProductSpec spec = product.spec();
+            if (!spec.bilinear()) {
+                continue;
+            }
+            bilinear++;
+            java.util.List<String> refs = new java.util.ArrayList<>(spec.styles());
+            if (spec.defaultStyle() != null) {
+                refs.add(spec.defaultStyle());
+            }
+            for (String ref : refs) {
+                styles.find(ref).ifPresent(resolved -> assertThat(resolved.style().type())
+                        .as("%s style %s", product.id(), ref)
+                        .isNotEqualTo(ai.foresignal.raster.render.StyleDefinition.CATEGORICAL));
+            }
+        }
+        assertThat(bilinear).as("the built-in model products sample bilinearly, so the check is not vacuous").isPositive();
     }
 }

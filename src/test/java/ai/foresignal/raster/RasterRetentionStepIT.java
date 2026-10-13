@@ -49,6 +49,7 @@ class RasterRetentionStepIT {
     @Autowired JdbcTemplate jdbc;
     @Autowired MutableClock clock;
     @Autowired FlashStore flashes;
+    @Autowired ai.foresignal.media.MediaQueries media;
 
     @BeforeEach
     void setUp() {
@@ -152,7 +153,10 @@ class RasterRetentionStepIT {
         List<Map<String, Object>> all = frames(OBS);
         long one = jdbc.queryForObject("SELECT max(bytes) FROM raster_frame", Long.class);
 
-        long deleted = step.enforceQuota(one + 1);
+        // The quota also counts the media store and the GLM archive, which other tests sharing the data directory
+        // may have left files in (checkpoint 057: an order-dependent failure); leave room for exactly those.
+        long others = media.totalBytes() + flashes.archiveBytes();
+        long deleted = step.enforceQuota(one + 1 + others);
 
         assertThat(deleted).isEqualTo(2);
         assertThat(frames(OBS)).extracting(r -> r.get("frame_id")).containsExactly("20261010T135800Z");

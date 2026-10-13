@@ -1,7 +1,6 @@
 package ai.foresignal.source.adapters.hms;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-import static com.github.tomakehurst.wiremock.client.WireMock.absent;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
@@ -13,6 +12,7 @@ import ai.foresignal.config.ForesignalProperties;
 import ai.foresignal.security.InstallIdService;
 import ai.foresignal.source.DescriptorValidator;
 import ai.foresignal.source.spi.AdapterException;
+import ai.foresignal.source.spi.AdapterStateStore;
 import ai.foresignal.source.spi.Budget;
 import ai.foresignal.source.spi.FetchResult;
 import ai.foresignal.source.spi.LiveIdSet;
@@ -59,7 +59,12 @@ class HmsAdapterTest extends WireMockSupport {
 
     MutableClock clock;
     WeatherAdapterHarness.Upstream upstream;
-    WeatherAdapterHarness.MapState state;
+    /**
+     * The smoke source's adapter state. Checkpoint 057: this was a separate in-memory map while the
+     * bound HTTP client kept its validators in the persistent store; production gives both the same
+     * store ({@code FetchContextFactory.stateFor}), so the tests do too.
+     */
+    AdapterStateStore state;
     HmsSmokeAdapter smoke;
     HmsFireAdapter fire;
 
@@ -68,18 +73,19 @@ class HmsAdapterTest extends WireMockSupport {
         clock = new MutableClock(Instant.parse("2026-10-12T18:00:00Z"));
         upstream = WeatherAdapterHarness.upstream(jdbc, jsonMapper, properties, install, clock, Budget.of(100, 10_000),
                 null);
-        state = new WeatherAdapterHarness.MapState();
         smoke = new HmsSmokeAdapter(baseUrl());
         fire = new HmsFireAdapter(baseUrl());
+        state = upstream.client().stateStore(smoke.descriptor().id());
     }
 
     private WeatherAdapterHarness.Context context(SourceDescriptor d) {
-        return new WeatherAdapterHarness.Context(d, upstream.client().forSource(d.id(), d), ValidatedParams.empty(), state,
-                clock);
+        return new WeatherAdapterHarness.Context(d, upstream.client().forSource(d.id(), d), ValidatedParams.empty(),
+                upstream.client().stateStore(d.id()), clock);
     }
 
+    /** A server holding one version: 304 for its own ETag, 200 for any other or none. */
     private static void stub(String path, String etag, byte[] body) {
-        WIREMOCK.stubFor(get(urlPathEqualTo(path)).withHeader("If-None-Match", absent()).willReturn(aResponse()
+        WIREMOCK.stubFor(get(urlPathEqualTo(path)).willReturn(aResponse()
                 .withHeader("ETag", etag).withHeader("Last-Modified", "Mon, 12 Oct 2026 23:25:14 GMT").withBody(body)));
         WIREMOCK.stubFor(get(urlPathEqualTo(path)).withHeader("If-None-Match", equalTo(etag)).atPriority(1)
                 .willReturn(aResponse().withStatus(304).withHeader("ETag", etag)));
@@ -196,11 +202,12 @@ class HmsAdapterTest extends WireMockSupport {
                 .allMatch(r -> r.kind().equals("fire-detection"));
 
         clock.setInstant(Instant.parse("2026-10-13T02:00:00Z"));
-        state.remove(SourceHttp.ETAG_STATE_PREFIX + "fire:20261012");
-        state.remove(SourceHttp.LAST_MODIFIED_STATE_PREFIX + "fire:20261012");
+        AdapterStateStore fireState = upstream.client().stateStore(fire.descriptor().id());
+        fireState.remove(SourceHttp.ETAG_STATE_PREFIX + "fire:20261012");
+        fireState.remove(SourceHttp.LAST_MODIFIED_STATE_PREFIX + "fire:20261012");
         WIREMOCK.stubFor(get(urlPathEqualTo(FIRE_13)).willReturn(aResponse().withStatus(500)));
         assertThatThrownBy(() -> fire.fetch(context(fire.descriptor()))).isInstanceOf(AdapterException.class);
-        assertThat(state.get(SourceHttp.ETAG_STATE_PREFIX + "fire:20261012")).isEmpty();
+        assertThat(fireState.get(SourceHttp.ETAG_STATE_PREFIX + "fire:20261012")).isEmpty();
     }
 
     @Test

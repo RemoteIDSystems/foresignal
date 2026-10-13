@@ -173,6 +173,8 @@ class PostmanCollectionContractTest {
             // 039: the device input and the optional purge options (production parsers).
             Map.entry("createIngestDevice", body -> ai.foresignal.inbound.device.IngestDeviceService.readInput(body)),
             Map.entry("purgeDevice", body -> ai.foresignal.inbound.device.IngestDevicesController.purgeAlerts(body)),
+            // 056: the weather settings (production parser).
+            Map.entry("updateWeatherSettings", ai.foresignal.weather.WeatherSettingsService::parse),
             Map.entry("purgeRecord", body -> ai.foresignal.inbound.device.IngestDevicesController.purgeAlerts(body)),
             // 040: the production body reader, and every named dataset is in the bundled manifest.
             Map.entry("loadReference", body -> assertThat(ai.foresignal.api.ReferenceController.datasets(body))
@@ -389,12 +391,15 @@ class PostmanCollectionContractTest {
         // ingestRecordsPathKey's body is read by the format named in the path (PersonalLocationIngestIT).
         // 050: createTileKey validates its restriction against the registered sources, which needs the
         // application context; TileKeyServiceIT covers it.
+        // 057: postSample and postProductStats parse inline in SampleController and resolve products and places
+        // against the registry and the database (SampleEndpointIT, StatsIT); ingestSourceMedia and
+        // ingestSourceRasters take multipart bodies with an ingest key (RemoteIngestIT).
         Set<String> schemaOnly = Set.of("createTrigger", "updateTrigger", "updateRetention", "importSettings",
                 "updateEventStreamFilter", "createToken", "createPairingCode", "ntfyPublish", "ntfyPublishPut",
                 "createRegistrationToken", "putPushProvider", "testPushProvider", "executeAction", "createFeedKey",
                 "createPlace", "updatePlace", "createView", "updateView", "importWatchlist",
                 "updateLlmSettings", "createPushSubscription", "verifyPushSubscription", "ingestRecordsPathKey",
-                "createTileKey");
+                "createTileKey", "postSample", "postProductStats", "ingestSourceMedia", "ingestSourceRasters");
         List<String> uncovered = OpenApiSpec.routes().stream()
                 .filter(SpecOperation::implemented)
                 .filter(op -> op.node().has("requestBody"))
@@ -439,6 +444,13 @@ class PostmanCollectionContractTest {
     private static void briefing(JsonNode body) {
         // The examples name the collection variable {{channelId}}; Postman substitutes the created channel's id.
         body = OpenApiSpec.JSON.readTree(body.toString().replace("{{channelId}}", "6f1c2a7e-9b1d-4c3e-8a2f-0d4b5e6f7a81"));
+        // 056's scope.places and scope.weatherProducts are checked against the database and the product registry,
+        // which this hand-built validator does not have (BriefingWeatherSectionIT covers unknown ids), so they
+        // are left out here; the rest of the body still meets the production parser.
+        if (body.get("scope") instanceof tools.jackson.databind.node.ObjectNode scope) {
+            scope.remove("places");
+            scope.remove("weatherProducts");
+        }
         try {
             validateBriefing(body);
         } catch (ai.foresignal.api.error.ValidationException e) {

@@ -1,11 +1,12 @@
 package ai.foresignal.raster.render;
 
+import ai.foresignal.media.GuardedImages;
+import ai.foresignal.media.ImageGuard;
 import ai.foresignal.net.OutboundUrlPolicy;
 import ai.foresignal.net.PinnedHttp;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -13,9 +14,9 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.Optional;
-import javax.imageio.ImageIO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -52,16 +53,41 @@ public class OperatorBasemap {
     /** The tile size the template serves, pixels. */
     static final int TILE = 256;
 
+    /** The largest tile body accepted, bytes. */
+    static final int MAX_TILE_BYTES = 2 * 1024 * 1024;
+
     private final String template;
     private final OutboundUrlPolicy policy;
     private final PinnedHttp pinned;
+    private final GuardedImages images;
 
-    /** Creates the basemap from {@code foresignal.maps.basemap-url-template} (blank: off). */
+    /**
+     * Creates the basemap from {@code foresignal.maps.basemap-url-template} (blank: off).
+     *
+     * @param template the XYZ template, or blank for none
+     * @param policy the outbound policy that keeps the host on the LAN
+     * @param pinned the pinned client
+     * @param images the guarded decoder every tile passes (prompt 043: nothing decodes pixels without
+     *     {@code ImageGuard}; checkpoint 057 found this path calling {@code ImageIO.read} directly)
+     */
+    @Autowired
     public OperatorBasemap(@Value("${foresignal.maps.basemap-url-template:}") String template,
-            OutboundUrlPolicy policy, PinnedHttp pinned) {
+            OutboundUrlPolicy policy, PinnedHttp pinned, GuardedImages images) {
         this.template = template == null || template.isBlank() ? null : template.strip();
         this.policy = policy;
         this.pinned = pinned;
+        this.images = images;
+    }
+
+    /**
+     * Creates the basemap with a guard limited to the {@value #MAX_TILE_BYTES}-byte tile cap (tests).
+     *
+     * @param template the XYZ template, or blank for none
+     * @param policy the outbound policy
+     * @param pinned the pinned client
+     */
+    public OperatorBasemap(String template, OutboundUrlPolicy policy, PinnedHttp pinned) {
+        this(template, policy, pinned, new GuardedImages(new ImageGuard(MAX_TILE_BYTES, null)));
     }
 
     /** True when a template is configured (it is still checked on every use). */
@@ -169,10 +195,10 @@ public class OperatorBasemap {
             HttpClient client = pinned.client(uri, new PinnedHttp.ClientSpec(Duration.ofMillis(TIMEOUT_MILLIS),
                     HttpClient.Version.HTTP_1_1));
             HttpResponse<byte[]> response = client.send(builder.build(), HttpResponse.BodyHandlers.ofByteArray());
-            if (response.statusCode() != 200 || response.body().length > 2 * 1024 * 1024) {
+            if (response.statusCode() != 200 || response.body().length > MAX_TILE_BYTES) {
                 return null;
             }
-            return ImageIO.read(new ByteArrayInputStream(response.body()));
+            return images.decode(response.body(), null);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             return null;

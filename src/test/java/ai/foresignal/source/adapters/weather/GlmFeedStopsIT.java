@@ -86,7 +86,7 @@ class GlmFeedStopsIT extends WeatherIngestSupport {
         assertThat(health.health(ID).status()).isEqualTo(HealthStatus.HEALTHY);
         UUID rule = rules.create(JsonMapper.builder().build().readTree(
                 "{\"name\":\"lightning cleared\",\"kinds\":[\"lightning-cluster\"],\"conditions\":[{\"path\":\"automated\","
-                        + "\"op\":\"exists\"}],\"mode\":\"exit\"}")).rule().getId();
+                        + "\"op\":\"exists\",\"value\":true}],\"mode\":\"exit\"}")).rule().getId();
         assertThat(alerts(rule)).isZero();
 
         // The feed stops: the listing has nothing after the last key, for 15 and then 45 minutes.

@@ -118,10 +118,12 @@ public class ImageGuard {
             throw reject(ImageRejectedException.UNREADABLE, "The file could not be read: " + e.getMessage());
         }
         ImageFormat format = sniffAndCheck(head, read, declaredContentType);
-        try (ImageInputStream iis = ImageIO.createImageInputStream(file.toFile())) {
-            if (iis == null) {
-                throw reject(ImageRejectedException.UNREADABLE, "No image input stream is available for the file.");
-            }
+        // A stream of unknown length, not ImageIO's file stream: given the file length, the JDK TIFF reader
+        // checks the strip offsets against it while reading the header, so a header-only file failed as
+        // "Data segment out of stream" instead of reporting its dimensions (checkpoint 057). Only the bytes
+        // the header reads are cached.
+        try (InputStream in = Files.newInputStream(file);
+                ImageInputStream iis = new MemoryCacheImageInputStream(in)) {
             return header(iis, format, allowMultiImage);
         } catch (IOException e) {
             throw reject(ImageRejectedException.TRUNCATED, "The image header could not be read: " + e.getMessage());
@@ -203,6 +205,7 @@ public class ImageGuard {
     }
 
     private ImageInfo header(ImageInputStream iis, ImageFormat format, boolean allowMultiImage) {
+        int[] pngIhdr = format == ImageFormat.PNG ? pngIhdr(iis) : null;
         Iterator<ImageReader> readers = ImageIO.getImageReaders(iis);
         if (!readers.hasNext()) {
             throw reject(ImageRejectedException.TRUNCATED, "No reader recognizes the " + format.contentType()
@@ -218,6 +221,10 @@ public class ImageGuard {
             if (format == ImageFormat.TIFF && !allowMultiImage && tiffDirectories(iis) > 1) {
                 throw reject(ImageRejectedException.MULTI_IMAGE,
                         "The TIFF holds more than one image; only single-image TIFFs are accepted here.");
+            }
+            if (pngIhdr != null) {
+                // Color types 4 (gray + alpha) and 6 (RGBA) carry an alpha channel.
+                return new ImageInfo(format, width, height, pngIhdr[0], pngIhdr[1] == 4 || pngIhdr[1] == 6);
             }
             ImageTypeSpecifier type = imageType(reader);
             int bitDepth = 8;
@@ -260,6 +267,24 @@ public class ImageGuard {
     }
 
     /** The reader's raw type, else its first offered type, else null. */
+    /**
+     * Bit depth and color type of a PNG from its IHDR chunk (bytes 24 and 25), read before the JDK
+     * reader sees the stream (it flushes what it has read). The reader's image type needs the metadata
+     * after IHDR, which it reads by skipping chunks up to the first IDAT, so a header-only file failed
+     * there (checkpoint 057). A short file is left to the reader, which reports it as truncated.
+     */
+    private static int[] pngIhdr(ImageInputStream iis) {
+        try {
+            iis.seek(24);
+            int bitDepth = iis.read();
+            int colorType = iis.read();
+            iis.seek(0);
+            return bitDepth < 0 || colorType < 0 ? null : new int[] {bitDepth, colorType};
+        } catch (IOException e) {
+            return null;
+        }
+    }
+
     private static ImageTypeSpecifier imageType(ImageReader reader) throws IOException {
         ImageTypeSpecifier raw = reader.getRawImageType(0);
         if (raw != null) {

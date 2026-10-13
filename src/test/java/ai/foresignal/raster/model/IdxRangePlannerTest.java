@@ -72,7 +72,8 @@ class IdxRangePlannerTest {
     void advanceCharge() {
         IdxRangePlanner.Plan plan = IdxRangePlanner.plan(IDX, List.of(m("UGRD", "10 m above ground"),
                 m("VGRD", "10 m above ground"), m("PRMSL", "mean sea level"), m("HGT", "surface")), 1_000L);
-        assertThat(plan.chargeBytes()).isEqualTo(4 + 990);
+        // UGRD+VGRD bytes 0..3 (4), then PRMSL 8..9 (2) and HGT 10..999 (990) in one adjacent range.
+        assertThat(plan.chargeBytes()).isEqualTo(4 + 2 + 990);
         assertThat(IdxRangePlanner.plan(IDX, List.of(), null).chargeBytes()).isZero();
     }
 

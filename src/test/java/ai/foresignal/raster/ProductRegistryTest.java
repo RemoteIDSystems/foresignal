@@ -140,6 +140,8 @@ class ProductRegistryTest {
         assertThat(ProductRegistry.problems(gap, "src", owner)).anyMatch(p -> p.contains("maxGap must be at least"));
         assertThat(ProductRegistry.problems(spec("Bad_Id"), "src", owner)).anyMatch(p -> p.contains("must match"));
         assertThat(ProductRegistry.problems(spec("timeline"), "src", owner)).anyMatch(p -> p.contains("reserved"));
+        // 057: /v1/products/loop is the loop endpoint, so "loop" is reserved too (Weather-Imagery-Design §6.3).
+        assertThat(ProductRegistry.problems(spec("loop"), "src", owner)).anyMatch(p -> p.contains("reserved"));
         assertThat(ProductRegistry.problems(new ProductSpec("bare", "Bare", "raster-frame"), "src", owner))
                 .anyMatch(p -> p.contains("kind must be one of"))
                 .anyMatch(p -> p.contains("category"))

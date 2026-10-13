@@ -16,6 +16,7 @@ import ai.foresignal.source.DescriptorValidator;
 import ai.foresignal.source.spi.AdapterStateStore;
 import ai.foresignal.source.spi.Budget;
 import ai.foresignal.source.spi.FetchResult;
+import ai.foresignal.source.spi.SourceHttp;
 import ai.foresignal.source.spi.NormalizedRecord;
 import ai.foresignal.source.spi.SourceDescriptor;
 import ai.foresignal.source.spi.TtlAnchor;
@@ -71,6 +72,10 @@ class AwcMetarsAdapterTest extends WireMockSupport {
                 ValidatedParams.of(params), upstream.client().stateStore(AwcMetarsAdapter.ID), clock);
     }
 
+    private void forgetValidators() {
+        SourceHttp.forgetValidators(context(Budget.of(10, 400), Map.of()).state(), AwcMetarsAdapter.STATE_KEY);
+    }
+
     private static void serve() {
         WIREMOCK.stubFor(get(urlPathEqualTo(AwcMetarsAdapter.PATH)).withHeader("If-None-Match", absent())
                 .willReturn(aResponse().withStatus(200).withHeader("Content-Type", "application/octet-stream")
@@ -102,8 +107,12 @@ class AwcMetarsAdapterTest extends WireMockSupport {
     @DisplayName("scope conus and global, and a stations allowlist that overrides the scope")
     void scopes() throws Exception {
         serve();
+        // Each fetch reads the same file afresh: the validators the previous fetch stored in the source's persistent
+        // state would otherwise turn it into a 304 (checkpoint 057).
         assertThat(adapter.fetch(context(Budget.of(10, 400), Map.of("scope", "conus"))).records()).hasSize(2582);
+        forgetValidators();
         assertThat(adapter.fetch(context(Budget.of(10, 400), Map.of("scope", "global"))).records()).hasSize(5022);
+        forgetValidators();
         assertThat(adapter.fetch(context(Budget.of(10, 400), Map.of("stations", List.of("kaus", "EGLL")))).records())
                 .extracting(NormalizedRecord::externalId).containsExactlyInAnyOrder("KAUS", "EGLL");
     }

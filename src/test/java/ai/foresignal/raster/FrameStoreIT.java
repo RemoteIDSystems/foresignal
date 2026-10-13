@@ -128,6 +128,62 @@ class FrameStoreIT {
     }
 
     @Test
+    @DisplayName("concurrent readers of a frame being rewritten only ever see a whole file, old or new")
+    void concurrentReadersSeeWholeFiles() throws Exception {
+        // Checkpoint 057 (Weather-Imagery-Design §2.4): staging plus an atomic rename means a reader opening the
+        // path sees either complete version; a partial file would fail the CRC or length checks of the decode.
+        byte[] a = payload(11);
+        byte[] b = payload(12);
+        String relative = store.write("p-seven", T, "x", header(FsgHeader.CODEC_DEFLATE), a).relativePath();
+        Path file = paths.resolve(relative);
+        java.util.concurrent.atomic.AtomicBoolean stop = new java.util.concurrent.atomic.AtomicBoolean();
+        java.util.concurrent.atomic.AtomicInteger reads = new java.util.concurrent.atomic.AtomicInteger();
+        java.util.concurrent.ConcurrentLinkedQueue<String> problems = new java.util.concurrent.ConcurrentLinkedQueue<>();
+        java.util.List<Thread> readers = new java.util.ArrayList<>();
+        for (int r = 0; r < 3; r++) {
+            readers.add(Thread.ofPlatform().start(() -> {
+                while (!stop.get()) {
+                    try {
+                        byte[] payload = ElgCodec.decode(Files.readAllBytes(file)).payload();
+                        if (!java.util.Arrays.equals(payload, a) && !java.util.Arrays.equals(payload, b)) {
+                            problems.add("a payload that is neither version");
+                        }
+                        reads.incrementAndGet();
+                    } catch (IOException | RuntimeException e) {
+                        problems.add(e.toString());
+                    }
+                }
+            }));
+        }
+        for (int i = 0; i < 200; i++) {
+            store.write("p-seven", T, "x", header(FsgHeader.CODEC_DEFLATE), i % 2 == 0 ? b : a);
+        }
+        stop.set(true);
+        for (Thread t : readers) {
+            t.join(10_000);
+        }
+        assertThat(problems).isEmpty();
+        assertThat(reads.get()).isPositive();
+        assertThat(stagedFiles()).isZero();
+    }
+
+    @Test
+    @DisplayName("partial to complete keeps the frame's path; the sha changes only when the content does")
+    void partialToComplete() {
+        byte[] decoded = payload(13);
+        FsgHeader partial = new FsgHeader(RasterDtype.U16, FsgHeader.CODEC_DEFLATE, 16, 8, 1, true, 0.1, 0, 0);
+        FrameStore.StoredFrame first = store.write("p-eight", T, "20261010T143240Z", partial, decoded);
+        FrameStore.StoredFrame same = store.write("p-eight", T, "20261010T143240Z", header(FsgHeader.CODEC_DEFLATE),
+                decoded);
+        FrameStore.StoredFrame changed = store.write("p-eight", T, "20261010T143240Z", header(FsgHeader.CODEC_DEFLATE),
+                payload(14));
+        assertThat(same.relativePath()).isEqualTo(first.relativePath()).isEqualTo(changed.relativePath());
+        assertThat(same.sha256()).as("the partial flag is not content").isEqualTo(first.sha256());
+        assertThat(changed.sha256()).isNotEqualTo(first.sha256());
+        assertThat(store.read(first.relativePath()).header().partial()).isFalse();
+    }
+
+    @Test
     @DisplayName("rewriting a frame replaces the file atomically and drops the stale cache entry")
     void rewriteInvalidates() {
         FrameStore.StoredFrame first = store.write("p-five", T, "x", header(1), payload(7));

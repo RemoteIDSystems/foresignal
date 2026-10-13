@@ -106,7 +106,11 @@ class FamilyDefaultsTest {
             Map.entry("WxAreasGenerator", new Entry(
                     new ai.foresignal.source.adapters.wx.WxAreasGenerator().descriptor(), "weather")),
             Map.entry("WxCellsGenerator", new Entry(
-                    new ai.foresignal.source.adapters.wx.WxCellsGenerator("small").descriptor(), "weather")));
+                    new ai.foresignal.source.adapters.wx.WxCellsGenerator("small").descriptor(), "weather")),
+            // Checkpoint 057: the SatDump station source (049), one per station, was missing. Its three kinds keep
+            // their own §2.4 windows (ground-station 30 d, satellite-pass 365 d, raster-frame 7 d).
+            Map.entry("SatDumpAdapter", new Entry(new ai.foresignal.source.adapters.satdump.SatDumpAdapter("itest", null,
+                    null).descriptor(), "station")));
 
     /** Weather-Imagery-Design §2.4's per-kind record retention, for the {@code weather} class. */
     static final Map<String, Duration> WEATHER_KIND_RETENTION = Map.ofEntries(
@@ -123,12 +127,20 @@ class FamilyDefaultsTest {
             Map.entry("storm-report", Duration.ofDays(30)),
             Map.entry("nws-forecast", Duration.ofDays(7)));
 
+    /** Weather-Imagery-Design §2.4's per-kind retention of a SatDump station's kinds, for the {@code station} class. */
+    static final Map<String, Duration> STATION_KIND_RETENTION = Map.of(
+            "ground-station", Duration.ofDays(30),
+            "satellite-pass", Duration.ofDays(365),
+            ProductSpec.RECORD_KIND, Duration.ofDays(7));
+
     /** The design's raster-frame record retention (Weather-Imagery-Design §2.4). */
     static final Duration RASTER_FRAME_RETENTION = Duration.ofDays(7);
 
     /** Tables retention may delete from: versions and operational rows, never intelligence tables. */
-    static final Set<String> RETENTION_TABLES =
-            Set.of("record_version", "fetch_log", "seq_clock", "alert", "source_usage", "notification");
+    // Checkpoint 057: history_downsample is 044's bookkeeping of downsampled ranges (HistoryDownsampler), an
+    // operational table that retention maintains alongside record_version.
+    static final Set<String> RETENTION_TABLES = Set.of("record_version", "fetch_log", "seq_clock", "alert",
+            "source_usage", "notification", "history_downsample");
 
     @Test
     @DisplayName("every built-in adapter is classified, and its retention is its class's default or longer")
@@ -146,6 +158,15 @@ class FamilyDefaultsTest {
                 assertThat(descriptor.products()).as("%s products", descriptor.id()).isNotEmpty();
                 assertThat(descriptor.kindRetention().get(ProductSpec.RECORD_KIND)).as("%s raster-frame retention",
                         descriptor.id()).isGreaterThanOrEqualTo(RASTER_FRAME_RETENTION);
+                continue;
+            }
+            if (analyticClass.equals("station")) {
+                assertThat(descriptor.kinds()).as("%s kinds", descriptor.id())
+                        .containsExactlyInAnyOrderElementsOf(STATION_KIND_RETENTION.keySet());
+                for (String kind : descriptor.kinds()) {
+                    assertThat(descriptor.kindRetention().get(kind)).as("%s kindRetention %s", descriptor.id(), kind)
+                            .isEqualTo(STATION_KIND_RETENTION.get(kind));
+                }
                 continue;
             }
             if (analyticClass.equals("weather")) {

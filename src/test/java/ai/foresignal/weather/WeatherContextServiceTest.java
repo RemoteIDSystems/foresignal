@@ -262,7 +262,8 @@ class WeatherContextServiceTest {
             assertThat(elapsedMs).isLessThan(2_000);
             assertThat(context.section("radar")).containsEntry("status", "unavailable")
                     .containsEntry("statusText", WeatherContextService.BUDGET_TEXT);
-            assertThat(context.summary()).contains("radar data unavailable");
+            // The radar clause opens the summary, so it is capitalized (as in noCoverage above).
+            assertThat(context.summary()).startsWith("Radar data unavailable");
         } finally {
             quick.close();
         }

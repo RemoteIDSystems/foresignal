@@ -247,6 +247,11 @@
         "version": "1.3.0",
         "date": "2026-10-13",
         "note": "056: getWeatherSettings and updateWeatherSettings are implemented. Alert.context.weather (WeatherContext) is computed for geolocated alerts unless weather.alertContext or the rule's weatherContext is off; listAlerts items carry only context.weather.summary unless include=context. getDigest accepts places (400 unknown place, 401 without a token) and returns weatherAtPlaces. PlaceWeatherDigest.now gains alertsStatus and period gains notes. AskCitation ids gain the wx: forms; NotificationMessage.data of alerts carries context."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-13",
+        "note": "057: ProductTemporal requires only `type`; `cadence` and `maxGap` are absent for an external catalog entry whose time dimension has no fixed period (045 builds no temporal facts for those)."
       }
     ]
   },
@@ -105910,12 +105915,12 @@
           },
           "cadence": {
             "type": "string",
-            "description": "Nominal interval between frames (forecasts: between steps)",
+            "description": "Nominal interval between frames (forecasts: between steps). Absent for an external catalog entry without a fixed time dimension",
             "example": "2m"
           },
           "maxGap": {
             "type": "string",
-            "description": "Largest gap at which a frame still counts as current (`now` alias, sampling `stale`)",
+            "description": "Largest gap at which a frame still counts as current (`now` alias, sampling `stale`). Absent for an external catalog entry without a fixed time dimension",
             "example": "6m"
           },
           "earliest": {
@@ -106027,9 +106032,7 @@
           }
         },
         "required": [
-          "type",
-          "cadence",
-          "maxGap"
+          "type"
         ]
       },
       "ProductSpatial": {

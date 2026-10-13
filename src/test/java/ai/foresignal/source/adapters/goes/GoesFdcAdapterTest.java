@@ -335,7 +335,8 @@ class GoesFdcAdapterTest extends WireMockSupport {
     void descriptor() {
         SourceDescriptor d = adapter.descriptor();
         assertThat(DescriptorValidator.problems(d, adapter)).isEmpty();
-        assertThat(d.kinds()).containsExactly("fire-detection", "fire-cluster");
+        // SourceDescriptor.kinds is a Set (Set.copyOf), so its iteration order is unspecified.
+        assertThat(d.kinds()).containsExactlyInAnyOrder("fire-detection", "fire-cluster");
         assertThat(d.defaultInterval()).isEqualTo(Duration.ofMinutes(5));
         assertThat(d.defaultBudget()).isEqualTo(Budget.of(4, 800, 300));
         assertThat(d.kindRetention()).containsEntry("fire-detection", Duration.ofDays(7))

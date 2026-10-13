@@ -564,9 +564,7 @@ public class MapRenderer {
     static String distanceLabel(double km, boolean imperial) {
         double v = imperial ? km / 1.609344 : km;
         String unit = imperial ? "mi" : "km";
-        String number = v >= 10 ? Long.toString(Math.round(v)) : BigDecimal.valueOf(v).setScale(1, RoundingMode.HALF_UP)
-                .stripTrailingZeros().toPlainString();
-        return number + " " + unit;
+        return UnitConversion.formatReading(v) + " " + unit;
     }
 
     private static void scaleBar(Graphics2D g, Projection proj, MapSpec spec, Layout layout, Theme theme) {

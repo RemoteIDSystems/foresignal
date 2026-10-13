@@ -164,6 +164,37 @@ class AlertMapServiceIT extends RasterApiSupport {
 
     @Test
     @Timeout(30)
+    @DisplayName("a retry resends the bytes of the media the delivery stored, with no map job left to consult")
+    void retryResendsStoredMedia() {
+        // Checkpoint 057 (Weather-Imagery-Design §8): deliveries store media references so a retry resends the
+        // same bytes. The second delivery belongs to an alert with no job at all, so only the stored
+        // reference can supply the image.
+        commitObservation0();
+        NotificationChannelEntity telegram = channel("telegram", mapConfig());
+        AlertView a = alert(4, "wx-area", SNAPSHOT, T.minusSeconds(60));
+        assertThat(service.prepare(a, fired(a))).isEqualTo(1);
+        assertThat(service.awaitJobs(4, Duration.ofSeconds(10))).isTrue();
+        NotificationMessage m = fired(a);
+        NotificationDeliveryEntity first = send(telegram, m);
+        NotificationMessage.Attachment sent = service.attach(first, m, m, telegram, new TelegramChannel(),
+                clock.instant()).message().image();
+        assertThat(first.getAttachmentLevel()).isNotNull();
+        assertThat(first.getAttachments()).isNotEmpty();
+
+        AlertView other = alert(5, "wx-area", SNAPSHOT, T.minusSeconds(60));
+        NotificationMessage retryMessage = fired(other);
+        NotificationDeliveryEntity retry = send(telegram, retryMessage);
+        retry.setAttachmentLevel(first.getAttachmentLevel());
+        retry.setAttachments(first.getAttachments());
+        NotificationMessage.Attachment resent = service.attach(retry, retryMessage, retryMessage, telegram,
+                new TelegramChannel(), clock.instant()).message().image();
+        assertThat(resent).isNotNull();
+        assertThat(resent.mediaId()).isEqualTo(sent.mediaId());
+        assertThat(resent.bytes()).isEqualTo(sent.bytes());
+    }
+
+    @Test
+    @Timeout(30)
     @DisplayName("a satellite-pass alert attaches the pass composite's thumbnail instead of a map")
     void satellitePassThumbnail() {
         String thumb = media.store(MediaInput.of(NotifyFixtures.mapPng(), "image/png", MediaRole.THUMBNAIL)

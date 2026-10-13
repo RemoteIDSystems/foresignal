@@ -48,8 +48,12 @@ import org.springframework.stereotype.Service;
  * </ul>
  * Templates are fully expanded (content-addressed tiles, the run pinned); clients build no time
  * strings.
+ *
+ * <p>The bean is named {@code productTimelineService}: the default name {@code timelineService}
+ * belongs to the record timeline ({@code ai.foresignal.store.timeline.TimelineService}, prompt 037),
+ * and two beans of one name stopped every context from starting (checkpoint 057).
  */
-@Service
+@Service("productTimelineService")
 public class TimelineService {
 
     /** The most ticks a timeline holds. */

@@ -48,7 +48,8 @@ class TriggerTestDownsampleTest {
             assertThat(w.message()).isEqualTo(
                     "match-mode results over downsampled history under-count; edge reasons are preserved");
         });
-        assertThat(TriggerBacktester.warnings(new OneRange(), 1999, 5000)).hasSize(1);
+        // (1998, 5000] holds seq 1999, the last downsampled one; (1999, 5000] starts at 2000, outside [1000, 2000).
+        assertThat(TriggerBacktester.warnings(new OneRange(), 1998, 5000)).hasSize(1);
         assertThat(TriggerBacktester.warnings(new OneRange(), 0, 1000)).as("toSeq is inclusive").hasSize(1);
     }
 

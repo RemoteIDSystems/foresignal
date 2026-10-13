@@ -40,13 +40,13 @@ class StaleNeverClearsIT extends WeatherIngestSupport {
     private UUID exitRule(String kind) {
         return rules.create(JsonMapper.builder().build().readTree(
                 "{\"name\":\"" + kind + " cleared\",\"kinds\":[\"" + kind + "\"],\"conditions\":[{\"path\":\"automated\","
-                        + "\"op\":\"exists\"}],\"mode\":\"exit\"}")).rule().getId();
+                        + "\"op\":\"exists\",\"value\":true}],\"mode\":\"exit\"}")).rule().getId();
     }
 
     private UUID exitRuleOnEvent() {
         return rules.create(JsonMapper.builder().build().readTree(
                 "{\"name\":\"alert cleared\",\"kinds\":[\"nws-alert\"],\"conditions\":[{\"path\":\"event\","
-                        + "\"op\":\"exists\"}],\"mode\":\"exit\"}")).rule().getId();
+                        + "\"op\":\"exists\",\"value\":true}],\"mode\":\"exit\"}")).rule().getId();
     }
 
     private int alerts(UUID rule) {

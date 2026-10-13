@@ -59,7 +59,23 @@ public record UnitConversion(String units, String label, double scale, double of
     /** A short label for a value: 0 decimals from 10, 1 from 1, else 2, trailing zeros removed. */
     public static String format(double v) {
         double a = Math.abs(v);
-        int decimals = a >= 10 ? 0 : a >= 1 ? 1 : 2;
+        return format(v, a >= 10 ? 0 : a >= 1 ? 1 : 2);
+    }
+
+    /**
+     * A label for a measured value, such as a sample readout or a distance: 0 decimals from 100,
+     * 1 from 1, else 2, trailing zeros removed. Unlike legend ticks, a reading keeps its tenths
+     * below 100 ({@code 52.5 dBZ}, MRMS's half-dBZ step; {@code 15.5 mi}).
+     *
+     * @param v the value
+     * @return the label
+     */
+    public static String formatReading(double v) {
+        double a = Math.abs(v);
+        return format(v, a >= 100 ? 0 : a >= 1 ? 1 : 2);
+    }
+
+    private static String format(double v, int decimals) {
         BigDecimal d = BigDecimal.valueOf(v).setScale(decimals, RoundingMode.HALF_UP).stripTrailingZeros();
         String s = d.toPlainString();
         return s.equals("-0") ? "0" : s;

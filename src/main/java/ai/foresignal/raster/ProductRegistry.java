@@ -218,6 +218,7 @@ public class ProductRegistry implements IngestStateReset {
         }
         Duration previousAge = Duration.ZERO;
         Duration previousEvery = Duration.ZERO;
+        Duration oldestRung = Duration.ZERO;
         for (ProductSpec.RetentionLadder.Rung rung : ladder.rungs()) {
             if (rung.olderThan() == null || rung.keepEvery() == null || !rung.olderThan().isPositive()
                     || !rung.keepEvery().isPositive()) {
@@ -232,8 +233,12 @@ public class ProductRegistry implements IngestStateReset {
             }
             previousAge = rung.olderThan();
             previousEvery = rung.keepEvery();
+            if (rung.olderThan().compareTo(oldestRung) > 0) {
+                oldestRung = rung.olderThan();
+            }
         }
-        if (ladder.maxAge() != null && ladder.maxAge().compareTo(previousAge) <= 0) {
+        // Against the oldest rung, not the last one listed: a misordered ladder is still judged (057).
+        if (ladder.maxAge() != null && ladder.maxAge().compareTo(oldestRung) <= 0) {
             out.add(p + ": ladder maxAge must lie beyond the last rung");
         }
         if (ladder.runs() != null && ladder.runs() < 1) {

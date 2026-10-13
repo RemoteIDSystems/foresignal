@@ -247,6 +247,17 @@ class AccessPolicyTest {
         assertOpen("GET", path);
     }
 
+    @Test
+    @DisplayName("057: HEAD takes the GET rule of its path; a HEAD on a path with no GET rule still needs admin")
+    void headFollowsGet() {
+        assertThat(requirement("HEAD", "/v1/tiles/quakes/3/2/1.mvt"))
+                .isEqualTo(requirement("GET", "/v1/tiles/quakes/3/2/1.mvt"));
+        assertThat(requirement("HEAD", "/v1/products/mrms-reflectivity/tiles/latest/3/2/1.png"))
+                .isEqualTo(requirement("GET", "/v1/products/mrms-reflectivity/tiles/latest/3/2/1.png"));
+        assertThat(requirement("HEAD", "/v1/system")).isEqualTo(requirement("GET", "/v1/system"));
+        assertScope("HEAD", "/v1/no-such-path", Scope.ADMIN);
+    }
+
     // ---------- ingest ----------
 
     @Test

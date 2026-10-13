@@ -110,8 +110,15 @@ class NwsAlertsIngestIT extends WeatherIngestSupport {
         clock.advance(Duration.ofMinutes(1));
         FetchOutcome outcome = fetch(ID);
 
-        assertThat(outcome.persisted()).isZero();
-        assertThat(outcome.touched() + outcome.touchesThrottled()).isEqualTo(9);
-        assertThat(versions(ID, (PersistReason) null)).isEqualTo(before);
+        // Checkpoint 057: urn:oid:test.inverted.1 is listed again although its validUntil passed before this fetch's
+        // anchor (ttlAnchor RECEIVED). Core-Data-Model §5 row 5 ("expired" → REAPPEAR) decides that one, so it
+        // writes a REAPPEAR version on every re-fetch; the other eight only touch. (Reported as an owner question.)
+        assertThat(outcome.byReason().get(PersistReason.REAPPEAR)).isEqualTo(1);
+        assertThat(outcome.persisted()).isEqualTo(1);
+        assertThat(outcome.touched() + outcome.touchesThrottled()).isEqualTo(8);
+        assertThat(versions(ID, (PersistReason) null)).isEqualTo(before + 1);
+        assertThat(jdbc.queryForObject("select persist_reason from record_version where source_id = ? and external_id = ?"
+                + " order by seq desc limit 1", Integer.class, ID, "urn:oid:test.inverted.1"))
+                .isEqualTo((int) PersistReason.REAPPEAR.code());
     }
 }

@@ -28,6 +28,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 import java.util.TreeSet;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -87,10 +89,14 @@ public class NwsAlertsAdapter implements PollingAdapter {
     private static final SourceDescriptor DESCRIPTOR = buildDescriptor();
 
     private final String baseUrl;
-    private final CountyGeometries counties;
+    private final Supplier<CountyGeometries> counties;
 
     /**
      * Creates the adapter for Spring.
+     *
+     * <p>The county outlines are looked up on first use, not here: {@code CountyUnionService} depends
+     * (through the region tagger) on the {@code SourceRegistry}, which holds this adapter, so an
+     * eager lookup was a dependency cycle that stopped every context from starting (checkpoint 057).
      *
      * @param counties the county outlines, when the reference module is present
      * @param baseUrlOverride the value of {@value #BASE_URL_PROPERTY}; blank means the real API
@@ -98,7 +104,7 @@ public class NwsAlertsAdapter implements PollingAdapter {
     @Autowired
     public NwsAlertsAdapter(ObjectProvider<CountyGeometries> counties,
             @Value("${" + BASE_URL_PROPERTY + ":}") String baseUrlOverride) {
-        this(counties == null ? null : counties.getIfAvailable(), baseUrlOverride);
+        this(counties == null ? CountyGeometries::none : lazy(counties), baseUrlOverride);
     }
 
     /**
@@ -108,9 +114,27 @@ public class NwsAlertsAdapter implements PollingAdapter {
      * @param baseUrlOverride a base URL, or blank for the real API
      */
     public NwsAlertsAdapter(CountyGeometries counties, String baseUrlOverride) {
-        this.counties = counties == null ? CountyGeometries.none() : counties;
+        this(counties == null ? CountyGeometries::none : () -> counties, baseUrlOverride);
+    }
+
+    private NwsAlertsAdapter(Supplier<CountyGeometries> counties, String baseUrlOverride) {
+        this.counties = counties;
         String chosen = baseUrlOverride == null || baseUrlOverride.isBlank() ? DEFAULT_BASE_URL : baseUrlOverride.trim();
         this.baseUrl = chosen.endsWith("/") ? chosen.substring(0, chosen.length() - 1) : chosen;
+    }
+
+    /** Resolves the provider once, on first use; absent means {@link CountyGeometries#none()}. */
+    private static Supplier<CountyGeometries> lazy(ObjectProvider<CountyGeometries> provider) {
+        AtomicReference<CountyGeometries> resolved = new AtomicReference<>();
+        return () -> {
+            CountyGeometries value = resolved.get();
+            if (value == null) {
+                CountyGeometries found = provider.getIfAvailable();
+                value = found == null ? CountyGeometries.none() : found;
+                resolved.compareAndSet(null, value);
+            }
+            return value;
+        };
     }
 
     @Override
@@ -154,7 +178,7 @@ public class NwsAlertsAdapter implements PollingAdapter {
             throw new UpstreamFormatException("NWS alerts exceeded maxResponseBytes and were truncated; nothing is"
                     + " tombstoned", null);
         }
-        NwsAlertsParser.ParseResult parsed = NwsAlertsParser.parse(response.body(), counties, minSeverity);
+        NwsAlertsParser.ParseResult parsed = NwsAlertsParser.parse(response.body(), counties.get(), minSeverity);
         ctx.log().debug("NWS alerts ({}): {}", scope(areas), parsed.diagnostics());
 
         // Only now, with a complete and parsed response in hand, may anything be tombstoned: every id

@@ -190,11 +190,12 @@ class ProductTilesIT extends RasterApiSupport {
     void stylesAndLegends() throws Exception {
         JsonNode styles = body(get("/v1/styles"));
         assertThat(SCHEMAS.validateComponent("StylePage", styles)).isEmpty();
-        assertThat(styles.get("items").size()).isEqualTo(9);
+        // 045 shipped nine styles; 053 added ffg-ratio, qpe and rotation (src/main/resources/raster/styles).
+        assertThat(styles.get("items").size()).isEqualTo(12);
         JsonNode first = body(get("/v1/styles?limit=2"));
         assertThat(first.get("items").size()).isEqualTo(2);
         JsonNode second = body(get("/v1/styles?limit=2&cursor=" + first.get("nextCursor").asString()));
-        assertThat(second.get("items").get(0).get("ref").asString()).isEqualTo("mesh@1");
+        assertThat(second.get("items").get(0).get("ref").asString()).isEqualTo("ir-gray@1");
         JsonNode style = body(get("/v1/styles/nws-reflectivity"));
         assertThat(SCHEMAS.validateComponent("Style", style)).isEmpty();
         assertThat(style.get("ref").asString()).isEqualTo("nws-reflectivity@1");
@@ -220,10 +221,15 @@ class ProductTilesIT extends RasterApiSupport {
     @Test
     @DisplayName("/v1/system reports the tile and index caches and the render queue")
     void systemGauges() throws Exception {
-        JsonNode rasters = body(get("/v1/system")).get("rasters");
+        // The rasters block is part of the full document, which needs a token (SystemInfoService.build).
+        String reader = TestTokens.bearer(TestTokens.create(tokens, "system-reader", Scope.READ));
+        JsonNode rasters = body(get("/v1/system", "Authorization", reader)).get("rasters");
         assertThat(rasters.get("caches").has("tile")).isTrue();
         assertThat(rasters.get("caches").has("index")).isTrue();
         assertThat(rasters.get("renderQueue").get("poolSize").asInt()).isPositive();
+        // 057: the queue depth is reported too (Weather-Imagery-Design §6.3, the render queue).
+        assertThat(rasters.get("renderQueue").get("depth").isIntegralNumber()).isTrue();
+        assertThat(rasters.get("renderQueue").get("depth").asInt()).isGreaterThanOrEqualTo(0);
         assertThat(rasters.get("renderBusyLastHour").asInt()).isGreaterThanOrEqualTo(0);
         assertThat(SCHEMAS.validateComponent("SystemRasters", rasters)).isEmpty();
     }

@@ -252,7 +252,13 @@ class StreamTicketIT {
             assertThat(stream("/v1/changes/stream", stream).status()).isEqualTo(200);
             assertThat(get("/v1/tiles.json?ticket=" + stream)).isEqualTo(401);
 
-            assertThat(logs.list).extracting(ILoggingEvent::getFormattedMessage)
+            // Background threads keep logging at DEBUG while this reads: copy the list under the appender's lock
+            // (AppenderBase.doAppend is synchronized on it), or the iteration races an append (checkpoint 057).
+            List<ILoggingEvent> events;
+            synchronized (logs) {
+                events = new ArrayList<>(logs.list);
+            }
+            assertThat(events).extracting(ILoggingEvent::getFormattedMessage)
                     .noneMatch(m -> m != null && (m.contains(tiles) || m.contains(stream)));
         } finally {
             root.setLevel(level);

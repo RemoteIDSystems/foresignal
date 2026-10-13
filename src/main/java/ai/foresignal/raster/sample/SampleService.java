@@ -425,7 +425,7 @@ public class SampleService implements RasterReader, ai.foresignal.ingest.IngestS
             } else {
                 value = round(conversion.apply(sample.value()), 3);
                 label = sample.meaning() != null ? humanize(sample.meaning())
-                        : UnitConversion.format(value) + (conversion.label() == null ? "" : " " + conversion.label());
+                        : UnitConversion.formatReading(value) + (conversion.label() == null ? "" : " " + conversion.label());
             }
         }
         Instant validTime = frame == null ? null : frame.validTime();

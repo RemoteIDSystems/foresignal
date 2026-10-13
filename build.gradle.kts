@@ -80,9 +80,6 @@ dependencies {
     testImplementation(libs.wiremock.standalone)
     testImplementation(libs.awaitility)
     testImplementation(libs.greenmail)
-    // UnidataScopeBuildTest (prompt 046) runs checkUnidataScope in throwaway builds; TestKit ships
-    // with the Gradle distribution, so nothing is downloaded.
-    testImplementation(gradleTestKit())
 }
 
 tasks.withType<JavaCompile>().configureEach {

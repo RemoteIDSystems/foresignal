@@ -265,7 +265,8 @@ public record ProductSpec(
 
         private static String shorthand(Duration d) {
             long s = d.toSeconds();
-            if (s % 86_400 == 0) {
+            // Hours up to a week, as the design's ladders read ("6 h", "48 h", "72 h"); days beyond.
+            if (s % 86_400 == 0 && s >= 7 * 86_400L) {
                 return s / 86_400 + "d";
             }
             if (s % 3600 == 0) {

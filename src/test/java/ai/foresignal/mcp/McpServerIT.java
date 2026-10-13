@@ -503,7 +503,15 @@ class McpServerIT {
         quake("k", 5.2, T);
         McpSyncClient client = client(agent);
         JsonNode sources = structured(call(client, "list_sources", Map.of()));
-        assertThat(sources.get("items").toString()).contains(STANDARD);
+        // Checkpoint 057: prompts 042-056 registered about twenty more sources (disabled here), so the short list
+        // now reaches its byte budget before "test-standard" (sorted by id) and says so; source_health below
+        // still reaches it by id.
+        assertThat(sources.get("items").toString()).contains("awc-metars");
+        if (!sources.get("items").toString().contains(STANDARD)) {
+            assertThat(sources.get("truncated").asBoolean()).isTrue();
+            assertThat(sources.get("notice").asString()).contains("detail=long");
+            assertThat(sources.get("total").asInt()).isGreaterThan(sources.get("items").size());
+        }
         JsonNode longSources = structured(call(client, "list_sources", Map.of("detail", "long")));
         assertThat(longSources.get("items").get(0).has("budget")).isTrue();
         JsonNode health = structured(call(client, "source_health", Map.of("source", STANDARD)));

@@ -58,7 +58,9 @@ class BasemapStoreTest {
         List<BasemapStore.Part> texas = admin1.query(-107, 25, -93, 37);
         assertThat(texas).isNotEmpty().hasSizeLessThan(admin1.parts().size() / 4);
         assertThat(texas).allMatch(p -> p.intersects(-107, 25, -93, 37));
-        assertThat(store.layer(BasemapStore.LAND).query(-150, -40, -140, -35)).isEmpty();
+        // The cull is by bounding box: the Americas part spans -168..-35 lon and -54..72 lat, so the box sits south
+        // of it, in the Southern Ocean between South America and Antarctica (checkpoint 057).
+        assertThat(store.layer(BasemapStore.LAND).query(-150, -58, -140, -56)).isEmpty();
         assertThat(store.layer(BasemapStore.COASTLINE).query(-96, 27, -94, 30)).as("the Texas coast").isNotEmpty();
     }
 

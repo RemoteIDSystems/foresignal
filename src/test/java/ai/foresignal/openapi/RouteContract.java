@@ -41,7 +41,12 @@ final class RouteContract {
             Map.entry("putPushProvider", "ResponseEntity: 201 when created, 200 when replaced"),
             Map.entry("deletePushProvider", "ResponseEntity.noContent"),
             Map.entry("registerPushDevice", "ResponseEntity: 201 when registered, 200 when re-registered"),
-            Map.entry("deletePushDevice", "ResponseEntity.noContent"));
+            Map.entry("deletePushDevice", "ResponseEntity.noContent"),
+            // Checkpoint 057: a tile is 200, or 204 for an empty tile with ?empty=204 (045, ProductTilesIT); the
+            // remote uploads answer 202 Accepted through ResponseEntity.status (054, RemoteIngestIT).
+            Map.entry("getProductTile", "ResponseEntity: 204 for an empty tile with ?empty=204"),
+            Map.entry("ingestSourceMedia", "ResponseEntity.status(ACCEPTED)"),
+            Map.entry("ingestSourceRasters", "ResponseEntity.status(ACCEPTED)"));
 
     private RouteContract() {}
 

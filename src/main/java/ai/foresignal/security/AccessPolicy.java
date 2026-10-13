@@ -375,7 +375,12 @@ public class AccessPolicy {
     record Rule(HttpMethod method, String pattern, AccessRequirement requirement) {
 
         boolean matches(AntPathMatcher matcher, HttpMethod candidate, String path) {
-            if (method != null && !method.equals(candidate)) {
+            // HEAD is GET without the body (RFC 9110 §9.3.2), so a GET rule covers it. Checkpoint 057: before,
+            // a HEAD matched no rule and fell through to the fail-closed admin requirement (403 for every other
+            // caller), although key-in-path URLs (050) and Spring MVC both serve HEAD.
+            boolean sameMethod = method == null || method.equals(candidate)
+                    || (HttpMethod.GET.equals(method) && HttpMethod.HEAD.equals(candidate));
+            if (!sameMethod) {
                 return false;
             }
             return matcher.match(pattern, path);

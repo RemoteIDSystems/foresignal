@@ -38,7 +38,12 @@ import org.springframework.stereotype.Component;
  *       renders.
  *   <li>Priority: {@link Priority#WARM} (newest-frame warming) first, then
  *       {@link Priority#INTERACTIVE}, then {@link Priority#PREFETCH} ({@code Foresignal-Prefetch: 1}
- *       or {@code ?prefetch=1}).
+ *       or {@code ?prefetch=1}). Warming never starves a waiting client (checkpoint 057): after a
+ *       warming render, a queued interactive render goes next, so the two alternate while both
+ *       wait. A frame queues up to {@link TileWarmer#MAX_TILES} warming renders, which alone could
+ *       outlast the 1.5 s wait on a small pool.
+ *   <li>A client that asks for a tile already queued for warming promotes that render to
+ *       {@link Priority#INTERACTIVE}, so it is not served from the back of the warming batch.
  *   <li>Within a priority, clients take turns (round-robin per client key: the token id, else the
  *       tile key, else the client IP), so one busy client cannot starve the others.
  *   <li>Single-flight: concurrent requests for the same cache key share one render.
@@ -70,7 +75,8 @@ public class RenderQueue implements DisposableBean {
     private final class Job {
         final Object key;
         final String client;
-        final Priority priority;
+        Priority priority;
+        String queuedFor;
         final Supplier<byte[]> work;
         final CompletableFuture<byte[]> future = new CompletableFuture<>();
         final AtomicInteger waiters = new AtomicInteger();
@@ -80,6 +86,7 @@ public class RenderQueue implements DisposableBean {
             this.key = key;
             this.client = client;
             this.priority = priority;
+            this.queuedFor = client;
             this.work = work;
         }
     }
@@ -95,6 +102,7 @@ public class RenderQueue implements DisposableBean {
     private final Clock clock;
     private final int poolSize;
     private int depth;
+    private boolean lastWasWarm;
     private volatile boolean stopped;
 
     /** Creates the queue with the profile's pool size. */
@@ -183,14 +191,38 @@ public class RenderQueue implements DisposableBean {
         });
         if (created[0] == job) {
             enqueue(job);
+        } else if (priority == Priority.INTERACTIVE && job.priority == Priority.WARM) {
+            promote(job, client == null ? "?" : client);
         }
         return job;
+    }
+
+    /** Moves a queued warming render to the interactive level for {@code client}. */
+    private void promote(Job job, String client) {
+        lock.lock();
+        try {
+            if (job.started || job.priority != Priority.WARM) {
+                return;
+            }
+            Deque<Job> queue = levels.get(job.priority.ordinal()).get(job.queuedFor);
+            if (queue == null || !queue.remove(job)) {
+                return;
+            }
+            if (queue.isEmpty()) {
+                levels.get(job.priority.ordinal()).remove(job.queuedFor);
+            }
+            job.priority = Priority.INTERACTIVE;
+            job.queuedFor = client;
+            levels.get(job.priority.ordinal()).computeIfAbsent(client, c -> new ArrayDeque<>()).addLast(job);
+        } finally {
+            lock.unlock();
+        }
     }
 
     private void enqueue(Job job) {
         lock.lock();
         try {
-            levels.get(job.priority.ordinal()).computeIfAbsent(job.client, c -> new ArrayDeque<>()).addLast(job);
+            levels.get(job.priority.ordinal()).computeIfAbsent(job.queuedFor, c -> new ArrayDeque<>()).addLast(job);
             depth++;
             ready.signal();
         } finally {
@@ -208,11 +240,11 @@ public class RenderQueue implements DisposableBean {
             if (job.started) {
                 return;
             }
-            Deque<Job> queue = levels.get(job.priority.ordinal()).get(job.client);
+            Deque<Job> queue = levels.get(job.priority.ordinal()).get(job.queuedFor);
             if (queue != null && queue.remove(job)) {
                 depth--;
                 if (queue.isEmpty()) {
-                    levels.get(job.priority.ordinal()).remove(job.client);
+                    levels.get(job.priority.ordinal()).remove(job.queuedFor);
                 }
             }
         } finally {
@@ -239,7 +271,10 @@ public class RenderQueue implements DisposableBean {
         }
     }
 
-    /** The next job: the highest non-empty priority, the next client in turn. */
+    /**
+     * The next job: the highest non-empty priority, the next client in turn; except that right after a
+     * warming render a waiting interactive render goes first, so warming cannot starve clients.
+     */
     private Job take() throws InterruptedException {
         lock.lock();
         try {
@@ -247,29 +282,44 @@ public class RenderQueue implements DisposableBean {
                 if (stopped) {
                     return null;
                 }
-                for (LinkedHashMap<String, Deque<Job>> level : levels) {
-                    Iterator<Map.Entry<String, Deque<Job>>> it = level.entrySet().iterator();
-                    if (!it.hasNext()) {
-                        continue;
-                    }
-                    Map.Entry<String, Deque<Job>> first = it.next();
-                    Job job = first.getValue().pollFirst();
-                    String client = first.getKey();
-                    Deque<Job> rest = first.getValue();
-                    it.remove();
-                    if (!rest.isEmpty()) {
-                        level.put(client, rest);
-                    }
-                    if (job != null) {
-                        depth--;
-                        job.started = true;
-                        return job;
-                    }
+                Job job = null;
+                if (lastWasWarm) {
+                    job = poll(levels.get(Priority.INTERACTIVE.ordinal()));
+                }
+                for (int k = 0; job == null && k < levels.size(); k++) {
+                    job = poll(levels.get(k));
+                }
+                if (job != null) {
+                    depth--;
+                    job.started = true;
+                    lastWasWarm = job.priority == Priority.WARM;
+                    return job;
                 }
                 ready.await();
             }
         } finally {
             lock.unlock();
+        }
+    }
+
+    /** The first client's next job at one level, rotating that client to the back; null when empty. */
+    private static Job poll(LinkedHashMap<String, Deque<Job>> level) {
+        while (true) {
+            Iterator<Map.Entry<String, Deque<Job>>> it = level.entrySet().iterator();
+            if (!it.hasNext()) {
+                return null;
+            }
+            Map.Entry<String, Deque<Job>> first = it.next();
+            Job job = first.getValue().pollFirst();
+            String client = first.getKey();
+            Deque<Job> rest = first.getValue();
+            it.remove();
+            if (!rest.isEmpty()) {
+                level.put(client, rest);
+            }
+            if (job != null) {
+                return job;
+            }
         }
     }
 

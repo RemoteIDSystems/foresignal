@@ -90,7 +90,8 @@ class EnrichmentWeatherInputIT extends EnrichmentItSupport {
     @DisplayName("an alert without a weather context contributes no weather block")
     void noContextNoBlock() {
         UUID rule = enrichRule("No weather", 50, "1h");
-        quakeAt("q-plain", "Austin", 4.0, T, LON, LAT);
+        // enrichRule fires at mag >= 5, so the quake must reach it to have an alert at all.
+        quakeAt("q-plain", "Austin", 5.0, T, LON, LAT);
         AlertView alert = alertFor(rule, "q-plain");
         chat().then(request -> FakeLlmClient.text(EnrichmentPrompts.NOTHING_NOTABLE));
 

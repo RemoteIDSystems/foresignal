@@ -159,7 +159,9 @@ class PolarOverlayIT {
             assertThat(p.spec().spatial().coverage()).isEqualTo("swath");
         });
         assertThat(products.find("satdump-itest-evil")).isEmpty();
-        Map<String, Object> frame = jdbc.queryForMap("select status, frame_key, ST_NumGeometries(footprint) as parts,"
+        // raster_frame has no frame_key column: the key is {timeKey of valid_time}~{sha8} (FrameKeys, RasterFrameRow).
+        Map<String, Object> frame = jdbc.queryForMap("select status, to_char(valid_time at time zone 'UTC',"
+                + " 'YYYYMMDD\"T\"HH24MISS\"Z\"') || '~' || left(sha256, 8) as frame_key, ST_NumGeometries(footprint) as parts,"
                 + " ST_XMin(footprint) as xmin, ST_YMax(footprint) as ymax from raster_frame where product_id = ?", PRODUCT);
         assertThat(frame.get("status")).isEqualTo("complete");
         assertThat(((Number) frame.get("parts")).intValue()).isEqualTo(1);

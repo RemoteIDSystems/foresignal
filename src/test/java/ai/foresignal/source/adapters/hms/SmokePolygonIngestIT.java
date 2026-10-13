@@ -1,7 +1,6 @@
 package ai.foresignal.source.adapters.hms;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-import static com.github.tomakehurst.wiremock.client.WireMock.absent;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
@@ -31,8 +30,12 @@ class SmokePolygonIngestIT extends WeatherIngestSupport {
     static final String ID = HmsSmokeAdapter.ID;
     static final String PATH = "/pub/FIRE/web/HMS/Smoke_Polygons/KML/2026/10/hms_smoke20261012.kml";
 
+    /**
+     * A server holding one version: 304 for its own ETag, 200 for any other or none (checkpoint 057: the
+     * 200 used to require no If-None-Match at all, so the edited file was never served).
+     */
     static void stub(String etag, byte[] body) {
-        UPSTREAM.stubFor(get(urlPathEqualTo(PATH)).withHeader("If-None-Match", absent()).willReturn(aResponse()
+        UPSTREAM.stubFor(get(urlPathEqualTo(PATH)).willReturn(aResponse()
                 .withHeader("ETag", etag).withBody(body)));
         UPSTREAM.stubFor(get(urlPathEqualTo(PATH)).withHeader("If-None-Match", equalTo(etag)).atPriority(1)
                 .willReturn(aResponse().withStatus(304).withHeader("ETag", etag)));

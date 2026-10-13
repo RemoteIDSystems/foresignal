@@ -8,6 +8,7 @@ import ai.foresignal.ingest.IngestBackpressureException;
 import ai.foresignal.ingest.IngestOutcome;
 import ai.foresignal.ingest.IngestQueue;
 import ai.foresignal.ingest.IngestWriter;
+import ai.foresignal.reference.RegionTagWorker;
 import ai.foresignal.retention.RetentionJob;
 import ai.foresignal.retention.RetentionRunResult;
 import ai.foresignal.settings.AppSettingService;
@@ -16,6 +17,7 @@ import ai.foresignal.source.spi.HistoryTier;
 import ai.foresignal.source.spi.NormalizedRecord;
 import ai.foresignal.store.history.LeafInfo;
 import ai.foresignal.store.history.PartitionManager;
+import ai.foresignal.stream.ChangeBus;
 import ai.foresignal.stream.sse.SseClient;
 import ai.foresignal.stream.sse.SseHub;
 import ai.foresignal.stream.sse.StreamLimits;
@@ -79,6 +81,9 @@ import tools.jackson.databind.json.JsonMapper;
  * when the NFR-2 rate is not sustained, NFR-3 is missed, a subscriber loses or duplicates a change,
  * or an SSE emitter's FIFO lane grows past {@code clientBuffer} (the SSE memory bound). The numbers are printed as {@code PERF ...} lines.
  *
+ * <p>Checkpoint 057 adds the region tagger (prompt 040), reported but not gated: its lag behind the change
+ * bus during the phases, and a one-minute burst of new entities at the NFR-2 rate with its catch-up time.
+ *
  * <p>Run with {@code ./gradlew perfTest}; {@code ./gradlew test} excludes the {@code perf} tag.
  */
 @Tag("perf")
@@ -120,6 +125,8 @@ class PerformanceSmokeIT {
     @Autowired IngestWriter writer;
     @Autowired TriggerEngine triggerEngine;
     @Autowired JdbcTemplate jdbc;
+    @Autowired RegionTagWorker regionWorker;
+    @Autowired ChangeBus changeBus;
 
     private final AtomicBoolean running = new AtomicBoolean(true);
     private final List<Thread> threads = new CopyOnWriteArrayList<>();
@@ -234,11 +241,13 @@ class PerformanceSmokeIT {
             maintenanceUnderLoad();
         });
         base.run();
+        long regionLag1x = regionLag();
         maintenance.join(120_000);
 
         // Phase 2: 2× for 2 minutes.
         Phase doubled = new Phase("2x", 2 * NFR2_PER_MINUTE, DOUBLE_PHASE);
         doubled.run();
+        long regionLag2x = regionLag();
 
         // Let the subscribers drain, then stop everything.
         long expected = base.persisted.get() + doubled.persisted.get();
@@ -247,6 +256,15 @@ class PerformanceSmokeIT {
             sleep(100);
         }
         running.set(false);
+        // Checkpoint 057 (041 Issue 2): how far the region tagger trails the change bus under NFR-2, and how long it
+        // takes to catch up once the producers stop. Reported, not gated: every point record is tagged eagerly.
+        long catchUpStart = System.nanoTime();
+        while (regionWorker.running() && regionLag() > 0
+                && System.nanoTime() - catchUpStart < TimeUnit.SECONDS.toNanos(180)) {
+            sleep(200);
+        }
+        long catchUpMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - catchUpStart);
+        long regionLagEnd = regionLag();
 
         // ---- Numbers.
         base.print();
@@ -266,6 +284,11 @@ class PerformanceSmokeIT {
         }
         report("sse.subscribers", subscribers.stream().map(s -> Long.toString(s.changes.get())).toList()
                 + " changes each, expected " + expected);
+        // The phases above reuse 5,000 stationary entities, which the tagger tags once and then skips (it re-tags
+        // only after a move of more than 2 km). Its worst case is a burst of new entities, each needing lookups:
+        // NFR-2's rate of all-new entities for one minute, then the time to catch up. It runs after the subscriber
+        // counts are checked, because the subscribers see these changes too.
+        String regionBurst = regionBurst();
 
         List<Long> asOf = new ArrayList<>(asOfMicros);
         report("asof-reader", asOf.size() + " queries, " + asOfErrors.get() + " errors, latency "
@@ -284,6 +307,12 @@ class PerformanceSmokeIT {
         report("sse.heap-per-emitter.high-water", kb(perEmitterHighWater) + " KB");
         report("sse.heap-per-emitter.worst-case", kb(perEmitterWorst) + " KB; x maxClients " + limits.maxClients()
                 + " = " + mb(worstAll) + " MB (" + (100 * worstAll / NFR1_HEAP_BYTES) + "% of NFR-1's 512 MB heap)");
+        report("region-tagger", "running " + regionWorker.running() + "; lag behind the change bus: " + regionLag1x
+                + " seqs at the end of 1x, " + regionLag2x + " at the end of 2x; " + regionLagEnd + " after "
+                + catchUpMillis + " ms of catch-up (limit 180 s)" + (regionWorker.lastError() == null ? ""
+                        : "; last error: " + regionWorker.lastError())
+                + "; record_region rows for the load source: " + regionRows());
+        report("region-tagger.burst", regionBurst);
         report("heap.post-gc-live-high-water", mb(maxLiveHeap.get()) + " MB (whole JVM: server, database client, "
                 + SUBSCRIBERS + " test readers)");
 
@@ -295,6 +324,50 @@ class PerformanceSmokeIT {
         assertThat(delay[1]).as("NFR-3: change-to-SSE p95 (ms)").isLessThanOrEqualTo(NFR3_MILLIS);
         assertThat(maxFifo.get()).as("SSE memory bound: FIFO lane high-water within clientBuffer")
                 .isLessThanOrEqualTo(limits.clientBuffer());
+    }
+
+    /** NFR-2's rate of new, distinct entities for one minute; reports the tagger's lag and catch-up time. */
+    private String regionBurst() throws Exception {
+        int perSecond = NFR2_PER_MINUTE / 60;
+        long rowsBefore = regionRows();
+        long start = System.nanoTime();
+        int sent = 0;
+        for (int second = 0; second < 60; second++) {
+            long wait = start + TimeUnit.SECONDS.toNanos(second) - System.nanoTime();
+            if (wait > 0) {
+                TimeUnit.NANOSECONDS.sleep(wait);
+            }
+            Instant now = clock.instant();
+            List<NormalizedRecord> batch = new ArrayList<>(perSecond);
+            for (int i = 0; i < perSecond; i++, sent++) {
+                double lon = -179.5 + (sent % 359) + (sent % 10) * 0.05;
+                double lat = -79.5 + ((sent / 359) % 160);
+                batch.add(NormalizedRecord.builder("rb-" + sent, STANDARD_KIND).observedAt(now).point(lon, lat)
+                        .put("v", sent).build());
+            }
+            records.submitAt(STANDARD, now, batch).get(30, TimeUnit.SECONDS);
+        }
+        long burstMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+        long lagAtEnd = regionLag();
+        long catchUp = System.nanoTime();
+        while (regionWorker.running() && regionLag() > 0
+                && System.nanoTime() - catchUp < TimeUnit.SECONDS.toNanos(300)) {
+            sleep(200);
+        }
+        long catchUpMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - catchUp);
+        return String.format(Locale.ROOT, "%,d new entities in %,d ms; lag %,d seqs when the burst ended, %,d after %,d ms"
+                        + " of catch-up (limit 300 s); record_region rows +%,d", sent, burstMillis, lagAtEnd,
+                regionLag(), catchUpMillis, regionRows() - rowsBefore);
+    }
+
+    /** {@code record_region} rows of the load source. */
+    private long regionRows() {
+        return jdbc.queryForObject("SELECT count(*) FROM record_region WHERE source_id = ?", Long.class, STANDARD);
+    }
+
+    /** Seqs the region tag worker has not processed yet (0 when it is stopped). */
+    private long regionLag() {
+        return regionWorker.running() ? Math.max(0, changeBus.lastPublishedSeq() - regionWorker.cursor()) : 0;
     }
 
     // ------------------------------------------------------------------------- the load
