@@ -211,6 +211,24 @@ class FamilyDefaultsTest {
                     "bulk-event")),
             Map.entry("LocalSondeAdapter", new Entry(new ai.foresignal.source.adapters.space.localsonde.LocalSondeAdapter(
                     new ai.foresignal.source.codec.AutoRxPayloadCodec()).descriptor(), "bulk-event")),
+            // Prompt 078: air quality, radiation, buoy and LAN monitor readings are sensor status, the state class
+            // (365 d).
+            Map.entry("OpenAqAdapter", new Entry(new ai.foresignal.source.adapters.env.openaq.OpenAqAdapter("",
+                    () -> null).descriptor(), "state")),
+            Map.entry("SafecastRadiationAdapter", new Entry(
+                    new ai.foresignal.source.adapters.env.safecast.SafecastRadiationAdapter("", () -> null).descriptor(),
+                    "state")),
+            Map.entry("EpaRadnetAdapter", new Entry(new ai.foresignal.source.adapters.env.radnet.EpaRadnetAdapter("",
+                    () -> null).descriptor(), "state")),
+            Map.entry("NdbcBuoysAdapter", new Entry(new ai.foresignal.source.adapters.env.ndbc.NdbcBuoysAdapter("",
+                    () -> null).descriptor(), "state")),
+            Map.entry("SensorCommunityAdapter", new Entry(
+                    new ai.foresignal.source.adapters.env.sensorcommunity.SensorCommunityAdapter("", () -> null)
+                            .descriptor(), "state")),
+            Map.entry("AirNowHourlyAdapter", new Entry(new ai.foresignal.source.adapters.env.airnow.AirNowHourlyAdapter(
+                    "", () -> null).descriptor(), "state")),
+            Map.entry("AirqLocalAdapter", new Entry(new ai.foresignal.source.adapters.env.airq.AirqLocalAdapter(1)
+                    .descriptor(), "state")),
             // Prompt 052: the derived weather sources, retained per Weather-Imagery-Design §2.4.
             Map.entry("WxPlacesGenerator", new Entry(
                     new ai.foresignal.source.adapters.wx.WxPlacesGenerator().descriptor(), "weather")),

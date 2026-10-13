@@ -1,0 +1,13 @@
+{
+  "meta": {"name": "openaq-api", "website": "/", "page": 1, "limit": 1000, "found": 8},
+  "results": [
+    {"id": 1, "name": "pm10", "units": "µg/m³", "displayName": "PM10", "description": "Particulate matter less than 10 micrometers in diameter mass concentration"},
+    {"id": 2, "name": "pm25", "units": "µg/m³", "displayName": "PM2.5", "description": "Particulate matter less than 2.5 micrometers in diameter mass concentration"},
+    {"id": 3, "name": "o3", "units": "µg/m³", "displayName": "O₃ mass", "description": "Ozone mass concentration"},
+    {"id": 10, "name": "o3", "units": "ppm", "displayName": "O₃", "description": "Ozone concentration"},
+    {"id": 5, "name": "no2", "units": "µg/m³", "displayName": "NO₂ mass", "description": "Nitrogen Dioxide mass concentration"},
+    {"id": 7, "name": "no2", "units": "ppm", "displayName": "NO₂", "description": "Nitrogen Dioxide concentration"},
+    {"id": 8, "name": "co", "units": "ppm", "displayName": "CO", "description": "Carbon Monoxide concentration"},
+    {"id": 9, "name": "so2", "units": "ppm", "displayName": "SO₂", "description": "Sulfur Dioxide concentration"}
+  ]
+}

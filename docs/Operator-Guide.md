@@ -332,6 +332,54 @@ or feed, even from a source you opened, and strips them from anonymous `openRead
 more than 10 s old marks `local-adsb-{n}` degraded ("receiver feed stale"), and a `station-readsb-{n}` rule on
 `state == silent` tells you when the antenna or dongle has stopped.
 
+### Local air-quality monitors
+
+Prompt 078 adds `airq-local-{n}`: one slot per local receiver slot (`foresignal.local-receivers.slots`, default 2),
+each polling one PurpleAir, airrohr (Sensor.Community firmware) or AirGradient monitor on your network every 60 s
+(30 s minimum, 4 requests/min, 3,000/day). Like the other local receivers, every slot is disabled until you set it up,
+and the address follows the same rules: it must resolve to a loopback, private or unique-local address, it is resolved
+once and pinned, and redirects are never followed. Use the monitor's IP address (give it a fixed DHCP lease) rather
+than an mDNS `.local` name, which the Foresignal host may not resolve.
+
+| `deviceType` | Request | Location | Indoor default |
+|---|---|---|---|
+| `purpleair` | `GET {url}/json?live=true` | the sensor's own `lat`/`lon`, or your `lat`/`lon` | from its `place` (`inside`/`outside`) |
+| `airrohr` | `GET {url}/data.json` | your `lat` and `lon` (required) | outdoor |
+| `airgradient` | `GET {url}/measures/current` | your `lat` and `lon` (required) | from the model: `I-…` indoor, `O-…` outdoor |
+
+```json
+PUT /v1/sources/airq-local-1
+{"enabled": true, "params": {"deviceType": "airgradient", "url": "http://192.168.1.61", "lat": 40.01,
+ "lon": -105.27, "name": "Living room"}}
+```
+
+`url` is the device's address only (no path, query or credentials); `indoor` (`true`/`false`) overrides the default;
+`name` labels the slot in log lines. An indoor monitor's records are `indoor-air-quality`, an outdoor one's
+`air-quality`, with `pm1, pm25, pm10, tempC, humidityPct, pressureHpa` and, on AirGradient, `co2Ppm, tvocIndex,
+noxIndex`.
+
+**Enabling each device's local API.**
+
+- **PurpleAir:** the sensor serves its readings at `http://<ip>/json` once it is on your Wi-Fi; nothing needs turning
+  on. Foresignal asks for `?live=true` (the newest readings rather than the two-minute average). PurpleAir asks for at
+  least 10 s between requests. Temperature and humidity are the sensor's raw values (it reads warm); with both laser
+  channels, PM values are their mean and `channelDisagreement` is true when PM2.5 A and B differ by more than
+  5 µg/m³ and more than 70%: clean or replace the sensor.
+- **airrohr:** the firmware serves the current values at `http://<ip>/data.json` on your network; the device has no
+  location, so set `lat` and `lon`. Pressure arrives in pascals and is stored in hPa. Its push to your own API is the
+  `airrohr` mapping preset (below), a different path: use one or the other.
+- **AirGradient:** firmware 3.0.10 and later (ONE and Open Air) serve `http://<ip>/measures/current`; the monitor is
+  also reachable as `airgradient_<serial>.local`, but give Foresignal its IP address. Set `lat` and `lon`.
+
+**Storage.** The time base is the poll time (device clocks disagree), and the records expire after 10 minutes. A
+SAMPLED policy keeps the history small: a new version only when PM2.5 moves by 5 µg/m³, PM10 by 10, CO₂ by 100 ppm,
+temperature by 1 °C or humidity by 5 points (at most once a minute), when the model or the channel-disagreement flag
+changes, and otherwise every 8 minutes.
+
+**Privacy.** These monitors are at your home, so every slot is **private** (never served to anonymous readers, tiled,
+embedded or sent to a remote LLM) and `egress: LOCAL_ONLY`, which you may change to `OPEN` as for the other
+local receivers.
+
 ### History tiers
 
 Each source's descriptor fixes its `historyTier`:

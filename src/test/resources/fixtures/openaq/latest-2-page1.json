@@ -1,0 +1,12 @@
+{
+  "meta": {"name": "openaq-api", "website": "/", "page": 1, "limit": 1000, "found": 7},
+  "results": [
+    {"datetime": {"utc": "2026-10-13T20:00:00Z", "local": "2026-10-13T14:00:00-06:00"}, "value": 6.4, "coordinates": {"latitude": 35.1353, "longitude": -106.584702}, "sensorsId": 3919, "locationsId": 2178},
+    {"datetime": {"utc": "2026-10-13T21:00:00Z", "local": "2026-10-13T23:00:00+02:00"}, "value": 11.2, "coordinates": {"latitude": 52.4815, "longitude": 13.4347}, "sensorsId": 9021, "locationsId": 4761},
+    {"datetime": {"utc": "2026-10-13T20:00:00Z", "local": "2026-10-13T22:00:00+02:00"}, "value": 10.0, "coordinates": {"latitude": 52.4815, "longitude": 13.4347}, "sensorsId": 9022, "locationsId": 4761},
+    {"datetime": {"utc": "2026-10-13T21:00:00Z", "local": "2026-10-14T06:00:00+09:00"}, "value": 18.0, "coordinates": {"latitude": 35.6895, "longitude": 139.6917}, "sensorsId": 55120, "locationsId": 8118},
+    {"datetime": {"utc": "2026-10-13T10:00:00Z", "local": "2026-10-13T06:00:00-04:00"}, "value": 3.1, "coordinates": {"latitude": 40.7128, "longitude": -74.006}, "sensorsId": 670, "locationsId": 304},
+    {"datetime": {"utc": "2026-10-13T21:00:00Z", "local": "2026-10-13T21:00:00+00:00"}, "value": 4.0, "coordinates": {"latitude": null, "longitude": null}, "sensorsId": 7781, "locationsId": 9901},
+    {"datetime": {"utc": "2026-10-13T21:00:00Z", "local": "2026-10-13T21:00:00+00:00"}, "value": 2.5, "coordinates": {"latitude": 0.0, "longitude": 0.0}, "sensorsId": 7782, "locationsId": 9902}
+  ]
+}
