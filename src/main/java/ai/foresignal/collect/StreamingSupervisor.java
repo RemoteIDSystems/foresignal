@@ -276,6 +276,20 @@ public class StreamingSupervisor implements DisposableBean {
      * @param failure why the last connection ended, or null
      */
     Duration nextDelay(String sourceId, int attempt, Throwable failure) {
+        return nextDelay((SourceDescriptor) null, attempt, failure);
+    }
+
+    /**
+     * How long to wait before the next connection attempt of {@code descriptor}'s stream: as
+     * {@link #nextDelay(String, int, Throwable)}, except that a ladder step follows the descriptor's own
+     * {@link SourceDescriptor#reconnect()} policy when it sets one (prompt 082: {@code aprs-is} backs off from 30 s to
+     * 15 min with ±20% jitter).
+     *
+     * @param descriptor the stream's descriptor, or null for the global ladder
+     * @param attempt reconnects since the ladder last reset
+     * @param failure why the last connection ended, or null
+     */
+    Duration nextDelay(SourceDescriptor descriptor, int attempt, Throwable failure) {
         if (FetchExecutor.causeOf(failure, CredentialsRejectedException.class) != null) {
             return properties.stream().credentialsRetry();
         }
@@ -288,6 +302,9 @@ public class StreamingSupervisor implements DisposableBean {
         if (inBackoff != null && inBackoff.getUntil() != null) {
             Duration wait = Duration.between(clock.instant(), inBackoff.getUntil());
             return wait.compareTo(Duration.ofSeconds(1)) < 0 ? Duration.ofSeconds(1) : wait;
+        }
+        if (descriptor != null && descriptor.reconnect() != null) {
+            return descriptor.reconnect().delay(attempt, java.util.concurrent.ThreadLocalRandom.current()::nextDouble);
         }
         return properties.stream().reconnectDelay(attempt);
     }
@@ -399,7 +416,7 @@ public class StreamingSupervisor implements DisposableBean {
                 if (connectedNanos >= properties.stream().ladderResetAfter().toNanos()) {
                     attempt = 0;
                 }
-                Duration delay = nextDelay(sourceId, attempt, failure);
+                Duration delay = nextDelay(descriptor, attempt, failure);
                 boolean ladderStep = FetchExecutor.causeOf(failure, CredentialsRejectedException.class) == null
                         && FetchExecutor.causeOf(failure, BudgetExceededException.class) == null
                         && FetchExecutor.causeOf(failure, InBackoffException.class) == null;

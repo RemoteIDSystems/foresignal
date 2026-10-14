@@ -668,6 +668,9 @@ class BoundSourceHttp implements SourceHttp {
      *       any 4xx or 5xx is honored, clamped to [5 s, 1 h] by {@link BackoffRegistry}.
      *   <li><strong>429 without the header:</strong> the descriptor's {@code defaultRetryAfter} when it sets
      *       one (30 s for adsb.lol), else the exponential ladder; a 503 without it uses the ladder.
+     *   <li><strong>Challenge:</strong> a response with {@code cf-mitigated: challenge} (prompt 082) carries the
+     *       reason {@link UpstreamHttpException#REASON_BLOCKED_CHALLENGE}. The challenge is never solved and the
+     *       request never retried with other headers.
      * </ul>
      */
     private UpstreamHttpException errorFor(
@@ -684,7 +687,10 @@ class BoundSourceHttp implements SourceHttp {
         } else if (status == 429 || status == 503) {
             parent.backoff().onThrottled(sourceId, Optional.empty());
         }
-        return new UpstreamHttpException(status, snippet);
+        boolean challenge = response != null && response.headers().firstValue("cf-mitigated")
+                .filter(value -> value.strip().equalsIgnoreCase("challenge")).isPresent();
+        return new UpstreamHttpException(status, snippet,
+                challenge ? UpstreamHttpException.REASON_BLOCKED_CHALLENGE : null);
     }
 
     /**

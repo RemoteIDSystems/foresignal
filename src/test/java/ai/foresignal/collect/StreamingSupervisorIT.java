@@ -230,6 +230,29 @@ class StreamingSupervisorIT {
     }
 
     @Test
+    @DisplayName("a descriptor's own reconnect policy replaces the global ladder; credentials and budget waits keep theirs")
+    void descriptorReconnectPolicy() {
+        clock.setInstant(T0.plusSeconds(10));
+        StreamingSupervisor s = defaultTestSupervisor();
+        ai.foresignal.source.spi.SourceDescriptor own = ai.foresignal.source.spi.SourceDescriptor.builder("own-ladder")
+                .kind("thing").mode(ai.foresignal.source.spi.Mode.STREAMING)
+                .reconnect(new ai.foresignal.source.spi.ReconnectPolicy(Duration.ofSeconds(30), Duration.ofMinutes(15),
+                        0.2))
+                .build();
+
+        for (int attempt = 0; attempt < 8; attempt++) {
+            long base = own.reconnect().base(attempt).toMillis();
+            assertThat(s.nextDelay(own, attempt, new IOException("x")).toMillis())
+                    .isBetween(Math.round(base * 0.8), Math.round(base * 1.2));
+        }
+        assertThat(s.nextDelay(own, 9, null).toMillis()).isBetween(720_000L, 1_080_000L);
+        assertThat(s.nextDelay(own, 0, new CredentialsRejectedException("no")))
+                .isEqualTo(CollectorProperties.defaults().stream().credentialsRetry());
+        assertThat(s.nextDelay(own, 0, new BudgetExceededException("own-ladder", "spent")))
+                .isBetween(Duration.ofSeconds(50), Duration.ofSeconds(51));
+    }
+
+    @Test
     @DisplayName("a budget refusal waits until the next minute instead of spinning")
     void budgetWaitsForNextMinute() {
         clock.setInstant(T0.plusSeconds(10));

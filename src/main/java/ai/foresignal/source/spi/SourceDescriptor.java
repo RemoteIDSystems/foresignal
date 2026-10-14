@@ -116,6 +116,12 @@ import java.util.Set;
  *     response body contains (prompt 080: airplanes.live's 403 asks for an approval email). The first key the
  *     body contains extends {@code UpstreamAccessDeniedException}'s reason with its value. Empty by default.
  *     Internal, not in the OpenAPI {@code SourceDescriptor}
+ * @param allowedHosts the fixed public {@code host:port}s this source may open over raw TCP through
+ *     {@link SocketTransport#tcpPublic} (prompt 082: {@code rotate.aprs2.net:14580} for {@code aprs-is}).
+ *     Code-reviewed, never operator input; every other public destination is refused. Empty by default.
+ *     Internal, not in the OpenAPI {@code SourceDescriptor}
+ * @param reconnect this streaming source's own reconnect ladder (prompt 082), or null for the supervisor's global
+ *     ladder. Internal, not in the OpenAPI {@code SourceDescriptor}
  */
 public record SourceDescriptor(
         String id,
@@ -176,7 +182,9 @@ public record SourceDescriptor(
         boolean followRedirects,
         boolean egressOverridable,
         Duration hostPacing,
-        Map<String, String> accessDeniedReasons) {
+        Map<String, String> accessDeniedReasons,
+        List<HostPort> allowedHosts,
+        ReconnectPolicy reconnect) {
 
     /** Coordinate decimals kept for a private source unless it says otherwise (about 11 m). */
     public static final int DEFAULT_PRIVATE_PRECISION_DECIMALS = 4;
@@ -234,6 +242,12 @@ public record SourceDescriptor(
         accessDeniedReasons = accessDeniedReasons == null
                 ? Map.of()
                 : java.util.Collections.unmodifiableMap(new LinkedHashMap<>(accessDeniedReasons));
+        allowedHosts = allowedHosts == null ? List.of() : List.copyOf(allowedHosts);
+    }
+
+    /** True when {@code target} is one of {@link #allowedHosts}. */
+    public boolean allowsHost(HostPort target) {
+        return target != null && allowedHosts.contains(target);
     }
 
     private static Map<String, Map<String, Object>> copyPresentation(Map<String, Map<String, Object>> given) {
@@ -314,6 +328,8 @@ public record SourceDescriptor(
         private boolean egressOverridable;
         private Duration hostPacing;
         private final Map<String, String> accessDeniedReasons = new LinkedHashMap<>();
+        private final List<HostPort> allowedHosts = new ArrayList<>();
+        private ReconnectPolicy reconnect;
 
         private String name;
         private String description;
@@ -702,6 +718,23 @@ public record SourceDescriptor(
             return this;
         }
 
+        /**
+         * Allows raw TCP to one fixed public {@code host:port} (prompt 082), opened only through
+         * {@link SocketTransport#tcpPublic}.
+         *
+         * @param hostPort {@code host:port}
+         */
+        public Builder allowedHost(String hostPort) {
+            this.allowedHosts.add(HostPort.parse(hostPort));
+            return this;
+        }
+
+        /** Sets this streaming source's own reconnect ladder (prompt 082); null keeps the supervisor's. */
+        public Builder reconnect(ReconnectPolicy policy) {
+            this.reconnect = policy;
+            return this;
+        }
+
         /** Sets the layer presentation hints of one kind. */
         public Builder kindPresentation(String kind, Map<String, Object> hints) {
             this.kindPresentation.put(kind, hints);
@@ -787,7 +820,9 @@ public record SourceDescriptor(
                     followRedirects,
                     egressOverridable,
                     hostPacing,
-                    accessDeniedReasons);
+                    accessDeniedReasons,
+                    allowedHosts,
+                    reconnect);
         }
     }
 }

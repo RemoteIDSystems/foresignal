@@ -337,6 +337,11 @@
         "version": "1.3.0",
         "date": "2026-10-13",
         "note": "081: no operation changes. New sources deepstate-frontline, alerts-in-ua (credential token), ua-air-raid-siren, acled (credentials email and password; egress LOCAL_ONLY) and ucdp-ged (credential token), all disabled by default. The ua-air-raid-siren payloadFields of air-raid-alert and threat-alert gain geometryApproximate (a community alert carries its raion's polygon); frontline gains geometrySimplified and simplifyToleranceDeg and a note on its time base."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-13",
+        "note": "082: no operation changes. New sources pskreporter-ft8 (param appContact required), kiwisdr, openmhz-systems (blocked by a Cloudflare challenge, reported as BLOCKED_CHALLENGE), aprs-is (streaming, filter required) and the local-aprs-{n} slots (streaming, LOCAL_ONLY), all disabled by default. The radio-spot, sdr-receiver, scanner, aprs-station and aprs-message kind notes document the built payloads; aprs-station gains status, micEMessage and sender, and aprs-message lists from, addressee, text, msgId, path and raw."
       }
     ]
   },
@@ -89917,7 +89922,7 @@
                 "receiverLocator"
               ]
             },
-            "note": "Receiver callsign is an Observer (`include=observer`), never payload."
+            "note": "Built in 082. pskreporter-ft8: one record per sender, receiver, frequency (kHz) and time slot; externalId sender|receiver|frequencyHz/1000|flowStartSeconds; eventTime = observedAt = flowStartSeconds; point = the center of the sender's Maidenhead cell, quality.accuracyMeters half its diagonal. Receiver callsign is an Observer (`include=observer`, with frequencyHz and snr), never payload."
           },
           "sdr-receiver": {
             "x-foresignal-prompt": "082",
@@ -89933,7 +89938,8 @@
                 "users",
                 "snr"
               ]
-            }
+            },
+            "note": "Built in 082. kiwisdr: externalId = the list's id; point from gps; observedAtMode RECEIVED; bandsHz is [low, high] in Hz; online is offline == \"no\"; users and snr ([all, hf] dB) are volatile. A receiver missing from a list at least half the previous size is tombstoned."
           },
           "scanner": {
             "x-foresignal-prompt": "082",
@@ -89947,7 +89953,8 @@
                 "lastActive",
                 "clientCount"
               ]
-            }
+            },
+            "note": "Built in 082. openmhz-systems is blocked by a Cloudflare challenge (2026-10): the source reports BLOCKED_CHALLENGE and stores nothing until OpenMHz admits API clients. If reachable: externalId shortName, point from lat/lng when present, clientCount volatile."
           },
           "aprs-station": {
             "x-foresignal-prompt": "082",
@@ -89955,22 +89962,33 @@
               "aprs-is, local-aprs-{n}": [
                 "symbol",
                 "comment",
+                "status",
                 "speedMps",
                 "courseDeg",
                 "altitudeM",
                 "type",
                 "weather",
+                "micEMessage",
+                "sender",
                 "path",
                 "raw"
               ]
-            }
+            },
+            "note": "Built in 082. externalId = the source call with SSID, or the object or item name (a killed object or item is a tombstone); observedAtMode RECEIVED. Position and status are merged per station. weather holds only the values present (windDirDeg, windSpeedMs, windGustMs, tempC, rainLastHourMm, rain24hMm, rainDailyMm, rh, pressureHpa); micEMessage only for Mic-E; sender only for objects and items; path and raw (the TNC2 line, at most 512 characters) are volatile. The igate (aprs-is) or the operator's station (local-aprs) is an Observer (`include=observer`), never payload."
           },
           "aprs-message": {
             "x-foresignal-prompt": "082",
             "payloadFields": {
-              "aprs-is, local-aprs-{n}": []
+              "aprs-is, local-aprs-{n}": [
+                "from",
+                "addressee",
+                "text",
+                "msgId",
+                "path",
+                "raw"
+              ]
             },
-            "note": "Only with `includeMessages=true`; never embedded."
+            "note": "Built in 082. Only with `includeMessages=true`; never embedded; acknowledgements and rejections are never stored. externalId FROM>ADDRESSEE{msgId (a text hash when there is no id); path and raw volatile."
           },
           "mesh-node": {
             "x-foresignal-prompt": "083",

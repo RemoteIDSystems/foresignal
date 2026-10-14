@@ -7,6 +7,8 @@ import ai.foresignal.source.LocalAddresses;
 import ai.foresignal.source.spi.AdapterException;
 import ai.foresignal.source.spi.DatagramHandler;
 import ai.foresignal.source.spi.FrameHandler;
+import ai.foresignal.source.spi.HostPort;
+import ai.foresignal.source.spi.SourceDescriptor;
 import ai.foresignal.source.spi.Framing;
 import ai.foresignal.source.spi.LanEndpoint;
 import ai.foresignal.source.spi.SocketOptions;
@@ -49,6 +51,10 @@ import org.slf4j.LoggerFactory;
  *       long is closed with a {@link SilenceTimeoutException}, so the supervisor's ladder reconnects.
  *   <li><strong>UDP:</strong> a {@link DatagramChannel} read on a virtual thread; a datagram from outside
  *       the allowlist is counted and dropped before its bytes are looked at.
+ *   <li><strong>Public TCP</strong> (prompt 082, {@link #tcpPublic}): only a {@code host:port} in the descriptor's
+ *       {@code allowedHosts}, resolved to a public address; otherwise the same as TCP.
+ *   <li><strong>Writing:</strong> the handles have no write method; only {@link SocketOptions#onConnect()} is ever
+ *       written, and nothing at all under {@link SocketOptions#receiveOnly()}.
  * </ul>
  */
 public final class DefaultSocketTransport implements SocketTransport {
@@ -113,13 +119,87 @@ public final class DefaultSocketTransport implements SocketTransport {
         }
         requireLanDestination(endpoint.address());
         ctx.chargeRequest("tcp-connect " + endpoint);
+        return open(endpoint.toString(), endpoint.socketAddress(), opts, frames, handler);
+    }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Order: the target must be in the descriptor's {@code allowedHosts}, then it is resolved (outbound policy
+     * {@code PUBLIC_ONLY} when available, else the system resolver with every address checked to be public), and
+     * only then is a budget unit spent. The first permitted address is connected; the name is not resolved again for
+     * that connection.
+     */
+    @Override
+    public StreamHandle tcpPublic(HostPort target, SocketOptions options, Framing framing, FrameHandler handler)
+            throws AdapterException {
+        Objects.requireNonNull(target, "target");
+        Objects.requireNonNull(handler, "handler");
+        SocketOptions opts = options == null ? SocketOptions.defaults() : options;
+        Framing frames = framing == null ? Framing.LINES : framing;
+        SourceDescriptor descriptor = ctx.descriptor();
+        if (descriptor == null || !descriptor.allowsHost(target)) {
+            throw new AdapterException("Refusing to connect to " + target + ": it is not in " + ctx.sourceId()
+                    + "'s allowedHosts");
+        }
+        InetAddress address = resolvePublic(target.host());
+        ctx.chargeRequest("tcp-connect " + target);
+        return open(target.toString(), new InetSocketAddress(address, target.port()), opts, frames, handler);
+    }
+
+    /**
+     * The first public address of {@code host}.
+     *
+     * @throws AdapterException when it does not resolve, or resolves to a non-public address
+     */
+    InetAddress resolvePublic(String host) throws AdapterException {
+        if (policy != null) {
+            OutboundUrlPolicy.Result result = policy.checkHost(host, OutboundUrlPolicy.Profile.PUBLIC_ONLY);
+            if (result instanceof OutboundUrlPolicy.Allowed allowed) {
+                return allowed.pinned();
+            }
+            String reason = result instanceof OutboundUrlPolicy.Denied denied ? denied.reason() : "refused";
+            throw new UpstreamIOException("Refusing to connect to " + host + ": " + reason, null);
+        }
+        InetAddress[] addresses;
+        try {
+            addresses = InetAddress.getAllByName(host);
+        } catch (IOException e) {
+            throw new UpstreamIOException("Could not resolve " + host + ": " + e.getMessage(), e);
+        }
+        if (addresses.length == 0) {
+            throw new UpstreamIOException("Could not resolve " + host, null);
+        }
+        for (InetAddress address : addresses) {
+            if (!isPublic(address)) {
+                throw new AdapterException("Refusing to connect to " + host + ": it resolves to "
+                        + address.getHostAddress() + ", which is not a public address");
+            }
+        }
+        return addresses[0];
+    }
+
+    /** True for a globally routable address: not loopback, private, unique-local, link-local, CGNAT or wildcard. */
+    static boolean isPublic(InetAddress address) {
+        return address != null && !address.isAnyLocalAddress() && !address.isLoopbackAddress()
+                && !address.isLinkLocalAddress() && !address.isSiteLocalAddress() && !address.isMulticastAddress()
+                && !LocalAddresses.isPrivate(address) && !LocalAddresses.isCarrierGradeNat(address);
+    }
+
+    /**
+     * Connects to an already checked and paid-for address and starts the read loop.
+     *
+     * <p>Under {@link SocketOptions.WriteMode#NONE} the socket's output stream is never obtained, so nothing can be
+     * written; otherwise only the {@code onConnect} bytes are written, once.
+     */
+    private StreamHandle open(String label, InetSocketAddress address, SocketOptions opts, Framing frames,
+            FrameHandler handler) throws AdapterException {
         Socket socket = new Socket();
         try {
             socket.setKeepAlive(true);
             socket.setSoTimeout(Math.toIntExact(Math.min(Integer.MAX_VALUE, opts.silenceTimeout().toMillis())));
-            socket.connect(endpoint.socketAddress(), Math.toIntExact(CONNECT_TIMEOUT.toMillis()));
-            byte[] hello = opts.onConnect();
+            socket.connect(address, Math.toIntExact(CONNECT_TIMEOUT.toMillis()));
+            byte[] hello = opts.isReceiveOnly() ? null : opts.onConnect();
             if (hello != null) {
                 OutputStream out = socket.getOutputStream();
                 out.write(hello);
@@ -128,10 +208,10 @@ public final class DefaultSocketTransport implements SocketTransport {
         } catch (IOException | RuntimeException e) {
             metrics.connect(false);
             closeQuietly(socket);
-            throw new UpstreamIOException("Could not connect to " + endpoint + ": " + e.getMessage(), e);
+            throw new UpstreamIOException("Could not connect to " + label + ": " + e.getMessage(), e);
         }
         metrics.connect(true);
-        TcpConnection connection = new TcpConnection(endpoint, socket, opts, frames, handler);
+        TcpConnection connection = new TcpConnection(label, socket, opts, frames, handler);
         connection.start();
         return connection;
     }
@@ -260,16 +340,19 @@ public final class DefaultSocketTransport implements SocketTransport {
         abstract void release();
     }
 
-    /** One TCP connection and its read loop. */
+    /**
+     * One TCP connection and its read loop. Deliberately without any write method: the {@code onConnect} bytes,
+     * written before this object exists, are the only bytes a source socket ever sends.
+     */
     private final class TcpConnection extends Running {
 
-        private final LanEndpoint endpoint;
+        private final String endpoint;
         private final Socket socket;
         private final SocketOptions options;
         private final Framing framing;
         private final FrameHandler handler;
 
-        TcpConnection(LanEndpoint endpoint, Socket socket, SocketOptions options, Framing framing,
+        TcpConnection(String endpoint, Socket socket, SocketOptions options, Framing framing,
                 FrameHandler handler) {
             this.endpoint = endpoint;
             this.socket = socket;

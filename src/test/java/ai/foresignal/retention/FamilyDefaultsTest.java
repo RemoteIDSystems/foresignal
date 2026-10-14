@@ -278,6 +278,22 @@ class FamilyDefaultsTest {
                     new ai.foresignal.reference.CountryCentroids()).descriptor(), "event")),
             Map.entry("UcdpGedAdapter", new Entry(new ai.foresignal.source.adapters.ucdp.UcdpGedAdapter("",
                     new ai.foresignal.reference.CountryCentroids()).descriptor(), "event")),
+            // Prompt 082: PSK Reporter spots and APRS beacons are bulk-event (90 d); the KiwiSDR and OpenMHz lists
+            // are reference data (90 d of history).
+            Map.entry("PskReporterAdapter", new Entry(new ai.foresignal.source.adapters.radio.PskReporterAdapter("",
+                    (java.util.function.Supplier<io.micrometer.core.instrument.MeterRegistry>) null).descriptor(),
+                    "bulk-event")),
+            Map.entry("KiwiSdrAdapter", new Entry(new ai.foresignal.source.adapters.radio.KiwiSdrAdapter("",
+                    (java.util.function.Supplier<io.micrometer.core.instrument.MeterRegistry>) null).descriptor(),
+                    "reference")),
+            Map.entry("OpenMhzAdapter", new Entry(
+                    new ai.foresignal.source.adapters.radio.OpenMhzAdapter("").descriptor(), "reference")),
+            Map.entry("AprsIsAdapter", new Entry(new ai.foresignal.source.adapters.radio.AprsIsAdapter(() -> "abcd1234",
+                    () -> "dev", new ai.foresignal.source.formats.aprs.AprsPacketDedup(), null).descriptor(),
+                    "bulk-event")),
+            Map.entry("LocalAprsAdapter", new Entry(new ai.foresignal.source.adapters.radio.LocalAprsAdapter(1,
+                    new ai.foresignal.source.codec.KissAx25Codec(), new ai.foresignal.source.formats.aprs.AprsPacketDedup(),
+                    null).descriptor(), "bulk-event")),
             Map.entry("SatDumpAdapter", new Entry(new ai.foresignal.source.adapters.satdump.SatDumpAdapter("itest", null,
                     null).descriptor(), "station")));
 

@@ -415,6 +415,9 @@ public class SourceService implements ApplicationRunner {
         // one call behaves as the operator expects.
         if (row.isEnabled()) {
             requireCredentials(descriptor, id);
+            if (Boolean.TRUE.equals(update.enabled()) && update.params() == null) {
+                requireValidParams(descriptor, id, row.getParams());
+            }
         }
 
         row.setUpdatedAt(clock.instant());
@@ -609,6 +612,22 @@ public class SourceService implements ApplicationRunner {
         }
         String field = problem.substring(0, end);
         return field.endsWith(".") ? field.substring(0, field.length() - 1) : field;
+    }
+
+    /**
+     * Refuses to enable a source whose stored parameters are not valid (prompt 082): a required parameter that was
+     * never set, or a combination its adapter's {@code checkParams} refuses ({@code aprs-is} cannot run without a
+     * narrow {@code filter}). Parameters supplied in the same request were already validated.
+     *
+     * @throws ValidationException listing the problems as {@code params.<name>} field errors
+     */
+    private void requireValidParams(SourceDescriptor descriptor, String id, Map<String, Object> stored) {
+        try {
+            paramValidator.validate(descriptor, stored == null ? Map.of() : stored);
+        } catch (ValidationException e) {
+            throw new ValidationException("Cannot enable " + id + " until its parameters are valid; set them with"
+                    + " PUT /v1/sources/" + id + ".", e.getErrors());
+        }
     }
 
     private void requireCredentials(SourceDescriptor descriptor, String id) {

@@ -1,0 +1,17 @@
+# Synthetic KISS byte stream (synthetic: true), see README.md. One KISS frame per block.
+# position, not repeated
+c0 00 82 a0 a4 a6 40 40 60 9c 60 86 82 98 98 72 ae 92 88 8a 62 40 63 03 f0 3d 33 37 34 35 2e 30 30 4e 2f 31 32 32 32 35 2e 30 30 57 3e 30 39 30 2f 30 33 36 2f 41 3d 30 30 31 32 33 34 20 6d 6f 62 69 6c 65 c0
+# Mic-E, digipeated twice
+c0 00 a6 ae a6 a0 a2 a8 60 9c 70 a2 90 40 40 72 ae 82 6c a8 9e ae e4 ae 92 88 8a 62 40 e0 ae 92 88 8a 64 40 65 03 f0 60 32 38 6f 6c 20 36 59 2f 5d 3d c0
+# position weather
+c0 00 82 a0 9c 60 60 60 60 9c 60 86 82 98 98 7a ae 92 88 8a 64 40 63 03 f0 40 31 34 30 30 32 36 7a 33 37 34 34 2e 36 34 4e 2f 31 32 32 32 38 2e 39 35 57 5f 32 30 36 2f 30 30 37 67 30 31 37 74 30 36 33 72 30 30 30 70 30 30 31 50 30 30 31 62 31 30 31 36 37 68 36 38 4c 31 37 38 65 4d 42 35 37 c0
+# status with FEND and FESC bytes in the info field (escaped)
+c0 00 82 a0 a4 a6 40 40 60 9c 60 86 82 98 98 6b 03 f0 3e 65 73 63 db dc db dd 6f 6b c0
+# KISS command 1 (TXDELAY), ignored
+c0 01 32 c0
+# UI frame on TNC port 1
+c0 10 82 a0 a4 a6 40 40 60 9c 60 86 82 98 98 66 ae 92 88 8a 64 40 e3 03 f0 21 33 37 34 36 2e 30 30 4e 2f 31 32 32 32 36 2e 30 30 57 2d 70 6f 72 74 20 6f 6e 65 c0
+# MeshCore KISS modem payload (not AX.25)
+c0 00 11 c3 5a 0b 7f 00 e1 d2 c3 b4 a5 96 87 78 69 5a 4b 3c 2d 1e 0f c0
+# AX.25 SABM (not UI)
+c0 00 9c 60 86 82 98 98 6c 9c 60 86 82 98 98 69 3f c0

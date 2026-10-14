@@ -5,7 +5,8 @@ import java.time.Duration;
 import java.util.Set;
 
 /**
- * The LAN-only socket transport of a streaming adapter (prompt 069), from {@link StreamContext#sockets()}.
+ * The socket transport of a streaming adapter (prompt 069), from {@link StreamContext#sockets()}: LAN endpoints, plus
+ * the fixed public hosts a descriptor lists in {@code allowedHosts} (prompt 082, {@link #tcpPublic}).
  *
  * <p>Adapters never construct sockets themselves (adapter rule 2): this is the only way a source reads a
  * TCP stream or UDP datagrams, as {@link SourceHttp} is the only way it makes an HTTP request. Every
@@ -49,6 +50,28 @@ public interface SocketTransport {
      */
     StreamHandle tcp(LanEndpoint endpoint, SocketOptions options, Framing framing, FrameHandler handler)
             throws AdapterException;
+
+    /**
+     * Opens a TCP client connection to a fixed public host (prompt 082), otherwise exactly like {@link #tcp}: one
+     * budget unit per connect attempt, the silence watchdog, the framing and the write rules of {@code options}.
+     *
+     * <p>Only a {@code host:port} listed in the source descriptor's {@code allowedHosts} is accepted; that list is
+     * code-reviewed and never comes from an operator or a request, so this is not a general way out to the internet.
+     * The name is resolved normally (through the outbound policy's public-only profile when available), and a name
+     * that resolves to a loopback, private, link-local or otherwise non-public address is refused.
+     *
+     * @param target the host and port; must be in the descriptor's {@code allowedHosts}
+     * @param options the silence timeout and the write rules
+     * @param framing how the byte stream is cut into frames
+     * @param handler receives each frame on the connection's virtual thread
+     * @return the running connection
+     * @throws AdapterException when the host is not allowed, does not resolve to a public address, the budget is
+     *     spent, or the connect failed
+     */
+    default StreamHandle tcpPublic(HostPort target, SocketOptions options, Framing framing, FrameHandler handler)
+            throws AdapterException {
+        throw new UnsupportedOperationException("This socket transport cannot open public TCP connections");
+    }
 
     /**
      * Binds a UDP listener and delivers the datagrams of allowed senders until the handle is closed.

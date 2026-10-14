@@ -393,6 +393,74 @@ changes, and otherwise every 8 minutes.
 embedded or sent to a remote LLM) and `egress: LOCAL_ONLY`, which you may change to `OPEN` as for the other
 local receivers.
 
+### Amateur radio sources
+
+Prompt 082 adds five amateur-radio sources, all disabled until you enable them. Whoever received a spot or a packet
+(a PSK Reporter receiver, an APRS igate, your own TNC) is stored as the record's **observer**, never in its payload:
+it comes back only with `include=observer` on an agent or admin token, or when `security.exposeObserver` is on.
+
+| Source | What it is | Default interval · budget |
+|---|---|---|
+| `pskreporter-ft8` | PSK Reporter reception reports (FT8 by default; FT4, WSPR, JS8, CW) | 10 min (never under 5 min) · 2/min, 300/day |
+| `kiwisdr` | the public KiwiSDR web receivers | 24 h · 1/min, 4/day |
+| `openmhz-systems` | OpenMHz scanner systems: **blocked**, see below | 1 h · 1/min, 30/day |
+| `aprs-is` | APRS from the APRS-IS network, narrow and receive-only | stream · 1 connect/min, 100/day |
+| `local-aprs-{n}` | APRS your own TNC hears on RF (KISS over TCP) | stream · 1 connect/min, 1,440/day |
+
+**PSK Reporter.** Set `appContact` to your email address: PSK Reporter asks every client for a contact and for no more
+than one query every five minutes. `callsigns` limits the queries to stations you watch (one request each, so keep
+the list short); a watched call matches whether it transmitted or received. Without call signs one unfiltered query
+runs, capped at `rptlimit` reports.
+
+```json
+PUT /v1/sources/pskreporter-ft8
+{"enabled": true, "params": {"appContact": "you@example.org", "callsigns": ["N0CALL"], "windowSeconds": 900}}
+```
+
+**KiwiSDR.** The list is fetched over plain HTTP from `rx.linkfanel.net` (its HTTPS timed out when checked); it is a
+public list and nothing private is sent.
+
+**OpenMHz.** OpenMHz answers Foresignal with a Cloudflare challenge page. The source reports `BLOCKED_CHALLENGE` and
+stays `failing`; Foresignal never pretends to be a browser or solves the challenge. Leave it disabled until OpenMHz
+offers API access.
+
+**APRS-IS filter etiquette.** `aprs-is` cannot be enabled without a narrow `filter`: ask APRS-IS only for what you
+need. Use a range around you (`r/lat/lon/km`, at most 250 km), a list of stations (`b/N0CALL/N0CALL-9`), call-sign
+prefixes (`p/K6/W6`), a type filter with a range (`t/poimqstunw/N0CALL/50`) or a friend range (`f/N0CALL/25`); at
+most five terms, and no bare `*`. A filter over a busy area still delivers several packets a second, so start small.
+
+```json
+PUT /v1/sources/aprs-is
+{"enabled": true, "params": {"filter": "r/37.77/-122.42/50", "login": "N0CALL"}}
+```
+
+`login` is your call sign, or leave it empty for an anonymous login (`EL` and six characters of your install id).
+`N0CALL` itself is refused by the servers. With `includeMessages` APRS messages are kept too (`aprs-message`); they
+are never sent to an embedding provider. With `dedupLocal` (on by default) a packet your own TNC heard in the last
+30 seconds is dropped from the APRS-IS copy, because the RF copy is first-hand.
+
+**Receive-only guarantees.** Foresignal never transmits and never igates:
+- `aprs-is` logs in with passcode `-1`, which APRS-IS treats as a receive-only client, and writes nothing after the
+  login line. Its connection object has no write method at all.
+- `local-aprs-{n}` opens the TNC socket receive-only: not a single byte is written, not even a KISS command, and the
+  socket is never half-closed (Direwolf would read that as a disconnect).
+
+**Direwolf.** Enable Direwolf's KISS TCP server in `direwolf.conf` with `KISSPORT 8001` (8001 is the conventional
+port; set whichever you use), then point a slot at it:
+
+```json
+PUT /v1/sources/local-aprs-1
+{"enabled": true, "params": {"endpoint": "tcp://192.168.1.20:8001", "stationCallsign": "N0CALL-10"}}
+```
+
+The address must be on your own network (loopback, RFC 1918 or unique-local), as for the other local receivers.
+`stationCallsign` names your station as the observer of what it hears. Local APRS stays on this instance
+(`LOCAL_ONLY`) unless you open it; you can also mark the source private, which rounds positions.
+
+**MeshCore KISS is not AX.25.** A MeshCore KISS modem also speaks KISS over TCP, but its frames carry raw MeshCore
+packets, not AX.25. Pointed at one, `local-aprs-{n}` connects, counts every frame in
+`foresignal.aprs.local.non_ax25` and stores nothing.
+
 ### Flood watching
 
 Prompt 079 adds river, snow, drought and coastal water sources (see the Source Catalog, "Hydrology and coast"). All

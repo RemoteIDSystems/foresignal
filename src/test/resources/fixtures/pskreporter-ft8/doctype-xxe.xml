@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<!DOCTYPE receptionReports [
+  <!ENTITY xxe SYSTEM "file:///etc/passwd">
+]>
+<receptionReports>
+  <receptionReport receiverCallsign="N0CALL" receiverLocator="CM87" senderCallsign="&xxe;" senderLocator="FN31" frequency="14074000" flowStartSeconds="1791937439" mode="FT8" sNR="-10" />
+</receptionReports>

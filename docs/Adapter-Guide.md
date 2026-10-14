@@ -536,6 +536,20 @@ source (serving TCP is 110's SERVE sinks).
 - Received bytes are metered through `ctx.reportBytes` after every read.
 - Metrics: `foresignal.socket.connects{source,result}`, `foresignal.socket.frames{source}`,
   `foresignal.socket.frames.dropped{source,reason}`.
+- `tcpPublic(HostPort, SocketOptions, Framing, FrameHandler)` (prompt 082): raw TCP to a fixed public host, otherwise
+  exactly like `tcp`. Only a `host:port` listed in the descriptor's `allowedHosts` (`SourceDescriptor.Builder
+  .allowedHost("rotate.aprs2.net:14580")`, internal, code-reviewed, never operator input) is accepted, and the name
+  must resolve to a public address (`OutboundUrlPolicy` `PUBLIC_ONLY`); everything else is refused before a budget unit
+  is spent. `aprs-is` uses it; 085 reuses it.
+- **Writing.** A `StreamHandle` never has a write method: the only bytes a source socket can send are
+  `SocketOptions.onConnect`, once. `SocketOptions.receiveOnly()` (prompt 082) refuses even that (an `onConnect` writer
+  throws when the options are built) and the transport never obtains the socket's output stream, so a receive-only
+  source has no code path that transmits; `receiveOnlyAfterConnect()` allows the single write on connect (the APRS-IS
+  login line). Never half-close a socket (`shutdownOutput`): Direwolf and aprsc read the client's EOF as a disconnect.
+- **Reconnect ladder.** A streaming descriptor may set `reconnect(ReconnectPolicy)` (prompt 082, internal): the
+  supervisor then backs off exponentially from `initial` to `max` with the policy's jitter instead of its global
+  ladder (`aprs-is`: 30 s → 15 min, ±20%; `local-aprs-{n}`: 5 s → 5 min). Budget refusals, backoff and rejected
+  credentials keep their own waits.
 
 **Codec SPI** (`ai.foresignal.source.codec`). A wire format is a `SocketCodec` bean:
 
@@ -552,8 +566,19 @@ source (serving TCP is 110's SERVE sinks).
 |---|---|---|---|
 | `sbs1` | LINES | `local-sbs-{n}` | 22-field BaseStation lines merged per hex (rule 7) into the readsb payload keys; feet → meters; `posSource: other`; times never parsed (declare `observedAtMode` RECEIVED); hexes evicted after 5 min |
 | `gpsd` | LINES | `local-gpsd-{n}` | `?WATCH={"enable":true,"json":true};` on connect; VERSION `proto_major` 3; TPV and SKY merged per device into `gnss-fix`; `observedAt` = TPV `time` |
+| `kiss-ax25` | RAW | `local-aprs-{n}` | KISS frames reassembled across reads (`formats.kiss.KissFrameDecoder`: FEND/FESC unescaping, data frames only), AX.25 UI frames to TNC2 text (`Ax25UiDecoder`), then `formats.aprs.AprsParser` and `AprsRecords`; frames that are not AX.25 UI are counted and dropped; writes nothing. A `PacketListener` reports each packet (the duplicate filter) and each dropped frame (counters) |
 
 Prompt 085 adds `aivdm`, 082 `kiss-ax25`, 086 `acars-json` and `sonde-udp`.
+
+**Receivers are observers (prompt 082).** In an RF or crowd-sourced feed, the station that *received* a report is
+not part of what the record describes: it goes in `NormalizedRecord.observers` (`Observer(receiverId, frequencyHz,
+rssi, snr, decodeQuality)`, at most 8), never in the payload. Observers are stored on versions only, are not hashed,
+and are served only with `include=observer` to agent or admin tokens (Core-Data-Model §14), so a receiver's call sign
+or location never leaks through tiles, search, embeddings or anonymous reads, and a report heard by a different
+receiver is not a content change. PSK Reporter's `receiverCallsign` becomes the observer with the spot's frequency and
+SNR (the receiver's locator stays in the payload as `receiverLocator`); APRS-IS's igate (the station after the
+q-construct) and a local TNC's `stationCallsign` become the observer of APRS records. Tests assert that no payload
+value equals the observer's id.
 
 ## 21. Catalog sources and client-fetched media (prompt 072)
 

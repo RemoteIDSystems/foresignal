@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<receptionReports>
+  <lastSequenceNumber value="1"/>
+  <activeReceiver callsign="N0CALL" locator="CM87" frequency="14074000" mode="FT8" />
+  <activeReceiver callsign="N0CALL-1" locator="FN31" frequency="7074000" mode="FT8" />
+  <receptionReport receiverCallsign="N0CALL" receiverLocator="CM87xh" senderCallsign="N0CALL-2" senderLocator="FN31pr" frequency="14074123" flowStartSeconds="1791937439" mode="FT8" senderDXCC="United States" sNR="-7" />
+  <receptionReport receiverCallsign="N0CALL" receiverLocator="CM87xh" senderCallsign="N0CALL-2" senderLocator="FN31pr" frequency="14074456" flowStartSeconds="1791937439" mode="FT8" senderDXCC="United States" sNR="-8" />
+  <receptionReport receiverCallsign="N0CALL" senderCallsign="N0CALL-3" frequency="7074000" flowStartSeconds="1791937440" mode="FT8" />
+  <receptionReport receiverCallsign="N0CALL" senderCallsign="N0CALL-4" senderLocator="ZZ99" frequency="7074000" flowStartSeconds="1791937441" mode="FT8" />
+  <receptionReport receiverCallsign="N0CALL" senderCallsign="N0CALL-5" frequency="7074000" mode="FT8" />
+  <receptionReport receiverCallsign="N0CALL" senderCallsign="N0CALL-6" frequency="lots" flowStartSeconds="1791937442" mode="FT8" />
+</receptionReports>

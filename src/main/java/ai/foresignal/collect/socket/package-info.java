@@ -1,6 +1,7 @@
 /**
- * The LAN-only socket transport of prompt 069: TCP client connections and UDP listeners for streaming
- * adapters, reached only through {@link ai.foresignal.source.spi.StreamContext#sockets()}.
+ * The socket transport of prompt 069: TCP client connections and UDP listeners for streaming adapters on
+ * the LAN, plus TCP client connections to the fixed public hosts a descriptor lists in {@code allowedHosts}
+ * (prompt 082), reached only through {@link ai.foresignal.source.spi.StreamContext#sockets()}.
  *
  * <ul>
  *   <li>{@link ai.foresignal.collect.socket.DefaultSocketTransport}: one source's transport, budgeted and
