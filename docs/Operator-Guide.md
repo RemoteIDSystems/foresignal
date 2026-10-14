@@ -358,6 +358,41 @@ reset needs your own wrapper. Unverified against a real Shake.
 record drawn on the named counties (the whole state for county `000`) when the reference data is loaded, valid until the
 header's purge time; the three repetitions of a header collapse into one, and `NNNN` is ignored.
 
+### Aviation safety
+
+Prompt 087 adds the US aviation-safety picture. Every source is disabled until you enable it; all are public-domain US
+Government data.
+
+| Source | What it gives | Notes |
+|---|---|---|
+| `faa-tfr` | Temporary flight restrictions with their real polygons, floors, ceilings and validity | Times come from the XNOTAM in UTC. A TFR that starts later is stored with its `validFrom` and matches `forecastHorizon` rules only from then; one without an end stays until the FAA removes it from the list (then it is tombstoned). |
+| `faa-nas-status` | Ground delay programs, ground stops, arrival and departure delays, closures, deicing | Placed at the airport from the bundled US airport table; an airport missing from it gives a record without a position. |
+| `awc-sigmets`, `awc-gairmets`, `awc-cwas` | SIGMETs and AIRMETs, G-AIRMET snapshots, Center Weather Advisories | A canceled advisory is tombstoned at the next poll. A G-AIRMET snapshot becomes valid at its `validTime`. |
+| `awc-pireps` | Pilot reports of the last two hours inside a box | See "Choosing a PIREP box" below. |
+| `awc-tafs` | Terminal Aerodrome Forecasts, one per station | `scope` (`aoi`, `conus`, `global`) reads the AWC cache file; `stations` reads the TAF API for just those stations. METARs remain `awc-metars`. |
+| `faa-uasfm` | The FAA UAS Facility Map grid: the altitude up to which the FAA may authorize drone flight near airports | `bbox` is required (the grid is national: about 380,000 cells). |
+| `faa-uas-*` | National security UAS restrictions (permanent and part-time), recreational flyer sites, stadiums, prohibited areas, national defense TFR areas | Feature-kit sources, read daily. |
+
+**AWC's limits.** The Aviation Weather Center limits every client to **100 requests per minute**, asks you to wait
+between requests (about one per minute per endpoint) and blocks clients that exceed it. The defaults stay far inside:
+all six AWC sources together budget 10 requests per minute, none polls faster than every 2 minutes, requests run one
+after another, and a 429 puts the source in backoff for the time AWC names in `Retry-After`. If you raise an AWC
+source's budget or shorten its interval, keep the sum of the six well under 100 per minute (other software on the same
+public address counts too).
+
+**Choosing a PIREP box.** AWC refuses a PIREP query without a box and returns at most 400 reports per query. The default
+box is the conterminous US (`-130,20,-60,55`, west,south,east,north), which can exceed 400 reports in a busy afternoon,
+so the oldest reports of the two-hour window are then missing. Set `bbox` to the region you care about (for example
+your places plus a few hundred kilometers) to keep busy periods complete; Foresignal sends it to AWC latitude first.
+
+**The UAS Facility Map** is read in full for your box on the first run and every 56 days (the FAA chart cycle); weekly
+runs in between ask only for cells edited since the last run. A larger box costs more requests on full reads
+(2,000 cells per request, at most 50,000 cells per run, `maxFeatures`).
+
+**NOTAMs are not collected.** The FAA moved NOTAM distribution to the NOTAM Management Service (cutover reported for
+18 April 2026); its API needs an approval requested from `notams@faa.gov` and its endpoints are not publicly documented.
+TFRs, the NOTAMs that matter most on a map, come from `faa-tfr`.
+
 ### Cyber feeds and Certificate Transparency
 
 Prompt 076 adds five sources, all disabled until you enable them:

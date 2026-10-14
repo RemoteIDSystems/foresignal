@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<XNOTAM-Update version="2.0" origin="SYNTHETIC" created="2026-10-14T00:00:00">
+  <Group>
+    <Add>
+      <Not>
+        <NotUid>
+          <txtNameAcctFac>FDC</txtNameAcctFac>
+          <dateIndexYear>2029</dateIndexYear>
+          <noSeqNo>1</noSeqNo>
+          <dateIssued>2026-10-13T18:30:00</dateIssued>
+          <txtLocalName>9/0001</txtLocalName>
+        </NotUid>
+        <dateEffective>2026-10-14T00:00:00</dateEffective>
+        <codeTimeZone>CDT</codeTimeZone>
+        <AffLocGroup>
+          <txtNameCity>SYNTHETIC CITY</txtNameCity>
+          <txtNameUSState>TEXAS</txtNameUSState>
+        </AffLocGroup>
+        <codeFacility>ZHU</codeFacility>
+        <TfrNot>
+          <codeType>99.7</codeType>
+          <TFRAreaGroup>
+            <aseTFRArea>
+              <AseUid><codeType>RAS</codeType><codeId>101</codeId></AseUid>
+              <txtName>Area A</txtName>
+              <codeDistVerUpper>ALT</codeDistVerUpper>
+              <valDistVerUpper>180</valDistVerUpper>
+              <uomDistVerUpper>FL</uomDistVerUpper>
+              <codeDistVerLower>HEI</codeDistVerLower>
+              <valDistVerLower>0</valDistVerLower>
+              <uomDistVerLower>FT</uomDistVerLower>
+            </aseTFRArea>
+            <aseShapes>
+              <AseUid><codeType>PART</codeType><codeId>102</codeId></AseUid>
+              <Abd>
+                <AbdUid><AseUid><codeType>RAS</codeType><codeId>101</codeId></AseUid></AbdUid>
+                <Avx><codeDatum>WGE</codeDatum><codeType>GRC</codeType><geoLat>30.00000000N</geoLat><geoLong>097.00000000W</geoLong></Avx>
+                <Avx><codeDatum>WGE</codeDatum><codeType>CWA</codeType><geoLatArc>30.00000000N</geoLatArc><geoLongArc>096.90000000W</geoLongArc><valRadiusArc>5.2</valRadiusArc><uomRadiusArc>NM</uomRadiusArc></Avx>
+                <Avx><codeDatum>WGE</codeDatum><codeType>GRC</codeType><geoLat>30.00000000N</geoLat><geoLong>096.80000000W</geoLong></Avx>
+                <Avx><codeDatum>WGE</codeDatum><codeType>CWA</codeType><geoLatArc>30.00000000N</geoLatArc><geoLongArc>096.90000000W</geoLongArc><valRadiusArc>5.2</valRadiusArc><uomRadiusArc>NM</uomRadiusArc></Avx>
+                <Avx><codeDatum>WGE</codeDatum><codeType>GRC</codeType><geoLat>30.00000000N</geoLat><geoLong>097.00000000W</geoLong></Avx>
+              </Abd>
+            </aseShapes>
+          </TFRAreaGroup>
+          <TFRAreaGroup>
+            <aseTFRArea>
+              <AseUid><codeType>RAS</codeType><codeId>103</codeId></AseUid>
+              <txtName>Area B</txtName>
+              <codeDistVerUpper>HEI</codeDistVerUpper>
+              <valDistVerUpper>3000</valDistVerUpper>
+              <uomDistVerUpper>FT</uomDistVerUpper>
+              <codeDistVerLower>SFC</codeDistVerLower>
+              <valDistVerLower>0</valDistVerLower>
+              <uomDistVerLower>FT</uomDistVerLower>
+            </aseTFRArea>
+            <aseShapes>
+              <AseUid><codeType>PART</codeType><codeId>104</codeId></AseUid>
+              <Abd>
+                <AbdUid><AseUid><codeType>RAS</codeType><codeId>103</codeId></AseUid></AbdUid>
+                <Avx><codeType>CIR</codeType><geoLat>31.00000000N</geoLat><geoLong>098.00000000W</geoLong><codeDatum>WGE</codeDatum><valRadiusArc>5.0</valRadiusArc><uomRadiusArc>KM</uomRadiusArc></Avx>
+              </Abd>
+            </aseShapes>
+          </TFRAreaGroup>
+        </TfrNot>
+        <txtDescrModern>&lt;html&gt;&lt;body&gt;&lt;p&gt;SYNTHETIC TFR, NO EXPIRY&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</txtDescrModern>
+      </Not>
+    </Add>
+  </Group>
+</XNOTAM-Update>

@@ -362,6 +362,11 @@
         "version": "1.3.0",
         "date": "2026-10-13",
         "note": "086: no new operations. ingestRecordsFormat gains the `same` format (text/plain, with an example body); updateSource can answer 400 PRIVATE_REQUIRED (added to the Problem codes) for a parameter allowed only on a private source (local-remoteid keepOperatorPosition). The acars-message, gnss-integrity, drone, seismic-trigger and same-alert kind notes describe the built records. New sources local-acars-{n} (private by descriptor) and local-remoteid; local-gpsd-{n} gains fixedStation, ubxMonitor and stationLabel and the gnss-integrity kind; local-sonde gains stationCallsign; mapping preset rsudp-alarm."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-14",
+        "note": "087: no new operations. Built notes on the airspace-restriction, airport-delay, aviation-hazard, pirep, taf, uas-facility-cell, uas-restriction and uas-site kinds; pirep gains reportType; taf lists stationId, raw, elevationM, name; uas-restriction and uas-site list the fields the faa-uas kit specs map (city, objectId, globalId added; uas-site has no floorFt or reason). New sources faa-tfr, faa-nas-status, faa-uasfm, awc-sigmets, awc-gairmets, awc-cwas, awc-pireps, awc-tafs and the faa-uas-* feature-kit sources."
       }
     ]
   },
@@ -90186,7 +90191,8 @@
                 "upperRef",
                 "description"
               ]
-            }
+            },
+            "note": "Built in 087 (faa-tfr). One record per TFR of tfr.faa.gov's exportTfrList: externalId = notam_id (6/8784), observedAt = XNOTAM dateIssued, validFrom = dateEffective, validUntil = dateExpire (upstream-asserted; null means until further notice). XNOTAM times are UTC whatever codeTimeZone says (codeTimeZone names the zone the NOTAM text quotes). Geometry: each area's abdMergedArea (else its Abd parts) with arcs (CWA/CCA) densified at most 2 degrees apart and a lone circle (CIR) as 64 vertices; several areas are a MultiPolygon. lowerFt/upperFt are the lowest floor and highest ceiling of the areas in feet (FL values times 100); lowerRef/upperRef are the XNOTAM codes SFC, ALT (MSL) or HEI (above ground). tfrType, facility and state come from the list, city and regulation (the 14 CFR section, for example 91.137(a)(1)) from the detail; description is the NOTAM text (txtDescrTraditional, untrusted). A TFR that leaves the list is tombstoned."
           },
           "airport-delay": {
             "x-foresignal-prompt": "087",
@@ -90202,7 +90208,8 @@
                 "endTime",
                 "reopen"
               ]
-            }
+            },
+            "note": "Built in 087 (faa-nas-status, an XML document). externalId ARPT|delayKind; delayKind ground-delay, ground-stop, arrival-delay, departure-delay, general-delay, closure, deicing (other blocks: the block name in kebab case); avgMin/maxMin/minMin are minutes; endTime is a ground stop's end as published (7:45 pm EDT); reopen is a closure's reopening, ISO-8601 UTC from the closure NOTAM's validity or the Reopen text, else as published. observedAt = Update_Time; geometry = the airport's point from the bundled OurAirports table (none for an unknown identifier). A cleared program is tombstoned."
           },
           "aviation-hazard": {
             "x-foresignal-prompt": "087",
@@ -90218,7 +90225,8 @@
                 "movementKt",
                 "raw"
               ]
-            }
+            },
+            "note": "Built in 087. awc-sigmets (US airsigmet: product SIGMET, AIRMET or OUTLOOK as published; international isigmet: ISIGMET), awc-gairmets (GAIRMET snapshots) and awc-cwas (CWA). externalId icaoId:seriesId:validTimeFrom (isigmet firId:seriesId:validTimeFrom; G-AIRMET product:tag:hazard:validTime:forecast, plus :level for a freezing-level contour, whose pieces are merged; CWA cwsu:seriesId:validTimeFrom). validFrom/validUntil = validTimeFrom/validTimeTo (a G-AIRMET has validFrom = validTime and ends by its 3-hour TTL). baseFt/topFt in feet (G-AIRMET levels are hundreds of feet times 100; a freezing-level contour's level is baseFt); movementDir in degrees (a compass point is converted); qualifier is the G-AIRMET dueTo text for G-AIRMETs. raw is upstream text (untrusted). An advisory missing from the next complete response is tombstoned."
           },
           "pirep": {
             "x-foresignal-prompt": "087",
@@ -90230,16 +90238,23 @@
                 "icing",
                 "skyCover",
                 "wx",
-                "raw"
+                "raw",
+                "reportType"
               ]
-            }
+            },
+            "note": "Built in 087 (awc-pireps). externalId receiptTime:lat:lon:sha1(rawOb)[0..8]; eventTime = observedAt = obsTime; fltLvl in hundreds of feet; turbulence and icing are intensity and type (MOD CHOP); skyCover the reported cloud covers in order; reportType PIREP, Urgent PIREP or AIREP; raw is upstream text (untrusted). TTL 2 h on the observation time."
           },
           "taf": {
             "x-foresignal-prompt": "087",
             "payloadFields": {
-              "awc-tafs": []
+              "awc-tafs": [
+                "stationId",
+                "raw",
+                "elevationM",
+                "name"
+              ]
             },
-            "note": "One record per station; validFrom/validUntil = TAF validity."
+            "note": "Built in 087. One record per station (the newest issue): observedAt = issue time, validFrom/validUntil = the TAF validity (asserted). raw is the TAF text (untrusted); name only from the TAF API (station allowlist), not from the cache file (scope)."
           },
           "uas-facility-cell": {
             "x-foresignal-prompt": "087",
@@ -90250,7 +90265,8 @@
                 "laanc",
                 "mapEffective"
               ]
-            }
+            },
+            "note": "Built in 087 (faa-uasfm, the FAA_UAS_FacilityMap_Data layer). externalId GLOBALID; observedAt = LAST_EDIT (a M/d/yyyy text date, UTC midnight); ceilingFt in feet above ground; airports the FAA identifiers APT1..5_FAAID; laanc true when any is LAANC-enabled; mapEffective ISO date. The bbox parameter is required."
           },
           "uas-restriction": {
             "x-foresignal-prompt": "087",
@@ -90260,11 +90276,15 @@
                 "facility",
                 "reason",
                 "state",
+                "city",
                 "floorFt",
                 "ceilingFt",
-                "restrictionType"
+                "restrictionType",
+                "objectId",
+                "globalId"
               ]
-            }
+            },
+            "note": "Built in 087 as feature-kit specs (kits/features/faa-uas.json). faa-uas-nsufr and -parttime carry name (Base), facility, reason, state, floorFt (Surface is 0) and ceilingFt (the AGL ceilings published as text, for example 400' AGL; MSL ceilings are left out) and objectId, their id (no GlobalID; OBJECTID may change when the layer is republished); stadiums, prohibited areas and defense TFR areas carry name, city, state and globalId (GLOBAL_ID), prohibited areas also floorFt/ceilingFt from LOWER_VAL/UPPER_VAL. restrictionType is a constant per source: national-security, national-security-part-time, stadium, prohibited-area, national-defense-tfr."
           },
           "uas-site": {
             "x-foresignal-prompt": "087",
@@ -90272,13 +90292,14 @@
               "faa-uas-recreational-sites": [
                 "name",
                 "facility",
-                "reason",
+                "city",
                 "state",
-                "floorFt",
                 "ceilingFt",
-                "restrictionType"
+                "restrictionType",
+                "globalId"
               ]
-            }
+            },
+            "note": "Built in 087 (faa-uas-recreational-sites, a feature-kit spec). name SITE_NAME, facility SITE_ID, city, state, ceilingFt (feet), globalId GLOBALID (the id), restrictionType recreational-fixed-site."
           },
           "maritime-warning": {
             "x-foresignal-prompt": "088",

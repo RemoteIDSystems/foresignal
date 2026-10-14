@@ -19,12 +19,9 @@ import ai.foresignal.source.spi.SourceDescriptor;
 import ai.foresignal.source.spi.SourceHttp;
 import ai.foresignal.source.spi.TtlAnchor;
 import ai.foresignal.source.spi.UpstreamFormatException;
-import ai.foresignal.source.spi.UpstreamResponse;
 import java.net.URI;
 import java.time.Duration;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -56,10 +53,10 @@ public class AwcMetarsAdapter implements PollingAdapter {
     public static final String KIND = MetarCsvParser.KIND;
 
     /** The production upstream. */
-    public static final String DEFAULT_BASE_URL = "https://aviationweather.gov";
+    public static final String DEFAULT_BASE_URL = AwcSupport.DEFAULT_BASE_URL;
 
-    /** Test-only override of {@link #DEFAULT_BASE_URL}. */
-    public static final String BASE_URL_PROPERTY = "foresignal.test.adapters.awc.base-url";
+    /** Test-only override of {@link #DEFAULT_BASE_URL}, shared by every AWC source ({@link AwcSupport}). */
+    public static final String BASE_URL_PROPERTY = AwcSupport.BASE_URL_PROPERTY;
 
     /** The cache file path. */
     public static final String PATH = "/data/cache/metars.cache.csv.gz";
@@ -71,13 +68,13 @@ public class AwcMetarsAdapter implements PollingAdapter {
     public static final String STATIONS_PARAM = "stations";
 
     /** The scope values. */
-    public static final List<String> SCOPES = List.of("aoi", "conus", "global");
+    public static final List<String> SCOPES = AwcSupport.SCOPES;
 
     /** The conterminous US box used by {@code scope=conus}. */
-    static final double[] CONUS = {-125.0, 24.0, -66.5, 50.0};
+    static final double[] CONUS = AwcSupport.CONUS;
 
     /** The AOI used when no AOI service is wired (unit tests): the Texas box. */
-    static final double[] DEFAULT_ENVELOPE = {-106.65, 25.84, -93.51, 36.50};
+    static final double[] DEFAULT_ENVELOPE = AwcSupport.DEFAULT_ENVELOPE;
 
     /** The adapter-state key of the file's validators. */
     static final String STATE_KEY = "metars";
@@ -112,8 +109,7 @@ public class AwcMetarsAdapter implements PollingAdapter {
      */
     public AwcMetarsAdapter(AreaOfInterest aoi, String baseUrlOverride) {
         this.aoi = aoi;
-        String chosen = baseUrlOverride == null || baseUrlOverride.isBlank() ? DEFAULT_BASE_URL : baseUrlOverride.trim();
-        this.baseUrl = chosen.endsWith("/") ? chosen.substring(0, chosen.length() - 1) : chosen;
+        this.baseUrl = AwcSupport.baseUrl(baseUrlOverride);
         if (aoi != null) {
             aoi.registerConsumer(ID);
         }
@@ -129,36 +125,22 @@ public class AwcMetarsAdapter implements PollingAdapter {
         return URI.create(baseUrl + PATH);
     }
 
-    /** The station filter for the given parameters. */
+    /** The station filter for the given parameters (the shared {@link AwcSupport} scope and allowlist). */
     MetarCsvParser.Filter filter(String scope, List<String> stations) {
-        Set<String> allow = new LinkedHashSet<>();
-        for (String station : stations) {
-            if (station != null && !station.isBlank()) {
-                allow.add(station.strip().toUpperCase(Locale.ROOT));
-            }
-        }
-        double[] envelope = switch (scope == null ? "aoi" : scope) {
-            case "global" -> null;
-            case "conus" -> CONUS.clone();
-            default -> aoi == null ? DEFAULT_ENVELOPE.clone() : aoi.envelope();
-        };
-        return new MetarCsvParser.Filter(envelope, allow);
+        return new MetarCsvParser.Filter(AwcSupport.envelope(scope, aoi), AwcSupport.stations(stations));
     }
 
     @Override
     public FetchResult fetch(FetchContext ctx) throws AdapterException {
         MetarCsvParser.Filter filter = filter(ctx.params().optionalString(SCOPE_PARAM).orElse("aoi"),
                 ctx.params().stringList(STATIONS_PARAM));
-        UpstreamResponse response = ctx.http().getConditional(cacheUri(), STATE_KEY);
-        if (response.notModified()) {
+        byte[] body = AwcSupport.conditionalBody(ctx, cacheUri(), STATE_KEY, "AWC METAR file");
+        if (body == null) {
             return FetchResult.unchanged();
         }
         MetarCsvParser.ParseResult parsed;
         try {
-            if (response.truncated()) {
-                throw new UpstreamFormatException("AWC METAR file exceeded maxResponseBytes and was truncated", null);
-            }
-            parsed = MetarCsvParser.parse(response.body(), filter);
+            parsed = MetarCsvParser.parse(body, filter);
         } catch (UpstreamFormatException e) {
             SourceHttp.forgetValidators(ctx.state(), STATE_KEY);
             throw e;
@@ -174,10 +156,10 @@ public class AwcMetarsAdapter implements PollingAdapter {
                         + " file, one record per station. AWC asks for at most 1 request per minute per thread and"
                         + " 100 per minute overall; the default 5-minute poll complies.")
                 .kind(KIND)
-                .homepage("https://aviationweather.gov/data/api/")
-                .attribution("NOAA/NWS Aviation Weather Center")
-                .licence("US-PD")
-                .termsUrl("https://www.weather.gov/disclaimer")
+                .homepage(AwcSupport.HOMEPAGE)
+                .attribution(AwcSupport.ATTRIBUTION)
+                .licence(AwcSupport.LICENSE)
+                .termsUrl(AwcSupport.TERMS_URL)
                 .mode(Mode.POLLING)
                 .param(ParamSpec.enumerated(SCOPE_PARAM,
                         "aoi (the places-AOI envelope), conus or global; ignored when stations is set", "aoi", SCOPES))

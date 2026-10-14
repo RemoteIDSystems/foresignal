@@ -323,7 +323,27 @@ class FamilyDefaultsTest {
             Map.entry("LocalRemoteIdAdapter", new Entry(new ai.foresignal.source.adapters.remoteid.LocalRemoteIdAdapter(
                     null, () -> "abcd1234", null).descriptor(), "track")),
             Map.entry("SatDumpAdapter", new Entry(new ai.foresignal.source.adapters.satdump.SatDumpAdapter("itest", null,
-                    null).descriptor(), "station")));
+                    null).descriptor(), "station")),
+            // Prompt 087: TFRs and NOTAM-like restrictions, airport delay programs and SIGMET/AIRMET/CWA hazards are
+            // the event class (1825 d); PIREPs are high-volume reports, bulk-event (90 d); the UAS Facility Map grid is
+            // reference data (90 d of history); TAFs keep the 7 days of METARs (the "weather" class; §2.4 names no
+            // TAF window, see the 087 report).
+            Map.entry("FaaTfrAdapter", new Entry(
+                    new ai.foresignal.source.adapters.faa.FaaTfrAdapter("").descriptor(), "event")),
+            Map.entry("FaaNasStatusAdapter", new Entry(
+                    new ai.foresignal.source.adapters.faa.FaaNasStatusAdapter("", () -> null).descriptor(), "event")),
+            Map.entry("FaaUasfmAdapter", new Entry(
+                    new ai.foresignal.source.adapters.faa.FaaUasfmAdapter("").descriptor(), "reference")),
+            Map.entry("AwcSigmetsAdapter", new Entry(
+                    new ai.foresignal.source.adapters.awc.AwcSigmetsAdapter("").descriptor(), "event")),
+            Map.entry("AwcGairmetsAdapter", new Entry(
+                    new ai.foresignal.source.adapters.awc.AwcGairmetsAdapter("").descriptor(), "event")),
+            Map.entry("AwcCwasAdapter", new Entry(
+                    new ai.foresignal.source.adapters.awc.AwcCwasAdapter("").descriptor(), "event")),
+            Map.entry("AwcPirepsAdapter", new Entry(
+                    new ai.foresignal.source.adapters.awc.AwcPirepsAdapter("").descriptor(), "bulk-event")),
+            Map.entry("AwcTafsAdapter", new Entry(new ai.foresignal.source.adapters.awc.AwcTafsAdapter(
+                    (AreaOfInterest) null, "").descriptor(), "weather")));
 
     /**
      * The {@code privacy} class (prompt 086): private sources whose prompt sets a short raw window on purpose, because
@@ -353,7 +373,9 @@ class FamilyDefaultsTest {
             Map.entry("wx-area", Duration.ofDays(7)),
             Map.entry("radar-cell", Duration.ofDays(3)),
             Map.entry("storm-report", Duration.ofDays(30)),
-            Map.entry("nws-forecast", Duration.ofDays(7)));
+            Map.entry("nws-forecast", Duration.ofDays(7)),
+            // Prompt 087: TAFs, kept as long as METARs; not in §2.4 (owner question in the 087 report).
+            Map.entry("taf", Duration.ofDays(7)));
 
     /** Weather-Imagery-Design §2.4's per-kind retention of a SatDump station's kinds, for the {@code station} class. */
     static final Map<String, Duration> STATION_KIND_RETENTION = Map.of(

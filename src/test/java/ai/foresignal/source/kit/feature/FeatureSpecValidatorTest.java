@@ -220,7 +220,8 @@ class FeatureSpecValidatorTest {
     @DisplayName("the shipped specs are valid, every descriptor validates, and every kit source is disabled by default")
     void shipped() {
         KitSpecs specs = new KitSpecs(KitOverlay.disabled(), "");
-        assertThat(specs.features()).extracting(FeatureSourceSpec::id).contains("feature-wfigs-incidents");
+        assertThat(specs.features()).extracting(FeatureSourceSpec::id).contains("feature-wfigs-incidents",
+                "faa-uas-nsufr");
         assertThat(specs.feeds()).extracting(s -> s.id()).containsExactlyInAnyOrder("feed-cisa-advisories",
                 "feed-ncsc-uk", "feed-nhc-atlantic", "feed-nhc-eastpacific", "feed-ecdc-threats", "feed-who-news");
         List<SourceAdapter> adapters = new ArrayList<>(new FeatureKitFamily(specs.features(), "", null).adapters());
@@ -229,7 +230,9 @@ class FeatureSpecValidatorTest {
             assertThat(DescriptorValidator.problems(a.descriptor(), a)).as(a.id()).isEmpty();
             assertThat(a.descriptor().licence()).as(a.id()).isNotBlank();
         }
-        FeatureSourceSpec wfigs = specs.features().get(0);
+        // Prompt 087: faa-uas.json now sorts before wfigs.json, so the spec is found by id.
+        FeatureSourceSpec wfigs = specs.features().stream().filter(f -> f.id().equals("feature-wfigs-incidents"))
+                .findFirst().orElseThrow();
         assertThat(wfigs.protocol()).isEqualTo("arcgis");
         assertThat(wfigs.tombstonesAbsent()).isTrue();
         assertThat(wfigs.time().observedAt()).isEqualTo("modifiedAt");

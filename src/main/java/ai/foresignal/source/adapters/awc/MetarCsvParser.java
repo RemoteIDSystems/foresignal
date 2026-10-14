@@ -1,6 +1,5 @@
 package ai.foresignal.source.adapters.awc;
 
-import ai.foresignal.source.spi.AreaOfInterest;
 import ai.foresignal.source.spi.NormalizedRecord;
 import ai.foresignal.source.spi.UpstreamFormatException;
 import java.io.BufferedReader;
@@ -75,10 +74,7 @@ public final class MetarCsvParser {
         }
 
         boolean keeps(String station, double lon, double lat) {
-            if (!stations.isEmpty()) {
-                return stations.contains(station);
-            }
-            return envelope == null || AreaOfInterest.contains(envelope, lon, lat);
+            return AwcSupport.keeps(envelope, stations, station, lon, lat);
         }
     }
 

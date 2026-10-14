@@ -1,0 +1,433 @@
+[
+  {
+    "id": "faa-uas-nsufr",
+    "name": "FAA National Security UAS Flight Restrictions",
+    "description": "Permanent national security UAS flight restrictions (14 CFR 99.7 special security instructions) over military, energy and other critical facilities, from the FAA layer DoD_Mar_13 (layer 0, National_Security_UAS_Flight_Restrictions). Floor 'Surface' is 0 ft; the AGL ceilings are read from text such as \"400' AGL\" (the 57 ceilings given as \"2,000' MSL\" on 2026-10-14 carry no ceilingFt). The layer has no GlobalID and FAA_ID repeats for 10 of 2,284 rows, so the id is OBJECTID, which a republication may renumber. A restriction missing from two consecutive complete fetches is tombstoned.",
+    "kind": "uas-restriction",
+    "protocol": "arcgis",
+    "url": "https://services6.arcgis.com/ssFJjBXIUyZDrSYZ/ArcGIS/rest/services/DoD_Mar_13/FeatureServer/0",
+    "idField": "objectId",
+    "titleField": "name",
+    "fields": {
+      "OBJECTID": {
+        "target": "objectId",
+        "type": "integer"
+      },
+      "Base": {
+        "target": "name",
+        "type": "string"
+      },
+      "Facility": {
+        "target": "facility",
+        "type": "string"
+      },
+      "Reason": {
+        "target": "reason",
+        "type": "string"
+      },
+      "State": {
+        "target": "state",
+        "type": "string"
+      },
+      "Floor": {
+        "target": "floorFt",
+        "type": "number",
+        "unit": "[ft_i]",
+        "valueMap": {
+          "Surface": 0
+        }
+      },
+      "Ceiling": {
+        "target": "ceilingFt",
+        "type": "number",
+        "unit": "[ft_i]",
+        "valueMap": {
+          "400' AGL": 400,
+          "2,000' AGL": 2000,
+          "2,500' AGL": 2500,
+          "6,500' AGL": 6500,
+          "8,000' AGL": 8000
+        }
+      }
+    },
+    "constants": {
+      "restrictionType": "national-security"
+    },
+    "time": {
+      "observedAt": "RECEIVED"
+    },
+    "interval": "24h",
+    "minInterval": "1h",
+    "budget": {
+      "perMinute": 10,
+      "perDay": 100
+    },
+    "paging": {
+      "pageSize": 1000,
+      "maxPages": 10
+    },
+    "absenceTombstones": true,
+    "zeroResultsNormal": false,
+    "searchFields": [
+      "name",
+      "facility",
+      "state"
+    ],
+    "tileProperties": [
+      "restrictionType",
+      "name",
+      "ceilingFt"
+    ],
+    "retention": "90d",
+    "license": "US-PD",
+    "attribution": "Federal Aviation Administration",
+    "homepage": "https://udds-faa.opendata.arcgis.com",
+    "termsUrl": "https://www.faa.gov/web_policies"
+  },
+  {
+    "id": "faa-uas-nsufr-parttime",
+    "name": "FAA Part-Time National Security UAS Flight Restrictions",
+    "description": "Part-time national security UAS flight restrictions, active only when the FAA activates them by NOTAM, from the FAA layer Part_Time_National_Security_UAS_Flight_Restrictions. Same fields as faa-uas-nsufr; the id is OBJECTID (no GlobalID). A restriction missing from two consecutive complete fetches is tombstoned.",
+    "kind": "uas-restriction",
+    "protocol": "arcgis",
+    "url": "https://services6.arcgis.com/ssFJjBXIUyZDrSYZ/ArcGIS/rest/services/Part_Time_National_Security_UAS_Flight_Restrictions/FeatureServer/0",
+    "idField": "objectId",
+    "titleField": "name",
+    "fields": {
+      "OBJECTID": {
+        "target": "objectId",
+        "type": "integer"
+      },
+      "Base": {
+        "target": "name",
+        "type": "string"
+      },
+      "Facility": {
+        "target": "facility",
+        "type": "string"
+      },
+      "Reason": {
+        "target": "reason",
+        "type": "string"
+      },
+      "State": {
+        "target": "state",
+        "type": "string"
+      },
+      "Floor": {
+        "target": "floorFt",
+        "type": "number",
+        "unit": "[ft_i]",
+        "valueMap": {
+          "Surface": 0
+        }
+      },
+      "Ceiling": {
+        "target": "ceilingFt",
+        "type": "number",
+        "unit": "[ft_i]",
+        "valueMap": {
+          "400' AGL": 400,
+          "2,000' AGL": 2000,
+          "2,500' AGL": 2500,
+          "6,500' AGL": 6500,
+          "8,000' AGL": 8000
+        }
+      }
+    },
+    "constants": {
+      "restrictionType": "national-security-part-time"
+    },
+    "time": {
+      "observedAt": "RECEIVED"
+    },
+    "interval": "24h",
+    "minInterval": "1h",
+    "budget": {
+      "perMinute": 10,
+      "perDay": 100
+    },
+    "paging": {
+      "pageSize": 2000,
+      "maxPages": 5
+    },
+    "absenceTombstones": true,
+    "zeroResultsNormal": false,
+    "searchFields": [
+      "name",
+      "facility",
+      "state"
+    ],
+    "tileProperties": [
+      "restrictionType",
+      "name",
+      "ceilingFt"
+    ],
+    "retention": "90d",
+    "license": "US-PD",
+    "attribution": "Federal Aviation Administration",
+    "homepage": "https://udds-faa.opendata.arcgis.com",
+    "termsUrl": "https://www.faa.gov/web_policies"
+  },
+  {
+    "id": "faa-uas-recreational-sites",
+    "name": "FAA Recreational Flyer Fixed Sites",
+    "description": "FAA-recognized fixed sites where recreational flyers may operate in controlled airspace up to the site's ceiling, from the FAA layer Recreational_Flyer_Fixed_Sites. Id GLOBALID; the ceiling is in feet (UNIT is 'Feet' on every row, 2026-10-14). A site missing from two consecutive complete fetches is tombstoned.",
+    "kind": "uas-site",
+    "protocol": "arcgis",
+    "url": "https://services6.arcgis.com/ssFJjBXIUyZDrSYZ/ArcGIS/rest/services/Recreational_Flyer_Fixed_Sites/FeatureServer/0",
+    "idField": "globalId",
+    "titleField": "name",
+    "fields": {
+      "GLOBALID": {
+        "target": "globalId",
+        "type": "string"
+      },
+      "SITE_NAME": {
+        "target": "name",
+        "type": "string"
+      },
+      "SITE_ID": {
+        "target": "facility",
+        "type": "string"
+      },
+      "CITY": {
+        "target": "city",
+        "type": "string"
+      },
+      "STATE": {
+        "target": "state",
+        "type": "string"
+      },
+      "CEILING": {
+        "target": "ceilingFt",
+        "type": "number",
+        "unit": "[ft_i]"
+      }
+    },
+    "constants": {
+      "restrictionType": "recreational-fixed-site"
+    },
+    "time": {
+      "observedAt": "RECEIVED"
+    },
+    "interval": "24h",
+    "minInterval": "1h",
+    "budget": {
+      "perMinute": 10,
+      "perDay": 100
+    },
+    "paging": {
+      "pageSize": 2000,
+      "maxPages": 5
+    },
+    "absenceTombstones": true,
+    "zeroResultsNormal": false,
+    "searchFields": [
+      "name",
+      "city",
+      "state"
+    ],
+    "tileProperties": [
+      "restrictionType",
+      "name",
+      "ceilingFt"
+    ],
+    "retention": "90d",
+    "license": "US-PD",
+    "attribution": "Federal Aviation Administration",
+    "homepage": "https://udds-faa.opendata.arcgis.com",
+    "termsUrl": "https://www.faa.gov/web_policies"
+  },
+  {
+    "id": "faa-uas-stadiums",
+    "name": "FAA UAS stadium restrictions",
+    "description": "Stadiums covered by the FAA's sporting-event UAS restriction (14 CFR 99.7 special security instructions: within 3 NM and below 3,000 ft AGL during qualifying events), as points from the FAA layer Stadiums. Id GLOBAL_ID. A stadium missing from two consecutive complete fetches is tombstoned.",
+    "kind": "uas-restriction",
+    "protocol": "arcgis",
+    "url": "https://services6.arcgis.com/ssFJjBXIUyZDrSYZ/ArcGIS/rest/services/Stadiums/FeatureServer/0",
+    "idField": "globalId",
+    "titleField": "name",
+    "fields": {
+      "GLOBAL_ID": {
+        "target": "globalId",
+        "type": "string"
+      },
+      "NAME": {
+        "target": "name",
+        "type": "string"
+      },
+      "CITY": {
+        "target": "city",
+        "type": "string"
+      },
+      "STATE": {
+        "target": "state",
+        "type": "string"
+      }
+    },
+    "constants": {
+      "restrictionType": "stadium"
+    },
+    "time": {
+      "observedAt": "RECEIVED"
+    },
+    "interval": "24h",
+    "minInterval": "1h",
+    "budget": {
+      "perMinute": 10,
+      "perDay": 100
+    },
+    "paging": {
+      "pageSize": 2000,
+      "maxPages": 2
+    },
+    "absenceTombstones": true,
+    "zeroResultsNormal": false,
+    "searchFields": [
+      "name",
+      "city",
+      "state"
+    ],
+    "tileProperties": [
+      "restrictionType",
+      "name"
+    ],
+    "retention": "90d",
+    "license": "US-PD",
+    "attribution": "Federal Aviation Administration",
+    "homepage": "https://udds-faa.opendata.arcgis.com",
+    "termsUrl": "https://www.faa.gov/web_policies"
+  },
+  {
+    "id": "faa-uas-prohibited",
+    "name": "FAA prohibited areas",
+    "description": "Prohibited special-use airspace (P-areas) from the FAA layer Prohibited_Areas, with the lower and upper limits in feet (LOWER_VAL, UPPER_VAL; their references are in the layer's LOWER_CODE and UPPER_CODE, SFC and MSL on 2026-10-14). Id GLOBAL_ID. An area missing from two consecutive complete fetches is tombstoned.",
+    "kind": "uas-restriction",
+    "protocol": "arcgis",
+    "url": "https://services6.arcgis.com/ssFJjBXIUyZDrSYZ/ArcGIS/rest/services/Prohibited_Areas/FeatureServer/0",
+    "idField": "globalId",
+    "titleField": "name",
+    "fields": {
+      "GLOBAL_ID": {
+        "target": "globalId",
+        "type": "string"
+      },
+      "NAME": {
+        "target": "name",
+        "type": "string"
+      },
+      "CITY": {
+        "target": "city",
+        "type": "string"
+      },
+      "STATE": {
+        "target": "state",
+        "type": "string"
+      },
+      "LOWER_VAL": {
+        "target": "floorFt",
+        "type": "number",
+        "unit": "[ft_i]"
+      },
+      "UPPER_VAL": {
+        "target": "ceilingFt",
+        "type": "number",
+        "unit": "[ft_i]"
+      }
+    },
+    "constants": {
+      "restrictionType": "prohibited-area"
+    },
+    "time": {
+      "observedAt": "RECEIVED"
+    },
+    "interval": "24h",
+    "minInterval": "1h",
+    "budget": {
+      "perMinute": 10,
+      "perDay": 100
+    },
+    "paging": {
+      "pageSize": 2000,
+      "maxPages": 2
+    },
+    "absenceTombstones": true,
+    "zeroResultsNormal": false,
+    "searchFields": [
+      "name",
+      "city",
+      "state"
+    ],
+    "tileProperties": [
+      "restrictionType",
+      "name",
+      "ceilingFt"
+    ],
+    "retention": "90d",
+    "license": "US-PD",
+    "attribution": "Federal Aviation Administration",
+    "homepage": "https://udds-faa.opendata.arcgis.com",
+    "termsUrl": "https://www.faa.gov/web_policies"
+  },
+  {
+    "id": "faa-uas-defense-tfr",
+    "name": "FAA National Defense Airspace TFR areas",
+    "description": "Standing national defense airspace TFR areas (activated by NOTAM) from the FAA layer National_Defense_Airspace_TFR_Areas. Id GLOBAL_ID. An area missing from two consecutive complete fetches is tombstoned.",
+    "kind": "uas-restriction",
+    "protocol": "arcgis",
+    "url": "https://services6.arcgis.com/ssFJjBXIUyZDrSYZ/ArcGIS/rest/services/National_Defense_Airspace_TFR_Areas/FeatureServer/0",
+    "idField": "globalId",
+    "titleField": "name",
+    "fields": {
+      "GLOBAL_ID": {
+        "target": "globalId",
+        "type": "string"
+      },
+      "NAME": {
+        "target": "name",
+        "type": "string"
+      },
+      "CITY": {
+        "target": "city",
+        "type": "string"
+      },
+      "STATE": {
+        "target": "state",
+        "type": "string"
+      }
+    },
+    "constants": {
+      "restrictionType": "national-defense-tfr"
+    },
+    "time": {
+      "observedAt": "RECEIVED"
+    },
+    "interval": "24h",
+    "minInterval": "1h",
+    "budget": {
+      "perMinute": 10,
+      "perDay": 100
+    },
+    "paging": {
+      "pageSize": 2000,
+      "maxPages": 2
+    },
+    "absenceTombstones": true,
+    "zeroResultsNormal": false,
+    "searchFields": [
+      "name",
+      "city",
+      "state"
+    ],
+    "tileProperties": [
+      "restrictionType",
+      "name"
+    ],
+    "retention": "90d",
+    "license": "US-PD",
+    "attribution": "Federal Aviation Administration",
+    "homepage": "https://udds-faa.opendata.arcgis.com",
+    "termsUrl": "https://www.faa.gov/web_policies"
+  }
+]
