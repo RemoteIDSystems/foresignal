@@ -151,6 +151,22 @@ final class BatchFold {
             GateSnapshot snapshot,
             List<Observation> observations,
             Map<String, EntityState> loaded) {
+        return fold(profile, snapshot, observations, loaded, false);
+    }
+
+    /**
+     * Folds {@code observations}.
+     *
+     * @param forceTouch true for a complete-set reference run (prompt 094): an unchanged record the throttle
+     *     would suppress is written as a TOUCH instead, so its {@code last_received_at} always advances and
+     *     the complete-set reconciliation never mistakes it for a record that disappeared
+     */
+    static Result fold(
+            SourceIngestProfile profile,
+            GateSnapshot snapshot,
+            List<Observation> observations,
+            Map<String, EntityState> loaded,
+            boolean forceTouch) {
         Map<String, EntityPlan> entities = new LinkedHashMap<>();
         List<PlannedVersion> versions = new ArrayList<>();
         Map<PersistReason, Integer> byReason = new EnumMap<>(PersistReason.class);
@@ -209,7 +225,17 @@ final class BatchFold {
                     plan.state = state.apply(decision, prepared, profile, 0);
                     plan.touches++;
                 }
-                case TOUCH_THROTTLED -> throttled++;
+                case TOUCH_THROTTLED -> {
+                    if (forceTouch) {
+                        // Prompt 094: a complete-set run always advances last_received_at, so the
+                        // reconciliation can trust "not seen this run".
+                        touches++;
+                        plan.state = state.apply(Decision.of(Outcome.TOUCH), prepared, profile, 0);
+                        plan.touches++;
+                    } else {
+                        throttled++;
+                    }
+                }
                 case LATE -> late++;
                 case SKIP -> skipped++;
             }

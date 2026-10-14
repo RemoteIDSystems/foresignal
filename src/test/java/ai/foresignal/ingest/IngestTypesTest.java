@@ -41,6 +41,7 @@ class IngestTypesTest {
             case IngestBatch b -> "batch " + b.records().size();
             case HeadPurge p -> "purge";
             case EntityPurge e -> "entity purge";
+            case TombstoneAbsent t -> "tombstone absent";
         };
         assertThat(kind).isEqualTo("batch 0");
         assertThat(((IngestBatch) batch).future()).isNotNull();

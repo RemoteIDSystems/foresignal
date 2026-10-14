@@ -64,7 +64,16 @@ public class IngestQueue {
      */
     public CompletableFuture<IngestOutcome> submit(
             String sourceId, FetchLogEntry log, List<IngestRecord> records, Duration timeout) {
-        IngestBatch batch = new IngestBatch(sourceId, log, records, new CompletableFuture<>());
+        return submit(sourceId, log, records, timeout, false);
+    }
+
+    /**
+     * Submits one batch, forcing touches when {@code forceTouch} is set (prompt 094: the batches of a
+     * complete-set reference run always advance {@code record_live.last_received_at}).
+     */
+    public CompletableFuture<IngestOutcome> submit(
+            String sourceId, FetchLogEntry log, List<IngestRecord> records, Duration timeout, boolean forceTouch) {
+        IngestBatch batch = new IngestBatch(sourceId, log, records, new CompletableFuture<>(), forceTouch);
         put(batch, timeout, "batch for " + sourceId);
         return batch.future();
     }
@@ -104,6 +113,25 @@ public class IngestQueue {
         EntityPurge purge = new EntityPurge(sourceId, externalId, new CompletableFuture<>());
         put(purge, timeout, "entity purge of " + sourceId);
         return purge.future();
+    }
+
+    /**
+     * Submits a complete-set reconciliation (prompt 094), waiting at most {@code timeout} for room.
+     *
+     * @param sourceId the source
+     * @param kinds the record kinds to reconcile
+     * @param runStartedAt when the complete run started
+     * @param maxAbsentRatio the descriptor's {@code reconcile.maxAbsentRatio}
+     * @param allowShrink the operator's one-off override
+     * @return completed by the writer with what the reconciliation did
+     * @throws IngestBackpressureException when the queue stayed full for the whole timeout
+     */
+    public CompletableFuture<TombstoneOutcome> submitTombstoneAbsent(String sourceId, java.util.Set<String> kinds,
+            java.time.Instant runStartedAt, double maxAbsentRatio, boolean allowShrink, Duration timeout) {
+        TombstoneAbsent reconcile =
+                new TombstoneAbsent(sourceId, kinds, runStartedAt, maxAbsentRatio, allowShrink, new CompletableFuture<>());
+        put(reconcile, timeout, "complete-set reconciliation of " + sourceId);
+        return reconcile.future();
     }
 
     /**

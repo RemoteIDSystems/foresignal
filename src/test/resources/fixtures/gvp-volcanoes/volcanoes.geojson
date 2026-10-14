@@ -1,0 +1,55 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "Volcano_Number": "210010",
+        "Volcano_Name": "Etna",
+        "Volcano_Landform": "Stratovolcano",
+        "Primary_Volcano_Type": "Stratovolcano",
+        "Last_Eruption_Year": 2021,
+        "Country": "Italy",
+        "Region": "Mediterranean and Western Asia",
+        "Subregion": "Italy",
+        "Elevation": 3357,
+        "Tectonic_Setting": "Subduction zone / Continental crust (>25 km)",
+        "Evidence_Category": "Historical Observations",
+        "Major_Rock_Type": "Basalt / Picro-Basalt",
+        "Geologic_Summary": "Etna is one of the world's most active volcanoes."
+      },
+      "geometry": {"type": "Point", "coordinates": [15.0, 37.75]}
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "Volcano_Number": "210020",
+        "Volcano_Name": "Vesuvius",
+        "Volcano_Landform": "Stratovolcano",
+        "Primary_Volcano_Type": "Stratovolcano",
+        "Last_Eruption_Year": 1944,
+        "Country": "Italy",
+        "Region": "Mediterranean and Western Asia",
+        "Subregion": "Italy",
+        "Elevation": 1281,
+        "Tectonic_Setting": "Subduction zone / Continental crust (>25 km)",
+        "Evidence_Category": "Historical Observations",
+        "Major_Rock_Type": "Trachybasalt / Tephrite Basanite"
+      },
+      "geometry": {"type": "Point", "coordinates": [14.43, 40.82]}
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "Volcano_Number": "210030",
+        "Volcano_Name": "Ancient Volcano",
+        "Primary_Volcano_Type": "Lava dome",
+        "Last_Eruption_Year": -1200,
+        "Country": "Greece",
+        "Evidence_Category": "Anthropology",
+        "Major_Rock_Type": "Andesite / Basaltic Andesite"
+      },
+      "geometry": {"type": "Point", "coordinates": [25.0, 36.4]}
+    }
+  ]
+}

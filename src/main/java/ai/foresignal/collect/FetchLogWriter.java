@@ -31,8 +31,8 @@ public class FetchLogWriter {
             INSERT INTO fetch_log (source_id, trigger, status, started_at, received_at, ingested_at, http_status,
                                    request_count, url_redacted, etag, bytes, body_sha256, adapter_version, licence,
                                    principal, records_seen, rejected, late, skipped, versions_written, live_updates,
-                                   touches, from_seq, to_seq, coverage, error)
-            VALUES (?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 0, 0, 0, NULL, NULL, ?::jsonb, ?)
+                                   touches, from_seq, to_seq, coverage, error, run_id)
+            VALUES (?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 0, 0, 0, NULL, NULL, ?::jsonb, ?, ?)
             RETURNING id
             """;
 
@@ -84,6 +84,7 @@ public class FetchLogWriter {
                             ps.setInt(15, Math.max(0, recordsSeen));
                             setString(ps, 16, coverageJson);
                             setString(ps, 17, entry.error());
+                            setString(ps, 18, entry.runId());
                             return ps;
                         },
                         (rs, row) -> rs.getLong(1));

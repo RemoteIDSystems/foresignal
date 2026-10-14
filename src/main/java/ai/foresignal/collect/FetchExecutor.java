@@ -6,6 +6,8 @@ import ai.foresignal.ingest.IngestBackpressureException;
 import ai.foresignal.ingest.IngestOutcome;
 import ai.foresignal.ingest.IngestQueue;
 import ai.foresignal.ingest.IngestRecord;
+import ai.foresignal.ingest.PersistReason;
+import ai.foresignal.ingest.TombstoneOutcome;
 import ai.foresignal.source.SourceRegistry;
 import ai.foresignal.source.spi.Coverage;
 import ai.foresignal.source.spi.FetchResult;
@@ -28,8 +30,13 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.EnumMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
@@ -103,6 +110,15 @@ public class FetchExecutor {
 
     /** The error stored on a DISCARDED row. */
     public static final String DISCARDED_ERROR = "source disabled while the fetch was in flight";
+
+    /**
+     * The kind of the one record a complete-set reference source emits after reconciliation (prompt 094),
+     * describing what the run changed. A source that declares it is reconciled automatically.
+     */
+    public static final String DATASET_RELEASE_KIND = "dataset-release";
+
+    /** The largest chunk an adapter may hand to {@link ai.foresignal.source.spi.FetchContext#emitChunk}. */
+    public static final int MAX_CHUNK = 5_000;
 
     private final SourceRegistry registry;
     private final FetchContextFactory contexts;
@@ -189,6 +205,19 @@ public class FetchExecutor {
      * @throws IllegalArgumentException when the source is not a polling source
      */
     public FetchOutcome execute(String sourceId, FetchTrigger trigger) {
+        return execute(sourceId, trigger, false);
+    }
+
+    /**
+     * Fetches {@code sourceId} once.
+     *
+     * @param trigger {@link FetchTrigger#SCHEDULED} or {@link FetchTrigger#MANUAL}
+     * @param allowShrink the operator's one-off override of the complete-set reconciliation's shrink guard
+     *     (prompt 094), set only by {@code POST /v1/sources/{id}/fetch?allowShrink=true}
+     * @throws ai.foresignal.api.error.NotFoundException when the source is not registered
+     * @throws IllegalArgumentException when the source is not a polling source
+     */
+    public FetchOutcome execute(String sourceId, FetchTrigger trigger, boolean allowShrink) {
         SourceRegistry.Registration registration = registry.get(sourceId);
         SourceDescriptor descriptor = registration.descriptor();
         SourceAdapter adapter = registration.adapterIfPresent().orElse(null);
@@ -215,13 +244,14 @@ public class FetchExecutor {
                         FetchOutcome.SKIP_BACKOFF,
                         "in backoff until " + backoff.backoffUntil(sourceId));
             }
-            return run(polling, descriptor, trigger);
+            return run(polling, descriptor, trigger, allowShrink);
         } finally {
             flag.set(false);
         }
     }
 
-    private FetchOutcome run(PollingAdapter adapter, SourceDescriptor descriptor, FetchTrigger trigger) {
+    private FetchOutcome run(
+            PollingAdapter adapter, SourceDescriptor descriptor, FetchTrigger trigger, boolean allowShrink) {
         String sourceId = descriptor.id();
         health.recordAttempt(sourceId);
         Instant startedAt = clock.instant().truncatedTo(ChronoUnit.MICROS);
@@ -229,6 +259,8 @@ public class FetchExecutor {
         Duration timeout =
                 descriptor.fetchTimeout() == null ? SourceDescriptor.DEFAULT_FETCH_TIMEOUT : descriptor.fetchTimeout();
         DefaultFetchContext ctx = contexts.forFetch(descriptor, null);
+        RunChunks chunks = new RunChunks(descriptor, trigger, startedAt, timeout, allowShrink);
+        ctx.chunkSink(chunks::emitChunk);
 
         FetchOutcome outcome;
         FetchResult result;
@@ -246,7 +278,8 @@ public class FetchExecutor {
         }
 
         Instant receivedAt = clock.instant();
-        outcome = onFetchResult(descriptor, trigger, startedAt, startNanos, timeout, receivedAt, ctx, result);
+        chunks.setRelease(result.release());
+        outcome = onFetchResult(descriptor, trigger, startedAt, startNanos, timeout, receivedAt, ctx, result, chunks);
         return timed(sourceId, startNanos, outcome);
     }
 
@@ -260,84 +293,280 @@ public class FetchExecutor {
             Duration timeout,
             Instant receivedAt,
             DefaultFetchContext ctx,
-            FetchResult result) {
+            FetchResult result,
+            RunChunks chunks) {
         String sourceId = descriptor.id();
         List<FetchTrace> traces = ctx.traces();
         Coverage coverage = result.coverage();
         int n = result.size();
+        int chunked = chunks.seen();
+        boolean reconcilable = result.complete() && descriptor.kinds().contains(DATASET_RELEASE_KIND);
 
         if (trigger == FetchTrigger.SCHEDULED && !isEnabled(sourceId)) {
             long id = fetchLog.write(
                     entry(descriptor, trigger, FetchStatus.DISCARDED, startedAt, receivedAt, traces, coverage,
-                            DISCARDED_ERROR, null),
-                    n);
-            log.info("{}: discarded {} records; the source was disabled while the fetch was in flight", sourceId, n);
+                            DISCARDED_ERROR, null, chunks.runId()),
+                    n + chunked);
+            log.info("{}: discarded {} records; the source was disabled while the fetch was in flight", sourceId,
+                    n + chunked);
             return FetchOutcome.withoutIngest(
-                    sourceId, startedAt, elapsedMs(startNanos), false, n, DISCARDED_ERROR, id, FetchStatus.DISCARDED);
+                    sourceId, startedAt, elapsedMs(startNanos), false, n + chunked, DISCARDED_ERROR, id,
+                    FetchStatus.DISCARDED);
         }
 
         if (result.notModified()) {
             long id = fetchLog.write(
                     entry(descriptor, trigger, FetchStatus.NOT_MODIFIED, startedAt, receivedAt, traces, coverage,
-                            null, null),
+                            null, null, chunks.runId()),
                     0);
             health.recordSuccess(sourceId, IngestOutcome.empty(), true, coverage);
             return FetchOutcome.withoutIngest(
                     sourceId, startedAt, elapsedMs(startNanos), true, 0, null, id, FetchStatus.NOT_MODIFIED);
         }
 
-        if (n == 0) {
+        if (n == 0 && chunked == 0) {
             long id = fetchLog.write(
-                    entry(descriptor, trigger, FetchStatus.OK, startedAt, receivedAt, traces, coverage, null, null),
+                    entry(descriptor, trigger, FetchStatus.OK, startedAt, receivedAt, traces, coverage, null, null,
+                            chunks.runId()),
                     0);
             health.recordSuccess(sourceId, IngestOutcome.empty(), false, coverage);
             return FetchOutcome.withoutIngest(
                     sourceId, startedAt, elapsedMs(startNanos), true, 0, null, id, FetchStatus.OK);
         }
 
-        FetchLogEntry okEntry =
-                entry(descriptor, trigger, FetchStatus.OK, startedAt, receivedAt, traces, coverage, null, null);
-        List<IngestRecord> records = stamp(sourceId, result.records(), receivedAt);
         Duration remaining = timeout.minusNanos(System.nanoTime() - startNanos);
         if (remaining.isNegative()) {
             remaining = Duration.ZERO;
         }
         Duration ingestTimeout = remaining.plus(properties.ingestGrace());
 
-        CompletableFuture<IngestOutcome> future;
-        try {
-            future = queue.submit(sourceId, okEntry, records, ingestTimeout);
-        } catch (IngestBackpressureException e) {
-            log.warn("{}: the ingest queue stayed full for {}; {} records were not ingested", sourceId, ingestTimeout, n);
-            return ingestFailed(descriptor, trigger, startedAt, startNanos, receivedAt, traces, coverage, n,
-                    QUEUE_FULL_ERROR);
+        if (n > 0) {
+            FetchLogEntry okEntry = entry(descriptor, trigger, FetchStatus.OK, startedAt, receivedAt, traces, coverage,
+                    null, null, chunks.runId());
+            List<IngestRecord> records = stamp(sourceId, result.records(), receivedAt);
+            CompletableFuture<IngestOutcome> future;
+            try {
+                future = queue.submit(sourceId, okEntry, records, ingestTimeout, reconcilable);
+            } catch (IngestBackpressureException e) {
+                log.warn("{}: the ingest queue stayed full for {}; {} records were not ingested", sourceId,
+                        ingestTimeout, n);
+                return ingestFailed(descriptor, trigger, startedAt, startNanos, receivedAt, traces, coverage, n,
+                        QUEUE_FULL_ERROR);
+            }
+            IngestOutcome ingested;
+            try {
+                ingested = future.get(Math.max(1, ingestTimeout.toMillis()), TimeUnit.MILLISECONDS);
+            } catch (TimeoutException e) {
+                // The batch is still queued and the writer will write its row when it gets there, so no
+                // row is written here: that would make two.
+                log.warn("{}: the ingest writer did not finish the batch within {}; it is still queued", sourceId,
+                        ingestTimeout);
+                return FetchOutcome.withoutIngest(
+                        sourceId, startedAt, elapsedMs(startNanos), false, n + chunked,
+                        "ingest did not complete within " + ingestTimeout.toSeconds() + " s", null, null);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return ingestFailed(descriptor, trigger, startedAt, startNanos, receivedAt, traces, coverage, n,
+                        "interrupted while waiting for ingest");
+            } catch (ExecutionException e) {
+                Throwable cause = e.getCause() == null ? e : e.getCause();
+                log.warn("{}: the ingest writer failed the batch of {} records", sourceId, n, cause);
+                return ingestFailed(descriptor, trigger, startedAt, startNanos, receivedAt, traces, coverage, n,
+                        "ingest failed: " + health.errorMessage(sourceId, cause));
+            }
+            chunks.addOutcome(ingested);
         }
 
-        IngestOutcome ingested;
-        try {
-            ingested = future.get(Math.max(1, ingestTimeout.toMillis()), TimeUnit.MILLISECONDS);
-        } catch (TimeoutException e) {
-            // The batch is still queued and the writer will write its row when it gets there, so no
-            // row is written here: that would make two.
-            log.warn("{}: the ingest writer did not finish the batch within {}; it is still queued", sourceId,
-                    ingestTimeout);
-            return FetchOutcome.withoutIngest(
-                    sourceId, startedAt, elapsedMs(startNanos), false, n,
-                    "ingest did not complete within " + ingestTimeout.toSeconds() + " s", null, null);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            return ingestFailed(descriptor, trigger, startedAt, startNanos, receivedAt, traces, coverage, n,
-                    "interrupted while waiting for ingest");
-        } catch (ExecutionException e) {
-            Throwable cause = e.getCause() == null ? e : e.getCause();
-            log.warn("{}: the ingest writer failed the batch of {} records", sourceId, n, cause);
-            return ingestFailed(descriptor, trigger, startedAt, startNanos, receivedAt, traces, coverage, n,
-                    "ingest failed: " + health.errorMessage(sourceId, cause));
-        }
-
+        IngestOutcome ingested = chunks.total();
         health.recordSuccess(sourceId, ingested, false, coverage);
+
+        if (reconcilable) {
+            reconcile(ctx, descriptor, chunks, startedAt, ingestTimeout);
+        }
         return FetchOutcome.ingested(
                 sourceId, startedAt, elapsedMs(startNanos), ingested, findWriterRow(sourceId, startedAt));
+    }
+
+    /**
+     * Complete-set reconciliation (prompt 094): submits {@link ai.foresignal.ingest.TombstoneAbsent} for the
+     * dataset after the last chunk, degrades health when the shrink guard trips, and emits one
+     * {@code dataset-release} record describing the run.
+     */
+    private void reconcile(DefaultFetchContext ctx, SourceDescriptor descriptor, RunChunks chunks,
+            Instant startedAt, Duration ingestTimeout) {
+        String sourceId = descriptor.id();
+        Set<String> kinds = new LinkedHashSet<>(descriptor.kinds());
+        kinds.remove(DATASET_RELEASE_KIND);
+        int disappeared = 0;
+        if (!kinds.isEmpty()) {
+            try {
+                TombstoneOutcome outcome = queue.submitTombstoneAbsent(
+                                sourceId, kinds, startedAt, descriptor.reconcileMaxAbsentRatio(),
+                                chunks.allowShrink(), reconcileTimeout(ingestTimeout))
+                        .get(Math.max(1, reconcileTimeout(ingestTimeout).toMillis()), TimeUnit.MILLISECONDS);
+                if (outcome.discarded()) {
+                    ctx.state().degrade(outcome.reason());
+                }
+                disappeared = outcome.tombstoned();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                log.warn("{}: interrupted while reconciling the complete set", sourceId);
+            } catch (TimeoutException e) {
+                log.warn("{}: the complete-set reconciliation did not finish in time", sourceId);
+            } catch (ExecutionException e) {
+                log.warn("{}: the complete-set reconciliation failed", sourceId, e.getCause());
+            }
+        }
+        emitDatasetRelease(descriptor, chunks, disappeared, ingestTimeout);
+    }
+
+    /** Emits one {@code dataset-release} record for the run (prompt 094). */
+    private void emitDatasetRelease(SourceDescriptor descriptor, RunChunks chunks, int disappeared,
+            Duration ingestTimeout) {
+        String sourceId = descriptor.id();
+        IngestOutcome total = chunks.total();
+        Map<String, Object> payload = new java.util.LinkedHashMap<>();
+        payload.put("upstreamVersion", chunks.releaseLabel(sourceId));
+        payload.put("records", total.seen());
+        payload.put("appeared", total.persisted(PersistReason.FIRST) + total.persisted(PersistReason.REAPPEAR));
+        payload.put("changed", total.persisted(PersistReason.SIGNIFICANT) + total.persisted(PersistReason.CHANGE));
+        payload.put("disappeared", disappeared + total.persisted(PersistReason.TOMBSTONE));
+        payload.put("runId", chunks.runId());
+        NormalizedRecord release = NormalizedRecord.builder(chunks.releaseLabel(sourceId), DATASET_RELEASE_KIND)
+                .observedAt(clock.instant().truncatedTo(ChronoUnit.MICROS))
+                .putAll(payload)
+                .build();
+        Instant receivedAt = clock.instant();
+        List<IngestRecord> records = stamp(sourceId, List.of(release), receivedAt);
+        FetchLogEntry entry = entry(descriptor, FetchTrigger.MANUAL, FetchStatus.OK, chunks.startedAt(), receivedAt,
+                List.of(), Coverage.none(), null, null, chunks.runId());
+        try {
+            chunks.addOutcome(await(queue.submit(sourceId, entry, records, ingestTimeout)));
+        } catch (IngestBackpressureException e) {
+            log.warn("{}: the ingest queue stayed full; the dataset-release record was not written", sourceId);
+        } catch (RuntimeException e) {
+            log.warn("{}: the dataset-release record failed to ingest", sourceId, e);
+        }
+    }
+
+    private IngestOutcome await(CompletableFuture<IngestOutcome> future) {
+        try {
+            return future.get(properties.ingestGrace().plus(Duration.ofMinutes(2)).toMillis(), TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException(e);
+        } catch (ExecutionException e) {
+            Throwable cause = e.getCause() == null ? e : e.getCause();
+            throw new IllegalStateException(cause);
+        } catch (TimeoutException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    /** How long the reconciliation of one complete set may take. */
+    private static Duration reconcileTimeout(Duration ingestTimeout) {
+        Duration candidate = ingestTimeout.plus(Duration.ofMinutes(2));
+        return candidate.compareTo(Duration.ofMinutes(10)) > 0 ? Duration.ofMinutes(10) : candidate;
+    }
+
+    /**
+     * The accumulated state of one chunked run (prompt 094): a shared {@code run_id}, the totals across the
+     * chunks, and the release identity. An adapter's {@code ctx.emitChunk} blocks here until the chunk's
+     * batch is ingested, so the next chunk is not accepted before the previous future completes (back-pressure).
+     */
+    private final class RunChunks {
+
+        private final SourceDescriptor descriptor;
+        private final FetchTrigger trigger;
+        private final Instant startedAt;
+        private final Duration timeout;
+        private final boolean allowShrink;
+        private final String runId = UUID.randomUUID().toString();
+        private final EnumMap<PersistReason, Integer> byReason = new EnumMap<>(PersistReason.class);
+
+        private int seen;
+        private int persisted;
+        private int live;
+        private int touched;
+        private int touchesThrottled;
+        private int late;
+        private int skipped;
+        private int rejected;
+        private int chunks;
+        private String release;
+
+        RunChunks(SourceDescriptor descriptor, FetchTrigger trigger, Instant startedAt, Duration timeout,
+                boolean allowShrink) {
+            this.descriptor = descriptor;
+            this.trigger = trigger;
+            this.startedAt = startedAt;
+            this.timeout = timeout;
+            this.allowShrink = allowShrink;
+        }
+
+        void setRelease(String release) {
+            this.release = release;
+        }
+
+        String runId() {
+            return runId;
+        }
+
+        boolean allowShrink() {
+            return allowShrink;
+        }
+
+        Instant startedAt() {
+            return startedAt;
+        }
+
+        int seen() {
+            return seen;
+        }
+
+        int chunks() {
+            return chunks;
+        }
+
+        /** The dataset's release identity, or the source id when the upstream publishes none. */
+        String releaseLabel(String sourceId) {
+            return release == null || release.isBlank() ? sourceId : release;
+        }
+
+        void addOutcome(IngestOutcome outcome) {
+            seen += outcome.seen();
+            persisted += outcome.persisted();
+            live += outcome.live();
+            touched += outcome.touched();
+            touchesThrottled += outcome.touchesThrottled();
+            late += outcome.late();
+            skipped += outcome.skipped();
+            rejected += outcome.rejected();
+            outcome.byReason().forEach((reason, count) -> byReason.merge(reason, count, Integer::sum));
+        }
+
+        IngestOutcome total() {
+            return new IngestOutcome(seen, persisted, live, touched, touchesThrottled, late, skipped, rejected, 0, 0,
+                    0, byReason, 0, List.of());
+        }
+
+        /** {@link DefaultFetchContext#emitChunk}: submits one chunk and waits for its outcome. */
+        void emitChunk(List<NormalizedRecord> records) {
+            if (records == null || records.isEmpty()) {
+                return;
+            }
+            if (records.size() > MAX_CHUNK) {
+                throw new IllegalArgumentException(
+                        "A chunk carries at most " + MAX_CHUNK + " records, but this one carries " + records.size());
+            }
+            Instant receivedAt = clock.instant();
+            FetchLogEntry chunkEntry = entry(descriptor, trigger, FetchStatus.OK, startedAt, receivedAt, List.of(),
+                    Coverage.none(), null, null, runId);
+            List<IngestRecord> stamped = stamp(descriptor.id(), records, receivedAt);
+            chunks++;
+            IngestOutcome outcome = await(queue.submit(descriptor.id(), chunkEntry, stamped, timeout, true));
+            addOutcome(outcome);
+        }
     }
 
     private FetchOutcome ingestFailed(
@@ -483,6 +712,23 @@ public class FetchExecutor {
             Coverage coverage,
             String error,
             Integer httpStatusOverride) {
+        return entry(descriptor, trigger, status, startedAt, receivedAt, traces, coverage, error, httpStatusOverride,
+                null);
+    }
+
+    /** {@link #entry(SourceDescriptor, FetchTrigger, FetchStatus, Instant, Instant, List, Coverage, String, Integer)}
+     * with the run id of a chunked fetch (prompt 094). */
+    FetchLogEntry entry(
+            SourceDescriptor descriptor,
+            FetchTrigger trigger,
+            FetchStatus status,
+            Instant startedAt,
+            Instant receivedAt,
+            List<FetchTrace> traces,
+            Coverage coverage,
+            String error,
+            Integer httpStatusOverride,
+            String runId) {
         FetchTrace last = traces.isEmpty() ? null : traces.get(traces.size() - 1);
         Integer httpStatus = httpStatusOverride;
         if (httpStatus == null && last != null && last.status() > 0) {
@@ -505,7 +751,8 @@ public class FetchExecutor {
                 descriptor.licence(),
                 null,
                 coverage,
-                error);
+                error,
+                runId);
     }
 
     /** {@code source_settings.enabled}; a source with no settings row is disabled. */

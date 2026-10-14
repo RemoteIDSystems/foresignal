@@ -29,6 +29,8 @@ import java.time.Instant;
  * @param principal who pushed the data, for push sources
  * @param coverage the upstream's coverage report
  * @param error the redacted error, for failed fetches
+ * @param runId the run the row belongs to (prompt 094): every chunk of one chunked fetch shares it, and
+ *     it is null for an ordinary single-batch run
  */
 public record FetchLogEntry(
         String sourceId,
@@ -46,10 +48,34 @@ public record FetchLogEntry(
         String licence,
         String principal,
         Coverage coverage,
-        String error) {
+        String error,
+        String runId) {
 
     public FetchLogEntry {
         coverage = coverage == null ? Coverage.none() : coverage;
+        runId = runId == null || runId.isBlank() ? null : runId;
+    }
+
+    /** An entry without a run id; the single-batch producers use this. */
+    public FetchLogEntry(
+            String sourceId,
+            FetchTrigger trigger,
+            FetchStatus status,
+            Instant startedAt,
+            Instant receivedAt,
+            Integer httpStatus,
+            int requestCount,
+            String urlRedacted,
+            String etag,
+            Long bytes,
+            String bodySha256,
+            String adapterVersion,
+            String licence,
+            String principal,
+            Coverage coverage,
+            String error) {
+        this(sourceId, trigger, status, startedAt, receivedAt, httpStatus, requestCount, urlRedacted, etag, bytes,
+                bodySha256, adapterVersion, licence, principal, coverage, error, null);
     }
 
     /** A minimal successful entry, for tests and simple producers. */

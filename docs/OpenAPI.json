@@ -397,6 +397,11 @@
         "version": "1.3.0",
         "date": "2026-10-14",
         "note": "093: listSeries and getSeriesPoints are implemented (schemas SeriesInfo, SeriesPage, SeriesPoint, SeriesPointPage unchanged). New energy/markets series sources: eia-petroleum (LOCAL_ONLY: EIA spot prices are LSEG-sourced), eia-930, gie-agsi, ember-electricity, gb-carbon-intensity, grid-frequency-gb and grid-frequency-fingrid (disabled by default); ercot-public (disabled by default). New kinds series-point and series-latest (no geometry), frequency-excursion and grid-frequency. Kalshi and Polymarket are external provider ideas only."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-14",
+        "note": "094: fetchSourceNow accepts allowShrink (query) and FetchLogEntry carries runId, both as already specified. New reference-dataset sources, all disabled by default: wri-power-plants, ourairports (params types, navaids), submarine-cables (non-commercial, LOCAL_ONLY), gvp-volcanoes (non-commercial), world-port-index (ports plus buffered port-areas for 099), nps-boundaries, spaceports (GCAT), nuclear-reactors-us and nuclear-plants-wikidata. New kinds power-plant, airport, navaid, cable, cable-landing, volcano, port, port-area, park-boundary, launch-site, launch-pad, nuclear-reactor, nuclear-plant and dataset-release."
       }
     ]
   },

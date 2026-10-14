@@ -4,6 +4,7 @@ import ai.foresignal.collect.IngestCounts;
 import ai.foresignal.collect.UsageMeter;
 import ai.foresignal.config.StartupOrder;
 import ai.foresignal.source.spi.HistoryTier;
+import ai.foresignal.source.spi.NormalizedRecord;
 import ai.foresignal.store.CoverageSample;
 import ai.foresignal.store.history.PartitionManager;
 import ai.foresignal.stream.Bbox;
@@ -130,6 +131,12 @@ public class IngestWriter implements IngestStateReset, DisposableBean {
     /** Heads deleted per purge transaction. */
     static final int DEFAULT_PURGE_CHUNK = 10_000;
 
+    /** Tombstones written per reconciliation turn (prompt 094). */
+    static final int RECONCILE_CHUNK = 10_000;
+
+    /** The {@code fetch_log.principal} of a reconciliation's tombstone batches. */
+    static final String RECONCILE_PRINCIPAL = "reconcile";
+
     private static final int MAX_WARNINGS = 20;
     private static final Duration POLL = Duration.ofMillis(250);
     private static final Duration LOCK_RETRY_START = Duration.ofSeconds(1);
@@ -147,8 +154,8 @@ public class IngestWriter implements IngestStateReset, DisposableBean {
             INSERT INTO fetch_log (source_id, trigger, status, started_at, received_at, ingested_at, http_status,
                                    request_count, url_redacted, etag, bytes, body_sha256, adapter_version, licence,
                                    principal, records_seen, rejected, late, skipped, versions_written, live_updates,
-                                   touches, from_seq, to_seq, coverage, error)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?)
+                                   touches, from_seq, to_seq, coverage, error, run_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?, ?)
             RETURNING id
             """;
 
@@ -235,6 +242,26 @@ public class IngestWriter implements IngestStateReset, DisposableBean {
     private static final String DELETE_LIVE = "DELETE FROM record_live WHERE source_id = ? AND external_id = ANY(?)";
     private static final String DELETE_HEAD = "DELETE FROM record_head WHERE source_id = ? AND external_id = ANY(?)";
 
+    /** Prompt 094: the records of a complete-set dataset the run did not see. */
+    private static final String SELECT_RECONCILE_CANDIDATES =
+            """
+            SELECT h.external_id, h.kind FROM record_head h JOIN record_live l USING (source_id, external_id)
+             WHERE h.source_id = ? AND h.kind = ANY(?) AND NOT h.tombstone AND l.last_received_at < ?
+             LIMIT ?
+            """;
+
+    private static final String COUNT_RECONCILE_CANDIDATES =
+            """
+            SELECT count(*) FROM record_head h JOIN record_live l USING (source_id, external_id)
+             WHERE h.source_id = ? AND h.kind = ANY(?) AND NOT h.tombstone AND l.last_received_at < ?
+            """;
+
+    private static final String COUNT_RECONCILE_TOTAL =
+            """
+            SELECT count(*) FROM record_head h JOIN record_live l USING (source_id, external_id)
+             WHERE h.source_id = ? AND h.kind = ANY(?) AND NOT h.tombstone
+            """;
+
     private static final String SELECT_PURGE_TARGET =
             """
             SELECT h.seq, h.version, h.kind, h.persisted_observed_at, l.observed_at,
@@ -309,6 +336,7 @@ public class IngestWriter implements IngestStateReset, DisposableBean {
     private final Map<String, Integer> migratedRecipes = new HashMap<>();
     private final Deque<String> warnings = new ArrayDeque<>();
     private final Map<CompletableFuture<PurgeOutcome>, Map<String, Integer>> purgeProgress = new IdentityHashMap<>();
+    private final Map<CompletableFuture<TombstoneOutcome>, ReconcileProgress> reconcileProgress = new IdentityHashMap<>();
     private final AtomicBoolean ensureAheadRunning = new AtomicBoolean();
 
     private final Counter retries;
@@ -438,6 +466,7 @@ public class IngestWriter implements IngestStateReset, DisposableBean {
                 case IngestBatch batch -> batch.future().completeExceptionally(stopped);
                 case HeadPurge purge -> purge.future().completeExceptionally(stopped);
                 case EntityPurge purge -> purge.future().completeExceptionally(stopped);
+                case TombstoneAbsent reconcile -> reconcile.future().completeExceptionally(stopped);
             }
         }
         state = WriterState.STOPPED;
@@ -548,6 +577,7 @@ public class IngestWriter implements IngestStateReset, DisposableBean {
             case IngestBatch batch -> processBatch(batch);
             case HeadPurge purge -> processPurge(purge);
             case EntityPurge purge -> processEntityPurge(purge);
+            case TombstoneAbsent reconcile -> processTombstoneAbsent(reconcile);
         }
     }
 
@@ -758,7 +788,8 @@ public class IngestWriter implements IngestStateReset, DisposableBean {
         Set<String> ids = new LinkedHashSet<>();
         observations.forEach(o -> ids.add(o.externalId()));
         Map<String, EntityState> loaded = time("load", () -> load(profile, snapshot, ids));
-        BatchFold.Result fold = time("fold", () -> BatchFold.fold(profile, snapshot, observations, loaded));
+        BatchFold.Result fold =
+                time("fold", () -> BatchFold.fold(profile, snapshot, observations, loaded, batch.forceTouch()));
 
         long writeStart = System.nanoTime();
         // Step 7: allocate.
@@ -1128,6 +1159,7 @@ public class IngestWriter implements IngestStateReset, DisposableBean {
                     JdbcValues.setLong(ps, 24, fold.persisted() > 0 ? toSeq : null);
                     JdbcValues.setString(ps, 25, coverage == null ? null : json.write(coverage));
                     JdbcValues.setString(ps, 26, entry.error());
+                    JdbcValues.setString(ps, 27, entry.runId());
                     return ps;
                 },
                 (rs, row) -> rs.getLong(1));
@@ -1383,6 +1415,124 @@ public class IngestWriter implements IngestStateReset, DisposableBean {
             return ids.size();
         });
         return deleted == null ? 0 : deleted;
+    }
+
+    // ------------------------------------------------------------------ complete-set reconciliation (094)
+
+    /**
+     * Tombstones the records a complete-set reference dataset no longer lists (prompt 094), in chunks of
+     * {@value #RECONCILE_CHUNK}, re-enqueuing itself at the queue tail so one writer turn stays short. The
+     * shrink guard refuses a run that would remove more than the descriptor's {@code reconcile.maxAbsentRatio}
+     * of the dataset, unless the operator passed {@code allowShrink}.
+     */
+    private void processTombstoneAbsent(TombstoneAbsent reconcile) {
+        CompletableFuture<TombstoneOutcome> future = reconcile.future();
+        try {
+            ReconcileProgress progress = reconcileProgress.computeIfAbsent(future, f -> new ReconcileProgress());
+            if (!progress.decided) {
+                int total = countReconcileHeads(reconcile, false);
+                int candidates = countReconcileHeads(reconcile, true);
+                if (total == 0 || candidates == 0) {
+                    reconcileProgress.remove(future);
+                    future.complete(TombstoneOutcome.ran(candidates, total, 0));
+                    return;
+                }
+                double ratio = (double) candidates / total;
+                if (!reconcile.allowShrink() && ratio > reconcile.maxAbsentRatio()) {
+                    int percent = (int) Math.round(ratio * 100);
+                    String reason = "dataset shrank by " + percent + "% — reconciliation skipped";
+                    reconcileProgress.remove(future);
+                    log.warn("{}: {} ({} of {} records absent)", reconcile.sourceId(), reason, candidates, total);
+                    future.complete(TombstoneOutcome.discarded(candidates, total, reason));
+                    return;
+                }
+                progress.decided = true;
+                progress.total = total;
+                progress.candidates = candidates;
+            }
+            while (true) {
+                List<Object[]> chunk = nextReconcileCandidates(reconcile, RECONCILE_CHUNK);
+                if (chunk.isEmpty()) {
+                    break;
+                }
+                writeTombstones(reconcile.sourceId(), chunk);
+                progress.tombstoned += chunk.size();
+                if (chunk.size() < RECONCILE_CHUNK) {
+                    break;
+                }
+                TombstoneAbsent rest = new TombstoneAbsent(reconcile.sourceId(), reconcile.kinds(),
+                        reconcile.runStartedAt(), reconcile.maxAbsentRatio(), reconcile.allowShrink(), future);
+                if (queue.offer(rest)) {
+                    return;
+                }
+                // The queue is full: continue inline rather than block the writer on its own queue.
+            }
+            int tombstoned = progress.tombstoned;
+            reconcileProgress.remove(future);
+            future.complete(TombstoneOutcome.ran(progress.candidates, progress.total, tombstoned));
+        } catch (Throwable t) {
+            reconcileProgress.remove(future);
+            log.error("Complete-set reconciliation of {} failed", reconcile.sourceId(), t);
+            future.completeExceptionally(t);
+        }
+    }
+
+    /** The number of the dataset's live, non-tombstoned heads of the reconciled kinds, all or absent-only. */
+    private int countReconcileHeads(TombstoneAbsent reconcile, boolean absentOnly) {
+        Integer count = jdbc.query(
+                con -> {
+                    PreparedStatement ps =
+                            con.prepareStatement(absentOnly ? COUNT_RECONCILE_CANDIDATES : COUNT_RECONCILE_TOTAL);
+                    ps.setString(1, reconcile.sourceId());
+                    ps.setArray(2, con.createArrayOf("text", reconcile.kinds().toArray()));
+                    if (absentOnly) {
+                        JdbcValues.setInstant(ps, 3, reconcile.runStartedAt());
+                    }
+                    return ps;
+                },
+                rs -> rs.next() ? rs.getInt(1) : 0);
+        return count == null ? 0 : count;
+    }
+
+    /** Up to {@code limit} absent heads, as {@code [externalId, kind]} rows. */
+    private List<Object[]> nextReconcileCandidates(TombstoneAbsent reconcile, int limit) {
+        return jdbc.query(
+                con -> {
+                    PreparedStatement ps = con.prepareStatement(SELECT_RECONCILE_CANDIDATES);
+                    ps.setString(1, reconcile.sourceId());
+                    ps.setArray(2, con.createArrayOf("text", reconcile.kinds().toArray()));
+                    JdbcValues.setInstant(ps, 3, reconcile.runStartedAt());
+                    ps.setInt(4, limit);
+                    return ps;
+                },
+                (rs, row) -> new Object[] {rs.getString(1), rs.getString(2)});
+    }
+
+    /** Writes the tombstones of one chunk through the normal fold. */
+    private void writeTombstones(String sourceId, List<Object[]> chunk) {
+        Instant now = clock.instant().truncatedTo(ChronoUnit.MICROS);
+        FetchLogEntry entry = new FetchLogEntry(
+                sourceId, ai.foresignal.store.FetchTrigger.MANUAL, ai.foresignal.store.FetchStatus.OK, now, now,
+                null, 0, null, null, null, null, null, null, RECONCILE_PRINCIPAL,
+                ai.foresignal.source.spi.Coverage.none(), null);
+        List<IngestRecord> batch = new ArrayList<>(chunk.size());
+        long arrival = 0;
+        for (Object[] row : chunk) {
+            NormalizedRecord tombstone =
+                    NormalizedRecord.tombstone((String) row[0], (String) row[1], now);
+            batch.add(new IngestRecord(tombstone, now, ++arrival));
+        }
+        IngestBatch ingest = new IngestBatch(sourceId, entry, batch, new CompletableFuture<>(), true);
+        Committed committed = runBatch(ingest);
+        publish(ingest, committed);
+    }
+
+    /** A reconciliation's running totals, kept across the re-enqueued turns of one run. */
+    private static final class ReconcileProgress {
+        boolean decided;
+        int total;
+        int candidates;
+        int tombstoned;
     }
 
     // ------------------------------------------------------------------ entity purge (039)

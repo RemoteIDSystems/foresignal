@@ -1,0 +1,5 @@
+country,country_long,name,gppd_idnr,capacity_mw,latitude,longitude,primary_fuel,other_fuel1,other_fuel2,other_fuel3,commissioning_year,owner,source,url,geolocation_source,wepp_id,year_of_capacity_data
+USA,United States of America,"Alabama Power Company, Gorgas",USA0000001,1000.0,33.7,-87.2,Coal,Biomass,NULL,NULL,1951,Alabama Power,EIA,http://www.example.org/gorgas,EIA,1000001,2021
+GBR,United Kingdom,"Drax Power Station",GBR0000002,3960.0,53.7,-0.9,Biomass,Coal,NULL,NULL,1974,Drax Power,REPD,http://www.example.org/drax,WRI,1000002,2021
+DEU,Germany,"Greifswald",DEU0000003,,54.1,13.4,Nuclear,NULL,NULL,NULL,1974,EnBW,BFE,http://www.example.org/greifswald,WRI,1000003,2017
+FRA,France,"No Id Plant",,500.0,48.8,2.3,Solar,NULL,NULL,NULL,2015,Unknown,BFE,NULL,WRI,,2019

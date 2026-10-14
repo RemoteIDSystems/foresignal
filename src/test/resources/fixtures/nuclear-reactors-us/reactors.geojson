@@ -1,0 +1,41 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "license_number": "05000266",
+        "reactor_name": "Seabrook",
+        "power_plant": "Seabrook Station",
+        "state": "NH",
+        "reactor_type": "PWR",
+        "status": "Power Operation",
+        "power_pct": 100,
+        "report_date": "2026-10-13",
+        "mwe": 1246,
+        "owner_operator": "NextEra Energy",
+        "nrc_region": "Region I",
+        "eia_plant_code": "6037"
+      },
+      "geometry": {"type": "Point", "coordinates": [-70.85, 42.9]}
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "license_number": "05000528",
+        "reactor_name": "Watts Bar 2",
+        "power_plant": "Watts Bar",
+        "state": "TN",
+        "reactor_type": "PWR",
+        "status": "Power Operation",
+        "power_pct": 85,
+        "report_date": "2026-10-13",
+        "mwe": 1164,
+        "owner_operator": "TVA",
+        "nrc_region": "Region II",
+        "eia_plant_code": "6202"
+      },
+      "geometry": {"type": "Point", "coordinates": [-84.79, 35.6]}
+    }
+  ]
+}

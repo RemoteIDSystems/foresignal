@@ -1,0 +1,15 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {"id": "trans-atlantic", "name": "Trans Atlantic Cable", "color": "#ff0000", "is_tbd": false},
+      "geometry": {"type": "MultiLineString", "coordinates": [[[-73.9, 40.6], [-30.0, 45.0], [-0.4, 51.5]]]}
+    },
+    {
+      "type": "Feature",
+      "properties": {"id": "pacific-tbd", "name": "Pacific Cable (TBD)", "color": "#00ff00", "is_tbd": true},
+      "geometry": {"type": "MultiLineString", "coordinates": [[[139.7, 35.7], [-179.0, 40.0], [-122.4, 37.8]]]}
+    }
+  ]
+}

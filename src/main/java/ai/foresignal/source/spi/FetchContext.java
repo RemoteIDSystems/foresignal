@@ -2,6 +2,7 @@ package ai.foresignal.source.spi;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.slf4j.Logger;
@@ -101,6 +102,22 @@ public interface FetchContext {
      */
     default void chargeRequest(String label) throws AdapterException {
         http().chargeRequest(label);
+    }
+
+    /**
+     * Hands one chunk of a large complete-set fetch to the executor (prompt 094): the executor ingests each
+     * chunk as its own batch before the adapter emits the next, so a dataset larger than the heap budget is
+     * never held in memory at once. A chunk carries at most 5,000 records.
+     *
+     * <p>Only a chunked, complete-set run may use this; the executor installs the sink before calling
+     * {@link PollingAdapter#fetch}. The default refuses, so a hand-built test context reports the misuse
+     * instead of silently dropping records.
+     *
+     * @param records the chunk, at most 5,000 records
+     * @throws UnsupportedOperationException when this context has no chunk sink
+     */
+    default void emitChunk(List<NormalizedRecord> records) {
+        throw new UnsupportedOperationException("This context cannot accept chunks from " + sourceId());
     }
 
     /**

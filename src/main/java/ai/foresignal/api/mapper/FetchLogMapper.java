@@ -46,6 +46,7 @@ public final class FetchLogMapper {
                 e.getFromSeq(),
                 e.getToSeq(),
                 HealthMapper.coverage(e.getCoverage()),
-                e.getError());
+                e.getError(),
+                e.getRunId());
     }
 }

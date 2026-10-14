@@ -15,6 +15,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
@@ -46,6 +47,7 @@ public class DefaultFetchContext implements FetchContext {
     private Supplier<RasterSink> rasterSink;
     private Supplier<MediaSink> mediaSink;
     private Supplier<InboxAccess> inboxSupplier;
+    private Consumer<java.util.List<ai.foresignal.source.spi.NormalizedRecord>> chunkSink;
     private MediaSink media;
     private SourceHttp http;
     private RasterSink rasters;
@@ -212,6 +214,25 @@ public class DefaultFetchContext implements FetchContext {
             throw new UnsupportedOperationException("No inbox is available to " + sourceId + ".");
         }
         return access;
+    }
+
+    /**
+     * Installs the chunk sink (prompt 094); the executor sets it before calling a reference adapter's
+     * {@code fetch}, so {@link #emitChunk} hands each chunk to the ingest writer with back-pressure.
+     */
+    public void chunkSink(Consumer<java.util.List<ai.foresignal.source.spi.NormalizedRecord>> sink) {
+        this.chunkSink = sink;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void emitChunk(List<ai.foresignal.source.spi.NormalizedRecord> records) {
+        if (chunkSink == null) {
+            throw new UnsupportedOperationException("No chunk sink is installed for " + sourceId + ".");
+        }
+        if (records != null && !records.isEmpty()) {
+            chunkSink.accept(records);
+        }
     }
 
     /** The probe recorder, or null. */

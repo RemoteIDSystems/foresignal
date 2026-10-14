@@ -59,4 +59,5 @@ public record FetchLogEntryDto(
         Long fromSeq,
         Long toSeq,
         CoverageDto coverage,
-        String error) {}
+        String error,
+        String runId) {}

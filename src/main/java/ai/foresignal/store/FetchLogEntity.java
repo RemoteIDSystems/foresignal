@@ -143,6 +143,11 @@ public class FetchLogEntity {
     /** The redacted error message of a failed fetch, or null. */
     @Column(name = "error", columnDefinition = "text")
     private String error;
+
+    /** The run shared by the chunks of one chunked fetch (prompt 094), or null. */
+    @Column(name = "run_id", length = 64)
+    private String runId;
+
     protected FetchLogEntity() {
         // for JPA
     }
@@ -418,5 +423,15 @@ public class FetchLogEntity {
     /** Sets the redacted error message of a failed fetch, or null. */
     public void setError(String error) {
         this.error = error;
+    }
+
+    /** Returns the run shared by the chunks of one chunked fetch, or null. */
+    public String getRunId() {
+        return runId;
+    }
+
+    /** Sets the run shared by the chunks of one chunked fetch, or null. */
+    public void setRunId(String runId) {
+        this.runId = runId;
     }
 }

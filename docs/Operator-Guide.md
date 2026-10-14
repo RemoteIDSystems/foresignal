@@ -4390,3 +4390,27 @@ docker compose exec -T db dropdb -U foresignal restore_drill
   the 099 corroboration layer to distinguish a national outage from a cable cut or a hijack.
 - **RIS Live is not built** (optional, streaming, disabled). If it is added later, subscribe only to specific
   prefixes (never the full firehose).
+
+## Reference datasets (prompt 094)
+
+- **They poll weekly on their own.** `wri-power-plants`, `ourairports`, `submarine-cables`, `gvp-volcanoes`,
+  `world-port-index`, `nps-boundaries`, `spaceports`, `nuclear-reactors-us` and `nuclear-plants-wikidata` are
+  disabled by default like every built-in source; enable the ones you want. Each keeps 730 days of history and
+  emits one `dataset-release` record per run.
+- **`allowShrink`.** A reference dataset normally changes slowly, so if a complete run would remove more than
+  `reconcile.maxAbsentRatio` of it (20 % by default), Foresignal writes no tombstones and shows the source
+  degraded ("dataset shrank by N% — reconciliation skipped"): a truncated download must never read as a mass
+  deletion. After you have verified the smaller upstream dataset is genuine, release the guard **once** with
+  `POST /v1/sources/{sourceId}/fetch?allowShrink=true`. The next ordinary run re-applies the guard.
+- **Licence flags you should read before enabling:**
+  - `submarine-cables` is **non-commercial**: the public Submarine Cable Map is CC BY-SA 4.0, the geometry is
+    stylised and TeleGeography's underlying database is subscriber-only. Egress is local-only for prompts
+    109/110 and the attribution carries `nonCommercial: true`. Display it, attribute TeleGeography, do not
+    redistribute.
+  - `gvp-volcanoes` uses the Smithsonian Terms of Use (**non-commercial; cite the VOTW DOI**). The attribution
+    names Volcanoes of the World v5.4.0 (2026) and `doi:10.5479/si.GVP.VOTW5-2026.5.4`.
+- **Keys:** none. `nuclear-plants-wikidata` sends Foresignal's own User-Agent with contact; set `contactEmail`
+  so Wikidata can reach you, and it honours `429`/`Retry-After`.
+- **Excluded upstreams:** PeeringDB facilities (AUP forbids storage/reproduction — ask
+  support@peeringdb.com first), IAEA PRIS (no open licence), GEM trackers (request form, no stable file URL)
+  and the NRC dataset pages (blocked for scripted clients) are noted, not built.

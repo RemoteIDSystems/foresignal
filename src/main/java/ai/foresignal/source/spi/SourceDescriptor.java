@@ -199,7 +199,15 @@ public record SourceDescriptor(
          * A notice appended whenever this source's records are placed in an LLM context (prompt 090; for
          * example OpenFEMA's eligibility notice); null when there is none.
          */
-        String llmNotice) {
+        String llmNotice,
+        /**
+         * The largest fraction of a complete-set reference dataset that one run may tombstone
+         * ({@code reconcile.maxAbsentRatio}, prompt 094); the shrink guard refuses more.
+         */
+        double reconcileMaxAbsentRatio) {
+
+    /** The default shrink guard ratio of a complete-set reference dataset (prompt 094). */
+    public static final double DEFAULT_MAX_ABSENT_RATIO = 0.2;
 
     /** Coordinate decimals kept for a private source unless it says otherwise (about 11 m). */
     public static final int DEFAULT_PRIVATE_PRECISION_DECIMALS = 4;
@@ -260,6 +268,9 @@ public record SourceDescriptor(
         allowedHosts = allowedHosts == null ? List.of() : List.copyOf(allowedHosts);
         llmNotice = llmNotice == null || llmNotice.isBlank() ? null : llmNotice.strip();
         userAgentContact = userAgentContact == null || userAgentContact.isBlank() ? null : userAgentContact.strip();
+        if (reconcileMaxAbsentRatio <= 0 || reconcileMaxAbsentRatio > 1) {
+            reconcileMaxAbsentRatio = DEFAULT_MAX_ABSENT_RATIO;
+        }
     }
 
     /** True when {@code target} is one of {@link #allowedHosts}. */
@@ -378,6 +389,7 @@ public record SourceDescriptor(
         private int maxResponseBytes = DEFAULT_MAX_RESPONSE_BYTES;
         private String userAgentOverride;
         private String userAgentContact;
+        private double reconcileMaxAbsentRatio = DEFAULT_MAX_ABSENT_RATIO;
         private String titleField;
         private Integer aggBelowZoom;
         private String startField;
@@ -439,6 +451,15 @@ public record SourceDescriptor(
         /** A notice appended whenever this source's records reach an LLM context (prompt 090). */
         public Builder llmNotice(String llmNotice) {
             this.llmNotice = llmNotice;
+            return this;
+        }
+
+        /**
+         * Sets the largest fraction of a complete-set reference dataset one run may tombstone
+         * ({@code reconcile.maxAbsentRatio}, prompt 094). Values outside {@code (0, 1]} keep the default.
+         */
+        public Builder reconcileMaxAbsentRatio(double ratio) {
+            this.reconcileMaxAbsentRatio = ratio;
             return this;
         }
 
@@ -866,7 +887,8 @@ public record SourceDescriptor(
                     allowedHosts,
                     reconnect,
                     coverageFromObservers,
-                    llmNotice);
+                    llmNotice,
+                    reconcileMaxAbsentRatio);
         }
     }
 }

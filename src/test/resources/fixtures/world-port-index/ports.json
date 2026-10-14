@@ -1,0 +1,56 @@
+{
+  "ports": [
+    {
+      "portNumber": "12345",
+      "portName": "Rotterdam",
+      "countryCode": "NL",
+      "countryName": "Netherlands",
+      "unloCode": "NLRTM",
+      "regionName": "North Sea",
+      "harborSize": "L",
+      "harborType": "River Basin Natural",
+      "harborUse": "Cargo",
+      "shelter": "Excellent",
+      "channelDepth": 24.0,
+      "anchorageDepth": 20.0,
+      "maxVesselLength": 400,
+      "maxVesselDraft": 24,
+      "latitude": "51 55 N",
+      "longitude": "004 29 E",
+      "ycoord": 51.9167,
+      "xcoord": 4.4833,
+      "alternateName": "Rotterdam-Europoort"
+    },
+    {
+      "portNumber": "12346",
+      "portName": "Small Marina",
+      "countryCode": "US",
+      "countryName": "United States",
+      "unloCode": "USSMX",
+      "regionName": "East Coast",
+      "harborSize": "V",
+      "harborType": "Coastal Natural",
+      "harborUse": "Ferry",
+      "shelter": "Good",
+      "ycoord": 40.7,
+      "xcoord": -74.0,
+      "alternateName": null
+    },
+    {
+      "portNumber": "12347",
+      "portName": "Unknown Size Port",
+      "countryCode": "FR",
+      "countryName": "France",
+      "harborSize": "Z",
+      "ycoord": 43.3,
+      "xcoord": 5.4
+    },
+    {
+      "portNumber": "12348",
+      "portName": "No Coordinates",
+      "countryCode": "GB",
+      "countryName": "United Kingdom",
+      "harborSize": "M"
+    }
+  ]
+}

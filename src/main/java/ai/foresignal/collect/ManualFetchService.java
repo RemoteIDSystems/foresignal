@@ -53,6 +53,18 @@ public class ManualFetchService {
      * @throws BudgetExceededProblem (429) when the budget refused the request
      */
     public FetchOutcome fetchNow(String sourceId) {
+        return fetchNow(sourceId, false);
+    }
+
+    /**
+     * Fetches {@code sourceId} once now, optionally releasing the complete-set reconciliation's shrink
+     * guard (prompt 094).
+     *
+     * @param sourceId the source
+     * @param allowShrink true to let reconciliation tombstone more than {@code reconcile.maxAbsentRatio}
+     *     of a reference dataset, once
+     */
+    public FetchOutcome fetchNow(String sourceId, boolean allowShrink) {
         SourceRegistry.Registration registration = registry.get(sourceId);
         SourceDescriptor descriptor = registration.descriptor();
         if (descriptor.mode() != Mode.POLLING
@@ -76,7 +88,7 @@ public class ManualFetchService {
             throw inBackoff(sourceId);
         }
 
-        FetchOutcome outcome = executor.execute(sourceId, FetchTrigger.MANUAL);
+        FetchOutcome outcome = executor.execute(sourceId, FetchTrigger.MANUAL, allowShrink);
         if (FetchOutcome.SKIP_OVERLAP.equals(outcome.skipReason())) {
             throw alreadyRunning(sourceId);
         }

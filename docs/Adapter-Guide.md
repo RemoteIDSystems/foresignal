@@ -805,3 +805,38 @@ the way the AIVDM codec is `ai.foresignal.codec.ais`, and it is the template for
 | `AisMessage`, `AisDecoder` | types 1/2/3, 4 (counted), 5, 18, 19, 21 (counted), 24A/B, 27; others `Unsupported` |
 | `AisEncoder`, `NmeaWriter` | types 1, 5, 18, 24A/B; sentences of at most 82 characters with CR LF, sequential ids 0–9, fill bits on the last fragment |
 | `VesselStateMerger`, `VesselUpdate` | per-MMSI merge (6 h, 100,000 MMSIs), static data held until the first fix, quality and observers |
+
+## 25. Reference datasets (prompt 094)
+
+A **reference dataset** is a slow-changing catalogue Foresignal polls weekly and versioned by comparing whole
+runs. The power plants, airports, cables, volcanoes, ports, park boundaries, launch sites and nuclear
+facilities are the family; `world-port-index` and `ourairports` feed 099.
+
+- **Descriptor.** `ai.foresignal.source.support.ReferenceSupport.defaults(builder)` applies STANDARD, an `ALL`
+  policy, no TTL, `observedAtMode=RECEIVED`, `zeroResultsNormal=false`, a 7-day interval (min 1 day), a 2/min
+  and 20/day budget and 730 days of retention. The long window keeps the retention keyframe
+  (`window / 4` ≈ 6 months) from rewriting every record each week. Declare `dataset-release` as a kind and a
+  `licence`, `termsUrl` and `attribution`.
+- **Chunked fetch.** `ctx.emitChunk(records)` (at most 5,000 records) hands one chunk to the executor, which
+  submits it as its own `IngestBatch` and waits for it before accepting the next: a dataset larger than the
+  heap budget is never held as records, and the writer's back-pressure reaches the parser. The final
+  `FetchResult.complete(records, release)` reports the dataset's own version (ETag, Last-Modified or its
+  version string).
+- **Complete-set reconciliation.** When a run returns `complete=true`, the executor submits `TombstoneAbsent`
+  after the last chunk: the non-tombstoned heads whose `record_live.last_received_at` is older than the run's
+  start were not seen and are tombstoned through the normal fold (`persist_reason=TOMBSTONE`) in chunks of
+  10,000. A 304, a failed run and a partial run never reconcile.
+- **Shrink guard.** If more than `reconcile.maxAbsentRatio` of the dataset (descriptor field, default 0.2)
+  would be tombstoned at once — a truncated download must never read as a mass deletion — nothing is written,
+  health shows "dataset shrank by N% — reconciliation skipped", and the operator releases it once with
+  `allowShrink=true` on `POST /v1/sources/{id}/fetch`.
+- **Forced touches.** Every batch of a complete-set run sets `IngestBatch.forceTouch`, so an unchanged record
+  advances `record_live.last_received_at` even inside `touchMin` (TOUCH, never TOUCH_THROTTLED); otherwise a
+  re-run inside the throttle would make the reconciliation think the record disappeared.
+- **`dataset-release`.** After reconciliation the executor emits one record, kind `dataset-release`,
+  `externalId` = the release, payload `upstreamVersion`, `records`, `appeared` (FIRST+REAPPEAR), `changed`
+  (SIGNIFICANT+CHANGE) and `disappeared` (TOMBSTONE). Rules and briefings notice a release from it.
+- **Multiple files (OurAirports, submarine cables, spaceports).** Reconcile only when every file arrived fresh
+  (a 304 on one file makes the run incomplete), because reconciliation is per source and would otherwise
+  tombstone the records of the file that did not change.
+- **Fixture READMEs** note `synthetic: true` when a capture needs a key or is trimmed; recapture at 143.

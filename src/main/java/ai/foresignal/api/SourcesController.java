@@ -268,8 +268,10 @@ public class SourcesController {
     /** {@code fetchSourceNow}: one MANUAL fetch, ingested normally; 409 and 429 as in prompt 010. */
     @PostMapping("/{sourceId}/fetch")
     @Operation(operationId = "fetchSourceNow", tags = "Sources")
-    public FetchOutcomeDto fetchSourceNow(@PathVariable String sourceId) {
-        return FetchOutcomeMapper.outcome(manualFetch.fetchNow(sourceId));
+    public FetchOutcomeDto fetchSourceNow(
+            @PathVariable String sourceId,
+            @RequestParam(name = "allowShrink", defaultValue = "false") boolean allowShrink) {
+        return FetchOutcomeMapper.outcome(manualFetch.fetchNow(sourceId, allowShrink));
     }
 
     /**

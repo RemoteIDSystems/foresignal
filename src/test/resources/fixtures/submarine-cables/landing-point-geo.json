@@ -1,0 +1,15 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {"id": "lp-nyc", "name": "New York Landing", "color": "#ff0000"},
+      "geometry": {"type": "Point", "coordinates": [-73.9, 40.6]}
+    },
+    {
+      "type": "Feature",
+      "properties": {"id": "lp-london", "name": "London Landing", "color": "#ff0000"},
+      "geometry": {"type": "Point", "coordinates": [-0.1, 51.5]}
+    }
+  ]
+}

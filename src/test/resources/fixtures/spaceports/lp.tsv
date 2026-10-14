@@ -1,0 +1,3 @@
+#Pad	Site	Name	Code	Type	Latitude	Longitude	TStart	TStop	Error
+PAD1	SITE1	Pad 39A	39A	PAD	28.6	-80.6	1965	-	0.2
+PAD2	SITE2	Pad 1	P1	PAD	45.9	66.3	1957	-	0.1

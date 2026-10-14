@@ -1,0 +1,33 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "UNIT_CODE": "YOSE",
+        "UNIT_NAME": "Yosemite National Park",
+        "UNIT_TYPE": "National Park",
+        "PARKNAME": "Yosemite",
+        "STATE": "CA",
+        "REGION": "Pacific West",
+        "DATE_EDIT": "2025-06-01",
+        "STATUS": "Active"
+      },
+      "geometry": {"type": "Polygon", "coordinates": [[[-119.9, 37.5], [-119.3, 37.5], [-119.3, 38.2], [-119.9, 38.2], [-119.9, 37.5]]]}
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "UNIT_CODE": "GRCA",
+        "UNIT_NAME": "Grand Canyon National Park",
+        "UNIT_TYPE": "National Park",
+        "PARKNAME": "Grand Canyon",
+        "STATE": "AZ",
+        "REGION": "Intermountain",
+        "DATE_EDIT": "2024-01-15",
+        "STATUS": "Active"
+      },
+      "geometry": {"type": "MultiPolygon", "coordinates": [[[[-112.5, 36.0], [-111.8, 36.0], [-111.8, 36.5], [-112.5, 36.5], [-112.5, 36.0]]]]}
+    }
+  ]
+}

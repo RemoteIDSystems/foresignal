@@ -1,0 +1,23 @@
+{
+  "head": {"vars": ["item", "itemLabel", "coord", "countryLabel", "capacity", "stateLabel", "inception"]},
+  "results": {
+    "bindings": [
+      {
+        "item": {"type": "uri", "value": "http://www.wikidata.org/entity/Q2351124"},
+        "itemLabel": {"xml:lang": "en", "type": "literal", "value": "Cattenom Nuclear Power Plant"},
+        "coord": {"type": "literal", "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral", "value": "Point(6.2178 49.4158)"},
+        "countryLabel": {"xml:lang": "en", "type": "literal", "value": "France"},
+        "capacity": {"type": "literal", "datatype": "http://www.w3.org/2001/XMLSchema#decimal", "value": "5448"},
+        "stateLabel": {"xml:lang": "en", "type": "literal", "value": "in use"},
+        "inception": {"type": "literal", "datatype": "http://www.w3.org/2001/XMLSchema#dateTime", "value": "1979-01-01T00:00:00Z"}
+      },
+      {
+        "item": {"type": "uri", "value": "http://www.wikidata.org/entity/Q1000000"},
+        "itemLabel": {"xml:lang": "en", "type": "literal", "value": "Fukushima Daiichi Nuclear Power Plant"},
+        "coord": {"type": "literal", "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral", "value": "Point(141.0347 37.4214)"},
+        "countryLabel": {"xml:lang": "en", "type": "literal", "value": "Japan"},
+        "stateLabel": {"xml:lang": "en", "type": "literal", "value": "shut down"}
+      }
+    ]
+  }
+}

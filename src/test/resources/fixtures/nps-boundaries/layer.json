@@ -1,0 +1,12 @@
+{
+  "currentVersion": 11.2,
+  "maxRecordCount": 2000,
+  "objectIdField": "OBJECTID",
+  "advancedQueryCapabilities": {"supportsPagination": true},
+  "editingInfo": {"dataLastEditDate": 1791760000000},
+  "fields": [
+    {"name": "OBJECTID", "type": "esriFieldTypeOID"},
+    {"name": "UNIT_CODE", "type": "esriFieldTypeString"},
+    {"name": "UNIT_NAME", "type": "esriFieldTypeString"}
+  ]
+}

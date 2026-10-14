@@ -1,0 +1,4 @@
+#Site	Name	Code	Type	StateCode	Latitude	Longitude	TStart	TStop	Parent	Error
+SITE1	Cape Canaveral	CC	LAUNCH	SITE	28.5	-80.5	1950	-	-	0.5
+SITE2	Baikonur	BK	LAUNCH	SITE	45.9	66.3	1955	-	-	0.1
+SITE3	Unknown Place	UP	LAUNCH	SITE	-	-	1970	2000	-	-

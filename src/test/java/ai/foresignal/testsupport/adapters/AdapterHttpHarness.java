@@ -95,4 +95,16 @@ public final class AdapterHttpHarness {
         return new DefaultFetchContext(adapter.descriptor(), client, recorder, () -> ValidatedParams.of(params),
                 credentialsAccess, clock, () -> Optional.ofNullable(lastSuccess), client.stateStore(adapter.id()));
     }
+
+    /**
+     * A fetch context whose chunk sink is {@code chunkSink} (prompt 094: a chunked reference adapter), so
+     * {@code ctx.emitChunk} hands each chunk to the test instead of to the ingest writer.
+     */
+    public DefaultFetchContext context(SourceAdapter adapter, Map<String, Object> params, RequestRecorder recorder,
+            java.time.Instant lastSuccess,
+            java.util.function.Consumer<java.util.List<ai.foresignal.source.spi.NormalizedRecord>> chunkSink) {
+        DefaultFetchContext ctx = context(adapter, params, recorder, lastSuccess);
+        ctx.chunkSink(chunkSink);
+        return ctx;
+    }
 }

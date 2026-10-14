@@ -446,7 +446,30 @@ class FamilyDefaultsTest {
                     new ai.foresignal.source.adapters.elexon.GridFrequencyGbAdapter("").descriptor(), "event")),
             Map.entry("GridFrequencyFingridAdapter", new Entry(
                     new ai.foresignal.source.adapters.fingrid.GridFrequencyFingridAdapter("").descriptor(),
-                    "event")));
+                    "event")),
+            // Prompt 094: the slow-changing reference layers (power plants, airports, cables, volcanoes, ports,
+            // park boundaries, launch sites, nuclear facilities) are the reference class, 730 d.
+            Map.entry("WriPowerPlantsAdapter", new Entry(
+                    new ai.foresignal.source.adapters.wri.WriPowerPlantsAdapter("").descriptor(), "reference")),
+            Map.entry("OurAirportsAdapter", new Entry(
+                    new ai.foresignal.source.adapters.ourairports.OurAirportsAdapter("").descriptor(), "reference")),
+            Map.entry("SubmarineCablesAdapter", new Entry(
+                    new ai.foresignal.source.adapters.submarinecables.SubmarineCablesAdapter("").descriptor(),
+                    "reference")),
+            Map.entry("GvpVolcanoesAdapter", new Entry(
+                    new ai.foresignal.source.adapters.gvp.GvpVolcanoesAdapter("").descriptor(), "reference")),
+            Map.entry("WorldPortIndexAdapter", new Entry(
+                    new ai.foresignal.source.adapters.worldportindex.WorldPortIndexAdapter("").descriptor(),
+                    "reference")),
+            Map.entry("NpsBoundariesAdapter", new Entry(
+                    new ai.foresignal.source.adapters.nps.NpsBoundariesAdapter("").descriptor(), "reference")),
+            Map.entry("SpaceportsAdapter", new Entry(
+                    new ai.foresignal.source.adapters.spaceports.SpaceportsAdapter("").descriptor(), "reference")),
+            Map.entry("NuclearReactorsUsAdapter", new Entry(
+                    new ai.foresignal.source.adapters.fema.NuclearReactorsUsAdapter("").descriptor(), "reference")),
+            Map.entry("NuclearPlantsWikidataAdapter", new Entry(
+                    new ai.foresignal.source.adapters.wikidata.NuclearPlantsWikidataAdapter("").descriptor(),
+                    "reference")));
 
     /**
      * The {@code privacy} class (prompt 086): private sources whose prompt sets a short raw window on purpose, because

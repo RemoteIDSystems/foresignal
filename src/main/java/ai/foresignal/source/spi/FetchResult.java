@@ -12,23 +12,35 @@ import java.util.List;
  * @param notModified true when the upstream answered 304, so there is nothing to ingest and the run
  *     still counts as a success
  * @param coverage how much of the expected reporting arrived, where the upstream says
+ * @param release the dataset's own version identity for a complete-set reference run (prompt 094):
+ *     the upstream's ETag, Last-Modified or own version string. Null for a source that does not
+ *     publish one
  */
 public record FetchResult(
-        List<NormalizedRecord> records, boolean complete, boolean notModified, Coverage coverage) {
+        List<NormalizedRecord> records, boolean complete, boolean notModified, Coverage coverage, String release) {
 
     public FetchResult {
         records = records == null ? List.of() : List.copyOf(records);
         coverage = coverage == null ? Coverage.none() : coverage;
+        release = release == null || release.isBlank() ? null : release;
     }
 
     /** A partial set of records, for example one page or one bbox. */
     public static FetchResult of(List<NormalizedRecord> records) {
-        return new FetchResult(records, false, false, Coverage.none());
+        return new FetchResult(records, false, false, Coverage.none(), null);
     }
 
     /** The full current set. */
     public static FetchResult complete(List<NormalizedRecord> records) {
-        return new FetchResult(records, true, false, Coverage.none());
+        return new FetchResult(records, true, false, Coverage.none(), null);
+    }
+
+    /**
+     * The full current set with its upstream release identity (prompt 094); the executor emits one
+     * {@code dataset-release} record after reconciliation.
+     */
+    public static FetchResult complete(List<NormalizedRecord> records, String release) {
+        return new FetchResult(records, true, false, Coverage.none(), release);
     }
 
     /**
@@ -42,12 +54,17 @@ public record FetchResult(
      * allow a static method to share its signature.
      */
     public static FetchResult unchanged() {
-        return new FetchResult(List.of(), false, true, Coverage.none());
+        return new FetchResult(List.of(), false, true, Coverage.none(), null);
     }
 
     /** This result with coverage attached. */
     public FetchResult withCoverage(Coverage coverage) {
-        return new FetchResult(records, complete, notModified, coverage);
+        return new FetchResult(records, complete, notModified, coverage, release);
+    }
+
+    /** This result with a release identity attached (prompt 094). */
+    public FetchResult withRelease(String release) {
+        return new FetchResult(records, complete, notModified, coverage, release);
     }
 
     public int size() {
