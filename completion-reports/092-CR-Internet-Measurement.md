@@ -3,8 +3,8 @@
 | | |
 |---|---|
 | Prompt | 092-Internet-Measurement.md |
-| Status | Partial |
-| Implementation commit | 0eced87af16c8101b0a863567fbd3824a154114a |
+| Status | Complete |
+| Implementation commit | 1a65fc2dcd9caaa5367636270742d436871c221f (first partial commit 0eced87a) |
 | Date | 2026-10-14 |
 
 ## Summary
@@ -36,17 +36,25 @@ a cable cut, a BGP hijack or a cloud-provider incident.
 **Fixtures.** Live captures (Atlas bzip2, gpsjam manifest+day, GitHub summary/incidents, GCP/Workspace
 incidents, AWS/Azure feeds) and synthetic Cloudflare fixtures (no Radar token), each with a README.
 
-## Why Partial
+## Follow-up completion
 
-- **`ris-live` (optional, streaming) is not built.** The prompt marks it optional and disabled by default; the
-  WebSocket prefix-visibility monitor and `PrefixVisibilityTracker` were not implemented.
-- **`odin` is not built** (verified: no published licence/terms/rate limit), recorded as a "Considered" note.
-- **The Atlas `intradayDisconnected` param is declared but not implemented** (the intraday
-  `atlas.ripe.net/api/v2/probes?status=2` refresh).
-- **Some tests are thinner than the prompt lists:** `CloudflareParserTest` asserts the BGP descriptor (kinds,
-  volatile fields) rather than parsing a hijack/leak body; there are no WireMock per-source adapter tests or
-  `InternetMeasurementIngestIT`/`RisLiveAdapterTest`; `PrefixVisibilityTrackerTest` does not exist. These are the
-  pieces to finish (see Notes).
+A first commit (`0eced87a`) delivered the sources and fixtures but was Partial. A second commit (`1a65fc2d`)
+completed the prompt:
+
+- **`ris-live`** (`RisLiveAdapter` + `RisLiveSession` + `PrefixVisibilityTracker`): a narrow WebSocket
+  subscription (one `ris_subscribe` per watched prefix and a `RIS_PEER_STATE` request, never the full firehose),
+  per-peer visibility tracking (recent peers, peer-down, AS_SET flattening, unexpected origin, more-specifics),
+  banded snapshots emitted on change or every 10 minutes, reconnect on a server "too slow" error, a five-minute
+  silence watchdog, and a `no-data` status while down.
+- **Atlas intraday** (`intradayDisconnected`): an intraday refresh of disconnected probes from the Probe API
+  when the daily dump is under 20 h old; the daily dump now uses a **conditional GET** (Weak/strong `ETag`),
+  decompressed in memory.
+- **Cloudflare BGP** gained a public `parse(body, hijack)` used by `CloudflareBgpParserTest`.
+- **Tests added:** `CloudflareBgpParserTest`, `GoogleStatusParserTest`, `PrefixVisibilityTrackerTest`,
+  `RisLiveAdapterTest` (embedded WebSocket), `InternetAdaptersTest` (WireMock: Bearer token, gpsjam manifest
+  gating, resolved-incident follow-up), `InternetMeasurementIngestIT` (gpsjam day-2 tombstone).
+
+`odin` remains a "Considered" note (no published licence) and is correctly out of scope.
 
 ## Files created / modified
 
@@ -94,9 +102,11 @@ incidents, AWS/Azure feeds) and synthetic Cloudflare fixtures (no Radar token), 
 ## Tests written (not run)
 
 - `H3CellsTest`, `GpsjamParserTest` (formula, thresholds), `AtlasDumpParserTest` (bzip2, dropped host fields),
-  `StatusPageParserTest` (Statuspage and Google), `CloudflareParserTest` (outage parse; BGP descriptor).
-- Missing (to finish): `CloudflareBgpParserTest`, per-source WireMock adapter tests, `PrefixVisibilityTrackerTest`,
-  `InternetMeasurementIngestIT`, `RisLiveAdapterTest`.
+  `StatusPageParserTest` (Statuspage and Google), `CloudflareParserTest` (outage parse; BGP descriptor),
+  `CloudflareBgpParserTest` (hijack and leak), `GoogleStatusParserTest`, `PrefixVisibilityTrackerTest`
+  (announce/withdraw/peer-down, AS_SET, unexpected origin, more-specifics), `RisLiveAdapterTest` (embedded
+  WebSocket: narrow subscribe, change emission, no duplicate), `InternetAdaptersTest` (WireMock: Bearer token,
+  gpsjam manifest gating, resolved-incident follow-up), `InternetMeasurementIngestIT` (gpsjam day-2 tombstone).
 
 ## Compile result
 
