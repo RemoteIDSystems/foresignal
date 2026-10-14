@@ -15,8 +15,9 @@ import org.testcontainers.utility.MountableFile;
 
 /**
  * The MQTT broker of the prompt 060 integration tests: one {@code eclipse-mosquitto:2} container per JVM with
- * an anonymous listener (1883), a password listener (1884, {@code fs}/{@code s3cret}) and a TLS listener
- * (8883, the test CA of {@code src/test/resources/mqtt/certs}), plus a Toxiproxy in front of the anonymous
+ * an anonymous listener (1883), a password listener (1884, {@code fs}/{@code s3cret}), a TLS listener
+ * (8883, the test CA of {@code src/test/resources/mqtt/certs}) and an anonymous WebSocket listener (9001, prompt 085),
+ * plus a Toxiproxy in front of the anonymous
  * listener, so a test can cut the client's connection without touching the broker (the broker then publishes
  * the Last Will). Both are started lazily on first use and removed by Testcontainers' Ryuk when the JVM exits.
  */
@@ -49,7 +50,7 @@ public final class MosquittoSupport {
         broker = new GenericContainer<>(MOSQUITTO)
                 .withNetwork(network)
                 .withNetworkAliases("mosquitto")
-                .withExposedPorts(1883, 1884, 8883)
+                .withExposedPorts(1883, 1884, 8883, 9001)
                 .withCopyFileToContainer(MountableFile.forClasspathResource("mqtt/mosquitto.conf"),
                         "/mosquitto/config/mosquitto.conf")
                 .withCopyFileToContainer(MountableFile.forClasspathResource("mqtt/certs/ca.crt"),
@@ -100,6 +101,11 @@ public final class MosquittoSupport {
     /** {@code mqtts://host:port} of the TLS listener. */
     public String tlsUrl() {
         return "mqtts://" + host() + ":" + broker.getMappedPort(8883);
+    }
+
+    /** {@code ws://host:port/mqtt} of the anonymous WebSocket listener (prompt 085). */
+    public String webSocketUrl() {
+        return "ws://" + host() + ":" + broker.getMappedPort(9001) + "/mqtt";
     }
 
     /** {@code mqtt://host:port} through Toxiproxy to the anonymous listener. */

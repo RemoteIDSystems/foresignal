@@ -309,6 +309,13 @@ class FamilyDefaultsTest {
                     new ai.foresignal.source.adapters.mesh.MeshCoreBridgeAdapter().descriptor(), "state")),
             Map.entry("MeshReportsAdapter", new Entry(
                     new ai.foresignal.source.adapters.mesh.MeshReportsAdapter().descriptor(), "event")),
+            // Prompt 085: the keyless vessel sources are TRACK (trackWindow, never a default).
+            Map.entry("KystverketAdapter", new Entry(new ai.foresignal.source.adapters.ais.KystverketAdapter(
+                    new ai.foresignal.source.codec.AivdmSocketCodec(() -> null)).descriptor(), "track")),
+            Map.entry("DigitrafficAisAdapter", new Entry(new ai.foresignal.source.adapters.ais.DigitrafficAisAdapter(
+                    null, () -> "abcd1234", () -> "dev", "", "").descriptor(), "track")),
+            Map.entry("LocalAisAdapter", new Entry(new ai.foresignal.source.adapters.ais.LocalAisAdapter(1,
+                    new ai.foresignal.source.codec.AivdmSocketCodec(() -> null)).descriptor(), "track")),
             Map.entry("SatDumpAdapter", new Entry(new ai.foresignal.source.adapters.satdump.SatDumpAdapter("itest", null,
                     null).descriptor(), "station")));
 

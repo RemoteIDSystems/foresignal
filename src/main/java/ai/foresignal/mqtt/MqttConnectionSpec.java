@@ -1,5 +1,6 @@
 package ai.foresignal.mqtt;
 
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -17,10 +18,12 @@ import java.util.Objects;
  *     both retained at QoS 1; null (prompt 083, a subscribing source) for no Will and no availability publishes at
  *     all, so the connection never publishes anything
  * @param options the session behavior (prompt 083); {@link MqttSessionOptions#defaults()} when null
+ * @param webSocketHeaders extra HTTP headers of the WebSocket upgrade request of a {@code ws://} or {@code wss://}
+ *     endpoint (prompt 085: Digitraffic's {@code Digitraffic-User}); empty when null, ignored for plain MQTT
  */
 public record MqttConnectionSpec(String key, String label, String clientId, MqttEndpoint endpoint,
         String protocolVersion, String username, String password, String caCertPem, String statusTopic,
-        MqttSessionOptions options) {
+        MqttSessionOptions options, Map<String, String> webSocketHeaders) {
 
     /** MQTT 5. */
     public static final String V5 = "5";
@@ -43,6 +46,7 @@ public record MqttConnectionSpec(String key, String label, String clientId, Mqtt
         Objects.requireNonNull(clientId, "clientId");
         Objects.requireNonNull(endpoint, "endpoint");
         options = options == null ? MqttSessionOptions.defaults() : options;
+        webSocketHeaders = webSocketHeaders == null ? Map.of() : Map.copyOf(webSocketHeaders);
         if (statusTopic == null && options.autoReconnect()) {
             throw new NullPointerException("statusTopic (only a non-reconnecting subscriber may omit it)");
         }
@@ -50,10 +54,17 @@ public record MqttConnectionSpec(String key, String label, String clientId, Mqtt
         label = label == null ? key : label;
     }
 
+    /** A connection without WebSocket upgrade headers (prompt 083's constructor). */
+    public MqttConnectionSpec(String key, String label, String clientId, MqttEndpoint endpoint, String protocolVersion,
+            String username, String password, String caCertPem, String statusTopic, MqttSessionOptions options) {
+        this(key, label, clientId, endpoint, protocolVersion, username, password, caCertPem, statusTopic, options,
+                null);
+    }
+
     /** A publisher connection with prompt 060's session (its original constructor). */
     public MqttConnectionSpec(String key, String label, String clientId, MqttEndpoint endpoint, String protocolVersion,
             String username, String password, String caCertPem, String statusTopic) {
-        this(key, label, clientId, endpoint, protocolVersion, username, password, caCertPem, statusTopic, null);
+        this(key, label, clientId, endpoint, protocolVersion, username, password, caCertPem, statusTopic, null, null);
     }
 
     /** True when the connection publishes availability on a status topic (and so has a Last Will). */
@@ -71,6 +82,6 @@ public record MqttConnectionSpec(String key, String label, String clientId, Mqtt
     public String toString() {
         return "MqttConnectionSpec[key=" + key + ", clientId=" + clientId + ", endpoint=" + endpoint
                 + ", protocolVersion=" + protocolVersion + ", username=" + (username == null ? "none" : "set")
-                + ", options=" + options + "]";
+                + ", options=" + options + ", webSocketHeaders=" + webSocketHeaders.keySet() + "]";
     }
 }

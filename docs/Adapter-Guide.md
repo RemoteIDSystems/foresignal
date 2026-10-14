@@ -6,7 +6,7 @@ Authorities: Architecture §4.2 (adapter rules 1–6), Core-Data-Model §2–§5
 
 ## 1. Package layout
 
-One package per upstream under `ai.foresignal.source.adapters`, with no imports between adapter packages. Shared format parsers (readsb JSON, CAP 1.2, AIVDM, GeoJSON, KISS/AX.25) live under `ai.foresignal.source.formats.*`. Shared format code lives there, **not** under `adapters`, so any adapter may import it without breaking the no-cross-adapter rule: the readsb mapper and the aircraft descriptor defaults (`formats.readsb`, prompt 062) are used by `adsblol`, `opensky` and the local receivers (069), exactly as `formats.cap` is used by every CAP source. Code that only one adapter uses stays in that adapter's package.
+One package per upstream under `ai.foresignal.source.adapters`, with no imports between adapter packages. Shared format parsers (readsb JSON, CAP 1.2, GeoJSON, KISS/AX.25) live under `ai.foresignal.source.formats.*`; the AIVDM codec, which prompt 110's sink uses as well, is the platform package `ai.foresignal.codec.ais` (§24). Shared format code lives there, **not** under `adapters`, so any adapter may import it without breaking the no-cross-adapter rule: the readsb mapper and the aircraft descriptor defaults (`formats.readsb`, prompt 062) are used by `adsblol`, `opensky` and the local receivers (069), exactly as `formats.cap` is used by every CAP source. Code that only one adapter uses stays in that adapter's package.
 
 ```
 source/adapters/usgs/
@@ -570,6 +570,8 @@ source (serving TCP is 110's SERVE sinks).
 - `CodecRegistry` collects the beans by id; a duplicate or malformed id fails startup.
 - The shared body of a socket source is `CodecStream.start(ctx, sink, codec, endpointParam, options)` in
   `source.adapters.local`; later families copy that pattern in their own package (adapters never import each other).
+- A connection that needs more than the default 5 s to connect sets `SocketOptions.withConnectTimeout` (prompt 085:
+  `ais-kystverket` waits 20 s).
 
 | Codec | Framing | Source | Notes |
 |---|---|---|---|
@@ -577,8 +579,9 @@ source (serving TCP is 110's SERVE sinks).
 | `gpsd` | LINES | `local-gpsd-{n}` | `?WATCH={"enable":true,"json":true};` on connect; VERSION `proto_major` 3; TPV and SKY merged per device into `gnss-fix`; `observedAt` = TPV `time` |
 | `kiss-ax25` | RAW | `local-aprs-{n}` | KISS frames reassembled across reads (`formats.kiss.KissFrameDecoder`: FEND/FESC unescaping, data frames only), AX.25 UI frames to TNC2 text (`Ax25UiDecoder`), then `formats.aprs.AprsParser` and `AprsRecords`; frames that are not AX.25 UI are counted and dropped; writes nothing. A `PacketListener` reports each packet (the duplicate filter) and each dropped frame (counters) |
 | `meshcore-companion` | RAW | `meshcore-local` (through `MeshCoreCompanionLink`) | MeshCore WiFi companion frames `>` + uint16 LE length reassembled across reads (`formats.meshcore.MeshCoreFrameDecoder`), frames over 176 bytes skipped, then `MeshCoreEventMapper`. The shared link owns the command queue (one in flight, 5 s timeout), the startup sequence and reconnecting, and writes through a `commandWriter` socket guarded by `MeshCoreCommandGuard` |
+| `aivdm` | LINES | `ais-kystverket` (through `tcpPublic`), `local-ais-{n}` | AIS NMEA lines (`!AIVDM`, `!AIVDO`, `!BSVDM`), optionally behind an IEC 61162-450 TAG block, decoded by the shared codec in `ai.foresignal.codec.ais` (see §24). Each session owns a `FragmentAssembler` and a `VesselStateMerger`; `Options` choose the time base (`TAG`: `observedAt` = TAG `c`, a line without it dropped; `RECEIVED`) and the observer (TAG `s`, or a station name). Drops are counted by reason (`foresignal.ais.dropped`); writes nothing |
 
-Prompt 085 adds `aivdm`, 082 `kiss-ax25`, 083 `meshcore-companion`, 086 `acars-json` and `sonde-udp`.
+Prompt 085 added `aivdm`, 082 `kiss-ax25`, 083 `meshcore-companion`; 086 adds `acars-json` and `sonde-udp`.
 
 **MQTT sources (prompt 083).** An MQTT source opens its broker connection through 060's `MqttConnections` with an
 `MqttConnectionSpec` whose `MqttSessionOptions` is `subscriber(keepAlive)`: no status topic, so no Will and nothing
@@ -587,7 +590,10 @@ reported through the handle's `onClose`, and the streaming supervisor reconnects
 CONNECT is budgeted (`ctx.chargeRequest` before the CONNECT and before each SUBSCRIBE; `chargeRequest` is the
 `consumeBudget` equivalent). Messages arrive on concurrent virtual threads, so per-entity merge state must be
 thread-safe. A stream whose records carry observers may set the descriptor flag `coverageFromObservers` (internal):
-each flush then reports the distinct observer receiver ids as `Coverage.receivers`.
+each flush then reports the distinct observer receiver ids as `Coverage.receivers`. A broker reached over WebSocket
+(`ws://`, `wss://`) may need headers on the upgrade request: `MqttConnectionSpec.webSocketHeaders` (prompt 085:
+Digitraffic's `Digitraffic-User`). A fixed public broker is the descriptor's `allowedHosts` entry, never operator
+input.
 
 **Receivers are observers (prompt 082).** In an RF or crowd-sourced feed, the station that *received* a report is
 not part of what the record describes: it goes in `NormalizedRecord.observers` (`Observer(receiverId, frequencyHz,
@@ -744,3 +750,34 @@ trigger, tile style, search or briefing written once works for every source. `ro
   (`Open511Server.REVIEWED`) or a vendored, reviewed snapshot (`roads/wzdx-feeds.json`); a registry is never read at
   runtime and callers cannot add URLs. A snapshot URL must not embed a credential: a key-required feed declares a
   required credential and the adapter adds it where the registry documents it.
+
+## 24. Shared codecs (prompt 085)
+
+Some wire formats are shared by adapters **and** by code that is not an adapter: prompt 110's NMEA sink writes AIS
+with the same codec the AIS sources read with. Such a codec is a platform package outside `ai.foresignal.source`,
+the way the AIVDM codec is `ai.foresignal.codec.ais`, and it is the template for the next one:
+
+- **No adapter imports.** The codec depends only on the SPI types it produces (`NormalizedRecord`, `Observer`,
+  `Quality`), never on an adapter or a sink, so adapters, socket codecs (`source.codec`) and sinks can all use it.
+- **Pure and clock-free.** Time comes in with each call (a receive time, a TAG time); counters are exposed as numbers
+  or through a listener, and Micrometer stays in the caller (`AivdmSocketCodec` registers the
+  `foresignal.ais.*` meters).
+- **Both directions in one place.** `AisDecoder` turns sentinels into absent values (adapter rule 11) and
+  `AisEncoder` writes absent values back as the sentinels, so `decode(encode(x)) == x` holds and is tested; values are
+  kept on the wire resolution (1/10,000 minute, 1/10 kn, 1/10°, 1/10 m).
+- **One record contract.** `VesselStateMerger` produces prompt 063's `vessel` payload for every vessel source,
+  AIVDM or not: `ais-digitraffic` feeds it source-neutral `VesselUpdate`s built from JSON. The descriptor defaults the
+  sources share are in `source.formats.ais.VesselDescriptors`, which `aisstream` uses too.
+- **In-house, free.** No third-party AIS library: `tbsalling/aismessages` is not under a free license. Golden
+  sentences in the tests were cross-checked with an independent decoder used only as an oracle outside the
+  repository; nothing was copied from it.
+
+| Piece | Role |
+|---|---|
+| `TagBlock` | IEC 61162-450 TAG block: checksum verified, `c` (seconds or milliseconds), `s`, `g`, `n`; a missing block is not an error |
+| `NmeaSentence` | `!AIVDM`/`!AIVDO`/`!BSVDM` fields and checksum; a bad checksum is a result, not an exception |
+| `FragmentAssembler` | key `(talker, TAG group or sequential id, channel, count)`, at most 9 fragments, out of order accepted, 2 s timeout, at most 1,000 open groups |
+| `SixBit` | armoring, bit reader and writer with signed fields, six-bit text with `@` padding trimmed |
+| `AisMessage`, `AisDecoder` | types 1/2/3, 4 (counted), 5, 18, 19, 21 (counted), 24A/B, 27; others `Unsupported` |
+| `AisEncoder`, `NmeaWriter` | types 1, 5, 18, 24A/B; sentences of at most 82 characters with CR LF, sequential ids 0–9, fill bits on the last fragment |
+| `VesselStateMerger`, `VesselUpdate` | per-MMSI merge (6 h, 100,000 MMSIs), static data held until the first fix, quality and observers |

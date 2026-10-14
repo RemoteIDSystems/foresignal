@@ -218,7 +218,55 @@ against the budget (2 a minute, 144 a day).
 aisstream publishes no terms of use or redistribution clause, and asks you to proxy only what your clients need, so the
 source is `egress: LOCAL_ONLY`, like `opensky-states`: served to your own clients, never re-served by sinks, federation,
 share links or feeds. No key means no vessels from this source; keyless official AIS (`ais-kystverket`,
-`ais-digitraffic`) and a local AIS-catcher arrive later.
+`ais-digitraffic`) and your own AIS-catcher (`local-ais-{n}`) need no key (next section).
+
+### Keyless AIS and your own AIS-catcher
+
+Prompt 085 adds three vessel sources that need no key, all disabled until you enable them. They emit the same
+`vessel` records as `aisstream` (the same payload keys, the same SAMPLED policy and 30-minute TTL), decoded by
+Foresignal's own AIVDM codec.
+
+- **`ais-kystverket`** reads the Norwegian Coastal Administration's open AIS stream (`153.44.253.27:5631`, NMEA with
+  TAG blocks) over raw TCP, receive-only. It covers the Norwegian economic zone and the Svalbard and Jan Mayen
+  protection zones; fishing vessels under 15 m and leisure craft under 45 m are left out by Kystverket. The data are
+  under the Norwegian Licence for Open Government Data (NLOD 2.0), so the source is `OPEN`; credit "Contains data
+  under the Norwegian licence for Open Government data (NLOD) distributed by the Norwegian Coastal Administration"
+  wherever you show it. **Best effort:** in October 2026 the endpoint was still listed as open, but connections from
+  outside Norway (a US host, and the build host) timed out. While it is unreachable the source shows `failing`, and
+  Foresignal backs off from 30 s to 15 minutes (at most 12 connects an hour); it never tries another route.
+- **`ais-digitraffic`** reads Fintraffic's Digitraffic marine MQTT over WebSocket (Finland and the northern Baltic)
+  and fetches the vessel metadata list every 12 hours. Location fixes older than 24 hours are dropped. If
+  Digitraffic's own status topic has not been updated for 10 minutes, the source shows `degraded`. CC BY 4.0, `OPEN`;
+  credit "Source: Fintraffic / digitraffic.fi, licence CC 4.0 BY".
+- **`local-ais-{n}`** reads your own AIS-catcher over TCP on your network (next paragraphs).
+
+```json
+PUT /v1/sources/ais-digitraffic
+{"enabled": true}
+```
+
+**Your AIS-catcher as a TCP server.** Start AIS-catcher with `-S <port>`, which serves its NMEA lines to TCP clients
+on that port (for example `AIS-catcher -S 5012` plus your usual device options), then point a slot at it. The port is always explicit; there is
+no default:
+
+```json
+PUT /v1/sources/local-ais-1
+{"enabled": true, "params": {"endpoint": "tcp://192.168.1.30:5012", "stationName": "rooftop"}}
+```
+
+Foresignal only reads: nothing is ever written to the socket. The host must be on your network (a public address is
+refused). `stationName` (default `local`) names your station as the observer of every record, and
+`GET /v1/sources/local-ais-1/health` shows `details.messagesPerMin`, `details.distinctMmsi10m`,
+`details.lastMessageAt` and `details.vessels`. A connection silent for 120 s is closed and reopened (5 s to 5 minutes).
+The slots are `egress: LOCAL_ONLY`; you may set them to `OPEN`.
+
+**Your station's position stays private by default.** AIS-catcher's NMEA carries no station position, and Foresignal
+stores none unless you ask: set `publishStationPosition` to `true` together with `stationLat` and `stationLon` to get
+one `ais-receiver` record on the map. Without `publishStationPosition`, `stationLat` and `stationLon` are refused
+(`400 VALIDATION_FAILED`), so the position is never stored or emitted.
+
+For an AIS-catcher somewhere else (a remote site that can reach Foresignal but not the other way round), the
+`aiscatcher` HTTP push preset ("Inbound webhooks") remains the alternative.
 
 ### Cyber feeds and Certificate Transparency
 

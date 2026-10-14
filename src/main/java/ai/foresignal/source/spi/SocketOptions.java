@@ -8,8 +8,9 @@ import java.util.Objects;
  * Options of one TCP connection opened through {@link SocketTransport#tcp} or {@link SocketTransport#tcpPublic}
  * (prompts 069, 082 and 083).
  *
- * <p>The connect timeout is fixed at {@link SocketTransport#CONNECT_TIMEOUT} and TCP keepalive is always on; neither
- * is an option.
+ * <p>The connect timeout defaults to {@link SocketTransport#CONNECT_TIMEOUT}; a source whose upstream is slow to
+ * accept may set a longer one ({@link #withConnectTimeout}, prompt 085: {@code ais-kystverket} waits 20 s). TCP
+ * keepalive is always on and is not an option.
  *
  * <p><strong>Writing.</strong> A plain connection's {@link StreamHandle} has no write method, so the only bytes
  * Foresignal can send on such a socket are {@link #onConnect()}, once, right after connecting:
@@ -31,8 +32,10 @@ import java.util.Objects;
  * @param onConnect bytes written once right after the connection opens, or null
  * @param writeMode what may be written; {@link WriteMode#ON_CONNECT_ONLY} when null
  * @param commandGuard the allowlist of a {@link WriteMode#GUARDED_COMMANDS} connection, else null
+ * @param connectTimeout how long a connect may take; {@link SocketTransport#CONNECT_TIMEOUT} when null (prompt 085)
  */
-public record SocketOptions(Duration silenceTimeout, byte[] onConnect, WriteMode writeMode, CommandGuard commandGuard) {
+public record SocketOptions(Duration silenceTimeout, byte[] onConnect, WriteMode writeMode, CommandGuard commandGuard,
+        Duration connectTimeout) {
 
     /** The silence timeout when none is given. */
     public static final Duration DEFAULT_SILENCE_TIMEOUT = Duration.ofSeconds(120);
@@ -59,6 +62,10 @@ public record SocketOptions(Duration silenceTimeout, byte[] onConnect, WriteMode
         if (silenceTimeout.isNegative() || silenceTimeout.isZero()) {
             throw new IllegalArgumentException("silenceTimeout must be positive, but was " + silenceTimeout);
         }
+        connectTimeout = connectTimeout == null ? SocketTransport.CONNECT_TIMEOUT : connectTimeout;
+        if (connectTimeout.isNegative() || connectTimeout.isZero() || connectTimeout.toMillis() > Integer.MAX_VALUE) {
+            throw new IllegalArgumentException("connectTimeout must be positive, but was " + connectTimeout);
+        }
         writeMode = writeMode == null ? WriteMode.ON_CONNECT_ONLY : writeMode;
         onConnect = onConnect == null || onConnect.length == 0 ? null : onConnect.clone();
         if (writeMode == WriteMode.NONE && onConnect != null) {
@@ -74,6 +81,18 @@ public record SocketOptions(Duration silenceTimeout, byte[] onConnect, WriteMode
         } else if (commandGuard != null) {
             throw new IllegalArgumentException("Only a GUARDED_COMMANDS connection has a CommandGuard");
         }
+    }
+
+    /**
+     * Options with the default connect timeout (prompt 083's constructor).
+     *
+     * @param silenceTimeout the silence timeout, or null for the default
+     * @param onConnect bytes written once on connect, or null
+     * @param writeMode what may be written
+     * @param commandGuard the guard of a command-writing connection, else null
+     */
+    public SocketOptions(Duration silenceTimeout, byte[] onConnect, WriteMode writeMode, CommandGuard commandGuard) {
+        this(silenceTimeout, onConnect, writeMode, commandGuard, null);
     }
 
     /**
@@ -137,7 +156,12 @@ public record SocketOptions(Duration silenceTimeout, byte[] onConnect, WriteMode
 
     /** These options with another silence timeout. */
     public SocketOptions withSilenceTimeout(Duration timeout) {
-        return new SocketOptions(timeout, onConnect, writeMode, commandGuard);
+        return new SocketOptions(timeout, onConnect, writeMode, commandGuard, connectTimeout);
+    }
+
+    /** These options with another connect timeout (prompt 085). */
+    public SocketOptions withConnectTimeout(Duration timeout) {
+        return new SocketOptions(silenceTimeout, onConnect, writeMode, commandGuard, timeout);
     }
 
     /**
@@ -153,7 +177,7 @@ public record SocketOptions(Duration silenceTimeout, byte[] onConnect, WriteMode
         if (writeMode == WriteMode.GUARDED_COMMANDS && bytes != null && bytes.length > 0) {
             throw new IllegalStateException("A command-writing connection sends everything through its guard");
         }
-        return new SocketOptions(silenceTimeout, bytes, writeMode, commandGuard);
+        return new SocketOptions(silenceTimeout, bytes, writeMode, commandGuard, connectTimeout);
     }
 
     /** The write on connect, copied, or null. */
@@ -166,17 +190,17 @@ public record SocketOptions(Duration silenceTimeout, byte[] onConnect, WriteMode
     public boolean equals(Object other) {
         return other instanceof SocketOptions o && silenceTimeout.equals(o.silenceTimeout)
                 && Arrays.equals(onConnect, o.onConnect) && writeMode == o.writeMode
-                && Objects.equals(commandGuard, o.commandGuard);
+                && Objects.equals(commandGuard, o.commandGuard) && connectTimeout.equals(o.connectTimeout);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(silenceTimeout, Arrays.hashCode(onConnect), writeMode, commandGuard);
+        return Objects.hash(silenceTimeout, Arrays.hashCode(onConnect), writeMode, commandGuard, connectTimeout);
     }
 
     @Override
     public String toString() {
-        return "SocketOptions[silenceTimeout=" + silenceTimeout + ", onConnect="
+        return "SocketOptions[silenceTimeout=" + silenceTimeout + ", connectTimeout=" + connectTimeout + ", onConnect="
                 + (onConnect == null ? "none" : onConnect.length + " bytes") + ", writeMode=" + writeMode
                 + (commandGuard == null ? "" : ", commandGuard=" + commandGuard.getClass().getSimpleName()) + "]";
     }

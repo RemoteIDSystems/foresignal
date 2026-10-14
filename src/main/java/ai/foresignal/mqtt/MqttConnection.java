@@ -117,8 +117,15 @@ public class MqttConnection {
                     : builder.sslConfig().trustManagerFactory(trust).applySslConfig();
         }
         if (spec.endpoint().websocket()) {
-            builder = spec.endpoint().path().isEmpty() ? builder.webSocketWithDefaultConfig()
-                    : builder.webSocketConfig().serverPath(spec.endpoint().path()).applyWebSocketConfig();
+            var webSocket = builder.webSocketConfig();
+            if (!spec.endpoint().path().isEmpty()) {
+                webSocket = webSocket.serverPath(spec.endpoint().path());
+            }
+            if (!spec.webSocketHeaders().isEmpty()) {
+                // Prompt 085: headers of the upgrade request (Digitraffic asks for Digitraffic-User).
+                webSocket = webSocket.httpHeaders(spec.webSocketHeaders());
+            }
+            builder = webSocket.applyWebSocketConfig();
         }
         builder = builder.addConnectedListener(context -> onConnect())
                 .addDisconnectedListener(this::disconnected);

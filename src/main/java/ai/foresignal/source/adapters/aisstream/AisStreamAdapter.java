@@ -1,12 +1,11 @@
 package ai.foresignal.source.adapters.aisstream;
 
+import ai.foresignal.source.formats.ais.VesselDescriptors;
 import ai.foresignal.source.spi.AdapterException;
 import ai.foresignal.source.spi.CredentialField;
 import ai.foresignal.source.spi.CredentialsRejectedException;
 import ai.foresignal.source.spi.Egress;
-import ai.foresignal.source.spi.FieldSpec;
 import ai.foresignal.source.spi.FieldThreshold;
-import ai.foresignal.source.spi.FieldType;
 import ai.foresignal.source.spi.HistoryTier;
 import ai.foresignal.source.spi.IngestPolicy;
 import ai.foresignal.source.spi.KindDisplay;
@@ -36,7 +35,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -338,10 +336,12 @@ public class AisStreamAdapter implements StreamingAdapter {
 
     // ---------- descriptor ----------
 
-    /** The SAMPLED vessel policy of Core-Data-Model §5.3 ({@code 1200 ≤ 1800 − 2 − 30}). */
+    /**
+     * The SAMPLED vessel policy of Core-Data-Model §5.3 ({@code 1200 ≤ 1800 − 2 − 30}), shared with the keyless vessel
+     * sources since prompt 085 ({@link VesselDescriptors}).
+     */
     public static IngestPolicy defaultPolicy() {
-        return new IngestPolicy.Sampled(Duration.ofSeconds(30), Duration.ofSeconds(1200), 250.0, true,
-                Duration.ofSeconds(15));
+        return VesselDescriptors.defaultPolicy();
     }
 
     private static SourceDescriptor buildDescriptor() {
@@ -391,39 +391,7 @@ public class AisStreamAdapter implements StreamingAdapter {
                 .entityKey("imo", "imo")
                 .entityKey("callsign", "callsign")
                 .kindDisplay(KIND, new KindDisplay("{name}", "ship", "#1098AD", null, "cog", null, null));
-        fieldSpecs(b);
+        VesselDescriptors.fieldSpecs(b);
         return b.build();
-    }
-
-    private static void fieldSpecs(SourceDescriptor.Builder b) {
-        text(b, "mmsi", "MMSI", "Maritime Mobile Service Identity, nine digits");
-        text(b, "name", "Name", "Vessel name, trimmed of spaces and @ padding");
-        text(b, "callsign", "Call sign", "Radio call sign");
-        integer(b, "imo", "1", "IMO number", "IMO ship identification number, seven digits");
-        integer(b, "shipType", "1", "Ship type", "AIS ship and cargo type code, 1 to 99");
-        text(b, "class", "AIS class", "AIS transponder class: A or B");
-        text(b, "destination", "Destination", "Destination as entered by the crew");
-        integer(b, "navStatus", "1", "Navigation status",
-                "AIS navigational status 0 to 14 (0 under way using engine, 1 at anchor, 5 moored, …); Class A only");
-        b.fieldSpec("draught", new FieldSpec(FieldType.NUMBER, "m", "Draught",
-                "Maximum present static draught in meters", null, Set.of()));
-        integer(b, "lengthM", "m", "Length", "Length overall in meters (dimension A + B)");
-        integer(b, "beamM", "m", "Beam", "Beam in meters (dimension C + D)");
-        b.fieldSpec("eta", new FieldSpec(FieldType.TIMESTAMP, null, "ETA",
-                "Estimated time of arrival, UTC, at the next occurrence of the reported month, day, hour and minute",
-                null, Set.of()));
-        b.fieldSpec("sog", new FieldSpec(FieldType.NUMBER, "[kn_i]", "Speed over ground",
-                "Speed over ground in knots", null, Set.of()));
-        b.fieldSpec("cog", new FieldSpec(FieldType.NUMBER, "deg", "Course over ground",
-                "Course over ground in degrees, 0 to 359.9", null, Set.of()));
-        integer(b, "heading", "deg", "True heading", "True heading in degrees, 0 to 359");
-    }
-
-    private static void text(SourceDescriptor.Builder b, String key, String label, String description) {
-        b.fieldSpec(key, new FieldSpec(FieldType.STRING, null, label, description, null, Set.of()));
-    }
-
-    private static void integer(SourceDescriptor.Builder b, String key, String unit, String label, String description) {
-        b.fieldSpec(key, new FieldSpec(FieldType.INTEGER, unit, label, description, null, Set.of()));
     }
 }

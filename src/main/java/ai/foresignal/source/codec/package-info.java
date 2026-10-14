@@ -8,8 +8,9 @@
  *       per-hex merge), created afresh for every connection;
  *   <li>{@link ai.foresignal.source.codec.CodecRegistry}: every codec bean, by id;
  *   <li>the first codecs: {@link ai.foresignal.source.codec.Sbs1Codec} ({@code sbs1}) and
- *       {@link ai.foresignal.source.codec.GpsdCodec} ({@code gpsd}). Prompt 085 adds {@code aivdm}, 082
- *       {@code kiss-ax25} and 086 {@code acars-json}; prompt 077 added {@link ai.foresignal.source.codec.AutoRxPayloadCodec}
+ *       {@link ai.foresignal.source.codec.GpsdCodec} ({@code gpsd}). Prompt 085 added
+ *       {@link ai.foresignal.source.codec.AivdmSocketCodec} ({@code aivdm}, AIS NMEA over the shared codec in
+ *       {@code ai.foresignal.codec.ais}), 082 {@code kiss-ax25}, and 086 adds {@code acars-json}; prompt 077 added {@link ai.foresignal.source.codec.AutoRxPayloadCodec}
  *       ({@code sonde-udp}, radiosonde_auto_rx datagrams), and prompt 083
  *       {@link ai.foresignal.source.codec.MeshCoreCompanionCodec} ({@code meshcore-companion}, MeshCore WiFi companion
  *       frames).

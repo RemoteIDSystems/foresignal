@@ -48,7 +48,8 @@ import org.slf4j.LoggerFactory;
  *       parameter validator already refused anything else, so this is defense in depth.
  *   <li><strong>Budget:</strong> {@link StreamContext#chargeRequest} takes one unit per connect attempt or
  *       bind; received bytes go to {@link StreamContext#reportBytes} after every read.
- *   <li><strong>TCP:</strong> connect timeout {@link SocketTransport#CONNECT_TIMEOUT}, keepalive on, and a
+ *   <li><strong>TCP:</strong> connect timeout {@link SocketOptions#connectTimeout()} (default
+ *       {@link SocketTransport#CONNECT_TIMEOUT}), keepalive on, and a
  *       read timeout of {@link SocketOptions#silenceTimeout()}: a connection that delivers nothing for that
  *       long is closed with a {@link SilenceTimeoutException}, so the supervisor's ladder reconnects.
  *   <li><strong>UDP:</strong> a {@link DatagramChannel} read on a virtual thread; a datagram from outside
@@ -202,7 +203,7 @@ public final class DefaultSocketTransport implements SocketTransport {
         try {
             socket.setKeepAlive(true);
             socket.setSoTimeout(Math.toIntExact(Math.min(Integer.MAX_VALUE, opts.silenceTimeout().toMillis())));
-            socket.connect(address, Math.toIntExact(CONNECT_TIMEOUT.toMillis()));
+            socket.connect(address, Math.toIntExact(opts.connectTimeout().toMillis()));
             byte[] hello = opts.isReceiveOnly() ? null : opts.onConnect();
             if (hello != null) {
                 OutputStream out = socket.getOutputStream();
