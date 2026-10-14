@@ -378,6 +378,30 @@ reason `LIST_SHRINK_GUARD`.
 **Not built:** `ris-live` (optional, streaming, disabled by default) and `odin` (ORNL's `/odi` has no published
 licence, terms or rate limit — a "Considered" note; contact `odin@ornl.gov` first).
 
+### Energy and markets series (prompt 093)
+
+Every source here emits records **without geometry**: `kind=series-point` (`externalId = {seriesId}:{period}`,
+`eventTime = periodStart`) and one `series-latest` record per series (`{seriesId}:latest`, the newest non-forecast
+point). All are tier STANDARD, policy ALL, TTL none, `ttlAnchor` OBSERVED, retention 3650 d (the `series` analytic
+class, Conventions), with `fieldSpecs` for every payload key and `searchFields=[seriesName, area]`. The sources
+without forecasts use `observedAtMode=UPSTREAM` (`observedAt = periodEnd`); the ones mixing forecasts and actuals use
+`RECEIVED`. Each poll re-reads a trailing window, so a revision is a new version and an unchanged point a throttled
+touch; `SchemaBootstrap` adds the partial expression index
+`record_head (source_id, (payload->>'series'), event_time) WHERE kind='series-point'`.
+
+| Source id | Kinds | Upstream | Auth | Interval · budget | Notes |
+|---|---|---|---|---|---|
+| `eia-petroleum` | series-point, series-latest | EIA v2 `petroleum/pri/spt` (daily spot) and `petroleum/stoc/wstk` (weekly stocks) | `apiKey`, `api_key` query | 1 h (min 30 min) · 4/min, 200/day | **Built in prompt 093.** Series `eia:{series}` (default `RWTC`, `RBRTE`; stock `WCESTUS1`); trailing 60 rows. Licence US-PD, attribution "Source: U.S. Energy Information Administration". **`LOCAL_ONLY`:** the spot prices are sourced by EIA from Refinitiv (LSEG), so `licenceNote` records "spot prices sourced from Refinitiv via EIA; third-party rights may apply". Verified 2026-10 (API 2.1.14): `value` is a **string**; a `warnings[]` "incomplete return" means the 5,000-row cap was hit — the fetch fails rather than accepting a truncated window. Advises under ~9,000 requests/hour and under 5/s; a 429/403 suspension is a backoff. |
+| `eia-930` | series-point, series-latest | EIA v2 `electricity/rto/region-data` and `electricity/rto/fuel-type-data` | `apiKey`, `api_key` query | 30 min (min 15 min) · 4/min, 200/day | **Built in prompt 093.** Series `eia930:{respondent}:{D\|DF\|NG\|TI}` and `eia930:{respondent}:fuel:{fuel}`; respondents `US48, ERCO, CISO, PJM, MISO, NYIS, ISNE, SWPP`, fuel mix on by default. `observedAtMode=RECEIVED` (forecasts + actuals); `DF` rows carry `status=forecast`. Trailing 48 h with `start` set; `value-units` maps to MW.h. |
+| `ercot-public` | series-point, series-latest | ERCOT Public API `np6-345-cd/act_sys_load_by_wzn`, `np6-905-cd/spp_node_zone_hub` | `username`, `password`, `subscriptionKey`; `Ocp-Apim-Subscription-Key` + B2C Bearer id_token | 15 min · 10/min, 600/day | **Built in prompt 093, disabled by default.** Series `ercot:load:{zone}` (MW, hourly) and `ercot:spp:{hub}` (`[USD]/(MW.h)`, 15-min). Columns are read by `fields[].name`, never by position. The token lasts 1 h, is cached in memory for 55 min (never persisted) and re-fetched on 401; a 403 is the US-only block (a health reason). The operator registers the account personally. `eia-930` respondent `ERCO` is the keyless alternative for ERCOT load. |
+| `gie-agsi` | series-point, series-latest | `https://agsi.gie.eu/api` (`type=eu`, `size=30`) | `apiKey`, `x-key` header | 3 h (min 1 h) · 2/min, 40/day | **Built in prompt 093.** Series `agsi:{area}`; value `full` (%), extras `gasInStorageTWh, injectionGWhD, withdrawalGWhD, netWithdrawalGWhD, workingGasVolumeTWh, trend, consumptionFull`; status `E/C/N` (`N` skipped). A missing/invalid key answers **HTTP 200** with an `error` body → rejected credential. Published 19:30 CET, second run 23:00, for the previous gas day. Licence "GIE AGSI data usage rules (any use incl. commercial, mandatory credit)", attribution "GIE AGSI". |
+| `ember-electricity` | series-point, series-latest | Ember v1 `/v1/{dataset}/monthly` | `apiKey`, `api_key` query | 24 h · 2/min, 20/day | **Built in prompt 093.** Series `ember:{entity_code}:{series}` (generation, with `extra.sharePct`), `ember:{entity}:carbon-intensity`, `ember:{entity}:demand`; entities `USA, GBR, DEU, FRA, CHN, IND`. `GET /v1/options/{dataset}/monthly/date` is checked first and the data call skipped when the newest month is unchanged. Trailing 12 months. Licence CC BY 4.0, attribution "Ember". |
+| `grid-frequency-gb` | frequency-excursion, grid-frequency | Elexon BMRS `/bmrs/api/v1/system/frequency` | none | 2 min (min 1 min) · 2/min, 1,500/day | **Built in prompt 093.** 15-second samples about 2 min behind (verified 2026-10). GB operational band 0.2 Hz, statutory 0.5 Hz, severe below 49.2 Hz. `frequency-excursion` `{grid}:{startEpoch}` payload `start, end, durationS, extremeHz, direction, severity, open`; `grid-frequency` `{grid}:state` carries `normal\|low\|high\|no-data` (no-data when the newest sample is older than 10 min). Attribution "Contains BMRS data © Elexon Limited copyright and database right {year}", licence "BMRS Data Licence". |
+| `grid-frequency-fingrid` | frequency-excursion, grid-frequency | Fingrid dataset 177 `/api/datasets/177/data` | `apiKey`, `x-api-key` header | 3 min · 1/min, 600/day | **Built in prompt 093, disabled by default.** Nordic operational band 0.1 Hz. Licence CC BY 4.0, attribution "Fingrid". |
+| `gb-carbon-intensity` | series-point, series-latest | Carbon Intensity API `/intensity`, `/regional`, `/generation`, `/intensity/pt24h` | none | 30 min (min 15 min) · 3/min, 300/day | **Built in prompt 093.** Series `carbon:gb:national` (value = actual when present, else forecast with `status=forecast`; extras `forecast`, `index`), `carbon:gb:region:{regionid}` (forecast, `extra.shortname`), `genmix:gb` (extras = fuel → percent). `observedAtMode=RECEIVED`; `/intensity/pt24h` is re-read hourly for late actuals. Licence CC BY 4.0, attribution "Carbon Intensity API (NESO, EDF, University of Oxford, WWF)". |
+
+**Not built:** nothing. NESO's 1-second "System Frequency" data is published only as monthly CSVs, so it is not polled.
+
 ### Raster product sources (prompt 046)
 
 | Source id | Kind | Upstream | Protocol | Auth | Default interval · budget | Notes |
@@ -581,7 +605,7 @@ Roadmap prompts:
 - `nasa-eonet`, `reliefweb-disasters`, `unhcr-population`, `who-don` → 052
 - `ofac-sdn`, `sec-8k` → 053
 - `cloudflare-radar-outages` → 054
-- `eia-petroleum`, `gie-agsi`, `ember-electricity`, `kalshi` → 055 (records without geometry)
+- `eia-petroleum`, `gie-agsi`, `ember-electricity`, `kalshi` → 093 (records without geometry; see "Energy and markets series")
 - `submarine-cables` → 056
 - `faa-nas-status` → 049 (also listed under Velocity; built in 087)
 
@@ -603,7 +627,7 @@ These are structured feeds that rarely appear in OSINT globe projects. Reference
 | `sec-8k` | filing | `www.sec.gov/cgi-bin/browse-edgar?action=getcurrent&type=8-K&output=atom` | none (SEC requires a descriptive User-Agent with contact info) | 10 min. Atom. |
 | `who-don` | disease-outbreak | `www.who.int/api/emergencies/diseaseoutbreaknews` | none | 6 h. Country-level. |
 | `faa-nas-status` | airport-delay | `nasstatus.faa.gov/api/airport-status-information` | none | **Built in prompt 087** (an XML document; see "Aviation safety (prompt 087)"). 5 min. Airport points. |
-| `eia-petroleum` / `gie-agsi` / `ember-electricity` | energy | EIA v2 API, `agsi.gie.eu/api`, Ember monthly CSV | keys for EIA and AGSI | Weekly or daily. These are time series with no geometry. Carried as records without geometry, `kind=series-point`, with the series id as `externalId` plus the period (prompt 055). |
+| `eia-petroleum` / `gie-agsi` / `ember-electricity` | energy | EIA v2 API, `agsi.gie.eu/api`, Ember monthly CSV | keys for EIA and AGSI | Weekly or daily. These are time series with no geometry. Carried as records without geometry, `kind=series-point`, with the series id as `externalId` plus the period (prompt 093; see "Energy and markets series"). |
 | `polymarket` / `kalshi` | prediction-market | `gamma-api.polymarket.com`, `api.elections.kalshi.com/trade-api/v2` | none | External provider ideas (EDP `observation` and `forecast` streams; 138 binds forecasts to ledger questions). |
 
 **Design notes worth borrowing (ideas, not code):**
@@ -634,7 +658,7 @@ Foresignal ships none of these. Each fits the [External Data Protocol](External-
 | Telegram channels | atomic, `document` (`social-post`) | `social` | Telegram's terms prohibit scraping since 2026-02-03; MTProto clients (TDLib, Boost licence) use the operator's own account; a `transport.search` endpoint enables cues |
 | Facebook pages and groups, TikTok | atomic, `document` (`social-post`) | `social` | no official public-content route |
 | Article bodies and bylines, GDELT URL metadata | atomic, `document` (`article`) | `news` | upstream site terms |
-| Kalshi, Polymarket | atomic, `observation` (prices) and `forecast` | `series`, `forecast` | Kalshi's terms restrict storing data without consent; see 093 §8 |
+| Kalshi, Polymarket | atomic, `observation` (prices) and `forecast` | `series`, `forecast` | **Prompt 093 §8.** Neither is built into Foresignal; they fit EDP (024) as external providers, and 138 binds their `forecast` items to ledger questions as scored external forecasters. Verified 2026-10: Kalshi market-data reads work without auth and use dollar and fixed-point strings (`yes_bid_dollars`, `volume_fp`), but its Developer Agreement and Data Terms restrict collecting and storing data without written consent. Polymarket's gamma API is not technically blocked (the catalogue's old JA3 note is wrong). |
 | Metaculus community predictions | atomic, `forecast` | `forecast` | terms restrict AI/ML and commercial use without permission |
 | VIEWS conflict forecasts | atomic, `forecast` and `observation` | `forecast`, `series` | confirm the data licence |
 | CME settlements, ICE end-of-day | atomic, `observation` | `series` | personal, non-commercial use; automated access restricted; ICE needs a subscription |

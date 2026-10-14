@@ -1,5 +1,3 @@
-listSeries 093
-getSeriesPoints 093
 listEntities 098
 resolveEntity 098
 getEntity 098

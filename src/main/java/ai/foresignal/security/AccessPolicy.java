@@ -266,6 +266,9 @@ public class AccessPolicy {
                 rule(HttpMethod.GET, "/v1/records/*/*/export", AccessRequirement.ADMIN),
                 rule(HttpMethod.POST, "/v1/records/*/*/purge", AccessRequirement.ADMIN),
                 rule(HttpMethod.GET, "/v1/records/**", AccessRequirement.READ),
+                // Energy and markets series (093): the catalogue and one series' points are read.
+                rule(HttpMethod.GET, "/v1/series", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/series/**", AccessRequirement.READ),
                 rule(HttpMethod.GET, "/v1/changes/**", AccessRequirement.READ),
                 // The multiplexed event stream and its filter swap; ownership is enforced in code (015).
                 rule(HttpMethod.GET, "/v1/events/stream", AccessRequirement.READ),

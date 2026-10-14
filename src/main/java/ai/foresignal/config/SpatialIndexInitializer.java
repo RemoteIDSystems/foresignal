@@ -69,7 +69,10 @@ public class SpatialIndexInitializer implements ApplicationRunner {
             "CREATE INDEX IF NOT EXISTS record_region_iso2_admin1_idx ON record_region (iso2, admin1)",
             // Raster frames (prompt 042): aliases read the newest frame first; footprints are searched spatially.
             "CREATE INDEX IF NOT EXISTS raster_frame_product_valid_idx ON raster_frame (product_id, valid_time DESC)",
-            "CREATE INDEX IF NOT EXISTS raster_frame_footprint_gist ON raster_frame USING GIST (footprint)");
+            "CREATE INDEX IF NOT EXISTS raster_frame_footprint_gist ON raster_frame USING GIST (footprint)",
+            // Series points (prompt 093): /v1/series/{source}/{id} reads one series in period order.
+            "CREATE INDEX IF NOT EXISTS record_head_series_point_idx ON record_head (source_id,"
+                    + " (payload->>'series'), event_time) WHERE kind = 'series-point'");
 
     private final DataSource dataSource;
 

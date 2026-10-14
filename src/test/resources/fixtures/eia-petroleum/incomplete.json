@@ -1,0 +1,1 @@
+{"response": {"total": "5000", "dateFormat": "YYYY-MM-DD", "frequency": "daily", "data": [{"period": "2026-10-09", "series": "RWTC", "value": "61.23", "units": "$ per barrel"}], "warnings": ["incomplete return"]}}

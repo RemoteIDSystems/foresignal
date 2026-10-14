@@ -427,7 +427,26 @@ class FamilyDefaultsTest {
             Map.entry("AtlasProbesAdapter", new Entry(
                     new ai.foresignal.source.adapters.internet.AtlasProbesAdapter(null).descriptor(), "state")),
             Map.entry("RisLiveAdapter", new Entry(
-                    new ai.foresignal.source.adapters.internet.RisLiveAdapter(null).descriptor(), "event")));
+                    new ai.foresignal.source.adapters.internet.RisLiveAdapter(null).descriptor(), "event")),
+            // Prompt 093: the energy and markets series (series class, 3650 d) and the two grid-frequency sources
+            // (their excursions are events, 1825 d).
+            Map.entry("EiaPetroleumAdapter", new Entry(
+                    new ai.foresignal.source.adapters.eia.EiaPetroleumAdapter("").descriptor(), "series")),
+            Map.entry("Eia930Adapter", new Entry(
+                    new ai.foresignal.source.adapters.eia.Eia930Adapter("").descriptor(), "series")),
+            Map.entry("AgsiAdapter", new Entry(
+                    new ai.foresignal.source.adapters.gie.AgsiAdapter("").descriptor(), "series")),
+            Map.entry("EmberAdapter", new Entry(
+                    new ai.foresignal.source.adapters.ember.EmberAdapter("").descriptor(), "series")),
+            Map.entry("CarbonIntensityAdapter", new Entry(
+                    new ai.foresignal.source.adapters.carbon.CarbonIntensityAdapter("").descriptor(), "series")),
+            Map.entry("ErcotAdapter", new Entry(
+                    new ai.foresignal.source.adapters.ercot.ErcotAdapter("", "").descriptor(), "series")),
+            Map.entry("GridFrequencyGbAdapter", new Entry(
+                    new ai.foresignal.source.adapters.elexon.GridFrequencyGbAdapter("").descriptor(), "event")),
+            Map.entry("GridFrequencyFingridAdapter", new Entry(
+                    new ai.foresignal.source.adapters.fingrid.GridFrequencyFingridAdapter("").descriptor(),
+                    "event")));
 
     /**
      * The {@code privacy} class (prompt 086): private sources whose prompt sets a short raw window on purpose, because

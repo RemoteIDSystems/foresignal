@@ -1,0 +1,274 @@
+package ai.foresignal.api;
+
+import ai.foresignal.api.dto.SeriesInfoDto;
+import ai.foresignal.api.dto.SeriesPageDto;
+import ai.foresignal.api.dto.SeriesPointDto;
+import ai.foresignal.api.dto.SeriesPointPageDto;
+import ai.foresignal.source.series.SeriesPoint;
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Component;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.json.JsonMapper;
+
+/**
+ * The native SQL behind {@code GET /v1/series} and {@code GET /v1/series/{sourceId}/{seriesId}} (prompt 093).
+ *
+ * <p>The catalogue reads {@code series-latest} heads; the points read {@code series-point} heads in
+ * {@code event_time} order, which is served by the partial expression index
+ * {@code record_head (source_id, (payload->>'series'), event_time) WHERE kind='series-point'}.
+ */
+@Component
+public class SeriesQueryService {
+
+    /** The point kind. */
+    static final String POINT_KIND = SeriesPoint.KIND;
+
+    /** The catalogue kind. */
+    static final String LATEST_KIND = SeriesPoint.LATEST_KIND;
+
+    private final NamedParameterJdbcTemplate jdbc;
+    private final JsonMapper json;
+
+    /** Creates the service. */
+    public SeriesQueryService(NamedParameterJdbcTemplate jdbc, JsonMapper json) {
+        this.jdbc = jdbc;
+        this.json = json;
+    }
+
+    /** A catalogue page. */
+    public record Catalogue(List<SeriesInfoDto> items, String nextCursor) {}
+
+    /** A page of points. */
+    public record Points(SeriesPointPageDto page) {}
+
+    private record InfoRow(String sourceId, String externalId, SeriesInfoDto dto) {}
+
+    private record PointRow(String externalId, Instant eventTime, SeriesPointDto dto) {}
+
+    /**
+     * The series catalogue.
+     *
+     * @param sources the source ids to include; empty means every source
+     * @param q a case-insensitive match on series id, seriesName and area, or null
+     * @param cursor the cursor from the previous page, or null
+     * @param limit the page size
+     */
+    public Catalogue list(List<String> sources, String q, String cursor, int limit) {
+        Cursor decoded = Cursor.decode(cursor);
+        StringBuilder sql = new StringBuilder("SELECT source_id, external_id, payload FROM record_head"
+                + " WHERE kind = '" + LATEST_KIND + "' AND tombstone = false");
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        if (sources != null && !sources.isEmpty()) {
+            sql.append(" AND source_id IN (:sources)");
+            params.addValue("sources", sources);
+        }
+        if (q != null && !q.isBlank()) {
+            sql.append(" AND (lower(payload->>'series') LIKE :q ESCAPE '\\'"
+                    + " OR lower(coalesce(payload->>'seriesName','')) LIKE :q ESCAPE '\\'"
+                    + " OR lower(coalesce(payload->>'area','')) LIKE :q ESCAPE '\\')");
+            params.addValue("q", "%" + q.strip().toLowerCase() + "%");
+        }
+        if (decoded != null && decoded.kind == Cursor.Kind.CATALOGUE) {
+            sql.append(" AND (source_id, external_id) > (:cursorSource, :cursorExternal)");
+            params.addValue("cursorSource", decoded.sourceId);
+            params.addValue("cursorExternal", decoded.externalId);
+        }
+        sql.append(" ORDER BY source_id, external_id LIMIT :limit");
+        params.addValue("limit", limit + 1);
+        List<InfoRow> rows = jdbc.query(sql.toString(), params, infoRowMapper());
+        boolean more = rows.size() > limit;
+        List<SeriesInfoDto> items = new ArrayList<>();
+        for (int i = 0; i < rows.size() && i < limit; i++) {
+            items.add(rows.get(i).dto());
+        }
+        String next = null;
+        if (more && !items.isEmpty()) {
+            InfoRow last = rows.get(limit - 1);
+            next = new Cursor(Cursor.Kind.CATALOGUE, last.sourceId(), last.externalId(), null).encode();
+        }
+        return new Catalogue(List.copyOf(items), next);
+    }
+
+    /** One series' catalogue entry, or empty when no such series exists. */
+    public Optional<SeriesInfoDto> info(String sourceId, String seriesId) {
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("source", sourceId).addValue("series", seriesId);
+        List<InfoRow> latest = jdbc.query("SELECT source_id, external_id, payload FROM record_head"
+                + " WHERE kind = '" + LATEST_KIND + "' AND tombstone = false AND source_id = :source"
+                + " AND payload->>'series' = :series LIMIT 1", params, infoRowMapper());
+        if (!latest.isEmpty()) {
+            return Optional.of(latest.get(0).dto());
+        }
+        List<InfoRow> any = jdbc.query("SELECT source_id, external_id, payload FROM record_head"
+                + " WHERE kind = '" + POINT_KIND + "' AND tombstone = false AND source_id = :source"
+                + " AND payload->>'series' = :series LIMIT 1", params, infoRowMapper());
+        return any.isEmpty() ? Optional.empty() : Optional.of(any.get(0).dto());
+    }
+
+    /**
+     * The points of one series in {@code periodStart} order.
+     *
+     * @param from periodStart at or after this, or null
+     * @param to periodStart before this, or null
+     * @param cursor the cursor from the previous page, or null
+     */
+    public Points points(String sourceId, SeriesInfoDto info, Instant from, Instant to, String cursor, int limit) {
+        Cursor decoded = Cursor.decode(cursor);
+        StringBuilder sql = new StringBuilder("SELECT external_id, event_time, version, persisted_observed_at,"
+                + " payload FROM record_head WHERE kind = '" + POINT_KIND + "' AND tombstone = false"
+                + " AND source_id = :source AND payload->>'series' = :series");
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("source", sourceId).addValue("series", info.series());
+        if (from != null) {
+            sql.append(" AND event_time >= :from");
+            params.addValue("from", OffsetDateTime.ofInstant(from, ZoneOffset.UTC));
+        }
+        if (to != null) {
+            sql.append(" AND event_time < :to");
+            params.addValue("to", OffsetDateTime.ofInstant(to, ZoneOffset.UTC));
+        }
+        if (decoded != null && decoded.kind == Cursor.Kind.POINTS) {
+            sql.append(" AND (event_time, external_id) > (:cursorTime, :cursorExternal)");
+            params.addValue("cursorTime", OffsetDateTime.ofInstant(decoded.eventTime, ZoneOffset.UTC));
+            params.addValue("cursorExternal", decoded.externalId);
+        }
+        sql.append(" ORDER BY event_time, external_id LIMIT :limit");
+        params.addValue("limit", limit + 1);
+        List<PointRow> rows = jdbc.query(sql.toString(), params, pointRowMapper());
+        boolean more = rows.size() > limit;
+        List<SeriesPointDto> items = new ArrayList<>();
+        for (int i = 0; i < rows.size() && i < limit; i++) {
+            items.add(rows.get(i).dto());
+        }
+        String next = null;
+        if (more && !items.isEmpty()) {
+            PointRow last = rows.get(limit - 1);
+            next = new Cursor(Cursor.Kind.POINTS, null, last.externalId(), last.eventTime()).encode();
+        }
+        return new Points(new SeriesPointPageDto(info, List.copyOf(items), next, more));
+    }
+
+    // ---------------------------------------------------------------- mapping
+
+    private RowMapper<InfoRow> infoRowMapper() {
+        return (rs, rowNum) -> {
+            Map<String, Object> payload = parse(rs.getString("payload"));
+            SeriesInfoDto dto = new SeriesInfoDto(
+                    rs.getString("source_id"),
+                    str(payload, "series"),
+                    str(payload, "seriesName"),
+                    str(payload, "dataset"),
+                    str(payload, "unit"),
+                    str(payload, "frequency"),
+                    str(payload, "area"),
+                    str(payload, "period"),
+                    SeriesPoint.number(payload.get("value")),
+                    str(payload, "status"));
+            return new InfoRow(rs.getString("source_id"), rs.getString("external_id"), dto);
+        };
+    }
+
+    private RowMapper<PointRow> pointRowMapper() {
+        return (rs, rowNum) -> {
+            Map<String, Object> payload = parse(rs.getString("payload"));
+            Instant eventTime = instant(rs.getObject("event_time", OffsetDateTime.class));
+            Instant periodStart = parseInstant(str(payload, "periodStart"));
+            Instant periodEnd = parseInstant(str(payload, "periodEnd"));
+            @SuppressWarnings("unchecked")
+            Map<String, Object> extra = payload.get("extra") instanceof Map<?, ?> map
+                    ? (Map<String, Object>) map : null;
+            SeriesPointDto dto = new SeriesPointDto(
+                    str(payload, "period"),
+                    periodStart != null ? periodStart : eventTime,
+                    periodEnd,
+                    SeriesPoint.number(payload.get("value")),
+                    str(payload, "unit"),
+                    str(payload, "status"),
+                    extra,
+                    rs.getInt("version"),
+                    instant(rs.getObject("persisted_observed_at", OffsetDateTime.class)),
+                    null,
+                    null);
+            return new PointRow(rs.getString("external_id"), eventTime, dto);
+        };
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> parse(String text) {
+        try {
+            return text == null ? Map.of() : json.readValue(text, Map.class);
+        } catch (JacksonException e) {
+            return Map.of();
+        }
+    }
+
+    private static String str(Map<String, Object> payload, String key) {
+        Object value = payload.get(key);
+        return value == null ? null : String.valueOf(value);
+    }
+
+    private static Instant parseInstant(String text) {
+        if (text == null) {
+            return null;
+        }
+        try {
+            return Instant.parse(text);
+        } catch (RuntimeException e) {
+            return null;
+        }
+    }
+
+    private static Instant instant(OffsetDateTime value) {
+        return value == null ? null : value.toInstant();
+    }
+
+    /**
+     * An opaque keyset cursor. Catalogue pages key on {@code (source_id, external_id)}, point pages on
+     * {@code (event_time, external_id)}.
+     */
+    record Cursor(Kind kind, String sourceId, String externalId, Instant eventTime) {
+
+        enum Kind {
+            CATALOGUE,
+            POINTS
+        }
+
+        static Cursor decode(String cursor) {
+            if (cursor == null || cursor.isBlank()) {
+                return null;
+            }
+            try {
+                String[] parts = new String(Base64.getUrlDecoder().decode(cursor), StandardCharsets.UTF_8)
+                        .split("\u0000", -1);
+                if (parts.length == 4 && "p".equals(parts[0])) {
+                    return new Cursor(Kind.POINTS, null, parts[1], Instant.parse(parts[2]));
+                }
+                if (parts.length == 4 && "c".equals(parts[0])) {
+                    return new Cursor(Kind.CATALOGUE, parts[1], parts[2], null);
+                }
+            } catch (RuntimeException e) {
+                return null;
+            }
+            return null;
+        }
+
+        String encode() {
+            String payload = kind == Kind.POINTS
+                    ? "p\u0000" + externalId + "\u0000" + eventTime + "\u0000"
+                    : "c\u0000" + sourceId + "\u0000" + externalId + "\u0000";
+            return Base64.getUrlEncoder().withoutPadding()
+                    .encodeToString(payload.getBytes(StandardCharsets.UTF_8));
+        }
+    }
+}

@@ -777,6 +777,63 @@ floods; `usdm` gives the weekly drought map; `ea-flood-warnings` (England) and `
 optional equivalents outside the US. The USDM map requires its attribution wherever it is shown; Foresignal carries it
 in the source descriptor.
 
+### Energy and markets series
+
+The energy and markets sources store time series as records without geometry: one `series-point` per period
+(`externalId = {seriesId}:{period}`) and one `series-latest` per series, so a rule fires on a single entity. Browse
+them with `GET /v1/series` and read one with `GET /v1/series/{sourceId}/{seriesId}` (JSON, or `?format=csv`), or the
+`get_series` MCP tool.
+
+- **`eia-petroleum`** (EIA spot prices and weekly stocks) needs a free EIA key from
+  <https://www.eia.gov/opendata/>. The key is sent as the `api_key` query parameter and is redacted in every trace.
+  Series ids are `eia:RWTC` (WTI Cushing), `eia:RBRTE` (Brent) and `eia:WCESTUS1` (weekly crude stocks). The spot
+  prices are sourced by EIA from Refinitiv (LSEG), so the source is `LOCAL_ONLY`: its raw values reach this
+  instance's own clients and notifications, never sinks, federation, share links or exports.
+- **`eia-930`** (hourly US grid demand, net generation, interchange and fuel mix) uses the same key. Series are
+  `eia930:{respondent}:{D|DF|NG|TI}` and `eia930:{respondent}:fuel:{fuel}`; the demand forecast (`DF`) carries
+  `status=forecast`.
+- **`gie-agsi`** (daily EU gas storage) needs a free key from <https://agsi.gie.eu/> (the `x-key` header). A missing
+  or invalid key answers HTTP 200 with an `error` body, which shows as a rejected credential. Series are `agsi:{area}`
+  (for example `agsi:DE`), value = `full` (%).
+- **`ember-electricity`** (monthly generation, carbon intensity and demand) needs a free key from
+  <https://ember-energy.org/>. Series are `ember:{entity}:{series}`.
+- **`gb-carbon-intensity`** needs no key. Series are `carbon:gb:national`, `carbon:gb:region:{regionid}` and
+  `genmix:gb`.
+- **`grid-frequency-gb`** needs no key and watches Great Britain's 15-second system frequency; the companion
+  `grid-frequency-fingrid` needs a Fingrid key and is **disabled by default**.
+- **`ercot-public`** is **disabled by default** and needs a registered ERCOT account. Register personally at
+  <https://apiexplorer.ercot.com> (ERCOT's terms forbid bot registration), subscribe to the Public API and copy the
+  subscription key. Set the `username`, `password` and `subscriptionKey` credentials; Foresignal exchanges the
+  username and password for a one-hour B2C token (cached in memory, never persisted). The Public API is only
+  reachable from inside the United States: a 403 shows `geo-blocked` in the source's health. The keyless `eia-930`
+  respondent `ERCO` covers ERCOT system load without an account.
+
+**WTI above a threshold.** The `series-latest` record carries the newest non-forecast point, so one rule watches one
+series:
+
+```json
+POST /v1/triggers
+{"name": "WTI above 90", "sources": ["eia-petroleum"], "mode": "enter", "autoResolve": true,
+ "conditions": [{"path": "value", "op": "gt", "value": 90}],
+ "messageTemplate": "{{payload.seriesName}}: {{payload.value}} {{payload.unit}} ({{payload.period}})",
+ "severity": "warning"}
+```
+
+**A statutory grid-frequency excursion** (`match` with `onlyNew`, so it fires once when the excursion opens and not
+again on every revision):
+
+```json
+POST /v1/triggers
+{"name": "GB frequency excursion", "sources": ["grid-frequency-gb"], "kinds": ["frequency-excursion"],
+ "mode": "match", "onlyNew": true,
+ "conditions": [{"path": "severity", "op": "in", "value": ["statutory", "severe"]}],
+ "messageTemplate": "GB frequency {{payload.direction}} to {{payload.extremeHz}} Hz ({{payload.severity}})",
+ "severity": "critical"}
+```
+
+The `grid-frequency` `{grid}:state` record (`normal`, `low`, `high`, `no-data`) is a convenient edge entity, but
+remember that `no-data` means the feed is stale, never an all-clear.
+
 ### History tiers
 
 Each source's descriptor fixes its `historyTier`:

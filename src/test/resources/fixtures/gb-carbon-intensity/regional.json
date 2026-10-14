@@ -1,0 +1,104 @@
+{
+ "data": [
+  {
+   "from": "2026-10-14T20:00Z",
+   "to": "2026-10-14T20:30Z",
+   "regions": [
+    {
+     "regionid": 1,
+     "dnoregion": "Scottish Hydro Electric Power Distribution",
+     "shortname": "North Scotland",
+     "intensity": {
+      "forecast": 0,
+      "index": "very low"
+     },
+     "generationmix": [
+      {
+       "fuel": "biomass",
+       "perc": 0
+      },
+      {
+       "fuel": "coal",
+       "perc": 0
+      },
+      {
+       "fuel": "imports",
+       "perc": 0
+      },
+      {
+       "fuel": "gas",
+       "perc": 0
+      },
+      {
+       "fuel": "nuclear",
+       "perc": 0
+      },
+      {
+       "fuel": "other",
+       "perc": 0
+      },
+      {
+       "fuel": "hydro",
+       "perc": 0
+      },
+      {
+       "fuel": "solar",
+       "perc": 0
+      },
+      {
+       "fuel": "wind",
+       "perc": 100
+      }
+     ]
+    },
+    {
+     "regionid": 2,
+     "dnoregion": "SP Distribution",
+     "shortname": "South Scotland",
+     "intensity": {
+      "forecast": 2,
+      "index": "very low"
+     },
+     "generationmix": [
+      {
+       "fuel": "biomass",
+       "perc": 0
+      },
+      {
+       "fuel": "coal",
+       "perc": 0
+      },
+      {
+       "fuel": "imports",
+       "perc": 0.4
+      },
+      {
+       "fuel": "gas",
+       "perc": 0
+      },
+      {
+       "fuel": "nuclear",
+       "perc": 16.1
+      },
+      {
+       "fuel": "other",
+       "perc": 0
+      },
+      {
+       "fuel": "hydro",
+       "perc": 0
+      },
+      {
+       "fuel": "solar",
+       "perc": 0
+      },
+      {
+       "fuel": "wind",
+       "perc": 83.5
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

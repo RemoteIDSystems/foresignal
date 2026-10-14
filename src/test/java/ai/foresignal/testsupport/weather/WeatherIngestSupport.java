@@ -179,6 +179,20 @@ public abstract class WeatherIngestSupport {
         registry.add(ai.foresignal.source.adapters.internet.StatusPageFamily.BASE_URL_PROPERTY, UPSTREAM::baseUrl);
         registry.add(ai.foresignal.source.adapters.internet.GoogleStatusAdapter.BASE_URL_PROPERTY,
                 UPSTREAM::baseUrl);
+        // Prompt 093: the energy and markets series sources. EIA (petroleum and 930), GIE AGSI, Ember and Carbon
+        // Intensity move under the stub; the grid-frequency sources too; ERCOT's token endpoint is the stub /token.
+        registry.add(ai.foresignal.source.adapters.eia.EiaApi.BASE_URL_PROPERTY, UPSTREAM::baseUrl);
+        registry.add(ai.foresignal.source.adapters.gie.AgsiAdapter.BASE_URL_PROPERTY, UPSTREAM::baseUrl);
+        registry.add(ai.foresignal.source.adapters.ember.EmberAdapter.BASE_URL_PROPERTY, UPSTREAM::baseUrl);
+        registry.add(ai.foresignal.source.adapters.carbon.CarbonIntensityAdapter.BASE_URL_PROPERTY,
+                UPSTREAM::baseUrl);
+        registry.add(ai.foresignal.source.adapters.elexon.GridFrequencyGbAdapter.BASE_URL_PROPERTY,
+                UPSTREAM::baseUrl);
+        registry.add(ai.foresignal.source.adapters.fingrid.GridFrequencyFingridAdapter.BASE_URL_PROPERTY,
+                UPSTREAM::baseUrl);
+        registry.add(ai.foresignal.source.adapters.ercot.ErcotAdapter.BASE_URL_PROPERTY, UPSTREAM::baseUrl);
+        registry.add(ai.foresignal.source.adapters.ercot.ErcotAdapter.TOKEN_URL_PROPERTY,
+                () -> UPSTREAM.baseUrl() + "/token");
     }
 
     @Autowired protected FetchExecutor executor;
@@ -210,7 +224,10 @@ public abstract class WeatherIngestSupport {
             "usgs-hans-volcanoes", "geonet-volcanoes", "openfema-declarations", "travel-advisory-us",
             "ofac-sdn", "uk-sanctions-list", "un-sanctions", "sec-8k",
             "cloudflare-radar-outages", "cloudflare-radar-bgp", "gpsjam-daily", "ripe-atlas-probes",
-            "status-github", "status-gcp");
+            "status-github", "status-gcp",
+            // Prompt 093: the energy and markets series sources.
+            "eia-petroleum", "eia-930", "gie-agsi", "ember-electricity", "gb-carbon-intensity",
+            "grid-frequency-gb", "grid-frequency-fingrid", "ercot-public");
 
     /** Resets the stubs and the backoff of the weather sources. */
     @BeforeEach
