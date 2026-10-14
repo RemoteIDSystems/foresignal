@@ -332,6 +332,11 @@
         "version": "1.3.0",
         "date": "2026-10-13",
         "note": "075: no operation changes. New sources nifc-perimeters, inciweb-incidents, cwfis-perimeters, cwfis-fwi-stations, cwfis-hotspots, radio-browser (param maxStations) and nhc-cyclone-cones, all disabled by default. Kind notes for fire-perimeter, fire-weather, radio-station and the four cyclone-* kinds document the built payloads; fire-perimeter and cyclone-cone gain geometrySimplified and simplifyToleranceDeg, cyclone-warning gains warningType, and fire-detection and fire-incident document cwfis-hotspots and inciweb-incidents."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-13",
+        "note": "081: no operation changes. New sources deepstate-frontline, alerts-in-ua (credential token), ua-air-raid-siren, acled (credentials email and password; egress LOCAL_ONLY) and ucdp-ged (credential token), all disabled by default. The ua-air-raid-siren payloadFields of air-raid-alert and threat-alert gain geometryApproximate (a community alert carries its raion's polygon); frontline gains geometrySimplified and simplifyToleranceDeg and a note on its time base."
       }
     ]
   },
@@ -89853,7 +89858,8 @@
                 "regionEn",
                 "regionType",
                 "alertType",
-                "alertLevel"
+                "alertLevel",
+                "geometryApproximate"
               ]
             }
           },
@@ -89877,7 +89883,8 @@
                 "regionEn",
                 "regionType",
                 "alertType",
-                "alertLevel"
+                "alertLevel",
+                "geometryApproximate"
               ]
             },
             "note": "Alert types other than air raid (artillery, urban fights, chemical, nuclear)."
@@ -89889,10 +89896,12 @@
                 "mapDate",
                 "areaKm2",
                 "areaChangeKm2",
-                "ref"
+                "ref",
+                "geometrySimplified",
+                "simplifyToleranceDeg"
               ]
             },
-            "note": "Single entity `occupied-area`."
+            "note": "Single entity `occupied-area` (081): mapDate yyyy-MM-dd; areaKm2 on the WGS84 ellipsoid; areaChangeKm2 against the previous map; observedAt = eventTime = map date 03:00 UTC; geometrySimplified and simplifyToleranceDeg only when a map above 9,500 vertices was simplified."
           },
           "radio-spot": {
             "x-foresignal-prompt": "082",

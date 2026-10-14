@@ -267,6 +267,17 @@ class FamilyDefaultsTest {
                     .DigitrafficRailAdapter("", () -> "dev").descriptor(), "track")),
             Map.entry("AmtrakerAdapter", new Entry(
                     new ai.foresignal.source.adapters.amtraker.AmtrakerAdapter("").descriptor(), "track")),
+            // Prompt 081: conflict events and civil alerts are the event class (1825 d), the DeepState map too.
+            Map.entry("DeepStateAdapter", new Entry(
+                    new ai.foresignal.source.adapters.deepstate.DeepStateAdapter("").descriptor(), "event")),
+            Map.entry("AlertsInUaAdapter", new Entry(new ai.foresignal.source.adapters.alertsinua.AlertsInUaAdapter("",
+                    new ai.foresignal.reference.ukr.UaRegionIndex()).descriptor(), "event")),
+            Map.entry("UaSirenAdapter", new Entry(new ai.foresignal.source.adapters.uasiren.UaSirenAdapter("",
+                    new ai.foresignal.reference.ukr.UaRegionIndex()).descriptor(), "event")),
+            Map.entry("AcledAdapter", new Entry(new ai.foresignal.source.adapters.acled.AcledAdapter("",
+                    new ai.foresignal.reference.CountryCentroids()).descriptor(), "event")),
+            Map.entry("UcdpGedAdapter", new Entry(new ai.foresignal.source.adapters.ucdp.UcdpGedAdapter("",
+                    new ai.foresignal.reference.CountryCentroids()).descriptor(), "event")),
             Map.entry("SatDumpAdapter", new Entry(new ai.foresignal.source.adapters.satdump.SatDumpAdapter("itest", null,
                     null).descriptor(), "station")));
 

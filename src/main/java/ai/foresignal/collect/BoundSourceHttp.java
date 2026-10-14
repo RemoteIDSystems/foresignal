@@ -843,7 +843,7 @@ class BoundSourceHttp implements SourceHttp {
                         result.contentType(),
                         result.body().length,
                         result.truncated(),
-                        recorder.capBody(redact(result.bodyAsString())),
+                        recorder.capBody(UrlRedactor.redactTokenMembers(redact(result.bodyAsString()))),
                         Duration.between(startedAt, parent.clock().instant()),
                         failure));
     }

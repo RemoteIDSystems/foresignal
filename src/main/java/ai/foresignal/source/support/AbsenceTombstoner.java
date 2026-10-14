@@ -20,7 +20,7 @@ import java.util.zip.GZIPOutputStream;
 
 /**
  * Tombstones the entities of a catalog that disappear from <strong>two consecutive</strong> complete fetches
- * (prompt 072; reused by 074 and 075).
+ * (prompt 072; reused by 074, 075 and 081).
  *
  * <p>Catalogs (camera lists, reference tables) carry no deletion marker: an entity is gone when the upstream stops
  * listing it. One missing fetch is not enough, because catalogs flap (a camera briefly dropped while it is
@@ -94,6 +94,19 @@ public final class AbsenceTombstoner {
      */
     public static List<String> update(AdapterStateStore state, String scope, Outcome outcome,
             Collection<String> currentIds) {
+        return update(state, scope, outcome, currentIds, List.of());
+    }
+
+    /**
+     * {@link #update(AdapterStateStore, String, Outcome, Collection)} for a catalog read through a moving window
+     * (prompt 081: {@code ucdp-ged} queries the events of the last {@code lookbackDays}): the ids in {@code forget}
+     * left the window rather than the catalog, so they are dropped from both stored sets and never tombstoned.
+     *
+     * @param forget ids to stop tracking without a tombstone; an id also in {@code currentIds} is still tracked
+     * @return the ids missing from two consecutive complete fetches and not in {@code forget}, sorted
+     */
+    public static List<String> update(AdapterStateStore state, String scope, Outcome outcome,
+            Collection<String> currentIds, Collection<String> forget) {
         if (outcome != Outcome.COMPLETE) {
             return List.of();
         }
@@ -109,6 +122,12 @@ public final class AbsenceTombstoner {
         }
         Set<String> previous = read(state, idsKey);
         Set<String> missedOnce = read(state, missedKey);
+        if (forget != null && !forget.isEmpty()) {
+            Set<String> dropped = new TreeSet<>(forget);
+            dropped.removeAll(current);
+            previous.removeAll(dropped);
+            missedOnce.removeAll(dropped);
+        }
 
         Set<String> tombstone = new TreeSet<>(missedOnce);
         tombstone.removeAll(current);

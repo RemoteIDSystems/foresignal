@@ -1,0 +1,136 @@
+{
+ "alerts": [
+  {
+   "id": 10,
+   "location_title": "Луганська область",
+   "location_title_en": "Luhansk Oblast",
+   "location_type": "oblast",
+   "started_at": "2022-04-04T16:45:39.000Z",
+   "finished_at": null,
+   "updated_at": "2022-04-08T08:04:26.316Z",
+   "alert_type": "air_raid",
+   "location_uid": "16",
+   "location_oblast": "Луганська область",
+   "location_oblast_uid": "16",
+   "location_raion": null,
+   "notes": "За повідомленям голови ОВА",
+   "alert_level": "red"
+  },
+  {
+   "id": 1001,
+   "location_title": "м. Київ",
+   "location_title_en": "Kyiv City",
+   "location_type": "city",
+   "started_at": "2026-10-13T22:41:05.000Z",
+   "finished_at": null,
+   "updated_at": "2026-10-13T22:58:12.104Z",
+   "alert_type": "air_raid",
+   "location_uid": "31",
+   "location_oblast": "м. Київ",
+   "location_oblast_uid": "31",
+   "location_raion": null,
+   "notes": null,
+   "alert_level": "red",
+   "threats": [
+    {
+     "threat_type": "drones",
+     "level": "yellow",
+     "started_at": "2026-10-13T22:41:05.311Z",
+     "source_message": "Дронова загроза (жовтий рівень)"
+    },
+    {
+     "threat_type": "ballistic_missiles",
+     "level": "red",
+     "started_at": "2026-10-13T22:55:40.020Z",
+     "source_message": "Загроза балістики! Негайно в укриття"
+    },
+    {
+     "threat_type": "drones",
+     "level": "red",
+     "started_at": "2026-10-13T22:57:00.000Z",
+     "source_message": "Повторна дронова загроза"
+    }
+   ]
+  },
+  {
+   "id": 1002,
+   "location_title": "Харківська область",
+   "location_title_en": "Kharkiv Oblast",
+   "location_type": "oblast",
+   "started_at": "2026-10-13T21:10:00.000Z",
+   "finished_at": null,
+   "updated_at": "2026-10-13T21:10:02.500Z",
+   "alert_type": "air_raid",
+   "location_uid": "22",
+   "location_oblast": "Харківська область",
+   "location_oblast_uid": "22",
+   "location_raion": null,
+   "notes": null,
+   "alert_level": "red"
+  },
+  {
+   "id": 1003,
+   "location_title": "Володимирський район",
+   "location_title_en": "Volodymyrskyi raion",
+   "location_type": "raion",
+   "started_at": "2026-10-13T20:00:00.000Z",
+   "finished_at": null,
+   "updated_at": "2026-10-13T20:30:00.000Z",
+   "alert_type": "artillery_shelling",
+   "location_uid": "38",
+   "location_oblast": "Волинська область",
+   "location_oblast_uid": "8",
+   "location_raion": "Володимирський район",
+   "notes": "Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. Загроза обстрілу. ",
+   "alert_level": "yellow"
+  },
+  {
+   "id": 1004,
+   "location_title": "м. Володимир та Володимирська територіальна громада",
+   "location_title_en": "Volodymyr hromada",
+   "location_type": "hromada",
+   "started_at": "2026-10-13T22:50:00.000Z",
+   "finished_at": null,
+   "updated_at": "2026-10-13T22:50:01.000Z",
+   "alert_type": "air_raid",
+   "location_uid": "255",
+   "location_oblast": "Волинська область",
+   "location_oblast_uid": "8",
+   "location_raion": "Володимирський район",
+   "notes": null,
+   "alert_level": "yellow"
+  },
+  {
+   "id": 1005,
+   "location_title": "Невідома громада",
+   "location_title_en": "Unknown hromada",
+   "location_type": "unknown",
+   "started_at": "2026-10-13T19:00:00.000Z",
+   "finished_at": null,
+   "updated_at": "2026-10-13T19:05:00.000Z",
+   "alert_type": "urban_fights",
+   "location_uid": "99999",
+   "location_oblast": "Донецька область",
+   "location_oblast_uid": "28",
+   "location_raion": null,
+   "notes": "<b>Untrusted</b> text with a link https://example.invalid/x",
+   "alert_level": "red"
+  },
+  {
+   "id": 1006,
+   "location_title": "Сумська область",
+   "location_title_en": "Sumy Oblast",
+   "location_type": "oblast",
+   "started_at": "2026-10-13T18:00:00.000Z",
+   "finished_at": "2026-10-13T22:59:30.000Z",
+   "updated_at": "2026-10-13T22:59:30.512Z",
+   "alert_type": "air_raid",
+   "location_uid": "20",
+   "location_oblast": "Сумська область",
+   "location_oblast_uid": "20",
+   "location_raion": null,
+   "notes": null,
+   "alert_level": "red"
+  }
+ ]
+}

@@ -1,0 +1,6 @@
+{
+ "token_type": "Bearer",
+ "expires_in": 86400,
+ "access_token": "SYNTHETIC-ACCESS-TOKEN-2",
+ "refresh_token": "SYNTHETIC-REFRESH-TOKEN-2"
+}

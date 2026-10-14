@@ -1,0 +1,23 @@
+{
+ "status": 200,
+ "success": true,
+ "last_update": 12,
+ "count": null,
+ "messages": [],
+ "data": [
+  {
+   "event_id_cnty": "UKR099001",
+   "deleted_timestamp": "1791700000"
+  },
+  {
+   "event_id_cnty": "SYR55555",
+   "deleted_timestamp": "1791710000"
+  },
+  {
+   "event_id_cnty": "UKR099002",
+   "deleted_timestamp": "1791720000"
+  }
+ ],
+ "filename": "deleted",
+ "data_query_restrictions": {}
+}

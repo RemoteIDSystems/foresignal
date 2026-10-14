@@ -30,6 +30,25 @@ class AbsenceTombstonerTest {
     }
 
     @Test
+    @DisplayName("081: ids that left a moving window are forgotten, never tombstoned; others still are")
+    void forgetLeavesTheWindow() {
+        MapState state = new MapState();
+        AbsenceTombstoner.update(state, null, Outcome.COMPLETE, List.of("a", "b", "c"), List.of());
+        assertThat(AbsenceTombstoner.update(state, null, Outcome.COMPLETE, List.of("a"), List.of("b")))
+                .as("b left the window, c missed once").isEmpty();
+        assertThat(AbsenceTombstoner.read(state, AbsenceTombstoner.MISSED_KEY)).containsExactly("c");
+        assertThat(AbsenceTombstoner.update(state, null, Outcome.COMPLETE, List.of("a"), List.of("c")))
+                .as("c left the window after one miss").isEmpty();
+        assertThat(AbsenceTombstoner.read(state, AbsenceTombstoner.MISSED_KEY)).isEmpty();
+        AbsenceTombstoner.update(state, null, Outcome.COMPLETE, List.of("a", "d"), List.of());
+        AbsenceTombstoner.update(state, null, Outcome.COMPLETE, List.of("a"), List.of("a"));
+        assertThat(AbsenceTombstoner.update(state, null, Outcome.COMPLETE, List.of("a"), List.of()))
+                .as("an id in both current and forget stays tracked; d is gone after two misses")
+                .containsExactly("d");
+        assertThat(AbsenceTombstoner.read(state, AbsenceTombstoner.IDS_KEY)).containsExactly("a");
+    }
+
+    @Test
     @DisplayName("an id that reappears after one miss is not tombstoned")
     void reappears() {
         MapState state = new MapState();

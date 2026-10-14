@@ -45,6 +45,17 @@ class UrlRedactorTest {
     }
 
     @Test
+    @DisplayName("081: the access, refresh and id tokens of a recorded OAuth response are masked; other members stay")
+    void masksTokenMembers() {
+        String body = "{\"token_type\":\"Bearer\",\"expires_in\":86400,\"access_token\" : \"AT-123\","
+                + "\"refresh_token\":\"RT-456\",\"id_token\":\"IT-789\"}";
+        assertThat(UrlRedactor.redactTokenMembers(body)).isEqualTo("{\"token_type\":\"Bearer\",\"expires_in\":86400,"
+                + "\"access_token\" : \"***\",\"refresh_token\":\"***\",\"id_token\":\"***\"}");
+        assertThat(UrlRedactor.redactTokenMembers("{\"data\":[]}")).isEqualTo("{\"data\":[]}");
+        assertThat(UrlRedactor.redactTokenMembers(null)).isNull();
+    }
+
+    @Test
     @DisplayName("a secret containing another is masked whole")
     void masksLongestFirst() {
         var nested = new UrlRedactor(List.of("abcd", "abcdefgh"));

@@ -85,6 +85,23 @@ public final class UrlRedactor {
         return redact(value);
     }
 
+    /** The JSON members of an OAuth token response whose string values are masked in recorded bodies. */
+    private static final java.util.regex.Pattern TOKEN_MEMBERS = java.util.regex.Pattern.compile(
+            "(\"(?:access_token|refresh_token|id_token)\"\\s*:\\s*\")[^\"]*(\")");
+
+    /**
+     * {@code body} with the string values of the JSON members {@code access_token}, {@code refresh_token} and
+     * {@code id_token} masked (prompt 081). A token an adapter obtained at run time (ACLED's, OpenSky's) is not a
+     * stored credential value, so {@link #redact(String)} cannot know it; a recorded token response must still not
+     * carry it.
+     */
+    public static String redactTokenMembers(String body) {
+        if (body == null || body.isEmpty() || !body.contains("_token\"")) {
+            return body;
+        }
+        return TOKEN_MEMBERS.matcher(body).replaceAll("$1" + MASK + "$2");
+    }
+
     /** True when {@code name} is redacted whole regardless of its value. */
     public static boolean isAlwaysRedacted(String name) {
         return name != null && ALWAYS_REDACTED_HEADERS.contains(name.toLowerCase(Locale.ROOT));
