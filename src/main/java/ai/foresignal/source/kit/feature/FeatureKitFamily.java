@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
@@ -27,6 +28,7 @@ public class FeatureKitFamily implements SourceAdapterFamily {
      * @param specs the validated kit specs
      * @param meters the registry of the adapters' counters, resolved lazily
      */
+    @Autowired
     public FeatureKitFamily(KitSpecs specs, ObjectProvider<MeterRegistry> meters) {
         this(specs.features(), specs.testBaseUrl(),
                 meters == null ? () -> null : (Supplier<MeterRegistry>) meters::getIfAvailable);

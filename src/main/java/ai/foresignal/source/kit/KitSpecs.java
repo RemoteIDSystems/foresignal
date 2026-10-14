@@ -13,6 +13,7 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -48,6 +49,7 @@ public class KitSpecs {
      * @param testBaseUrl the value of {@value KitUrls#BASE_URL_PROPERTY}; blank in production
      * @throws IllegalStateException when any spec is invalid
      */
+    @Autowired
     public KitSpecs(@Value("${" + KitOverlay.ENABLED_PROPERTY + ":false}") boolean overlayEnabled,
             @Value("${foresignal.data-dir:./data}") String dataDir, ObjectProvider<OutboundUrlPolicy> policy,
             @Value("${" + KitUrls.BASE_URL_PROPERTY + ":}") String testBaseUrl) {

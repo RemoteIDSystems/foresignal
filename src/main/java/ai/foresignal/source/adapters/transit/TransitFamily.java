@@ -23,6 +23,7 @@ import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -80,6 +81,7 @@ public class TransitFamily implements SourceAdapterFamily {
      * @param meters the registry of the untimed counter, resolved lazily
      * @throws IllegalStateException when the reviewed list is invalid
      */
+    @Autowired
     public TransitFamily(@Value("${" + CATALOG_FEEDS_PROPERTY + ":}") String catalogFeeds,
             @Value("${" + BASE_URL_PROPERTY + ":}") String baseUrlOverride, MobilityCatalog catalog,
             OutboundUrlPolicy policy, ObjectProvider<InstallIdService> install, ObjectProvider<MeterRegistry> meters) {

@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -37,6 +38,7 @@ public class CctvCatalogFamily implements SourceAdapterFamily {
      * @param meters the registry of the adapters' counters, resolved lazily
      * @throws IllegalStateException when the reviewed list is invalid
      */
+    @Autowired
     public CctvCatalogFamily(@Value("${" + BASE_URL_PROPERTY + ":}") String baseUrlOverride,
             ObjectProvider<ForesignalVersion> version, ObjectProvider<MeterRegistry> meters) {
         this(baseUrlOverride,

@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
@@ -30,6 +31,7 @@ public class FeedKitFamily implements SourceAdapterFamily {
      * @param websub the WebSub coordinator, resolved lazily
      * @param meters the registry of the adapters' counters, resolved lazily
      */
+    @Autowired
     public FeedKitFamily(KitSpecs specs, ObjectProvider<WebSubCoordinator> websub,
             ObjectProvider<MeterRegistry> meters) {
         this(specs.feeds(), specs.testBaseUrl(),
