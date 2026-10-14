@@ -43,6 +43,17 @@ public interface SourceHttp {
     UpstreamResponse get(URI uri, Map<String, String> headers) throws AdapterException;
 
     /**
+     * A GET that does not follow a redirect (prompt 091): a 3xx comes back as the response, with its
+     * {@code Location} header, so a source can change-check a pre-signed redirect target cheaply. Budgeted
+     * and metered like {@link #get(URI)}.
+     *
+     * <p>The default refuses (a hand-built test double); {@code UpstreamClient}'s implementation sends it.
+     */
+    default UpstreamResponse getNoFollow(URI uri) throws AdapterException {
+        throw new UnsupportedOperationException("This SourceHttp cannot send a non-following GET");
+    }
+
+    /**
      * A GET that sends {@code If-None-Match} / {@code If-Modified-Since} from stored validators and
      * records the new ones under {@code stateKey}.
      *

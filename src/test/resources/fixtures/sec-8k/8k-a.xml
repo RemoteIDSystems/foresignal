@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+ <title>Latest Filings - 8-K</title>
+ <entry>
+  <title>8-K/A - EXAMPLE CORP (0001234567) (Filer)</title>
+  <link rel="alternate" type="text/html" href="https://www.sec.gov/Archives/edgar/data/1234567/000123456726000001/0001234567-26-000001-index.htm"/>
+  <updated>2026-10-14T15:00:00-04:00</updated>
+  <summary type="html">Filed: 2026-10-14 AccNo: 0001234567-26-000001 Size: 1 MB
+   Item 1.05: Material Cybersecurity Incidents
+   Item 2.02: Results of Operations and Financial Condition
+   Item 9.01: Financial Statements and Exhibits</summary>
+  <category term="8-K/A"/>
+ </entry>
+</feed>

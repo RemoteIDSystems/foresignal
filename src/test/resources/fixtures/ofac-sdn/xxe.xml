@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sdnList [ <!ENTITY xxe SYSTEM "file:///etc/passwd"> ]>
+<sdnList xmlns="https://sanctionslistservice.ofac.treas.gov/api/PublicationPreview/exports/XML">
+  <publshInformation><Publish_Date>10/14/2026</Publish_Date></publshInformation>
+  <sdnEntry><uid>1</uid><lastName>&xxe;</lastName></sdnEntry>
+</sdnList>

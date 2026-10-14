@@ -164,6 +164,11 @@ public record SourceDescriptor(
         Duration fetchTimeout,
         int maxResponseBytes,
         String userAgentOverride,
+        /**
+         * A contact appended to the User-Agent as {@code ; contact=<value>} (prompt 091; the SEC requires a
+         * declared User-Agent with contact details); null when there is none.
+         */
+        String userAgentContact,
         List<ProductSpec> products,
         String titleField,
         Map<String, String> entityKeys,
@@ -254,6 +259,7 @@ public record SourceDescriptor(
                 : java.util.Collections.unmodifiableMap(new LinkedHashMap<>(accessDeniedReasons));
         allowedHosts = allowedHosts == null ? List.of() : List.copyOf(allowedHosts);
         llmNotice = llmNotice == null || llmNotice.isBlank() ? null : llmNotice.strip();
+        userAgentContact = userAgentContact == null || userAgentContact.isBlank() ? null : userAgentContact.strip();
     }
 
     /** True when {@code target} is one of {@link #allowedHosts}. */
@@ -371,6 +377,7 @@ public record SourceDescriptor(
         private Duration fetchTimeout = DEFAULT_FETCH_TIMEOUT;
         private int maxResponseBytes = DEFAULT_MAX_RESPONSE_BYTES;
         private String userAgentOverride;
+        private String userAgentContact;
         private String titleField;
         private Integer aggBelowZoom;
         private String startField;
@@ -592,6 +599,12 @@ public record SourceDescriptor(
          */
         public Builder userAgentOverride(String userAgentOverride) {
             this.userAgentOverride = userAgentOverride;
+            return this;
+        }
+
+        /** A contact appended to the User-Agent (prompt 091; the SEC requires one). */
+        public Builder userAgentContact(String userAgentContact) {
+            this.userAgentContact = userAgentContact;
             return this;
         }
 
@@ -826,6 +839,7 @@ public record SourceDescriptor(
                     fetchTimeout,
                     maxResponseBytes,
                     userAgentOverride,
+                    userAgentContact,
                     products,
                     titleField,
                     entityKeys,

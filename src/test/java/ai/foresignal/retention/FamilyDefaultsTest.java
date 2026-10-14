@@ -398,7 +398,16 @@ class FamilyDefaultsTest {
                     .GeoNetVolcanoAdapter(null).descriptor(), "state")),
             Map.entry("UsTravelAdvisoryAdapter", new Entry(new ai.foresignal.source.adapters.humanitarian
                     .UsTravelAdvisoryAdapter(null, new ai.foresignal.reference.CountryCentroids(),
-                            new ai.foresignal.reference.BundledCountryPolygons()).descriptor(), "state")));
+                            new ai.foresignal.reference.BundledCountryPolygons()).descriptor(), "state")),
+            // Prompt 091: sanctions entries and SEC filings are the event class (1825 d).
+            Map.entry("OfacSdnAdapter", new Entry(
+                    new ai.foresignal.source.adapters.sanctions.OfacSdnAdapter(null).descriptor(), "event")),
+            Map.entry("UkSanctionsAdapter", new Entry(
+                    new ai.foresignal.source.adapters.sanctions.UkSanctionsAdapter(null).descriptor(), "event")),
+            Map.entry("UnSanctionsAdapter", new Entry(
+                    new ai.foresignal.source.adapters.sanctions.UnSanctionsAdapter(null).descriptor(), "event")),
+            Map.entry("Sec8kAdapter", new Entry(
+                    new ai.foresignal.source.adapters.sec.Sec8kAdapter(null, null).descriptor(), "event")));
 
     /**
      * The {@code privacy} class (prompt 086): private sources whose prompt sets a short raw window on purpose, because

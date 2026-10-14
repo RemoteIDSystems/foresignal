@@ -1,0 +1,1225 @@
+<?xml version="1.0" standalone="yes"?>
+<sdnList xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="https://sanctionslistservice.ofac.treas.gov/api/PublicationPreview/exports/XML">
+  <publshInformation>
+    <Publish_Date>10/14/2026</Publish_Date>
+    <Record_Count>19430</Record_Count>
+  </publshInformation>
+<sdnEntry>
+    <uid>36</uid>
+    <lastName>AEROCARIBBEAN AIRLINES</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <akaList>
+      <aka>
+        <uid>12</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>AERO-CARIBBEAN</lastName>
+      </aka>
+    </akaList>
+    <addressList>
+      <address>
+        <uid>25</uid>
+        <city>Havana</city>
+        <country>Cuba</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>173</uid>
+    <lastName>ANGLO-CARIBBEAN CO., LTD.</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <akaList>
+      <aka>
+        <uid>57</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>AVIA IMPORT</lastName>
+      </aka>
+    </akaList>
+    <addressList>
+      <address>
+        <uid>129</uid>
+        <address1>Ibex House, The Minories</address1>
+        <city>London</city>
+        <postalCode>EC3N 1DY</postalCode>
+        <country>United Kingdom</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>306</uid>
+    <lastName>BANCO NACIONAL DE CUBA</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <akaList>
+      <aka>
+        <uid>219</uid>
+        <type>a.k.a.</type>
+        <category>weak</category>
+        <lastName>BNC</lastName>
+      </aka>
+      <aka>
+        <uid>220</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>NATIONAL BANK OF CUBA</lastName>
+      </aka>
+    </akaList>
+    <addressList>
+      <address>
+        <uid>199</uid>
+        <address1>Zweierstrasse 35</address1>
+        <city>Zurich</city>
+        <postalCode>CH-8022</postalCode>
+        <country>Switzerland</country>
+      </address>
+      <address>
+        <uid>200</uid>
+        <address1>Avenida de Concha Espina 8</address1>
+        <city>Madrid</city>
+        <postalCode>E-28036</postalCode>
+        <country>Spain</country>
+      </address>
+      <address>
+        <uid>201</uid>
+        <address1>Dai-Ichi Bldg. 6th Floor, 10-2 Nihombashi, 2-chome, Chuo-ku</address1>
+        <city>Tokyo</city>
+        <postalCode>103</postalCode>
+        <country>Japan</country>
+      </address>
+      <address>
+        <uid>202</uid>
+        <address1>Federico Boyd Avenue &amp; 51 Street</address1>
+        <city>Panama City</city>
+        <country>Panama</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>424</uid>
+    <lastName>BOUTIQUE LA MAISON</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <addressList>
+      <address>
+        <uid>247</uid>
+        <address1>42 Via Brasil</address1>
+        <city>Panama City</city>
+        <country>Panama</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>475</uid>
+    <lastName>CASA DE CUBA</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <addressList>
+      <address>
+        <uid>271</uid>
+        <country>Spain</country>
+      </address>
+      <address>
+        <uid>272</uid>
+        <country>Mexico</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>480</uid>
+    <lastName>CECOEX, S.A.</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <addressList>
+      <address>
+        <uid>276</uid>
+        <city>Panama City</city>
+        <country>Panama</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>535</uid>
+    <lastName>CIMEX</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <addressList>
+      <address>
+        <uid>317</uid>
+        <address1>Emerson No. 148 Piso 7</address1>
+        <city>Mexico, D.F.</city>
+        <postalCode>11570</postalCode>
+        <country>Mexico</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>536</uid>
+    <lastName>CIMEX IBERICA</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <addressList>
+      <address>
+        <uid>318</uid>
+        <country>Spain</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>537</uid>
+    <lastName>CIMEX, S.A.</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <addressList>
+      <address>
+        <uid>319</uid>
+        <country>Panama</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>540</uid>
+    <lastName>COMERCIAL IBEROAMERICANA, S.A.</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <akaList>
+      <aka>
+        <uid>471</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>COIBA</lastName>
+      </aka>
+    </akaList>
+    <addressList>
+      <address>
+        <uid>321</uid>
+        <country>Spain</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>551</uid>
+    <lastName>COMERCIAL CIMEX, S.A.</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <addressList>
+      <address>
+        <uid>328</uid>
+        <country>Panama</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>552</uid>
+    <lastName>COMERCIAL DE RODAJES Y MAQUINARIA, S.A.</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <akaList>
+      <aka>
+        <uid>475</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>CRYMSA</lastName>
+      </aka>
+    </akaList>
+    <addressList>
+      <address>
+        <uid>329</uid>
+        <address1>Jose Lazaro Galdeano 6-6</address1>
+        <city>Madrid</city>
+        <postalCode>28016</postalCode>
+        <country>Spain</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>555</uid>
+    <lastName>COMERCIALIZACION DE PRODUCTOS VARIOS</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <akaList>
+      <aka>
+        <uid>477</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>COPROVA</lastName>
+      </aka>
+      <aka>
+        <uid>478</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>COPROVA SARL</lastName>
+      </aka>
+    </akaList>
+    <addressList>
+      <address>
+        <uid>331</uid>
+        <city>Paris</city>
+        <country>France</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>559</uid>
+    <lastName>COMPANIA DE IMPORTACION Y EXPORTACION IBERIA</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <akaList>
+      <aka>
+        <uid>481</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>CIMEX</lastName>
+      </aka>
+    </akaList>
+    <addressList>
+      <address>
+        <uid>334</uid>
+        <country>Spain</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>576</uid>
+    <lastName>CORPORACION CIMEX, S.A.</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <addressList>
+      <address>
+        <uid>346</uid>
+        <country>Panama</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>578</uid>
+    <lastName>COTEI</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <addressList>
+      <address>
+        <uid>348</uid>
+        <city>Milan</city>
+        <country>Italy</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>589</uid>
+    <lastName>CRYMSA - ARGENTINA, S.A.</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <addressList>
+      <address>
+        <uid>357</uid>
+        <city>Buenos Aires</city>
+        <country>Argentina</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>590</uid>
+    <lastName>CUBACANCUN CIGARS AND GIFT SHOPS</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <addressList>
+      <address>
+        <uid>358</uid>
+        <city>Cancun</city>
+        <country>Mexico</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>591</uid>
+    <lastName>CUBAEXPORT</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <addressList>
+      <address>
+        <uid>359</uid>
+        <country>Spain</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>592</uid>
+    <lastName>CUBAFRUTAS</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <addressList>
+      <address>
+        <uid>360</uid>
+        <country>Spain</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>593</uid>
+    <lastName>CUBAN CIGARS TRADE</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <addressList>
+      <address>
+        <uid>361</uid>
+        <country>Italy</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>621</uid>
+    <lastName>CUBANATUR</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <addressList>
+      <address>
+        <uid>362</uid>
+        <address1>Baja California 255, Edificio B. Oficina 103, Condesa</address1>
+        <city>Mexico, D.F.</city>
+        <postalCode>06500</postalCode>
+        <country>Mexico</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>622</uid>
+    <lastName>CUBATABACO</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <addressList>
+      <address>
+        <uid>363</uid>
+        <country>Spain</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>636</uid>
+    <lastName>CUMEXINT, S.A.</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <addressList>
+      <address>
+        <uid>365</uid>
+        <address1>1649 Adolfo Prieto, Colonia del Valle</address1>
+        <city>Mexico City</city>
+        <country>Mexico</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>651</uid>
+    <lastName>DELVEST HOLDING, S.A.</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <akaList>
+      <aka>
+        <uid>556</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>DELVEST HOLDING COMPANY</lastName>
+      </aka>
+    </akaList>
+    <addressList>
+      <address>
+        <uid>376</uid>
+        <address1>Case Postale 236, 10 Bis Rue Du Vieux College 12-11</address1>
+        <city>Geneva</city>
+        <country>Switzerland</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>701</uid>
+    <lastName>EDICIONES CUBANAS</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <addressList>
+      <address>
+        <uid>408</uid>
+        <country>Spain</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>702</uid>
+    <lastName>EDYJU, S.A.</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <addressList>
+      <address>
+        <uid>409</uid>
+        <country>Panama</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>735</uid>
+    <lastName>EMPRESA CUBANA DE AVIACION</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <akaList>
+      <aka>
+        <uid>583</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>CUBANA AIRLINES</lastName>
+      </aka>
+    </akaList>
+    <addressList>
+      <address>
+        <uid>438</uid>
+        <address1>32 Main Street</address1>
+        <city>Georgetown</city>
+        <country>Guyana</country>
+      </address>
+      <address>
+        <uid>439</uid>
+        <address1>24 Rue Du Quatre Septembre</address1>
+        <city>Paris</city>
+        <country>France</country>
+      </address>
+      <address>
+        <uid>440</uid>
+        <address1>Belas Airport</address1>
+        <city>Luanda</city>
+        <country>Angola</country>
+      </address>
+      <address>
+        <uid>441</uid>
+        <address1>Dobrininskaya No. 7, Sec 5</address1>
+        <city>Moscow</city>
+        <country>Russia</country>
+      </address>
+      <address>
+        <uid>442</uid>
+        <address1>Corrientes 545 Primer Piso</address1>
+        <city>Buenos Aires</city>
+        <country>Argentina</country>
+      </address>
+      <address>
+        <uid>443</uid>
+        <address1>Frankfurter TOR 8-A</address1>
+        <city>Berlin</city>
+        <country>Germany</country>
+      </address>
+      <address>
+        <uid>444</uid>
+        <address1>1 Place Ville Marie, Suite 3431</address1>
+        <city>Montreal</city>
+        <country>Canada</country>
+      </address>
+      <address>
+        <uid>445</uid>
+        <address1>Parizska 17</address1>
+        <city>Prague</city>
+        <country>Czech Republic</country>
+      </address>
+      <address>
+        <uid>446</uid>
+        <address1>Paseo de la Republica 126</address1>
+        <city>Lima</city>
+        <country>Peru</country>
+      </address>
+      <address>
+        <uid>447</uid>
+        <address1>Piarco Airport</address1>
+        <city>Port au Prince</city>
+        <country>Haiti</country>
+      </address>
+      <address>
+        <uid>448</uid>
+        <address1>c/o Anglo-Caribbean Shipping Co. Ltd.</address1>
+        <address2>Ibex House, The Minories</address2>
+        <city>London</city>
+        <postalCode>EC3N 1DY</postalCode>
+        <country>United Kingdom</country>
+      </address>
+      <address>
+        <uid>449</uid>
+        <address1>Norman Manley International Airport</address1>
+        <city>Kingston</city>
+        <country>Jamaica</country>
+      </address>
+      <address>
+        <uid>450</uid>
+        <address1>Melchor Ocampo 469, 5DF</address1>
+        <city>Mexico City</city>
+        <country>Mexico</country>
+      </address>
+      <address>
+        <uid>451</uid>
+        <address1>Calle 29 y Avda Justo Arosemena</address1>
+        <city>Panama City</city>
+        <country>Panama</country>
+      </address>
+      <address>
+        <uid>452</uid>
+        <address1>Grantley Adams Airport, Christ Church</address1>
+        <country>Barbados</country>
+      </address>
+      <address>
+        <uid>453</uid>
+        <city>Madrid</city>
+        <country>Spain</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>751</uid>
+    <lastName>EMPRESA CUBANA DE PESCADOS Y MARISCOS</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <akaList>
+      <aka>
+        <uid>599</uid>
+        <type>a.k.a.</type>
+        <category>weak</category>
+        <lastName>CARIBEX</lastName>
+      </aka>
+      <aka>
+        <uid>600</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>CARIBBEAN EXPORT ENTERPRISE</lastName>
+      </aka>
+    </akaList>
+    <addressList>
+      <address>
+        <uid>454</uid>
+        <city>Paris</city>
+        <country>France</country>
+      </address>
+      <address>
+        <uid>455</uid>
+        <city>Milan</city>
+        <country>Italy</country>
+      </address>
+      <address>
+        <uid>456</uid>
+        <city>Moscow</city>
+        <country>Russia</country>
+      </address>
+      <address>
+        <uid>457</uid>
+        <city>Madrid</city>
+        <country>Spain</country>
+      </address>
+      <address>
+        <uid>458</uid>
+        <city>Cologne</city>
+        <country>Germany</country>
+      </address>
+      <address>
+        <uid>459</uid>
+        <address1>Downsview</address1>
+        <city>Ontario</city>
+        <country>Canada</country>
+      </address>
+      <address>
+        <uid>460</uid>
+        <city>Tokyo</city>
+        <country>Japan</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>758</uid>
+    <lastName>EMPRESA DE TURISMO NACIONAL Y INTERNACIONAL</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <akaList>
+      <aka>
+        <uid>613</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>CUBATUR</lastName>
+      </aka>
+    </akaList>
+    <addressList>
+      <address>
+        <uid>461</uid>
+        <city>Buenos Aires</city>
+        <country>Argentina</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>767</uid>
+    <lastName>ETCO INTERNATIONAL COMMODITIES LTD.</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <addressList>
+      <address>
+        <uid>465</uid>
+        <address1>Devonshire House, 1 Devonshire Street</address1>
+        <city>London</city>
+        <country>United Kingdom</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>768</uid>
+    <lastName>ETCO INTERNATIONAL COMPANY, LIMITED</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <addressList>
+      <address>
+        <uid>466</uid>
+        <address1>Kawabe Building, 1-5 Kanda Nishiki-Cho, Chiyoda-Ku</address1>
+        <city>Tokyo</city>
+        <country>Japan</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>815</uid>
+    <lastName>GALAX TRADING CO., LTD.</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <akaList>
+      <aka>
+        <uid>641</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>GALAX INC.</lastName>
+      </aka>
+    </akaList>
+    <addressList>
+      <address>
+        <uid>500</uid>
+        <address1>5250 Ferrier Street</address1>
+        <city>Montreal</city>
+        <stateOrProvince>Quebec</stateOrProvince>
+        <country>Canada</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>906</uid>
+    <lastName>HAVIN BANK LIMITED</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <idList>
+      <id>
+        <uid>19525</uid>
+        <idType>Company Number</idType>
+        <idNumber>01074897</idNumber>
+        <idCountry>United Kingdom</idCountry>
+      </id>
+      <id>
+        <uid>136109</uid>
+        <idType>SWIFT/BIC</idType>
+        <idNumber>HAVIGB2L</idNumber>
+      </id>
+      <id>
+        <uid>136110</uid>
+        <idType>Website</idType>
+        <idNumber>www.havanaintbank.co.uk</idNumber>
+      </id>
+      <id>
+        <uid>136111</uid>
+        <idType>Website</idType>
+        <idNumber>www.hib.uk.com</idNumber>
+      </id>
+    </idList>
+    <akaList>
+      <aka>
+        <uid>46100</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>HAVANA INTERNATIONAL BANK, LTD</lastName>
+      </aka>
+    </akaList>
+    <addressList>
+      <address>
+        <uid>44386</uid>
+        <address1>4th Floor</address1>
+        <address2>189 Marsh Wall</address2>
+        <city>London</city>
+        <postalCode>E14 9SH</postalCode>
+        <country>United Kingdom</country>
+      </address>
+      <address>
+        <uid>44387</uid>
+        <address1>Edificio Atlantic, Oficina 4 H</address1>
+        <address2>Calle D No. 8 entre 1ra. y 3ra.</address2>
+        <address3>Vedado, Plaza de la Revolucion</address3>
+        <city>Havana</city>
+        <postalCode>10400</postalCode>
+        <country>Cuba</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>907</uid>
+    <lastName>HAVANATUR</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <addressList>
+      <address>
+        <uid>572</uid>
+        <address1>54 Rue Richelieu</address1>
+        <city>Paris</city>
+        <country>France</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>1042</uid>
+    <lastName>INSTITUTO NACIONAL DE TURISMO DE CUBA</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <addressList>
+      <address>
+        <uid>660</uid>
+        <country>Spain</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>1043</uid>
+    <lastName>INTERCONSULT</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <addressList>
+      <address>
+        <uid>661</uid>
+        <country>Panama</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>1241</uid>
+    <lastName>KAVE, S.A.</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <addressList>
+      <address>
+        <uid>793</uid>
+        <country>Panama</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>1287</uid>
+    <lastName>LA EMPRESA CUBANA DE FLETES</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <akaList>
+      <aka>
+        <uid>888</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>CUFLET</lastName>
+      </aka>
+      <aka>
+        <uid>889</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>CUBAN FREIGHT ENTERPRISE</lastName>
+      </aka>
+    </akaList>
+    <addressList>
+      <address>
+        <uid>825</uid>
+        <city>Pyongyang</city>
+        <country>Korea, North</country>
+      </address>
+      <address>
+        <uid>826</uid>
+        <city>Moscow</city>
+        <country>Russia</country>
+      </address>
+      <address>
+        <uid>827</uid>
+        <city>Barcelona</city>
+        <country>Spain</country>
+      </address>
+      <address>
+        <uid>828</uid>
+        <city>Rostock</city>
+        <country>Germany</country>
+      </address>
+      <address>
+        <uid>829</uid>
+        <city>Genoa</city>
+        <country>Italy</country>
+      </address>
+      <address>
+        <uid>830</uid>
+        <city>Syczecin</city>
+        <country>Poland</country>
+      </address>
+      <address>
+        <uid>831</uid>
+        <city>Rotterdam</city>
+        <country>Netherlands</country>
+      </address>
+      <address>
+        <uid>832</uid>
+        <country>Mexico</country>
+      </address>
+      <address>
+        <uid>833</uid>
+        <city>Buenos Aires</city>
+        <country>Argentina</country>
+      </address>
+      <address>
+        <uid>834</uid>
+        <city>Montreal</city>
+        <country>Canada</country>
+      </address>
+      <address>
+        <uid>835</uid>
+        <city>Varna</city>
+        <country>Bulgaria</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>1316</uid>
+    <lastName>LEVERAGE, S.A.</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <addressList>
+      <address>
+        <uid>848</uid>
+        <address1>San Martin 323, Piso 14</address1>
+        <city>Buenos Aires</city>
+        <country>Argentina</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>1555</uid>
+    <lastName>NIREF</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <addressList>
+      <address>
+        <uid>997</uid>
+        <address1>Boezembolcht 23</address1>
+        <city>Rotterdam</city>
+        <country>Netherlands</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>1570</uid>
+    <lastName>NORDSTRAND LTD.</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <addressList>
+      <address>
+        <uid>1006</uid>
+        <country>Liechtenstein</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>1571</uid>
+    <lastName>NORDSTRAND MARITIME AND TRADING COMPANY</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <addressList>
+      <address>
+        <uid>1007</uid>
+        <address1>33 Akti Maouli</address1>
+        <city>Pireas (Piraeus)</city>
+        <postalCode>185-35</postalCode>
+        <country>Greece</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>1641</uid>
+    <lastName>PANAMERICAN IMPORT AND EXPORT COMMERCIAL CORPORATION</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <addressList>
+      <address>
+        <uid>1052</uid>
+        <country>Panama</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>1660</uid>
+    <lastName>PESCABRAVA, S.A.</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <addressList>
+      <address>
+        <uid>1069</uid>
+        <country>Spain</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>1700</uid>
+    <lastName>PRELASA</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <addressList>
+      <address>
+        <uid>1100</uid>
+        <country>Mexico</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>1701</uid>
+    <lastName>PRENSA LATINA CANADA LTD.</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <addressList>
+      <address>
+        <uid>1101</uid>
+        <address1>1010 O Rue Ste. Catherine</address1>
+        <city>Montreal</city>
+        <postalCode>PQ H303 IGI</postalCode>
+        <country>Canada</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>1702</uid>
+    <lastName>PRENSA LATINA</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <addressList>
+      <address>
+        <uid>1102</uid>
+        <country>Spain</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>1888</uid>
+    <lastName>SERVINAVES, S.A.</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <addressList>
+      <address>
+        <uid>1237</uid>
+        <country>Panama</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>2109</uid>
+    <lastName>TROBER, S.A.</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <akaList>
+      <aka>
+        <uid>1409</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>TROVER, S.A.</lastName>
+      </aka>
+    </akaList>
+    <addressList>
+      <address>
+        <uid>1394</uid>
+        <address1>Edificio Saldivar</address1>
+        <city>Panama City</city>
+        <country>Panama</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>4238</uid>
+    <lastName>MAR AZUL</lastName>
+    <sdnType>Vessel</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <vesselInfo>
+      <callSign>CL2192</callSign>
+      <vesselType>Tug</vesselType>
+      <vesselFlag>Cuba</vesselFlag>
+      <vesselOwner>Samir de Navegacion S.A.</vesselOwner>
+      <grossRegisteredTonnage>212</grossRegisteredTonnage>
+    </vesselInfo>
+  </sdnEntry>
+<sdnEntry>
+    <uid>4243</uid>
+    <lastName>EBANO</lastName>
+    <sdnType>Vessel</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <idList>
+      <id>
+        <uid>22133</uid>
+        <idType>Vessel Registration Identification</idType>
+        <idNumber>IMO 7406784</idNumber>
+      </id>
+    </idList>
+    <akaList>
+      <aka>
+        <uid>3408</uid>
+        <type>f.k.a.</type>
+        <category>weak</category>
+        <lastName>ANA I</lastName>
+      </aka>
+      <aka>
+        <uid>50788</uid>
+        <type>f.k.a.</type>
+        <category>weak</category>
+        <lastName>SAND SWAN</lastName>
+      </aka>
+    </akaList>
+    <vesselInfo>
+      <vesselType>General Cargo</vesselType>
+      <vesselFlag>Panama</vesselFlag>
+      <tonnage>2595</tonnage>
+      <grossRegisteredTonnage>1865</grossRegisteredTonnage>
+    </vesselInfo>
+  </sdnEntry>
+<sdnEntry>
+    <uid>15432</uid>
+    <lastName>EP-GOL</lastName>
+    <sdnType>Aircraft</sdnType>
+    <remarks>(Linked To: POUYA AIR)</remarks>
+    <programList>
+      <program>SDGT</program>
+    </programList>
+    <idList>
+      <id>
+        <uid>186119</uid>
+        <idType>Secondary sanctions risk:</idType>
+        <idNumber>section 1(b) of Executive Order 13224, as amended by Executive Order 13886</idNumber>
+      </id>
+      <id>
+        <uid>112288</uid>
+        <idType>Aircraft Construction Number (also called L/N or S/N or F/N)</idType>
+        <idNumber>8305</idNumber>
+      </id>
+      <id>
+        <uid>112290</uid>
+        <idType>Aircraft Manufacture Date</idType>
+        <idNumber>1991</idNumber>
+      </id>
+      <id>
+        <uid>112291</uid>
+        <idType>Aircraft Model</idType>
+        <idNumber>IL-76TD</idNumber>
+      </id>
+      <id>
+        <uid>112292</uid>
+        <idType>Aircraft Operator</idType>
+        <idNumber>YAS AIR</idNumber>
+      </id>
+      <id>
+        <uid>112289</uid>
+        <idType>Aircraft Manufacturer's Serial Number (MSN)</idType>
+        <idNumber>1013409297</idNumber>
+      </id>
+    </idList>
+  </sdnEntry>
+</sdnList>

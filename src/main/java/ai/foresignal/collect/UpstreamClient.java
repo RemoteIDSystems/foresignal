@@ -265,7 +265,9 @@ public class UpstreamClient {
     /** The User-Agent for {@code descriptor}: its override if it has one, else Foresignal's own. */
     String userAgent(SourceDescriptor descriptor) {
         String override = descriptor.userAgentOverride();
-        return override == null || override.isBlank() ? install.userAgent() : override;
+        String base = override == null || override.isBlank() ? install.userAgent() : override;
+        String contact = descriptor.userAgentContact();
+        return contact == null || contact.isBlank() ? base : base + "; contact=" + contact;
     }
 
     /**

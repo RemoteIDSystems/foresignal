@@ -4299,3 +4299,21 @@ docker compose exec -T db dropdb -U foresignal restore_drill
   identifier"). If the family is added later, set both credentials on each HAPI source.
 - The other prompt 090 sources (`nasa-eonet`, `unhcr-population`, `who-don`, `copernicus-ems`,
   `usgs-hans-volcanoes`, `geonet-volcanoes`, `openfema-declarations`, `travel-advisory-us`) are keyless.
+
+## Sanctions lists and the shrink guard (prompt 091)
+
+- **SEC 8-K:** the SEC requires a declared User-Agent with contact details. Set the `contactEmail` credential on
+  `sec-8k`; it is appended to Foresignal's own User-Agent as `; contact=<email>`. Never replace the User-Agent
+  with another product's.
+- **OFAC and UN redirects:** both export URLs answer 302 to a pre-signed object (S3, Azure Blob). The redirect
+  host is allowlisted; the pre-signed query string is never logged. Nothing to configure.
+- **The delisting shrink guard (`LIST_SHRINK_GUARD`):** a sanctions list normally only grows a little between
+  runs. If a run's entry count is below 90 % of the previous run's, Foresignal writes **no** tombstones and
+  marks the source degraded with reason `LIST_SHRINK_GUARD`, because a sudden large shrink is almost always an
+  upstream fault (a bad export, a truncated download). This protects against mass delisting by mistake.
+- **Accepting a genuinely large delisting:** verify the upstream list first, then run the fetch again so the
+  smaller list becomes the new baseline (the next run's comparison is against the new count). If a
+  `fetch-now?force=true` is available on the instance, use it to bypass backoff; otherwise two consecutive
+  successful fetches establish the new baseline. The guard only skips tombstones for the run that trips it.
+- **The UK source changed:** `uk-sanctions-list` (the FCDO UK Sanctions List) replaced `uk-ofsi-sanctions`,
+  whose list closed on 28 January 2026.

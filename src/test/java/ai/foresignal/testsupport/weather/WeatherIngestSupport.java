@@ -164,6 +164,11 @@ public abstract class WeatherIngestSupport {
                 UPSTREAM::baseUrl);
         registry.add(ai.foresignal.source.adapters.humanitarian.UsTravelAdvisoryAdapter.BASE_URL_PROPERTY,
                 UPSTREAM::baseUrl);
+        // Prompt 091: the sanctions lists and the SEC 8-K feed.
+        registry.add(ai.foresignal.source.adapters.sanctions.OfacSdnAdapter.BASE_URL_PROPERTY, UPSTREAM::baseUrl);
+        registry.add(ai.foresignal.source.adapters.sanctions.UkSanctionsAdapter.BASE_URL_PROPERTY, UPSTREAM::baseUrl);
+        registry.add(ai.foresignal.source.adapters.sanctions.UnSanctionsAdapter.BASE_URL_PROPERTY, UPSTREAM::baseUrl);
+        registry.add(ai.foresignal.source.adapters.sec.Sec8kAdapter.BASE_URL_PROPERTY, UPSTREAM::baseUrl);
     }
 
     @Autowired protected FetchExecutor executor;
@@ -192,7 +197,8 @@ public abstract class WeatherIngestSupport {
             "alerts-in-ua", "ua-air-raid-siren", "acled", "ucdp-ged", "faa-tfr", "faa-nas-status", "awc-sigmets",
             "nga-msi-warnings", "imf-portwatch-chokepoints", "cap-de-dwd-de", "meteoalarm-greece", "fdsn-geofon",
             "usgs-shakemap", "nasa-eonet", "reliefweb-disasters", "unhcr-population", "who-don", "copernicus-ems",
-            "usgs-hans-volcanoes", "geonet-volcanoes", "openfema-declarations", "travel-advisory-us");
+            "usgs-hans-volcanoes", "geonet-volcanoes", "openfema-declarations", "travel-advisory-us",
+            "ofac-sdn", "uk-sanctions-list", "un-sanctions", "sec-8k");
 
     /** Resets the stubs and the backoff of the weather sources. */
     @BeforeEach

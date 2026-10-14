@@ -116,6 +116,11 @@ class BoundSourceHttp implements SourceHttp {
     }
 
     @Override
+    public UpstreamResponse getNoFollow(URI uri) throws AdapterException {
+        return execute("GET", uri, Map.of(), null, null, descriptor.maxResponseBytes(), false, 0);
+    }
+
+    @Override
     public UpstreamResponse getConditional(URI uri, String stateKey) throws AdapterException {
         return getConditional(uri, stateKey, Map.of());
     }

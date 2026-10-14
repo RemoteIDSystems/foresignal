@@ -1,0 +1,326 @@
+<?xml version="1.0" standalone="yes"?>
+<sdnList xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="https://sanctionslistservice.ofac.treas.gov/api/PublicationPreview/exports/XML">
+  <publshInformation>
+    <Publish_Date>10/14/2026</Publish_Date>
+    <Record_Count>19430</Record_Count>
+  </publshInformation>
+<sdnEntry>
+    <uid>36</uid>
+    <lastName>AEROCARIBBEAN AIRLINES</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <akaList>
+      <aka>
+        <uid>12</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>AERO-CARIBBEAN</lastName>
+      </aka>
+    </akaList>
+    <addressList>
+      <address>
+        <uid>25</uid>
+        <city>Havana</city>
+        <country>Cuba</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>173</uid>
+    <lastName>ANGLO-CARIBBEAN CO., LTD.</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <akaList>
+      <aka>
+        <uid>57</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>AVIA IMPORT</lastName>
+      </aka>
+    </akaList>
+    <addressList>
+      <address>
+        <uid>129</uid>
+        <address1>Ibex House, The Minories</address1>
+        <city>London</city>
+        <postalCode>EC3N 1DY</postalCode>
+        <country>United Kingdom</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>306</uid>
+    <lastName>BANCO NACIONAL DE CUBA</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <akaList>
+      <aka>
+        <uid>219</uid>
+        <type>a.k.a.</type>
+        <category>weak</category>
+        <lastName>BNC</lastName>
+      </aka>
+      <aka>
+        <uid>220</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>NATIONAL BANK OF CUBA</lastName>
+      </aka>
+    </akaList>
+    <addressList>
+      <address>
+        <uid>199</uid>
+        <address1>Zweierstrasse 35</address1>
+        <city>Zurich</city>
+        <postalCode>CH-8022</postalCode>
+        <country>Switzerland</country>
+      </address>
+      <address>
+        <uid>200</uid>
+        <address1>Avenida de Concha Espina 8</address1>
+        <city>Madrid</city>
+        <postalCode>E-28036</postalCode>
+        <country>Spain</country>
+      </address>
+      <address>
+        <uid>201</uid>
+        <address1>Dai-Ichi Bldg. 6th Floor, 10-2 Nihombashi, 2-chome, Chuo-ku</address1>
+        <city>Tokyo</city>
+        <postalCode>103</postalCode>
+        <country>Japan</country>
+      </address>
+      <address>
+        <uid>202</uid>
+        <address1>Federico Boyd Avenue &amp; 51 Street</address1>
+        <city>Panama City</city>
+        <country>Panama</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>424</uid>
+    <lastName>BOUTIQUE LA MAISON</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <addressList>
+      <address>
+        <uid>247</uid>
+        <address1>42 Via Brasil</address1>
+        <city>Panama City</city>
+        <country>Panama</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>475</uid>
+    <lastName>CASA DE CUBA</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <addressList>
+      <address>
+        <uid>271</uid>
+        <country>Spain</country>
+      </address>
+      <address>
+        <uid>272</uid>
+        <country>Mexico</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>480</uid>
+    <lastName>CECOEX, S.A.</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <addressList>
+      <address>
+        <uid>276</uid>
+        <city>Panama City</city>
+        <country>Panama</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>535</uid>
+    <lastName>CIMEX</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <addressList>
+      <address>
+        <uid>317</uid>
+        <address1>Emerson No. 148 Piso 7</address1>
+        <city>Mexico, D.F.</city>
+        <postalCode>11570</postalCode>
+        <country>Mexico</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>536</uid>
+    <lastName>CIMEX IBERICA</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <addressList>
+      <address>
+        <uid>318</uid>
+        <country>Spain</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>537</uid>
+    <lastName>CIMEX, S.A.</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <addressList>
+      <address>
+        <uid>319</uid>
+        <country>Panama</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>540</uid>
+    <lastName>COMERCIAL IBEROAMERICANA, S.A.</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <akaList>
+      <aka>
+        <uid>471</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>COIBA</lastName>
+      </aka>
+    </akaList>
+    <addressList>
+      <address>
+        <uid>321</uid>
+        <country>Spain</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>551</uid>
+    <lastName>COMERCIAL CIMEX, S.A.</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <addressList>
+      <address>
+        <uid>328</uid>
+        <country>Panama</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>552</uid>
+    <lastName>COMERCIAL DE RODAJES Y MAQUINARIA, S.A.</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <akaList>
+      <aka>
+        <uid>475</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>CRYMSA</lastName>
+      </aka>
+    </akaList>
+    <addressList>
+      <address>
+        <uid>329</uid>
+        <address1>Jose Lazaro Galdeano 6-6</address1>
+        <city>Madrid</city>
+        <postalCode>28016</postalCode>
+        <country>Spain</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>555</uid>
+    <lastName>COMERCIALIZACION DE PRODUCTOS VARIOS</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <akaList>
+      <aka>
+        <uid>477</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>COPROVA</lastName>
+      </aka>
+      <aka>
+        <uid>478</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>COPROVA SARL</lastName>
+      </aka>
+    </akaList>
+    <addressList>
+      <address>
+        <uid>331</uid>
+        <city>Paris</city>
+        <country>France</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>559</uid>
+    <lastName>COMPANIA DE IMPORTACION Y EXPORTACION IBERIA</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <akaList>
+      <aka>
+        <uid>481</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>CIMEX</lastName>
+      </aka>
+    </akaList>
+    <addressList>
+      <address>
+        <uid>334</uid>
+        <country>Spain</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+<sdnEntry>
+    <uid>576</uid>
+    <lastName>CORPORACION CIMEX, S.A.</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>CUBA</program>
+    </programList>
+    <addressList>
+      <address>
+        <uid>346</uid>
+        <country>Panama</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+</sdnList>

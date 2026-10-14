@@ -350,6 +350,19 @@ Most of these sources are country-level: geometry is prompt 040's label point or
 **Not built (optional in prompt 090):** `travel-advisory-uk` (FCDO index + per-country content) and the
 `hdx-hapi-*` family (needs an operator HAPI `app_identifier`). The tasks mark both optional and disabled.
 
+### Sanctions and filings (prompt 091)
+
+| Source id | Kind | Upstream | Protocol | Auth | Interval · budget | Notes |
+|---|---|---|---|---|---|---|
+| `ofac-sdn` | sanction | `https://sanctionslistservice.ofac.treas.gov/api/PublicationPreview/exports/SDN.XML` (and `CONS_PRIM.XML`) | XML (302 to S3) | none | 6 h · 4/min, 40/day | **Built in prompt 091.** The legacy `SDN.XML` schema is used (simpler than `SDN_ADVANCED.XML`, same entries). The export 302s to a pre-signed S3 object in `us-gov-west-1`; the publication path (query stripped) is compared so an unchanged publication costs one request, and the pre-signed query is never logged. `maxResponseBytes` 200 MB (the SDN export was about 29 MB on 2026-10-14); parsed from disk with secure StAX. `observedAt` = `Publish_Date`. Public domain. |
+| `uk-sanctions-list` | sanction | `https://sanctionslist.fcdo.gov.uk/docs/UK-Sanctions-List.xml` | XML (conditional GET) | none | 6 h · 2/min, 20/day | **Built in prompt 091; replaces `uk-ofsi-sanctions`.** The OFSI Consolidated List closed on 28 January 2026; the FCDO UK Sanctions List is now the single source of UK designations (about 22 MB, `ETag`/`Last-Modified`, downloaded with a cap). `NameType = Primary Name` is the record name, the rest aliases; `UNReferenceNumber` is the `unReference` entity key. A separate list still applies to specific Russia financial and investment restrictions; it is not ingested here. Licence OGL v3. |
+| `un-sanctions` | sanction | `https://scsanctions.un.org/resources/xml/en/consolidated.xml` | XML (302 to Azure Blob) | none | 12 h · 2/min, 10/day | **Built in prompt 091.** The URL 302s to an Azure Blob SAS URL; the blob host is allowlisted and the SAS query is never logged. Individuals and entities; `observedAt` = `dateGenerated`, `eventTime` = `LISTED_ON`. UN terms of use (public information). |
+| `sec-8k` | filing | `https://www.sec.gov/cgi-bin/browse-edgar?action=getcurrent&type=8-K&output=atom&count=100` | Atom (ISO-8859-1) | `contactEmail` | 10 min · 6/min, 600/day | **Built in prompt 091.** The SEC requires a declared User-Agent with contact details; the `contactEmail` credential is appended to Foresignal's own User-Agent as `; contact=<email>`. Item codes (e.g. `1.05`, `2.02`) come from the summary, so a rule can watch a material category. Up to three pages, `complete=false` (rolling feed). Public domain. |
+
+Both sanctions sources keep the previous id set in adapter state and tombstone an entry that disappeared
+(FR-15); if the new count is below 90 % of the previous, no tombstones are written and the run is degraded with
+reason `LIST_SHRINK_GUARD`.
+
 ### Raster product sources (prompt 046)
 
 | Source id | Kind | Upstream | Protocol | Auth | Default interval · budget | Notes |

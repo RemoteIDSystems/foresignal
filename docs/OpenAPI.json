@@ -16,6 +16,11 @@
       {
         "version": "1.3.0",
         "date": "2026-10-14",
+        "note": "091: no new operations. x-foresignal-kinds fills in the sanction payload (ofac-sdn, uk-sanctions-list, un-sanctions) and filing (sec-8k) notes. The UK source is now uk-sanctions-list (the FCDO UK Sanctions List), replacing the closed OFSI list. The descriptor User-Agent may carry a contact suffix (`; contact=…`); it is not a separate schema property."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-14",
         "note": "090: no new operations. The descriptor schema's llmNotice field is now served (a per-source notice appended whenever its records reach an LLM context; OpenFEMA sets it). x-foresignal-kinds fills in the payloads and notes for natural-event (nasa-eonet), disaster (reliefweb-disasters), displacement (unhcr-population), disease-outbreak (who-don), emergency-activation (copernicus-ems), volcano-alert (usgs-hans-volcanoes, geonet-volcanoes), disaster-declaration (openfema-declarations) and travel-advisory (travel-advisory-us)."
       },
       {
@@ -90723,7 +90728,7 @@
                 "aircraftTail"
               ]
             },
-            "note": "list `OFAC-SDN|OFAC-CONS|UK|UN`; partyType `individual|entity|vessel|aircraft`; no geometry."
+            "note": "Built in 091 (ofac-sdn with the legacy SDN.XML/CONS_PRIM.XML export, uk-sanctions-list from the FCDO list that replaced the closed OFSI list, un-sanctions from the UN consolidated XML). list `SDN|OFAC-CONS|UK|UN`; partyType `individual|entity|vessel|aircraft`; no geometry. entityKeys imo, mmsi, aircraft-tail, un-reference. A delisting is a tombstone unless the list shrank below 90% (LIST_SHRINK_GUARD)."
           },
           "filing": {
             "x-foresignal-prompt": "091",
@@ -90737,7 +90742,8 @@
                 "sizeKb",
                 "url"
               ]
-            }
+            },
+            "note": "Built in 091 (sec-8k). externalId is the accession number; item codes (e.g. 1.05) come from the summary. The SEC requires a declared User-Agent with contact details."
           },
           "internet-outage": {
             "x-foresignal-prompt": "092",
