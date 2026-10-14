@@ -1,0 +1,94 @@
+{
+ "metadata": {
+  "datasets": [
+   "public-global-encounters-events:v3.0"
+  ],
+  "vessels": [
+   "8c7304226-6c71-edbe-0b63-c246734b3c01"
+  ],
+  "dateRange": {
+   "from": null,
+   "to": null
+  },
+  "encounterTypes": [
+   "FISHING-FISHING",
+   "FISHING-CARRIER",
+   "FISHING-SUPPORT",
+   "CARRIER-FISHING",
+   "SUPPORT-FISHING"
+  ]
+ },
+ "limit": 1,
+ "offset": 0,
+ "nextOffset": 1,
+ "total": 2,
+ "entries": [
+  {
+   "start": "2016-07-23T00:00:00.000Z",
+   "end": "2016-07-23T11:50:00.000Z",
+   "id": "da55e5723374f99f91887d4f51256d5a.2",
+   "type": "encounter",
+   "position": {
+    "lat": 72.0866,
+    "lon": 8.0857
+   },
+   "regions": {
+    "mpa": [],
+    "eez": [],
+    "rfmo": [
+     "NEAFC",
+     "IWC",
+     "NASCO",
+     "NAMMCO",
+     "ACAP",
+     "ICES"
+    ],
+    "fao": [
+     "27",
+     "27.2.a.1",
+     "27.2",
+     "27.2.a"
+    ],
+    "majorFao": [
+     "27"
+    ],
+    "eez12Nm": [],
+    "highSeas": [
+     "63203"
+    ],
+    "mpaNoTakePartial": [],
+    "mpaNoTake": []
+   },
+   "boundingBox": [
+    8.085723348900002,
+    72.0865557573,
+    8.085723348900002,
+    72.0865557573
+   ],
+   "distances": {
+    "startDistanceFromShoreKm": 426,
+    "endDistanceFromShoreKm": 426,
+    "startDistanceFromPortKm": 425.01421899999997,
+    "endDistanceFromPortKm": 425.01421899999997
+   },
+   "vessel": {
+    "id": "8c7304226-6c71-edbe-0b63-c246734b3c01",
+    "name": "FRIOFORWIN",
+    "ssvid": "210631000"
+   },
+   "encounter": {
+    "vessel": {
+     "id": "208659960-0142-40c1-339a-c816edcab44b",
+     "flag": "RUS",
+     "name": "FORPOST",
+     "type": "fishing",
+     "ssvid": "273355780"
+    },
+    "medianDistanceKilometers": 0.065,
+    "medianSpeedKnots": 0.5,
+    "type": "carrier-fishing",
+    "potentialRisk": false
+   }
+  }
+ ]
+}

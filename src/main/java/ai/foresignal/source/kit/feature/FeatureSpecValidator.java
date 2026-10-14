@@ -22,7 +22,8 @@ import java.util.regex.Pattern;
  *
  * <p>The rules:
  * <ul>
- *   <li><strong>Identity:</strong> {@code feature-} (or a reviewed family prefix: {@code faa-uas-}, prompt 087)
+ *   <li><strong>Identity:</strong> {@code feature-} (or a reviewed family prefix: {@code faa-uas-}, prompt 087;
+ *       {@code imf-portwatch-}, prompt 088)
  *       plus kebab-case (overlay specs {@code op-}), at most 64 characters, unique across every kit spec;
  *   <li><strong>URL:</strong> https only, no user info, no credential-looking query parameter ({@link KitUrls});
  *       overlay URLs also pass the outbound URL policy;
@@ -45,9 +46,10 @@ public final class FeatureSpecValidator {
 
     /**
      * A built-in feature spec id: {@code feature-…}, or one of the reviewed family prefixes whose ids the source
-     * catalog fixes ({@code faa-uas-…}, prompt 087).
+     * catalog fixes ({@code faa-uas-…}, prompt 087; {@code imf-portwatch-…}, prompt 088).
      */
-    public static final Pattern ID_PATTERN = Pattern.compile("^(?:feature|faa-uas)-[a-z0-9]+(-[a-z0-9]+)*$");
+    public static final Pattern ID_PATTERN = Pattern.compile(
+            "^(?:feature|faa-uas|imf-portwatch)-[a-z0-9]+(-[a-z0-9]+)*$");
 
     /** An operator overlay spec id. */
     public static final Pattern OVERLAY_ID_PATTERN = Pattern.compile("^op-[a-z0-9]+(-[a-z0-9]+)*$");

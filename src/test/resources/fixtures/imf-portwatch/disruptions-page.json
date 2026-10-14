@@ -1,0 +1,181 @@
+{
+ "type": "FeatureCollection",
+ "crs": {
+  "type": "name",
+  "properties": {
+   "name": "EPSG:4326"
+  }
+ },
+ "features": [
+  {
+   "type": "Feature",
+   "id": 128,
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       56.3507540000267,
+       26.2972889999988
+      ],
+      [
+       56.9122969998603,
+       27.3080649999903
+      ],
+      [
+       57.6282630003517,
+       26.0586329999692
+      ],
+      [
+       56.1822919996496,
+       25.4970909996632
+      ],
+      [
+       56.3507540000267,
+       26.2972889999988
+      ]
+     ]
+    ]
+   },
+   "properties": {
+    "eventid": 10000004,
+    "eventtype": "OT",
+    "eventname": "HORMUZ-26",
+    "htmlname": "Trade Disruptions in the Strait of Hormuz",
+    "htmldescription": "Trade Disruptions in the Strait of Hormuz from: 01 Mar 2026  to: - .",
+    "alertlevel": "RED",
+    "country": null,
+    "fromdate": 1772323200000,
+    "year": 2019,
+    "todate": null,
+    "severitytext": "",
+    "lat": 26.29685,
+    "long": 56.85985,
+    "editdate": 1772323200000,
+    "affectedports": "chokepoint6",
+    "n_affectedports": 1,
+    "affectedpopulation": "",
+    "pageid": "cc317ba850e34c4dadbead6f7b336fb1",
+    "ObjectId": 128,
+    "Shape__Area": 17207899494.691406,
+    "Shape__Length": 591676.7546214922
+   }
+  },
+  {
+   "type": "Feature",
+   "id": 98,
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       -95.3407501,
+       29.7630632
+      ],
+      [
+       -95.3561997,
+       29.7502469
+      ],
+      [
+       -95.3551697,
+       29.7708118
+      ],
+      [
+       -95.3407501,
+       29.7630632
+      ]
+     ]
+    ]
+   },
+   "properties": {
+    "eventid": 10000003,
+    "eventtype": "OT",
+    "eventname": "US PORTS STRIKE",
+    "htmlname": "US Ports Strike",
+    "htmldescription": "Labor strike affecting many ports across the US East and Gulf Coasts, as well as the Port of Montreal in Canada",
+    "alertlevel": "RED",
+    "country": null,
+    "fromdate": 1727740800000,
+    "year": 2024,
+    "todate": 1727906400000,
+    "severitytext": null,
+    "lat": 29.77081,
+    "long": -95.35517,
+    "editdate": 1727962353164,
+    "affectedports": "port812; port815; port826; port103; port901; port159; port513; port736; port754; port1170; port1259; port1398; port231; port481; port766; port2066; port951",
+    "n_affectedports": 17,
+    "affectedpopulation": null,
+    "pageid": "9e9f1ca4abad4948af5caed716c137f3",
+    "ObjectId": 98,
+    "Shape__Area": 2173469.48828125,
+    "Shape__Length": 6906.2243711354695
+   }
+  },
+  {
+   "type": "Feature",
+   "id": 91,
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       -76.5015414,
+       39.2287803
+      ],
+      [
+       -76.5561297,
+       39.1960612
+      ],
+      [
+       -76.5746692,
+       39.2069692000001
+      ],
+      [
+       -76.6179277999999,
+       39.2330353
+      ],
+      [
+       -76.6144945999999,
+       39.2779632000001
+      ],
+      [
+       -76.5894321,
+       39.2864671
+      ],
+      [
+       -76.5485765999999,
+       39.2646740000001
+      ],
+      [
+       -76.5015414,
+       39.2287803
+      ]
+     ]
+    ]
+   },
+   "properties": {
+    "eventid": 10000002,
+    "eventtype": "OT",
+    "eventname": "COLLAPSE FRANCIS SCOTT KEY BRIDGE",
+    "htmlname": "Baltimore: Collapse of Francis Scott Key Bridge",
+    "htmldescription": "Collapse of the Francis Scott Key Bridge halted vessel traffic at the port of Baltimore",
+    "alertlevel": "RED",
+    "country": "United States",
+    "fromdate": 1711411200000,
+    "year": 2024,
+    "todate": 1718164800000,
+    "severitytext": null,
+    "lat": 39.21934,
+    "long": -76.52521,
+    "editdate": 1711737778359,
+    "affectedports": "port103",
+    "n_affectedports": 1,
+    "affectedpopulation": null,
+    "pageid": "ce951f9474d843f48c48b47b21b7bab0",
+    "ObjectId": 91,
+    "Shape__Area": 95440715.42578125,
+    "Shape__Length": 38765.194399173095
+   }
+  }
+ ]
+}

@@ -1,0 +1,77 @@
+{
+ "metadata": {
+  "datasets": [
+   "public-global-loitering-events-carriers:v20201001"
+  ],
+  "vessels": [
+   "8c7304226-6c71-edbe-0b63-c246734b3c01"
+  ],
+  "dateRange": {
+   "from": null,
+   "to": null
+  }
+ },
+ "limit": 1,
+ "offset": 0,
+ "nextOffset": 1,
+ "total": 113,
+ "entries": [
+  {
+   "start": "2013-06-12T11:40:09.000Z",
+   "end": "2013-06-12T12:01:09.000Z",
+   "id": "9991a9e4b2ee7313c33f5263308d045c",
+   "type": "loitering",
+   "position": {
+    "lat": 32.2075,
+    "lon": -13.9346
+   },
+   "regions": {
+    "mpa": [],
+    "eez": [
+     "8363"
+    ],
+    "rfmo": [
+     "ACAP",
+     "NAMMCO",
+     "ICCAT",
+     "IWC"
+    ],
+    "fao": [
+     "34.1.2",
+     "34",
+     "34.1"
+    ],
+    "majorFao": [
+     "34"
+    ],
+    "eez12Nm": [],
+    "highSeas": [],
+    "mpaNoTakePartial": [],
+    "mpaNoTake": []
+   },
+   "boundingBox": [
+    -13.9335216667,
+    32.2104016667,
+    -13.9357016667,
+    32.20455
+   ],
+   "distances": {
+    "startDistanceFromShoreKm": 239,
+    "endDistanceFromShoreKm": 239,
+    "startDistanceFromPortKm": 242.068016,
+    "endDistanceFromPortKm": 241.65545300000002
+   },
+   "vessel": {
+    "id": "8c7304226-6c71-edbe-0b63-c246734b3c01",
+    "name": "FRIO FORWIN",
+    "ssvid": "210631000"
+   },
+   "loitering": {
+    "totalTimeHours": 0.35,
+    "totalDistanceKm": 0.6822365329451406,
+    "averageSpeedKnots": 1.0525093072279246,
+    "averageDistanceFromShoreKm": 239.00000000000003
+   }
+  }
+ ]
+}

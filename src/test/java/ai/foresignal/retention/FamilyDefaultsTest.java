@@ -343,7 +343,18 @@ class FamilyDefaultsTest {
             Map.entry("AwcPirepsAdapter", new Entry(
                     new ai.foresignal.source.adapters.awc.AwcPirepsAdapter("").descriptor(), "bulk-event")),
             Map.entry("AwcTafsAdapter", new Entry(new ai.foresignal.source.adapters.awc.AwcTafsAdapter(
-                    (AreaOfInterest) null, "").descriptor(), "weather")));
+                    (AreaOfInterest) null, "").descriptor(), "weather")),
+            // Prompt 088: navigational warnings and vessel events are the event class (1825 d); daily chokepoint
+            // transits are a measurement series (3650 d); imf-portwatch-ports is checked as reference, the class of
+            // its port catalog (90 d), and its port-activity kind keeps the series window (3650 d), which is longer.
+            Map.entry("NgaMsiAdapter", new Entry(
+                    new ai.foresignal.source.adapters.maritime.NgaMsiAdapter("").descriptor(), "event")),
+            Map.entry("PortWatchChokepointsAdapter", new Entry(
+                    new ai.foresignal.source.adapters.maritime.PortWatchChokepointsAdapter("").descriptor(), "series")),
+            Map.entry("PortWatchPortsAdapter", new Entry(
+                    new ai.foresignal.source.adapters.maritime.PortWatchPortsAdapter("").descriptor(), "reference")),
+            Map.entry("GfwEventsAdapter", new Entry(
+                    new ai.foresignal.source.adapters.maritime.GfwEventsAdapter("").descriptor(), "event")));
 
     /**
      * The {@code privacy} class (prompt 086): private sources whose prompt sets a short raw window on purpose, because

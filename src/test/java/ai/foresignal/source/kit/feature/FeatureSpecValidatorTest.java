@@ -221,7 +221,7 @@ class FeatureSpecValidatorTest {
     void shipped() {
         KitSpecs specs = new KitSpecs(KitOverlay.disabled(), "");
         assertThat(specs.features()).extracting(FeatureSourceSpec::id).contains("feature-wfigs-incidents",
-                "faa-uas-nsufr");
+                "faa-uas-nsufr", "imf-portwatch-disruptions");
         assertThat(specs.feeds()).extracting(s -> s.id()).containsExactlyInAnyOrder("feed-cisa-advisories",
                 "feed-ncsc-uk", "feed-nhc-atlantic", "feed-nhc-eastpacific", "feed-ecdc-threats", "feed-who-news");
         List<SourceAdapter> adapters = new ArrayList<>(new FeatureKitFamily(specs.features(), "", null).adapters());

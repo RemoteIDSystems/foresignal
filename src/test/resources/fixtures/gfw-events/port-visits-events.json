@@ -1,0 +1,112 @@
+{
+ "metadata": {
+  "datasets": [
+   "public-global-port-visits-events:v3.0"
+  ],
+  "vessels": [
+   "914f83946-6af4-04c6-4974-44a203a87952"
+  ],
+  "dateRange": {
+   "from": null,
+   "to": null
+  }
+ },
+ "limit": 1,
+ "offset": 0,
+ "nextOffset": 1,
+ "total": 74,
+ "entries": [
+  {
+   "start": "2014-04-15T20:09:21.000Z",
+   "end": "2014-04-28T12:15:34.000Z",
+   "id": "a7b8b2f40b75ea6bec8bc8dbcb56741e",
+   "type": "port_visit",
+   "position": {
+    "lat": 42.2182,
+    "lon": -8.7915
+   },
+   "regions": {
+    "mpa": [],
+    "eez": [
+     "5693"
+    ],
+    "rfmo": [
+     "NEAFC",
+     "ICES",
+     "NASCO",
+     "ICCAT",
+     "NAMMCO",
+     "IWC",
+     "ACAP"
+    ],
+    "fao": [
+     "27.9",
+     "27.9.a",
+     "27"
+    ],
+    "majorFao": [
+     "27"
+    ],
+    "eez12Nm": [],
+    "highSeas": [],
+    "mpaNoTakePartial": [],
+    "mpaNoTake": []
+   },
+   "boundingBox": [
+    -8.7508320328,
+    42.2291383982,
+    -8.8819075644,
+    42.2035438605
+   ],
+   "distances": {
+    "startDistanceFromShoreKm": 0,
+    "endDistanceFromShoreKm": 2,
+    "startDistanceFromPortKm": 0,
+    "endDistanceFromPortKm": 0
+   },
+   "vessel": {
+    "id": "914f83946-6af4-04c6-4974-44a203a87952",
+    "name": "IRENE",
+    "ssvid": "355794000"
+   },
+   "port_visit": {
+    "visitId": "f5fafee33631a3948c8e2042b5810cdc",
+    "confidence": 3,
+    "durationHrs": 304.1036111111111,
+    "startAnchorage": {
+     "anchorageId": "0d2f61f7",
+     "atDock": true,
+     "distanceFromShoreKm": 0,
+     "flag": "ESP",
+     "id": "esp-vigo",
+     "lat": 42.229138398208576,
+     "lon": -8.750832032773074,
+     "name": "VIGO",
+     "topDestination": "VIGO"
+    },
+    "intermediateAnchorage": {
+     "anchorageId": "0d2f61f7",
+     "atDock": true,
+     "distanceFromShoreKm": 0,
+     "flag": "ESP",
+     "id": "esp-vigo",
+     "lat": 42.229138398208576,
+     "lon": -8.750832032773074,
+     "name": "VIGO",
+     "topDestination": "VIGO"
+    },
+    "endAnchorage": {
+     "anchorageId": "0d25f581",
+     "atDock": false,
+     "distanceFromShoreKm": 2,
+     "flag": "ESP",
+     "id": "esp-vigo",
+     "lat": 42.20354386049306,
+     "lon": -8.881907564441319,
+     "name": "VIGO",
+     "topDestination": "VIGO"
+    }
+   }
+  }
+ ]
+}

@@ -1,0 +1,96 @@
+[
+  {
+    "id": "imf-portwatch-disruptions",
+    "name": "IMF PortWatch disruptions",
+    "description": "Port and shipping disruptions tracked by IMF PortWatch (tropical cyclones, earthquakes, floods, droughts, wildfires, volcanoes and other events such as strikes or closures) with the affected area as a polygon and the affected PortWatch ports. validFrom is the event's fromdate and validUntil its todate when set (an open disruption has none). The HTML description is not stored. A disruption missing from two consecutive complete fetches is tombstoned. The layer updates weekly; nothing is queried while its edit date is unchanged.",
+    "kind": "port-disruption",
+    "protocol": "arcgis",
+    "url": "https://services9.arcgis.com/weJ1QsnbMYJlCHdG/ArcGIS/rest/services/portwatch_disruptions_database/FeatureServer/0",
+    "idField": "eventId",
+    "titleField": "name",
+    "fields": {
+      "eventid": {
+        "target": "eventId",
+        "type": "integer"
+      },
+      "eventtype": {
+        "target": "eventType",
+        "type": "string"
+      },
+      "eventname": {
+        "target": "name",
+        "type": "string"
+      },
+      "alertlevel": {
+        "target": "alertLevel",
+        "type": "string"
+      },
+      "country": {
+        "target": "country",
+        "type": "string"
+      },
+      "severitytext": {
+        "target": "severity",
+        "type": "string"
+      },
+      "affectedports": {
+        "target": "affectedPorts",
+        "type": "string"
+      },
+      "n_affectedports": {
+        "target": "nAffectedPorts",
+        "type": "integer"
+      },
+      "affectedpopulation": {
+        "target": "affectedPopulation",
+        "type": "string"
+      },
+      "fromdate": {
+        "target": "fromDate",
+        "type": "timestamp"
+      },
+      "todate": {
+        "target": "toDate",
+        "type": "timestamp"
+      }
+    },
+    "time": {
+      "observedAt": "RECEIVED",
+      "validFrom": "fromDate",
+      "validUntil": "toDate",
+      "format": "epoch-ms"
+    },
+    "interval": "12h",
+    "minInterval": "1h",
+    "budget": {
+      "perMinute": 20,
+      "perDay": 200
+    },
+    "paging": {
+      "pageSize": 2000,
+      "maxPages": 5
+    },
+    "geometry": {
+      "maxAllowableOffset": 0.005,
+      "geometryPrecision": 5
+    },
+    "absenceTombstones": true,
+    "zeroResultsNormal": false,
+    "searchFields": [
+      "name",
+      "eventType",
+      "country",
+      "affectedPorts"
+    ],
+    "tileProperties": [
+      "eventType",
+      "alertLevel",
+      "name"
+    ],
+    "retention": "1825d",
+    "license": "IMF PortWatch terms (attribution: IMF PortWatch)",
+    "attribution": "IMF PortWatch",
+    "homepage": "https://portwatch.imf.org",
+    "termsUrl": "https://www.imf.org/en/About/copyright-and-terms"
+  }
+]

@@ -1,0 +1,114 @@
+{
+ "metadata": {
+  "datasets": [
+   "public-global-fishing-events:v3.0"
+  ],
+  "dateRange": {
+   "from": "2017-01-01",
+   "to": "2017-01-31"
+  },
+  "encounterTypes": [],
+  "flags": [
+   "CHN"
+  ],
+  "geometry": {
+   "type": "FeatureCollection",
+   "features": [
+    {
+     "type": "Feature",
+     "properties": {},
+     "geometry": {
+      "type": "Polygon",
+      "coordinates": [
+       [
+        [
+         120.36621093749999,
+         26.725986812271756
+        ],
+        [
+         122.36572265625,
+         26.725986812271756
+        ],
+        [
+         122.36572265625,
+         28.323724553546015
+        ],
+        [
+         120.36621093749999,
+         28.323724553546015
+        ],
+        [
+         120.36621093749999,
+         26.725986812271756
+        ]
+       ]
+      ]
+     }
+    }
+   ]
+  }
+ },
+ "limit": 1,
+ "offset": 0,
+ "nextOffset": 1,
+ "total": 2480,
+ "entries": [
+  {
+   "start": "2016-12-30T07:28:06.000Z",
+   "end": "2017-01-02T03:49:40.000Z",
+   "id": "8326eb5fb66215de739f0c889a9b6a8e",
+   "type": "fishing",
+   "position": {
+    "lat": 27.0865,
+    "lon": 121.2232
+   },
+   "regions": {
+    "mpa": [],
+    "eez": [
+     "8486"
+    ],
+    "rfmo": [
+     "ACAP",
+     "WCPFC",
+     "APFIC",
+     "IWC"
+    ],
+    "fao": [
+     "61"
+    ],
+    "majorFao": [
+     "61"
+    ],
+    "eez12Nm": [
+     "8486"
+    ],
+    "highSeas": [],
+    "mpaNoTakePartial": [],
+    "mpaNoTake": []
+   },
+   "boundingBox": [
+    121.1017333333,
+    26.9795383333,
+    121.3309066667,
+    27.1756633333
+   ],
+   "distances": {
+    "startDistanceFromShoreKm": 38,
+    "endDistanceFromShoreKm": 37,
+    "startDistanceFromPortKm": 26.906598000000002,
+    "endDistanceFromPortKm": 36.957859
+   },
+   "vessel": {
+    "id": "3cedf7bd9-9800-1fc2-11d7-7985205d926e",
+    "name": "ZHELINGYU52036",
+    "ssvid": "412416212"
+   },
+   "fishing": {
+    "totalDistanceKm": 235.36357126254234,
+    "averageSpeedKnots": 2.0328767029525117,
+    "averageDurationHours": 0.3135754332313966,
+    "potentialRisk": false
+   }
+  }
+ ]
+}

@@ -1,0 +1,734 @@
+{
+ "type": "FeatureCollection",
+ "crs": {
+  "type": "name",
+  "properties": {
+   "name": "EPSG:4326"
+  }
+ },
+ "properties": {
+  "exceededTransferLimit": true
+ },
+ "features": [
+  {
+   "type": "Feature",
+   "id": 1,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     136.0706107,
+     35.66719379
+    ]
+   },
+   "properties": {
+    "portid": "port1325",
+    "portname": "Tsuruga",
+    "country": "Japan",
+    "ISO3": "JPN",
+    "continent": "Asia & Pacific",
+    "fullname": "Tsuruga, Japan",
+    "lat": 35.66719379,
+    "lon": 136.0706107,
+    "vessel_count_total": 529,
+    "vessel_count_container": 77,
+    "vessel_count_dry_bulk": 96,
+    "vessel_count_general_cargo": 115,
+    "vessel_count_RoRo": 187,
+    "vessel_count_tanker": 54,
+    "industry_top1": "Mineral Products",
+    "industry_top2": "Wood & Wood Products",
+    "industry_top3": "Vegetable Products",
+    "share_country_maritime_import": 0.42,
+    "share_country_maritime_export": 0.09,
+    "LOCODE": "JP TRG",
+    "pageid": "3b1f40eb8acd452ab6229331302891fe",
+    "countrynoaccents": "Japan",
+    "ObjectId": 1
+   }
+  },
+  {
+   "type": "Feature",
+   "id": 2,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     98.78171534,
+     1.734969159
+    ]
+   },
+   "properties": {
+    "portid": "port1198",
+    "portname": "Sibolga",
+    "country": "Indonesia",
+    "ISO3": "IDN",
+    "continent": "Asia & Pacific",
+    "fullname": "Sibolga, Indonesia",
+    "lat": 1.734969159,
+    "lon": 98.78171534,
+    "vessel_count_total": 81,
+    "vessel_count_container": 28,
+    "vessel_count_dry_bulk": 2,
+    "vessel_count_general_cargo": 4,
+    "vessel_count_RoRo": 8,
+    "vessel_count_tanker": 39,
+    "industry_top1": "Mineral Products",
+    "industry_top2": "Prepared Foodstuffs & Beverages",
+    "industry_top3": "Vegetable Products",
+    "share_country_maritime_import": 0.08,
+    "share_country_maritime_export": 0.01,
+    "LOCODE": "ID SLG",
+    "pageid": "4d00b008b4be4068bf8a19d7da6e8cf6",
+    "countrynoaccents": "Indonesia",
+    "ObjectId": 2
+   }
+  },
+  {
+   "type": "Feature",
+   "id": 3,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     108.3643393,
+     21.61420534
+    ]
+   },
+   "properties": {
+    "portid": "port339",
+    "portname": "Fangcheng",
+    "country": "China",
+    "ISO3": "CHN",
+    "continent": "Asia & Pacific",
+    "fullname": "Fangcheng, China",
+    "lat": 21.61420534,
+    "lon": 108.3643393,
+    "vessel_count_total": 1968,
+    "vessel_count_container": 34,
+    "vessel_count_dry_bulk": 1362,
+    "vessel_count_general_cargo": 361,
+    "vessel_count_RoRo": 0,
+    "vessel_count_tanker": 211,
+    "industry_top1": "Mineral Products",
+    "industry_top2": "Chemical & Allied Industries",
+    "industry_top3": "Vegetable Products",
+    "share_country_maritime_import": 1.9,
+    "share_country_maritime_export": 0.42,
+    "LOCODE": "CN FAN",
+    "pageid": "266042b244cf452a89f4a2de14f3da2f",
+    "countrynoaccents": "China",
+    "ObjectId": 3
+   }
+  },
+  {
+   "type": "Feature",
+   "id": 4,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     131.2131838,
+     33.94487467
+    ]
+   },
+   "properties": {
+    "portid": "port1335",
+    "portname": "Ube",
+    "country": "Japan",
+    "ISO3": "JPN",
+    "continent": "Asia & Pacific",
+    "fullname": "Ube, Japan",
+    "lat": 33.94487467,
+    "lon": 131.2131838,
+    "vessel_count_total": 4799,
+    "vessel_count_container": 13,
+    "vessel_count_dry_bulk": 1195,
+    "vessel_count_general_cargo": 1502,
+    "vessel_count_RoRo": 0,
+    "vessel_count_tanker": 2089,
+    "industry_top1": "Mineral Products",
+    "industry_top2": "Chemical & Allied Industries",
+    "industry_top3": "Plastics, Rubber, Leather",
+    "share_country_maritime_import": 0.76,
+    "share_country_maritime_export": 2.35,
+    "LOCODE": "JP UBJ",
+    "pageid": "f3f6725ef00e4d3f8f9c93c45258667e",
+    "countrynoaccents": "Japan",
+    "ObjectId": 4
+   }
+  },
+  {
+   "type": "Feature",
+   "id": 5,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     168.360216,
+     -46.59012995
+    ]
+   },
+   "properties": {
+    "portid": "port153",
+    "portname": "Bluff Harbor",
+    "country": "New Zealand",
+    "ISO3": "NZL",
+    "continent": "Asia & Pacific",
+    "fullname": "Bluff Harbor, New Zealand",
+    "lat": -46.59012995,
+    "lon": 168.360216,
+    "vessel_count_total": 240,
+    "vessel_count_container": 43,
+    "vessel_count_dry_bulk": 112,
+    "vessel_count_general_cargo": 27,
+    "vessel_count_RoRo": 0,
+    "vessel_count_tanker": 58,
+    "industry_top1": "Wood & Wood Products",
+    "industry_top2": "Metals",
+    "industry_top3": "Prepared Foodstuffs & Beverages",
+    "share_country_maritime_import": 7.79,
+    "share_country_maritime_export": 2.84,
+    "LOCODE": null,
+    "pageid": "894ab5e5a18e48b6922c023196f74c8f",
+    "countrynoaccents": "New Zealand",
+    "ObjectId": 5
+   }
+  },
+  {
+   "type": "Feature",
+   "id": 6,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -1.475073161,
+     54.98616295
+    ]
+   },
+   "properties": {
+    "portid": "port1334",
+    "portname": "Tynemouth",
+    "country": "United Kingdom",
+    "ISO3": "GBR",
+    "continent": "Europe",
+    "fullname": "Tynemouth, United Kingdom",
+    "lat": 54.98616295,
+    "lon": -1.475073161,
+    "vessel_count_total": 440,
+    "vessel_count_container": 75,
+    "vessel_count_dry_bulk": 67,
+    "vessel_count_general_cargo": 67,
+    "vessel_count_RoRo": 207,
+    "vessel_count_tanker": 24,
+    "industry_top1": "Wood & Wood Products",
+    "industry_top2": "Mineral Products",
+    "industry_top3": "Prepared Foodstuffs & Beverages",
+    "share_country_maritime_import": 1.35,
+    "share_country_maritime_export": 0.36,
+    "LOCODE": "GB TYM",
+    "pageid": "c5c5cc67df43466e999530930e8425d1",
+    "countrynoaccents": "United Kingdom",
+    "ObjectId": 6
+   }
+  },
+  {
+   "type": "Feature",
+   "id": 7,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     120.7289755,
+     37.79885005
+    ]
+   },
+   "properties": {
+    "portid": "port897",
+    "portname": "Penglai",
+    "country": "China",
+    "ISO3": "CHN",
+    "continent": "Asia & Pacific",
+    "fullname": "Penglai, China",
+    "lat": 37.79885005,
+    "lon": 120.7289755,
+    "vessel_count_total": 180,
+    "vessel_count_container": 3,
+    "vessel_count_dry_bulk": 66,
+    "vessel_count_general_cargo": 103,
+    "vessel_count_RoRo": 2,
+    "vessel_count_tanker": 6,
+    "industry_top1": "Mineral Products",
+    "industry_top2": "Vegetable Products",
+    "industry_top3": "Wood & Wood Products",
+    "share_country_maritime_import": 0.04,
+    "share_country_maritime_export": 0.03,
+    "LOCODE": null,
+    "pageid": "0f79b45e2a6b466682a3e2c4d5d8d3df",
+    "countrynoaccents": "China",
+    "ObjectId": 7
+   }
+  },
+  {
+   "type": "Feature",
+   "id": 8,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     15.21512828,
+     32.34398379
+    ]
+   },
+   "properties": {
+    "portid": "port750",
+    "portname": "Misrata",
+    "country": "Libya",
+    "ISO3": "LBY",
+    "continent": "Africa",
+    "fullname": "Misrata, Libya",
+    "lat": 32.34398379,
+    "lon": 15.21512828,
+    "vessel_count_total": 930,
+    "vessel_count_container": 400,
+    "vessel_count_dry_bulk": 115,
+    "vessel_count_general_cargo": 257,
+    "vessel_count_RoRo": 75,
+    "vessel_count_tanker": 83,
+    "industry_top1": "Mineral Products",
+    "industry_top2": "Metals",
+    "industry_top3": "Vegetable Products",
+    "share_country_maritime_import": 45.57,
+    "share_country_maritime_export": 8.07,
+    "LOCODE": null,
+    "pageid": "70d1343f8a804a53bd7d766c3dbed671",
+    "countrynoaccents": "Libya",
+    "ObjectId": 8
+   }
+  },
+  {
+   "type": "Feature",
+   "id": 9,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     48.15439964,
+     30.44360334
+    ]
+   },
+   "properties": {
+    "portid": "port563",
+    "portname": "Khorramshahr",
+    "country": "Iran",
+    "ISO3": "IRN",
+    "continent": "Asia & Pacific",
+    "fullname": "Khorramshahr, Iran",
+    "lat": 30.44360334,
+    "lon": 48.15439964,
+    "vessel_count_total": 154,
+    "vessel_count_container": 21,
+    "vessel_count_dry_bulk": 5,
+    "vessel_count_general_cargo": 128,
+    "vessel_count_RoRo": 0,
+    "vessel_count_tanker": 0,
+    "industry_top1": "Mineral Products",
+    "industry_top2": "Vegetable Products",
+    "industry_top3": "Prepared Foodstuffs & Beverages",
+    "share_country_maritime_import": 0.16,
+    "share_country_maritime_export": 0.03,
+    "LOCODE": "IR KHO",
+    "pageid": "0c2107f4770842e4b68a3986bb94b6c4",
+    "countrynoaccents": "Iran",
+    "ObjectId": 9
+   }
+  },
+  {
+   "type": "Feature",
+   "id": 10,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     133.9734693,
+     34.56607811
+    ]
+   },
+   "properties": {
+    "portid": "port1343",
+    "portname": "Uno",
+    "country": "Japan",
+    "ISO3": "JPN",
+    "continent": "Asia & Pacific",
+    "fullname": "Uno, Japan",
+    "lat": 34.56607811,
+    "lon": 133.9734693,
+    "vessel_count_total": 270,
+    "vessel_count_container": 0,
+    "vessel_count_dry_bulk": 15,
+    "vessel_count_general_cargo": 106,
+    "vessel_count_RoRo": 0,
+    "vessel_count_tanker": 149,
+    "industry_top1": "Mineral Products",
+    "industry_top2": "Chemical & Allied Industries",
+    "industry_top3": "Plastics, Rubber, Leather",
+    "share_country_maritime_import": 0.02,
+    "share_country_maritime_export": 0.06,
+    "LOCODE": "JP UNO",
+    "pageid": "2ab531a159ee4add8bb76a491e2cf25b",
+    "countrynoaccents": "Japan",
+    "ObjectId": 10
+   }
+  },
+  {
+   "type": "Feature",
+   "id": 11,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     116.1224426,
+     -3.279758294
+    ]
+   },
+   "properties": {
+    "portid": "port1224",
+    "portname": "Stagen",
+    "country": "Indonesia",
+    "ISO3": "IDN",
+    "continent": "Asia & Pacific",
+    "fullname": "Stagen, Indonesia",
+    "lat": -3.279758294,
+    "lon": 116.1224426,
+    "vessel_count_total": 399,
+    "vessel_count_container": 32,
+    "vessel_count_dry_bulk": 56,
+    "vessel_count_general_cargo": 95,
+    "vessel_count_RoRo": 0,
+    "vessel_count_tanker": 216,
+    "industry_top1": "Mineral Products",
+    "industry_top2": "Prepared Foodstuffs & Beverages",
+    "industry_top3": "Chemical & Allied Industries",
+    "share_country_maritime_import": 0.23,
+    "share_country_maritime_export": 0.21,
+    "LOCODE": null,
+    "pageid": "1747e111d06f494194eb7b517b3854c4",
+    "countrynoaccents": "Indonesia",
+    "ObjectId": 11
+   }
+  },
+  {
+   "type": "Feature",
+   "id": 12,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     51.50857211,
+     36.65505162
+    ]
+   },
+   "properties": {
+    "portid": "port834",
+    "portname": "Nowshahr Port",
+    "country": "Iran",
+    "ISO3": "IRN",
+    "continent": "Asia & Pacific",
+    "fullname": "Nowshahr Port, Iran",
+    "lat": 36.65505162,
+    "lon": 51.50857211,
+    "vessel_count_total": 174,
+    "vessel_count_container": 1,
+    "vessel_count_dry_bulk": 0,
+    "vessel_count_general_cargo": 163,
+    "vessel_count_RoRo": 0,
+    "vessel_count_tanker": 10,
+    "industry_top1": "Vegetable Products",
+    "industry_top2": "Mineral Products",
+    "industry_top3": "Prepared Foodstuffs & Beverages",
+    "share_country_maritime_import": 0.47,
+    "share_country_maritime_export": 0.06,
+    "LOCODE": null,
+    "pageid": "0442995aff114fcbb7180bcb003ebe41",
+    "countrynoaccents": "Iran",
+    "ObjectId": 12
+   }
+  },
+  {
+   "type": "Feature",
+   "id": 13,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     120.2226181,
+     36.02677905
+    ]
+   },
+   "properties": {
+    "portid": "port1069",
+    "portname": "Qingdao Port",
+    "country": "China",
+    "ISO3": "CHN",
+    "continent": "Asia & Pacific",
+    "fullname": "Qingdao Port, China",
+    "lat": 36.02677905,
+    "lon": 120.2226181,
+    "vessel_count_total": 11381,
+    "vessel_count_container": 7270,
+    "vessel_count_dry_bulk": 1251,
+    "vessel_count_general_cargo": 1337,
+    "vessel_count_RoRo": 95,
+    "vessel_count_tanker": 1428,
+    "industry_top1": "Mineral Products",
+    "industry_top2": "Chemical & Allied Industries",
+    "industry_top3": "Vegetable Products",
+    "share_country_maritime_import": 6.54,
+    "share_country_maritime_export": 7.98,
+    "LOCODE": "CN QDG",
+    "pageid": "c27f8d2d036f465d996bcf1429c44926",
+    "countrynoaccents": "China",
+    "ObjectId": 13
+   }
+  },
+  {
+   "type": "Feature",
+   "id": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     132.5502829,
+     33.2210061
+    ]
+   },
+   "properties": {
+    "portid": "port1345",
+    "portname": "Uwajima",
+    "country": "Japan",
+    "ISO3": "JPN",
+    "continent": "Asia & Pacific",
+    "fullname": "Uwajima, Japan",
+    "lat": 33.2210061,
+    "lon": 132.5502829,
+    "vessel_count_total": 107,
+    "vessel_count_container": 0,
+    "vessel_count_dry_bulk": 45,
+    "vessel_count_general_cargo": 51,
+    "vessel_count_RoRo": 0,
+    "vessel_count_tanker": 11,
+    "industry_top1": "Prepared Foodstuffs & Beverages",
+    "industry_top2": "Mineral Products",
+    "industry_top3": "Vegetable Products",
+    "share_country_maritime_import": 0.01,
+    "share_country_maritime_export": 0.01,
+    "LOCODE": "JP UWA",
+    "pageid": "d1bba355809847d38cc2a7a30ab7a188",
+    "countrynoaccents": "Japan",
+    "ObjectId": 14
+   }
+  },
+  {
+   "type": "Feature",
+   "id": 15,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     29.83759053,
+     31.15536502
+    ]
+   },
+   "properties": {
+    "portid": "port23",
+    "portname": "Alexandria",
+    "country": "Egypt",
+    "ISO3": "EGY",
+    "continent": "Africa",
+    "fullname": "Alexandria, Egypt",
+    "lat": 31.15536502,
+    "lon": 29.83759053,
+    "vessel_count_total": 3206,
+    "vessel_count_container": 976,
+    "vessel_count_dry_bulk": 524,
+    "vessel_count_general_cargo": 1148,
+    "vessel_count_RoRo": 182,
+    "vessel_count_tanker": 376,
+    "industry_top1": "Mineral Products",
+    "industry_top2": "Vegetable Products",
+    "industry_top3": "Metals",
+    "share_country_maritime_import": 30.26,
+    "share_country_maritime_export": 21.68,
+    "LOCODE": "EG ALY",
+    "pageid": "a068e6e45ebc45ecb3aeda0a5ea19a38",
+    "countrynoaccents": "Egypt",
+    "ObjectId": 15
+   }
+  },
+  {
+   "type": "Feature",
+   "id": 16,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     48.14514574,
+     29.0455478
+    ]
+   },
+   "properties": {
+    "portid": "port743",
+    "portname": "Mina Al Ahmadi",
+    "country": "Kuwait",
+    "ISO3": "KWT",
+    "continent": "Asia & Pacific",
+    "fullname": "Mina Al Ahmadi, Kuwait",
+    "lat": 29.0455478,
+    "lon": 48.14514574,
+    "vessel_count_total": 509,
+    "vessel_count_container": 0,
+    "vessel_count_dry_bulk": 26,
+    "vessel_count_general_cargo": 2,
+    "vessel_count_RoRo": 0,
+    "vessel_count_tanker": 481,
+    "industry_top1": "Mineral Products",
+    "industry_top2": "Chemical & Allied Industries",
+    "industry_top3": "Vegetable Products",
+    "share_country_maritime_import": 0.03,
+    "share_country_maritime_export": 75.5,
+    "LOCODE": null,
+    "pageid": "a019490627984d30b93e97fa158d2d0a",
+    "countrynoaccents": "Kuwait",
+    "ObjectId": 16
+   }
+  },
+  {
+   "type": "Feature",
+   "id": 17,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     0.154648333,
+     52.66901607
+    ]
+   },
+   "properties": {
+    "portid": "port1400",
+    "portname": "Wisbech",
+    "country": "United Kingdom",
+    "ISO3": "GBR",
+    "continent": "Europe",
+    "fullname": "Wisbech, United Kingdom",
+    "lat": 52.66901607,
+    "lon": 0.154648333,
+    "vessel_count_total": 71,
+    "vessel_count_container": 7,
+    "vessel_count_dry_bulk": 0,
+    "vessel_count_general_cargo": 64,
+    "vessel_count_RoRo": 0,
+    "vessel_count_tanker": 0,
+    "industry_top1": "Wood & Wood Products",
+    "industry_top2": "Vegetable Products",
+    "industry_top3": "Mineral Products",
+    "share_country_maritime_import": 0.03,
+    "share_country_maritime_export": 0,
+    "LOCODE": "GB WIS",
+    "pageid": "debaeedb9dd44523ba7b9b7994db71b9",
+    "countrynoaccents": "United Kingdom",
+    "ObjectId": 17
+   }
+  },
+  {
+   "type": "Feature",
+   "id": 18,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     130.8126336,
+     33.91060335
+    ]
+   },
+   "properties": {
+    "portid": "port1378",
+    "portname": "Kitakyushu (Wakamatsu)",
+    "country": "Japan",
+    "ISO3": "JPN",
+    "continent": "Asia & Pacific",
+    "fullname": "Kitakyushu (Wakamatsu), Japan",
+    "lat": 33.91060335,
+    "lon": 130.8126336,
+    "vessel_count_total": 6205,
+    "vessel_count_container": 3,
+    "vessel_count_dry_bulk": 1313,
+    "vessel_count_general_cargo": 3829,
+    "vessel_count_RoRo": 90,
+    "vessel_count_tanker": 970,
+    "industry_top1": "Mineral Products",
+    "industry_top2": "Metals",
+    "industry_top3": "Chemical & Allied Industries",
+    "share_country_maritime_import": 1.42,
+    "share_country_maritime_export": 1.53,
+    "LOCODE": null,
+    "pageid": "b03377320188458bb9fdb39ed2bbb51a",
+    "countrynoaccents": "Japan",
+    "ObjectId": 18
+   }
+  },
+  {
+   "type": "Feature",
+   "id": 19,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     119.763278,
+     35.60931763
+    ]
+   },
+   "properties": {
+    "portid": "port1070",
+    "portname": "Dongjiakou",
+    "country": "China",
+    "ISO3": "CHN",
+    "continent": "Asia & Pacific",
+    "fullname": "Dongjiakou, China",
+    "lat": 35.60931763,
+    "lon": 119.763278,
+    "vessel_count_total": 2103,
+    "vessel_count_container": 46,
+    "vessel_count_dry_bulk": 1052,
+    "vessel_count_general_cargo": 292,
+    "vessel_count_RoRo": 0,
+    "vessel_count_tanker": 713,
+    "industry_top1": "Mineral Products",
+    "industry_top2": "Chemical & Allied Industries",
+    "industry_top3": "Vegetable Products",
+    "share_country_maritime_import": 2.13,
+    "share_country_maritime_export": 0.85,
+    "LOCODE": null,
+    "pageid": "c5e6bf92ae064185b0723656aa59b07c",
+    "countrynoaccents": "China",
+    "ObjectId": 19
+   }
+  },
+  {
+   "type": "Feature",
+   "id": 20,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     32.53063921,
+     29.95100833
+    ]
+   },
+   "properties": {
+    "portid": "port71",
+    "portname": "As Suways",
+    "country": "Egypt",
+    "ISO3": "EGY",
+    "continent": "Africa",
+    "fullname": "As Suways, Egypt",
+    "lat": 29.95100833,
+    "lon": 32.53063921,
+    "vessel_count_total": 194,
+    "vessel_count_container": 2,
+    "vessel_count_dry_bulk": 4,
+    "vessel_count_general_cargo": 49,
+    "vessel_count_RoRo": 45,
+    "vessel_count_tanker": 94,
+    "industry_top1": "Mineral Products",
+    "industry_top2": "Chemical & Allied Industries",
+    "industry_top3": "Stone & Glass",
+    "share_country_maritime_import": 0.09,
+    "share_country_maritime_export": 0.41,
+    "LOCODE": null,
+    "pageid": "985a636a613c43919bfb65a922bd6e6b",
+    "countrynoaccents": "Egypt",
+    "ObjectId": 20
+   }
+  }
+ ]
+}

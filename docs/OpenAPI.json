@@ -367,6 +367,11 @@
         "version": "1.3.0",
         "date": "2026-10-14",
         "note": "087: no new operations. Built notes on the airspace-restriction, airport-delay, aviation-hazard, pirep, taf, uas-facility-cell, uas-restriction and uas-site kinds; pirep gains reportType; taf lists stationId, raw, elevationM, name; uas-restriction and uas-site list the fields the faa-uas kit specs map (city, objectId, globalId added; uas-site has no floorFt or reason). New sources faa-tfr, faa-nas-status, faa-uasfm, awc-sigmets, awc-gairmets, awc-cwas, awc-pireps, awc-tafs and the faa-uas-* feature-kit sources."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-14",
+        "note": "088: no new operations. Built notes on the maritime-warning, chokepoint-transit, port, port-activity, port-disruption, fishing-event, vessel-encounter, loitering-event and port-visit kinds; maritime-warning gains title; port-activity gains name; port-disruption lists eventId, fromDate and toDate (the kit's validity fields); the gfw-events kinds list start and end (the interval fields). notice-to-mariners (uscg-lnm-*) and sar-vessel-detection (gfw-sar-detections) are documented as not built. New sources nga-msi-warnings, imf-portwatch-chokepoints, imf-portwatch-ports, gfw-events and the imf-portwatch-disruptions feature-kit source."
       }
     ]
   },
@@ -90310,11 +90315,13 @@
                 "msgYear",
                 "msgNumber",
                 "authority",
+                "title",
                 "text",
                 "cancels",
                 "geometryFromText"
               ]
-            }
+            },
+            "note": "Built in 088 (nga-msi-warnings, NGA broadcast-warn?status=active). externalId navArea/msgYear/msgNumber (4/2024/517; navArea P HYDROPAC, A HYDROLANT, C HYDROARC, 4 NAVAREA IV, 12 NAVAREA XII); observedAt = issueDate (DDHHMMZ MON YYYY, UTC). Geometry is recovered from the text: an area BOUNDED BY / BOUND BY at least 3 positions is a Polygon (lettered areas a MultiPolygon), WITHIN n MILES/NM/METERS OF a position a 64-vertex geodesic circle, a TRACKLINE or BETWEEN ... AND ... a LineString (lettered tracklines a MultiLineString), otherwise the positions as a Point or MultiPoint; geometryFromText is false when the text holds no usable position (no geometry). title is the first line of the text (at most 120 characters); text is NGA's text, untrusted, at most 8,000 characters; cancels lists the warnings the text cancels as externalIds. A warning that leaves the active list is tombstoned."
           },
           "chokepoint-transit": {
             "x-foresignal-prompt": "088",
@@ -90331,7 +90338,8 @@
                 "capacityTotal",
                 "capacityTanker"
               ]
-            }
+            },
+            "note": "Built in 088 (imf-portwatch-chokepoints: IMF PortWatch Daily_Chokepoints_Data joined to PortWatch_chokepoints_database). One record per chokepoint and day: externalId portid:YYYY-MM-DD (chokepoint1:2026-10-03), eventTime = observedAt = the day (UTC midnight), geometry the chokepoint point; n* are vessel transit counts, capacityTotal and capacityTanker deadweight tonnes; rankField nTotal. The data updates weekly with a lag of about ten days."
           },
           "port": {
             "x-foresignal-prompt": "088",
@@ -90360,24 +90368,28 @@
                 "maxVesselDraftM",
                 "alternateName"
               ]
-            }
+            },
+            "note": "imf-portwatch-ports built in 088 (PortWatch_ports_database): externalId portid; observedAt = the layer's edit date (its publication time, since the source's time base is upstream); industries lists industry_top1..3; a port missing from a complete catalog read is tombstoned. world-port-index is a later prompt."
           },
           "port-activity": {
             "x-foresignal-prompt": "088",
             "payloadFields": {
               "imf-portwatch-ports": [
+                "name",
                 "portcalls",
                 "portcallsTanker",
                 "portcallsContainer",
                 "importTonnes",
                 "exportTonnes"
               ]
-            }
+            },
+            "note": "Built in 088 (imf-portwatch-ports, Daily_Ports_Data). One record per port and day: externalId portid:YYYY-MM-DD, eventTime = observedAt = the day, geometry the port point; importTonnes and exportTonnes are PortWatch's estimated volumes in metric tonnes."
           },
           "port-disruption": {
             "x-foresignal-prompt": "088",
             "payloadFields": {
               "imf-portwatch-disruptions": [
+                "eventId",
                 "eventType",
                 "name",
                 "alertLevel",
@@ -90385,14 +90397,19 @@
                 "severity",
                 "affectedPorts",
                 "nAffectedPorts",
-                "affectedPopulation"
+                "affectedPopulation",
+                "fromDate",
+                "toDate"
               ]
-            }
+            },
+            "note": "Built in 088 as a feature-kit spec (kits/features/imf-portwatch.json, portwatch_disruptions_database). externalId eventid; polygon geometry; validFrom = fromdate, validUntil = todate when set (an open disruption has none); name is eventname; affectedPorts is the upstream's list of PortWatch port ids as text; the HTML description is not stored. observedAt is the time of receipt; a disruption missing from two consecutive complete fetches is tombstoned."
           },
           "fishing-event": {
             "x-foresignal-prompt": "088",
             "payloadFields": {
               "gfw-events": [
+                "start",
+                "end",
                 "vesselId",
                 "mmsi",
                 "vesselName",
@@ -90401,12 +90418,14 @@
                 "distanceKm"
               ]
             },
-            "note": "CC BY-NC 4.0."
+            "note": "Built in 088 (gfw-events, GFW Events API v3, dataset public-global-fishing-events:latest). License CC BY-NC 4.0 (non-commercial). externalId the event id; eventTime = start, observedAt = end (else start); start and end are the interval fields; mmsi is GFW's ssvid; durationH is end minus start in hours; distanceKm is the event's totalDistanceKm."
           },
           "vessel-encounter": {
             "x-foresignal-prompt": "088",
             "payloadFields": {
               "gfw-events": [
+                "start",
+                "end",
                 "vesselId",
                 "mmsi",
                 "vesselName",
@@ -90415,12 +90434,15 @@
                 "distanceKm",
                 "encounterMmsi"
               ]
-            }
+            },
+            "note": "Built in 088 (gfw-events, public-global-encounters-events:latest; CC BY-NC 4.0). encounterMmsi is the other vessel's ssvid; no distanceKm."
           },
           "loitering-event": {
             "x-foresignal-prompt": "088",
             "payloadFields": {
               "gfw-events": [
+                "start",
+                "end",
                 "vesselId",
                 "mmsi",
                 "vesselName",
@@ -90428,12 +90450,15 @@
                 "durationH",
                 "distanceKm"
               ]
-            }
+            },
+            "note": "Built in 088 (gfw-events, public-global-loitering-events:latest; CC BY-NC 4.0). distanceKm is loitering.totalDistanceKm."
           },
           "port-visit": {
             "x-foresignal-prompt": "088",
             "payloadFields": {
               "gfw-events": [
+                "start",
+                "end",
                 "vesselId",
                 "mmsi",
                 "vesselName",
@@ -90442,7 +90467,8 @@
                 "distanceKm",
                 "portName"
               ]
-            }
+            },
+            "note": "Built in 088 (gfw-events, public-global-port-visits-events:latest; CC BY-NC 4.0). portName is the visit's start anchorage name (else the intermediate, else the end anchorage); no distanceKm."
           },
           "sar-vessel-detection": {
             "x-foresignal-prompt": "088",
@@ -90453,14 +90479,14 @@
                 "confidence"
               ]
             },
-            "note": "Optional; only if a stable official endpoint exists."
+            "note": "Not built in 088. Global Fishing Watch publishes SAR vessel detections (public-global-sar-presence) only as gridded 4Wings data (reports, tiles, bins, cell interaction) without individual detection ids or positions; no official endpoint returns individual detections, so gfw-sar-detections is not implemented (Source Catalog)."
           },
           "notice-to-mariners": {
             "x-foresignal-prompt": "088",
             "payloadFields": {
               "uscg-lnm-*": []
             },
-            "note": "Conditional: built only if a documented GeoJSON download exists."
+            "note": "Not built in 088. NAVCEN's Local Notice to Mariners application links GeoJSON files by notice category (hazNav_1.geojson, marEvent_1.geojson, tmpChange_1.geojson, ...), chunked by a counter in fileIndexNew.json and not split by district, with no API documentation; the prompt requires a documented, stable per-district download, so uscg-lnm-* is a planned Source Catalog row."
           },
           "cap-alert": {
             "x-foresignal-prompt": "089",

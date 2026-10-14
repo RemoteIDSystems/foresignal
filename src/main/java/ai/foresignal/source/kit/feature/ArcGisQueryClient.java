@@ -234,6 +234,17 @@ public final class ArcGisQueryClient {
         return new LayerMeta(now, maxRecordCount, pagination, objectIdField, lastEdit, fields);
     }
 
+    /**
+     * The layer metadata the last {@link #fetch} stored in {@code state} (prompt 088: a hand-written adapter reads the
+     * layer's edit date as the publication time of a catalog).
+     *
+     * @param state the state the fetch used (scoped when the fetch context was)
+     * @return the metadata, or null when none is stored or it cannot be read
+     */
+    public static LayerMeta cachedMeta(AdapterStateStore state) {
+        return cached(state);
+    }
+
     /** The cached metadata, or null when none is stored or it cannot be read. */
     static LayerMeta cached(AdapterStateStore state) {
         String text = state.get(META_KEY).orElse(null);
