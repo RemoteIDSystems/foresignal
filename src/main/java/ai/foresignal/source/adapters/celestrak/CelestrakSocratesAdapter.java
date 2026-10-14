@@ -33,7 +33,7 @@ import org.springframework.stereotype.Component;
  * <p>One conditional GET of {@code /SOCRATES/sort-minRange.csv} every 12 h (SOCRATES runs every 10–11 h; the
  * file carries an {@code ETag}, so an unchanged file is a 304), parsed row by row ({@link SocratesParser}).
  * Kind {@code conjunction}, {@code externalId} = {@code {lowNorad}-{highNorad}-{TCA epoch minute}},
- * {@code eventTime} = TCA, {@code observedAt} = receipt (the CSV carries no run time), no geometry, TTL 12 h
+ * {@code eventTime} = TCA, {@code observedAt} = receipt (the CSV carries no run time), no geometry, TTL 24 h
  * anchored at receipt. The CelesTrak usage policy and its error budget apply as for {@code celestrak-gp}
  * ({@link CelestrakPolicy}).
  */
@@ -189,7 +189,7 @@ public class CelestrakSocratesAdapter implements PollingAdapter {
                 .historyTier(HistoryTier.STANDARD)
                 .defaultIngestPolicy(IngestPolicy.all())
                 .observedAtMode(ObservedAtMode.RECEIVED)
-                .recordTtl(Duration.ofHours(12))
+                .recordTtl(Duration.ofHours(24))
                 .ttlAnchor(TtlAnchor.RECEIVED)
                 .titleField(null)
                 .searchFields("name1", "name2")
