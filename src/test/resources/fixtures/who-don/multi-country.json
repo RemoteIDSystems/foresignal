@@ -1,0 +1,25 @@
+{
+ "value": [
+  {
+   "Id": "DON-2C",
+   "DonId": "DON-2C",
+   "Title": "Mpox \u2013 Democratic Republic of the Congo and Uganda",
+   "UseOverrideTitle": false,
+   "PublicationDate": "2026-09-01T00:00:00Z",
+   "LastModified": "2026-09-02T00:00:00Z",
+   "UrlName": "mpox-2c",
+   "Summary": "<p>Two-country example</p>"
+  },
+  {
+   "Id": "DON-OV",
+   "DonId": "DON-OV",
+   "Title": "Original",
+   "OverrideTitle": "Cholera \u2013 Haiti",
+   "UseOverrideTitle": true,
+   "PublicationDate": "2026-09-03T00:00:00Z",
+   "LastModified": "2026-09-03T00:00:00Z",
+   "UrlName": "cholera-ov",
+   "Summary": "Override"
+  }
+ ]
+}

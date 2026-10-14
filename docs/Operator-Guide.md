@@ -4287,3 +4287,15 @@ docker compose exec -T db dropdb -U foresignal restore_drill
 | Alerts or streams lag | `/actuator/health/catchup` and `GET /v1/system` `catchUp` (trigger lag, ingest queue) |
 | Disk filling | `GET /v1/system` `history` and `warnings`, each source's `storage.projectedBytes`, then the retention windows |
 | A smoke test against the instance | `FORESIGNAL_TOKEN=fsr_… scripts/smoke.sh` (it enables `usgs-earthquakes`) |
+
+## Humanitarian source credentials (prompt 090)
+
+- **ReliefWeb (`reliefweb-disasters`)** needs an **approved appname**, not just any string. Request one from the
+  form at <https://apidoc.reliefweb.int/parameters#appname>, then set it as the source's `appname` credential.
+  ReliefWeb answers HTTP 403 "You are not using an approved appname" without one; Foresignal reports that as
+  `APPNAME_NOT_APPROVED` and does not retry until the credential changes.
+- **HDX HAPI (the optional `hdx-hapi-*` family)** is not built in prompt 090; it would need an `appName` and
+  `email` sent as `app_identifier = base64("<appName>:<email>")` (requests without it get HTTP 403 "Invalid app
+  identifier"). If the family is added later, set both credentials on each HAPI source.
+- The other prompt 090 sources (`nasa-eonet`, `unhcr-population`, `who-don`, `copernicus-ems`,
+  `usgs-hans-volcanoes`, `geonet-volcanoes`, `openfema-declarations`, `travel-advisory-us`) are keyless.

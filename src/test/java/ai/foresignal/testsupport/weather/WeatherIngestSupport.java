@@ -146,6 +146,24 @@ public abstract class WeatherIngestSupport {
         registry.add(ai.foresignal.source.adapters.meteoalarm.MeteoAlarmAdapter.BASE_URL_PROPERTY, UPSTREAM::baseUrl);
         registry.add(ai.foresignal.source.adapters.seismic.FdsnEventFamily.BASE_URL_PROPERTY, UPSTREAM::baseUrl);
         registry.add(ai.foresignal.source.adapters.usgs.UsgsShakeMapAdapter.BASE_URL_PROPERTY, UPSTREAM::baseUrl);
+        // Prompt 090: the humanitarian and disaster sources move under the stub (paths kept where the adapter
+        // rebases, or the origin replaced).
+        registry.add(ai.foresignal.source.adapters.humanitarian.EonetAdapter.BASE_URL_PROPERTY, UPSTREAM::baseUrl);
+        registry.add(ai.foresignal.source.adapters.humanitarian.ReliefWebDisastersAdapter.BASE_URL_PROPERTY,
+                UPSTREAM::baseUrl);
+        registry.add(ai.foresignal.source.adapters.humanitarian.UnhcrPopulationAdapter.BASE_URL_PROPERTY,
+                UPSTREAM::baseUrl);
+        registry.add(ai.foresignal.source.adapters.humanitarian.WhoDonAdapter.BASE_URL_PROPERTY, UPSTREAM::baseUrl);
+        registry.add(ai.foresignal.source.adapters.humanitarian.CopernicusEmsAdapter.BASE_URL_PROPERTY,
+                UPSTREAM::baseUrl);
+        registry.add(ai.foresignal.source.adapters.humanitarian.UsgsHansVolcanoAdapter.BASE_URL_PROPERTY,
+                UPSTREAM::baseUrl);
+        registry.add(ai.foresignal.source.adapters.humanitarian.GeoNetVolcanoAdapter.BASE_URL_PROPERTY,
+                UPSTREAM::baseUrl);
+        registry.add(ai.foresignal.source.adapters.humanitarian.OpenFemaDeclarationsAdapter.BASE_URL_PROPERTY,
+                UPSTREAM::baseUrl);
+        registry.add(ai.foresignal.source.adapters.humanitarian.UsTravelAdvisoryAdapter.BASE_URL_PROPERTY,
+                UPSTREAM::baseUrl);
     }
 
     @Autowired protected FetchExecutor executor;
@@ -173,7 +191,8 @@ public abstract class WeatherIngestSupport {
             "airq-local-1", "nwps-gauges", "usdm", "amtraker", "digitraffic-rail", "deepstate-frontline",
             "alerts-in-ua", "ua-air-raid-siren", "acled", "ucdp-ged", "faa-tfr", "faa-nas-status", "awc-sigmets",
             "nga-msi-warnings", "imf-portwatch-chokepoints", "cap-de-dwd-de", "meteoalarm-greece", "fdsn-geofon",
-            "usgs-shakemap");
+            "usgs-shakemap", "nasa-eonet", "reliefweb-disasters", "unhcr-population", "who-don", "copernicus-ems",
+            "usgs-hans-volcanoes", "geonet-volcanoes", "openfema-declarations", "travel-advisory-us");
 
     /** Resets the stubs and the backoff of the weather sources. */
     @BeforeEach

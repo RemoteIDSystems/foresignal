@@ -189,7 +189,12 @@ public record SourceDescriptor(
         Map<String, String> accessDeniedReasons,
         List<HostPort> allowedHosts,
         ReconnectPolicy reconnect,
-        boolean coverageFromObservers) {
+        boolean coverageFromObservers,
+        /**
+         * A notice appended whenever this source's records are placed in an LLM context (prompt 090; for
+         * example OpenFEMA's eligibility notice); null when there is none.
+         */
+        String llmNotice) {
 
     /** Coordinate decimals kept for a private source unless it says otherwise (about 11 m). */
     public static final int DEFAULT_PRIVATE_PRECISION_DECIMALS = 4;
@@ -248,6 +253,7 @@ public record SourceDescriptor(
                 ? Map.of()
                 : java.util.Collections.unmodifiableMap(new LinkedHashMap<>(accessDeniedReasons));
         allowedHosts = allowedHosts == null ? List.of() : List.copyOf(allowedHosts);
+        llmNotice = llmNotice == null || llmNotice.isBlank() ? null : llmNotice.strip();
     }
 
     /** True when {@code target} is one of {@link #allowedHosts}. */
@@ -342,6 +348,7 @@ public record SourceDescriptor(
         private String homepage;
         private String attribution;
         private String licence;
+        private String llmNotice;
         private String termsUrl;
         private Mode mode = Mode.POLLING;
         private Duration minInterval;
@@ -419,6 +426,12 @@ public record SourceDescriptor(
 
         public Builder termsUrl(String termsUrl) {
             this.termsUrl = termsUrl;
+            return this;
+        }
+
+        /** A notice appended whenever this source's records reach an LLM context (prompt 090). */
+        public Builder llmNotice(String llmNotice) {
+            this.llmNotice = llmNotice;
             return this;
         }
 
@@ -838,7 +851,8 @@ public record SourceDescriptor(
                     accessDeniedReasons,
                     allowedHosts,
                     reconnect,
-                    coverageFromObservers);
+                    coverageFromObservers,
+                    llmNotice);
         }
     }
 }

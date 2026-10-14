@@ -153,7 +153,8 @@ public class SourceMapper {
                 d.egress().wireValue(),
                 d.originator(),
                 d.access(),
-                d.egressOverridable());
+                d.egressOverridable(),
+                d.llmNotice());
     }
 
     static CredentialFieldDto credentialField(CredentialField field) {

@@ -1,0 +1,57 @@
+{
+ "events": [
+  {
+   "id": "EONET_POLY",
+   "title": "Test wildfire",
+   "description": "A polygon event",
+   "categories": [
+    {
+     "id": "wildfires",
+     "title": "Wildfires"
+    }
+   ],
+   "sources": [
+    {
+     "id": "InciWeb",
+     "url": "https://inciweb.example/1"
+    }
+   ],
+   "geometry": [
+    {
+     "date": "2026-10-10T00:00:00Z",
+     "type": "Point",
+     "coordinates": [
+      -120.0,
+      39.0
+     ]
+    },
+    {
+     "date": "2026-10-12T00:00:00Z",
+     "type": "Polygon",
+     "magnitudeValue": 500.0,
+     "magnitudeUnit": "acres",
+     "coordinates": [
+      [
+       [
+        -120.1,
+        39.0
+       ],
+       [
+        -120.0,
+        39.1
+       ],
+       [
+        -119.9,
+        39.0
+       ],
+       [
+        -120.1,
+        39.0
+       ]
+      ]
+     ]
+    }
+   ]
+  }
+ ]
+}

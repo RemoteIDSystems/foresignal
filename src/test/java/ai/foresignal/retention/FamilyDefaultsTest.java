@@ -373,7 +373,32 @@ class FamilyDefaultsTest {
             Map.entry("EmscSeismicAdapter", new Entry(
                     new ai.foresignal.source.adapters.seismic.EmscSeismicAdapter(null, null).descriptor(), "event")),
             Map.entry("UsgsShakeMapAdapter", new Entry(
-                    new ai.foresignal.source.adapters.usgs.UsgsShakeMapAdapter(null).descriptor(), "event")));
+                    new ai.foresignal.source.adapters.usgs.UsgsShakeMapAdapter(null).descriptor(), "event")),
+            // Prompt 090: the humanitarian sources. Disasters, outbreaks, activations and declarations are the
+            // event class; volcano alert levels and travel advisories are slowly-changing state (365 d); UNHCR
+            // population is a yearly measurement series (3650 d).
+            Map.entry("EonetAdapter", new Entry(
+                    new ai.foresignal.source.adapters.humanitarian.EonetAdapter(null).descriptor(), "event")),
+            Map.entry("ReliefWebDisastersAdapter", new Entry(new ai.foresignal.source.adapters.humanitarian
+                    .ReliefWebDisastersAdapter(null).descriptor(), "event")),
+            Map.entry("WhoDonAdapter", new Entry(
+                    new ai.foresignal.source.adapters.humanitarian.WhoDonAdapter(null,
+                            new ai.foresignal.reference.CountryCentroids()).descriptor(), "event")),
+            Map.entry("CopernicusEmsAdapter", new Entry(
+                    new ai.foresignal.source.adapters.humanitarian.CopernicusEmsAdapter(null).descriptor(), "event")),
+            Map.entry("OpenFemaDeclarationsAdapter", new Entry(new ai.foresignal.source.adapters.humanitarian
+                    .OpenFemaDeclarationsAdapter(null,
+                            ai.foresignal.source.spi.CountyGeometries.none()).descriptor(), "event")),
+            Map.entry("UnhcrPopulationAdapter", new Entry(
+                    new ai.foresignal.source.adapters.humanitarian.UnhcrPopulationAdapter(null,
+                            new ai.foresignal.reference.CountryCentroids()).descriptor(), "series")),
+            Map.entry("UsgsHansVolcanoAdapter", new Entry(new ai.foresignal.source.adapters.humanitarian
+                    .UsgsHansVolcanoAdapter(null).descriptor(), "state")),
+            Map.entry("GeoNetVolcanoAdapter", new Entry(new ai.foresignal.source.adapters.humanitarian
+                    .GeoNetVolcanoAdapter(null).descriptor(), "state")),
+            Map.entry("UsTravelAdvisoryAdapter", new Entry(new ai.foresignal.source.adapters.humanitarian
+                    .UsTravelAdvisoryAdapter(null, new ai.foresignal.reference.CountryCentroids(),
+                            new ai.foresignal.reference.BundledCountryPolygons()).descriptor(), "state")));
 
     /**
      * The {@code privacy} class (prompt 086): private sources whose prompt sets a short raw window on purpose, because

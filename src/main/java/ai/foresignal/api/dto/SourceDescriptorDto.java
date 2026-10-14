@@ -112,4 +112,6 @@ public record SourceDescriptorDto(
         String originator,
         @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
                 ai.foresignal.source.spi.SourceAccess access,
-        boolean egressOverridable) {}
+        boolean egressOverridable,
+        @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+                String llmNotice) {}

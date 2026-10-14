@@ -123,7 +123,11 @@ public class McpOutputShaper {
      */
     public ObjectNode record(Map<String, Object> mapped, Detail detail) {
         ObjectNode full = objectTree(mapped);
-        return detail == Detail.LONG ? full : shortRecord(full);
+        if (detail == Detail.LONG) {
+            llmNotice(textOf(full, "source"), full);
+            return full;
+        }
+        return shortRecord(full);
     }
 
     /** The compact form of a full record, version or change item. */
@@ -164,7 +168,20 @@ public class McpOutputShaper {
         if (!fields.isEmpty()) {
             out.set("fields", fields);
         }
+        llmNotice(source, out);
         return out;
+    }
+
+    /** Appends the source's {@code llmNotice} (prompt 090), when it has one, to a record item. */
+    void llmNotice(String sourceId, ObjectNode out) {
+        if (sourceId == null || out.has("llmNotice")) {
+            return;
+        }
+        String notice = registry.find(sourceId).map(SourceRegistry.Registration::descriptor)
+                .map(SourceDescriptor::llmNotice).orElse(null);
+        if (notice != null && !notice.isBlank()) {
+            out.put("llmNotice", notice);
+        }
     }
 
     /**

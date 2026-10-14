@@ -1,0 +1,19 @@
+{
+ "DisasterDeclarationsSummaries": [
+  {
+   "id": "fema-state-1",
+   "femaDeclarationString": "EM-0001-XX",
+   "disasterNumber": 1,
+   "declarationType": "EM",
+   "declarationDate": "2026-01-01T00:00:00.000Z",
+   "incidentType": "Fire",
+   "declarationTitle": "Statewide Fire",
+   "state": "CA",
+   "designatedArea": "Statewide",
+   "fipsStateCode": "06",
+   "fipsCountyCode": "000",
+   "incidentBeginDate": "2026-01-01T00:00:00.000Z",
+   "lastRefresh": "2026-01-02T00:00:00.000Z"
+  }
+ ]
+}

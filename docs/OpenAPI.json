@@ -16,6 +16,11 @@
       {
         "version": "1.3.0",
         "date": "2026-10-14",
+        "note": "090: no new operations. The descriptor schema's llmNotice field is now served (a per-source notice appended whenever its records reach an LLM context; OpenFEMA sets it). x-foresignal-kinds fills in the payloads and notes for natural-event (nasa-eonet), disaster (reliefweb-disasters), displacement (unhcr-population), disease-outbreak (who-don), emergency-activation (copernicus-ems), volcano-alert (usgs-hans-volcanoes, geonet-volcanoes), disaster-declaration (openfema-declarations) and travel-advisory (travel-advisory-us)."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-14",
         "note": "089: no new operations. Record x-foresignal-kinds gains cap-alert, rainfall-outlook, earthquake-impact and shakemap-mmi, for the reviewed cap-* family and the meteoalarm-* family, the five WPC Excessive Rainfall Outlook feature-kit sources (wpc-ero-d1..d5), emsc-seismic (kind earthquake), the fdsn-* services (kind earthquake) and usgs-shakemap. The earthquake kind gains the emsc-seismic and fdsn-* payloads (mag, magType, place, depthKm, auth, sourceCatalog, evtype; depth is in the payload, the point is 2D)."
       },
       {
@@ -90578,13 +90583,15 @@
             "payloadFields": {
               "nasa-eonet": [
                 "title",
+                "description",
                 "categories",
                 "sources",
                 "magnitude",
                 "magnitudeUnit",
                 "trackPoints"
               ]
-            }
+            },
+            "note": "Built in 090 (nasa-eonet). The latest geometry entry is the record geometry; the response is JSON despite its RSS content type."
           },
           "displacement": {
             "x-foresignal-prompt": "090",

@@ -1,0 +1,20 @@
+[
+ {
+  "Title": "Yemen - Do not travel",
+  "Link": "https://travel.state.gov/yemen",
+  "Category": "YM",
+  "Summary": "No level text",
+  "id": "advisory-YM",
+  "Published": "2026-01-01T00:00:00",
+  "Updated": "2026-06-01T00:00:00"
+ },
+ {
+  "Title": "Level 2: Exercise Increased Caution - Example",
+  "Link": "https://travel.state.gov/a",
+  "Category": "AS",
+  "Summary": "Level example",
+  "id": "advisory-AS",
+  "Published": "2026-01-01T00:00:00",
+  "Updated": "2026-06-02T00:00:00"
+ }
+]
