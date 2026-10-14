@@ -69,6 +69,7 @@ dependencies {
     implementation(libs.commonmark.ext.gfm.tables)
     implementation(libs.owasp.java.html.sanitizer)
     implementation(libs.h3)
+    implementation(libs.commons.compress)
     implementation(libs.caffeine)
     // GRIB2 and NetCDF4 decoding (046): cdm-core and grib only, versions from the NetCDF-Java BOM.
     implementation(platform(libs.netcdf.java.bom))

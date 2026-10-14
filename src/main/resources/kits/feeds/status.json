@@ -1,0 +1,30 @@
+[
+  {
+    "id": "status-aws",
+    "name": "AWS Service Health Dashboard",
+    "description": "AWS Service Health Dashboard incidents (all services), one service-incident record per RSS item. The feed's ETag changes on every request, so conditional GET is ineffective.",
+    "url": "https://status.aws.amazon.com/rss/all.rss",
+    "kind": "service-incident",
+    "language": "en",
+    "interval": "5m",
+    "minInterval": "5m",
+    "budget": {"perMinute": 2, "perDay": 1500},
+    "license": "provider terms",
+    "attribution": "Amazon Web Services",
+    "homepage": "https://health.aws.amazon.com/health/status"
+  },
+  {
+    "id": "status-azure",
+    "name": "Azure status",
+    "description": "Microsoft Azure status feed (broad incidents only; usually empty), one service-incident record per item.",
+    "url": "https://azure.status.microsoft/en-us/status/feed/",
+    "kind": "service-incident",
+    "language": "en",
+    "interval": "5m",
+    "minInterval": "5m",
+    "budget": {"perMinute": 2, "perDay": 1500},
+    "license": "provider terms",
+    "attribution": "Microsoft Azure",
+    "homepage": "https://azure.status.microsoft/en-us/status"
+  }
+]

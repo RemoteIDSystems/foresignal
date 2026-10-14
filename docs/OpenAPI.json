@@ -16,6 +16,11 @@
       {
         "version": "1.3.0",
         "date": "2026-10-14",
+        "note": "092: no new operations. New sources cloudflare-radar-outages (kind internet-outage), cloudflare-radar-bgp (kinds bgp-hijack, bgp-leak), ripe-atlas-probes (kind probe-status), gpsjam-daily (kind jamming-cell, disabled by default), the status-* Statuspage family and status-gcp/status-google-workspace (kinds service-status, service-incident), and the status-aws/status-azure feed-kit entries. The feed-kit id pattern now admits the reviewed status- prefix."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-14",
         "note": "091: no new operations. x-foresignal-kinds fills in the sanction payload (ofac-sdn, uk-sanctions-list, un-sanctions) and filing (sec-8k) notes. The UK source is now uk-sanctions-list (the FCDO UK Sanctions List), replacing the closed OFSI list. The descriptor User-Agent may carry a contact suffix (`; contact=…`); it is not a separate schema property."
       },
       {

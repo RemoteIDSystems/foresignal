@@ -4317,3 +4317,19 @@ docker compose exec -T db dropdb -U foresignal restore_drill
   successful fetches establish the new baseline. The guard only skips tombstones for the run that trips it.
 - **The UK source changed:** `uk-sanctions-list` (the FCDO UK Sanctions List) replaced `uk-ofsi-sanctions`,
   whose list closed on 28 January 2026.
+
+## Internet-measurement sources (prompt 092)
+
+- **Cloudflare Radar (`cloudflare-radar-outages`, `cloudflare-radar-bgp`):** create an API token at
+  <https://dash.cloudflare.com/profile/api-tokens> with **Radar read** access and set it as the `apiToken`
+  credential. Cloudflare's global limit is 1,200 requests per 5 minutes per user; Foresignal's budget is far
+  below that and honours `Retry-After` on 429.
+- **`gpsjam-daily` is disabled by default:** gpsjam.org publishes no licence, so the source is local-only and
+  must be enabled deliberately.
+- **RIPE Atlas:** `ripe-atlas-probes` never stores a probe's address or description; only status, prefixes,
+  ASNs, country and tags. Licence: RIPE Atlas Service Terms v3.5.
+- **Rule recipes:** BGP hijacks — enter on `bgp-hijack` when `confidence_score >= 8`; service status — enter on
+  `service-status` when `indicator in [major, critical]`. Cloudflare outages pair with IODA (`ioda-outages`) in
+  the 099 corroboration layer to distinguish a national outage from a cable cut or a hijack.
+- **RIS Live is not built** (optional, streaming, disabled). If it is added later, subscribe only to specific
+  prefixes (never the full firehose).

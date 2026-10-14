@@ -1,0 +1,57 @@
+{
+ "success": true,
+ "result": {
+  "events": [
+   {
+    "id": "HJ1",
+    "min_hijack_ts": "2026-10-13T10:00:00Z",
+    "max_hijack_ts": "2026-10-13T10:30:00Z",
+    "max_msg_ts": "2026-10-13T10:35:00Z",
+    "confidence_score": 9,
+    "event_type": "HIJACK",
+    "hijacker_asn": 64500,
+    "hijacker_country": "US",
+    "victim_asns": [
+     64501
+    ],
+    "victim_countries": [
+     "DE"
+    ],
+    "prefixes": [
+     "203.0.113.0/24"
+    ],
+    "is_stale": false,
+    "duration": "PT30M",
+    "tags": [
+     {
+      "name": "hijack",
+      "score": 9
+     }
+    ],
+    "hijack_msgs_count": 3,
+    "on_going_count": 1,
+    "peer_ip_count": 5
+   },
+   {
+    "id": "LK1",
+    "min_ts": "2026-10-13T11:00:00Z",
+    "max_ts": "2026-10-13T11:10:00Z",
+    "leak_asn": 64502,
+    "leak_type": 1,
+    "leak_seg": 1,
+    "countries": [
+     "FR"
+    ],
+    "finished": true,
+    "origin_count": 1,
+    "peer_count": 2,
+    "prefix_count": 1,
+    "leak_count": 4
+   }
+  ],
+  "total_count": 2
+ },
+ "result_info": {
+  "total_count": 2
+ }
+}

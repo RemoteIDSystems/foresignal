@@ -29,7 +29,7 @@ import java.util.regex.Pattern;
 public final class FeedSpecValidator {
 
     /** A built-in feed spec id. */
-    public static final Pattern ID_PATTERN = Pattern.compile("^feed-[a-z0-9]+(-[a-z0-9]+)*$");
+    public static final Pattern ID_PATTERN = Pattern.compile("^(?:feed|status)-[a-z0-9]+(-[a-z0-9]+)*$");
 
     /** An operator overlay spec id. */
     public static final Pattern OVERLAY_ID_PATTERN = Pattern.compile("^op-[a-z0-9]+(-[a-z0-9]+)*$");

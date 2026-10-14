@@ -224,7 +224,8 @@ class FeatureSpecValidatorTest {
                 "faa-uas-nsufr", "imf-portwatch-disruptions", "wpc-ero-d1", "wpc-ero-d2", "wpc-ero-d3", "wpc-ero-d4",
                 "wpc-ero-d5");
         assertThat(specs.feeds()).extracting(s -> s.id()).containsExactlyInAnyOrder("feed-cisa-advisories",
-                "feed-ncsc-uk", "feed-nhc-atlantic", "feed-nhc-eastpacific", "feed-ecdc-threats", "feed-who-news");
+                "feed-ncsc-uk", "feed-nhc-atlantic", "feed-nhc-eastpacific", "feed-ecdc-threats", "feed-who-news",
+                "status-aws", "status-azure");
         List<SourceAdapter> adapters = new ArrayList<>(new FeatureKitFamily(specs.features(), "", null).adapters());
         adapters.addAll(new FeedKitFamily(specs.feeds(), "", null, null).adapters());
         for (SourceAdapter a : adapters) {

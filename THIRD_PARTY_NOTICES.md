@@ -219,6 +219,13 @@ section lists dependencies a prompt asked to record here.
   both the Java binding and the bundled H3 core library.
 - **Project:** <https://github.com/uber/h3-java>, Copyright Uber Technologies, Inc.
 
+### Apache Commons Compress
+
+- **Artifact:** `org.apache.commons:commons-compress` 1.27.1 (Maven Central), used unmodified.
+- **Use:** bzip2 decompression of the RIPE Atlas probe dump (prompt 092).
+- **License:** Apache License, Version 2.0 (<https://www.apache.org/licenses/LICENSE-2.0>).
+- **Project:** <https://commons.apache.org/proper/commons-compress/>, Copyright The Apache Software Foundation.
+
 ### Caffeine
 
 - **Artifact:** `com.github.ben-manes.caffeine:caffeine` 3.2.4 (Maven Central; the version the Spring Boot 4.1.1 BOM

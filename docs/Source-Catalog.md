@@ -363,6 +363,21 @@ Both sanctions sources keep the previous id set in adapter state and tombstone a
 (FR-15); if the new count is below 90 % of the previous, no tombstones are written and the run is degraded with
 reason `LIST_SHRINK_GUARD`.
 
+### Internet measurement (prompt 092)
+
+| Source id | Kind | Upstream | Auth | Interval · budget | Notes |
+|---|---|---|---|---|---|
+| `cloudflare-radar-outages` | internet-outage | `https://api.cloudflare.com/client/v4/radar/annotations/outages` | `apiToken` (Bearer, Radar read) | 15 min · 2/min, 60/day | **Built in prompt 092.** RECEIVED time base; `eventTime` = start; country centroids (approximate). CC BY-NC 4.0. |
+| `cloudflare-radar-bgp` | bgp-hijack, bgp-leak | `…/radar/bgp/{hijacks,leaks}/events` | `apiToken` | 15 min · 6/min, 600/day | **Built in prompt 092.** ≤ 5 pages each; volatile `max_msg_ts`, `leak_count`. CC BY-NC 4.0. |
+| `ripe-atlas-probes` | probe-status | `https://ftp.ripe.net/ripe/atlas/probes/archive/meta-latest` (bzip2) | none | 24 h · 1/min, 10/day | **Built in prompt 092.** Status 0–4; `observedAt` = `status_since`; `address_v4`/`address_v6`/`description` are never stored. RIPE Atlas Service Terms v3.5. |
+| `gpsjam-daily` | jamming-cell | `https://gpsjam.org/data/manifest.csv` then `…/{date}-h3_4.csv` | none | 6 h · 1/min, 8/day | **Built in prompt 092.** H3 res 4; `pctBad` = 100·(bad−1)/(good+bad); the manifest date gates the fetch. No licence published → disabled by default and local-only. |
+| `status-*` (11) | service-status, service-incident | `https://{host}/api/v2/summary.json` | none | 2 min · 2/min, 1,500/day | **Built in prompt 092** (`StatusPageFamily`). GitHub, Atlassian, Discord, Reddit, Dropbox, Twilio, Zoom, Anthropic, Cloudflare, DigitalOcean, OpenAI (incident.io shim). A resolved incident is emitted once from `incidents.json` then tombstoned. Provider terms. |
+| `status-gcp`, `status-google-workspace` | service-incident | `…/incidents.json` | none | 5 min · 2/min, 300/day | **Built in prompt 092.** Rolling ~12-month window; every incident emitted; provider terms. |
+| `status-aws`, `status-azure` | service-incident | `https://status.aws.amazon.com/rss/all.rss`, `https://azure.status.microsoft/en-us/status/feed/` | none | 5 min · 2/min, 1,500/day | **Built in prompt 092** as 073 feed-kit specs (`kits/feeds/status.json`); the feed-kit id pattern now admits `status-`. AWS's ETag changes on every request. Provider terms. |
+
+**Not built:** `ris-live` (optional, streaming, disabled by default) and `odin` (ORNL's `/odi` has no published
+licence, terms or rate limit — a "Considered" note; contact `odin@ornl.gov` first).
+
 ### Raster product sources (prompt 046)
 
 | Source id | Kind | Upstream | Protocol | Auth | Default interval · budget | Notes |

@@ -48,6 +48,8 @@ owaspHtmlSanitizer = "20261011.1"
 # bundles the JNI library for linux-x64, linux-arm64, darwin-x64 and darwin-arm64 (and others), extracted
 # to java.io.tmpdir on first use.
 h3 = "4.5.0"
+# Bzip2 decompression of the RIPE Atlas probe dump (092): Apache Commons Compress, Apache-2.0.
+commonsCompress = "1.27.1"
 # GRIB2 and NetCDF4/HDF5 decoding (046, Weather-Imagery-Design §0.1 and §3): NetCDF-Java, BSD-3-Clause.
 # NOT on Maven Central: resolved only from https://artifacts.unidata.ucar.edu/all/ under Gradle
 # exclusiveContent (build.gradle.kts), the one explicit exception to the Maven-Central rule
@@ -160,6 +162,8 @@ commonmark-ext-gfm-tables = { module = "org.commonmark:commonmark-ext-gfm-tables
 owasp-java-html-sanitizer = { module = "com.googlecode.owasp-java-html-sanitizer:owasp-java-html-sanitizer", version.ref = "owaspHtmlSanitizer" }
 # Activity rollups and stats grids (038): lat/lng to H3 cell, parents and cell boundaries.
 h3 = { module = "com.uber:h3", version.ref = "h3" }
+# RIPE Atlas probe dump decompression (092).
+commons-compress = { module = "org.apache.commons:commons-compress", version.ref = "commonsCompress" }
 # GRIB2 and NetCDF4 decoders (046); from the Unidata repository only (see the versions block).
 netcdf-java-bom = { module = "edu.ucar:netcdf-java-bom", version.ref = "netcdfJava" }
 netcdf-cdm-core = { module = "edu.ucar:cdm-core" }

@@ -1,0 +1,53 @@
+{
+ "success": true,
+ "result": {
+  "annotations": [
+   {
+    "id": 1,
+    "asn": 64500,
+    "asnDetails": [
+     {
+      "asn": 64500,
+      "name": "Example ISP",
+      "location": "US"
+     }
+    ],
+    "startDate": "2026-10-10T00:00:00Z",
+    "endDate": "2026-10-10T06:00:00Z",
+    "locations": [
+     "US"
+    ],
+    "outageCause": "POWER_OUTAGE",
+    "outageType": "NATIONWIDE",
+    "scope": "NATIONWIDE",
+    "description": "Example nationwide outage",
+    "linkedUrl": "https://example.org/1",
+    "eventType": "OUTAGE",
+    "dataSource": "BGP"
+   },
+   {
+    "id": 2,
+    "asn": 64501,
+    "asnDetails": [
+     {
+      "asn": 64501,
+      "name": "Other ISP",
+      "location": "DE"
+     }
+    ],
+    "startDate": "2026-10-12T08:00:00Z",
+    "endDate": null,
+    "locations": [
+     "DE",
+     "FR"
+    ],
+    "outageCause": "CABLE_CUT",
+    "outageType": "REGIONAL",
+    "scope": "REGIONAL",
+    "description": "Example ongoing",
+    "eventType": "OUTAGE",
+    "dataSource": "BGP"
+   }
+  ]
+ }
+}

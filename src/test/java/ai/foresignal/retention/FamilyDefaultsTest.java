@@ -407,7 +407,25 @@ class FamilyDefaultsTest {
             Map.entry("UnSanctionsAdapter", new Entry(
                     new ai.foresignal.source.adapters.sanctions.UnSanctionsAdapter(null).descriptor(), "event")),
             Map.entry("Sec8kAdapter", new Entry(
-                    new ai.foresignal.source.adapters.sec.Sec8kAdapter(null, null).descriptor(), "event")));
+                    new ai.foresignal.source.adapters.sec.Sec8kAdapter(null, null).descriptor(), "event")),
+            // Prompt 092: internet measurement. Outages, BGP events, jamming cells and service incidents are the
+            // event class; RIPE Atlas probe status is slowly-changing state (365 d).
+            Map.entry("CloudflareOutageAdapter", new Entry(new ai.foresignal.source.adapters.internet
+                    .CloudflareOutageAdapter(null, new ai.foresignal.reference.CountryCentroids()).descriptor(),
+                    "event")),
+            Map.entry("CloudflareBgpAdapter", new Entry(new ai.foresignal.source.adapters.internet
+                    .CloudflareBgpAdapter(null, new ai.foresignal.reference.CountryCentroids()).descriptor(),
+                    "event")),
+            Map.entry("GpsjamAdapter", new Entry(
+                    new ai.foresignal.source.adapters.internet.GpsjamAdapter(null).descriptor(), "event")),
+            Map.entry("StatusPageAdapter", new Entry(new ai.foresignal.source.adapters.internet.StatusPageAdapter(
+                    new ai.foresignal.source.adapters.internet.StatusPageFamily.Page("status-test", "example.com",
+                            "Test"), null).descriptor(), "event")),
+            Map.entry("GoogleStatusAdapter", new Entry(new ai.foresignal.source.adapters.internet.GoogleStatusAdapter(
+                    new ai.foresignal.source.adapters.internet.GoogleStatusFamily.Page("status-test", "Test",
+                            "https://example.com/incidents.json", "example.com"), null).descriptor(), "event")),
+            Map.entry("AtlasProbesAdapter", new Entry(
+                    new ai.foresignal.source.adapters.internet.AtlasProbesAdapter(null).descriptor(), "state")));
 
     /**
      * The {@code privacy} class (prompt 086): private sources whose prompt sets a short raw window on purpose, because

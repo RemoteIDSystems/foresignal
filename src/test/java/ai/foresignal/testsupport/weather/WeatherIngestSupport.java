@@ -169,6 +169,16 @@ public abstract class WeatherIngestSupport {
         registry.add(ai.foresignal.source.adapters.sanctions.UkSanctionsAdapter.BASE_URL_PROPERTY, UPSTREAM::baseUrl);
         registry.add(ai.foresignal.source.adapters.sanctions.UnSanctionsAdapter.BASE_URL_PROPERTY, UPSTREAM::baseUrl);
         registry.add(ai.foresignal.source.adapters.sec.Sec8kAdapter.BASE_URL_PROPERTY, UPSTREAM::baseUrl);
+        // Prompt 092: the internet-measurement sources.
+        registry.add(ai.foresignal.source.adapters.internet.CloudflareOutageAdapter.BASE_URL_PROPERTY,
+                UPSTREAM::baseUrl);
+        registry.add(ai.foresignal.source.adapters.internet.CloudflareBgpAdapter.BASE_URL_PROPERTY,
+                UPSTREAM::baseUrl);
+        registry.add(ai.foresignal.source.adapters.internet.AtlasProbesAdapter.BASE_URL_PROPERTY, UPSTREAM::baseUrl);
+        registry.add(ai.foresignal.source.adapters.internet.GpsjamAdapter.BASE_URL_PROPERTY, UPSTREAM::baseUrl);
+        registry.add(ai.foresignal.source.adapters.internet.StatusPageFamily.BASE_URL_PROPERTY, UPSTREAM::baseUrl);
+        registry.add(ai.foresignal.source.adapters.internet.GoogleStatusAdapter.BASE_URL_PROPERTY,
+                UPSTREAM::baseUrl);
     }
 
     @Autowired protected FetchExecutor executor;
@@ -198,7 +208,9 @@ public abstract class WeatherIngestSupport {
             "nga-msi-warnings", "imf-portwatch-chokepoints", "cap-de-dwd-de", "meteoalarm-greece", "fdsn-geofon",
             "usgs-shakemap", "nasa-eonet", "reliefweb-disasters", "unhcr-population", "who-don", "copernicus-ems",
             "usgs-hans-volcanoes", "geonet-volcanoes", "openfema-declarations", "travel-advisory-us",
-            "ofac-sdn", "uk-sanctions-list", "un-sanctions", "sec-8k");
+            "ofac-sdn", "uk-sanctions-list", "un-sanctions", "sec-8k",
+            "cloudflare-radar-outages", "cloudflare-radar-bgp", "gpsjam-daily", "ripe-atlas-probes",
+            "status-github", "status-gcp");
 
     /** Resets the stubs and the backoff of the weather sources. */
     @BeforeEach
