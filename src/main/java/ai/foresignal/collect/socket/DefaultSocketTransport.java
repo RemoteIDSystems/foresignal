@@ -5,6 +5,8 @@ import ai.foresignal.net.Cidr;
 import ai.foresignal.net.OutboundUrlPolicy;
 import ai.foresignal.source.LocalAddresses;
 import ai.foresignal.source.spi.AdapterException;
+import ai.foresignal.source.spi.CommandGuard;
+import ai.foresignal.source.spi.CommandHandle;
 import ai.foresignal.source.spi.DatagramHandler;
 import ai.foresignal.source.spi.FrameHandler;
 import ai.foresignal.source.spi.HostPort;
@@ -54,7 +56,9 @@ import org.slf4j.LoggerFactory;
  *   <li><strong>Public TCP</strong> (prompt 082, {@link #tcpPublic}): only a {@code host:port} in the descriptor's
  *       {@code allowedHosts}, resolved to a public address; otherwise the same as TCP.
  *   <li><strong>Writing:</strong> the handles have no write method; only {@link SocketOptions#onConnect()} is ever
- *       written, and nothing at all under {@link SocketOptions#receiveOnly()}.
+ *       written, and nothing at all under {@link SocketOptions#receiveOnly()}. The one exception (prompt 083) is a
+ *       connection opened with {@link SocketOptions#commandWriter}: its handle is a {@link CommandHandle} whose
+ *       {@code send} writes a frame only after the options' {@link CommandGuard} allowed it.
  * </ul>
  */
 public final class DefaultSocketTransport implements SocketTransport {
@@ -211,7 +215,20 @@ public final class DefaultSocketTransport implements SocketTransport {
             throw new UpstreamIOException("Could not connect to " + label + ": " + e.getMessage(), e);
         }
         metrics.connect(true);
-        TcpConnection connection = new TcpConnection(label, socket, opts, frames, handler);
+        TcpConnection connection;
+        if (opts.isCommandWriter()) {
+            OutputStream out;
+            try {
+                out = socket.getOutputStream();
+            } catch (IOException e) {
+                metrics.connect(false);
+                closeQuietly(socket);
+                throw new UpstreamIOException("Could not open the command stream to " + label + ": " + e.getMessage(), e);
+            }
+            connection = new GuardedTcpConnection(label, socket, opts, frames, handler, opts.commandGuard(), out);
+        } else {
+            connection = new TcpConnection(label, socket, opts, frames, handler);
+        }
         connection.start();
         return connection;
     }
@@ -344,7 +361,7 @@ public final class DefaultSocketTransport implements SocketTransport {
      * One TCP connection and its read loop. Deliberately without any write method: the {@code onConnect} bytes,
      * written before this object exists, are the only bytes a source socket ever sends.
      */
-    private final class TcpConnection extends Running {
+    private class TcpConnection extends Running {
 
         private final String endpoint;
         private final Socket socket;
@@ -428,6 +445,37 @@ public final class DefaultSocketTransport implements SocketTransport {
                 if (failure != null) {
                     throw failure;
                 }
+            }
+        }
+    }
+
+    /**
+     * A command-writing connection (prompt 083): the only handle with a write method, and every frame passes the
+     * guard before a byte is written. Writes are serialized; nothing is written after close.
+     */
+    private final class GuardedTcpConnection extends TcpConnection implements CommandHandle {
+
+        private final CommandGuard guard;
+        private final OutputStream out;
+
+        GuardedTcpConnection(String endpoint, Socket socket, SocketOptions options, Framing framing,
+                FrameHandler handler, CommandGuard guard, OutputStream out) {
+            super(endpoint, socket, options, framing, handler);
+            this.guard = guard;
+            this.out = out;
+        }
+
+        @Override
+        public void send(byte[] frame) throws IOException {
+            Objects.requireNonNull(frame, "frame");
+            byte[] copy = frame.clone();
+            guard.check(copy);
+            synchronized (out) {
+                if (isClosed()) {
+                    throw new IOException("the connection to " + ctx.sourceId() + "'s endpoint is closed");
+                }
+                out.write(copy);
+                out.flush();
             }
         }
     }

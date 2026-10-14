@@ -342,6 +342,11 @@
         "version": "1.3.0",
         "date": "2026-10-13",
         "note": "082: no operation changes. New sources pskreporter-ft8 (param appContact required), kiwisdr, openmhz-systems (blocked by a Cloudflare challenge, reported as BLOCKED_CHALLENGE), aprs-is (streaming, filter required) and the local-aprs-{n} slots (streaming, LOCAL_ONLY), all disabled by default. The radio-spot, sdr-receiver, scanner, aprs-station and aprs-message kind notes document the built payloads; aprs-station gains status, micEMessage and sender, and aprs-message lists from, addressee, text, msgId, path and raw."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-13",
+        "note": "083: no operation changes. New sources meshtastic-mqtt (public broker, streaming, disabled by default; root, extraRoots and maxSubscriptions <= 3 enforced at PUT with VALIDATION_FAILED), meshtastic-map (daily), meshtastic-local (own node via a LAN broker, private), meshcore-local (own MeshCore companion over TCP, private) and meshcore-bridge (PUSH, private). The ingestRecordsFormat format list gains meshcore-json; LAN_URL parameters may list the mqtt and mqtts schemes (ParamSpec.allowed); the mesh-node note and the mesh-message payloadFields document the built payloads."
       }
     ]
   },
@@ -14443,7 +14448,7 @@
           "name": "format",
           "in": "path",
           "required": true,
-          "description": "Ingest format id: native, alertmanager, cloudevents, cap, mapping (024); owntracks, osmand, overland, gpslogger (039); ecowitt, wu-pws, aiscatcher, chirpstack-v4, tts-v3, airrohr, gmc (059 device presets). `media`/`rasters` (054) and `mapping-preview` are reserved and served by their own operations. Unknown → 404 FORMAT_UNKNOWN",
+          "description": "Ingest format id: native, alertmanager, cloudevents, cap, mapping (024); owntracks, osmand, overland, gpslogger (039); ecowitt, wu-pws, aiscatcher, chirpstack-v4, tts-v3, airrohr, gmc (059 device presets); meshcore-json (083, the MeshCore bridge's events for the meshcore-bridge source). `media`/`rasters` (054) and `mapping-preview` are reserved and served by their own operations. Unknown → 404 FORMAT_UNKNOWN",
           "schema": {
             "type": "string",
             "pattern": "^[a-z0-9-]+$",
@@ -86764,7 +86769,7 @@
             "items": {
               "type": "string"
             },
-            "description": "When non-empty, the only accepted values. For type lan-url it lists the accepted URL schemes instead (069): empty means http, https, ws and wss; tcp (tcp://host:port, resolved once to a loopback, RFC 1918 or unique-local address and pinned) and udp (udp://bindHost:port, bindHost 0.0.0.0, :: or a local interface address, with the required string-list companion allowSenders of private IPs or CIDRs) are accepted only when listed. The port of a tcp or udp URL is always explicit."
+            "description": "When non-empty, the only accepted values. For type lan-url it lists the accepted URL schemes instead (069): empty means http, https, ws and wss; tcp (tcp://host:port, resolved once to a loopback, RFC 1918 or unique-local address and pinned) and udp (udp://bindHost:port, bindHost 0.0.0.0, :: or a local interface address, with the required string-list companion allowSenders of private IPs or CIDRs) are accepted only when listed; so are mqtt and mqtts (083: an operator's broker, mqtt://host:port or mqtts://host:port, pinned to a private address like tcp). The port of a tcp, udp, mqtt or mqtts URL is always explicit."
           }
         },
         "required": [
@@ -90013,14 +90018,22 @@
                 "lastAdvertAt",
                 "advertTimestamp"
               ]
-            }
+            },
+            "note": "Built in 083. externalId `!` + 8 hex (Meshtastic node number, unsigned) or `mc:` + the first 12 hex characters of the MeshCore public key. One merged snapshot per node (nodeinfo, position, telemetry); geometry is the last known position, null when never shared, with quality.accuracyMeters from positionPrecisionBits. batteryLevel, voltage, channelUtil, airUtilTx, uptimeS, lastHeardAt, lastAdvertAt and advertTimestamp are volatile; lowBattery (batteryLevel < 15) and advertStatus (MeshCore repeaters: ok, late or silent from the advert age) are significant. hwModel is the hardware name when the source knows it (meshtastic-map, MeshCore device info), else the Meshtastic model number as text; role is the Meshtastic role name. The receiving gateway or own node is an observer (include=observer)."
           },
           "mesh-message": {
             "x-foresignal-prompt": "083",
             "payloadFields": {
-              "meshtastic-*, meshcore-local": []
+              "meshtastic-mqtt, meshtastic-local, meshcore-local, meshcore-bridge": [
+                "network",
+                "channelIndex",
+                "channelName",
+                "fromId",
+                "toId",
+                "text"
+              ]
             },
-            "note": "Persisted only with `includeText=true`; never embedded or sent to an LLM."
+            "note": "Built in 083. Persisted only with `includeText=true`; never embedded or sent to an LLM. externalId `{fromId}:{packetId}` (Meshtastic) or `{fromId | mc:ch{index}}:{senderTimestamp}:{hash}` (MeshCore). channelIndex is absent for a direct message, toId for a broadcast; MeshCore channel messages carry no fromId (the firmware does not say). RSSI and SNR are on the observer."
           },
           "field-report": {
             "x-foresignal-prompt": "084",

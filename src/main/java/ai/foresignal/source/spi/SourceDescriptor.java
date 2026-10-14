@@ -122,6 +122,10 @@ import java.util.Set;
  *     Internal, not in the OpenAPI {@code SourceDescriptor}
  * @param reconnect this streaming source's own reconnect ladder (prompt 082), or null for the supervisor's global
  *     ladder. Internal, not in the OpenAPI {@code SourceDescriptor}
+ * @param coverageFromObservers true when each stream flush reports {@link Coverage#receivers()} as the number of
+ *     distinct observer receiver ids in the flushed records and {@code actual} as the record count (prompt 083: the
+ *     distinct mesh gateways heard in the flush window). False by default, so other streams keep reporting no
+ *     coverage. Internal, not in the OpenAPI {@code SourceDescriptor}
  */
 public record SourceDescriptor(
         String id,
@@ -184,7 +188,8 @@ public record SourceDescriptor(
         Duration hostPacing,
         Map<String, String> accessDeniedReasons,
         List<HostPort> allowedHosts,
-        ReconnectPolicy reconnect) {
+        ReconnectPolicy reconnect,
+        boolean coverageFromObservers) {
 
     /** Coordinate decimals kept for a private source unless it says otherwise (about 11 m). */
     public static final int DEFAULT_PRIVATE_PRECISION_DECIMALS = 4;
@@ -330,6 +335,7 @@ public record SourceDescriptor(
         private final Map<String, String> accessDeniedReasons = new LinkedHashMap<>();
         private final List<HostPort> allowedHosts = new ArrayList<>();
         private ReconnectPolicy reconnect;
+        private boolean coverageFromObservers;
 
         private String name;
         private String description;
@@ -735,6 +741,15 @@ public record SourceDescriptor(
             return this;
         }
 
+        /**
+         * Makes each stream flush report the distinct observer receiver ids as {@link Coverage#receivers()} (prompt
+         * 083); false by default.
+         */
+        public Builder coverageFromObservers(boolean value) {
+            this.coverageFromObservers = value;
+            return this;
+        }
+
         /** Sets the layer presentation hints of one kind. */
         public Builder kindPresentation(String kind, Map<String, Object> hints) {
             this.kindPresentation.put(kind, hints);
@@ -822,7 +837,8 @@ public record SourceDescriptor(
                     hostPacing,
                     accessDeniedReasons,
                     allowedHosts,
-                    reconnect);
+                    reconnect,
+                    coverageFromObservers);
         }
     }
 }

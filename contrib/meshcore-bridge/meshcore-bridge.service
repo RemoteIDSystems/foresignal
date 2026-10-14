@@ -1,0 +1,25 @@
+# systemd unit for the Foresignal MeshCore bridge (prompt 083).
+# Install: copy bridge.py and requirements.txt to /opt/foresignal-meshcore-bridge, create a virtualenv there
+# (python3 -m venv venv && venv/bin/pip install -r requirements.txt), put FORESIGNAL_URL and FORESIGNAL_INGEST_KEY in
+# /etc/foresignal-meshcore-bridge.env (mode 0600), adjust the companion argument, then
+# systemctl enable --now meshcore-bridge.
+[Unit]
+Description=Foresignal MeshCore bridge
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/foresignal-meshcore-bridge.env
+ExecStart=/opt/foresignal-meshcore-bridge/venv/bin/python /opt/foresignal-meshcore-bridge/bridge.py --serial /dev/ttyUSB0
+Restart=always
+RestartSec=10
+DynamicUser=yes
+SupplementaryGroups=dialout
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

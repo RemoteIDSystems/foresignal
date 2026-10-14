@@ -60,6 +60,10 @@ import org.slf4j.LoggerFactory;
  * <em>poll resolution</em> for polling sources: a value that crosses a threshold and comes back
  * within one flush window is never seen by the writer.
  *
+ * <p><strong>Coverage.</strong> A descriptor with {@code coverageFromObservers} (prompt 083) gets each flush's
+ * {@link Coverage} as the number of distinct observer receiver ids in the batch and the batch size; every other stream
+ * reports none.
+ *
  * <p>Each flush is one batch and so one {@code fetch_log} row ({@code trigger=STREAM}, written by the
  * writer); the {@link FlushListener} hears the outcome, which the supervisor records in health
  * ({@code last_data_at}).
@@ -341,7 +345,7 @@ public class PolicyAwareRecordSink implements RecordSink {
                 adapterVersion,
                 descriptor.licence(),
                 null,
-                Coverage.none(),
+                descriptor.coverageFromObservers() ? coverage(batch) : Coverage.none(),
                 null);
         CompletableFuture<IngestOutcome> future;
         try {
@@ -369,6 +373,22 @@ public class PolicyAwareRecordSink implements RecordSink {
                 notifyFailed(entry, batch.size(), error);
             }
         });
+    }
+
+    /**
+     * The coverage of one flush (prompt 083): the distinct observer receiver ids of its records as {@code receivers}
+     * (null when no record has an observer) and the record count as {@code actual}.
+     */
+    static Coverage coverage(List<IngestRecord> batch) {
+        java.util.Set<String> receivers = new java.util.HashSet<>();
+        for (IngestRecord record : batch) {
+            for (ai.foresignal.source.spi.Observer observer : record.record().observers()) {
+                if (observer != null && observer.receiverId() != null) {
+                    receivers.add(observer.receiverId());
+                }
+            }
+        }
+        return new Coverage(receivers.isEmpty() ? null : receivers.size(), null, batch.size(), null);
     }
 
     private void notifyFailed(FetchLogEntry entry, int records, Throwable error) {

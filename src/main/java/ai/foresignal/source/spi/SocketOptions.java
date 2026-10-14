@@ -6,28 +6,33 @@ import java.util.Objects;
 
 /**
  * Options of one TCP connection opened through {@link SocketTransport#tcp} or {@link SocketTransport#tcpPublic}
- * (prompts 069 and 082).
+ * (prompts 069, 082 and 083).
  *
  * <p>The connect timeout is fixed at {@link SocketTransport#CONNECT_TIMEOUT} and TCP keepalive is always on; neither
  * is an option.
  *
- * <p><strong>Writing.</strong> A connection's {@link StreamHandle} never has a write method, so the only bytes
- * Foresignal can ever send on a source socket are {@link #onConnect()}, once, right after connecting:
+ * <p><strong>Writing.</strong> A plain connection's {@link StreamHandle} has no write method, so the only bytes
+ * Foresignal can send on such a socket are {@link #onConnect()}, once, right after connecting:
  * <ul>
  *   <li>{@link WriteMode#ON_CONNECT_ONLY} (the default, and {@link #receiveOnlyAfterConnect()}): the
  *       {@code onConnect} bytes, if any, then nothing (gpsd's {@code ?WATCH}, the APRS-IS login line);
  *   <li>{@link WriteMode#NONE} ({@link #receiveOnly()}): nothing at all. An {@code onConnect} write is refused when
  *       the options are built, and the transport never touches the socket's output stream (prompt 082:
  *       {@code local-aprs-{n}} sends no KISS command). The socket is not half-closed either: Direwolf and aprsc read
- *       EOF from a client as a disconnect.
+ *       EOF from a client as a disconnect;
+ *   <li>{@link WriteMode#GUARDED_COMMANDS} ({@link #commandWriter(CommandGuard)}, prompt 083): the one exception. The
+ *       transport returns a {@link CommandHandle} whose {@code send} writes a frame only after the {@link CommandGuard}
+ *       allowed it (the MeshCore companion protocol, which must ask the radio for its contacts and messages). No
+ *       {@code onConnect} bytes; everything goes through the guard.
  * </ul>
  *
  * @param silenceTimeout how long the connection may deliver nothing before the transport closes it, so the
  *     supervisor's ladder reconnects; {@link #DEFAULT_SILENCE_TIMEOUT} when null
  * @param onConnect bytes written once right after the connection opens, or null
  * @param writeMode what may be written; {@link WriteMode#ON_CONNECT_ONLY} when null
+ * @param commandGuard the allowlist of a {@link WriteMode#GUARDED_COMMANDS} connection, else null
  */
-public record SocketOptions(Duration silenceTimeout, byte[] onConnect, WriteMode writeMode) {
+public record SocketOptions(Duration silenceTimeout, byte[] onConnect, WriteMode writeMode, CommandGuard commandGuard) {
 
     /** The silence timeout when none is given. */
     public static final Duration DEFAULT_SILENCE_TIMEOUT = Duration.ofSeconds(120);
@@ -37,14 +42,17 @@ public record SocketOptions(Duration silenceTimeout, byte[] onConnect, WriteMode
         /** The {@code onConnect} bytes once, if any, and nothing afterwards. */
         ON_CONNECT_ONLY,
         /** Nothing, ever: provably receive-only. */
-        NONE
+        NONE,
+        /** Frames through {@link CommandHandle#send}, each checked by the {@link CommandGuard} (prompt 083). */
+        GUARDED_COMMANDS
     }
 
     /**
-     * Applies the defaults, refuses a non-positive timeout and an {@code onConnect} write under
-     * {@link WriteMode#NONE}, and copies the write.
+     * Applies the defaults, refuses a non-positive timeout, an {@code onConnect} write under {@link WriteMode#NONE} or
+     * {@link WriteMode#GUARDED_COMMANDS}, a guarded mode without a guard and a guard in any other mode, and copies the
+     * write.
      *
-     * @throws IllegalArgumentException on a non-positive timeout or a write under {@link WriteMode#NONE}
+     * @throws IllegalArgumentException on any of those
      */
     public SocketOptions {
         silenceTimeout = silenceTimeout == null ? DEFAULT_SILENCE_TIMEOUT : silenceTimeout;
@@ -56,6 +64,27 @@ public record SocketOptions(Duration silenceTimeout, byte[] onConnect, WriteMode
         if (writeMode == WriteMode.NONE && onConnect != null) {
             throw new IllegalArgumentException("A receive-only connection writes nothing, not even on connect");
         }
+        if (writeMode == WriteMode.GUARDED_COMMANDS) {
+            if (commandGuard == null) {
+                throw new IllegalArgumentException("A command-writing connection needs a CommandGuard");
+            }
+            if (onConnect != null) {
+                throw new IllegalArgumentException("A command-writing connection sends everything through its guard");
+            }
+        } else if (commandGuard != null) {
+            throw new IllegalArgumentException("Only a GUARDED_COMMANDS connection has a CommandGuard");
+        }
+    }
+
+    /**
+     * Options without a guard (prompt 082's constructor).
+     *
+     * @param silenceTimeout the silence timeout, or null for the default
+     * @param onConnect bytes written once on connect, or null
+     * @param writeMode what may be written
+     */
+    public SocketOptions(Duration silenceTimeout, byte[] onConnect, WriteMode writeMode) {
+        this(silenceTimeout, onConnect, writeMode, null);
     }
 
     /**
@@ -86,6 +115,21 @@ public record SocketOptions(Duration silenceTimeout, byte[] onConnect, WriteMode
         return new SocketOptions(null, null, WriteMode.ON_CONNECT_ONLY);
     }
 
+    /**
+     * A connection that writes frames only through its {@code guard} (prompt 083): the transport returns a
+     * {@link CommandHandle}, and every {@code send} is checked first.
+     *
+     * @param guard the allowlist; required
+     */
+    public static SocketOptions commandWriter(CommandGuard guard) {
+        return new SocketOptions(null, null, WriteMode.GUARDED_COMMANDS, java.util.Objects.requireNonNull(guard, "guard"));
+    }
+
+    /** True when frames are written through a {@link CommandGuard}. */
+    public boolean isCommandWriter() {
+        return writeMode == WriteMode.GUARDED_COMMANDS;
+    }
+
     /** True when nothing at all may be written. */
     public boolean isReceiveOnly() {
         return writeMode == WriteMode.NONE;
@@ -93,19 +137,23 @@ public record SocketOptions(Duration silenceTimeout, byte[] onConnect, WriteMode
 
     /** These options with another silence timeout. */
     public SocketOptions withSilenceTimeout(Duration timeout) {
-        return new SocketOptions(timeout, onConnect, writeMode);
+        return new SocketOptions(timeout, onConnect, writeMode, commandGuard);
     }
 
     /**
      * These options with {@code bytes} written on connect.
      *
-     * @throws IllegalStateException under {@link WriteMode#NONE}: a receive-only connection rejects any writer
+     * @throws IllegalStateException under {@link WriteMode#NONE} (a receive-only connection rejects any writer) and
+     *     {@link WriteMode#GUARDED_COMMANDS} (everything goes through the guard)
      */
     public SocketOptions withOnConnect(byte[] bytes) {
         if (writeMode == WriteMode.NONE && bytes != null && bytes.length > 0) {
             throw new IllegalStateException("A receive-only connection rejects an onConnect writer");
         }
-        return new SocketOptions(silenceTimeout, bytes, writeMode);
+        if (writeMode == WriteMode.GUARDED_COMMANDS && bytes != null && bytes.length > 0) {
+            throw new IllegalStateException("A command-writing connection sends everything through its guard");
+        }
+        return new SocketOptions(silenceTimeout, bytes, writeMode, commandGuard);
     }
 
     /** The write on connect, copied, or null. */
@@ -117,17 +165,19 @@ public record SocketOptions(Duration silenceTimeout, byte[] onConnect, WriteMode
     @Override
     public boolean equals(Object other) {
         return other instanceof SocketOptions o && silenceTimeout.equals(o.silenceTimeout)
-                && Arrays.equals(onConnect, o.onConnect) && writeMode == o.writeMode;
+                && Arrays.equals(onConnect, o.onConnect) && writeMode == o.writeMode
+                && Objects.equals(commandGuard, o.commandGuard);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(silenceTimeout, Arrays.hashCode(onConnect), writeMode);
+        return Objects.hash(silenceTimeout, Arrays.hashCode(onConnect), writeMode, commandGuard);
     }
 
     @Override
     public String toString() {
         return "SocketOptions[silenceTimeout=" + silenceTimeout + ", onConnect="
-                + (onConnect == null ? "none" : onConnect.length + " bytes") + ", writeMode=" + writeMode + "]";
+                + (onConnect == null ? "none" : onConnect.length + " bytes") + ", writeMode=" + writeMode
+                + (commandGuard == null ? "" : ", commandGuard=" + commandGuard.getClass().getSimpleName()) + "]";
     }
 }

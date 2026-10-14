@@ -13,6 +13,8 @@ Foresignal's reuse policy (Architecture §16) is deliberately narrow:
 | Velocity | AGPL-3.0 | Reference only. No code copied. |
 | World Monitor | AGPL-3.0 | Reference only. No code copied. |
 | SatDump | GPL-3.0 | Reference only (prompt 049). **SatDump is not distributed with Foresignal**: no SatDump code, headers, structs or projection code is incorporated, and no Foresignal image contains SatDump binaries or SatDump-produced images. The operator builds and runs SatDump as a separate program (the compose `satdump` profile uses an image the operator builds from SatDump's own Dockerfile); Foresignal reads its output files and its HTTP `/api`. |
+| MeshCore | MIT | Protocol reference (prompt 083): the companion protocol constants and frame layouts of `source.formats.meshcore` were written from MeshCore's `docs/companion_protocol.md`, `examples/companion_radio/MyMesh.cpp` and `src/helpers/esp32/SerialWifiInterface.cpp` (consulted, not copied; see "MeshCore" below). |
+| Meshtastic firmware and protobufs | GPL-3.0 | Reference only (prompt 083): the JSON field names of the firmware's MQTT output were checked against `MeshPacketSerializer.cpp`. **No Meshtastic code, protobuf class or `.proto` file is in this repository**; every Meshtastic path reads JSON. |
 
 Data fetched from upstream providers at runtime is **not** covered by Foresignal's
 licence. Each provider's terms continue to apply; see
@@ -358,6 +360,22 @@ Apache HttpClient, HttpCore and HttpMime 4 with Commons Logging and Commons Code
   `Jsoup.clean(…, Safelist.none())`; nothing is rendered as HTML.
 - **License:** MIT License (`META-INF/jsoup/LICENSE` in the jar: "Copyright (c) 2009-2026 Jonathan Hedley"). Project:
   <https://jsoup.org/>.
+
+### MeshCore (prompt 083)
+
+- **Consulted:** the MIT-licensed MeshCore repository (<https://github.com/meshcore-dev/MeshCore>, local reference clone
+  at commit `a366955cb2f67b8e6842d4f00d2b6a554dddd88a`): `docs/companion_protocol.md` and `docs/payloads.md`, and the
+  companion firmware's command, response and push codes and frame layouts. Foresignal's Java implementation
+  (`ai.foresignal.source.formats.meshcore`) was written from them; no MeshCore source file is incorporated.
+- **License:** MIT License, Copyright (c) 2025 Scott Powell / rippleradios.com.
+
+### meshcore_py (prompt 083, bridge dependency, not vendored)
+
+- **Used by:** `contrib/meshcore-bridge/bridge.py`, an optional script the operator runs next to a MeshCore companion.
+  It depends on the `meshcore` package from PyPI (<https://github.com/meshcore-dev/meshcore_py>, version 2.3.15
+  checked 2026-10-13), which the operator installs with pip. No meshcore_py code is copied into this repository, and
+  nothing in the Foresignal application uses it.
+- **License:** MIT (`license = "MIT"` in its `pyproject.toml`).
 
 ### Mobility Database catalog snapshot (prompt 070)
 

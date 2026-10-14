@@ -528,6 +528,9 @@ source (serving TCP is 110's SERVE sinks).
   closed with `SilenceTimeoutException`, so the supervisor's ladder reconnects (and pays another unit).
 - `Framing.LINES` cuts LF or CRLF lines of at most 64 KB; a longer line is dropped whole and counted. `Framing.RAW`
   delivers read-sized chunks (KISS in 082).
+- A `LAN_URL` may also list `mqtt` and `mqtts` (prompt 083): an operator's MQTT broker, pinned and private exactly
+  like `tcp://`, explicit port; `LanEndpoint.fromParams` reads it as `Scheme.MQTT` / `Scheme.MQTTS`. MQTT itself goes
+  through 060's `MqttConnections`, not this transport (see "MQTT sources" below).
 - `udp(LanEndpoint bind, Set<Cidr> allowSenders, DatagramHandler)`: a `DatagramChannel` read on a virtual thread, one
   unit per bind; a datagram from outside the allowlist is counted (`foresignal.socket.udp.rejected{source}`) and never
   parsed; one over 64 KB is dropped.
@@ -546,6 +549,12 @@ source (serving TCP is 110's SERVE sinks).
   throws when the options are built) and the transport never obtains the socket's output stream, so a receive-only
   source has no code path that transmits; `receiveOnlyAfterConnect()` allows the single write on connect (the APRS-IS
   login line). Never half-close a socket (`shutdownOutput`): Direwolf and aprsc read the client's EOF as a disconnect.
+- **Guarded commands (prompt 083).** The one exception to "no write method" is
+  `SocketOptions.commandWriter(CommandGuard)`: the transport returns a `CommandHandle` whose `send(byte[])` hands every
+  frame to the guard first (a refused frame throws `CommandGuard.CommandRefusedException` and nothing is written) and
+  writes nothing after close; no `onConnect` bytes are allowed with it. Only a protocol that must ask before it is
+  told uses it (the MeshCore companion, `source.formats.meshcore.MeshCoreCommandGuard`); every other handle stays
+  receive-only.
 - **Reconnect ladder.** A streaming descriptor may set `reconnect(ReconnectPolicy)` (prompt 082, internal): the
   supervisor then backs off exponentially from `initial` to `max` with the policy's jitter instead of its global
   ladder (`aprs-is`: 30 s → 15 min, ±20%; `local-aprs-{n}`: 5 s → 5 min). Budget refusals, backoff and rejected
@@ -567,8 +576,18 @@ source (serving TCP is 110's SERVE sinks).
 | `sbs1` | LINES | `local-sbs-{n}` | 22-field BaseStation lines merged per hex (rule 7) into the readsb payload keys; feet → meters; `posSource: other`; times never parsed (declare `observedAtMode` RECEIVED); hexes evicted after 5 min |
 | `gpsd` | LINES | `local-gpsd-{n}` | `?WATCH={"enable":true,"json":true};` on connect; VERSION `proto_major` 3; TPV and SKY merged per device into `gnss-fix`; `observedAt` = TPV `time` |
 | `kiss-ax25` | RAW | `local-aprs-{n}` | KISS frames reassembled across reads (`formats.kiss.KissFrameDecoder`: FEND/FESC unescaping, data frames only), AX.25 UI frames to TNC2 text (`Ax25UiDecoder`), then `formats.aprs.AprsParser` and `AprsRecords`; frames that are not AX.25 UI are counted and dropped; writes nothing. A `PacketListener` reports each packet (the duplicate filter) and each dropped frame (counters) |
+| `meshcore-companion` | RAW | `meshcore-local` (through `MeshCoreCompanionLink`) | MeshCore WiFi companion frames `>` + uint16 LE length reassembled across reads (`formats.meshcore.MeshCoreFrameDecoder`), frames over 176 bytes skipped, then `MeshCoreEventMapper`. The shared link owns the command queue (one in flight, 5 s timeout), the startup sequence and reconnecting, and writes through a `commandWriter` socket guarded by `MeshCoreCommandGuard` |
 
-Prompt 085 adds `aivdm`, 082 `kiss-ax25`, 086 `acars-json` and `sonde-udp`.
+Prompt 085 adds `aivdm`, 082 `kiss-ax25`, 083 `meshcore-companion`, 086 `acars-json` and `sonde-udp`.
+
+**MQTT sources (prompt 083).** An MQTT source opens its broker connection through 060's `MqttConnections` with an
+`MqttConnectionSpec` whose `MqttSessionOptions` is `subscriber(keepAlive)`: no status topic, so no Will and nothing
+ever published; a clean session; QoS 0 subscriptions; and no reconnect by the client itself. A lost connection is
+reported through the handle's `onClose`, and the streaming supervisor reconnects on the descriptor's ladder, so every
+CONNECT is budgeted (`ctx.chargeRequest` before the CONNECT and before each SUBSCRIBE; `chargeRequest` is the
+`consumeBudget` equivalent). Messages arrive on concurrent virtual threads, so per-entity merge state must be
+thread-safe. A stream whose records carry observers may set the descriptor flag `coverageFromObservers` (internal):
+each flush then reports the distinct observer receiver ids as `Coverage.receivers`.
 
 **Receivers are observers (prompt 082).** In an RF or crowd-sourced feed, the station that *received* a report is
 not part of what the record describes: it goes in `NormalizedRecord.observers` (`Observer(receiverId, frequencyHz,

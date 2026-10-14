@@ -58,7 +58,7 @@ public class ParamValidator {
     static final List<String> DEFAULT_LAN_SCHEMES = List.of("http", "https", "ws", "wss");
 
     /** Every scheme a {@link ParamType#LAN_URL} can have (prompt 069 adds {@code tcp} and {@code udp}). */
-    static final Set<String> KNOWN_LAN_SCHEMES = Set.of("http", "https", "ws", "wss", "tcp", "udp");
+    static final Set<String> KNOWN_LAN_SCHEMES = Set.of("http", "https", "ws", "wss", "tcp", "udp", "mqtt", "mqtts");
 
     private final InboxFiles inboxFiles;
     private final OutboundUrlPolicy policy;
@@ -431,7 +431,8 @@ public class ParamValidator {
      *
      * <p>The spec's {@code allowed} list names the accepted schemes (default http, https, ws, wss); a
      * {@code tcp://} host is pinned the same way and a {@code udp://} bind host must be a wildcard or a local
-     * interface address (prompt 069). Socket URLs need an explicit port and nothing after it.
+     * interface address (prompt 069). Socket URLs need an explicit port and nothing after it. From prompt 083 an
+     * {@code mqtt://} or {@code mqtts://} broker URL is accepted where listed, pinned like {@code tcp://}.
      *
      * <p>The resolved address goes into {@link ValidatedParams#pinnedAddress}, and prompt 005
      * connects to that address with the original Host header and redirects disabled. Validating the
@@ -457,9 +458,10 @@ public class ParamValidator {
             throw new InvalidInputException(
                     "scheme '" + uri.getScheme() + "' is not allowed; use " + String.join(", ", schemes));
         }
-        if (scheme.equals("tcp") || scheme.equals("udp")) {
+        if (scheme.equals("tcp") || scheme.equals("udp") || scheme.equals("mqtt") || scheme.equals("mqtts")) {
+            // Prompt 083: an MQTT broker URL is pinned and private exactly like tcp://, with an explicit port.
             checkSocketUrl(uri, text);
-            InetAddress address = scheme.equals("tcp") ? pinTcpHost(uri) : bindAddress(uri);
+            InetAddress address = scheme.equals("udp") ? bindAddress(uri) : pinTcpHost(uri);
             pinned.put(spec.name(), address);
             return uri;
         }
@@ -481,6 +483,8 @@ public class ParamValidator {
         return switch (scheme) {
             case "tcp" -> "tcp://192.168.1.50:30003";
             case "udp" -> "udp://0.0.0.0:5000";
+            case "mqtt" -> "mqtt://192.168.1.10:1883";
+            case "mqtts" -> "mqtts://192.168.1.10:8883";
             default -> scheme + "://192.168.1.50:8080";
         };
     }

@@ -294,6 +294,19 @@ class FamilyDefaultsTest {
             Map.entry("LocalAprsAdapter", new Entry(new ai.foresignal.source.adapters.radio.LocalAprsAdapter(1,
                     new ai.foresignal.source.codec.KissAx25Codec(), new ai.foresignal.source.formats.aprs.AprsPacketDedup(),
                     null).descriptor(), "bulk-event")),
+            // Prompt 083: mesh nodes are station-like state (365 d), messages with them.
+            Map.entry("MeshtasticMqttAdapter", new Entry(new ai.foresignal.source.adapters.mesh.MeshtasticMqttAdapter(null,
+                    () -> "abcd1234", new ai.foresignal.source.adapters.mesh.MeshMessageBus(), null, "").descriptor(),
+                    "state")),
+            Map.entry("MeshtasticLocalAdapter", new Entry(new ai.foresignal.source.adapters.mesh.MeshtasticLocalAdapter(
+                    null, () -> "abcd1234", new ai.foresignal.source.adapters.mesh.MeshMessageBus(), null).descriptor(),
+                    "state")),
+            Map.entry("MeshtasticMapAdapter", new Entry(
+                    new ai.foresignal.source.adapters.mesh.MeshtasticMapAdapter("").descriptor(), "state")),
+            Map.entry("MeshCoreLocalAdapter", new Entry(new ai.foresignal.source.adapters.mesh.MeshCoreLocalAdapter(null,
+                    new ai.foresignal.source.adapters.mesh.MeshMessageBus()).descriptor(), "state")),
+            Map.entry("MeshCoreBridgeAdapter", new Entry(
+                    new ai.foresignal.source.adapters.mesh.MeshCoreBridgeAdapter().descriptor(), "state")),
             Map.entry("SatDumpAdapter", new Entry(new ai.foresignal.source.adapters.satdump.SatDumpAdapter("itest", null,
                     null).descriptor(), "station")));
 

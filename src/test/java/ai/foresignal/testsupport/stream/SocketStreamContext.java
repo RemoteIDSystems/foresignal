@@ -36,6 +36,7 @@ public final class SocketStreamContext implements StreamContext {
     private final ValidatedParams params;
     private final Map<String, String> state = new ConcurrentHashMap<>();
     private volatile SocketTransport sockets;
+    private volatile Map<String, String> credentials = Map.of();
 
     /**
      * Creates the context.
@@ -53,6 +54,12 @@ public final class SocketStreamContext implements StreamContext {
     /** Installs the transport {@link #sockets()} returns. */
     public SocketStreamContext withSockets(SocketTransport transport) {
         this.sockets = transport;
+        return this;
+    }
+
+    /** Installs the credentials {@link #credentials()} returns (prompt 083: a broker's user name and password). */
+    public SocketStreamContext withCredentials(Map<String, String> values) {
+        this.credentials = values == null ? Map.of() : Map.copyOf(values);
         return this;
     }
 
@@ -91,7 +98,7 @@ public final class SocketStreamContext implements StreamContext {
 
     @Override
     public Map<String, String> credentials() {
-        return Map.of();
+        return credentials;
     }
 
     @Override

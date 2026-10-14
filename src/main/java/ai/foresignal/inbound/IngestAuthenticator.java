@@ -59,6 +59,10 @@ import org.springframework.stereotype.Component;
  * {@code /rasters} paths, a key that matches no custom source is compared, in constant time, with the
  * source's encrypted {@code ingestKey} credential ({@link SourceDescriptor#REMOTE_MEDIA_KEY}); a match
  * is an ingest-key caller bound to that source.
+ *
+ * <p>Prompt 083: a built-in PUSH source that declares the {@code ingestKey} credential (the {@code meshcore-bridge}
+ * source) is matched the same way on its own {@code /v1/ingest/{sourceId}/{format}} paths (not in the path, not a
+ * compatibility route), so a bridge never needs an admin token.
  */
 @Component
 public class IngestAuthenticator implements IngestKeyAuthenticator {
@@ -139,20 +143,22 @@ public class IngestAuthenticator implements IngestKeyAuthenticator {
 
     /**
      * Prompt 054: the {@code ingestKey} credential of a source that accepts remote media, on that source's
-     * own {@code media} or {@code rasters} path only.
+     * own {@code media} or {@code rasters} path only; prompt 083: of a built-in PUSH source that declares the
+     * credential, on that source's own format paths.
      */
     Optional<Result> remoteMediaKey(String key, IngestPath path) {
-        if (path.sourceId() == null || path.keyInPath() || path.compat() != null
-                || !SourceDescriptor.REMOTE_MEDIA_SEGMENTS.contains(path.format())) {
+        if (path.sourceId() == null || path.keyInPath() || path.compat() != null || path.format() == null) {
             return Optional.empty();
         }
+        boolean mediaPath = SourceDescriptor.REMOTE_MEDIA_SEGMENTS.contains(path.format());
         SourceRegistry sources = registry == null ? null : registry.getIfAvailable();
         CredentialsAccess access = credentials == null ? null : credentials.getIfAvailable();
         if (sources == null || access == null) {
             return Optional.empty();
         }
         Optional<SourceRegistry.Registration> source = sources.find(path.sourceId());
-        if (source.isEmpty() || !source.get().descriptor().acceptsRemoteMedia()) {
+        if (source.isEmpty() || !(mediaPath ? source.get().descriptor().acceptsRemoteMedia()
+                : builtInPushWithKey(source.get().descriptor()))) {
             return Optional.empty();
         }
         String stored;
@@ -167,6 +173,16 @@ public class IngestAuthenticator implements IngestKeyAuthenticator {
         String prefix = IngestKeys.prefixOf(key);
         return Optional.of(Result.accepted(new IngestCaller(IngestCaller.INGEST_KEY, path.sourceId(),
                 IngestCaller.INGEST_KEY + ":" + prefix, prefix)));
+    }
+
+    /**
+     * True for a built-in PUSH source that declares the {@code ingestKey} credential (prompt 083): its key may be
+     * presented on its own format paths.
+     */
+    static boolean builtInPushWithKey(SourceDescriptor descriptor) {
+        return descriptor.mode() == ai.foresignal.source.spi.Mode.PUSH && !descriptor.custom()
+                && descriptor.credentialFields().stream()
+                        .anyMatch(field -> SourceDescriptor.REMOTE_MEDIA_KEY.equals(field.name()));
     }
 
     /**

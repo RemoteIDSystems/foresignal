@@ -461,6 +461,92 @@ The address must be on your own network (loopback, RFC 1918 or unique-local), as
 packets, not AX.25. Pointed at one, `local-aprs-{n}` connects, counts every frame in
 `foresignal.aprs.local.non_ax25` and stores nothing.
 
+### Mesh networks
+
+Prompt 083 adds five mesh sources, all disabled until you enable them. Every node arrives as a `mesh-node` record:
+its names, role or node type, hardware, firmware, battery and last known position. The gateway or your own node that
+heard it is the record's observer. Foresignal never decodes Meshtastic protobufs (they are GPL-3.0); every Meshtastic
+path uses the firmware's JSON output.
+
+| Source | What it is | Default interval · budget |
+|---|---|---|
+| `meshtastic-mqtt` | Meshtastic nodes on the public broker, under fixed rules | stream · 4 units/min, 100/day |
+| `meshtastic-map` | the community Meshtastic map's node list | 24 h (never less) · 1/min, 2/day |
+| `meshtastic-local` | your own Meshtastic node through your own MQTT broker (private) | stream · 20/min, 2,000/day |
+| `meshcore-local` | your own MeshCore companion radio over its WiFi TCP firmware (private) | stream · 1 connect/min, 1,440/day |
+| `meshcore-bridge` | your own MeshCore companion over USB, BLE or TCP through the bridge script (private) | push · 120/min |
+
+**The public broker's rules, and why they are fixed.** ShadowBroker was reported to the Meshtastic project for one to
+two orders of magnitude more broker traffic than a typical client, so `meshtastic-mqtt` enforces these limits in code
+and no setting loosens them:
+- it subscribes to `<root>/2/json/#` only, one subscription per root, at QoS 0; `root` must look like `msh/US` or
+  `msh/US/CA`, and `msh/#`, `+/…` or any other wildcard is refused;
+- `maxSubscriptions` is 1 by default and at most 3, and `root` plus `extraRoots` must fit in it (a PUT that breaks
+  this is refused with `400 VALIDATION_FAILED`);
+- the client id is `foresignal-<installId>`, so the broker's operators can identify it; keepalive 120 s; a clean
+  session; it never publishes anything;
+- it reconnects from 15 s up to 5 minutes with jitter, at most 12 times an hour, and each connect and subscribe costs a
+  budget unit;
+- it reads at most 100 messages a minute and drops the rest before parsing (counted as
+  `foresignal.mesh.dropped{reason=rate}`).
+
+Expect little data: most public traffic is protobuf, which Foresignal ignores, and the broker reduces public positions
+to 10–16 bits (`positionPrecisionBits`; the record's accuracy follows from it). `includeText` keeps public channel text
+as records; it is never posted anywhere.
+
+```json
+PUT /v1/sources/meshtastic-mqtt
+{"enabled": true, "params": {"root": "msh/US"}}
+```
+
+**The community map** (`meshtastic.liamcottle.net`) is a hobby service; it is read at most once a day (about 29 MB,
+parsed as a stream). Its license is not stated, so its records are marked "unspecified (community service)".
+
+**Your own Meshtastic node.** Run a broker on your network (for example Mosquitto), then on the node's MQTT module set
+the broker address, **enable JSON** and **disable encryption on uplink** for the channels you want to see. nRF52 nodes
+(RAK4631, T-Echo and the like) cannot emit JSON; if you need one, run a protobuf-to-JSON bridge outside Foresignal
+that republishes JSON to your broker (the protobuf path is GPL-3.0 and stays out of this repository). Then:
+
+```json
+PUT /v1/sources/meshtastic-local
+{"enabled": true, "params": {"brokerUrl": "mqtt://192.168.1.10:1883", "root": "msh/local", "channels": ["Ops"]}}
+PUT /v1/sources/meshtastic-local/credentials
+{"username": "foresignal", "password": "…"}
+```
+
+The broker must be on your own network and the port explicit. With `mqtts://` Foresignal connects by name so TLS can
+verify the certificate (system trust store), after checking the name still resolves to a private address. Leave
+`channels` empty to see every channel. The source is private: it shows where your neighbors' nodes are.
+
+**MeshCore: bridge or TCP firmware.**
+- A companion running the **WiFi companion firmware** listens on TCP; point `meshcore-local` at it. There is no
+  default port: the firmware uses 5000 only when it was built without `TCP_PORT`.
+
+  ```json
+  PUT /v1/sources/meshcore-local
+  {"enabled": true, "params": {"endpoint": "tcp://192.168.1.30:5000"}}
+  ```
+
+- A **USB or BLE companion** (or any other) uses the bridge script in `contrib/meshcore-bridge`: it runs next to the
+  radio, uses the `meshcore` Python package and pushes to `meshcore-bridge`. Store a key you choose (starting with
+  `eik_`) as that source's `ingestKey` credential and give the bridge the same key; its README has a systemd unit.
+
+Both read the companion's contacts (chat nodes, repeaters, rooms, sensors) and its own node, and put every channel and
+direct message on the internal mesh message bus that mesh field reports use (prompt 084); messages become
+`mesh-message` records only with `includeText`. Foresignal sends the companion only read commands (identify, device
+query, contacts, channel names, battery, fetch messages); it never changes a setting, never reboots or resets it, never
+touches keys and never sends anything to another node.
+
+**One client per companion.** A MeshCore companion accepts a single TCP client and drops the previous one when another
+connects. Inside Foresignal, `meshcore-local` and the `meshcore` channel (prompt 084) share one connection per
+companion; outside it, close the MeshCore app on that companion's TCP port (or use BLE for the app), and do not run
+the bridge and `meshcore-local` against the same companion.
+
+**Repeater health.** For each repeater among your contacts, `advertStatus` is `ok` while its last advert is under
+`repeaterLateAfter` (13 h), `late` until `repeaterSilentAfter` (26 h), then `silent`. It is re-checked every 15 minutes
+and changes are stored as they happen, so a rule on `advertStatus` tells you when a repeater goes quiet. Health comes
+from adverts alone; Foresignal never logs in to a repeater or asks it for status.
+
 ### Flood watching
 
 Prompt 079 adds river, snow, drought and coastal water sources (see the Source Catalog, "Hydrology and coast"). All

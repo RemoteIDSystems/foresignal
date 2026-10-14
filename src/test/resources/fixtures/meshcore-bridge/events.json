@@ -1,0 +1,121 @@
+{
+  "events": [
+    {
+      "type": "self_info",
+      "data": {
+        "adv_type": 1,
+        "tx_power": 20,
+        "max_tx_power": 22,
+        "public_key": "f7ff142f1f2811fbe5a98d70d1698187047ce9fd3f6c587df36336725a83c42b",
+        "adv_lat": 37.7749,
+        "adv_lon": -122.4194,
+        "name": "Synthetic Companion"
+      }
+    },
+    {
+      "type": "contact",
+      "data": {
+        "public_key": "7b065359ae9cee772d5d24ef91782055507e5ab3fb570adaceb0f5161e66e333",
+        "type": 1,
+        "flags": 0,
+        "out_path_len": 2,
+        "adv_name": "Synthetic Hiker",
+        "last_advert": 1791899400,
+        "adv_lat": 37.7801,
+        "adv_lon": -122.4302,
+        "lastmod": 1791899410
+      }
+    },
+    {
+      "type": "contact",
+      "data": {
+        "public_key": "5f6a9ca3f1cc8bca96faf4af0620844b0e0f574c90857bd0fe5b5ee0155034f2",
+        "type": 2,
+        "flags": 0,
+        "out_path_len": 2,
+        "adv_name": "Synthetic Ridge Rpt",
+        "last_advert": 1791849600,
+        "adv_lat": 0.0,
+        "adv_lon": 0.0,
+        "lastmod": 1791849600
+      }
+    },
+    {
+      "type": "contact",
+      "data": {
+        "public_key": "d104384f64d935db927259b9d5ae4788fa34f35ff89862c54a891b45f254de4a",
+        "type": 3,
+        "flags": 0,
+        "out_path_len": 2,
+        "adv_name": "Synthetic Room",
+        "last_advert": 1791896400,
+        "adv_lat": 37.7,
+        "adv_lon": -122.5,
+        "lastmod": 1791896400
+      }
+    },
+    {
+      "type": "advert",
+      "data": {
+        "public_key": "5f6a9ca3f1cc8bca96faf4af0620844b0e0f574c90857bd0fe5b5ee0155034f2",
+        "type": 2,
+        "flags": 0,
+        "out_path_len": 2,
+        "adv_name": "Synthetic Ridge Rpt",
+        "last_advert": 1791900060,
+        "adv_lat": 0.0,
+        "adv_lon": 0.0,
+        "lastmod": 1791900061
+      }
+    },
+    {
+      "type": "advert",
+      "data": {
+        "public_key": "74979e2bf73d87f773ada91ae994392769411f330dccec4cba6b331db89530c5",
+        "type": 4,
+        "flags": 0,
+        "out_path_len": 2,
+        "adv_name": "Synthetic Weather",
+        "last_advert": 1791900090,
+        "adv_lat": 37.79,
+        "adv_lon": -122.41,
+        "lastmod": 1791900091
+      }
+    },
+    {
+      "type": "channel_msg",
+      "data": {
+        "type": "CHAN",
+        "channel_idx": 1,
+        "channel_name": "Ops",
+        "path_len": 2,
+        "txt_type": 0,
+        "sender_timestamp": 1791900120,
+        "text": "Synthetic Hiker: #E synthetic report",
+        "SNR": 6.25
+      }
+    },
+    {
+      "type": "contact_msg",
+      "data": {
+        "type": "PRIV",
+        "pubkey_prefix": "7b065359ae9c",
+        "path_len": 1,
+        "txt_type": 0,
+        "sender_timestamp": 1791900130,
+        "text": "synthetic direct",
+        "SNR": -2.5
+      }
+    },
+    {
+      "type": "advert",
+      "data": {
+        "public_key": "5f6a9ca3f1cc8bca96faf4af0620844b0e0f574c90857bd0fe5b5ee0155034f2"
+      }
+    },
+    {
+      "type": "telemetry",
+      "data": {}
+    }
+  ]
+}

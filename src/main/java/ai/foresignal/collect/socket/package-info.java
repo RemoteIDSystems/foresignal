@@ -12,6 +12,10 @@
  *   <li>{@link ai.foresignal.collect.socket.SocketMetrics}: the {@code foresignal.socket.*} counters.
  * </ul>
  *
+ * <p>Handles are receive-only apart from the single {@code onConnect} write, except a connection opened with
+ * {@code SocketOptions.commandWriter} (prompt 083): its {@link ai.foresignal.source.spi.CommandHandle} writes frames
+ * only after the options' {@link ai.foresignal.source.spi.CommandGuard} allowed them.
+ *
  * <p>Foresignal never opens a TCP server socket for a source; inbound TCP serving is prompt 110's SERVE
  * sinks.
  */

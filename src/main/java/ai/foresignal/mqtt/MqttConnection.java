@@ -58,6 +58,11 @@ import org.slf4j.LoggerFactory;
  *       there too.
  *   <li><b>Publishing</b> fails at once when the client is not connected, so the caller's retry ladder,
  *       not the client's offline queue, decides when a message goes out.
+ *   <li><b>Subscriber sessions</b> (prompt 083, {@link MqttSessionOptions#subscriber}): without a status topic there is
+ *       no Will and nothing is ever published; the session is clean, subscriptions use the options' QoS, and a lost
+ *       connection is reported through {@link #onDisconnected} instead of being retried, so the streaming supervisor
+ *       decides (and pays for) every reconnect. {@link #connectedFuture()} completes once the first connect's
+ *       callbacks have run, or fails when it does not happen.
  * </ul>
  */
 public class MqttConnection {
@@ -74,6 +79,8 @@ public class MqttConnection {
     private final DoubleSupplier random;
     private final Clock clock;
     private final List<Runnable> onConnected = new CopyOnWriteArrayList<>();
+    private final List<Consumer<String>> onDisconnected = new CopyOnWriteArrayList<>();
+    private final CompletableFuture<Void> firstConnect = new CompletableFuture<>();
     private final Map<String, Consumer<MqttInbound>> subscriptions = new ConcurrentHashMap<>();
     private final Mqtt5AsyncClient v5;
     private final Mqtt3AsyncClient v3;
@@ -141,7 +148,24 @@ public class MqttConnection {
         onConnected.add(callback);
     }
 
-    /** Connects; failures are retried on the backoff schedule. */
+    /**
+     * Runs {@code callback} with the reason when a connection of a non-reconnecting session ends on its own (prompt
+     * 083); never for {@link #close}.
+     */
+    public void onDisconnected(Consumer<String> callback) {
+        onDisconnected.add(callback);
+    }
+
+    /**
+     * Completes once the first connect's callbacks have run (subscriptions sent, {@link #onConnected} callbacks done);
+     * fails when the policy refuses the broker, the first attempt fails without a reconnect, or the connection is
+     * closed first.
+     */
+    public CompletableFuture<Void> connectedFuture() {
+        return firstConnect;
+    }
+
+    /** Connects; failures are retried on the backoff schedule (unless the session does not reconnect). */
     public synchronized void start() {
         if (started || closed) {
             return;
@@ -151,12 +175,16 @@ public class MqttConnection {
         if (denied != null) {
             lastError = denied;
             log.warn("MQTT connection {} not started: {}", spec.key(), denied);
+            firstConnect.completeExceptionally(new IOException(denied));
             return;
         }
         CompletableFuture<?> connecting = spec.v3() ? v3.connect(connect3()) : v5.connect(connect5());
         connecting.whenComplete((ack, error) -> {
             if (error != null) {
                 lastError = describe(error);
+                if (!spec.options().autoReconnect()) {
+                    firstConnect.completeExceptionally(new IOException(lastError, error));
+                }
             }
         });
     }
@@ -228,6 +256,20 @@ public class MqttConnection {
     }
 
     /**
+     * Subscribes to {@code filter} at the options' QoS now (prompt 083) and reports the broker's answer.
+     *
+     * @param handler called on the callback executor for each matching message
+     * @return completes on a successful SUBACK; fails when not connected or when the broker refused the filter
+     */
+    public CompletableFuture<Void> subscribeAcknowledged(String filter, Consumer<MqttInbound> handler) {
+        if (!connected()) {
+            return CompletableFuture.failedFuture(new IOException("not connected to the MQTT broker"));
+        }
+        subscriptions.put(filter, handler);
+        return sendSubscribe(filter);
+    }
+
+    /**
      * Closes the connection: publishes {@code offline} retained (when connected), sends a normal DISCONNECT
      * so the broker does not publish the Will, and stops reconnecting. Waits at most two seconds for each.
      */
@@ -238,10 +280,11 @@ public class MqttConnection {
             }
             closed = true;
         }
+        firstConnect.completeExceptionally(new IOException("closed"));
         MqttClient client = spec.v3() ? v3 : v5;
         boolean wasConnected = client.getState().isConnected();
         try {
-            if (wasConnected) {
+            if (wasConnected && spec.hasStatusTopic()) {
                 MqttQos qos = MqttQos.AT_LEAST_ONCE;
                 byte[] offline = MqttConnectionSpec.OFFLINE.getBytes(StandardCharsets.UTF_8);
                 CompletableFuture<?> sent = spec.v3()
@@ -269,14 +312,23 @@ public class MqttConnection {
 
     // ------------------------------------------------------------------------- internals
 
+    /** The keepalive in seconds: the options' when set, else the configured one. */
+    int keepAliveSeconds() {
+        Duration keepAlive = spec.options().keepAlive() != null ? spec.options().keepAlive() : properties.keepAlive();
+        return (int) keepAlive.toSeconds();
+    }
+
     private Mqtt5Connect connect5() {
+        boolean clean = spec.options().cleanStart();
         Mqtt5ConnectBuilder builder = Mqtt5Connect.builder()
-                .keepAlive((int) properties.keepAlive().toSeconds())
-                .cleanStart(false)
-                .sessionExpiryInterval(properties.sessionExpiry().toSeconds())
-                .willPublish(Mqtt5Publish.builder().topic(spec.statusTopic())
-                        .payload(MqttConnectionSpec.OFFLINE.getBytes(StandardCharsets.UTF_8))
-                        .qos(MqttQos.AT_LEAST_ONCE).retain(true).build());
+                .keepAlive(keepAliveSeconds())
+                .cleanStart(clean)
+                .sessionExpiryInterval(clean ? 0 : properties.sessionExpiry().toSeconds());
+        if (spec.hasStatusTopic()) {
+            builder = builder.willPublish(Mqtt5Publish.builder().topic(spec.statusTopic())
+                    .payload(MqttConnectionSpec.OFFLINE.getBytes(StandardCharsets.UTF_8))
+                    .qos(MqttQos.AT_LEAST_ONCE).retain(true).build());
+        }
         Mqtt5SimpleAuth auth = auth5();
         if (auth != null) {
             builder = builder.simpleAuth(auth);
@@ -295,11 +347,13 @@ public class MqttConnection {
 
     private Mqtt3Connect connect3() {
         Mqtt3ConnectBuilder builder = Mqtt3Connect.builder()
-                .keepAlive((int) properties.keepAlive().toSeconds())
-                .cleanSession(false)
-                .willPublish(Mqtt3Publish.builder().topic(spec.statusTopic())
-                        .payload(MqttConnectionSpec.OFFLINE.getBytes(StandardCharsets.UTF_8))
-                        .qos(MqttQos.AT_LEAST_ONCE).retain(true).build());
+                .keepAlive(keepAliveSeconds())
+                .cleanSession(spec.options().cleanStart());
+        if (spec.hasStatusTopic()) {
+            builder = builder.willPublish(Mqtt3Publish.builder().topic(spec.statusTopic())
+                    .payload(MqttConnectionSpec.OFFLINE.getBytes(StandardCharsets.UTF_8))
+                    .qos(MqttQos.AT_LEAST_ONCE).retain(true).build());
+        }
         if (spec.username() != null) {
             var auth = Mqtt3SimpleAuth.builder().username(spec.username());
             builder = builder.simpleAuth(spec.password() == null ? auth.build()
@@ -312,11 +366,13 @@ public class MqttConnection {
         connectedAt = clock.instant();
         lastError = null;
         callbacks.execute(() -> {
-            try {
-                publish(MqttMessage.retained(spec.statusTopic(), MqttConnectionSpec.ONLINE, null))
-                        .get(properties.publishTimeout().toMillis(), TimeUnit.MILLISECONDS);
-            } catch (Exception e) {
-                log.warn("MQTT connection {}: online status not confirmed: {}", spec.key(), e.getMessage());
+            if (spec.hasStatusTopic()) {
+                try {
+                    publish(MqttMessage.retained(spec.statusTopic(), MqttConnectionSpec.ONLINE, null))
+                            .get(properties.publishTimeout().toMillis(), TimeUnit.MILLISECONDS);
+                } catch (Exception e) {
+                    log.warn("MQTT connection {}: online status not confirmed: {}", spec.key(), e.getMessage());
+                }
             }
             for (String filter : subscriptions.keySet()) {
                 sendSubscribe(filter);
@@ -328,6 +384,7 @@ public class MqttConnection {
                     log.warn("MQTT connection {}: a connected callback failed", spec.key(), e);
                 }
             }
+            firstConnect.complete(null);
         });
     }
 
@@ -337,6 +394,19 @@ public class MqttConnection {
             lastError = describe(context.getCause());
         }
         if (closed || context.getSource() == MqttDisconnectSource.USER) {
+            return;
+        }
+        if (!spec.options().autoReconnect()) {
+            // Prompt 083: a subscribing source's supervisor reconnects, paying a budget unit per attempt.
+            String reason = lastError == null ? "connection lost" : lastError;
+            firstConnect.completeExceptionally(new IOException(reason));
+            for (Consumer<String> callback : onDisconnected) {
+                try {
+                    callback.accept(reason);
+                } catch (RuntimeException e) {
+                    log.warn("MQTT connection {}: a disconnected callback failed", spec.key(), e);
+                }
+            }
             return;
         }
         String denied = policy.get();
@@ -352,15 +422,27 @@ public class MqttConnection {
         context.getReconnector().reconnect(true).delay(delay.toMillis(), TimeUnit.MILLISECONDS);
     }
 
-    private void sendSubscribe(String filter) {
-        CompletableFuture<?> sent = spec.v3()
-                ? v3.subscribe(Mqtt3Subscribe.builder().topicFilter(filter).qos(MqttQos.AT_LEAST_ONCE).build())
-                : v5.subscribe(Mqtt5Subscribe.builder().topicFilter(filter).qos(MqttQos.AT_LEAST_ONCE).build());
+    private CompletableFuture<Void> sendSubscribe(String filter) {
+        MqttQos qos = spec.options().subscribeQos() == 0 ? MqttQos.AT_MOST_ONCE : MqttQos.AT_LEAST_ONCE;
+        CompletableFuture<Void> sent = spec.v3()
+                ? v3.subscribe(Mqtt3Subscribe.builder().topicFilter(filter).qos(qos).build()).thenAccept(ack -> {
+                    if (ack.getReturnCodes().stream().anyMatch(code -> code.isError())) {
+                        throw new java.util.concurrent.CompletionException(
+                                new IOException("the broker refused the subscription to " + filter));
+                    }
+                })
+                : v5.subscribe(Mqtt5Subscribe.builder().topicFilter(filter).qos(qos).build()).thenAccept(ack -> {
+                    if (ack.getReasonCodes().stream().anyMatch(code -> code.isError())) {
+                        throw new java.util.concurrent.CompletionException(
+                                new IOException("the broker refused the subscription to " + filter));
+                    }
+                });
         sent.whenComplete((ack, error) -> {
             if (error != null) {
                 log.warn("MQTT connection {}: subscribe to {} failed: {}", spec.key(), filter, error.getMessage());
             }
         });
+        return sent;
     }
 
     private void dispatch(String topic, byte[] payload, boolean retained) {
