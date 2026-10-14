@@ -489,7 +489,13 @@ class FamilyDefaultsTest {
                     new ai.foresignal.source.adapters.cdc.NwssDetectionAdapter("",
                             ai.foresignal.source.spi.CountyGeometries.none()).descriptor(), "event")),
             Map.entry("WikiStreamAdapter", new Entry(
-                    new ai.foresignal.source.adapters.wikistream.WikiStreamAdapter("").descriptor(), "bulk-event")));
+                    new ai.foresignal.source.adapters.wikistream.WikiStreamAdapter("").descriptor(), "bulk-event")),
+            // Prompt 096: satellite scenes are high-volume event-like observations; the prompt's 90 d matches
+            // the bulk-event class (RetentionResolverTest's table). Sentinel-2 and Landsat are on, Sentinel-1 off.
+            Map.entry("EarthSearchAdapter", new Entry(new ai.foresignal.source.adapters.stac.EarthSearchAdapter(
+                    ai.foresignal.source.adapters.stac.StacSources.reviewed("stac-sentinel2"), "",
+                    (java.util.function.Supplier<ai.foresignal.source.spi.PlacePoints>) () -> null).descriptor(),
+                    "bulk-event")));
 
     /**
      * The {@code privacy} class (prompt 086): private sources whose prompt sets a short raw window on purpose, because

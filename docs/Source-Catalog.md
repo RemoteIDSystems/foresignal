@@ -775,6 +775,34 @@ signal. Every adapter minimises personal information, keeps per-record licences 
 | `cdc-nwss-detections` | wastewater-detection | CDC SODA per-pathogen datasets | optional `appToken` (`X-App-Token`) | 12 h (min 6 h) · 4/min, 100/day | **Built in prompt 095** (`NwssDetectionAdapter`, `NwssDetectionParser`). Param `pathogens` (default `h5, measles, mpox`) maps to `mtpu-urpp`, `akvg-8vrb`, `xpxn-rzgz`; selectable `ymmh-divb` Influenza A, `45cq-cw4i` RSV, `j9g8-acpt` SARS-CoV-2. Folds to the latest sample per site and target (`externalId = {site}:{pcr_target}`); **a detection flip (`detected == true`) is significant**. `eventTime = sample_collect_date`; placed at the `county_fips` interior point. Same WastewaterSCAN licence split. |
 | `wiki-edit-surge` | wiki-edit-surge | Wikimedia EventStreams `stream.wikimedia.org/v2/stream/recentchange` (SSE) | none (descriptive UA required) | streaming · 2/min, 500/day, 3 GB/day | **Built in prompt 095** (`WikiStreamAdapter`, `RecentChangeEvent`, `SurgeDetector`). **Disabled by default.** Filters `meta.domain != canary`, `type ∈ {edit,new}`, `namespace == 0`, `bot == false`, `wiki ∈ wikis`; the per-`(wiki,title)` sliding-window detector holds hashed editor names in memory only. One record pushed when the banded state changes (edits bands of 5, editors bands of 2, phase). `externalId = {wiki}:{title}`; STANDARD, ALL, `observedAt` = newest `meta.dt`. **Resume:** the server closes about every 15 minutes; a clean close reconnects at once (not a failure) with `Last-Event-ID` set to the verbatim last `id` array, and transport errors back off 1 s → 5 s → 30 s → 120 s with jitter (429/503 wait 30 s). **Never stores** `user`, `comment` or `parsedcomment`; `embedFields = [title]`. A rising surge is geotagged once through a `*.wikipedia.org`-allowlisted query to the wiki's own API. `licence = "Wikimedia metadata (titles CC BY-SA 4.0)"`, attribution "Wikimedia Foundation EventStreams". |
 
+## Satellite scenes (prompt 096)
+
+Sentinel-2, Landsat and (optionally) Sentinel-1 scene footprints over the operator's area of interest, from
+the Earth Search STAC API. **Footprints and links only:** Foresignal never downloads, proxies or signs an
+imagery asset. Every source is STANDARD, `IngestPolicy.All`, `observedAtMode = UPSTREAM`, no TTL and
+`zeroResultsNormal = true` (cloudy weeks return nothing); retention is 90 days (the `bulk-event` class).
+All three require an `aoi` (a bbox or a place id) and poll hourly (min 15 min) at 4/min and 300/day.
+
+| Source id | Kind | Upstream | Auth | Cadence / budget | Notes |
+|---|---|---|---|---|---|
+| `stac-sentinel2` | satellite-scene | Earth Search `POST {base}/search`, collection `sentinel-2-c1-l2a` (Collection 1, recommended; the legacy `sentinel-2-l2a` is not used) | none | 1 h (min 15 min) · 4/min, 300/day | **Built in prompt 096** (`EarthSearchAdapter`, `StacItemParser`). Params `aoi` (required), `maxCloudCover` (default 30), `lookbackDays` (default 3, first run), `maxPages` (default 5). `externalId = {collection}:{id}`; `eventTime = properties.datetime`, `observedAt = properties.updated ?? created`. Payload `collection, platform, constellation, instruments, cloudCover` (1 dp), `gridCode` (`grid:code`), `mgrsTile` (`s2:mgrs_tile`, absent in C1), `sunElevation, aoiCoverPct` (footprint ∩ AOI ÷ AOI, local equal-area), `stacItemUrl`, `thumbnailUrl` (the `https://` payload thumbnail only), `assetKeys`, `eventTime`, `title`. `licence = "Copernicus Sentinel data terms (free, full and open)"`, attribution "Contains modified Copernicus Sentinel data {year}". Verified 2026-10: C1 items publish `grid:code` (`MGRS-…`) and an `https://` thumbnail. |
+| `stac-landsat` | satellite-scene | Earth Search `POST {base}/search`, collection `landsat-c2-l2` | none | 1 h (min 15 min) · 4/min, 300/day | **Built in prompt 096**, same adapter. Adds `wrsPath`/`wrsRow` (`landsat:wrs_path`/`wrs_row`) and `gridCode` (`WRS2-…`). The `assets.thumbnail` href is `s3://usgs-landsat/…` in a requester-pays bucket, so the record drops it (never rewritten or signed). `licence = "US-PD (USGS Landsat)"`, attribution "Landsat imagery courtesy of the U.S. Geological Survey". |
+| `stac-sentinel1` | satellite-scene | Earth Search `POST {base}/search`, collection `sentinel-1-grd` | none | 1 h (min 15 min) · 4/min, 300/day | **Built in prompt 096, disabled by default.** SAR: no cloud filter (`maxCloudCover` is ignored), payload `sarMode` (`sar:instrument_mode`) and `polarizations` (`sar:polarizations`). The thumbnail is `s3://sentinel-s1-l1c/…`, so it is dropped. Same Copernicus licence and attribution. Useful for cloudy-season flood watching. |
+
+**How the search works (verified 2026-10).** `POST {base}/search` with `collections`, `intersects` (a place
+AOI) or `bbox` (a box AOI; a box that crosses the antimeridian is split into two requests), `datetime:
+"{from}/.."`, `query: {"eo:cloud_cover": {"lt": maxCloudCover}}`, `sortby` newest-first, `limit` 100 and a
+`fields.include` projection. **The `query` extension is used, not CQL2 `filter`:** Earth Search silently
+ignores `filter` and returns every item, so the parser throws `UpstreamFormatException("search filter
+ignored")` if a returned item violates the requested cloud or time bound instead of ingesting it. The
+`rel=next` link (a POST body carrying an opaque `next` token) is followed verbatim, at most `maxPages`
+times; the newest acquisition is stored in adapter state after a successful run and the next run starts two
+days behind it to absorb late processing.
+
+**Alternative (not built):** the Microsoft Planetary Computer STAC API
+(`https://planetarycomputer.microsoft.com/api/stac/v1/search`) supports CQL2 `filter`, but its asset links
+need SAS signing, which Foresignal will not do. Earth Search stays the default (Gap-Analysis §4b).
+
 ## Social platforms (prompts 135–137, v1.3)
 
 Foresignal is a single-operator tool: every platform below is an adapter the operator enables with their own credentials and budget, after reading the platform's terms (summarised here; check them yourself, they change). Nothing is hard-blocked. "Collection" says what the data can be used for: **complete** and **paged** paths feed volume baselines; **sample** paths feed claims and leads only.

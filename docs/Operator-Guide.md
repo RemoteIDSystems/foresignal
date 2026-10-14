@@ -4440,3 +4440,31 @@ docker compose exec -T db dropdb -U foresignal restore_drill
   a continuous firehose, so measure your own volume before enabling it. It never stores usernames, edit comments
   or parsed comments; the page title is untrusted text and is the only embedded field. A useful rule:
   `phase == rising` in `enter`, with a **6 h cooldown** so a long surge does not repeat.
+
+## Satellite scenes (prompt 096)
+
+- **You must set an AOI.** `stac-sentinel2` and `stac-landsat` require the `aoi` parameter — a box
+  `west,south,east,north` or a place id — so enabling either fails with `400 VALIDATION_FAILED` until you
+  supply one. A box that crosses the antimeridian is split into two searches automatically.
+- **Links only; no imagery is ever downloaded.** A `satellite-scene` record carries the footprint, the
+  acquisition time, the cloud cover, the fraction of your AOI the footprint covers (`aoiCoverPct`), the STAC
+  item link (`stacItemUrl`) and, only when the collection publishes a public one, an `https://` thumbnail.
+  Landsat and Sentinel-1 thumbnails live in requester-pays S3 buckets (`s3://…`), so Foresignal drops them
+  rather than rewriting or signing them; open `stacItemUrl` to get the full set of assets yourself.
+- **Rules.** A rule is just `kind=satellite-scene` plus payload conditions, for example
+  `cloudCover < 20 AND aoiCoverPct >= 80` to catch a clear scene over your area:
+  ```json
+  {"name": "Clear Sentinel-2 scene over home", "kinds": ["satellite-scene"],
+   "sources": ["stac-sentinel2"], "match": "match", "onlyNew": true,
+   "enter": "cloudCover < 20 AND aoiCoverPct >= 80"}
+  ```
+  Use `only_new` (`onlyNew`) so a reprocessed item that only moves `properties.updated` is a touch, not a new
+  alert. `cloudCover` is percent (one decimal); `aoiCoverPct` is an integer 0–100.
+- **Cloudy-season flood watching with Sentinel-1.** SAR sees through cloud, so enable `stac-sentinel1`
+  (off by default) and watch `kind=satellite-scene`, `sources=["stac-sentinel1"]` with a
+  `aoiCoverPct >= 90` rule: a new Sentinel-1 scene over your flood AOI is a fresh, cloud-independent look.
+  Sentinel-1 has no `cloudCover`, so leave it out of the conditions.
+- **Cadence and quota.** Each run searches your AOI hourly (min 15 minutes) at 4 requests/minute and 300/day;
+  the first run looks `lookbackDays` (default 3) behind, later runs start two days behind the newest scene
+  already seen. `maxPages` (default 5, at most 10) caps the pages of 100 read per run. A cloudy week returns
+  nothing, which is normal (no silent-break warning).

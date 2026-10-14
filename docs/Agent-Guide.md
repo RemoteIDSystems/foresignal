@@ -308,6 +308,17 @@ entity's first version only):
  "messageTemplate": "{{payload.label}} (automated, not a warning)"}
 ```
 
+## Satellite scenes (prompt 096)
+
+`stac-sentinel2`, `stac-landsat` and `stac-sentinel1` (off by default) record new scene footprints over the
+operator's area of interest as `satellite-scene` records. Find them with `query_records
+kind=satellite-scene` (add `source`, `bbox`, `near` or `since` as usual); each item carries the footprint, the
+acquisition time (`eventTime`), `cloudCover`, `aoiCoverPct`, `platform`, `stacItemUrl` and, for Sentinel-2,
+an `https` `thumbnailUrl`. **Follow `stacItemUrl` yourself to open the imagery: Foresignal never downloads,
+proxies or signs an imagery asset**, so never expect a tile or a stored image for this kind. A rule like
+`cloudCover < 20 AND aoiCoverPct >= 80` with `onlyNew` catches a clear scene; Sentinel-1 (no `cloudCover`)
+serves cloudy-season watching.
+
 ## SatDump ground station (prompt 049)
 
 `satdump-{station}` sources (one per station the operator configured) bring the owner's own receiver:

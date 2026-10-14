@@ -1,0 +1,112 @@
+{
+ "type": "FeatureCollection",
+ "stac_version": "1.0.0",
+ "features": [
+  {
+   "type": "Feature",
+   "stac_version": "1.0.0",
+   "id": "S1D_IW_GRDH_1SDV_20261003T094453_20261003T094518_004849_0091D2",
+   "collection": "sentinel-1-grd",
+   "geometry": {
+    "coordinates": [
+     [
+      [
+       -60.9627723,
+       5.5522743
+      ],
+      [
+       -61.2625805,
+       4.0423706
+      ],
+      [
+       -59.0444342,
+       3.5778127
+      ],
+      [
+       -58.7323151,
+       5.0906131
+      ],
+      [
+       -60.9627723,
+       5.5522743
+      ]
+     ]
+    ],
+    "type": "Polygon"
+   },
+   "bbox": [
+    -61.2625805,
+    3.5778127,
+    -58.7323151,
+    5.5522743
+   ],
+   "properties": {
+    "datetime": "2026-10-03T09:45:05.592195Z",
+    "sar:instrument_mode": "IW",
+    "constellation": "sentinel-1",
+    "created": "2026-10-03T14:02:56.429Z",
+    "updated": "2026-10-03T14:02:56.429Z",
+    "platform": "sentinel-1d",
+    "sar:polarizations": [
+     "VV",
+     "VH"
+    ]
+   },
+   "assets": {
+    "thumbnail": {
+     "roles": [
+      "thumbnail"
+     ],
+     "description": "An averaged, decimated preview image in PNG format. Single polarization products are represented with a grey scale image. Dual polarization products are represented by a single composite colour image in RGB with the red channel (R) representing the  co-polarization VV or HH), the green channel (G) represents the cross-polarization (VH or HV) and the blue channel (B) represents the ratio of the cross an co-polarizations.",
+     "href": "s3://sentinel-s1-l1c/GRD/2026/10/3/IW/DV/S1D_IW_GRDH_1SDV_20261003T094453_20261003T094518_004849_0091D2_4DD9/preview/quick-look.png",
+     "type": "image/png",
+     "title": "Preview Image"
+    },
+    "vv": {
+     "roles": [
+      "data"
+     ],
+     "description": "Actual SAR data that have been processed into an image",
+     "href": "s3://sentinel-s1-l1c/GRD/2026/10/3/IW/DV/S1D_IW_GRDH_1SDV_20261003T094453_20261003T094518_004849_0091D2_4DD9/measurement/iw-vv.tiff",
+     "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+     "title": "VV Data",
+     "raster:bands": [
+      {
+       "data_type": "uint16",
+       "nodata": 0
+      }
+     ]
+    },
+    "vh": {
+     "roles": [
+      "data"
+     ],
+     "description": "Actual SAR data that have been processed into an image",
+     "href": "s3://sentinel-s1-l1c/GRD/2026/10/3/IW/DV/S1D_IW_GRDH_1SDV_20261003T094453_20261003T094518_004849_0091D2_4DD9/measurement/iw-vh.tiff",
+     "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+     "title": "VH Data",
+     "raster:bands": [
+      {
+       "data_type": "uint16",
+       "nodata": 0
+      }
+     ]
+    }
+   },
+   "links": [
+    {
+     "rel": "self",
+     "type": "application/geo+json",
+     "href": "https://earth-search.aws.element84.com/v1/collections/sentinel-1-grd/items/S1D_IW_GRDH_1SDV_20261003T094453_20261003T094518_004849_0091D2"
+    }
+   ]
+  }
+ ],
+ "links": [
+  {
+   "rel": "root",
+   "type": "application/json",
+   "href": "https://earth-search.aws.element84.com/v1"
+  }
+ ]
+}

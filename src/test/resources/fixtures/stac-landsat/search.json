@@ -1,0 +1,285 @@
+{
+ "type": "FeatureCollection",
+ "stac_version": "1.0.0",
+ "features": [
+  {
+   "type": "Feature",
+   "stac_version": "1.0.0",
+   "id": "LC09_L2SP_027039_20260928_02_T1",
+   "collection": "landsat-c2-l2",
+   "geometry": {
+    "coordinates": [
+     [
+      [
+       -98.59129658432302,
+       31.348115045097273
+      ],
+      [
+       -99.02732127871622,
+       29.62212272056233
+      ],
+      [
+       -97.15232458323464,
+       29.250055448863122
+      ],
+      [
+       -96.68239695672497,
+       30.976614385446336
+      ],
+      [
+       -98.59129658432302,
+       31.348115045097273
+      ]
+     ]
+    ],
+    "type": "Polygon"
+   },
+   "bbox": [
+    -99.052213,
+    29.239949,
+    -96.656592,
+    31.353415
+   ],
+   "properties": {
+    "grid:code": "WRS2-027039",
+    "view:sun_elevation": 52.4142071,
+    "datetime": "2026-09-28T17:03:04.958820Z",
+    "instruments": [
+     "oli",
+     "tirs"
+    ],
+    "landsat:wrs_row": "039",
+    "created": "2026-09-29T12:46:52.998Z",
+    "eo:cloud_cover": 3.75,
+    "updated": "2026-09-29T12:46:52.998Z",
+    "platform": "landsat-9",
+    "landsat:wrs_path": "027"
+   },
+   "assets": {
+    "thumbnail": {
+     "storage:region": "us-west-2",
+     "storage:platform": "AWS",
+     "roles": [
+      "thumbnail"
+     ],
+     "href": "s3://usgs-landsat/collection02/level-2/standard/oli-tirs/2026/027/039/LC09_L2SP_027039_20260928_20260929_02_T1/LC09_L2SP_027039_20260928_20260929_02_T1_thumb_small.jpeg",
+     "type": "image/jpeg",
+     "title": "Thumbnail image",
+     "storage:requester_pays": true
+    },
+    "red": {
+     "storage:region": "us-west-2",
+     "storage:platform": "AWS",
+     "roles": [
+      "data",
+      "reflectance"
+     ],
+     "eo:bands": [
+      {
+       "full_width_half_max": 0.04,
+       "center_wavelength": 0.65,
+       "name": "OLI_B4",
+       "description": "Visible red",
+       "common_name": "red"
+      }
+     ],
+     "description": "Collection 2 Level-2 Red Band (SR_B4) Surface Reflectance",
+     "href": "s3://usgs-landsat/collection02/level-2/standard/oli-tirs/2026/027/039/LC09_L2SP_027039_20260928_20260929_02_T1/LC09_L2SP_027039_20260928_20260929_02_T1_SR_B4.TIF",
+     "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+     "title": "Red Band",
+     "raster:bands": [
+      {
+       "offset": -0.2,
+       "data_type": "uint16",
+       "scale": 2.75e-05,
+       "nodata": 0,
+       "spatial_resolution": 30
+      }
+     ],
+     "storage:requester_pays": true
+    },
+    "blue": {
+     "storage:region": "us-west-2",
+     "storage:platform": "AWS",
+     "roles": [
+      "data",
+      "reflectance"
+     ],
+     "eo:bands": [
+      {
+       "full_width_half_max": 0.06,
+       "center_wavelength": 0.48,
+       "name": "OLI_B2",
+       "description": "Visible blue",
+       "common_name": "blue"
+      }
+     ],
+     "description": "Collection 2 Level-2 Blue Band (SR_B2) Surface Reflectance",
+     "href": "s3://usgs-landsat/collection02/level-2/standard/oli-tirs/2026/027/039/LC09_L2SP_027039_20260928_20260929_02_T1/LC09_L2SP_027039_20260928_20260929_02_T1_SR_B2.TIF",
+     "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+     "title": "Blue Band",
+     "raster:bands": [
+      {
+       "offset": -0.2,
+       "data_type": "uint16",
+       "scale": 2.75e-05,
+       "nodata": 0,
+       "spatial_resolution": 30
+      }
+     ],
+     "storage:requester_pays": true
+    }
+   },
+   "links": [
+    {
+     "rel": "self",
+     "type": "application/geo+json",
+     "href": "https://earth-search.aws.element84.com/v1/collections/landsat-c2-l2/items/LC09_L2SP_027039_20260928_02_T1"
+    }
+   ]
+  },
+  {
+   "type": "Feature",
+   "stac_version": "1.0.0",
+   "id": "LC08_L2SP_027039_20260920_02_T1",
+   "collection": "landsat-c2-l2",
+   "geometry": {
+    "coordinates": [
+     [
+      [
+       -98.57646229350978,
+       31.35050305003338
+      ],
+      [
+       -99.01306701339131,
+       29.624561674155494
+      ],
+      [
+       -97.14428163797851,
+       29.251026803016604
+      ],
+      [
+       -96.67420899384949,
+       30.97754953585038
+      ],
+      [
+       -98.57646229350978,
+       31.35050305003338
+      ]
+     ]
+    ],
+    "type": "Polygon"
+   },
+   "bbox": [
+    -99.032537,
+    29.238648,
+    -96.636883,
+    31.354989
+   ],
+   "properties": {
+    "grid:code": "WRS2-027039",
+    "view:sun_elevation": 54.75348096,
+    "datetime": "2026-09-20T17:02:56.727967Z",
+    "instruments": [
+     "oli",
+     "tirs"
+    ],
+    "landsat:wrs_row": "039",
+    "created": "2026-10-01T03:50:03.734Z",
+    "eo:cloud_cover": 23.52,
+    "updated": "2026-10-01T03:50:03.734Z",
+    "platform": "landsat-8",
+    "landsat:wrs_path": "027"
+   },
+   "assets": {
+    "thumbnail": {
+     "storage:region": "us-west-2",
+     "storage:platform": "AWS",
+     "roles": [
+      "thumbnail"
+     ],
+     "href": "s3://usgs-landsat/collection02/level-2/standard/oli-tirs/2026/027/039/LC08_L2SP_027039_20260920_20260930_02_T1/LC08_L2SP_027039_20260920_20260930_02_T1_thumb_small.jpeg",
+     "type": "image/jpeg",
+     "title": "Thumbnail image",
+     "storage:requester_pays": true
+    },
+    "red": {
+     "storage:region": "us-west-2",
+     "storage:platform": "AWS",
+     "roles": [
+      "data",
+      "reflectance"
+     ],
+     "eo:bands": [
+      {
+       "full_width_half_max": 0.04,
+       "center_wavelength": 0.65,
+       "name": "OLI_B4",
+       "description": "Visible red",
+       "common_name": "red"
+      }
+     ],
+     "description": "Collection 2 Level-2 Red Band (SR_B4) Surface Reflectance",
+     "href": "s3://usgs-landsat/collection02/level-2/standard/oli-tirs/2026/027/039/LC08_L2SP_027039_20260920_20260930_02_T1/LC08_L2SP_027039_20260920_20260930_02_T1_SR_B4.TIF",
+     "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+     "title": "Red Band",
+     "raster:bands": [
+      {
+       "offset": -0.2,
+       "data_type": "uint16",
+       "scale": 2.75e-05,
+       "nodata": 0,
+       "spatial_resolution": 30
+      }
+     ],
+     "storage:requester_pays": true
+    },
+    "blue": {
+     "storage:region": "us-west-2",
+     "storage:platform": "AWS",
+     "roles": [
+      "data",
+      "reflectance"
+     ],
+     "eo:bands": [
+      {
+       "full_width_half_max": 0.06,
+       "center_wavelength": 0.48,
+       "name": "OLI_B2",
+       "description": "Visible blue",
+       "common_name": "blue"
+      }
+     ],
+     "description": "Collection 2 Level-2 Blue Band (SR_B2) Surface Reflectance",
+     "href": "s3://usgs-landsat/collection02/level-2/standard/oli-tirs/2026/027/039/LC08_L2SP_027039_20260920_20260930_02_T1/LC08_L2SP_027039_20260920_20260930_02_T1_SR_B2.TIF",
+     "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+     "title": "Blue Band",
+     "raster:bands": [
+      {
+       "offset": -0.2,
+       "data_type": "uint16",
+       "scale": 2.75e-05,
+       "nodata": 0,
+       "spatial_resolution": 30
+      }
+     ],
+     "storage:requester_pays": true
+    }
+   },
+   "links": [
+    {
+     "rel": "self",
+     "type": "application/geo+json",
+     "href": "https://earth-search.aws.element84.com/v1/collections/landsat-c2-l2/items/LC08_L2SP_027039_20260920_02_T1"
+    }
+   ]
+  }
+ ],
+ "links": [
+  {
+   "rel": "root",
+   "type": "application/json",
+   "href": "https://earth-search.aws.element84.com/v1"
+  }
+ ]
+}

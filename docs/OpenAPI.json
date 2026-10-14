@@ -16,6 +16,11 @@
       {
         "version": "1.3.0",
         "date": "2026-10-14",
+        "note": "096: no new operations. New sources stac-sentinel2 (sentinel-2-c1-l2a), stac-landsat (landsat-c2-l2) and stac-sentinel1 (sentinel-1-grd, disabled by default), all kind satellite-scene, each requiring an aoi (bbox or place id). Record x-foresignal-kinds fills in the satellite-scene payload; the record also carries title and eventTime (the tile property list reads them). Foresignal never downloads, proxies or signs an imagery asset: records carry the STAC item link and, only for an https thumbnail, the thumbnail URL."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-14",
         "note": "092: no new operations. New sources cloudflare-radar-outages (kind internet-outage), cloudflare-radar-bgp (kinds bgp-hijack, bgp-leak), ripe-atlas-probes (kind probe-status), gpsjam-daily (kind jamming-cell, disabled by default), the status-* Statuspage family and status-gcp/status-google-workspace (kinds service-status, service-incident), and the status-aws/status-azure feed-kit entries. The feed-kit id pattern now admits the reviewed status- prefix."
       },
       {
@@ -91245,7 +91250,9 @@
                 "aoiCoverPct",
                 "stacItemUrl",
                 "thumbnailUrl",
-                "assetKeys"
+                "assetKeys",
+                "eventTime",
+                "title"
               ]
             },
             "note": "Links only; Foresignal never fetches imagery."

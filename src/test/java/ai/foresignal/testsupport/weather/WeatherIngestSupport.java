@@ -193,6 +193,8 @@ public abstract class WeatherIngestSupport {
         registry.add(ai.foresignal.source.adapters.ercot.ErcotAdapter.BASE_URL_PROPERTY, UPSTREAM::baseUrl);
         registry.add(ai.foresignal.source.adapters.ercot.ErcotAdapter.TOKEN_URL_PROPERTY,
                 () -> UPSTREAM.baseUrl() + "/token");
+        // Prompt 096: the stac-* satellite-scene sources move under the stub (one property, shared base).
+        registry.add(ai.foresignal.source.adapters.stac.EarthSearchFamily.BASE_URL_PROPERTY, UPSTREAM::baseUrl);
     }
 
     @Autowired protected FetchExecutor executor;
@@ -227,7 +229,9 @@ public abstract class WeatherIngestSupport {
             "status-github", "status-gcp",
             // Prompt 093: the energy and markets series sources.
             "eia-petroleum", "eia-930", "gie-agsi", "ember-electricity", "gb-carbon-intensity",
-            "grid-frequency-gb", "grid-frequency-fingrid", "ercot-public");
+            "grid-frequency-gb", "grid-frequency-fingrid", "ercot-public",
+            // Prompt 096: the stac-* satellite-scene sources.
+            "stac-sentinel2", "stac-landsat", "stac-sentinel1");
 
     /** Resets the stubs and the backoff of the weather sources. */
     @BeforeEach
