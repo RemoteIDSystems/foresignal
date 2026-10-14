@@ -1,0 +1,50 @@
+[
+  {
+    "site": "CA-1",
+    "pcr_target": "h5",
+    "pcr_target_detect": false,
+    "pcr_target_avg_conc_lin": 0.0,
+    "pcr_target_units": "copies/L wastewater",
+    "sample_collect_date": "2026-09-01",
+    "county_fips": "06037",
+    "population_served": "10000000",
+    "source": "CDC",
+    "date_updated": "2026-09-11T00:00:00.000"
+  },
+  {
+    "site": "CA-1",
+    "pcr_target": "h5",
+    "pcr_target_detect": true,
+    "pcr_target_avg_conc_lin": 1234.5,
+    "pcr_target_units": "copies/L wastewater",
+    "sample_collect_date": "2026-09-08",
+    "county_fips": "06037",
+    "population_served": "10000000",
+    "source": "CDC",
+    "date_updated": "2026-09-11T00:00:00.000"
+  },
+  {
+    "site": "TX-1",
+    "pcr_target": "measles",
+    "pcr_target_detect": "No",
+    "pcr_target_avg_conc_lin": null,
+    "pcr_target_units": null,
+    "sample_collect_date": "2026-09-08",
+    "county_fips": "48453",
+    "population_served": "1500000",
+    "source": "CDC",
+    "date_updated": "2026-09-11T00:00:00.000"
+  },
+  {
+    "site": "WA-1",
+    "pcr_target": "mpox",
+    "pcr_target_detect": true,
+    "pcr_target_avg_conc_lin": 5.0,
+    "pcr_target_units": "copies/L wastewater",
+    "sample_collect_date": "2026-09-08",
+    "county_fips": "53033",
+    "population_served": "2200000",
+    "source": "WastewaterSCAN",
+    "date_updated": "2026-09-11T00:00:00.000"
+  }
+]

@@ -4414,3 +4414,29 @@ docker compose exec -T db dropdb -U foresignal restore_drill
 - **Excluded upstreams:** PeeringDB facilities (AUP forbids storage/reproduction — ask
   support@peeringdb.com first), IAEA PRIS (no open licence), GEM trackers (request form, no stable file URL)
   and the NRC dataset pages (blocked for scripted clients) are noted, not built.
+
+## Citizen science and signals (prompt 095)
+
+- **`inat-observations` needs an area.** iNaturalist asks that its API be used for application development, not
+  scraping, so the `aoi` parameter (a `west,south,east,north` box or a place id) is required and the source
+  cannot be enabled without it. Each run reads new observations in the area and one round of revisions
+  (quality-grade changes, re-identifications).
+- **The privacy choices are deliberate.** No contributor usernames, descriptions or comments are ever stored.
+  Obscured and `private` observations keep their randomised upstream coordinates (or are skipped), and the
+  upstream's own positional accuracy is recorded. iNaturalist photo links are kept only when the photo's licence
+  is open and it is on the iNaturalist open-data host; licences are per record (see `licenseCode`).
+- **`ebird-notable` is off by default and non-commercial.** It needs your own eBird key (`apiKey`, one per eBird
+  account). Private locations are rounded to 0.05 degrees with a 5000 m accuracy and their place name is not
+  stored. eBird's terms are non-commercial with attribution and the source is local-only for 109/110.
+- **CDC wastewater.** `cdc-nwss-wval` reads site viral-activity levels and `cdc-nwss-detections` reads pathogen
+  detections, both from the current datasets (the pre-September-2025 datasets are archived). Add an optional
+  Socrata `appToken` to avoid the shared anonymous IP pool and its 429s. **A detection flip (`detected == true`)
+  is the signal**; a rule with `detected == true` in `enter` catches it. All rows are public-domain US
+  government data **except WastewaterSCAN rows, which are CC BY-NC 4.0**; those are dropped unless
+  `includeWastewaterScan` is set, and then each carries `licenceOverride: "CC BY-NC 4.0 (WastewaterSCAN)"`, which
+  109 honours.
+- **`wiki-edit-surge` is off by default and bandwidth-heavy.** It holds one connection to the Wikimedia
+  EventStreams `recentchange` firehose and reports **the bytes it reads** against a 3 GB/day budget; the stream is
+  a continuous firehose, so measure your own volume before enabling it. It never stores usernames, edit comments
+  or parsed comments; the page title is untrusted text and is the only embedded field. A useful rule:
+  `phase == rising` in `enter`, with a **6 h cooldown** so a long surge does not repeat.

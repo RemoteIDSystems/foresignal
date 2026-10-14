@@ -1,0 +1,46 @@
+[
+  {
+    "speciesCode": "verfly",
+    "comName": "Vermilion Flycatcher",
+    "sciName": "Pyrocephalus rubinus",
+    "locID": "L123456",
+    "locName": "Hornsby Bend",
+    "obsDt": "2026-09-01 08:30",
+    "howMany": 2,
+    "lat": 30.2672,
+    "lng": -97.7431,
+    "obsValid": true,
+    "obsReviewed": false,
+    "locationPrivate": false,
+    "subId": "S111111"
+  },
+  {
+    "speciesCode": "ycnher",
+    "comName": "Yellow-crowned Night-Heron",
+    "sciName": "Nyctanassa violacea",
+    "locID": "L654321",
+    "locName": "A private yard",
+    "obsDt": "2026-09-01 19:05",
+    "howMany": 1,
+    "lat": 30.2849,
+    "lng": -97.7341,
+    "obsValid": true,
+    "obsReviewed": true,
+    "locationPrivate": true,
+    "subId": "S222222"
+  },
+  {
+    "speciesCode": "norcar",
+    "comName": "Northern Cardinal",
+    "sciName": "Cardinalis cardinalis",
+    "locID": "L111111",
+    "locName": "Zilker Park",
+    "obsDt": "2026-09-01 06:45",
+    "lat": 30.2669,
+    "lng": -97.7729,
+    "obsValid": true,
+    "obsReviewed": false,
+    "locationPrivate": false,
+    "subId": "S333333"
+  }
+]

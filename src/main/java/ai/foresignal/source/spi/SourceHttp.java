@@ -165,6 +165,27 @@ public interface SourceHttp {
     default void chargeRequest(String label) throws AdapterException {}
 
     /**
+     * Opens a long-lived HTTP response and hands its body stream back unread (prompt 095): the only
+     * way a streaming adapter consumes Server-Sent Events, such as Wikimedia's
+     * {@code recentchange} stream.
+     *
+     * <p>Counts as one budgeted request per connection attempt, after the backoff check, with
+     * Foresignal's own User-Agent, exactly like {@link #get(URI)}. The caller owns the returned
+     * stream and must close it. A non-2xx status is thrown as an upstream HTTP error, never returned
+     * as a stream.
+     *
+     * <p>The default refuses (a hand-built test double); {@code UpstreamClient}'s implementation
+     * sends it.
+     *
+     * @param uri the stream endpoint
+     * @param headers extra request headers, possibly empty
+     * @throws UnsupportedOperationException from the default
+     */
+    default HttpStream openStream(URI uri, Map<String, String> headers) throws AdapterException {
+        throw new UnsupportedOperationException("This SourceHttp cannot open a streaming HTTP connection");
+    }
+
+    /**
      * Opens a WebSocket for a streaming adapter.
      *
      * <p>Counts as one budgeted request per connection attempt, so the descriptor's budget bounds

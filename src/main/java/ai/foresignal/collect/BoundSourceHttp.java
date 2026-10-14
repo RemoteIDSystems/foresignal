@@ -393,6 +393,39 @@ class BoundSourceHttp implements SourceHttp {
     }
 
     /**
+     * Opens a long-lived HTTP response body unread (prompt 095): backoff, one budget unit, Foresignal's
+     * User-Agent, redirects per the descriptor. A non-2xx status is thrown, never returned.
+     */
+    @Override
+    public ai.foresignal.source.spi.HttpStream openStream(URI uri, Map<String, String> headers)
+            throws AdapterException {
+        checkBackoff();
+        consumeBudget(0);
+        Instant startedAt = parent.clock().instant();
+        HttpRequest request = requestBuilder(uri, headers).GET().build();
+        try {
+            HttpResponse<InputStream> response =
+                    parent.client(descriptor.followRedirects() && !isPinned(uri))
+                            .send(request, HttpResponse.BodyHandlers.ofInputStream());
+            int status = response.statusCode();
+            if (status >= 400) {
+                handleErrorStatus(response, startedAt, "GET", uri, 0);
+            }
+            parent.usage().record(sourceId, 0, true);
+            parent.backoff().onSuccess(sourceId);
+            return new ai.foresignal.source.spi.HttpStream(status, headerMap(response),
+                    decode(response, response.body()));
+        } catch (IOException e) {
+            parent.usage().record(sourceId, 0, false);
+            throw UpstreamClient.io("Could not open a stream to " + redactedUrl(uri) + ": " + e.getMessage(), e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            parent.usage().record(sourceId, 0, false);
+            throw UpstreamClient.io("Interrupted opening a stream to " + redactedUrl(uri), e);
+        }
+    }
+
+    /**
      * Takes one budget unit and meters it as a successful zero-byte request (prompt 049). No backoff
      * check: nothing is sent upstream, so an upstream's throttling has no say over it.
      */

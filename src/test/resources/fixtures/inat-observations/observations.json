@@ -1,0 +1,96 @@
+{
+  "total_results": 7,
+  "page": 1,
+  "per_page": 200,
+  "results": [
+    {
+      "id": 1001,
+      "observed_on": "2026-09-01",
+      "time_observed_at": "2026-09-01T09:30:00-05:00",
+      "updated_at": "2026-09-02T12:00:00Z",
+      "quality_grade": "research",
+      "license_code": "cc-by",
+      "geojson": {"type": "Point", "coordinates": [-97.7431, 30.2672]},
+      "geoprivacy": null,
+      "taxon_geoprivacy": "open",
+      "obscured": false,
+      "public_positional_accuracy": 10,
+      "uri": "https://www.inaturalist.org/observations/1001",
+      "taxon": {"id": 47126, "name": "Quercus fusiformis", "preferred_common_name": "Texas live oak", "iconic_taxon_name": "Plantae"},
+      "photos": [{"license_code": "cc-by", "url": "https://inaturalist-open-data.s3.amazonaws.com/photos/1001/square.jpg"}],
+      "user": {"login": "someone"},
+      "description": "ignore me",
+      "comments": [{"body": "ignore me too"}]
+    },
+    {
+      "id": 1002,
+      "observed_on": "2026-09-01",
+      "time_observed_at": "2026-09-01T18:00:00Z",
+      "updated_at": "2026-09-03T08:00:00Z",
+      "quality_grade": "research",
+      "license_code": "cc0",
+      "geojson": {"type": "Point", "coordinates": [-97.75, 30.27]},
+      "geoprivacy": null,
+      "taxon_geoprivacy": "open",
+      "obscured": true,
+      "public_positional_accuracy": 200,
+      "uri": "https://www.inaturalist.org/observations/1002",
+      "taxon": {"id": 3, "name": "Buteo jamaicensis", "preferred_common_name": "Red-tailed Hawk", "iconic_taxon_name": "Aves"},
+      "photos": [{"license_code": "cc-by-nc", "url": "https://static.inaturalist.org/photos/1002/square.jpg"}],
+      "user": {"login": "another"}
+    },
+    {
+      "id": 1003,
+      "observed_on": "2026-09-01",
+      "updated_at": "2026-09-02T00:00:00Z",
+      "quality_grade": "research",
+      "license_code": "cc-by",
+      "geoprivacy": "private",
+      "taxon_geoprivacy": "open",
+      "geojson": {"type": "Point", "coordinates": [-97.0, 30.0]},
+      "uri": "https://www.inaturalist.org/observations/1003",
+      "taxon": {"id": 1, "name": "Taxon one", "iconic_taxon_name": "Animalia"}
+    },
+    {
+      "id": 1004,
+      "observed_on": "2026-09-01",
+      "updated_at": "2026-09-02T00:00:00Z",
+      "quality_grade": "research",
+      "license_code": null,
+      "geojson": {"type": "Point", "coordinates": [-96.9, 30.1]},
+      "uri": "https://www.inaturalist.org/observations/1004",
+      "taxon": {"id": 2, "name": "Taxon two", "iconic_taxon_name": "Plantae"}
+    },
+    {
+      "id": 1005,
+      "observed_on": "2026-09-01",
+      "updated_at": "2026-09-02T00:00:00Z",
+      "quality_grade": "research",
+      "license_code": "cc-by",
+      "captive": true,
+      "geojson": {"type": "Point", "coordinates": [-96.8, 30.2]},
+      "uri": "https://www.inaturalist.org/observations/1005",
+      "taxon": {"id": 2, "name": "Taxon two", "iconic_taxon_name": "Plantae"}
+    },
+    {
+      "id": 1006,
+      "observed_on": "2026-09-01",
+      "updated_at": "2026-09-02T00:00:00Z",
+      "quality_grade": "research",
+      "license_code": "cc-by-sa",
+      "geojson": {"type": "Point", "coordinates": [-96.7, 30.3]},
+      "uri": "https://www.inaturalist.org/observations/1006",
+      "taxon": {"id": 4, "name": "Taxon four", "iconic_taxon_name": "Fungi"},
+      "photos": [{"license_code": "cc-by-sa", "url": "https://static.inaturalist.org/photos/1006/square.jpg"}]
+    },
+    {
+      "id": 1007,
+      "observed_on": "2026-09-01",
+      "updated_at": "2026-09-02T00:00:00Z",
+      "quality_grade": "research",
+      "license_code": "cc-by",
+      "uri": "https://www.inaturalist.org/observations/1007",
+      "taxon": {"id": 5, "name": "Taxon five", "iconic_taxon_name": "Plantae"}
+    }
+  ]
+}

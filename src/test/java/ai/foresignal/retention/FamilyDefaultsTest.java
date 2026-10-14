@@ -469,7 +469,27 @@ class FamilyDefaultsTest {
                     new ai.foresignal.source.adapters.fema.NuclearReactorsUsAdapter("").descriptor(), "reference")),
             Map.entry("NuclearPlantsWikidataAdapter", new Entry(
                     new ai.foresignal.source.adapters.wikidata.NuclearPlantsWikidataAdapter("").descriptor(),
-                    "reference")));
+                    "reference")),
+            // Prompt 095: citizen science and signals. Observations and bird sightings and wastewater detections
+            // are the event class (1825 d); wastewater levels are sensor-like state (365 d); Wikipedia edit surges
+            // are the bulk-event class (90 d, named by the Conventions table).
+            Map.entry("InatObservationsAdapter", new Entry(
+                    new ai.foresignal.source.adapters.inat.InatObservationsAdapter("",
+                            ai.foresignal.source.spi.PlaceTimeZones.none(),
+                            (java.util.function.Supplier<ai.foresignal.source.spi.PlacePoints>) () -> null)
+                            .descriptor(), "event")),
+            Map.entry("EbirdNotableAdapter", new Entry(
+                    new ai.foresignal.source.adapters.ebird.EbirdNotableAdapter("",
+                            (java.util.function.Supplier<ai.foresignal.source.spi.PlacePoints>) () -> null,
+                            ai.foresignal.source.spi.PlaceTimeZones.none()).descriptor(), "event")),
+            Map.entry("NwssWvalAdapter", new Entry(
+                    new ai.foresignal.source.adapters.cdc.NwssWvalAdapter("",
+                            ai.foresignal.source.spi.CountyGeometries.none()).descriptor(), "state")),
+            Map.entry("NwssDetectionAdapter", new Entry(
+                    new ai.foresignal.source.adapters.cdc.NwssDetectionAdapter("",
+                            ai.foresignal.source.spi.CountyGeometries.none()).descriptor(), "event")),
+            Map.entry("WikiStreamAdapter", new Entry(
+                    new ai.foresignal.source.adapters.wikistream.WikiStreamAdapter("").descriptor(), "bulk-event")));
 
     /**
      * The {@code privacy} class (prompt 086): private sources whose prompt sets a short raw window on purpose, because

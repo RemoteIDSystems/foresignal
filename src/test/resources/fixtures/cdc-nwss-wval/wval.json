@@ -1,0 +1,48 @@
+[
+  {
+    "site": "CA-1",
+    "site_label": "Los Angeles County",
+    "pathogen_target": "SARS-CoV-2",
+    "wval": 3.456,
+    "site_wval_category": "moderate",
+    "week_end": "2026-09-05",
+    "state": "CA",
+    "counties_served": "Los Angeles",
+    "population_served": "10000000",
+    "source": "CDC",
+    "date_updated": "2026-09-11T00:00:00.000"
+  },
+  {
+    "site": "TX-1",
+    "pathogen_target": "Influenza A",
+    "wval": 1.2,
+    "site_wval_category": "low",
+    "week_end": "2026-09-05",
+    "state": "TX",
+    "counties_served": "Travis, Williamson",
+    "population_served": "1500000",
+    "source": "CDC",
+    "date_updated": "2026-09-11T00:00:00.000"
+  },
+  {
+    "site": "WA-1",
+    "pathogen_target": "SARS-CoV-2",
+    "wval": 2.0,
+    "site_wval_category": "moderate",
+    "week_end": "2026-09-05",
+    "state": "WA",
+    "counties_served": "King",
+    "population_served": "2200000",
+    "source": "WastewaterSCAN",
+    "date_updated": "2026-09-11T00:00:00.000"
+  },
+  {
+    "site": "OR-1",
+    "pathogen_target": "RSV",
+    "wval": null,
+    "week_end": "2026-09-05",
+    "state": "OR",
+    "source": "CDC",
+    "date_updated": "2026-09-11T00:00:00.000"
+  }
+]
