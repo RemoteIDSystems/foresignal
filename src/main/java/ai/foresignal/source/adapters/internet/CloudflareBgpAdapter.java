@@ -88,6 +88,21 @@ public final class CloudflareBgpAdapter implements PollingAdapter {
         return descriptor;
     }
 
+    /** The records of one hijacks or leaks body ({@code hijack=true} for a hijacks body). */
+    public List<NormalizedRecord> parse(byte[] body, boolean hijack) {
+        List<NormalizedRecord> out = new ArrayList<>();
+        JsonNode events = JSON.readTree(body).path("result").path("events");
+        if (events.isArray()) {
+            for (JsonNode event : events) {
+                NormalizedRecord record = hijack ? mapHijack(event) : mapLeak(event);
+                if (record != null) {
+                    out.add(record);
+                }
+            }
+        }
+        return out;
+    }
+
     @Override
     public FetchResult fetch(FetchContext ctx) throws AdapterException {
         String token = ctx.credentials().get(API_TOKEN);

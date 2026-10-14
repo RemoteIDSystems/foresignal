@@ -425,7 +425,9 @@ class FamilyDefaultsTest {
                     new ai.foresignal.source.adapters.internet.GoogleStatusFamily.Page("status-test", "Test",
                             "https://example.com/incidents.json", "example.com"), null).descriptor(), "event")),
             Map.entry("AtlasProbesAdapter", new Entry(
-                    new ai.foresignal.source.adapters.internet.AtlasProbesAdapter(null).descriptor(), "state")));
+                    new ai.foresignal.source.adapters.internet.AtlasProbesAdapter(null).descriptor(), "state")),
+            Map.entry("RisLiveAdapter", new Entry(
+                    new ai.foresignal.source.adapters.internet.RisLiveAdapter(null).descriptor(), "event")));
 
     /**
      * The {@code privacy} class (prompt 086): private sources whose prompt sets a short raw window on purpose, because

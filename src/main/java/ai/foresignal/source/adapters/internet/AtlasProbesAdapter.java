@@ -15,6 +15,7 @@ import ai.foresignal.source.spi.PollingAdapter;
 import ai.foresignal.source.spi.SourceDescriptor;
 import ai.foresignal.source.spi.TtlAnchor;
 import ai.foresignal.source.spi.UpstreamFormatException;
+import ai.foresignal.source.spi.UpstreamResponse;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.URI;
@@ -57,20 +58,33 @@ public final class AtlasProbesAdapter implements PollingAdapter {
     /** Test-only base override. */
     public static final String BASE_URL_PROPERTY = "foresignal.test.adapters.ripe-atlas-probes.base-url";
 
+    /** Test-only base override for the intraday Probe API (a different host from the dump). */
+    public static final String API_BASE_URL_PROPERTY = "foresignal.test.adapters.ripe-atlas-probes.api-base-url";
+
     static final String IDS_KEY = "atlas:ids";
+    static final String LAST_DAILY_KEY = "atlas:lastDaily";
     static final Duration RETENTION = Duration.ofDays(365);
     static final int MAX_BYTES = 64 * 1024 * 1024;
 
     private static final JsonMapper JSON = JsonMapper.builder().build();
 
     private final URI baseUrl;
+    private final URI apiBaseUrl;
     private final SourceDescriptor descriptor;
+
+    /** Creates the adapter (tests). */
+    public AtlasProbesAdapter(String baseUrlOverride) {
+        this(baseUrlOverride, null);
+    }
 
     /** Creates the adapter. */
     @Autowired
-    public AtlasProbesAdapter(@Value("${" + BASE_URL_PROPERTY + ":}") String baseUrlOverride) {
+    public AtlasProbesAdapter(@Value("${" + BASE_URL_PROPERTY + ":}") String baseUrlOverride,
+            @Value("${" + API_BASE_URL_PROPERTY + ":}") String apiBaseOverride) {
         this.baseUrl = URI.create(baseUrlOverride == null || baseUrlOverride.isBlank()
                 ? DEFAULT_BASE_URL : baseUrlOverride.strip());
+        this.apiBaseUrl = URI.create(apiBaseOverride == null || apiBaseOverride.isBlank()
+                ? "https://atlas.ripe.net" : apiBaseOverride.strip());
         this.descriptor = buildDescriptor();
     }
 
@@ -94,10 +108,23 @@ public final class AtlasProbesAdapter implements PollingAdapter {
     @Override
     public FetchResult fetch(FetchContext ctx) throws AdapterException {
         Set<Integer> statuses = statuses(ctx.params().string("statuses"));
-        Path file = Path.of("atlas-meta-" + System.nanoTime() + ".bz2");
-        ctx.http().download(URI.create(baseUrl + "/ripe/atlas/probes/archive/meta-latest"), file, MAX_BYTES);
+        if (ctx.params().bool("intradayDisconnected", false)) {
+            Instant lastDaily = ai.foresignal.source.adapters.humanitarian.Instants
+                    .parse(ctx.state().get(LAST_DAILY_KEY).orElse(null));
+            if (lastDaily != null && lastDaily.plus(Duration.ofHours(20)).isAfter(ctx.now())) {
+                return FetchResult.of(intraday(ctx));
+            }
+        }
+        UpstreamResponse response = ctx.http().getConditional(
+                URI.create(baseUrl + "/ripe/atlas/probes/archive/meta-latest"), "atlas:dump");
+        if (response.notModified()) {
+            return FetchResult.unchanged();
+        }
+        if (response.status() != 200) {
+            throw new UpstreamFormatException("The RIPE Atlas dump answered HTTP " + response.status(), "");
+        }
         byte[] json;
-        try (var in = new BZip2CompressorInputStream(Files.newInputStream(file))) {
+        try (var in = new BZip2CompressorInputStream(new ByteArrayInputStream(response.body()))) {
             json = in.readAllBytes();
         } catch (IOException e) {
             throw new UpstreamFormatException("The RIPE Atlas dump is not readable bzip2", "", e);
@@ -113,7 +140,32 @@ public final class AtlasProbesAdapter implements PollingAdapter {
         }
         ctx.state().put(IDS_KEY,
                 String.join("\n", ai.foresignal.source.adapters.sanctions.DelistingGuard.sorted(current)));
+        ctx.state().put(LAST_DAILY_KEY, ctx.now().toString());
         return FetchResult.complete(out);
+    }
+
+    /** The intraday refresh of disconnected probes (at most five pages of the Probe API). */
+    private List<NormalizedRecord> intraday(FetchContext ctx) throws AdapterException {
+        List<NormalizedRecord> out = new ArrayList<>();
+        for (int page = 1; page <= 5; page++) {
+            UpstreamResponse response = ctx.http().get(URI.create(apiBaseUrl
+                    + "/api/v2/probes/?status=2&page_size=500&fields=id,status,status_since,last_connected&page="
+                    + page));
+            if (response.status() != 200) {
+                throw new UpstreamFormatException("The RIPE Atlas Probe API answered HTTP " + response.status(), "");
+            }
+            JsonNode results = JSON.readTree(response.body()).get("results");
+            if (results == null || !results.isArray() || results.isEmpty()) {
+                break;
+            }
+            for (JsonNode probe : results) {
+                NormalizedRecord record = map(probe, java.util.Set.of(2));
+                if (record != null) {
+                    out.add(record);
+                }
+            }
+        }
+        return out;
     }
 
     private static Set<Integer> statuses(String value) {
