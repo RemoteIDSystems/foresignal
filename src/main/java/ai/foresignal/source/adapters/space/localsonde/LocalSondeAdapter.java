@@ -47,7 +47,9 @@ import org.springframework.stereotype.Component;
  *   <li><strong>Records:</strong> {@code externalId} = the sonde serial, {@code observedAt} = the summary's
  *       {@code datetime}, {@code receivedAt} stamped by the sink, the auto_rx {@code station} as observer.
  *   <li><strong>Egress:</strong> {@code LOCAL_ONLY}, overridable (prompt 069's default for local receivers).
- *       Prompt 086 adds auto_rx presets and docs on this source and adds no second listener.
+ *   <li><strong>Prompt 086</strong> extends this source rather than adding a second auto_rx listener: param
+ *       {@code stationCallsign} names the observer (instead of auto_rx's {@code station}), the observer carries
+ *       {@code freq} as {@code frequencyHz}, and a summary without {@code datetime} uses {@code time}.
  * </ul>
  */
 @Component
@@ -61,6 +63,9 @@ public class LocalSondeAdapter implements StreamingAdapter {
 
     /** The sender allowlist parameter (prompt 069's companion of a {@code udp://} endpoint). */
     public static final String ALLOW_SENDERS_PARAM = "allowSenders";
+
+    /** The station callsign parameter, the observer (prompt 086). */
+    public static final String STATION_CALLSIGN_PARAM = AutoRxPayloadCodec.STATION_CALLSIGN_PARAM;
 
     /** auto_rx's default {@code payload_summary_port}, for documentation only; never assumed. */
     public static final int AUTO_RX_DEFAULT_PORT = 55673;
@@ -162,7 +167,9 @@ public class LocalSondeAdapter implements StreamingAdapter {
                         + " a local interface address, and the port is always explicit", true, "udp"))
                 .param(ParamSpec.required(ALLOW_SENDERS_PARAM, ParamType.STRING_LIST, "IPs or CIDRs of the auto_rx"
                         + " hosts whose datagrams are read, for example 192.168.1.40; private, loopback, link-local"
-                        + " or unique-local only"));
+                        + " or unique-local only"))
+                .param(ParamSpec.optional(STATION_CALLSIGN_PARAM, ParamType.STRING, "Your station callsign, the"
+                        + " observer of every record; defaults to the station auto_rx names in each summary", null));
         RadiosondeRecords.fieldSpecs(b);
         b.kindDisplay(kind, new KindDisplay("{type} {altitudeM} m", "marker", "#1C7ED6", null));
         return b.build();

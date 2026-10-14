@@ -1,0 +1,27 @@
+{
+  "presetParams": {
+    "lon": -97.7431,
+    "lat": 30.2672
+  },
+  "records": [
+    {
+      "externalId": "R0FS1.EHZ",
+      "kind": "seismic-trigger",
+      "observedAt": "2026-10-13T15:04:05.123Z",
+      "eventTime": "2026-10-13T15:04:05.123Z",
+      "geometry": [
+        -97.74,
+        30.27
+      ],
+      "payload": {
+        "event": "ALARM",
+        "station": "R0FS1",
+        "channel": "EHZ"
+      }
+    }
+  ],
+  "secrets": [],
+  "neverStored": [
+    "time"
+  ]
+}

@@ -32,7 +32,11 @@ import tools.jackson.databind.json.JsonMapper;
  *       {@code horizontalSpeedMs}; {@code heading} → {@code headingDeg}; {@code model} → {@code type};
  *       {@code freq} ({@code 402.500 MHz} or a number) → {@code frequencyMHz}; {@code temp, humidity, pressure} →
  *       {@code tempC, humidityPct, pressureHpa}; {@code station} → the observer, with {@code snr}.
- *   <li>{@code frame}, {@code batt}, {@code sats} and {@code time} are not stored.
+ *   <li>{@code frame}, {@code batt}, {@code sats}, {@code comment} and {@code sdr_device_idx} are not stored.
+ *   <li>Prompt 086: a summary without {@code datetime} falls back to {@code time} ({@code HH:MM:SS} UTC), dated on
+ *       the receive day nearest to it (so a summary just before midnight received just after it keeps its day); the
+ *       session option {@value #STATION_CALLSIGN_PARAM} (the operator's station callsign) replaces auto_rx's
+ *       {@code station} as the observer, and the observer's {@code frequencyHz} is {@code freq}.
  * </ul>
  */
 @Component
@@ -43,6 +47,9 @@ public class AutoRxPayloadCodec implements SocketCodec {
 
     /** The datagram type that carries telemetry. */
     public static final String PAYLOAD_SUMMARY = "PAYLOAD_SUMMARY";
+
+    /** The session option naming the operator's station, the observer (prompt 086). */
+    public static final String STATION_CALLSIGN_PARAM = "stationCallsign";
 
     private static final Pattern NUMBER = Pattern.compile("[-+]?\\d+(?:\\.\\d+)?");
     private static final JsonMapper JSON = JsonMapper.builder().build();
@@ -60,14 +67,30 @@ public class AutoRxPayloadCodec implements SocketCodec {
 
     @Override
     public CodecSession newSession(CodecContext context) {
-        return new Session();
+        String station = context == null ? null : context.params().string(STATION_CALLSIGN_PARAM);
+        return new Session(station == null || station.isBlank() ? null : station.strip());
     }
 
     /** One listener's counters; the codec keeps no other state. */
     public static final class Session implements CodecSession {
 
+        private final String stationCallsign;
         private long skipped;
         private long ignored;
+
+        /** A session that keeps auto_rx's {@code station} as the observer. */
+        Session() {
+            this(null);
+        }
+
+        /**
+         * A session.
+         *
+         * @param stationCallsign the observer that replaces auto_rx's {@code station}, or null
+         */
+        Session(String stationCallsign) {
+            this.stationCallsign = stationCallsign;
+        }
 
         @Override
         public List<NormalizedRecord> onFrame(byte[] frame, Instant receivedAt) {
@@ -86,7 +109,7 @@ public class AutoRxPayloadCodec implements SocketCodec {
                 ignored++;
                 return List.of();
             }
-            NormalizedRecord record = summary(node);
+            NormalizedRecord record = summary(node, receivedAt, stationCallsign);
             if (record == null) {
                 skipped++;
                 return List.of();
@@ -107,18 +130,62 @@ public class AutoRxPayloadCodec implements SocketCodec {
 
     /** The record of one {@code PAYLOAD_SUMMARY} object, or null without a callsign or a readable datetime. */
     static NormalizedRecord summary(JsonNode node) {
+        return summary(node, null, null);
+    }
+
+    /**
+     * The record of one {@code PAYLOAD_SUMMARY} object (prompt 086 form), or null without a callsign or a readable
+     * time.
+     *
+     * @param receivedAt the receive time, for a summary that carries only {@code time}; null to require
+     *     {@code datetime}
+     * @param stationCallsign the observer replacing auto_rx's {@code station}, or null
+     */
+    static NormalizedRecord summary(JsonNode node, Instant receivedAt, String stationCallsign) {
         String serial = JsonProps.text(node, "callsign");
         Instant at = iso(JsonProps.text(node, "datetime"));
+        if (at == null && receivedAt != null) {
+            at = timeOfDay(JsonProps.text(node, "time"), receivedAt);
+        }
         if (serial == null || at == null) {
             return null;
         }
         Double speedKmh = JsonProps.number(node, "speed");
+        Double mhz = frequency(node.get("freq"));
+        Long hz = mhz == null || mhz <= 0 ? null : Math.round(mhz * 1_000_000d);
+        String observer = stationCallsign != null ? stationCallsign : JsonProps.text(node, "station");
         return RadiosondeRecords.record(new RadiosondeRecords.Observation(serial, at,
                 JsonProps.number(node, "latitude"), JsonProps.number(node, "longitude"),
                 JsonProps.number(node, "altitude"), JsonProps.text(node, "model"), null, null, null,
                 speedKmh == null ? null : speedKmh / 3.6, JsonProps.number(node, "heading"),
                 JsonProps.number(node, "temp"), JsonProps.number(node, "humidity"), JsonProps.number(node, "pressure"),
-                frequency(node.get("freq")), JsonProps.text(node, "station"), JsonProps.number(node, "snr"), null));
+                mhz, observer, JsonProps.number(node, "snr"), null), hz);
+    }
+
+    /**
+     * {@code HH:MM:SS} (UTC) on the day of {@code receivedAt}, the day before or the day after, whichever is nearest
+     * to {@code receivedAt}; null when unreadable.
+     */
+    static Instant timeOfDay(String text, Instant receivedAt) {
+        if (text == null || receivedAt == null) {
+            return null;
+        }
+        java.time.LocalTime time;
+        try {
+            time = java.time.LocalTime.parse(text.strip());
+        } catch (DateTimeParseException e) {
+            return null;
+        }
+        java.time.LocalDate day = receivedAt.atZone(java.time.ZoneOffset.UTC).toLocalDate();
+        Instant best = null;
+        for (int offset = -1; offset <= 1; offset++) {
+            Instant candidate = day.plusDays(offset).atTime(time).toInstant(java.time.ZoneOffset.UTC);
+            if (best == null || java.time.Duration.between(candidate, receivedAt).abs()
+                    .compareTo(java.time.Duration.between(best, receivedAt).abs()) < 0) {
+                best = candidate;
+            }
+        }
+        return best;
     }
 
     /** {@code 402.500 MHz}, {@code "402.5"} or {@code 402.5} in MHz, or null. */

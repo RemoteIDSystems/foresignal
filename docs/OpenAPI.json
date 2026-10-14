@@ -357,6 +357,11 @@
         "version": "1.3.0",
         "date": "2026-10-13",
         "note": "085: no operation changes. Record kinds gain `ais-receiver` (local-ais-{n} station position, opt-in); the `vessel` kind note documents the 085 quality and observer mapping of ais-kystverket, ais-digitraffic and local-ais-{n}."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-13",
+        "note": "086: no new operations. ingestRecordsFormat gains the `same` format (text/plain, with an example body); updateSource can answer 400 PRIVATE_REQUIRED (added to the Problem codes) for a parameter allowed only on a private source (local-remoteid keepOperatorPosition). The acars-message, gnss-integrity, drone, seismic-trigger and same-alert kind notes describe the built records. New sources local-acars-{n} (private by descriptor) and local-remoteid; local-gpsd-{n} gains fixedStation, ubxMonitor and stationLabel and the gnss-integrity kind; local-sonde gains stationCallsign; mapping preset rsudp-alarm."
       }
     ]
   },
@@ -959,7 +964,7 @@
         ],
         "operationId": "updateSource",
         "summary": "Update source settings",
-        "description": "Enable/disable (subscribe/unsubscribe), set interval, params, budget, retention and the ingest-policy override. Changes apply immediately; omitted fields are unchanged, an explicit `ingestPolicy: null` clears the override. Policy violations return 400 INGEST_POLICY_INVALID with every violation in `errors[]` (e.g. `ingestPolicy.keyframe`); retention on a TRACK source returns 400 RETENTION_TIER_FIXED (use `retention.trackWindow`).\n\n**Scope:** `admin`.",
+        "description": "Enable/disable (subscribe/unsubscribe), set interval, params, budget, retention and the ingest-policy override. Changes apply immediately; omitted fields are unchanged, an explicit `ingestPolicy: null` clears the override. Policy violations return 400 INGEST_POLICY_INVALID with every violation in `errors[]` (e.g. `ingestPolicy.keyframe`); retention on a TRACK source returns 400 RETENTION_TIER_FIXED (use `retention.trackWindow`). A parameter value allowed only on a private source (086: `local-remoteid`'s `keepOperatorPosition=true`) returns 400 PRIVATE_REQUIRED unless the source is effectively private (descriptor or `private: true`, in the same request or already set), and so does making such a source public.\n\n**Scope:** `admin`.",
         "requestBody": {
           "required": true,
           "content": {
@@ -1042,7 +1047,8 @@
         "x-foresignal-extended-by": [
           "069",
           "107",
-          "109"
+          "109",
+          "086"
         ],
         "x-foresignal-status": "implemented"
       }
@@ -14460,7 +14466,7 @@
           "name": "format",
           "in": "path",
           "required": true,
-          "description": "Ingest format id: native, alertmanager, cloudevents, cap, mapping (024); owntracks, osmand, overland, gpslogger (039); ecowitt, wu-pws, aiscatcher, chirpstack-v4, tts-v3, airrohr, gmc (059 device presets); meshcore-json (083, the MeshCore bridge's events for the meshcore-bridge source). `media`/`rasters` (054) and `mapping-preview` are reserved and served by their own operations. Unknown → 404 FORMAT_UNKNOWN",
+          "description": "Ingest format id: native, alertmanager, cloudevents, cap, mapping (024); owntracks, osmand, overland, gpslogger (039); ecowitt, wu-pws, aiscatcher, chirpstack-v4, tts-v3, airrohr, gmc (059 device presets); meshcore-json (083, the MeshCore bridge's events for the meshcore-bridge source); same (086, NOAA Weather Radio SAME headers as text/plain, for a custom source with the same-alert kind). `media`/`rasters` (054) and `mapping-preview` are reserved and served by their own operations. Unknown → 404 FORMAT_UNKNOWN",
           "schema": {
             "type": "string",
             "pattern": "^[a-z0-9-]+$",
@@ -14474,7 +14480,7 @@
         ],
         "operationId": "ingestRecordsFormat",
         "summary": "Push records in a named format",
-        "description": "Parses the body with the named `IngestFormat` and submits one batch to the single writer (same versioning, policies, live/touch semantics, change stream, triggers and retention as polled data). Credentials: `X-Foresignal-Ingest-Key`, `Authorization: Bearer eik_…`, Basic with the key as password, a device key (039, bound to one entity), or an `admin` token; a configured signature verifier must also pass unless `keyOptional`. 200 when the request is valid even with per-record rejections (MISSING_OBSERVED_AT, LOW_ACCURACY, …). OwnTracks, Overland, OsmAnd and GPSLogger get their native reply shapes; the device presets (059) reply as their firmware expects (ecowitt an empty 200, wu-pws `success`, gmc `OK.`). `Content-Encoding: gzip` is accepted (decompressed size capped at 5 MB → 413). The `chirpstack-v4` format maps `?event=up`, moves the device on `?event=location`, acknowledges other events and refuses Protobuf (415). An `admin` token is the operator and is not asked for a sender signature.\n\n**Scope:** ingest key (or an `admin` token).",
+        "description": "Parses the body with the named `IngestFormat` and submits one batch to the single writer (same versioning, policies, live/touch semantics, change stream, triggers and retention as polled data). Credentials: `X-Foresignal-Ingest-Key`, `Authorization: Bearer eik_…`, Basic with the key as password, a device key (039, bound to one entity), or an `admin` token; a configured signature verifier must also pass unless `keyOptional`. 200 when the request is valid even with per-record rejections (MISSING_OBSERVED_AT, LOW_ACCURACY, …). OwnTracks, Overland, OsmAnd and GPSLogger get their native reply shapes; the device presets (059) reply as their firmware expects (ecowitt an empty 200, wu-pws `success`, gmc `OK.`). `Content-Encoding: gzip` is accepted (decompressed size capped at 5 MB → 413). The `same` format (086) reads one SAME header per line (multimon-ng `EAS: ZCZC-…` output or bare headers), ignores `NNNN`, collapses an identical header repeated within 10 s, and stores `same-alert` records on the named counties (the state's counties for `PSS000`) with `validUntil` = issue + purge. The `chirpstack-v4` format maps `?event=up`, moves the device on `?event=location`, acknowledges other events and refuses Protobuf (415). An `admin` token is the operator and is not asked for a sender signature.\n\n**Scope:** ingest key (or an `admin` token).",
         "parameters": [
           {
             "name": "X-Signature-256",
@@ -14713,7 +14719,14 @@
             },
             "text/plain": {
               "schema": {
-                "type": "string"
+                "type": "string",
+                "description": "Plain text: the `same` format (086) reads SAME header lines; other formats (wu-pws, gmc) also accept text/plain"
+              },
+              "examples": {
+                "same": {
+                  "summary": "NOAA Weather Radio SAME header from multimon-ng (086)",
+                  "value": "EAS: ZCZC-WXR-TOR-048453-048201+0030-2861504-KEWX/NWS-\nEAS: NNNN\n"
+                }
               }
             }
           },
@@ -14860,7 +14873,8 @@
           }
         ],
         "x-foresignal-extended-by": [
-          "059"
+          "059",
+          "086"
         ]
       },
       "get": {
@@ -86243,6 +86257,11 @@
             "prompt": "069"
           },
           {
+            "code": "PRIVATE_REQUIRED",
+            "status": 400,
+            "prompt": "086"
+          },
+          {
             "code": "INVALID_CURSOR",
             "status": 400,
             "prompt": "014"
@@ -89624,7 +89643,7 @@
                 "frequencyMHz"
               ]
             },
-            "note": "086 extends `local-sonde` (auto_rx) with the same contract."
+            "note": "086 extended `local-sonde` (auto_rx) within the same contract: param stationCallsign names the observer (else auto_rx's station), the observer carries freq as frequencyHz, and a summary without datetime uses time (HH:MM:SS UTC on the nearest receive day)."
           },
           "air-quality": {
             "x-foresignal-prompt": "078",
@@ -90090,7 +90109,7 @@
                 "hasText"
               ]
             },
-            "note": "Metadata only: message text is never stored; private by descriptor."
+            "note": "Built in 086. Metadata only: message text is never stored, logged, embedded or forwarded (no parameter enables it); private by descriptor (egress LOCAL_ONLY, not overridable). externalId `protocol|station|epochMillis|tail|msgNum`; eventTime = observedAt = the decoder's time; geometry only from a decoded HFDL position report; the station is the observer with the receive frequency. Kept 7 days."
           },
           "gnss-integrity": {
             "x-foresignal-prompt": "086",
@@ -90107,7 +90126,7 @@
                 "clockOffsetNs"
               ]
             },
-            "note": "integrityState `OK|DEGRADED|JAMMED|SUSPECT_SPOOF|LOST`."
+            "note": "Built in 086. integrityState `OK|DEGRADED|JAMMED|SUSPECT_SPOOF|LOST` (significant), judged per 30 s window against a 15-minute baseline of OK windows; the measurements are volatile except mode, uSat, nSat, hdop and eph, which gnss-fix already declares. externalId = the gpsd device, observedAt = the window's last TPV time; geometry = the fix rounded to 2 decimals. local-gpsd-{n} stays private. Kept 30 days."
           },
           "drone": {
             "x-foresignal-prompt": "086",
@@ -90124,7 +90143,7 @@
                 "operatorPoint"
               ]
             },
-            "note": "Pilot/home positions stripped; `operatorPoint` only with `keepOperatorPosition` on a private source; DJI DroneID dropped."
+            "note": "Built in 086. ASTM F3411 / ASD-STAN Remote ID from DragonSync's MQTT drone topics only (<root>/drones, <root>/drone/<id>); DJI DroneID detections are dropped (foresignal.remoteid.dropped{reason=dji}). Pilot and home positions are stripped before the record is built; `operatorPoint` {lat, lon} only with `keepOperatorPosition` on a private source (400 PRIVATE_REQUIRED otherwise), never geometry. externalId `rid:<id>`, observedAt = DragonSync `observed_at`; the kit (`seen_by`) is the observer with RSSI and frequency. TRACK, SAMPLED {5 s, keyframe 60 s, 25 m, edge 2 s}, TTL 3 min."
           },
           "seismic-trigger": {
             "x-foresignal-prompt": "086",
@@ -90134,7 +90153,8 @@
                 "station",
                 "channel"
               ]
-            }
+            },
+            "note": "Built in 086 as the `rsudp-alarm` mapping preset: rsudp's custom module posts {event ALARM|RESET, time, station, channel} to the `mapping` format; externalId `station.channel`, observedAt = eventTime = time, geometry = the custom source's station point."
           },
           "same-alert": {
             "x-foresignal-prompt": "086",
@@ -90147,7 +90167,8 @@
                 "sender",
                 "rawHeader"
               ]
-            }
+            },
+            "note": "Built in 086 (`same` ingest format). externalId `sender|issue|event` (issue as ISO-8601 UTC minutes); eventTime = observedAt = issue (Julian day and UTC time, year from the receive clock with rollover); validUntil = issue + purge (asserted by the sender); geometry = the union of the 040 county polygons (the state's counties for county 000); eventName from the bundled NWS SAME event-code table."
           },
           "airspace-restriction": {
             "x-foresignal-prompt": "087",

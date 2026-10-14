@@ -26,6 +26,20 @@ public interface SourceAdapter {
     }
 
     /**
+     * The parameters whose values in {@code params} are allowed only while the source's effective privacy (prompt 039:
+     * descriptor OR settings) is on (prompt 086: {@code local-remoteid}'s {@code keepOperatorPosition=true}).
+     *
+     * <p>{@code PUT /v1/sources/{id}} refuses such a value, or making the source public while one is stored, with 400
+     * {@code PRIVATE_REQUIRED}. The default names none.
+     *
+     * @param params the parameters as supplied or stored (raw values)
+     * @return the parameter names that need privacy, in a stable order; empty when none
+     */
+    default java.util.List<String> paramsRequiringPrivacy(java.util.Map<String, Object> params) {
+        return java.util.List.of();
+    }
+
+    /**
      * Checks rules that span several credential fields (prompt 062: {@code opensky-states} needs
      * {@code clientId} and {@code clientSecret} together or neither).
      *

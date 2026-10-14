@@ -10,6 +10,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Point;
@@ -17,7 +18,9 @@ import org.locationtech.jts.geom.Point;
 /**
  * Codec {@code gpsd} (prompt 069): the {@code ?WATCH} write, the VERSION check, TPV and SKY merged per
  * device, the {@code navDegraded} boundaries, the deprecated {@code alt} ignored, mode-1 fixes without a
- * position and unparsable lines skipped.
+ * position and unparsable lines skipped. Prompt 086 extends the session with the GNSS integrity sentinel: the
+ * 5-minute capture with a fix loss gives one {@code gnss-integrity} record per closed 30 s window, PPS offsets and
+ * u-blox monitor readings reach the judgment, and the only write passes {@link GpsdCommandGuard}.
  */
 class GpsdCodecTest {
 
@@ -116,5 +119,67 @@ class GpsdCodecTest {
         CodecSession s = codec.newSession(CodecContext.of("local-gpsd-1"));
         assertThatThrownBy(() -> s.onFrame(line("{\"class\":\"VERSION\",\"proto_major\":2,\"proto_minor\":1}"), RECEIVED))
                 .isInstanceOf(UpstreamFormatException.class).hasMessageContaining("protocol 2");
+    }
+
+    @Test
+    @DisplayName("086: the 5-minute session gives one integrity record per closed window, with the fix loss as LOST")
+    void integritySession() {
+        CodecSession s = codec.newSession(CodecContext.of("local-gpsd-1"));
+        List<NormalizedRecord> out = session(AdapterFixtures.text("local-rf", "gpsd-5min.jsonl").lines().toList(), s);
+        List<NormalizedRecord> integrity = out.stream().filter(r -> r.kind().equals(GpsdCodec.INTEGRITY_KIND)).toList();
+        assertThat(integrity).extracting(r -> r.payload().get("integrityState")).containsExactly("OK", "OK", "OK", "OK",
+                "OK", "DEGRADED", "DEGRADED", "LOST", "OK");
+        assertThat(out.stream().filter(r -> r.kind().equals(GpsdCodec.KIND))).as("TPV and SKY each re-emit the fix").hasSize(600);
+        NormalizedRecord first = integrity.getFirst();
+        assertThat(first.externalId()).isEqualTo("/dev/ttyACM0");
+        assertThat(first.observedAt()).isEqualTo(Instant.parse("2026-10-13T12:00:29Z"));
+        assertThat(first.payload()).containsEntry("mode", 3).containsEntry("uSat", 8).containsEntry("nSat", 9)
+                .containsEntry("hdop", 0.91).containsEntry("eph", 4.8).containsEntry("cn0MeanDb", 39.3)
+                .containsEntry("clockOffsetNs", 120L).doesNotContainKey("jamIndicator");
+        assertThat(first.payload().keySet()).isSubsetOf("integrityState", "mode", "uSat", "nSat", "hdop", "eph",
+                "cn0MeanDb", "jamIndicator", "clockOffsetNs");
+        Point p = (Point) first.geometry();
+        assertThat(p.getY()).isEqualTo(40.01);
+        assertThat(p.getX()).isEqualTo(-105.12);
+        NormalizedRecord lost = integrity.get(7);
+        assertThat(lost.geometry()).as("no fix in the window").isNull();
+        assertThat(lost.payload()).containsEntry("mode", 1).containsEntry("uSat", 0);
+    }
+
+    @Test
+    @DisplayName("086: u-blox MON-HW jamming in the raw passthrough makes the window JAMMED; other frames are ignored")
+    void ubxJamming() {
+        GpsdCodec.Session s = (GpsdCodec.Session) codec.newSession(new CodecContext("local-gpsd-1",
+                ai.foresignal.source.spi.ValidatedParams.of(Map.of(GpsdCodec.FIXED_STATION_PARAM, false))));
+        String tpv = "{\"class\":\"TPV\",\"device\":\"d\",\"mode\":3,\"time\":\"2026-10-13T12:00:%02dZ\",\"lat\":1.0,"
+                + "\"lon\":2.0,\"eph\":3.0}";
+        String sky = "{\"class\":\"SKY\",\"device\":\"d\",\"uSat\":8,\"nSat\":9}";
+        List<NormalizedRecord> out = new ArrayList<>();
+        out.addAll(s.onFrame(line(String.format(tpv, 0)), RECEIVED));
+        out.addAll(s.onFrame(line(sky), RECEIVED));
+        assertThat(s.onUbx(UbxMonParserTest.monHw(3, 222), RECEIVED)).isEmpty();
+        assertThat(s.onUbx(new byte[] {1, 2, 3}, RECEIVED)).isEmpty();
+        out.addAll(s.onFrame(line(String.format(tpv, 31)), RECEIVED));
+        NormalizedRecord integrity = out.stream().filter(r -> r.kind().equals(GpsdCodec.INTEGRITY_KIND)).findFirst()
+                .orElseThrow();
+        assertThat(integrity.payload()).containsEntry("integrityState", "JAMMED").containsEntry("jamIndicator", 222);
+        assertThat(integrity.quality().extra()).containsKey("gnss.integrity_reason");
+    }
+
+    @Test
+    @DisplayName("086: TOFF sets the clock offset as clock minus real time; SKY C/N0 averages used satellites only")
+    void clockAndCn0() {
+        GpsdCodec.Session s = (GpsdCodec.Session) codec.newSession(CodecContext.of("local-gpsd-1"));
+        s.onFrame(line("{\"class\":\"TPV\",\"mode\":3,\"time\":\"2026-10-13T12:00:00Z\",\"lat\":1,\"lon\":2}"), RECEIVED);
+        s.onFrame(line("{\"class\":\"TOFF\",\"real_sec\":100,\"real_nsec\":500,\"clock_sec\":101,\"clock_nsec\":0}"),
+                RECEIVED);
+        s.onFrame(line("{\"class\":\"PPS\"}"), RECEIVED);
+        s.onFrame(line("{\"class\":\"SKY\",\"satellites\":[{\"ss\":30,\"used\":true},{\"ss\":50,\"used\":true},"
+                + "{\"ss\":10,\"used\":false},{\"used\":true}]}"), RECEIVED);
+        NormalizedRecord r = s.onFrame(line("{\"class\":\"TPV\",\"mode\":3,\"time\":\"2026-10-13T12:00:30Z\","
+                + "\"lat\":1,\"lon\":2}"), RECEIVED).getFirst();
+        assertThat(r.kind()).isEqualTo(GpsdCodec.INTEGRITY_KIND);
+        assertThat(r.payload()).containsEntry("clockOffsetNs", 999_999_500L).containsEntry("cn0MeanDb", 40.0);
+        assertThat(GpsdCodec.meanUsedCn0(null)).isNull();
     }
 }

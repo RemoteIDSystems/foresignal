@@ -123,7 +123,7 @@
               ],
               "query": []
             },
-            "description": "Enable/disable (subscribe/unsubscribe), set interval, params, budget, retention and the ingest-policy override. Changes apply immediately; omitted fields are unchanged, an explicit `ingestPolicy: null` clears the override. Policy violations return 400 INGEST_POLICY_INVALID with every violation in `errors[]` (e.g. `ingestPolicy.keyframe`); retention on a TRACK source returns 400 RETENTION_TIER_FIXED (use `retention.trackWindow`).\n\n**Scope:** `admin`.\n\noperationId: `updateSource`",
+            "description": "Enable/disable (subscribe/unsubscribe), set interval, params, budget, retention and the ingest-policy override. Changes apply immediately; omitted fields are unchanged, an explicit `ingestPolicy: null` clears the override. Policy violations return 400 INGEST_POLICY_INVALID with every violation in `errors[]` (e.g. `ingestPolicy.keyframe`); retention on a TRACK source returns 400 RETENTION_TIER_FIXED (use `retention.trackWindow`). A parameter value allowed only on a private source (086: `local-remoteid`'s `keepOperatorPosition=true`) returns 400 PRIVATE_REQUIRED unless the source is effectively private (descriptor or `private: true`, in the same request or already set), and so does making such a source public.\n\n**Scope:** `admin`.\n\noperationId: `updateSource`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -24173,7 +24173,7 @@
               ],
               "query": []
             },
-            "description": "Parses the body with the named `IngestFormat` and submits one batch to the single writer (same versioning, policies, live/touch semantics, change stream, triggers and retention as polled data). Credentials: `X-Foresignal-Ingest-Key`, `Authorization: Bearer eik_\u2026`, Basic with the key as password, a device key (039, bound to one entity), or an `admin` token; a configured signature verifier must also pass unless `keyOptional`. 200 when the request is valid even with per-record rejections (MISSING_OBSERVED_AT, LOW_ACCURACY, \u2026). OwnTracks, Overland, OsmAnd and GPSLogger get their native reply shapes; the device presets (059) reply as their firmware expects (ecowitt an empty 200, wu-pws `success`, gmc `OK.`). `Content-Encoding: gzip` is accepted (decompressed size capped at 5 MB \u2192 413). The `chirpstack-v4` format maps `?event=up`, moves the device on `?event=location`, acknowledges other events and refuses Protobuf (415). An `admin` token is the operator and is not asked for a sender signature.\n\n**Scope:** ingest key (or an `admin` token).\n\noperationId: `ingestRecordsFormat`",
+            "description": "Parses the body with the named `IngestFormat` and submits one batch to the single writer (same versioning, policies, live/touch semantics, change stream, triggers and retention as polled data). Credentials: `X-Foresignal-Ingest-Key`, `Authorization: Bearer eik_\u2026`, Basic with the key as password, a device key (039, bound to one entity), or an `admin` token; a configured signature verifier must also pass unless `keyOptional`. 200 when the request is valid even with per-record rejections (MISSING_OBSERVED_AT, LOW_ACCURACY, \u2026). OwnTracks, Overland, OsmAnd and GPSLogger get their native reply shapes; the device presets (059) reply as their firmware expects (ecowitt an empty 200, wu-pws `success`, gmc `OK.`). `Content-Encoding: gzip` is accepted (decompressed size capped at 5 MB \u2192 413). The `same` format (086) reads one SAME header per line (multimon-ng `EAS: ZCZC-\u2026` output or bare headers), ignores `NNNN`, collapses an identical header repeated within 10 s, and stores `same-alert` records on the named counties (the state's counties for `PSS000`) with `validUntil` = issue + purge. The `chirpstack-v4` format maps `?event=up`, moves the device on `?event=location`, acknowledges other events and refuses Protobuf (415). An `admin` token is the operator and is not asked for a sender signature.\n\n**Scope:** ingest key (or an `admin` token).\n\noperationId: `ingestRecordsFormat`",
             "auth": {
               "type": "noauth"
             },
@@ -24326,7 +24326,7 @@
               ],
               "query": []
             },
-            "description": "Parses the body with the named `IngestFormat` and submits one batch to the single writer (same versioning, policies, live/touch semantics, change stream, triggers and retention as polled data). Credentials: `X-Foresignal-Ingest-Key`, `Authorization: Bearer eik_\u2026`, Basic with the key as password, a device key (039, bound to one entity), or an `admin` token; a configured signature verifier must also pass unless `keyOptional`. 200 when the request is valid even with per-record rejections (MISSING_OBSERVED_AT, LOW_ACCURACY, \u2026). OwnTracks, Overland, OsmAnd and GPSLogger get their native reply shapes; the device presets (059) reply as their firmware expects (ecowitt an empty 200, wu-pws `success`, gmc `OK.`). `Content-Encoding: gzip` is accepted (decompressed size capped at 5 MB \u2192 413). The `chirpstack-v4` format maps `?event=up`, moves the device on `?event=location`, acknowledges other events and refuses Protobuf (415). An `admin` token is the operator and is not asked for a sender signature.\n\n**Scope:** ingest key (or an `admin` token).\n\noperationId: `ingestRecordsFormat`",
+            "description": "Parses the body with the named `IngestFormat` and submits one batch to the single writer (same versioning, policies, live/touch semantics, change stream, triggers and retention as polled data). Credentials: `X-Foresignal-Ingest-Key`, `Authorization: Bearer eik_\u2026`, Basic with the key as password, a device key (039, bound to one entity), or an `admin` token; a configured signature verifier must also pass unless `keyOptional`. 200 when the request is valid even with per-record rejections (MISSING_OBSERVED_AT, LOW_ACCURACY, \u2026). OwnTracks, Overland, OsmAnd and GPSLogger get their native reply shapes; the device presets (059) reply as their firmware expects (ecowitt an empty 200, wu-pws `success`, gmc `OK.`). `Content-Encoding: gzip` is accepted (decompressed size capped at 5 MB \u2192 413). The `same` format (086) reads one SAME header per line (multimon-ng `EAS: ZCZC-\u2026` output or bare headers), ignores `NNNN`, collapses an identical header repeated within 10 s, and stores `same-alert` records on the named counties (the state's counties for `PSS000`) with `validUntil` = issue + purge. The `chirpstack-v4` format maps `?event=up`, moves the device on `?event=location`, acknowledges other events and refuses Protobuf (415). An `admin` token is the operator and is not asked for a sender signature.\n\n**Scope:** ingest key (or an `admin` token).\n\noperationId: `ingestRecordsFormat`",
             "auth": {
               "type": "noauth"
             },
@@ -24479,7 +24479,7 @@
               ],
               "query": []
             },
-            "description": "Parses the body with the named `IngestFormat` and submits one batch to the single writer (same versioning, policies, live/touch semantics, change stream, triggers and retention as polled data). Credentials: `X-Foresignal-Ingest-Key`, `Authorization: Bearer eik_\u2026`, Basic with the key as password, a device key (039, bound to one entity), or an `admin` token; a configured signature verifier must also pass unless `keyOptional`. 200 when the request is valid even with per-record rejections (MISSING_OBSERVED_AT, LOW_ACCURACY, \u2026). OwnTracks, Overland, OsmAnd and GPSLogger get their native reply shapes; the device presets (059) reply as their firmware expects (ecowitt an empty 200, wu-pws `success`, gmc `OK.`). `Content-Encoding: gzip` is accepted (decompressed size capped at 5 MB \u2192 413). The `chirpstack-v4` format maps `?event=up`, moves the device on `?event=location`, acknowledges other events and refuses Protobuf (415). An `admin` token is the operator and is not asked for a sender signature.\n\n**Scope:** ingest key (or an `admin` token).\n\noperationId: `ingestRecordsFormat`",
+            "description": "Parses the body with the named `IngestFormat` and submits one batch to the single writer (same versioning, policies, live/touch semantics, change stream, triggers and retention as polled data). Credentials: `X-Foresignal-Ingest-Key`, `Authorization: Bearer eik_\u2026`, Basic with the key as password, a device key (039, bound to one entity), or an `admin` token; a configured signature verifier must also pass unless `keyOptional`. 200 when the request is valid even with per-record rejections (MISSING_OBSERVED_AT, LOW_ACCURACY, \u2026). OwnTracks, Overland, OsmAnd and GPSLogger get their native reply shapes; the device presets (059) reply as their firmware expects (ecowitt an empty 200, wu-pws `success`, gmc `OK.`). `Content-Encoding: gzip` is accepted (decompressed size capped at 5 MB \u2192 413). The `same` format (086) reads one SAME header per line (multimon-ng `EAS: ZCZC-\u2026` output or bare headers), ignores `NNNN`, collapses an identical header repeated within 10 s, and stores `same-alert` records on the named counties (the state's counties for `PSS000`) with `validUntil` = issue + purge. The `chirpstack-v4` format maps `?event=up`, moves the device on `?event=location`, acknowledges other events and refuses Protobuf (415). An `admin` token is the operator and is not asked for a sender signature.\n\n**Scope:** ingest key (or an `admin` token).\n\noperationId: `ingestRecordsFormat`",
             "auth": {
               "type": "noauth"
             },
@@ -24632,7 +24632,7 @@
               ],
               "query": []
             },
-            "description": "Parses the body with the named `IngestFormat` and submits one batch to the single writer (same versioning, policies, live/touch semantics, change stream, triggers and retention as polled data). Credentials: `X-Foresignal-Ingest-Key`, `Authorization: Bearer eik_\u2026`, Basic with the key as password, a device key (039, bound to one entity), or an `admin` token; a configured signature verifier must also pass unless `keyOptional`. 200 when the request is valid even with per-record rejections (MISSING_OBSERVED_AT, LOW_ACCURACY, \u2026). OwnTracks, Overland, OsmAnd and GPSLogger get their native reply shapes; the device presets (059) reply as their firmware expects (ecowitt an empty 200, wu-pws `success`, gmc `OK.`). `Content-Encoding: gzip` is accepted (decompressed size capped at 5 MB \u2192 413). The `chirpstack-v4` format maps `?event=up`, moves the device on `?event=location`, acknowledges other events and refuses Protobuf (415). An `admin` token is the operator and is not asked for a sender signature.\n\n**Scope:** ingest key (or an `admin` token).\n\noperationId: `ingestRecordsFormat`",
+            "description": "Parses the body with the named `IngestFormat` and submits one batch to the single writer (same versioning, policies, live/touch semantics, change stream, triggers and retention as polled data). Credentials: `X-Foresignal-Ingest-Key`, `Authorization: Bearer eik_\u2026`, Basic with the key as password, a device key (039, bound to one entity), or an `admin` token; a configured signature verifier must also pass unless `keyOptional`. 200 when the request is valid even with per-record rejections (MISSING_OBSERVED_AT, LOW_ACCURACY, \u2026). OwnTracks, Overland, OsmAnd and GPSLogger get their native reply shapes; the device presets (059) reply as their firmware expects (ecowitt an empty 200, wu-pws `success`, gmc `OK.`). `Content-Encoding: gzip` is accepted (decompressed size capped at 5 MB \u2192 413). The `same` format (086) reads one SAME header per line (multimon-ng `EAS: ZCZC-\u2026` output or bare headers), ignores `NNNN`, collapses an identical header repeated within 10 s, and stores `same-alert` records on the named counties (the state's counties for `PSS000`) with `validUntil` = issue + purge. The `chirpstack-v4` format maps `?event=up`, moves the device on `?event=location`, acknowledges other events and refuses Protobuf (415). An `admin` token is the operator and is not asked for a sender signature.\n\n**Scope:** ingest key (or an `admin` token).\n\noperationId: `ingestRecordsFormat`",
             "auth": {
               "type": "noauth"
             },
@@ -24785,7 +24785,7 @@
               ],
               "query": []
             },
-            "description": "Parses the body with the named `IngestFormat` and submits one batch to the single writer (same versioning, policies, live/touch semantics, change stream, triggers and retention as polled data). Credentials: `X-Foresignal-Ingest-Key`, `Authorization: Bearer eik_\u2026`, Basic with the key as password, a device key (039, bound to one entity), or an `admin` token; a configured signature verifier must also pass unless `keyOptional`. 200 when the request is valid even with per-record rejections (MISSING_OBSERVED_AT, LOW_ACCURACY, \u2026). OwnTracks, Overland, OsmAnd and GPSLogger get their native reply shapes; the device presets (059) reply as their firmware expects (ecowitt an empty 200, wu-pws `success`, gmc `OK.`). `Content-Encoding: gzip` is accepted (decompressed size capped at 5 MB \u2192 413). The `chirpstack-v4` format maps `?event=up`, moves the device on `?event=location`, acknowledges other events and refuses Protobuf (415). An `admin` token is the operator and is not asked for a sender signature.\n\n**Scope:** ingest key (or an `admin` token).\n\noperationId: `ingestRecordsFormat`",
+            "description": "Parses the body with the named `IngestFormat` and submits one batch to the single writer (same versioning, policies, live/touch semantics, change stream, triggers and retention as polled data). Credentials: `X-Foresignal-Ingest-Key`, `Authorization: Bearer eik_\u2026`, Basic with the key as password, a device key (039, bound to one entity), or an `admin` token; a configured signature verifier must also pass unless `keyOptional`. 200 when the request is valid even with per-record rejections (MISSING_OBSERVED_AT, LOW_ACCURACY, \u2026). OwnTracks, Overland, OsmAnd and GPSLogger get their native reply shapes; the device presets (059) reply as their firmware expects (ecowitt an empty 200, wu-pws `success`, gmc `OK.`). `Content-Encoding: gzip` is accepted (decompressed size capped at 5 MB \u2192 413). The `same` format (086) reads one SAME header per line (multimon-ng `EAS: ZCZC-\u2026` output or bare headers), ignores `NNNN`, collapses an identical header repeated within 10 s, and stores `same-alert` records on the named counties (the state's counties for `PSS000`) with `validUntil` = issue + purge. The `chirpstack-v4` format maps `?event=up`, moves the device on `?event=location`, acknowledges other events and refuses Protobuf (415). An `admin` token is the operator and is not asked for a sender signature.\n\n**Scope:** ingest key (or an `admin` token).\n\noperationId: `ingestRecordsFormat`",
             "auth": {
               "type": "noauth"
             },
@@ -24795,6 +24795,159 @@
               "options": {
                 "raw": {
                   "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Push records in a named format (SAME header (NOAA Weather Radio))",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Signature-256",
+                "value": "",
+                "description": "hmac-sha256 verifier: `sha256=<hex>` (header name configurable)",
+                "disabled": true
+              },
+              {
+                "key": "webhook-id",
+                "value": "",
+                "description": "standard-webhooks verifier",
+                "disabled": true
+              },
+              {
+                "key": "webhook-timestamp",
+                "value": "",
+                "description": "standard-webhooks verifier",
+                "disabled": true
+              },
+              {
+                "key": "webhook-signature",
+                "value": "",
+                "description": "standard-webhooks verifier: `v1,<base64>`",
+                "disabled": true
+              },
+              {
+                "key": "X-Foresignal-Timestamp",
+                "value": "",
+                "description": "foresignal verifier",
+                "disabled": true
+              },
+              {
+                "key": "X-Foresignal-Signature",
+                "value": "",
+                "description": "foresignal verifier: `sha256=HMAC(\"<ts>.<body>\")`",
+                "disabled": true
+              },
+              {
+                "key": "ce-id",
+                "value": "",
+                "description": "CloudEvents binary mode attribute `id`",
+                "disabled": true
+              },
+              {
+                "key": "ce-source",
+                "value": "",
+                "description": "CloudEvents binary mode attribute `source`",
+                "disabled": true
+              },
+              {
+                "key": "ce-type",
+                "value": "",
+                "description": "CloudEvents binary mode attribute `type`",
+                "disabled": true
+              },
+              {
+                "key": "ce-subject",
+                "value": "",
+                "description": "CloudEvents binary mode attribute `subject`",
+                "disabled": true
+              },
+              {
+                "key": "ce-time",
+                "value": "",
+                "description": "CloudEvents binary mode attribute `time`",
+                "disabled": true
+              },
+              {
+                "key": "ce-specversion",
+                "value": "",
+                "description": "CloudEvents binary mode attribute `specversion`",
+                "disabled": true
+              },
+              {
+                "key": "X-Limit-U",
+                "value": "",
+                "description": "OwnTracks user (externalId = `X-Limit-U/X-Limit-D`)",
+                "disabled": true
+              },
+              {
+                "key": "X-Limit-D",
+                "value": "",
+                "description": "OwnTracks device",
+                "disabled": true
+              },
+              {
+                "key": "X-Foresignal-External-Id",
+                "value": "",
+                "description": "Overrides the externalId where the format allows it",
+                "disabled": true
+              },
+              {
+                "key": "Content-Encoding",
+                "value": "",
+                "description": "`gzip` accepted (AIS-catcher `GZIP on`); decompressed size capped at 5 MB \u2192 413",
+                "disabled": true
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Foresignal-Ingest-Key",
+                "value": "{{ingestKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "text/plain"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/ingest/{{sourceId}}/same",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "ingest",
+                "{{sourceId}}",
+                "same"
+              ],
+              "query": []
+            },
+            "description": "Parses the body with the named `IngestFormat` and submits one batch to the single writer (same versioning, policies, live/touch semantics, change stream, triggers and retention as polled data). Credentials: `X-Foresignal-Ingest-Key`, `Authorization: Bearer eik_\u2026`, Basic with the key as password, a device key (039, bound to one entity), or an `admin` token; a configured signature verifier must also pass unless `keyOptional`. 200 when the request is valid even with per-record rejections (MISSING_OBSERVED_AT, LOW_ACCURACY, \u2026). OwnTracks, Overland, OsmAnd and GPSLogger get their native reply shapes; the device presets (059) reply as their firmware expects (ecowitt an empty 200, wu-pws `success`, gmc `OK.`). `Content-Encoding: gzip` is accepted (decompressed size capped at 5 MB \u2192 413). The `same` format (086) reads one SAME header per line (multimon-ng `EAS: ZCZC-\u2026` output or bare headers), ignores `NNNN`, collapses an identical header repeated within 10 s, and stores `same-alert` records on the named counties (the state's counties for `PSS000`) with `validUntil` = issue + purge. The `chirpstack-v4` format maps `?event=up`, moves the device on `?event=location`, acknowledges other events and refuses Protobuf (415). An `admin` token is the operator and is not asked for a sender signature.\n\n**Scope:** ingest key (or an `admin` token).\n\noperationId: `ingestRecordsFormat`",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "EAS: ZCZC-WXR-TOR-048453-048201+0030-2861504-KEWX/NWS-\nEAS: NNNN\n",
+              "options": {
+                "raw": {
+                  "language": "text"
                 }
               }
             }
@@ -44525,7 +44678,7 @@
               ],
               "query": []
             },
-            "description": "Enable/disable (subscribe/unsubscribe), set interval, params, budget, retention and the ingest-policy override. Changes apply immediately; omitted fields are unchanged, an explicit `ingestPolicy: null` clears the override. Policy violations return 400 INGEST_POLICY_INVALID with every violation in `errors[]` (e.g. `ingestPolicy.keyframe`); retention on a TRACK source returns 400 RETENTION_TIER_FIXED (use `retention.trackWindow`).\n\n**Scope:** `admin`.\n\noperationId: `updateSource`",
+            "description": "Enable/disable (subscribe/unsubscribe), set interval, params, budget, retention and the ingest-policy override. Changes apply immediately; omitted fields are unchanged, an explicit `ingestPolicy: null` clears the override. Policy violations return 400 INGEST_POLICY_INVALID with every violation in `errors[]` (e.g. `ingestPolicy.keyframe`); retention on a TRACK source returns 400 RETENTION_TIER_FIXED (use `retention.trackWindow`). A parameter value allowed only on a private source (086: `local-remoteid`'s `keepOperatorPosition=true`) returns 400 PRIVATE_REQUIRED unless the source is effectively private (descriptor or `private: true`, in the same request or already set), and so does making such a source public.\n\n**Scope:** `admin`.\n\noperationId: `updateSource`",
             "auth": {
               "type": "bearer",
               "bearer": [

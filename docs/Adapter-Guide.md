@@ -576,12 +576,21 @@ source (serving TCP is 110's SERVE sinks).
 | Codec | Framing | Source | Notes |
 |---|---|---|---|
 | `sbs1` | LINES | `local-sbs-{n}` | 22-field BaseStation lines merged per hex (rule 7) into the readsb payload keys; feet → meters; `posSource: other`; times never parsed (declare `observedAtMode` RECEIVED); hexes evicted after 5 min |
-| `gpsd` | LINES | `local-gpsd-{n}` | `?WATCH={"enable":true,"json":true};` on connect; VERSION `proto_major` 3; TPV and SKY merged per device into `gnss-fix`; `observedAt` = TPV `time` |
+| `gpsd` | LINES (RAW with `ubxMonitor`) | `local-gpsd-{n}` | `?WATCH={"enable":true,"json":true};` on connect (086: `,"raw":2` with `ubxMonitor`), the only write, checked by `GpsdCommandGuard` (`?WATCH`, `?VERSION`, `?DEVICES`, `?POLL` only); VERSION `proto_major` 3; TPV and SKY merged per device into `gnss-fix`; `observedAt` = TPV `time`. 086: every device feeds a `GnssIntegrityEvaluator` (SKY `ss` of used satellites, PPS/TOFF clock offset, UBX-MON-HW/MON-RF from `GpsdRawSplitter` via `Session.onUbx`) and each closed 30 s window emits a `gnss-integrity` record |
 | `kiss-ax25` | RAW | `local-aprs-{n}` | KISS frames reassembled across reads (`formats.kiss.KissFrameDecoder`: FEND/FESC unescaping, data frames only), AX.25 UI frames to TNC2 text (`Ax25UiDecoder`), then `formats.aprs.AprsParser` and `AprsRecords`; frames that are not AX.25 UI are counted and dropped; writes nothing. A `PacketListener` reports each packet (the duplicate filter) and each dropped frame (counters) |
 | `meshcore-companion` | RAW | `meshcore-local` (through `MeshCoreCompanionLink`) | MeshCore WiFi companion frames `>` + uint16 LE length reassembled across reads (`formats.meshcore.MeshCoreFrameDecoder`), frames over 176 bytes skipped, then `MeshCoreEventMapper`. The shared link owns the command queue (one in flight, 5 s timeout), the startup sequence and reconnecting, and writes through a `commandWriter` socket guarded by `MeshCoreCommandGuard` |
 | `aivdm` | LINES | `ais-kystverket` (through `tcpPublic`), `local-ais-{n}` | AIS NMEA lines (`!AIVDM`, `!AIVDO`, `!BSVDM`), optionally behind an IEC 61162-450 TAG block, decoded by the shared codec in `ai.foresignal.codec.ais` (see §24). Each session owns a `FragmentAssembler` and a `VesselStateMerger`; `Options` choose the time base (`TAG`: `observedAt` = TAG `c`, a line without it dropped; `RECEIVED`) and the observer (TAG `s`, or a station name). Drops are counted by reason (`foresignal.ais.dropped`); writes nothing |
 
-Prompt 085 added `aivdm`, 082 `kiss-ax25`, 083 `meshcore-companion`; 086 adds `acars-json` and `sonde-udp`.
+| `acars-json` | RAW | `local-acars-{n}` | acars_router's TCP output (acarsdec, dumpvdl2, dumphfdl JSON) split into objects by `formats.acars.JsonObjectStream` (newline-ended or back to back), mapped by `AcarsMetadataMapper` from an allowlist that never includes message text; nothing of a message is ever logged; writes nothing |
+| `sonde-udp` | RAW (one datagram) | `local-sonde` | radiosonde_auto_rx `PAYLOAD_SUMMARY` through `RadiosondeRecords` (077); 086: session option `stationCallsign` names the observer, the observer carries `freq` as `frequencyHz`, `time` is the fallback for `datetime` |
+
+Prompt 085 added `aivdm`, 082 `kiss-ax25`, 083 `meshcore-companion`, 077 `sonde-udp` (extended in 086), and 086 `acars-json`.
+
+**Parameters that need privacy (prompt 086).** An adapter whose parameter is lawful or safe only on a private source
+overrides `SourceAdapter.paramsRequiringPrivacy(params)`; `PUT /v1/sources/{id}` then answers `400 PRIVATE_REQUIRED` when
+such a value would be in force while the source is not effectively private (descriptor OR the operator's `private`
+setting, prompt 039), including a request that makes the source public. `local-remoteid`'s `keepOperatorPosition` is the
+first.
 
 **MQTT sources (prompt 083).** An MQTT source opens its broker connection through 060's `MqttConnections` with an
 `MqttConnectionSpec` whose `MqttSessionOptions` is `subscriber(keepAlive)`: no status topic, so no Will and nothing

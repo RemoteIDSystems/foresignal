@@ -1,0 +1,24 @@
+#!/bin/sh
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Adam Allard
+#
+# foresignal-post (prompt 086): reads multimon-ng's EAS output on stdin and POSTs every SAME header line to a Foresignal
+# source with the "same" ingest format, one request per line, as text/plain:
+#
+#     POST {FORESIGNAL_URL}/v1/ingest/{FORESIGNAL_SOURCE}/same
+#     X-Foresignal-Ingest-Key: {FORESIGNAL_INGEST_KEY}
+#
+# Foresignal collapses the three repetitions of a header and ignores NNNN. Requires curl.
+set -eu
+: "${FORESIGNAL_URL:?set FORESIGNAL_URL, for example https://foresignal.example}"
+: "${FORESIGNAL_SOURCE:?set FORESIGNAL_SOURCE, the custom source id}"
+: "${FORESIGNAL_INGEST_KEY:?set FORESIGNAL_INGEST_KEY, the source ingest key (eik_...)}"
+while IFS= read -r line; do
+  case "$line" in
+    *ZCZC-*)
+      printf '%s\n' "$line" | curl -fsS --max-time 10 -X POST -H "Content-Type: text/plain" \
+        -H "X-Foresignal-Ingest-Key: ${FORESIGNAL_INGEST_KEY}" --data-binary @- \
+        "${FORESIGNAL_URL}/v1/ingest/${FORESIGNAL_SOURCE}/same" >/dev/null || echo "foresignal-post: post failed" >&2
+      ;;
+  esac
+done

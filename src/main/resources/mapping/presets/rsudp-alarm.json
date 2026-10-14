@@ -1,0 +1,96 @@
+{
+  "id": "rsudp-alarm",
+  "title": "Raspberry Shake rsudp alarm",
+  "description": "A Raspberry Shake running rsudp, posting its STA/LTA ALARM (and, from a wrapper, RESET) events from the custom module with contrib/rsudp/foresignal_alarm.py: JSON {\"event\", \"time\", \"station\", \"channel\"} to the generic mapping format. The record is drawn at the station point given as lon/lat. Unverified (2026-10): written from rsudp's documentation; capture a request with captureSamples before relying on it.",
+  "format": "mapping",
+  "kinds": [
+    "seismic-trigger"
+  ],
+  "observedAtMode": "UPSTREAM",
+  "ttl": null,
+  "ingestPolicy": null,
+  "significantFields": [
+    "event"
+  ],
+  "volatileFields": [],
+  "private": false,
+  "allowPathKey": true,
+  "allowsGet": false,
+  "locationMode": "const",
+  "titleField": "event",
+  "tileProperties": [
+    "event",
+    "station"
+  ],
+  "fieldSpecs": {
+    "event": {
+      "type": "STRING",
+      "label": "Event",
+      "description": "ALARM when the STA/LTA ratio exceeded the threshold, RESET when it fell back"
+    },
+    "station": {
+      "type": "STRING",
+      "label": "Station"
+    },
+    "channel": {
+      "type": "STRING",
+      "label": "Channel"
+    }
+  },
+  "mapping": {
+    "version": 1,
+    "externalId": {
+      "template": "{{$.station}}.{{$.channel}}"
+    },
+    "observedAt": {
+      "path": "$.time",
+      "format": "iso"
+    },
+    "eventTime": {
+      "path": "$.time",
+      "format": "iso"
+    },
+    "fields": [
+      {
+        "name": "event",
+        "path": "$.event",
+        "type": "string"
+      },
+      {
+        "name": "station",
+        "path": "$.station",
+        "type": "string"
+      },
+      {
+        "name": "channel",
+        "path": "$.channel",
+        "type": "string"
+      }
+    ]
+  },
+  "params": [
+    {
+      "name": "lon",
+      "type": "number",
+      "description": "Station longitude (WGS84); rounded to 0.01° unless exactLocation",
+      "required": false
+    },
+    {
+      "name": "lat",
+      "type": "number",
+      "description": "Station latitude (WGS84); rounded to 0.01° unless exactLocation",
+      "required": false
+    },
+    {
+      "name": "exactLocation",
+      "type": "boolean",
+      "description": "Keep lon/lat unrounded",
+      "default": false,
+      "required": false
+    }
+  ],
+  "setup": {
+    "urlTemplate": "{publicBaseUrl}/v1/ingest/{sourceId}/k/{key}/mapping",
+    "instructions": "On the Shake: copy `contrib/rsudp/foresignal_alarm.py` from the Foresignal repository, set `FORESIGNAL_URL` in it to `{url}`, and in rsudp's settings set `\"custom\": {\"enabled\": true, \"codefile\": \"/path/to/foresignal_alarm.py\", \"win_override\": false}` with the `alert` module enabled. rsudp runs the code file on every ALARM; the script posts `{\"event\": \"ALARM\", \"time\", \"station\", \"channel\"}` in under a second. rsudp's custom module does not run on RESET; run the script with the argument `RESET` from your own wrapper to post one. **Unverified (2026-10):** turn on `captureSamples` and check `GET /v1/custom-sources/{sourceId}/samples` after the first alarm."
+  }
+}

@@ -85,7 +85,10 @@ class LocalReceiversFamilyTest {
         assertThat(gpsd.defaultIngestPolicy()).isEqualTo(new IngestPolicy.Latest(Duration.ofMinutes(20),
                 Duration.ofSeconds(15)));
         assertThat(gpsd.recordTtl()).isEqualTo(Duration.ofMinutes(30));
-        assertThat(gpsd.significantFields()).containsExactly("mode", "fixQuality", "navDegraded");
+        assertThat(gpsd.significantFields()).containsExactly("mode", "fixQuality", "navDegraded", "integrityState");
+        // Prompt 086: the GNSS integrity sentinel's kind on the same source, kept 30 days.
+        assertThat(gpsd.kinds()).containsExactly("gnss-fix", "gnss-integrity");
+        assertThat(gpsd.kindRetention()).containsEntry("gnss-integrity", Duration.ofDays(30));
 
         SourceDescriptor station = d.get("station-readsb-1");
         assertThat(station.kinds()).containsExactly("receiver-status");

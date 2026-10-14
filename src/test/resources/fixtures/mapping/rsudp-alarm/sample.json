@@ -1,0 +1,9 @@
+{
+  "receivedAt": "2026-10-13T15:04:06Z",
+  "method": "POST",
+  "format": "mapping",
+  "contentType": "application/json",
+  "query": null,
+  "body": "{\"event\": \"ALARM\", \"time\": \"2026-10-13T15:04:05.123Z\", \"station\": \"R0FS1\", \"channel\": \"EHZ\"}",
+  "contentEncoding": null
+}

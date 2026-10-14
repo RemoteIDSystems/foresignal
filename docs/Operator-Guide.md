@@ -268,6 +268,96 @@ one `ais-receiver` record on the map. Without `publishStationPosition`, `station
 For an AIS-catcher somewhere else (a remote site that can reach Foresignal but not the other way round), the
 `aiscatcher` HTTP push preset ("Inbound webhooks") remains the alternative.
 
+### Local RF decoders
+
+Prompt 086 brings in your own SDR decoders: aviation datalink metadata, radiosondes, a GNSS integrity sentinel, drone
+Remote ID, Raspberry Shake triggers and NOAA Weather Radio SAME headers. Every source is disabled until you enable it,
+reads only (it never writes to your decoders, except gpsd's watch command), and accepts only addresses on your network
+with an explicit port. The legal and privacy rules below are enforced in code; there is no setting to turn them off.
+
+**Aviation datalink (`local-acars-{n}`).** Run [acars_router](https://github.com/sdr-enthusiasts/acars_router) in front
+of acarsdec, dumpvdl2 and dumphfdl; its TCP servers default to 15550 (ACARS), 15555 (VDLM2) and 15556 (HFDL). Give a slot
+one, two or all three:
+
+```json
+PUT /v1/sources/local-acars-1
+{"enabled": true, "params": {"acarsEndpoint": "tcp://192.168.1.40:15550", "vdlm2Endpoint": "tcp://192.168.1.40:15555",
+ "hfdlEndpoint": "tcp://192.168.1.40:15556", "stationId": "home"}}
+```
+
+**Legal note on datalink content.** Foresignal stores only message metadata (protocol, registration, flight, label,
+mode, block and message numbers, frequency, signal level, ICAO address, ground station, and whether the message had
+text). The message text is dropped before a record is built and is never stored, logged, embedded or forwarded:
+interception-disclosure laws such as US 18 U.S.C. §2511 and the UK Wireless Telegraphy Act 2006 s.48 make passing on
+the content of these messages unlawful. The slots are **private by definition**: `PUT … {"private": false}` is refused,
+their records never reach anonymous readers, tiles, embeddings, a remote LLM, MCP or Ask tools for callers without the
+private grant, or a sink, and their `LOCAL_ONLY` egress cannot be changed (`400 EGRESS_FIXED`). They are kept 7 days.
+Geometry appears only when an HFDL position report was decoded.
+
+**Radiosondes (`local-sonde`).** radiosonde_auto_rx broadcasts `PAYLOAD_SUMMARY` datagrams (its
+`payload_summary_port` defaults to 55673). Listen for them and name your station:
+
+```json
+PUT /v1/sources/local-sonde
+{"enabled": true, "params": {"endpoint": "udp://0.0.0.0:55673", "allowSenders": ["192.168.1.41"],
+ "stationCallsign": "N0CALL-1"}}
+```
+
+`stationCallsign` becomes the observer of every record (otherwise the station auto_rx names), with the sonde's
+frequency; the records are the same `radiosonde` records as `sondehub`.
+
+**GNSS integrity sentinel (`local-gpsd-{n}`).** The gpsd slot from "Local receivers" also judges the integrity of
+your GNSS every 30 seconds against a 15-minute baseline and writes one `gnss-integrity` record per receiver:
+`LOST` (no fix for more than a minute), `JAMMED` (the receiver reports jamming, or signal strength fell 10 dB while
+half the satellites were lost), `SUSPECT_SPOOF` (a fixed antenna whose position jumped more than 500 m or whose clock
+stepped more than a second while signals grew stronger), `DEGRADED` (accuracy three times worse than usual, or fewer
+than four satellites) or `OK`. Set `fixedStation` to `false` for a moving antenna (the spoofing rule then stays off),
+`stationLabel` to name the station in the log, and `ubxMonitor` to `true` with a u-blox receiver to read its own
+jamming indicator from gpsd's raw passthrough:
+
+```json
+PUT /v1/sources/local-gpsd-1
+{"params": {"endpoint": "tcp://192.168.1.60:2947", "fixedStation": true, "ubxMonitor": true, "stationLabel": "roof"}}
+```
+
+Foresignal writes only gpsd's `?WATCH` command (with `"raw":2` for `ubxMonitor`); every write passes an allowlist of
+`?WATCH`, `?VERSION`, `?DEVICES` and `?POLL`, so nothing can reconfigure your receiver. A state change is logged once at
+INFO. The records stay private with the rest of the slot and are kept 30 days. Trigger on `integrityState` like any
+significant field.
+
+**Drone Remote ID (`local-remoteid`).** A WarDragon kit running [DragonSync](https://github.com/alphafox02/DragonSync)
+publishes drones to an MQTT broker. Point the source at your broker (credentials go in
+`PUT /v1/sources/local-remoteid/credentials` as `username` and `password`):
+
+```json
+PUT /v1/sources/local-remoteid
+{"enabled": true, "params": {"brokerUrl": "mqtt://192.168.1.10:1883", "topics": ["wardragon/drones"]}}
+```
+
+**Remote ID privacy defaults.** Only ASTM F3411 / ASD-STAN Remote ID (Wi-Fi and Bluetooth) is ingested: DJI DroneID
+detections are proprietary and are dropped (counted in `foresignal.remoteid.dropped{reason="dji"}`). Pilot and home
+positions are removed before a record is built, so they are never stored. If you want the pilot position and your
+deployment allows it, make the source private and set `keepOperatorPosition` in the same request:
+
+```json
+PUT /v1/sources/local-remoteid
+{"private": true, "params": {"brokerUrl": "mqtt://192.168.1.10:1883", "keepOperatorPosition": true}}
+```
+
+It is then kept as payload `operatorPoint`, never as the record's geometry. On a source that is not private the
+parameter is refused with `400 PRIVATE_REQUIRED`, and so is making the source public while it is set. Drones are TRACK
+records that expire 3 minutes after their last report.
+
+**Raspberry Shake (`rsudp-alarm` preset).** Create a custom source from the preset with your Shake's position, then
+install `contrib/rsudp/foresignal_alarm.py` as rsudp's `custom` code file (instructions in `contrib/rsudp/README.md`).
+Each STA/LTA alarm becomes a `seismic-trigger` record at the station point. rsudp runs custom code only on an alarm; a
+reset needs your own wrapper. Unverified against a real Shake.
+
+**NOAA Weather Radio SAME (`same` format).** Create a custom source with the kind `same-alert`, then run the recipe in
+`contrib/same/` (`rtl_fm … | multimon-ng -a EAS -t raw - | foresignal-post`). Each header becomes one `same-alert`
+record drawn on the named counties (the whole state for county `000`) when the reference data is loaded, valid until the
+header's purge time; the three repetitions of a header collapse into one, and `NNNN` is ignored.
+
 ### Cyber feeds and Certificate Transparency
 
 Prompt 076 adds five sources, all disabled until you enable them:
@@ -1672,6 +1762,13 @@ Server → Website `<host>`, URL `/v1/ingest/<sourceId>/k/<key>/gmc`. The counte
 and `geigerId`; `AID` is never stored. **This preset was written from the protocol description, not a
 capture (2026-10).** Turn on `captureSamples`, check the first upload under `/samples`, and adjust the
 mapping if the counter differs.
+
+### Raspberry Shake rsudp alarm (`rsudp-alarm`) — unverified
+
+`contrib/rsudp/foresignal_alarm.py`, run by rsudp's `custom` module on every alarm, POSTs
+`{"event": "ALARM", "time": …, "station": …, "channel": …}` to `/v1/ingest/<sourceId>/k/<key>/mapping`. Each post
+becomes a `seismic-trigger` record (externalId `station.channel`, `eventTime` = `time`) at the station point given as
+`presetParams` `lon`/`lat`. **Written from rsudp's documentation, not a capture (2026-10).** See "Local RF decoders".
 
 ### Writing a mapping
 

@@ -1,5 +1,6 @@
 package ai.foresignal.source.codec;
 
+import ai.foresignal.source.formats.gnss.GnssIntegrityEvaluator;
 import ai.foresignal.source.formats.readsb.ReadsbAircraftMapper;
 import ai.foresignal.source.spi.Framing;
 import ai.foresignal.source.spi.NormalizedRecord;
@@ -11,9 +12,11 @@ import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.springframework.stereotype.Component;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
@@ -38,10 +41,23 @@ import tools.jackson.databind.json.JsonMapper;
  *   <li><strong>Significant fields</strong> computed here: {@code fixQuality} ({@code none|2d|3d}) and
  *       {@code navDegraded}, true when {@code mode < 3 || uSat < 4 || eph > 50} (terms with an unknown
  *       value are left out).
- *   <li>Other classes ({@code DEVICES, WATCH, GST, ATT, PPS, TOFF}) are ignored; an unparsable line is
+ *   <li>Other classes ({@code DEVICES, WATCH, GST, ATT}) are ignored; an unparsable line is
  *       skipped and counted. A {@code VERSION} with another major is an {@link UpstreamFormatException},
  *       which closes the connection.
  * </ul>
+ *
+ * <p><strong>GNSS integrity sentinel</strong> (prompt 086): every device also feeds a
+ * {@link GnssIntegrityEvaluator}. SKY contributes the mean C/N0 ({@code ss}) of the used satellites, {@code PPS} and
+ * {@code TOFF} the clock offset ({@code clock - real}, in ns), and u-blox MON-HW/MON-RF frames ({@link #onUbx}, from
+ * gpsd's {@code "raw":2} passthrough) the receiver's own jamming state. Each closed 30 s window emits one
+ * {@value #INTEGRITY_KIND} record ({@code externalId} = device, {@code observedAt} = the window's last TPV time, the
+ * same UPSTREAM base as {@code gnss-fix}) with {@code integrityState}, {@code mode, uSat, nSat, hdop, eph,
+ * cn0MeanDb, jamIndicator, clockOffsetNs} and the fix rounded to two decimals. The session option
+ * {@value #FIXED_STATION_PARAM} (default true) enables the spoofing rule.
+ *
+ * <p><strong>Writes</strong> (prompt 086): the only bytes ever written are the {@code ?WATCH} of
+ * {@link #watchCommand}, checked by {@link GpsdCommandGuard} ({@code ?WATCH}, {@code ?VERSION}, {@code ?DEVICES},
+ * {@code ?POLL} only); UBX messages are decoded, never sent.
  *
  * <p>Values are rounded so a stationary receiver does not write a new version per second: meters and
  * speeds to 0.1, {@code ept} to 0.001 s, {@code hdop} to 0.01, coordinates as sent (the private source's
@@ -61,6 +77,15 @@ public class GpsdCodec implements SocketCodec {
 
     /** The watch command written on connect. */
     public static final String WATCH = "?WATCH={\"enable\":true,\"json\":true};\n";
+
+    /** The watch command with gpsd's raw passthrough, for {@code ubxMonitor} (prompt 086). */
+    public static final String WATCH_RAW = "?WATCH={\"enable\":true,\"json\":true,\"raw\":2};\n";
+
+    /** The integrity record kind (prompt 086). */
+    public static final String INTEGRITY_KIND = "gnss-integrity";
+
+    /** The session option that enables the spoofing rule (prompt 086). */
+    public static final String FIXED_STATION_PARAM = "fixedStation";
 
     /** The {@code eph} above which navigation counts as degraded, in meters. */
     public static final double EPH_DEGRADED_METERS = 50.0;
@@ -88,20 +113,50 @@ public class GpsdCodec implements SocketCodec {
 
     @Override
     public byte[] onConnect() {
-        return WATCH.getBytes(StandardCharsets.US_ASCII);
+        return watchCommand(false);
+    }
+
+    /**
+     * The {@code ?WATCH} to write on connect, checked by {@link GpsdCommandGuard} (prompt 086).
+     *
+     * @param raw true to add {@code "raw":2} (u-blox monitor passthrough)
+     * @throws ai.foresignal.source.spi.CommandGuard.CommandRefusedException never for these constants; the guard is
+     *     the single gate every gpsd write passes
+     */
+    public static byte[] watchCommand(boolean raw) {
+        byte[] bytes = (raw ? WATCH_RAW : WATCH).getBytes(StandardCharsets.US_ASCII);
+        GpsdCommandGuard.INSTANCE.check(bytes);
+        return bytes;
     }
 
     @Override
     public CodecSession newSession(CodecContext context) {
-        return new Session();
+        boolean fixed = context == null || context.params().bool(FIXED_STATION_PARAM, true);
+        return new Session(fixed);
     }
 
     /** One connection's per-device state. */
-    static final class Session implements CodecSession {
+    public static final class Session implements CodecSession {
 
         private final Map<String, DeviceState> devices = new LinkedHashMap<>();
+        private final boolean fixedStation;
         private long skipped;
         private Integer protoMajor;
+        private String lastDevice;
+
+        /** A session with the spoofing rule on (a fixed station). */
+        Session() {
+            this(true);
+        }
+
+        /**
+         * A session.
+         *
+         * @param fixedStation true when the antenna does not move
+         */
+        Session(boolean fixedStation) {
+            this.fixedStation = fixedStation;
+        }
 
         @Override
         public List<NormalizedRecord> onFrame(byte[] frame, Instant receivedAt) {
@@ -128,6 +183,10 @@ public class GpsdCodec implements SocketCodec {
                 }
                 case "TPV" -> tpv(node, receivedAt);
                 case "SKY" -> sky(node);
+                case "PPS", "TOFF" -> {
+                    clock(node);
+                    yield List.of();
+                }
                 default -> List.of();
             };
         }
@@ -140,6 +199,40 @@ public class GpsdCodec implements SocketCodec {
         /** The {@code proto_major} of the VERSION seen, or null before one arrived. */
         Integer protoMajor() {
             return protoMajor;
+        }
+
+        /**
+         * One UBX frame from gpsd's raw passthrough (prompt 086): a MON-HW or MON-RF reading goes to the integrity
+         * evaluator of the device that last reported (gpsd's raw output does not name the device). Anything else is
+         * ignored; nothing is ever sent back.
+         *
+         * @return always empty: readings only shape the next window's judgment
+         */
+        public List<NormalizedRecord> onUbx(byte[] frame, Instant receivedAt) {
+            Optional<UbxMonParser.Reading> reading = UbxMonParser.parse(frame);
+            if (reading.isEmpty()) {
+                return List.of();
+            }
+            String id = lastDevice == null ? DEFAULT_DEVICE : lastDevice;
+            DeviceState d = devices.computeIfAbsent(id, k -> new DeviceState(fixedStation));
+            d.integrity.onReceiverJamming(reading.get().jamIndicator(), reading.get().jammingState());
+            d.jamIndicator = reading.get().jamIndicator();
+            return List.of();
+        }
+
+        private void clock(JsonNode node) {
+            Double realSec = number(node.get("real_sec"));
+            Double realNsec = number(node.get("real_nsec"));
+            Double clockSec = number(node.get("clock_sec"));
+            Double clockNsec = number(node.get("clock_nsec"));
+            if (realSec == null || clockSec == null) {
+                return;
+            }
+            long offset = (clockSec.longValue() - realSec.longValue()) * 1_000_000_000L
+                    + ((clockNsec == null ? 0L : clockNsec.longValue()) - (realNsec == null ? 0L : realNsec.longValue()));
+            DeviceState d = devices.computeIfAbsent(device(node), k -> new DeviceState(fixedStation));
+            d.clockOffsetNs = offset;
+            d.integrity.onClockOffset(offset);
         }
 
         private void version(JsonNode node) {
@@ -155,7 +248,8 @@ public class GpsdCodec implements SocketCodec {
         }
 
         private List<NormalizedRecord> tpv(JsonNode node, Instant receivedAt) {
-            DeviceState d = devices.computeIfAbsent(device(node), k -> new DeviceState());
+            lastDevice = device(node);
+            DeviceState d = devices.computeIfAbsent(device(node), k -> new DeviceState(fixedStation));
             Integer mode = integer(node.get("mode"));
             d.mode = mode == null ? 0 : Math.max(0, Math.min(3, mode));
             d.time = null;
@@ -180,12 +274,20 @@ public class GpsdCodec implements SocketCodec {
             d.speed = d.mode >= 2 ? round(number(node.get("speed")), 1) : null;
             d.track = d.mode >= 2 ? round(number(node.get("track")), 1) : null;
             d.tpvSeen = true;
-            return List.of(d.record(device(node)));
+            Optional<GnssIntegrityEvaluator.Assessment> closed = d.integrity.onTpv(d.time == null ? receivedAt : d.time,
+                    d.mode, d.lat, d.lon, number(node.get("eph")));
+            if (closed.isEmpty()) {
+                return List.of(d.record(device(node)));
+            }
+            List<NormalizedRecord> out = new ArrayList<>(2);
+            out.add(integrityRecord(device(node), closed.get(), d));
+            out.add(d.record(device(node)));
+            return out;
         }
 
         private List<NormalizedRecord> sky(JsonNode node) {
             String id = device(node);
-            DeviceState d = devices.computeIfAbsent(id, k -> new DeviceState());
+            DeviceState d = devices.computeIfAbsent(id, k -> new DeviceState(fixedStation));
             Integer nSat = integer(node.get("nSat"));
             Integer uSat = integer(node.get("uSat"));
             JsonNode satellites = node.get("satellites");
@@ -212,12 +314,70 @@ public class GpsdCodec implements SocketCodec {
             if (hdop != null) {
                 d.hdop = hdop;
             }
+            d.integrity.onSky(nSat, uSat, hdop, meanUsedCn0(satellites));
             return d.tpvSeen ? List.of(d.record(id)) : List.of();
         }
     }
 
+    /** The mean {@code ss} (dBHz) of the satellites marked used, or null when none reports one (prompt 086). */
+    static Double meanUsedCn0(JsonNode satellites) {
+        if (satellites == null || !satellites.isArray()) {
+            return null;
+        }
+        double sum = 0;
+        int n = 0;
+        for (JsonNode sat : satellites) {
+            JsonNode used = sat.get("used");
+            Double ss = number(sat.get("ss"));
+            if (used != null && used.isBoolean() && used.booleanValue() && ss != null && ss > 0) {
+                sum += ss;
+                n++;
+            }
+        }
+        return n == 0 ? null : sum / n;
+    }
+
+    /**
+     * The {@value #INTEGRITY_KIND} record of one closed window (prompt 086): the fix rounded to two decimals (the
+     * source is private; this record never needs more), the window's last TPV time as {@code observedAt}.
+     */
+    static NormalizedRecord integrityRecord(String device, GnssIntegrityEvaluator.Assessment assessment, DeviceState d) {
+        GnssIntegrityEvaluator.Window w = assessment.window();
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("integrityState", assessment.state().name());
+        payload.put("mode", w.mode());
+        put(payload, "uSat", w.uSat());
+        put(payload, "nSat", w.nSat());
+        put(payload, "hdop", round(w.hdop(), 2));
+        put(payload, "eph", round(w.eph(), 1));
+        put(payload, "cn0MeanDb", round(w.cn0MeanDb(), 1));
+        put(payload, "jamIndicator", w.jamIndicator());
+        put(payload, "clockOffsetNs", w.clockOffsetNs());
+        NormalizedRecord.Builder builder = NormalizedRecord.builder(device, INTEGRITY_KIND)
+                .observedAt(w.lastTime())
+                .putAll(payload)
+                .quality(new Quality(null, null, w.lat() == null ? null : PositionSource.REPORTED,
+                        Map.of("gnss.integrity_reason", assessment.reason())));
+        if (w.lat() != null && w.lon() != null) {
+            builder.point(round(w.lon(), 2), round(w.lat(), 2));
+        }
+        return builder.build();
+    }
+
     /** What is known about one device. */
     static final class DeviceState {
+
+        final GnssIntegrityEvaluator integrity;
+        Long clockOffsetNs;
+        Integer jamIndicator;
+
+        DeviceState() {
+            this(true);
+        }
+
+        DeviceState(boolean fixedStation) {
+            this.integrity = new GnssIntegrityEvaluator(fixedStation);
+        }
 
         int mode;
         Instant time;

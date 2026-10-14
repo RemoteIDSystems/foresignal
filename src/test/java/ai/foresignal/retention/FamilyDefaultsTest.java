@@ -316,8 +316,29 @@ class FamilyDefaultsTest {
                     null, () -> "abcd1234", () -> "dev", "", "").descriptor(), "track")),
             Map.entry("LocalAisAdapter", new Entry(new ai.foresignal.source.adapters.ais.LocalAisAdapter(1,
                     new ai.foresignal.source.codec.AivdmSocketCodec(() -> null)).descriptor(), "track")),
+            // Prompt 086: aviation datalink metadata is private and kept 7 days by the prompt (the "privacy" class);
+            // Remote ID drones are TRACK.
+            Map.entry("LocalAcarsAdapter", new Entry(new ai.foresignal.source.adapters.acars.LocalAcarsAdapter(1,
+                    new ai.foresignal.source.codec.AcarsJsonCodec()).descriptor(), "privacy")),
+            Map.entry("LocalRemoteIdAdapter", new Entry(new ai.foresignal.source.adapters.remoteid.LocalRemoteIdAdapter(
+                    null, () -> "abcd1234", null).descriptor(), "track")),
             Map.entry("SatDumpAdapter", new Entry(new ai.foresignal.source.adapters.satdump.SatDumpAdapter("itest", null,
                     null).descriptor(), "station")));
+
+    /**
+     * The {@code privacy} class (prompt 086): private sources whose prompt sets a short raw window on purpose, because
+     * the data is sensitive rather than analytic (aviation datalink metadata, 7 days). The window must be exactly the
+     * prompt's and the source must be private.
+     */
+    static final Map<String, Duration> PRIVACY_RETENTION = Map.of("local-acars-1", Duration.ofDays(7));
+
+    /**
+     * Kinds whose prompt names a shorter window than their source's class, for classes the Conventions table does not
+     * override (only {@code event} and {@code series} windows are raised): prompt 086's {@code gnss-integrity}, 30 days
+     * on the {@code state}-class {@code local-gpsd-{n}}.
+     */
+    static final Map<String, Map<String, Duration>> PROMPT_SHORTER_KINDS = Map.of(
+            "local-gpsd-1", Map.of("gnss-integrity", Duration.ofDays(30)));
 
     /** Weather-Imagery-Design §2.4's per-kind record retention, for the {@code weather} class. */
     static final Map<String, Duration> WEATHER_KIND_RETENTION = Map.ofEntries(
@@ -388,6 +409,12 @@ class FamilyDefaultsTest {
                         .isEqualTo(WEATHER_KIND_RETENTION.get(descriptor.kinds().iterator().next()));
                 continue;
             }
+            if (analyticClass.equals("privacy")) {
+                assertThat(descriptor.privateSource()).as("%s is private", descriptor.id()).isTrue();
+                assertThat(descriptor.defaultRetention()).as("%s defaultRetention", descriptor.id())
+                        .isEqualTo(PRIVACY_RETENTION.get(descriptor.id()));
+                continue;
+            }
             if (analyticClass.equals("track")) {
                 // Prompt 069: TRACK retention is trackWindow plus downsampling, never defaultRetention.
                 assertThat(descriptor.isTrack()).as("%s is TRACK", descriptor.id()).isTrue();
@@ -398,8 +425,15 @@ class FamilyDefaultsTest {
             assertThat(minimum).as("class %s of %s", analyticClass, entry.getKey()).isNotNull();
             assertThat(descriptor.defaultRetention()).as("%s defaultRetention", descriptor.id()).isNotNull()
                     .isGreaterThanOrEqualTo(minimum);
-            descriptor.kindRetention().forEach((kind, window) ->
-                    assertThat(window).as("%s kindRetention %s", descriptor.id(), kind).isGreaterThanOrEqualTo(minimum));
+            Map<String, Duration> shorter = PROMPT_SHORTER_KINDS.getOrDefault(descriptor.id(), Map.of());
+            descriptor.kindRetention().forEach((kind, window) -> {
+                if (shorter.containsKey(kind)) {
+                    assertThat(analyticClass).as("only event and series windows are raised").isNotIn("event", "series");
+                    assertThat(window).as("%s kindRetention %s", descriptor.id(), kind).isEqualTo(shorter.get(kind));
+                } else {
+                    assertThat(window).as("%s kindRetention %s", descriptor.id(), kind).isGreaterThanOrEqualTo(minimum);
+                }
+            });
         }
     }
 

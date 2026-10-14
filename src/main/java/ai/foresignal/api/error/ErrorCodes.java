@@ -35,6 +35,12 @@ public final class ErrorCodes {
      */
     public static final String EGRESS_FIXED = "EGRESS_FIXED";
 
+    /**
+     * A parameter value that is allowed only on a private source was set on a source that is not effectively private
+     * (prompt 086: {@code local-remoteid}'s {@code keepOperatorPosition}), or such a source was being made public.
+     */
+    public static final String PRIVATE_REQUIRED = "PRIVATE_REQUIRED";
+
     /** 400: a pagination cursor is malformed, tampered with, or belongs to a different query. */
     public static final String INVALID_CURSOR = "INVALID_CURSOR";
 

@@ -397,6 +397,9 @@ VARIANTS = {
     # 059: the source's RecordMapping reads items[*] (select), device, ts (epochS), pos and pm25.
     ("mapping (RecordMapping)", {"items": [{"device": "aqi-1", "ts": 1760097600, "pm25": 12.5, "pos": {"lat": 30.27, "lon": -97.74}}]},
      {"format": "mapping"}),
+    # 086: NOAA Weather Radio SAME headers from multimon-ng, for a custom source with the same-alert kind.
+    ("SAME header (NOAA Weather Radio)", None, {"format": "same", "content_type": "text/plain", "language": "text",
+                                                "raw": "EAS: ZCZC-WXR-TOR-048453-048201+0030-2861504-KEWX/NWS-\nEAS: NNNN\n"}),
   ],
   "pushExternalItems": [
     ("NDJSON", None, {"content_type": "application/x-ndjson", "language": "text",

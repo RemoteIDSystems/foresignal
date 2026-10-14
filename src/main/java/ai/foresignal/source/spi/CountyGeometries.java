@@ -27,6 +27,17 @@ public interface CountyGeometries {
      */
     Optional<Geometry> union(Collection<String> fips5);
 
+    /**
+     * The union of every county of one state (prompt 086: a SAME location {@code PSS000} means the whole state),
+     * simplified to {@link #SIMPLIFY_DEGREES}, in SRID 4326. The default has no state outlines.
+     *
+     * @param stateFips2 the two-digit state FIPS code
+     * @return empty when the table is not loaded, the code is malformed, or no county of the state is known
+     */
+    default Optional<Geometry> stateUnion(String stateFips2) {
+        return Optional.empty();
+    }
+
     /** A lookup that never has county data, for unit tests and contexts without the table. */
     static CountyGeometries none() {
         return new CountyGeometries() {

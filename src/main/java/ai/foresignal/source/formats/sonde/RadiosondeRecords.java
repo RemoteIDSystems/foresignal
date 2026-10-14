@@ -75,6 +75,17 @@ public final class RadiosondeRecords {
      * @throws IllegalArgumentException when the serial is blank
      */
     public static NormalizedRecord record(Observation o) {
+        return record(o, null);
+    }
+
+    /**
+     * The record of one observation with the frequency the receiver heard it on (prompt 086: {@code local-sonde}'s
+     * observer carries auto_rx's {@code freq} as {@code frequencyHz}); otherwise exactly {@link #record(Observation)}.
+     *
+     * @param observerFrequencyHz the receive frequency in Hz for the observer, or null
+     * @throws IllegalArgumentException when the serial is blank
+     */
+    public static NormalizedRecord record(Observation o, Long observerFrequencyHz) {
         NormalizedRecord.Builder b = NormalizedRecord.builder(o.serial(), KIND).observedAt(o.observedAt());
         if (validPosition(o.lat(), o.lon())) {
             b.point(o.lon(), o.lat());
@@ -94,7 +105,7 @@ public final class RadiosondeRecords {
                 .put("frequencyMHz", range(o.frequencyMHz(), 1, 3000, 3));
         String receiver = blank(o.receiverId());
         if (receiver != null) {
-            b.observers(List.of(new Observer(receiver, null, finite(o.rssi()), finite(o.snr()), null)));
+            b.observers(List.of(new Observer(receiver, observerFrequencyHz, finite(o.rssi()), finite(o.snr()), null)));
         }
         return b.build();
     }

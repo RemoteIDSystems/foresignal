@@ -19,10 +19,10 @@ import tools.jackson.databind.node.ObjectNode;
 class PresetCatalogTest {
 
     @Test
-    @DisplayName("the eight presets load, and every preset mapping compiles against its own kinds and time base")
+    @DisplayName("the nine presets load, and every preset mapping compiles against its own kinds and time base")
     void loadAndCompile() {
         assertThat(PresetCatalog.ids()).containsExactly("airrohr", "aiscatcher", "alertmanager", "chirpstack-v4", "ecowitt",
-                "gmc", "tts-v3", "wu-pws");
+                "gmc", "rsudp-alarm", "tts-v3", "wu-pws");
         MappingCompiler compiler = new MappingCompiler();
         for (MappingPreset preset : PresetCatalog.all()) {
             if (preset.mapping() == null) {

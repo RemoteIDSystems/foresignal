@@ -35,6 +35,11 @@ public class CountyUnionService implements CountyGeometries, IngestStateReset {
               FROM ref_admin2
              WHERE fips5 = ANY (CAST(? AS text[]))""";
 
+    static final String STATE_SQL = """
+            SELECT ST_AsBinary(ST_SimplifyPreserveTopology(ST_Union(geom), ?))
+              FROM ref_admin2
+             WHERE fips5 LIKE ?""";
+
     private final JdbcTemplate jdbc;
     private final RegionTagger tagger;
     private final Map<String, Optional<Geometry>> cache = new ConcurrentHashMap<>();
@@ -77,8 +82,31 @@ public class CountyUnionService implements CountyGeometries, IngestStateReset {
         return computed;
     }
 
+    /** The union of every county whose FIPS code starts with {@code stateFips2} (prompt 086), cached. */
+    @Override
+    public Optional<Geometry> stateUnion(String stateFips2) {
+        if (stateFips2 == null || !stateFips2.matches("\\d{2}") || !available()) {
+            return Optional.empty();
+        }
+        String key = "state:" + stateFips2;
+        Optional<Geometry> cached = cache.get(key);
+        if (cached != null) {
+            return cached;
+        }
+        Optional<Geometry> computed = read(jdbc.queryForObject(STATE_SQL, byte[].class, SIMPLIFY_DEGREES,
+                stateFips2 + "%"));
+        if (cache.size() >= MAX_CACHED) {
+            cache.clear();
+        }
+        cache.put(key, computed);
+        return computed;
+    }
+
     private Optional<Geometry> load(Collection<String> codes) {
-        byte[] wkb = jdbc.queryForObject(UNION_SQL, byte[].class, SIMPLIFY_DEGREES, PgArrays.text(codes));
+        return read(jdbc.queryForObject(UNION_SQL, byte[].class, SIMPLIFY_DEGREES, PgArrays.text(codes)));
+    }
+
+    private static Optional<Geometry> read(byte[] wkb) {
         if (wkb == null) {
             return Optional.empty();
         }

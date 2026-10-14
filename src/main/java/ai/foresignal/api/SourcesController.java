@@ -196,6 +196,7 @@ public class SourcesController {
             throw ValidationException.forField("private",
                     "this source is private by definition; it cannot be made public");
         }
+        requirePrivacyForParams(sourceId, descriptor, body);
         if (body.getEmbed() != null && body.getEmbed()
                 && (descriptor.privateSource() || Boolean.TRUE.equals(body.getPrivateSource())
                         || (body.getPrivateSource() == null && visibility.isPrivate(sourceId)))) {
@@ -211,6 +212,40 @@ public class SourcesController {
             regionTagging.update(sourceId, body.getRegionTagging());
         }
         return detail(sourceId);
+    }
+
+    /**
+     * 400 {@code PRIVATE_REQUIRED} (prompt 086) when a parameter value the adapter allows only on a private source
+     * ({@code SourceAdapter.paramsRequiringPrivacy}) would be in force while the source is not effectively private:
+     * set on a public source, or kept while the source is being made public. Effective privacy is the descriptor's
+     * flag OR the operator's setting (prompt 039), taking this request's {@code private} into account.
+     */
+    private void requirePrivacyForParams(String sourceId, SourceDescriptor descriptor, SourceSettingsUpdate body) {
+        if (descriptor.privateSource()) {
+            return;
+        }
+        boolean effectivelyPrivate = body.getPrivateSource() != null ? body.getPrivateSource()
+                : visibility.isPrivate(sourceId);
+        if (effectivelyPrivate) {
+            return;
+        }
+        java.util.Map<String, Object> params = body.getParams();
+        if (params == null) {
+            params = sources.effectiveParams(sourceId).values();
+        }
+        java.util.Map<String, Object> checked = params;
+        java.util.List<String> names = registry.find(sourceId)
+                .flatMap(ai.foresignal.source.SourceRegistry.Registration::adapterIfPresent)
+                .map(adapter -> adapter.paramsRequiringPrivacy(checked))
+                .orElseGet(java.util.List::of);
+        if (names.isEmpty()) {
+            return;
+        }
+        throw new ai.foresignal.api.error.ValidationException(ai.foresignal.api.error.ErrorCodes.PRIVATE_REQUIRED,
+                sourceId + " is not private, so " + String.join(", ", names) + " cannot be set; set private=true in"
+                        + " the same request, or leave it off.",
+                names.stream().map(n -> new ai.foresignal.api.error.FieldError("params." + n,
+                        "allowed only while the source is private")).toList());
     }
 
     /** {@code setSourceCredentials}: stores credentials, encrypted; 204. */

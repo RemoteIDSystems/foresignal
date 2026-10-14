@@ -10,7 +10,10 @@
  *   <li>the first codecs: {@link ai.foresignal.source.codec.Sbs1Codec} ({@code sbs1}) and
  *       {@link ai.foresignal.source.codec.GpsdCodec} ({@code gpsd}). Prompt 085 added
  *       {@link ai.foresignal.source.codec.AivdmSocketCodec} ({@code aivdm}, AIS NMEA over the shared codec in
- *       {@code ai.foresignal.codec.ais}), 082 {@code kiss-ax25}, and 086 adds {@code acars-json}; prompt 077 added {@link ai.foresignal.source.codec.AutoRxPayloadCodec}
+ *       {@code ai.foresignal.codec.ais}), 082 {@code kiss-ax25}, and 086
+ *       {@link ai.foresignal.source.codec.AcarsJsonCodec} ({@code acars-json}, aviation datalink metadata, never message
+ *       text) with the gpsd write allowlist {@link ai.foresignal.source.codec.GpsdCommandGuard} and the UBX monitor
+ *       reader {@link ai.foresignal.source.codec.UbxMonParser}; prompt 077 added {@link ai.foresignal.source.codec.AutoRxPayloadCodec}
  *       ({@code sonde-udp}, radiosonde_auto_rx datagrams), and prompt 083
  *       {@link ai.foresignal.source.codec.MeshCoreCompanionCodec} ({@code meshcore-companion}, MeshCore WiFi companion
  *       frames).
