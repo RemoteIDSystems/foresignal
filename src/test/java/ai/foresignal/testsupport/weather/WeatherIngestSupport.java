@@ -140,6 +140,12 @@ public abstract class WeatherIngestSupport {
         // gfw-events) share one property and move under the stub as /{host}{path}; imf-portwatch-disruptions is a kit
         // spec and uses 073's kit property above.
         registry.add(ai.foresignal.source.adapters.maritime.MaritimeSources.BASE_URL_PROPERTY, UPSTREAM::baseUrl);
+        // Prompt 089: the CAP feeds (cap-*) and MeteoAlarm countries (meteoalarm-*) move under the stub with their
+        // paths kept; the FDSN services (fdsn-*) and usgs-shakemap replace their origin with the stub's.
+        registry.add(ai.foresignal.source.adapters.cap.CapFeedAdapterFamily.BASE_URL_PROPERTY, UPSTREAM::baseUrl);
+        registry.add(ai.foresignal.source.adapters.meteoalarm.MeteoAlarmAdapter.BASE_URL_PROPERTY, UPSTREAM::baseUrl);
+        registry.add(ai.foresignal.source.adapters.seismic.FdsnEventFamily.BASE_URL_PROPERTY, UPSTREAM::baseUrl);
+        registry.add(ai.foresignal.source.adapters.usgs.UsgsShakeMapAdapter.BASE_URL_PROPERTY, UPSTREAM::baseUrl);
     }
 
     @Autowired protected FetchExecutor executor;
@@ -166,7 +172,8 @@ public abstract class WeatherIngestSupport {
             "nifc-perimeters", "nhc-cyclone-cones", "nvd-cves", "swpc-rtsw", "swpc-aurora", "local-sonde",
             "airq-local-1", "nwps-gauges", "usdm", "amtraker", "digitraffic-rail", "deepstate-frontline",
             "alerts-in-ua", "ua-air-raid-siren", "acled", "ucdp-ged", "faa-tfr", "faa-nas-status", "awc-sigmets",
-            "nga-msi-warnings", "imf-portwatch-chokepoints");
+            "nga-msi-warnings", "imf-portwatch-chokepoints", "cap-de-dwd-de", "meteoalarm-greece", "fdsn-geofon",
+            "usgs-shakemap");
 
     /** Resets the stubs and the backoff of the weather sources. */
     @BeforeEach

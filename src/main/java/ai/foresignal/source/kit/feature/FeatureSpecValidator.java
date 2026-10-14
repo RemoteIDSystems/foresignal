@@ -46,10 +46,11 @@ public final class FeatureSpecValidator {
 
     /**
      * A built-in feature spec id: {@code feature-…}, or one of the reviewed family prefixes whose ids the source
-     * catalog fixes ({@code faa-uas-…}, prompt 087; {@code imf-portwatch-…}, prompt 088).
+     * catalog fixes ({@code faa-uas-…}, prompt 087; {@code imf-portwatch-…}, prompt 088; {@code wpc-ero-…},
+     * prompt 089).
      */
     public static final Pattern ID_PATTERN = Pattern.compile(
-            "^(?:feature|faa-uas|imf-portwatch)-[a-z0-9]+(-[a-z0-9]+)*$");
+            "^(?:feature|faa-uas|imf-portwatch|wpc-ero)-[a-z0-9]+(-[a-z0-9]+)*$");
 
     /** An operator overlay spec id. */
     public static final Pattern OVERLAY_ID_PATTERN = Pattern.compile("^op-[a-z0-9]+(-[a-z0-9]+)*$");

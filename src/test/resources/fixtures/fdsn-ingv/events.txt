@@ -1,0 +1,4 @@
+#EventID|Time|Latitude|Longitude|Depth/Km|Author|Catalog|Contributor|ContributorID|MagType|Magnitude|MagAuthor|EventLocationName|EventType
+47538252|2026-10-14T15:55:47.830000|42.8093|12.7572|9.2|SURVEY-INGV||||ML|1.6|--|2 km SW Campello sul Clitunno (PG)|earthquake
+47536592|2026-10-14T13:58:20.020000|41.6052|14.1253|10.2|SURVEY-INGV||||ML|2.0|--|1 km W Fornelli (IS)|earthquake
+47536462|2026-10-14T13:49:50.640000|43.4405|12.7553|13.5|SURVEY-INGV||||ML|1.2|--|6 km S Serra Sant'Abbondio (PU)|earthquake

@@ -15,6 +15,11 @@
     "x-foresignal-changelog": [
       {
         "version": "1.3.0",
+        "date": "2026-10-14",
+        "note": "089: no new operations. Record x-foresignal-kinds gains cap-alert, rainfall-outlook, earthquake-impact and shakemap-mmi, for the reviewed cap-* family and the meteoalarm-* family, the five WPC Excessive Rainfall Outlook feature-kit sources (wpc-ero-d1..d5), emsc-seismic (kind earthquake), the fdsn-* services (kind earthquake) and usgs-shakemap. The earthquake kind gains the emsc-seismic and fdsn-* payloads (mag, magType, place, depthKm, auth, sourceCatalog, evtype; depth is in the payload, the point is 2D)."
+      },
+      {
+        "version": "1.3.0",
         "date": "2026-10-11",
         "note": "Complete target API for prompts 006-144 authored up front (API-first), including social signals (135-137) and the External Data Protocol (024, 138)."
       },
@@ -90509,10 +90514,11 @@
                 "areaDesc",
                 "geocodes",
                 "web",
-                "geometryFromGeocode"
+                "geometryFromGeocode",
+                "language"
               ]
             },
-            "note": "externalId = root identifier of the update chain."
+            "note": "Built in 089 (the reviewed cap-* family from the WMO Register of Alerting Authorities, and the meteoalarm-* family). externalId is the root identifier of the shared update chain (CapThreadResolver); an Update versions the same record and a Cancel is a tombstone of the thread. observedAt=sent, eventTime=onset, validFrom=onset ?? effective, validUntil=expires. Geometry is the union of polygon/circle areas, or null with geometryFromGeocode=false for a geocode-only area. headline/description are capped at 4 KB and instruction at 2 KB; headline and description are embedded (untrusted). entityKeys cap-identifier. A non-Actual status is skipped unless includeTests is set."
           },
           "rainfall-outlook": {
             "x-foresignal-prompt": "089",
@@ -90520,10 +90526,13 @@
               "wpc-ero-d1..d5": [
                 "category",
                 "outlook",
-                "issue_time"
+                "product",
+                "issueTime",
+                "startTime",
+                "endTime"
               ]
             },
-            "note": "category 1–4 = MRGL/SLGT/MDT/HIGH."
+            "note": "Built in 089 (the five WPC Excessive Rainfall Outlook feature-kit sources, kits/features/wpc-ero.json). category is 1–4 = MRGL/SLGT/MDT/HIGH (upstream dn). observedAt=issue_time, validFrom=start_time, validUntil=end_time, read as UTC. Absence tombstones."
           },
           "earthquake": {
             "x-foresignal-prompt": "089",
@@ -90557,9 +90566,12 @@
           "shakemap-mmi": {
             "x-foresignal-prompt": "089",
             "payloadFields": {
-              "usgs-shakemap": []
+              "usgs-shakemap": [
+                "mmi",
+                "units"
+              ]
             },
-            "note": "MultiLineString contour per MMI level; externalId `{eventId}:mmi{level}`."
+            "note": "Built in 089 (usgs-shakemap). externalId `{eventId}:mmi{level}`; geometry is a MultiLineString contour of one MMI level, simplified with TopologyPreservingSimplifier to at most 10,000 vertices. A level that disappears in a newer shakemap version is tombstoned."
           },
           "natural-event": {
             "x-foresignal-prompt": "090",

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<alert xmlns="urn:oasis:names:tc:emergency:cap:1.2">
+  <identifier>test-exercise-1</identifier>
+  <sender>test@example.org</sender>
+  <sent>2026-10-14T12:00:00+00:00</sent>
+  <status>Exercise</status>
+  <msgType>Alert</msgType>
+  <scope>Public</scope>
+  <info>
+    <language>en-GB</language>
+    <category>Met</category>
+    <event>Test Exercise</event>
+    <urgency>Immediate</urgency>
+    <severity>Minor</severity>
+    <certainty>Possible</certainty>
+    <headline>Exercise warning</headline>
+  </info>
+</alert>

@@ -489,6 +489,21 @@ Configure a new CAP source with a `CapMappingProfile`: kind, preferred languages
 (4 KB for `headline`, `description` and `instruction`, which are the `embedFields` and untrusted text under 028's
 rules), the cancellation rule and an optional `RecordExtender` for source-specific payload keys or a fallback geometry.
 
+### CAP update chains (prompt 089)
+
+The `cap-*` and `meteoalarm-*` families (prompt 089) share a second, simpler cancellation rule with prompt 067's
+map: the record's `externalId` is the **root identifier of the thread**. `CapThreadResolver` keeps an
+`identifier → root` map in adapter state; when a message has `references`, the earliest referenced identifier this
+resolver remembers (or the earliest reference's own `{sender}:{identifier}`) is the thread, and the message's own
+identifier and every reference are remembered against it. So an `Alert` starts a root, its `Update` versions the
+same record, and a `Cancel` becomes a **tombstone** of the root (`NormalizedRecord.tombstone`), not a version.
+`CapAlertRecords.map` applies this: it returns null for a non-`Actual` status unless `includeTests`, a tombstone
+for `msgType = Cancel`, and otherwise one record with `observedAt = sent`, `eventTime = onset`, `validFrom =
+onset ?? effective`, `validUntil = expires`, the union of the `polygon`/`circle` geometry (null with
+`geometryFromGeocode = false` for a geocode-only area, never a remote lookup), and a payload whose other-language
+headlines go under `headlines`. A future CAP source should reuse `CapParser` + `CapThreadResolver` +
+`CapAlertRecords` rather than write its own thread rule.
+
 ## 19. LAN endpoints (prompt 069)
 
 A source that reads the operator's own hardware takes its address from a `ParamType.LAN_URL` parameter and nothing

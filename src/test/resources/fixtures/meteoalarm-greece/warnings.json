@@ -1,0 +1,1929 @@
+{
+ "warnings": [
+  {
+   "alert": {
+    "identifier": "2.49.0.0.300.0.GR.261009110200.010000009",
+    "incidents": "Alert",
+    "info": [
+     {
+      "area": [
+       {
+        "areaDesc": "West Peloponnisos",
+        "geocode": [
+         {
+          "value": "GR009",
+          "valueName": "EMMA_ID"
+         }
+        ]
+       }
+      ],
+      "category": [
+       "Met"
+      ],
+      "certainty": "Likely",
+      "description": "Locally thunderstorms. BE AWARE that thunderstorms may occur.  Take extra care in exposed areas, like mountains, forest and open terrain. Disruption to outdoor activities is possible.",
+      "effective": "2026-10-09T11:02:00+00:00",
+      "event": "Yellow Warning",
+      "expires": "2026-10-10T16:00:00+00:00",
+      "headline": "Yellow warning for West Peloponnisos",
+      "language": "en-GB",
+      "onset": "2026-10-10T09:00:00+00:00",
+      "parameter": [
+       {
+        "value": "3; Thunderstorm",
+        "valueName": "awareness_type"
+       },
+       {
+        "value": "2; Yellow; Moderate",
+        "valueName": "awareness_level"
+       }
+      ],
+      "responseType": [
+       "None"
+      ],
+      "senderName": "Hnms Forecaster",
+      "severity": "Moderate",
+      "urgency": "Expected",
+      "web": "https://www.emy.gr"
+     },
+     {
+      "area": [
+       {
+        "areaDesc": "\u0394\u03c5\u03c4\u03b9\u03ba\u03ae \u03a0\u03b5\u03bb\u03bf\u03c0\u03cc\u03bd\u03bd\u03b7\u03c3\u03bf",
+        "geocode": [
+         {
+          "value": "GR009",
+          "valueName": "EMMA_ID"
+         }
+        ]
+       }
+      ],
+      "category": [
+       "Met"
+      ],
+      "certainty": "Likely",
+      "description": "\u03a4\u03bf\u03c0\u03b9\u03ba\u03ad\u03c2 \u03ba\u03b1\u03c4\u03b1\u03b9\u03b3\u03af\u03b4\u03b5\u03c2. \u0395\u039d\u0397\u039c\u0395\u03a1\u03a9\u0398\u0395\u0399\u03a4\u0395. \u0399\u03b4\u03b9\u03b1\u03af\u03c4\u03b5\u03c1\u03b7 \u03c0\u03c1\u03bf\u03c3\u03bf\u03c7\u03ae \u03c3\u03b5 \u03b5\u03ba\u03c4\u03b5\u03b8\u03b5\u03b9\u03bc\u03ad\u03bd\u03b5\u03c2 \u03c0\u03b5\u03c1\u03b9\u03bf\u03c7\u03ad\u03c2, \u03cc\u03c0\u03c9\u03c2 \u03c4\u03b1 \u03b2\u03bf\u03c5\u03bd\u03ac, \u03c4\u03b1 \u03b4\u03ac\u03c3\u03b7 \u03ba\u03b1\u03b9 \u03cc\u03bb\u03bf\u03b9 \u03bf\u03b9 \u03b1\u03bd\u03bf\u03b9\u03c7\u03c4\u03bf\u03af \u03c7\u03ce\u03c1\u03bf\u03b9. \u0395\u03af\u03bd\u03b1\u03b9 \u03b4\u03c5\u03bd\u03b1\u03c4\u03cc\u03bd \u03bd\u03b1 \u03b4\u03b7\u03bc\u03b9\u03bf\u03c5\u03c1\u03b3\u03b7\u03b8\u03bf\u03cd\u03bd \u03c0\u03c1\u03bf\u03b2\u03bb\u03ae\u03bc\u03b1\u03c4\u03b1 \u03c3\u03b5 \u03c5\u03c0\u03b1\u03af\u03b8\u03c1\u03b9\u03b5\u03c2 \u03b4\u03c1\u03b1\u03c3\u03c4\u03b7\u03c1\u03b9\u03cc\u03c4\u03b7\u03c4\u03b5\u03c2.",
+      "effective": "2026-10-09T11:02:00+00:00",
+      "event": "\u039a\u03af\u03c4\u03c1\u03b9\u03bd\u03b7 \u03a0\u03c1\u03bf\u03b5\u03b9\u03b4\u03bf\u03c0\u03bf\u03af\u03b7\u03c3\u03b7",
+      "expires": "2026-10-10T16:00:00+00:00",
+      "headline": "\u039a\u03af\u03c4\u03c1\u03b9\u03bd\u03b7 \u03c0\u03c1\u03bf\u03b5\u03b9\u03b4\u03bf\u03c0\u03bf\u03af\u03b7\u03c3\u03b7 \u03b3\u03b9\u03b1 \u0394\u03c5\u03c4\u03b9\u03ba\u03ae \u03a0\u03b5\u03bb\u03bf\u03c0\u03cc\u03bd\u03bd\u03b7\u03c3\u03bf",
+      "language": "el-GR",
+      "onset": "2026-10-10T09:00:00+00:00",
+      "parameter": [
+       {
+        "value": "3; Thunderstorm",
+        "valueName": "awareness_type"
+       },
+       {
+        "value": "2; Yellow; Moderate",
+        "valueName": "awareness_level"
+       }
+      ],
+      "responseType": [
+       "None"
+      ],
+      "senderName": "Hnms Forecaster",
+      "severity": "Moderate",
+      "urgency": "Expected",
+      "web": "https://www.emy.gr"
+     }
+    ],
+    "msgType": "Alert",
+    "scope": "Public",
+    "sender": "emk@hnms.gr",
+    "sent": "2026-10-09T11:02:00+00:00",
+    "status": "Actual"
+   },
+   "uuid": "18033121-6461-43c4-8be1-b4474005d84f"
+  },
+  {
+   "alert": {
+    "identifier": "2.49.0.0.300.0.GR.261010112600.020000010",
+    "incidents": "Update",
+    "info": [
+     {
+      "area": [
+       {
+        "areaDesc": "Ionion Islands",
+        "geocode": [
+         {
+          "value": "GR010",
+          "valueName": "EMMA_ID"
+         }
+        ]
+       }
+      ],
+      "category": [
+       "Met"
+      ],
+      "certainty": "Likely",
+      "description": "Locally thunderstorms. BE AWARE that thunderstorms may occur.  Take extra care in exposed areas, like mountains, forest and open terrain. Disruption to outdoor activities is possible.",
+      "effective": "2026-10-10T11:26:00+00:00",
+      "event": "Moderate Thunderstorm warning",
+      "expires": "2026-10-10T18:00:00+00:00",
+      "headline": "Yellow Thunderstorm for Ionion Islands",
+      "language": "en-GB",
+      "onset": "2026-10-10T09:00:00+00:00",
+      "parameter": [
+       {
+        "value": "3; Thunderstorm",
+        "valueName": "awareness_type"
+       },
+       {
+        "value": "2; Yellow; Moderate",
+        "valueName": "awareness_level"
+       }
+      ],
+      "responseType": [
+       "None"
+      ],
+      "senderName": "Hnms Forecaster",
+      "severity": "Moderate",
+      "urgency": "Expected",
+      "web": "https://www.emy.gr"
+     },
+     {
+      "area": [
+       {
+        "areaDesc": "\u039d\u03b7\u03c3\u03b9\u03ac \u0399\u03bf\u03bd\u03af\u03bf\u03c5",
+        "geocode": [
+         {
+          "value": "GR010",
+          "valueName": "EMMA_ID"
+         }
+        ]
+       }
+      ],
+      "category": [
+       "Met"
+      ],
+      "certainty": "Likely",
+      "description": "\u03a4\u03bf\u03c0\u03b9\u03ba\u03ad\u03c2 \u03ba\u03b1\u03c4\u03b1\u03b9\u03b3\u03af\u03b4\u03b5\u03c2. \u0395\u039d\u0397\u039c\u0395\u03a1\u03a9\u0398\u0395\u0399\u03a4\u0395. \u0399\u03b4\u03b9\u03b1\u03af\u03c4\u03b5\u03c1\u03b7 \u03c0\u03c1\u03bf\u03c3\u03bf\u03c7\u03ae \u03c3\u03b5 \u03b5\u03ba\u03c4\u03b5\u03b8\u03b5\u03b9\u03bc\u03ad\u03bd\u03b5\u03c2 \u03c0\u03b5\u03c1\u03b9\u03bf\u03c7\u03ad\u03c2, \u03cc\u03c0\u03c9\u03c2 \u03c4\u03b1 \u03b2\u03bf\u03c5\u03bd\u03ac, \u03c4\u03b1 \u03b4\u03ac\u03c3\u03b7 \u03ba\u03b1\u03b9 \u03cc\u03bb\u03bf\u03b9 \u03bf\u03b9 \u03b1\u03bd\u03bf\u03b9\u03c7\u03c4\u03bf\u03af \u03c7\u03ce\u03c1\u03bf\u03b9. \u0395\u03af\u03bd\u03b1\u03b9 \u03b4\u03c5\u03bd\u03b1\u03c4\u03cc\u03bd \u03bd\u03b1 \u03b4\u03b7\u03bc\u03b9\u03bf\u03c5\u03c1\u03b3\u03b7\u03b8\u03bf\u03cd\u03bd \u03c0\u03c1\u03bf\u03b2\u03bb\u03ae\u03bc\u03b1\u03c4\u03b1 \u03c3\u03b5 \u03c5\u03c0\u03b1\u03af\u03b8\u03c1\u03b9\u03b5\u03c2 \u03b4\u03c1\u03b1\u03c3\u03c4\u03b7\u03c1\u03b9\u03cc\u03c4\u03b7\u03c4\u03b5\u03c2.",
+      "effective": "2026-10-10T11:26:00+00:00",
+      "event": "\u03a0\u03c1\u03bf\u03b5\u03b9\u03b4\u03bf\u03c0\u03bf\u03af\u03b7\u03c3\u03b7 \u03b3\u03b9\u03b1 \u03ba\u03b1\u03c4\u03b1\u03b3\u03af\u03b4\u03b9\u03b5\u03c2",
+      "expires": "2026-10-10T18:00:00+00:00",
+      "headline": "\u039a\u03af\u03c4\u03c1\u03b9\u03bd\u03b7 \u03c0\u03c1\u03bf\u03b5\u03b9\u03b4\u03bf\u03c0\u03bf\u03af\u03b7\u03c3\u03b7 \u03b3\u03b9\u03b1 \u039d\u03b7\u03c3\u03b9\u03ac \u0399\u03bf\u03bd\u03af\u03bf\u03c5",
+      "language": "el-GR",
+      "onset": "2026-10-10T09:00:00+00:00",
+      "parameter": [
+       {
+        "value": "3; Thunderstorm",
+        "valueName": "awareness_type"
+       },
+       {
+        "value": "2; Yellow; Moderate",
+        "valueName": "awareness_level"
+       }
+      ],
+      "responseType": [
+       "None"
+      ],
+      "senderName": "Hnms Forecaster",
+      "severity": "Moderate",
+      "urgency": "Expected",
+      "web": "https://www.emy.gr"
+     }
+    ],
+    "msgType": "Update",
+    "references": "emk@hnms.gr,2.49.0.0.300.0.GR.261009110200.010000010,2026-10-09T11:02:00+00:00",
+    "scope": "Public",
+    "sender": "emk@hnms.gr",
+    "sent": "2026-10-10T11:26:00+00:00",
+    "status": "Actual"
+   },
+   "uuid": "c359c185-9f45-42ea-8af4-e006984f3221"
+  },
+  {
+   "alert": {
+    "identifier": "2.49.0.0.300.0.GR.261010112500.010000010",
+    "incidents": "Alert",
+    "info": [
+     {
+      "area": [
+       {
+        "areaDesc": "Ionion Islands",
+        "geocode": [
+         {
+          "value": "GR010",
+          "valueName": "EMMA_ID"
+         }
+        ]
+       }
+      ],
+      "category": [
+       "Met"
+      ],
+      "certainty": "Likely",
+      "description": "Severe thunderstorms in place probably accompanied by strong winds  and hail at times. BE PREPARED for severe thunderstorms causing significant impact and protect yourself from lightning. Damage to property and trees may occur. Flash flooding, wind gusts and hail are possible. Transport and outdoor activities disruption can be expected.",
+      "effective": "2026-10-10T11:25:00+00:00",
+      "event": "Orange Warning",
+      "expires": "2026-10-11T10:00:00+00:00",
+      "headline": "Orange warning for Ionion Islands",
+      "language": "en-GB",
+      "onset": "2026-10-10T18:01:00+00:00",
+      "parameter": [
+       {
+        "value": "3; Thunderstorm",
+        "valueName": "awareness_type"
+       },
+       {
+        "value": "3; Orange; Severe",
+        "valueName": "awareness_level"
+       }
+      ],
+      "responseType": [
+       "None"
+      ],
+      "senderName": "Hnms Forecaster",
+      "severity": "Severe",
+      "urgency": "Expected",
+      "web": "https://www.emy.gr"
+     },
+     {
+      "area": [
+       {
+        "areaDesc": "\u039d\u03b7\u03c3\u03b9\u03ac \u0399\u03bf\u03bd\u03af\u03bf\u03c5",
+        "geocode": [
+         {
+          "value": "GR010",
+          "valueName": "EMMA_ID"
+         }
+        ]
+       }
+      ],
+      "category": [
+       "Met"
+      ],
+      "certainty": "Likely",
+      "description": "\u039a\u03b1\u03c4\u03b1\u03b9\u03b3\u03af\u03b4\u03b5\u03c2 \u03ba\u03b1\u03c4\u03ac \u03c4\u03cc\u03c0\u03bf\u03c5\u03c2 \u03b9\u03c3\u03c7\u03c5\u03c1\u03ad\u03c2 \u03c0\u03bf\u03c5 \u03c0\u03b9\u03b8\u03b1\u03bd\u03ce\u03c2 \u03bd\u03b1 \u03c3\u03c5\u03bd\u03bf\u03b4\u03b5\u03cd\u03bf\u03bd\u03c4\u03b1\u03b9 \u03c0\u03c1\u03cc\u03c3\u03ba\u03b1\u03b9\u03c1\u03b1 \u03b1\u03c0\u03cc \u03c7\u03b1\u03bb\u03b1\u03b6\u03bf\u03c0\u03c4\u03ce\u03c3\u03b5\u03b9\u03c2 \u03ba\u03b1\u03b9 \u03b9\u03c3\u03c7\u03c5\u03c1\u03bf\u03cd\u03c2 \u03c1\u03b9\u03c0\u03b1\u03af\u03bf\u03c5\u03c2 \u03b1\u03bd\u03ad\u03bc\u03bf\u03c5\u03c2. \u03a0\u03a1\u039f\u0395\u03a4\u039f\u0399\u039c\u0391\u03a3\u03a4\u0395\u0399\u03a4\u0395 \u03b3\u03b9\u03b1 \u03b9\u03c3\u03c7\u03c5\u03c1\u03ad\u03c2 \u03ba\u03b1\u03c4\u03b1\u03b9\u03b3\u03af\u03b4\u03b5\u03c2 \u03c0\u03bf\u03c5 \u03ad\u03c7\u03bf\u03c5\u03bd \u03c3\u03b7\u03bc\u03b1\u03bd\u03c4\u03b9\u03ba\u03ad\u03c2 \u03b5\u03c0\u03b9\u03c0\u03c4\u03ce\u03c3\u03b5\u03b9\u03c2 \u03ba\u03b1\u03b9 \u03c0\u03c1\u03bf\u03c3\u03c4\u03b1\u03c4\u03b5\u03cd\u03c3\u03c4\u03b5 \u03c4\u03bf\u03bd \u03b5\u03b1\u03c5\u03c4\u03cc \u03c3\u03b1\u03c2 \u03b1\u03c0\u03cc \u03c4\u03bf\u03c5\u03c2 \u03ba\u03b5\u03c1\u03b1\u03c5\u03bd\u03bf\u03cd\u03c2. \u0395\u03af\u03bd\u03b1\u03b9 \u03b4\u03c5\u03bd\u03b1\u03c4\u03cc \u03bd\u03b1 \u03c0\u03c1\u03bf\u03ba\u03bb\u03b7\u03b8\u03bf\u03cd\u03bd \u03b6\u03b7\u03bc\u03b9\u03ad\u03c2 \u03c3\u03b5 \u03c0\u03b5\u03c1\u03b9\u03bf\u03c5\u03c3\u03af\u03b5\u03c2 \u03ba\u03b1\u03b9 \u03b4\u03ad\u03bd\u03c4\u03c1\u03b1 \u03b1\u03c0\u03cc \u03c4\u03b9\u03c2 \u03c0\u03bb\u03b7\u03bc\u03bc\u03cd\u03c1\u03b5\u03c2, \u03c4\u03b9\u03c2 \u03c1\u03b9\u03c0\u03ad\u03c2 \u03c4\u03bf\u03c5 \u03b1\u03bd\u03ad\u03bc\u03bf\u03c5 \u03ba\u03b1\u03b9 \u03c4\u03bf \u03c7\u03b1\u03bb\u03ac\u03b6\u03b9. \u0391\u03bd\u03b1\u03bc\u03ad\u03bd\u03bf\u03bd\u03c4\u03b1\u03b9 \u03c0\u03c1\u03bf\u03b2\u03bb\u03ae\u03bc\u03b1\u03c4\u03b1 \u03c3\u03c4\u03b9\u03c2 \u03c5\u03c0\u03b1\u03af\u03b8\u03c1\u03b9\u03b5\u03c2 \u03b4\u03c1\u03b1\u03c3\u03c4\u03b7\u03c1\u03b9\u03cc\u03c4\u03b7\u03c4\u03b5\u03c2 \u03ba\u03b1\u03b9 \u03c4\u03b9\u03c2 \u03bc\u03b5\u03c4\u03b1\u03c6\u03bf\u03c1\u03ad\u03c2.",
+      "effective": "2026-10-10T11:25:00+00:00",
+      "event": "\u03a0\u03bf\u03c1\u03c4\u03bf\u03ba\u03b1\u03bb\u03af \u03a0\u03c1\u03bf\u03b5\u03b9\u03b4\u03bf\u03c0\u03bf\u03af\u03b7\u03c3\u03b7",
+      "expires": "2026-10-11T10:00:00+00:00",
+      "headline": "\u03a0\u03bf\u03c1\u03c4\u03bf\u03ba\u03b1\u03bb\u03af \u03c0\u03c1\u03bf\u03b5\u03b9\u03b4\u03bf\u03c0\u03bf\u03af\u03b7\u03c3\u03b7 \u03b3\u03b9\u03b1 \u039d\u03b7\u03c3\u03b9\u03ac \u0399\u03bf\u03bd\u03af\u03bf\u03c5",
+      "language": "el-GR",
+      "onset": "2026-10-10T18:01:00+00:00",
+      "parameter": [
+       {
+        "value": "3; Thunderstorm",
+        "valueName": "awareness_type"
+       },
+       {
+        "value": "3; Orange; Severe",
+        "valueName": "awareness_level"
+       }
+      ],
+      "responseType": [
+       "None"
+      ],
+      "senderName": "Hnms Forecaster",
+      "severity": "Severe",
+      "urgency": "Expected",
+      "web": "https://www.emy.gr"
+     }
+    ],
+    "msgType": "Alert",
+    "scope": "Public",
+    "sender": "emk@hnms.gr",
+    "sent": "2026-10-10T11:25:00+00:00",
+    "status": "Actual"
+   },
+   "uuid": "506511d4-33a6-4065-a24f-55e00e5195de"
+  },
+  {
+   "alert": {
+    "identifier": "2.49.0.0.300.0.GR.261010113800.020000002",
+    "incidents": "Update",
+    "info": [
+     {
+      "area": [
+       {
+        "areaDesc": "West Sterea",
+        "geocode": [
+         {
+          "value": "GR002",
+          "valueName": "EMMA_ID"
+         }
+        ]
+       }
+      ],
+      "category": [
+       "Met"
+      ],
+      "certainty": "Likely",
+      "description": "Locally thunderstorms. BE AWARE that thunderstorms may occur.  Take extra care in exposed areas, like mountains, forest and open terrain. Disruption to outdoor activities is possible.",
+      "effective": "2026-10-10T11:38:00+00:00",
+      "event": "Moderate Thunderstorm warning",
+      "expires": "2026-10-10T20:59:00+00:00",
+      "headline": "Yellow Thunderstorm for West Sterea",
+      "language": "en-GB",
+      "onset": "2026-10-10T09:00:00+00:00",
+      "parameter": [
+       {
+        "value": "3; Thunderstorm",
+        "valueName": "awareness_type"
+       },
+       {
+        "value": "2; Yellow; Moderate",
+        "valueName": "awareness_level"
+       }
+      ],
+      "responseType": [
+       "None"
+      ],
+      "senderName": "Hnms Forecaster",
+      "severity": "Moderate",
+      "urgency": "Expected",
+      "web": "https://www.emy.gr"
+     },
+     {
+      "area": [
+       {
+        "areaDesc": "\u0394\u03c5\u03c4\u03b9\u03ba\u03ae \u03a3\u03c4\u03b5\u03c1\u03b5\u03ac",
+        "geocode": [
+         {
+          "value": "GR002",
+          "valueName": "EMMA_ID"
+         }
+        ]
+       }
+      ],
+      "category": [
+       "Met"
+      ],
+      "certainty": "Likely",
+      "description": "\u03a4\u03bf\u03c0\u03b9\u03ba\u03ad\u03c2 \u03ba\u03b1\u03c4\u03b1\u03b9\u03b3\u03af\u03b4\u03b5\u03c2. \u0395\u039d\u0397\u039c\u0395\u03a1\u03a9\u0398\u0395\u0399\u03a4\u0395. \u0399\u03b4\u03b9\u03b1\u03af\u03c4\u03b5\u03c1\u03b7 \u03c0\u03c1\u03bf\u03c3\u03bf\u03c7\u03ae \u03c3\u03b5 \u03b5\u03ba\u03c4\u03b5\u03b8\u03b5\u03b9\u03bc\u03ad\u03bd\u03b5\u03c2 \u03c0\u03b5\u03c1\u03b9\u03bf\u03c7\u03ad\u03c2, \u03cc\u03c0\u03c9\u03c2 \u03c4\u03b1 \u03b2\u03bf\u03c5\u03bd\u03ac, \u03c4\u03b1 \u03b4\u03ac\u03c3\u03b7 \u03ba\u03b1\u03b9 \u03cc\u03bb\u03bf\u03b9 \u03bf\u03b9 \u03b1\u03bd\u03bf\u03b9\u03c7\u03c4\u03bf\u03af \u03c7\u03ce\u03c1\u03bf\u03b9. \u0395\u03af\u03bd\u03b1\u03b9 \u03b4\u03c5\u03bd\u03b1\u03c4\u03cc\u03bd \u03bd\u03b1 \u03b4\u03b7\u03bc\u03b9\u03bf\u03c5\u03c1\u03b3\u03b7\u03b8\u03bf\u03cd\u03bd \u03c0\u03c1\u03bf\u03b2\u03bb\u03ae\u03bc\u03b1\u03c4\u03b1 \u03c3\u03b5 \u03c5\u03c0\u03b1\u03af\u03b8\u03c1\u03b9\u03b5\u03c2 \u03b4\u03c1\u03b1\u03c3\u03c4\u03b7\u03c1\u03b9\u03cc\u03c4\u03b7\u03c4\u03b5\u03c2.",
+      "effective": "2026-10-10T11:38:00+00:00",
+      "event": "\u03a0\u03c1\u03bf\u03b5\u03b9\u03b4\u03bf\u03c0\u03bf\u03af\u03b7\u03c3\u03b7 \u03b3\u03b9\u03b1 \u03ba\u03b1\u03c4\u03b1\u03b3\u03af\u03b4\u03b9\u03b5\u03c2",
+      "expires": "2026-10-10T20:59:00+00:00",
+      "headline": "\u039a\u03af\u03c4\u03c1\u03b9\u03bd\u03b7 \u03c0\u03c1\u03bf\u03b5\u03b9\u03b4\u03bf\u03c0\u03bf\u03af\u03b7\u03c3\u03b7 \u03b3\u03b9\u03b1 \u0394\u03c5\u03c4\u03b9\u03ba\u03ae \u03a3\u03c4\u03b5\u03c1\u03b5\u03ac",
+      "language": "el-GR",
+      "onset": "2026-10-10T09:00:00+00:00",
+      "parameter": [
+       {
+        "value": "3; Thunderstorm",
+        "valueName": "awareness_type"
+       },
+       {
+        "value": "2; Yellow; Moderate",
+        "valueName": "awareness_level"
+       }
+      ],
+      "responseType": [
+       "None"
+      ],
+      "senderName": "Hnms Forecaster",
+      "severity": "Moderate",
+      "urgency": "Expected",
+      "web": "https://www.emy.gr"
+     }
+    ],
+    "msgType": "Update",
+    "references": "emk@hnms.gr,2.49.0.0.300.0.GR.261009110200.010000002,2026-10-09T11:02:00+00:00",
+    "scope": "Public",
+    "sender": "emk@hnms.gr",
+    "sent": "2026-10-10T11:38:00+00:00",
+    "status": "Actual"
+   },
+   "uuid": "97ff0c84-00e2-4dce-83c1-52b6d463acef"
+  },
+  {
+   "alert": {
+    "identifier": "2.49.0.0.300.0.GR.261010113800.020000008",
+    "incidents": "Update",
+    "info": [
+     {
+      "area": [
+       {
+        "areaDesc": "Epirus",
+        "geocode": [
+         {
+          "value": "GR008",
+          "valueName": "EMMA_ID"
+         }
+        ]
+       }
+      ],
+      "category": [
+       "Met"
+      ],
+      "certainty": "Likely",
+      "description": "Locally thunderstorms. BE AWARE that thunderstorms may occur.  Take extra care in exposed areas, like mountains, forest and open terrain. Disruption to outdoor activities is possible.",
+      "effective": "2026-10-10T11:38:00+00:00",
+      "event": "Moderate Thunderstorm warning",
+      "expires": "2026-10-10T20:59:00+00:00",
+      "headline": "Yellow Thunderstorm for Epirus",
+      "language": "en-GB",
+      "onset": "2026-10-10T09:00:00+00:00",
+      "parameter": [
+       {
+        "value": "3; Thunderstorm",
+        "valueName": "awareness_type"
+       },
+       {
+        "value": "2; Yellow; Moderate",
+        "valueName": "awareness_level"
+       }
+      ],
+      "responseType": [
+       "None"
+      ],
+      "senderName": "Hnms Forecaster",
+      "severity": "Moderate",
+      "urgency": "Expected",
+      "web": "https://www.emy.gr"
+     },
+     {
+      "area": [
+       {
+        "areaDesc": "\u0389\u03c0\u03b5\u03b9\u03c1\u03bf",
+        "geocode": [
+         {
+          "value": "GR008",
+          "valueName": "EMMA_ID"
+         }
+        ]
+       }
+      ],
+      "category": [
+       "Met"
+      ],
+      "certainty": "Likely",
+      "description": "\u03a4\u03bf\u03c0\u03b9\u03ba\u03ad\u03c2 \u03ba\u03b1\u03c4\u03b1\u03b9\u03b3\u03af\u03b4\u03b5\u03c2. \u0395\u039d\u0397\u039c\u0395\u03a1\u03a9\u0398\u0395\u0399\u03a4\u0395. \u0399\u03b4\u03b9\u03b1\u03af\u03c4\u03b5\u03c1\u03b7 \u03c0\u03c1\u03bf\u03c3\u03bf\u03c7\u03ae \u03c3\u03b5 \u03b5\u03ba\u03c4\u03b5\u03b8\u03b5\u03b9\u03bc\u03ad\u03bd\u03b5\u03c2 \u03c0\u03b5\u03c1\u03b9\u03bf\u03c7\u03ad\u03c2, \u03cc\u03c0\u03c9\u03c2 \u03c4\u03b1 \u03b2\u03bf\u03c5\u03bd\u03ac, \u03c4\u03b1 \u03b4\u03ac\u03c3\u03b7 \u03ba\u03b1\u03b9 \u03cc\u03bb\u03bf\u03b9 \u03bf\u03b9 \u03b1\u03bd\u03bf\u03b9\u03c7\u03c4\u03bf\u03af \u03c7\u03ce\u03c1\u03bf\u03b9. \u0395\u03af\u03bd\u03b1\u03b9 \u03b4\u03c5\u03bd\u03b1\u03c4\u03cc\u03bd \u03bd\u03b1 \u03b4\u03b7\u03bc\u03b9\u03bf\u03c5\u03c1\u03b3\u03b7\u03b8\u03bf\u03cd\u03bd \u03c0\u03c1\u03bf\u03b2\u03bb\u03ae\u03bc\u03b1\u03c4\u03b1 \u03c3\u03b5 \u03c5\u03c0\u03b1\u03af\u03b8\u03c1\u03b9\u03b5\u03c2 \u03b4\u03c1\u03b1\u03c3\u03c4\u03b7\u03c1\u03b9\u03cc\u03c4\u03b7\u03c4\u03b5\u03c2.",
+      "effective": "2026-10-10T11:38:00+00:00",
+      "event": "\u03a0\u03c1\u03bf\u03b5\u03b9\u03b4\u03bf\u03c0\u03bf\u03af\u03b7\u03c3\u03b7 \u03b3\u03b9\u03b1 \u03ba\u03b1\u03c4\u03b1\u03b3\u03af\u03b4\u03b9\u03b5\u03c2",
+      "expires": "2026-10-10T20:59:00+00:00",
+      "headline": "\u039a\u03af\u03c4\u03c1\u03b9\u03bd\u03b7 \u03c0\u03c1\u03bf\u03b5\u03b9\u03b4\u03bf\u03c0\u03bf\u03af\u03b7\u03c3\u03b7 \u03b3\u03b9\u03b1 \u0389\u03c0\u03b5\u03b9\u03c1\u03bf",
+      "language": "el-GR",
+      "onset": "2026-10-10T09:00:00+00:00",
+      "parameter": [
+       {
+        "value": "3; Thunderstorm",
+        "valueName": "awareness_type"
+       },
+       {
+        "value": "2; Yellow; Moderate",
+        "valueName": "awareness_level"
+       }
+      ],
+      "responseType": [
+       "None"
+      ],
+      "senderName": "Hnms Forecaster",
+      "severity": "Moderate",
+      "urgency": "Expected",
+      "web": "https://www.emy.gr"
+     }
+    ],
+    "msgType": "Update",
+    "references": "emk@hnms.gr,2.49.0.0.300.0.GR.261009110200.010000008,2026-10-09T11:02:00+00:00",
+    "scope": "Public",
+    "sender": "emk@hnms.gr",
+    "sent": "2026-10-10T11:38:00+00:00",
+    "status": "Actual"
+   },
+   "uuid": "e2099c10-05b2-4c82-9831-df54e6dedf32"
+  },
+  {
+   "alert": {
+    "identifier": "2.49.0.0.300.0.GR.261010114200.010000002",
+    "incidents": "Alert",
+    "info": [
+     {
+      "area": [
+       {
+        "areaDesc": "West Sterea",
+        "geocode": [
+         {
+          "value": "GR002",
+          "valueName": "EMMA_ID"
+         }
+        ]
+       }
+      ],
+      "category": [
+       "Met"
+      ],
+      "certainty": "Likely",
+      "description": "Severe thunderstorms in place probably accompanied by strong winds  and hail at times. BE PREPARED for severe thunderstorms causing significant impact and protect yourself from lightning. Damage to property and trees may occur. Flash flooding, wind gusts and hail are possible. Transport and outdoor activities disruption can be expected.",
+      "effective": "2026-10-10T11:42:00+00:00",
+      "event": "Severe Thunderstorm warning",
+      "expires": "2026-10-11T10:00:00+00:00",
+      "headline": "Orange warning for West Sterea",
+      "language": "en-GB",
+      "onset": "2026-10-10T20:59:00+00:00",
+      "parameter": [
+       {
+        "value": "3; Thunderstorm",
+        "valueName": "awareness_type"
+       },
+       {
+        "value": "3; Orange; Severe",
+        "valueName": "awareness_level"
+       }
+      ],
+      "responseType": [
+       "None"
+      ],
+      "senderName": "Hnms Forecaster",
+      "severity": "Severe",
+      "urgency": "Expected",
+      "web": "https://www.emy.gr"
+     },
+     {
+      "area": [
+       {
+        "areaDesc": "\u0394\u03c5\u03c4\u03b9\u03ba\u03ae \u03a3\u03c4\u03b5\u03c1\u03b5\u03ac",
+        "geocode": [
+         {
+          "value": "GR002",
+          "valueName": "EMMA_ID"
+         }
+        ]
+       }
+      ],
+      "category": [
+       "Met"
+      ],
+      "certainty": "Likely",
+      "description": "\u039a\u03b1\u03c4\u03b1\u03b9\u03b3\u03af\u03b4\u03b5\u03c2 \u03ba\u03b1\u03c4\u03ac \u03c4\u03cc\u03c0\u03bf\u03c5\u03c2 \u03b9\u03c3\u03c7\u03c5\u03c1\u03ad\u03c2 \u03c0\u03bf\u03c5 \u03c0\u03b9\u03b8\u03b1\u03bd\u03ce\u03c2 \u03bd\u03b1 \u03c3\u03c5\u03bd\u03bf\u03b4\u03b5\u03cd\u03bf\u03bd\u03c4\u03b1\u03b9 \u03c0\u03c1\u03cc\u03c3\u03ba\u03b1\u03b9\u03c1\u03b1 \u03b1\u03c0\u03cc \u03c7\u03b1\u03bb\u03b1\u03b6\u03bf\u03c0\u03c4\u03ce\u03c3\u03b5\u03b9\u03c2 \u03ba\u03b1\u03b9 \u03b9\u03c3\u03c7\u03c5\u03c1\u03bf\u03cd\u03c2 \u03c1\u03b9\u03c0\u03b1\u03af\u03bf\u03c5\u03c2 \u03b1\u03bd\u03ad\u03bc\u03bf\u03c5\u03c2. \u03a0\u03a1\u039f\u0395\u03a4\u039f\u0399\u039c\u0391\u03a3\u03a4\u0395\u0399\u03a4\u0395 \u03b3\u03b9\u03b1 \u03b9\u03c3\u03c7\u03c5\u03c1\u03ad\u03c2 \u03ba\u03b1\u03c4\u03b1\u03b9\u03b3\u03af\u03b4\u03b5\u03c2 \u03c0\u03bf\u03c5 \u03ad\u03c7\u03bf\u03c5\u03bd \u03c3\u03b7\u03bc\u03b1\u03bd\u03c4\u03b9\u03ba\u03ad\u03c2 \u03b5\u03c0\u03b9\u03c0\u03c4\u03ce\u03c3\u03b5\u03b9\u03c2 \u03ba\u03b1\u03b9 \u03c0\u03c1\u03bf\u03c3\u03c4\u03b1\u03c4\u03b5\u03cd\u03c3\u03c4\u03b5 \u03c4\u03bf\u03bd \u03b5\u03b1\u03c5\u03c4\u03cc \u03c3\u03b1\u03c2 \u03b1\u03c0\u03cc \u03c4\u03bf\u03c5\u03c2 \u03ba\u03b5\u03c1\u03b1\u03c5\u03bd\u03bf\u03cd\u03c2. \u0395\u03af\u03bd\u03b1\u03b9 \u03b4\u03c5\u03bd\u03b1\u03c4\u03cc \u03bd\u03b1 \u03c0\u03c1\u03bf\u03ba\u03bb\u03b7\u03b8\u03bf\u03cd\u03bd \u03b6\u03b7\u03bc\u03b9\u03ad\u03c2 \u03c3\u03b5 \u03c0\u03b5\u03c1\u03b9\u03bf\u03c5\u03c3\u03af\u03b5\u03c2 \u03ba\u03b1\u03b9 \u03b4\u03ad\u03bd\u03c4\u03c1\u03b1 \u03b1\u03c0\u03cc \u03c4\u03b9\u03c2 \u03c0\u03bb\u03b7\u03bc\u03bc\u03cd\u03c1\u03b5\u03c2, \u03c4\u03b9\u03c2 \u03c1\u03b9\u03c0\u03ad\u03c2 \u03c4\u03bf\u03c5 \u03b1\u03bd\u03ad\u03bc\u03bf\u03c5 \u03ba\u03b1\u03b9 \u03c4\u03bf \u03c7\u03b1\u03bb\u03ac\u03b6\u03b9. \u0391\u03bd\u03b1\u03bc\u03ad\u03bd\u03bf\u03bd\u03c4\u03b1\u03b9 \u03c0\u03c1\u03bf\u03b2\u03bb\u03ae\u03bc\u03b1\u03c4\u03b1 \u03c3\u03c4\u03b9\u03c2 \u03c5\u03c0\u03b1\u03af\u03b8\u03c1\u03b9\u03b5\u03c2 \u03b4\u03c1\u03b1\u03c3\u03c4\u03b7\u03c1\u03b9\u03cc\u03c4\u03b7\u03c4\u03b5\u03c2 \u03ba\u03b1\u03b9 \u03c4\u03b9\u03c2 \u03bc\u03b5\u03c4\u03b1\u03c6\u03bf\u03c1\u03ad\u03c2.",
+      "effective": "2026-10-10T11:42:00+00:00",
+      "event": "\u03a0\u03c1\u03bf\u03b5\u03b9\u03b4\u03bf\u03c0\u03bf\u03af\u03b7\u03c3\u03b7 \u03b3\u03b9\u03b1 \u039a\u03b1\u03c4\u03b1\u03b9\u03b3\u03af\u03b4\u03b5\u03c2",
+      "expires": "2026-10-11T10:00:00+00:00",
+      "headline": "\u03a0\u03bf\u03c1\u03c4\u03bf\u03ba\u03b1\u03bb\u03af \u03c0\u03c1\u03bf\u03b5\u03b9\u03b4\u03bf\u03c0\u03bf\u03af\u03b7\u03c3\u03b7 \u03b3\u03b9\u03b1 \u0394\u03c5\u03c4\u03b9\u03ba\u03ae \u03a3\u03c4\u03b5\u03c1\u03b5\u03ac",
+      "language": "el-GR",
+      "onset": "2026-10-10T20:59:00+00:00",
+      "parameter": [
+       {
+        "value": "3; Thunderstorm",
+        "valueName": "awareness_type"
+       },
+       {
+        "value": "3; Orange; Severe",
+        "valueName": "awareness_level"
+       }
+      ],
+      "responseType": [
+       "None"
+      ],
+      "senderName": "Hnms Forecaster",
+      "severity": "Severe",
+      "urgency": "Expected",
+      "web": "https://www.emy.gr"
+     }
+    ],
+    "msgType": "Alert",
+    "scope": "Public",
+    "sender": "emk@hnms.gr",
+    "sent": "2026-10-10T11:42:00+00:00",
+    "status": "Actual"
+   },
+   "uuid": "216617a9-ad49-42b1-9329-1ddfb67715ed"
+  },
+  {
+   "alert": {
+    "identifier": "2.49.0.0.300.0.GR.261010114200.010000008",
+    "incidents": "Alert",
+    "info": [
+     {
+      "area": [
+       {
+        "areaDesc": "Epirus",
+        "geocode": [
+         {
+          "value": "GR008",
+          "valueName": "EMMA_ID"
+         }
+        ]
+       }
+      ],
+      "category": [
+       "Met"
+      ],
+      "certainty": "Likely",
+      "description": "Severe thunderstorms in place probably accompanied by strong winds  and hail at times. BE PREPARED for severe thunderstorms causing significant impact and protect yourself from lightning. Damage to property and trees may occur. Flash flooding, wind gusts and hail are possible. Transport and outdoor activities disruption can be expected.",
+      "effective": "2026-10-10T11:42:00+00:00",
+      "event": "Severe Thunderstorm warning",
+      "expires": "2026-10-11T10:00:00+00:00",
+      "headline": "Orange warning for Epirus",
+      "language": "en-GB",
+      "onset": "2026-10-10T20:59:00+00:00",
+      "parameter": [
+       {
+        "value": "3; Thunderstorm",
+        "valueName": "awareness_type"
+       },
+       {
+        "value": "3; Orange; Severe",
+        "valueName": "awareness_level"
+       }
+      ],
+      "responseType": [
+       "None"
+      ],
+      "senderName": "Hnms Forecaster",
+      "severity": "Severe",
+      "urgency": "Expected",
+      "web": "https://www.emy.gr"
+     },
+     {
+      "area": [
+       {
+        "areaDesc": "\u0389\u03c0\u03b5\u03b9\u03c1\u03bf",
+        "geocode": [
+         {
+          "value": "GR008",
+          "valueName": "EMMA_ID"
+         }
+        ]
+       }
+      ],
+      "category": [
+       "Met"
+      ],
+      "certainty": "Likely",
+      "description": "\u039a\u03b1\u03c4\u03b1\u03b9\u03b3\u03af\u03b4\u03b5\u03c2 \u03ba\u03b1\u03c4\u03ac \u03c4\u03cc\u03c0\u03bf\u03c5\u03c2 \u03b9\u03c3\u03c7\u03c5\u03c1\u03ad\u03c2 \u03c0\u03bf\u03c5 \u03c0\u03b9\u03b8\u03b1\u03bd\u03ce\u03c2 \u03bd\u03b1 \u03c3\u03c5\u03bd\u03bf\u03b4\u03b5\u03cd\u03bf\u03bd\u03c4\u03b1\u03b9 \u03c0\u03c1\u03cc\u03c3\u03ba\u03b1\u03b9\u03c1\u03b1 \u03b1\u03c0\u03cc \u03c7\u03b1\u03bb\u03b1\u03b6\u03bf\u03c0\u03c4\u03ce\u03c3\u03b5\u03b9\u03c2 \u03ba\u03b1\u03b9 \u03b9\u03c3\u03c7\u03c5\u03c1\u03bf\u03cd\u03c2 \u03c1\u03b9\u03c0\u03b1\u03af\u03bf\u03c5\u03c2 \u03b1\u03bd\u03ad\u03bc\u03bf\u03c5\u03c2. \u03a0\u03a1\u039f\u0395\u03a4\u039f\u0399\u039c\u0391\u03a3\u03a4\u0395\u0399\u03a4\u0395 \u03b3\u03b9\u03b1 \u03b9\u03c3\u03c7\u03c5\u03c1\u03ad\u03c2 \u03ba\u03b1\u03c4\u03b1\u03b9\u03b3\u03af\u03b4\u03b5\u03c2 \u03c0\u03bf\u03c5 \u03ad\u03c7\u03bf\u03c5\u03bd \u03c3\u03b7\u03bc\u03b1\u03bd\u03c4\u03b9\u03ba\u03ad\u03c2 \u03b5\u03c0\u03b9\u03c0\u03c4\u03ce\u03c3\u03b5\u03b9\u03c2 \u03ba\u03b1\u03b9 \u03c0\u03c1\u03bf\u03c3\u03c4\u03b1\u03c4\u03b5\u03cd\u03c3\u03c4\u03b5 \u03c4\u03bf\u03bd \u03b5\u03b1\u03c5\u03c4\u03cc \u03c3\u03b1\u03c2 \u03b1\u03c0\u03cc \u03c4\u03bf\u03c5\u03c2 \u03ba\u03b5\u03c1\u03b1\u03c5\u03bd\u03bf\u03cd\u03c2. \u0395\u03af\u03bd\u03b1\u03b9 \u03b4\u03c5\u03bd\u03b1\u03c4\u03cc \u03bd\u03b1 \u03c0\u03c1\u03bf\u03ba\u03bb\u03b7\u03b8\u03bf\u03cd\u03bd \u03b6\u03b7\u03bc\u03b9\u03ad\u03c2 \u03c3\u03b5 \u03c0\u03b5\u03c1\u03b9\u03bf\u03c5\u03c3\u03af\u03b5\u03c2 \u03ba\u03b1\u03b9 \u03b4\u03ad\u03bd\u03c4\u03c1\u03b1 \u03b1\u03c0\u03cc \u03c4\u03b9\u03c2 \u03c0\u03bb\u03b7\u03bc\u03bc\u03cd\u03c1\u03b5\u03c2, \u03c4\u03b9\u03c2 \u03c1\u03b9\u03c0\u03ad\u03c2 \u03c4\u03bf\u03c5 \u03b1\u03bd\u03ad\u03bc\u03bf\u03c5 \u03ba\u03b1\u03b9 \u03c4\u03bf \u03c7\u03b1\u03bb\u03ac\u03b6\u03b9. \u0391\u03bd\u03b1\u03bc\u03ad\u03bd\u03bf\u03bd\u03c4\u03b1\u03b9 \u03c0\u03c1\u03bf\u03b2\u03bb\u03ae\u03bc\u03b1\u03c4\u03b1 \u03c3\u03c4\u03b9\u03c2 \u03c5\u03c0\u03b1\u03af\u03b8\u03c1\u03b9\u03b5\u03c2 \u03b4\u03c1\u03b1\u03c3\u03c4\u03b7\u03c1\u03b9\u03cc\u03c4\u03b7\u03c4\u03b5\u03c2 \u03ba\u03b1\u03b9 \u03c4\u03b9\u03c2 \u03bc\u03b5\u03c4\u03b1\u03c6\u03bf\u03c1\u03ad\u03c2.",
+      "effective": "2026-10-10T11:42:00+00:00",
+      "event": "\u03a0\u03c1\u03bf\u03b5\u03b9\u03b4\u03bf\u03c0\u03bf\u03af\u03b7\u03c3\u03b7 \u03b3\u03b9\u03b1 \u039a\u03b1\u03c4\u03b1\u03b9\u03b3\u03af\u03b4\u03b5\u03c2",
+      "expires": "2026-10-11T10:00:00+00:00",
+      "headline": "\u03a0\u03bf\u03c1\u03c4\u03bf\u03ba\u03b1\u03bb\u03af \u03c0\u03c1\u03bf\u03b5\u03b9\u03b4\u03bf\u03c0\u03bf\u03af\u03b7\u03c3\u03b7 \u03b3\u03b9\u03b1 \u0389\u03c0\u03b5\u03b9\u03c1\u03bf",
+      "language": "el-GR",
+      "onset": "2026-10-10T20:59:00+00:00",
+      "parameter": [
+       {
+        "value": "3; Thunderstorm",
+        "valueName": "awareness_type"
+       },
+       {
+        "value": "3; Orange; Severe",
+        "valueName": "awareness_level"
+       }
+      ],
+      "responseType": [
+       "None"
+      ],
+      "senderName": "Hnms Forecaster",
+      "severity": "Severe",
+      "urgency": "Expected",
+      "web": "https://www.emy.gr"
+     }
+    ],
+    "msgType": "Alert",
+    "scope": "Public",
+    "sender": "emk@hnms.gr",
+    "sent": "2026-10-10T11:42:00+00:00",
+    "status": "Actual"
+   },
+   "uuid": "0782ab86-b706-4897-8fc7-72a52ef19ca4"
+  },
+  {
+   "alert": {
+    "identifier": "2.49.0.0.300.0.GR.261010115100.010000001",
+    "incidents": "Alert",
+    "info": [
+     {
+      "area": [
+       {
+        "areaDesc": "Thessalia",
+        "geocode": [
+         {
+          "value": "GR001",
+          "valueName": "EMMA_ID"
+         }
+        ]
+       }
+      ],
+      "category": [
+       "Met"
+      ],
+      "certainty": "Likely",
+      "description": "Locally thunderstorms. BE AWARE that thunderstorms may occur.  Take extra care in exposed areas, like mountains, forest and open terrain. Disruption to outdoor activities is possible.",
+      "effective": "2026-10-10T11:51:00+00:00",
+      "event": "Yellow Warning",
+      "expires": "2026-10-11T18:00:00+00:00",
+      "headline": "Yellow warning for Thessalia",
+      "language": "en-GB",
+      "onset": "2026-10-11T10:00:00+00:00",
+      "parameter": [
+       {
+        "value": "3; Thunderstorm",
+        "valueName": "awareness_type"
+       },
+       {
+        "value": "2; Yellow; Moderate",
+        "valueName": "awareness_level"
+       }
+      ],
+      "responseType": [
+       "None"
+      ],
+      "senderName": "Hnms Forecaster",
+      "severity": "Moderate",
+      "urgency": "Expected",
+      "web": "https://www.emy.gr"
+     },
+     {
+      "area": [
+       {
+        "areaDesc": "\u0398\u03b5\u03c3\u03c3\u03b1\u03bb\u03af\u03b1",
+        "geocode": [
+         {
+          "value": "GR001",
+          "valueName": "EMMA_ID"
+         }
+        ]
+       }
+      ],
+      "category": [
+       "Met"
+      ],
+      "certainty": "Likely",
+      "description": "\u03a4\u03bf\u03c0\u03b9\u03ba\u03ad\u03c2 \u03ba\u03b1\u03c4\u03b1\u03b9\u03b3\u03af\u03b4\u03b5\u03c2. \u0395\u039d\u0397\u039c\u0395\u03a1\u03a9\u0398\u0395\u0399\u03a4\u0395. \u0399\u03b4\u03b9\u03b1\u03af\u03c4\u03b5\u03c1\u03b7 \u03c0\u03c1\u03bf\u03c3\u03bf\u03c7\u03ae \u03c3\u03b5 \u03b5\u03ba\u03c4\u03b5\u03b8\u03b5\u03b9\u03bc\u03ad\u03bd\u03b5\u03c2 \u03c0\u03b5\u03c1\u03b9\u03bf\u03c7\u03ad\u03c2, \u03cc\u03c0\u03c9\u03c2 \u03c4\u03b1 \u03b2\u03bf\u03c5\u03bd\u03ac, \u03c4\u03b1 \u03b4\u03ac\u03c3\u03b7 \u03ba\u03b1\u03b9 \u03cc\u03bb\u03bf\u03b9 \u03bf\u03b9 \u03b1\u03bd\u03bf\u03b9\u03c7\u03c4\u03bf\u03af \u03c7\u03ce\u03c1\u03bf\u03b9. \u0395\u03af\u03bd\u03b1\u03b9 \u03b4\u03c5\u03bd\u03b1\u03c4\u03cc\u03bd \u03bd\u03b1 \u03b4\u03b7\u03bc\u03b9\u03bf\u03c5\u03c1\u03b3\u03b7\u03b8\u03bf\u03cd\u03bd \u03c0\u03c1\u03bf\u03b2\u03bb\u03ae\u03bc\u03b1\u03c4\u03b1 \u03c3\u03b5 \u03c5\u03c0\u03b1\u03af\u03b8\u03c1\u03b9\u03b5\u03c2 \u03b4\u03c1\u03b1\u03c3\u03c4\u03b7\u03c1\u03b9\u03cc\u03c4\u03b7\u03c4\u03b5\u03c2.",
+      "effective": "2026-10-10T11:51:00+00:00",
+      "event": "\u039a\u03af\u03c4\u03c1\u03b9\u03bd\u03b7 \u03a0\u03c1\u03bf\u03b5\u03b9\u03b4\u03bf\u03c0\u03bf\u03af\u03b7\u03c3\u03b7",
+      "expires": "2026-10-11T18:00:00+00:00",
+      "headline": "\u039a\u03af\u03c4\u03c1\u03b9\u03bd\u03b7 \u03c0\u03c1\u03bf\u03b5\u03b9\u03b4\u03bf\u03c0\u03bf\u03af\u03b7\u03c3\u03b7 \u03b3\u03b9\u03b1 \u0398\u03b5\u03c3\u03c3\u03b1\u03bb\u03af\u03b1",
+      "language": "el-GR",
+      "onset": "2026-10-11T10:00:00+00:00",
+      "parameter": [
+       {
+        "value": "3; Thunderstorm",
+        "valueName": "awareness_type"
+       },
+       {
+        "value": "2; Yellow; Moderate",
+        "valueName": "awareness_level"
+       }
+      ],
+      "responseType": [
+       "None"
+      ],
+      "senderName": "Hnms Forecaster",
+      "severity": "Moderate",
+      "urgency": "Expected",
+      "web": "https://www.emy.gr"
+     }
+    ],
+    "msgType": "Alert",
+    "scope": "Public",
+    "sender": "emk@hnms.gr",
+    "sent": "2026-10-10T11:51:00+00:00",
+    "status": "Actual"
+   },
+   "uuid": "cb530942-2271-4d27-a3e2-2de407e79912"
+  },
+  {
+   "alert": {
+    "identifier": "2.49.0.0.300.0.GR.261010115100.010000007",
+    "incidents": "Alert",
+    "info": [
+     {
+      "area": [
+       {
+        "areaDesc": "Central Makedonia",
+        "geocode": [
+         {
+          "value": "GR007",
+          "valueName": "EMMA_ID"
+         }
+        ]
+       }
+      ],
+      "category": [
+       "Met"
+      ],
+      "certainty": "Likely",
+      "description": "Locally thunderstorms. BE AWARE that thunderstorms may occur.  Take extra care in exposed areas, like mountains, forest and open terrain. Disruption to outdoor activities is possible.",
+      "effective": "2026-10-10T11:51:00+00:00",
+      "event": "Yellow Warning",
+      "expires": "2026-10-11T22:00:00+00:00",
+      "headline": "Yellow warning for Central Makedonia",
+      "language": "en-GB",
+      "onset": "2026-10-11T04:00:00+00:00",
+      "parameter": [
+       {
+        "value": "3; Thunderstorm",
+        "valueName": "awareness_type"
+       },
+       {
+        "value": "2; Yellow; Moderate",
+        "valueName": "awareness_level"
+       }
+      ],
+      "responseType": [
+       "None"
+      ],
+      "senderName": "Hnms Forecaster",
+      "severity": "Moderate",
+      "urgency": "Expected",
+      "web": "https://www.emy.gr"
+     },
+     {
+      "area": [
+       {
+        "areaDesc": "\u039a\u03b5\u03bd\u03c4\u03c1\u03b9\u03ba\u03ae \u039c\u03b1\u03ba\u03b5\u03b4\u03bf\u03bd\u03af\u03b1",
+        "geocode": [
+         {
+          "value": "GR007",
+          "valueName": "EMMA_ID"
+         }
+        ]
+       }
+      ],
+      "category": [
+       "Met"
+      ],
+      "certainty": "Likely",
+      "description": "\u03a4\u03bf\u03c0\u03b9\u03ba\u03ad\u03c2 \u03ba\u03b1\u03c4\u03b1\u03b9\u03b3\u03af\u03b4\u03b5\u03c2. \u0395\u039d\u0397\u039c\u0395\u03a1\u03a9\u0398\u0395\u0399\u03a4\u0395. \u0399\u03b4\u03b9\u03b1\u03af\u03c4\u03b5\u03c1\u03b7 \u03c0\u03c1\u03bf\u03c3\u03bf\u03c7\u03ae \u03c3\u03b5 \u03b5\u03ba\u03c4\u03b5\u03b8\u03b5\u03b9\u03bc\u03ad\u03bd\u03b5\u03c2 \u03c0\u03b5\u03c1\u03b9\u03bf\u03c7\u03ad\u03c2, \u03cc\u03c0\u03c9\u03c2 \u03c4\u03b1 \u03b2\u03bf\u03c5\u03bd\u03ac, \u03c4\u03b1 \u03b4\u03ac\u03c3\u03b7 \u03ba\u03b1\u03b9 \u03cc\u03bb\u03bf\u03b9 \u03bf\u03b9 \u03b1\u03bd\u03bf\u03b9\u03c7\u03c4\u03bf\u03af \u03c7\u03ce\u03c1\u03bf\u03b9. \u0395\u03af\u03bd\u03b1\u03b9 \u03b4\u03c5\u03bd\u03b1\u03c4\u03cc\u03bd \u03bd\u03b1 \u03b4\u03b7\u03bc\u03b9\u03bf\u03c5\u03c1\u03b3\u03b7\u03b8\u03bf\u03cd\u03bd \u03c0\u03c1\u03bf\u03b2\u03bb\u03ae\u03bc\u03b1\u03c4\u03b1 \u03c3\u03b5 \u03c5\u03c0\u03b1\u03af\u03b8\u03c1\u03b9\u03b5\u03c2 \u03b4\u03c1\u03b1\u03c3\u03c4\u03b7\u03c1\u03b9\u03cc\u03c4\u03b7\u03c4\u03b5\u03c2.",
+      "effective": "2026-10-10T11:51:00+00:00",
+      "event": "\u039a\u03af\u03c4\u03c1\u03b9\u03bd\u03b7 \u03a0\u03c1\u03bf\u03b5\u03b9\u03b4\u03bf\u03c0\u03bf\u03af\u03b7\u03c3\u03b7",
+      "expires": "2026-10-11T22:00:00+00:00",
+      "headline": "\u039a\u03af\u03c4\u03c1\u03b9\u03bd\u03b7 \u03c0\u03c1\u03bf\u03b5\u03b9\u03b4\u03bf\u03c0\u03bf\u03af\u03b7\u03c3\u03b7 \u03b3\u03b9\u03b1 \u039a\u03b5\u03bd\u03c4\u03c1\u03b9\u03ba\u03ae \u039c\u03b1\u03ba\u03b5\u03b4\u03bf\u03bd\u03af\u03b1",
+      "language": "el-GR",
+      "onset": "2026-10-11T04:00:00+00:00",
+      "parameter": [
+       {
+        "value": "3; Thunderstorm",
+        "valueName": "awareness_type"
+       },
+       {
+        "value": "2; Yellow; Moderate",
+        "valueName": "awareness_level"
+       }
+      ],
+      "responseType": [
+       "None"
+      ],
+      "senderName": "Hnms Forecaster",
+      "severity": "Moderate",
+      "urgency": "Expected",
+      "web": "https://www.emy.gr"
+     }
+    ],
+    "msgType": "Alert",
+    "scope": "Public",
+    "sender": "emk@hnms.gr",
+    "sent": "2026-10-10T11:51:00+00:00",
+    "status": "Actual"
+   },
+   "uuid": "92fc0b02-387c-42b3-8e0e-82e7d00d76bf"
+  },
+  {
+   "alert": {
+    "identifier": "2.49.0.0.300.0.GR.261010115100.010000005",
+    "incidents": "Alert",
+    "info": [
+     {
+      "area": [
+       {
+        "areaDesc": "East Makedonia",
+        "geocode": [
+         {
+          "value": "GR005",
+          "valueName": "EMMA_ID"
+         }
+        ]
+       }
+      ],
+      "category": [
+       "Met"
+      ],
+      "certainty": "Likely",
+      "description": "Locally thunderstorms. BE AWARE that thunderstorms may occur.  Take extra care in exposed areas, like mountains, forest and open terrain. Disruption to outdoor activities is possible.",
+      "effective": "2026-10-10T11:51:00+00:00",
+      "event": "Yellow Warning",
+      "expires": "2026-10-12T06:00:00+00:00",
+      "headline": "Yellow warning for East Makedonia",
+      "language": "en-GB",
+      "onset": "2026-10-11T12:00:00+00:00",
+      "parameter": [
+       {
+        "value": "3; Thunderstorm",
+        "valueName": "awareness_type"
+       },
+       {
+        "value": "2; Yellow; Moderate",
+        "valueName": "awareness_level"
+       }
+      ],
+      "responseType": [
+       "None"
+      ],
+      "senderName": "Hnms Forecaster",
+      "severity": "Moderate",
+      "urgency": "Expected",
+      "web": "https://www.emy.gr"
+     },
+     {
+      "area": [
+       {
+        "areaDesc": "\u0391\u03bd\u03b1\u03c4\u03bf\u03bb\u03b9\u03ba\u03ae \u039c\u03b1\u03ba\u03b5\u03b4\u03bf\u03bd\u03af\u03b1",
+        "geocode": [
+         {
+          "value": "GR005",
+          "valueName": "EMMA_ID"
+         }
+        ]
+       }
+      ],
+      "category": [
+       "Met"
+      ],
+      "certainty": "Likely",
+      "description": "\u03a4\u03bf\u03c0\u03b9\u03ba\u03ad\u03c2 \u03ba\u03b1\u03c4\u03b1\u03b9\u03b3\u03af\u03b4\u03b5\u03c2. \u0395\u039d\u0397\u039c\u0395\u03a1\u03a9\u0398\u0395\u0399\u03a4\u0395. \u0399\u03b4\u03b9\u03b1\u03af\u03c4\u03b5\u03c1\u03b7 \u03c0\u03c1\u03bf\u03c3\u03bf\u03c7\u03ae \u03c3\u03b5 \u03b5\u03ba\u03c4\u03b5\u03b8\u03b5\u03b9\u03bc\u03ad\u03bd\u03b5\u03c2 \u03c0\u03b5\u03c1\u03b9\u03bf\u03c7\u03ad\u03c2, \u03cc\u03c0\u03c9\u03c2 \u03c4\u03b1 \u03b2\u03bf\u03c5\u03bd\u03ac, \u03c4\u03b1 \u03b4\u03ac\u03c3\u03b7 \u03ba\u03b1\u03b9 \u03cc\u03bb\u03bf\u03b9 \u03bf\u03b9 \u03b1\u03bd\u03bf\u03b9\u03c7\u03c4\u03bf\u03af \u03c7\u03ce\u03c1\u03bf\u03b9. \u0395\u03af\u03bd\u03b1\u03b9 \u03b4\u03c5\u03bd\u03b1\u03c4\u03cc\u03bd \u03bd\u03b1 \u03b4\u03b7\u03bc\u03b9\u03bf\u03c5\u03c1\u03b3\u03b7\u03b8\u03bf\u03cd\u03bd \u03c0\u03c1\u03bf\u03b2\u03bb\u03ae\u03bc\u03b1\u03c4\u03b1 \u03c3\u03b5 \u03c5\u03c0\u03b1\u03af\u03b8\u03c1\u03b9\u03b5\u03c2 \u03b4\u03c1\u03b1\u03c3\u03c4\u03b7\u03c1\u03b9\u03cc\u03c4\u03b7\u03c4\u03b5\u03c2.",
+      "effective": "2026-10-10T11:51:00+00:00",
+      "event": "\u039a\u03af\u03c4\u03c1\u03b9\u03bd\u03b7 \u03a0\u03c1\u03bf\u03b5\u03b9\u03b4\u03bf\u03c0\u03bf\u03af\u03b7\u03c3\u03b7",
+      "expires": "2026-10-12T06:00:00+00:00",
+      "headline": "\u039a\u03af\u03c4\u03c1\u03b9\u03bd\u03b7 \u03c0\u03c1\u03bf\u03b5\u03b9\u03b4\u03bf\u03c0\u03bf\u03af\u03b7\u03c3\u03b7 \u03b3\u03b9\u03b1 \u0391\u03bd\u03b1\u03c4\u03bf\u03bb\u03b9\u03ba\u03ae \u039c\u03b1\u03ba\u03b5\u03b4\u03bf\u03bd\u03af\u03b1",
+      "language": "el-GR",
+      "onset": "2026-10-11T12:00:00+00:00",
+      "parameter": [
+       {
+        "value": "3; Thunderstorm",
+        "valueName": "awareness_type"
+       },
+       {
+        "value": "2; Yellow; Moderate",
+        "valueName": "awareness_level"
+       }
+      ],
+      "responseType": [
+       "None"
+      ],
+      "senderName": "Hnms Forecaster",
+      "severity": "Moderate",
+      "urgency": "Expected",
+      "web": "https://www.emy.gr"
+     }
+    ],
+    "msgType": "Alert",
+    "scope": "Public",
+    "sender": "emk@hnms.gr",
+    "sent": "2026-10-10T11:51:00+00:00",
+    "status": "Actual"
+   },
+   "uuid": "b32fab83-8994-4f06-9017-2ed77cb5609a"
+  },
+  {
+   "alert": {
+    "identifier": "2.49.0.0.300.0.GR.261010115100.010000004",
+    "incidents": "Alert",
+    "info": [
+     {
+      "area": [
+       {
+        "areaDesc": "Thraki",
+        "geocode": [
+         {
+          "value": "GR004",
+          "valueName": "EMMA_ID"
+         }
+        ]
+       }
+      ],
+      "category": [
+       "Met"
+      ],
+      "certainty": "Likely",
+      "description": "Locally thunderstorms. BE AWARE that thunderstorms may occur.  Take extra care in exposed areas, like mountains, forest and open terrain. Disruption to outdoor activities is possible.",
+      "effective": "2026-10-10T11:51:00+00:00",
+      "event": "Yellow Warning",
+      "expires": "2026-10-12T09:00:00+00:00",
+      "headline": "Yellow warning for Thraki",
+      "language": "en-GB",
+      "onset": "2026-10-11T20:00:00+00:00",
+      "parameter": [
+       {
+        "value": "3; Thunderstorm",
+        "valueName": "awareness_type"
+       },
+       {
+        "value": "2; Yellow; Moderate",
+        "valueName": "awareness_level"
+       }
+      ],
+      "responseType": [
+       "None"
+      ],
+      "senderName": "Hnms Forecaster",
+      "severity": "Moderate",
+      "urgency": "Expected",
+      "web": "https://www.emy.gr"
+     },
+     {
+      "area": [
+       {
+        "areaDesc": "\u0398\u03c1\u03ac\u03ba\u03b7",
+        "geocode": [
+         {
+          "value": "GR004",
+          "valueName": "EMMA_ID"
+         }
+        ]
+       }
+      ],
+      "category": [
+       "Met"
+      ],
+      "certainty": "Likely",
+      "description": "\u03a4\u03bf\u03c0\u03b9\u03ba\u03ad\u03c2 \u03ba\u03b1\u03c4\u03b1\u03b9\u03b3\u03af\u03b4\u03b5\u03c2. \u0395\u039d\u0397\u039c\u0395\u03a1\u03a9\u0398\u0395\u0399\u03a4\u0395. \u0399\u03b4\u03b9\u03b1\u03af\u03c4\u03b5\u03c1\u03b7 \u03c0\u03c1\u03bf\u03c3\u03bf\u03c7\u03ae \u03c3\u03b5 \u03b5\u03ba\u03c4\u03b5\u03b8\u03b5\u03b9\u03bc\u03ad\u03bd\u03b5\u03c2 \u03c0\u03b5\u03c1\u03b9\u03bf\u03c7\u03ad\u03c2, \u03cc\u03c0\u03c9\u03c2 \u03c4\u03b1 \u03b2\u03bf\u03c5\u03bd\u03ac, \u03c4\u03b1 \u03b4\u03ac\u03c3\u03b7 \u03ba\u03b1\u03b9 \u03cc\u03bb\u03bf\u03b9 \u03bf\u03b9 \u03b1\u03bd\u03bf\u03b9\u03c7\u03c4\u03bf\u03af \u03c7\u03ce\u03c1\u03bf\u03b9. \u0395\u03af\u03bd\u03b1\u03b9 \u03b4\u03c5\u03bd\u03b1\u03c4\u03cc\u03bd \u03bd\u03b1 \u03b4\u03b7\u03bc\u03b9\u03bf\u03c5\u03c1\u03b3\u03b7\u03b8\u03bf\u03cd\u03bd \u03c0\u03c1\u03bf\u03b2\u03bb\u03ae\u03bc\u03b1\u03c4\u03b1 \u03c3\u03b5 \u03c5\u03c0\u03b1\u03af\u03b8\u03c1\u03b9\u03b5\u03c2 \u03b4\u03c1\u03b1\u03c3\u03c4\u03b7\u03c1\u03b9\u03cc\u03c4\u03b7\u03c4\u03b5\u03c2.",
+      "effective": "2026-10-10T11:51:00+00:00",
+      "event": "\u039a\u03af\u03c4\u03c1\u03b9\u03bd\u03b7 \u03a0\u03c1\u03bf\u03b5\u03b9\u03b4\u03bf\u03c0\u03bf\u03af\u03b7\u03c3\u03b7",
+      "expires": "2026-10-12T09:00:00+00:00",
+      "headline": "\u039a\u03af\u03c4\u03c1\u03b9\u03bd\u03b7 \u03c0\u03c1\u03bf\u03b5\u03b9\u03b4\u03bf\u03c0\u03bf\u03af\u03b7\u03c3\u03b7 \u03b3\u03b9\u03b1 \u0398\u03c1\u03ac\u03ba\u03b7",
+      "language": "el-GR",
+      "onset": "2026-10-11T20:00:00+00:00",
+      "parameter": [
+       {
+        "value": "3; Thunderstorm",
+        "valueName": "awareness_type"
+       },
+       {
+        "value": "2; Yellow; Moderate",
+        "valueName": "awareness_level"
+       }
+      ],
+      "responseType": [
+       "None"
+      ],
+      "senderName": "Hnms Forecaster",
+      "severity": "Moderate",
+      "urgency": "Expected",
+      "web": "https://www.emy.gr"
+     }
+    ],
+    "msgType": "Alert",
+    "scope": "Public",
+    "sender": "emk@hnms.gr",
+    "sent": "2026-10-10T11:51:00+00:00",
+    "status": "Actual"
+   },
+   "uuid": "9314ac6b-ac10-4ac8-bf77-85d61f77e836"
+  },
+  {
+   "alert": {
+    "identifier": "2.49.0.0.300.0.GR.261010115100.010000006",
+    "incidents": "Alert",
+    "info": [
+     {
+      "area": [
+       {
+        "areaDesc": "West Makedonia",
+        "geocode": [
+         {
+          "value": "GR006",
+          "valueName": "EMMA_ID"
+         }
+        ]
+       }
+      ],
+      "category": [
+       "Met"
+      ],
+      "certainty": "Likely",
+      "description": "Locally thunderstorms. BE AWARE that thunderstorms may occur.  Take extra care in exposed areas, like mountains, forest and open terrain. Disruption to outdoor activities is possible.",
+      "effective": "2026-10-10T11:51:00+00:00",
+      "event": "Yellow Warning",
+      "expires": "2026-10-11T15:00:00+00:00",
+      "headline": "Yellow warning for West Makedonia",
+      "language": "en-GB",
+      "onset": "2026-10-11T03:00:00+00:00",
+      "parameter": [
+       {
+        "value": "3; Thunderstorm",
+        "valueName": "awareness_type"
+       },
+       {
+        "value": "2; Yellow; Moderate",
+        "valueName": "awareness_level"
+       }
+      ],
+      "responseType": [
+       "None"
+      ],
+      "senderName": "Hnms Forecaster",
+      "severity": "Moderate",
+      "urgency": "Expected",
+      "web": "https://www.emy.gr"
+     },
+     {
+      "area": [
+       {
+        "areaDesc": "\u0394\u03c5\u03c4\u03b9\u03ba\u03ae \u039c\u03b1\u03ba\u03b5\u03b4\u03bf\u03bd\u03af\u03b1",
+        "geocode": [
+         {
+          "value": "GR006",
+          "valueName": "EMMA_ID"
+         }
+        ]
+       }
+      ],
+      "category": [
+       "Met"
+      ],
+      "certainty": "Likely",
+      "description": "\u03a4\u03bf\u03c0\u03b9\u03ba\u03ad\u03c2 \u03ba\u03b1\u03c4\u03b1\u03b9\u03b3\u03af\u03b4\u03b5\u03c2. \u0395\u039d\u0397\u039c\u0395\u03a1\u03a9\u0398\u0395\u0399\u03a4\u0395. \u0399\u03b4\u03b9\u03b1\u03af\u03c4\u03b5\u03c1\u03b7 \u03c0\u03c1\u03bf\u03c3\u03bf\u03c7\u03ae \u03c3\u03b5 \u03b5\u03ba\u03c4\u03b5\u03b8\u03b5\u03b9\u03bc\u03ad\u03bd\u03b5\u03c2 \u03c0\u03b5\u03c1\u03b9\u03bf\u03c7\u03ad\u03c2, \u03cc\u03c0\u03c9\u03c2 \u03c4\u03b1 \u03b2\u03bf\u03c5\u03bd\u03ac, \u03c4\u03b1 \u03b4\u03ac\u03c3\u03b7 \u03ba\u03b1\u03b9 \u03cc\u03bb\u03bf\u03b9 \u03bf\u03b9 \u03b1\u03bd\u03bf\u03b9\u03c7\u03c4\u03bf\u03af \u03c7\u03ce\u03c1\u03bf\u03b9. \u0395\u03af\u03bd\u03b1\u03b9 \u03b4\u03c5\u03bd\u03b1\u03c4\u03cc\u03bd \u03bd\u03b1 \u03b4\u03b7\u03bc\u03b9\u03bf\u03c5\u03c1\u03b3\u03b7\u03b8\u03bf\u03cd\u03bd \u03c0\u03c1\u03bf\u03b2\u03bb\u03ae\u03bc\u03b1\u03c4\u03b1 \u03c3\u03b5 \u03c5\u03c0\u03b1\u03af\u03b8\u03c1\u03b9\u03b5\u03c2 \u03b4\u03c1\u03b1\u03c3\u03c4\u03b7\u03c1\u03b9\u03cc\u03c4\u03b7\u03c4\u03b5\u03c2.",
+      "effective": "2026-10-10T11:51:00+00:00",
+      "event": "\u039a\u03af\u03c4\u03c1\u03b9\u03bd\u03b7 \u03a0\u03c1\u03bf\u03b5\u03b9\u03b4\u03bf\u03c0\u03bf\u03af\u03b7\u03c3\u03b7",
+      "expires": "2026-10-11T15:00:00+00:00",
+      "headline": "\u039a\u03af\u03c4\u03c1\u03b9\u03bd\u03b7 \u03c0\u03c1\u03bf\u03b5\u03b9\u03b4\u03bf\u03c0\u03bf\u03af\u03b7\u03c3\u03b7 \u03b3\u03b9\u03b1 \u0394\u03c5\u03c4\u03b9\u03ba\u03ae \u039c\u03b1\u03ba\u03b5\u03b4\u03bf\u03bd\u03af\u03b1",
+      "language": "el-GR",
+      "onset": "2026-10-11T03:00:00+00:00",
+      "parameter": [
+       {
+        "value": "3; Thunderstorm",
+        "valueName": "awareness_type"
+       },
+       {
+        "value": "2; Yellow; Moderate",
+        "valueName": "awareness_level"
+       }
+      ],
+      "responseType": [
+       "None"
+      ],
+      "senderName": "Hnms Forecaster",
+      "severity": "Moderate",
+      "urgency": "Expected",
+      "web": "https://www.emy.gr"
+     }
+    ],
+    "msgType": "Alert",
+    "scope": "Public",
+    "sender": "emk@hnms.gr",
+    "sent": "2026-10-10T11:51:00+00:00",
+    "status": "Actual"
+   },
+   "uuid": "ae4e5aa7-0e28-4de7-a1d3-28f2835a1277"
+  },
+  {
+   "alert": {
+    "identifier": "2.49.0.0.300.0.GR.261010115100.010000009",
+    "incidents": "Alert",
+    "info": [
+     {
+      "area": [
+       {
+        "areaDesc": "West Peloponnisos",
+        "geocode": [
+         {
+          "value": "GR009",
+          "valueName": "EMMA_ID"
+         }
+        ]
+       }
+      ],
+      "category": [
+       "Met"
+      ],
+      "certainty": "Likely",
+      "description": "Locally thunderstorms. BE AWARE that thunderstorms may occur.  Take extra care in exposed areas, like mountains, forest and open terrain. Disruption to outdoor activities is possible.",
+      "effective": "2026-10-10T11:51:00+00:00",
+      "event": "Yellow Warning",
+      "expires": "2026-10-11T18:00:00+00:00",
+      "headline": "Yellow warning for West Peloponnisos",
+      "language": "en-GB",
+      "onset": "2026-10-11T03:00:00+00:00",
+      "parameter": [
+       {
+        "value": "3; Thunderstorm",
+        "valueName": "awareness_type"
+       },
+       {
+        "value": "2; Yellow; Moderate",
+        "valueName": "awareness_level"
+       }
+      ],
+      "responseType": [
+       "None"
+      ],
+      "senderName": "Hnms Forecaster",
+      "severity": "Moderate",
+      "urgency": "Expected",
+      "web": "https://www.emy.gr"
+     },
+     {
+      "area": [
+       {
+        "areaDesc": "\u0394\u03c5\u03c4\u03b9\u03ba\u03ae \u03a0\u03b5\u03bb\u03bf\u03c0\u03cc\u03bd\u03bd\u03b7\u03c3\u03bf",
+        "geocode": [
+         {
+          "value": "GR009",
+          "valueName": "EMMA_ID"
+         }
+        ]
+       }
+      ],
+      "category": [
+       "Met"
+      ],
+      "certainty": "Likely",
+      "description": "\u03a4\u03bf\u03c0\u03b9\u03ba\u03ad\u03c2 \u03ba\u03b1\u03c4\u03b1\u03b9\u03b3\u03af\u03b4\u03b5\u03c2. \u0395\u039d\u0397\u039c\u0395\u03a1\u03a9\u0398\u0395\u0399\u03a4\u0395. \u0399\u03b4\u03b9\u03b1\u03af\u03c4\u03b5\u03c1\u03b7 \u03c0\u03c1\u03bf\u03c3\u03bf\u03c7\u03ae \u03c3\u03b5 \u03b5\u03ba\u03c4\u03b5\u03b8\u03b5\u03b9\u03bc\u03ad\u03bd\u03b5\u03c2 \u03c0\u03b5\u03c1\u03b9\u03bf\u03c7\u03ad\u03c2, \u03cc\u03c0\u03c9\u03c2 \u03c4\u03b1 \u03b2\u03bf\u03c5\u03bd\u03ac, \u03c4\u03b1 \u03b4\u03ac\u03c3\u03b7 \u03ba\u03b1\u03b9 \u03cc\u03bb\u03bf\u03b9 \u03bf\u03b9 \u03b1\u03bd\u03bf\u03b9\u03c7\u03c4\u03bf\u03af \u03c7\u03ce\u03c1\u03bf\u03b9. \u0395\u03af\u03bd\u03b1\u03b9 \u03b4\u03c5\u03bd\u03b1\u03c4\u03cc\u03bd \u03bd\u03b1 \u03b4\u03b7\u03bc\u03b9\u03bf\u03c5\u03c1\u03b3\u03b7\u03b8\u03bf\u03cd\u03bd \u03c0\u03c1\u03bf\u03b2\u03bb\u03ae\u03bc\u03b1\u03c4\u03b1 \u03c3\u03b5 \u03c5\u03c0\u03b1\u03af\u03b8\u03c1\u03b9\u03b5\u03c2 \u03b4\u03c1\u03b1\u03c3\u03c4\u03b7\u03c1\u03b9\u03cc\u03c4\u03b7\u03c4\u03b5\u03c2.",
+      "effective": "2026-10-10T11:51:00+00:00",
+      "event": "\u039a\u03af\u03c4\u03c1\u03b9\u03bd\u03b7 \u03a0\u03c1\u03bf\u03b5\u03b9\u03b4\u03bf\u03c0\u03bf\u03af\u03b7\u03c3\u03b7",
+      "expires": "2026-10-11T18:00:00+00:00",
+      "headline": "\u039a\u03af\u03c4\u03c1\u03b9\u03bd\u03b7 \u03c0\u03c1\u03bf\u03b5\u03b9\u03b4\u03bf\u03c0\u03bf\u03af\u03b7\u03c3\u03b7 \u03b3\u03b9\u03b1 \u0394\u03c5\u03c4\u03b9\u03ba\u03ae \u03a0\u03b5\u03bb\u03bf\u03c0\u03cc\u03bd\u03bd\u03b7\u03c3\u03bf",
+      "language": "el-GR",
+      "onset": "2026-10-11T03:00:00+00:00",
+      "parameter": [
+       {
+        "value": "3; Thunderstorm",
+        "valueName": "awareness_type"
+       },
+       {
+        "value": "2; Yellow; Moderate",
+        "valueName": "awareness_level"
+       }
+      ],
+      "responseType": [
+       "None"
+      ],
+      "senderName": "Hnms Forecaster",
+      "severity": "Moderate",
+      "urgency": "Expected",
+      "web": "https://www.emy.gr"
+     }
+    ],
+    "msgType": "Alert",
+    "scope": "Public",
+    "sender": "emk@hnms.gr",
+    "sent": "2026-10-10T11:51:00+00:00",
+    "status": "Actual"
+   },
+   "uuid": "3fd075fc-fbc2-47a1-992a-6e0017154ce0"
+  },
+  {
+   "alert": {
+    "identifier": "2.49.0.0.300.0.GR.261010115100.010000014",
+    "incidents": "Alert",
+    "info": [
+     {
+      "area": [
+       {
+        "areaDesc": "North East Aegean Islands",
+        "geocode": [
+         {
+          "value": "GR014",
+          "valueName": "EMMA_ID"
+         }
+        ]
+       }
+      ],
+      "category": [
+       "Met"
+      ],
+      "certainty": "Likely",
+      "description": "Locally thunderstorms. BE AWARE that thunderstorms may occur.  Take extra care in exposed areas, like mountains, forest and open terrain. Disruption to outdoor activities is possible.",
+      "effective": "2026-10-10T11:51:00+00:00",
+      "event": "Yellow Warning",
+      "expires": "2026-10-12T12:00:00+00:00",
+      "headline": "Yellow warning for North East Aegean Islands",
+      "language": "en-GB",
+      "onset": "2026-10-11T21:00:00+00:00",
+      "parameter": [
+       {
+        "value": "3; Thunderstorm",
+        "valueName": "awareness_type"
+       },
+       {
+        "value": "2; Yellow; Moderate",
+        "valueName": "awareness_level"
+       }
+      ],
+      "responseType": [
+       "None"
+      ],
+      "senderName": "Hnms Forecaster",
+      "severity": "Moderate",
+      "urgency": "Expected",
+      "web": "https://www.emy.gr"
+     },
+     {
+      "area": [
+       {
+        "areaDesc": "\u039d\u03b7\u03c3\u03b9\u03ac \u0392\u03bf\u03c1\u03b5\u03b9\u03bf\u03b1\u03bd\u03b1\u03c4\u03bf\u03bb\u03b9\u03ba\u03bf\u03cd \u0391\u03b9\u03b3\u03b1\u03af\u03bf\u03c5",
+        "geocode": [
+         {
+          "value": "GR014",
+          "valueName": "EMMA_ID"
+         }
+        ]
+       }
+      ],
+      "category": [
+       "Met"
+      ],
+      "certainty": "Likely",
+      "description": "\u03a4\u03bf\u03c0\u03b9\u03ba\u03ad\u03c2 \u03ba\u03b1\u03c4\u03b1\u03b9\u03b3\u03af\u03b4\u03b5\u03c2. \u0395\u039d\u0397\u039c\u0395\u03a1\u03a9\u0398\u0395\u0399\u03a4\u0395. \u0399\u03b4\u03b9\u03b1\u03af\u03c4\u03b5\u03c1\u03b7 \u03c0\u03c1\u03bf\u03c3\u03bf\u03c7\u03ae \u03c3\u03b5 \u03b5\u03ba\u03c4\u03b5\u03b8\u03b5\u03b9\u03bc\u03ad\u03bd\u03b5\u03c2 \u03c0\u03b5\u03c1\u03b9\u03bf\u03c7\u03ad\u03c2, \u03cc\u03c0\u03c9\u03c2 \u03c4\u03b1 \u03b2\u03bf\u03c5\u03bd\u03ac, \u03c4\u03b1 \u03b4\u03ac\u03c3\u03b7 \u03ba\u03b1\u03b9 \u03cc\u03bb\u03bf\u03b9 \u03bf\u03b9 \u03b1\u03bd\u03bf\u03b9\u03c7\u03c4\u03bf\u03af \u03c7\u03ce\u03c1\u03bf\u03b9. \u0395\u03af\u03bd\u03b1\u03b9 \u03b4\u03c5\u03bd\u03b1\u03c4\u03cc\u03bd \u03bd\u03b1 \u03b4\u03b7\u03bc\u03b9\u03bf\u03c5\u03c1\u03b3\u03b7\u03b8\u03bf\u03cd\u03bd \u03c0\u03c1\u03bf\u03b2\u03bb\u03ae\u03bc\u03b1\u03c4\u03b1 \u03c3\u03b5 \u03c5\u03c0\u03b1\u03af\u03b8\u03c1\u03b9\u03b5\u03c2 \u03b4\u03c1\u03b1\u03c3\u03c4\u03b7\u03c1\u03b9\u03cc\u03c4\u03b7\u03c4\u03b5\u03c2.",
+      "effective": "2026-10-10T11:51:00+00:00",
+      "event": "\u039a\u03af\u03c4\u03c1\u03b9\u03bd\u03b7 \u03a0\u03c1\u03bf\u03b5\u03b9\u03b4\u03bf\u03c0\u03bf\u03af\u03b7\u03c3\u03b7",
+      "expires": "2026-10-12T12:00:00+00:00",
+      "headline": "\u039a\u03af\u03c4\u03c1\u03b9\u03bd\u03b7 \u03c0\u03c1\u03bf\u03b5\u03b9\u03b4\u03bf\u03c0\u03bf\u03af\u03b7\u03c3\u03b7 \u03b3\u03b9\u03b1 \u039d\u03b7\u03c3\u03b9\u03ac \u0392\u03bf\u03c1\u03b5\u03b9\u03bf\u03b1\u03bd\u03b1\u03c4\u03bf\u03bb\u03b9\u03ba\u03bf\u03cd \u0391\u03b9\u03b3\u03b1\u03af\u03bf\u03c5",
+      "language": "el-GR",
+      "onset": "2026-10-11T21:00:00+00:00",
+      "parameter": [
+       {
+        "value": "3; Thunderstorm",
+        "valueName": "awareness_type"
+       },
+       {
+        "value": "2; Yellow; Moderate",
+        "valueName": "awareness_level"
+       }
+      ],
+      "responseType": [
+       "None"
+      ],
+      "senderName": "Hnms Forecaster",
+      "severity": "Moderate",
+      "urgency": "Expected",
+      "web": "https://www.emy.gr"
+     }
+    ],
+    "msgType": "Alert",
+    "scope": "Public",
+    "sender": "emk@hnms.gr",
+    "sent": "2026-10-10T11:51:00+00:00",
+    "status": "Actual"
+   },
+   "uuid": "bc3c7c21-d10b-4585-b369-e662f7db6662"
+  },
+  {
+   "alert": {
+    "identifier": "2.49.0.0.300.0.GR.261010115100.010000015",
+    "incidents": "Alert",
+    "info": [
+     {
+      "area": [
+       {
+        "areaDesc": "East Peloponnisos",
+        "geocode": [
+         {
+          "value": "GR015",
+          "valueName": "EMMA_ID"
+         }
+        ]
+       }
+      ],
+      "category": [
+       "Met"
+      ],
+      "certainty": "Likely",
+      "description": "Locally thunderstorms. BE AWARE that thunderstorms may occur.  Take extra care in exposed areas, like mountains, forest and open terrain. Disruption to outdoor activities is possible.",
+      "effective": "2026-10-10T11:51:00+00:00",
+      "event": "Yellow Warning",
+      "expires": "2026-10-11T15:00:00+00:00",
+      "headline": "Yellow warning for East Peloponnisos",
+      "language": "en-GB",
+      "onset": "2026-10-11T11:00:00+00:00",
+      "parameter": [
+       {
+        "value": "3; Thunderstorm",
+        "valueName": "awareness_type"
+       },
+       {
+        "value": "2; Yellow; Moderate",
+        "valueName": "awareness_level"
+       }
+      ],
+      "responseType": [
+       "None"
+      ],
+      "senderName": "Hnms Forecaster",
+      "severity": "Moderate",
+      "urgency": "Expected",
+      "web": "https://www.emy.gr"
+     },
+     {
+      "area": [
+       {
+        "areaDesc": "\u0391\u03bd\u03b1\u03c4\u03bf\u03bb\u03b9\u03ba\u03ae \u03a0\u03b5\u03bb\u03bf\u03c0\u03cc\u03bd\u03bd\u03b7\u03c3\u03bf",
+        "geocode": [
+         {
+          "value": "GR015",
+          "valueName": "EMMA_ID"
+         }
+        ]
+       }
+      ],
+      "category": [
+       "Met"
+      ],
+      "certainty": "Likely",
+      "description": "\u03a4\u03bf\u03c0\u03b9\u03ba\u03ad\u03c2 \u03ba\u03b1\u03c4\u03b1\u03b9\u03b3\u03af\u03b4\u03b5\u03c2. \u0395\u039d\u0397\u039c\u0395\u03a1\u03a9\u0398\u0395\u0399\u03a4\u0395. \u0399\u03b4\u03b9\u03b1\u03af\u03c4\u03b5\u03c1\u03b7 \u03c0\u03c1\u03bf\u03c3\u03bf\u03c7\u03ae \u03c3\u03b5 \u03b5\u03ba\u03c4\u03b5\u03b8\u03b5\u03b9\u03bc\u03ad\u03bd\u03b5\u03c2 \u03c0\u03b5\u03c1\u03b9\u03bf\u03c7\u03ad\u03c2, \u03cc\u03c0\u03c9\u03c2 \u03c4\u03b1 \u03b2\u03bf\u03c5\u03bd\u03ac, \u03c4\u03b1 \u03b4\u03ac\u03c3\u03b7 \u03ba\u03b1\u03b9 \u03cc\u03bb\u03bf\u03b9 \u03bf\u03b9 \u03b1\u03bd\u03bf\u03b9\u03c7\u03c4\u03bf\u03af \u03c7\u03ce\u03c1\u03bf\u03b9. \u0395\u03af\u03bd\u03b1\u03b9 \u03b4\u03c5\u03bd\u03b1\u03c4\u03cc\u03bd \u03bd\u03b1 \u03b4\u03b7\u03bc\u03b9\u03bf\u03c5\u03c1\u03b3\u03b7\u03b8\u03bf\u03cd\u03bd \u03c0\u03c1\u03bf\u03b2\u03bb\u03ae\u03bc\u03b1\u03c4\u03b1 \u03c3\u03b5 \u03c5\u03c0\u03b1\u03af\u03b8\u03c1\u03b9\u03b5\u03c2 \u03b4\u03c1\u03b1\u03c3\u03c4\u03b7\u03c1\u03b9\u03cc\u03c4\u03b7\u03c4\u03b5\u03c2.",
+      "effective": "2026-10-10T11:51:00+00:00",
+      "event": "\u039a\u03af\u03c4\u03c1\u03b9\u03bd\u03b7 \u03a0\u03c1\u03bf\u03b5\u03b9\u03b4\u03bf\u03c0\u03bf\u03af\u03b7\u03c3\u03b7",
+      "expires": "2026-10-11T15:00:00+00:00",
+      "headline": "\u039a\u03af\u03c4\u03c1\u03b9\u03bd\u03b7 \u03c0\u03c1\u03bf\u03b5\u03b9\u03b4\u03bf\u03c0\u03bf\u03af\u03b7\u03c3\u03b7 \u03b3\u03b9\u03b1 \u0391\u03bd\u03b1\u03c4\u03bf\u03bb\u03b9\u03ba\u03ae \u03a0\u03b5\u03bb\u03bf\u03c0\u03cc\u03bd\u03bd\u03b7\u03c3\u03bf",
+      "language": "el-GR",
+      "onset": "2026-10-11T11:00:00+00:00",
+      "parameter": [
+       {
+        "value": "3; Thunderstorm",
+        "valueName": "awareness_type"
+       },
+       {
+        "value": "2; Yellow; Moderate",
+        "valueName": "awareness_level"
+       }
+      ],
+      "responseType": [
+       "None"
+      ],
+      "senderName": "Hnms Forecaster",
+      "severity": "Moderate",
+      "urgency": "Expected",
+      "web": "https://www.emy.gr"
+     }
+    ],
+    "msgType": "Alert",
+    "scope": "Public",
+    "sender": "emk@hnms.gr",
+    "sent": "2026-10-10T11:51:00+00:00",
+    "status": "Actual"
+   },
+   "uuid": "2d803d46-56dd-4baa-ba76-79053c7f18be"
+  },
+  {
+   "alert": {
+    "identifier": "2.49.0.0.300.0.GR.261010120900.040000002",
+    "incidents": "Update",
+    "info": [
+     {
+      "area": [
+       {
+        "areaDesc": "West Sterea",
+        "geocode": [
+         {
+          "value": "GR002",
+          "valueName": "EMMA_ID"
+         }
+        ]
+       }
+      ],
+      "category": [
+       "Met"
+      ],
+      "certainty": "Likely",
+      "description": "Locally thunderstorms. BE AWARE that thunderstorms may occur.  Take extra care in exposed areas, like mountains, forest and open terrain. Disruption to outdoor activities is possible.",
+      "effective": "2026-10-10T12:09:00+00:00",
+      "event": "Moderate Thunderstorm warning",
+      "expires": "2026-10-11T18:00:00+00:00",
+      "headline": "Yellow Thunderstorm for West Sterea",
+      "language": "en-GB",
+      "onset": "2026-10-11T10:00:00+00:00",
+      "parameter": [
+       {
+        "value": "3; Thunderstorm",
+        "valueName": "awareness_type"
+       },
+       {
+        "value": "2; Yellow; Moderate",
+        "valueName": "awareness_level"
+       }
+      ],
+      "responseType": [
+       "None"
+      ],
+      "senderName": "Hnms Forecaster",
+      "severity": "Moderate",
+      "urgency": "Expected",
+      "web": "https://www.emy.gr"
+     },
+     {
+      "area": [
+       {
+        "areaDesc": "\u0394\u03c5\u03c4\u03b9\u03ba\u03ae \u03a3\u03c4\u03b5\u03c1\u03b5\u03ac",
+        "geocode": [
+         {
+          "value": "GR002",
+          "valueName": "EMMA_ID"
+         }
+        ]
+       }
+      ],
+      "category": [
+       "Met"
+      ],
+      "certainty": "Likely",
+      "description": "\u03a4\u03bf\u03c0\u03b9\u03ba\u03ad\u03c2 \u03ba\u03b1\u03c4\u03b1\u03b9\u03b3\u03af\u03b4\u03b5\u03c2. \u0395\u039d\u0397\u039c\u0395\u03a1\u03a9\u0398\u0395\u0399\u03a4\u0395. \u0399\u03b4\u03b9\u03b1\u03af\u03c4\u03b5\u03c1\u03b7 \u03c0\u03c1\u03bf\u03c3\u03bf\u03c7\u03ae \u03c3\u03b5 \u03b5\u03ba\u03c4\u03b5\u03b8\u03b5\u03b9\u03bc\u03ad\u03bd\u03b5\u03c2 \u03c0\u03b5\u03c1\u03b9\u03bf\u03c7\u03ad\u03c2, \u03cc\u03c0\u03c9\u03c2 \u03c4\u03b1 \u03b2\u03bf\u03c5\u03bd\u03ac, \u03c4\u03b1 \u03b4\u03ac\u03c3\u03b7 \u03ba\u03b1\u03b9 \u03cc\u03bb\u03bf\u03b9 \u03bf\u03b9 \u03b1\u03bd\u03bf\u03b9\u03c7\u03c4\u03bf\u03af \u03c7\u03ce\u03c1\u03bf\u03b9. \u0395\u03af\u03bd\u03b1\u03b9 \u03b4\u03c5\u03bd\u03b1\u03c4\u03cc\u03bd \u03bd\u03b1 \u03b4\u03b7\u03bc\u03b9\u03bf\u03c5\u03c1\u03b3\u03b7\u03b8\u03bf\u03cd\u03bd \u03c0\u03c1\u03bf\u03b2\u03bb\u03ae\u03bc\u03b1\u03c4\u03b1 \u03c3\u03b5 \u03c5\u03c0\u03b1\u03af\u03b8\u03c1\u03b9\u03b5\u03c2 \u03b4\u03c1\u03b1\u03c3\u03c4\u03b7\u03c1\u03b9\u03cc\u03c4\u03b7\u03c4\u03b5\u03c2.",
+      "effective": "2026-10-10T12:09:00+00:00",
+      "event": "\u03a0\u03c1\u03bf\u03b5\u03b9\u03b4\u03bf\u03c0\u03bf\u03af\u03b7\u03c3\u03b7 \u03b3\u03b9\u03b1 \u03ba\u03b1\u03c4\u03b1\u03b3\u03af\u03b4\u03b9\u03b5\u03c2",
+      "expires": "2026-10-11T18:00:00+00:00",
+      "headline": "\u039a\u03af\u03c4\u03c1\u03b9\u03bd\u03b7 \u03c0\u03c1\u03bf\u03b5\u03b9\u03b4\u03bf\u03c0\u03bf\u03af\u03b7\u03c3\u03b7 \u03b3\u03b9\u03b1 \u0394\u03c5\u03c4\u03b9\u03ba\u03ae \u03a3\u03c4\u03b5\u03c1\u03b5\u03ac",
+      "language": "el-GR",
+      "onset": "2026-10-11T10:00:00+00:00",
+      "parameter": [
+       {
+        "value": "3; Thunderstorm",
+        "valueName": "awareness_type"
+       },
+       {
+        "value": "2; Yellow; Moderate",
+        "valueName": "awareness_level"
+       }
+      ],
+      "responseType": [
+       "None"
+      ],
+      "senderName": "Hnms Forecaster",
+      "severity": "Moderate",
+      "urgency": "Expected",
+      "web": "https://www.emy.gr"
+     }
+    ],
+    "msgType": "Update",
+    "references": "emk@hnms.gr,2.49.0.0.300.0.GR.261009110200.010000002,2026-10-09T11:02:00+00:00 emk@hnms.gr,2.49.0.0.300.0.GR.261010113700.020000002,2026-10-10T11:37:00+00:00 emk@hnms.gr,2.49.0.0.300.0.GR.261010114100.030000002,2026-10-10T11:41:00+00:00",
+    "scope": "Public",
+    "sender": "emk@hnms.gr",
+    "sent": "2026-10-10T12:09:00+00:00",
+    "status": "Actual"
+   },
+   "uuid": "543b625f-2c8d-45e1-934f-3c43b431ad8a"
+  },
+  {
+   "alert": {
+    "identifier": "2.49.0.0.300.0.GR.261010121600.001000002",
+    "incidents": "Alert",
+    "info": [
+     {
+      "area": [
+       {
+        "areaDesc": "West Sterea",
+        "geocode": [
+         {
+          "value": "GR002",
+          "valueName": "EMMA_ID"
+         }
+        ]
+       }
+      ],
+      "category": [
+       "Met"
+      ],
+      "certainty": "Likely",
+      "description": "Locally intensive rain. Precipitation amount forecasted from  15  to 50 mm  in 12 hours. BE AWARE of the potential for localised flooding of a small number of properties, with local disruption to outdoor activities. Difficult driving conditions due to reduced visibility and aquaplaning.",
+      "effective": "2026-10-10T12:16:00+00:00",
+      "event": "Moderate Rain warning",
+      "expires": "2026-10-11T15:00:00+00:00",
+      "headline": "Yellow warning for West Sterea",
+      "language": "en-GB",
+      "onset": "2026-10-10T22:00:00+00:00",
+      "parameter": [
+       {
+        "value": "10; Rain",
+        "valueName": "awareness_type"
+       },
+       {
+        "value": "2; Yellow; Moderate",
+        "valueName": "awareness_level"
+       }
+      ],
+      "responseType": [
+       "None"
+      ],
+      "senderName": "Hnms Forecaster",
+      "severity": "Moderate",
+      "urgency": "Expected",
+      "web": "https://www.emy.gr"
+     },
+     {
+      "area": [
+       {
+        "areaDesc": "\u0394\u03c5\u03c4\u03b9\u03ba\u03ae \u03a3\u03c4\u03b5\u03c1\u03b5\u03ac",
+        "geocode": [
+         {
+          "value": "GR002",
+          "valueName": "EMMA_ID"
+         }
+        ]
+       }
+      ],
+      "category": [
+       "Met"
+      ],
+      "certainty": "Likely",
+      "description": "\u03a4\u03bf\u03c0\u03b9\u03ba\u03ac \u03ad\u03bd\u03c4\u03bf\u03bd\u03b5\u03c2 \u03b2\u03c1\u03bf\u03c7\u03bf\u03c0\u03c4\u03ce\u03c3\u03b5\u03b9\u03c2. \u03a0\u03b9\u03b8\u03b1\u03bd\u03cc \u03cd\u03c8\u03bf\u03c2 \u03c5\u03b5\u03c4\u03bf\u03cd \u03c3\u03b5 \u03b4\u03b9\u03ac\u03c3\u03c4\u03b7\u03bc\u03b1 12 \u03c9\u03c1\u03ce\u03bd \u03b1\u03c0\u03cc 15  \u03ad\u03c9\u03c2 50 \u03c7\u03b9\u03bb\u03b9\u03bf\u03c3\u03c4\u03ac. \u0395\u039d\u0397\u039c\u0395\u03a1\u03a9\u0398\u0395\u0399\u03a4\u0395. \u0395\u03bd\u03b4\u03ad\u03c7\u03b5\u03c4\u03b1\u03b9 \u03bd\u03b1 \u03c5\u03c0\u03ac\u03c1\u03be\u03bf\u03c5\u03bd \u03c4\u03bf\u03c0\u03b9\u03ba\u03ad\u03c2 \u03c0\u03bb\u03b7\u03bc\u03bc\u03cd\u03c1\u03b5\u03c2 \u03ba\u03b1\u03b9 \u03ba\u03b1\u03c4\u03ac \u03c4\u03cc\u03c0\u03bf\u03c5\u03c2 \u03c0\u03c1\u03bf\u03b2\u03bb\u03ae\u03bc\u03b1\u03c4\u03b1 \u03c3\u03c4\u03b9\u03c2 \u03c5\u03c0\u03b1\u03af\u03b8\u03c1\u03b9\u03b5\u03c2 \u03b4\u03c1\u03b1\u03c3\u03c4\u03b7\u03c1\u03b9\u03cc\u03c4\u03b7\u03c4\u03b5\u03c2. \u0394\u03cd\u03c3\u03ba\u03bf\u03bb\u03b5\u03c2 \u03c3\u03c5\u03bd\u03b8\u03ae\u03ba\u03b5\u03c2 \u03bf\u03b4\u03ae\u03b3\u03b7\u03c3\u03b7\u03c2 \u03bb\u03cc\u03b3\u03c9 \u03c0\u03b5\u03c1\u03b9\u03bf\u03c1\u03b9\u03c3\u03bc\u03ad\u03bd\u03b7\u03c2 \u03bf\u03c1\u03b1\u03c4\u03cc\u03c4\u03b7\u03c4\u03b1\u03c2 \u03ba\u03b1\u03b9 \u03bf\u03bb\u03b9\u03c3\u03b8\u03b7\u03c1\u03cc\u03c4\u03b7\u03c4\u03b1\u03c2 \u03c4\u03bf\u03c5 \u03bf\u03b4\u03b9\u03ba\u03bf\u03cd \u03b4\u03b9\u03ba\u03c4\u03cd\u03bf\u03c5.",
+      "effective": "2026-10-10T12:16:00+00:00",
+      "event": "\u03a0\u03c1\u03bf\u03b5\u03b9\u03b4\u03bf\u03c0\u03bf\u03af\u03b7\u03c3\u03b7 \u03b3\u03b9\u03b1 \u0392\u03c1\u03bf\u03c7\u03ad\u03c2",
+      "expires": "2026-10-11T15:00:00+00:00",
+      "headline": "\u039a\u03af\u03c4\u03c1\u03b9\u03bd\u03b7 \u03c0\u03c1\u03bf\u03b5\u03b9\u03b4\u03bf\u03c0\u03bf\u03af\u03b7\u03c3\u03b7 \u03b3\u03b9\u03b1 \u0394\u03c5\u03c4\u03b9\u03ba\u03ae \u03a3\u03c4\u03b5\u03c1\u03b5\u03ac",
+      "language": "el-GR",
+      "onset": "2026-10-10T22:00:00+00:00",
+      "parameter": [
+       {
+        "value": "10; Rain",
+        "valueName": "awareness_type"
+       },
+       {
+        "value": "2; Yellow; Moderate",
+        "valueName": "awareness_level"
+       }
+      ],
+      "responseType": [
+       "None"
+      ],
+      "senderName": "Hnms Forecaster",
+      "severity": "Moderate",
+      "urgency": "Expected",
+      "web": "https://www.emy.gr"
+     }
+    ],
+    "msgType": "Alert",
+    "scope": "Public",
+    "sender": "emk@hnms.gr",
+    "sent": "2026-10-10T12:16:00+00:00",
+    "status": "Actual"
+   },
+   "uuid": "5952285a-a806-46c9-825e-8c96a1d5d79e"
+  },
+  {
+   "alert": {
+    "identifier": "2.49.0.0.300.0.GR.261010122900.001000004",
+    "incidents": "Alert",
+    "info": [
+     {
+      "area": [
+       {
+        "areaDesc": "Thraki",
+        "geocode": [
+         {
+          "value": "GR004",
+          "valueName": "EMMA_ID"
+         }
+        ]
+       }
+      ],
+      "category": [
+       "Met"
+      ],
+      "certainty": "Likely",
+      "description": "Locally intensive rain. Precipitation amount forecasted from  10  to 30 mm  in 12 hours. BE AWARE of the potential for localised flooding of a small number of properties, with local disruption to outdoor activities. Difficult driving conditions due to reduced visibility and aquaplaning.",
+      "effective": "2026-10-10T12:29:00+00:00",
+      "event": "Yellow Warning",
+      "expires": "2026-10-12T09:00:00+00:00",
+      "headline": "Yellow warning for Thraki",
+      "language": "en-GB",
+      "onset": "2026-10-11T21:00:00+00:00",
+      "parameter": [
+       {
+        "value": "10; Rain",
+        "valueName": "awareness_type"
+       },
+       {
+        "value": "2; Yellow; Moderate",
+        "valueName": "awareness_level"
+       }
+      ],
+      "responseType": [
+       "None"
+      ],
+      "senderName": "Hnms Forecaster",
+      "severity": "Moderate",
+      "urgency": "Expected",
+      "web": "https://www.emy.gr"
+     },
+     {
+      "area": [
+       {
+        "areaDesc": "\u0398\u03c1\u03ac\u03ba\u03b7",
+        "geocode": [
+         {
+          "value": "GR004",
+          "valueName": "EMMA_ID"
+         }
+        ]
+       }
+      ],
+      "category": [
+       "Met"
+      ],
+      "certainty": "Likely",
+      "description": "\u03a4\u03bf\u03c0\u03b9\u03ba\u03ac \u03ad\u03bd\u03c4\u03bf\u03bd\u03b5\u03c2 \u03b2\u03c1\u03bf\u03c7\u03bf\u03c0\u03c4\u03ce\u03c3\u03b5\u03b9\u03c2. \u03a0\u03b9\u03b8\u03b1\u03bd\u03cc \u03cd\u03c8\u03bf\u03c2 \u03c5\u03b5\u03c4\u03bf\u03cd \u03c3\u03b5 \u03b4\u03b9\u03ac\u03c3\u03c4\u03b7\u03bc\u03b1 12 \u03c9\u03c1\u03ce\u03bd \u03b1\u03c0\u03cc 10  \u03ad\u03c9\u03c2 30 \u03c7\u03b9\u03bb\u03b9\u03bf\u03c3\u03c4\u03ac. \u0395\u039d\u0397\u039c\u0395\u03a1\u03a9\u0398\u0395\u0399\u03a4\u0395. \u0395\u03bd\u03b4\u03ad\u03c7\u03b5\u03c4\u03b1\u03b9 \u03bd\u03b1 \u03c5\u03c0\u03ac\u03c1\u03be\u03bf\u03c5\u03bd \u03c4\u03bf\u03c0\u03b9\u03ba\u03ad\u03c2 \u03c0\u03bb\u03b7\u03bc\u03bc\u03cd\u03c1\u03b5\u03c2 \u03ba\u03b1\u03b9 \u03ba\u03b1\u03c4\u03ac \u03c4\u03cc\u03c0\u03bf\u03c5\u03c2 \u03c0\u03c1\u03bf\u03b2\u03bb\u03ae\u03bc\u03b1\u03c4\u03b1 \u03c3\u03c4\u03b9\u03c2 \u03c5\u03c0\u03b1\u03af\u03b8\u03c1\u03b9\u03b5\u03c2 \u03b4\u03c1\u03b1\u03c3\u03c4\u03b7\u03c1\u03b9\u03cc\u03c4\u03b7\u03c4\u03b5\u03c2. \u0394\u03cd\u03c3\u03ba\u03bf\u03bb\u03b5\u03c2 \u03c3\u03c5\u03bd\u03b8\u03ae\u03ba\u03b5\u03c2 \u03bf\u03b4\u03ae\u03b3\u03b7\u03c3\u03b7\u03c2 \u03bb\u03cc\u03b3\u03c9 \u03c0\u03b5\u03c1\u03b9\u03bf\u03c1\u03b9\u03c3\u03bc\u03ad\u03bd\u03b7\u03c2 \u03bf\u03c1\u03b1\u03c4\u03cc\u03c4\u03b7\u03c4\u03b1\u03c2 \u03ba\u03b1\u03b9 \u03bf\u03bb\u03b9\u03c3\u03b8\u03b7\u03c1\u03cc\u03c4\u03b7\u03c4\u03b1\u03c2 \u03c4\u03bf\u03c5 \u03bf\u03b4\u03b9\u03ba\u03bf\u03cd \u03b4\u03b9\u03ba\u03c4\u03cd\u03bf\u03c5.",
+      "effective": "2026-10-10T12:29:00+00:00",
+      "event": "\u039a\u03af\u03c4\u03c1\u03b9\u03bd\u03b7 \u03a0\u03c1\u03bf\u03b5\u03b9\u03b4\u03bf\u03c0\u03bf\u03af\u03b7\u03c3\u03b7",
+      "expires": "2026-10-12T09:00:00+00:00",
+      "headline": "\u039a\u03af\u03c4\u03c1\u03b9\u03bd\u03b7 \u03c0\u03c1\u03bf\u03b5\u03b9\u03b4\u03bf\u03c0\u03bf\u03af\u03b7\u03c3\u03b7 \u03b3\u03b9\u03b1 \u0398\u03c1\u03ac\u03ba\u03b7",
+      "language": "el-GR",
+      "onset": "2026-10-11T21:00:00+00:00",
+      "parameter": [
+       {
+        "value": "10; Rain",
+        "valueName": "awareness_type"
+       },
+       {
+        "value": "2; Yellow; Moderate",
+        "valueName": "awareness_level"
+       }
+      ],
+      "responseType": [
+       "None"
+      ],
+      "senderName": "Hnms Forecaster",
+      "severity": "Moderate",
+      "urgency": "Expected",
+      "web": "https://www.emy.gr"
+     }
+    ],
+    "msgType": "Alert",
+    "scope": "Public",
+    "sender": "emk@hnms.gr",
+    "sent": "2026-10-10T12:29:00+00:00",
+    "status": "Actual"
+   },
+   "uuid": "2fa2106f-4ede-4fa9-9bed-23fd00f7a7af"
+  },
+  {
+   "alert": {
+    "identifier": "2.49.0.0.300.0.GR.261010122900.001000005",
+    "incidents": "Alert",
+    "info": [
+     {
+      "area": [
+       {
+        "areaDesc": "East Makedonia",
+        "geocode": [
+         {
+          "value": "GR005",
+          "valueName": "EMMA_ID"
+         }
+        ]
+       }
+      ],
+      "category": [
+       "Met"
+      ],
+      "certainty": "Likely",
+      "description": "Locally intensive rain. Precipitation amount forecasted from  10  to 30 mm  in 12 hours. BE AWARE of the potential for localised flooding of a small number of properties, with local disruption to outdoor activities. Difficult driving conditions due to reduced visibility and aquaplaning.",
+      "effective": "2026-10-10T12:29:00+00:00",
+      "event": "Moderate Rain warning",
+      "expires": "2026-10-12T03:00:00+00:00",
+      "headline": "Yellow warning for East Makedonia",
+      "language": "en-GB",
+      "onset": "2026-10-11T15:00:00+00:00",
+      "parameter": [
+       {
+        "value": "10; Rain",
+        "valueName": "awareness_type"
+       },
+       {
+        "value": "2; Yellow; Moderate",
+        "valueName": "awareness_level"
+       }
+      ],
+      "responseType": [
+       "None"
+      ],
+      "senderName": "Hnms Forecaster",
+      "severity": "Moderate",
+      "urgency": "Expected",
+      "web": "https://www.emy.gr"
+     },
+     {
+      "area": [
+       {
+        "areaDesc": "\u0391\u03bd\u03b1\u03c4\u03bf\u03bb\u03b9\u03ba\u03ae \u039c\u03b1\u03ba\u03b5\u03b4\u03bf\u03bd\u03af\u03b1",
+        "geocode": [
+         {
+          "value": "GR005",
+          "valueName": "EMMA_ID"
+         }
+        ]
+       }
+      ],
+      "category": [
+       "Met"
+      ],
+      "certainty": "Likely",
+      "description": "\u03a4\u03bf\u03c0\u03b9\u03ba\u03ac \u03ad\u03bd\u03c4\u03bf\u03bd\u03b5\u03c2 \u03b2\u03c1\u03bf\u03c7\u03bf\u03c0\u03c4\u03ce\u03c3\u03b5\u03b9\u03c2. \u03a0\u03b9\u03b8\u03b1\u03bd\u03cc \u03cd\u03c8\u03bf\u03c2 \u03c5\u03b5\u03c4\u03bf\u03cd \u03c3\u03b5 \u03b4\u03b9\u03ac\u03c3\u03c4\u03b7\u03bc\u03b1 12 \u03c9\u03c1\u03ce\u03bd \u03b1\u03c0\u03cc 10  \u03ad\u03c9\u03c2 30 \u03c7\u03b9\u03bb\u03b9\u03bf\u03c3\u03c4\u03ac. \u0395\u039d\u0397\u039c\u0395\u03a1\u03a9\u0398\u0395\u0399\u03a4\u0395. \u0395\u03bd\u03b4\u03ad\u03c7\u03b5\u03c4\u03b1\u03b9 \u03bd\u03b1 \u03c5\u03c0\u03ac\u03c1\u03be\u03bf\u03c5\u03bd \u03c4\u03bf\u03c0\u03b9\u03ba\u03ad\u03c2 \u03c0\u03bb\u03b7\u03bc\u03bc\u03cd\u03c1\u03b5\u03c2 \u03ba\u03b1\u03b9 \u03ba\u03b1\u03c4\u03ac \u03c4\u03cc\u03c0\u03bf\u03c5\u03c2 \u03c0\u03c1\u03bf\u03b2\u03bb\u03ae\u03bc\u03b1\u03c4\u03b1 \u03c3\u03c4\u03b9\u03c2 \u03c5\u03c0\u03b1\u03af\u03b8\u03c1\u03b9\u03b5\u03c2 \u03b4\u03c1\u03b1\u03c3\u03c4\u03b7\u03c1\u03b9\u03cc\u03c4\u03b7\u03c4\u03b5\u03c2. \u0394\u03cd\u03c3\u03ba\u03bf\u03bb\u03b5\u03c2 \u03c3\u03c5\u03bd\u03b8\u03ae\u03ba\u03b5\u03c2 \u03bf\u03b4\u03ae\u03b3\u03b7\u03c3\u03b7\u03c2 \u03bb\u03cc\u03b3\u03c9 \u03c0\u03b5\u03c1\u03b9\u03bf\u03c1\u03b9\u03c3\u03bc\u03ad\u03bd\u03b7\u03c2 \u03bf\u03c1\u03b1\u03c4\u03cc\u03c4\u03b7\u03c4\u03b1\u03c2 \u03ba\u03b1\u03b9 \u03bf\u03bb\u03b9\u03c3\u03b8\u03b7\u03c1\u03cc\u03c4\u03b7\u03c4\u03b1\u03c2 \u03c4\u03bf\u03c5 \u03bf\u03b4\u03b9\u03ba\u03bf\u03cd \u03b4\u03b9\u03ba\u03c4\u03cd\u03bf\u03c5.",
+      "effective": "2026-10-10T12:29:00+00:00",
+      "event": "\u03a0\u03c1\u03bf\u03b5\u03b9\u03b4\u03bf\u03c0\u03bf\u03af\u03b7\u03c3\u03b7 \u03b3\u03b9\u03b1 \u0392\u03c1\u03bf\u03c7\u03ad\u03c2",
+      "expires": "2026-10-12T03:00:00+00:00",
+      "headline": "\u039a\u03af\u03c4\u03c1\u03b9\u03bd\u03b7 \u03c0\u03c1\u03bf\u03b5\u03b9\u03b4\u03bf\u03c0\u03bf\u03af\u03b7\u03c3\u03b7 \u03b3\u03b9\u03b1 \u0391\u03bd\u03b1\u03c4\u03bf\u03bb\u03b9\u03ba\u03ae \u039c\u03b1\u03ba\u03b5\u03b4\u03bf\u03bd\u03af\u03b1",
+      "language": "el-GR",
+      "onset": "2026-10-11T15:00:00+00:00",
+      "parameter": [
+       {
+        "value": "10; Rain",
+        "valueName": "awareness_type"
+       },
+       {
+        "value": "2; Yellow; Moderate",
+        "valueName": "awareness_level"
+       }
+      ],
+      "responseType": [
+       "None"
+      ],
+      "senderName": "Hnms Forecaster",
+      "severity": "Moderate",
+      "urgency": "Expected",
+      "web": "https://www.emy.gr"
+     }
+    ],
+    "msgType": "Alert",
+    "scope": "Public",
+    "sender": "emk@hnms.gr",
+    "sent": "2026-10-10T12:29:00+00:00",
+    "status": "Actual"
+   },
+   "uuid": "de2c4666-14ba-42ec-a620-7b12507a1d99"
+  },
+  {
+   "alert": {
+    "identifier": "2.49.0.0.300.0.GR.261010123400.002000007",
+    "incidents": "Update",
+    "info": [
+     {
+      "area": [
+       {
+        "areaDesc": "Central Makedonia",
+        "geocode": [
+         {
+          "value": "GR007",
+          "valueName": "EMMA_ID"
+         }
+        ]
+       }
+      ],
+      "category": [
+       "Met"
+      ],
+      "certainty": "Likely",
+      "description": "Locally intensive rain. Precipitation amount forecasted from  10  to 30 mm  in 12 hours. BE AWARE of the potential for localised flooding of a small number of properties, with local disruption to outdoor activities. Difficult driving conditions due to reduced visibility and aquaplaning.",
+      "effective": "2026-10-10T12:34:00+00:00",
+      "event": "Moderate Rain warning",
+      "expires": "2026-10-11T20:59:00+00:00",
+      "headline": "Yellow Rain for Central Makedonia",
+      "language": "en-GB",
+      "onset": "2026-10-11T03:00:00+00:00",
+      "parameter": [
+       {
+        "value": "10; Rain",
+        "valueName": "awareness_type"
+       },
+       {
+        "value": "2; Yellow; Moderate",
+        "valueName": "awareness_level"
+       }
+      ],
+      "responseType": [
+       "None"
+      ],
+      "senderName": "Hnms Forecaster",
+      "severity": "Moderate",
+      "urgency": "Expected",
+      "web": "https://www.emy.gr"
+     },
+     {
+      "area": [
+       {
+        "areaDesc": "\u039a\u03b5\u03bd\u03c4\u03c1\u03b9\u03ba\u03ae \u039c\u03b1\u03ba\u03b5\u03b4\u03bf\u03bd\u03af\u03b1",
+        "geocode": [
+         {
+          "value": "GR007",
+          "valueName": "EMMA_ID"
+         }
+        ]
+       }
+      ],
+      "category": [
+       "Met"
+      ],
+      "certainty": "Likely",
+      "description": "\u03a4\u03bf\u03c0\u03b9\u03ba\u03ac \u03ad\u03bd\u03c4\u03bf\u03bd\u03b5\u03c2 \u03b2\u03c1\u03bf\u03c7\u03bf\u03c0\u03c4\u03ce\u03c3\u03b5\u03b9\u03c2. \u03a0\u03b9\u03b8\u03b1\u03bd\u03cc \u03cd\u03c8\u03bf\u03c2 \u03c5\u03b5\u03c4\u03bf\u03cd \u03c3\u03b5 \u03b4\u03b9\u03ac\u03c3\u03c4\u03b7\u03bc\u03b1 12 \u03c9\u03c1\u03ce\u03bd \u03b1\u03c0\u03cc 10  \u03ad\u03c9\u03c2 30 \u03c7\u03b9\u03bb\u03b9\u03bf\u03c3\u03c4\u03ac. \u0395\u039d\u0397\u039c\u0395\u03a1\u03a9\u0398\u0395\u0399\u03a4\u0395. \u0395\u03bd\u03b4\u03ad\u03c7\u03b5\u03c4\u03b1\u03b9 \u03bd\u03b1 \u03c5\u03c0\u03ac\u03c1\u03be\u03bf\u03c5\u03bd \u03c4\u03bf\u03c0\u03b9\u03ba\u03ad\u03c2 \u03c0\u03bb\u03b7\u03bc\u03bc\u03cd\u03c1\u03b5\u03c2 \u03ba\u03b1\u03b9 \u03ba\u03b1\u03c4\u03ac \u03c4\u03cc\u03c0\u03bf\u03c5\u03c2 \u03c0\u03c1\u03bf\u03b2\u03bb\u03ae\u03bc\u03b1\u03c4\u03b1 \u03c3\u03c4\u03b9\u03c2 \u03c5\u03c0\u03b1\u03af\u03b8\u03c1\u03b9\u03b5\u03c2 \u03b4\u03c1\u03b1\u03c3\u03c4\u03b7\u03c1\u03b9\u03cc\u03c4\u03b7\u03c4\u03b5\u03c2. \u0394\u03cd\u03c3\u03ba\u03bf\u03bb\u03b5\u03c2 \u03c3\u03c5\u03bd\u03b8\u03ae\u03ba\u03b5\u03c2 \u03bf\u03b4\u03ae\u03b3\u03b7\u03c3\u03b7\u03c2 \u03bb\u03cc\u03b3\u03c9 \u03c0\u03b5\u03c1\u03b9\u03bf\u03c1\u03b9\u03c3\u03bc\u03ad\u03bd\u03b7\u03c2 \u03bf\u03c1\u03b1\u03c4\u03cc\u03c4\u03b7\u03c4\u03b1\u03c2 \u03ba\u03b1\u03b9 \u03bf\u03bb\u03b9\u03c3\u03b8\u03b7\u03c1\u03cc\u03c4\u03b7\u03c4\u03b1\u03c2 \u03c4\u03bf\u03c5 \u03bf\u03b4\u03b9\u03ba\u03bf\u03cd \u03b4\u03b9\u03ba\u03c4\u03cd\u03bf\u03c5.",
+      "effective": "2026-10-10T12:34:00+00:00",
+      "event": "\u03a0\u03c1\u03bf\u03b5\u03b9\u03b4\u03bf\u03c0\u03bf\u03af\u03b7\u03c3\u03b7 \u03b3\u03b9\u03b1 \u03ad\u03bd\u03c4\u03bf\u03bd\u03b1 \u03c6\u03b1\u03b9\u03bd\u03cc\u03bc\u03b5\u03bd\u03b1 \u03b2\u03c1\u03bf\u03c7\u03ae\u03c2",
+      "expires": "2026-10-11T20:59:00+00:00",
+      "headline": "\u039a\u03af\u03c4\u03c1\u03b9\u03bd\u03b7 \u03c0\u03c1\u03bf\u03b5\u03b9\u03b4\u03bf\u03c0\u03bf\u03af\u03b7\u03c3\u03b7 \u03b3\u03b9\u03b1 \u039a\u03b5\u03bd\u03c4\u03c1\u03b9\u03ba\u03ae \u039c\u03b1\u03ba\u03b5\u03b4\u03bf\u03bd\u03af\u03b1",
+      "language": "el-GR",
+      "onset": "2026-10-11T03:00:00+00:00",
+      "parameter": [
+       {
+        "value": "10; Rain",
+        "valueName": "awareness_type"
+       },
+       {
+        "value": "2; Yellow; Moderate",
+        "valueName": "awareness_level"
+       }
+      ],
+      "responseType": [
+       "None"
+      ],
+      "senderName": "Hnms Forecaster",
+      "severity": "Moderate",
+      "urgency": "Expected",
+      "web": "https://www.emy.gr"
+     }
+    ],
+    "msgType": "Update",
+    "references": "emk@hnms.gr,2.49.0.0.300.0.GR.261010122700.001000007,2026-10-10T12:27:00+00:00",
+    "scope": "Public",
+    "sender": "emk@hnms.gr",
+    "sent": "2026-10-10T12:34:00+00:00",
+    "status": "Actual"
+   },
+   "uuid": "b0f99e60-6c4b-4c9c-8fc0-a5abaef252c5"
+  }
+ ]
+}

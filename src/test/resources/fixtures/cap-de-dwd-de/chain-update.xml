@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<alert xmlns="urn:oasis:names:tc:emergency:cap:1.2">
+  <identifier>test-alert-2</identifier>
+  <sender>test@example.org</sender>
+  <sent>2026-10-14T10:30:00+00:00</sent>
+  <status>Actual</status>
+  <msgType>Update</msgType>
+  <scope>Public</scope>
+  <references>test@example.org,test-alert-1,2026-10-14T10:00:00+00:00</references>
+  <info>
+    <language>en-GB</language>
+    <category>Met</category>
+    <event>Test Wind</event>
+    <urgency>Immediate</urgency>
+    <severity>Extreme</severity>
+    <certainty>Likely</certainty>
+    <effective>2026-10-14T10:00:00+00:00</effective>
+    <onset>2026-10-14T11:00:00+00:00</onset>
+    <expires>2026-10-14T22:00:00+00:00</expires>
+    <senderName>Test Authority</senderName>
+    <headline>Test wind warning updated</headline>
+    <description>The test warning was upgraded.</description>
+    <instruction>Stay indoors and avoid travel.</instruction>
+    <web>https://example.org/test-alert-2</web>
+    <area>
+      <areaDesc>Test region</areaDesc>
+      <polygon>51.0,-10.0 51.0,-9.0 52.0,-9.0 52.0,-10.0</polygon>
+    </area>
+  </info>
+</alert>

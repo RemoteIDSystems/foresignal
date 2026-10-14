@@ -1,0 +1,1191 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!-- This is a Common Alerting Protocol (CAP) message issued by Germany's National Meteorological Service, Deutscher Wetterdienst (DWD). Visit https://www.dwd.de -->
+<alert xmlns="urn:oasis:names:tc:emergency:cap:1.2">
+  <identifier>2.49.0.0.276.0.DWD.PVW.1791952380000.3f66ad3b-c446-435e-b1f7-b9306b2e812b.DEU</identifier>
+  <sender>opendata@dwd.de</sender>
+  <sent>2026-10-14T06:33:00+02:00</sent>
+  <status>Actual</status>
+  <msgType>Alert</msgType>
+  <source>PVW</source>
+  <scope>Public</scope>
+  <code>id:2.49.0.0.276.0.DWD.PVW.1791952380000.3f66ad3b-c446-435e-b1f7-b9306b2e812b</code>
+  <info>
+    <language>de-DE</language>
+    <category>Met</category>
+    <event>WINDBÖEN</event>
+    <responseType>Prepare</responseType>
+    <urgency>Immediate</urgency>
+    <severity>Minor</severity>
+    <certainty>Likely</certainty>
+    <eventCode>
+      <valueName>PROFILE_VERSION</valueName>
+      <value>2.1.14</value>
+    </eventCode>
+    <eventCode>
+      <valueName>LICENSE</valueName>
+      <value>© GeoBasis-DE / BKG 2021 (Daten modifiziert)</value>
+    </eventCode>
+    <eventCode>
+      <valueName>II</valueName>
+      <value>51</value>
+    </eventCode>
+    <eventCode>
+      <valueName>GROUP</valueName>
+      <value>WIND</value>
+    </eventCode>
+    <eventCode>
+      <valueName>AREA_COLOR</valueName>
+      <value>255 235 59</value>
+    </eventCode>
+    <effective>2026-10-14T06:33:00+02:00</effective>
+    <onset>2026-10-14T11:00:00+02:00</onset>
+    <expires>2026-10-14T18:00:00+02:00</expires>
+    <senderName>Deutscher Wetterdienst</senderName>
+    <headline>Amtliche WARNUNG vor WINDBÖEN</headline>
+    <description>Es treten Windböen mit Geschwindigkeiten um 55 km/h (15 m/s, 30 kn, Bft 7) aus westlicher Richtung auf.</description>
+    <instruction>Hinweis auf: umherfliegende leichte Gegenstände. 
+Handlungsempfehlungen: 
+lose Gegenstände sichern; z.B. Zelte und Abdeckungen befestigen</instruction>
+    <web>https://dwd.de/warnungen</web>
+    <contact>Deutscher Wetterdienst</contact>
+    <parameter>
+      <valueName>wind direction</valueName>
+      <value>west</value>
+    </parameter>
+    <parameter>
+      <valueName>gusts</valueName>
+      <value>~55 [km/h]</value>
+    </parameter>
+    <area>
+      <areaDesc>polygonal event area</areaDesc>
+      <polygon>54.30994,13.523588 54.316092,13.517547 54.332836,13.540912 54.324233,13.545899 54.30994,13.523588 54.30994,13.523588</polygon>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>polygonal event area</areaDesc>
+      <polygon>54.049942,13.791963 54.06313,13.800309 54.100225,13.813269 54.109434,13.810165 54.113301,13.792524 54.132807,13.774916 54.138607,13.755357 54.158281,13.749112 54.167589,13.759342 54.174368,13.788522 54.169015,13.813239 54.126278,13.837937 54.106747,13.863276 54.087696,13.900529 54.075593,13.936406 54.06989,13.969129 54.047142,14.025423 54.031849,14.047973 53.995556,14.112837 53.951568,14.177477 53.928625,14.226317 53.915867,14.207646 53.9141,14.190057 53.907231,14.204197 53.889469,14.213704 53.866058,14.214244 53.872962,14.187484 53.871383,14.151235 53.87162,14.132855 53.874424,14.038121 53.849189,13.984307 53.84417,13.944669 53.84542,13.928036 53.850233,13.930076 53.852636,13.952616 53.862093,13.952784 53.873052,13.929186 53.845664,13.914268 53.840573,13.899309 53.850706,13.826237 53.856692,13.823101 53.868275,13.833831 53.878805,13.896493 53.890628,13.923816 53.91356,13.937796 53.949406,13.921675 53.96516,13.895729 53.982404,13.900087 53.990913,13.909208 53.994453,13.944646 53.989971,13.963912 53.972937,13.964045 53.969814,13.971893 53.95894,13.950605 53.93483,13.95847 53.950784,13.970049 53.957827,13.964803 53.958998,13.984704 53.962197,14.024457 53.950114,14.010974 53.940835,14.039511 53.951135,14.037062 53.982965,14.047751 54.005116,14.042912 54.018051,14.029054 54.020352,14.015757 54.014188,14.018142 54.010945,14.004642 54.035518,13.998262 54.062061,13.969705 54.059311,13.951373 54.063164,13.924894 54.062006,13.915999 54.046539,13.910783 54.028084,13.93477 54.016267,13.925023 54.020781,13.916494 54.028722,13.919983 54.029697,13.911432 54.012821,13.898477 54.001589,13.855029 54.013772,13.853012 54.034575,13.866798 54.035783,13.878297 54.043462,13.874196 54.047613,13.859761 54.046717,13.848249 54.030899,13.810319 54.018019,13.798257 54.01914,13.772243 54.031232,13.767047 54.038431,13.77496 54.037672,13.783711 54.049942,13.791963 54.049942,13.791963</polygon>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>polygonal event area</areaDesc>
+      <polygon>54.364817,13.122856 54.372128,13.129842 54.375184,13.154605 54.369826,13.234947 54.377851,13.237306 54.38259,13.26182 54.387392,13.237599 54.398129,13.229735 54.404104,13.238475 54.406193,13.269629 54.422061,13.271866 54.431939,13.248666 54.442718,13.259454 54.447423,13.252974 54.44251,13.21814 54.448881,13.200082 54.459763,13.205813 54.463841,13.252318 54.468195,13.236007 54.476258,13.258773 54.480582,13.268727 54.47553,13.283818 54.483097,13.286151 54.491886,13.265927 54.500822,13.277911 54.487448,13.293922 54.482817,13.317334 54.489796,13.333511 54.491315,13.364291 54.47829,13.370322 54.473932,13.380873 54.476988,13.400388 54.491257,13.417415 54.485988,13.442559 54.471725,13.450108 54.484032,13.480752 54.481352,13.49905 54.458203,13.471537 54.451507,13.474711 54.452272,13.505742 54.443213,13.512967 54.435637,13.503988 54.434718,13.48853 54.44421,13.4927 54.442916,13.479257 54.426374,13.4752 54.416477,13.534521 54.426363,13.541539 54.433321,13.520471 54.434384,13.546692 54.437936,13.556033 54.445651,13.553176 54.448484,13.524346 54.456916,13.546578 54.473452,13.547909 54.477256,13.573811 54.447008,13.573902 54.407651,13.606894 54.398855,13.626093 54.402769,13.665808 54.398592,13.67682 54.39458,13.660661 54.384239,13.661836 54.382496,13.651352 54.367054,13.606405 54.3644,13.590159 54.350859,13.591468 54.352838,13.573496 54.339868,13.551498 54.341607,13.504149 54.329115,13.463436 54.316021,13.459674 54.300576,13.416927 54.271609,13.389714 54.279496,13.374404 54.271903,13.370857 54.268477,13.352052 54.249724,13.35944 54.261459,13.368773 54.254001,13.379945 54.264809,13.398862 54.254849,13.417542 54.237632,13.423693 54.22445,13.39263 54.238055,13.32161 54.248392,13.295502 54.253402,13.298634 54.247695,13.323265 54.276795,13.3345 54.266707,13.310579 54.258933,13.315198 54.261116,13.287651 54.253595,13.271434 54.268352,13.227836 54.273656,13.2172 54.270223,13.199912 54.284547,13.196061 54.289548,13.203348 54.296456,13.195472 54.287892,13.181681 54.289601,13.167228 54.282207,13.140405 54.295678,13.140295 54.304364,13.155731 54.296699,13.17601 54.300998,13.184761 54.309056,13.17134 54.316259,13.136996 54.332231,13.115163 54.364817,13.122856 54.364817,13.122856</polygon>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>polygonal event area</areaDesc>
+      <polygon>54.231031,12.522399 54.242515,12.490044 54.254959,12.501757 54.255901,12.518109 54.27142,12.531114 54.280739,12.530818 54.278133,12.55903 54.28432,12.561006 54.282309,12.57277 54.287671,12.607881 54.288139,12.650772 54.288341,12.670896 54.291785,12.691876 54.308341,12.692874 54.299648,12.721121 54.310036,12.726773 54.314613,12.737627 54.325036,12.739476 54.318197,12.773707 54.323889,12.781308 54.326327,12.77469 54.34986,12.794019 54.349724,12.807847 54.343846,12.810027 54.352284,12.828888 54.352949,12.851577 54.366705,12.87973 54.398277,12.897149 54.364001,12.965008 54.381924,12.970713 54.388178,12.996311 54.387805,13.021055 54.39437,13.03037 54.380582,13.049917 54.381912,13.076672 54.365343,13.093149 54.345829,13.076214 54.319975,13.088751 54.305113,13.110532 54.281184,13.106807 54.268702,13.134434 54.26979,13.153196 54.27741,13.166304 54.26598,13.181542 54.24984,13.214694 54.240788,13.215657 54.235603,13.28537 54.193805,13.318054 54.183539,13.330054 54.187238,13.366054 54.181082,13.371558 54.17503,13.3346 54.160411,13.318031 54.176056,13.382255 54.173681,13.393981 54.181758,13.393964 54.173126,13.424871 54.158136,13.41549 54.163779,13.406933 54.151504,13.379745 54.143107,13.3888 54.150155,13.405315 54.137368,13.428073 54.121383,13.439375 54.111014,13.440198 54.087355,13.467234 54.084599,13.50469 54.094708,13.493834 54.11944,13.477438 54.127463,13.505062 54.130178,13.547369 54.1325,13.57773 54.137947,13.615549 54.175806,13.696965 54.163564,13.717174 54.157715,13.695523 54.149463,13.698512 54.127866,13.761572 54.123225,13.753478 54.099919,13.802485 54.091329,13.796972 54.085051,13.793176 54.066621,13.789328 54.059306,13.773579 54.053235,13.779318 54.030817,13.742393 54.026238,13.755707 54.011482,13.766863 53.980366,13.836492 53.96391,13.853881 53.952427,13.853266 53.951013,13.876633 53.944634,13.884412 53.931525,13.906779 53.918411,13.912817 53.899656,13.863836 53.879933,13.84855 53.877793,13.825816 53.863645,13.814844 53.866946,13.805436 53.856894,13.793765 53.855717,13.807217 53.847677,13.813365 53.854299,13.763651 53.833905,13.741658 53.831844,13.71507 53.811094,13.714949 53.808197,13.703018 53.79741,13.699174 53.796922,13.681428 53.788309,13.68677 53.77551,13.673384 53.774552,13.651391 53.783437,13.63512 53.796127,13.633528 53.794059,13.643927 53.801045,13.66248 53.810702,13.669545 53.845535,13.643914 53.863654,13.633136 53.869126,13.617557 53.870443,13.609497 53.883395,13.505393 53.889516,13.484571 53.917287,13.445356 53.910163,13.402979 53.910552,13.380814 53.93464,13.339777 53.94632,13.320738 53.957076,13.31176 53.974437,13.275823 53.964834,13.254169 53.962784,13.230107 53.95709,13.213159 53.962457,13.199257 53.932099,13.196167 53.944088,13.155249 53.931677,13.1328 53.949782,13.08984 53.954791,13.06459 53.970786,13.058674 53.979188,13.012146 53.97581,13.002741 53.985898,12.996255 53.992323,13.014913 54.004092,12.987328 54.004249,12.957604 53.995682,12.941286 53.994941,12.922591 53.982539,12.904121 54.011968,12.895745 54.021608,12.872792 54.048044,12.896692 54.060205,12.86619 54.057466,12.842609 54.063162,12.817606 54.076354,12.797594 54.054437,12.748812 54.061364,12.733822 54.075207,12.749052 54.089785,12.718553 54.118633,12.697459 54.118347,12.675701 54.137645,12.645283 54.104857,12.600244 54.107775,12.570755 54.116816,12.579897 54.134105,12.54191 54.131994,12.492842 54.124591,12.492287 54.132415,12.453012 54.124105,12.435123 54.1158,12.419485 54.113384,12.388593 54.122092,12.384197 54.132711,12.388351 54.149607,12.373218 54.157187,12.382363 54.16248,12.365434 54.177499,12.375087 54.179054,12.356932 54.184938,12.353862 54.190266,12.372533 54.193703,12.412634 54.216288,12.464451 54.213773,12.501012 54.22116,12.50442 54.217751,12.512449 54.231031,12.522399 54.231031,12.522399</polygon>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Buschvitz</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813073014</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Kemnitz</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075060</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Klein Bünzow</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075061</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Karlshagen</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075058</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Stadt Bergen auf Rügen</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813073010</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Binz</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813073011</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Katzow</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075059</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Kamminke</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075056</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Eixen</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813073022</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Elmenhorst</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813073023</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Drechow</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813073020</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Kröslin</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075069</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Dreschvitz</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813073021</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Koserow</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075066</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Korswandt</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075065</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Hanshagen</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075046</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Stadt Gützkow</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075044</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Groß Polzin</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075043</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Gribow</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075040</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Groß Kiesow</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075041</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Altenpleen</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813073005</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Hinrichshagen</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075050</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Altefähr</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813073003</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Heringsdorf</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075049</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Ahrenshagen-Daskow</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813073001</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Dargen</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075026</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Dersekow</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075027</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Dargelin</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075025</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Stadt Greifswald</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075039</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Görmin</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075036</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Garz</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075034</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Benz</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075010</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Behrenhoff</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075008</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Buggenhagen</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075021</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Brünzow</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075018</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Bandelin</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075006</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Stadt Anklam</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075005</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Karlsburg</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075156</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Zirkow</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813073106</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Züssow</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075154</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Zirchow</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075152</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Zarrendorf</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813073104</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Weitenhagen</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075142</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Trinwillershagen</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813073094</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Wackerow</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075141</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Stadt Tribsees</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813073093</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Sundhagen</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813073090</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Stadt Stralsund</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813073088</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Stadt Usedom</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075137</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Süderholz</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813073089</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Ziethen</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075150</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Wittenhagen</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813073102</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Zinnowitz</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075151</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Zempin</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075148</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Wendisch Baggendorf</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813073098</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Wusterhusen</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075146</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Zemitz</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075147</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Wendorf</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813073099</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Stadt Wolgast</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075144</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Velgast</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813073096</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Wrangelsburg</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075145</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Weitenhagen</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813073097</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Samtens</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813073079</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Sauzin</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075124</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Stadt Richtenberg</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813073076</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Schmatzin</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075125</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Sassen-Trantow</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075123</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Ralswiek</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813073072</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Rubenow</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075120</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Rubkow</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075121</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Rambin</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813073073</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Splietsdorf</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813073086</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Ückeritz</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075135</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Steinhagen</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813073087</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Trassenheide</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075133</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Semlow</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813073085</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Schlemmin</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813073082</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Sehlen</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813073083</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Stolpe auf Usedom</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075129</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Papenhagen</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813073062</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Pudagla</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075111</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Parchtitz</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813073063</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Niepars</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813073060</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Pantelitz</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813073061</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Peenemünde</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075106</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Millienhagen-Oebelitz</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813073057</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Stadt Putbus</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813073070</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Prohn</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813073068</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Rankwitz</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075114</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Preetz</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813073066</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Patzig</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813073064</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Poseritz</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813073065</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Murchin</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075094</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Kramerhof</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813073046</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Mölschow</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075092</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Kluis</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813073045</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Mellenthin</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075090</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Karnin</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813073042</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Mesekenhagen</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075091</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Jakobsdorf</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813073041</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Neuenkirchen</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075102</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Lüssow</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813073054</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Stadt Marlow</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813073055</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Löbnitz</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813073051</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Neu Boltenhagen</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075097</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Gingst</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813073028</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Levenhagen</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075076</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Glewitz</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813073029</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Stadt Lassan</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075074</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Stadt Garz/Rügen</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813073027</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Krummin</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075072</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Stadt Franzburg</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813073024</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Gustow</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813073038</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Lütow</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075087</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Hugoldsdorf</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813073039</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Groß Kordshagen</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813073036</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Stadt Loitz</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075082</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Gremersdorf-Buchholz</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813073034</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Lubmin</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075083</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Stadt Grimmen</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813073035</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Loddin</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075080</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Gransebieth</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813073033</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Gemeinde Loissin</areaDesc>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>813075081</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+  </info>
+</alert>

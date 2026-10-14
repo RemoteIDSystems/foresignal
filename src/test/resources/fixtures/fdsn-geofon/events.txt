@@ -1,0 +1,4 @@
+#EventID|Time|Latitude|Longitude|Depth/km|Author|Catalog|Contributor|ContributorID|MagType|Magnitude|MagAuthor|EventLocationName|EventType
+gfz2026udji|2026-10-14T10:49:48.08|-21.03|-178.857|582.1|||GFZ|gfz2026udji|Mw|5.92||Fiji Islands Region|earthquake
+gfz2026udhe|2026-10-14T09:45:42.43|-15.443|-72.058|163.0|||GFZ|gfz2026udhe|mb|4.37||Southern Peru|earthquake
+gfz2026udgf|2026-10-14T09:16:19.37|-5.483|35.061|10.0|||GFZ|gfz2026udgf|Mw|4.67||Tanzania|earthquake

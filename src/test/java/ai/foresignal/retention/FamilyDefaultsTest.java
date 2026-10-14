@@ -354,7 +354,26 @@ class FamilyDefaultsTest {
             Map.entry("PortWatchPortsAdapter", new Entry(
                     new ai.foresignal.source.adapters.maritime.PortWatchPortsAdapter("").descriptor(), "reference")),
             Map.entry("GfwEventsAdapter", new Entry(
-                    new ai.foresignal.source.adapters.maritime.GfwEventsAdapter("").descriptor(), "event")));
+                    new ai.foresignal.source.adapters.maritime.GfwEventsAdapter("").descriptor(), "event")),
+            // Prompt 089: CAP alerts (cap-*), MeteoAlarm, the FDSN event services (fdsn-*), emsc-seismic and
+            // usgs-shakemap are the event class (1825 d).
+            Map.entry("CapFeedAdapter", new Entry(new ai.foresignal.source.adapters.cap.CapFeedAdapter(
+                    new ai.foresignal.source.adapters.cap.CapFeed("cap-test-xx", "XX", "Test",
+                            java.net.URI.create("https://example.org/cap.xml"), "atom-index", java.util.List.of("en"),
+                            "test", java.net.URI.create("https://example.org/terms"), "2026-10-14", "test"))
+                    .descriptor(), "event")),
+            Map.entry("MeteoAlarmAdapter", new Entry(new ai.foresignal.source.adapters.meteoalarm.MeteoAlarmAdapter(
+                    new ai.foresignal.source.adapters.meteoalarm.MeteoAlarmCountries.Country("test", "XX", "Test"),
+                    null).descriptor(), "event")),
+            Map.entry("FdsnEventAdapter", new Entry(new ai.foresignal.source.adapters.seismic.FdsnEventAdapter(
+                    new ai.foresignal.source.adapters.seismic.FdsnService("test", "Test",
+                            java.net.URI.create("https://example.org/fdsnws/event/1/query"), true, "test",
+                            java.net.URI.create("https://example.org/terms"), "Test",
+                            java.net.URI.create("https://example.org"), null)).descriptor(), "event")),
+            Map.entry("EmscSeismicAdapter", new Entry(
+                    new ai.foresignal.source.adapters.seismic.EmscSeismicAdapter(null, null).descriptor(), "event")),
+            Map.entry("UsgsShakeMapAdapter", new Entry(
+                    new ai.foresignal.source.adapters.usgs.UsgsShakeMapAdapter(null).descriptor(), "event")));
 
     /**
      * The {@code privacy} class (prompt 086): private sources whose prompt sets a short raw window on purpose, because

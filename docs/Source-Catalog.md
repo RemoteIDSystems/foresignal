@@ -282,6 +282,54 @@ Maritime safety and trade sources in `ai.foresignal.source.adapters.maritime`, e
 | `gfw-sar-detections` (not built) | sar-vessel-detection | GFW 4Wings `public-global-sar-presence:latest` | — | `apiToken` | **Not built (prompt 088).** SAR vessel detections are served only as gridded 4Wings data: reports and tiles aggregate by cell, and the interaction endpoint lists `{detections, timestamp, vessel_id}` per cell without a detection id or position. No official endpoint returns individual detections, so the optional source is not implemented. |
 | `uscg-lnm-*` (planned) | notice-to-mariners | NAVCEN Local Notice to Mariners application (`https://www.navcen.uscg.gov/msi`) | GeoJSON files | none | **Planned, not built (prompt 088).** The MSI page lists "LNM Geojson Files" under `/sites/default/files/msi/`, one set per notice category (`hazNav_1.geojson`, `hazNavPoly_1.geojson`, `marEvent_1.geojson`, `tmpChange_1.geojson`, `discFedAid_1…3.geojson`, `lightListD01_1…10.geojson`, …), chunked by a counter in `fileIndexNew.json` that the page's script reads (ETag and Last-Modified present; the user guide says LNM data refreshes every 15 minutes). They are not split by district, the chunk names move with the counter, and neither the page nor the LNM App User Guide documents them as an interface, so the prompt's condition (a documented, stable per-district GeoJSON download) is not met. No PDF or HTML is parsed. |
 
+### International alerts and seismic (prompt 089)
+
+The CAP feed family (`cap-*`) is seeded offline from the WMO Register of Alerting Authorities
+(<https://alertingauthority.wmo.int/atom.xml>, 304 entries, updated 2026-09-18) by
+`scripts/build-cap-register.py`, which writes `build/cap-candidates.json`; a human-reviewed subset is committed as
+`src/main/resources/sources/cap-feeds.json`. **The register is never read at runtime** and no caller can add a
+feed. Every CAP-shaped source uses prompt 067's `CapParser` and the shared update chain
+(`CapThreadResolver`): `Update` versions the same record and `Cancel` is a tombstone of the thread.
+
+| Source | Kind | Upstream index | Format | Auth | Interval · budget | Notes |
+|---|---|---|---|---|---|---|
+| `cap-de-dwd-de` / `cap-de-dwd-en` | cap-alert | `https://www.dwd.de/DWD/warnungen/cap-feed/{de,en}/atom.xml` | atom-index | none | 5 min · 6/min, 1,000/day | **Built in prompt 089.** DWD open data (public domain). Each entry links a `application/cap+xml` document; separate German and English sources. |
+| `cap-fi-fmi-en` | cap-alert | `https://alerts.fmi.fi/cap/feed/rss_en-GB.rss` | rss-index | none | 5 min · 6/min, 1,000/day | FMI, **CC BY 4.0**. Item links are dated CAP documents. |
+| `cap-no-metno-en` | cap-alert | `https://alert.met.no/feed?lang=en` | rss-index | none | 5 min · 6/min, 1,000/day | MET Norway, **NLOD 2.0 / CC BY 4.0**. Item links are metalerts query URLs returning CAP. |
+| `cap-is-imo-en` | cap-alert | `https://api.vedur.is/cap/v1/capbroker/active/feed/met` | rss-index | none | 5 min · 6/min, 1,000/day | Icelandic Met Office capbroker, **CC BY 4.0**. |
+| `cap-au-bom-en` | cap-alert | `https://severeweather.wmo.int/v2/cap-alerts/au-bom-en/rss.xml` | rss-index | none | 5 min · 6/min, 1,000/day | BoM via the WMO severe-weather pilot, public domain / CC BY 3.0 AU. |
+| `cap-hk-hko-en` | cap-alert | `https://alerts.weather.gov.hk/V1/cap_atom.xml` | atom-index | none | 5 min · 6/min, 1,000/day | Hong Kong Observatory; empty on 2026-10-14. |
+| `cap-sg-weather-en` | cap-alert | `https://www.weather.gov.sg/files/rss/rsscapalert/rsscapalert.xml` | rss-index | none | 5 min · 6/min, 1,000/day | Meteorological Service Singapore; empty on 2026-10-14. |
+| `cap-kr-kma-ko` | cap-alert | `https://www.weather.go.kr/w/rss/cap/warning.do` | rss-index | none | 5 min · 6/min, 1,000/day | Korea Meteorological Administration. |
+| `cap-in-ndma-en` | cap-alert | `https://sachet.ndma.gov.in/cap_public_website/rss/rss_india.xml` | rss-index | none | 5 min · 6/min, 1,000/day | NDMA SACHET. |
+| `cap-br-inmet-pt` | cap-alert | `https://idapfile.mdr.gov.br/idap/api/rss/cap` | atom-index | none | 5 min · 6/min, 1,000/day | INMET via MDR. |
+| `cap-nz-metservice-en` | cap-alert | `https://alerts.metservice.com/cap/rss` | rss-index | none | 5 min · 6/min, 1,000/day | MetService NZ, **CC BY 4.0**. |
+| `cap-ke-kmd-en` | cap-alert | `https://meteo.go.ke/api/cap/rss.xml` | rss-index | none | 5 min · 6/min, 1,000/day | Kenya Meteorological Department (WMO CAP Composer). |
+| `cap-ng-nimet-en` | cap-alert | `https://cap-sources.s3.amazonaws.com/ng-nimet-en/rss.xml` | rss-index | none | 5 min · 6/min, 1,000/day | NiMet (WMO CAP Composer pilot). |
+
+Record: externalId is the update thread (`CapThreadResolver`, `{sender}:{identifier}` of the root); `observedAt =
+sent`, `eventTime = onset`, `validFrom = onset ?? effective`, `validUntil = expires`; geometry is the union of the
+`polygon`/`circle` areas, or null with `geometryFromGeocode=false` for a geocode-only area (no remote boundary
+lookup); payload `identifier, sender, status, msgType, scope, category, event, urgency, severity, certainty,
+headline` (≤ 4 KB), `description` (≤ 4 KB), `instruction` (≤ 2 KB), `web, areaDesc, geocodes, headlines` (the
+other languages' headlines), `language`. `entityKeys cap-identifier` (`identifier`); `embedFields headline,
+description` (untrusted). A non-`Actual` status is skipped unless the `includeTests` param is set. At most 50 new
+CAP documents are fetched per run, serially. Retention 1825 d (`event`).
+
+**Rejected candidates** (recorded from `build/cap-candidates.json`, reviewed 2026-10-14): US feeds are skipped
+(prompt 047 has `nws-alerts`); European national MeteoAlarm feeds are skipped (the `meteoalarm-*` family covers
+them); HTTP-only feeds are skipped (feed URLs must be HTTPS); feeds with no licence statement or unclear terms are
+skipped; `meteoalarm` slugs `czech-republic` and `north-macedonia` 404 (the correct slugs are `czechia` and
+`republic-of-north-macedonia`).
+
+| Source | Kind | Upstream | Protocol | Auth | Interval · budget | Notes |
+|---|---|---|---|---|---|---|
+| `meteoalarm-<slug>` (38) | cap-alert | `https://feeds.meteoalarm.org/api/v1/warnings/feeds-<slug>` → `{"warnings":[{"alert":{…CAP as JSON…}}]}` | REST JSON | none | 15 min · 2/min, 200/day | **Built in prompt 089** (`MeteoAlarmFamily`, `MeteoAlarmJsonAdapter`). The 38 MeteoAlarm members (slugs verified live 2026-10-14). The JSON alert converts to the CAP model and reuses the shared update chain. Areas with a `polygon` keep it; geocode-only areas (EMMA_ID) have null geometry (no EMMA_ID boundary is bundled; the licence question is open). No ETag (`Cache-Control: must-revalidate`). Attribution "MeteoAlarm / EUMETNET", terms <https://www.meteoalarm.org/en/live/page/terms-of-use>. `maxResponseBytes` 32 MB. Retention 1825 d (`event`). |
+| `wpc-ero-d1` … `wpc-ero-d5` | rainfall-outlook | `https://mapservices.weather.noaa.gov/vector/rest/services/hazards/wpc_precip_hazards/MapServer/{0..4}` | ArcGIS feature kit (`kits/features/wpc-ero.json`) | none | 30 min · 5/min, 300/day | **Built in prompt 089** as five 073 feature-kit specs (the validator admits the reviewed `wpc-ero-` prefix). Categorical Excessive Rainfall Outlook polygons: `dn` → `category` (1 MRGL, 2 SLGT, 3 MDT, 4 HIGH); `observedAt` = `issue_time`, `validFrom` = `start_time`, `validUntil` = `end_time` (fields are `esriFieldTypeString`, `yyyy-MM-dd HH:mm:ss` UTC, read with `format: auto`). Absence tombstones; retention 90 d. Licence US-PD. |
+| `emsc-seismic` | earthquake | `wss://www.seismicportal.eu/standing_order/websocket` | WebSocket (STREAMING) | none | — · 12 connects/hour | **Built in prompt 089** (`EmscSeismicAdapter`, `EmscSession`). Messages `{"action":"create"\|"update","data":<GeoJSON Feature>}` with `unid, time, lastupdate, mag, magtype, depth, lat, lon, auth, source_catalog, flynn_region, evtype`. On every (re)connect an FDSN gap-fill (`…/fdsnws/event/1/query?format=json&updatedafter={cursor−5 min}&limit=500`) merges missed events; the cursor is stored in adapter state and a version key (`unid@lastupdate`) drops duplicates while letting updates through. Reconnect 15 s → 10 min; a connection silent for 10 min is recycled; `zeroResultsNormal`. Payload `mag, magType, place, depthKm, auth, sourceCatalog, evtype`; depth is in the payload (2D point). EMSC, **CC BY 4.0**. Retention 1825 d (`event`). |
+| `fdsn-geofon`, `fdsn-ingv` | earthquake | `https://geofon.gfz.de/fdsnws/event/1/query`, `https://webservices.ingv.it/fdsnws/event/1/query` | FDSN `format=text` | none | 5 min · 2/min, 600/day | **Built in prompt 089** (`FdsnEventFamily`, `FdsnTextParser`). Reviewed list `src/main/resources/sources/fdsn-event-services.json`. `updatedafter` where supported, else `starttime` = now − 2 h; the text format carries no update time, so `observedAtMode` is RECEIVED. Columns found by header name (`Depth/km` vs `Depth/Km`, optional `EventType`). IRIS is excluded (its event service was retired in favour of USGS; `service.iris.edu` answers 404). GEOFON CC BY 4.0, INGV CC BY 4.0. Retention 1825 d (`event`). |
+| `usgs-shakemap` | earthquake-impact, shakemap-mmi | `https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&producttype=shakemap&updatedafter={last}&minmagnitude={min}&orderby=time` → detail → `products.shakemap[0]`, `products.losspager[0]`, `download/cont_mmi.json` | REST GeoJSON | none | 10 min · 20/min, 1,500/day | **Built in prompt 089** (`UsgsShakeMapAdapter`). Detail is fetched only when an event's `updated` changes. `earthquake-impact` (externalId event id) carries `maxMmi, pagerAlert, pagerFatalityAlert, pagerEconomicAlert, shakemapVersion, mag, place`; `shakemap-mmi` (externalId `{eventId}:mmi{level}`) is a MultiLineString contour per MMI level, simplified with `TopologyPreservingSimplifier` (0.001°, coarser until ≤ 10,000 vertices), and a level that disappears in a newer version is tombstoned. Param `minMagnitude` (default 4.5). Licence US-PD. Retention 1825 d (`event`). |
+
 ### Raster product sources (prompt 046)
 
 | Source id | Kind | Upstream | Protocol | Auth | Default interval · budget | Notes |

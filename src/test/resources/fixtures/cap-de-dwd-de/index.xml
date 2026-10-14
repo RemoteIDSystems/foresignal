@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <title>Amtliche Warnungen</title>
+  <link rel="alternate" href="https://www.dwd.de/DWD/warnungen/cap-feed/de/atom.xml" />
+  <author>
+    <name>opendata@dwd.de (Deutscher Wetterdienst)</name>
+    <email>opendata@dwd.de</email>
+  </author>
+  <subtitle>Amtliche Warnungen des Deutschen Wetterdienstes</subtitle>
+  <id>https://www.dwd.de/DWD/warnungen/cap-feed/de/atom.xml</id>
+  <rights>public domain</rights>
+  <updated>2026-10-14T16:41:00Z</updated>
+  <dc:date>2026-10-14T16:41:00Z</dc:date>
+  <dc:rights>public domain</dc:rights>
+  <entry>
+    <title>(Update) Amtliche Warnung des Seewetterdienstes Hamburg vor BÖEN</title>
+    <link rel="alternate" href="https://www.dwd.de/DWD/warnungen/cap-feed/de/2.49.0.0.276.0.DWD.PVW.1791988680000.56a8c2a3-a480-4df7-88fa-3558680439ac.DEU.xml" />
+    <link rel="related" type="application/cap+xml" href="https://www.dwd.de/DWD/warnungen/cap-feed/de/2.49.0.0.276.0.DWD.PVW.1791988680000.56a8c2a3-a480-4df7-88fa-3558680439ac.DEU.xml" />
+    <author>
+      <name>opendata@dwd.de (Deutscher Wetterdienst)</name>
+      <email>opendata@dwd.de</email>
+    </author>
+    <id>https://www.dwd.de/DWD/warnungen/cap-feed/de/2.49.0.0.276.0.DWD.PVW.1791988680000.56a8c2a3-a480-4df7-88fa-3558680439ac.DEU.xml</id>
+    <updated>2026-10-14T14:38:00Z</updated>
+    <published>2026-10-14T14:38:00Z</published>
+    <summary type="text">Böen von 7 Beaufort aus West bis Nordwest. - Betroffene Gebiete: Östlich Rügen, Östlich Fehmarn bis Rügen</summary>
+    <dc:date>2026-10-14T14:38:00Z</dc:date>
+  </entry>
+  <entry>
+    <title>(Alert) Amtliche WARNUNG vor WINDBÖEN</title>
+    <link rel="alternate" href="https://www.dwd.de/DWD/warnungen/cap-feed/de/2.49.0.0.276.0.DWD.PVW.1791952380000.3f66ad3b-c446-435e-b1f7-b9306b2e812b.DEU.xml" />
+    <link rel="related" type="application/cap+xml" href="https://www.dwd.de/DWD/warnungen/cap-feed/de/2.49.0.0.276.0.DWD.PVW.1791952380000.3f66ad3b-c446-435e-b1f7-b9306b2e812b.DEU.xml" />
+    <author>
+      <name>opendata@dwd.de (Deutscher Wetterdienst)</name>
+      <email>opendata@dwd.de</email>
+    </author>
+    <id>https://www.dwd.de/DWD/warnungen/cap-feed/de/2.49.0.0.276.0.DWD.PVW.1791952380000.3f66ad3b-c446-435e-b1f7-b9306b2e812b.DEU.xml</id>
+    <updated>2026-10-14T04:33:00Z</updated>
+    <published>2026-10-14T04:33:00Z</published>
+    <summary type="text">Es treten Windböen mit Geschwindigkeiten um 55 km/h (15 m/s, 30 kn, Bft 7) aus westlicher Richtung auf. - Betroffene Gebiete: Gemeinde Buschvitz, Gemeinde Kemnitz, Gemeinde Klein Bünzow, Gemeinde Karlshagen, Stadt Bergen auf Rügen, Gemeinde Binz, Gemeinde Katzow, Gemeinde Kamminke, Gemeinde Eixen, Gemeinde Elmenhorst...</summary>
+    <dc:date>2026-10-14T04:33:00Z</dc:date>
+  </entry>
+  <entry>
+    <title>(Update) Amtliche WARNUNG vor WINDBÖEN</title>
+    <link rel="alternate" href="https://www.dwd.de/DWD/warnungen/cap-feed/de/2.49.0.0.276.0.DWD.PVW.1791952380000.2941c15c-8c32-43ba-96ed-e9ed013fcfc0.DEU.xml" />
+    <link rel="related" type="application/cap+xml" href="https://www.dwd.de/DWD/warnungen/cap-feed/de/2.49.0.0.276.0.DWD.PVW.1791952380000.2941c15c-8c32-43ba-96ed-e9ed013fcfc0.DEU.xml" />
+    <author>
+      <name>opendata@dwd.de (Deutscher Wetterdienst)</name>
+      <email>opendata@dwd.de</email>
+    </author>
+    <id>https://www.dwd.de/DWD/warnungen/cap-feed/de/2.49.0.0.276.0.DWD.PVW.1791952380000.2941c15c-8c32-43ba-96ed-e9ed013fcfc0.DEU.xml</id>
+    <updated>2026-10-14T04:33:00Z</updated>
+    <published>2026-10-14T04:33:00Z</published>
+    <summary type="text">Es treten Windböen mit Geschwindigkeiten bis 60 km/h (17 m/s, 33 kn, Bft 7) aus westlicher Richtung auf. In exponierten Lagen muss mit Sturmböen um 70 km/h (20 m/s, 38 kn, Bft 8) gerechnet werden. - Betroffene Gebiete: Gemeinde Born a. Darß, Gemeinde Breege, Gemeinde Wittenbeck, Stadt Barth, Gemeinde Divitz-Spoldershagen, Gemeinde Dranske, Stadt Rostock, Gemeinde Dierhagen, Gemeinde Steffenshagen, Gemeinde Baabe...</summary>
+    <dc:date>2026-10-14T04:33:00Z</dc:date>
+  </entry>
+</feed>

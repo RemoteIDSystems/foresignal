@@ -1,0 +1,28 @@
+{
+  "reviewedOn": "2026-10-14",
+  "rule": "FDSN event services whose /fdsnws/event/1/query?format=text endpoint was verified live on 2026-10-14. IRIS is excluded: its event service was retired in favour of USGS (service.iris.edu answers 404 for the event query).",
+  "services": [
+    {
+      "id": "geofon",
+      "name": "GEOFON (GFZ)",
+      "baseUrl": "https://geofon.gfz.de/fdsnws/event/1/query",
+      "supportsUpdatedAfter": true,
+      "licence": "GFZ/GEOFON open data (CC BY 4.0)",
+      "termsUrl": "https://www.gfz-potsdam.de/en/datacentre/services/data-services/licences/",
+      "attribution": "GEOFON, GFZ Helmholtz Centre for Geosciences",
+      "homepage": "https://geofon.gfz.de/",
+      "notes": "Text columns end with an extra EventType column; Depth/km is spelled 'Depth/km'."
+    },
+    {
+      "id": "ingv",
+      "name": "INGV (Italy)",
+      "baseUrl": "https://webservices.ingv.it/fdsnws/event/1/query",
+      "supportsUpdatedAfter": true,
+      "licence": "INGV open data (CC BY 4.0)",
+      "termsUrl": "https://www.ingv.it/en/",
+      "attribution": "Istituto Nazionale di Geofisica e Vulcanologia (INGV)",
+      "homepage": "https://terremoti.ingv.it/",
+      "notes": "Text header spells the depth column 'Depth/Km'; EventType is present."
+    }
+  ]
+}
