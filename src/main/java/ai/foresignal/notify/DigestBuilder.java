@@ -14,7 +14,8 @@ import java.util.Objects;
  *
  * <p>Items are listed newest first, at most {@code cap} of them, followed by {@code +N more alerts}
  * when there are more. The digest takes the highest severity of its items, the newest item's link,
- * and, when every item comes from one rule, that rule's name in its title.
+ * and, when every item comes from one rule, that rule's name in its title. Its data names the top item
+ * ({@code topTitle}, {@code topAlertId}: the newest of the highest severity) for one-line digests (prompt 084).
  */
 public final class DigestBuilder {
 
@@ -55,6 +56,11 @@ public final class DigestBuilder {
         }
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("count", count);
+        // Prompt 084: the top item (highest severity, newest first) for one-line digests such as the mesh channels'.
+        NotificationMessage top = sorted.stream().filter(m -> Severity.fromWire(m.severity()) == finalMax(sorted))
+                .findFirst().orElse(newest);
+        data.put("topTitle", top.shortTitle());
+        data.put("topAlertId", top.alertId());
         data.put("notificationIds", sorted.stream().map(NotificationMessage::id).toList());
         if (rule != null) {
             data.put("ruleName", rule);
@@ -62,6 +68,18 @@ public final class DigestBuilder {
         return new NotificationMessage(newest.id(), NotificationMessage.ALERT, SUBTYPE, title, count + " alerts",
                 body.toString().strip(), max.wire(), newest.url(), newest.links(), data, List.of(), List.of(), null,
                 newest.origin(), newest.createdAt(), null, rule == null ? null : newest.ruleId(), null);
+    }
+
+    /** The highest severity among {@code items}. */
+    private static Severity finalMax(List<NotificationMessage> items) {
+        Severity max = Severity.INFO;
+        for (NotificationMessage m : items) {
+            Severity s = Severity.fromWire(m.severity());
+            if (s.compareTo(max) > 0) {
+                max = s;
+            }
+        }
+        return max;
     }
 
     private static String commonRule(List<NotificationMessage> items) {

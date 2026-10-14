@@ -83,6 +83,11 @@ import org.springframework.stereotype.Component;
  * counts an attempt and retries after 10 s, 1 min, 5 min, 30 min and 2 h, then fails for good and
  * raises a {@code system.delivery_failed} event (never sent to the failing channel). Errors are
  * redacted of the channel's secrets and cut to 500 characters.
+ *
+ * <p>Prompt 084: a send answered with {@link SendDeferredException} (the mesh airtime governor had no room) is
+ * deferred to the time it names with its reason ({@code airtime}), without counting an attempt; deliveries released
+ * together are folded into one digest like a quiet-hours release. A successful send the type reports as
+ * {@link ChannelType#unacknowledged} is settled {@code unacked}.
  */
 @Component
 public class DeliveryWorker {
@@ -354,6 +359,10 @@ public class DeliveryWorker {
         ChannelResponse response;
         try {
             response = sender.send(request);
+        } catch (SendDeferredException e) {
+            // Prompt 084: the mesh airtime governor had no room; wait without counting an attempt.
+            deliveries.defer(d.getId(), e.until(), e.reason());
+            return;
         } catch (IOException | RuntimeException e) {
             failed(d, channel, settings, e.getClass().getSimpleName() + ": " + e.getMessage(), now);
             return;
@@ -376,7 +385,10 @@ public class DeliveryWorker {
                 return;
             }
         }
-        if (response.success()) {
+        if (response.success() && type.unacknowledged(response)) {
+            // Prompt 084: sent, but the recipient never confirmed it; terminal, and no failure event.
+            deliveries.unacked(d.getId(), kind, "sent; no acknowledgement after one retry", now);
+        } else if (response.success()) {
             deliveries.delivered(d.getId(), kind, type.extractRef(response).orElse(null), edited, null, now);
             sendFollowUps(d, type, message, settings);
         } else if (type.partialSuccess(response)) {

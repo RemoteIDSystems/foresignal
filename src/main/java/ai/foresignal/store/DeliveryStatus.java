@@ -15,7 +15,13 @@ public enum DeliveryStatus {
      * snoozed or resolved, or whose notification was read on an active desktop, before release; or a
      * pending escalation delivery canceled because the escalation stopped.
      */
-    SUPPRESSED;
+    SUPPRESSED,
+    /**
+     * Sent, but the recipient never confirmed it (prompt 084): a {@code meshcore} direct message with
+     * {@code requireAck} whose acknowledgement did not arrive after one retry. Terminal; unlike {@link #FAILED} it
+     * raises no delivery-failure event.
+     */
+    UNACKED;
 
     /** The lowercase wire value of the {@code NotificationDelivery.status} schema. */
     public String wire() {
@@ -25,7 +31,8 @@ public enum DeliveryStatus {
     /**
      * Parses a wire value.
      *
-     * @throws IllegalArgumentException when it is not {@code pending}, {@code delivered}, {@code failed} or {@code suppressed}
+     * @throws IllegalArgumentException when it is not {@code pending}, {@code delivered}, {@code failed},
+     *     {@code suppressed} or {@code unacked}
      */
     public static DeliveryStatus fromWire(String value) {
         for (DeliveryStatus status : values()) {
@@ -33,6 +40,6 @@ public enum DeliveryStatus {
                 return status;
             }
         }
-        throw new IllegalArgumentException("must be one of pending, delivered, failed, suppressed");
+        throw new IllegalArgumentException("must be one of pending, delivered, failed, suppressed, unacked");
     }
 }

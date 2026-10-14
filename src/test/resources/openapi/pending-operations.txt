@@ -1,4 +1,3 @@
-getChannelAirtime 084
 listSeries 093
 getSeriesPoints 093
 listEntities 098

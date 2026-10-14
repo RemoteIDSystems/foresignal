@@ -39,13 +39,14 @@ import tools.jackson.databind.json.JsonMapper;
  * {@code smtpHost} pass {@link OutboundUrlPolicy} profile {@code LAN_ALLOWED}; a refusal is reported
  * on its field and the whole 400 carries code {@code URL_NOT_ALLOWED}. A host that does not resolve
  * at save time is accepted; {@code ChannelSender} checks again on every send. Prompt 060: the {@code mqtt}
- * {@code brokerUrl} host gets the same check.
+ * {@code brokerUrl} host gets the same check. Prompt 084: a type may name a more specific code for its own
+ * problems ({@link ChannelType#validationCode}); the mesh types answer {@code MESH_PUBLIC_CHANNEL}.
  */
 @Component
 public class ChannelInputParser {
 
-    /** Types the spec lists that later prompts implement. */
-    static final Map<String, String> LATER_TYPES = Map.of("meshtastic", "084", "meshcore", "084");
+    /** Types the spec lists that later prompts implement (none since prompt 084 added meshtastic and meshcore). */
+    static final Map<String, String> LATER_TYPES = Map.of();
 
     /**
      * Built-in types with exactly one channel, created at startup (031: the "Push" channel); they can
@@ -149,11 +150,18 @@ public class ChannelInputParser {
             }
         }
         boolean urlRefused = false;
+        String typeCode = null;
         if (type != null) {
             checkFields(type.spec(), config, secrets == null ? storedSecrets : secrets, errors);
             if (errors.isEmpty()) {
-                errors.addAll(type.validate(config, secrets == null
-                        ? (storedSecrets == null ? Map.of() : storedSecrets) : secrets));
+                Map<String, String> effective = secrets == null
+                        ? (storedSecrets == null ? Map.of() : storedSecrets) : secrets;
+                List<FieldError> typeErrors = type.validate(config, effective);
+                if (!typeErrors.isEmpty()) {
+                    // Prompt 084: a public mesh channel is refused with MESH_PUBLIC_CHANNEL.
+                    typeCode = type.validationCode(config, effective);
+                }
+                errors.addAll(typeErrors);
             }
             if (errors.isEmpty()) {
                 List<FieldError> refused = outboundProblems(type, config, secrets == null ? storedSecrets : secrets);
@@ -217,10 +225,14 @@ public class ChannelInputParser {
         int cap = integer(body, "backlogCap", 20, 1, MAX_BACKLOG_CAP, errors);
         boolean edit = bool(body, "editInPlace", true, errors);
         int deferWhileActive = integer(body, "deferWhileActiveSeconds", 0, 0, 600, errors);
-        actionsConfig(config, errors);
+        actionsConfig(config, errors, typeId);
         if (!errors.isEmpty()) {
             if (urlRefused) {
                 throw OutboundUrlPolicy.notAllowed(errors);
+            }
+            if (typeCode != null) {
+                throw new ValidationException(typeCode, "The channel would transmit on a public or default mesh"
+                        + " channel.", errors);
             }
             throw new ValidationException("The channel is not valid.", errors);
         }
@@ -235,6 +247,14 @@ public class ChannelInputParser {
      * {@code allowedSenders} (strings) when present.
      */
     static void actionsConfig(Map<String, Object> config, List<FieldError> errors) {
+        actionsConfig(config, errors, null);
+    }
+
+    /**
+     * {@link #actionsConfig(Map, List)} for a channel of {@code typeId}: a {@code meshtastic} or {@code meshcore}
+     * channel's {@code allowedSenders} is an object of node id to role (prompt 084), checked by the type itself.
+     */
+    static void actionsConfig(Map<String, Object> config, List<FieldError> errors, String typeId) {
         // The channel's units (prompt 040): metric or imperial, for {{near.text}}.
         ChannelUnits.validate(config, errors);
         // The map attachment keys (prompt 055): attachMap, mapProducts, mapRadiusKm, maxAttachmentBytes.
@@ -275,7 +295,7 @@ public class ChannelInputParser {
             errors.add(new FieldError("config.allowedUserIds", "must be an array of integers"));
         }
         Object senders = config.get("allowedSenders");
-        if (senders != null && !(senders instanceof List<?> list && list.stream().allMatch(String.class::isInstance))) {
+        if (senders != null && !ai.foresignal.notify.mesh.MeshChannels.TYPES.contains(typeId) && !(senders instanceof List<?> list && list.stream().allMatch(String.class::isInstance))) {
             errors.add(new FieldError("config.allowedSenders", "must be an array of strings"));
         }
     }
@@ -391,6 +411,7 @@ public class ChannelInputParser {
                     : "must be an absolute http or https URL";
             case ChannelFieldSpec.INTEGER -> value instanceof Number n && n.doubleValue() == Math.rint(n.doubleValue())
                     ? null : "must be an integer";
+            case ChannelFieldSpec.NUMBER -> value instanceof Number ? null : "must be a number";
             case ChannelFieldSpec.BOOLEAN -> value instanceof Boolean ? null : "must be true or false";
             case ChannelFieldSpec.STRING_LIST -> value instanceof List<?> list && list.stream().allMatch(String.class::isInstance)
                     ? null : "must be an array of strings";

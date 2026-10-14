@@ -134,6 +134,10 @@ public class NotificationService {
                 if (entity.isEmpty() || !entity.get().isEnabled() || types.find(entity.get().getType()).isEmpty()) {
                     continue;
                 }
+                if (!types.get(entity.get().getType()).acceptsUpdate(persisted.subtype())) {
+                    // Prompt 084: mesh channels take only the resolution, never acknowledgements or snoozes.
+                    continue;
+                }
                 enqueueUpdate(entity.get(), original, persisted, pause, now);
             }
             return persisted;

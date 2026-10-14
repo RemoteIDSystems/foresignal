@@ -266,6 +266,13 @@ public final class ErrorCodes {
     public static final String URL_NOT_ALLOWED = "URL_NOT_ALLOWED";
 
     /**
+     * 400: a {@code meshtastic} or {@code meshcore} channel would transmit on a public or default mesh channel
+     * (prompt 084): slot 0, a modem-preset or {@code Public} name, a {@code #hashtag} channel, an all-zero secret,
+     * licensed (ham) mode, a broker that is not on the LAN, or no {@code privateChannelConfirmed}.
+     */
+    public static final String MESH_PUBLIC_CHANNEL = "MESH_PUBLIC_CHANNEL";
+
+    /**
      * 409: no enabled native push provider serves the app (or, for APNs, the device's environment)
      * (prompt 032).
      */

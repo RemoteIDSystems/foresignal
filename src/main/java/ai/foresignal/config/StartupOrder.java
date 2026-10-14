@@ -121,6 +121,12 @@ public final class StartupOrder {
     public static final int CHATOPS = 38;
 
     /**
+     * The mesh channels' field-report subscription to the in-process mesh message bus (prompt 084), after the chat
+     * connectors: subscribing never blocks startup, and messages heard before it are simply not seen.
+     */
+    public static final int MESH = 39;
+
+    /**
      * The reference data's first-start load (prompt 040), last: it is queued on the loader's own thread
      * after a delay and never blocks startup or readiness.
      */

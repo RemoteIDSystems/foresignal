@@ -74,6 +74,52 @@ class ChannelTypesCatalogIT {
     }
 
     @Test
+    @DisplayName("084: meshtastic and meshcore are listed with their config fields; neither edits in place")
+    void meshCatalog() throws Exception {
+        mvc.perform(auth(get("/v1/channels/types"))).andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.id == 'meshtastic')].configFields[?(@.name == 'privateChannelConfirmed')]"
+                        + ".required", hasItem(true)))
+                .andExpect(jsonPath("$[?(@.id == 'meshtastic')].configFields[?(@.name == 'dutyCyclePercent')].type",
+                        hasItem("number")))
+                .andExpect(jsonPath("$[?(@.id == 'meshtastic')].configFields[?(@.name == 'airtimePreset')].default",
+                        hasItem("meshtastic-longfast")))
+                .andExpect(jsonPath("$[?(@.id == 'meshtastic')].secretFields[*].name",
+                        containsInAnyOrder("username", "password")))
+                .andExpect(jsonPath("$[?(@.id == 'meshcore')].configFields[?(@.name == 'airtimePreset')].default",
+                        hasItem("custom")))
+                .andExpect(jsonPath("$[?(@.id == 'meshcore')].configFields[?(@.name == 'companionUrl')].required",
+                        hasItem(true)))
+                .andExpect(jsonPath("$[?(@.id == 'meshcore')].capabilities.editInPlace", hasItem(false)))
+                .andExpect(jsonPath("$[?(@.id == 'meshtastic')].capabilities.editInPlace", hasItem(false)));
+    }
+
+    @Test
+    @DisplayName("084: a public Meshtastic channel is 400 MESH_PUBLIC_CHANNEL; the airtime window of a private one is"
+            + " served, and 404 for another type")
+    void meshPublicAndAirtime() throws Exception {
+        send(post("/v1/channels"), "{'name':'pub','type':'meshtastic','enabled':false,'config':{'brokerUrl':"
+                + "'mqtt://192.168.1.20:1883','gatewayNodeNum':'1','channelIndex':1,'channelName':'LongFast',"
+                + "'privateChannelConfirmed':true,'region':'EU_868'}}").andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code", is("MESH_PUBLIC_CHANNEL")));
+        String created = send(post("/v1/channels"), "{'name':'mesh','type':'meshtastic','enabled':false,"
+                + "'config':{'brokerUrl':'mqtt://192.168.1.20:1883','gatewayNodeNum':'1','channelIndex':1,"
+                + "'channelName':'Family','privateChannelConfirmed':true,'region':'EU_868','dutyCyclePercent':2}}")
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+        String id = JSON.readTree(created).get("id").asString();
+        mvc.perform(auth(get("/v1/channels/" + id + "/airtime"))).andExpect(status().isOk())
+                .andExpect(jsonPath("$.windowSeconds", is(3600)))
+                .andExpect(jsonPath("$.limitSeconds", is(72.0)))
+                .andExpect(jsonPath("$.dutyCyclePercent", is(2.0)))
+                .andExpect(jsonPath("$.queued", is(0)))
+                .andExpect(jsonPath("$.usedSeconds", is(0.0)));
+        String webhook = send(post("/v1/channels"), "{'name':'w','type':'webhook','enabled':false,'config':{'url':"
+                + "'https://hooks.example.invalid/x'}}").andExpect(status().isCreated()).andReturn().getResponse()
+                .getContentAsString();
+        mvc.perform(auth(get("/v1/channels/" + JSON.readTree(webhook).get("id").asString() + "/airtime")))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
     @DisplayName("a public broker without TLS is saved with the MQTT_INSECURE_PUBLIC_BROKER warning")
     void insecureWarning() throws Exception {
         // Disabled, so nothing tries to reach the public address.

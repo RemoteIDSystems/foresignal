@@ -40,7 +40,7 @@ import tools.jackson.databind.JsonNode;
  * The {@code Channels} operations (prompt 018): {@code listChannelTypes}, {@code listChannels},
  * {@code createChannel}, {@code getChannel}, {@code updateChannel}, {@code deleteChannel},
  * {@code testChannel}, {@code listChannelDeliveries}, {@code republishMqttChannel} (prompt 060) and
- * {@code getChannelInteractiveStatus} (prompt 061). Every
+ * {@code getChannelInteractiveStatus} (prompt 061) and {@code getChannelAirtime} (prompt 084). Every
  * operation needs {@code admin}
  * ({@code /v1/channels/**} in {@code AccessPolicy}); responses never include secret values.
  */
@@ -60,15 +60,20 @@ public class ChannelsController {
     private final NotificationDeliveryRepository deliveries;
     private final MqttChannelManager mqtt;
     private final ai.foresignal.chatops.ChatopsManager chatops;
+    private final ai.foresignal.notify.mesh.MeshAirtimeService airtime;
+    private final ai.foresignal.notify.ChannelTypeRegistry types;
 
     /** Creates the controller. */
     public ChannelsController(ChannelService channels, ChannelMapper mapper, NotificationDeliveryRepository deliveries,
-            MqttChannelManager mqtt, ai.foresignal.chatops.ChatopsManager chatops) {
+            MqttChannelManager mqtt, ai.foresignal.chatops.ChatopsManager chatops,
+            ai.foresignal.notify.mesh.MeshAirtimeService airtime, ai.foresignal.notify.ChannelTypeRegistry types) {
         this.channels = channels;
         this.mapper = mapper;
         this.deliveries = deliveries;
         this.mqtt = mqtt;
         this.chatops = chatops;
+        this.airtime = airtime;
+        this.types = types;
     }
 
     /** {@code listChannelTypes}. */
@@ -166,6 +171,30 @@ public class ChannelsController {
             throw new NotFoundException("Channel " + channelId + " is not a telegram or matrix channel.");
         }
         return chatops.status(channel);
+    }
+
+    /**
+     * {@code getChannelAirtime} (prompt 084): the LoRa airtime governor's one-hour window of a {@code meshtastic} or
+     * {@code meshcore} channel; 404 for an unknown channel or another type.
+     */
+    @GetMapping("/{channelId}/airtime")
+    @Operation(operationId = "getChannelAirtime", tags = "Channels")
+    public Map<String, Object> getChannelAirtime(@PathVariable String channelId) {
+        NotificationChannelEntity channel = channels.load(id(channelId));
+        if (!(types.find(channel.getType()).orElse(null) instanceof ai.foresignal.notify.mesh.MeshChannelType type)) {
+            throw new NotFoundException("Channel " + channelId + " is not a meshtastic or meshcore channel.");
+        }
+        // The settings were validated when the channel was saved, so the governor can always be built.
+        ai.foresignal.notify.mesh.MeshAirtimeService.ChannelAirtime a = airtime.airtime(channel, type);
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("windowSeconds", a.windowSeconds());
+        out.put("usedSeconds", a.usedSeconds());
+        out.put("limitSeconds", a.limitSeconds());
+        out.put("dutyCyclePercent", a.dutyCyclePercent());
+        out.put("queued", a.queued());
+        out.put("foldedLastHour", a.foldedLastHour());
+        out.put("droppedLastHour", a.droppedLastHour());
+        return out;
     }
 
     /** {@code listChannelDeliveries}: newest first, keyset on id, optional {@code status}. */

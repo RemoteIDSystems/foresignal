@@ -227,6 +227,35 @@ public final class MeshCoreFrames {
     }
 
     /**
+     * A channel slot from {@code RESP_CODE_CHANNEL_INFO} as prompt 084's public-slot check needs it: whether the 16-byte
+     * secret is all zeros is read, the secret itself is never kept.
+     *
+     * @param index the slot
+     * @param name the name, or null for an empty slot
+     * @param zeroSecret true when the secret is all zeros (or missing from a short frame)
+     */
+    public record ChannelSlot(int index, String name, boolean zeroSecret) {}
+
+    /** A channel-info frame's slot (bytes 34-49 are the secret), or null when it is not one. */
+    public static ChannelSlot channelSlot(byte[] frame) {
+        ChannelName named = channelName(frame);
+        if (named == null) {
+            return null;
+        }
+        int from = 2 + MeshCoreProtocol.NAME_SIZE;
+        boolean zero = true;
+        if (frame.length >= from + 16) {
+            for (int i = from; i < from + 16; i++) {
+                if (frame[i] != 0) {
+                    zero = false;
+                    break;
+                }
+            }
+        }
+        return new ChannelSlot(named.index(), named.name(), zero);
+    }
+
+    /**
      * A received text message.
      *
      * @param channel true for a channel message, false for a direct (contact) message

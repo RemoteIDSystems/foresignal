@@ -307,6 +307,8 @@ class FamilyDefaultsTest {
                     new ai.foresignal.source.adapters.mesh.MeshMessageBus()).descriptor(), "state")),
             Map.entry("MeshCoreBridgeAdapter", new Entry(
                     new ai.foresignal.source.adapters.mesh.MeshCoreBridgeAdapter().descriptor(), "state")),
+            Map.entry("MeshReportsAdapter", new Entry(
+                    new ai.foresignal.source.adapters.mesh.MeshReportsAdapter().descriptor(), "event")),
             Map.entry("SatDumpAdapter", new Entry(new ai.foresignal.source.adapters.satdump.SatDumpAdapter("itest", null,
                     null).descriptor(), "station")));
 

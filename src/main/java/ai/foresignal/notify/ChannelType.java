@@ -39,6 +39,35 @@ public interface ChannelType {
     }
 
     /**
+     * A more specific code for the 400 when {@link #validate} found problems (prompt 084: the mesh types answer
+     * {@code MESH_PUBLIC_CHANNEL} when a problem is a public-channel rule), or null for {@code VALIDATION_FAILED}.
+     *
+     * @param config the channel's settings
+     * @param secrets the channel's secrets
+     */
+    default String validationCode(Map<String, Object> config, Map<String, String> secrets) {
+        return null;
+    }
+
+    /**
+     * True when an alert lifecycle update of {@code subtype} ({@code alert.resolved}, {@code alert.acknowledged},
+     * {@code alert.snoozed}) is delivered to channels of this type that received the original (prompt 084: the
+     * mesh types take only {@code alert.resolved}, so acknowledgements and snoozes never cost airtime).
+     */
+    default boolean acceptsUpdate(String subtype) {
+        return true;
+    }
+
+    /**
+     * True when a successful response still means the recipient never confirmed the message (prompt 084: a
+     * {@code meshcore} direct message with {@code requireAck} whose acknowledgement did not arrive after one
+     * retry); the worker then settles the delivery {@code unacked} instead of {@code delivered}.
+     */
+    default boolean unacknowledged(ChannelResponse response) {
+        return false;
+    }
+
+    /**
      * Non-fatal warnings about a saved channel, returned in its {@code warnings} (prompt 060:
      * {@code MQTT_INSECURE_PUBLIC_BROKER}).
      *

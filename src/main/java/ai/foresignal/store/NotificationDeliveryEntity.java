@@ -122,6 +122,13 @@ public class NotificationDeliveryEntity {
     @Column(name = "attachments", columnDefinition = "jsonb")
     private java.util.List<java.util.Map<String, Object>> attachments;
 
+    /**
+     * The 4-character Crockford base32 short code of the alert this mesh delivery carried (prompt 084), so a
+     * {@code #E ACK <code>} reply from the mesh finds the alert; null for every other delivery.
+     */
+    @Column(name = "short_code", length = 8)
+    private String shortCode;
+
     protected NotificationDeliveryEntity() {
         // for JPA
     }
@@ -328,6 +335,16 @@ public class NotificationDeliveryEntity {
     /** Sets the escalation step. */
     public void setEscalationStep(Integer escalationStep) {
         this.escalationStep = escalationStep;
+    }
+
+    /** The mesh short code (prompt 084), or null. */
+    public String getShortCode() {
+        return shortCode;
+    }
+
+    /** Sets the mesh short code. */
+    public void setShortCode(String shortCode) {
+        this.shortCode = shortCode;
     }
 
     /** The map attachment's size-control level (prompt 055), or null. */

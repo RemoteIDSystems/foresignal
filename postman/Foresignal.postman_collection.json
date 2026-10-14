@@ -10553,6 +10553,128 @@
           }
         },
         {
+          "name": "Create a notification channel (Meshtastic, private channel via the node's JSON downlink (084))",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('channelId', j.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/channels",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "channels"
+              ],
+              "query": []
+            },
+            "description": "Create a notification channel\n\n**Scope:** `admin`.\n\noperationId: `createChannel`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Mesh alerts\",\n  \"type\": \"meshtastic\",\n  \"config\": {\n    \"brokerUrl\": \"mqtt://192.168.1.20:1883\",\n    \"root\": \"msh/local\",\n    \"gatewayNodeNum\": \"2864434397\",\n    \"channelIndex\": 1,\n    \"channelName\": \"Family\",\n    \"privateChannelConfirmed\": true,\n    \"region\": \"EU_868\",\n    \"airtimePreset\": \"meshtastic-longfast\",\n    \"dutyCyclePercent\": 1.0,\n    \"minSeverity\": \"warning\",\n    \"reportsEnabled\": true,\n    \"allowedSenders\": {\n      \"!a1b2c3d4\": \"ack\",\n      \"!0badcafe\": \"report\"\n    }\n  },\n  \"secrets\": {\n    \"username\": \"foresignal\",\n    \"password\": \"REPLACE\"\n  },\n  \"events\": [\n    \"alert\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Create a notification channel (MeshCore, private slot over the companion protocol (084))",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('channelId', j.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/channels",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "channels"
+              ],
+              "query": []
+            },
+            "description": "Create a notification channel\n\n**Scope:** `admin`.\n\noperationId: `createChannel`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"MeshCore alerts\",\n  \"type\": \"meshcore\",\n  \"config\": {\n    \"companionUrl\": \"tcp://192.168.1.30:5000\",\n    \"channelIndex\": 1,\n    \"region\": \"EU_868\",\n    \"airtimePreset\": \"custom\",\n    \"airtimeCustom\": {\n      \"spreadingFactor\": 10,\n      \"bandwidthKhz\": 250,\n      \"codingRate\": 5,\n      \"preambleSymbols\": 8\n    },\n    \"profile\": \"text\",\n    \"minSeverity\": \"warning\",\n    \"reportsEnabled\": true,\n    \"allowedSenders\": {\n      \"name:Alice\": \"ack\"\n    }\n  },\n  \"events\": [\n    \"alert\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
           "name": "Create a notification channel (Webhook (HMAC signed))",
           "event": [
             {
@@ -10842,7 +10964,7 @@
                 {
                   "key": "status",
                   "value": "pending",
-                  "description": "Filter (suppressed: not sent on purpose, 033)",
+                  "description": "Filter (suppressed: not sent on purpose, 033; unacked: a mesh direct message never acknowledged, 084)",
                   "disabled": true
                 },
                 {

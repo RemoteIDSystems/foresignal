@@ -68,13 +68,19 @@ public record NotificationChannel(
 
     /**
      * True when the channel takes {@code message} by its own settings: enabled, subscribed to the
-     * event, the severity at or above its minimum, and for alerts the rule in its rule filter.
+     * event, the severity at or above its minimum (and, for a {@code meshtastic} or {@code meshcore} channel, at or
+     * above its {@code config.minSeverity}, prompt 084), and for alerts the rule in its rule filter.
      */
     public boolean accepts(NotificationMessage message) {
         if (!enabled || !events.contains(message.event())) {
             return false;
         }
         if (Severity.fromWire(message.severity()).compareTo(Severity.fromWire(minSeverity)) < 0) {
+            return false;
+        }
+        String meshMinimum = ai.foresignal.notify.mesh.MeshChannels.minSeverity(type, config);
+        if (meshMinimum != null && Severity.fromWire(message.severity()).compareTo(Severity.fromWire(meshMinimum)) < 0) {
+            // Prompt 084: a mesh channel's own config.minSeverity (default warning) narrows it further.
             return false;
         }
         if (NotificationMessage.ALERT.equals(message.event()) && ruleIds != null) {

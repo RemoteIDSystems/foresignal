@@ -34,12 +34,20 @@ public interface NotificationDeliveryRepository extends JpaRepository<Notificati
             @Param("statuses") Collection<DeliveryStatus> statuses,
             Limit limit);
 
+    /**
+     * The newest delivery carrying the mesh short code {@code shortCode} on one of {@code channelIds} (prompt 084:
+     * a {@code #E ACK <code>} reply finds its alert here).
+     */
+    java.util.Optional<NotificationDeliveryEntity> findFirstByChannelIdInAndShortCodeOrderByIdDesc(
+            Collection<UUID> channelIds, String shortCode);
+
     /** The pending deliveries of a channel. */
     List<NotificationDeliveryEntity> findByChannelIdAndStatus(UUID channelId, DeliveryStatus status);
 
     /**
      * Used by retention (019): settled deliveries older than the cutoff, aged by delivery for a
-     * delivered row and by enqueue time for a failed or suppressed one (033).
+     * delivered row and by enqueue time for a failed or suppressed one (033); an {@code unacked} mesh delivery
+     * (084) is settled too.
      */
     @Modifying
     @Query(
@@ -47,7 +55,8 @@ public interface NotificationDeliveryRepository extends JpaRepository<Notificati
             delete from NotificationDeliveryEntity d
              where d.status in (ai.foresignal.store.DeliveryStatus.DELIVERED,
                                 ai.foresignal.store.DeliveryStatus.FAILED,
-                                ai.foresignal.store.DeliveryStatus.SUPPRESSED)
+                                ai.foresignal.store.DeliveryStatus.SUPPRESSED,
+                                ai.foresignal.store.DeliveryStatus.UNACKED)
                and coalesce(d.deliveredAt, d.createdAt) < :before
             """)
     int deleteSettledBefore(@Param("before") Instant before);

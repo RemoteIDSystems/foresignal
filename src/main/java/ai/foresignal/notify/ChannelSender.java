@@ -48,6 +48,10 @@ import org.springframework.stereotype.Component;
  * host when it connects. PUBACK (QoS 1) or a completed write (QoS 0) is reported as status 200; a broker that
  * is not connected, a refusal or a timeout is an {@link IOException}, so the delivery follows the retry
  * ladder.
+ *
+ * <p><strong>Mesh (prompt 084).</strong> A {@link PreparedRequest.Mesh} body goes to the {@link MeshDeliveryGateway},
+ * which passes it through the channel's airtime governor before it reaches the radio path; a governor without room
+ * answers {@link SendDeferredException}, which the delivery worker turns into a deferral.
  */
 @Component
 public class ChannelSender {
@@ -77,6 +81,15 @@ public class ChannelSender {
         // HTTP/1.1: over HTTP/2 the JDK derives :authority from the (pinned, literal) URI rather than
         // from the Host header, which virtual-hosted receivers would refuse.
         this.spec = new PinnedHttp.ClientSpec(properties.connectTimeout(), HttpClient.Version.HTTP_1_1);
+    }
+
+    /** The mesh transmitter (prompt 084), looked up lazily because it depends on the channel service. */
+    private org.springframework.beans.factory.ObjectProvider<MeshDeliveryGateway> meshGateway;
+
+    /** Injects the mesh transmitter (prompt 084); absent in hand-built unit tests. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setMeshGateway(org.springframework.beans.factory.ObjectProvider<MeshDeliveryGateway> gateway) {
+        this.meshGateway = gateway;
     }
 
     /** Injects the MQTT publisher (prompt 060); absent in hand-built unit tests. */
@@ -110,6 +123,13 @@ public class ChannelSender {
                 throw new IOException("MQTT is not available");
             }
             return gateway.publish(mqtt);
+        }
+        if (request.body() instanceof PreparedRequest.Mesh mesh) {
+            MeshDeliveryGateway gateway = meshGateway == null ? null : meshGateway.getIfAvailable();
+            if (gateway == null) {
+                throw new IOException("mesh transmission is not available");
+            }
+            return gateway.transmit(mesh);
         }
         if (request.body() instanceof PreparedRequest.Mail mail) {
             OutboundUrlDeniedException.require(policy.checkHost(mail.host(), PROFILE));
@@ -154,6 +174,7 @@ public class ChannelSender {
             }
             case PreparedRequest.Mail mail -> throw new IllegalStateException("unreachable");
             case PreparedRequest.Mqtt mqtt -> throw new IllegalStateException("unreachable");
+            case PreparedRequest.Mesh mesh -> throw new IllegalStateException("unreachable");
         }
         if (contentType != null) {
             builder.header("Content-Type", contentType);

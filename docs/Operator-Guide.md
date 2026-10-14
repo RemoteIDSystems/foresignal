@@ -1126,6 +1126,118 @@ you when an alert is acknowledged or resolved, and `foresignal/status` whether F
 `{prefix}/summary` (`alerts.open.critical`, `status`) or react to `{prefix}/alerts/critical`
 directly; give them a broker user that may only read `foresignal/#`.
 
+### Mesh alert channels
+
+Two channel types put short alert lines on **your own** LoRa mesh: `meshtastic` (through your node's MQTT JSON
+downlink) and `meshcore` (through the MeshCore companion protocol over TCP). Both send only on a private, keyed
+channel, pass every transmission through an airtime governor, and can take short field reports back
+(prompt 084).
+
+```json
+{"name": "Mesh alerts", "type": "meshtastic", "events": ["alert"],
+ "config": {"brokerUrl": "mqtt://192.168.1.20:1883", "root": "msh/local", "gatewayNodeNum": "2864434397",
+            "channelIndex": 1, "channelName": "Family", "privateChannelConfirmed": true,
+            "region": "EU_868", "airtimePreset": "meshtastic-longfast", "minSeverity": "warning"},
+ "secrets": {"username": "foresignal", "password": "…"}}
+```
+
+```json
+{"name": "MeshCore alerts", "type": "meshcore", "events": ["alert"],
+ "config": {"companionUrl": "tcp://192.168.1.30:5000", "channelIndex": 1, "region": "EU_868",
+            "airtimePreset": "custom",
+            "airtimeCustom": {"spreadingFactor": 10, "bandwidthKhz": 250, "codingRate": 5, "preambleSymbols": 8}}}
+```
+
+**What goes out.** One line per alert: `{sev} {title} {where} {hhmm}Z #{code}`, for example
+`!! Quakes Austin 1205Z #0007`. `sev` is ASCII (`!!!` critical, `!!` warning, `i` info; an emoji would cost four
+bytes), `where` is the nearest place or a 2-decimal `lat,lon`, the time is UTC, and `#code` is the alert's
+4-character short id, which a reply can acknowledge. A resolution is `OK {title} #{code}`; acknowledgements and
+snoozes are never sent. Meshtastic lines are at most 200 bytes; MeshCore channel lines at most 133 characters and
+127 bytes (the firmware's 160-byte text limit less the `name: ` prefix it adds). `profile: "cbor"` sends the
+machine-readable CBOR profile instead (Meshtastic: `~E1 ` and base64url; MeshCore: a channel datagram with
+`dataType` 0xFF45, in the 0xFF00–0xFFFE development range; a production deployment should register its own value
+through MeshCore's `number_allocations.md`). The channel's own `config.minSeverity` (default `warning`) applies on
+top of its top-level `minSeverity`.
+
+**Meshtastic node prerequisites.**
+
+- In the node's MQTT settings: your broker on the LAN, **JSON enabled** (not available on nRF52 nodes),
+  **encryption disabled** toward that private broker, and the root topic you set as `root`.
+- A channel named `mqtt` with **downlink enabled** (the firmware takes JSON downlinks on `{root}/2/json/mqtt/`).
+  Some firmware wants the gateway id on the topic: set `topicSuffixNodeId: true`.
+- `gatewayNodeNum` is the node's number in decimal (the `from` of the downlink); `channelIndex` and
+  `channelName` name the private channel the text goes to. `toNodeNum` sends a direct message instead.
+- Foresignal publishes at QoS 1 on one client per broker (`foresignal-<installId>-mesh`, no Last Will) and marks
+  the delivery sent on the broker's PUBACK: JSON gives no delivery confirmation.
+
+**MeshCore prerequisites.** A WiFi companion firmware reachable as `tcp://host:port` (explicit port, a private
+address). Foresignal shares the one TCP client the companion accepts with the `meshcore-local` source and only
+ever sends the three registered send commands (channel text 0x03, channel datagram 0x3E, direct text 0x02);
+`dmContactPrefix` (a contact's 12-hex key prefix) sends direct messages, and `requireAck: true` waits for the
+contact's acknowledgement, retries once and ends the delivery `unacked` (not `failed`, so no failure event) when
+none comes. MeshCore radio settings vary by region, so enter them in `airtimeCustom`.
+
+**Why public channels are refused.** A public or default channel is shared by everyone in radio range, and
+automated traffic there drowns human conversation and breaks the mesh's etiquette. Create and update answer
+400 `MESH_PUBLIC_CHANNEL` when:
+
+- `meshtastic`: the broker is under `meshtastic.org` or not on the LAN; `channelIndex` is 0; `channelName` is
+  empty or a modem-preset name (LongFast, LongSlow, LongModerate, MediumFast, MediumSlow, ShortFast, ShortSlow,
+  ShortTurbo, VLongSlow); `licensedMode` is true (ham mode disables encryption); or `privateChannelConfirmed` is
+  not true.
+- `meshcore`: `channelIndex` is 0, or the slot read from the companion (`CMD_GET_CHANNEL`) is empty, named
+  `Public`, a `#hashtag` channel (its key derives from the name) or has an all-zero secret. The slot is read again
+  on every reconnect, and nothing is sent until it is verified private; a companion that cannot be reached at save
+  time does not block the save.
+
+**Duty cycle.** Every transmission's time on air is estimated with Semtech's formula from the preset
+(`meshtastic-longfast`: SF11, 250 kHz, 4/5, 16-symbol preamble; `meshtastic-mediumfast`: SF9; or `custom`) and the
+message bytes plus a conservative overhead (32 bytes for Meshtastic, 24 for MeshCore). A one-hour sliding window
+admits a message only when:
+
+- the airtime stays within `dutyCyclePercent` (default **1 %** of the hour, a polite share; at most the region's
+  ceiling and at most 10 %);
+- at least `minSpacing` (default 30 s) has passed since the last transmission;
+- fewer than `maxMessagesPerHour` (default 20) went out.
+
+`region` sets the ceiling: 10 % for EU_868 and UK_868 (the 869.40–869.65 MHz sub-band Meshtastic's EU_868 uses)
+and EU_433; US and ANZ have no duty cycle (their dwell-time rules are the radio's job), where the 10 % maximum caps
+critical alerts instead. **Worked example, LongFast:** a 60-byte line plus 32 bytes of overhead is 92 bytes on the
+air, 93 payload symbols of 8.192 ms plus a 165.9 ms preamble: **0.93 s**. A 1 % share is 36 s an hour, room for
+about 38 such lines, so the 20-per-hour cap binds first; a full 200-byte line takes 1.99 s (18 an hour). On
+MediumFast the same 60-byte line takes 0.27 s.
+
+A message that does not fit waits (`deferredReason: airtime`); alerts released together go out as one line,
+`{n} alerts, top: {title} #{code}`. Critical alerts jump the queue but never exceed the region's ceiling.
+`GET /v1/channels/{channelId}/airtime` shows the window (`usedSeconds`, `limitSeconds`, `queued`,
+`foldedLastHour`, `droppedLastHour`), the counters `foresignal.channel.mesh.airtime_seconds`, `…deferred`,
+`…folded` and `…dropped` are tagged with the channel id, and a backlog older than an hour raises the system event
+`system.mesh_airtime_backlog`.
+
+**Field reports.** With `reportsEnabled: true`, Foresignal reads messages heard by your own node (the
+`meshtastic-local` or `meshcore-local` source must be running) on the channel's **own private index** from the
+senders in `allowedSenders` (sender → `report` or `ack`). Senders are Meshtastic node ids (`!a1b2c3d4`); MeshCore
+channel messages do not carry the sender's key, only its advertised name, so a MeshCore sender is `name:Alice`
+(anyone holding the channel key can use that name). Anything else is ignored without a reply; at most 10 commands
+a minute per sender are read.
+
+| Send | Reply | Does |
+|---|---|---|
+| `#E R FIRE 51.48,-0.12 smoke over the ridge` | `OK R7K2Q FIRE` | records a `field-report` in the private `mesh-reports` source |
+| `#E R FLOOD @home water over the road` | `OK R…` | the same, located at place `home` |
+| `#E ACK 0007` | `OK ACK #0007` | acknowledges the alert (`acknowledged_by` `mesh:!a1b2c3d4`; role `ack` only), audited |
+| `#E STATUS` | `ok: open 0 crit, 2 warn, 5 info` | a summary of at most 133 characters |
+| `#E HELP` | the grammar card | |
+
+Types are FIRE, SMOKE, FLOOD, POWER, ROAD, MED, WX, SEC and OTHER; keywords are case-insensitive. A malformed
+command answers `ERR {reason}`. Replies go out on the same channel through the airtime governor (a reply it
+cannot fit is dropped). Report text is untrusted: it is never embedded, and Ask and briefings quote it only as
+data.
+
+**License-free operation only.** Unattended, automated transmission on amateur allocations is restricted by local
+rules (for example FCC Part 97 in the US), which is one reason licensed mode is refused. These channels are for
+license-free ISM operation under your region's rules.
+
 ### Chat commands
 
 A Telegram or Matrix channel can also take commands: list and acknowledge alerts, ask questions, read or run

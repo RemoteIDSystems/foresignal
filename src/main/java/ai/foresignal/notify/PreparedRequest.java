@@ -9,9 +9,10 @@ import java.util.Objects;
 /**
  * One outbound request a channel type rendered: method, URL, headers and a body that is raw bytes,
  * form fields, multipart parts or an email (prompt 055: image attachments use the multipart body and
- * the email's inline images; prompt 060: an MQTT publish on the channel's supervised connection).
+ * the email's inline images; prompt 060: an MQTT publish on the channel's supervised connection; prompt 084: a
+ * LoRa mesh transmission).
  *
- * @param method {@code POST}, {@code PUT}, {@code PATCH}, {@code SMTP} or {@code PUBLISH}
+ * @param method {@code POST}, {@code PUT}, {@code PATCH}, {@code SMTP}, {@code PUBLISH} or {@code TRANSMIT} (mesh)
  * @param url the target URL ({@code smtp://host:port} for email, the {@code brokerUrl} for MQTT)
  * @param headers the request headers, in order
  * @param body the body
@@ -27,7 +28,7 @@ public record PreparedRequest(String method, String url, Map<String, String> hea
     }
 
     /** The body of a request. */
-    public sealed interface Body permits Bytes, Form, Multipart, Mail, Mqtt {}
+    public sealed interface Body permits Bytes, Form, Multipart, Mail, Mqtt, Mesh {}
 
     /**
      * A raw body.
@@ -151,6 +152,39 @@ public record PreparedRequest(String method, String url, Map<String, String> hea
     }
 
     /**
+     * A LoRa mesh transmission (prompt 084), sent through the {@link MeshDeliveryGateway}: every one passes the
+     * channel's airtime governor first.
+     *
+     * @param channelId the channel whose governor and radio path carry it
+     * @param network {@code meshtastic} (an MQTT JSON downlink) or {@code meshcore} (a companion command)
+     * @param topic the MQTT topic of a Meshtastic downlink; {@code channel} or {@code dm} for MeshCore
+     * @param payload the downlink JSON (Meshtastic) or the companion command payload without its envelope (MeshCore)
+     * @param airtimeBytes the bytes that go on the air (text or datagram), before the network's overhead
+     * @param severity {@code info}, {@code warning} or {@code critical}; critical jumps the governor's queue
+     * @param shortCode the alert's short code, stored on the delivery row after the send, or null
+     * @param deliveryId the delivery (0 for a channel test or a field-report reply)
+     * @param folded how many alerts a digest line stands for beyond the first (0 for a single message)
+     * @param requireAck true when a MeshCore direct message waits for the recipient's acknowledgement
+     */
+    public record Mesh(java.util.UUID channelId, String network, String topic, byte[] payload, int airtimeBytes,
+            String severity, String shortCode, long deliveryId, int folded, boolean requireAck) implements Body {
+
+        /** Requires the channel, network, topic and payload. */
+        public Mesh {
+            Objects.requireNonNull(channelId, "channelId");
+            Objects.requireNonNull(network, "network");
+            Objects.requireNonNull(topic, "topic");
+            Objects.requireNonNull(payload, "payload");
+            severity = severity == null ? "info" : severity;
+        }
+
+        /** True for a critical message. */
+        public boolean critical() {
+            return "critical".equals(severity);
+        }
+    }
+
+    /**
      * An inline image of an email (prompt 055).
      *
      * @param contentId the {@code Content-ID} without angle brackets ({@code map}: {@code <img src="cid:map">})
@@ -160,10 +194,13 @@ public record PreparedRequest(String method, String url, Map<String, String> hea
      */
     public record Inline(String contentId, String filename, String contentType, byte[] bytes) {}
 
-    /** The body as UTF-8 text for a {@link Bytes} body or an MQTT payload, else null (tests, logging). */
+    /** The body as UTF-8 text for a {@link Bytes} body, an MQTT payload or a mesh payload, else null (tests, logging). */
     public String bodyText() {
         if (body instanceof Mqtt m) {
             return m.message().text();
+        }
+        if (body instanceof Mesh m) {
+            return new String(m.payload(), StandardCharsets.UTF_8);
         }
         return body instanceof Bytes b ? b.text() : null;
     }

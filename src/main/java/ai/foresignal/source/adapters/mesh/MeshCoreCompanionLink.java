@@ -185,7 +185,11 @@ public final class MeshCoreCompanionLink {
         owners.put(owner, new Owner(transport, listener));
         if (!running) {
             running = true;
-            runner = Thread.ofVirtual().name("meshcore-link-" + endpoint.host() + "-" + endpoint.port()).start(this::loop);
+            // Assigned before it starts: the loop runs only while it is the current runner.
+            Thread next = Thread.ofVirtual().name("meshcore-link-" + endpoint.host() + "-" + endpoint.port())
+                    .unstarted(this::loop);
+            runner = next;
+            next.start();
         } else if (connected() && listener != null) {
             listener.onConnected();
         }
@@ -250,8 +254,10 @@ public final class MeshCoreCompanionLink {
             case MeshCoreProtocol.CMD_GET_BATT_AND_STORAGE -> Set.of(MeshCoreProtocol.RESP_BATT_AND_STORAGE);
             case MeshCoreProtocol.CMD_GET_CONTACT_BY_KEY -> Set.of(MeshCoreProtocol.RESP_CONTACT);
             case MeshCoreProtocol.CMD_GET_CHANNEL -> Set.of(MeshCoreProtocol.RESP_CHANNEL_INFO);
-            case MeshCoreProtocol.CMD_SEND_TXT_MSG, MeshCoreProtocol.CMD_SEND_CHANNEL_TXT_MSG ->
-                    Set.of(MeshCoreProtocol.RESP_SENT);
+            case MeshCoreProtocol.CMD_SEND_TXT_MSG -> Set.of(MeshCoreProtocol.RESP_SENT);
+            // Prompt 084: the firmware answers a channel text with RESP_CODE_OK (MyMesh.cpp writeOKFrame), although
+            // docs/companion_protocol.md names PACKET_MSG_SENT; both end the command.
+            case MeshCoreProtocol.CMD_SEND_CHANNEL_TXT_MSG -> Set.of(MeshCoreProtocol.RESP_OK, MeshCoreProtocol.RESP_SENT);
             default -> Set.of(MeshCoreProtocol.RESP_OK);
         };
     }
@@ -260,10 +266,13 @@ public final class MeshCoreCompanionLink {
 
     private void loop() {
         int attempt = 0;
-        while (running) {
+        // Prompt 084: a quick detach and re-attach starts a new runner; the old one must stop rather than run on beside
+        // it, and must never close the new runner's connection.
+        while (running && runner == Thread.currentThread()) {
             SocketTransport transport = currentTransport();
             Instant connectedAt = null;
             Throwable cause = null;
+            CommandHandle mine = null;
             if (transport != null) {
                 try {
                     CompletableFuture<Throwable> closed = new CompletableFuture<>();
@@ -279,7 +288,12 @@ public final class MeshCoreCompanionLink {
                         throw new IOException("the socket transport returned a receive-only handle");
                     }
                     opened.onClose(closed::complete);
+                    mine = command;
                     synchronized (commands) {
+                        if (runner != Thread.currentThread()) {
+                            command.close();
+                            break;
+                        }
                         handle = command;
                     }
                     connectedAt = clock.instant();
@@ -304,10 +318,15 @@ public final class MeshCoreCompanionLink {
                 }
             }
             synchronized (commands) {
-                if (handle != null) {
-                    handle.close();
+                if (mine != null) {
+                    mine.close();
                 }
-                handle = null;
+                if (handle == mine) {
+                    handle = null;
+                }
+            }
+            if (runner != Thread.currentThread()) {
+                break;
             }
             failAll(new IOException("the MeshCore connection ended"
                     + (cause == null ? "" : ": " + cause.getMessage())));

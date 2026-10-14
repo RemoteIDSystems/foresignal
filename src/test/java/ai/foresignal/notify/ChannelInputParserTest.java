@@ -80,9 +80,11 @@ class ChannelInputParserTest {
     }
 
     @Test
-    @DisplayName("later types and unknown types are refused; a non-object body is refused")
+    @DisplayName("unknown types are refused (meshtastic is built since 084, but not registered here); a non-object body"
+            + " is refused")
     void types() {
-        assertThat(fails("{'name':'m','type':'meshtastic'}").getErrors().getFirst().message()).contains("084");
+        assertThat(ChannelInputParser.LATER_TYPES).isEmpty();
+        assertThat(fails("{'name':'m','type':'meshtastic'}").getErrors().getFirst().message()).contains("unknown");
         assertThat(fails("{'name':'m','type':'fax'}").getErrors().getFirst().message()).contains("unknown");
         assertThatThrownBy(() -> parser.parse(JSON.readTree("[]"), null)).isInstanceOf(ValidationException.class);
     }

@@ -6,8 +6,8 @@ import java.util.List;
  * One config or secret field of a channel type, as {@code GET /v1/channels/types} serves it.
  *
  * @param name the field name
- * @param type {@code string}, {@code url}, {@code integer}, {@code boolean}, {@code string-list},
- *     {@code map} or {@code enum}
+ * @param type {@code string}, {@code url}, {@code integer}, {@code number} (prompt 084), {@code boolean},
+ *     {@code string-list}, {@code map} or {@code enum}
  * @param required whether it must be present
  * @param description what it is
  * @param defaultValue the default, or null
@@ -22,6 +22,8 @@ public record ChannelFieldSpec(
     public static final String URL = "url";
     /** An integer. */
     public static final String INTEGER = "integer";
+    /** A number, integral or not (prompt 084: {@code dutyCyclePercent}). */
+    public static final String NUMBER = "number";
     /** A boolean. */
     public static final String BOOLEAN = "boolean";
     /** A list of strings. */

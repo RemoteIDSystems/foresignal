@@ -9,8 +9,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 /**
- * Lets {@code notification_delivery.status} hold {@code SUPPRESSED} (prompt 033) on databases created
- * before it.
+ * Lets {@code notification_delivery.status} hold {@code SUPPRESSED} (prompt 033) and {@code UNACKED} (prompt 084)
+ * on databases created before them.
  *
  * <p>Hibernate created the column with a check constraint listing the enum values of the time
  * ({@code PENDING}, {@code DELIVERED}, {@code FAILED}), and {@code ddl-auto: update} never rewrites a

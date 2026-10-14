@@ -347,6 +347,11 @@
         "version": "1.3.0",
         "date": "2026-10-13",
         "note": "083: no operation changes. New sources meshtastic-mqtt (public broker, streaming, disabled by default; root, extraRoots and maxSubscriptions <= 3 enforced at PUT with VALIDATION_FAILED), meshtastic-map (daily), meshtastic-local (own node via a LAN broker, private), meshcore-local (own MeshCore companion over TCP, private) and meshcore-bridge (PUSH, private). The ingestRecordsFormat format list gains meshcore-json; LAN_URL parameters may list the mqtt and mqtts schemes (ParamSpec.allowed); the mesh-node note and the mesh-message payloadFields document the built payloads."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-13",
+        "note": "084: getChannelAirtime implemented. The meshtastic and meshcore channel types are built (no longer refused as later types); ChannelType field types gain `number` (dutyCyclePercent); NotificationDelivery.deferredReason gains `airtime`; the listChannelDeliveries status filter gains `unacked`; Channel/ChannelInput config.allowedSenders is an array (matrix) or an object of sender to role (mesh); AuditEvent.actorKind gains `mesh`; MeshChannelCommonConfig.allowedSenders accepts `name:` senders for MeshCore channel messages; Problem lists MESH_PUBLIC_CHANNEL; the field-report kind note documents the built payload."
       }
     ]
   },
@@ -7764,14 +7769,15 @@
             "name": "status",
             "in": "query",
             "required": false,
-            "description": "Filter (suppressed: not sent on purpose, 033)",
+            "description": "Filter (suppressed: not sent on purpose, 033; unacked: a mesh direct message never acknowledged, 084)",
             "schema": {
               "type": "string",
               "enum": [
                 "pending",
                 "delivered",
                 "failed",
-                "suppressed"
+                "suppressed",
+                "unacked"
               ]
             }
           },
@@ -7858,7 +7864,8 @@
         "x-foresignal-prompt": "018",
         "x-foresignal-status": "implemented",
         "x-foresignal-extended-by": [
-          "033"
+          "033",
+          "084"
         ]
       }
     },
@@ -33472,7 +33479,7 @@
         },
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "084",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -86705,6 +86712,11 @@
             "status": 409,
             "prompt": "060",
             "note": "republishMqttChannel on a disabled mqtt channel (or one without a broker connection)"
+          },
+          {
+            "code": "MESH_PUBLIC_CHANNEL",
+            "status": 400,
+            "prompt": "084"
           }
         ]
       },
@@ -90046,7 +90058,7 @@
                 "channel"
               ]
             },
-            "note": "Private built-in PUSH source; type FIRE|SMOKE|FLOOD|POWER|ROAD|MED|WX|SEC|OTHER."
+            "note": "Built in 084. Private built-in PUSH source written by the mesh channels' report service from `#E R <TYPE> [lat,lon | @place] <text>`; type FIRE|SMOKE|FLOOD|POWER|ROAD|MED|WX|SEC|OTHER, text at most 200 characters (untrusted: never embedded, quoted only as data), reporter is the sender id, channel the private channel index. RECEIVED times; geometry from the coordinates or the place's point; the reporting node is the observer with its RSSI and SNR. externalId `r-` + 16 hex."
           },
           "ais-receiver": {
             "x-foresignal-prompt": "085",
@@ -94908,6 +94920,7 @@
                     "string",
                     "url",
                     "integer",
+                    "number",
                     "boolean",
                     "string-list",
                     "map",
@@ -94949,6 +94962,7 @@
                     "string",
                     "url",
                     "integer",
+                    "number",
                     "boolean",
                     "string-list",
                     "map",
@@ -95045,7 +95059,7 @@
               "meshtastic",
               "meshcore"
             ],
-            "description": "teams accepts only Power Automate Workflows URLs (Office 365 connector URLs → 400); webpush is the built-in Push channel (031): created at startup with a fixed id, updatable but not creatable (400); its config takes quietHoursMode (defer|downgrade|drop); mqtt (060) publishes on the operator's broker (config MqttChannelConfig, secrets username, password, caCertPem): events on {prefix}/alerts/{severity}, {prefix}/alerts/updates, {prefix}/briefings/{briefingId} and {prefix}/system/events, plus retained state and optional Home Assistant discovery; a public broker without TLS or credentials is saved with the warning MQTT_INSECURE_PUBLIC_BROKER"
+            "description": "teams accepts only Power Automate Workflows URLs (Office 365 connector URLs → 400); webpush is the built-in Push channel (031): created at startup with a fixed id, updatable but not creatable (400); its config takes quietHoursMode (defer|downgrade|drop); mqtt (060) publishes on the operator's broker (config MqttChannelConfig, secrets username, password, caCertPem): events on {prefix}/alerts/{severity}, {prefix}/alerts/updates, {prefix}/briefings/{briefingId} and {prefix}/system/events, plus retained state and optional Home Assistant discovery; a public broker without TLS or credentials is saved with the warning MQTT_INSECURE_PUBLIC_BROKER; meshtastic (084) sends compact alert lines through the node's MQTT JSON downlink (config MeshtasticChannelConfig, secrets username, password) and meshcore (084) through the MeshCore companion protocol (config MeshcoreChannelConfig); both refuse public or default channels with MESH_PUBLIC_CHANNEL, pass every transmission through a LoRa airtime governor and take only alert.resolved among lifecycle updates"
           },
           "config": {
             "type": "object",
@@ -95063,11 +95077,27 @@
                 "description": "telegram: who may press action buttons (empty = any chat member)"
               },
               "allowedSenders": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                },
-                "description": "matrix: who may acknowledge by reaction"
+                "oneOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "matrix: who may acknowledge by reaction"
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string",
+                      "enum": [
+                        "report",
+                        "ack"
+                      ]
+                    },
+                    "description": "meshtastic, meshcore (084): sender to role; see MeshChannelCommonConfig.allowedSenders"
+                  }
+                ],
+                "description": "matrix: an array of user ids who may acknowledge by reaction; meshtastic and meshcore (084): an object of sender (`!xxxxxxxx`, `mc:` + 12 hex, or `name:` + advertised name) to role `report` or `ack`"
               },
               "privatePayload": {
                 "type": "boolean",
@@ -95312,11 +95342,27 @@
                 "description": "telegram: who may press action buttons (empty = any chat member)"
               },
               "allowedSenders": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                },
-                "description": "matrix: who may acknowledge by reaction"
+                "oneOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "matrix: who may acknowledge by reaction"
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string",
+                      "enum": [
+                        "report",
+                        "ack"
+                      ]
+                    },
+                    "description": "meshtastic, meshcore (084): sender to role; see MeshChannelCommonConfig.allowedSenders"
+                  }
+                ],
+                "description": "matrix: an array of user ids who may acknowledge by reaction; meshtastic and meshcore (084): an object of sender (`!xxxxxxxx`, `mc:` + 12 hex, or `name:` + advertised name) to role `report` or `ack`"
               },
               "privatePayload": {
                 "type": "boolean",
@@ -95681,8 +95727,10 @@
               "enrichment",
               "grouping",
               null,
-              "presence"
-            ]
+              "presence",
+              "airtime"
+            ],
+            "description": "`airtime` = held by a mesh channel's LoRa airtime governor (084); released as one digest line."
           },
           "edited": {
             "type": "boolean",
@@ -100544,9 +100592,10 @@
               "pairing",
               "system",
               "action",
-              "chat"
+              "chat",
+              "mesh"
             ],
-            "description": "`action` = a notification action capability (033); `chat` = a command from an allowlisted chat of an interactive channel (061; `tokenName` is the chat principal `chat:{channelId}:{chatId}[:{userId}]`)"
+            "description": "`action` = a notification action capability (033); `chat` = a command from an allowlisted chat of an interactive channel (061; `tokenName` is the chat principal `chat:{channelId}:{chatId}[:{userId}]`); `mesh` = an `#E ACK` from an allowlisted sender on a private mesh channel (084; `tokenName` is `mesh:{sender}`)"
           },
           "tokenId": {
             "type": [
@@ -113471,14 +113520,15 @@
               "meshtastic-longfast",
               "meshtastic-mediumfast",
               "custom"
-            ]
+            ],
+            "description": "Default meshtastic-longfast for `meshtastic`, custom for `meshcore`; the operator confirms it matches the node"
           },
           "airtimeCustom": {
             "type": [
               "object",
               "null"
             ],
-            "description": "Radio settings when `airtimePreset=custom`",
+            "description": "Radio settings when `airtimePreset=custom` (required then; the default preset of `meshcore`)",
             "properties": {
               "spreadingFactor": {
                 "type": "integer",
@@ -113533,7 +113583,8 @@
               "warning",
               "critical"
             ],
-            "default": "warning"
+            "default": "warning",
+            "description": "The channel takes nothing below this severity, whatever its top-level minSeverity"
           },
           "reportsEnabled": {
             "type": "boolean",
@@ -113541,7 +113592,7 @@
           },
           "allowedSenders": {
             "type": "object",
-            "description": "Node id (Meshtastic `!hex`) or MeshCore key prefix → role",
+            "description": "Sender to role. A sender is a Meshtastic node id (`!xxxxxxxx`), a MeshCore key prefix (`mc:` + 12 hex) or `name:` + the advertised name: MeshCore channel messages name their sender only by its advertised name, so a MeshCore channel report is matched by `name:` (084)",
             "additionalProperties": {
               "type": "string",
               "enum": [

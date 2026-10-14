@@ -367,6 +367,10 @@ Apache HttpClient, HttpCore and HttpMime 4 with Commons Logging and Commons Code
   at commit `a366955cb2f67b8e6842d4f00d2b6a554dddd88a`): `docs/companion_protocol.md` and `docs/payloads.md`, and the
   companion firmware's command, response and push codes and frame layouts. Foresignal's Java implementation
   (`ai.foresignal.source.formats.meshcore`) was written from them; no MeshCore source file is incorporated.
+- **Prompt 084** consulted the same commit for the send commands (`CMD_SEND_TXT_MSG` 0x02, `CMD_SEND_CHANNEL_TXT_MSG`
+  0x03, `CMD_SEND_CHANNEL_DATA` 0x3E), `RESP_CODE_SENT`, `PUSH_CODE_SEND_CONFIRMED`, `MAX_CHANNEL_DATA_LENGTH`,
+  `MAX_TEXT_LEN` and `docs/number_allocations.md` (`ai.foresignal.notify.types.MeshCoreChannel`,
+  `ai.foresignal.notify.mesh.MeshCoreSender`); written from them, nothing copied.
 - **License:** MIT License, Copyright (c) 2025 Scott Powell / rippleradios.com.
 
 ### meshcore_py (prompt 083, bridge dependency, not vendored)

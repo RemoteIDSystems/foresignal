@@ -234,6 +234,22 @@ public class DeliveryStore {
                 """, new MapSqlParameterSource("digest", digestId).addValue("reason", reason));
     }
 
+    /**
+     * Settles a delivery as {@code unacked} (prompt 084): sent, but the recipient never confirmed it. Terminal, and
+     * raises no failure event.
+     */
+    public void unacked(long id, String kind, String note, Instant now) {
+        update(id, d -> {
+            d.setStatus(DeliveryStatus.UNACKED);
+            d.setKind(kind);
+            d.setAttempts(d.getAttempts() + 1);
+            d.setDeliveredAt(now);
+            d.setNextAttemptAt(null);
+            d.setLeasedUntil(null);
+            d.setNote(note == null || note.length() <= 200 ? note : note.substring(0, 200));
+        });
+    }
+
     /** Settles a delivery as delivered. */
     public void delivered(long id, String kind, String ref, boolean edited, String warning, Instant now) {
         update(id, d -> {

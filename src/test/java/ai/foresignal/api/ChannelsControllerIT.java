@@ -165,13 +165,15 @@ class ChannelsControllerIT extends WireMockSupport {
     }
 
     @Test
-    @DisplayName("the type catalog lists all sixteen types (with 031's webpush) with fields and capabilities")
+    @DisplayName("the type catalog lists all nineteen types (with 031's webpush, 060's mqtt and 084's meshtastic and"
+            + " meshcore) with fields and capabilities")
     void types() throws Exception {
         String body = mvc.perform(auth(get("/v1/channels/types"))).andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(16))).andReturn().getResponse().getContentAsString();
+                .andExpect(jsonPath("$", hasSize(19))).andReturn().getResponse().getContentAsString();
         JsonNode types = JSON.readTree(body);
         assertThat(types.findValuesAsString("id")).contains("webhook", "slack", "mattermost", "discord", "teams", "google-chat",
-                "telegram", "matrix", "ntfy", "gotify", "pushover", "email", "homeassistant", "apprise", "zulip", "webpush");
+                "telegram", "matrix", "ntfy", "gotify", "pushover", "email", "homeassistant", "apprise", "zulip", "webpush",
+                "mqtt", "meshtastic", "meshcore");
         for (JsonNode type : types) {
             if (type.get("id").asString().equals("webpush")) {
                 assertThat(type.get("capabilities").get("fanOut").asBoolean()).isTrue();
