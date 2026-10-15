@@ -57,6 +57,6 @@ public record MqttEndpoint(String scheme, String host, int port, boolean tls, bo
             throw new IllegalArgumentException("must not have a path (only ws:// and wss:// URLs do)");
         }
         int port = uri.getPort() < 0 ? defaultPort : uri.getPort();
-        return new MqttEndpoint(scheme, host, port, scheme.endsWith("s"), websocket, path);
+        return new MqttEndpoint(scheme, host, port, "mqtts".equals(scheme) || "wss".equals(scheme), websocket, path);
     }
 }

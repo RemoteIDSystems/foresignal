@@ -86,10 +86,12 @@ public final class UkSanctionsAdapter implements PollingAdapter {
             throw new UpstreamFormatException("The UK Sanctions List answered HTTP " + response.status(), "");
         }
         Path file = Path.of("uk-sanctions-" + System.nanoTime() + ".xml");
-        ctx.http().download(URI.create(baseUrl + "/docs/UK-Sanctions-List.xml"), file, 100 * 1024 * 1024);
+        // A relative name resolves under the raster temp directory; parse the reported file.
+        ai.foresignal.source.spi.DownloadResult downloaded =
+                ctx.http().download(URI.create(baseUrl + "/docs/UK-Sanctions-List.xml"), file, 100 * 1024 * 1024);
         List<NormalizedRecord> records;
         try {
-            records = parse(file);
+            records = parse(downloaded.file());
         } catch (IOException | XMLStreamException e) {
             throw new UpstreamFormatException("The UK Sanctions List is not valid XML", "", e);
         }

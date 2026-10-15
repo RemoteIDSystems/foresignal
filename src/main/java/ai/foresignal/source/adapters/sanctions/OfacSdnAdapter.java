@@ -136,19 +136,25 @@ public final class OfacSdnAdapter implements PollingAdapter {
             throw new UpstreamFormatException("The OFAC export answered HTTP " + response.status(), "");
         }
         Path file = Path.of("ofac-" + listId + "-" + System.nanoTime() + ".xml");
-        // The download is charged against the byte budget; the file is parsed from disk.
-        ctx.http().download(target, file, MAX_BYTES);
+        // The download is charged against the byte budget; a relative name is resolved under the
+        // raster temp directory, so parse the file the download reports, not the requested name.
+        ai.foresignal.source.spi.DownloadResult downloaded = ctx.http().download(target, file, MAX_BYTES);
         List<NormalizedRecord> records;
         try {
-            records = parse(file, listId);
+            records = parse(downloaded.file(), listId);
         } catch (IOException | XMLStreamException e) {
             throw new UpstreamFormatException("The OFAC " + listId + " export is not valid XML", "", e);
         }
         return guard(ctx, listId, records, Instant.now());
     }
 
-    private static void requireAllowedRedirect(URI redirect) throws AdapterException {
+    private void requireAllowedRedirect(URI redirect) throws AdapterException {
         String host = redirect.getHost() == null ? "" : redirect.getHost();
+        // A same-host redirect (the configured base, or a test rebasing) is always allowed; otherwise
+        // the redirect must land on the reviewed pre-signed S3 host.
+        if (host.equals(baseUrl.getHost())) {
+            return;
+        }
         for (String allowed : REDIRECT_HOSTS) {
             if (host.equals(allowed) || host.endsWith("." + allowed)) {
                 return;
@@ -233,7 +239,10 @@ public final class OfacSdnAdapter implements PollingAdapter {
                 String value = id.childText("idNumber");
                 identifiers.add(Sanctions.identifier(type, value, id.childText("idCountry")));
                 String upper = type == null ? "" : type.toUpperCase(java.util.Locale.ROOT);
-                if (upper.contains("IMO") && Sanctions.isImo(value)) {
+                String valueUpper = value == null ? "" : value.toUpperCase(java.util.Locale.ROOT).strip();
+                // OFAC often labels an IMO as "Vessel Registration Identification" with the number
+                // itself prefixed "IMO " (for example "IMO 7406784"), so accept either.
+                if ((upper.contains("IMO") || valueUpper.startsWith("IMO")) && Sanctions.isImo(value)) {
                     imo = Sanctions.digits(value);
                 } else if (upper.contains("MMSI") && Sanctions.isMmsi(value)) {
                     mmsi = Sanctions.digits(value);

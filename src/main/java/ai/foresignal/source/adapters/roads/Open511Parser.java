@@ -99,9 +99,10 @@ public final class Open511Parser {
             return;
         }
         String type = upper(RoadEvents.text(e, "event_type"));
+        String severity = upper(RoadEvents.text(e, "severity"));
         RoadEventPayload p = new RoadEventPayload("open511")
                 .category(type == null ? "other" : CATEGORY.getOrDefault(type, "other"))
-                .severity(SEVERITY.getOrDefault(upper(RoadEvents.text(e, "severity")), "unknown"))
+                .severity(severity == null ? "unknown" : SEVERITY.getOrDefault(severity, "unknown"))
                 .language(language)
                 .url(RoadEvents.text(e, "url"));
         JsonNode subtypes = e.get("event_subtypes");

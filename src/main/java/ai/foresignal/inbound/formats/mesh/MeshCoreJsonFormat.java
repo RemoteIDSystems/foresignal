@@ -257,7 +257,10 @@ public class MeshCoreJsonFormat implements IngestFormat {
 
     private static Integer integer(JsonNode node, Integer fallback) {
         Long value = number(node);
-        return value == null ? fallback : (int) (long) value;
+        if (value == null) {
+            return fallback;
+        }
+        return (int) (long) value;
     }
 
     private static Double decimal(JsonNode node) {

@@ -232,7 +232,9 @@ class MeshCoreLinkTest {
                 InetAddress.getLoopbackAddress()), Clock.systemUTC())).isInstanceOf(IllegalArgumentException.class);
         assertThat(MeshCoreCompanionLink.terminalCodes(0x04)).containsExactly(MeshCoreProtocol.RESP_END_OF_CONTACTS);
         assertThat(MeshCoreCompanionLink.terminalCodes(0x0A)).contains(0x07, 0x08, 0x10, 0x11, 0x0A);
-        assertThat(MeshCoreCompanionLink.terminalCodes(0x03)).containsExactly(MeshCoreProtocol.RESP_SENT);
+        // Prompt 084: a channel text is answered by RESP_CODE_OK or RESP_SENT; both end the command.
+        assertThat(MeshCoreCompanionLink.terminalCodes(0x03))
+                .containsExactlyInAnyOrder(MeshCoreProtocol.RESP_OK, MeshCoreProtocol.RESP_SENT);
         MeshCoreLinks links = new MeshCoreLinks(Clock.systemUTC());
         assertThat(links.link(endpoint())).isSameAs(links.link(endpoint()));
         assertThat(links.size()).isEqualTo(1);

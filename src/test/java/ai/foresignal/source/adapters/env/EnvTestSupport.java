@@ -19,8 +19,12 @@ public final class EnvTestSupport {
     }
 
     /**
-     * {@code record} observed {@code later} after its own time, with the same payload and geometry: a second
-     * snapshot of unchanged content for {@code SnapshotContract}.
+     * {@code record} observed {@code later} after its own time, with the same payload, geometry and
+     * {@code eventTime}: a second snapshot of unchanged content for {@code SnapshotContract}.
+     *
+     * <p>Only {@code observedAt} moves: it is never hashed. {@code eventTime} is significant content
+     * (it drives {@code effective_time} and is part of the static hash), so shifting it would make the
+     * two snapshots genuinely different rather than a re-observation of the same reading.
      */
     public static NormalizedRecord later(NormalizedRecord record, Duration later) {
         NormalizedRecord.Builder b = NormalizedRecord.builder(record.externalId(), record.kind())
@@ -30,7 +34,7 @@ public final class EnvTestSupport {
             b.observedAt(record.observedAt().plus(later));
         }
         if (record.eventTime() != null) {
-            b.eventTime(record.eventTime().plus(later));
+            b.eventTime(record.eventTime());
         }
         return b.build();
     }

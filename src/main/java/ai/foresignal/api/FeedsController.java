@@ -192,7 +192,10 @@ public class FeedsController {
     private ResponseEntity<String> respond(Feed feed, String filters, String ifNoneMatch, String ifModifiedSince,
             ReadCaller caller, boolean asAtom) {
         String etag = FeedService.etag(feed, filters);
-        HttpHeaders headers = ETags.cacheHeaders(new HttpHeaders(), etag, caller.publicCache());
+        // A feed a caller may see private sources in (or a keyed feed) is never publicly cacheable,
+        // even under openReads; matches MapController.
+        boolean publicCache = caller.publicCache() && !seesPrivate(caller);
+        HttpHeaders headers = ETags.cacheHeaders(new HttpHeaders(), etag, publicCache);
         headers.set(HttpHeaders.LAST_MODIFIED, FeedService.lastModified(feed));
         if (FeedService.notModified(feed, etag, ifNoneMatch, ifModifiedSince)) {
             return ResponseEntity.status(HttpStatus.NOT_MODIFIED).headers(headers).build();

@@ -148,7 +148,8 @@ public final class CloudflareBgpAdapter implements PollingAdapter {
 
     private NormalizedRecord mapHijack(JsonNode event) {
         String id = text(event, "id");
-        if (id == null) {
+        // A hijack event carries hijacker_asn; a leak event does not, so skip anything else.
+        if (id == null || event.get("hijacker_asn") == null) {
             return null;
         }
         Instant observed = time(event, "max_msg_ts");
@@ -171,7 +172,8 @@ public final class CloudflareBgpAdapter implements PollingAdapter {
 
     private NormalizedRecord mapLeak(JsonNode event) {
         String id = text(event, "id");
-        if (id == null) {
+        // A leak event carries leak_asn; a hijack event does not, so skip anything else.
+        if (id == null || event.get("leak_asn") == null) {
             return null;
         }
         NormalizedRecord.Builder b = NormalizedRecord.builder("leak:" + id, KIND_LEAK)

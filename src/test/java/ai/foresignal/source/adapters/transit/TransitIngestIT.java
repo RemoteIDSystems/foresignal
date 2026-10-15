@@ -77,7 +77,7 @@ class TransitIngestIT extends WeatherIngestSupport {
                 (int) PersistReason.SIGNIFICANT.code());
         assertThat(jdbc.queryForObject("select payload->>'tripId' from record_head where source_id = ? and"
                 + " external_id = ?", String.class, VEHICLES, "R-5471")).isEqualTo("trip-2");
-        assertThat(head("observed_at", VEHICLES, "R-5471")).isEqualTo(Instant.ofEpochSecond(T0 + 24));
+        assertThat(live("observed_at", VEHICLES, "R-5471")).isEqualTo(Instant.ofEpochSecond(T0 + 24));
     }
 
     @Test

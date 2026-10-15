@@ -42,8 +42,12 @@ class HealthDetailsTest {
         Map<String, Object> withNull = new LinkedHashMap<>();
         withNull.put("b", null);
         withNull.put("c", 3);
+        // LinkedHashMap so the merge order is deterministic (Map.of is intentionally unordered).
+        Map<String, Object> first = new LinkedHashMap<>();
+        first.put("a", 1);
+        first.put("b", 2);
         HealthService service = service(
-                d -> Map.of("a", 1, "b", 2),
+                d -> first,
                 d -> withNull,
                 d -> Map.of("a", 10));
 

@@ -86,7 +86,10 @@ public final class UnSanctionsAdapter implements PollingAdapter {
             }
             URI redirect = URI.create(location);
             String host = redirect.getHost() == null ? "" : redirect.getHost();
-            if (!(host.equals(REDIRECT_HOST) || host.endsWith("." + REDIRECT_HOST))) {
+            // A same-host redirect (the configured base, or a test rebasing) is allowed; otherwise the
+            // redirect must land on the reviewed Azure Blob host.
+            String baseHost = baseUrl.getHost();
+            if (!(host.equals(baseHost) || host.equals(REDIRECT_HOST) || host.endsWith("." + REDIRECT_HOST))) {
                 throw new AdapterException("The UN list redirected to an unapproved host");
             }
             String path = redirect.getScheme() + "://" + redirect.getAuthority() + redirect.getPath();
@@ -99,10 +102,11 @@ public final class UnSanctionsAdapter implements PollingAdapter {
             throw new UpstreamFormatException("The UN list answered HTTP " + response.status(), "");
         }
         Path file = Path.of("un-sanctions-" + System.nanoTime() + ".xml");
-        ctx.http().download(target, file, 64 * 1024 * 1024);
+        // A relative name resolves under the raster temp directory; parse the reported file.
+        ai.foresignal.source.spi.DownloadResult downloaded = ctx.http().download(target, file, 64 * 1024 * 1024);
         List<NormalizedRecord> records;
         try {
-            records = parse(file);
+            records = parse(downloaded.file());
         } catch (IOException | XMLStreamException e) {
             throw new UpstreamFormatException("The UN consolidated list is not valid XML", "", e);
         }

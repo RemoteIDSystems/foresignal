@@ -86,6 +86,7 @@ class AlertmanagerFormatTest {
 
         assertThatThrownBy(() -> format.parse(json("{\"version\":\"3\",\"alerts\":[]}"), source("a"), FormatOptions.empty()))
                 .isInstanceOf(InvalidInputException.class);
-        assertThat(format.options()).extracting(FormatOptionSpec::name).containsExactly("kindLabel", "resolved");
+        assertThat(format.options()).extracting(FormatOptionSpec::name)
+                .containsExactly("kindLabel", "resolved", "receiverPrefix", "resolvedValidFor", "station");
     }
 }

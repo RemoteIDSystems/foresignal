@@ -222,6 +222,8 @@ public class SpaceTrackTipAdapter implements PollingAdapter {
                 .defaultBudget(2, 60)
                 .historyTier(HistoryTier.STANDARD)
                 .defaultIngestPolicy(IngestPolicy.all())
+                // Re-entry predictions are events (Conventions), 1825 days.
+                .defaultRetention(Duration.ofDays(1825))
                 .observedAtMode(ObservedAtMode.UPSTREAM)
                 .zeroResultsNormal(true)
                 .build();

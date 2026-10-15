@@ -15,6 +15,7 @@ import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.io.WKBReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.context.event.EventListener;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -69,7 +70,7 @@ public class RegionTagger implements IngestStateReset {
 
     /** Creates the tagger. */
     public RegionTagger(JdbcTemplate jdbc, CountryCentroids countries, BundledCountryPolygons bundled,
-            RegionTagStore store, RegionTaggingService modes, ReferenceProperties properties, Clock clock) {
+            RegionTagStore store, @Lazy RegionTaggingService modes, ReferenceProperties properties, Clock clock) {
         this.jdbc = jdbc;
         this.countries = countries;
         this.bundled = bundled;

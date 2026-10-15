@@ -22,9 +22,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -37,7 +34,6 @@ import tools.jackson.databind.json.JsonMapper;
  * {@code incidents.json} (its resolved version) and then tombstoned. The incident.io shim some pages use
  * ({@code status-openai}) has no {@code shortlink}/{@code started_at}, so those fields are null.
  */
-@Component
 public final class StatusPageAdapter implements PollingAdapter {
 
     /** The page's status kind. */

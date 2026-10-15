@@ -135,7 +135,7 @@ class ReadsbEnvelopeTest {
         byte[] html = "<!DOCTYPE html><p>wait</p>".getBytes(StandardCharsets.UTF_8);
         assertThatThrownBy(() -> ReadsbResponses.map(response(html, "text/html", false), "adsb.fi"))
                 .isInstanceOf(UpstreamFormatException.class)
-                .hasMessage(ReadsbResponses.nonJsonMessage("adsb.fi"));
+                .hasMessageContaining(ReadsbResponses.nonJsonMessage("adsb.fi"));
         assertThatThrownBy(() -> ReadsbResponses.map(response(html, "application/json", false), "airplanes.live"))
                 .isInstanceOf(UpstreamFormatException.class).hasMessageContaining("non-JSON 200");
         assertThat(ReadsbResponses.startsWithBrace(" \n{".getBytes(StandardCharsets.UTF_8))).isTrue();

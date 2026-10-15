@@ -112,7 +112,7 @@ class AwdbParserTest {
         assertThat(SnotelAdapter.query(ValidatedParams.of(Map.of("states", List.of("co", "UT"),
                 "stations", List.of("335:co:SNTL"))))).isEqualTo("*:CO:SNTL,*:UT:SNTL,335:CO:SNTL");
         assertThat(adapter.stationsUri("*:CO:SNTL")).hasToString("https://wcc.sc.egov.usda.gov/awdbRestApi/services/v1"
-                + "/stations?stationTriplets=%2A%3ACO%3ASNTL&returnForecastPointMetadata=false");
+                + "/stations?stationTriplets=*%3ACO%3ASNTL&returnForecastPointMetadata=false");
         assertThat(adapter.dataUri(List.of("335:CO:SNTL", "1344:CO:SNTL"), LocalDate.parse("2026-10-13")))
                 .hasToString("https://wcc.sc.egov.usda.gov/awdbRestApi/services/v1/data?stationTriplets="
                         + "335%3ACO%3ASNTL%2C1344%3ACO%3ASNTL&elements=WTEQ%2CSNWD%2CPREC%2CTOBS&duration=DAILY"

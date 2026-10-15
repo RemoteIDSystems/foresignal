@@ -117,6 +117,10 @@ class CapFeedAdapterFamilyTest extends WireMockSupport {
         serveIndex("/cap/ex.xml");
         serveDoc("/cap/ex.xml", doc("chain-exercise.xml"));
         assertThat(fetch(Map.of()).records()).isEmpty();
+        // A skipped document is marked seen, so clear the adapter state as a restart would before the
+        // includeTests run re-reads the same exercise message.
+        harness.reset(adapter.id(), "cap:index", "cap:seen",
+                SourceHttp.ETAG_STATE_PREFIX + "cap:index", SourceHttp.LAST_MODIFIED_STATE_PREFIX + "cap:index");
         assertThat(fetch(Map.of("includeTests", true)).records()).hasSize(1);
     }
 

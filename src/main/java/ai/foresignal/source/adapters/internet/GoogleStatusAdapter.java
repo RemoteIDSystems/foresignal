@@ -19,9 +19,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -30,7 +27,6 @@ import tools.jackson.databind.json.JsonMapper;
  * {@code incidents.json} array covering a rolling ~12-month window, so every incident is emitted and the run is
  * complete.
  */
-@Component
 public final class GoogleStatusAdapter implements PollingAdapter {
 
     /** The incident kind. */

@@ -53,7 +53,12 @@ class ConflictIngestIT extends WeatherIngestSupport {
     @AfterEach
     void disable() {
         for (String id : IDS) {
-            configure(id, false, Map.of());
+            if (id.equals(AcledAdapter.ID)) {
+                // acled's countries parameter is required, so clearing it would be rejected; just disable.
+                sources.update(id, SourceSettingsUpdate.enabled(false));
+            } else {
+                configure(id, false, Map.of());
+            }
         }
     }
 

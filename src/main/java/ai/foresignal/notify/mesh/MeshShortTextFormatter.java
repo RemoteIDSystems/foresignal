@@ -80,7 +80,8 @@ public final class MeshShortTextFormatter {
                     ? MeshShortCode.of(m.alertId()) : null;
             List<String> parts = new ArrayList<>();
             parts.add(severity(m.severity()));
-            parts.add(plain(m.shortTitle()));
+            // Alerts carry the (full) rule name, not the 40-char shortTitle; the mesh cap below trims it.
+            parts.add(plain(ruleName(m)));
             if (NotificationMessage.ALERT.equals(m.event())) {
                 String where = where(m.data());
                 if (where != null && !where.isBlank()) {

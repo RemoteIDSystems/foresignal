@@ -60,7 +60,7 @@ class ConflictEgressTest {
         when(registry.descriptor(any())).thenAnswer(i -> all.get(i.<String>getArgument(0)));
         AppSettingService settings = mock(AppSettingService.class);
         when(settings.getOrDefault(eq(SettingKeys.VISIBILITY), eq(VisibilitySettings.class), any()))
-                .thenAnswer(i -> i.getArgument(2));
+                .thenAnswer(i -> VisibilitySettings.defaults());
         ObjectProvider<OutboundUrlPolicy> outbound = mock(ObjectProvider.class);
         return new EgressPolicy(registry, new SourceVisibility(registry, settings, null), settings, outbound);
     }

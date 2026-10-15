@@ -328,7 +328,11 @@ public final class GbfsParser {
                 }
             }
         }
-        return instant == null || instant.getEpochSecond() < EARLIEST_PLAUSIBLE_EPOCH_SECOND ? null : instant;
+        // GBFS times are POSIX seconds; a v3.0 ISO timestamp carries milliseconds, so truncate to
+        // seconds so both feed versions produce identical instants.
+        return instant == null || instant.getEpochSecond() < EARLIEST_PLAUSIBLE_EPOCH_SECOND
+                ? null
+                : instant.truncatedTo(java.time.temporal.ChronoUnit.SECONDS);
     }
 
     private static Instant epoch(double seconds) {

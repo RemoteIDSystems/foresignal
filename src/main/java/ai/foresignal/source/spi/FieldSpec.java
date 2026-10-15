@@ -2,6 +2,7 @@ package ai.foresignal.source.spi;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.Set;
 
 /**
@@ -26,10 +27,26 @@ public record FieldSpec(
         FieldType type, String unit, String label, String description, String datum, Set<String> kinds,
         @JsonInclude(JsonInclude.Include.NON_DEFAULT) boolean noLink) {
 
-    /** Copies the kinds; the canonical constructor is also the JSON creator. */
-    @JsonCreator
+    /** Copies the kinds. */
     public FieldSpec {
         kinds = kinds == null ? Set.of() : Set.copyOf(kinds);
+    }
+
+    /**
+     * The JSON creator. {@code noLink} is read as a nullable {@code Boolean}: Jackson 3 rejects an
+     * absent JSON member bound to a primitive creator parameter, so the primitive {@code noLink}
+     * component is not used as a creator parameter and a missing member defaults to {@code false}.
+     */
+    @JsonCreator
+    public static FieldSpec create(
+            @JsonProperty("type") FieldType type,
+            @JsonProperty("unit") String unit,
+            @JsonProperty("label") String label,
+            @JsonProperty("description") String description,
+            @JsonProperty("datum") String datum,
+            @JsonProperty("kinds") Set<String> kinds,
+            @JsonProperty("noLink") Boolean noLink) {
+        return new FieldSpec(type, unit, label, description, datum, kinds, noLink != null && noLink);
     }
 
     /**

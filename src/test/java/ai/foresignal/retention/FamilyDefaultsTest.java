@@ -495,7 +495,30 @@ class FamilyDefaultsTest {
             Map.entry("EarthSearchAdapter", new Entry(new ai.foresignal.source.adapters.stac.EarthSearchAdapter(
                     ai.foresignal.source.adapters.stac.StacSources.reviewed("stac-sentinel2"), "",
                     (java.util.function.Supplier<ai.foresignal.source.spi.PlacePoints>) () -> null).descriptor(),
-                    "bulk-event")));
+                    "bulk-event")),
+            // Checkpoint 097: the prompt 062/063/064 spaceship sources were never classified here. The
+            // aircraft (adsb.lol, OpenSky) and AIS WebSocket sources are TRACK (trackWindow, never a
+            // default); celestrak-gp is a reference catalogue (90 d); SOCRATES conjunctions, launches and
+            // Space-Track re-entry predictions are the event class (1825 d).
+            Map.entry("AdsbLolAreaAdapter", new Entry(new ai.foresignal.source.adapters.adsblol.AdsbLolAreaFamily(
+                    "").adapters().getFirst().descriptor(), "track")),
+            Map.entry("AdsbLolMilAdapter", new Entry(
+                    new ai.foresignal.source.adapters.adsblol.AdsbLolMilAdapter("").descriptor(), "track")),
+            Map.entry("OpenSkyStatesAdapter", new Entry(
+                    new ai.foresignal.source.adapters.opensky.OpenSkyStatesAdapter("", "").descriptor(), "track")),
+            Map.entry("AisStreamAdapter", new Entry(new ai.foresignal.source.adapters.aisstream.AisStreamAdapter("",
+                    new io.micrometer.core.instrument.simple.SimpleMeterRegistry(), java.time.Clock.systemUTC())
+                    .descriptor(), "track")),
+            Map.entry("CelestrakGpAdapter", new Entry(
+                    new ai.foresignal.source.adapters.celestrak.CelestrakGpAdapter("").descriptor(), "reference")),
+            Map.entry("CelestrakSocratesAdapter", new Entry(
+                    new ai.foresignal.source.adapters.celestrak.CelestrakSocratesAdapter("").descriptor(), "event")),
+            Map.entry("LaunchLibraryAdapter", new Entry(
+                    new ai.foresignal.source.adapters.launchlibrary.LaunchLibraryAdapter("").descriptor(), "event")),
+            Map.entry("SpaceTrackTipAdapter", new Entry(
+                    new ai.foresignal.source.adapters.spacetrack.SpaceTrackTipAdapter("").descriptor(), "event")),
+            Map.entry("SatellitePassesGenerator", new Entry(
+                    new ai.foresignal.source.adapters.passes.SatellitePassesGenerator().descriptor(), "derived")));
 
     /**
      * The {@code privacy} class (prompt 086): private sources whose prompt sets a short raw window on purpose, because
@@ -587,6 +610,16 @@ class FamilyDefaultsTest {
                 assertThat(descriptor.privateSource()).as("%s is private", descriptor.id()).isTrue();
                 assertThat(descriptor.defaultRetention()).as("%s defaultRetention", descriptor.id())
                         .isEqualTo(PRIVACY_RETENTION.get(descriptor.id()));
+                continue;
+            }
+            if (analyticClass.equals("derived")) {
+                // Derived sources (prompt 052/064) set retention per kind; the registry refuses a
+                // defaultRetention and a recordTtl on a DERIVED source.
+                assertThat(descriptor.mode()).as("%s is DERIVED", descriptor.id())
+                        .isEqualTo(ai.foresignal.source.spi.Mode.DERIVED);
+                assertThat(descriptor.defaultRetention()).as("%s defaultRetention", descriptor.id()).isNull();
+                assertThat(descriptor.recordTtl()).as("%s recordTtl", descriptor.id()).isNull();
+                assertThat(descriptor.kindRetention()).as("%s kindRetention", descriptor.id()).isNotEmpty();
                 continue;
             }
             if (analyticClass.equals("track")) {

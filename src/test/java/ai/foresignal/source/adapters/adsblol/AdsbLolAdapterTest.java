@@ -173,7 +173,7 @@ class AdsbLolAdapterTest extends WireMockSupport {
 
             WIREMOCK.verify(getRequestedFor(urlEqualTo("/v2/mil"))
                     .withHeader("User-Agent", equalTo(install.userAgent()))
-                    .withHeader("User-Agent", matching("Foresignal/.+ \\(\\+https://foresignal\\.ai; install=[A-Za-z0-9]+\\)"))
+                    .withHeader("User-Agent", matching("Foresignal/.+ \\(\\+https://foresignal\\.ai; install=[A-Za-z0-9]+(; contact=[^)]+)?\\)"))
                     .withHeader("Referer", absent())
                     .withHeader("Origin", absent())
                     .withHeader("Sec-Fetch-Mode", absent()));

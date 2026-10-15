@@ -161,6 +161,8 @@ public class LaunchLibraryAdapter implements PollingAdapter {
                 .defaultRetryAfter(THROTTLE_BACKOFF)
                 .historyTier(HistoryTier.STANDARD)
                 .defaultIngestPolicy(IngestPolicy.all())
+                // Launches are events (Conventions), 1825 days.
+                .defaultRetention(Duration.ofDays(1825))
                 .observedAtMode(ObservedAtMode.UPSTREAM)
                 .titleField("name")
                 .searchFields("name", "provider", "rocket", "missionName", "padName", "location")

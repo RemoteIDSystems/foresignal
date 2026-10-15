@@ -72,7 +72,8 @@ class GbfsIngestIT extends WeatherIngestSupport {
     }
 
     private String livePayload(String externalId, String key) {
-        return jdbc.queryForObject("select payload->>'" + key + "' from record_live where source_id = ? and"
+        // A live-only (kinematic) update lives in record_live.kinematic; record_live has no payload column.
+        return jdbc.queryForObject("select kinematic->>'" + key + "' from record_live where source_id = ? and"
                 + " external_id = ?", String.class, ID, externalId);
     }
 

@@ -7,6 +7,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import ai.foresignal.collect.FetchOutcome;
 import ai.foresignal.ingest.PersistReason;
+import ai.foresignal.source.SourceSettingsUpdate;
 import ai.foresignal.testsupport.adapters.AdapterFixtures;
 import ai.foresignal.testsupport.weather.WeatherIngestSupport;
 import ai.foresignal.trigger.CooldownScope;
@@ -49,7 +50,8 @@ class StacIngestIT extends WeatherIngestSupport {
 
     @AfterEach
     void disable() {
-        configure(ID, false, Map.of());
+        // stac-sentinel2's AOI parameter is required, so clearing it would be rejected; just disable.
+        sources.update(ID, SourceSettingsUpdate.enabled(false));
     }
 
     private static void serve(String body) {

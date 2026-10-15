@@ -8,6 +8,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -496,7 +497,7 @@ class FetchExecutorIT extends WireMockSupport {
         @DisplayName("a full queue writes FAILED 'ingest queue full' and is not an upstream failure")
         void backpressure() {
             IngestQueue queue = mock(IngestQueue.class);
-            when(queue.submit(anyString(), any(FetchLogEntry.class), anyList(), any(Duration.class)))
+            when(queue.submit(anyString(), any(FetchLogEntry.class), anyList(), any(Duration.class), anyBoolean()))
                     .thenThrow(new IngestBackpressureException("full"));
             collectPollAdapter.then(ctx -> twoRecords());
 
@@ -515,7 +516,7 @@ class FetchExecutorIT extends WireMockSupport {
         @DisplayName("a batch the writer failed writes FAILED and is not an upstream failure")
         void writerFailure() {
             IngestQueue queue = mock(IngestQueue.class);
-            when(queue.submit(anyString(), any(FetchLogEntry.class), anyList(), any(Duration.class)))
+            when(queue.submit(anyString(), any(FetchLogEntry.class), anyList(), any(Duration.class), anyBoolean()))
                     .thenReturn(CompletableFuture.failedFuture(new IllegalStateException("constraint violated")));
             collectPollAdapter.then(ctx -> twoRecords());
 
@@ -532,7 +533,7 @@ class FetchExecutorIT extends WireMockSupport {
         void submitTimeout() {
             IngestQueue queue = mock(IngestQueue.class);
             AtomicReference<Duration> timeout = new AtomicReference<>();
-            when(queue.submit(anyString(), any(FetchLogEntry.class), anyList(), any(Duration.class)))
+            when(queue.submit(anyString(), any(FetchLogEntry.class), anyList(), any(Duration.class), anyBoolean()))
                     .thenAnswer(invocation -> {
                         timeout.set(invocation.getArgument(3));
                         throw new IngestBackpressureException("full");

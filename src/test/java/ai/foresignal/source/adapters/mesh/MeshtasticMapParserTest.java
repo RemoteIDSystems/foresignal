@@ -55,7 +55,8 @@ class MeshtasticMapParserTest {
         assertThat(records.stream().filter(r -> Boolean.TRUE.equals(r.payload().get("lowBattery")))).hasSize(1);
 
         NormalizedRecord first = records.get(0);
-        assertThat(first.externalId()).isEqualTo("!10000000");
+        // The fixture's first node_id is 4026531840 (0xF0000000), read as unsigned 32-bit.
+        assertThat(first.externalId()).isEqualTo("!f0000000");
         assertThat(first.payload()).containsEntry("longName", "Synthetic Node 000").containsEntry("shortName", "S000")
                 .containsEntry("hwModel", "HELTEC_WSL_V3").containsEntry("role", "CLIENT").containsEntry("batteryLevel", 87)
                 .containsEntry("voltage", 4.032).containsEntry("lowBattery", false)

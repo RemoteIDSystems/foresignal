@@ -234,6 +234,8 @@ public class CelestrakGpAdapter implements PollingAdapter {
                 .maxResponseBytes(32 * 1024 * 1024)
                 .historyTier(HistoryTier.STANDARD)
                 .defaultIngestPolicy(IngestPolicy.all())
+                // Orbital element sets are a catalogue; the reference class (Conventions), 90 days.
+                .defaultRetention(Duration.ofDays(90))
                 .recordTtl(TTL)
                 .ttlAnchor(TtlAnchor.RECEIVED)
                 .observedAtMode(ObservedAtMode.UPSTREAM)

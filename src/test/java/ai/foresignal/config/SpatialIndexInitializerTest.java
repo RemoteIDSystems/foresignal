@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 class SpatialIndexInitializerTest {
 
     @Test
-    @DisplayName("the statement list is the v1.2 set plus the 017 alert, 036 place, 040 reference and 042 raster statements, in order")
+    @DisplayName("the statement list is the v1.2 set plus the 017 alert, 036 place, 040 reference, 042 raster and 093 series statements, in order")
     void statementList() {
         // Checkpoint 041: 036 (places, saved views) and 040 (reference geography, record_region) added their
         // indexes to the initializer without updating this pin.
@@ -36,7 +36,9 @@ class SpatialIndexInitializerTest {
                         "CREATE INDEX IF NOT EXISTS record_region_iso2_idx ON record_region (iso2)",
                         "CREATE INDEX IF NOT EXISTS record_region_iso2_admin1_idx ON record_region (iso2, admin1)",
                         "CREATE INDEX IF NOT EXISTS raster_frame_product_valid_idx ON raster_frame (product_id, valid_time DESC)",
-                        "CREATE INDEX IF NOT EXISTS raster_frame_footprint_gist ON raster_frame USING GIST (footprint)");
+                        "CREATE INDEX IF NOT EXISTS raster_frame_footprint_gist ON raster_frame USING GIST (footprint)",
+                        "CREATE INDEX IF NOT EXISTS record_head_series_point_idx ON record_head (source_id,"
+                                + " (payload->>'series'), event_time) WHERE kind = 'series-point'");
     }
 
     @Test

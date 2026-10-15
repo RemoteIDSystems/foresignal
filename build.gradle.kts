@@ -128,9 +128,11 @@ tasks.test {
     systemProperty("jdk.httpclient.allowRestrictedHeaders", "host")
     // Checkpoint 041: the suite caches one Spring context per test configuration (13+ by prompt 040),
     // and since 040 each holds the bundled country polygons (prepared JTS geometries). Gradle's default
-    // 512 MB test heap ran out of memory (run 1). The production heap budget (NFR-1) is per process
-    // with one context, so the test JVM gets the same 2 GB as perfTest.
-    maxHeapSize = "2g"
+    // 512 MB test heap ran out of memory (run 1); the production heap budget (NFR-1) is per process
+    // with one context. Checkpoint 097: the adapter block (062-096) grew the cached context count and
+    // each context now also holds the full source registry (40+ adapters and their descriptors), so the
+    // 2 GB that sufficed at 041 is exceeded; the test JVM gets 4 GB. Production keeps its own budget.
+    maxHeapSize = "4g"
     val runtimeClasspath = configurations.runtimeClasspath
     jvmArgumentProviders.add(CommandLineArgumentProvider {
         listOf("-Dforesignal.test.runtime-classpath=" + runtimeClasspath.get().asPath)

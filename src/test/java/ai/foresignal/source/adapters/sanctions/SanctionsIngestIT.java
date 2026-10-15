@@ -40,7 +40,7 @@ class SanctionsIngestIT extends WeatherIngestSupport {
         Matcher matcher = FIRST_REFERENCE.matcher(full);
         assertThat(matcher.find()).isTrue();
         String removed = "un:" + matcher.group(1);
-        String shortened = full.replaceFirst("<INDIVIDUAL>.*?</INDIVIDUAL>", "");
+        String shortened = full.replaceFirst("(?s)<INDIVIDUAL>.*?</INDIVIDUAL>", "");
         serve("v2", shortened);
         fetch("un-sanctions");
         assertThat(tombstoned("un-sanctions", removed)).isTrue();

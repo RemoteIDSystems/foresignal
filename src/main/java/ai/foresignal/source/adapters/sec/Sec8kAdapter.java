@@ -65,9 +65,11 @@ public final class Sec8kAdapter implements PollingAdapter {
     static final int MAX_PAGES = 3;
 
     static final Pattern TITLE = Pattern.compile("^(\\S+)\\s*-\\s*(.+?)\\s*\\((\\d{10})\\)\\s*\\(Filer\\)");
-    static final Pattern ACC_NO = Pattern.compile("AccNo:\\s*([\\d-]+)");
-    static final Pattern FILED = Pattern.compile("Filed:\\s*(\\d{4}-\\d{2}-\\d{2})");
-    static final Pattern SIZE = Pattern.compile("Size:\\s*([\\d.]+)\\s*(KB|MB)");
+    // The summary is escaped HTML (`<b>Filed:</b> …`), decoded by Xml; a label is followed by the
+    // closing </b> before its value, so allow any non-digit run between the label and the value.
+    static final Pattern ACC_NO = Pattern.compile("AccNo:[^\\d]*([\\d-]+)");
+    static final Pattern FILED = Pattern.compile("Filed:[^\\d]*(\\d{4}-\\d{2}-\\d{2})");
+    static final Pattern SIZE = Pattern.compile("Size:[^\\d]*([\\d.]+)\\s*(KB|MB)");
     static final Pattern ITEM = Pattern.compile("Item\\s+(\\d+\\.\\d+):\\s*([^<\\n]+)");
 
     private final URI baseUrl;

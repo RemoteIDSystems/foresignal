@@ -493,6 +493,8 @@ public class FetchExecutor {
         private int skipped;
         private int rejected;
         private int chunks;
+        private long fromSeq;
+        private long toSeq;
         private String release;
 
         RunChunks(SourceDescriptor descriptor, FetchTrigger trigger, Instant startedAt, Duration timeout,
@@ -542,12 +544,16 @@ public class FetchExecutor {
             late += outcome.late();
             skipped += outcome.skipped();
             rejected += outcome.rejected();
+            if (outcome.fromSeq() > 0) {
+                fromSeq = fromSeq == 0 ? outcome.fromSeq() : Math.min(fromSeq, outcome.fromSeq());
+            }
+            toSeq = Math.max(toSeq, outcome.toSeq());
             outcome.byReason().forEach((reason, count) -> byReason.merge(reason, count, Integer::sum));
         }
 
         IngestOutcome total() {
-            return new IngestOutcome(seen, persisted, live, touched, touchesThrottled, late, skipped, rejected, 0, 0,
-                    0, byReason, 0, List.of());
+            return new IngestOutcome(seen, persisted, live, touched, touchesThrottled, late, skipped, rejected, 0,
+                    fromSeq, toSeq, byReason, 0, List.of());
         }
 
         /** {@link DefaultFetchContext#emitChunk}: submits one chunk and waits for its outcome. */

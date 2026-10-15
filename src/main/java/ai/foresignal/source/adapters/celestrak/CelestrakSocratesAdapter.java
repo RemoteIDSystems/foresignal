@@ -188,6 +188,8 @@ public class CelestrakSocratesAdapter implements PollingAdapter {
                 .fetchTimeout(Duration.ofSeconds(180))
                 .historyTier(HistoryTier.STANDARD)
                 .defaultIngestPolicy(IngestPolicy.all())
+                // Conjunctions are events (Conventions), 1825 days.
+                .defaultRetention(Duration.ofDays(1825))
                 .observedAtMode(ObservedAtMode.RECEIVED)
                 .recordTtl(Duration.ofHours(24))
                 .ttlAnchor(TtlAnchor.RECEIVED)

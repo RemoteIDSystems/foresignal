@@ -139,12 +139,14 @@ public class AwcTafsAdapter implements PollingAdapter {
         Set<String> stations = AwcSupport.stations(params.stringList(STATIONS_PARAM));
         if (!stations.isEmpty()) {
             TafParser.Filter filter = new TafParser.Filter(null, stations);
-            List<NormalizedRecord> records = new ArrayList<>();
+            // One chunk's response may overlap another's; keep one record per station.
+            Map<String, NormalizedRecord> byId = new java.util.LinkedHashMap<>();
             for (URI uri : apiRequests(stations)) {
                 UpstreamResponse response = ctx.http().get(uri);
-                records.addAll(TafParser.json(AwcSupport.body(response, "AWC taf"), filter).records());
+                TafParser.json(AwcSupport.body(response, "AWC taf"), filter).records()
+                        .forEach(r -> byId.putIfAbsent(r.externalId(), r));
             }
-            return FetchResult.complete(records);
+            return FetchResult.complete(List.copyOf(byId.values()));
         }
         TafParser.Filter filter = new TafParser.Filter(
                 AwcSupport.envelope(params.optionalString(SCOPE_PARAM).orElse("aoi"), aoi), Set.of());

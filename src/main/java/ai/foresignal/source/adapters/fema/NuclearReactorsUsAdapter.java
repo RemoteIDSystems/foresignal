@@ -103,7 +103,6 @@ public class NuclearReactorsUsAdapter implements PollingAdapter {
                         + " (updated daily from the NRC): power plant, state, reactor type and status, the"
                         + " current power percentage, reported power, owner/operator and NRC region, with a"
                         + " point geometry. Public domain. A reactor absent from a complete run is tombstoned.")
-                .interval(Duration.ofHours(6), Duration.ofHours(24))
                 .kind(FemaReactorParser.KIND)
                 .kind("dataset-release")
                 .homepage("https://www.nrc.gov/reactors/operating/list-power-reactor-units.html")
