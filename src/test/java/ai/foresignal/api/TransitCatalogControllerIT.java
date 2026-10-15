@@ -53,8 +53,21 @@ class TransitCatalogControllerIT extends WeatherIngestSupport {
     }
 
     private JsonNode search(String query) throws Exception {
-        MockHttpServletResponse response = call(get("/v1/transit/catalog" + query)
-                .header("Authorization", "Bearer " + admin));
+        // MockMvc re-encodes a pre-encoded URI template, so "%20" would arrive literally (checkpoint
+        // 041); add the decoded values as request params instead.
+        MockHttpServletRequestBuilder request = get("/v1/transit/catalog");
+        String raw = query.startsWith("?") ? query.substring(1) : query;
+        for (String pair : raw.split("&")) {
+            if (pair.isEmpty()) {
+                continue;
+            }
+            int eq = pair.indexOf('=');
+            String name = eq < 0 ? pair : pair.substring(0, eq);
+            String value = eq < 0 ? "" : java.net.URLDecoder.decode(pair.substring(eq + 1),
+                    java.nio.charset.StandardCharsets.UTF_8);
+            request = request.param(name, value);
+        }
+        MockHttpServletResponse response = call(request.header("Authorization", "Bearer " + admin));
         assertThat(response.getStatus()).as(response.getContentAsString()).isEqualTo(200);
         return json.readTree(response.getContentAsString());
     }

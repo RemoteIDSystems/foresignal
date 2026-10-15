@@ -117,7 +117,8 @@ class PresetCustomSourceIT {
         MockHttpServletResponse response = create("{'id':'" + InboundIt.newId("eco-empty") + "','preset':'ecowitt',"
                 + "'significantFields':[]}");
         assertThat(response.getStatus()).as(response.getContentAsString()).isEqualTo(400);
-        assertThat(body(response).get("code").asString()).isEqualTo("INGEST_POLICY_INVALID");
+        assertThat(body(response).get("code").asString()).as(response.getContentAsString())
+                .isEqualTo("INGEST_POLICY_INVALID");
     }
 
     @Test

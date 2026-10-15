@@ -362,6 +362,14 @@ public class CustomSourceService {
 
     /** Registry validation, then the ingest policy rules (Core-Data-Model §5.1). */
     private static void validate(SourceDescriptor descriptor, IngestPolicy policy) {
+        // The policy is checked first so an invalid policy reports INGEST_POLICY_INVALID rather than
+        // the descriptor validator's generic VALIDATION_FAILED (it re-checks defaultIngestPolicy).
+        List<String> policyProblems = IngestPolicyValidator.problems(policy, descriptor, "ingestPolicy");
+        if (!policyProblems.isEmpty()) {
+            List<FieldError> errors = policyProblems.stream().map(p -> new FieldError("ingestPolicy", p)).toList();
+            throw new ValidationException(ErrorCodes.INGEST_POLICY_INVALID,
+                    "The effective ingest policy is not valid for this definition.", errors);
+        }
         List<String> problems = DescriptorValidator.problems(descriptor, null);
         if (descriptor.mode() == ai.foresignal.source.spi.Mode.POLLING) {
             // A pulled provider is checked with its adapter by the registry itself.
@@ -370,12 +378,6 @@ public class CustomSourceService {
         }
         if (!problems.isEmpty()) {
             throw new ValidationException("The source definition is not valid: " + String.join("; ", problems));
-        }
-        List<String> policyProblems = IngestPolicyValidator.problems(policy, descriptor, "ingestPolicy");
-        if (!policyProblems.isEmpty()) {
-            List<FieldError> errors = policyProblems.stream().map(p -> new FieldError("ingestPolicy", p)).toList();
-            throw new ValidationException(ErrorCodes.INGEST_POLICY_INVALID,
-                    "The effective ingest policy is not valid for this definition.", errors);
         }
     }
 

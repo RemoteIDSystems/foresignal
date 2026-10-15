@@ -14,6 +14,7 @@ import ai.foresignal.source.spi.Egress;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -105,10 +106,11 @@ public final class TransitFeeds {
      * The problems of a feed list: ids that are not kebab-case or repeat, URLs that are not absolute https, a feed
      * with neither URL, headers outside {@link #ALLOWED_HEADERS}, and modes outside {@link TransitModes#MODES}.
      *
-     * @return one line per problem; empty when the list is valid
+     * @return one line per distinct problem (a repeated feed reports its problems once); empty when the
+     *     list is valid
      */
     public static List<String> problems(List<TransitFeed> feeds) {
-        List<String> problems = new ArrayList<>();
+        Set<String> problems = new LinkedHashSet<>();
         Set<String> ids = new HashSet<>();
         for (TransitFeed feed : feeds) {
             if (!ID_PATTERN.matcher(feed.id()).matches()) {
@@ -136,6 +138,6 @@ public final class TransitFeeds {
                 problems.add(feed.id() + ": the default mode " + feed.defaultMode() + " is unknown");
             }
         }
-        return problems;
+        return new ArrayList<>(problems);
     }
 }
