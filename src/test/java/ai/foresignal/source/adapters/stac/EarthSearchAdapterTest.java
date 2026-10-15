@@ -91,7 +91,8 @@ class EarthSearchAdapterTest extends WireMockSupport {
         adapter.fetch(context(Map.of(EarthSearchAdapter.MAX_PAGES_PARAM, 2)));
 
         assertThat(WIREMOCK.getAllServeEvents()).hasSize(2);
-        assertThat(requestBody(1).get("next").asString()).isEqualTo("TOKEN-123");
+        // getAllServeEvents() is newest-first, so index 0 is the second request (the rel=next body).
+        assertThat(requestBody(0).get("next").asString()).isEqualTo("TOKEN-123");
         WIREMOCK.verify(2, postRequestedFor(urlPathEqualTo(PATH)));
     }
 
@@ -119,7 +120,8 @@ class EarthSearchAdapterTest extends WireMockSupport {
         serve(AdapterFixtures.text("stac-sentinel2", "search.json"));
         adapter.fetch(context());
         assertThat(harness.client.stateStore(StacSources.SENTINEL2).get(EarthSearchAdapter.LAST_ACQUISITION))
-                .contains("2026-10-10T17:25:25.181000Z");
+                // Instant.toString() trims the trailing zero groups of the micros in the fixture.
+                .contains("2026-10-10T17:25:25.181Z");
 
         harness.client.stateStore(StacSources.SENTINEL2).remove(EarthSearchAdapter.LAST_ACQUISITION);
         WIREMOCK.resetAll();

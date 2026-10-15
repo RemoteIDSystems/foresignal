@@ -69,8 +69,10 @@ class InatObservationsAdapterTest extends WireMockSupport {
                 .map(e -> e.getRequest().getUrl()).toList();
         assertThat(urls).hasSize(2);
         assertThat(urls).anySatisfy(u -> assertThat(u).contains("id_above=999").contains("order=asc"));
-        assertThat(urls).anySatisfy(u -> assertThat(u).contains("updated_since=2026-10-01T00:00:00Z")
-                .contains("order_by=updated_at"));
+        // The adapter URL-encodes the ISO instant (colons as %3A); decode before matching the value.
+        assertThat(urls).anySatisfy(u -> assertThat(java.net.URLDecoder.decode(u,
+                        java.nio.charset.StandardCharsets.UTF_8))
+                .contains("updated_since=2026-10-01T00:00:00Z").contains("order_by=updated_at"));
         assertThat(harness.client.stateStore(InatObservationsAdapter.ID)
                 .get(InatObservationsAdapter.MAX_ID_KEY)).contains("1007");
     }
