@@ -247,3 +247,20 @@ rather than 14 days, per prompt §4's "may start after 14 days with `lowConfiden
 conservative (fires later, never earlier) and out of scope for this pass; re-check at checkpoint 124.
 
 Fix commit: `f63256c2f081dd0efee716c5e8b680b44feed686`
+
+---
+
+## Post-review fixes (third pass) — absence test step advance
+
+One line in `AbsenceRuleIT.unknownKeepsAlertFiring()` was wrong: it evaluated again at
+`now.plusSeconds(120)`, but the rule's window is 2h so its step is `min(window/4, 5m) = 5m`, and
+`WindowEngine.due(...)` skips any evaluation before `lastEvaluatedAt + step`. The second evaluation
+was therefore not due, no `unknown` state was written, and the assertion failed. The test now advances
+the `MutableClock` past the step (`clock.advance(Duration.ofMinutes(6))`) and evaluates at
+`clock.instant()`, so the `active -> unknown` transition (and the "alert stays firing" guard) is
+actually exercised. Commit `43d71b59c93c97ff5ffdd999e70f71ce72ba25b8`.
+
+The remediation prompt was truncated after the offending line; the fix follows its title ("advance the
+clock past the step"). No production code changed.
+
+Fix commit: `43d71b59c93c97ff5ffdd999e70f71ce72ba25b8`
