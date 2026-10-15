@@ -353,8 +353,8 @@ public class SatellitePassesGenerator implements DerivedGenerator {
 
     /** {@code t} rounded to the nearest {@value #TIME_ROUNDING_SECONDS} seconds. */
     static Instant round(Instant t) {
-        long s = t.getEpochSecond() + (t.getNano() >= 500_000_000 ? 1 : 0);
-        long rounded = Math.round(s / (double) TIME_ROUNDING_SECONDS) * TIME_ROUNDING_SECONDS;
+        // Round the whole instant to the nearest 10 s (34.9 s -> 30 s, 35.0 s -> 40 s).
+        long rounded = Math.round(t.toEpochMilli() / (TIME_ROUNDING_SECONDS * 1000.0)) * TIME_ROUNDING_SECONDS;
         return Instant.ofEpochSecond(rounded);
     }
 

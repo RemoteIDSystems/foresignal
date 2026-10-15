@@ -126,6 +126,8 @@ class SatellitePassesDerivedIT extends WeatherIngestSupport {
         runner.tickNow(ID);
         idle();
         assertThat(tombstoned(ID, first)).isTrue();
-        assertThat(live()).doesNotContain(first).hasSize(5);
+        // The 11:55 full recompute re-anchors the 48 h horizon at 11:55, so one more future pass enters
+        // the window than the 06:00 set: six live passes, the tombstoned first one gone.
+        assertThat(live()).doesNotContain(first).hasSize(6);
     }
 }
