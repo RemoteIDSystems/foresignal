@@ -103,6 +103,11 @@ public class IntelligenceEventEntity {
     @Column(name = "exposure")
     private Map<String, Object> exposure;
 
+    /** Context added by annotators (prompt 105), for example {@code {weather: …}}. */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "context")
+    private Map<String, Object> context;
+
     @Column(name = "dedup_key", length = 256)
     private String dedupKey;
 
@@ -319,6 +324,14 @@ public class IntelligenceEventEntity {
 
     public void setExposure(Map<String, Object> exposure) {
         this.exposure = exposure;
+    }
+
+    public Map<String, Object> getContext() {
+        return context;
+    }
+
+    public void setContext(Map<String, Object> context) {
+        this.context = context;
     }
 
     public String getDedupKey() {

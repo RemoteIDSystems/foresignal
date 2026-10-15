@@ -1,0 +1,41 @@
+{
+  "id": "smoke-aq",
+  "version": 1,
+  "type": "weather-impact",
+  "title": "Smoke and air quality",
+  "seed": {
+    "kinds": ["smoke-polygon"],
+    "sources": ["hms-smoke"],
+    "conditions": []
+  },
+  "joins": [
+    {
+      "kinds": ["air-quality"],
+      "sources": [],
+      "conditions": [],
+      "withinKm": 50,
+      "after": "PT3H",
+      "before": "PT3H",
+      "role": "supporting",
+      "signalFamily": "weather-hazard",
+      "weight": 0.6
+    }
+  ],
+  "minMembers": 2,
+  "minSignalFamilies": 1,
+  "activateAt": {"members": 2, "confidence": 0.4},
+  "contradictions": [
+    {
+      "kinds": ["air-quality"],
+      "sources": [],
+      "healthOf": [],
+      "withinKm": 50,
+      "window": "PT3H",
+      "alternative": "local source (traffic, industry or dust), not smoke transport"
+    }
+  ],
+  "severityMap": {"default": "warning"},
+  "dedup": {"radiusKm": 50, "window": "PT3H"},
+  "quietPeriod": "PT6H",
+  "reopenWindow": "PT72H"
+}

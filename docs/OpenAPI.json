@@ -412,6 +412,11 @@
         "version": "1.3.0",
         "date": "2026-10-14",
         "note": "094: fetchSourceNow accepts allowShrink (query) and FetchLogEntry carries runId, both as already specified. New reference-dataset sources, all disabled by default: wri-power-plants, ourairports (params types, navaids), submarine-cables (non-commercial, LOCAL_ONLY), gvp-volcanoes (non-commercial), world-port-index (ports plus buffered port-areas for 099), nps-boundaries, spaceports (GCAT), nuclear-reactors-us and nuclear-plants-wikidata. New kinds power-plant, airport, navaid, cable, cable-landing, volcano, port, port-area, park-boundary, launch-site, launch-pad, nuclear-reactor, nuclear-plant and dataset-release."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-15",
+        "note": "105: ECMWF IFS as a third forecast model (ecmwf-ifs; S3 mirror, .index range reads, CC BY 4.0); forecast-area, storm-track and storm-swath record kinds; ifs added to the forecast-series provider enum; the place-weather forecast gains ifs and disagreement. No new operations."
       }
     ]
   },
@@ -91561,10 +91566,12 @@
                 "smoke",
                 "forecast",
                 "automated",
-                "notAWarning"
+                "notAWarning",
+                "forecast.ifs",
+                "forecast.disagreement"
               ]
             },
-            "note": "externalId = place:{placeId}; one record per place, written only when the quantized payload changes (no heartbeat versions); no geometry (a place's position is sensitive). Each section (radar, hail, precip, lightning, cell, smoke, forecast.gfs) has status ok|stale|no-coverage|unavailable: when its input is older than maxGap (MRMS 6 min, GLM 2 min), comes from a failing source or lacks coverage, it keeps its previous values, sets the status and adds asOf (time of the last good data, fixed while not ok); before the first good data a section carries its status only. 999 = none within 100 km (and no approaching core for cell.eta50Min). Distances to 0.5 km below 10 km else 1 km, ETAs to 5 min, rates to 1 mm/h, dBZ to 0.5. radar.nearest50Km10m and lightning.nearestKm30m are rolling minimums. Verified-clear helpers radar.verifiedNearest50Km10m and lightning.verifiedNearestKm30m equal the metric while the section is ok and 0 otherwise, so `<= X` on them is true when near or unknown (use them for all-clear exit rules). GLM's footprint over Texas is about 8–10 km and its detection efficiency below 100%: GLM-only rules should use 15 km or more; all-clears are advisory. Tombstoned when the place is deleted (which can fire exit rules), never because input is stale. Automated guidance, never a warning. Prompt 053: precip adds qpe1hMmMax, qpe24hMmMax and ffgRatio1hPctMax (maxima within the radius, whole units); each input keeps the section rules on its own, and precip.status is the worst of the rate and of the inputs that have had data. forecast.nws = {status, popMax24h, qpf24hMm, gustMaxMs24h} from the place's nws-forecast head: stale when its forecastUpdated is older than 6 h, unavailable while nws-gridpoints is disabled or failing or has no forecast for the place.",
+            "note": "externalId = place:{placeId}; one record per place, written only when the quantized payload changes (no heartbeat versions); no geometry (a place's position is sensitive). Each section (radar, hail, precip, lightning, cell, smoke, forecast.gfs) has status ok|stale|no-coverage|unavailable: when its input is older than maxGap (MRMS 6 min, GLM 2 min), comes from a failing source or lacks coverage, it keeps its previous values, sets the status and adds asOf (time of the last good data, fixed while not ok); before the first good data a section carries its status only. 999 = none within 100 km (and no approaching core for cell.eta50Min). Distances to 0.5 km below 10 km else 1 km, ETAs to 5 min, rates to 1 mm/h, dBZ to 0.5. radar.nearest50Km10m and lightning.nearestKm30m are rolling minimums. Verified-clear helpers radar.verifiedNearest50Km10m and lightning.verifiedNearestKm30m equal the metric while the section is ok and 0 otherwise, so `<= X` on them is true when near or unknown (use them for all-clear exit rules). GLM's footprint over Texas is about 8–10 km and its detection efficiency below 100%: GLM-only rules should use 15 km or more; all-clears are advisory. Tombstoned when the place is deleted (which can fire exit rules), never because input is stale. Automated guidance, never a warning. Prompt 053: precip adds qpe1hMmMax, qpe24hMmMax and ffgRatio1hPctMax (maxima within the radius, whole units); each input keeps the section rules on its own, and precip.status is the worst of the rate and of the inputs that have had data. forecast.nws = {status, popMax24h, qpf24hMm, gustMaxMs24h} from the place's nws-forecast head: stale when its forecastUpdated is older than 6 h, unavailable while nws-gridpoints is disabled or failing or has no forecast for the place. Prompt 105: forecast.ifs = {status, gustMax24h, precip24hMm} from the IFS run; forecast.disagreement = {fields, spread, models} when GFS, HRRR (within its 18 h run) and IFS spread over the next 24 h exceeds the thresholds (gust 8 m/s, precipitation max(15 mm, half the mean), 2 m temperature 4 K), with hysteresis clearing at 75% of the threshold.",
             "example": {
               "place": "Home",
               "radiusKm": 20,
@@ -91735,6 +91742,134 @@
               "wfo": "CHS",
               "comments": "Golf ball sized hail. (CHS)",
               "title": "Hail 1.75 in — 5 WNW Oliver, GA"
+            }
+          },
+          "forecast-area": {
+            "x-foresignal-prompt": "105",
+            "payloadFields": {
+              "wx-forecast-areas": [
+                "model",
+                "field",
+                "threshold",
+                "firstExceedAt",
+                "peakValue",
+                "peakAt",
+                "areaKm2",
+                "run",
+                "status",
+                "asOf",
+                "automated",
+                "notAWarning"
+              ]
+            },
+            "note": "externalId = {model}:{field}:{op}{value}:{aoi} (e.g. ifs:gust:>=25:aoi), from the wx-forecast-areas `thresholds` parameter (product:op:value[:horizonHours], horizon at most 120 h). Per completed model run (GFS, HRRR, IFS), the polygon where the field is forecast to cross the threshold inside the places AOI: per-step masks unioned, 3x3 opening, run-rectangle union, simplified at 0.02 deg. validFrom = the first exceeding valid time; validUntil = the last exceeding valid time plus the step. areaKm2 to 2 significant figures; peakValue/peakAt quantised. Emitted only on a change of the quantised payload or of the geometry (symmetric difference over 10%); tombstoned when the exceedance disappears in a newer run. Automated, not a warning.",
+            "example": {
+              "model": "ifs",
+              "field": "gust",
+              "threshold": {
+                "op": ">=",
+                "value": 25
+              },
+              "firstExceedAt": "2026-10-15T18:00:00Z",
+              "peakValue": 29,
+              "peakAt": "2026-10-15T21:00:00Z",
+              "areaKm2": 4200,
+              "run": "2026-10-15T00:00:00Z",
+              "status": "ok",
+              "automated": true,
+              "notAWarning": true
+            }
+          },
+          "storm-track": {
+            "x-foresignal-prompt": "105",
+            "payloadFields": {
+              "wx-storm-tracks": [
+                "cell",
+                "history",
+                "motion",
+                "trend",
+                "lightningJump",
+                "nowcast",
+                "status",
+                "mergedInto",
+                "parentTrackId",
+                "detector",
+                "automated",
+                "notAWarning"
+              ]
+            },
+            "note": "externalId = t-{ulid}. TITAN-lite (detector version titan-lite-v1) association of MRMS reflectivity cells inside the places AOI (scope=conus on the large profile): each active track's polygon is advected to the new frame, cost = 1 - IoU (centroid distance fallback within 30 km per 10 min), solved with an in-house Hungarian assignment (greedy above 300 tracks); a cell overlapping two tracks merges them (the largest continues, others end with mergedInto) and a track overlapping two cells splits (children start with parentTrackId); a track absent for 2 frames ends. cell carries maxDbz (0.5), areaKm2 (2 significant figures), meshMaxMm and flashRate. history is the last 12 positions. motion.speedKmh to 5 km/h, motion.bearingDeg to 10 deg, method titan-lite-v1 with 3+ matches else centroid-v1. trend.maxDbz rising|steady|falling. lightningJump = {at, sigma, rateFpm, method 2sigma-glm-v1} for 10 minutes (advisory: GLM detection efficiency is below 100%). nowcast = +15/+30/+60 min linear-advection leads; the record geometry is a GeometryCollection of the current and nowcast polygons. Emitted on change; tombstoned 30 min after ended. Automated, not a warning.",
+            "example": {
+              "cell": {
+                "maxDbz": 58.5,
+                "areaKm2": 120,
+                "meshMaxMm": 19,
+                "flashRate": 24
+              },
+              "history": [
+                {
+                  "time": "2026-10-15T00:00:00Z",
+                  "lon": -97.5,
+                  "lat": 32.1
+                }
+              ],
+              "motion": {
+                "speedKmh": 45,
+                "bearingDeg": 250,
+                "method": "titan-lite-v1"
+              },
+              "trend": {
+                "maxDbz": "rising"
+              },
+              "lightningJump": {
+                "at": "2026-10-15T00:00:00Z",
+                "sigma": 3.2,
+                "rateFpm": 24,
+                "method": "2sigma-glm-v1"
+              },
+              "nowcast": [
+                {
+                  "leadMinutes": 15,
+                  "method": "linear-advection"
+                },
+                {
+                  "leadMinutes": 30,
+                  "method": "linear-advection"
+                },
+                {
+                  "leadMinutes": 60,
+                  "method": "linear-advection"
+                }
+              ],
+              "status": "active",
+              "detector": {
+                "name": "titan-lite",
+                "version": "titan-lite-v1"
+              },
+              "automated": true,
+              "notAWarning": true
+            }
+          },
+          "storm-swath": {
+            "x-foresignal-prompt": "105",
+            "payloadFields": {
+              "wx-storm-tracks": [
+                "trackId",
+                "meshMaxMm",
+                "durationMin",
+                "status",
+                "automated",
+                "notAWarning"
+              ]
+            },
+            "note": "externalId = the storm track's id. The union of the cell polygons along the track (its swath), plus meshMaxMm and the duration in minutes; rewritten every 10 minutes while the track is active and when it ends. Tombstoned with its track.",
+            "example": {
+              "trackId": "t-01JA8Q3V7S2K9W4T6Y1B5N0M3C",
+              "meshMaxMm": 19,
+              "durationMin": 80,
+              "status": "active",
+              "automated": true,
+              "notAWarning": true
             }
           }
         }
@@ -109833,13 +109968,14 @@
       },
       "ForecastSeries": {
         "type": "object",
-        "description": "Cached forecast series for a place (GFS/HRRR 052; NWS hourly 72 h, 053)",
+        "description": "Cached forecast series for a place (GFS/HRRR/IFS 052/105; NWS hourly 72 h, 053)",
         "properties": {
           "provider": {
             "type": "string",
             "enum": [
               "gfs",
               "hrrr",
+              "ifs",
               "nws"
             ]
           },

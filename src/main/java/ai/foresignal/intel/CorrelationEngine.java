@@ -94,6 +94,14 @@ public class CorrelationEngine implements ChangeListener, DisposableBean {
     private volatile boolean running;
     private volatile long cursor = -1;
 
+    /** The annotators that add context to new events (prompt 105); empty when none registered. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private List<EventAnnotator> annotators = List.of();
+
+    /** The derived-record heads the annotators read (prompt 105), or null. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ai.foresignal.derive.DerivedRecords derivedRecords;
+
     /** Creates the engine. */
     public CorrelationEngine(ChangeBus changeBus, JdbcTemplate jdbc, JsonMapper json, AppSettingService settings,
             RecipeRegistry recipes, IntelligenceEventRepository events, IntelEventMemberRepository members,
@@ -351,12 +359,96 @@ public class CorrelationEngine implements ChangeListener, DisposableBean {
             members.save(member);
             added++;
         }
+        applyAnnotators(event, now);
         IntelEventLogEntity logRow = new IntelEventLogEntity(event.getId(), now, "recipe:" + recipe.id(),
                 created ? "created" : "member_added");
         logRow.setAfter(Map.of("members", added, "confidence", candidate.score().confidence()));
         logs.save(logRow);
         bus.publish(new IntelEvent(logRow.getId(), event.getId(), created ? IntelEvent.CREATED : IntelEvent.UPDATED,
                 event.getVersion(), IntelEventMapper.summary(event), null));
+    }
+
+    /** Runs every annotator that applies to {@code event}, storing its context and context members. */
+    private void applyAnnotators(IntelligenceEventEntity event, Instant now) {
+        if (annotators.isEmpty() || derivedRecords == null || event.getGeom() == null || event.getGeom().isEmpty()) {
+            return;
+        }
+        Instant base = event.getStartTime() == null ? now : event.getStartTime();
+        Instant end = event.getEndTime() != null ? event.getEndTime()
+                : event.getLastEvidenceAt() != null ? event.getLastEvidenceAt() : now;
+        EventAnnotator.AnnotatorContext ctx = new EventAnnotator.AnnotatorContext(event.getGeom(),
+                base.minus(Duration.ofHours(3)), end.plus(Duration.ofHours(3)), derivedRecords);
+        Map<String, Object> context = event.getContext() == null ? new LinkedHashMap<>()
+                : new LinkedHashMap<>(event.getContext());
+        List<Map<String, Object>> alternatives = new ArrayList<>(event.getAlternatives());
+        boolean changed = false;
+        for (EventAnnotator annotator : annotators) {
+            if (!annotator.types().contains(event.getType())) {
+                continue;
+            }
+            try {
+                EventAnnotator.Result result = annotator.annotate(event, ctx);
+                if (result == null || result.isEmpty()) {
+                    continue;
+                }
+                if (result.context() != null) {
+                    context.putAll(result.context());
+                }
+                alternatives.addAll(result.alternatives());
+                for (Map<String, Object> member : result.contextMembers()) {
+                    saveContextMember(event.getId(), member, now);
+                }
+                changed = true;
+            } catch (RuntimeException e) {
+                log.warn("annotator {} failed for {}: {}", annotator.id(), event.getId(), e.getMessage());
+            }
+        }
+        if (changed) {
+            event.setContext(context);
+            event.setAlternatives(alternatives);
+            event.setUpdatedAt(now);
+            events.save(event);
+        }
+    }
+
+    /** Adds a context member if it is not already attached. */
+    private void saveContextMember(String eventId, Map<String, Object> member, Instant now) {
+        String memberType = String.valueOf(member.getOrDefault("memberType", "record"));
+        String sourceId = String.valueOf(member.get("sourceId"));
+        String externalId = String.valueOf(member.get("externalId"));
+        long seq = member.get("seq") instanceof Number n ? n.longValue() : 0L;
+        if (!members.findByEventIdAndMemberTypeAndSourceIdAndExternalIdAndSeq(eventId, memberType, sourceId, externalId,
+                seq).isEmpty()) {
+            return;
+        }
+        IntelEventMemberEntity entity = new IntelEventMemberEntity(eventId, memberType, sourceId, externalId, seq);
+        entity.setRole(String.valueOf(member.getOrDefault("role", "context")));
+        entity.setVersion(member.get("version") instanceof Number n ? n.intValue() : 0);
+        entity.setKind(String.valueOf(member.getOrDefault("kind", "")));
+        entity.setObservedAt(parseInstant(member.get("observedAt")));
+        entity.setJoinReason(asMap(member.get("joinReason")));
+        entity.setSignalFamily(member.get("signalFamily") == null ? null : String.valueOf(member.get("signalFamily")));
+        entity.setWeight(member.get("weight") instanceof Number n ? n.doubleValue() : 0.0);
+        entity.setSnapshot(asMap(member.get("snapshot")));
+        entity.setAddedAt(now);
+        entity.setAddedBy("annotator");
+        members.save(entity);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> asMap(Object value) {
+        return value instanceof Map<?, ?> m ? (Map<String, Object>) m : Map.of();
+    }
+
+    private static Instant parseInstant(Object value) {
+        if (value == null || "null".equals(value)) {
+            return null;
+        }
+        try {
+            return Instant.parse(value.toString());
+        } catch (RuntimeException e) {
+            return null;
+        }
     }
 
     // ------------------------------------------------------------------------- helpers

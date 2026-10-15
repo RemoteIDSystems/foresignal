@@ -86,6 +86,9 @@ class FamilyDefaultsTest {
                     new ai.foresignal.raster.model.ModelRunIngest(null, null), "").descriptor(), "raster")),
             Map.entry("HrrrAdapter", new Entry(new ai.foresignal.source.adapters.hrrr.HrrrAdapter(
                     new ai.foresignal.raster.model.ModelRunIngest(null, null), "small", "").descriptor(), "raster")),
+            // Prompt 105: ECMWF IFS, the third forecast model.
+            Map.entry("EcmwfAdapter", new Entry(new ai.foresignal.source.adapters.ecmwf.EcmwfAdapter(
+                    new ai.foresignal.raster.model.EcmwfRunIngest(null, null), "").descriptor(), "raster")),
             Map.entry("NwsAlertsAdapter", new Entry(new NwsAlertsAdapter((CountyGeometries) null, "").descriptor(), "event")),
             Map.entry("ProbSevereAdapter", new Entry(new ProbSevereAdapter((AreaOfInterest) null, "").descriptor(), "weather")),
             Map.entry("SpcOutlooksAdapter", new Entry(new SpcOutlooksAdapter("").descriptor(), "weather")),
@@ -254,6 +257,11 @@ class FamilyDefaultsTest {
                     new ai.foresignal.source.adapters.wx.WxAreasGenerator().descriptor(), "weather")),
             Map.entry("WxCellsGenerator", new Entry(
                     new ai.foresignal.source.adapters.wx.WxCellsGenerator("small").descriptor(), "weather")),
+            // Prompt 105: forecast threshold areas and TITAN-lite storm tracks.
+            Map.entry("WxForecastAreasGenerator", new Entry(
+                    new ai.foresignal.source.adapters.wx.WxForecastAreasGenerator().descriptor(), "weather")),
+            Map.entry("WxStormTracksGenerator", new Entry(
+                    new ai.foresignal.source.adapters.wx.WxStormTracksGenerator("small").descriptor(), "weather")),
             // Checkpoint 057: the SatDump station source (049), one per station, was missing. Its three kinds keep
             // their own §2.4 windows (ground-station 30 d, satellite-pass 365 d, raster-frame 7 d).
             // Prompt 080: the rail and supplemental aircraft sources are TRACK (trackWindow, never a default).
@@ -547,6 +555,10 @@ class FamilyDefaultsTest {
             Map.entry("place-weather", Duration.ofDays(14)),
             Map.entry("wx-area", Duration.ofDays(7)),
             Map.entry("radar-cell", Duration.ofDays(3)),
+            // Prompt 105: forecast areas and storm tracks/swaths (owner-chosen windows, §7.1).
+            Map.entry("forecast-area", Duration.ofDays(7)),
+            Map.entry("storm-track", Duration.ofDays(3)),
+            Map.entry("storm-swath", Duration.ofDays(3)),
             Map.entry("storm-report", Duration.ofDays(30)),
             Map.entry("nws-forecast", Duration.ofDays(7)),
             // Prompt 087: TAFs, kept as long as METARs; not in §2.4 (owner question in the 087 report).

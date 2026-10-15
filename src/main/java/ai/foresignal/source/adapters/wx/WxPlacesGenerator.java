@@ -8,6 +8,7 @@ import ai.foresignal.derive.RasterFrameEvent;
 import ai.foresignal.place.PlaceView;
 import ai.foresignal.raster.RasterFrameRow;
 import ai.foresignal.raster.sample.FrameView;
+import ai.foresignal.raster.sample.ModelDisagreement;
 import ai.foresignal.raster.sample.PlaceGridIndex;
 import ai.foresignal.source.HealthStatus;
 import ai.foresignal.source.spi.Budget;
@@ -102,6 +103,21 @@ public class WxPlacesGenerator implements DerivedGenerator {
     /** GFS accumulated precipitation (run total). */
     public static final String GFS_APCP = "gfs-apcp";
 
+    /** GFS 2 m temperature (prompt 105, for the disagreement flag). */
+    public static final String GFS_T2M = "gfs-t2m";
+
+    /** HRRR gusts (prompt 105, for the disagreement flag). */
+    public static final String HRRR_GUST = "hrrr-gust";
+
+    /** IFS gusts (prompt 105). */
+    public static final String IFS_GUST = "ifs-gust";
+
+    /** IFS 2 m temperature (prompt 105). */
+    public static final String IFS_T2M = "ifs-t2m";
+
+    /** IFS 24-hour precipitation (prompt 105). */
+    public static final String IFS_PRECIP_24H = "ifs-precip-24h";
+
     /** The radar-cell source. */
     public static final String CELLS = "wx-cells";
 
@@ -187,7 +203,8 @@ public class WxPlacesGenerator implements DerivedGenerator {
     @Override
     public DerivedInputs inputs(ValidatedParams params) {
         return new DerivedInputs(Set.of(CELLS, NWS), Set.of(WxCellsGenerator.KIND, NWS_KIND),
-                Set.of(REFLECTIVITY, MESH, PRECIP, QPE_1H, QPE_24H, FFG, SMOKE, "gfs", GFS_GUST, "gfs-t2m", GFS_APCP),
+                Set.of(REFLECTIVITY, MESH, PRECIP, QPE_1H, QPE_24H, FFG, SMOKE, "gfs", GFS_GUST, GFS_T2M, GFS_APCP,
+                        HRRR_GUST, IFS_GUST, IFS_T2M, IFS_PRECIP_24H),
                 TICK, true);
     }
 
@@ -236,6 +253,8 @@ public class WxPlacesGenerator implements DerivedGenerator {
             case QPE_1H, QPE_24H, FFG -> updatePrecipPart(ctx, now, false, event.productId());
             case SMOKE -> updateSmoke(ctx, now, event.complete());
             case GFS_GUST, GFS_APCP -> updateGfs(ctx, now, event.complete());
+            case IFS_GUST, IFS_PRECIP_24H -> updateIfs(ctx, now, event.complete());
+            case HRRR_GUST, GFS_T2M, IFS_T2M -> updateDisagreement(ctx, now, event.complete());
             default -> {
                 // gfs winds and t2m feed the forecast series, not the record.
             }
@@ -332,6 +351,8 @@ public class WxPlacesGenerator implements DerivedGenerator {
         updateCells(ctx, now);
         updateSmoke(ctx, now, force);
         updateGfs(ctx, now, force);
+        updateIfs(ctx, now, force);
+        updateDisagreement(ctx, now, force);
         updateNws(ctx, now);
     }
 
@@ -671,6 +692,116 @@ public class WxPlacesGenerator implements DerivedGenerator {
             }
             p.gfs.good(m, gust.run());
         }
+    }
+
+    /** {@code forecast.ifs} (prompt 105): the IFS gust and precipitation over the next 24 h. */
+    void updateIfs(DerivedContext ctx, Instant now, boolean force) {
+        WxInput gust = WxInput.forecast(ctx, IFS_GUST, RUN_MAX_AGE, now);
+        if (!gust.ok()) {
+            places.values().forEach(p -> p.ifs.notOk(gust.status()));
+            return;
+        }
+        List<PlaceWeatherState> todo = places.values().stream()
+                .filter(p -> force || !gust.run().equals(p.ifsRun) || !p.ifs.ok()).toList();
+        if (todo.isEmpty()) {
+            return;
+        }
+        double[] gustMax = windowMax(ctx, IFS_GUST, gust.run(), now, todo);
+        WxInput precip = WxInput.forecast(ctx, IFS_PRECIP_24H, RUN_MAX_AGE, now);
+        double[] p24 = precip.ok() ? windowMax(ctx, IFS_PRECIP_24H, precip.run(), now, todo) : null;
+        for (int i = 0; i < todo.size(); i++) {
+            PlaceWeatherState p = todo.get(i);
+            p.ifsRun = gust.run();
+            if (Double.isNaN(gustMax[i])) {
+                p.ifs.notOk(WxSection.NO_COVERAGE);
+                continue;
+            }
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("gustMax24h", WxRound.whole(gustMax[i]));
+            if (p24 != null && !Double.isNaN(p24[i])) {
+                m.put("precip24hMm", WxRound.whole(Math.max(0, p24[i])));
+            }
+            p.ifs.good(m, gust.run());
+        }
+    }
+
+    /**
+     * {@code forecast.disagreement} (prompt 105): the spread of GFS, HRRR (within its 18-hour run) and IFS
+     * over the next 24 h, with hysteresis so a value at the threshold does not churn.
+     */
+    void updateDisagreement(DerivedContext ctx, Instant now, boolean force) {
+        WxInput gfsGust = WxInput.forecast(ctx, GFS_GUST, RUN_MAX_AGE, now);
+        WxInput gfsT2m = WxInput.forecast(ctx, GFS_T2M, RUN_MAX_AGE, now);
+        WxInput gfsApcp = WxInput.forecast(ctx, GFS_APCP, RUN_MAX_AGE, now);
+        WxInput hrrrGust = WxInput.forecast(ctx, HRRR_GUST, RUN_MAX_AGE, now);
+        WxInput ifsGust = WxInput.forecast(ctx, IFS_GUST, RUN_MAX_AGE, now);
+        WxInput ifsT2m = WxInput.forecast(ctx, IFS_T2M, RUN_MAX_AGE, now);
+        WxInput ifsPrecip = WxInput.forecast(ctx, IFS_PRECIP_24H, RUN_MAX_AGE, now);
+        String key = "" + run(gfsGust) + "|" + run(gfsT2m) + "|" + run(gfsApcp) + "|" + run(hrrrGust) + "|"
+                + run(ifsGust) + "|" + run(ifsT2m) + "|" + run(ifsPrecip);
+        boolean stale = places.values().stream().anyMatch(p -> !key.equals(p.disagreementKey));
+        if (!force && !stale) {
+            return;
+        }
+        List<PlaceWeatherState> todo = new ArrayList<>(places.values());
+        double[] gfsGustMax = gfsGust.ok() ? windowMax(ctx, GFS_GUST, gfsGust.run(), now, todo) : null;
+        double[] hrrrGustMax = hrrrGust.ok() ? windowMax(ctx, HRRR_GUST, hrrrGust.run(), now, todo) : null;
+        double[] ifsGustMax = ifsGust.ok() ? windowMax(ctx, IFS_GUST, ifsGust.run(), now, todo) : null;
+        double[] gfsT2mMax = gfsT2m.ok() ? windowMax(ctx, GFS_T2M, gfsT2m.run(), now, todo) : null;
+        double[] ifsT2mMax = ifsT2m.ok() ? windowMax(ctx, IFS_T2M, ifsT2m.run(), now, todo) : null;
+        double[] gfsP24 = gfsApcp.ok() ? precip24h(ctx, gfsApcp.run(), now, todo) : null;
+        double[] ifsP24 = ifsPrecip.ok() ? windowMax(ctx, IFS_PRECIP_24H, ifsPrecip.run(), now, todo) : null;
+        for (int i = 0; i < todo.size(); i++) {
+            PlaceWeatherState p = todo.get(i);
+            Map<String, Map<String, Double>> values = new LinkedHashMap<>();
+            values.put("gust", modelValues(maximaMap("gfs", gfsGustMax, "hrrr", hrrrGustMax, "ifs", ifsGustMax), i));
+            values.put("t2mMax", modelValues(maximaMap("gfs", gfsT2mMax, "ifs", ifsT2mMax), i));
+            values.put("precip24h", modelValues(maximaMap("gfs", gfsP24, "ifs", ifsP24), i));
+            Map<String, Object> block = ModelDisagreement.compute(values, p.disagreementSpread);
+            p.disagreement = block;
+            p.disagreementSpread = new LinkedHashMap<>();
+            if (block != null && block.get("spread") instanceof Map<?, ?> spread) {
+                for (Map.Entry<?, ?> e : spread.entrySet()) {
+                    if (e.getValue() instanceof Number n) {
+                        p.disagreementSpread.put(e.getKey().toString(), n.doubleValue());
+                    }
+                }
+            }
+            p.disagreementKey = key;
+        }
+    }
+
+    private static Map<String, double[]> maximaMap(String model1, double[] array1, String model2, double[] array2,
+            String model3, double[] array3) {
+        Map<String, double[]> out = new LinkedHashMap<>();
+        if (array1 != null) {
+            out.put(model1, array1);
+        }
+        if (array2 != null) {
+            out.put(model2, array2);
+        }
+        if (array3 != null) {
+            out.put(model3, array3);
+        }
+        return out;
+    }
+
+    private static Map<String, double[]> maximaMap(String model1, double[] array1, String model2, double[] array2) {
+        return maximaMap(model1, array1, model2, array2, "", null);
+    }
+
+    private static Map<String, Double> modelValues(Map<String, double[]> maxima, int index) {
+        Map<String, Double> out = new LinkedHashMap<>();
+        maxima.forEach((model, array) -> {
+            if (array != null && index < array.length && !Double.isNaN(array[index])) {
+                out.put(model, array[index]);
+            }
+        });
+        return out;
+    }
+
+    private static String run(WxInput input) {
+        return input.ok() || input.run() != null ? String.valueOf(input.run()) : "none";
     }
 
     /** Per place, the maximum of a forecast product over the next 24 h of a run (NaN off the grid). */

@@ -3701,6 +3701,36 @@ complete, successful response no longer contains it. When a feed is down its rec
 their own, and the source shows `degraded`. Rule recipes are in the Agent Guide, "Weather alerts", and for the
 derived place weather below, "Weather alerts".
 
+## ECMWF IFS, forecast areas and storm tracking (prompt 105)
+
+**`ecmwf-ifs`** adds the ECMWF IFS 0.25° open-data model as a third forecast alongside GFS and HRRR. It reads the
+`ecmwf-forecasts` S3 mirror (falling back to `data.ecmwf.int/forecasts` by editing the `pathTemplate`), plans byte
+ranges from each step's JSON `.index`, and costs about **0.5–1 GB/day** (20/min, 3,000/day, 1,200 MB/day; one
+20-minute check, 00z and 12z, steps 0–144 by 3). Products: `ifs` (10 m wind), `ifs-gust`, `ifs-t2m`, `ifs-mslp`,
+`ifs-precip-3h` and `ifs-precip-24h`. The whole real-time catalogue is CC BY 4.0: **every derived output carries the
+"Contains modified Copernicus/ECMWF data … changes made" attribution**. The 00z/12z run appears about 7 h after its
+reference time.
+
+**`wx-forecast-areas`** (`forecast-area` records) thresholds a model field over the places AOI on each completed run:
+the polygon where it is forecast to cross the threshold within the `thresholds` horizon (default 120 h, at most 120).
+Defaults cover gust ≥ 20 and ≥ 25 m/s, 24-hour precipitation ≥ 50 mm and 2 m temperature ≥ 313.15 K (40 °C) and
+≤ 263.15 K (−10 °C) for GFS, HRRR and IFS where the product exists. `validFrom` is the first exceeding valid time and
+`validUntil` the last exceeding valid time plus the step, so a `forecast-area` rule can use `forecastHorizon`. A
+typical recipe: "IFS gust ≥ 25 m/s within 48 h at home" is `kind=forecast-area`, `near{home}`, `forecastHorizon 48h`,
+`enter`.
+
+**`wx-storm-tracks`** (`storm-track`, `storm-swath`) tracks MRMS storm cells with TITAN-lite: advected-polygon IoU
+with a Hungarian assignment, merges and splits. Limits: it runs on the 2-minute MRMS frames inside the places AOI
+(`scope=conus` on the large profile only), the nowcast is a straight **linear advection** of +15/+30/+60 min, and the
+GLM lightning-jump flag (`2sigma-glm-v1`) is **advisory** — GLM's footprint over Texas is about 8–10 km and its
+detection efficiency is below 100%. `storm-swath` is the union of the cells along the track. Automated, not a warning.
+
+**Annotators.** `outage-weather` adds `context.weather` (NWS warnings, radar ≥ 50 dBZ areas and storm tracks within
+±3 h and 25 km) to `infrastructure-disruption` and `weather-impact` events as **context members** — background, never
+supporting evidence, so they never raise confidence — and adds the alternative "weather-related damage". The
+weather-impact recipes `dry-lightning-ignition`, `airport-weather` and `smoke-aq` create events from weather
+co-occurrences.
+
 ## Lightning and fire
 
 Prompt 048 adds four more sources (installed disabled):

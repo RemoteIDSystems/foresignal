@@ -25,8 +25,9 @@ import java.util.Locale;
  * candidate by its {@code .idx} existing; the clock alone never decides.
  *
  * <p>Object keys come from a path template with the tokens {@code {yyyyMMdd}}, {@code {HH}},
- * {@code {FFF}} (three-digit step) and {@code {FF}} (two-digit step), so a GFSv17 layout change is a
- * setting, not a release.
+ * {@code {FFF}} (three-digit step), {@code {FF}} (two-digit step) and {@code {step}} (unpadded step,
+ * prompt 105: ECMWF writes {@code 20261015000000-6h-oper-fc.grib2}), so a GFSv17 or an ECMWF layout
+ * change is a setting, not a release.
  */
 public final class ModelCycleSelector {
 
@@ -91,6 +92,7 @@ public final class ModelCycleSelector {
         ZonedDateTime t = cycle.atZone(ZoneOffset.UTC);
         return template.replace("{yyyyMMdd}", DAY.format(t))
                 .replace("{HH}", String.format(Locale.ROOT, "%02d", t.getHour()))
+                .replace("{step}", Integer.toString(step))
                 .replace("{FFF}", String.format(Locale.ROOT, "%03d", step))
                 .replace("{FF}", String.format(Locale.ROOT, "%02d", step));
     }

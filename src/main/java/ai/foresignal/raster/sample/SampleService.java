@@ -340,7 +340,49 @@ public class SampleService implements RasterReader, ai.foresignal.ingest.IngestS
             values.add(value(product, point, time, run, imperial, now).toMap());
         }
         out.put("values", values);
+        Map<String, Object> disagreement = disagreement(values);
+        if (disagreement != null) {
+            out.put("disagreement", disagreement);
+        }
         return out;
+    }
+
+    /**
+     * The model-disagreement block of a sample (prompt 105): when two or more model products (gust, 24-hour
+     * precipitation or 2 m temperature) are sampled together, their spread over the fields that disagree.
+     * Null when fewer than two models or none disagree.
+     */
+    static Map<String, Object> disagreement(List<Map<String, Object>> values) {
+        Map<String, Map<String, Double>> fields = new LinkedHashMap<>();
+        for (Map<String, Object> v : values) {
+            Object productId = v.get("productId");
+            Object value = v.get("value");
+            if (!(productId instanceof String id) || !(value instanceof Number n) || !"ok".equals(v.get("status"))) {
+                continue;
+            }
+            String field = disagreementField(id);
+            if (field == null) {
+                continue;
+            }
+            int dash = id.indexOf('-');
+            String model = dash < 0 ? id : id.substring(0, dash);
+            fields.computeIfAbsent(field, k -> new LinkedHashMap<>()).put(model, n.doubleValue());
+        }
+        return ModelDisagreement.compute(fields, Map.of());
+    }
+
+    /** The disagreement field of a model product id, or null when it is not one. */
+    static String disagreementField(String productId) {
+        if (productId.endsWith("-gust")) {
+            return "gust";
+        }
+        if (productId.endsWith("-t2m")) {
+            return "t2mMax";
+        }
+        if ("ifs-precip-24h".equals(productId)) {
+            return "precip24h";
+        }
+        return null;
     }
 
     /**

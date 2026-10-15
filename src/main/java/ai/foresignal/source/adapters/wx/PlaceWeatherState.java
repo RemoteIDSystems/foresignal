@@ -60,6 +60,15 @@ public final class PlaceWeatherState {
     /** {@code forecast.nws} (prompt 053). */
     final WxSection nws;
 
+    /** {@code forecast.ifs} (prompt 105): IFS gust and precipitation over the next 24 h. */
+    WxSection ifs = new WxSection();
+
+    /** {@code forecast.disagreement} (prompt 105), or null when the models agree. */
+    Map<String, Object> disagreement;
+
+    /** Previous disagreement spread per field, for hysteresis. */
+    Map<String, Double> disagreementSpread = new LinkedHashMap<>();
+
     /** {@code (validTime ms, nearest50Km)} of recent reflectivity frames, oldest first. */
     final ArrayDeque<long[]> radarHistory = new ArrayDeque<>();
 
@@ -71,6 +80,8 @@ public final class PlaceWeatherState {
     String ffgFrame;
     Instant smokeRun;
     Instant gfsRun;
+    Instant ifsRun;
+    String disagreementKey;
 
     /** A new place with fresh sections. */
     public PlaceWeatherState(String placeId, String name, double radiusKm, double lon, double lat, int version) {
@@ -124,8 +135,10 @@ public final class PlaceWeatherState {
         Object forecast = payload.get("forecast");
         Object gfs = forecast instanceof Map<?, ?> f ? ((Map<String, Object>) f).get("gfs") : null;
         Object nws = forecast instanceof Map<?, ?> f ? ((Map<String, Object>) f).get("nws") : null;
+        Object ifs = forecast instanceof Map<?, ?> f ? ((Map<String, Object>) f).get("ifs") : null;
+        Object disagreement = forecast instanceof Map<?, ?> f ? ((Map<String, Object>) f).get("disagreement") : null;
         Object precip = payload.get("precip");
-        return new PlaceWeatherState(placeId, name, radiusKm, lon, lat, version,
+        PlaceWeatherState s = new PlaceWeatherState(placeId, name, radiusKm, lon, lat, version,
                 WxSection.restore(strip(payload.get("radar"), "verifiedNearest50Km10m"), observedAt),
                 WxSection.restore(payload.get("hail"), observedAt),
                 WxSection.restore(precipPart(precip, RATE_KEY, true), observedAt),
@@ -137,6 +150,19 @@ public final class PlaceWeatherState {
                 WxSection.restore(precipPart(precip, QPE_24H_KEY, false), observedAt),
                 WxSection.restore(precipPart(precip, FFG_KEY, false), observedAt),
                 WxSection.restore(nws, observedAt));
+        s.ifs = WxSection.restore(ifs, observedAt);
+        if (disagreement instanceof Map<?, ?> d) {
+            s.disagreement = (Map<String, Object>) d;
+            Object spread = d.get("spread");
+            if (spread instanceof Map<?, ?> sp) {
+                for (Map.Entry<?, ?> e : sp.entrySet()) {
+                    if (e.getValue() instanceof Number n) {
+                        s.disagreementSpread.put(e.getKey().toString(), n.doubleValue());
+                    }
+                }
+            }
+        }
+        return s;
     }
 
     /** {@code precip.rateMmH}. */
@@ -231,6 +257,11 @@ public final class PlaceWeatherState {
         ffgFrame = null;
         smokeRun = null;
         gfsRun = null;
+        ifsRun = null;
+        disagreementKey = null;
+        disagreement = null;
+        disagreementSpread.clear();
+        ifs.clear();
     }
 
     /**
@@ -307,7 +338,11 @@ public final class PlaceWeatherState {
         p.put("smoke", smoke.toMap());
         Map<String, Object> forecast = new LinkedHashMap<>();
         forecast.put("gfs", gfs.toMap());
+        forecast.put("ifs", ifs.toMap());
         forecast.put("nws", nws.toMap());
+        if (disagreement != null) {
+            forecast.put("disagreement", disagreement);
+        }
         p.put("forecast", forecast);
         p.put("automated", true);
         p.put("notAWarning", true);

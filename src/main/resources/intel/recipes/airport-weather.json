@@ -1,0 +1,41 @@
+{
+  "id": "airport-weather",
+  "version": 1,
+  "type": "weather-impact",
+  "title": "Airport weather",
+  "seed": {
+    "kinds": ["storm-track"],
+    "sources": ["wx-storm-tracks"],
+    "conditions": []
+  },
+  "joins": [
+    {
+      "kinds": ["airport-delay", "airport"],
+      "sources": ["faa-nas-status", "ourairports"],
+      "conditions": [],
+      "withinKm": 10,
+      "after": "PT3H",
+      "before": "PT3H",
+      "role": "supporting",
+      "signalFamily": "weather-hazard",
+      "weight": 0.5
+    }
+  ],
+  "minMembers": 2,
+  "minSignalFamilies": 1,
+  "activateAt": {"members": 2, "confidence": 0.4},
+  "contradictions": [
+    {
+      "kinds": [],
+      "sources": [],
+      "healthOf": ["faa-nas-status"],
+      "withinKm": 10,
+      "window": "PT3H",
+      "alternative": "delay unrelated to weather"
+    }
+  ],
+  "severityMap": {"default": "info"},
+  "dedup": {"radiusKm": 10, "window": "PT3H"},
+  "quietPeriod": "PT3H",
+  "reopenWindow": "PT72H"
+}

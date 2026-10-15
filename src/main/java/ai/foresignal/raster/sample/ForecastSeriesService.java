@@ -34,8 +34,8 @@ import org.springframework.stereotype.Service;
 @Service
 public class ForecastSeriesService {
 
-    /** The providers this prompt serves. */
-    public static final List<String> PROVIDERS = List.of("gfs", "hrrr", "nws");
+    /** The providers this service serves (prompt 105 adds {@code ifs}). */
+    public static final List<String> PROVIDERS = List.of("gfs", "hrrr", "ifs", "nws");
 
     /** The source behind the {@code nws} provider. */
     public static final String NWS_SOURCE = "nws-gridpoints";
@@ -72,6 +72,7 @@ public class ForecastSeriesService {
         return switch (provider) {
             case "gfs" -> new String[] {"gfs", "gfs-gust", "gfs-t2m", "gfs-apcp", null};
             case "hrrr" -> new String[] {"hrrr", "hrrr-gust", null, null, "hrrr-smoke"};
+            case "ifs" -> new String[] {"ifs", "ifs-gust", "ifs-t2m", null, null};
             default -> throw new IllegalArgumentException("Unknown forecast provider " + provider);
         };
     }
@@ -94,7 +95,7 @@ public class ForecastSeriesService {
     public List<Map<String, Object>> series(String placeId, double lon, double lat, java.util.Set<String> excludedSources) {
         List<Map<String, Object>> out = new ArrayList<>();
         for (String provider : PROVIDERS) {
-            String source = "nws".equals(provider) ? NWS_SOURCE : provider;
+            String source = sourceOf(provider);
             if (excludedSources != null && excludedSources.contains(source)) {
                 continue;
             }
@@ -102,6 +103,15 @@ public class ForecastSeriesService {
             s.ifPresent(out::add);
         }
         return out;
+    }
+
+    /** The owning source of a provider (prompt 105: {@code ifs} is owned by {@code ecmwf-ifs}). */
+    public static String sourceOf(String provider) {
+        return switch (provider) {
+            case "nws" -> NWS_SOURCE;
+            case "ifs" -> "ecmwf-ifs";
+            default -> provider;
+        };
     }
 
     /** A place's cached NWS series, trimmed to the current hour on; empty without a place or a cached row. */

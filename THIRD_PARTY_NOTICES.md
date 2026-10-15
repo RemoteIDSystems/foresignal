@@ -513,7 +513,10 @@ below. Temaki names are rewritten from underscores to hyphens, and a few aliases
 
 - **ECMWF:** one message of the IFS open-data forecast of 2026-10-12 00z (land-sea mask). License: Creative Commons
   Attribution 4.0 (<https://creativecommons.org/licenses/by/4.0/>). Attribution: "Copyright © 2026 European Centre for
-  Medium-Range Weather Forecasts (ECMWF). Source: www.ecmwf.int", unmodified.
+  Medium-Range Weather Forecasts (ECMWF). Source: www.ecmwf.int", unmodified. The `ecmwf-ifs` source (prompt 105)
+  ingests the whole real-time IFS 0.25° catalogue under the same CC BY 4.0 licence; its derived outputs carry
+  "Contains modified Copernicus/ECMWF data: ECMWF open data, CC BY 4.0. Changes made: resampled, quantised, derived
+  fields."
 - **NOAA:** one GFS message (NOAA/NCEP), one MRMS field (NOAA/NSSL) and one GOES-19 ABI file (NOAA), all US public
   domain, from the NOAA Open Data Dissemination buckets on AWS.
 

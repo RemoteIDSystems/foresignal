@@ -16,6 +16,7 @@ import ai.foresignal.mcp.ToolContext;
 import ai.foresignal.mcp.ToolResult;
 import ai.foresignal.raster.sample.ForecastSeriesService;
 import ai.foresignal.raster.sample.SampleService;
+import ai.foresignal.raster.sample.TimeSpec;
 import ai.foresignal.security.Scope;
 import java.time.Duration;
 import java.time.Instant;
@@ -43,6 +44,10 @@ public class WeatherForecastTool implements ForesignalMcpTool {
 
     /** The default and largest horizon, hours. */
     static final int MAX_HOURS = 120;
+
+    /** The model products compared for the disagreement block (prompt 105). */
+    static final List<String> DISAGREEMENT_PRODUCTS = List.of("gfs-gust", "hrrr-gust", "ifs-gust", "gfs-t2m",
+            "ifs-t2m", "ifs-precip-24h");
 
     static final Map<String, Object> INPUT = object(props(
             "lon", number("Longitude, WGS84 degrees (with lat).", -180, 180),
@@ -125,7 +130,8 @@ public class WeatherForecastTool implements ForesignalMcpTool {
             p.put("provider", provider);
             p.put("run", (String) series.get("run"));
             p.put("status", String.valueOf(series.get("status")));
-            p.put("coverage", "gfs".equals(provider) ? "global" : "nws".equals(provider) ? "place" : "CONUS");
+            p.put("coverage", "gfs".equals(provider) || "ifs".equals(provider) ? "global"
+                    : "nws".equals(provider) ? "place" : "CONUS");
             if (series.get("updatedAt") != null) {
                 p.put("updatedAt", String.valueOf(series.get("updatedAt")));
             }
@@ -161,6 +167,16 @@ public class WeatherForecastTool implements ForesignalMcpTool {
                 }
                 items.add(step);
             }
+        }
+        // Prompt 105: the model-disagreement block when the model products can be sampled.
+        try {
+            Map<String, Object> sample = samples.sample(point, DISAGREEMENT_PRODUCTS, TimeSpec.NOW, null, false,
+                    context.excludedSources());
+            if (sample.get("disagreement") instanceof Map<?, ?> disagreement) {
+                out.set("disagreement", support.tree((Map<String, Object>) disagreement));
+            }
+        } catch (RuntimeException e) {
+            // Some model products are not installed; the forecast is still served.
         }
         return ToolResult.json(shaper.object(out, detail));
     }

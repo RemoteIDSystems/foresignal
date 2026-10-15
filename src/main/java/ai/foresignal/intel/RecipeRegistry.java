@@ -29,7 +29,7 @@ public class RecipeRegistry {
 
     /** The bundled recipes, by resource name. */
     public static final List<String> BUNDLED = List.of("maritime-disruption", "aviation-anomaly",
-            "infrastructure-disruption");
+            "infrastructure-disruption", "dry-lightning-ignition", "airport-weather", "smoke-aq");
 
     private static final String DIR = "/intel/recipes/";
 

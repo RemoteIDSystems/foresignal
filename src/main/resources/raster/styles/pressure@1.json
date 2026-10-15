@@ -1,0 +1,74 @@
+{
+  "id": "pressure",
+  "version": 1,
+  "type": "continuous",
+  "units": "Pa",
+  "stops": [
+    {
+      "value": 98000.0,
+      "color": "#053061",
+      "label": null
+    },
+    {
+      "value": 99000.0,
+      "color": "#2166ac",
+      "label": null
+    },
+    {
+      "value": 100000.0,
+      "color": "#67a9cf",
+      "label": null
+    },
+    {
+      "value": 101000.0,
+      "color": "#d1e5f0",
+      "label": null
+    },
+    {
+      "value": 101500.0,
+      "color": "#f7f7f7",
+      "label": null
+    },
+    {
+      "value": 102000.0,
+      "color": "#fddbc7",
+      "label": null
+    },
+    {
+      "value": 103000.0,
+      "color": "#ef8a62",
+      "label": null
+    },
+    {
+      "value": 104000.0,
+      "color": "#b2182b",
+      "label": null
+    }
+  ],
+  "categories": [],
+  "specials": [
+    {
+      "kind": "noCoverage",
+      "color": "transparent",
+      "label": "No coverage"
+    },
+    {
+      "kind": "noData",
+      "color": "transparent",
+      "label": "No data"
+    }
+  ],
+  "meaning": [
+    {
+      "min": null,
+      "max": 100000.0,
+      "text": "Below 1000 hPa: a low"
+    },
+    {
+      "min": 102000.0,
+      "max": null,
+      "text": "Above 1020 hPa: a high"
+    }
+  ],
+  "notice": "Pressure for ECMWF IFS mean sea level pressure (Foresignal)"
+}

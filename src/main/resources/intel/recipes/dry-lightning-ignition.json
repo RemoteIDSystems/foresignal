@@ -1,0 +1,49 @@
+{
+  "id": "dry-lightning-ignition",
+  "version": 1,
+  "type": "weather-impact",
+  "title": "Dry-lightning ignition",
+  "seed": {
+    "kinds": ["lightning-cluster"],
+    "sources": ["goes-glm"],
+    "conditions": []
+  },
+  "joins": [
+    {
+      "kinds": ["fire-detection"],
+      "sources": ["nasa-firms", "goes-fdc", "hms-fire"],
+      "conditions": [],
+      "withinKm": 10,
+      "after": "PT48H",
+      "before": "PT6H",
+      "role": "supporting",
+      "signalFamily": "fire",
+      "weight": 0.6
+    }
+  ],
+  "minMembers": 2,
+  "minSignalFamilies": 1,
+  "activateAt": {"members": 2, "confidence": 0.4},
+  "contradictions": [
+    {
+      "kinds": [],
+      "sources": [],
+      "healthOf": ["goes-glm"],
+      "withinKm": 10,
+      "window": "PT48H",
+      "alternative": "human-caused or unrelated ignition"
+    },
+    {
+      "kinds": [],
+      "sources": [],
+      "healthOf": ["goes-fdc"],
+      "withinKm": 10,
+      "window": "PT48H",
+      "alternative": "fire existed before the lightning but was undetected"
+    }
+  ],
+  "severityMap": {"default": "warning"},
+  "dedup": {"radiusKm": 10, "window": "PT48H"},
+  "quietPeriod": "PT6H",
+  "reopenWindow": "PT72H"
+}
