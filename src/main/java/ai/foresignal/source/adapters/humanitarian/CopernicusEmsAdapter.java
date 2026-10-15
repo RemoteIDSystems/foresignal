@@ -53,6 +53,9 @@ public final class CopernicusEmsAdapter implements PollingAdapter {
 
     static final Duration RETENTION = Duration.ofDays(1825);
 
+    /** The page size requested from the activations endpoint. */
+    static final int PAGE_SIZE = 50;
+
     private static final JsonMapper JSON = JsonMapper.builder().build();
 
     private final URI baseUrl;
@@ -79,7 +82,7 @@ public final class CopernicusEmsAdapter implements PollingAdapter {
         int offset = 0;
         while (true) {
             UpstreamResponse response = ctx.http().get(URI.create(baseUrl
-                    + "/backend/dashboard-api/public-activations-info/?limit=50&offset=" + offset));
+                    + "/backend/dashboard-api/public-activations-info/?limit=" + PAGE_SIZE + "&offset=" + offset));
             if (response.status() != 200) {
                 throw new UpstreamFormatException("Copernicus EMS answered HTTP " + response.status(), "");
             }
@@ -88,20 +91,33 @@ public final class CopernicusEmsAdapter implements PollingAdapter {
             if (results == null || !results.isArray() || results.isEmpty()) {
                 break;
             }
+            // A short page is the last one; the upstream's `next` link is followed only while pages
+            // are full, so a static or missing `next` cannot loop forever.
+            boolean lastPage = results.size() < PAGE_SIZE;
+            // Newest-updated first, so processing stops at the watermark and the expensive per-code
+            // detail is fetched only for activations whose lastUpdate changed.
+            List<JsonNode> items = new ArrayList<>();
+            results.forEach(items::add);
+            items.sort(java.util.Comparator.comparing(
+                    (JsonNode n) -> parseInstant(text(n, "lastUpdate")),
+                    java.util.Comparator.nullsLast(java.util.Comparator.reverseOrder())));
             boolean reached = false;
-            for (JsonNode item : results) {
+            for (JsonNode item : items) {
                 Instant lastUpdate = parseInstant(text(item, "lastUpdate"));
                 if (lastUpdate != null && (newest == null || lastUpdate.isAfter(newest))) {
                     newest = lastUpdate;
                 }
                 if (watermark != null && lastUpdate != null && !lastUpdate.isAfter(watermark)) {
                     reached = true;
-                    continue;
+                    break;
                 }
                 records.add(record(ctx, item));
+                if (lastUpdate != null) {
+                    watermark = lastUpdate;
+                }
             }
             offset += results.size();
-            if (reached || root.get("next") == null || root.get("next").isNull()) {
+            if (reached || lastPage || root.get("next") == null || root.get("next").isNull()) {
                 break;
             }
         }

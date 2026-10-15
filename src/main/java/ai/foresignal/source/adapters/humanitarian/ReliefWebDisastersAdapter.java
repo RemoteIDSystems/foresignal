@@ -1,5 +1,6 @@
 package ai.foresignal.source.adapters.humanitarian;
 
+import ai.foresignal.collect.UpstreamHttpException;
 import ai.foresignal.source.spi.AdapterException;
 import ai.foresignal.source.spi.CredentialsRejectedException;
 import ai.foresignal.source.spi.CredentialField;
@@ -83,12 +84,19 @@ public final class ReliefWebDisastersAdapter implements PollingAdapter {
         if (appname == null || appname.isBlank()) {
             throw new CredentialsRejectedException("reliefweb-disasters needs an approved appname credential");
         }
-        UpstreamResponse response = ctx.http().post(
-                URI.create(baseUrl + "/v2/disasters?appname=" + appname), "application/json",
-                query().getBytes(StandardCharsets.UTF_8), Map.of());
-        if (response.status() == 403 && response.bodyAsString().toLowerCase().contains("appname")) {
-            throw new CredentialsRejectedException("APPNAME_NOT_APPROVED: ReliefWeb rejected the appname; request "
-                    + "an approved one at https://apidoc.reliefweb.int/parameters#appname");
+        UpstreamResponse response;
+        try {
+            // The client throws for any 4xx/5xx; a 403 naming the appname is a terminal credential
+            // rejection, not a retryable error.
+            response = ctx.http().post(
+                    URI.create(baseUrl + "/v2/disasters?appname=" + appname), "application/json",
+                    query().getBytes(StandardCharsets.UTF_8), Map.of());
+        } catch (UpstreamHttpException e) {
+            if (e.getStatus() == 403 && e.getBodySnippet().toLowerCase(java.util.Locale.ROOT).contains("appname")) {
+                throw new CredentialsRejectedException("APPNAME_NOT_APPROVED: ReliefWeb rejected the appname; request "
+                        + "an approved one at https://apidoc.reliefweb.int/parameters#appname");
+            }
+            throw e;
         }
         if (response.status() != 200) {
             throw new UpstreamFormatException("ReliefWeb answered HTTP " + response.status(), "");

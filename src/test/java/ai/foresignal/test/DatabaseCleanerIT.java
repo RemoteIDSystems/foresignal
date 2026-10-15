@@ -2,8 +2,9 @@ package ai.foresignal.test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import ai.foresignal.settings.SettingKeys;
 import ai.foresignal.ingest.IngestStateReset;
+import ai.foresignal.settings.AppSettingService;
+import ai.foresignal.settings.SettingKeys;
 import ai.foresignal.source.spi.HistoryTier;
 import ai.foresignal.store.AppSettingEntity;
 import ai.foresignal.store.AppSettingRepository;
@@ -35,6 +36,7 @@ class DatabaseCleanerIT {
 
     @Autowired private DatabaseCleaner cleaner;
     @Autowired private AppSettingRepository appSettings;
+    @Autowired private AppSettingService settingService;
     @Autowired private SystemSecretRepository systemSecrets;
     @Autowired private JdbcTemplate jdbc;
 
@@ -220,7 +222,7 @@ class DatabaseCleanerIT {
         beans.addBean("second", (IngestStateReset) () -> calls.add("second"));
         appSettings.saveAndFlush(new AppSettingEntity("pending", "{}", Instant.now()));
 
-        new DatabaseCleaner(jdbc, beans.getBeanProvider(IngestStateReset.class)).clean();
+        new DatabaseCleaner(jdbc, beans.getBeanProvider(IngestStateReset.class), settingService).clean();
 
         // The reset runs after truncation: the first bean saw an empty table.
         assertThat(calls).containsExactlyInAnyOrder("first:0", "second");
@@ -232,7 +234,7 @@ class DatabaseCleanerIT {
     void cleaningWithoutResetBeans() {
         StaticListableBeanFactory none = new StaticListableBeanFactory();
 
-        new DatabaseCleaner(jdbc, none.getBeanProvider(IngestStateReset.class)).clean();
+        new DatabaseCleaner(jdbc, none.getBeanProvider(IngestStateReset.class), settingService).clean();
 
         assertThat(appSettings.count()).isZero();
     }
