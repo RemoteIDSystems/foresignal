@@ -20,9 +20,10 @@ import org.springframework.context.annotation.Import;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * The anomaly rule and its coverage-aware baseline (prompt 100): a backfilled synthetic history is
- * learning until {@code minWeeks}; a spike fires {@code activity-up} with detector and evidence; a
- * receiver drop yields {@code coverage-drop}, not an alert.
+ * The anomaly rule and its coverage-aware baseline (prompt 100): eight weeks of hourly coverage-ok
+ * samples inside the 12-week lookback complete the warm-up, then a spike in the current bucket is
+ * classified {@code activity-up} with detector and evidence; a receiver drop yields
+ * {@code coverage-drop}, not an alert.
  */
 @WebIntegrationTest
 @Import(TestIngestSources.class)
@@ -48,31 +49,50 @@ class AnomalyRuleIT {
         public void tombstone(String kind, String externalId) {
             emitted.add(NormalizedRecord.tombstone(externalId, kind, Instant.now()));
         }
+
+        boolean emittedAnomaly(String classification) {
+            return emitted.stream().anyMatch(r -> r.kind().equals("anomaly")
+                    && classification.equals(r.payload().get("classification")));
+        }
+    }
+
+    private UUID createRule() {
+        return rules.create(json.readTree(
+                "{\"name\":\"unusual\",\"type\":\"anomaly\",\"sources\":[\"test-standard\"],"
+                        + "\"window\":{\"window\":\"1h\",\"direction\":\"up\",\"minWeeks\":8}}")).rule().getId();
     }
 
     @Test
-    @DisplayName("synthetic history is learning until minWeeks, then a spike is activity-up")
+    @DisplayName("eight weeks of hourly history complete warm-up, then a spike is activity-up")
     void spike() {
-        UUID id = rules.create(json.readTree(
-                "{\"name\":\"unusual\",\"type\":\"anomaly\",\"sources\":[\"test-standard\"],"
-                        + "\"window\":{\"window\":\"1h\",\"direction\":\"up\",\"minWeeks\":8}}")).rule().getId();
-        Instant base = Instant.now().minus(Duration.ofDays(70));
-        for (int week = 0; week < 9; week++) {
-            for (int day = 0; day < 7; day++) {
-                Instant bucket = base.plus(Duration.ofDays(week * 7L + day)).truncatedTo(ChronoUnit.HOURS);
-                ActivitySampleEntity sample = new ActivitySampleEntity(id, "*", bucket, 10);
-                sample.setCoverageOk(true);
-                sample.setCoverageRatio(1.0);
-                samples.save(sample);
-            }
-        }
+        UUID id = createRule();
         Instant now = Instant.now();
+        Instant currentBucket = now.minus(Duration.ofHours(1)).truncatedTo(ChronoUnit.HOURS);
+        // 8 weeks of hourly coverage-ok samples, each slot (day-of-week/hour) therefore sees 8 weeks.
+        Instant start = currentBucket.minus(Duration.ofDays(56));
+        for (Instant bucket = start; bucket.isBefore(currentBucket); bucket = bucket.plus(Duration.ofHours(1))) {
+            ActivitySampleEntity sample = new ActivitySampleEntity(id, "*", bucket, 10);
+            sample.setCoverageOk(true);
+            sample.setCoverageRatio(1.0);
+            samples.save(sample);
+        }
+        assertThat(samples.findByRuleIdAndGroupKeyOrderByBucketStartAsc(id, "*")).hasSize(8 * 7 * 24);
+
+        // A spike of distinct entities inside the current completed bucket.
         for (int i = 0; i < 60; i++) {
-            records.ingestAt(TestIngestSources.STANDARD, now.minus(Duration.ofMinutes(i)),
-                    NormalizedRecord.builder("x" + i, "thing").observedAt(now).put("name", "x").build());
+            records.ingestAt(TestIngestSources.STANDARD, currentBucket.plusSeconds(i * 30),
+                    NormalizedRecord.builder("x" + i, "thing").observedAt(currentBucket.plusSeconds(i * 30))
+                            .put("name", "x").build());
         }
         Capture capture = new Capture();
         engine.evaluate(now, capture);
-        assertThat(observations.findTop200ByRuleIdOrderByIdDesc(id)).isNotEmpty();
+
+        List<AnomalyObservationEntity> rows = observations.findTop200ByRuleIdOrderByIdDesc(id);
+        assertThat(rows).isNotEmpty();
+        assertThat(rows.get(0).getClassification()).isEqualTo("activity-up");
+        assertThat(rows.get(0).getDetector()).containsEntry("name", "poisson-tail");
+        assertThat(rows.get(0).getEvidence()).containsKey("members");
+        assertThat(capture.emittedAnomaly("activity-up")).isTrue();
+        assertThat(capture.emitted).anyMatch(r -> r.kind().equals("window-state"));
     }
 }

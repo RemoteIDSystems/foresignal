@@ -24,7 +24,11 @@ public record Baseline(double weeks, String slotMode, double mean, double varian
             variance += (value - mean) * (value - mean);
         }
         variance = used.size() > 1 ? variance / (used.size() - 1) : 0;
-        double weeks = used.size() * bucket.toSeconds() / (7.0 * 86400);
+        // A slot's samples are one per week (hour-of-week) or one per day (hour-of-day), so the span
+        // of history they cover is the sample count for hour-of-week and count/7 weeks for hour-of-day.
+        // (The old n x bucket / 7d divided an hour-of-week slot's handful of weekly samples by 168 and
+        // could never reach minWeeks.)
+        double weeks = "hour-of-day".equals(slotMode) ? used.size() / 7.0 : used.size();
         double medianCoverage = median(coverages);
         if (variance > 1.5 * mean && mean > 0) {
             double[] moments = NegBinTail.moments(mean, variance);
@@ -40,7 +44,7 @@ public record Baseline(double weeks, String slotMode, double mean, double varian
         return Map.of("weeks", weeks, "slotMode", slotMode, "mean", mean, "variance", variance, "model", model);
     }
 
-    /** True when at least {@code minWeeks} coverage-ok samples exist. */
+    /** True when at least {@code minWeeks} weeks of slot history exist. */
     public boolean ready(int minWeeks) {
         return weeks >= minWeeks;
     }

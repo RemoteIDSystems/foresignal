@@ -225,7 +225,9 @@ public class WindowEngine {
                 gate.evaluate(rule.spec().sources(), bucketStart, bucketEnd, rule.window().bucket(),
                         rule.window().coverageMin());
         boolean coverageOk = coverage.ok();
-        double coverageRatio = coverageRatio(rule);
+        // The real per-bucket ratio (prompt 100 §4): min over sources of (OK share) x (receivers factor).
+        // This makes the coverage-drop classification reachable and expected = mean x ratio.
+        double coverageRatio = gate.coverageRatio(rule.spec().sources(), bucketStart, bucketEnd);
         sample = new ActivitySampleEntity(rule.spec().id(), group, bucketStart, observed);
         sample.setCoverageOk(coverageOk);
         sample.setCoverageRatio(coverageRatio);
@@ -234,9 +236,11 @@ public class WindowEngine {
         List<Integer> slotCounts = new ArrayList<>();
         List<Double> slotCoverages = new ArrayList<>();
         int slot = slotOf(bucketStart, rule.window().slotMode());
-        Instant floorWeek = bucketStart.minus(Duration.ofDays(26));
+        // The baseline looks back 12 weeks of coverage-ok samples (prompt 100 §4); "prune after 26
+        // weeks" is a separate retention concern, not this lookback.
+        Instant lookbackStart = bucketStart.minus(Duration.ofDays(84));
         for (ActivitySampleEntity other : samples.findByRuleIdAndGroupKeyOrderByBucketStartAsc(rule.spec().id(), group)) {
-            if (other.getBucketStart().isBefore(floorWeek) || other.isFlagged() || !other.isCoverageOk()
+            if (other.getBucketStart().isBefore(lookbackStart) || other.isFlagged() || !other.isCoverageOk()
                     || other.getBucketStart().equals(bucketStart) || slotOf(other.getBucketStart(),
                             rule.window().slotMode()) != slot) {
                 continue;
@@ -255,7 +259,8 @@ public class WindowEngine {
         observation.setScore(detector.score());
         observation.setDirection(detector.direction());
         observation.setClassification(detector.classification());
-        observation.setLowConfidence("hour-of-day".equals(rule.window().slotMode()) && baseline.weeks() < 14);
+        boolean lowConfidence = "hour-of-day".equals(rule.window().slotMode()) && baseline.weeks() < 14;
+        observation.setLowConfidence(lowConfidence);
         observation.setBaseline(baseline.toMap());
         observation.setDetector(Map.of("name", AnomalyDetector.NAME, "version", AnomalyDetector.VERSION,
                 "params", Map.of("bucket", rule.window().bucket().toString(), "slotMode", rule.window().slotMode(),
@@ -264,6 +269,7 @@ public class WindowEngine {
         observation.setEvidence(evidence(result, group, rule.spec().id()));
         observation.setWatermarkSeq(watermark);
         anomalies.save(observation);
+        emitter.emit(anomalyRecord(rule, group, bucketStart, detector, baseline, lowConfidence, now));
         if (detector.fire()) {
             sample.setFlagged(true);
             samples.save(sample);
@@ -326,15 +332,14 @@ public class WindowEngine {
             if ("active".equals(desired) && !"active".equals(previous)) {
                 Long alertId = fire(rule, state.getGroupKey(), reason, now, anomalyContext);
                 state.setLastAlertId(alertId);
-            } else if ("active".equals(previous)) {
+            } else if ("active".equals(previous) && "clear".equals(desired)) {
+                // Resolve only on active -> clear. active -> unknown/learning leaves the alert
+                // firing: an absence rule that loses coverage must not auto-resolve (false all-clear).
                 resolve(rule, state.getGroupKey(), now);
                 state.setLastAlertId(null);
             }
         } else if (first) {
             state.setSince(now);
-        }
-        if ("unknown".equals(desired) || "learning".equals(desired)) {
-            state.setLastAlertId(null);
         }
         state.setState(desired);
         state.setLastValue(value);
@@ -342,11 +347,11 @@ public class WindowEngine {
         state.setLastWatermarkSeq(watermark);
         state.setReason(reason);
         states.save(state);
-        emitter.emit(stateRecord(rule, state.getGroupKey(), desired, value, threshold, reason, anomalyContext));
+        emitter.emit(stateRecord(rule, state.getGroupKey(), desired, value, threshold, reason, anomalyContext, now));
     }
 
     private NormalizedRecord stateRecord(WindowRule rule, String group, String state, Double value, Double threshold,
-            String reason, Map<String, Object> anomalyContext) {
+            String reason, Map<String, Object> anomalyContext, Instant observedAt) {
         java.util.LinkedHashMap<String, Object> payload = new java.util.LinkedHashMap<>();
         payload.put("ruleId", rule.spec().id().toString());
         payload.put("name", rule.spec().name());
@@ -368,7 +373,39 @@ public class WindowEngine {
         payload.put("detector", Map.of("name", AnomalyDetector.NAME, "version", AnomalyDetector.VERSION));
         payload.put("automated", true);
         return NormalizedRecord.builder(rule.spec().id() + ":" + group, STATE_KIND)
-                .observedAt(Instant.EPOCH)
+                .observedAt(observedAt)
+                .putAll(payload)
+                .build();
+    }
+
+    /** The {@code anomaly} record for one evaluated bucket (prompt 100 §2). */
+    private NormalizedRecord anomalyRecord(WindowRule rule, String group, Instant bucketStart,
+            AnomalyDetector.Result detector, Baseline baseline, boolean lowConfidence, Instant observedAt) {
+        java.util.LinkedHashMap<String, Object> payload = new java.util.LinkedHashMap<>();
+        payload.put("ruleId", rule.spec().id().toString());
+        payload.put("name", rule.spec().name());
+        payload.put("type", rule.type().wire());
+        payload.put("groupKey", group);
+        payload.put("bucketStart", bucketStart.toString());
+        payload.put("observed", detector.observed());
+        payload.put("expected", detector.expected());
+        payload.put("exposure", detector.exposure());
+        if (Double.isFinite(detector.pValue())) {
+            payload.put("pValue", detector.pValue());
+        }
+        payload.put("score", detector.score());
+        if (detector.direction() != null) {
+            payload.put("direction", detector.direction());
+        }
+        payload.put("classification", detector.classification());
+        payload.put("lowConfidence", lowConfidence);
+        payload.put("baseline", baseline.toMap());
+        payload.put("detector", Map.of("name", AnomalyDetector.NAME, "version", AnomalyDetector.VERSION));
+        payload.put("automated", true);
+        payload.put("notAWarning", true);
+        return NormalizedRecord.builder(rule.spec().id() + ":" + group + ":" + bucketStart.getEpochSecond(),
+                        ANOMALY_KIND)
+                .observedAt(observedAt)
                 .putAll(payload)
                 .build();
     }
@@ -445,11 +482,6 @@ public class WindowEngine {
 
     /** One group's baseline for the API. */
     public record BaselineRow(String groupKey, Baseline baseline, int samples) {}
-
-    private double coverageRatio(WindowRule rule) {
-        // Without a per-source breakdown the ratio is 1.0 when covered; the gate already passed.
-        return 1.0;
-    }
 
     private static Instant floor(Instant at, Duration bucket) {
         long seconds = bucket.toSeconds();

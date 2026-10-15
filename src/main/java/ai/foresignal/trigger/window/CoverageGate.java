@@ -201,18 +201,76 @@ public class CoverageGate {
             return false;
         }
         CoverageSample newest = ring.get(ring.size() - 1);
-        List<Integer> earlier = new ArrayList<>();
-        for (int i = 0; i < ring.size() - 1; i++) {
-            Integer receivers = ring.get(i).receivers();
-            if (receivers != null) {
-                earlier.add(receivers);
-            }
-        }
+        List<Integer> earlier = receivers(ring, ring.size() - 1);
         if (earlier.isEmpty() || newest.receivers() == null) {
             return false;
         }
         earlier.sort(Integer::compareTo);
         int median = earlier.get(earlier.size() / 2);
         return median > 0 && newest.receivers() <= median / 2;
+    }
+
+    /**
+     * The per-bucket coverage ratio for the anomaly baseline (prompt 100 §4): the minimum over the
+     * involved sources of the OK (or, for a stream, non-failed) fetch share multiplied by
+     * {@code min(1, receivers ÷ median receivers of the last 20)} when coverage is reported. A
+     * disabled or not-installed source yields 0.
+     */
+    public double coverageRatio(Iterable<String> sources, Instant from, Instant to) {
+        double min = 1.0;
+        boolean any = false;
+        for (String sourceId : sources) {
+            any = true;
+            Boolean enabled = enabled(sourceId);
+            if (enabled == null || !enabled) {
+                return 0.0;
+            }
+            long[] counts = fetchCounts(sourceId, from, to);
+            long total = counts[0];
+            long ok = counts[1];
+            long failed = counts[2];
+            double share = total == 0 ? 0.0
+                    : stream(sourceId) ? 1.0 - (double) failed / total : (double) ok / total;
+            min = Math.min(min, Math.max(0.0, Math.min(1.0, share * receiversFactor(sourceId))));
+        }
+        return any ? min : 0.0;
+    }
+
+    /** {@code min(1, newest receivers ÷ median receivers of the earlier ring)}, or 1 when unreported. */
+    private double receiversFactor(String sourceId) {
+        SourceHealthEntity row = healthRows.findById(sourceId).orElse(null);
+        if (row == null) {
+            return 1.0;
+        }
+        List<CoverageSample> ring = row.getRecentCoverage();
+        if (ring.isEmpty()) {
+            return 1.0;
+        }
+        CoverageSample newest = ring.get(ring.size() - 1);
+        if (newest.receivers() == null) {
+            return 1.0;
+        }
+        List<Integer> earlier = receivers(ring, ring.size() - 1);
+        if (earlier.isEmpty()) {
+            return 1.0;
+        }
+        earlier.sort(Integer::compareTo);
+        int median = earlier.get(earlier.size() / 2);
+        if (median <= 0) {
+            return 1.0;
+        }
+        return Math.min(1.0, (double) newest.receivers() / median);
+    }
+
+    /** The reported receiver counts of the ring entries before index {@code upTo}. */
+    private static List<Integer> receivers(List<CoverageSample> ring, int upTo) {
+        List<Integer> out = new ArrayList<>();
+        for (int i = 0; i < Math.min(upTo, ring.size()); i++) {
+            Integer receivers = ring.get(i).receivers();
+            if (receivers != null) {
+                out.add(receivers);
+            }
+        }
+        return out;
     }
 }
