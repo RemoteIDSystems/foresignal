@@ -196,6 +196,17 @@ counts it in `suppressedCount`.
 `rev` is newer than yours in its current state, so upsert by alert `id`. Filters: `ruleId`,
 `minSeverity`, `source`, `kind` and `includeSuppressed`.
 
+### Windowed rules and anomalies (prompt 100)
+
+A rule's `type` may be `count`, `absence` or `anomaly`; each takes a `window`. Tools:
+`get_window_state` (read) returns the per-group state (`active`/`clear`/`unknown`/`learning`) with
+the reason; `list_anomalies` (read) returns evaluated buckets; `watch_for_unusual_activity` (agent)
+creates an anomaly rule and tells you the warm-up period (at least 8 weeks, or 14 days in hour-of-day
+mode). An `unknown` state means the input was not covered for the window, **not** that nothing
+happened. Phrase anomaly results honestly: "42 observed vs ~11 expected (p≈2e-6 under a Poisson
+model)" — a model tail, never "the probability that something is happening", and never as a
+certainty. A `coverage-drop` classification is a receiver problem, not activity.
+
 ## Weather alerts (prompt 047)
 
 Four sources turn official severe-weather products into records you can write rules against. Enable each

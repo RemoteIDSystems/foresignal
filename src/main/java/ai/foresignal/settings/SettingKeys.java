@@ -77,6 +77,13 @@ public final class SettingKeys {
     /** The entity linker's durable cursor (prompt 098; the consumer clamp of retention). */
     public static final String ENTITY_CURSOR = "entity.cursor";
 
+    /**
+     * The windowed-rule evaluator's cursor (prompt 100; the consumer clamp of retention). The
+     * anomaly buckets are filled from retained history, so version retention must not outrun the
+     * window state's watermark.
+     */
+    public static final String ANOMALY_CURSOR = "anomaly.cursor";
+
     /** {@code EntitySettings} (prompt 098): the callsign gap and the private-source opt-in. */
     public static final String ENTITY = "entity";
 

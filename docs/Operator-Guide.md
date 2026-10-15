@@ -1104,6 +1104,63 @@ position. Templates get `{{anchor.distanceKm}}`; the phone's coordinates never l
 watchlists with their items (both default false); the bundle then carries a `warnings` list, because
 places reveal locations. `PUT /v1/settings/import` restores them before the rules that use them.
 
+## Windowed rules and anomalies (prompt 100)
+
+Besides the single-version rules above, a trigger rule has a `type`: `record` (the default engine),
+`count`, `absence` or `anomaly`. Windowed rules reason over a time window rather than a version edge.
+They reuse every 017 filter (sources, kinds, conditions, geofence, `near`, active window, tags,
+severity, `max_alerts_per_hour`) and reject `onlyNew`, `mode` and `reappearAsEnter` (400
+`WINDOW_RULE_INVALID`). All four types alert and resolve through the same 017 lifecycle, and their
+alerts reference the `rule-windows` record version.
+
+```json
+{"name": "Many military aircraft near home", "type": "count",
+ "sources": ["adsblol-mil"], "near": {"placeIds": ["home"], "radiusKm": 100},
+ "window": {"window": "30m", "op": ">=", "threshold": 5}, "severity": "warning"}
+```
+
+```json
+{"name": "NWS quiet too long", "type": "absence", "sources": ["nws-alerts"],
+ "window": {"window": "2h", "coverageMin": 0.8}, "severity": "warning"}
+```
+
+```json
+{"name": "Unusual vessel count in the strait", "type": "anomaly", "sources": ["aisstream"],
+ "window": {"window": "1h", "groupBy": "h3:5", "direction": "up", "sensitivity": "medium",
+            "minWeeks": 8, "coverageMin": 0.8}, "severity": "warning"}
+```
+
+- **Window.** `window` is the length (1 minute to 7 days); `step` is how often it is evaluated
+  (default `min(window/4, 5m)`, minimum 30 s). `distinctBy` is `entity` (the 098 canonical entity
+  when the record is linked, else the descriptor `entityKeys`, else `source+externalId`),
+  `externalId`, or a payload path. Versions are never counted. `groupBy` is null, `source`, `place`,
+  `h3:<res 3..8>`, `admin1`, `country` or a payload path. `GET /v1/triggers/{id}/window-state`
+  returns the per-group state.
+- **Identity limits.** One aircraft seen by two sources counts once only when 098 links them (fuse
+  with `derived-aircraft` if you want that). Cluster identity ("one storm cell") is out of scope,
+  which is why storm rules stay version-based.
+- **Absence and the coverage gate.** An absence rule alerts only when every involved source was
+  enabled and covered for the whole window. When it was not, the state is `unknown` with a reason and
+  a single `system.window_rule_unknown` notification is raised; it never alerts. Receiver-down
+  detection belongs to health and station events, not to absence rules. Warm-up: nothing is evaluated
+  until the rule and the source have existed for one full window.
+- **Anomalies.** An anomaly rule learns a baseline per slot (hour-of-week by default, or hour-of-day)
+  over 8–12 weeks of coverage-ok samples, excluding flagged samples and winsorized at p99. A bucket
+  fires when its tail p-value is below the sensitivity α (low 1e-4, medium 1e-3, high 1e-2) **and**
+  the difference from the expected count is at least `minAbsoluteDelta`. Until all slots have
+  `minWeeks` coverage-ok samples the state is `learning`; hour-of-day mode needs 14 days and marks
+  results `lowConfidence`. A count drop while the coverage ratio fell at least 30% against the slot
+  median is `coverage-drop` and never alerts. `GET /v1/triggers/{id}/baseline` shows the learned
+  values, and `POST /v1/triggers/{id}/baseline/rebuild` recomputes them (AGENT).
+- **Reading anomalies honestly.** `GET /v1/anomalies` lists the evaluated buckets. The p-value
+  assumes the stated Poisson or negative-binomial model; it is **not** the probability that something
+  is happening. Every result carries the detector name, version and parameters, the baseline summary,
+  the watermark and evidence references, so it is reproducible from stored inputs. The four
+  principles: detection is deterministic, results are reproducible, a p-value is not a probability,
+  and absence of evidence is not evidence of absence.
+- **MCP.** `list_anomalies` and `get_window_state` (read), and `watch_for_unusual_activity` (agent),
+  which creates an anomaly rule and states the warm-up period.
+
 ## Notification channels
 
 A channel delivers alerts, briefings and system events to one destination, formatted natively for

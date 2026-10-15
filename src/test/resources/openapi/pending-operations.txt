@@ -1,7 +1,3 @@
-getTriggerWindowState 100
-getTriggerBaseline 100
-rebuildBaseline 100
-listAnomalies 100
 listIntelEvents 101
 createIntelEvent 101
 getIntelEvent 101

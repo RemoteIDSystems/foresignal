@@ -113,6 +113,22 @@ public class TriggerRuleEntity {
     @ColumnDefault("'match'")
     private TriggerMode mode = TriggerMode.MATCH;
 
+    /**
+     * The rule type (prompt 100): {@code record} (the 017 engine) | {@code count} | {@code absence} |
+     * {@code anomaly}. Existing rules are {@code record}.
+     */
+    @Column(name = "type", nullable = false, length = 16)
+    @ColumnDefault("'record'")
+    private String type = "record";
+
+    /**
+     * The windowed rule's specification (prompt 100), or null for a {@code record} rule. Stored as
+     * given; {@link ai.foresignal.trigger.window.WindowSpec} parses and validates it.
+     */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "window_spec")
+    private Map<String, Object> windowSpec;
+
     /** Fire only for a record's first version, ignoring later revisions. */
     @Column(name = "only_new", nullable = false)
     private boolean onlyNew;
@@ -677,5 +693,25 @@ public class TriggerRuleEntity {
     /** Sets the escalation policy. */
     public void setEscalationPolicyId(UUID escalationPolicyId) {
         this.escalationPolicyId = escalationPolicyId;
+    }
+
+    /** The rule type (prompt 100): {@code record}, {@code count}, {@code absence} or {@code anomaly}. */
+    public String getType() {
+        return type;
+    }
+
+    /** Sets the rule type. */
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    /** The windowed rule's specification as given, or null. */
+    public Map<String, Object> getWindowSpec() {
+        return windowSpec;
+    }
+
+    /** Sets the windowed rule's specification. */
+    public void setWindowSpec(Map<String, Object> windowSpec) {
+        this.windowSpec = windowSpec;
     }
 }

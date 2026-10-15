@@ -114,6 +114,7 @@ public class TriggerRuleService {
         Instant now = clock.instant();
         TriggerRuleEntity rule = new TriggerRuleEntity(UUID.randomUUID(), valid.name());
         valid.applyTo(rule);
+        applyWindow(rule, input);
         rule.setEscalationPolicyId(policy);
         rule.setCreatedAt(now);
         rule.setUpdatedAt(now);
@@ -136,6 +137,7 @@ public class TriggerRuleService {
         Instant now = clock.instant();
         TriggerRuleEntity rule = new TriggerRuleEntity(id, valid.name());
         valid.applyTo(rule);
+        applyWindow(rule, input);
         rule.setEscalationPolicyId(policy);
         rule.setCreatedAt(now);
         rule.setUpdatedAt(now);
@@ -158,6 +160,7 @@ public class TriggerRuleService {
         ValidatedRule valid = validator.validate(input);
         UUID policy = escalationPolicy(input, importing);
         valid.applyTo(rule);
+        applyWindow(rule, input);
         rule.setEscalationPolicyId(policy);
         rule.setUpdatedAt(clock.instant());
         TriggerRuleEntity saved = repository.saveAndFlush(rule);
@@ -283,5 +286,25 @@ public class TriggerRuleService {
 
     private void changed(UUID id) {
         events.publishEvent(new TriggerRulesChangedEvent(id));
+    }
+
+    /**
+     * Validates and stores the rule's {@code type} and {@code window} (prompt 100). A {@code record}
+     * rule stores {@code type=record} and no window.
+     *
+     * @throws ai.foresignal.api.error.ValidationException {@code WINDOW_RULE_INVALID}
+     */
+    private void applyWindow(TriggerRuleEntity rule, JsonNode input) {
+        ai.foresignal.trigger.window.RuleType type =
+                ai.foresignal.trigger.window.WindowSpecValidator.type(input);
+        if (type == ai.foresignal.trigger.window.RuleType.RECORD) {
+            rule.setType("record");
+            rule.setWindowSpec(null);
+            return;
+        }
+        ai.foresignal.trigger.window.WindowSpec window =
+                ai.foresignal.trigger.window.WindowSpecValidator.validate(type, input);
+        rule.setType(type.wire());
+        rule.setWindowSpec(window.toMap());
     }
 }

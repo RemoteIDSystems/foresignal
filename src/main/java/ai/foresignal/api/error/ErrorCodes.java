@@ -131,6 +131,12 @@ public final class ErrorCodes {
     /** 400: shrinking a geofence by {@code hysteresisMeters} leaves nothing (prompt 017). */
     public static final String GEOFENCE_TOO_SMALL_FOR_HYSTERESIS = "GEOFENCE_TOO_SMALL_FOR_HYSTERESIS";
 
+    /** 400: a windowed rule's window is missing or invalid, or it sets a single-version option (prompt 100). */
+    public static final String WINDOW_RULE_INVALID = "WINDOW_RULE_INVALID";
+
+    /** 409: an anomaly baseline is requested before any coverage-ok sample exists (prompt 100). */
+    public static final String BASELINE_NOT_READY = "BASELINE_NOT_READY";
+
     /** 403: the token's scope is below the operation's; carries {@code requiredScope} (prompt 023). */
     public static final String INSUFFICIENT_SCOPE = "INSUFFICIENT_SCOPE";
 

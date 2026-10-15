@@ -29,6 +29,8 @@ public class TriggerMapper {
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("id", r.getId());
         out.put("name", r.getName());
+        out.put("type", r.getType() == null ? "record" : r.getType());
+        out.put("window", r.getWindowSpec());
         out.put("enabled", r.isEnabled());
         out.put("sources", r.getSources());
         out.put("kinds", r.getKinds());

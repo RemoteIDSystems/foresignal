@@ -359,6 +359,9 @@ public class AccessPolicy {
                 rule(HttpMethod.GET, "/v1/triggers/**", AccessRequirement.READ),
                 rule(null, "/v1/triggers/**", AccessRequirement.AGENT),
 
+                // ---- Anomalies feed (prompt 100): a read ----
+                rule(HttpMethod.GET, "/v1/anomalies/**", AccessRequirement.READ),
+
                 // ---- Alerts: read to list, agent for the lifecycle (017) ----
                 rule(HttpMethod.POST, "/v1/alerts/*/ack", AccessRequirement.AGENT),
                 rule(HttpMethod.POST, "/v1/alerts/*/resolve", AccessRequirement.AGENT),
