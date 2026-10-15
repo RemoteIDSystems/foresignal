@@ -556,3 +556,14 @@ scientific colormaps. Each style's `notice` field names its origin.
   THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
   CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
   DEALINGS IN THE SOFTWARE.
+
+## GHSL GHS-POP (population data, operator-installed)
+
+- **Data:** Global Human Settlement Layer, GHS-POP (population), the 30-arcsec EPSG:4326 tiled GeoTIFF.
+- **Not bundled:** Foresignal ships no population data. The operator downloads the GHS-POP tiles from
+  the Copernicus Emergency Management Service (<https://human-settlement.emergency.copernicus.eu/download.php>)
+  and imports them with `POST /v1/packs/population/import`; the data stays on the operator's host.
+- **Use:** the optional population estimate of the ExposureService (prompt 101): each pixel's population is
+  aggregated to the H3 cell (res 5 and 7) containing its centre and summed inside a queried area.
+- **Licence:** CC BY 4.0. Attribution "© European Union, GHSL" (European Commission, Joint Research Centre,
+  Global Human Settlement Layer), as required by the licence.

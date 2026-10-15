@@ -1,0 +1,33 @@
+{
+  "id": "aviation-anomaly",
+  "version": 1,
+  "type": "aviation-anomaly",
+  "title": "Aviation anomaly",
+  "seed": {
+    "kinds": ["emergency-squawk", "holding-pattern", "jamming-cell"],
+    "sources": ["derived-emergency-squawk", "derived-holding", "derived-gps-jamming"]
+  },
+  "joins": [
+    {
+      "kinds": ["tfr", "ground-stop", "delay", "sigmets"],
+      "sources": ["faa-tfr", "faa-nas-status", "awc-sigmets"],
+      "withinKm": 100,
+      "before": "PT2H",
+      "after": "PT2H",
+      "role": "context",
+      "signalFamily": "aviation-restriction",
+      "weight": 0.5
+    }
+  ],
+  "minMembers": 2,
+  "minSignalFamilies": 1,
+  "activateAt": {"members": 2, "confidence": 0.4},
+  "contradictions": [
+    {"kinds": ["sigmets"], "sources": ["awc-sigmets"], "withinKm": 100, "window": "PT2H", "alternative": "weather"},
+    {"healthOf": ["adsblol-mil", "adsbfi-region-1"], "alternative": "ADS-B coverage gap"}
+  ],
+  "severityMap": {"default": "warning"},
+  "dedup": {"radiusKm": 60, "window": "PT2H"},
+  "quietPeriod": "PT3H",
+  "reopenWindow": "PT72H"
+}

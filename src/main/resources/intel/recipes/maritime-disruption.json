@@ -1,0 +1,34 @@
+{
+  "id": "maritime-disruption",
+  "version": 1,
+  "type": "maritime-disruption",
+  "title": "Maritime disruption",
+  "seed": {
+    "kinds": ["ais-gap", "loiter", "rendezvous", "chokepoint-uturn"],
+    "sources": ["derived-ais-gap", "derived-loiter", "derived-rendezvous", "derived-chokepoint"]
+  },
+  "joins": [
+    {
+      "kinds": ["nav-warning", "chokepoint-transit"],
+      "sources": ["nga-msi-warnings", "imf-portwatch-chokepoints"],
+      "withinKm": 150,
+      "before": "PT12H",
+      "after": "PT12H",
+      "role": "supporting",
+      "signalFamily": "nav-warning",
+      "weight": 0.6
+    }
+  ],
+  "minMembers": 2,
+  "minSignalFamilies": 2,
+  "activateAt": {"members": 3, "confidence": 0.5},
+  "contradictions": [
+    {"healthOf": ["aisstream", "ais-kystverket", "ais-digitraffic"], "alternative": "AIS receiver coverage gap"},
+    {"kinds": ["jamming-cell"], "sources": ["derived-gps-jamming", "gpsjam-daily"], "withinKm": 150,
+     "window": "PT6H", "alternative": "GNSS interference"}
+  ],
+  "severityMap": {"default": "warning"},
+  "dedup": {"radiusKm": 100, "window": "PT6H"},
+  "quietPeriod": "PT6H",
+  "reopenWindow": "PT72H"
+}

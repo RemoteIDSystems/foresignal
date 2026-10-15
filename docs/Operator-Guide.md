@@ -1161,6 +1161,63 @@ alerts reference the `rule-windows` record version.
 - **MCP.** `list_anomalies` and `get_window_state` (read), and `watch_for_unusual_activity` (agent),
   which creates an anomaly rule and states the warm-up period.
 
+## Intelligence events (prompt 101)
+
+An **intelligence event** is a typed, located, time-bounded finding: `maritime-disruption`,
+`aviation-anomaly`, `infrastructure-disruption`, `weather-impact`, `seismic` or `custom`. It is built
+by a deterministic **correlation recipe** from pinned record versions, or created by an operator or
+agent, and carries supporting and contradicting evidence, a confidence score, an evidence quality and
+the detector version and parameters needed to reproduce it.
+
+- **Four principles.** Detection is deterministic (an LLM may explain evidence but never adds members,
+  raises confidence or changes the type); every result is reproducible (members pin
+  `source/externalId@seq/version`, and `detector {name, version, params}` is stored); confidence is a
+  score, **not** a calibrated probability (it becomes calibrated only when 103 validation sets
+  `calibrated=true`, and every response carries `confidenceMethod`); and results are coverage-aware
+  (missing data lowers evidence quality, it never counts as contradiction).
+- **Evidence, inference, speculation.** `GET /v1/intel/events/{id}` separates `evidence` (members:
+  records, alerts, anomalies), `inference` (type, severity, confidence, geometry, times) and
+  `speculation` (alternatives and any LLM narrative, always labelled).
+- **Confidence.** `c = 1 − Π_f (1 − w_f · r_f)` over distinct signal families, where `r_f` is the best
+  member's source reliability (0.6 until 109 grades exist), then `×(1 − 0.25)` per active
+  contradiction, capped at 0.95. Labels: low < 0.4 ≤ moderate < 0.7 ≤ high. Evidence quality: strong
+  (≥ 3 families from ≥ 2 independent sources), moderate (2 families), weak (1 family), insufficient
+  (members only from unhealthy sources).
+- **Recipes.** Built-ins load from `src/main/resources/intel/recipes/*.json` and refresh on start
+  when the bundled version is newer; the operator's `enabled` flag and parameter overrides are kept.
+  A recipe whose kinds are not installed loads disabled with a warning. `PUT /v1/intel/recipes/{id}`
+  enables/disables and sets overrides; `POST /v1/intel/recipes/{id}/test` dry-runs it over a seq
+  range.
+- **Dedup.** A candidate merges into an open event of the same type when their geometries intersect
+  after buffering by the recipe's radius and their times overlap, or when they share a member. Two
+  open events merge via `POST /v1/intel/events/{id}/merge {intoId}`: the older id survives, members
+  move, and the merged event is tombstoned. Never across types.
+- **Lifecycle.** `emerging` → `active` when the activate threshold is met; `resolved` after the quiet
+  period with no new evidence; `reopened` within the reopen window; `dismissed` only by an operator
+  or agent.
+- **Alerts from events.** Every event is published as a record of the DERIVED source
+  `foresignal-intel`, kind `intelligence-event`, so an ordinary 017 rule fires on it:
+
+  ```json
+  {"name": "Critical intelligence event", "sources": ["foresignal-intel"],
+   "kinds": ["intelligence-event"], "conditions": [{"path": "severity", "op": "==", "value": "critical"}],
+   "mode": "enter", "severity": "critical"}
+  ```
+
+- **Investigations.** Case files (`INV-{yyyy}-{nnnn}`) with items that keep a snapshot taken when
+  added, so the evidence survives retention; `GET /v1/investigations/{id}/export?format=json|md|geojson`
+  exports it, each format carrying the "Automated analysis inputs; verify before acting" header and
+  licence attributions.
+- **Exposure.** `POST /v1/exposure {geometry | placeId | eventId}` counts reference facilities,
+  places, live aircraft and vessels and, with a population pack, an estimate. Every section carries a
+  `status`; the population section is `not-installed` until a pack is imported.
+- **Population pack (optional).** Download a GHSL GHS-POP GeoTIFF (EPSG:4326, 30 arcsec; © European
+  Union, GHSL; CC-BY-4.0) into `${FORESIGNAL_DATA_DIR}/packs`, then
+  `POST /v1/packs/population/import {"path": "packs/ghsl/GHS_POP_E2025_..._4326_30ss", "epoch": 2025}`.
+  Each pixel's population is aggregated to the H3 cell (res 5 and 7) containing its centre; a query
+  polyfills the area at res 7 (res 5 over 50,000 km²) and sums. The estimate is a **modelled
+  residential population, not a casualty or impact estimate**.
+
 ## Notification channels
 
 A channel delivers alerts, briefings and system events to one destination, formatted natively for

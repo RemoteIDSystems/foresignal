@@ -111,6 +111,12 @@ public final class StartupOrder {
     /** The collector scheduler (prompt 010). */
     public static final int SCHEDULER = 30;
 
+    /**
+     * The intelligence correlation engine and its recipe sync (prompt 101): a change-bus subscriber
+     * with a durable cursor, after the scheduler so it never delays the first fetch.
+     */
+    public static final int INTEL = 31;
+
     /** The briefing scheduler (prompt 029), after the collector scheduler. */
     public static final int BRIEFINGS = 35;
 

@@ -84,6 +84,9 @@ public final class SettingKeys {
      */
     public static final String ANOMALY_CURSOR = "anomaly.cursor";
 
+    /** The intelligence correlation engine's durable cursor (prompt 101). */
+    public static final String INTEL_CURSOR = "intel.cursor";
+
     /** {@code EntitySettings} (prompt 098): the callsign gap and the private-source opt-in. */
     public static final String ENTITY = "entity";
 
@@ -110,7 +113,7 @@ public final class SettingKeys {
             List.of(RETENTION, CORS, TRIGGER_CURSOR, TRIGGERS, STREAM_LIMITS, SECURITY, SERVER, NOTIFICATIONS,
                     WATCHDOG, INSTALL_ID, LLM, SEARCH_INDEX, EMBEDDING_CURSOR, RATELIMITS, OUTBOUND, STATS_ROLLUP_CURSOR,
                     STATS, GLANCE, METRICS, VISIBILITY, REGION_CURSOR, REGION_TAGGING, WEATHER, ENTITY_CURSOR,
-                    ENTITY);
+                    ENTITY, INTEL_CURSOR);
 
     private SettingKeys() {}
 }

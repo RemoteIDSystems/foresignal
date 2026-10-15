@@ -362,6 +362,16 @@ public class AccessPolicy {
                 // ---- Anomalies feed (prompt 100): a read ----
                 rule(HttpMethod.GET, "/v1/anomalies/**", AccessRequirement.READ),
 
+                // ---- Intelligence, investigations, exposure and packs (prompt 101) ----
+                rule(HttpMethod.POST, "/v1/intel/recipes/*/test", AccessRequirement.AGENT),
+                rule(HttpMethod.PUT, "/v1/intel/recipes/*", AccessRequirement.ADMIN),
+                rule(HttpMethod.GET, "/v1/intel/**", AccessRequirement.READ),
+                rule(null, "/v1/intel/**", AccessRequirement.AGENT),
+                rule(HttpMethod.GET, "/v1/investigations/**", AccessRequirement.READ),
+                rule(null, "/v1/investigations/**", AccessRequirement.AGENT),
+                rule(HttpMethod.POST, "/v1/exposure", AccessRequirement.READ),
+                rule(HttpMethod.POST, "/v1/packs/population/import", AccessRequirement.ADMIN),
+
                 // ---- Alerts: read to list, agent for the lifecycle (017) ----
                 rule(HttpMethod.POST, "/v1/alerts/*/ack", AccessRequirement.AGENT),
                 rule(HttpMethod.POST, "/v1/alerts/*/resolve", AccessRequirement.AGENT),

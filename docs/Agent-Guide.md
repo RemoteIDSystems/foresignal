@@ -207,6 +207,16 @@ happened. Phrase anomaly results honestly: "42 observed vs ~11 expected (p≈2e-
 model)" — a model tail, never "the probability that something is happening", and never as a
 certainty. A `coverage-drop` classification is a receiver problem, not activity.
 
+### Intelligence events (prompt 101)
+
+Tools: `list_intel_events` and `get_intel_event` (read), `get_exposure` (read); `create_intel_event`,
+`update_intel_event_status`, `create_investigation` and `add_to_investigation` (agent). An event
+response separates `evidence` (the pinned members), `inference` (type, severity, confidence,
+geometry) and `speculation` (alternatives and any narrative, labelled). **Cite members** by their
+`source/externalId@seq`; do not present the confidence as a probability (it is an uncalibrated
+`confidenceMethod=event-scorer-1.0.0` score) and keep anything under `speculation` labelled as such.
+An `unknown` coverage state or a `coverage-drop` is missing data, never evidence of absence.
+
 ## Weather alerts (prompt 047)
 
 Four sources turn official severe-weather products into records you can write rules against. Enable each

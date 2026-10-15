@@ -1,0 +1,32 @@
+{
+  "id": "infrastructure-disruption",
+  "version": 1,
+  "type": "infrastructure-disruption",
+  "title": "Infrastructure disruption",
+  "seed": {
+    "kinds": ["outage", "internet-outage", "bgp-prefix-state", "grid-frequency"],
+    "sources": ["ioda", "cloudflare-radar", "ris-live", "eia-930"]
+  },
+  "joins": [
+    {
+      "kinds": ["earthquake-impact", "shakemap-mmi", "volcano", "port-area"],
+      "sources": ["usgs-shakemap", "gvp-volcanoes", "world-port-index"],
+      "sameRegion": "admin1",
+      "before": "PT6H",
+      "after": "PT6H",
+      "role": "context",
+      "signalFamily": "weather-hazard",
+      "weight": 0.3
+    }
+  ],
+  "minMembers": 2,
+  "minSignalFamilies": 2,
+  "activateAt": {"members": 2, "confidence": 0.4},
+  "contradictions": [
+    {"kinds": ["outage"], "sources": ["ioda"], "alternative": "single-platform measurement artefact"}
+  ],
+  "severityMap": {"default": "warning"},
+  "dedup": {"radiusKm": 80, "window": "PT6H"},
+  "quietPeriod": "PT6H",
+  "reopenWindow": "PT72H"
+}

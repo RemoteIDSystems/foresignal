@@ -137,6 +137,24 @@ public final class ErrorCodes {
     /** 409: an anomaly baseline is requested before any coverage-ok sample exists (prompt 100). */
     public static final String BASELINE_NOT_READY = "BASELINE_NOT_READY";
 
+    /** 404: no intelligence event has that id (prompt 101). */
+    public static final String UNKNOWN_EVENT = "UNKNOWN_EVENT";
+
+    /** 404: no investigation has that id (prompt 101). */
+    public static final String UNKNOWN_INVESTIGATION = "UNKNOWN_INVESTIGATION";
+
+    /** 400: an intelligence event member does not exist at that seq (prompt 101). */
+    public static final String EVENT_MEMBER_NOT_FOUND = "EVENT_MEMBER_NOT_FOUND";
+
+    /** 400: a correlation recipe definition is invalid (prompt 101). */
+    public static final String RECIPE_INVALID = "RECIPE_INVALID";
+
+    /** 409: an optimistic-lock conflict on an intelligence event (prompt 101). */
+    public static final String EVENT_VERSION_CONFLICT = "EVENT_VERSION_CONFLICT";
+
+    /** 409: the population pack has not been imported (prompt 101). */
+    public static final String PACK_NOT_INSTALLED = "PACK_NOT_INSTALLED";
+
     /** 403: the token's scope is below the operation's; carries {@code requiredScope} (prompt 023). */
     public static final String INSUFFICIENT_SCOPE = "INSUFFICIENT_SCOPE";
 
