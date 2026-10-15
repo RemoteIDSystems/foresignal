@@ -200,7 +200,7 @@ public class IngestWriter implements IngestStateReset, DisposableBean {
 
     private static final String TOUCH =
             """
-            UPDATE record_live SET observed_at = ?, last_received_at = ?, valid_until = ?
+            UPDATE record_live SET observed_at = ?, last_received_at = ?, valid_until = ?, qa_flags = ?
              WHERE source_id = ? AND external_id = ? AND observed_at <= ?
             """;
 
@@ -976,7 +976,7 @@ public class IngestWriter implements IngestStateReset, DisposableBean {
                        ST_X(ST_Centroid(h.persisted_geom)), ST_Y(ST_Centroid(h.persisted_geom)),
                        ST_XMin(h.persisted_geom), ST_YMin(h.persisted_geom), ST_XMax(h.persisted_geom), ST_YMax(h.persisted_geom),
                        l.external_id IS NOT NULL,
-                       l.observed_at, l.last_received_at, l.valid_until, l.full_hash, l.dirty, l.kinematic::text,
+                       l.observed_at, l.last_received_at, l.valid_until, l.full_hash, l.dirty, l.qa_flags, l.kinematic::text,
                        ST_XMin(l.geom), ST_YMin(l.geom), ST_XMax(l.geom), ST_YMax(l.geom)""");
         if (track) {
             sql.append(", ST_AsBinary(l.geom)");
@@ -1007,7 +1007,7 @@ public class IngestWriter implements IngestStateReset, DisposableBean {
                 },
                 rs -> {
                     String externalId = rs.getString(1);
-                    int column = 25;
+                    int column = 26;
                     Geometry liveGeometry = null;
                     if (track) {
                         liveGeometry = IngestJson.geometry(rs.getBytes(column++));
@@ -1045,9 +1045,10 @@ public class IngestWriter implements IngestStateReset, DisposableBean {
                                     JdbcValues.instant(rs, 17),
                                     rs.getLong(18),
                                     rs.getBoolean(19),
-                                    json.readKeepingNulls(rs.getString(20)),
+                                    json.readKeepingNulls(rs.getString(21)),
                                     liveGeometry,
-                                    envelope(rs, 21));
+                                    envelope(rs, 22),
+                                    rs.getInt(20));
                     states.put(externalId, new EntityState(head, live));
                 });
         if (!missingLive.isEmpty()) {
@@ -1092,7 +1093,8 @@ public class IngestWriter implements IngestStateReset, DisposableBean {
                     EntityState.Live live =
                             new EntityState.Live(
                                     observedAt, receivedAt, validUntil, fullHash, false, kinematic,
-                                    profile.isTrack() ? geometry : null, geometry == null ? null : geometry.getEnvelopeInternal());
+                                    profile.isTrack() ? geometry : null,
+                                    geometry == null ? null : geometry.getEnvelopeInternal(), 0);
                     states.put(externalId, new EntityState(current.head(), live));
                 });
         jdbc.batchUpdate(INSERT_REPAIRED_LIVE, rows, rows.size(), (ps, row) -> {
@@ -1296,9 +1298,10 @@ public class IngestWriter implements IngestStateReset, DisposableBean {
             JdbcValues.setInstant(ps, 1, live.observedAt());
             JdbcValues.setInstant(ps, 2, live.lastReceivedAt());
             JdbcValues.setInstant(ps, 3, live.validUntil());
-            ps.setString(4, sourceId);
-            ps.setString(5, plan.externalId);
-            JdbcValues.setInstant(ps, 6, live.observedAt());
+            ps.setShort(4, (short) live.qaFlags());
+            ps.setString(5, sourceId);
+            ps.setString(6, plan.externalId);
+            JdbcValues.setInstant(ps, 7, live.observedAt());
         });
         long updated = Arrays.stream(counts).flatMapToInt(Arrays::stream).asLongStream().sum();
         if (updated != entities.size()) {

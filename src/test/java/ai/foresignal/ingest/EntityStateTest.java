@@ -131,7 +131,7 @@ class EntityStateTest {
     void persistedValueSources() {
         EntityState.Head loaded =
                 new EntityState.Head(true, 7, 3, false, 42L, T0, T0, null, null, Map.of("gs", 250.0), null, null);
-        EntityState state = new EntityState(loaded, new EntityState.Live(T0, T0, null, 1L, false, Map.of(), null, null));
+        EntityState state = new EntityState(loaded, new EntityState.Live(T0, T0, null, 1L, false, Map.of(), null, null, 0));
 
         assertThat(state.persistedValue("gs")).isEqualTo(250.0);
         assertThat(state.persistedValue("alt")).isNull();

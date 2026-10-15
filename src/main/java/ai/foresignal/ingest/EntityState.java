@@ -95,7 +95,8 @@ public record EntityState(Head head, Live live) {
             boolean dirty,
             Map<String, Object> kinematic,
             Geometry geometry,
-            Envelope bbox) {
+            Envelope bbox,
+            int qaFlags) {
 
         public Live {
             kinematic =
@@ -197,7 +198,8 @@ public record EntityState(Head head, Live live) {
                         false,
                         kinematic,
                         geometry,
-                        envelope(geometry));
+                        envelope(geometry),
+                        obs.qaFlags());
         return new EntityState(newHead, newLive);
     }
 
@@ -227,7 +229,8 @@ public record EntityState(Head head, Live live) {
                         true,
                         obs.tombstone() ? Map.of() : kinematic,
                         geometry,
-                        envelope(geometry));
+                        envelope(geometry),
+                        obs.qaFlags());
         return new EntityState(head, newLive);
     }
 
@@ -249,7 +252,8 @@ public record EntityState(Head head, Live live) {
                         live.dirty(),
                         live.kinematic(),
                         live.geometry(),
-                        live.bbox());
+                        live.bbox(),
+                        obs.qaFlags());
         return new EntityState(head, newLive);
     }
 

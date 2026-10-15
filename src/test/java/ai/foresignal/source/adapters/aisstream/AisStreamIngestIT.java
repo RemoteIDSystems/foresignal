@@ -205,7 +205,9 @@ class AisStreamIngestIT {
         sendPosition("235100004", 50.80, -1.30, 0.0);
         await().atMost(WAIT).until(() -> versions("235100004", PersistReason.FIRST) == 1);
 
-        clock.advance(Duration.ofSeconds(60));
+        // The sentinel does not change the payload, so the live row updates on the touch throttle
+        // (touchMin = clamp(ttl/10, 30 s, 1 h) = 3 min for a 30 min TTL), not immediately.
+        clock.advance(Duration.ofSeconds(200));
         sendPosition("235100004", 91.0, 181.0, 0.0);
 
         await().atMost(WAIT).until(() -> {
@@ -218,7 +220,7 @@ class AisStreamIngestIT {
                 "select ST_Y(geom) as lat, observed_at from record_live where source_id = ? and external_id = ?",
                 ID, "235100004");
         assertThat(((Number) live.get("lat")).doubleValue()).isEqualTo(50.80, org.assertj.core.data.Offset.offset(1e-6));
-        assertThat(((java.sql.Timestamp) live.get("observed_at")).toInstant()).isEqualTo(T0.plusSeconds(60));
+        assertThat(((java.sql.Timestamp) live.get("observed_at")).toInstant()).isEqualTo(T0.plusSeconds(200));
     }
 
     @Test

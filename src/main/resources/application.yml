@@ -380,3 +380,6 @@ logging:
     # "Writing […]"), which includes minted tokens, tickets, feed and ingest keys and credentials. They stay at INFO
     # (checkpoint 041, StreamTicketIT).
     org.springframework.web.servlet.mvc.method.annotation: info
+    # java-websocket logs every frame it decodes at TRACE/DEBUG ("afterDecoding(...)"), which includes
+    # the aisstream subscription carrying the API key (invariant SRC-5, checkpoint 097).
+    org.java_websocket: warn

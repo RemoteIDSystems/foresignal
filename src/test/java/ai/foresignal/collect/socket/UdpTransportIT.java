@@ -74,7 +74,8 @@ class UdpTransportIT {
                 (datagram, sender, at) -> received.add(new String(datagram, StandardCharsets.US_ASCII) + "@"
                         + sender.getAddress().getHostAddress() + "@" + at));
         try {
-            send(port, "!AIVDM,1,1,,A,13u?etPv2;0n:dDPwUM1U1Cb069D,0*23");
+            // Shorter than maxDatagramBytes (32), or it would be dropped as oversize.
+            send(port, "!AIVDM,1,1,,A,13u?etPv2;0n,0*23");
             String got = received.poll(5, TimeUnit.SECONDS);
             assertThat(got).startsWith("!AIVDM").endsWith("@127.0.0.1@" + NOW);
         } finally {

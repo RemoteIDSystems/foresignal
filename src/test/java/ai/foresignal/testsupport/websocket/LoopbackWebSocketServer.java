@@ -137,7 +137,10 @@ public final class LoopbackWebSocketServer extends WebSocketServer implements Au
             for (int offset = 0; offset < bytes.length; offset += size) {
                 int length = Math.min(size, bytes.length - offset);
                 boolean fin = offset + length >= bytes.length;
-                conn.sendFragmentedFrame(Opcode.BINARY, ByteBuffer.wrap(bytes, offset, length), fin);
+                // A copied slice: the permessage-deflate path reads the backing array, so wrapping a
+                // view would send the whole message in every fragment.
+                conn.sendFragmentedFrame(Opcode.BINARY,
+                        ByteBuffer.wrap(java.util.Arrays.copyOfRange(bytes, offset, offset + length)), fin);
             }
         }
     }

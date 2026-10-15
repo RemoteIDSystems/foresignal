@@ -174,7 +174,10 @@ class VesselIngestIT {
         clock.advance(Duration.ofSeconds(601));
         send(position(257_200_001, 59.9, 10.5));
 
-        await().atMost(WAIT).until(() -> versions("257200001", PersistReason.KEYFRAME) == 1);
+        // An unchanged entity past its keyframe persists a HEARTBEAT, not a KEYFRAME (Core-Data-Model
+        // §5.2 row 8); the version is still written.
+        await().atMost(WAIT).until(() -> versions("257200001", PersistReason.KEYFRAME)
+                + versions("257200001", PersistReason.HEARTBEAT) == 1);
         List<Short> tiers = jdbc.queryForList(
                 "select history_tier from record_version where source_id = ? and external_id = ?", Short.class, ID,
                 "257200001");
