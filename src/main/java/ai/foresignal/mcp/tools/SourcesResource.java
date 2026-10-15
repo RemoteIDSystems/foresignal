@@ -34,6 +34,7 @@ public class SourcesResource implements ForesignalMcpResource {
 
     @Override
     public String read(ToolContext context) {
-        return sources.list(context.caller(), Detail.LONG).toString();
+        // A resource is read directly, so it lists every visible source rather than a capped page.
+        return sources.listAll(context.caller(), Detail.LONG).toString();
     }
 }

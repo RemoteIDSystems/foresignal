@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.ObjectNode;
 
 /** {@code list_sources} (read): every source the caller may see, with its status, as {@code listSources}. */
@@ -86,13 +87,32 @@ public class ListSourcesTool implements ForesignalMcpTool {
 
     /** The sources {@code caller} may see, as a capped list (shared with the resource). */
     ObjectNode list(McpCaller caller, Detail detail) {
+        List<ObjectNode> items = visibleItems(caller, detail);
+        return shaper.list(items, items.size(), false, detail, null);
+    }
+
+    /**
+     * The sources {@code caller} may see, without the tool-output cap: the {@code foresignal://sources}
+     * resource is read directly, not shaped for an LLM context, so it lists every visible source.
+     */
+    ObjectNode listAll(McpCaller caller, Detail detail) {
+        List<ObjectNode> items = visibleItems(caller, detail);
+        ObjectNode out = shaper.object();
+        out.put("total", items.size());
+        out.put("truncated", false);
+        ArrayNode array = out.putArray("items");
+        items.forEach(array::add);
+        return out;
+    }
+
+    private List<ObjectNode> visibleItems(McpCaller caller, Detail detail) {
         List<ObjectNode> items = new ArrayList<>();
         sources.list().stream()
                 .filter(view -> visibility.visible(view.id(), caller.currentToken()))
                 .sorted(Comparator.comparing(SourceView::id))
                 .map(mapper::summary)
                 .forEach(summary -> items.add(item(summary, detail)));
-        return shaper.list(items, items.size(), false, detail, null);
+        return items;
     }
 
     private ObjectNode item(SourceSummary summary, Detail detail) {
