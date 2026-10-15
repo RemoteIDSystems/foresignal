@@ -386,6 +386,14 @@ public class AccessPolicy {
                 rule(HttpMethod.GET, "/v1/analyst/evaluation", AccessRequirement.AGENT),
                 rule(null, "/v1/analyst/**", AccessRequirement.AGENT),
 
+                // ---- Backtesting, jobs and precursor tests (prompt 103) ----
+                rule(HttpMethod.GET, "/v1/triggers/*/quality", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/triggers/*/suggestions", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/precursor-tests/**", AccessRequirement.READ),
+                rule(null, "/v1/precursor-tests/**", AccessRequirement.AGENT),
+                rule(null, "/v1/backtests/**", AccessRequirement.AGENT),
+                rule(null, "/v1/jobs/**", AccessRequirement.AGENT),
+
                 // ---- Alerts: read to list, agent for the lifecycle (017) ----
                 rule(HttpMethod.POST, "/v1/alerts/*/ack", AccessRequirement.AGENT),
                 rule(HttpMethod.POST, "/v1/alerts/*/resolve", AccessRequirement.AGENT),

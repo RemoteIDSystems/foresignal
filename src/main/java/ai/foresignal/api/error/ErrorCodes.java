@@ -170,6 +170,21 @@ public final class ErrorCodes {
     /** 400: an analyst profile is not valid (prompt 102). */
     public static final String ANALYST_PROFILE_INVALID = "ANALYST_PROFILE_INVALID";
 
+    /** 404: no backtest job has that id (prompt 103). */
+    public static final String UNKNOWN_BACKTEST = "UNKNOWN_BACKTEST";
+
+    /** 404: no precursor test has that id (prompt 103). */
+    public static final String UNKNOWN_PRECURSOR_TEST = "UNKNOWN_PRECURSOR_TEST";
+
+    /** 409: a backtest job is already queued or running for this token (prompt 103). */
+    public static final String BACKTEST_IN_PROGRESS = "BACKTEST_IN_PROGRESS";
+
+    /** 400: a backtest range is empty, inverted or wholly below retention (prompt 103). */
+    public static final String BACKTEST_RANGE_INVALID = "BACKTEST_RANGE_INVALID";
+
+    /** 400: a precursor test definition is not valid (prompt 103). */
+    public static final String PRECURSOR_TEST_INVALID = "PRECURSOR_TEST_INVALID";
+
     /** 403: the token's scope is below the operation's; carries {@code requiredScope} (prompt 023). */
     public static final String INSUFFICIENT_SCOPE = "INSUFFICIENT_SCOPE";
 

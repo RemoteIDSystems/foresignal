@@ -1,0 +1,228 @@
+package ai.foresignal.backtest;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import java.time.Instant;
+import java.util.List;
+import java.util.Map;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
+/** One backtest job (prompt 103). */
+@Entity
+@Table(name = "backtest_job")
+public class BacktestJobEntity {
+
+    @Id
+    @Column(name = "id", length = 26, nullable = false)
+    private String id;
+
+    @Column(name = "type", length = 16, nullable = false)
+    private String type;
+
+    @Column(name = "target_id", length = 64)
+    private String targetId;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "definition")
+    private Map<String, Object> definition;
+
+    @Column(name = "definition_hash", length = 64)
+    private String definitionHash;
+
+    @Column(name = "from_seq")
+    private Long fromSeq;
+
+    @Column(name = "to_seq")
+    private Long toSeq;
+
+    @Column(name = "range_from")
+    private Instant rangeFrom;
+
+    @Column(name = "range_to")
+    private Instant rangeTo;
+
+    @Column(name = "status", length = 16, nullable = false)
+    private String status = "queued";
+
+    @Column(name = "progress", nullable = false)
+    private double progress;
+
+    @Column(name = "started_at")
+    private Instant startedAt;
+
+    @Column(name = "finished_at")
+    private Instant finishedAt;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "result")
+    private Map<String, Object> result;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "caveats")
+    private List<Map<String, Object>> caveats;
+
+    @Column(name = "detector_version", length = 32)
+    private String detectorVersion;
+
+    @Column(name = "created_by", length = 64)
+    private String createdBy;
+
+    @Column(name = "created_at", nullable = false)
+    private Instant createdAt;
+
+    @Column(name = "cancelled", nullable = false)
+    private boolean cancelled;
+
+    /** JPA. */
+    protected BacktestJobEntity() {}
+
+    /** Creates a job. */
+    public BacktestJobEntity(String id, String type, Instant createdAt) {
+        this.id = id;
+        this.type = type;
+        this.createdAt = createdAt;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public String getTargetId() {
+        return targetId;
+    }
+
+    public void setTargetId(String targetId) {
+        this.targetId = targetId;
+    }
+
+    public Map<String, Object> getDefinition() {
+        return definition;
+    }
+
+    public void setDefinition(Map<String, Object> definition) {
+        this.definition = definition;
+    }
+
+    public String getDefinitionHash() {
+        return definitionHash;
+    }
+
+    public void setDefinitionHash(String definitionHash) {
+        this.definitionHash = definitionHash;
+    }
+
+    public Long getFromSeq() {
+        return fromSeq;
+    }
+
+    public void setFromSeq(Long fromSeq) {
+        this.fromSeq = fromSeq;
+    }
+
+    public Long getToSeq() {
+        return toSeq;
+    }
+
+    public void setToSeq(Long toSeq) {
+        this.toSeq = toSeq;
+    }
+
+    public Instant getRangeFrom() {
+        return rangeFrom;
+    }
+
+    public void setRangeFrom(Instant rangeFrom) {
+        this.rangeFrom = rangeFrom;
+    }
+
+    public Instant getRangeTo() {
+        return rangeTo;
+    }
+
+    public void setRangeTo(Instant rangeTo) {
+        this.rangeTo = rangeTo;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public double getProgress() {
+        return progress;
+    }
+
+    public void setProgress(double progress) {
+        this.progress = progress;
+    }
+
+    public Instant getStartedAt() {
+        return startedAt;
+    }
+
+    public void setStartedAt(Instant startedAt) {
+        this.startedAt = startedAt;
+    }
+
+    public Instant getFinishedAt() {
+        return finishedAt;
+    }
+
+    public void setFinishedAt(Instant finishedAt) {
+        this.finishedAt = finishedAt;
+    }
+
+    public Map<String, Object> getResult() {
+        return result;
+    }
+
+    public void setResult(Map<String, Object> result) {
+        this.result = result;
+    }
+
+    public List<Map<String, Object>> getCaveats() {
+        return caveats;
+    }
+
+    public void setCaveats(List<Map<String, Object>> caveats) {
+        this.caveats = caveats;
+    }
+
+    public String getDetectorVersion() {
+        return detectorVersion;
+    }
+
+    public void setDetectorVersion(String detectorVersion) {
+        this.detectorVersion = detectorVersion;
+    }
+
+    public String getCreatedBy() {
+        return createdBy;
+    }
+
+    public void setCreatedBy(String createdBy) {
+        this.createdBy = createdBy;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public boolean isCancelled() {
+        return cancelled;
+    }
+
+    public void setCancelled(boolean cancelled) {
+        this.cancelled = cancelled;
+    }
+}

@@ -133,6 +133,14 @@ public record RuleSpec(
                 messageTemplate, snoozedUntil, enrich, value, near, sensitive, fenceRef);
     }
 
+    /** This rule with different conditions (prompt 103 backtest variants). */
+    public RuleSpec withConditions(List<RuleCondition> value) {
+        return new RuleSpec(id, name, enabled, sources, kinds, tags, value, fence, fenceInner, fenceOuter,
+                hysteresisMeters, mode, onlyNew, reappearAsEnter, cooldown, cooldownScope, severity, autoResolve,
+                maxAlertsPerHour, autoDisableOnStorm, activeFrom, activeUntil, activeWindow, forecastHorizon,
+                messageTemplate, snoozedUntil, enrich, anchor, near, sensitive, fenceRef);
+    }
+
     /** True when the rule has a geofence (a static one; an anchor rule's fence moves). */
     public boolean hasFence() {
         return fence != null;

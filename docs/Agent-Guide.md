@@ -226,6 +226,15 @@ is reasoned from them; `speculation` is a possibility to check. Never present a 
 a probability, and never treat a proposal as done until it is confirmed. `run_analyst` is a spending
 path and is always authenticated.
 
+### Backtesting and precursor tests (prompt 103)
+
+Tools: `run_backtest`, `get_backtest`, `test_precursor` (agent); `get_rule_quality`,
+`get_tuning_suggestions` (read). **Always quote a backtest's caveats first** — every result carries
+`NOT_GROUND_TRUTH` plus any of `RANGE_CLAMPED_BY_RETENTION`, `DOWNSAMPLED_RANGE`, `SAMPLED_SOURCE`,
+`COVERAGE_GAPS`, `DEFINITION_DIFFERS`, `ENTITY_RESOLUTION_CHANGED`, `WINDOW_APPROXIMATE`, `SMALL_SAMPLE`.
+A precursor test says "association in stored data; not causation"; a lift or p-value is a descriptive
+statistic, never a calibrated probability. Tuning suggestions are never applied automatically.
+
 ## Weather alerts (prompt 047)
 
 Four sources turn official severe-weather products into records you can write rules against. Enable each

@@ -1256,6 +1256,40 @@ already produced; it never manufactures evidence.
   status, the noop share, tokens, proposal acceptance rate, notes dismissed share, useful/wrong
   ratios. `GET /v1/analyst/runs` lists every run's tokens, tool calls, duration and outcome.
 
+## Backtesting and precursor tests (prompt 103)
+
+Ask "what would this rule or recipe have done?" and "does X tend to precede Y within T?" over retained
+history, with answers that state their own limits. A backtest replays what Foresignal **stored**, not
+ground truth.
+
+- **Jobs.** `POST /v1/backtests {type: rule|recipe|precursor|quality, targetId | definition, from|fromSeq,
+  to|toSeq, variants?}` returns 202 with a job; poll `GET /v1/jobs/{jobId}` (one path for every job
+  type) or `GET /v1/backtests`. One queued or running job per token (409 `BACKTEST_IN_PROGRESS`); the
+  range is capped at 90 days or the retained range, whichever is shorter, and a start below the
+  retained floor is clamped with the `RANGE_CLAMPED_BY_RETENTION` caveat.
+- **Caveats.** Every result carries `NOT_GROUND_TRUTH` plus each applicable caveat: `RANGE_CLAMPED_BY_RETENTION`,
+  `DOWNSAMPLED_RANGE`, `SAMPLED_SOURCE`, `COVERAGE_GAPS`, `DEFINITION_DIFFERS`, `ENTITY_RESOLUTION_CHANGED`,
+  `WINDOW_APPROXIMATE`, `SMALL_SAMPLE`. **Always quote them when reporting a result.**
+- **No look-ahead.** Anomaly and recipe replays use only data at or before the replay cursor; a baseline
+  trains only on buckets before the evaluated bucket.
+- **Reading lift and p-values.** Hit rates, lifts and p-values are descriptive statistics with stated
+  assumptions; they are never calibrated probabilities. Small samples are labelled `insufficient`.
+- **Precursor tests.** `POST /v1/precursor-tests` defines X and Y (an alert rule, an intelligence event
+  type or an anomaly rule), a lag window, a spatial rule and a dedup window; `POST
+  /v1/precursor-tests/{id}/test` submits a job. The verdict is `insufficient`, `no-evidence-of-precedence`,
+  `weak` or `notable`. The output reports the reverse test (flagging "co-occurrence, not precedence"), a
+  deterministic circular-shift base rate and permutation p-value, and how many precursor tests this
+  instance ran in the last 30 days with a Bonferroni-adjusted p-value. **Association in stored data; not
+  causation.**
+- **Alert quality.** `GET /v1/triggers/{ruleId}/quality?since` reports precision with a Wilson interval
+  (null with fewer than five labelled alerts), median time-to-ack and time-to-resolve, flapping,
+  duplicates and the severity distribution. The 017 feedback enum maps to classes as: `useful` →
+  positive; `noise` and `false_positive` → negative; `late` → neutral.
+- **Tuning suggestions** (`GET /v1/triggers/{ruleId}/suggestions?since&simulate`) are deterministic and
+  **never applied automatically**. Each carries a rationale, a ready `TriggerRuleInput` partial patch, an
+  expected effect and caveats; applying one is an ordinary rule update by an agent. With `simulate=true`
+  (agent only) a backtest job measures the patched variant over the same range.
+
 ## Notification channels
 
 A channel delivers alerts, briefings and system events to one destination, formatted natively for

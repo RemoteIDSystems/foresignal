@@ -1,17 +1,3 @@
-createBacktest 103
-listBacktests 103
-getBacktest 103
-cancelBacktest 103
-listPrecursorTests 103
-createPrecursorTest 103
-getPrecursorTest 103
-updatePrecursorTest 103
-deletePrecursorTest 103
-testPrecursorTest 103
-getTriggerQuality 103
-getTriggerSuggestions 103
-getJob 103
-cancelJob 103
 listInfraNodes 104
 getInfraNode 104
 listInfraEdges 104
