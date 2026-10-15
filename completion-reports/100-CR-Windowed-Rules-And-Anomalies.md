@@ -202,3 +202,48 @@ expected, p-value, classification, baseline and detector (kept faithful to promp
   its alert stays `firing` — the guard for fix 1.
 
 Fix commit: `d1081acf3f94a7ce7235e6c1c1b3928e1e4ffa6b`
+
+---
+
+## Post-review fixes (second pass) — coverage-gated tests
+
+The four production fixes above are unchanged. This pass repairs the tests added in the first
+remediation so they pass when the suite first runs at checkpoint 124: they asserted `active` /
+`activity-up` outcomes that require `CoverageGate` to return `ok`, but `TestRecords.ingestAt` writes
+a `fetch_log` row without ever touching `source_health.last_data_at` (only `HealthTracker` does, on
+the collection path), so the gate returned `unknown`. The tests also mixed `Instant.now()` with the
+frozen `MutableClock` the test context installs. Commit `f63256c2f081dd0efee716c5e8b680b44feed686`.
+
+1. **`CoverageSupport` test helper** (`src/test/java/ai/foresignal/testsupport/ingest/CoverageSupport.java`,
+   registered by the nested `@TestConfiguration` `CoverageSupport.Config`). Its
+   `markCovered(String sourceId, Instant from, Instant to)` upserts a fresh `source_health` row
+   (`last_data_at = to`, a stable four-entry `recent_coverage` ring so nothing looks like a coverage
+   drop, `consecutive_failures = 0`) and inserts OK/NOT_MODIFIED `fetch_log` rows inside
+   `[from, to)`, so the OK share is 1.0 and the newest coverage is not a drop — exactly the state the
+   gate requires.
+2. **`AbsenceRuleIT`** now imports `CoverageSupport.Config`, freezes the `MutableClock` to a fixed
+   instant, enables the source, and calls `markCovered(...)` before the firing evaluation. The
+   `active -> unknown` guard (disable the source, assert the alert stays `firing`) is retained.
+3. **`AnomalyRuleIT`** now freezes the clock, enables the source, calls `markCovered(...)` for the
+   current bucket, seeds the eight weeks of hourly history within the 12-week lookback (hosted at the
+   clock instant), and asserts the current bucket is classified `activity-up`.
+4. **`RuleWindowsIngestIT`** now freezes the clock so the seeded record falls inside the rule's
+   window (the count path needs no coverage gate); it still asserts a `window-state` record actually
+   persists in `record_head`.
+
+### Deviations
+
+- **The remediation prompt was truncated** after `void markCovered(String sourceId, Instant from,
+  Instant to)`. I implemented the stated helper and the repairs the context implies (the helper, the
+  `MutableClock` alignment, and calling `markCovered` in the two coverage-gated tests), and extended
+  the same clock fix to `RuleWindowsIngestIT`. No production code changed in this pass.
+- **No `CoverageGateTest`/`AnomalyClassifierTest` change** was needed; the pure `decide(...)` table
+  and `AnomalyClassifier.classify(...)` inputs are unaffected by the test-setup repair.
+
+### Open item (P2, architect's ledger)
+
+`hour-of-day` warm-up still gates on `minWeeks` (8) and compares `lowConfidence` against 14 weeks
+rather than 14 days, per prompt §4's "may start after 14 days with `lowConfidence: true`". It is
+conservative (fires later, never earlier) and out of scope for this pass; re-check at checkpoint 124.
+
+Fix commit: `f63256c2f081dd0efee716c5e8b680b44feed686`
