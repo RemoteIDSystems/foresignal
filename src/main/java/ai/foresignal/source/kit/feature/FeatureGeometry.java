@@ -5,6 +5,7 @@ import ai.foresignal.source.formats.geojson.GeoJsonReader;
 import ai.foresignal.source.spi.Geo;
 import ai.foresignal.source.spi.UpstreamFormatException;
 import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.util.GeometryFixer;
 import org.locationtech.jts.simplify.TopologyPreservingSimplifier;
 import tools.jackson.databind.JsonNode;
 
@@ -89,13 +90,22 @@ public final class FeatureGeometry {
      */
     public static Result fit(Geometry geometry) {
         if (geometry.getNumPoints() <= MAX_VERTICES) {
+            if (!geometry.isValid()) {
+                Geometry fixed = GeometryFixer.fix(geometry);
+                fixed.setSRID(Geo.SRID);
+                return new Result(fixed, false, null);
+            }
             return new Result(geometry, false, null);
         }
         double tolerance = START_TOLERANCE_DEG;
-        Geometry simplified = geometry;
         for (int step = 0; step < MAX_STEPS; step++) {
-            simplified = TopologyPreservingSimplifier.simplify(geometry, tolerance);
-            if (simplified.getNumPoints() <= MAX_VERTICES) {
+            Geometry simplified = TopologyPreservingSimplifier.simplify(geometry, tolerance);
+            if (!simplified.isValid()) {
+                // Topology-preserving simplification of a self-touching or overlapping source can
+                // still round into an invalid ring; repair it rather than store an invalid geometry.
+                simplified = GeometryFixer.fix(simplified);
+            }
+            if (simplified.isValid() && simplified.getNumPoints() <= MAX_VERTICES) {
                 simplified.setSRID(Geo.SRID);
                 return new Result(simplified, true, tolerance);
             }

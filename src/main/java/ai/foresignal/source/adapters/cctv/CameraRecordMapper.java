@@ -113,8 +113,7 @@ public final class CameraRecordMapper {
             access = CctvFrameHosts.access(uri.getHost());
             insecure = "http".equals(uri.getScheme()) ? Boolean.TRUE : null;
         }
-        Double heading = entry.headingDeg() == null || !Double.isFinite(entry.headingDeg()) ? null
-                : ((entry.headingDeg() % 360) + 360) % 360;
+        Double heading = Compass.normalize(entry.headingDeg());
         return NormalizedRecord.builder(entry.id().strip(), KIND)
                 .point(entry.lon(), entry.lat())
                 .put("name", blank(entry.name()))

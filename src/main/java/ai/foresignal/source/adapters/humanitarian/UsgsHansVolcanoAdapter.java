@@ -125,8 +125,14 @@ public final class UsgsHansVolcanoAdapter implements PollingAdapter {
         if (vnum == null) {
             return null;
         }
+        Instant observedAt = parseInstant(text(volcano, "sent_utc"));
+        if (observedAt == null) {
+            // The upstream time is the only time base; a notice without it is skipped, not given
+            // another clock (Core-Data-Model §2).
+            return null;
+        }
         NormalizedRecord.Builder b = NormalizedRecord.builder("usgs:" + vnum, KIND)
-                .observedAt(parseInstant(text(volcano, "sent_utc")));
+                .observedAt(observedAt);
         JsonNode coord = coords.get(vnum);
         if (coord != null) {
             Double lon = number(coord, "longitude");

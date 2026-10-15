@@ -49,4 +49,16 @@ public final class Compass {
         String key = text.strip().toUpperCase(Locale.ROOT).replace("-", "").replace(" ", "").replace("_", "");
         return key.isEmpty() ? null : HEADINGS.get(key);
     }
+
+    /**
+     * {@code degrees} folded into {@code [0, 360)}, or null when null or not finite. A value already in
+     * range is returned unchanged (plain {@code (x % 360 + 360) % 360} perturbs it by an ulp).
+     */
+    public static Double normalize(Double degrees) {
+        if (degrees == null || !Double.isFinite(degrees)) {
+            return null;
+        }
+        double value = degrees % 360;
+        return value < 0 ? value + 360 : value;
+    }
 }

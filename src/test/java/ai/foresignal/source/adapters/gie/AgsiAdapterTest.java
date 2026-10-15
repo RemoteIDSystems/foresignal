@@ -76,8 +76,13 @@ class AgsiAdapterTest extends WireMockSupport {
     @Test
     @DisplayName("the countries parameter keeps the EU aggregate and the chosen countries")
     void countries() throws Exception {
+        // The shipped fixture's EU aggregate is status N (no data), which the parser skips by design
+        // (AgsiParserTest); give it data here so the "EU is always kept" filter rule is exercised.
+        tools.jackson.databind.node.ObjectNode root = (tools.jackson.databind.node.ObjectNode)
+                jsonMapper.readTree(AdapterFixtures.bytes("gie-agsi", "storage.json"));
+        ((tools.jackson.databind.node.ObjectNode) root.get("data").get(2)).put("status", "C");
         WIREMOCK.stubFor(get(urlPathEqualTo("/api")).willReturn(aResponse().withStatus(200)
-                .withBody(AdapterFixtures.bytes("gie-agsi", "storage.json"))));
+                .withBody(root.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8))));
         // DE is chosen; FR is not, and the EU row is always kept.
         List<NormalizedRecord> records = adapter.fetch(harness.context(adapter,
                 Map.of(AgsiAdapter.COUNTRIES_PARAM, List.of("DE")))).records();

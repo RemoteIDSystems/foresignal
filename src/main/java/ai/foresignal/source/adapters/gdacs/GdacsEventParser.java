@@ -147,9 +147,12 @@ public final class GdacsEventParser {
             b.put("severityText", text(severity.get("severitytext")));
             b.put("severityUnit", text(severity.get("severityunit")));
         }
-        b.put("country", text(p.get("country")));
+        // GDACS puts a sea or region descriptor in country for open-water events ("West Of Macquarie
+        // Island") with no iso3; keep country only when it names a real country (a valid iso3).
         String iso3 = text(p.get("iso3"));
-        b.put("iso3", iso3 != null && ISO3.matcher(iso3).matches() ? iso3 : null);
+        boolean validIso3 = iso3 != null && ISO3.matcher(iso3).matches();
+        b.put("country", validIso3 ? text(p.get("country")) : null);
+        b.put("iso3", validIso3 ? iso3 : null);
         List<String> affected = new ArrayList<>();
         JsonNode countries = p.get("affectedcountries");
         if (countries != null && countries.isArray()) {

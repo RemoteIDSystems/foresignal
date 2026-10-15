@@ -560,7 +560,7 @@ public final class CctvJsonParsers {
                     .name(orElse(text(item, "name"), id))
                     .provider(text(item, "provider"))
                     .region(text(item, "city"))
-                    .headingDeg(curated && heading != null ? ((heading % 360) + 360) % 360 : null)
+                    .headingDeg(curated ? Compass.normalize(heading) : null)
                     .imageUrl(orElse(text(item, "url"), text(item, "snapshotUrl")))
                     .build());
         }

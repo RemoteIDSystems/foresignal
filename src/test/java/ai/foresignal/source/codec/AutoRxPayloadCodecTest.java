@@ -66,7 +66,8 @@ class AutoRxPayloadCodecTest {
                 .containsEntry("headingDeg", 93.0).containsEntry("type", "RS41-SGP").containsEntry("frequencyMHz", 404.5)
                 .containsEntry("tempC", -21.3).containsEntry("humidityPct", 45.2).containsEntry("pressureHpa", 532.11)
                 .doesNotContainKeys("frame", "batt", "sats", "time", "station", "callsign");
-        assertThat(first.observers()).containsExactly(new Observer("N0CALL-RX", null, null, 12.4, null));
+        // Prompt 086: the observer carries auto_rx's freq as frequencyHz (404.500 MHz).
+        assertThat(first.observers()).containsExactly(new Observer("N0CALL-RX", 404_500_000L, null, 12.4, null));
 
         NormalizedRecord m10 = records.get(2);
         assertThat(m10.payload()).as("sentinels dropped; a numeric freq").containsEntry("frequencyMHz", 403.9)

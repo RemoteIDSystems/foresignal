@@ -210,8 +210,12 @@ public final class AtlasProbesAdapter implements PollingAdapter {
         if (!statuses.contains(status)) {
             return null;
         }
-        NormalizedRecord.Builder b = NormalizedRecord.builder("probe:" + id, KIND);
         Instant statusSince = time(probe, "status_since");
+        if (statusSince == null) {
+            // status_since is the only time base; a probe without it is skipped (Core-Data-Model §2).
+            return null;
+        }
+        NormalizedRecord.Builder b = NormalizedRecord.builder("probe:" + id, KIND);
         b.observedAt(statusSince);
         Double lon = number(probe, "longitude");
         Double lat = number(probe, "latitude");
