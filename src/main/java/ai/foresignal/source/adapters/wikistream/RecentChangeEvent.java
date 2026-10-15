@@ -65,10 +65,13 @@ public record RecentChangeEvent(Instant dt, String id, String domain, String wik
         if (dt == null || title == null) {
             return java.util.Optional.empty();
         }
+        // The canary arrives as a top-level domain "canary"; the normal event carries meta.domain.
+        String metaDomain = meta != null && meta.isObject() ? text(meta.get("domain")) : null;
+        String topDomain = text(root.get("domain"));
         return java.util.Optional.of(new RecentChangeEvent(
                 dt,
                 meta != null && meta.isObject() ? text(meta.get("id")) : null,
-                meta != null && meta.isObject() ? text(meta.get("domain")) : null,
+                topDomain != null ? topDomain : metaDomain,
                 text(root.get("wiki")),
                 text(root.get("type")),
                 integral(root.get("namespace")),

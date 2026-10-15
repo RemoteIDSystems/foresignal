@@ -28,8 +28,9 @@ import java.util.Set;
  * {@code fading}, then tombstoned.
  *
  * <p><strong>Banding.</strong> So that a steady surge becomes touches rather than a version per edit, an
- * emission happens only when the banded state changes: edits in bands of 5, distinct editors in bands of 2, and
- * the phase ({@code rising}, {@code peak}, {@code fading}).
+ * emission happens only when the banded state changes: the edit count in bands of 5, the phase
+ * ({@code rising}, {@code peak}, {@code fading}) and whether the page is new. A change in the distinct-editor
+ * count alone is not an event; the count is reported in every emitted surge.
  *
  * <p><strong>Bounded.</strong> At most {@code maxPages} pages are tracked; the least recently updated is
  * evicted and the eviction counted.
@@ -161,10 +162,19 @@ public final class SurgeDetector {
         while (iterator.hasNext()) {
             PageState state = iterator.next().getValue();
             prune(state, now);
-            if (state.active) {
+            if (counts(state, now).met()) {
+                state.active = true;
+                state.everActive = true;
+                state.lastActiveAt = now;
                 continue;
             }
             if (state.everActive) {
+                // The edits aged out of the window and no new one arrived: stop being active so the
+                // linger clock (measured from the last active edit) runs and the surge is tombstoned.
+                state.active = false;
+                if (state.lastActiveAt == null) {
+                    state.lastActiveAt = state.lastEditAt;
+                }
                 if (Duration.between(state.lastActiveAt, now).compareTo(config.linger()) > 0) {
                     out.add(tombstone(state, now));
                     iterator.remove();
@@ -177,18 +187,8 @@ public final class SurgeDetector {
         return out;
     }
 
-    /** Drops edits older than the longest window. */
-    private void prune(PageState state, Instant now) {
-        Duration longest = config.newPageWindow().compareTo(config.window()) >= 0
-                ? config.newPageWindow() : config.window();
-        while (!state.edits.isEmpty()
-                && Duration.between(state.edits.peekFirst().at(), now).compareTo(longest) > 0) {
-            state.edits.pollFirst();
-        }
-    }
-
-    /** Computes the counts, phase and emission decision for one page. */
-    private Optional<Surge> evaluate(PageState state, Instant at) {
+    /** The window counts and whether the page meets a surge threshold at {@code at}. */
+    private Counts counts(PageState state, Instant at) {
         int edits15 = 0;
         int edits30 = 0;
         Set<String> editors15 = new HashSet<>();
@@ -204,18 +204,37 @@ public final class SurgeDetector {
                 editors15.add(edit.editorHash());
             }
         }
-        int editors = editors15.size();
-        boolean regular = edits15 >= config.minEdits() && editors >= config.minEditors();
-        boolean newPageMet = state.isNewPage && edits30 >= config.newPageMinEdits() && editors30.size() >= config.newPageMinEditors();
-        boolean met = regular || newPageMet;
+        boolean regular = edits15 >= config.minEdits() && editors15.size() >= config.minEditors();
+        boolean newPageMet = state.isNewPage && edits30 >= config.newPageMinEdits()
+                && editors30.size() >= config.newPageMinEditors();
+        return new Counts(edits15, editors15.size(), regular || newPageMet);
+    }
 
+    /** Edit and editor counts within the sliding window and whether a threshold is met. */
+    private record Counts(int edits, int editors, boolean met) {}
+
+    /** Drops edits older than the longest window. */
+    private void prune(PageState state, Instant now) {
+        Duration longest = config.newPageWindow().compareTo(config.window()) >= 0
+                ? config.newPageWindow() : config.window();
+        while (!state.edits.isEmpty()
+                && Duration.between(state.edits.peekFirst().at(), now).compareTo(longest) > 0) {
+            state.edits.pollFirst();
+        }
+    }
+
+    /** Computes the counts, phase and emission decision for one page. */
+    private Optional<Surge> evaluate(PageState state, Instant at) {
+        Counts counts = counts(state, at);
         String phase;
-        if (met) {
+        if (counts.met()) {
             state.active = true;
             boolean wasActive = state.everActive;
             state.everActive = true;
             state.lastActiveAt = at;
-            phase = wasActive ? PEAK : RISING;
+            // Rising while the edit count is still growing, peak once it plateaus within the window.
+            phase = !wasActive || counts.edits() > state.lastActiveEdits ? RISING : PEAK;
+            state.lastActiveEdits = counts.edits();
         } else if (state.everActive) {
             state.active = false;
             phase = FADING;
@@ -224,15 +243,16 @@ public final class SurgeDetector {
         }
         state.firstEditAt = state.edits.isEmpty() ? state.firstEditAt : state.edits.peekFirst().at();
 
-        int editsBand = edits15 / EDIT_BAND;
-        int editorsBand = editors / EDITOR_BAND;
-        String bandKey = editsBand + ":" + editorsBand + ":" + phase + ":" + state.isNewPage;
+        // Band by the edit count (and the phase); a change in the distinct-editor count alone is not an
+        // event, so a steady surge becomes one touch per five edits rather than one per two editors.
+        int editsBand = counts.edits() / EDIT_BAND;
+        String bandKey = editsBand + ":" + phase + ":" + state.isNewPage;
         if (bandKey.equals(state.lastBandKey)) {
             return Optional.empty();
         }
         state.lastBandKey = bandKey;
-        return Optional.of(new Surge(state.wiki, state.title, state.url, edits15, editors, state.firstEditAt,
-                state.isNewPage, phase, at, false));
+        return Optional.of(new Surge(state.wiki, state.title, state.url, counts.edits(), counts.editors(),
+                state.firstEditAt, state.isNewPage, phase, at, false));
     }
 
     private Surge tombstone(PageState state, Instant now) {
@@ -279,6 +299,7 @@ public final class SurgeDetector {
         private boolean isNewPage;
         private boolean active;
         private boolean everActive;
+        private int lastActiveEdits;
         private String lastBandKey;
 
         PageState(String wiki, String title) {
