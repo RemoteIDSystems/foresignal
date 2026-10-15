@@ -179,7 +179,7 @@ public class ChannelInputParser {
                 for (JsonNode item : eventsNode) {
                     String event = item.isString() ? item.asString() : null;
                     if (event == null || !ChannelTypeSpec.ALL_EVENTS.contains(event)) {
-                        errors.add(new FieldError("events", "supported events are alert, briefing and system"));
+                        errors.add(new FieldError("events", "supported events are alert, briefing, system and analyst.note"));
                     } else if (!events.contains(event)) {
                         events.add(event);
                     }

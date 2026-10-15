@@ -155,6 +155,21 @@ public final class ErrorCodes {
     /** 409: the population pack has not been imported (prompt 101). */
     public static final String PACK_NOT_INSTALLED = "PACK_NOT_INSTALLED";
 
+    /** 404: no analyst profile has that id (prompt 102). */
+    public static final String UNKNOWN_ANALYST_PROFILE = "UNKNOWN_ANALYST_PROFILE";
+
+    /** 404: no analyst proposal has that id (prompt 102). */
+    public static final String UNKNOWN_PROPOSAL = "UNKNOWN_PROPOSAL";
+
+    /** 409: an analyst proposal is not pending (prompt 102). */
+    public static final String PROPOSAL_NOT_PENDING = "PROPOSAL_NOT_PENDING";
+
+    /** 409: an analyst run is already in progress (prompt 102). */
+    public static final String ANALYST_RUN_IN_PROGRESS = "ANALYST_RUN_IN_PROGRESS";
+
+    /** 400: an analyst profile is not valid (prompt 102). */
+    public static final String ANALYST_PROFILE_INVALID = "ANALYST_PROFILE_INVALID";
+
     /** 403: the token's scope is below the operation's; carries {@code requiredScope} (prompt 023). */
     public static final String INSUFFICIENT_SCOPE = "INSUFFICIENT_SCOPE";
 

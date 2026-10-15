@@ -37614,7 +37614,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "102",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -37693,7 +37693,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "102",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -37772,7 +37772,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "102",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -37872,7 +37872,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "102",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -37934,7 +37934,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "102",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -38015,7 +38015,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "102",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true,
         "security": [
           {
@@ -38116,7 +38116,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "102",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -38187,7 +38187,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "102",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -38315,7 +38315,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "102",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -38425,7 +38425,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "102",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -38534,7 +38534,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "102",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -38632,7 +38632,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "102",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -38713,7 +38713,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "102",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -38804,7 +38804,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "102",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -38895,7 +38895,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "102",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -38966,7 +38966,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "102",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []

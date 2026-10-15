@@ -1218,6 +1218,44 @@ the detector version and parameters needed to reproduce it.
   polyfills the area at res 7 (res 5 over 50,000 km²) and sums. The estimate is a **modelled
   residential population, not a casualty or impact estimate**.
 
+## Autonomous analyst (prompt 102)
+
+The analyst is a **scheduled LLM reviewer**. On each run it looks at what is new — intelligence
+events (101), anomalies (100) and alerts (017) — compares them with history through read-only tools,
+and writes **analyst notes** with typed, cited claims. It may also **propose** watches, intelligence
+events, investigation items or event annotations. It explains evidence that deterministic detectors
+already produced; it never manufactures evidence.
+
+- **With no LLM configured the feature is inert.** Enabling a profile without a chat provider is 409
+  `LLM_NOT_CONFIGURED`, and every non-LLM feature is unaffected.
+- **Cost and egress.** Each run spends the configured provider's budget (026). A cloud provider is an
+  egress path; a note citing anything private is itself private and is excluded from non-private
+  egress and from cloud providers unless the operator allows it. Use a **local (Ollama)** provider to
+  keep everything on-host.
+- **Profiles.** `POST /v1/analyst/profiles` takes a `schedule` (`cron` + `timezone`, or `every` ≥ 10
+  minutes; default every 30 minutes), a `scope` (sources, kinds, places, bbox, event types, rule tags,
+  `minSeverity`), a `lookback`, `instructions` (≤ 4,000 chars), a model `providerId` (null = the chat
+  role) and `effort` (`low`/`medium`), budgets (`maxRunsPerDay`, `maxTokensPerRun`, `maxToolCalls`,
+  `maxWallSeconds`) and delivery (`channelIds`, `notifyMinPriority`).
+- **`allowActions` risks.** Proposals are only *proposed* by default. Executing one requires an
+  operator confirm, or `allowActions=true` and the exact type in `allowedActions`. **Even then**
+  auto-execution re-checks that the owner token is still unrevoked, unexpired and holds `agent`
+  scope, and that the daily `maxAutoActionsPerDay` cap is not reached. A restricted token cannot own
+  an action-enabled profile. The analyst can never delete or disable anything. Watches are created
+  enabled and tagged `analyst`; events carry `origin=analyst`; investigation items go only into open
+  investigations; `annotate_event` only appends labelled speculation and never touches members or
+  confidence.
+- **Reading claims.** Every note body has claims typed `evidence`, `inference` or `speculation`.
+  Evidence claims cite a tool result from that run; an uncited evidence claim is downgraded to
+  speculation with a warning. The model's own confidence numbers are discarded — a proposed event's
+  confidence is the 101 `EventScorer` over its members. An absence claim needs a coverage-ok citation.
+- **The four principles.** Evidence comes from detectors; claims are typed; no confidence inflation;
+  coverage-aware (never assert something "stopped" unless the coverage gate was ok). Tool results are
+  delimited and treated as data, never instructions.
+- **Evaluation.** `GET /v1/analyst/evaluation?profileId&since` returns per-profile aggregates: runs by
+  status, the noop share, tokens, proposal acceptance rate, notes dismissed share, useful/wrong
+  ratios. `GET /v1/analyst/runs` lists every run's tokens, tool calls, duration and outcome.
+
 ## Notification channels
 
 A channel delivers alerts, briefings and system events to one destination, formatted natively for

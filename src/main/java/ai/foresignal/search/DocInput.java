@@ -25,6 +25,9 @@ public record DocInput(String docType, String docId, String sourceId, String kin
     /** Briefing runs (029). */
     public static final String BRIEFING = "briefing";
 
+    /** An autonomous analyst note (prompt 102). */
+    public static final String ANALYST_NOTE = "analyst_note";
+
     /** Enriched alerts (030). */
     public static final String ALERT = "alert";
 

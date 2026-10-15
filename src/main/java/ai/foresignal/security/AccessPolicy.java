@@ -372,6 +372,20 @@ public class AccessPolicy {
                 rule(HttpMethod.POST, "/v1/exposure", AccessRequirement.READ),
                 rule(HttpMethod.POST, "/v1/packs/population/import", AccessRequirement.ADMIN),
 
+                // ---- Autonomous analyst (prompt 102) ----
+                rule(HttpMethod.POST, "/v1/analyst/profiles/*/run", AccessRequirement.AGENT_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.GET, "/v1/analyst/profiles/**", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/analyst/notes/**", AccessRequirement.READ),
+                rule(HttpMethod.PATCH, "/v1/analyst/notes/*", AccessRequirement.READ),
+                rule(HttpMethod.POST, "/v1/analyst/notes/*/feedback", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/analyst/runs/**", AccessRequirement.AGENT),
+                rule(HttpMethod.GET, "/v1/analyst/proposals/**", AccessRequirement.AGENT),
+                rule(HttpMethod.POST, "/v1/analyst/proposals/*/confirm", AccessRequirement.AGENT),
+                rule(HttpMethod.POST, "/v1/analyst/proposals/*/reject", AccessRequirement.AGENT),
+                rule(HttpMethod.POST, "/v1/analyst/proposals/*/feedback", AccessRequirement.AGENT),
+                rule(HttpMethod.GET, "/v1/analyst/evaluation", AccessRequirement.AGENT),
+                rule(null, "/v1/analyst/**", AccessRequirement.AGENT),
+
                 // ---- Alerts: read to list, agent for the lifecycle (017) ----
                 rule(HttpMethod.POST, "/v1/alerts/*/ack", AccessRequirement.AGENT),
                 rule(HttpMethod.POST, "/v1/alerts/*/resolve", AccessRequirement.AGENT),

@@ -217,6 +217,15 @@ geometry) and `speculation` (alternatives and any narrative, labelled). **Cite m
 `confidenceMethod=event-scorer-1.0.0` score) and keep anything under `speculation` labelled as such.
 An `unknown` coverage state or a `coverage-drop` is missing data, never evidence of absence.
 
+### Autonomous analyst (prompt 102)
+
+Tools: `list_analyst_notes`, `get_analyst_note` (read); `list_analyst_proposals`,
+`confirm_analyst_proposal`, `reject_analyst_proposal`, `run_analyst` (agent). Reading an analyst note
+means reading **claims**: `evidence` claims cite a `source/externalId@seq` from that run; `inference`
+is reasoned from them; `speculation` is a possibility to check. Never present a note's confidence as
+a probability, and never treat a proposal as done until it is confirmed. `run_analyst` is a spending
+path and is always authenticated.
+
 ## Weather alerts (prompt 047)
 
 Four sources turn official severe-weather products into records you can write rules against. Enable each

@@ -120,6 +120,9 @@ public final class StartupOrder {
     /** The briefing scheduler (prompt 029), after the collector scheduler. */
     public static final int BRIEFINGS = 35;
 
+    /** The autonomous analyst scheduler (prompt 102), after the briefing scheduler. */
+    public static final int ANALYST = 36;
+
     /**
      * The {@code mqtt} channels' broker connections (prompt 060), after the briefing scheduler: connecting
      * never blocks startup, and the retained state they publish reads rules, health and the glance.
