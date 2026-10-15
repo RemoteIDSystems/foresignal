@@ -2,8 +2,13 @@ package ai.foresignal.trigger.window;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import ai.foresignal.source.SourceService;
+import ai.foresignal.source.SourceSettingsUpdate;
+import ai.foresignal.source.spi.Budget;
 import ai.foresignal.source.spi.NormalizedRecord;
+import ai.foresignal.test.MutableClock;
 import ai.foresignal.test.WebIntegrationTest;
+import ai.foresignal.testsupport.ingest.CoverageSupport;
 import ai.foresignal.testsupport.ingest.TestIngestSources;
 import ai.foresignal.testsupport.ingest.TestRecords;
 import ai.foresignal.trigger.TriggerRuleService;
@@ -12,7 +17,9 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,18 +29,21 @@ import tools.jackson.databind.json.JsonMapper;
 /**
  * The anomaly rule and its coverage-aware baseline (prompt 100): eight weeks of hourly coverage-ok
  * samples inside the 12-week lookback complete the warm-up, then a spike in the current bucket is
- * classified {@code activity-up} with detector and evidence; a receiver drop yields
- * {@code coverage-drop}, not an alert.
+ * classified {@code activity-up} with detector and evidence. Time is the frozen {@link MutableClock}
+ * and {@link CoverageSupport} supplies the coverage state the gate requires.
  */
 @WebIntegrationTest
-@Import(TestIngestSources.class)
+@Import({TestIngestSources.class, CoverageSupport.Config.class})
 class AnomalyRuleIT {
 
     @Autowired TriggerRuleService rules;
     @Autowired WindowEngine engine;
     @Autowired ActivitySampleRepository samples;
     @Autowired AnomalyObservationRepository observations;
+    @Autowired SourceService sources;
     @Autowired TestRecords records;
+    @Autowired CoverageSupport coverage;
+    @Autowired MutableClock clock;
     @Autowired JsonMapper json;
 
     static final class Capture implements WindowEngine.Emitter {
@@ -56,18 +66,30 @@ class AnomalyRuleIT {
         }
     }
 
+    private void enable(boolean enabled) {
+        sources.update(TestIngestSources.STANDARD,
+                new SourceSettingsUpdate(enabled, null, Map.of(), Budget.of(1, 1), null, false, null, false));
+    }
+
     private UUID createRule() {
         return rules.create(json.readTree(
                 "{\"name\":\"unusual\",\"type\":\"anomaly\",\"sources\":[\"test-standard\"],"
                         + "\"window\":{\"window\":\"1h\",\"direction\":\"up\",\"minWeeks\":8}}")).rule().getId();
     }
 
+    @BeforeEach
+    void freeze() {
+        clock.setInstant(Instant.parse("2026-03-01T12:00:00Z"));
+        enable(true);
+    }
+
     @Test
     @DisplayName("eight weeks of hourly history complete warm-up, then a spike is activity-up")
     void spike() {
         UUID id = createRule();
-        Instant now = Instant.now();
+        Instant now = clock.instant();
         Instant currentBucket = now.minus(Duration.ofHours(1)).truncatedTo(ChronoUnit.HOURS);
+        coverage.markCovered(TestIngestSources.STANDARD, currentBucket, currentBucket.plus(Duration.ofHours(1)));
         // 8 weeks of hourly coverage-ok samples, each slot (day-of-week/hour) therefore sees 8 weeks.
         Instant start = currentBucket.minus(Duration.ofDays(56));
         for (Instant bucket = start; bucket.isBefore(currentBucket); bucket = bucket.plus(Duration.ofHours(1))) {

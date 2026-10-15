@@ -8,6 +8,7 @@ import ai.foresignal.source.SourceService;
 import ai.foresignal.source.SourceSettingsUpdate;
 import ai.foresignal.source.spi.Budget;
 import ai.foresignal.source.spi.NormalizedRecord;
+import ai.foresignal.test.MutableClock;
 import ai.foresignal.test.WebIntegrationTest;
 import ai.foresignal.testsupport.ingest.TestIngestSources;
 import ai.foresignal.testsupport.ingest.TestRecords;
@@ -26,8 +27,8 @@ import tools.jackson.databind.json.JsonMapper;
 /**
  * The {@code rule-windows} records persist through the real DERIVED pipeline (prompt 100). This is
  * the guard for the epoch {@code observedAt} defect: a record with {@code observed_at} before the
- * normalizer's floor is dropped at ingest, so nothing lands in {@code record_head}. Here the source
- * is enabled through {@link DerivedRunner} and a {@code window-state} record must actually persist.
+ * normalizer's floor is dropped at ingest, so nothing lands in {@code record_head}. Time is the
+ * frozen {@link MutableClock}, so the seeded record falls inside the rule's window.
  */
 @WebIntegrationTest
 @Import(TestIngestSources.class)
@@ -39,13 +40,15 @@ class RuleWindowsIngestIT {
     @Autowired DerivedRunner runner;
     @Autowired SourceService sources;
     @Autowired TestRecords records;
+    @Autowired MutableClock clock;
     @Autowired JdbcTemplate jdbc;
     @Autowired JsonMapper json;
 
     @Test
     @DisplayName("an enabled rule-windows source persists a window-state record through ingest")
     void windowStatePersists() {
-        Instant now = Instant.now();
+        clock.setInstant(Instant.parse("2026-03-01T12:00:00Z"));
+        Instant now = clock.instant();
         records.ingestAt(TestIngestSources.STANDARD, now,
                 NormalizedRecord.builder("a", "thing").observedAt(now).put("name", "a").build());
         UUID id = rules.create(json.readTree("{\"name\":\"one thing\",\"type\":\"count\","
