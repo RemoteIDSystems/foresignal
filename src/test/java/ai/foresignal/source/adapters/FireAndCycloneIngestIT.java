@@ -160,8 +160,8 @@ class FireAndCycloneIngestIT extends WeatherIngestSupport {
 
         clock.advance(Duration.ofHours(6));
         Map<String, byte[]> next = new java.util.HashMap<>(nhcFixtures());
-        String cone = new String(next.get("cone"), StandardCharsets.UTF_8).replace("\"advisnum\":\"25A\"",
-                "\"advisnum\":\"26\"").replace("1791914547000", "1791936147000");
+        String cone = new String(next.get("cone"), StandardCharsets.UTF_8).replace("\"advisnum\": \"25A\"",
+                "\"advisnum\": \"26\"").replace("1791914547000", "1791936147000");
         next.put("cone", cone.getBytes(StandardCharsets.UTF_8));
         serveNhc(next);
         assertThat(fetch(NHC).success()).isTrue();

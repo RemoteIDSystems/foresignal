@@ -10,6 +10,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import ai.foresignal.config.ForesignalProperties;
 import ai.foresignal.security.InstallIdService;
 import ai.foresignal.source.DescriptorValidator;
+import ai.foresignal.source.spi.AdapterStateStore;
 import ai.foresignal.source.spi.Budget;
 import ai.foresignal.source.spi.FetchResult;
 import ai.foresignal.source.spi.HistoryTier;
@@ -52,14 +53,16 @@ class NhcAdapterTest extends WireMockSupport {
 
     MutableClock clock;
     WeatherAdapterHarness.Upstream upstream;
-    WeatherAdapterHarness.MapState state;
+    AdapterStateStore state;
     NhcCyclonesAdapter adapter;
 
     @BeforeEach
     void setUp() {
         clock = new MutableClock(NOW);
         upstream = WeatherAdapterHarness.upstream(jdbc, jsonMapper, properties, install, clock, Budget.of(100, 1_000), null);
-        state = new WeatherAdapterHarness.MapState();
+        // The same persistent store conditional GET writes its validators to (production passes this
+        // store as ctx.state()); a separate in-memory store would never see the ETag.
+        state = upstream.client().stateStore(NhcCyclonesAdapter.ID);
         adapter = new NhcCyclonesAdapter(baseUrl());
     }
 
