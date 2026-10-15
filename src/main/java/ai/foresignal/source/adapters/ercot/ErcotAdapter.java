@@ -1,5 +1,6 @@
 package ai.foresignal.source.adapters.ercot;
 
+import ai.foresignal.collect.UpstreamHttpException;
 import ai.foresignal.source.series.SeriesPoint;
 import ai.foresignal.source.spi.AdapterException;
 import ai.foresignal.source.spi.Budget;
@@ -203,15 +204,23 @@ public class ErcotAdapter implements PollingAdapter {
     private ErcotParser.Envelope request(FetchContext ctx, URI uri, String subscriptionKey, String username,
             String password) throws AdapterException {
         String bearer = token(ctx, username, password);
-        UpstreamResponse response = ctx.http().get(uri, headers(subscriptionKey, bearer));
-        if (response.status() == 401) {
-            bearer = refreshToken(ctx, username, password);
+        UpstreamResponse response;
+        try {
+            // The client throws for any 4xx/5xx; a 401 means the cached token expired early, so refresh
+            // it once and retry.
             response = ctx.http().get(uri, headers(subscriptionKey, bearer));
-        }
-        if (response.status() == 403) {
-            ctx.state().degrade("geo-blocked: the ERCOT Public API is only reachable from inside the United States");
-            throw new AdapterException(ID + ": ERCOT refused the client (HTTP 403); access from outside the US is"
-                    + " blocked");
+        } catch (UpstreamHttpException e) {
+            if (e.getStatus() == 401) {
+                bearer = refreshToken(ctx, username, password);
+                response = ctx.http().get(uri, headers(subscriptionKey, bearer));
+            } else if (e.getStatus() == 403) {
+                ctx.state().degrade(
+                        "geo-blocked: the ERCOT Public API is only reachable from inside the United States");
+                throw new AdapterException(ID + ": ERCOT refused the client (HTTP 403); access from outside the US is"
+                        + " blocked");
+            } else {
+                throw e;
+            }
         }
         if (response.status() != 200 || response.truncated()) {
             throw new UpstreamFormatException(ID + ": " + uri.getPath() + (response.status() != 200

@@ -133,6 +133,9 @@ class ConflictAdaptersTest extends WireMockSupport {
         }
         assertThat(output.getAll()).doesNotContain(TOKEN);
 
+        // A recording fetch is probe-like and stores no conditional-GET validator (prompt 047); a
+        // normal fetch does, so the run after it is a 304.
+        assertThat(alerts.fetch(harness.context(alerts, Map.of())).complete()).isTrue();
         assertThat(alerts.fetch(harness.context(alerts, Map.of())).notModified()).isTrue();
         WIREMOCK.verify(1, getRequestedFor(urlPathEqualTo(ALERTS)).withHeader("If-Modified-Since", equalTo(LAST_MODIFIED)));
     }

@@ -1,6 +1,7 @@
 package ai.foresignal.test;
 
 import ai.foresignal.ingest.IngestStateReset;
+import ai.foresignal.settings.AppSettingService;
 import java.util.List;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -21,6 +22,10 @@ import org.springframework.jdbc.core.JdbcTemplate;
  *
  * <p>After truncating, every {@link IngestStateReset} bean reloads its cached state, because the
  * ingest writer's allocator and clock state would otherwise point at rows that no longer exist.
+ *
+ * <p>The {@link AppSettingService} cache is invalidated too: it is an in-memory copy of
+ * {@code app_setting} rows that the truncate removes, and a setting a previous test wrote (for
+ * example {@code security.openReads}) would otherwise leak into the next test in a shared context.
  */
 public class DatabaseCleaner {
 
@@ -35,11 +40,14 @@ public class DatabaseCleaner {
 
     private final JdbcTemplate jdbc;
     private final ObjectProvider<IngestStateReset> stateResets;
+    private final AppSettingService appSettings;
 
     /** Creates a cleaner that resets the given {@link IngestStateReset} beans after each clean. */
-    public DatabaseCleaner(JdbcTemplate jdbc, ObjectProvider<IngestStateReset> stateResets) {
+    public DatabaseCleaner(JdbcTemplate jdbc, ObjectProvider<IngestStateReset> stateResets,
+            AppSettingService appSettings) {
         this.jdbc = jdbc;
         this.stateResets = stateResets;
+        this.appSettings = appSettings;
     }
 
     /**
@@ -54,6 +62,8 @@ public class DatabaseCleaner {
             truncate("TRUNCATE " + joined + " RESTART IDENTITY CASCADE");
         }
         resetRecordSequence();
+        // Drop the cached settings and let dependent filters reload from the truncated table.
+        appSettings.invalidateCache();
         stateResets.orderedStream().forEach(IngestStateReset::resetState);
     }
 
@@ -129,8 +139,8 @@ public class DatabaseCleaner {
 
         @Bean
         public DatabaseCleaner databaseCleaner(
-                JdbcTemplate jdbc, ObjectProvider<IngestStateReset> stateResets) {
-            return new DatabaseCleaner(jdbc, stateResets);
+                JdbcTemplate jdbc, ObjectProvider<IngestStateReset> stateResets, AppSettingService appSettings) {
+            return new DatabaseCleaner(jdbc, stateResets, appSettings);
         }
     }
 }
