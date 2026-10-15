@@ -313,7 +313,10 @@ public class SettingsTransferService {
         if (interval != null && !interval.isZero() && !interval.isNegative()) {
             out.put("interval", Durations.format(interval));
         }
-        out.put("params", view.params());
+        Map<String, Object> params = SourceMapper.wireParams(view.params());
+        if (!params.isEmpty()) {
+            out.put("params", params);
+        }
         if (view.budget() != null && view.budget().perMinute() >= 1 && view.budget().perDay() >= 1) {
             Map<String, Object> budget = new LinkedHashMap<>();
             budget.put("perMinute", view.budget().perMinute());

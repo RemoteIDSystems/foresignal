@@ -29,6 +29,8 @@ import ai.foresignal.source.spi.MotionSpec;
 import ai.foresignal.source.spi.ParamSpec;
 import ai.foresignal.source.spi.ProductSpec;
 import ai.foresignal.source.spi.SourceDescriptor;
+import java.net.URI;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -37,6 +39,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.TreeMap;
+import org.locationtech.jts.geom.Envelope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -527,6 +530,40 @@ public class SourceMapper {
         return new SourceSettingsUpdate(
                 body.getEnabled(), interval, params, budget, retention, clearRetention, policy, clearPolicy,
                 body.getEmbed(), downsampleInterval, clearDownsampleInterval, egress, clearEgress);
+    }
+
+    /**
+     * An adapter's coerced parameters in their API wire form, safe to embed in a settings bundle and
+     * re-validate on import (prompt 097). A {@code BBOX} becomes {@code minLon,minLat,maxLon,maxLat}, a
+     * {@code LAN_URL} or {@code INBOX_PATH} a string, and a {@code DURATION} its shorthand; every other
+     * value is already JSON-native.
+     */
+    public static Map<String, Object> wireParams(Map<String, Object> params) {
+        if (params == null || params.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, Object> out = new LinkedHashMap<>();
+        for (Map.Entry<String, Object> entry : params.entrySet()) {
+            out.put(entry.getKey(), wireValue(entry.getValue()));
+        }
+        return out;
+    }
+
+    private static Object wireValue(Object value) {
+        if (value instanceof Envelope envelope) {
+            return envelope.getMinX() + "," + envelope.getMinY() + "," + envelope.getMaxX() + ","
+                    + envelope.getMaxY();
+        }
+        if (value instanceof URI uri) {
+            return uri.toString();
+        }
+        if (value instanceof Path path) {
+            return path.toString();
+        }
+        if (value instanceof Duration duration) {
+            return Durations.format(duration);
+        }
+        return value;
     }
 
     private static Duration parseDuration(List<FieldError> errors, String field, String value) {
