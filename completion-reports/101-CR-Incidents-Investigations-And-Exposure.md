@@ -4,7 +4,7 @@
 |---|---|
 | Prompt | 101-Incidents-Investigations-And-Exposure.md |
 | Status | Complete |
-| Implementation commit | `f7565558de77b6b969c9452647f18226891ba3e5` |
+| Implementation commit | `5248993e2f7c9d36fe2b2b73ad6bc21b76a1cc9c` |
 | Date | 2026-10-15 |
 
 ## Summary
@@ -59,7 +59,7 @@ their repositories, `EventScorer`, `EventTypes`, `SignalFamilies`, `RecipeDefini
 `RecipeDefinitionValidator`, `RecipeRegistry`, `Dedup`, `CorrelationEngine`, `IntelEventService`,
 `IntelEventMapper`, `IntelEvent`, `IntelFilter`, `IntelEventBus`, `IntelListener`, `IntelTopic`,
 `InvestigationService`, `ExposureService`, `PopulationPackService`, `PopulationTiffReader`,
-`ForesignalIntelGenerator`), `api/IntelController`, `api/InvestigationsController`,
+`ForesignalIntelGenerator`, `IntelCursorConsumer`), `api/IntelController`, `api/InvestigationsController`,
 `api/ExposureController`, `api/PacksController`, seven MCP tools;
 `resources/intel/recipes/{maritime-disruption,aviation-anomaly,infrastructure-disruption}.json`.
 
@@ -133,4 +133,4 @@ Modified: `api/error/ErrorCodes`, `api/error/NotFoundException` (a code-carrying
 - `intel.cursor` is a retention consumer (via the window/trigger pattern) — the evaluator's watermark.
 - `python3 scripts/generate-postman.py docs/OpenAPI.json postman` after any further spec change.
 
-Implementation commit: `f7565558de77b6b969c9452647f18226891ba3e5`
+Implementation commit: `5248993e2f7c9d36fe2b2b73ad6bc21b76a1cc9c`
