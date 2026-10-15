@@ -202,24 +202,36 @@ class MqttChannelIT {
         UUID c = channel(broker.plainUrl(), ",'summaryInterval':'30s'", null);
         awaitConnected(c);
         String summaryTopic = prefix + "/summary";
+        String healthTopic = prefix + "/sources/usgs-earthquakes/health";
+        // The first publish races the subscription, so accept it whether it arrives live or retained.
         try (MqttProbe late = MqttProbe.subscribe(broker, prefix + "/#")) {
-            JsonNode summary = json(late.await(summaryTopic, MqttProbe.Received::retained, Duration.ofSeconds(15)));
+            JsonNode summary = json(late.await(summaryTopic, r -> true, Duration.ofSeconds(15)));
             assertThat(summary.has("status")).isTrue();
             assertThat(summary.get("alerts").has("open")).isTrue();
-            MqttProbe.Received health = late.await(prefix + "/sources/usgs-earthquakes/health",
-                    MqttProbe.Received::retained, Duration.ofSeconds(15));
+            MqttProbe.Received health = late.await(healthTopic, r -> true, Duration.ofSeconds(15));
             assertThat(json(health).has("status")).isTrue();
             assertThat(json(health).has("lastSuccessAt")).isTrue();
         }
+        // Both topics are retained: a fresh subscriber gets them with the retain flag set.
+        try (MqttProbe fresh = MqttProbe.subscribe(broker, summaryTopic)) {
+            assertThat(fresh.await(summaryTopic, MqttProbe.Received::retained, Duration.ofSeconds(10))).isNotNull();
+        }
+        try (MqttProbe freshHealth = MqttProbe.subscribe(broker, healthTopic)) {
+            assertThat(freshHealth.await(healthTopic, MqttProbe.Received::retained, Duration.ofSeconds(10)))
+                    .isNotNull();
+        }
 
         MqttProbe live = probe(summaryTopic);
+        // Discard the retained summary delivered on subscribe; only a re-publish would arrive after.
+        live.await(summaryTopic, r -> true, Duration.ofSeconds(10));
+        live.clear();
         clock.advanceSeconds(31);
         state.publishSummaries();
         await().during(Duration.ofSeconds(1)).atMost(Duration.ofSeconds(3)).until(() -> live.on(summaryTopic).isEmpty());
 
         state.refreshHealth();
         try (MqttProbe again = MqttProbe.subscribe(broker, prefix + "/sources/+/health")) {
-            again.await(prefix + "/sources/usgs-earthquakes/health");
+            again.await(healthTopic);
         }
     }
 
