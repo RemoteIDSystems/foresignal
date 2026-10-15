@@ -129,6 +129,10 @@ public class RecordsController {
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private ai.foresignal.security.EgressPolicy egressPolicy;
 
+    /** Adds {@code entityId} to records for {@code include=entity} (prompt 098); null in unit tests. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ai.foresignal.entity.EntityService entityService;
+
     /** Creates the controller. */
     public RecordsController(
             RecordQueryService queries,
@@ -337,12 +341,41 @@ public class RecordsController {
                     null, null);
         } else {
             List<Map<String, Object>> items = records(rows, selection, RecordMapper.Shape.CURRENT);
+            if (includes.contains("entity")) {
+                addEntityIds(items);
+            }
             if (withRegion) {
                 regionIncludes.addToRecords(items);
             }
             body = new RecordPage(items, slice.nextCursor(), slice.watermarkSeq(), slice.asOfSeq(), null, null, null);
         }
         return ResponseEntity.ok().headers(headers).contentType(MediaType.parseMediaType(fmt.mediaType())).body(body);
+    }
+
+    /** Adds {@code entityId} to each record from its open link ({@code include=entity}, prompt 098). */
+    private void addEntityIds(List<Map<String, Object>> items) {
+        if (entityService == null || items.isEmpty()) {
+            return;
+        }
+        List<Map.Entry<String, String>> keys = new ArrayList<>();
+        for (Map<String, Object> item : items) {
+            Object source = item.get("source");
+            Object externalId = item.get("externalId");
+            if (source instanceof String s && externalId instanceof String e) {
+                keys.add(Map.entry(s, e));
+            }
+        }
+        Map<String, String> ids = entityService.openEntityIds(keys);
+        for (Map<String, Object> item : items) {
+            Object source = item.get("source");
+            Object externalId = item.get("externalId");
+            if (source instanceof String s && externalId instanceof String e) {
+                String id = ids.get(s + ":" + e);
+                if (id != null) {
+                    item.put("entityId", id);
+                }
+            }
+        }
     }
 
     /** The request's 040 region filters, validated ({@code 400 UNKNOWN_REGION}), or null. */
@@ -426,6 +459,9 @@ public class RecordsController {
         Map<String, Object> body = fmt == ResponseFormat.GEOJSON
                 ? mapper.feature(row, selection, RecordMapper.Shape.CURRENT)
                 : mapper.record(row, selection, RecordMapper.Shape.CURRENT);
+        if (includes.contains("entity") && fmt != ResponseFormat.GEOJSON) {
+            addEntityIds(new ArrayList<>(List.of(body)));
+        }
         if (includes.contains("region") && regionIncludes != null) {
             // include=region (prompt 040): stored tags, or lazy tagging now.
             List<Map<String, Object>> one = new ArrayList<>(List.of(body));

@@ -276,6 +276,20 @@ public class EntityService {
         return view(resolver.canonical(target.getId()), entityId, hiddenSources);
     }
 
+    /**
+     * The canonical entity id of each record's open link (prompt 098), keyed {@code source:externalId},
+     * for {@code include=entity} on the records API.
+     */
+    @Transactional(readOnly = true)
+    public Map<String, String> openEntityIds(List<Map.Entry<String, String>> keys) {
+        Map<String, String> out = new LinkedHashMap<>();
+        for (Map.Entry<String, String> key : keys) {
+            links.findOpen(key.getKey(), key.getValue())
+                    .ifPresent(link -> out.put(key.getKey() + ":" + key.getValue(), link.getEntityId()));
+        }
+        return out;
+    }
+
     private Optional<EntityEntity> resolveKey(String keyType, String keyValue, Instant at) {
         String normalized = EntityKeys.normalize(keyType, keyValue, null);
         if (normalized == null) {
