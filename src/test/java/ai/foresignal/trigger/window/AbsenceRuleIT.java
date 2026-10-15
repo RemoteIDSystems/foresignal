@@ -106,9 +106,11 @@ class AbsenceRuleIT {
         assertThat(fired.hasState(id + ":*", "active")).isTrue();
 
         // Disabling the source makes the coverage gate unknown: active -> unknown must not resolve.
+        // Advance past the rule's step (window 2h -> step 5m) so the evaluation is due.
         enable(false);
+        clock.advance(Duration.ofMinutes(6));
         Capture unknown = new Capture();
-        engine.evaluate(now.plusSeconds(120), unknown);
+        engine.evaluate(clock.instant(), unknown);
         assertThat(unknown.hasState(id + ":*", "unknown")).isTrue();
         String state = jdbc.queryForObject("select state from alert where rule_id = ?", String.class, id);
         assertThat(state).isEqualTo("firing");
