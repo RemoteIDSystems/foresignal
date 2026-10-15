@@ -77,8 +77,18 @@ class ShakeMapAdapterTest extends WireMockSupport {
     }
 
     private void serveAll() {
+        JsonNode index = indexJson();
         WIREMOCK.stubFor(get(urlPathEqualTo(INDEX_PATH)).willReturn(aResponse().withStatus(200)
-                .withHeader("Content-Type", "application/json").withBody(indexJson().toString())));
+                .withHeader("Content-Type", "application/json").withBody(index.toString())));
+        // The adapter fetches the detail of every changed event; only the captured event has one, so
+        // the others are stubbed 404 (their request must still match a stub).
+        for (JsonNode feature : index.get("features")) {
+            String id = feature.get("id").asString();
+            if (!EVENT.equals(id)) {
+                WIREMOCK.stubFor(get(urlPathEqualTo("/detail/" + id)).willReturn(aResponse().withStatus(404)
+                        .withBody("no shakemap")));
+            }
+        }
         WIREMOCK.stubFor(get(urlPathEqualTo("/detail/" + EVENT)).willReturn(aResponse().withStatus(200)
                 .withHeader("Content-Type", "application/json").withBody(detailJson().toString())));
         WIREMOCK.stubFor(get(urlPathEqualTo("/cont")).willReturn(aResponse().withStatus(200)
