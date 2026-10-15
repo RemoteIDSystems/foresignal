@@ -78,6 +78,11 @@ public final class GcatParser {
         if (id == null) {
             return null;
         }
+        // A pad names its launch site in the Site column; a site's parent (rarely set) is in Parent.
+        String parent = value(fields, index, "Parent");
+        if (parent == null && !"Site".equalsIgnoreCase(idColumn)) {
+            parent = value(fields, index, "Site");
+        }
         NormalizedRecord.Builder b = NormalizedRecord.builder(idPrefix + id, kind)
                 .put("code", value(fields, index, "Code"))
                 .put("type", value(fields, index, "Type"))
@@ -85,7 +90,7 @@ public final class GcatParser {
                 .put("name", value(fields, index, "Name"))
                 .put("tStart", value(fields, index, "TStart"))
                 .put("tStop", value(fields, index, "TStop"))
-                .put("parent", value(fields, index, "Parent"))
+                .put("parent", parent)
                 .put("errorKm", number(value(fields, index, "Error")));
         Double lat = number(value(fields, index, "Latitude"));
         Double lon = number(value(fields, index, "Longitude"));

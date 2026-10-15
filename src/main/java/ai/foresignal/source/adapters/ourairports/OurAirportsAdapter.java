@@ -85,7 +85,11 @@ public class OurAirportsAdapter implements PollingAdapter {
 
     @Override
     public FetchResult fetch(FetchContext ctx) throws AdapterException {
-        Set<String> types = OurAirportsParser.types(ctx.params().string(TYPES));
+        String typesValue = ctx.params().string(TYPES);
+        // The descriptor's default is applied by the collector; fall back to it when a caller (a test
+        // harness, or a fetch context without defaults) leaves the parameter absent.
+        Set<String> types = OurAirportsParser.types(
+                typesValue == null ? OurAirportsParser.DEFAULT_TYPES : typesValue);
         boolean withNavaids = ctx.params().bool(NAVAIDS, false);
 
         UpstreamResponse airports = ctx.http().getConditional(airportsUri, AIRPORTS_STATE);

@@ -45,7 +45,8 @@ class FdsnTextParserTest {
                 + "MagType|Magnitude|MagAuthor|EventLocationName|EventType\n";
         assertThat(FdsnTextParser.parse(header.getBytes(StandardCharsets.UTF_8))).isEmpty();
 
-        String row = "ev1|2026-10-14T10:00:00|1.0|2.0||||ML|||Place|earthquake\n";
+        // Aligned to the header: MagType at column 9, EventLocationName at column 12.
+        String row = "ev1|2026-10-14T10:00:00|1.0|2.0||||||ML|||Place|earthquake\n";
         List<NormalizedRecord> records = FdsnTextParser.parse((header + row).getBytes(StandardCharsets.UTF_8));
         assertThat(records).hasSize(1);
         assertThat(records.get(0).payload()).containsEntry("place", "Place")

@@ -103,16 +103,16 @@ public final class GppdParser {
             return null;
         }
         NormalizedRecord.Builder b = NormalizedRecord.builder(id, KIND)
-                .put("name", CsvReader.get(row, index, "NAME"))
-                .put("country", CsvReader.get(row, index, "COUNTRY_LONG"))
+                .put("name", text(CsvReader.get(row, index, "NAME")))
+                .put("country", text(CsvReader.get(row, index, "COUNTRY_LONG")))
                 .put("capacityMw", number(CsvReader.get(row, index, "CAPACITY_MW")))
-                .put("primaryFuel", CsvReader.get(row, index, "PRIMARY_FUEL"))
+                .put("primaryFuel", text(CsvReader.get(row, index, "PRIMARY_FUEL")))
                 .put("otherFuels", otherFuels(row, index))
                 .put("commissioningYear", integer(CsvReader.get(row, index, "COMMISSIONING_YEAR")))
-                .put("owner", CsvReader.get(row, index, "OWNER"))
-                .put("source", CsvReader.get(row, index, "SOURCE"))
-                .put("url", CsvReader.get(row, index, "URL"))
-                .put("geolocationSource", CsvReader.get(row, index, "GEOLOCATION_SOURCE"))
+                .put("owner", text(CsvReader.get(row, index, "OWNER")))
+                .put("source", text(CsvReader.get(row, index, "SOURCE")))
+                .put("url", text(CsvReader.get(row, index, "URL")))
+                .put("geolocationSource", text(CsvReader.get(row, index, "GEOLOCATION_SOURCE")))
                 .put("yearOfCapacityData", integer(CsvReader.get(row, index, "YEAR_OF_CAPACITY_DATA")));
         Double latitude = number(CsvReader.get(row, index, "LATITUDE"));
         Double longitude = number(CsvReader.get(row, index, "LONGITUDE"));
@@ -125,12 +125,20 @@ public final class GppdParser {
     private static List<String> otherFuels(List<String> row, Map<String, Integer> index) {
         List<String> fuels = new ArrayList<>(3);
         for (String column : List.of("OTHER_FUEL1", "OTHER_FUEL2", "OTHER_FUEL3")) {
-            String value = CsvReader.get(row, index, column);
+            String value = text(CsvReader.get(row, index, column));
             if (value != null) {
                 fuels.add(value);
             }
         }
         return fuels;
+    }
+
+    /** A string cell, or null for the CSV's empty and literal {@code NULL} placeholders. */
+    private static String text(String value) {
+        if (value == null || value.isBlank() || value.equalsIgnoreCase("NULL")) {
+            return null;
+        }
+        return value;
     }
 
     private static Double number(String value) {

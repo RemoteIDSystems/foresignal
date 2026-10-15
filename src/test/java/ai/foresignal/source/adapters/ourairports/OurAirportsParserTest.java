@@ -65,7 +65,7 @@ class OurAirportsParserTest {
         assertThat(records).extracting(NormalizedRecord::externalId).containsExactly("navaid:1", "navaid:2");
         assertThat(records.get(0).kind()).isEqualTo(OurAirportsParser.NAVAID_KIND);
         assertThat(records.get(0).payload()).containsEntry("name", "KENNEDY VOR-DME")
-                .containsEntry("frequencyKhz", 11590L)
+                .containsEntry("frequencyKhz", 115900L)
                 .containsEntry("associatedAirport", "KJFK");
         FieldSpecContract.assertPayloadKeysDeclared(descriptor, records);
     }
