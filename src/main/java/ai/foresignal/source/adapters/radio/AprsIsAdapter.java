@@ -328,6 +328,8 @@ public class AprsIsAdapter implements StreamingAdapter {
                 .defaultRetention(RETENTION)
                 .kindRetention(AprsRecords.STATION_KIND, RETENTION)
                 .kindRetention(AprsRecords.MESSAGE_KIND, RETENTION)
+                .entityKey("callsign", "callsign")
+                .entityKeyPrefix("callsign", "ham")
                 .param(ParamSpec.required(FILTER, ParamType.STRING, "The APRS-IS server-side filter, narrow: for"
                         + " example r/37.77/-122.42/50 (latitude, longitude, km; at most 250 km). Terms r/, b/, p/,"
                         + " t/types/call/km and f/call/km, at most 5, no bare wildcards"))

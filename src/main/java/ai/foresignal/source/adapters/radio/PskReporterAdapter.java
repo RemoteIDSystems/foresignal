@@ -255,6 +255,7 @@ public class PskReporterAdapter implements PollingAdapter {
                 .tileProperties("sender", "mode", "band", "snr")
                 .searchFields("sender")
                 .entityKey("callsign", "sender")
+                .entityKeyPrefix("callsign", "ham")
                 .param(ParamSpec.enumerated(MODE, "The digital mode: FT8, FT4, WSPR, JS8 or CW", "FT8", MODES))
                 .param(ParamSpec.optional(CALLSIGNS, ParamType.STRING_LIST, "Watched call signs; one request each."
                         + " Empty means one unfiltered query", List.of()))

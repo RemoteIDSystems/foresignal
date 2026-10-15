@@ -174,7 +174,10 @@ public final class AircraftDescriptors {
                 .aggBelowZoom(AGG_BELOW_ZOOM)
                 .entityKey("icao24", AircraftFields.HEX)
                 .entityKey("registration", AircraftFields.REGISTRATION)
-                .entityKey("callsign", AircraftFields.FLIGHT);
+                .entityKey("callsign", AircraftFields.FLIGHT)
+                .entityKeyPrefix("callsign", "air")
+                .entityAttribute(AircraftFields.TYPE, "type")
+                .entityAttribute(AircraftFields.DESCRIPTION, "typeDescription");
         fieldSpecs(builder);
         return builder;
     }

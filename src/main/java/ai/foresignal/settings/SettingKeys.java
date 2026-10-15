@@ -74,6 +74,12 @@ public final class SettingKeys {
     /** The region tag worker's durable cursor (prompt 040; the consumer clamp of retention). */
     public static final String REGION_CURSOR = "region.cursor";
 
+    /** The entity linker's durable cursor (prompt 098; the consumer clamp of retention). */
+    public static final String ENTITY_CURSOR = "entity.cursor";
+
+    /** {@code EntitySettings} (prompt 098): the callsign gap and the private-source opt-in. */
+    public static final String ENTITY = "entity";
+
     /**
      * Region tagging modes per source ({@code RegionTaggingSettings}, prompt 040): {@code eager},
      * {@code lazy} or {@code off} ({@code SourceSettings.regionTagging}).
@@ -96,7 +102,8 @@ public final class SettingKeys {
     public static final List<String> ALL =
             List.of(RETENTION, CORS, TRIGGER_CURSOR, TRIGGERS, STREAM_LIMITS, SECURITY, SERVER, NOTIFICATIONS,
                     WATCHDOG, INSTALL_ID, LLM, SEARCH_INDEX, EMBEDDING_CURSOR, RATELIMITS, OUTBOUND, STATS_ROLLUP_CURSOR,
-                    STATS, GLANCE, METRICS, VISIBILITY, REGION_CURSOR, REGION_TAGGING, WEATHER);
+                    STATS, GLANCE, METRICS, VISIBILITY, REGION_CURSOR, REGION_TAGGING, WEATHER, ENTITY_CURSOR,
+                    ENTITY);
 
     private SettingKeys() {}
 }

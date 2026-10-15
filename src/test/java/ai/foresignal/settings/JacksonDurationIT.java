@@ -76,7 +76,7 @@ class JacksonDurationIT {
     @DisplayName("a disabled trackRawWindow is written as null and read back as disabled; an absent one is the default")
     void disabledRawWindowRoundTrips() {
         RetentionSettings disabled = new RetentionSettings(null, null, null, null, null, null, null, null, null, null,
-                null, null, null, RetentionSettings.DOWNSAMPLING_DISABLED, Duration.ofMinutes(2));
+                null, null, null, RetentionSettings.DOWNSAMPLING_DISABLED, Duration.ofMinutes(2), null);
 
         String json = jsonMapper.writeValueAsString(disabled);
 

@@ -350,7 +350,7 @@ public final class OfacSdnAdapter implements PollingAdapter {
                 .defaultRetention(RETENTION)
                 .entityKey("imo", "imo")
                 .entityKey("mmsi", "mmsi")
-                .entityKey("aircraft-tail", "aircraftTail")
+                .entityKey("registration", "aircraftTail")
                 .titleField("name")
                 .searchFields("name", "aliases", "identifiers", "programs")
                 .significantFields("lastUpdated")

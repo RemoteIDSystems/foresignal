@@ -1064,6 +1064,21 @@ GET  /v1/watchlists/{id}/export
 - **Effect:** list edits take effect on each entity's next observation; nothing fires for the past.
   Alerts of watchlist rules are sensitive: anonymous readers and feed keys never see them.
 
+### The entity registry and privacy (prompt 098)
+
+The entity registry (`/v1/entities`) resolves records to one canonical object per aircraft, vessel,
+satellite or station, from deterministic keys only (`icao24`, `registration`, `airframe`, `mmsi`,
+`imo`, `norad`, `cospar`, `callsign`); there is no fuzzy name matching and no automatic merge of two
+anchored entities. It is about vehicles and objects, never people or organisations.
+
+- **No owner PII:** the FAA registry adapter stores no owner name or address; the aircraft entity's
+  attributes carry only manufacturer, model, type and the like.
+- **Privacy ICAO Addresses:** PIA hexes are absent from the registry and are never resolved to a
+  registration; a leading `~` (readsb TIS-B) is rejected as a key.
+- **Private sources:** records from private sources create no entity or link unless
+  `foresignal.entity.includePrivate` is on, and links from private sources are visible only to admin
+  tokens.
+
 ### "Near me" rules
 
 A rule can follow a moving record, for example a phone that reports its position through a custom

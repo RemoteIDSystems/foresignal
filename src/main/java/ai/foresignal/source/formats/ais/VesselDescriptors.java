@@ -79,6 +79,9 @@ public final class VesselDescriptors {
                 .entityKey("mmsi", "mmsi")
                 .entityKey("imo", "imo")
                 .entityKey("callsign", "callsign")
+                .entityKeyPrefix("callsign", "sea")
+                .entityAttribute("name", "name")
+                .entityAttribute("shipType", "shipType")
                 .kindDisplay(KIND, DISPLAY);
         fieldSpecs(b);
         return b;

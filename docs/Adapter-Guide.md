@@ -262,6 +262,17 @@ rule validation lists it in a warning.
 - Adapters existing at prompt 036 (USGS earthquakes and the system canary) carry no such identifier,
   so none needed a change.
 
+**The entity registry (098) reuses `entityKeys` and adds two descriptor fields.** The registry resolves
+records to canonical entities deterministically; it recognises eight key types: `airframe`, `icao24`,
+`registration`, `imo`, `mmsi`, `norad`, `cospar` and `callsign`. Beyond the five identity fields above,
+an aircraft-registration source declares `airframe` (the payload must also carry `mfrMdlCode` and
+`serial`), a space catalogue declares `norad` and `cospar`, and a callsign-carrying source declares the
+domain with `.entityKeyPrefix("callsign", "air" | "sea" | "ham")` (a bare callsign defaults to `air`
+and is rejected on its own). Copy payload values onto the entity with
+`.entityAttribute("payloadField", "attributeName")` (for example manufacturer and model); only
+`LOCAL_ONLY`/private sources are excluded unless the operator opts in, and no source may declare an
+owner name or address.
+
 ## 14. Derived sources (052)
 
 A derived source computes records from data Foresignal already holds: committed changes, raster frames,

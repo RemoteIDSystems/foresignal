@@ -302,6 +302,15 @@ public final class ErrorCodes {
      */
     public static final String DEVICE_ENTITY_MISMATCH = "DEVICE_ENTITY_MISMATCH";
 
+    /** 404: no entity holds the requested id or key (prompt 098). */
+    public static final String ENTITY_NOT_FOUND = "ENTITY_NOT_FOUND";
+
+    /** 400: an entity key is malformed or not a known key type (prompt 098). */
+    public static final String ENTITY_KEY_INVALID = "ENTITY_KEY_INVALID";
+
+    /** 409: an entity key is already open on another entity (prompt 098). */
+    public static final String ENTITY_KEY_CONFLICT = "ENTITY_KEY_CONFLICT";
+
     /**
      * 403: the sender address is outside the custom source's {@code ingestAllowCidrs} (or, when unset,
      * not a private address) for a path key, query key or GET push (prompt 039).

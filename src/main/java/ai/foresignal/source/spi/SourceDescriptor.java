@@ -69,6 +69,9 @@ import java.util.Set;
  *     resolver's fallbacks ({@code title}, {@code name}, {@code callsign}, {@code place})
  * @param entityKeys entity key type (for example {@code icao24}, {@code mmsi}) to the top-level
  *     payload field holding it, for the entity registry (prompt 098)
+ * @param entityKeyPrefixes the domain prefix a {@code callsign} key carries, by key type (prompt 098)
+ * @param entityAttributes top-level payload field to the entity attribute name it fills, copied onto
+ *     the entity by the registry (prompt 098)
  * @param fieldSpecs declared payload fields keyed by top-level name
  * @param kindDisplay client display hints keyed by kind
  * @param aggBelowZoom tiles aggregate below this zoom (prompt 016); null means never
@@ -172,6 +175,8 @@ public record SourceDescriptor(
         List<ProductSpec> products,
         String titleField,
         Map<String, String> entityKeys,
+        Map<String, String> entityKeyPrefixes,
+        Map<String, String> entityAttributes,
         Map<String, FieldSpec> fieldSpecs,
         Map<String, KindDisplay> kindDisplay,
         Integer aggBelowZoom,
@@ -259,6 +264,8 @@ public record SourceDescriptor(
         skewTolerance = skewTolerance == null ? DEFAULT_SKEW_TOLERANCE : skewTolerance;
         defaultIngestPolicy = defaultIngestPolicy == null ? IngestPolicy.all() : defaultIngestPolicy;
         entityKeys = entityKeys == null ? Map.of() : Map.copyOf(entityKeys);
+        entityKeyPrefixes = entityKeyPrefixes == null ? Map.of() : Map.copyOf(entityKeyPrefixes);
+        entityAttributes = entityAttributes == null ? Map.of() : Map.copyOf(entityAttributes);
         fieldSpecs = fieldSpecs == null ? Map.of() : Map.copyOf(fieldSpecs);
         kindDisplay = kindDisplay == null ? Map.of() : Map.copyOf(kindDisplay);
         egress = egress == null ? Egress.OPEN : egress;
@@ -348,6 +355,8 @@ public record SourceDescriptor(
         private final Map<String, Duration> kindRetention = new LinkedHashMap<>();
         private final List<ProductSpec> products = new ArrayList<>();
         private final Map<String, String> entityKeys = new LinkedHashMap<>();
+        private final Map<String, String> entityKeyPrefixes = new LinkedHashMap<>();
+        private final Map<String, String> entityAttributes = new LinkedHashMap<>();
         private final Map<String, FieldSpec> fieldSpecs = new LinkedHashMap<>();
         private final Map<String, KindDisplay> kindDisplay = new LinkedHashMap<>();
         private final Set<String> hiddenKinds = new LinkedHashSet<>();
@@ -649,6 +658,28 @@ public record SourceDescriptor(
             return this;
         }
 
+        /**
+         * Declares a payload field copied into the entity's attributes (prompt 098).
+         *
+         * @param field the top-level payload field
+         * @param attribute the attribute name on the entity
+         */
+        public Builder entityAttribute(String field, String attribute) {
+            this.entityAttributes.put(field, attribute);
+            return this;
+        }
+
+        /**
+         * Declares the domain prefix a {@code callsign} key value carries (prompt 098): {@code air:},
+         * {@code sea:} or {@code ham:}.
+         *
+         * @param prefix the domain prefix, without the trailing colon
+         */
+        public Builder entityKeyPrefix(String keyType, String prefix) {
+            this.entityKeyPrefixes.put(keyType, prefix);
+            return this;
+        }
+
         /** Declares one payload field. */
         public Builder fieldSpec(String field, FieldSpec spec) {
             this.fieldSpecs.put(field, spec);
@@ -867,6 +898,8 @@ public record SourceDescriptor(
                     products,
                     titleField,
                     entityKeys,
+                    entityKeyPrefixes,
+                    entityAttributes,
                     fieldSpecs,
                     kindDisplay,
                     aggBelowZoom,

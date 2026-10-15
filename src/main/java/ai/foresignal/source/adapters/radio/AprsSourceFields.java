@@ -40,6 +40,8 @@ final class AprsSourceFields {
                 + " destination field (En Route, Off Duty, Emergency, Custom-N, ...)", station);
         RadioSources.field(b, "sender", FieldType.STRING, null, "Sender", "The station that placed the object or"
                 + " item", station);
+        RadioSources.field(b, "callsign", FieldType.STRING, null, "Callsign", "The sending station's call sign"
+                + " (amateur radio)", station);
         RadioSources.field(b, "path", FieldType.STRING, null, "Path", "The digipeater and q-construct path"
                 + " (volatile)", station, message);
         RadioSources.field(b, "raw", FieldType.STRING, null, "Raw packet", "The TNC2 line, at most 512 characters"

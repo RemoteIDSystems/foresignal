@@ -55,7 +55,8 @@ public class RetentionSettingsService {
     public static final Duration MIN_WINDOW = Duration.ofHours(1);
 
     static final Set<String> DURATION_FIELDS = Set.of(
-            "default", "alerts", "usage", "briefings", "ask", "trackWindow", "provenance", "notifications", "audit", "inbox");
+            "default", "alerts", "usage", "briefings", "ask", "trackWindow", "provenance", "notifications", "audit", "inbox",
+            "entityLinks");
 
     static final Set<String> LATER_FIELDS = Set.of("social");
 
@@ -241,7 +242,8 @@ public class RetentionSettingsService {
                 values.get("inbox"),
                 stats,
                 downsampling[0],
-                downsampling[1]);
+                downsampling[1],
+                values.get("entityLinks"));
     }
 
     /**

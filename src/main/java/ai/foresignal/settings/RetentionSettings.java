@@ -50,6 +50,7 @@ import tools.jackson.databind.annotation.JsonSerialize;
  *     ({@link RawWindowDeserializer}). Use {@link #downsamplingEnabled()} rather than testing the value.
  * @param trackDownsampleInterval one sample per entity per this interval is kept in a downsampled leaf
  *     (prompt 044; default 5 min); a TRACK source may override it ({@code SourceSettings.downsampleInterval})
+ * @param entityLinks how long closed entity links are kept (prompt 098; default 365 d)
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record RetentionSettings(
@@ -69,7 +70,8 @@ public record RetentionSettings(
         @JsonSerialize(using = RetentionSettings.RawWindowSerializer.class)
         @JsonDeserialize(using = RetentionSettings.RawWindowDeserializer.class)
         Duration trackRawWindow,
-        Duration trackDownsampleInterval) {
+        Duration trackDownsampleInterval,
+        Duration entityLinks) {
 
     public static final Duration DEFAULT_RETENTION = Duration.ofDays(7);
     public static final Duration DEFAULT_ALERTS = Duration.ofDays(90);
@@ -83,6 +85,7 @@ public record RetentionSettings(
     public static final Duration DEFAULT_INBOX = Duration.ofDays(30);
     public static final Duration DEFAULT_TRACK_RAW_WINDOW = Duration.ofHours(24);
     public static final Duration DEFAULT_TRACK_DOWNSAMPLE_INTERVAL = Duration.ofMinutes(5);
+    public static final Duration DEFAULT_ENTITY_LINKS = Duration.ofDays(365);
 
     /** The {@code trackRawWindow} value that means "downsampling disabled" (the API's {@code null}). */
     public static final Duration DOWNSAMPLING_DISABLED = Duration.ZERO;
@@ -105,6 +108,7 @@ public record RetentionSettings(
         trackRawWindow = trackRawWindow == null ? DEFAULT_TRACK_RAW_WINDOW : trackRawWindow;
         trackDownsampleInterval =
                 trackDownsampleInterval == null ? DEFAULT_TRACK_DOWNSAMPLE_INTERVAL : trackDownsampleInterval;
+        entityLinks = entityLinks == null ? DEFAULT_ENTITY_LINKS : entityLinks;
     }
 
     /**
@@ -140,7 +144,7 @@ public record RetentionSettings(
             Duration inbox,
             Stats stats) {
         this(defaultRetention, alerts, usage, sources, trackWindow, provenance, notifications, briefings, ask, kinds,
-                audit, inbox, stats, null, null);
+                audit, inbox, stats, null, null, null);
     }
 
     /** True unless {@code trackRawWindow} was set to {@code null} (prompt 044). */
@@ -289,7 +293,7 @@ public record RetentionSettings(
     /** The shipped defaults: every window at its default, no per-source or per-kind overrides. */
     public static RetentionSettings defaults() {
         return new RetentionSettings(
-                null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
     }
 
     /**
@@ -304,7 +308,8 @@ public record RetentionSettings(
     /** This value with {@code sources} replaced. */
     public RetentionSettings withSources(Map<String, Duration> newSources) {
         return new RetentionSettings(defaultRetention, alerts, usage, newSources, trackWindow, provenance,
-                notifications, briefings, ask, kinds, audit, inbox, stats, trackRawWindow, trackDownsampleInterval);
+                notifications, briefings, ask, kinds, audit, inbox, stats, trackRawWindow, trackDownsampleInterval,
+                entityLinks);
     }
 
     /**

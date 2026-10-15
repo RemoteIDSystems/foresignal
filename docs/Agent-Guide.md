@@ -575,6 +575,8 @@ Every tool takes `detail`: `short` (the default, compact items, the whole result
 | `list_places` | read, always authenticated | Named places (id, name, shape, radius or buffer, kind, tags); coordinates only with `detail=long` to an agent token (036). |
 | `get_place` | read, always authenticated | One place by `placeId`, under the same coordinate rule (036). |
 | `records_near_place` | read, always authenticated | Current records inside one or more places' areas (`placeIds`, optional `radiusKm` buffer, `kind`, `source`, `limit`); returns the place names, never their coordinates (036). |
+| `find_entity` | read | Canonical entities by alias or display-name prefix or by an exact `key` (`<keyType>:<value>`); deterministic keys only, no fuzzy matching, up to 25 (098). |
+| `get_entity` | read | One entity by `id` or `key` with its keys, aliases and open links per source; open records capped at 20 with `recordsTotal` (098). |
 | `create_place` | agent | Create a place from a `place` (`PlaceInput`): a point with `radiusKm`, a polygon, or a route with `bufferM` (036). |
 | `update_place` | agent | Replace a place (`placeId`, `place`); watches near it follow at once without firing for records that did not move (036). |
 | `delete_place` | agent | Delete a place; `PLACE_IN_USE` lists its watches, views and briefings unless `force` disables the watches (036). |

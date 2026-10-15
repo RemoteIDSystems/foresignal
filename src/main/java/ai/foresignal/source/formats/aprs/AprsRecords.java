@@ -147,6 +147,7 @@ public final class AprsRecords {
 
     private NormalizedRecord build(String id, Map<String, Object> state, AprsPacket packet, List<Observer> observers) {
         NormalizedRecord.Builder b = NormalizedRecord.builder(id, STATION_KIND).putAll(state)
+                .put("callsign", packet.source())
                 .put("path", packet.path().isEmpty() ? null : String.join(",", packet.path()))
                 .put("raw", raw(packet.raw()))
                 .observers(observers);

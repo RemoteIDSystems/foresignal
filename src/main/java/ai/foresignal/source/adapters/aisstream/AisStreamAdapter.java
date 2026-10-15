@@ -390,6 +390,9 @@ public class AisStreamAdapter implements StreamingAdapter {
                 .entityKey("mmsi", "mmsi")
                 .entityKey("imo", "imo")
                 .entityKey("callsign", "callsign")
+                .entityKeyPrefix("callsign", "sea")
+                .entityAttribute("name", "name")
+                .entityAttribute("shipType", "shipType")
                 .kindDisplay(KIND, new KindDisplay("{name}", "ship", "#1098AD", null, "cog", null, null));
         VesselDescriptors.fieldSpecs(b);
         return b.build();

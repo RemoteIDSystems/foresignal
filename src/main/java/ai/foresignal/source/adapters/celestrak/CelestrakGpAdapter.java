@@ -241,6 +241,9 @@ public class CelestrakGpAdapter implements PollingAdapter {
                 .observedAtMode(ObservedAtMode.UPSTREAM)
                 .titleField("OBJECT_NAME")
                 .searchFields("OBJECT_NAME", "OBJECT_ID")
+                .entityKey("norad", "NORAD_CAT_ID")
+                .entityKey("cospar", "OBJECT_ID")
+                .entityAttribute("OBJECT_NAME", "name")
                 .zeroResultsNormal(false)
                 .followRedirects(false)
                 .build();

@@ -172,7 +172,7 @@ class DownsampleFidelityTest {
         assertThat(fidelity.finalBefore(HistoryTier.TRACK)).isEqualTo(NOW.minus(Duration.ofDays(3)).plus(Duration.ofHours(1)));
         assertThat(fidelity.finalBefore(HistoryTier.STANDARD)).isEqualTo(Instant.MAX);
         when(resolver.settings()).thenReturn(new RetentionSettings(null, null, null, Map.of(), null, null, null, null,
-                null, null, null, null, null, RetentionSettings.DOWNSAMPLING_DISABLED, null));
+                null, null, null, null, null, RetentionSettings.DOWNSAMPLING_DISABLED, null, null));
         assertThat(fidelity.finalBefore(HistoryTier.TRACK)).isEqualTo(Instant.MAX);
     }
 }

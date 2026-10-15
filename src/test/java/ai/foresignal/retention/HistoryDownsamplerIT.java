@@ -280,7 +280,7 @@ class HistoryDownsamplerIT extends DownsampleItSupport {
     void disabled() {
         settings.put(ai.foresignal.settings.SettingKeys.RETENTION, new ai.foresignal.settings.RetentionSettings(
                 null, null, null, null, null, null, null, null, null, null, null, null, null,
-                ai.foresignal.settings.RetentionSettings.DOWNSAMPLING_DISABLED, null));
+                ai.foresignal.settings.RetentionSettings.DOWNSAMPLING_DISABLED, null, null));
         settings.invalidateCache();
         flyEveryMinute("a", 1.0, 10);
         pushPastRawWindow();

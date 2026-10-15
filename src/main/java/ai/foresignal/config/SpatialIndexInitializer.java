@@ -72,7 +72,15 @@ public class SpatialIndexInitializer implements ApplicationRunner {
             "CREATE INDEX IF NOT EXISTS raster_frame_footprint_gist ON raster_frame USING GIST (footprint)",
             // Series points (prompt 093): /v1/series/{source}/{id} reads one series in period order.
             "CREATE INDEX IF NOT EXISTS record_head_series_point_idx ON record_head (source_id,"
-                    + " (payload->>'series'), event_time) WHERE kind = 'series-point'");
+                    + " (payload->>'series'), event_time) WHERE kind = 'series-point'",
+            // Entity registry (prompt 098): at most one open holder per key, at most one open link per
+            // record, prefix search over aliases, and the open links of an entity.
+            "CREATE UNIQUE INDEX IF NOT EXISTS entity_key_open_idx ON entity_key (key_type, key_value)"
+                    + " WHERE valid_to IS NULL",
+            "CREATE UNIQUE INDEX IF NOT EXISTS entity_link_open_idx ON entity_link (source_id, external_id)"
+                    + " WHERE valid_to IS NULL",
+            "CREATE INDEX IF NOT EXISTS entity_alias_lower_idx ON entity_alias (lower(alias) text_pattern_ops)",
+            "CREATE INDEX IF NOT EXISTS entity_link_entity_open_idx ON entity_link (entity_id) WHERE valid_to IS NULL");
 
     private final DataSource dataSource;
 

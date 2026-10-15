@@ -431,6 +431,10 @@ public final class DescriptorValidator {
             checkTopLevel(descriptor, "entityKeys." + keyType, List.of(entry.getValue()), problems);
         }
 
+        for (Map.Entry<String, String> entry : descriptor.entityAttributes().entrySet()) {
+            checkTopLevel(descriptor, "entityAttributes." + entry.getValue(), List.of(entry.getKey()), problems);
+        }
+
         for (Map.Entry<String, FieldSpec> entry : descriptor.fieldSpecs().entrySet()) {
             checkFieldSpec(descriptor, entry.getKey(), entry.getValue(), problems);
         }

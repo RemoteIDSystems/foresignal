@@ -334,6 +334,12 @@ public class AccessPolicy {
                 rule(null, "/v1/watchlists", AccessRequirement.AGENT),
                 rule(null, "/v1/watchlists/**", AccessRequirement.AGENT),
 
+                // ---- Entities (098): reads open while openReads, operator writes admin ----
+                rule(HttpMethod.GET, "/v1/entities", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/entities/**", AccessRequirement.READ),
+                rule(null, "/v1/entities", AccessRequirement.ADMIN),
+                rule(null, "/v1/entities/**", AccessRequirement.ADMIN),
+
                 // ---- Search: read, except reindex ----
                 rule(HttpMethod.POST, "/v1/search/reindex", AccessRequirement.ADMIN_ALWAYS_AUTHENTICATED),
                 rule(HttpMethod.DELETE, "/v1/search/reindex", AccessRequirement.ADMIN),
