@@ -1,0 +1,30 @@
+{
+  "note": "Bundled chokepoint buffer radii for the derived chokepoint layer (prompt 099). The chokepoint points themselves come from imf-portwatch-chokepoints; this file maps a chokepoint name to the radius (km) its activity is measured over. Names are matched case-insensitively; an unknown chokepoint gets the default radius.",
+  "defaultRadiusKm": 50.0,
+  "chokepoints": [
+    {"id": "hormuz", "name": "Strait of Hormuz", "radiusKm": 60},
+    {"id": "malacca", "name": "Strait of Malacca", "radiusKm": 80},
+    {"id": "suez", "name": "Suez Canal", "radiusKm": 40},
+    {"id": "panama", "name": "Panama Canal", "radiusKm": 40},
+    {"id": "bab-el-mandeb", "name": "Bab el-Mandeb", "radiusKm": 50},
+    {"id": "gibraltar", "name": "Strait of Gibraltar", "radiusKm": 40},
+    {"id": "bosporus", "name": "Turkish Straits", "radiusKm": 35},
+    {"id": "dover", "name": "Strait of Dover", "radiusKm": 35},
+    {"id": "babelmandeb", "name": "Bab-el-Mandeb Strait", "radiusKm": 50},
+    {"id": "ormuz", "name": "Ormuz", "radiusKm": 60},
+    {"id": "mandeb", "name": "Mandeb", "radiusKm": 50},
+    {"id": "taiwan", "name": "Taiwan Strait", "radiusKm": 70},
+    {"id": "korea", "name": "Korea Strait", "radiusKm": 70},
+    {"id": "sunda", "name": "Sunda Strait", "radiusKm": 45},
+    {"id": "lombok", "name": "Lombok Strait", "radiusKm": 40},
+    {"id": "bosporus-north", "name": "Bosphorus", "radiusKm": 30},
+    {"id": "danish", "name": "Danish Straits", "radiusKm": 40},
+    {"id": "bonifacio", "name": "Strait of Bonifacio", "radiusKm": 30},
+    {"id": "messina", "name": "Strait of Messina", "radiusKm": 25},
+    {"id": "bass", "name": "Bass Strait", "radiusKm": 60},
+    {"id": "palk", "name": "Palk Strait", "radiusKm": 45},
+    {"id": "gulf-of-aden", "name": "Gulf of Aden", "radiusKm": 80},
+    {"id": "persian-gulf", "name": "Strait of Hormuz", "radiusKm": 60},
+    {"id": "cabot", "name": "Cabot Strait", "radiusKm": 45}
+  ]
+}

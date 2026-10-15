@@ -3678,6 +3678,70 @@ mean, p95, coverage and the area above thresholds over a geometry, place or bbox
 `GET /v1/places/{id}/weather` returns the place-weather record plus cached GFS, HRRR and (053) NWS series. None of
 them ever causes an upstream fetch.
 
+## Derived intelligence layers (prompt 099)
+
+Prompt 099 adds the object-derived layers. Like the weather ones they make no upstream request:
+they read the stored and live records of the aircraft, vessel and event sources through the
+observation feed, and write an ordinary record only when its rounded content changes. Every layer is
+installed **disabled**, is a STANDARD source with no TTL (the fused-aircraft layer is the one TRACK,
+with a 5-minute TTL), and declares its inputs as source families, so the receiver slots you configure
+(`local-adsb-*`, `ais-*`, `adsbfi-region-*`, …) are picked up without further setup.
+
+| Source | Kind | Inputs | What it reports |
+|---|---|---|---|
+| `derived-gps-jamming` | `jamming-cell` | readsb-family aircraft (NACp/NIC; not OpenSky) | cells where ≥ 30% (medium) or ≥ 50% (high) of ≥ 3 airborne aircraft report a degraded solution |
+| `derived-ais-gap` | `ais-gap` | AIS vessel sources | a vessel under way with no fix for 30 min, when ≥ 3 neighbours kept reporting nearby |
+| `derived-loiter` | `loiter` | AIS vessel sources | a vessel holding within 0.5 nm of its centroid for ≥ 30 min |
+| `derived-rendezvous` | `rendezvous` | AIS vessel sources | two slow vessels within 0.5 nm for ≥ 15 min, away from ports |
+| `derived-deception` | `deception` | aircraft + vessel | duplicate MMSI, impossible vessel or aircraft speed |
+| `derived-holding` | `holding-pattern` | aircraft | a slow aircraft turning through > 300° in 10 min in a level band |
+| `derived-emergency-squawk` | `emergency-squawk` | aircraft | a 7500/7600/7700 squawk or a readsb emergency, confirmed twice |
+| `derived-chokepoint` | `chokepoint-activity`, `chokepoint-uturn` | AIS vessel + PortWatch chokepoints | hourly banded transits, U-turns and stops per chokepoint |
+| `derived-mil-naval` | `mil-naval-cooccurrence` | aircraft + vessel | military aircraft and naval vessels in one res-3 cell within 30 min |
+| `derived-aircraft` | `aircraft` | every aircraft source | the freshest observation per hex, fused |
+| `derived-corroboration` | `corroboration` | earthquakes, fires, conflict, outages | one record per cross-source event cluster with an Admiralty credibility |
+| `derived-port-calls` | `port-call` | AIS vessel + World Port Index | arrivals and departures at port buffers |
+| `derived-cpa` | `cpa` | AIS vessel (area) | vessel pairs with a close-quarters approach inside an area |
+| `derived-felt-locally` | `felt-report-estimate` | earthquakes + places | estimated intensity at each place, by ShakeMap or IPE |
+| `derived-cable-risk` | `cable-proximity-risk` | AIS vessel + submarine cables | slow or anchored vessels near cables outside ports |
+| `derived-dark-vessel-match` | `dark-vessel-candidate` | AIS gaps + SAR detections | gaps joined to unmatched SAR detections (candidates only) |
+| `derived-lightning-holdover` | `holdover-fire-risk` | GLM + FIRMS/FDC + QPE | flash clusters over dry cells, watched for a later fire |
+| `derived-hf-blackout` | `hf-propagation-anomaly` | PSKReporter + SWPC X-ray | spot/SNR drops on sunlit paths against a 14-day baseline |
+
+Enable the inputs you want first, then the layers, for example
+`PUT /v1/sources/derived-gps-jamming {"enabled": true}`. Each layer shows in
+`GET /v1/sources/{id}/health` like any other and writes one `fetch_log` row with `principal: derived`
+per invocation. Its tick is one minute by default (`derived-gps-jamming` five, others as noted in the
+catalog).
+
+**Absence of evidence is not evidence of absence.** Every layer is coverage-aware. An input that is
+not `healthy`, or a window touched by a change-bus gap or a live drop, marks the record
+`status: degraded-input` and suppresses absence-based events (an AIS gap, a cleared squawk, a port
+departure). `derived-ais-gap` additionally requires three other vessels reported by the same source
+within 50 km during the gap. A record is tombstoned only when its condition is genuinely gone, never
+because input is stale; an uncertain record keeps its last values with `insufficient-data`.
+
+**Rule recipes** (all `enter`/`exit` or an explicit cooldown, never a bare `match`):
+
+```json
+{"name": "GPS jamming cell goes high", "sources": ["derived-gps-jamming"], "kinds": ["jamming-cell"],
+ "conditions": [{"path": "level", "op": "==", "value": "high"}], "mode": "enter", "severity": "warning",
+ "messageTemplate": "High-rate GPS jamming in {{payload.cell}} (automated detection, not a warning)"}
+```
+
+```json
+{"name": "Emergency squawk", "sources": ["derived-emergency-squawk"], "kinds": ["emergency-squawk"],
+ "conditions": [{"path": "squawk", "op": "==", "value": "7700"}], "mode": "enter", "severity": "critical",
+ "cooldown": "PT30M", "messageTemplate": "Aircraft {{title}} squawking 7700 (unverified)"}
+```
+
+```json
+{"name": "AIS gap near me", "sources": ["derived-ais-gap"], "kinds": ["ais-gap"],
+ "near": {"placeId": "home", "radiusKm": 100},
+ "conditions": [{"path": "open", "op": "==", "value": true}], "mode": "enter", "severity": "warning",
+ "cooldown": "PT1H", "messageTemplate": "Vessel {{title}} lost AIS inside 100 km of home"}
+```
+
 ## Alert weather context
 
 Prompt 056 gives every geolocated alert a deterministic weather block, `context.weather`, computed when the

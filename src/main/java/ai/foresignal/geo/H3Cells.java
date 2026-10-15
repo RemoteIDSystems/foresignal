@@ -87,4 +87,24 @@ public final class H3Cells {
             return false;
         }
     }
+
+    /** The cell address as the textual H3 form (prompt 099: external ids and payloads). */
+    public static String cellToAddress(long cell) {
+        return H3.h3ToString(cell);
+    }
+
+    /**
+     * The cells within {@code k} grid steps of {@code cell} (prompt 099: the density ring).
+     *
+     * @param cell the centre cell
+     * @param k the number of rings, at least 0
+     */
+    public static List<Long> gridDisk(long cell, int k) {
+        return H3.gridDisk(cell, Math.max(0, k));
+    }
+
+    /** The average edge length of an H3 cell at {@code res}, km (prompt 099: ring to radius). */
+    public static double averageEdgeLengthKm(int res) {
+        return H3.getHexagonEdgeLengthAvg(res, com.uber.h3core.LengthUnit.km);
+    }
 }

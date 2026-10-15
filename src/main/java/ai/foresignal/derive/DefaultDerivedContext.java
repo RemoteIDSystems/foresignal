@@ -22,6 +22,8 @@ public final class DefaultDerivedContext implements DerivedContext {
     private final AdapterStateStore state;
     private final RasterReader rasters;
     private final DerivedRecords records;
+    private final ObservationFeed observations;
+    private final CoverageService coverage;
     private final DerivedPlaces places;
     private final Function<String, HealthStatus> health;
     private final Clock clock;
@@ -36,13 +38,15 @@ public final class DefaultDerivedContext implements DerivedContext {
      * @param ledger the source's emit ledger
      */
     public DefaultDerivedContext(SourceDescriptor descriptor, ValidatedParams params, AdapterStateStore state,
-            RasterReader rasters, DerivedRecords records, DerivedPlaces places, Function<String, HealthStatus> health,
-            Clock clock, EmitLedger ledger) {
+            RasterReader rasters, DerivedRecords records, ObservationFeed observations, CoverageService coverage,
+            DerivedPlaces places, Function<String, HealthStatus> health, Clock clock, EmitLedger ledger) {
         this.descriptor = descriptor;
         this.params = params == null ? ValidatedParams.empty() : params;
         this.state = state;
         this.rasters = rasters;
         this.records = records;
+        this.observations = observations;
+        this.coverage = coverage;
         this.places = places;
         this.health = health;
         this.clock = clock;
@@ -99,6 +103,16 @@ public final class DefaultDerivedContext implements DerivedContext {
     @Override
     public DerivedRecords records() {
         return records;
+    }
+
+    @Override
+    public ObservationFeed observations() {
+        return observations;
+    }
+
+    @Override
+    public CoverageService coverage() {
+        return coverage;
     }
 
     @Override

@@ -107,6 +107,9 @@ public class DerivedRunner implements ChangeListener, DisposableBean, ai.foresig
     private final RasterFrameQueries frames;
     private final ObjectProvider<RasterReader> rasters;
     private final DerivedRecords records;
+    private final ObjectProvider<ObservationFeed> observations;
+    private final ObjectProvider<CoverageService> coverage;
+    private final DerivedMetrics metrics;
     private final DerivedPlaces places;
     private final ForesignalVersion version;
     private final JdbcTemplate jdbc;
@@ -123,8 +126,9 @@ public class DerivedRunner implements ChangeListener, DisposableBean, ai.foresig
     public DerivedRunner(SourceRegistry registry, FetchContextFactory contexts, IngestQueue queue,
             FetchLogWriter fetchLog, HealthTracker health, ObjectProvider<HealthService> healthService, ChangeBus bus,
             RasterFrameQueries frames, ObjectProvider<RasterReader> rasters, DerivedRecords records,
-            DerivedPlaces places, ForesignalVersion version, JdbcTemplate jdbc, DerivedProperties properties,
-            Clock clock) {
+            ObjectProvider<ObservationFeed> observations, ObjectProvider<CoverageService> coverage,
+            DerivedMetrics metrics, DerivedPlaces places, ForesignalVersion version, JdbcTemplate jdbc,
+            DerivedProperties properties, Clock clock) {
         this.registry = registry;
         this.contexts = contexts;
         this.queue = queue;
@@ -135,6 +139,9 @@ public class DerivedRunner implements ChangeListener, DisposableBean, ai.foresig
         this.frames = frames;
         this.rasters = rasters;
         this.records = records;
+        this.observations = observations;
+        this.coverage = coverage;
+        this.metrics = metrics;
         this.places = places;
         this.version = version;
         this.jdbc = jdbc;
@@ -458,10 +465,18 @@ public class DerivedRunner implements ChangeListener, DisposableBean, ai.foresig
         DefaultFetchContext fetch = contexts.forFetch(descriptor, null);
         Map<String, HealthStatus> statuses = new HashMap<>();
         DefaultDerivedContext ctx = new DefaultDerivedContext(descriptor, fetch.params(), fetch.state(),
-                rasters.getIfAvailable(), records, places,
-                id -> statuses.computeIfAbsent(id, this::statusOf), clock, runner.ledger);
+                rasters.getIfAvailable(), records, observations.getIfAvailable(), coverage.getIfAvailable(),
+                places, id -> statuses.computeIfAbsent(id, this::statusOf), clock, runner.ledger);
         try {
-            hook.call(ctx);
+            long began = System.nanoTime();
+            try {
+                hook.call(ctx);
+            } finally {
+                metrics.eval(sourceId, Duration.ofNanos(System.nanoTime() - began));
+                if (runner.generator instanceof StatefulGenerator stateful) {
+                    metrics.stateSize(sourceId, stateful.stateSize());
+                }
+            }
         } catch (RuntimeException | Error e) {
             forget(runner, ctx.emitted());
             Instant now = clock.instant();

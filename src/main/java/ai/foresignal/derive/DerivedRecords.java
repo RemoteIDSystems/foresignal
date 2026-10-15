@@ -28,6 +28,18 @@ public interface DerivedRecords {
      */
     List<HeadSnapshot> current(Collection<String> sources, Collection<String> kinds, int limit);
 
+    /**
+     * The current records of the given sources and kinds whose live geometry intersects {@code bbox}
+     * (prompt 099: a regional generator loads only its area), ordered by source and external id.
+     *
+     * @param sources the sources (at least one)
+     * @param kinds the kinds, or empty for every kind
+     * @param bbox the bounding box in 4326, or null for no restriction
+     * @param limit the most rows returned
+     */
+    List<HeadSnapshot> current(Collection<String> sources, Collection<String> kinds, org.locationtech.jts.geom.Envelope bbox,
+            int limit);
+
     /** One current record, tombstones included, or empty when the entity has no head. */
     Optional<HeadSnapshot> get(String sourceId, String externalId);
 }

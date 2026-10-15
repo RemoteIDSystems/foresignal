@@ -836,11 +836,33 @@ Imported as weekly counts per family and region (`reference_history`); never ser
 | CFTC COT history | via `cftc-cot` backfill | 1986– | public domain |
 | IMF PortWatch history | via 088 | 2019– | IMF terms: reuse with attribution |
 
-## Derived layers (prompt 057)
+## Derived layers (prompt 099)
 
-These are computed from stored records rather than fetched. Prompt 057 implements them as "derived sources" that consume the change stream:
+Computed from stored and live records rather than fetched. Every layer is STANDARD/ALL, `recordTtl =
+null` (except `derived-aircraft`, which is TRACK with a 5-minute TTL), disabled by default,
+parameterised (`maxEntities`, `includePrivate`), health-tracked and coverage-aware: input that is not
+healthy, or a window touched by a change-bus gap or a live drop, marks the record
+`status: degraded-input` and suppresses absence-based events. Identity uses 098 entities when present,
+otherwise hex or MMSI. The common payload carries `automated`, `notAWarning`, `detector{id,version}`,
+a banded `confidence`, a `status` and bounded `evidence`.
 
-- **GPS jamming:** NACp < 8 share per 1° cell, using adsb.lol records.
-- **Holding patterns:** detected from aircraft version history.
-- **Dark vessels:** AIS gaps.
-- **Outage correlation.**
+| Source id | Kind | Inputs | Cadence / defaults | Coverage rule |
+|---|---|---|---|---|
+| `derived-gps-jamming` | `jamming-cell` | readsb-family aircraft (not OpenSky) | 15-min window, evaluated every 5 min; `grid=h3` (res 4) or `deg1` | ≥ 3 airborne ADS-B aircraft (no MLAT/TIS-B); bad = NACp < 8 or NIC < 7; ≥ 0.3 medium, ≥ 0.5 high; tombstone after 2 below-medium windows; < 3 aircraft keeps the last level `insufficient-data`, stale after 2 h |
+| `derived-ais-gap` | `ais-gap` | AIS vessel sources | every 5 min; gap 30 min | SOG > 1, not moored/anchored, outside port buffers; needs ≥ 3 neighbours of the same source within 50 km; `{mmsi}:{gapStartEpoch}` |
+| `derived-loiter` | `loiter` | AIS vessel sources | every 5 min | ≥ 4 fixes spanning ≥ 30 min within 0.5 nm of the centroid, outside ports, not moored; ends when a fix is > 0.5 nm out |
+| `derived-rendezvous` | `rendezvous` | AIS vessel sources | every 5 min | two vessels within 0.5 nm, both < 3 kn, ≥ 15 min, ≥ 5 nm from a port; excludes tug/pilot/SAR/tender (31, 32, 50–53, 55); tombstone after 1 nm for 10 min |
+| `derived-deception` | `deception` | aircraft + vessel | every 5 min | duplicate MMSI > 50 km within 120 s; vessel implied speed > 80 kn (skip 102.3, HSC 40–49, WIG 20–29); aircraft implied speed > 1,400 kn (ADS-B only); tombstone after 1 h |
+| `derived-holding` | `holding-pattern` | aircraft | every 5 min | airborne, GS < 300, altitude ±1,000 ft, > 300° turn in 10 min; nearest OurAirports airport ≤ 50 km |
+| `derived-emergency-squawk` | `emergency-squawk` | aircraft | every 5 min | squawk 7500/7600/7700 or a readsb emergency, ≥ 2 observations ≥ 10 s apart (or 2 sources); unverified; tombstone 2 min after a clear with fresh data |
+| `derived-chokepoint` | `chokepoint-activity`, `chokepoint-uturn` | AIS vessel + PortWatch chokepoints | every 5 min | course change > 60° / U-turn > 150° / speed drop > 50% to < 3 kn inside a buffered chokepoint; hourly banded counts |
+| `derived-mil-naval` | `mil-naval-cooccurrence` | aircraft + vessel | every 5 min, 30-min window | military aircraft (mil sources or `mil` flag) and naval vessels (ship type 35) in one res-3 cell or 100 km; tombstone after 30 min |
+| `derived-aircraft` | `aircraft` | every aircraft source | every minute; TRACK, TTL 5 min | freshest observation by `observedAt` wins; ties prefer ADS-B > MLAT > TIS-B, then local over network; payload adds `sources[]`, `primarySource`, `positionSource` |
+| `derived-corroboration` | `corroboration` | earthquakes, fires, conflict, outages | every 5 min | earthquakes Δt ≤ 60 s, ≤ 100 km, \|ΔM\| ≤ 0.8; fires ≤ 1 km, ≤ 1 h; conflict same 0.1° cell and UTC day; outages same country, overlapping; Admiralty credibility 2/3/6 |
+| `derived-port-calls` | `port-call` | AIS vessel + World Port Index | every 5 min | inside a port buffer below 1 kn for ≥ 30 min; departure on leaving; tombstone 24 h after departure |
+| `derived-cpa` | `cpa` | AIS vessel (area) | every minute; `aoi` required | both > 3 kn; CPA < 0.5 nm with 0 < TCPA ≤ 20 min; tombstoned once the CPA time passes |
+| `derived-felt-locally` | `felt-report-estimate` | earthquakes + places | every 5 min | each event and place ≤ 1,000 km; nearest ShakeMap contour or the Atkinson & Wald (2007) IPE; emit at MMI ≥ 2.0 |
+| `derived-cable-risk` | `cable-proximity-risk` | AIS vessel + submarine cables | every 5 min | not a cable ship, anchored or sustained 0.3–3 kn, within 2 km of a route, outside ports, ≥ 30 min; drag flag at 0.5–3 kn within 1 km for 15 min |
+| `derived-dark-vessel-match` | `dark-vessel-candidate` | AIS gaps + SAR detections | every 10 min | gap joined to an unmatched SAR detection inside the reachable area (last fix + max speed × time, capped 200 km), window ± 6 h; idle and health-noted when no SAR source |
+| `derived-lightning-holdover` | `holdover-fire-risk` | GLM + FIRMS/FDC + QPE | every 10 min | flash clusters over dry cells (QPE < 2.5 mm), watched 72 h; a fire within 5 km sets `ignitionConfirmed` |
+| `derived-hf-blackout` | `hf-propagation-anomaly` | PSKReporter + SWPC X-ray | every 10 min | per band and path class per hour vs a 14-day same-hour baseline; ≥ 60% spot drop or ≥ 10 dB SNR drop on sunlit paths while healthy; carries the concurrent X-ray class |

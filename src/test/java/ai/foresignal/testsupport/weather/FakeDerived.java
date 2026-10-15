@@ -36,7 +36,8 @@ import org.locationtech.jts.geom.Polygon;
  * records, places, source statuses and a flash sink, with a {@link #context} per invocation that collects the
  * emits through a real {@link EmitLedger}. No Spring, no database.
  */
-public final class FakeDerived implements RasterReader, DerivedRecords, DerivedPlaces {
+public final class FakeDerived implements RasterReader, DerivedRecords, DerivedPlaces,
+        ai.foresignal.derive.ObservationFeed, ai.foresignal.derive.CoverageService {
 
     /** The clock every context uses. */
     public final MutableClock clock;
@@ -55,6 +56,12 @@ public final class FakeDerived implements RasterReader, DerivedRecords, DerivedP
 
     /** Source statuses (missing means idle). */
     public final Map<String, HealthStatus> statuses = new HashMap<>();
+
+    /** When a change/live gap was last seen, or null. */
+    public Instant degradedAt;
+
+    /** Densities returned by {@code densityNear}, keyed by {@code sourceId}. */
+    public final Map<String, Integer> densities = new HashMap<>();
 
     /** Unavailable products and why. */
     public final Map<String, String> unavailable = new HashMap<>();
@@ -90,7 +97,7 @@ public final class FakeDerived implements RasterReader, DerivedRecords, DerivedP
             public void remove(String key) {
                 state.remove(key);
             }
-        }, this, this, this, id -> statuses.getOrDefault(id, HealthStatus.IDLE), clock, ledger);
+        }, this, this, this, this, this, id -> statuses.getOrDefault(id, HealthStatus.IDLE), clock, ledger);
     }
 
     /** Seeds the emit ledger from heads, as the runner does before every reconcile. */
@@ -232,6 +239,12 @@ public final class FakeDerived implements RasterReader, DerivedRecords, DerivedP
     }
 
     @Override
+    public List<HeadSnapshot> current(Collection<String> sources, Collection<String> kinds,
+            org.locationtech.jts.geom.Envelope bbox, int limit) {
+        return current(sources, kinds, limit);
+    }
+
+    @Override
     public Optional<HeadSnapshot> get(String sourceId, String externalId) {
         return heads.getOrDefault(sourceId, List.of()).stream().filter(h -> h.externalId().equals(externalId)).findFirst();
     }
@@ -270,5 +283,93 @@ public final class FakeDerived implements RasterReader, DerivedRecords, DerivedP
     public double[] aoiEnvelope() {
         org.locationtech.jts.geom.Envelope e = aoi().getEnvelopeInternal();
         return new double[] {e.getMinX(), e.getMinY(), e.getMaxX(), e.getMaxY()};
+    }
+
+    // ------------------------------------------------------------------ ObservationFeed
+
+    private ai.foresignal.derive.Observation observe(HeadSnapshot h) {
+        return new ai.foresignal.derive.Observation(h.sourceId(), h.externalId(), h.kind(), h.observedAt(),
+                h.geometry(), h.payload(), ai.foresignal.source.spi.PositionSource.UNKNOWN);
+    }
+
+    @Override
+    public List<ai.foresignal.derive.Observation> recent(Collection<String> sources, Collection<String> kinds,
+            Instant since, int limit) {
+        return recent(sources, kinds, since, null, limit);
+    }
+
+    @Override
+    public List<ai.foresignal.derive.Observation> recent(Collection<String> sources, Collection<String> kinds,
+            Instant since, org.locationtech.jts.geom.Envelope bbox, int limit) {
+        List<ai.foresignal.derive.Observation> out = new ArrayList<>();
+        for (HeadSnapshot h : current(sources, kinds, limit)) {
+            if (since == null || h.observedAt() == null || !h.observedAt().isBefore(since)) {
+                out.add(observe(h));
+            }
+        }
+        return out;
+    }
+
+    @Override
+    public Optional<ai.foresignal.derive.Observation> latest(String sourceId, String externalId) {
+        return get(sourceId, externalId).filter(h -> !h.tombstone()).map(this::observe);
+    }
+
+    @Override
+    public Instant lastDataAt(String sourceId) {
+        Instant newest = null;
+        for (HeadSnapshot h : heads.getOrDefault(sourceId, List.of())) {
+            if (h.observedAt() != null && (newest == null || h.observedAt().isAfter(newest))) {
+                newest = h.observedAt();
+            }
+        }
+        return newest;
+    }
+
+    @Override
+    public boolean degradedSince(Instant since) {
+        return degradedAt != null && since != null && !degradedAt.isBefore(since);
+    }
+
+    @Override
+    public Instant lastDegradedAt() {
+        return degradedAt;
+    }
+
+    // ------------------------------------------------------------------ CoverageService
+
+    @Override
+    public HealthStatus health(String sourceId) {
+        return statuses.getOrDefault(sourceId, HealthStatus.HEALTHY);
+    }
+
+    @Override
+    public ai.foresignal.source.spi.Coverage coverage(String sourceId) {
+        return ai.foresignal.source.spi.Coverage.none();
+    }
+
+    @Override
+    public boolean healthy(String sourceId) {
+        return health(sourceId) == HealthStatus.HEALTHY;
+    }
+
+    @Override
+    public ai.foresignal.derive.LayerStatus statusFor(Iterable<String> sources, Instant windowStart) {
+        if (degradedSince(windowStart)) {
+            return ai.foresignal.derive.LayerStatus.DEGRADED_INPUT;
+        }
+        boolean any = false;
+        for (String s : sources) {
+            any = true;
+            if (health(s) == HealthStatus.HEALTHY) {
+                return ai.foresignal.derive.LayerStatus.OK;
+            }
+        }
+        return any ? ai.foresignal.derive.LayerStatus.NO_COVERAGE : ai.foresignal.derive.LayerStatus.NO_COVERAGE;
+    }
+
+    @Override
+    public int densityNear(String sourceId, double lon, double lat, double radiusKm, java.time.Duration window) {
+        return densities.getOrDefault(sourceId, 0);
     }
 }

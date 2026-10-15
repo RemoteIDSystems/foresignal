@@ -55,6 +55,12 @@ public interface DerivedContext {
     /** Read-only current records ({@code record_head ⋈ record_live}). */
     DerivedRecords records();
 
+    /** The merged observation feed over current records (prompt 099). */
+    ObservationFeed observations();
+
+    /** Per-source coverage, health and density (prompt 099). */
+    CoverageService coverage();
+
     /** The operator's places and the places AOI. */
     DerivedPlaces places();
 

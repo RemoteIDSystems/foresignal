@@ -275,8 +275,10 @@ public final class DescriptorValidator {
             }
             case DERIVED -> {
                 // Derived sources are computed, so they need no fetch implementation. What they
-                // must not have is a TTL: liveness comes from explicit tombstones.
-                if (descriptor.recordTtl() != null) {
+                // must not have is a TTL: liveness comes from explicit tombstones. The one
+                // exception (prompt 099) is a TRACK fusion layer, whose output is a continuous
+                // track and so is bounded by a TTL like any other track.
+                if (descriptor.recordTtl() != null && descriptor.historyTier() != HistoryTier.TRACK) {
                     problems.add(
                             descriptor.id()
                                     + " is DERIVED, so recordTtl must be null, but it is "

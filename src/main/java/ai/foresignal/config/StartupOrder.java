@@ -82,6 +82,12 @@ public final class StartupOrder {
     public static final int CANARY = 25;
 
     /**
+     * The derived layers' observation feed (prompt 099): its change-bus and live-bus subscriptions,
+     * so a gap is recorded before the DERIVED runtime's runners act on the next window.
+     */
+    public static final int OBSERVATION_FEED = 26;
+
+    /**
      * Mirroring the product catalog into {@code raster_product} (prompt 042), before the scheduler
      * starts the first product fetch.
      */
