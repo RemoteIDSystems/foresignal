@@ -279,7 +279,8 @@ public class EntityLinker {
 
     // ------------------------------------------------------------------ backfill / catch-up
 
-    private void backfillHeads() {
+    /** Scans the current heads of every source that declares {@code entityKeys} (cold start, tests). */
+    void backfillHeads() {
         for (String sourceId : entitySourceIds()) {
             SourceDescriptor descriptor = registry.find(sourceId).map(r -> r.descriptor()).orElse(null);
             if (descriptor == null) {

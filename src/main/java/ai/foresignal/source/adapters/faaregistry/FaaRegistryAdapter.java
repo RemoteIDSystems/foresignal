@@ -138,6 +138,8 @@ public class FaaRegistryAdapter implements PollingAdapter {
         FaaSources.text(b, "manufacturer", "Manufacturer", "The manufacturer from the reference table");
         FaaSources.text(b, "model", "Model", "The model from the reference table");
         FaaSources.text(b, "typeAircraft", "Aircraft type", "Glider, Balloon, Fixed Wing, Rotorcraft, Weight-Shift…");
+        FaaSources.text(b, "typeEngine", "Engine type", "Reciprocating, Turbo-prop, Turbo-jet, Turbo-shaft…");
+        FaaSources.text(b, "weightClass", "Weight class", "The FAA weight class of the airframe");
         FaaSources.integer(b, "engines", null, "Engines", "Number of engines");
         FaaSources.integer(b, "seats", null, "Seats", "Number of seats");
         FaaSources.integer(b, "yearMfr", null, "Year", "Year of manufacture");
@@ -150,6 +152,8 @@ public class FaaRegistryAdapter implements PollingAdapter {
         FaaSources.bool(b, "fractionalOwner", "Fractional", "Whether the registration is fractional");
         FaaSources.text(b, "kitMfr", "Kit manufacturer", "Kit manufacturer, when built from a kit");
         FaaSources.text(b, "kitModel", "Kit model", "Kit model, when built from a kit");
+        FaaSources.text(b, "ownerName", "Owner name", "Only with nonIndividualOwnerNames and a corporation,"
+                + " government, LLC or non-citizen-corporation registrant; never an individual owner");
         return b.build();
     }
 }

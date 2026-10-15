@@ -15,6 +15,11 @@
     "x-foresignal-changelog": [
       {
         "version": "1.3.0",
+        "date": "2026-10-15",
+        "note": "098: the seven entity operations (listEntities, resolveEntity, getEntity, listEntityRecords, addEntityKey, retractEntityKey, mergeEntities) are implemented with the Entity, EntityKey, EntityAlias, EntityLink, EntityPage, EntityRecordList, EntityKeyInput and EntityMergeInput schemas, the ENTITY_NOT_FOUND, ENTITY_KEY_INVALID and ENTITY_KEY_CONFLICT codes and AccessPolicy rules (reads read, writes admin). The new source faa-registry (aircraft-registration, US-PD, no owner PII) and the new record sources; WatchlistInput.identity gains entity (an entity:<ULID> item expands to the entity's open keys). No operation was renamed or removed."
+      },
+      {
+        "version": "1.3.0",
         "date": "2026-10-14",
         "note": "096: no new operations. New sources stac-sentinel2 (sentinel-2-c1-l2a), stac-landsat (landsat-c2-l2) and stac-sentinel1 (sentinel-1-grd, disabled by default), all kind satellite-scene, each requiring an aoi (bbox or place id). Record x-foresignal-kinds fills in the satellite-scene payload; the record also carries title and eventTime (the tile property list reads them). Foresignal never downloads, proxies or signs an imagery asset: records carry the STAC item link and, only for an https thumbnail, the thumbnail URL."
       },
@@ -104565,6 +104570,7 @@
               "callsign",
               "mmsi",
               "imo",
+              "entity",
               "custom"
             ]
           },
@@ -104576,7 +104582,7 @@
               "digits",
               "none"
             ],
-            "description": "Defaults: icao24/registration/callsign upper, mmsi/imo digits"
+            "description": "Defaults: icao24/registration/callsign upper, mmsi/imo digits, entity/custom none"
           },
           "description": {
             "type": [

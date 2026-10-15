@@ -108,7 +108,7 @@ public class EntityResolver {
         if (byEntity.size() == 1) {
             String entityId = byEntity.keySet().iterator().next();
             EntityEntity target = canonical(entityId);
-            Key linkKey = byEntity.get(entityId).get(0);
+            Key linkKey = linkKey(byEntity.get(entityId));
             reconcileWeak(target, weaks, at, origin, ref);
             return new Resolution(target.getId(), EntityType.fromWire(target.getType()), linkKey);
         }
@@ -118,7 +118,7 @@ public class EntityResolver {
                     .min((a, b) -> Integer.compare(rank(byEntity.get(a)), rank(byEntity.get(b))))
                     .orElseThrow();
             EntityEntity target = canonical(chosen);
-            Key linkKey = byEntity.get(chosen).get(0);
+            Key linkKey = linkKey(byEntity.get(chosen));
             meters.counter("foresignal.entity.conflicts").increment();
             reconcileWeak(target, weaks, at, origin, ref);
             return new Resolution(target.getId(), EntityType.fromWire(target.getType()), linkKey);
@@ -130,7 +130,20 @@ public class EntityResolver {
             return null;
         }
         EntityEntity created = createEntity(typeFor(weaks, null), ks, at, origin, ref);
-        return new Resolution(created.getId(), EntityType.fromWire(created.getType()), creatable.get(0));
+        return new Resolution(created.getId(), EntityType.fromWire(created.getType()), linkKey(weaks));
+    }
+
+    /**
+     * The key a record's link is recorded against: the co-asserted callsign when there is one, so an
+     * {@code air:} link is a flight-session link the gap job can close (prompt 098), else the first key.
+     */
+    private static Key linkKey(List<Key> keys) {
+        for (Key key : keys) {
+            if ("callsign".equals(key.keyType())) {
+                return key;
+            }
+        }
+        return keys.get(0);
     }
 
     /**
@@ -139,10 +152,22 @@ public class EntityResolver {
      */
     private void reconcileWeak(EntityEntity target, List<Key> weaks, Instant at, KeyOrigin origin, String ref) {
         for (Key weak : weaks) {
+            // A key of the same type with a different value on the target is superseded (for example a
+            // registration's modeSHex changes in a later registry snapshot); close it at the observation.
+            for (EntityKeyEntity existing : keys.findOpenByEntityId(target.getId())) {
+                if (existing.getKeyType().equals(weak.keyType())
+                        && !existing.getKeyValue().equals(weak.keyValue())) {
+                    existing.setValidTo(at);
+                    keys.save(existing);
+                }
+            }
             Optional<EntityKeyEntity> holder = keys.findOpen(weak.keyType(), weak.keyValue());
+            String reassignedFrom = null;
             if (holder.isPresent()) {
                 String holderId = holder.get().getEntityId();
                 if (holderId.equals(target.getId())) {
+                    // The key is already open here; a supersede above may still have changed the entity.
+                    events.publishEvent(new EntityKeysChangedEvent(target.getId()));
                     continue;
                 }
                 EntityEntity other = canonical(holderId);
@@ -154,9 +179,15 @@ public class EntityResolver {
                 EntityKeyEntity row = holder.get();
                 row.setValidTo(at);
                 keys.save(row);
+                reassignedFrom = other.getId();
                 meters.counter("foresignal.entity.reassigned", "type", weak.keyType()).increment();
             }
             openKey(target.getId(), weak, at, origin, ref);
+            // The expansion snapshot follows: refresh the target and any entity the key left.
+            events.publishEvent(new EntityKeysChangedEvent(target.getId()));
+            if (reassignedFrom != null) {
+                events.publishEvent(new EntityKeysChangedEvent(reassignedFrom));
+            }
         }
     }
 

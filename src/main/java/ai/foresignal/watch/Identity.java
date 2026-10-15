@@ -25,6 +25,12 @@ public enum Identity {
     CALLSIGN("callsign", Normalize.UPPER, Pattern.compile("^[A-Za-z0-9]{1,8}$")),
     MMSI("mmsi", Normalize.DIGITS, Pattern.compile("^[0-9]{9}$")),
     IMO("imo", Normalize.DIGITS, Pattern.compile("^[0-9]{7}$")),
+    /**
+     * A canonical entity reference ({@code entity:<ULID>}, prompt 098). The item is expanded at
+     * evaluation time to the entity's open keys, so it matches records across every source the entity
+     * is linked to without naming their identity fields.
+     */
+    ENTITY("entity", Normalize.NONE, Pattern.compile("^entity:[0-9A-HJKMNP-TV-Z]{26}$")),
     CUSTOM("custom", Normalize.NONE, Pattern.compile("^.{1,256}$", Pattern.DOTALL));
 
     private final String wire;
@@ -54,7 +60,7 @@ public enum Identity {
                 return identity;
             }
         }
-        throw new IllegalArgumentException("must be icao24, registration, callsign, mmsi, imo or custom");
+        throw new IllegalArgumentException("must be icao24, registration, callsign, mmsi, imo, entity or custom");
     }
 
     /**
@@ -73,6 +79,7 @@ public enum Identity {
                 case CALLSIGN -> "must be letters and digits (at most 8)";
                 case MMSI -> "must be nine digits";
                 case IMO -> "must be seven digits";
+                case ENTITY -> "must be entity: followed by a 26-character ULID";
                 case CUSTOM -> "must be at most 256 characters";
             };
         }

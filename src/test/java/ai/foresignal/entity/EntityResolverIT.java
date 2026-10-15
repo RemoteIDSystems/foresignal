@@ -69,7 +69,7 @@ class EntityResolverIT {
         Resolution vesselA = resolver.resolve(
                 List.of(key("imo", "9074729", EntityKeyRole.ANCHOR, 1.0f)), NOW, KeyOrigin.CO_ASSERTED, "aisstream:1");
         Resolution vesselB = resolver.resolve(
-                List.of(key("imo", "8712345", EntityKeyRole.ANCHOR, 1.0f)), NOW, KeyOrigin.CO_ASSERTED, "aisstream:2");
+                List.of(key("imo", "9161235", EntityKeyRole.ANCHOR, 1.0f)), NOW, KeyOrigin.CO_ASSERTED, "aisstream:2");
 
         resolver.resolve(List.of(key("mmsi", "366123456", EntityKeyRole.WEAK, 0.8f)), NOW, KeyOrigin.OBSERVED, "aisstream:2");
         assertThat(keys.findOpen("mmsi", "366123456").orElseThrow().getEntityId()).isEqualTo(vesselB.entityId());
