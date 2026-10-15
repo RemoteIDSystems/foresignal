@@ -7,7 +7,8 @@
   <source>NTWC</source>
   <scope>Public</scope>
   <code>IPAWSv1.0</code>
-x0  <incidents>tsthr01</incidents>
+  <references>ntwc@noaa.gov,PAAQ-1-tsthr01,2026-10-13T20:00:00-00:00</references>
+  <incidents>tsthr01</incidents>
   <info>
     <category>Geo</category>
     <event>Tsunami Warning</event>
@@ -36,7 +37,7 @@ x0  <incidents>tsthr01</incidents>
     </parameter>
     <parameter>
       <valueName>VTEC</valueName>
-      <value>x1</value>
+      <value>/O.CON.PAAQ.0016.20261013T2030Z-20261014T0830Z/</value>
     </parameter>
     <parameter>
       <valueName>NWSUGC</valueName>

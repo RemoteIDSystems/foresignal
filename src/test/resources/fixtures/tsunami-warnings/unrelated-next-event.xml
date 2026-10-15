@@ -7,7 +7,7 @@
   <source>NTWC</source>
   <scope>Public</scope>
   <code>IPAWSv1.0</code>
-x0  <incidents>tsnext1</incidents>
+  <incidents>tsnext1</incidents>
   <info>
     <category>Geo</category>
     <event>Tsunami Information</event>
@@ -36,7 +36,7 @@ x0  <incidents>tsnext1</incidents>
     </parameter>
     <parameter>
       <valueName>VTEC</valueName>
-      <value>x1</value>
+      <value>/O.NEW.PAAQ.0099.20261013T2105Z-20261014T0905Z/</value>
     </parameter>
     <parameter>
       <valueName>NWSUGC</valueName>

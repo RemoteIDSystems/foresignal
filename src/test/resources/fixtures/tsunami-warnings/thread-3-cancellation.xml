@@ -7,7 +7,8 @@
   <source>NTWC</source>
   <scope>Public</scope>
   <code>IPAWSv1.0</code>
-x0  <incidents>tsthr01</incidents>
+  <references>ntwc@noaa.gov,PAAQ-1-tsthr01,2026-10-13T20:00:00-00:00 ntwc@noaa.gov,PAAQ-2-tsthr01,2026-10-13T20:30:00-00:00</references>
+  <incidents>tsthr01</incidents>
   <info>
     <category>Geo</category>
     <event>Tsunami Cancellation</event>
@@ -36,7 +37,7 @@ x0  <incidents>tsthr01</incidents>
     </parameter>
     <parameter>
       <valueName>VTEC</valueName>
-      <value>x1</value>
+      <value>/O.CAN.PAAQ.0016.20261013T2100Z-20261013T2200Z/</value>
     </parameter>
     <parameter>
       <valueName>NWSUGC</valueName>
