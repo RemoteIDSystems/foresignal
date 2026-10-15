@@ -88,9 +88,11 @@ class GdacsAdapterTest extends WireMockSupport {
 
     /** The request URLs in the order the stub received them. */
     private static List<String> requestOrder() {
-        return WIREMOCK.getAllServeEvents().stream()
-                .sorted(Comparator.comparing(e -> e.getRequest().getLoggedDate()))
-                .map(ServeEvent::getRequest).map(r -> r.getUrl()).toList();
+        // getAllServeEvents() is newest-first; reverse it rather than sort by loggedDate, whose
+        // millisecond ties make the order of same-instant requests unstable.
+        List<ServeEvent> events = new java.util.ArrayList<>(WIREMOCK.getAllServeEvents());
+        java.util.Collections.reverse(events);
+        return events.stream().map(ServeEvent::getRequest).map(r -> r.getUrl()).toList();
     }
 
     @Test

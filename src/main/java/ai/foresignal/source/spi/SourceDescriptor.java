@@ -238,7 +238,10 @@ public record SourceDescriptor(
     public static final Duration DEFAULT_SKEW_TOLERANCE = Duration.ofMinutes(2);
 
     public SourceDescriptor {
-        kinds = kinds == null ? Set.of() : Set.copyOf(kinds);
+        // Insertion order, deterministically: Set.copyOf randomises its iteration order per JVM, which
+        // made kinds() output (and tests) unstable.
+        kinds = kinds == null ? Set.of()
+                : java.util.Collections.unmodifiableSet(new LinkedHashSet<>(kinds));
         credentialFields = credentialFields == null ? List.of() : List.copyOf(credentialFields);
         params = params == null ? List.of() : List.copyOf(params);
         tileProperties = tileProperties == null ? List.of() : List.copyOf(tileProperties);
