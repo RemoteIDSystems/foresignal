@@ -5,6 +5,7 @@ import ai.foresignal.api.error.ForesignalException;
 import ai.foresignal.api.error.InvalidInputException;
 import ai.foresignal.api.error.NotFoundException;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
@@ -68,6 +69,8 @@ public class WebSubController {
      */
     @PostMapping("/v1/websub/{sourceId}/{token}")
     @Operation(operationId = "receiveWebSubNotification", tags = "WebSub")
+    @ApiResponse(responseCode = "202",
+            description = "The signed delivery was accepted and handed to the source's sink.")
     public ResponseEntity<Void> receiveWebSubNotification(@PathVariable String sourceId, @PathVariable String token,
             @RequestHeader(name = "X-Hub-Signature", required = false) String signature, HttpServletRequest request) {
         if (!websub.enabled()) {

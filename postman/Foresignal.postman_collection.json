@@ -10055,7 +10055,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Telegram ops\",\n  \"type\": \"telegram\",\n  \"config\": {\n    \"chatId\": \"REPLACE_CHAT_ID\",\n    \"interactive\": true,\n    \"allowedChats\": [\n      {\n        \"chatId\": \"REPLACE_PRIVATE_CHAT_ID\",\n        \"name\": \"My phone\",\n        \"scope\": \"agent\"\n      },\n      {\n        \"chatId\": \"-100REPLACE_GROUP_ID\",\n        \"name\": \"Family group\",\n        \"scope\": \"read\",\n        \"userIds\": [\n          \"REPLACE_USER_ID\"\n        ]\n      }\n    ],\n    \"askRateLimitPerHour\": 10,\n    \"commandRateLimit\": 30,\n    \"takeOverWebhook\": false,\n    \"discoveryMode\": true\n  },\n  \"secrets\": {\n    \"botToken\": \"REPLACE_DEDICATED_BOT_TOKEN\"\n  },\n  \"events\": [\n    \"alert\",\n    \"system\"\n  ]\n}",
+              "raw": "{\n  \"name\": \"Telegram ops\",\n  \"type\": \"telegram\",\n  \"config\": {\n    \"chatId\": \"-1001234567890\",\n    \"interactive\": true,\n    \"allowedChats\": [\n      {\n        \"chatId\": \"123456789\",\n        \"name\": \"My phone\",\n        \"scope\": \"agent\"\n      },\n      {\n        \"chatId\": \"-1001234567891\",\n        \"name\": \"Family group\",\n        \"scope\": \"read\",\n        \"userIds\": [\n          \"123456789\"\n        ]\n      }\n    ],\n    \"askRateLimitPerHour\": 10,\n    \"commandRateLimit\": 30,\n    \"takeOverWebhook\": false,\n    \"discoveryMode\": true\n  },\n  \"secrets\": {\n    \"botToken\": \"REPLACE_DEDICATED_BOT_TOKEN\"\n  },\n  \"events\": [\n    \"alert\",\n    \"system\"\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"

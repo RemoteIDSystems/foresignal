@@ -15,6 +15,7 @@ import ai.foresignal.store.DeliveryStatus;
 import ai.foresignal.store.NotificationDeliveryEntity;
 import ai.foresignal.store.NotificationDeliveryRepository;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.net.URI;
 import java.util.ArrayList;
@@ -140,6 +141,8 @@ public class ChannelsController {
      */
     @PostMapping("/{channelId}/mqtt/republish")
     @Operation(operationId = "republishMqttChannel", tags = "Channels")
+    @ApiResponse(responseCode = "202",
+            description = "Every retained state and the Home Assistant discovery is queued for re-publication.")
     public ResponseEntity<Void> republishMqttChannel(@PathVariable String channelId) {
         UUID id = id(channelId);
         NotificationChannelEntity channel = channels.load(id);

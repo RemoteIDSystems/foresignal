@@ -102,7 +102,12 @@ class PostmanCollectionContractTest {
     private static final List<ChannelType> CHANNEL_TYPES = List.of(new AppriseChannel(), new DiscordChannel(),
             new EmailChannel(), new GoogleChatChannel(), new GotifyChannel(), new HomeAssistantChannel(),
             new MatrixChannel(), new MattermostChannel(), new NtfyChannel(), new PushoverChannel(), new SlackChannel(),
-            new TeamsChannel(), new TelegramChannel(), new WebhookChannel(), new ZulipChannel());
+            new TeamsChannel(), new TelegramChannel(), new WebhookChannel(), new ZulipChannel(),
+            // 060 and 083/084 added these types to the registry; the collection has examples for them.
+            new ai.foresignal.notify.types.MqttChannel(),
+            new ai.foresignal.notify.types.MeshtasticChannel(ai.foresignal.testsupport.net.TestOutbound.offlinePolicy()),
+            new ai.foresignal.notify.types.MeshCoreChannel(
+                    ai.foresignal.testsupport.net.TestOutbound.offlinePolicy(), null));
 
     private static ValidatorFactory validatorFactory;
     private static Validator validator;
@@ -195,6 +200,11 @@ class PostmanCollectionContractTest {
             Map.entry("createBriefing", PostmanCollectionContractTest::briefing),
             Map.entry("updateBriefing", PostmanCollectionContractTest::briefing),
             Map.entry("previewBriefing", PostmanCollectionContractTest::briefing),
+            // 059: the production mapping compiler validates a previewed mapping (no source context).
+            Map.entry("previewMapping", body -> new ai.foresignal.mapping.MappingCompiler()
+                    .compile(body.get("mapping"), ai.foresignal.mapping.MappingContext.none())),
+            Map.entry("suggestMapping", body -> ai.foresignal.mapping.MappingInputs.fromSample(
+                    body.get("sample"), OpenApiSpec.JSON)),
             Map.entry("createStreamTicket", body -> new TicketStore(new TokenHasher(), null, Clock.fixed(NOW, ZoneOffset.UTC))
                     .mint(new AuthenticatedToken(UUID.randomUUID(), "t", Scope.READ, TokenRestrictions.NONE, null,
                             "01JA8Q3V7S2K9W4T6Y1B5N0M3C", false), body)));
@@ -399,7 +409,13 @@ class PostmanCollectionContractTest {
                 "createRegistrationToken", "putPushProvider", "testPushProvider", "executeAction", "createFeedKey",
                 "createPlace", "updatePlace", "createView", "updateView", "importWatchlist",
                 "updateLlmSettings", "createPushSubscription", "verifyPushSubscription", "ingestRecordsPathKey",
-                "createTileKey", "postSample", "postProductStats", "ingestSourceMedia", "ingestSourceRasters");
+                "createTileKey", "postSample", "postProductStats", "ingestSourceMedia", "ingestSourceRasters",
+                // 059: testCustomSourceMapping tests the proposed (or stored) mapping over a custom source's
+                // captured samples, which needs the database (MappingPresetIT covers it).
+                "testCustomSourceMapping",
+                // 073: a WebSub notification body is the raw feed (Atom, RSS, XML or JSON), parsed by the
+                // subscription's source, not a typed DTO (WebSubControllerIT covers it).
+                "receiveWebSubNotification");
         List<String> uncovered = OpenApiSpec.routes().stream()
                 .filter(SpecOperation::implemented)
                 .filter(op -> op.node().has("requestBody"))
