@@ -567,3 +567,15 @@ scientific colormaps. Each style's `notice` field names its origin.
   aggregated to the H3 cell (res 5 and 7) containing its centre and summed inside a queried area.
 - **Licence:** CC BY 4.0. Attribution "© European Union, GHSL" (European Commission, Joint Research Centre,
   Global Human Settlement Layer), as required by the licence.
+
+## OpenStreetMap (data, operator-supplied) and osmium (optional external tool)
+
+- **Data:** OpenStreetMap, imported only from an operator-supplied Geofabrik extract processed locally
+  to a GeoJSON sequence (prompt 104). Foresignal ships no OSM data and never calls the Overpass API or
+  any `openstreetmap.org` service.
+- **Licence:** Open Database License (ODbL) 1.0. Attribution "© OpenStreetMap contributors". The
+  derived infrastructure graph is a Derived Database; redistributing it (exports, sinks, federation)
+  must keep the ODbL and share-alike terms.
+- **osmium:** `osmium-tool` (GPL-3.0) is documented as an optional external command the operator may
+  run to produce the extract. It is **not linked, bundled or invoked** by Foresignal; the optional
+  `WITH_OSMIUM=true` image only documents the operator's own use.

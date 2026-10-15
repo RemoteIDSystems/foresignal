@@ -394,6 +394,12 @@ public class AccessPolicy {
                 rule(null, "/v1/backtests/**", AccessRequirement.AGENT),
                 rule(null, "/v1/jobs/**", AccessRequirement.AGENT),
 
+                // ---- Infrastructure graph (prompt 104) ----
+                rule(HttpMethod.POST, "/v1/infra/rebuild", AccessRequirement.ADMIN),
+                rule(HttpMethod.POST, "/v1/infra/affected", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/infra/**", AccessRequirement.READ),
+                rule(null, "/v1/settings/infra-rules", AccessRequirement.ADMIN),
+
                 // ---- Alerts: read to list, agent for the lifecycle (017) ----
                 rule(HttpMethod.POST, "/v1/alerts/*/ack", AccessRequirement.AGENT),
                 rule(HttpMethod.POST, "/v1/alerts/*/resolve", AccessRequirement.AGENT),

@@ -1,0 +1,18 @@
+{
+  "note": "The dependency rules (prompt 104). Every edge states how it is known (method) and is labelled confirmed|likely|possible|speculative; proximity is never better than possible.",
+  "version": 1,
+  "rules": [
+    {"id": "cable-landing", "enabled": true, "method": "declared", "label": "confirmed", "relation": "lands_at",
+     "params": {"withinKm": 5}},
+    {"id": "ixp-facility", "enabled": false, "method": "declared", "label": "confirmed", "relation": "interconnects",
+     "params": {}},
+    {"id": "line-substation", "enabled": true, "method": "topological", "label": "likely", "relation": "transmits_power",
+     "params": {"withinMeters": 50}},
+    {"id": "plant-substation", "enabled": true, "method": "proximity", "label": "possible", "relation": "supplies_power",
+     "params": {"maxKm": 5, "capacityFactorKm": 2}},
+    {"id": "substation-critical-load", "enabled": true, "method": "proximity", "label": "possible", "relation": "supplies_power",
+     "params": {"urbanKm": 3, "ruralKm": 10, "populationUrban": 100000}},
+    {"id": "airport-port-serves", "enabled": true, "method": "inferred", "label": "likely", "relation": "serves",
+     "params": {}}
+  ]
+}

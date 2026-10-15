@@ -1,0 +1,24 @@
+{
+  "note": "Maps a source kind to the infrastructure facility_type (prompt 104).",
+  "version": 1,
+  "sources": {
+    "wri-power-plants": {"power-plant": "power.generation"},
+    "nuclear-reactors-us": {"nuclear-reactor": "power.nuclear"},
+    "nuclear-plants-wikidata": {"nuclear-plant": "power.nuclear"},
+    "submarine-cables": {"cable": "telecom.cable", "cable-landing": "telecom.landing"},
+    "ourairports": {"airport": "transport.airport"},
+    "world-port-index": {"port": "transport.port"},
+    "spaceports": {"launch-site": "space.spaceport"},
+    "osm-infrastructure": {
+      "substation": "power.substation",
+      "power-line": "power.line",
+      "power-plant-osm": "power.generation",
+      "hospital": "health.hospital",
+      "data-centre-osm": "telecom.datacentre",
+      "telecom-exchange": "telecom.exchange",
+      "aerodrome-osm": "transport.airport",
+      "port-osm": "transport.port",
+      "water-facility": "water.treatment"
+    }
+  }
+}

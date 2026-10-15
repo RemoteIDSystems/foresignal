@@ -185,6 +185,15 @@ public final class ErrorCodes {
     /** 400: a precursor test definition is not valid (prompt 103). */
     public static final String PRECURSOR_TEST_INVALID = "PRECURSOR_TEST_INVALID";
 
+    /** 404: no such infrastructure node (prompt 104). */
+    public static final String UNKNOWN_INFRA_NODE = "UNKNOWN_INFRA_NODE";
+
+    /** 409: the infrastructure graph has not been built yet (prompt 104). */
+    public static final String INFRA_GRAPH_NOT_BUILT = "INFRA_GRAPH_NOT_BUILT";
+
+    /** 400: an infrastructure query area is too large without a types filter (prompt 104). */
+    public static final String INFRA_QUERY_TOO_LARGE = "INFRA_QUERY_TOO_LARGE";
+
     /** 403: the token's scope is below the operation's; carries {@code requiredScope} (prompt 023). */
     public static final String INSUFFICIENT_SCOPE = "INSUFFICIENT_SCOPE";
 

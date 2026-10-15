@@ -1,11 +1,3 @@
-listInfraNodes 104
-getInfraNode 104
-listInfraEdges 104
-computeAffectedInfrastructure 104
-getInfraStatus 104
-rebuildInfraGraph 104
-getInfraRules 104
-updateInfraRules 104
 sampleTrack 106
 getProductFieldVelocityJson 106
 getProductFieldPngUv 106

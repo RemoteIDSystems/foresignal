@@ -1290,6 +1290,34 @@ ground truth.
   expected effect and caveats; applying one is an ordinary rule update by an agent. With `simulate=true`
   (agent only) a backtest job measures the patched variant over the same range.
 
+## Infrastructure graph (prompt 104)
+
+A facility graph of power, telecom, transport, health, water and space infrastructure, built from the
+094 reference datasets and, optionally, your own OpenStreetMap extract. It answers "what depends on
+things inside this outage or event area?" with paths and explicit uncertainty. All of it is open data,
+processed locally.
+
+- **The OSM extract.** Download a Geofabrik extract for your region (`https://download.geofabrik.de/`,
+  refresh monthly), then process it locally with `osmium` (an external tool; never linked or bundled):
+  `osmium tags-filter region-latest.osm.pbf nwr/power=plant,substation,generator nw/power=line,cable
+  nwr/amenity=hospital nwr/healthcare=hospital nwr/telecom=data_center,exchange nwr/aeroway=aerodrome
+  nwr/landuse=port nwr/harbour=yes nwr/man_made=wastewater_plant,water_works -o infra.osm.pbf` then
+  `osmium export infra.osm.pbf -f geojsonseq --add-unique-id=type_id -o infra.geojsonseq`. Put the
+  result under `${FORESIGNAL_INBOX_DIR}/osm` and enable `osm-infrastructure`. **Do not use the public
+  Overpass API in bulk** — Foresignal never calls it; use an extract.
+- **ODbL obligations.** The OSM data is ODbL 1.0; attribution "© OpenStreetMap contributors" appears
+  in every response that includes it, and the derived facility graph is a Derived Database — if you
+  redistribute it, keep the ODbL and share-alike terms.
+- **Edge labels.** Every edge states how it is known — `declared`, `topological`, `proximity` or
+  `inferred` — and a label `confirmed | likely | possible | speculative`. **Proximity edges are never
+  better than `possible`.** A path's label is its weakest edge. Results always say "derived from open
+  data; not authoritative; heuristic links may be wrong."
+- **API.** `GET /v1/infra/nodes`, `GET /v1/infra/nodes/{id}` (with in/out edges), `GET /v1/infra/edges`,
+  `POST /v1/infra/affected {geometry | eventId, depth, minLabel, types}`, `GET /v1/infra/status`,
+  `POST /v1/infra/rebuild` (admin; 202), `GET/PUT /v1/settings/infra-rules` (admin). `GET /v1/infra/*`
+  are reads; a query area over 2,000,000 km² needs a `types` filter. Before the first build the graph
+  endpoints answer 409 `INFRA_GRAPH_NOT_BUILT`.
+
 ## Notification channels
 
 A channel delivers alerts, briefings and system events to one destination, formatted natively for
