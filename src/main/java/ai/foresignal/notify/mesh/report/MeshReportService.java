@@ -172,6 +172,11 @@ public class MeshReportService {
         this.clock = clock;
     }
 
+    /** Forgets the per-sender rate windows, so each test starts with the per-minute allowance (tests). */
+    void resetRateLimiter() {
+        rates.clear();
+    }
+
     /** Subscribes to the mesh message bus once the application is ready. */
     @EventListener(ApplicationReadyEvent.class)
     @Order(StartupOrder.MESH)

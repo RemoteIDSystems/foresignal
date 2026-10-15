@@ -41,6 +41,7 @@ class MeshReportIngestIT extends ChatopsItSupport {
 
     @BeforeEach
     void meshChannel() {
+        reports.resetRateLimiter();
         channel = notify.channel("{'name':'mesh','type':'meshtastic','config':{'brokerUrl':'mqtt://127.0.0.1:1',"
                 + "'gatewayNodeNum':'2864434397','channelIndex':1,'channelName':'Family','privateChannelConfirmed':true,"
                 + "'region':'EU_868','reportsEnabled':true,'allowedSenders':{'" + ACKER + "':'ack','" + REPORTER
