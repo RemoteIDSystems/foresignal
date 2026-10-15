@@ -29,14 +29,15 @@ class UsTravelAdvisoryParserTest {
     }
 
     @Test
-    @DisplayName("a title with no level leaves level null; YM resolves to Yemen (YE)")
+    @DisplayName("a title with no level leaves level null; YM resolves to Yemen (YE) and AS to Australia (AU)")
     void noLevel() {
         List<NormalizedRecord> records = ADAPTER.parse(
                 AdapterFixtures.bytes("travel-advisory-us", "no-level.json"));
         NormalizedRecord yemen = records.stream().filter(r -> r.externalId().equals("us:YE")).findFirst()
                 .orElseThrow();
         assertThat(yemen.payload()).doesNotContainKey("level");
-        NormalizedRecord level2 = records.stream().filter(r -> r.externalId().equals("us:AS")).findFirst()
+        // Category "AS" is FIPS 10-4 Australia (the API's code set), not ISO2 American Samoa.
+        NormalizedRecord level2 = records.stream().filter(r -> r.externalId().equals("us:AU")).findFirst()
                 .orElseThrow();
         assertThat(level2.payload()).containsEntry("level", 2);
     }

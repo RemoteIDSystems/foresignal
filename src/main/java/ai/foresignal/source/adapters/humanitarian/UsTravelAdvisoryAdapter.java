@@ -38,9 +38,10 @@ import tools.jackson.databind.json.JsonMapper;
 /**
  * {@code travel-advisory-us} (prompt 090): US State Department travel advisories.
  *
- * <p>{@code Category} is a FIPS 10-4 country code, resolved through 040's {@code CountryCentroids.byFips}; the
- * advisory level is read from the title ({@code Level N: text}). Country geometry is 040's polygon, else the
- * label point (approximate).
+ * <p>{@code Category} is mostly a FIPS 10-4 country code but not consistently; it is resolved through
+ * {@link TravelAdvisoryCodes} (a documented FIPS base with explicit ISO2 exceptions). The advisory level is
+ * read from the title ({@code Level N: text}). Country geometry is 040's polygon, else the label point
+ * (approximate).
  */
 @Component
 public final class UsTravelAdvisoryAdapter implements PollingAdapter {
@@ -115,7 +116,7 @@ public final class UsTravelAdvisoryAdapter implements PollingAdapter {
     }
 
     private NormalizedRecord record(JsonNode advisory) {
-        Optional<CountryRef> country = countries.byFips(fips(advisory.get("Category")));
+        Optional<CountryRef> country = TravelAdvisoryCodes.resolve(countries, fips(advisory.get("Category")));
         if (country.isEmpty()) {
             return null;
         }
