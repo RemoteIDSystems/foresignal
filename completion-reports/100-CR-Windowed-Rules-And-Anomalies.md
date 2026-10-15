@@ -142,3 +142,63 @@ Modified: `store/TriggerRuleEntity`, `trigger/TriggerRuleService`, `api/mapper/T
 - Run `python3 scripts/generate-postman.py docs/OpenAPI.json postman` after any further spec change.
 
 Implementation commit: `c7314a42238d26954c02eb42368d55041d1b3020`
+
+---
+
+## Post-review fixes
+
+Architect review of the prompt 100 implementation found four defects in the statistical core (three
+wrong runtime behaviours, one reduced functionality). All four were confirmed against the code and
+fixed; the fixes are in commit `d1081acf3f94a7ce7235e6c1c1b3928e1e4ffa6b`.
+
+1. **`unknown` no longer resolves a firing alert** (`WindowEngine.transition`). Resolution now
+   happens only on `active -> clear`; `active -> unknown` and `active -> learning` keep the alert
+   firing and leave `lastAlertId` untouched. The block that cleared `lastAlertId` on any
+   `unknown`/`learning` state was removed. A fired absence rule that then loses coverage no longer
+   auto-resolves (no false all-clear).
+2. **`window-state`/`anomaly` records persist.** `stateRecord` built records with
+   `observedAt(Instant.EPOCH)`, which is before `Normalizer.EPOCH_FLOOR` (1970-01-02), so the real
+   writer rejected every record with `OBSERVED_AT_TOO_OLD` and nothing persisted. `stateRecord` (and
+   the new `anomalyRecord`) now take the evaluation instant `now` and set `observedAt(now)`. Because
+   `observed_at` is not hashed, this yields touches rather than version churn, and the payload still
+   excludes the evaluation timestamp.
+3. **Anomaly warm-up can complete.** Two things were wrong: `evaluateBucket` looked back only 26
+   days (renamed `lookbackStart`, now 84 days / 12 weeks as §4 requires), and `Baseline.weeks`
+   divided the slot's sample count by 168 for an hour-of-week slot that only has one sample per week,
+   so `ready(minWeeks)` could never be true. `Baseline.of` now reports the slot's span as the sample
+   count for hour-of-week (`count/7` weeks for hour-of-day), which is the same fix item 3 needs.
+4. **`coverage-drop` is reachable.** `coverageRatio` hardcoded `1.0`, so `slotMedianCoverage` was
+   always 1.0 and the classifier's coverage-drop branch was dead. A new
+   `CoverageGate.coverageRatio(sources, from, to)` computes the real per-bucket ratio — the minimum
+   over the involved sources of the OK (or stream non-failed) fetch share times
+   `min(1, receivers ÷ median receivers of the last 20)` — and `WindowEngine` persists it on
+   `ActivitySampleEntity` and feeds it to `AnomalyDetector` (`λ = mean × coverage_ratio`).
+
+**Verify / reconcile.** The `anomaly` DERIVED kind was declared but never emitted; it is now emitted
+per evaluated bucket, `externalId {ruleId}:{groupKey}:{bucketStartEpoch}`, with the observed,
+expected, p-value, classification, baseline and detector (kept faithful to prompt §2's two kinds).
+`window-state` keeps `externalId {ruleId}:{groupKey}`.
+
+### Deviations
+
+- **Item 3 needed a second change.** The prescribed lookback fix alone does not let warm-up complete:
+  the per-slot `Baseline.weeks` formula (`n × bucket / 7d`) is also wrong for an hour-of-week slot. I
+  fixed both, since the strengthened `AnomalyRuleIT` cannot pass otherwise. Recorded here rather than
+  left as a follow-up.
+- **`CoverageGateTest`/`AnomalyClassifierTest` needed no change.** Fix 4 changed the inputs to
+  `AnomalyDetector` in `WindowEngine`, not the pure `CoverageGate.decide` table or
+  `AnomalyClassifier.classify`, so those tests still describe the fixed behaviour.
+- **No other scope.** Fixes 1–4 and the two test-strengthening items only.
+
+### Tests (written, not run)
+
+- `AnomalyRuleIT` strengthened: seeds 8 weeks of hourly coverage-ok samples inside the 12-week
+  lookback and asserts the current bucket is classified `activity-up` (with detector and evidence),
+  not merely that an `anomaly_observation` row exists.
+- `RuleWindowsIngestIT` added (`@WebIntegrationTest`, following 099's `DerivedLayersIT`): enables
+  `rule-windows` through `DerivedRunner`, ticks it, and asserts a `window-state` record persists in
+  `record_head` — the guard for fix 2.
+- `AbsenceRuleIT` strengthened: a fired absence rule whose source loses coverage goes `unknown` and
+  its alert stays `firing` — the guard for fix 1.
+
+Fix commit: `d1081acf3f94a7ce7235e6c1c1b3928e1e4ffa6b`
