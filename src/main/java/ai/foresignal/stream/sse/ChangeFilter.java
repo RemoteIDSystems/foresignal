@@ -64,6 +64,16 @@ public record ChangeFilter(
         this(sources, kinds, externalIds, bbox, near, payload, live, touches, excludedSources, ReadRestriction.NONE);
     }
 
+    /** This filter with {@code extra} added to the excluded sources (prompt 109 licence policy). */
+    public ChangeFilter withExcludedSources(Set<String> extra) {
+        if (extra == null || extra.isEmpty()) {
+            return this;
+        }
+        Set<String> merged = new java.util.LinkedHashSet<>(excludedSources);
+        merged.addAll(extra);
+        return new ChangeFilter(sources, kinds, externalIds, bbox, near, payload, live, touches, merged, restriction);
+    }
+
     /** Mean Earth radius in kilometers, for the haversine distance. */
     static final double EARTH_RADIUS_KM = 6371.0088;
 

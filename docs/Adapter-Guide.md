@@ -851,3 +851,19 @@ facilities are the family; `world-port-index` and `ourairports` feed 099.
   (a 304 on one file makes the run incomplete), because reconciliation is per source and would otherwise
   tombstone the records of the file that did not change.
 - **Fixture READMEs** note `synthetic: true` when a capture needs a key or is trimmed; recapture at 143.
+
+## Licence terms and reliability (prompt 109)
+
+A `SourceDescriptor` may set `licenceTerms` (`ai.foresignal.provenance.LicenceTerms`) next to the
+free-text `licence`/`termsUrl`. When `licenceTerms` is null and `licence` matches a catalogue id or
+alias (see `src/main/resources/provenance/licences.json`), the terms are derived from the catalogue; the
+registry warns when neither resolves. The required fields are `id`, `name`, `commercialUse`
+(`ALLOWED | FORBIDDEN | UNKNOWN`), `shareAlike`, `attributionRequired`, `redistribution`
+(`ALLOWED | LOCAL_ONLY | FORBIDDEN | UNKNOWN`), `attributionText` and `termsUrl`.
+
+Set `reliability` (an Admiralty grade `A`–`F`, default `F`) and, for a DERIVED source, `derivedFrom`
+(the source ids it is built from; its terms are the most restrictive of theirs). A local receiver
+(readsb/978, `local-ais`, `local-aprs`, `*-local`, the decoders) defaults to `LOCAL_ONLY`, and a record
+whose `posSource` is `MLAT` is `LOCAL_ONLY` per record however its source is configured. The fallback
+for an unresolved licence is the restrictive `unknown` terms, so an operator must set terms before a
+new source can be re-served.

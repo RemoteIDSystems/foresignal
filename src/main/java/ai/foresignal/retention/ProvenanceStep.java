@@ -38,15 +38,21 @@ public class ProvenanceStep implements RetentionStep {
         long empty = run.jdbc().update(
                 "DELETE FROM fetch_log WHERE versions_written = 0 AND started_at < :t",
                 new MapSqlParameterSource("t", Timestamp.from(run.now().minus(EMPTY_FETCH_KEEP))));
-        long all = run.jdbc().update(
-                "DELETE FROM fetch_log WHERE started_at < :t",
-                new MapSqlParameterSource("t", Timestamp.from(run.now().minus(run.settings().provenance()))));
-        run.deleted("fetch_log", empty + all);
-
         Duration largest = resolver.largestWindow();
         if (run.largestStandardWindow().compareTo(largest) > 0) {
             largest = run.largestStandardWindow();
         }
+        // Provenance (prompt 109): a batch's licence outlives no version it describes, so rows that
+        // wrote versions are kept for max(retention.provenance, the largest version window).
+        Duration keep = run.settings().provenance();
+        if (largest.compareTo(keep) > 0) {
+            keep = largest;
+        }
+        long versioned = run.jdbc().update(
+                "DELETE FROM fetch_log WHERE versions_written > 0 AND started_at < :t",
+                new MapSqlParameterSource("t", Timestamp.from(run.now().minus(keep))));
+        run.deleted("fetch_log", empty + versioned);
+
         long minutes = run.jdbc().update(
                 "DELETE FROM seq_clock WHERE minute < :t",
                 new MapSqlParameterSource("t", Timestamp.from(run.now().minus(largest).minus(Duration.ofDays(1)))));

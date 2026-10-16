@@ -70,14 +70,22 @@ public class TokenService {
      * @param createdVia how it is created
      * @param principalId the owning principal, or null for a new one named after the token
      * @param privateAccess the 039 private grant
+     * @param licencePolicy the token's default licence policy flags (prompt 109), or empty
      */
     public record TokenSpec(String name, Scope scope, Instant expiresAt, TokenRestrictions restrictions,
-            DeviceInfo device, TokenCreatedVia createdVia, String principalId, boolean privateAccess) {
+            DeviceInfo device, TokenCreatedVia createdVia, String principalId, boolean privateAccess,
+            List<String> licencePolicy) {
+
+        /** A spec without the licence policy (the shape before prompt 109). */
+        public TokenSpec(String name, Scope scope, Instant expiresAt, TokenRestrictions restrictions,
+                DeviceInfo device, TokenCreatedVia createdVia, String principalId, boolean privateAccess) {
+            this(name, scope, expiresAt, restrictions, device, createdVia, principalId, privateAccess, List.of());
+        }
 
         /** A spec without the private grant (the shape before prompt 039). */
         public TokenSpec(String name, Scope scope, Instant expiresAt, TokenRestrictions restrictions,
                 DeviceInfo device, TokenCreatedVia createdVia, String principalId) {
-            this(name, scope, expiresAt, restrictions, device, createdVia, principalId, false);
+            this(name, scope, expiresAt, restrictions, device, createdVia, principalId, false, List.of());
         }
     }
 
@@ -157,6 +165,7 @@ public class TokenService {
             }
         }
         laterMembers(body, errors);
+        List<String> licencePolicy = licencePolicy(body.get("licencePolicy"), errors);
         boolean privateAccess = privateAccess(body);
         if (!errors.isEmpty()) {
             throw new ValidationException(ErrorCodes.VALIDATION_FAILED, "The token input is not valid.", errors);
@@ -168,7 +177,7 @@ public class TokenService {
                     List.of(new FieldError("restrictions", "is not allowed on an admin token")));
         }
         return create(new TokenSpec(name, scope, expiresAt, parsed, null, TokenCreatedVia.API, principalId,
-                privateAccess && scope != Scope.ADMIN));
+                privateAccess && scope != Scope.ADMIN, licencePolicy));
     }
 
     /** Creates a token from an already validated {@code spec}. */
@@ -185,6 +194,7 @@ public class TokenService {
         entity.setExpiresAt(spec.expiresAt());
         entity.setRestrictions(spec.restrictions());
         entity.setPrivateAccess(spec.privateAccess());
+        entity.setLicencePolicy(spec.licencePolicy());
         if (spec.device() != null) {
             entity.setDevice(spec.device(), now);
         }
@@ -425,10 +435,28 @@ public class TokenService {
         if (privateAccess != null && !privateAccess.isNull() && !privateAccess.isBoolean()) {
             errors.add(new FieldError("privateAccess", "must be a boolean"));
         }
-        JsonNode licence = body.get("licencePolicy");
-        if (licence != null && !licence.isNull() && !(licence.isArray() && licence.isEmpty())) {
-            errors.add(new FieldError("licencePolicy", "is not supported by this version yet"));
+    }
+
+    /** Parses {@code licencePolicy} (prompt 109): an array of {@code no-nc}, {@code no-sa}, {@code redistributable}. */
+    static List<String> licencePolicy(JsonNode node, List<FieldError> errors) {
+        if (node == null || node.isNull()) {
+            return List.of();
         }
+        if (!node.isArray()) {
+            errors.add(new FieldError("licencePolicy", "must be an array of no-nc, no-sa, redistributable"));
+            return List.of();
+        }
+        List<String> out = new ArrayList<>();
+        for (JsonNode flag : node) {
+            if (!flag.isString() || !List.of("no-nc", "no-sa", "redistributable").contains(flag.asString())) {
+                errors.add(new FieldError("licencePolicy", "flags must be no-nc, no-sa or redistributable"));
+                continue;
+            }
+            if (!out.contains(flag.asString())) {
+                out.add(flag.asString());
+            }
+        }
+        return out;
     }
 
     private Instant expiresAt(JsonNode node, List<FieldError> errors) {

@@ -72,6 +72,10 @@ public class ChangesController {
     private final ApiProperties properties;
     private final JsonMapper json;
 
+    /** Prunes whole sources a licence policy excludes (prompt 109); null in hand-built unit tests. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ai.foresignal.provenance.LicencePolicyService licencePolicy;
+
     /** Creates the controller. */
     public ChangesController(
             RecordQueryService queries,
@@ -120,6 +124,11 @@ public class ChangesController {
             }
         }
         FieldSelection selection = FieldSelector.parse(fields);
+        Set<String> excluded = callers.excludedSources(caller);
+        if (licencePolicy != null) {
+            excluded = licencePolicy.withExcluded(excluded,
+                    ai.foresignal.provenance.LicencePolicyService.of(request));
+        }
         ChangesQuery query = new ChangesQuery(
                 afterSeq == null ? 0L : afterSeq,
                 sources,
@@ -131,7 +140,7 @@ public class ChangesController {
                 selection,
                 GeometryOptions.DEFAULT,
                 fmt == ResponseFormat.CSV ? GeometryEncoding.WKT : GeometryEncoding.GEOJSON,
-                callers.excludedSources(caller)).withRestriction(caller.restriction());
+                excluded).withRestriction(caller.restriction());
         if (fmt.streaming()) {
             stream(query, fmt, selection, response);
             return null;

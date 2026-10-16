@@ -372,13 +372,44 @@ public class EgressPolicy {
         if (isLocalOnly(sourceId) && !LOCAL_ONLY_PATHS.contains(path)) {
             return false;
         }
+        boolean privateOk;
         if (!isPrivate(sourceId)) {
+            privateOk = true;
+        } else if (path == EgressPath.FEDERATION) {
+            privateOk = false;
+        } else {
+            privateOk = viewer != null && viewer.canSeePrivate() && visible(sourceId, viewer);
+        }
+        return privateOk && licenceAllows(path, sourceId);
+    }
+
+    /**
+     * The licence rule (prompt 109): a re-serving path is refused when the source's structured licence
+     * terms forbid it ({@link LicenceEgressGuard}). The guard is resolved lazily so the constructor
+     * stays usable in tests.
+     */
+    private boolean licenceAllows(EgressPath path, String sourceId) {
+        if (licenceGuard == null || licenceCatalog == null || !LICENCE_GUARDED.contains(path)) {
             return true;
         }
-        if (path == EgressPath.FEDERATION) {
-            return false;
-        }
-        return viewer != null && viewer.canSeePrivate() && visible(sourceId, viewer);
+        SourceDescriptor descriptor = registry.descriptor(sourceId);
+        return licenceGuard.allows(path, licenceCatalog.forDescriptor(descriptor));
+    }
+
+    /** The re-serving paths the licence guard governs (prompt 109). */
+    private static final Set<EgressPath> LICENCE_GUARDED = java.util.EnumSet.of(EgressPath.SINK,
+            EgressPath.SINK_SERVE_LAN, EgressPath.SINK_PUSH, EgressPath.PUBLIC_SHARE, EgressPath.FEDERATION,
+            EgressPath.SHARE, EgressPath.FEED);
+
+    private ai.foresignal.provenance.LicenceEgressGuard licenceGuard;
+    private ai.foresignal.provenance.LicenceCatalog licenceCatalog;
+
+    /** Wires the licence guard and catalogue (prompt 109); resolved lazily. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setLicenceGuard(ai.foresignal.provenance.LicenceEgressGuard licenceGuard,
+            ai.foresignal.provenance.LicenceCatalog licenceCatalog) {
+        this.licenceGuard = licenceGuard;
+        this.licenceCatalog = licenceCatalog;
     }
 
     /**

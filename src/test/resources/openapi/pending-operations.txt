@@ -1,7 +1,3 @@
-getAttributions 109
-getJwks 109
-getSystemJwks 109
-rotateSigningKey 109
 listSinkTypes 110
 listSinks 110
 createSink 110

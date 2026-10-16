@@ -71,6 +71,10 @@ public class StreamController {
     private final ChangesTopic changes;
     private final StreamPrincipalResolver principals;
 
+    /** Prunes whole sources a licence policy excludes (prompt 109); null in hand-built unit tests. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ai.foresignal.provenance.LicencePolicyService licencePolicy;
+
     /** Creates the controller. */
     public StreamController(SseHub hub, ChangesTopic changes, StreamPrincipalResolver principals) {
         this.hub = hub;
@@ -89,6 +93,10 @@ public class StreamController {
             HttpServletResponse response) {
         StreamPrincipal principal = principals.resolve(request);
         ChangeFilter filter = changes.parseQuery(new TopicParams("", parameters(request, "")), principal);
+        if (licencePolicy != null) {
+            filter = filter.withExcludedSources(licencePolicy.excludedSources(
+                    ai.foresignal.provenance.LicencePolicyService.of(request)));
+        }
         Long resume = CompositeCursor.parseSeq(LAST_EVENT_ID, lastEventId);
         if (resume == null) {
             resume = QueryParams.nonNegativeLong("after", after);

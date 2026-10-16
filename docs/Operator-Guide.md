@@ -4878,3 +4878,40 @@ WebP tiles need the bundled `webp-imageio` native library. A missing native (an 
 disables WebP: `/v1/system` reports a `WEBP_UNAVAILABLE` warning and `.webp` answers `406
 FORMAT_UNAVAILABLE`. Set `notifications.imageLinks` only on an instance with an https `publicBaseUrl`;
 enabling it on a LAN-only instance exposes one media path per feed key and is refused without https.
+
+## Licences and egress (prompt 109)
+
+Every source resolves to structured licence terms (`ai.foresignal.provenance.LicenceTerms`, from
+`provenance/licences.json`): `commercialUse`, `shareAlike`, `attributionRequired` and `redistribution`.
+`UNKNOWN` is treated as `FORBIDDEN` (commercial) and `LOCAL_ONLY` (redistribution). A version's licence is
+the one snapshotted on its batch's `fetch_log` row; a `fetchId`, `adapterVersion` and (for admins) the
+ingest `principal` are returned under `include=provenance`, with an Admiralty `reliability` (A–F, per
+source) and `credibility` (1–6, computed at read time) composed as a `grade` (e.g. `B2`).
+
+Clients ask for licence-filtered records with the `Foresignal-Licence-Policy: no-nc, no-sa, redistributable`
+header (or `licencePolicy=` query). A token's `licencePolicy` is a floor a request may add to but never
+loosen. Filtered responses carry `licenceFiltered` and aggregated `attributions`, plus a
+`Foresignal-Attribution` header and `Link: <termsUrl>; rel="license"`.
+
+`LicenceEgressGuard` (called from `EgressPolicy`) governs every egress path; a private source is refused
+before the licence rule. The denials are counted as `foresignal.licence.egress.denied{path,licence}`.
+
+| Redistribution | API_READ / TILE / SSE / MCP / LLM_* / NOTIFICATION / FEED / ARCHIVE | SINK_SERVE_LAN | SINK_PUSH, EXPORT | PUBLIC_SHARE, FEDERATION, SHARE |
+|---|---|---|---|---|
+| ALLOWED | yes | yes | yes | yes (NC terms: yes; attribution always attached) |
+| LOCAL_ONLY | yes | yes, only if the sink binds loopback/private | no (EXPORT: only with `personalUse=true`) | no |
+| FORBIDDEN | yes (own use) | no | no (EXPORT: only with `personalUse=true`, sidecar marks "do not redistribute") | no |
+
+The instance Ed25519 signing key is published at `GET /.well-known/jwks.json` (and `GET /v1/system/jwks`),
+`Cache-Control: public, max-age=3600`; `POST /v1/system/signing-key/rotate` retires the active key and
+activates a new one. Briefing markdown and HTML renditions carry a detached `Foresignal-Signature`
+(`b64:false`). Verify it with any JOSE library, for example Python `jwcrypto`:
+
+```python
+import json, urllib.request
+from jwcrypto import jwk, jws
+jwks = json.load(urllib.request.urlopen("https://host/.well-known/jwks.json"))
+key = jwk.JWK(**jwks["keys"][0])
+signed = jws.JWS(payload)          # payload = the exact response bytes
+signed.deserialize(signature, key)  # signature = the Foresignal-Signature header
+```

@@ -95,7 +95,9 @@ public class AccessPolicy {
                     "/actuator/health/**",
                     "/actuator/info",
                     // LAN-only by assumption; see the class note in TokenFilter.
-                    "/actuator/prometheus");
+                    "/actuator/prometheus",
+                // The instance JWKS is published anonymously (prompt 109).
+                "/.well-known/**");
 
     private final AntPathMatcher matcher = new AntPathMatcher();
     private final List<Rule> rules = rules();
@@ -212,6 +214,9 @@ public class AccessPolicy {
 
                 // ---- Open informational endpoints ----
                 rule(HttpMethod.GET, "/v1/system", AccessRequirement.OPEN),
+                // The JWKS and attribution aggregate (109): open; key rotation is admin.
+                rule(HttpMethod.GET, "/v1/system/jwks", AccessRequirement.OPEN),
+                rule(HttpMethod.POST, "/v1/system/signing-key/rotate", AccessRequirement.ADMIN),
                 rule(HttpMethod.GET, "/v1/push/vapid-public-key", AccessRequirement.OPEN),
                 // The pairing code in the body is the credential (023).
                 rule(HttpMethod.POST, "/v1/pairing/claim", AccessRequirement.OPEN),
@@ -265,6 +270,8 @@ public class AccessPolicy {
                 // Per-entity export and purge (039) are admin and sit before the records READ rule.
                 rule(HttpMethod.GET, "/v1/records/*/*/export", AccessRequirement.ADMIN),
                 rule(HttpMethod.POST, "/v1/records/*/*/purge", AccessRequirement.ADMIN),
+                // Attribution aggregates for a scope (109): read.
+                rule(HttpMethod.GET, "/v1/attributions", AccessRequirement.READ),
                 rule(HttpMethod.GET, "/v1/records/**", AccessRequirement.READ),
                 // Energy and markets series (093): the catalogue and one series' points are read.
                 rule(HttpMethod.GET, "/v1/series", AccessRequirement.READ),

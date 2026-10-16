@@ -45434,7 +45434,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "109",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -45483,7 +45483,7 @@
         },
         "x-foresignal-scope": "open",
         "x-foresignal-prompt": "109",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": []
       }
     },
@@ -45527,7 +45527,7 @@
         },
         "x-foresignal-scope": "open",
         "x-foresignal-prompt": "109",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": []
       }
     },
@@ -45573,7 +45573,7 @@
         },
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "109",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []

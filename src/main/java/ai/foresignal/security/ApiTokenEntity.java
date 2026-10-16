@@ -121,6 +121,21 @@ public class ApiTokenEntity {
     @Column(name = "private_access")
     private Boolean privateAccess;
 
+    /** The token's default licence policy flags (prompt 109): the floor a request cannot loosen. */
+    @JdbcTypeCode(SqlTypes.ARRAY)
+    @Column(name = "licence_policy", columnDefinition = "text[]")
+    private String[] licencePolicy;
+
+    /** The token's licence policy flags (never null). */
+    public java.util.List<String> getLicencePolicy() {
+        return list(licencePolicy);
+    }
+
+    /** Stores the token's licence policy flags. */
+    public void setLicencePolicy(java.util.List<String> value) {
+        this.licencePolicy = array(value);
+    }
+
     @Column(name = "type", length = 16)
     private String type;
 

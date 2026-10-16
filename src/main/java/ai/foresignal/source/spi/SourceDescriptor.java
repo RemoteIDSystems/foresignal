@@ -209,7 +209,22 @@ public record SourceDescriptor(
          * The largest fraction of a complete-set reference dataset that one run may tombstone
          * ({@code reconcile.maxAbsentRatio}, prompt 094); the shrink guard refuses more.
          */
-        double reconcileMaxAbsentRatio) {
+        double reconcileMaxAbsentRatio,
+        /**
+         * The structured licence terms (prompt 109), or null when only the free-text {@code licence} is
+         * set; {@code LicenceCatalog.forDescriptor} derives them from the catalogue then.
+         */
+        ai.foresignal.provenance.LicenceTerms licenceTerms,
+        /**
+         * The Admiralty source reliability grade {@code A}–{@code F} (prompt 109); default {@code F}
+         * (cannot be judged). Operator-overridable through {@code source_settings.reliability}.
+         */
+        String reliability,
+        /**
+         * The source ids a DERIVED source is built from (prompt 109); its terms are the most restrictive
+         * of theirs. Empty for a non-derived source.
+         */
+        List<String> derivedFrom) {
 
     /** The default shrink guard ratio of a complete-set reference dataset (prompt 094). */
     public static final double DEFAULT_MAX_ABSENT_RATIO = 0.2;
@@ -281,6 +296,20 @@ public record SourceDescriptor(
         if (reconcileMaxAbsentRatio <= 0 || reconcileMaxAbsentRatio > 1) {
             reconcileMaxAbsentRatio = DEFAULT_MAX_ABSENT_RATIO;
         }
+        reliability = normalizeReliability(reliability);
+        derivedFrom = derivedFrom == null ? List.of() : List.copyOf(derivedFrom);
+    }
+
+    /** The Admiralty grades, {@code A} (completely reliable) to {@code F} (cannot be judged). */
+    public static final Set<String> RELIABILITY_GRADES = Set.of("A", "B", "C", "D", "E", "F");
+
+    /** The default reliability grade. */
+    public static final String DEFAULT_RELIABILITY = "F";
+
+    /** An unknown or blank reliability reads as {@code F}. */
+    public static String normalizeReliability(String value) {
+        String v = value == null ? null : value.strip().toUpperCase(java.util.Locale.ROOT);
+        return v == null || !RELIABILITY_GRADES.contains(v) ? DEFAULT_RELIABILITY : v;
     }
 
     /** True when {@code target} is one of {@link #allowedHosts}. */
@@ -379,6 +408,9 @@ public record SourceDescriptor(
         private String licence;
         private String llmNotice;
         private String termsUrl;
+        private ai.foresignal.provenance.LicenceTerms licenceTerms;
+        private String reliability;
+        private final List<String> derivedFrom = new ArrayList<>();
         private Mode mode = Mode.POLLING;
         private Duration minInterval;
         private Duration defaultInterval;
@@ -457,6 +489,27 @@ public record SourceDescriptor(
 
         public Builder termsUrl(String termsUrl) {
             this.termsUrl = termsUrl;
+            return this;
+        }
+
+        /** Sets the structured licence terms (prompt 109). */
+        public Builder licenceTerms(ai.foresignal.provenance.LicenceTerms licenceTerms) {
+            this.licenceTerms = licenceTerms;
+            return this;
+        }
+
+        /** Sets the Admiralty reliability grade {@code A}–{@code F} (prompt 109). */
+        public Builder reliability(String reliability) {
+            this.reliability = reliability;
+            return this;
+        }
+
+        /** Declares the source ids a DERIVED source is built from (prompt 109). */
+        public Builder derivedFrom(String... sourceIds) {
+            this.derivedFrom.clear();
+            if (sourceIds != null) {
+                this.derivedFrom.addAll(List.of(sourceIds));
+            }
             return this;
         }
 
@@ -924,7 +977,10 @@ public record SourceDescriptor(
                     reconnect,
                     coverageFromObservers,
                     llmNotice,
-                    reconcileMaxAbsentRatio);
+                    reconcileMaxAbsentRatio,
+                    licenceTerms,
+                    reliability,
+                    derivedFrom);
         }
     }
 }

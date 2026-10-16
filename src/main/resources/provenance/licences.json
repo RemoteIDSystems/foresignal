@@ -1,0 +1,234 @@
+{
+  "licences": [
+    {
+      "id": "CC0-1.0",
+      "name": "Creative Commons Zero v1.0 Universal",
+      "commercialUse": "ALLOWED",
+      "shareAlike": false,
+      "attributionRequired": false,
+      "redistribution": "ALLOWED",
+      "attributionText": "CC0 1.0 Universal (public domain dedication).",
+      "termsUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "aliases": [
+        "CC0 1.0",
+        "CC0",
+        "Public domain (CC0)"
+      ]
+    },
+    {
+      "id": "CC-BY-4.0",
+      "name": "Creative Commons Attribution 4.0",
+      "commercialUse": "ALLOWED",
+      "shareAlike": false,
+      "attributionRequired": true,
+      "redistribution": "ALLOWED",
+      "attributionText": "Licensed under CC BY 4.0; attribution required.",
+      "termsUrl": "https://creativecommons.org/licenses/by/4.0/",
+      "aliases": [
+        "CC BY 4.0",
+        "CC-BY-4.0",
+        "CC BY 4.0 (attribution)"
+      ]
+    },
+    {
+      "id": "CC-BY-SA-4.0",
+      "name": "Creative Commons Attribution-ShareAlike 4.0",
+      "commercialUse": "ALLOWED",
+      "shareAlike": true,
+      "attributionRequired": true,
+      "redistribution": "ALLOWED",
+      "attributionText": "Licensed under CC BY-SA 4.0; attribution and share-alike required.",
+      "termsUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "aliases": [
+        "CC BY-SA 4.0",
+        "CC-BY-SA-4.0"
+      ]
+    },
+    {
+      "id": "CC-BY-NC-4.0",
+      "name": "Creative Commons Attribution-NonCommercial 4.0",
+      "commercialUse": "FORBIDDEN",
+      "shareAlike": false,
+      "attributionRequired": true,
+      "redistribution": "ALLOWED",
+      "attributionText": "Licensed under CC BY-NC 4.0; non-commercial use only.",
+      "termsUrl": "https://creativecommons.org/licenses/by-nc/4.0/",
+      "aliases": [
+        "CC BY-NC 4.0",
+        "CC-BY-NC-4.0"
+      ]
+    },
+    {
+      "id": "CC-BY-NC-SA-4.0",
+      "name": "Creative Commons Attribution-NonCommercial-ShareAlike 4.0",
+      "commercialUse": "FORBIDDEN",
+      "shareAlike": true,
+      "attributionRequired": true,
+      "redistribution": "ALLOWED",
+      "attributionText": "Licensed under CC BY-NC-SA 4.0; non-commercial, attribution and share-alike.",
+      "termsUrl": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+      "aliases": [
+        "CC BY-SA 4.0 (TeleGeography public map; underlying data restricted) — treat as non-commercial"
+      ]
+    },
+    {
+      "id": "ODbL-1.0",
+      "name": "Open Database License v1.0",
+      "commercialUse": "ALLOWED",
+      "shareAlike": true,
+      "attributionRequired": true,
+      "redistribution": "ALLOWED",
+      "attributionText": "Open Database License (ODbL) v1.0; attribution and share-alike required.",
+      "termsUrl": "https://opendatacommons.org/licenses/odbl/1-0/",
+      "aliases": [
+        "ODbL 1.0",
+        "ODbL-1.0",
+        "ODbL"
+      ]
+    },
+    {
+      "id": "PDDL-1.0",
+      "name": "Open Data Commons Public Domain Dedication and License v1.0",
+      "commercialUse": "ALLOWED",
+      "shareAlike": false,
+      "attributionRequired": false,
+      "redistribution": "ALLOWED",
+      "attributionText": "PDDL 1.0 (public domain dedication).",
+      "termsUrl": "https://opendatacommons.org/licenses/pddl/1-0/",
+      "aliases": [
+        "PDDL-1.0",
+        "PDDL 1.0"
+      ]
+    },
+    {
+      "id": "OGL-UK-3.0",
+      "name": "Open Government Licence v3.0",
+      "commercialUse": "ALLOWED",
+      "shareAlike": false,
+      "attributionRequired": true,
+      "redistribution": "ALLOWED",
+      "attributionText": "Contains public sector information licensed under the Open Government Licence v3.0.",
+      "termsUrl": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
+      "aliases": [
+        "OGL v3",
+        "OGL-UK-3.0",
+        "Open Government Licence v3.0"
+      ]
+    },
+    {
+      "id": "NLOD-2.0",
+      "name": "Norwegian Licence for Open Government Data 2.0",
+      "commercialUse": "ALLOWED",
+      "shareAlike": false,
+      "attributionRequired": true,
+      "redistribution": "ALLOWED",
+      "attributionText": "Licensed under the Norwegian Licence for Open Government Data (NLOD) 2.0.",
+      "termsUrl": "https://data.norge.no/nlod/en/2.0",
+      "aliases": [
+        "NLOD-2.0",
+        "NLOD 2.0"
+      ]
+    },
+    {
+      "id": "DL-DE-BY-2.0",
+      "name": "Datenlizenz Deutschland – Namensnennung 2.0",
+      "commercialUse": "ALLOWED",
+      "shareAlike": false,
+      "attributionRequired": true,
+      "redistribution": "ALLOWED",
+      "attributionText": "Datenlizenz Deutschland – Namensnennung 2.0.",
+      "termsUrl": "https://www.govdata.de/dl-de/by-2-0",
+      "aliases": [
+        "DL-DE-BY-2.0",
+        "dl-de/by-2-0"
+      ]
+    },
+    {
+      "id": "us-gov-public-domain",
+      "name": "US Government work (public domain)",
+      "commercialUse": "ALLOWED",
+      "shareAlike": false,
+      "attributionRequired": false,
+      "redistribution": "ALLOWED",
+      "attributionText": "US Government work; courtesy attribution requested.",
+      "termsUrl": "https://www.usa.gov/government-copyright",
+      "aliases": [
+        "US-PD",
+        "Public domain (US Government)",
+        "US public domain",
+        "US Government work (public domain)",
+        "Public Domain U.S. Government",
+        "public domain (NASA)",
+        "NASA public data",
+        "NASA open data",
+        "Public domain",
+        "US Government work"
+      ]
+    },
+    {
+      "id": "opensky-terms",
+      "name": "OpenSky Network terms of use",
+      "commercialUse": "FORBIDDEN",
+      "shareAlike": false,
+      "attributionRequired": true,
+      "redistribution": "FORBIDDEN",
+      "attributionText": "OpenSky Network data; non-commercial research, no redistribution.",
+      "termsUrl": "https://opensky-network.org/about/terms-of-use",
+      "aliases": [
+        "OpenSky Network terms (non-commercial research)"
+      ]
+    },
+    {
+      "id": "acled-terms",
+      "name": "ACLED Terms of Use",
+      "commercialUse": "FORBIDDEN",
+      "shareAlike": false,
+      "attributionRequired": true,
+      "redistribution": "FORBIDDEN",
+      "attributionText": "ACLED data; no redistribution of raw data.",
+      "termsUrl": "https://acleddata.com/eula",
+      "aliases": [
+        "ACLED Terms of Use: no redistribution of raw data"
+      ]
+    },
+    {
+      "id": "aisstream-terms",
+      "name": "aisstream.io terms",
+      "commercialUse": "UNKNOWN",
+      "shareAlike": false,
+      "attributionRequired": true,
+      "redistribution": "FORBIDDEN",
+      "attributionText": "aisstream.io AIS data; redistribution not permitted.",
+      "termsUrl": "https://aisstream.io",
+      "aliases": [
+        "aisstream.io terms (unverified)"
+      ]
+    },
+    {
+      "id": "local-only-operator",
+      "name": "Operator's own data (local only)",
+      "commercialUse": "UNKNOWN",
+      "shareAlike": false,
+      "attributionRequired": false,
+      "redistribution": "LOCAL_ONLY",
+      "attributionText": "Operator's own receiver data; local use only.",
+      "termsUrl": null,
+      "aliases": [
+        "Operator's own data (no upstream license)",
+        "operator-owned",
+        "operator-owned station data"
+      ]
+    },
+    {
+      "id": "unknown",
+      "name": "Unknown licence",
+      "commercialUse": "UNKNOWN",
+      "shareAlike": false,
+      "attributionRequired": false,
+      "redistribution": "UNKNOWN",
+      "attributionText": "Licence unknown; do not redistribute.",
+      "termsUrl": null,
+      "aliases": []
+    }
+  ]
+}

@@ -136,6 +136,18 @@ public class FetchExecutor {
     private final ConcurrentHashMap<String, AtomicBoolean> running = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, AtomicLong> arrivals = new ConcurrentHashMap<>();
 
+    /** The licence catalogue (prompt 109): resolves the descriptor's terms to a snapshot id. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ai.foresignal.provenance.LicenceCatalog licenceCatalog;
+
+    /** The licence id snapshotted on the fetch row (prompt 109): the resolved catalogue id, else free text. */
+    String resolvedLicence(SourceDescriptor descriptor) {
+        if (licenceCatalog == null) {
+            return descriptor.licence();
+        }
+        return licenceCatalog.forDescriptor(descriptor).id();
+    }
+
     /** Creates the executor. */
     public FetchExecutor(
             SourceRegistry registry,
@@ -754,7 +766,7 @@ public class FetchExecutor {
                 bytes,
                 last == null ? null : last.bodySha256(),
                 version.version(),
-                descriptor.licence(),
+                resolvedLicence(descriptor),
                 null,
                 coverage,
                 error,

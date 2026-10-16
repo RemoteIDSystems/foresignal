@@ -16,6 +16,8 @@ import java.util.UUID;
  * @param bootstrap true for the bootstrap admin token
  * @param privateAccess the 039 private grant: a {@code read} or {@code agent} token that may see private
  *     sources (admin tokens always may)
+ * @param licencePolicy the token's default licence policy flags (prompt 109): the floor a request may
+ *     add to but never remove
  */
 public record AuthenticatedToken(
         UUID id,
@@ -25,7 +27,8 @@ public record AuthenticatedToken(
         DeviceInfo device,
         String principalId,
         boolean bootstrap,
-        boolean privateAccess) {
+        boolean privateAccess,
+        java.util.List<String> licencePolicy) {
 
     /** Requires the id, name and scope; null restrictions become {@link TokenRestrictions#NONE}. */
     public AuthenticatedToken {
@@ -33,17 +36,25 @@ public record AuthenticatedToken(
         Objects.requireNonNull(name, "name");
         Objects.requireNonNull(scope, "scope");
         restrictions = TokenRestrictions.orNone(restrictions);
+        licencePolicy = licencePolicy == null ? java.util.List.of() : java.util.List.copyOf(licencePolicy);
+    }
+
+    /** A token without the licence policy (the shape before prompt 109). */
+    public AuthenticatedToken(UUID id, String name, Scope scope, TokenRestrictions restrictions, DeviceInfo device,
+            String principalId, boolean bootstrap, boolean privateAccess) {
+        this(id, name, scope, restrictions, device, principalId, bootstrap, privateAccess, java.util.List.of());
     }
 
     /** A token without the private grant (the shape before prompt 039). */
     public AuthenticatedToken(UUID id, String name, Scope scope, TokenRestrictions restrictions, DeviceInfo device,
             String principalId, boolean bootstrap) {
-        this(id, name, scope, restrictions, device, principalId, bootstrap, false);
+        this(id, name, scope, restrictions, device, principalId, bootstrap, false, java.util.List.of());
     }
 
     /** The view of a stored row. */
     public static AuthenticatedToken of(ApiTokenEntity entity) {
         return new AuthenticatedToken(entity.getId(), entity.getName(), entity.getScope(), entity.getRestrictions(),
-                entity.getDevice(), entity.getPrincipalId(), entity.isBootstrap(), entity.isPrivateAccess());
+                entity.getDevice(), entity.getPrincipalId(), entity.isBootstrap(), entity.isPrivateAccess(),
+                entity.getLicencePolicy());
     }
 }

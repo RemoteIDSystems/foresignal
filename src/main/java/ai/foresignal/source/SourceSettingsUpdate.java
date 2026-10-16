@@ -32,6 +32,9 @@ import java.util.Map;
  * @param egress the egress override (prompt 069), accepted only for an {@code egressOverridable}
  *     descriptor; null leaves it unchanged
  * @param clearEgress true to revert to the descriptor's {@code egress}
+ * @param reliability the Admiralty reliability override {@code A}–{@code F} (prompt 109); null leaves
+ *     it unchanged
+ * @param clearReliability true to revert to the descriptor's grade
  */
 public record SourceSettingsUpdate(
         Boolean enabled,
@@ -46,10 +49,48 @@ public record SourceSettingsUpdate(
         Duration downsampleInterval,
         boolean clearDownsampleInterval,
         Egress egress,
-        boolean clearEgress) {
+        boolean clearEgress,
+        String reliability,
+        boolean clearReliability) {
 
     public SourceSettingsUpdate {
         params = params == null ? null : Map.copyOf(params);
+    }
+
+    /** An update that leaves the reliability override unchanged (the members before prompt 109). */
+    public SourceSettingsUpdate(
+            Boolean enabled,
+            Duration interval,
+            Map<String, Object> params,
+            Budget budget,
+            Duration retention,
+            boolean clearRetention,
+            IngestPolicy ingestPolicy,
+            boolean clearIngestPolicy,
+            Boolean embed,
+            Duration downsampleInterval,
+            boolean clearDownsampleInterval,
+            Egress egress,
+            boolean clearEgress) {
+        this(enabled, interval, params, budget, retention, clearRetention, ingestPolicy, clearIngestPolicy, embed,
+                downsampleInterval, clearDownsampleInterval, egress, clearEgress, null, false);
+    }
+
+    /** Only the reliability override (prompt 109). */
+    public static SourceSettingsUpdate reliability(String value) {
+        return empty().withReliability(value);
+    }
+
+    /** Reverts the reliability override to the descriptor's grade (prompt 109). */
+    public static SourceSettingsUpdate clearingReliability() {
+        return new SourceSettingsUpdate(null, null, null, null, null, false, null, false, null, null, false, null,
+                false, null, true);
+    }
+
+    /** This update with the reliability override set (prompt 109). */
+    public SourceSettingsUpdate withReliability(String value) {
+        return new SourceSettingsUpdate(enabled, interval, params, budget, retention, clearRetention, ingestPolicy,
+                clearIngestPolicy, embed, downsampleInterval, clearDownsampleInterval, egress, clearEgress, value, false);
     }
 
     /** An update that leaves the egress override unchanged (the members before prompt 069). */
@@ -196,6 +237,8 @@ public record SourceSettingsUpdate(
                 && downsampleInterval == null
                 && !clearDownsampleInterval
                 && egress == null
-                && !clearEgress;
+                && !clearEgress
+                && reliability == null
+                && !clearReliability;
     }
 }

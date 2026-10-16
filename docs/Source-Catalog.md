@@ -889,3 +889,10 @@ a banded `confidence`, a `status` and bounded `evidence`.
 | `derived-dark-vessel-match` | `dark-vessel-candidate` | AIS gaps + SAR detections | every 10 min | gap joined to an unmatched SAR detection inside the reachable area (last fix + max speed × time, capped 200 km), window ± 6 h; idle and health-noted when no SAR source |
 | `derived-lightning-holdover` | `holdover-fire-risk` | GLM + FIRMS/FDC + QPE | every 10 min | flash clusters over dry cells (QPE < 2.5 mm), watched 72 h; a fire within 5 km sets `ignitionConfirmed` |
 | `derived-hf-blackout` | `hf-propagation-anomaly` | PSKReporter + SWPC X-ray | every 10 min | per band and path class per hour vs a 14-day same-hour baseline; ≥ 60% spot drop or ≥ 10 dB SNR drop on sunlit paths while healthy; carries the concurrent X-ray class |
+## Licence
+
+Every row's licence resolves to the structured terms of `provenance/licences.json` (prompt 109); the full
+per-row `Licence` column is added when prompt 144 restructures this catalogue. The binding cases are:
+`opensky-states`/`acled` (commercial and redistribution forbidden), `aisstream` (redistribution
+forbidden), `adsb.lol` (ODbL-1.0), the operator's own receivers (`LOCAL_ONLY`), `submarine-cables`
+(CC-BY-NC-SA-4.0) and US federal sources (`us-gov-public-domain`).

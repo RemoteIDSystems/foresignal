@@ -82,6 +82,10 @@ public class SourceSettingsEntity {
     @Column(name = "egress", length = 16)
     private String egress;
 
+    /** The operator's Admiralty reliability override {@code A}–{@code F} (prompt 109); null means the descriptor's. */
+    @Column(name = "reliability", length = 1)
+    private String reliability;
+
     @JdbcTypeCode(SqlTypes.TIMESTAMP_UTC)
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
@@ -181,6 +185,16 @@ public class SourceSettingsEntity {
     /** Sets the egress override; null reverts to the descriptor's. */
     public void setEgress(String egress) {
         this.egress = egress;
+    }
+
+    /** The reliability override (prompt 109), or null for the descriptor's. */
+    public String getReliability() {
+        return reliability;
+    }
+
+    /** Sets the reliability override; null reverts to the descriptor's. */
+    public void setReliability(String reliability) {
+        this.reliability = reliability;
     }
 
     /** The downsample interval override (prompt 044), or null for the global interval. */

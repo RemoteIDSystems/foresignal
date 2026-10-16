@@ -73,6 +73,10 @@ public class BriefingRunEntity {
     @Column(name = "content_markdown", nullable = false, columnDefinition = "text")
     private String contentMarkdown = "";
 
+    /** The detached JWS over the stored markdown (prompt 109), or null. */
+    @Column(name = "signature", length = 4096)
+    private String signature;
+
     /** {@code AskCitation} objects. */
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "citations")
@@ -182,6 +186,16 @@ public class BriefingRunEntity {
     /** Sets the markdown. */
     public void setContentMarkdown(String contentMarkdown) {
         this.contentMarkdown = contentMarkdown == null ? "" : contentMarkdown;
+    }
+
+    /** The detached JWS over the stored markdown (prompt 109), or null. */
+    public String getSignature() {
+        return signature;
+    }
+
+    /** Sets the signature. */
+    public void setSignature(String signature) {
+        this.signature = signature;
     }
 
     /** The citations. */

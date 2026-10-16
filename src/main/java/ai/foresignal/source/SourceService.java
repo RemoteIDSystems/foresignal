@@ -394,6 +394,7 @@ public class SourceService implements ApplicationRunner {
         applyIngestPolicy(descriptor, update, row, policyErrors);
         applyEmbed(descriptor, update, row, errors);
         applyEgress(descriptor, update, row);
+        applyReliability(update, row);
 
         if (update.enabled() != null) {
             row.setEnabled(update.enabled());
@@ -433,6 +434,29 @@ public class SourceService implements ApplicationRunner {
      * otherwise {@code 400 EGRESS_FIXED}, because a license restriction must not be lifted by
      * configuration. Clearing is always accepted.
      */
+    /** Stores the reliability override (prompt 109); clearing reverts to the descriptor's grade. */
+    private void applyReliability(SourceSettingsUpdate update, SourceSettingsEntity row) {
+        if (update.clearReliability()) {
+            row.setReliability(null);
+            return;
+        }
+        if (update.reliability() != null) {
+            row.setReliability(update.reliability());
+        }
+    }
+
+    /**
+     * The reliability grade in force for {@code id} (prompt 109): the operator's override, else the
+     * descriptor's (default {@code F}). Never null.
+     */
+    @Transactional(readOnly = true)
+    public String effectiveReliability(String id) {
+        return settings.findById(id)
+                .map(SourceSettingsEntity::getReliability)
+                .filter(value -> value != null && !value.isBlank())
+                .orElseGet(() -> registry.descriptor(id).reliability());
+    }
+
     private void applyEgress(SourceDescriptor descriptor, SourceSettingsUpdate update, SourceSettingsEntity row) {
         if (update.clearEgress()) {
             row.setEgress(null);

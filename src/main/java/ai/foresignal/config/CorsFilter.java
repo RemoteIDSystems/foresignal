@@ -53,7 +53,8 @@ public class CorsFilter extends OncePerRequestFilter implements Ordered {
      * and {@code 429}, {@code Link} to the current frame key, and {@code ETag}.
      */
     static final String EXPOSED_HEADERS = "Location, Mcp-Session-Id, Foresignal-Frame-Time, Foresignal-Image-Bounds, "
-            + "Foresignal-Frame-Expired, Retry-After, Link, ETag";
+            + "Foresignal-Frame-Expired, Foresignal-Attribution, Foresignal-Signature, Foresignal-Licence-Filtered, "
+            + "Retry-After, Link, ETag";
 
     /** How long a browser may cache a preflight answer: one day (prompt 050). */
     static final String MAX_AGE_SECONDS = "86400";

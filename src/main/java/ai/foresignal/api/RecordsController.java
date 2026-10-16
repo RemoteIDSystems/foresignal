@@ -46,6 +46,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -101,7 +102,10 @@ public class RecordsController {
 
     static final List<ResponseFormat> RECORD_FORMATS = List.of(ResponseFormat.JSON, ResponseFormat.GEOJSON);
 
-    static final List<String> INCLUDE_VALUES = List.of("observer", "region", "entity");
+    static final List<String> INCLUDE_VALUES = List.of("observer", "region", "entity", "provenance");
+
+    /** The request header carrying a licence policy (prompt 109). */
+    public static final String LICENCE_POLICY_HEADER = "Foresignal-Licence-Policy";
 
     private final RecordQueryService queries;
     private final AsOfQueryService asOfQueries;
@@ -132,6 +136,137 @@ public class RecordsController {
     /** Adds {@code entityId} to records for {@code include=entity} (prompt 098); null in unit tests. */
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private ai.foresignal.entity.EntityService entityService;
+
+    /** Resolves a version's licence (prompt 109); null only in hand-built unit tests. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ai.foresignal.provenance.LicenceResolver licenceResolver;
+
+    /** The licence catalogue (prompt 109); null only in hand-built unit tests. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ai.foresignal.provenance.LicenceCatalog licenceCatalog;
+
+    /** Aggregates attributions (prompt 109); null only in hand-built unit tests. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ai.foresignal.provenance.AttributionService attributionService;
+
+    /** Computes credibility grades (prompt 109); null only in hand-built unit tests. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ai.foresignal.provenance.CredibilityService credibilityService;
+
+    /**
+     * The caller's licence policy (prompt 109): the token's flags are a floor a request may add to but
+     * never remove, combined with the request's own {@code Foresignal-Licence-Policy} header or
+     * {@code licencePolicy} query flag.
+     */
+    static ai.foresignal.provenance.LicencePolicy licencePolicy(HttpServletRequest request) {
+        ai.foresignal.provenance.LicencePolicy token = ai.foresignal.security.CurrentToken.of(request)
+                .map(current -> ai.foresignal.provenance.LicencePolicy.parse("licencePolicy",
+                        String.join(",", current.token().licencePolicy())))
+                .orElse(ai.foresignal.provenance.LicencePolicy.NONE);
+        String header = request.getHeader(LICENCE_POLICY_HEADER);
+        String query = request.getParameter("licencePolicy");
+        String raw = header != null && !header.isBlank() ? header : query;
+        return token.plus(ai.foresignal.provenance.LicencePolicy.parse("licencePolicy", raw));
+    }
+
+    /** The aggregated attribution header (prompt 109). */
+    public static final String ATTRIBUTION_HEADER = "Foresignal-Attribution";
+
+    /** A page's licence filtering and attribution result (prompt 109). */
+    private record LicenceFilter(List<RecordRow> rows, Map<Long, ai.foresignal.provenance.LicenceResolver.Resolution>
+            resolutions, List<Map<String, Object>> attributions, String attributionText, List<String> licenceLinks,
+            Integer filtered) {}
+
+    /**
+     * Filters {@code rows} by the caller's licence policy (one resolver query) and aggregates their
+     * attributions (prompt 109).
+     */
+    private LicenceFilter licenceFilter(List<RecordRow> rows, HttpServletRequest request) {
+        ai.foresignal.provenance.LicencePolicy policy = licencePolicy(request);
+        Map<Long, ai.foresignal.provenance.LicenceResolver.Resolution> resolutions = Map.of();
+        Integer filtered = null;
+        if (licenceResolver != null && !policy.isEmpty() && !rows.isEmpty()) {
+            resolutions = licenceResolver.resolveAll(rows);
+            List<RecordRow> kept = new ArrayList<>(rows.size());
+            int dropped = 0;
+            for (RecordRow row : rows) {
+                ai.foresignal.provenance.LicenceResolver.Resolution resolution = resolutions.get(row.seq());
+                if (resolution != null && policy.excludes(resolution.terms())) {
+                    dropped++;
+                } else {
+                    kept.add(row);
+                }
+            }
+            if (dropped > 0) {
+                filtered = dropped;
+                rows = kept;
+            }
+        }
+        if (attributionService == null) {
+            return new LicenceFilter(rows, resolutions, null, null, List.of(), filtered);
+        }
+        List<ai.foresignal.provenance.AttributionService.Attribution> attrs =
+                attributionService.aggregate(rows, resolutions);
+        return new LicenceFilter(rows, resolutions, attributionMaps(attrs), emptyToNull(attributionService.header(attrs)),
+                attributionService.licenceLinks(attrs), filtered);
+    }
+
+    private static List<Map<String, Object>> attributionMaps(
+            List<ai.foresignal.provenance.AttributionService.Attribution> attrs) {
+        return attrs.isEmpty() ? null : ai.foresignal.provenance.AttributionService.asMaps(attrs);
+    }
+
+    private static String emptyToNull(String text) {
+        return text == null || text.isBlank() ? null : text;
+    }
+
+    /** Adds an {@code include=provenance} block to each item (prompt 109). */
+    private void addProvenance(List<Map<String, Object>> items, List<RecordRow> rows,
+            Map<Long, ai.foresignal.provenance.LicenceResolver.Resolution> resolutions, ReadCaller caller) {
+        if (licenceResolver == null || credibilityService == null || items.isEmpty()) {
+            return;
+        }
+        Map<Long, ai.foresignal.provenance.LicenceResolver.Resolution> resolved = resolutions;
+        if (resolved.isEmpty()) {
+            resolved = licenceResolver.resolveAll(rows);
+        }
+        ai.foresignal.provenance.CredibilityService.Lookup lookup = credibilityService.load();
+        boolean admin = caller.scope() == ai.foresignal.security.Scope.ADMIN;
+        for (int k = 0; k < items.size() && k < rows.size(); k++) {
+            RecordRow row = rows.get(k);
+            ai.foresignal.provenance.LicenceResolver.Resolution resolution = resolved.get(row.seq());
+            if (resolution == null) {
+                resolution = licenceResolver.descriptorFallback(row);
+            }
+            Map<String, Object> provenance = new LinkedHashMap<>();
+            provenance.put("licence", licenceTermsMap(resolution.terms()));
+            provenance.put("licenceBasis", resolution.basis());
+            provenance.put("fetchId", resolution.fetchId());
+            provenance.put("adapterVersion", resolution.adapterVersion());
+            if (admin) {
+                provenance.put("principal", resolution.principal());
+            }
+            String reliability = credibilityService.reliability(row.sourceId());
+            int credibility = credibilityService.assess(row, lookup);
+            provenance.put("reliability", reliability);
+            provenance.put("credibility", credibility);
+            provenance.put("grade", credibilityService.grade(reliability, credibility));
+            items.get(k).put("provenance", provenance);
+        }
+    }
+
+    private static Map<String, Object> licenceTermsMap(ai.foresignal.provenance.LicenceTerms terms) {
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("id", terms.id());
+        out.put("name", terms.name());
+        out.put("commercialUse", terms.commercialUse().name());
+        out.put("shareAlike", terms.shareAlike());
+        out.put("attributionRequired", terms.attributionRequired());
+        out.put("redistribution", terms.redistribution().name());
+        out.put("attributionText", terms.attributionText());
+        out.put("termsUrl", terms.termsUrl());
+        return out;
+    }
 
     /** Creates the controller. */
     public RecordsController(
@@ -327,9 +462,16 @@ public class RecordsController {
             return ETags.notModified(etag, caller.publicCache());
         }
         Slices.RecordSlice slice = queries.list(query);
-        List<RecordRow> rows = visible(slice.rows(), caller, selection);
+        LicenceFilter licence = licenceFilter(visible(slice.rows(), caller, selection), request);
+        List<RecordRow> rows = licence.rows();
         HttpHeaders headers = ETags.cacheHeaders(new HttpHeaders(), etag, caller.publicCache());
         headers.set(WATERMARK_HEADER, Long.toString(slice.watermarkSeq()));
+        if (licence.attributionText() != null) {
+            headers.set(ATTRIBUTION_HEADER, licence.attributionText());
+        }
+        for (String url : licence.licenceLinks()) {
+            headers.add(HttpHeaders.LINK, "<" + url + ">; rel=\"license\"");
+        }
         Object body;
         boolean withRegion = includes.contains("region") && regionIncludes != null;
         if (fmt == ResponseFormat.GEOJSON) {
@@ -337,8 +479,11 @@ public class RecordsController {
             if (withRegion) {
                 regionIncludes.addToFeatures(features);
             }
+            if (includes.contains("provenance")) {
+                addProvenance(features, rows, licence.resolutions(), caller);
+            }
             body = FeatureCollectionPage.of(features, slice.nextCursor(), slice.watermarkSeq(), slice.asOfSeq(), null,
-                    null, null);
+                    null, null, licence.attributions(), licence.filtered());
         } else {
             List<Map<String, Object>> items = records(rows, selection, RecordMapper.Shape.CURRENT);
             if (includes.contains("entity")) {
@@ -347,7 +492,11 @@ public class RecordsController {
             if (withRegion) {
                 regionIncludes.addToRecords(items);
             }
-            body = new RecordPage(items, slice.nextCursor(), slice.watermarkSeq(), slice.asOfSeq(), null, null, null);
+            if (includes.contains("provenance")) {
+                addProvenance(items, rows, licence.resolutions(), caller);
+            }
+            body = new RecordPage(items, slice.nextCursor(), slice.watermarkSeq(), slice.asOfSeq(), null, null, null,
+                    licence.attributions(), licence.filtered());
         }
         return ResponseEntity.ok().headers(headers).contentType(MediaType.parseMediaType(fmt.mediaType())).body(body);
     }
@@ -452,6 +601,15 @@ public class RecordsController {
             // An MLAT position withheld from an anonymous caller reads as absent (prompt 069).
             throw NotFoundException.of("Record", sourceId + ":" + externalId);
         }
+        Map<Long, ai.foresignal.provenance.LicenceResolver.Resolution> resolutions = Map.of();
+        if (licenceResolver != null) {
+            resolutions = licenceResolver.resolveAll(List.of(row));
+            ai.foresignal.provenance.LicencePolicy policy = licencePolicy(request);
+            ai.foresignal.provenance.LicenceResolver.Resolution resolution = resolutions.get(row.seq());
+            if (!policy.isEmpty() && resolution != null && policy.excludes(resolution.terms())) {
+                throw NotFoundException.of("Record", sourceId + ":" + externalId);
+            }
+        }
         String etag = ETags.forRecord(row.version(), row.observedAt());
         if (ETags.matches(ifNoneMatch, etag)) {
             return ETags.notModified(etag, caller.publicCache());
@@ -459,6 +617,9 @@ public class RecordsController {
         Map<String, Object> body = fmt == ResponseFormat.GEOJSON
                 ? mapper.feature(row, selection, RecordMapper.Shape.CURRENT)
                 : mapper.record(row, selection, RecordMapper.Shape.CURRENT);
+        if (includes.contains("provenance")) {
+            addProvenance(new ArrayList<>(List.of(body)), new ArrayList<>(List.of(row)), resolutions, caller);
+        }
         if (includes.contains("entity") && fmt != ResponseFormat.GEOJSON) {
             addEntityIds(new ArrayList<>(List.of(body)));
         }

@@ -96,6 +96,10 @@ public class TilesController {
     private final AsOfResolver asOf;
     private final Clock clock;
 
+    /** Prunes whole sources a licence policy excludes (prompt 109); null in hand-built unit tests. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ai.foresignal.provenance.LicencePolicyService licencePolicy;
+
     /** Creates the controller. */
     public TilesController(
             TileLayerResolver layers,
@@ -153,6 +157,9 @@ public class TilesController {
         // place=, view= and inWatchlist= narrow the caller's restriction (prompt 036).
         ReadCaller caller = callers.resolveScoped(request);
         Set<String> excluded = callers.excludedSources(caller);
+        if (licencePolicy != null) {
+            excluded = licencePolicy.withExcluded(excluded, ai.foresignal.provenance.LicencePolicyService.of(request));
+        }
         TileLayer resolved = allowed(layers.resolve(layer, excluded), caller.restriction());
         if (at != null) {
             return asOfTile(resolved, coordinates, mode, at, caller, excluded, ifNoneMatch);

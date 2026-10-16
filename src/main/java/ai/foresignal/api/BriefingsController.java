@@ -58,6 +58,10 @@ public class BriefingsController {
     private final BriefingHtmlRenderer html;
     private final McpCallerResolver callers;
 
+    /** The detached-JWS signer for briefing renditions (prompt 109); null in hand-built unit tests. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ai.foresignal.provenance.JwsSigner jwsSigner;
+
     /** Creates the controller. */
     public BriefingsController(BriefingService briefings, BriefingHtmlRenderer html, McpCallerResolver callers) {
         this.briefings = briefings;
@@ -201,6 +205,7 @@ public class BriefingsController {
         }
         HttpHeaders headers = ETags.cacheHeaders(new HttpHeaders(), etag, openReads);
         if (!asHtml) {
+            sign(headers, run.getContentMarkdown(), "text/markdown", run.getSignature());
             return ResponseEntity.ok().headers(headers).contentType(MediaType.APPLICATION_JSON)
                     .body(BriefingViews.run(run));
         }
@@ -210,8 +215,25 @@ public class BriefingsController {
         String footer = "Foresignal briefing run " + run.getId() + " · " + run.getStatus()
                 + (run.getFinishedAt() == null ? "" : " · " + run.getFinishedAt());
         String page = html.page(run.getBriefingName(), run.getContentMarkdown(), footer);
+        sign(headers, page, "text/html", null);
         return ResponseEntity.ok().headers(headers).contentType(new MediaType(MediaType.TEXT_HTML, StandardCharsets.UTF_8))
                 .body(page);
+    }
+
+    /**
+     * Adds the {@code Foresignal-Signature} detached JWS over the rendition's bytes (prompt 109). The
+     * JSON rendition signs the stored markdown; the HTML rendition signs its own bytes. No signer (a
+     * hand-built unit test) leaves the header off.
+     */
+    private void sign(HttpHeaders headers, String body, String typ, String stored) {
+        if (jwsSigner == null) {
+            return;
+        }
+        try {
+            headers.set("Foresignal-Signature", jwsSigner.signDetached(body.getBytes(StandardCharsets.UTF_8), typ));
+        } catch (RuntimeException e) {
+            // A signing failure never blocks the rendition.
+        }
     }
 
     /** The per-run, per-rendition ETag: it changes when the run completes or its deliveries are recorded. */
