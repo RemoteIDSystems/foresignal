@@ -1264,14 +1264,24 @@ ground truth.
 
 - **Jobs.** `POST /v1/backtests {type: rule|recipe|precursor|quality, targetId | definition, from|fromSeq,
   to|toSeq, variants?}` returns 202 with a job; poll `GET /v1/jobs/{jobId}` (one path for every job
-  type) or `GET /v1/backtests`. One queued or running job per token (409 `BACKTEST_IN_PROGRESS`); the
-  range is capped at 90 days or the retained range, whichever is shorter, and a start below the
-  retained floor is clamped with the `RANGE_CLAMPED_BY_RETENTION` caveat.
+  type) or `GET /v1/backtests`. One queued or running job per token (409 `BACKTEST_IN_PROGRESS`, shared
+  by REST and MCP). A range longer than 90 days, empty, inverted or wholly below retention is 400
+  `BACKTEST_RANGE_INVALID`; an open-ended `toSeq` is clamped to the published watermark, and a start
+  below the retained floor is clamped with the `RANGE_CLAMPED_BY_RETENTION` caveat. Without a range a
+  job covers the last day (precursor jobs: the last 30 days). Jobs run on
+  `foresignal.backtest.concurrency` worker threads (default 1, at most 2), in 50k-seq chunks with a 60 s
+  statement timeout each, reporting `progress` and checking for cancellation between chunks;
+  `DELETE /v1/jobs/{jobId}` cancels, and a canceled job keeps the status `cancelled`. Finished jobs are deleted
+  after 30 days.
+- **Recipe jobs** report the intelligence events the recipe actually formed in the range (the
+  correlation engine has no dry-run replay yet), so they show what was stored, not a re-run.
 - **Caveats.** Every result carries `NOT_GROUND_TRUTH` plus each applicable caveat: `RANGE_CLAMPED_BY_RETENTION`,
   `DOWNSAMPLED_RANGE`, `SAMPLED_SOURCE`, `COVERAGE_GAPS`, `DEFINITION_DIFFERS`, `ENTITY_RESOLUTION_CHANGED`,
   `WINDOW_APPROXIMATE`, `SMALL_SAMPLE`. **Always quote them when reporting a result.**
-- **No look-ahead.** Anomaly and recipe replays use only data at or before the replay cursor; a baseline
-  trains only on buckets before the evaluated bucket.
+- **No look-ahead.** Anomaly rules are replayed bucket by bucket from the stored counts, and a baseline
+  trains only on buckets before the evaluated bucket. Forecast-horizon rules are matched as the live
+  engine saw each version at its own ingest time, never at the replay's wall clock. Count and absence
+  rules are replayed at record level only (`WINDOW_APPROXIMATE`).
 - **Reading lift and p-values.** Hit rates, lifts and p-values are descriptive statistics with stated
   assumptions; they are never calibrated probabilities. Small samples are labelled `insufficient`.
 - **Precursor tests.** `POST /v1/precursor-tests` defines X and Y (an alert rule, an intelligence event

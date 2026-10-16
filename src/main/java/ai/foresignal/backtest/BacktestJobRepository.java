@@ -14,6 +14,9 @@ public interface BacktestJobRepository extends JpaRepository<BacktestJobEntity, 
     /** Newest jobs of a status. */
     List<BacktestJobEntity> findByStatusOrderByCreatedAtDescIdDesc(String status, Limit limit);
 
+    /** Newest jobs of a type. */
+    List<BacktestJobEntity> findByTypeOrderByCreatedAtDescIdDesc(String type, Limit limit);
+
     /** Newest jobs of a status and type. */
     List<BacktestJobEntity> findByStatusAndTypeOrderByCreatedAtDescIdDesc(String status, String type, Limit limit);
 
@@ -22,4 +25,7 @@ public interface BacktestJobRepository extends JpaRepository<BacktestJobEntity, 
 
     /** Jobs finished before {@code before} (30-day retention). */
     List<BacktestJobEntity> findByFinishedAtBefore(Instant before);
+
+    /** How many jobs of a type in the given statuses were created since an instant (the multiple-testing note). */
+    long countByTypeAndStatusInAndCreatedAtGreaterThanEqual(String type, List<String> statuses, Instant since);
 }

@@ -1,6 +1,8 @@
 package ai.foresignal.mcp.tools;
 
+import static ai.foresignal.mcp.JsonSchemas.dateTime;
 import static ai.foresignal.mcp.JsonSchemas.enumeration;
+import static ai.foresignal.mcp.JsonSchemas.nonNegative;
 import static ai.foresignal.mcp.JsonSchemas.object;
 import static ai.foresignal.mcp.JsonSchemas.props;
 import static ai.foresignal.mcp.JsonSchemas.string;
@@ -25,7 +27,11 @@ public class RunBacktestTool implements ForesignalMcpTool {
 
     static final Map<String, Object> INPUT = object(props(
             "type", enumeration("Job type.", "rule", "rule", "recipe", "precursor", "quality"),
-            "targetId", string("The rule, recipe or precursor-test id.", 1, 64)));
+            "targetId", string("The rule, recipe or precursor-test id.", 1, 64),
+            "from", dateTime("Start of the range (use from/to or fromSeq/toSeq; at most 90 days)."),
+            "to", dateTime("End of the range (default now)."),
+            "fromSeq", nonNegative("Exclusive lower seq bound."),
+            "toSeq", nonNegative("Inclusive upper seq bound (clamped to the published watermark).")));
 
     private final BacktestJobService jobs;
     private final JsonMapper json;
@@ -68,8 +74,9 @@ public class RunBacktestTool implements ForesignalMcpTool {
 
     @Override
     public ToolResult call(ToolContext context, JsonNode args) {
+        String tokenId = context.caller().currentToken().map(t -> t.id().toString()).orElse(null);
         BacktestJobEntity job = jobs.submit(McpArgs.text(args, "type"), McpArgs.text(args, "targetId"), null, args, null,
-                context.actor());
+                tokenId);
         return ToolResult.json(json.valueToTree(BacktestViews.job(job)));
     }
 }

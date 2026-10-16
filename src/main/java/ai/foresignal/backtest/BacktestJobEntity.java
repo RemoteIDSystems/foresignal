@@ -76,6 +76,10 @@ public class BacktestJobEntity {
     @Column(name = "cancelled", nullable = false)
     private boolean cancelled;
 
+    /** True when the start was raised to the retained floor (nullable: the column arrived after prompt 103). */
+    @Column(name = "range_clamped")
+    private Boolean rangeClamped;
+
     /** JPA. */
     protected BacktestJobEntity() {}
 
@@ -224,5 +228,15 @@ public class BacktestJobEntity {
 
     public void setCancelled(boolean cancelled) {
         this.cancelled = cancelled;
+    }
+
+    /** True when the start was raised to the retained floor; null on rows from before the column existed. */
+    public Boolean getRangeClamped() {
+        return rangeClamped;
+    }
+
+    /** Records whether the start was raised to the retained floor. */
+    public void setRangeClamped(Boolean rangeClamped) {
+        this.rangeClamped = rangeClamped;
     }
 }
