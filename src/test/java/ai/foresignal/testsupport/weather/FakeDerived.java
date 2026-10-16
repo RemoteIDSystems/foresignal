@@ -245,6 +245,23 @@ public final class FakeDerived implements RasterReader, DerivedRecords, DerivedP
     }
 
     @Override
+    public List<HeadSnapshot> currentSince(Collection<String> sources, Collection<String> kinds,
+            org.locationtech.jts.geom.Envelope bbox, Instant since, int limit) {
+        // As the JDBC reader: the time filter before the cap, newest first, ties by source and id.
+        List<HeadSnapshot> out = new ArrayList<>();
+        for (HeadSnapshot h : current(sources, kinds, Integer.MAX_VALUE)) {
+            if (since == null || (h.observedAt() != null && !h.observedAt().isBefore(since))) {
+                out.add(h);
+            }
+        }
+        out.sort(java.util.Comparator.comparing(HeadSnapshot::observedAt,
+                        java.util.Comparator.nullsLast(java.util.Comparator.<Instant>reverseOrder()))
+                .thenComparing(HeadSnapshot::sourceId)
+                .thenComparing(HeadSnapshot::externalId));
+        return out.size() > limit ? out.subList(0, limit) : out;
+    }
+
+    @Override
     public Optional<HeadSnapshot> get(String sourceId, String externalId) {
         return heads.getOrDefault(sourceId, List.of()).stream().filter(h -> h.externalId().equals(externalId)).findFirst();
     }
@@ -289,7 +306,7 @@ public final class FakeDerived implements RasterReader, DerivedRecords, DerivedP
 
     private ai.foresignal.derive.Observation observe(HeadSnapshot h) {
         return new ai.foresignal.derive.Observation(h.sourceId(), h.externalId(), h.kind(), h.observedAt(),
-                h.geometry(), h.payload(), ai.foresignal.source.spi.PositionSource.UNKNOWN);
+                h.geometry(), h.payload(), ai.foresignal.derive.DefaultObservationFeed.positionSource(h.kind(), h.payload()));
     }
 
     @Override
@@ -302,10 +319,8 @@ public final class FakeDerived implements RasterReader, DerivedRecords, DerivedP
     public List<ai.foresignal.derive.Observation> recent(Collection<String> sources, Collection<String> kinds,
             Instant since, org.locationtech.jts.geom.Envelope bbox, int limit) {
         List<ai.foresignal.derive.Observation> out = new ArrayList<>();
-        for (HeadSnapshot h : current(sources, kinds, limit)) {
-            if (since == null || h.observedAt() == null || !h.observedAt().isBefore(since)) {
-                out.add(observe(h));
-            }
+        for (HeadSnapshot h : currentSince(sources, kinds, bbox, since, limit)) {
+            out.add(observe(h));
         }
         return out;
     }

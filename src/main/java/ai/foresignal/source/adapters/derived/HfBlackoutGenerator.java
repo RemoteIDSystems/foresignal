@@ -9,14 +9,13 @@ import ai.foresignal.source.spi.SourceDescriptor;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Deque;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
 
@@ -59,7 +58,8 @@ public class HfBlackoutGenerator extends LayerGenerator {
                     + " X-ray class. Automated, not a warning.",
             "derived (input licences)", KIND).build();
 
-    private final Map<String, Deque<Hour>> history = new LinkedHashMap<>();
+    /** Per key, one statistic per UTC hour (epoch hour → hour), kept for {@link #BASELINE_DAYS} days. */
+    private final Map<String, TreeMap<Long, Hour>> history = new LinkedHashMap<>();
 
     /** Creates the generator. */
     public HfBlackoutGenerator(ObjectProvider<SourceRegistry> registry) {
@@ -130,6 +130,7 @@ public class HfBlackoutGenerator extends LayerGenerator {
             bands.put(key, band);
         }
         int hourOfDay = now.atZone(ZoneOffset.UTC).getHour();
+        long epochHour = Math.floorDiv(now.getEpochSecond(), 3600L);
         boolean sunlit = hourOfDay >= SUNLIT_FROM && hourOfDay <= SUNLIT_TO;
         boolean healthy = ctx.coverage().healthy(DerivedSources.PSKREPORTER);
         String flare = flareClass(ctx, now);
@@ -138,28 +139,27 @@ public class HfBlackoutGenerator extends LayerGenerator {
             String key = entry.getKey();
             int count = entry.getValue();
             double snr = median(byKey.getOrDefault(key, List.of()));
-            Deque<Hour> past = history.computeIfAbsent(key, k -> new ArrayDeque<>());
+            TreeMap<Long, Hour> past = history.computeIfAbsent(key, k -> new TreeMap<>());
+            // The baseline is the same UTC hour on earlier days only: never the current hour itself,
+            // which several ticks within the hour would otherwise compare against.
             double baselineCount = 0;
             double baselineSnr = Double.NaN;
             int samples = 0;
             double snrSum = 0;
-            for (Hour hour : past) {
-                if (hour.hourOfDay() == hourOfDay) {
-                    baselineCount += hour.count();
-                    if (Double.isFinite(hour.snr())) {
-                        snrSum += hour.snr();
-                        samples++;
-                    }
-                }
-            }
-            double meanCount = 0;
             int days = 0;
-            for (Hour hour : past) {
-                if (hour.hourOfDay() == hourOfDay) {
-                    days++;
+            for (Map.Entry<Long, Hour> earlier : past.headMap(epochHour, false).entrySet()) {
+                Hour hour = earlier.getValue();
+                if (hour.hourOfDay() != hourOfDay) {
+                    continue;
+                }
+                days++;
+                baselineCount += hour.count();
+                if (Double.isFinite(hour.snr())) {
+                    snrSum += hour.snr();
+                    samples++;
                 }
             }
-            meanCount = days == 0 ? 0 : baselineCount / days;
+            double meanCount = days == 0 ? 0 : baselineCount / days;
             if (samples > 0) {
                 baselineSnr = snrSum / samples;
             }
@@ -168,10 +168,9 @@ public class HfBlackoutGenerator extends LayerGenerator {
             if (sunlit && healthy && (spotDrop || snrDrop) && coverage == LayerStatus.OK) {
                 emit(ctx, now, key, bands.get(key), hourOfDay, count, snr, meanCount, baselineSnr, flare, spotDrop, snrDrop);
             }
-            past.addLast(new Hour(hourOfDay, count, snr));
-            while (past.size() > BASELINE_DAYS) {
-                past.removeFirst();
-            }
+            // The latest tick of an hour stands for that hour; anything older than the baseline is dropped.
+            past.put(epochHour, new Hour(hourOfDay, count, snr));
+            past.headMap(epochHour - BASELINE_DAYS * 24L, true).clear();
         }
     }
 

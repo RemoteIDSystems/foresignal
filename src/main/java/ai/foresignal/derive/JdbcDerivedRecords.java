@@ -51,55 +51,48 @@ public class JdbcDerivedRecords implements DerivedRecords {
 
     @Override
     public List<HeadSnapshot> current(Collection<String> sources, Collection<String> kinds, int limit) {
+        return query(sources, kinds, null, null, limit, " ORDER BY h.source_id, h.external_id");
+    }
+
+    @Override
+    public List<HeadSnapshot> current(Collection<String> sources, Collection<String> kinds,
+            org.locationtech.jts.geom.Envelope bbox, int limit) {
+        return query(sources, kinds, bbox, null, limit, " ORDER BY h.source_id, h.external_id");
+    }
+
+    @Override
+    public List<HeadSnapshot> currentSince(Collection<String> sources, Collection<String> kinds,
+            org.locationtech.jts.geom.Envelope bbox, Instant since, int limit) {
+        // Newest first, so a cap drops the stalest entities rather than whichever sort last by id.
+        return query(sources, kinds, bbox, since, limit,
+                " ORDER BY l.observed_at DESC, h.source_id, h.external_id");
+    }
+
+    /** The shared {@code head ⋈ live} read: source, kind, bbox and observed-since filters in SQL. */
+    private List<HeadSnapshot> query(Collection<String> sources, Collection<String> kinds,
+            org.locationtech.jts.geom.Envelope bbox, Instant since, int limit, String orderBy) {
         if (sources == null || sources.isEmpty()) {
             return List.of();
         }
         List<Object> args = new ArrayList<>();
         StringBuilder sql = new StringBuilder(SELECT).append(" WHERE NOT h.tombstone AND h.source_id = ANY (?)");
         args.add(sources.toArray(String[]::new));
+        if (bbox != null && !bbox.isNull()) {
+            sql.append(" AND l.geom && ST_MakeEnvelope(?, ?, ?, ?, 4326)");
+            args.add(bbox.getMinX());
+            args.add(bbox.getMinY());
+            args.add(bbox.getMaxX());
+            args.add(bbox.getMaxY());
+        }
         if (kinds != null && !kinds.isEmpty()) {
             sql.append(" AND h.kind = ANY (?)");
             args.add(kinds.toArray(String[]::new));
         }
-        sql.append(" ORDER BY h.source_id, h.external_id LIMIT ?");
-        args.add(Math.max(1, limit));
-        return jdbc.query(con -> {
-            var ps = con.prepareStatement(sql.toString());
-            int i = 1;
-            for (Object arg : args) {
-                if (arg instanceof String[] array) {
-                    ps.setArray(i++, con.createArrayOf("text", array));
-                } else {
-                    ps.setObject(i++, arg);
-                }
-            }
-            return ps;
-        }, this::row);
-    }
-
-    @Override
-    public List<HeadSnapshot> current(Collection<String> sources, Collection<String> kinds,
-            org.locationtech.jts.geom.Envelope bbox, int limit) {
-        if (sources == null || sources.isEmpty()) {
-            return List.of();
+        if (since != null) {
+            sql.append(" AND l.observed_at >= ?");
+            args.add(Timestamp.from(since));
         }
-        if (bbox == null || bbox.isNull()) {
-            return current(sources, kinds, limit);
-        }
-        List<Object> args = new ArrayList<>();
-        StringBuilder sql = new StringBuilder(SELECT)
-                .append(" WHERE NOT h.tombstone AND h.source_id = ANY (?)")
-                .append(" AND l.geom && ST_MakeEnvelope(?, ?, ?, ?, 4326)");
-        args.add(sources.toArray(String[]::new));
-        args.add(bbox.getMinX());
-        args.add(bbox.getMinY());
-        args.add(bbox.getMaxX());
-        args.add(bbox.getMaxY());
-        if (kinds != null && !kinds.isEmpty()) {
-            sql.append(" AND h.kind = ANY (?)");
-            args.add(kinds.toArray(String[]::new));
-        }
-        sql.append(" ORDER BY h.source_id, h.external_id LIMIT ?");
+        sql.append(orderBy).append(" LIMIT ?");
         args.add(Math.max(1, limit));
         return jdbc.query(con -> {
             var ps = con.prepareStatement(sql.toString());

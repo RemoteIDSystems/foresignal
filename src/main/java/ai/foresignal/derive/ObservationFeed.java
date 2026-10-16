@@ -21,7 +21,9 @@ public interface ObservationFeed {
 
     /**
      * The current observations of the given sources and kinds whose {@code observedAt} is at or
-     * after {@code since}, ordered by source and external id.
+     * after {@code since}, newest first (ties by source and external id). The time filter is applied
+     * before the cap, so a cap drops the stalest entities, and a capped read is counted
+     * ({@code foresignal.derive.feed.truncated}) rather than silently shortening the window.
      *
      * @param sources the source ids (at least one)
      * @param kinds the kinds, or empty for every kind

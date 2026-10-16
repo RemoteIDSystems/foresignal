@@ -70,6 +70,8 @@ public class LightningHoldoverGenerator extends LayerGenerator {
         long cell;
         String utcDay;
         int flashes;
+        /** Flashes per contributing cluster version, so re-reading a cluster on a later tick never adds it twice. */
+        final Map<String, Integer> clusters = new LinkedHashMap<>();
         boolean confirmed;
         Double delayHours;
     }
@@ -139,7 +141,9 @@ public class LightningHoldoverGenerator extends LayerGenerator {
                 fresh.utcDay = day;
                 return fresh;
             });
-            candidate.flashes += (int) Math.round(cluster.number("flashes5m") == null ? 0 : cluster.number("flashes5m"));
+            int clusterFlashes = (int) Math.round(cluster.number("flashes5m") == null ? 0 : cluster.number("flashes5m"));
+            candidate.clusters.put(cluster.sourceId() + ":" + cluster.externalId() + "@" + cluster.observedAt(), clusterFlashes);
+            candidate.flashes = candidate.clusters.values().stream().mapToInt(Integer::intValue).sum();
             if (!dry(ctx, lon, lat)) {
                 continue;
             }

@@ -121,6 +121,29 @@ public class GpsJammingGenerator extends LayerGenerator {
         cells.clear();
     }
 
+    /**
+     * A live cell re-enters the state with its stored level and its last observation time, so it is
+     * refreshed, kept as {@code insufficient-data}, or tombstoned after {@link #STALE_AFTER} by the
+     * normal rules.
+     */
+    @Override
+    protected void adopt(ai.foresignal.derive.HeadSnapshot head, DerivedContext ctx) {
+        if (!KIND.equals(head.kind())) {
+            return;
+        }
+        Object level = head.payload().get("level");
+        if (level == null) {
+            return;
+        }
+        CellState state = new CellState();
+        state.level = String.valueOf(level);
+        state.ratio = head.payload().get("ratio") instanceof Number n ? n.doubleValue() : 0;
+        state.total = head.payload().get("total") instanceof Number n ? n.intValue() : 0;
+        state.bad = head.payload().get("bad") instanceof Number n ? n.intValue() : 0;
+        state.lastSeen = head.observedAt();
+        cells.put(head.externalId(), state);
+    }
+
     @Override
     public int stateSize() {
         return cells.size();

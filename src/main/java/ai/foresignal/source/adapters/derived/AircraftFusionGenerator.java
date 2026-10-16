@@ -132,7 +132,7 @@ public class AircraftFusionGenerator extends LayerGenerator {
                 .orElse(null);
     }
 
-    /** Newest first; ties prefer ADS-B over MLAT over other, then a local receiver over the network. */
+    /** Newest first; ties prefer ADS-B over MLAT over TIS-B over other, then a local receiver over the network. */
     private static final Comparator<Observation> FUSION_ORDER = Comparator
             .comparing((Observation o) -> o.observedAt(), Comparator.nullsFirst(Comparator.naturalOrder()))
             .reversed()
@@ -169,14 +169,32 @@ public class AircraftFusionGenerator extends LayerGenerator {
         private Fusion() {}
 
         static int rank(Observation observation) {
-            return positionRank(observation.positionSource()) * 10 + (local(observation) ? 0 : 1);
+            return positionRank(observation) * 10 + (local(observation) ? 0 : 1);
         }
 
+        /**
+         * ADS-B 0, MLAT 1, TIS-B 2, other 3 (prompt 099). MLAT and TIS-B are both {@code CALCULATED}
+         * positions, so they are told apart by the raw {@code posSource} payload value.
+         */
+        static int positionRank(Observation observation) {
+            String raw = observation.text("posSource");
+            if (raw != null) {
+                return switch (raw.toLowerCase(java.util.Locale.ROOT)) {
+                    case "adsb", "adsr", "adsc", "flarm" -> 0;
+                    case "mlat" -> 1;
+                    case "tisb" -> 2;
+                    default -> 3;
+                };
+            }
+            return positionRank(observation.positionSource());
+        }
+
+        /** The rank of a position source alone: reported 0, calculated 1, anything else 3. */
         static int positionRank(PositionSource source) {
             return switch (source) {
                 case REPORTED -> 0;
                 case CALCULATED -> 1;
-                default -> 2;
+                default -> 3;
             };
         }
 

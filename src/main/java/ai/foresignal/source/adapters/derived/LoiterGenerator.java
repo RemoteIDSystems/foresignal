@@ -93,6 +93,14 @@ public class LoiterGenerator extends LayerGenerator {
         reference.refresh();
     }
 
+    /** A live loiter record re-enters the state as reported, so the next tick confirms or ends it. */
+    @Override
+    protected void adopt(ai.foresignal.derive.HeadSnapshot head, DerivedContext ctx) {
+        if (KIND.equals(head.kind())) {
+            vessels.computeIfAbsent(head.externalId(), k -> new Vessel()).reported = true;
+        }
+    }
+
     @Override
     public int stateSize() {
         int size = 0;
@@ -122,14 +130,21 @@ public class LoiterGenerator extends LayerGenerator {
             if (vessel.fixes.isEmpty() || at.isAfter(vessel.fixes.peekLast().at())) {
                 vessel.fixes.addLast(new Fix(at, lon, lat));
             }
-            while (vessel.fixes.size() > 1 && Duration.between(vessel.fixes.peekFirst().at(), at).compareTo(SPAN) > 0) {
+            // Keep the shortest tail that still spans SPAN: drop the oldest fix only while the next one is
+            // itself at least SPAN old, so "spanning ≥ 30 min" can hold for fixes at any spacing.
+            while (vessel.fixes.size() > 1 && Duration.between(second(vessel.fixes), at).compareTo(SPAN) >= 0) {
                 vessel.fixes.removeFirst();
             }
             evaluate(ctx, now, ports, key, vessel, observation);
         }
         for (String key : new ArrayList<>(vessels.keySet())) {
             if (!present.contains(key)) {
-                vessels.remove(key);
+                // A reported loiter whose vessel is no longer seen cannot be supported any more: end it
+                // rather than leave the record behind with no state that could ever end it.
+                Vessel gone = vessels.remove(key);
+                if (gone.reported) {
+                    ctx.tombstone(KIND, key);
+                }
             }
         }
     }
@@ -187,6 +202,13 @@ public class LoiterGenerator extends LayerGenerator {
             max = Math.max(max, Geo.haversineKm(lat, lon, fix.lat(), fix.lon()));
         }
         return max;
+    }
+
+    /** The time of the second-oldest fix (the deque holds at least two). */
+    private static Instant second(Deque<Fix> fixes) {
+        java.util.Iterator<Fix> it = fixes.iterator();
+        it.next();
+        return it.next().at();
     }
 
     /** True when every fix is within {@code radiusKm} of the centroid's position. */

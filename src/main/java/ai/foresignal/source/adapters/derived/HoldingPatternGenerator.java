@@ -59,10 +59,25 @@ public class HoldingPatternGenerator extends LayerGenerator {
     private final ReferenceData reference;
     private final Map<String, Deque<Point>> tracks = new LinkedHashMap<>();
 
+    /** The holds in progress by hex: a stable start (the record id) and the last time it turned. */
+    private final Map<String, Hold> holds = new LinkedHashMap<>();
+
     /** Creates the generator. */
     public HoldingPatternGenerator(ObjectProvider<SourceRegistry> registry, ReferenceData reference) {
         super(registry);
         this.reference = reference;
+    }
+
+    /** A hold in progress: {@code externalId} is {@code {hex}:{start}}, and it ends {@link #END} after {@code lastTurn}. */
+    static final class Hold {
+
+        final String externalId;
+        Instant lastTurn;
+
+        Hold(String externalId, Instant lastTurn) {
+            this.externalId = externalId;
+            this.lastTurn = lastTurn;
+        }
     }
 
     /** One fix. */
@@ -86,6 +101,7 @@ public class HoldingPatternGenerator extends LayerGenerator {
     @Override
     protected void clearState() {
         tracks.clear();
+        holds.clear();
         reference.refresh();
     }
 
@@ -130,6 +146,13 @@ public class HoldingPatternGenerator extends LayerGenerator {
                 tracks.remove(key);
             }
         }
+        // A hold whose aircraft is no longer reported ends on the same schedule as one that stopped turning.
+        for (Map.Entry<String, Hold> entry : new ArrayList<>(holds.entrySet())) {
+            if (!present.contains(entry.getKey()) && Duration.between(entry.getValue().lastTurn, now).compareTo(END) > 0) {
+                holds.remove(entry.getKey());
+                ctx.tombstone(KIND, entry.getValue().externalId);
+            }
+        }
     }
 
     private void evaluate(DerivedContext ctx, Instant now, LayerStatus coverage, String key, Deque<Point> points) {
@@ -140,15 +163,18 @@ public class HoldingPatternGenerator extends LayerGenerator {
         Point first = list.get(0);
         Point last = list.get(list.size() - 1);
         double turn = 0;
-        double lastTurnAt = 0;
-        boolean turning = false;
+        Instant lastTurn = null;
         for (int i = 1; i < list.size(); i++) {
             double delta = wrap(list.get(i).track() - list.get(i - 1).track());
             turn += delta;
             if (Math.abs(delta) > 1) {
-                lastTurnAt = i;
-                turning = true;
+                lastTurn = list.get(i).at();
             }
+        }
+        boolean turning = lastTurn != null;
+        Hold hold = holds.get(key);
+        if (hold != null && lastTurn != null && lastTurn.isAfter(hold.lastTurn)) {
+            hold.lastTurn = lastTurn;
         }
         boolean altitudeBand = true;
         for (Point point : list) {
@@ -157,18 +183,25 @@ public class HoldingPatternGenerator extends LayerGenerator {
                 break;
             }
         }
-        boolean holds = Math.abs(turn) > TURN_DEG && altitudeBand && Duration.between(first.at(), last.at()).compareTo(WINDOW) >= 0;
+        // "Within 10 minutes": the deque is already trimmed to a span of at most WINDOW, so the turn is
+        // tested over that span; requiring a span of at least WINDOW would only ever match exactly 10:00.
+        boolean holds = Math.abs(turn) > TURN_DEG && altitudeBand;
         if (!holds || !turning || coverage != LayerStatus.OK) {
-            if (points.size() >= 4 && Duration.between(points.peekLast().at(), now).compareTo(END) > 0) {
-                tracks.remove(key);
-                ctx.tombstone(KIND, key);
+            // Ends five minutes after the last turn (the record is {hex}:{start}, never the bare hex).
+            if (hold != null && Duration.between(hold.lastTurn, now).compareTo(END) > 0) {
+                this.holds.remove(key);
+                ctx.tombstone(KIND, hold.externalId);
             }
             return;
+        }
+        if (hold == null) {
+            hold = new Hold(key + ":" + first.at().getEpochSecond(), lastTurn);
+            this.holds.put(key, hold);
         }
         org.locationtech.jts.geom.MultiPoint multi = Geo.factory()
                 .createMultiPointFromCoords(list.stream().map(p -> new Coordinate(p.lon(), p.lat())).toArray(Coordinate[]::new));
         org.locationtech.jts.geom.Geometry hull = multi.convexHull();
-        String id = key + ":" + first.at().getEpochSecond();
+        String id = hold.externalId;
         Map<String, Object> payload = LayerPayload.base(ID, LayerStatus.OK, 0.7, List.of());
         payload.put("turnsDeg", Math.round(Math.abs(turn)));
         payload.put("durationMin", LayerPayload.minutes5(Duration.between(first.at(), last.at()).toMinutes()));
