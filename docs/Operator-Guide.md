@@ -4874,6 +4874,16 @@ plus `frameKey`/`frameKeys`, `bbox` or `placeId`+`radiusKm`, `minZoom`, `maxZoom
 tileset and 2 GB per file. `POST /v1/places/{id}/pack` builds a ZIP (≤ 50 MB) of place weather, forecast
 series, nearby alerts, legends, a loop GIF and one PMTiles per product.
 
+A sweep (every 15 minutes, `foresignal.raster.export.sweep-interval`) deletes jobs and their files once
+`expiresAt` passes, finished or not, and fails jobs that can no longer finish: those still queued or
+running when the process restarted (submit them again) and any stuck for more than 6 hours. MBTiles and
+PMTiles hold WebMercatorQuad tiles only (`tms=WorldCRS84Quad` is 400); a COG follows `tms`
+(WebMercatorQuad → EPSG:3857, WorldCRS84Quad → EPSG:4326). Every file embeds the product's attribution and
+license (MBTiles/PMTiles `attribution` and `description`, the TIFF `Copyright` tag and `GDAL_METADATA`,
+the pack's `manifest.json`), with a "changes made" note for CC BY and ECMWF products. A place pack only
+holds products the requesting token may read, and the same request from the same token within 10 minutes
+returns the pack already built.
+
 WebP tiles need the bundled `webp-imageio` native library. A missing native (an unsupported platform)
 disables WebP: `/v1/system` reports a `WEBP_UNAVAILABLE` warning and `.webp` answers `406
 FORMAT_UNAVAILABLE`. Set `notifications.imageLinks` only on an instance with an https `publicBaseUrl`;

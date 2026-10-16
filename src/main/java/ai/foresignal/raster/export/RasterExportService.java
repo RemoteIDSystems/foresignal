@@ -11,6 +11,8 @@ import ai.foresignal.raster.render.RenderQueue;
 import ai.foresignal.raster.render.StyleRegistry;
 import ai.foresignal.raster.render.TileCache;
 import ai.foresignal.raster.render.TileMatrixSet;
+import ai.foresignal.raster.render.WebMercator;
+import ai.foresignal.raster.render.WebMercatorQuad;
 import ai.foresignal.source.spi.ProductSpec;
 import java.nio.file.Path;
 import java.time.Instant;
@@ -20,11 +22,17 @@ import java.util.List;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Builds the files of a raster export (prompt 108; Weather-Imagery-Design §11): MBTiles, PMTiles or
  * COG for one or more frames of a product over a box and zoom range. Caps: at most
  * {@value #MAX_TILES} tiles per tileset and {@value #MAX_FILE_BYTES} bytes per file.
+ *
+ * <p>MBTiles and PMTiles address tiles in the XYZ WebMercator scheme, so they accept only the
+ * {@code WebMercatorQuad} tile matrix set. A COG follows the requested set: {@code WebMercatorQuad} (the
+ * default) writes EPSG:3857, {@code WorldCRS84Quad} writes EPSG:4326. Every file embeds the product's
+ * attribution and license ({@link ExportAttribution}).
  */
 @Service
 public class RasterExportService {
@@ -41,12 +49,33 @@ public class RasterExportService {
     private final RasterRenderService renderer;
     private final ExportPaths paths;
     private final ai.foresignal.raster.FrameStore store;
+    private final JsonMapper json;
 
     /** Creates the service. */
-    public RasterExportService(RasterRenderService renderer, ExportPaths paths, FrameStore store) {
+    public RasterExportService(RasterRenderService renderer, ExportPaths paths, FrameStore store, JsonMapper json) {
         this.renderer = renderer;
         this.paths = paths;
         this.store = store;
+        this.json = json;
+    }
+
+    /**
+     * Refuses a tile matrix set a tiled format cannot hold: MBTiles and PMTiles are XYZ WebMercator
+     * archives, so only {@code WebMercatorQuad} is accepted for them.
+     *
+     * @throws ai.foresignal.api.error.ValidationException (400) for {@code mbtiles}/{@code pmtiles} with
+     *     another set
+     */
+    public static void requireSupportedTms(String format, TileMatrixSet tms) {
+        if (("mbtiles".equals(format) || "pmtiles".equals(format)) && tms != WebMercatorQuad.INSTANCE) {
+            throw ai.foresignal.api.error.ValidationException.forField("tms",
+                    format + " holds WebMercatorQuad tiles only; use cog for " + tms.id());
+        }
+    }
+
+    /** The EPSG code a COG of {@code tms} is written in: 3857 for {@code WebMercatorQuad}, else 4326. */
+    static int cogEpsg(TileMatrixSet tms) {
+        return tms == WebMercatorQuad.INSTANCE ? 3857 : 4326;
     }
 
     /** A parsed export request. */
@@ -63,6 +92,7 @@ public class RasterExportService {
     public Result export(ProductRegistry.Registered product, Request request, List<RasterFrameRow> frames, String jobId,
             String client) {
         ProductSpec spec = product.spec();
+        requireSupportedTms(request.format(), request.tms());
         StyleRegistry.Resolved style = renderer.style(spec, request.style());
         List<File> files = new ArrayList<>();
         long totalTiles = 0;
@@ -70,15 +100,17 @@ public class RasterExportService {
         for (RasterFrameRow frame : frames) {
             List<byte[]> tiles = new ArrayList<>();
             List<int[]> addresses = new ArrayList<>();
-            countTiles(request);
-            iterateTiles(request, (z, x, y) -> {
-                byte[] bytes = renderer.tile(spec, frame, style, request.tms(), z, x, y, 256, "png",
-                        RenderQueue.Priority.PREFETCH, client);
-                if (bytes != TileCache.EMPTY && bytes.length > 0) {
-                    tiles.add(bytes);
-                    addresses.add(new int[] {z, x, y});
-                }
-            });
+            if (!"cog".equals(request.format())) {
+                countTiles(request);
+                iterateTiles(request, (z, x, y) -> {
+                    byte[] bytes = renderer.tile(spec, frame, style, request.tms(), z, x, y, 256, "png",
+                            RenderQueue.Priority.PREFETCH, client);
+                    if (bytes != TileCache.EMPTY && bytes.length > 0) {
+                        tiles.add(bytes);
+                        addresses.add(new int[] {z, x, y});
+                    }
+                });
+            }
             File file = switch (request.format()) {
                 case "mbtiles" -> writeMbtiles(spec, frame, request, tiles, addresses, jobId);
                 case "pmtiles" -> writePmtiles(spec, frame, request, tiles, addresses, jobId);
@@ -142,10 +174,9 @@ public class RasterExportService {
         metadata.put("bounds", boundsText(request.bbox()));
         metadata.put("minzoom", String.valueOf(request.minZoom()));
         metadata.put("maxzoom", String.valueOf(request.maxZoom()));
-        metadata.put("json", frameJson(frame));
-        if (spec.attribution() != null) {
-            metadata.put("attribution", spec.attribution().text());
-        }
+        metadata.put("json", frameJson(spec, frame));
+        metadata.put("attribution", ExportAttribution.line(spec));
+        metadata.put("description", ExportAttribution.line(spec));
         String name = spec.id() + "-" + frame.frameKey() + ".mbtiles";
         Path target = paths.file(jobId, name);
         MbtilesWriter.write(target, out, metadata, "png");
@@ -162,11 +193,10 @@ public class RasterExportService {
         Map<String, Object> metadata = new LinkedHashMap<>();
         metadata.put("name", spec.title());
         metadata.put("type", "overlay");
-        if (spec.attribution() != null) {
-            metadata.put("attribution", spec.attribution().text());
-        }
+        metadata.put("attribution", ExportAttribution.line(spec));
+        metadata.put("description", ExportAttribution.line(spec));
         metadata.put("bounds", boundsText(request.bbox()));
-        metadata.put("json", frameJson(frame));
+        metadata.put("json", frameJson(spec, frame));
         byte[] bytes = PmtilesWriter.write(out, metadata, request.bbox(), request.minZoom(), request.maxZoom(),
                 PmtilesWriter.TYPE_PNG);
         String name = spec.id() + "-" + frame.frameKey() + ".pmtiles";
@@ -177,28 +207,61 @@ public class RasterExportService {
     }
 
     private File writeCog(ProductSpec spec, RasterFrameRow frame, Request request, String jobId) {
-        double[] box = request.bbox();
-        double spanX = Math.max(box[2] - box[0], 1e-6);
-        double spanY = Math.max(box[3] - box[1], 1e-6);
+        int epsg = cogEpsg(request.tms());
+        boolean mercator = epsg == 3857;
+        double[] box = request.bbox().clone();
+        if (mercator) {
+            box[1] = Math.max(box[1], -WebMercator.MAX_LAT);
+            box[3] = Math.min(box[3], WebMercator.MAX_LAT);
+        }
+        double[] crsBounds = mercator
+                ? new double[] {WebMercator.x(box[0]), WebMercator.y(box[1]), WebMercator.x(box[2]), WebMercator.y(box[3])}
+                : box;
+        double spanX = Math.max(crsBounds[2] - crsBounds[0], 1e-6);
+        double spanY = Math.max(crsBounds[3] - crsBounds[1], 1e-6);
         int width = COG_MAX_SIDE;
         int height = Math.max(1, (int) Math.round(width * spanY / spanX));
         if (height > COG_MAX_SIDE) {
             height = COG_MAX_SIDE;
             width = Math.max(1, (int) Math.round(height * spanX / spanY));
         }
-        float[] values = renderer.values(spec, frame, box[0], box[1], box[2], box[3], width, height, false);
+        float[] values = renderer.values(spec, frame, box[0], box[1], box[2], box[3], width, height, mercator);
         double nodata = spec.nodata() == null ? -9999.0 : spec.nodata();
         for (int k = 0; k < values.length; k++) {
             if (Float.isNaN(values[k])) {
                 values[k] = (float) nodata;
             }
         }
-        byte[] bytes = CogWriter.write(values, width, height, box, 4326, nodata, null);
+        byte[] bytes = CogWriter.write(values, width, height, crsBounds, epsg, nodata, gdalMetadata(spec, frame),
+                ExportAttribution.line(spec));
         String name = spec.id() + "-" + frame.frameKey() + ".tif";
         Path target = paths.file(jobId, name);
         writeBytes(target, bytes);
         return new File(name, target.toString(), bytes.length, FrameStore.sha256Hex(bytes),
                 "image/tiff; application=geotiff; profile=cloud-optimized");
+    }
+
+    /** The {@code GDAL_METADATA} document: attribution, license, frame and units. */
+    static String gdalMetadata(ProductSpec spec, RasterFrameRow frame) {
+        Map<String, Object> a = ExportAttribution.structured(spec);
+        StringBuilder xml = new StringBuilder("<GDALMetadata>");
+        item(xml, "ATTRIBUTION", ExportAttribution.line(spec));
+        item(xml, "LICENSE", String.valueOf(a.get("licence")));
+        item(xml, "LICENSE_URL", a.get("licenceUrl") == null ? null : String.valueOf(a.get("licenceUrl")));
+        item(xml, "PRODUCT", spec.id());
+        item(xml, "FRAME_KEY", frame.frameKey());
+        item(xml, "VALID_TIME", frame.validTime() == null ? null : frame.validTime().toString());
+        item(xml, "UNITS", spec.units());
+        xml.append("</GDALMetadata>");
+        return xml.toString();
+    }
+
+    private static void item(StringBuilder xml, String name, String value) {
+        if (value == null) {
+            return;
+        }
+        xml.append("<Item name=\"").append(name).append("\">").append(value.replace("&", "&amp;")
+                .replace("<", "&lt;").replace(">", "&gt;")).append("</Item>");
     }
 
     private File file(String name, Path target, String mediaType) {
@@ -222,8 +285,13 @@ public class RasterExportService {
         }
     }
 
-    private static String frameJson(RasterFrameRow frame) {
-        return "{\"frameKey\":\"" + frame.frameKey() + "\",\"validTime\":\"" + frame.validTime() + "\"}";
+    /** The {@code json} metadata value: the frame and the structured attribution, serialized by the JSON mapper. */
+    private String frameJson(ProductSpec spec, RasterFrameRow frame) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("frameKey", frame.frameKey());
+        m.put("validTime", frame.validTime() == null ? null : frame.validTime().toString());
+        m.put("attribution", ExportAttribution.structured(spec));
+        return json.writeValueAsString(m);
     }
 
     static String boundsText(double[] bbox) {

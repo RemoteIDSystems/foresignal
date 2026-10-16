@@ -586,7 +586,8 @@ public class RasterTilesController {
                 blankToNull(style), blankToNull(run));
         Map<String, Object> loop = loops.loop(loopRequest, callers.excludedSources(caller), urls.base(request),
                 clock.instant());
-        List<java.awt.image.BufferedImage> images = new java.util.ArrayList<>();
+        List<RasterRenderService.LoopFrame> loopFrames = new java.util.ArrayList<>();
+        RasterRenderService.ImageRequest image = null;
         boolean contentAddressed = true;
         if (loop.get("frames") instanceof List<?> items) {
             int w = ((Number) loop.get("width")).intValue();
@@ -609,17 +610,18 @@ public class RasterTilesController {
                 FrameResolver.Resolution resolution = resolver.resolve(spec, frameKey, itemRun, false, clock.instant(),
                         k -> ProductUrls.product(urls.base(request), spec.id()) + "/image/" + k + ".png");
                 if (resolution instanceof FrameResolver.Found found) {
-                    RasterRenderService.ImageRequest image = new RasterRenderService.ImageRequest(bounds[0], bounds[1],
-                            bounds[2], bounds[3], w, h, true, false);
-                    images.add(renderer.drawDirect(spec, found.frame(), resolvedStyle, image).image());
+                    image = new RasterRenderService.ImageRequest(bounds[0], bounds[1], bounds[2], bounds[3], w, h,
+                            true, false);
+                    loopFrames.add(new RasterRenderService.LoopFrame(spec, found.frame(), resolvedStyle));
                 }
             }
         }
-        if (images.isEmpty()) {
+        if (loopFrames.isEmpty()) {
             throw new ForesignalException(HttpStatus.NOT_FOUND, ErrorCodes.UNKNOWN_FRAME,
                     "No frames are available for this loop.");
         }
-        byte[] gif = ai.foresignal.raster.render.GifEncoder.encode(images, delayMs);
+        // through the render queue (prefetch priority, RENDER_BUSY) and cached for content-addressed sets
+        byte[] gif = renderer.loopGif(loopFrames, image, delayMs, contentAddressed, clientKey(request));
         String etag = RasterCachePolicy.etagOf(gif);
         HttpHeaders headers = RasterCachePolicy.headers(RasterCachePolicy.decide(contentAddressed, false, null), etag,
                 null);

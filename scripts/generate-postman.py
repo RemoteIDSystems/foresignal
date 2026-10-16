@@ -158,6 +158,10 @@ EXTRA_HEADERS = {
 }
 
 BODIES = {
+  # 108: raster exports (MBTiles/PMTiles take WebMercatorQuad only; a COG in WebMercatorQuad is EPSG:3857) and the place pack
+  "createProductExport": {"format": "pmtiles", "frameKey": "latest", "bbox": [-98.6, 29.6, -96.9, 31.0], "minZoom": 4, "maxZoom": 7,
+                          "tms": "WebMercatorQuad"},
+  "createPlacePack": {"products": [], "frames": 6, "radiusKm": 150, "maxZoom": 6},
   # downsampleInterval: TRACK sources only (STANDARD -> 400); null clears the override and is accepted for any source.
   "updateSource": {"enabled": True, "interval": "60s", "params": {"feed": "all_day"}, "budget": {"perMinute": 4, "perDay": 2000}, "retention": "365d",
                    "ingestPolicy": {"mode": "SAMPLED", "minInterval": "60s", "keyframe": "240s", "minDeviationMeters": 1000, "thresholds": True, "edgeMinInterval": "30s"},

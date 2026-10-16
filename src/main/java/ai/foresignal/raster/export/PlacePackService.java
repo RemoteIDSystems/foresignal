@@ -44,6 +44,12 @@ import tools.jackson.databind.json.JsonMapper;
  * (a SHA-256 per file), the raw arrays (place weather, forecast series, nearby alerts as GeoJSON,
  * legends), a {@code loop.gif} and one PMTiles per product (latest frame, z ≤ maxZoom). Capped at
  * {@value #MAX_BYTES} bytes.
+ *
+ * <p>The pack is built on a worker thread, after the request that asked for it has gone, so the
+ * caller's visibility travels in the job spec ({@code excludedSources}: private sources it may not
+ * read and everything its token restriction hides). Products and forecast series of those sources are
+ * left out, exactly as the caller's own reads would leave them out. An empty or absent product list
+ * means the default set. Every frame and tile renders through the render queue at prefetch priority.
  */
 @Service
 public class PlacePackService {
@@ -82,17 +88,42 @@ public class PlacePackService {
         this.clock = clock;
     }
 
-    /** A parsed pack request. */
-    public record Request(String placeId, List<String> products, int frames, double radiusKm, int maxZoom) {
+    /**
+     * A parsed pack request.
+     *
+     * @param placeId the place
+     * @param products the requested products; empty means the default set
+     * @param frames loop frames (1–12)
+     * @param radiusKm the radius around the place
+     * @param maxZoom the deepest PMTiles zoom (0–8)
+     * @param excludedSources the sources the caller may not read, sorted
+     */
+    public record Request(String placeId, List<String> products, int frames, double radiusKm, int maxZoom,
+            List<String> excludedSources) {
 
-        /** The stored spec map. */
+        /** Copies the lists, sorting the exclusions so equal visibility hashes equally. */
+        public Request {
+            products = products == null ? List.of() : List.copyOf(products);
+            excludedSources = excludedSources == null ? List.of()
+                    : excludedSources.stream().sorted().distinct().toList();
+        }
+
+        /** A request with no excluded sources. */
+        public Request(String placeId, List<String> products, int frames, double radiusKm, int maxZoom) {
+            this(placeId, products, frames, radiusKm, maxZoom, List.of());
+        }
+
+        /** The stored spec map ({@code products} only when some were named). */
         public Map<String, Object> toMap() {
             Map<String, Object> m = new LinkedHashMap<>();
             m.put("placeId", placeId);
-            m.put("products", products);
+            if (!products.isEmpty()) {
+                m.put("products", products);
+            }
             m.put("frames", frames);
             m.put("radiusKm", radiusKm);
             m.put("maxZoom", maxZoom);
+            m.put("excludedSources", excludedSources);
             return m;
         }
     }
@@ -108,9 +139,13 @@ public class PlacePackService {
                 "Unknown place " + placeId + "."));
         double radiusKm = spec.get("radiusKm") instanceof Number n ? n.doubleValue() : DEFAULT_RADIUS_KM;
         int maxZoom = spec.get("maxZoom") instanceof Number n ? n.intValue() : DEFAULT_MAX_ZOOM;
-        List<String> products = spec.get("products") instanceof List<?> list
+        Set<String> excluded = spec.get("excludedSources") instanceof List<?> ex
+                ? ex.stream().map(String::valueOf).collect(java.util.stream.Collectors.toUnmodifiableSet())
+                : Set.of();
+        List<String> requested = spec.get("products") instanceof List<?> list
                 ? list.stream().map(String::valueOf).toList()
-                : defaultProducts(place);
+                : List.of();
+        List<String> products = visibleProducts(requested.isEmpty() ? defaultProducts(place) : requested, excluded);
         double[] box = around(place, radiusKm);
         org.locationtech.jts.geom.Point center = centroid(place);
         Map<String, byte[]> entries = new LinkedHashMap<>();
@@ -120,7 +155,7 @@ public class PlacePackService {
             weather.put("placeId", place.id());
             weather.put("place", place.name());
             weather.put("timezone", place.timezone() == null ? "UTC" : place.timezone());
-            weather.put("forecastSeries", forecasts.series(place.id(), center.getX(), center.getY(), Set.of()));
+            weather.put("forecastSeries", forecasts.series(place.id(), center.getX(), center.getY(), excluded));
             entries.put("place-weather.json", json.writeValueAsBytes(weather));
             entries.put("forecast-series.json", json.writeValueAsBytes(weather.get("forecastSeries")));
             Map<String, Object> legendDoc = new LinkedHashMap<>();
@@ -135,7 +170,7 @@ public class PlacePackService {
             entries.put("legends.json", json.writeValueAsBytes(legendDoc));
             entries.put("alerts.geojson", "{\"type\":\"FeatureCollection\",\"features\":[]}"
                     .getBytes(StandardCharsets.UTF_8));
-            byte[] gif = loopGif(products, box, (int) ((Number) spec.getOrDefault("frames", 12)).intValue());
+            byte[] gif = loopGif(products, box, ((Number) spec.getOrDefault("frames", 12)).intValue());
             if (gif.length > 0) {
                 entries.put("loop.gif", gif);
             }
@@ -158,6 +193,7 @@ public class PlacePackService {
         manifest.put("generatedAt", clock.instant().toString());
         manifest.put("bounds", List.of(box[0], box[1], box[2], box[3]));
         manifest.put("attribution", attribution(products));
+        manifest.put("attributions", attributions(products));
         List<Map<String, Object>> fileList = new ArrayList<>();
         for (Map.Entry<String, byte[]> e : entries.entrySet()) {
             Map<String, Object> f = new LinkedHashMap<>();
@@ -191,7 +227,24 @@ public class PlacePackService {
         return new Result(List.of(file), zip.length, items);
     }
 
-    private List<String> defaultProducts(PlaceView place) {
+    /**
+     * The products of {@code ids} the caller may read: registered, not external, and not of an excluded
+     * source. A product the caller cannot see is dropped silently, as a read would hide it.
+     */
+    List<String> visibleProducts(List<String> ids, Set<String> excluded) {
+        List<String> out = new ArrayList<>();
+        for (String id : ids) {
+            ProductRegistry.Registered product = registry.find(id).orElse(null);
+            if (product != null && !product.spec().isExternal() && !excluded.contains(product.sourceId())
+                    && !out.contains(id)) {
+                out.add(id);
+            }
+        }
+        return out;
+    }
+
+    /** The default products: the place's own, else radar, IR and the forecast models that exist. */
+    List<String> defaultProducts(PlaceView place) {
         if (place.products() != null && !place.products().isEmpty()) {
             return place.products().stream().filter(p -> registry.find(p).isPresent()).toList();
         }
@@ -208,14 +261,23 @@ public class PlacePackService {
         StringBuilder text = new StringBuilder();
         for (String productId : products) {
             ProductRegistry.Registered product = registry.find(productId).orElse(null);
-            if (product != null && product.spec().attribution() != null) {
+            if (product != null) {
                 if (text.length() > 0) {
                     text.append("; ");
                 }
-                text.append(product.spec().attribution().text());
+                text.append(ExportAttribution.line(product.spec()));
             }
         }
         return text.length() == 0 ? null : text.toString();
+    }
+
+    /** The structured attribution and license of each product, keyed by product id. */
+    private Map<String, Object> attributions(List<String> products) {
+        Map<String, Object> out = new LinkedHashMap<>();
+        for (String productId : products) {
+            registry.find(productId).ifPresent(p -> out.put(productId, ExportAttribution.structured(p.spec())));
+        }
+        return out;
     }
 
     private byte[] loopGif(List<String> products, double[] box, int frameCount) {
@@ -234,16 +296,18 @@ public class PlacePackService {
             return new byte[0];
         }
         StyleRegistry.Resolved style = renderer.style(spec, null);
-        List<java.awt.image.BufferedImage> images = new ArrayList<>();
+        List<RasterRenderService.LoopFrame> loopFrames = new ArrayList<>();
         int width = 400;
         int height = Math.max(1, (int) Math.round(width * (WebMercator.y(box[3]) - WebMercator.y(box[1]))
                 / Math.max(1e-9, WebMercator.x(box[2]) - WebMercator.x(box[0]))));
+        boolean contentAddressed = true;
         for (RasterFrameRow row : rows) {
-            RasterRenderService.ImageRequest image = new RasterRenderService.ImageRequest(box[0], box[1], box[2], box[3],
-                    width, height, true, false);
-            images.add(renderer.drawDirect(spec, row, style, image).image());
+            loopFrames.add(new RasterRenderService.LoopFrame(spec, row, style));
+            contentAddressed &= FrameKeys.parseFrameKey(row.frameKey()).contentAddressed();
         }
-        return GifEncoder.encode(images, GifEncoder.DEFAULT_DELAY_MS);
+        RasterRenderService.ImageRequest image = new RasterRenderService.ImageRequest(box[0], box[1], box[2], box[3],
+                width, height, true, false);
+        return renderer.loopGif(loopFrames, image, GifEncoder.DEFAULT_DELAY_MS, contentAddressed, "pack");
     }
 
     private byte[] pmtiles(ProductSpec spec, double[] box, int maxZoom) {
@@ -271,9 +335,8 @@ public class PlacePackService {
         Map<String, Object> metadata = new LinkedHashMap<>();
         metadata.put("name", spec.title());
         metadata.put("type", "overlay");
-        if (spec.attribution() != null) {
-            metadata.put("attribution", spec.attribution().text());
-        }
+        metadata.put("attribution", ExportAttribution.line(spec));
+        metadata.put("description", ExportAttribution.line(spec));
         metadata.put("validTime", frame.validTime().toString());
         return PmtilesWriter.write(tiles, metadata, box, 0, maxZoom, PmtilesWriter.TYPE_PNG);
     }

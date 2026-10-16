@@ -22,4 +22,24 @@ class WebpHealthCheckTest {
             assertThat(support.warnings().get(0).code()).isEqualTo(WebpSupport.WARNING);
         }
     }
+
+    @Test
+    @DisplayName("a missing native library (UnsatisfiedLinkError, NoClassDefFoundError) disables WebP instead of failing")
+    void linkageErrorDisables() {
+        WebpSupport unsatisfied = new WebpSupport(() -> {
+            throw new UnsatisfiedLinkError("no webp-imageio in java.library.path");
+        });
+        assertThat(unsatisfied.available()).isFalse();
+        assertThat(unsatisfied.reason()).contains("UnsatisfiedLinkError");
+        assertThat(unsatisfied.warnings()).hasSize(1);
+        WebpSupport noClass = new WebpSupport(() -> {
+            throw new NoClassDefFoundError("com/luciad/imageio/webp/WebPWriteParam");
+        });
+        assertThat(noClass.available()).isFalse();
+        WebpSupport runtime = new WebpSupport(() -> {
+            throw new IllegalStateException("no writer");
+        });
+        assertThat(runtime.available()).isFalse();
+        assertThat(new WebpSupport(() -> { }).available()).isTrue();
+    }
 }

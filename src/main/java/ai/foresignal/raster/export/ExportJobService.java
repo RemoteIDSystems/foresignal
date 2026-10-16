@@ -30,6 +30,12 @@ import org.springframework.transaction.annotation.Transactional;
  * The raster export job framework (prompt 108; Weather-Imagery-Design §11): submit, run and poll
  * MBTiles/PMTiles/COG exports and place packs on one table. A worker pool renders in the background;
  * files live under {@code exports/{id}/} for 48 hours.
+ *
+ * <p>A job is handed to the pool only after its row commits, so a worker never looks for a row that is
+ * not there yet. The scheduled {@link #sweep()} enforces the 48-hour expiry (by {@code expires_at}, so
+ * a job that never finished expires too) and fails jobs that can no longer finish: those queued or
+ * running when this process started (the in-memory pool died with the previous process) and those
+ * stuck longer than {@link #STUCK_AFTER}. A place pack is reused for {@link #PACK_REUSE} per input hash.
  */
 @Service
 public class ExportJobService {
@@ -39,6 +45,18 @@ public class ExportJobService {
     /** The maximum export lifetime. */
     public static final java.time.Duration TTL = ExportPaths.TTL;
 
+    /** A job still queued or running after this long is failed by the sweep. */
+    public static final java.time.Duration STUCK_AFTER = java.time.Duration.ofHours(6);
+
+    /** How long a place pack is reused for the same input (prompt 108: "cached 10 min by its input hash"). */
+    public static final java.time.Duration PACK_REUSE = java.time.Duration.ofMinutes(10);
+
+    /** The statuses of a job that has not finished. */
+    static final List<String> UNFINISHED = List.of("QUEUED", "RUNNING");
+
+    /** The statuses of a pack that may be reused. */
+    static final List<String> REUSABLE = List.of("QUEUED", "RUNNING", "DONE");
+
     private final ExportJobRepository jobs;
     private final RasterExportService exports;
     private final PlacePackService packs;
@@ -46,6 +64,7 @@ public class ExportJobService {
     private final ProductRegistry registry;
     private final ExportPaths paths;
     private final Clock clock;
+    private final Instant processStart;
     private final ExecutorService executor = Executors.newFixedThreadPool(2, r -> {
         Thread t = new Thread(r, "foresignal-export");
         t.setDaemon(true);
@@ -62,6 +81,7 @@ public class ExportJobService {
         this.registry = registry;
         this.paths = paths;
         this.clock = clock;
+        this.processStart = clock.instant();
     }
 
     /** Submits a raster export. */
@@ -75,21 +95,54 @@ public class ExportJobService {
         job.setSpec(specMap(request));
         job.setExpiresAt(now.plus(TTL));
         jobs.save(job);
-        executor.submit(() -> runQuietly(job.getId()));
+        afterCommit(() -> executor.submit(() -> runQuietly(job.getId())));
         return job;
     }
 
-    /** Submits a place offline pack. */
+    /**
+     * Submits a place offline pack, or returns the pack already built (or being built) for the same input
+     * in the last {@link #PACK_REUSE}. The input hash covers the request, the caller's excluded sources and
+     * the token, so a reused pack never carries data its caller may not read.
+     */
     @Transactional
     public ExportJobEntity submitPlacePack(String placeId, PlacePackService.Request request, String tokenId) {
         Instant now = clock.instant();
+        String hash = inputHash(request, tokenId);
+        java.util.Optional<ExportJobEntity> reused = jobs
+                .findFirstByKindAndInputHashAndCreatedAtAfterAndStatusInOrderByCreatedAtDesc("PLACE_PACK", hash,
+                        now.minus(PACK_REUSE), REUSABLE);
+        if (reused.isPresent()) {
+            return reused.get();
+        }
         ExportJobEntity job = new ExportJobEntity(Ulids.next(now), "PLACE_PACK", "zip", now);
         job.setSpec(request.toMap());
         job.setCreatedBy(tokenId);
+        job.setInputHash(hash);
         job.setExpiresAt(now.plus(TTL));
         jobs.save(job);
-        executor.submit(() -> runQuietly(job.getId()));
+        afterCommit(() -> executor.submit(() -> runQuietly(job.getId())));
         return job;
+    }
+
+    /** The SHA-256 of a pack's input: its request map and the token. */
+    static String inputHash(PlacePackService.Request request, String tokenId) {
+        String input = request.toMap().toString() + "|" + tokenId;
+        return ai.foresignal.raster.FrameStore.sha256Hex(input.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+    }
+
+    /** Runs {@code action} once the current transaction commits, or at once outside a transaction. */
+    static void afterCommit(Runnable action) {
+        if (!org.springframework.transaction.support.TransactionSynchronizationManager.isSynchronizationActive()) {
+            action.run();
+            return;
+        }
+        org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
+                new org.springframework.transaction.support.TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        action.run();
+                    }
+                });
     }
 
     private void runQuietly(String id) {
@@ -192,7 +245,7 @@ public class ExportJobService {
         out.put("id", job.getId());
         out.put("kind", job.getKind());
         out.put("format", job.getFormat());
-        out.put("spec", job.getSpec());
+        out.put("spec", publicSpec(job.getSpec()));
         out.put("status", job.getStatus());
         out.put("progress", job.getProgress());
         out.put("principal", job.getCreatedBy());
@@ -210,6 +263,19 @@ public class ExportJobService {
                 : base + "/v1/exports/" + job.getId() + "/files/" + job.getFiles().get(0).get("name"));
         out.put("manifestUrl", null);
         out.put("files", job.getFiles() == null ? List.of() : job.getFiles());
+        return out;
+    }
+
+    /**
+     * The spec as clients see it: without {@code excludedSources}, which names private sources the
+     * caller may not even know exist.
+     */
+    static Map<String, Object> publicSpec(Map<String, Object> spec) {
+        if (spec == null || !spec.containsKey("excludedSources")) {
+            return spec;
+        }
+        Map<String, Object> out = new LinkedHashMap<>(spec);
+        out.remove("excludedSources");
         return out;
     }
 
@@ -252,12 +318,44 @@ public class ExportJobService {
                 (String) spec.get("style"), ai.foresignal.raster.render.TileMatrixSets.resolve((String) spec.get("tms")));
     }
 
-    /** Removes expired jobs and their files. */
+    /** The scheduled sweep (every 15 minutes by default); a failure is logged and retried next time. */
+    @org.springframework.scheduling.annotation.Scheduled(
+            fixedDelayString = "${foresignal.raster.export.sweep-interval:15m}",
+            initialDelayString = "${foresignal.raster.export.sweep-initial-delay:1m}")
+    public void scheduledSweep() {
+        try {
+            int removed = sweep();
+            if (removed > 0) {
+                log.info("Removed {} expired raster export jobs", removed);
+            }
+        } catch (RuntimeException e) {
+            log.warn("The raster export sweep failed", e);
+        }
+    }
+
+    /**
+     * Fails jobs that can no longer finish, then removes expired jobs and their files.
+     *
+     * @return the number of jobs removed
+     */
     @Transactional
     public int sweep() {
         Instant now = clock.instant();
-        int removed = 0;
+        for (ExportJobEntity job : jobs.findByStatusInAndCreatedAtBefore(UNFINISHED, now.minus(STUCK_AFTER))) {
+            fail(job, "The export did not finish within " + STUCK_AFTER.toHours() + " hours.", now);
+        }
+        for (ExportJobEntity job : jobs.findByStatusInAndCreatedAtBefore(UNFINISHED, processStart)) {
+            fail(job, "The export was interrupted by a restart; submit it again.", now);
+        }
+        java.util.Map<String, ExportJobEntity> expired = new LinkedHashMap<>();
+        for (ExportJobEntity job : jobs.findByExpiresAtBefore(now)) {
+            expired.put(job.getId(), job);
+        }
         for (ExportJobEntity job : jobs.findByFinishedAtBefore(now.minus(TTL))) {
+            expired.put(job.getId(), job);
+        }
+        int removed = 0;
+        for (ExportJobEntity job : expired.values()) {
             Path dir = paths.jobDir(job.getId());
             try {
                 if (Files.isDirectory(dir)) {
@@ -274,5 +372,15 @@ public class ExportJobService {
             removed++;
         }
         return removed;
+    }
+
+    private void fail(ExportJobEntity job, String reason, Instant now) {
+        if (!UNFINISHED.contains(job.getStatus())) {
+            return;
+        }
+        job.setStatus("FAILED");
+        job.setError(reason);
+        job.setFinishedAt(now);
+        jobs.save(job);
     }
 }

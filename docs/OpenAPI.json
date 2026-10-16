@@ -432,6 +432,11 @@
         "version": "1.3.0",
         "date": "2026-10-15",
         "note": "107: SatDump extras. satdump-{station} gains filtered DCS (dcp-observation) and EMWIN products and warnings (emwin-product, emwin-warning) with the EMWIN warnings fallback; new glm-local-{station} source feeding the shared GLM ring with dedup; the CelesTrak per-group TLE alias /compat/celestrak/NORAD/elements/{group}.txt; the SatDump 2.0 foresignal-manifest.json reader and the MIT contrib/satdump hook."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-16",
+        "note": "108 (post-review): createProductExport refuses tms=WorldCRS84Quad for mbtiles/pmtiles (400) and writes a cog in EPSG:3857 for WebMercatorQuad; edrArea answers the native grid (flat values; MultiPoint for projected grids); WMTS capabilities are private with TileMatrixSetLimits; createPlacePack treats an empty products list as the default."
       }
     ]
   },
@@ -43004,7 +43009,7 @@
         ],
         "operationId": "getWmtsCapabilities",
         "summary": "WMTS capabilities",
-        "description": "One layer per product × style with both tile matrix sets, `Time` (and `RefTime` for forecasts) dimensions and RESTful ResourceURL templates. Through `/v1/k/{key}/wmts/...` every URL embeds the key prefix. ETag, max-age=60.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "One layer per product × style with both tile matrix sets, `Time` (and `RefTime` for forecasts) dimensions and RESTful ResourceURL templates. Through `/v1/k/{key}/wmts/...` every URL embeds the key prefix. Each layer carries `TileMatrixSetLimits` for its native zoom range and bounds. ETag, `private, max-age=60` with `Vary: Authorization` (the layer list depends on the caller).\n\n**Scope:** `read` (open while `security.openReads` is on).",
         "responses": {
           "200": {
             "description": "Capabilities",
@@ -44605,7 +44610,7 @@
         ],
         "operationId": "edrArea",
         "summary": "EDR area query",
-        "description": "Native-grid subset inside a polygon with units and the nodata mask; > 100,000 cells is 413 EDR_TOO_LARGE.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "Native-grid subset of the polygon's bounding box with units and the nodata mask (`null` values), values flat and row-major. A regular lat/lon grid answers a `Grid` domain; a projected grid (geostationary, Lambert, affine) answers a `MultiPoint` domain of its cell centers. More than 100,000 native cells is 413 EDR_TOO_LARGE.\n\n**Scope:** `read` (open while `security.openReads` is on).",
         "parameters": [
           {
             "name": "collectionId",
@@ -121495,7 +121500,7 @@
             "items": {
               "type": "string"
             },
-            "description": "Default: radar, IR and the place's forecast products"
+            "description": "Default (absent or empty): radar, IR and the place's forecast products. Products of sources the caller may not read are left out."
           },
           "frames": {
             "type": "integer",
@@ -122396,7 +122401,8 @@
               "WebMercatorQuad",
               "WorldCRS84Quad"
             ],
-            "default": "WebMercatorQuad"
+            "default": "WebMercatorQuad",
+            "description": "mbtiles and pmtiles hold XYZ WebMercatorQuad tiles only (WorldCRS84Quad is 400 VALIDATION_FAILED). A cog follows the set: WebMercatorQuad writes EPSG:3857, WorldCRS84Quad EPSG:4326."
           }
         },
         "required": [
