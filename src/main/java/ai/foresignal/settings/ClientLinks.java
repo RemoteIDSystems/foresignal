@@ -14,9 +14,16 @@ import java.util.Map;
  * @param record a record, default {@value #DEFAULT_RECORD}
  * @param briefingRun a briefing run, default {@value #DEFAULT_BRIEFING_RUN}
  * @param pair a pairing QR payload, default {@value #DEFAULT_PAIR}
+ * @param share a share link opened in a client (prompt 112, placeholder {@code {key}}); no default: share
+ *     links redirect with {@code ?open=1} only when the operator sets it
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
-public record ClientLinks(String alert, String record, String briefingRun, String pair) {
+public record ClientLinks(String alert, String record, String briefingRun, String pair, String share) {
+
+    /** The four templates of prompt 023, without a share template. */
+    public ClientLinks(String alert, String record, String briefingRun, String pair) {
+        this(alert, record, briefingRun, pair, null);
+    }
 
     public static final String DEFAULT_ALERT = "foresignal://alerts/{id}";
     public static final String DEFAULT_RECORD = "foresignal://records/{source}/{externalId}";
@@ -34,7 +41,8 @@ public record ClientLinks(String alert, String record, String briefingRun, Strin
                 alert == null ? DEFAULT_ALERT : alert,
                 record == null ? DEFAULT_RECORD : record,
                 briefingRun == null ? DEFAULT_BRIEFING_RUN : briefingRun,
-                pair == null ? DEFAULT_PAIR : pair);
+                pair == null ? DEFAULT_PAIR : pair,
+                share);
     }
 
     /**

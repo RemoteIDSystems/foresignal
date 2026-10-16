@@ -43,6 +43,17 @@ public interface PathKeyResolver {
         return ai.foresignal.api.error.ErrorCodes.RESTRICTED;
     }
 
+    /**
+     * True (the default) when an accepted key's request is forwarded to the canonical path {@code /v1/<rest>};
+     * false when the key's own URLs are served by a controller mapped at {@code /v1/k/{key}/…} (share links,
+     * prompt 112): the filter then checks the key, the method and the sub-path against
+     * {@link Valid#prefixes()} (sub-paths after the key, {@code ""} for the key itself) and passes the request on
+     * unchanged, binding no principal.
+     */
+    default boolean forwards() {
+        return true;
+    }
+
     /** The outcome of a lookup. */
     sealed interface Resolution {}
 

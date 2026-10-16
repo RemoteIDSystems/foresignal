@@ -19,6 +19,8 @@ import org.locationtech.jts.geom.Geometry;
  * @param categories Atom categories / JSON Feed tags (severity and rule tags)
  * @param geometry the geometry for GeoRSS, or null
  * @param extension the JSON Feed {@code _foresignal} object, or null
+ * @param linkType the media type of the alternate link (Atom {@code type}), or null (prompt 112: CAP entries
+ *     link {@code application/cap+xml})
  */
 public record FeedEntry(
         String id,
@@ -30,11 +32,18 @@ public record FeedEntry(
         String text,
         List<Category> categories,
         Geometry geometry,
-        Map<String, Object> extension) {
+        Map<String, Object> extension,
+        String linkType) {
 
     /** Copies the categories. */
     public FeedEntry {
         categories = categories == null ? List.of() : List.copyOf(categories);
+    }
+
+    /** An entry whose alternate link has no media type (prompt 058). */
+    public FeedEntry(String id, String title, String link, Instant published, Instant updated, String html, String text,
+            List<Category> categories, Geometry geometry, Map<String, Object> extension) {
+        this(id, title, link, published, updated, html, text, categories, geometry, extension, null);
     }
 
     /**

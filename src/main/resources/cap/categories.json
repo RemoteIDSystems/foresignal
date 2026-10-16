@@ -1,0 +1,136 @@
+{
+  "description": "CAP 1.2 <category> of Foresignal's own CAP messages by record kind (prompt 112). 'exact' maps a kind; otherwise the first 'contains' entry whose text occurs in the kind wins; else 'default'.",
+  "exact": {
+    "earthquake": "Geo",
+    "tsunami-warning": "Geo",
+    "volcano": "Geo",
+    "nws-alert": "Met",
+    "cap-alert": "Met",
+    "fire-hotspot": "Fire",
+    "wildfire": "Fire",
+    "aircraft": "Transport",
+    "vessel": "Transport",
+    "airspace-restriction": "Transport",
+    "power-outage": "Infra",
+    "internet-outage": "Infra"
+  },
+  "contains": [
+    [
+      "earthquake",
+      "Geo"
+    ],
+    [
+      "tsunami",
+      "Geo"
+    ],
+    [
+      "volcan",
+      "Geo"
+    ],
+    [
+      "seismic",
+      "Geo"
+    ],
+    [
+      "weather",
+      "Met"
+    ],
+    [
+      "storm",
+      "Met"
+    ],
+    [
+      "cyclone",
+      "Met"
+    ],
+    [
+      "hurricane",
+      "Met"
+    ],
+    [
+      "lightning",
+      "Met"
+    ],
+    [
+      "flood",
+      "Met"
+    ],
+    [
+      "metar",
+      "Met"
+    ],
+    [
+      "fire",
+      "Fire"
+    ],
+    [
+      "outage",
+      "Infra"
+    ],
+    [
+      "infrastructure",
+      "Infra"
+    ],
+    [
+      "power",
+      "Infra"
+    ],
+    [
+      "grid",
+      "Infra"
+    ],
+    [
+      "aircraft",
+      "Transport"
+    ],
+    [
+      "vessel",
+      "Transport"
+    ],
+    [
+      "ais",
+      "Transport"
+    ],
+    [
+      "flight",
+      "Transport"
+    ],
+    [
+      "airspace",
+      "Transport"
+    ],
+    [
+      "road",
+      "Transport"
+    ],
+    [
+      "traffic",
+      "Transport"
+    ],
+    [
+      "transport",
+      "Transport"
+    ],
+    [
+      "transit",
+      "Transport"
+    ],
+    [
+      "cyber",
+      "Security"
+    ],
+    [
+      "conflict",
+      "Security"
+    ],
+    [
+      "health",
+      "Health"
+    ],
+    [
+      "disease",
+      "Health"
+    ]
+  ],
+  "default": "Other"
+}

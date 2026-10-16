@@ -373,11 +373,15 @@ BODIES = {
   "createPack": {"name": "Austin field pack", "bbox": [-97.95, 30.1, -97.55, 30.5], "minZoom": 6, "maxZoom": 12,
                  "vector": {"sources": ["usgs-earthquakes"], "kinds": ["earthquake"], "asOf": None},
                  "raster": {"productId": "mrms-reflectivity", "frame": "latest"}},
+  # 112: a share link to one record, 7 days by default, at most 50 uses; the plaintext fss_ key is returned once.
+  "createShareLink": {"targetType": "record", "targetRef": "usgs-earthquakes/us7000n7tc", "fieldMask": None,
+                      "precisionM": None, "expiresAt": None, "maxUses": 50},
 }
 
 # test scripts: capture ids / assert status
 CAPTURE = {
   "createExport": "const j = pm.response.json(); pm.collectionVariables.set('exportId', j.id);",
+  "createShareLink": "const j = pm.response.json(); pm.collectionVariables.set('shareLinkId', j.id); pm.collectionVariables.set('key', j.key);",
   "createSnapshot": "const j = pm.response.json(); pm.collectionVariables.set('exportId', j.id);",
   "createPack": "const j = pm.response.json(); pm.collectionVariables.set('exportId', j.id);",
   "createHold": "const j = pm.response.json(); pm.collectionVariables.set('holdId', j.id);",

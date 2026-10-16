@@ -32,7 +32,8 @@ import org.springframework.web.util.UrlPathHelper;
  *
  * <ol>
  *   <li>picks the {@link PathKeyResolver} by key prefix ({@code fsf_} feed keys, {@code fsk_} tile keys
- *       from prompt 050; 112 adds {@code fss_}) and resolves the key in constant time. Unknown →
+ *       from prompt 050; {@code fss_} share links from 112, whose URLs are served at {@code /v1/k/{key}/…}
+ *       itself, see {@link PathKeyResolver#forwards()}) and resolves the key in constant time. Unknown →
  *       {@code 401} with the resolver's {@link PathKeyResolver#invalidCode()} ({@code INVALID_FEED_KEY},
  *       {@code INVALID_TILE_KEY}); expired or revoked → its {@link PathKeyResolver#goneStatus()} and
  *       {@link PathKeyResolver#goneCode()} ({@code 410 FEED_KEY_GONE} for feed keys, {@code 401
@@ -201,8 +202,13 @@ public class PathKeyFilter extends OncePerRequestFilter implements Ordered {
                 }
                 return;
             }
-            case PathKeyResolver.Valid valid ->
+            case PathKeyResolver.Valid valid -> {
+                if (codes.forwards()) {
                     forward(request, response, chain, valid, codes, contextPath, rest, ip);
+                } else {
+                    passThrough(request, response, chain, valid, codes, rest, ip);
+                }
+            }
         }
     }
 
@@ -237,6 +243,41 @@ public class PathKeyFilter extends OncePerRequestFilter implements Ordered {
         ServletRequestPathUtils.clearParsedRequestPath(forwarded);
         forwarded.removeAttribute(UrlPathHelper.PATH_ATTRIBUTE);
         chain.doFilter(forwarded, response);
+    }
+
+    /**
+     * An accepted key whose resolver serves its own URLs (share links, prompt 112): GET and HEAD only, a plain
+     * sub-path among the key's allowed sub-paths ({@code ""} is the key itself), then the request continues
+     * unchanged to the controller mapped at {@code /v1/k/{key}/…}. No principal is bound: the key is a capability
+     * for its own paths only and never a credential for any other operation.
+     */
+    private void passThrough(HttpServletRequest request, HttpServletResponse response, FilterChain chain,
+            PathKeyResolver.Valid valid, PathKeyResolver codes, String rest, String ip)
+            throws IOException, ServletException {
+        AuthFailureBackoff b = backoff.getIfAvailable();
+        if (b != null) {
+            b.recordSuccess(ip);
+        }
+        String method = request.getMethod().toUpperCase(Locale.ROOT);
+        if (!"GET".equals(method) && !"HEAD".equals(method)) {
+            response.setHeader(HttpHeaders.ALLOW, "GET, HEAD");
+            refuse(response, HttpStatus.METHOD_NOT_ALLOWED, ErrorCodes.METHOD_NOT_ALLOWED,
+                    "Key-in-path URLs are read-only: GET and HEAD only.");
+            return;
+        }
+        if (!rest.isEmpty() && !safe(rest)) {
+            refuse(response, HttpStatus.BAD_REQUEST, ErrorCodes.MALFORMED_REQUEST,
+                    "The path after the key must be a plain path.");
+            return;
+        }
+        boolean permitted = rest.isEmpty() ? valid.prefixes().contains("")
+                : allowed(rest, valid.prefixes().stream().filter(p -> !p.isEmpty()).toList());
+        if (!permitted) {
+            refuse(response, HttpStatus.FORBIDDEN, codes.outsidePrefixCode(),
+                    "This key is restricted to other paths.");
+            return;
+        }
+        chain.doFilter(request, response);
     }
 
     /** Resolves a {@code ?key=} feed key under {@link #QUERY_KEY_PREFIX} (prompt 064) and continues unforwarded. */

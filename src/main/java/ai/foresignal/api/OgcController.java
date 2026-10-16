@@ -7,6 +7,8 @@ import ai.foresignal.api.error.ValidationException;
 import ai.foresignal.api.support.PublicUrls;
 import ai.foresignal.api.support.ReadCaller;
 import ai.foresignal.api.support.ReadCallerResolver;
+import ai.foresignal.ogc.OgcFeatureDocuments;
+import ai.foresignal.ogc.OgcFeatureService;
 import ai.foresignal.raster.FrameKeys;
 import ai.foresignal.raster.FrameResolver;
 import ai.foresignal.raster.ProductRegistry;
@@ -51,8 +53,9 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * OGC API &ndash; Tiles Part 1 and OGC API &ndash; EDR 1.1 for raster products (OpenAPI tag
  * {@code Products}, prompt 108; Weather-Imagery-Design §11), root {@code /v1/ogc}. Collections are
- * products (coverage collections); 112 will add feature collections under the same root, so the
- * landing and collection code stays extensible.
+ * products (coverage collections) and, from prompt 112, one feature collection per kind for current state
+ * and one {@code {kind}-history} collection ({@link OgcFeatureService}); their items, single features and
+ * queryables are served by {@link OgcFeaturesController}.
  *
  * <p>Tiles redirect concrete times to the content-addressed tile URL; EDR position and area answer
  * CoverageJSON matching {@code /v1/sample}.
@@ -75,11 +78,13 @@ public class OgcController {
     private final SourceVisibility visibility;
     private final AppSettingService settings;
     private final Clock clock;
+    private final OgcFeatureService features;
 
     /** Creates the controller. */
     public OgcController(ProductRegistry registry, FrameResolver resolver, RasterFrameQueries frames,
             SampleService samples, ReadCallerResolver callers, SourceVisibility visibility, AppSettingService settings,
-            Clock clock) {
+            Clock clock, OgcFeatureService features) {
+        this.features = features;
         this.registry = registry;
         this.resolver = resolver;
         this.frames = frames;
@@ -97,8 +102,9 @@ public class OgcController {
         PublicUrls urls = PublicUrls.of(settings, request);
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("title", "Foresignal OGC API");
-        out.put("description", "Raster products as OGC API collections with map tiles (20-057) and"
-                + " EDR queries (19-086r6).");
+        out.put("description", "Records as OGC API - Features collections with CQL2 filters (17-069r4,"
+                + " 19-079r2, 21-065r2), and raster products as collections with map tiles (20-057) and EDR"
+                + " queries (19-086r6).");
         out.put("attribution", null);
         out.put("links", List.of(
                 link(urls.api("/v1/ogc"), "self", "application/json", "This document"),
@@ -115,7 +121,8 @@ public class OgcController {
     @GetMapping("/v1/ogc/conformance")
     @Operation(operationId = "ogcConformance", tags = "Products")
     public Map<String, Object> ogcConformance() {
-        return Map.of("conformsTo", List.of(
+        List<String> classes = new ArrayList<>(OgcFeatureDocuments.CONFORMANCE);
+        classes.addAll(List.of(
                 "http://www.opengis.net/spec/ogcapi-tiles-1/1.0/conf/core",
                 "http://www.opengis.net/spec/ogcapi-tiles-1/1.0/conf/tileset",
                 "http://www.opengis.net/spec/ogcapi-tiles-1/1.0/conf/tilesets-list",
@@ -124,6 +131,7 @@ public class OgcController {
                 "http://www.opengis.net/spec/ogcapi-edr-1/1.1/conf/position",
                 "http://www.opengis.net/spec/ogcapi-edr-1/1.1/conf/area",
                 "http://www.opengis.net/spec/ogcapi-edr-1/1.1/conf/instances"));
+        return Map.of("conformsTo", classes);
     }
 
     /** {@code ogcApiDefinition}: 302 to the OpenAPI document. */
@@ -162,7 +170,7 @@ public class OgcController {
         return tileMatrixSetJson(set);
     }
 
-    /** {@code ogcCollections}: the products as coverage collections. */
+    /** {@code ogcCollections}: the products as coverage collections, then the feature collections (112). */
     @GetMapping("/v1/ogc/collections")
     @Operation(operationId = "ogcCollections", tags = "Products")
     public Map<String, Object> ogcCollections(HttpServletRequest request) {
@@ -175,21 +183,31 @@ public class OgcController {
             }
             out.add(collection(urls, product));
         }
+        for (OgcFeatureService.FeatureCollection c : features.collections(callers.excludedSources(caller),
+                caller.restriction())) {
+            out.add(OgcFeatureDocuments.collection(urls, c));
+        }
         return Map.of("links", List.of(link(urls.api("/v1/ogc/collections"), "self", "application/json",
                 "Collections")), "collections", out);
     }
 
-    /** {@code ogcCollection}: one product as a coverage collection. */
+    /** {@code ogcCollection}: one product as a coverage collection, or a feature collection (112). */
     @GetMapping("/v1/ogc/collections/{collectionId}")
     @Operation(operationId = "ogcCollection", tags = "Products")
     public Map<String, Object> ogcCollection(@PathVariable String collectionId, HttpServletRequest request) {
         ReadCaller caller = callers.resolve(request);
-        ProductRegistry.Registered product = registry.all().stream()
+        PublicUrls urls = PublicUrls.of(settings, request);
+        java.util.Optional<ProductRegistry.Registered> product = registry.all().stream()
                 .filter(p -> p.spec().id().equals(collectionId) && !callers.excludedSources(caller).contains(p.sourceId())
                         && !p.spec().isExternal())
-                .findFirst().orElseThrow(() -> new NotFoundException(ErrorCodes.NOT_FOUND, "Unknown collection "
+                .findFirst();
+        if (product.isPresent()) {
+            return collection(urls, product.get());
+        }
+        return features.collection(collectionId, callers.excludedSources(caller), caller.restriction())
+                .map(c -> OgcFeatureDocuments.collection(urls, c))
+                .orElseThrow(() -> new NotFoundException(ErrorCodes.NOT_FOUND, "Unknown collection "
                         + collectionId + "."));
-        return collection(PublicUrls.of(settings, request), product);
     }
 
     /** {@code ogcCollectionTilesets}: the tilesets of a collection. */

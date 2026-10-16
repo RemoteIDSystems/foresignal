@@ -472,6 +472,11 @@
         "version": "1.3.0",
         "date": "2026-10-16",
         "note": "111: the 14 export, snapshot, hold, cold-archive and pack operations (createExport, listExports, downloadExport, getExportManifest, deleteExport, createSnapshot, listHolds, createHold, deleteHold, listHoldVersions, getArchiveSettings, updateArchiveSettings, getArchiveCatalog, createPack) are implemented, and getExport serves 111 jobs to their creator or admin. SnapshotInput gains includePrivate and personalUse (the export rules); HoldInput.reason is capped at 2000 characters; ArchiveSettings.root may be absolute. createPack documents 413 PACK_TOO_LARGE (the response it always declared) and 400 EXPORT_SPEC_INVALID; downloadExport and getExportManifest name 409 EXPORT_NOT_READY; createHold names 409 HOLD_LIMIT and the hold operations 404 UNKNOWN_HOLD. SystemInfo.exports gains quotaBytes and maxConcurrent; SystemInfo.archive gains target, lastRunBytes, lastRunFailures and lastFailureAt (bytes and failures count since start)."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-16",
+        "note": "112: ogcItems, ogcItem, ogcQueryables, capAtom, getCapForAlert, getCapMessage, getCalendar, createShareLink, listShareLinks, revokeShareLink, openShareLink, openShareLinkGeoJson, getShareLinkTile and downloadShareLink are implemented, and ogcLanding, ogcConformance, ogcCollections and ogcCollection serve the feature collections. Reconciliations: ogcItems and ogcItem accept `f` (json or geojson) because some OGC clients append it, every other unknown parameter is 400; ClientLinks gains `share` (placeholder {key}, no default); Problem lists FILTER_INVALID (with `position`), ICAL_FIELDS_MISSING, SHARE_LICENCE_FORBIDDEN, SHARE_EXPIRED and INVALID_SHARE_KEY (401, the documented 'Invalid share key'); getShareLinkTile serves views only (tracks are GeoJSON) and not for masked, precision-capped or allowlisted links. A private share target is refused with 403 even for admin, because EgressPolicy never lets a private record leave on PUBLIC_SHARE (invariant EGR-1)."
       }
     ]
   },
@@ -47772,6 +47777,19 @@
               "type": "string",
               "example": "no-nc, no-sa"
             }
+          },
+          {
+            "name": "f",
+            "in": "query",
+            "required": false,
+            "description": "Output format; tolerated for clients that append it (only JSON/GeoJSON is offered)",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "json",
+                "geojson"
+              ]
+            }
           }
         ],
         "responses": {
@@ -47842,7 +47860,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "112",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -47905,6 +47923,19 @@
             "schema": {
               "type": "string",
               "example": "no-nc, no-sa"
+            }
+          },
+          {
+            "name": "f",
+            "in": "query",
+            "required": false,
+            "description": "Output format; tolerated for clients that append it (only JSON/GeoJSON is offered)",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "json",
+                "geojson"
+              ]
             }
           }
         ],
@@ -47974,7 +48005,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "112",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -48054,7 +48085,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "112",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -48187,7 +48218,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "112",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -48289,7 +48320,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "112",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -48390,7 +48421,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "112",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -48554,7 +48585,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "112",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -48645,7 +48676,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "112",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -48716,7 +48747,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "112",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -48780,7 +48811,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "112",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -48879,7 +48910,7 @@
         },
         "x-foresignal-scope": "open",
         "x-foresignal-prompt": "112",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {}
         ]
@@ -48949,7 +48980,7 @@
         },
         "x-foresignal-scope": "open",
         "x-foresignal-prompt": "112",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {}
         ]
@@ -48962,7 +48993,7 @@
         ],
         "operationId": "getShareLinkTile",
         "summary": "Vector tile of a shared view or track",
-        "description": "MVT tiles for shared views and tracks, with the link's mask and precision applied. 404 for other target types.\n\n**Scope:** `open` (the `fss_` share key in the path is the credential; it is never accepted as a bearer token).",
+        "description": "MVT tiles for shared views, within the creator's restriction and the view, without private or non-redistributable sources. 404 for other target types (a track is served as GeoJSON) and for links with a privacy mask, a precision cap or a field allowlist, which tiles cannot carry.\n\n**Scope:** `open` (the `fss_` share key in the path is the credential; it is never accepted as a bearer token).",
         "parameters": [
           {
             "name": "key",
@@ -49061,7 +49092,7 @@
         },
         "x-foresignal-scope": "open",
         "x-foresignal-prompt": "112",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {}
         ]
@@ -49218,7 +49249,7 @@
         },
         "x-foresignal-scope": "open",
         "x-foresignal-prompt": "112",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {}
         ]
@@ -86366,7 +86397,7 @@
           "status"
         ],
         "x-foresignal-extended-by": [
-        "108",
+          "108",
           "013",
           "023",
           "024",
@@ -86383,31 +86414,31 @@
           "135"
         ],
         "x-foresignal-error-codes": [
-      {
-        "code": "FORMAT_UNAVAILABLE",
-        "status": 406,
-        "prompt": "108"
-      },
-      {
-        "code": "EDR_TOO_LARGE",
-        "status": 413,
-        "prompt": "108"
-      },
-      {
-        "code": "PACK_TOO_LARGE",
-        "status": 413,
-        "prompt": "108"
-      },
-      {
-        "code": "UNKNOWN_EXPORT",
-        "status": 404,
-        "prompt": "108"
-      },
-      {
-        "code": "IMAGE_LINKS_REQUIRE_HTTPS",
-        "status": 400,
-        "prompt": "108"
-      },
+          {
+            "code": "FORMAT_UNAVAILABLE",
+            "status": 406,
+            "prompt": "108"
+          },
+          {
+            "code": "EDR_TOO_LARGE",
+            "status": 413,
+            "prompt": "108"
+          },
+          {
+            "code": "PACK_TOO_LARGE",
+            "status": 413,
+            "prompt": "108"
+          },
+          {
+            "code": "UNKNOWN_EXPORT",
+            "status": 404,
+            "prompt": "108"
+          },
+          {
+            "code": "IMAGE_LINKS_REQUIRE_HTTPS",
+            "status": 400,
+            "prompt": "108"
+          },
           {
             "code": "NOT_FOUND",
             "status": 404,
@@ -86949,6 +86980,36 @@
             "status": 409,
             "prompt": "104",
             "note": "rebuildInfraGraph while a build is already running"
+          },
+          {
+            "code": "FILTER_INVALID",
+            "status": 400,
+            "prompt": "112",
+            "note": "ogcItems: a CQL2 filter that cannot be parsed, exceeds depth 20 or 200 nodes, or names an unknown property; the problem carries position (a character offset in cql2-text, a JSON pointer in cql2-json)"
+          },
+          {
+            "code": "ICAL_FIELDS_MISSING",
+            "status": 400,
+            "prompt": "112",
+            "note": "getCalendar custom: a kind whose descriptor declares no startField/endField"
+          },
+          {
+            "code": "SHARE_LICENCE_FORBIDDEN",
+            "status": 409,
+            "prompt": "112",
+            "note": "createShareLink: the target (or an export or briefing run built from such sources) may not leave on PUBLIC_SHARE"
+          },
+          {
+            "code": "SHARE_EXPIRED",
+            "status": 410,
+            "prompt": "112",
+            "note": "a share link that is revoked, expired or has no uses left"
+          },
+          {
+            "code": "INVALID_SHARE_KEY",
+            "status": 401,
+            "prompt": "112",
+            "note": "an unknown fss_ key in a share-link URL"
           }
         ]
       },
@@ -101230,6 +101291,13 @@
           "pair": {
             "type": "string",
             "default": "foresignal://pair?u={publicBaseUrl}&c={code}"
+          },
+          "share": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "A share link opened in a client (112); placeholder {key}. No default: `?open=1` on a share-link URL redirects only when this is set."
           }
         }
       },
@@ -125643,7 +125711,7 @@
           },
           "personalUse": {
             "type": "boolean",
-            "description": "Include FORBIDDEN and LOCAL_ONLY sources; the sidecar then says personal use only \u2014 do not redistribute",
+            "description": "Include FORBIDDEN and LOCAL_ONLY sources; the sidecar then says personal use only — do not redistribute",
             "default": false
           },
           "expiresAt": {

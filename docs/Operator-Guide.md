@@ -5350,3 +5350,92 @@ final vectorProvider = await PmTilesVectorTileProvider.fromSource('/path/to/vect
 `pmtiles verify vector.pmtiles` checks the header counts, the directories and the clustered order, and
 `pmtiles show vector.pmtiles` prints the header and metadata. The header's zoom range is that of the tiles
 actually present.
+
+## Standards outputs (prompt 112)
+
+Foresignal also speaks four standards that existing tools understand, for clients that can only fetch a URL.
+Every one of them honors the caller's token scope, restricted tokens and feed keys, hides private sources and
+applies the license rules (109).
+
+### OGC API – Features (QGIS, GDAL, GeoPandas)
+
+`/v1/ogc` is an OGC API – Features server (Part 1 core and GeoJSON, Part 3 filtering and queryables, basic CQL2 in
+`cql2-text` and `cql2-json` with `S_INTERSECTS`). Each record kind is two collections: `{kind}` (current state)
+and `{kind}-history` (every stored version; feature ids `{sourceId}:{externalId}:{version}`). The raster products
+of 108 are listed next to them as coverage collections. JSON only; unknown query parameters are refused with
+`400` so a typo never returns unfiltered data (`f=json` is tolerated).
+
+- **QGIS:** Layer → Add Layer → Add WFS / OGC API – Features Layer → New, URL `https://foresignal.lan/v1/ogc`
+  (with `openReads` off use a feed key whose prefix is `/v1/ogc`: `https://foresignal.lan/v1/k/fsf_…/ogc`).
+  Connect, pick a collection, and use the filter button to write a CQL2 expression such as
+  `mag > 5 AND S_INTERSECTS(geometry, BBOX(-98, 29, -96, 31))`. Manual check (not automated): the collections
+  list, a layer loads, paging continues past 100 features and a filter narrows the layer.
+- **GDAL/OGR:** `ogrinfo "OAPIF:https://foresignal.lan/v1/ogc" earthquake -so` and
+  `ogr2ogr -f GPKG quakes.gpkg "OAPIF:https://foresignal.lan/v1/ogc" earthquake -where "mag > 5"`.
+- **GeoPandas:**
+
+  ```python
+  import geopandas as gpd
+  url = ("https://foresignal.lan/v1/ogc/collections/earthquake/items"
+         "?limit=1000&filter=mag%20%3E%205")
+  quakes = gpd.read_file(url)
+  ```
+
+`limit` is at most 10,000; `next` links carry an opaque cursor; `numberMatched` is returned with `count=true` up
+to 100,000. `datetime` matches the effective time of current collections and the observed time of history.
+`/v1/ogc/collections/{id}/queryables` lists the filterable properties (the kind's declared payload fields plus
+`title`, `sourceId`, `observedAt`, `eventTime`, `version` and `geometry`). A filter error is
+`400 FILTER_INVALID` with the `position` of the problem.
+
+### CAP 1.2 for alerting systems
+
+Every alert state change issues one CAP 1.2 message (`Alert` when it fires; `Update` on acknowledgement, snooze,
+note or enrichment; `Update` with `responseType AllClear` when it resolves; never `Cancel`, which CAP reserves for
+messages issued in error). Each message lists the earlier ones in `references`, is `scope Public`, and carries the
+note "Generated automatically by a Foresignal instance from third-party data. Not an official warning."
+Consumers must treat it as such: it is a relay of third-party data, not an authority's warning. For alerts on
+official CAP sources (the `cap-*` and `meteoalarm-*` feeds, `tsunami-warnings`, `nws-alerts`) the message links
+the upstream message in `web` and names the upstream sender in the description.
+
+- `GET /v1/cap/alerts.atom` — the Atom index (filters `ruleId`, `minSeverity`, `tags`, `placeId`, `since`).
+- `GET /v1/cap/alerts/{alertId}.cap` — an alert's latest message; `GET /v1/cap/messages/{identifier}.cap` — any
+  stored message. Identifiers are `{instanceId}-{alertId}-{n}`.
+
+The sender is the setting `cap.sender` (default `foresignal@{installId}`) and `senderName` is
+"Foresignal ({instance.name})" (default the install id). Messages are deleted with their alert by retention.
+Messages of alerts that fired before the upgrade start with the next state change.
+
+### Calendars
+
+`GET /v1/calendars/{feed}.ics` with `feed` one of `launches` (Launch Library NET and window), `tfr` (FAA TFR
+effective to expiry; open-ended ones carry `X-FORESIGNAL-OPEN-ENDED:TRUE`), `nws` (NWS onset to end),
+`briefings` (the next 30 days of each enabled briefing, one event per occurrence in the briefing's time zone) or
+`custom?source=…&kind=…` (any kind whose descriptor declares `startField`/`endField`; otherwise
+`400 ICAL_FIELDS_MISSING`). Filters `bbox`, `placeId`, `source`, `kind`. UIDs are stable
+(`{sourceId}:{externalId}@{instanceId}`) and `SEQUENCE` is the record version, so a calendar app updates an event
+in place; a canceled or expired record stays for 7 days as `STATUS:CANCELLED`. Calendars ask to be refreshed
+every 15 minutes.
+
+To subscribe from a phone or desktop calendar with `openReads` off, create a feed key whose prefix is
+`/v1/calendars` and subscribe to `https://foresignal.lan/v1/k/fsf_…/calendars/launches.ics` (in Apple Calendar:
+File → New Calendar Subscription; in Google Calendar: Other calendars → From URL, which needs a public URL).
+
+### Share links
+
+`POST /v1/share-links` (agent token) creates an expiring link (default 7 days, at most 30) to one `record`,
+`alert`, `view`, `track`, `briefing-run` or `export`; the `fss_` key is returned once and only its hash is
+stored. The link works without a token, only at `GET /v1/k/{key}` (JSON, or GeoJSON with
+`Accept: application/geo+json`), `/v1/k/{key}/geojson`, `/v1/k/{key}/tiles/{z}/{x}/{y}.mvt` (views) and
+`/v1/k/{key}/download` (exports); it is never accepted as a bearer token. Uses are counted (`maxUses`), limited to
+60 a minute per link, and audited (the first use and then at most one an hour); a revoked, expired or used-up link
+answers `410 SHARE_EXPIRED`. With `clientLinks.share` set in the server settings (placeholder `{key}`),
+`?open=1` redirects to your client.
+
+Privacy defaults: a link renders within the creating token's restriction and never shows a private source.
+Records whose license does not allow redistribution are removed, and a target that is such a record (or an
+export or briefing run built from such sources) is refused with `409 SHARE_LICENCE_FORBIDDEN`; attribution is
+always included. `fieldMask` keeps only the listed payload fields and `precisionM` coarsens coordinates. The
+privacy mask for personal sources (precision capped to 1,000 m, observer, device and address-like fields removed,
+the payload reduced to `title`, `kind` and `observedAt`) is built in, but a private target is refused even for an
+admin token, because Foresignal's egress policy never lets a private record leave on a share link. Views over
+places or watchlists cannot be shared (they reveal your places).

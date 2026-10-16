@@ -31259,6 +31259,12 @@
                   "value": "",
                   "description": "Licence policy flags (comma-separated): `no-nc` excludes records whose commercial use is not ALLOWED, `no-sa` excludes share-alike records, `redistributable` excludes records whose redistribution is not ALLOWED. Adds to the token's `licencePolicy` floor; it can never remove a token flag.",
                   "disabled": true
+                },
+                {
+                  "key": "f",
+                  "value": "json",
+                  "description": "Output format; tolerated for clients that append it (only JSON/GeoJSON is offered)",
+                  "disabled": true
                 }
               ]
             },
@@ -31313,6 +31319,12 @@
                   "key": "licencePolicy",
                   "value": "",
                   "description": "Licence policy flags (comma-separated): `no-nc` excludes records whose commercial use is not ALLOWED, `no-sa` excludes share-alike records, `redistributable` excludes records whose redistribution is not ALLOWED. Adds to the token's `licencePolicy` floor; it can never remove a token flag.",
+                  "disabled": true
+                },
+                {
+                  "key": "f",
+                  "value": "json",
+                  "description": "Output format; tolerated for clients that append it (only JSON/GeoJSON is offered)",
                   "disabled": true
                 }
               ]
@@ -41428,7 +41440,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));"
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('shareLinkId', j.id); pm.collectionVariables.set('key', j.key);",
+                  "}"
                 ]
               }
             }
@@ -41469,7 +41484,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"targetType\": \"record\",\n  \"targetRef\": \"usgs-earthquakes/us7000n7tc\",\n  \"fieldMask\": null,\n  \"precisionM\": null,\n  \"expiresAt\": null,\n  \"maxUses\": 50\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -41700,7 +41715,7 @@
               ],
               "query": []
             },
-            "description": "MVT tiles for shared views and tracks, with the link's mask and precision applied. 404 for other target types.\n\n**Scope:** `open` (the `fss_` share key in the path is the credential; it is never accepted as a bearer token).\n\noperationId: `getShareLinkTile`",
+            "description": "MVT tiles for shared views, within the creator's restriction and the view, without private or non-redistributable sources. 404 for other target types (a track is served as GeoJSON) and for links with a privacy mask, a precision cap or a field allowlist, which tiles cannot carry.\n\n**Scope:** `open` (the `fss_` share key in the path is the credential; it is never accepted as a bearer token).\n\noperationId: `getShareLinkTile`",
             "auth": {
               "type": "noauth"
             }

@@ -492,6 +492,21 @@ public final class ErrorCodes {
     /** 409: an export, snapshot or pack is not finished, so it has nothing to download yet (prompt 111). */
     public static final String EXPORT_NOT_READY = "EXPORT_NOT_READY";
 
+    /** 400: an OGC API Features {@code filter} (CQL2) cannot be parsed or names an unknown property (112). */
+    public static final String FILTER_INVALID = "FILTER_INVALID";
+
+    /** 400: a custom calendar's kind declares no {@code startField}/{@code endField} (112). */
+    public static final String ICAL_FIELDS_MISSING = "ICAL_FIELDS_MISSING";
+
+    /** 409: a share link's target is a record whose redistribution is not allowed (112). */
+    public static final String SHARE_LICENCE_FORBIDDEN = "SHARE_LICENCE_FORBIDDEN";
+
+    /** 401: the {@code fss_} key in a share-link URL is unknown (112). */
+    public static final String INVALID_SHARE_KEY = "INVALID_SHARE_KEY";
+
+    /** 410: a share link is revoked, expired or has used up its uses (112). */
+    public static final String SHARE_EXPIRED = "SHARE_EXPIRED";
+
     private static final String TYPE_PREFIX = "https://foresignal.ai/problems/";
 
     private ErrorCodes() {}

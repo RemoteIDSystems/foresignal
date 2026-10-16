@@ -47,7 +47,7 @@ public class ServerSettingsService {
     /** A plain address check for {@code contactEmail}: one {@code @}, no spaces, no header-breaking characters. */
     static final java.util.regex.Pattern EMAIL = java.util.regex.Pattern.compile("[^\\s@;()<>\",]+@[^\\s@;()<>\",]+\\.[^\\s@;()<>\",]+");
 
-    static final Set<String> LINK_MEMBERS = Set.of("alert", "record", "briefingRun", "pair");
+    static final Set<String> LINK_MEMBERS = Set.of("alert", "record", "briefingRun", "pair", "share");
 
     /**
      * One {@code SettingsWarning}.
@@ -216,7 +216,8 @@ public class ServerSettingsService {
                 template(node.get("alert"), "clientLinks.alert", errors),
                 template(node.get("record"), "clientLinks.record", errors),
                 template(node.get("briefingRun"), "clientLinks.briefingRun", errors),
-                template(node.get("pair"), "clientLinks.pair", errors));
+                template(node.get("pair"), "clientLinks.pair", errors),
+                template(node.get("share"), "clientLinks.share", errors));
     }
 
     private static String template(JsonNode node, String field, List<FieldError> errors) {

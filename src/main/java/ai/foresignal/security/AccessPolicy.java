@@ -59,8 +59,13 @@ import org.springframework.util.AntPathMatcher;
  * needs a token, which the controller enforces as the loop does.
  *
  * <p>Prompt 050 adds the tile-key operations ({@code GET}/{@code POST /v1/tile-keys},
- * {@code DELETE /v1/tile-keys/{id}}) as {@code agent}. Key-in-path URLs ({@code /v1/k/**}) have no
+ * {@code DELETE /v1/tile-keys/{id}}) as {@code agent}. Feed- and tile-key URLs ({@code /v1/k/**}) have no
  * rule: {@code PathKeyFilter} forwards them to their canonical path, which is what is evaluated.
+ *
+ * <p>Prompt 112 adds share links ({@code GET}/{@code POST /v1/share-links}, {@code DELETE /v1/share-links/{id}}
+ * as {@code agent}), their key URLs ({@code GET /v1/k/*}, {@code …/geojson}, {@code …/tiles/*}{@code /*}{@code /*.mvt},
+ * {@code …/download}) as {@code open} (the {@code fss_} key is the credential) and {@code GET /v1/cap/**} and
+ * {@code GET /v1/calendars/**} as {@code read}; the OGC Features operations fall under {@code /v1/ogc/**}.
  *
  * <p>Prompt 064 adds {@code GET /compat/celestrak/**} (the CelesTrak-compatible GP output) as {@code read}; other
  * methods on it are {@code admin}. It sits outside {@code /v1}, so without the rule it would be open.
@@ -251,6 +256,20 @@ public class AccessPolicy {
                 rule(HttpMethod.GET, "/v1/tile-keys", AccessRequirement.AGENT),
                 rule(HttpMethod.POST, "/v1/tile-keys", AccessRequirement.AGENT),
                 rule(HttpMethod.DELETE, "/v1/tile-keys/*", AccessRequirement.AGENT),
+                // Share links (112): agent to manage (private targets need admin, checked by the service); the
+                // fss_ key URLs are open because the key in the path is the credential, checked by PathKeyFilter's
+                // ShareKeyResolver, which passes them on unforwarded (a forwarded feed or tile key never reaches
+                // these paths with a principal, and the share-link service checks the key again).
+                rule(HttpMethod.GET, "/v1/share-links", AccessRequirement.AGENT),
+                rule(HttpMethod.POST, "/v1/share-links", AccessRequirement.AGENT),
+                rule(HttpMethod.DELETE, "/v1/share-links/*", AccessRequirement.AGENT),
+                rule(HttpMethod.GET, "/v1/k/*", AccessRequirement.OPEN),
+                rule(HttpMethod.GET, "/v1/k/*/geojson", AccessRequirement.OPEN),
+                rule(HttpMethod.GET, "/v1/k/*/tiles/*/*/*.mvt", AccessRequirement.OPEN),
+                rule(HttpMethod.GET, "/v1/k/*/download", AccessRequirement.OPEN),
+                // CAP output and calendars (112): reads; feed keys reach them under their prefixes.
+                rule(HttpMethod.GET, "/v1/cap/**", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/calendars/**", AccessRequirement.READ),
                 // Testing a provider spends LLM tokens (always authenticated, 026).
                 rule(HttpMethod.POST, "/v1/llm/providers/*/test", AccessRequirement.ADMIN_ALWAYS_AUTHENTICATED),
                 rule(null, "/v1/llm/**", AccessRequirement.ADMIN),

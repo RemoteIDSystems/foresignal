@@ -1,17 +1,3 @@
-ogcItems 112
-ogcItem 112
-ogcQueryables 112
-capAtom 112
-getCapForAlert 112
-getCapMessage 112
-getCalendar 112
-createShareLink 112
-listShareLinks 112
-revokeShareLink 112
-openShareLink 112
-openShareLinkGeoJson 112
-getShareLinkTile 112
-downloadShareLink 112
 getFederationInfo 113
 listFederationChanges 113
 streamFederation 113

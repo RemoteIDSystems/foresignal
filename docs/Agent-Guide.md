@@ -622,6 +622,7 @@ Every tool takes `detail`: `short` (the default, compact items, the whole result
 | `list_views` | read | Saved views (named record filters); `detail=long` adds their conditions and projection (036). |
 | `get_view_records` | read | The current records of a saved view by `viewId` or slug; a view that names a place or watchlist needs a token (036). |
 | `create_view` | agent | Create a saved view from a `view` (`SavedViewInput`) (036). |
+| `create_share_link` | agent | Create an expiring, path-bound share link (`/v1/k/{key}`, readable without a token) to one `record`, `alert`, `view`, `track`, `briefing-run` or `export` (`targetType`, `targetRef`, optional `fieldMask`, `precisionM`, `expiresAt` ≤ 30 days, `maxUses`); the key is returned once. Records whose licence does not allow redistribution are removed (such a target is refused) and private sources never leave (112). |
 | `list_watchlists` | agent | Watchlists with identity (`icao24`, `registration`, `callsign`, `mmsi`, `imo`, `custom`) and item counts (036). |
 | `get_watchlist` | agent | One watchlist with its first items (036). |
 | `add_to_watchlist` | agent | Add or update `items` (`{value, label, notes, tags}`), validated for the list's identity; effective on each entity's next observation (036). |

@@ -622,3 +622,6 @@ GeoPackage files are written with the already bundled `sqlite-jdbc` (above). `or
 Hadoop class; it is not packaged, and no Hadoop class is on the runtime classpath (`ParquetClasspathTest`).
 The GPX 1.1 schema in the test resources (`src/test/resources/export/gpx-1.1.xsd`) is TopoGrafix's published
 schema, used only to validate test output; it is not part of the application.
+The OASIS CAP 1.2 schema in the test resources (`src/test/resources/cap/CAP-v1.2.xsd`, Copyright OASIS Open 2010,
+from https://docs.oasis-open.org/emergency/cap/v1.2/CAP-v1.2.xsd) is used only to validate the CAP messages the
+tests write (prompt 112); it is not part of the application.

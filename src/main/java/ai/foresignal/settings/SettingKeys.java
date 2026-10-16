@@ -115,11 +115,23 @@ public final class SettingKeys {
      * Every key above. {@link AppSettingService#invalidateCache()} announces each of them, so a
      * component holding its own copy of a setting drops it too. A new key belongs in this list.
      */
+    /**
+     * The CAP {@code sender} of Foresignal's own CAP messages (prompt 112), a string; default
+     * {@code foresignal@{installId}}.
+     */
+    public static final String CAP_SENDER = "cap.sender";
+
+    /**
+     * The instance's display name (prompt 112: CAP {@code senderName} "Foresignal ({name})" and calendar
+     * names), a string; default the install id.
+     */
+    public static final String INSTANCE_NAME = "instance.name";
+
     public static final List<String> ALL =
             List.of(RETENTION, CORS, TRIGGER_CURSOR, TRIGGERS, STREAM_LIMITS, SECURITY, SERVER, NOTIFICATIONS,
                     WATCHDOG, INSTALL_ID, LLM, SEARCH_INDEX, EMBEDDING_CURSOR, RATELIMITS, OUTBOUND, STATS_ROLLUP_CURSOR,
                     STATS, GLANCE, METRICS, VISIBILITY, REGION_CURSOR, REGION_TAGGING, WEATHER, ENTITY_CURSOR,
-                    ENTITY, INTEL_CURSOR, ARCHIVE);
+                    ENTITY, INTEL_CURSOR, ARCHIVE, CAP_SENDER, INSTANCE_NAME);
 
     private SettingKeys() {}
 }

@@ -13,6 +13,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  * <ul>
  *   <li>{@code alert}: resolved or suppressed alerts fired before {@code now − alerts}. Open alerts
  *       are kept whatever their age, because the trigger engine seeds cooldowns from them (017).
+ *   <li>{@code cap_message} (112): messages whose alert no longer exists.
  *   <li>{@code source_usage}: minutes before {@code now − usage}.
  *   <li>{@code notification_delivery}: delivered or failed rows older than 7 days.
  *   <li>{@code notification}: rows created before {@code now − notifications} with no delivery left.
@@ -49,6 +50,10 @@ public class OperationalTablesStep implements RetentionStep {
         run.deleted("alert", run.jdbc().update(
                 "DELETE FROM alert WHERE fired_at < :t AND (state = 'resolved' OR suppressed)",
                 at(run, settings.alerts())));
+        // prompt 112: CAP messages follow their alert's retention (and its purge)
+        run.deleted("cap_message", run.jdbc().update(
+                "DELETE FROM cap_message c WHERE NOT EXISTS (SELECT 1 FROM alert a WHERE a.id = c.alert_id)",
+                new MapSqlParameterSource()));
         run.deleted("source_usage", run.jdbc().update(
                 "DELETE FROM source_usage WHERE minute < :t", at(run, settings.usage())));
         Integer settled = tx.execute(status -> deliveries.deleteSettledBefore(run.now().minus(SETTLED_DELIVERY_KEEP)));

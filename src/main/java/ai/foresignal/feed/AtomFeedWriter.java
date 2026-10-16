@@ -69,7 +69,7 @@ public class AtomFeedWriter {
             text(w, "published", time(entry.published()));
         }
         if (entry.link() != null) {
-            link(w, "alternate", entry.link(), null);
+            link(w, "alternate", entry.link(), entry.linkType());
         }
         for (FeedEntry.Category category : entry.categories()) {
             w.writeEmptyElement("category");
