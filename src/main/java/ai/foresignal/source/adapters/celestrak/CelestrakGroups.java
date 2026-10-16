@@ -30,9 +30,12 @@ public final class CelestrakGroups {
             "planet", "qianfan", "radar", "resource", "sar", "sarsat", "satnogs", "sbas", "science", "ses", "spire",
             "starlink", "stations", "tdrss", "telesat", "visual", "weather", "x-comm");
 
-    /** The member groups fetched by default, each about once a day (prompt 107 adds noaa and goes). */
+    /**
+     * The member groups fetched by default, each about once a day (prompt 107 adds noaa, goes and resource,
+     * so every group its {@code {group}.txt} aliases name is cached; {@code active} is the every-run group).
+     */
     public static final List<String> DEFAULT_MEMBERS = List.of("stations", "visual", "weather", "noaa", "goes",
-            "amateur", "gnss", "geo", "science", "cubesat", "last-30-days");
+            "resource", "amateur", "gnss", "geo", "science", "cubesat", "last-30-days");
 
     private CelestrakGroups() {}
 

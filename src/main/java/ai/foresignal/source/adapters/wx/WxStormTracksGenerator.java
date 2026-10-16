@@ -51,11 +51,14 @@ import org.springframework.stereotype.Component;
  * <p>Per MRMS reflectivity frame, inside the places AOI (CONUS opt-in on the large profile), cells
  * are detected by 052's segmentation and associated to active tracks with {@link TitanLiteTracker}
  * (IoU of advected polygons, Hungarian assignment, merges and splits). Each track carries its current
- * cell summary, a 12-position history, motion ({@value TitanLiteTracker#VERSION} once three or more
- * matches exist, else {@code centroid-v1}), a max-dBZ trend, a GLM lightning-jump flag
- * ({@link LightningJump}) and the +15/+30/+60-minute nowcast polygons. It emits only on change and is
- * tombstoned 30 minutes after it ends. A {@code storm-swath} record (externalId = the track id) is
- * written every 10 minutes while active and when the track ends.
+ * cell summary, a 12-position history, motion ({@value TitanLiteTracker#VERSION}, least squares over the
+ * newest five positions once three or more exist, else {@code centroid-v1}), a max-dBZ trend, a GLM
+ * lightning-jump flag ({@link LightningJump}) and the +15/+30/+60-minute nowcast polygons. It emits only
+ * when a quantized field or the geometry changes: the {@code history} ring (whose timestamps move every
+ * frame) is left out of that comparison and declared volatile. It is tombstoned 30 minutes after it ends.
+ * A {@code storm-swath} record (externalId = the track id) is written every 10 minutes while active and
+ * when the track ends, whether by a merge or by missed frames. {@code reconcile} restores each track's
+ * history, motion, links and stored swath, so a restart extends the stored union rather than replacing it.
  */
 @Component
 public class WxStormTracksGenerator implements DerivedGenerator {
@@ -104,6 +107,12 @@ public class WxStormTracksGenerator implements DerivedGenerator {
 
     /** The lightning jump's advisory lifetime. */
     public static final Duration JUMP_LIFETIME = Duration.ofMinutes(10);
+
+    /**
+     * The payload key left out of a track's significant content (and declared volatile): the position
+     * history, whose timestamps change every frame.
+     */
+    static final String VOLATILE_HISTORY = "history";
 
     private static final GeometryFactory GEOMETRY = new GeometryFactory();
 
@@ -154,6 +163,9 @@ public class WxStormTracksGenerator implements DerivedGenerator {
         Geometry swath;
         Instant swathAt;
         Geometry nowcast;
+        /** The canonical significant content (payload without {@code history}, plus geometry) last emitted. */
+        String lastSignificant;
+        /** The last {@value #HISTORY} positions {@code {epochMs, lon, lat}}, oldest first. */
         final ArrayDeque<double[]> positions = new ArrayDeque<>();
 
         Track(String id, Instant firstSeen, Instant time, double lon, double lat, Geometry geometry) {
@@ -168,9 +180,15 @@ public class WxStormTracksGenerator implements DerivedGenerator {
 
         void add(Instant time, double lon, double lat) {
             positions.addLast(new double[] {time.toEpochMilli(), lon, lat});
-            while (positions.size() > MOTION_POSITIONS) {
+            while (positions.size() > HISTORY) {
                 positions.removeFirst();
             }
+        }
+
+        /** The newest {@value #MOTION_POSITIONS} positions, oldest first: the least-squares motion window. */
+        List<double[]> motionWindow() {
+            List<double[]> all = new ArrayList<>(positions);
+            return all.subList(Math.max(0, all.size() - MOTION_POSITIONS), all.size());
         }
 
         /** The last position {@code {epochMs, lon, lat}}. */
@@ -204,6 +222,7 @@ public class WxStormTracksGenerator implements DerivedGenerator {
                 .defaultRetention(Duration.ofDays(3))
                 .kindRetention(TRACK_KIND, Duration.ofDays(3))
                 .kindRetention(SWATH_KIND, Duration.ofDays(3))
+                .volatileFields(VOLATILE_HISTORY)
                 .param(ParamSpec.enumerated(SCOPE_PARAM,
                         "aoi (the places AOI) or conus (the whole grid; large profile only)", "aoi",
                         List.of("aoi", "conus")))
@@ -219,26 +238,124 @@ public class WxStormTracksGenerator implements DerivedGenerator {
     public void reconcile(List<HeadSnapshot> ownHeads, DerivedContext ctx) {
         tracks.clear();
         lastFrame = null;
+        Map<String, HeadSnapshot> swaths = new HashMap<>();
+        for (HeadSnapshot head : ownHeads) {
+            if (!head.tombstone() && SWATH_KIND.equals(head.kind()) && head.geometry() != null
+                    && !head.geometry().isEmpty()) {
+                swaths.put(head.externalId(), head);
+            }
+        }
         for (HeadSnapshot head : ownHeads) {
             if (head.tombstone() || !TRACK_KIND.equals(head.kind()) || head.geometry() == null
                     || head.geometry().isEmpty()) {
                 continue;
             }
-            Geometry current = head.geometry() instanceof GeometryCollection gc && gc.getNumGeometries() > 0
-                    ? gc.getGeometryN(0) : head.geometry();
-            Point c = current.getCentroid();
-            Instant at = head.observedAt() == null ? ctx.now() : head.observedAt();
-            Track track = new Track(head.externalId(), at, at, c.getX(), c.getY(), current);
-            track.lastSeen = at;
-            Object cell = head.payload().get("cell");
-            if (cell instanceof Map<?, ?> m && m.get("maxDbz") instanceof Number n) {
-                track.maxDbz = n.doubleValue();
-            }
-            track.ended = "ended".equals(head.payload().get("status"));
+            Track track = restore(head, swaths.get(head.externalId()), ctx.now());
             tracks.put(track.id, track);
-            if (lastFrame == null || at.isAfter(lastFrame)) {
-                lastFrame = at;
+            if (lastFrame == null || track.lastSeen.isAfter(lastFrame)) {
+                lastFrame = track.lastSeen;
             }
+        }
+    }
+
+    /**
+     * Rebuilds a track from its stored head (and its swath head, when there is one): the current polygon, the
+     * position history (so least-squares motion continues), motion, trend, links, MESH, lightning jump and the
+     * stored swath union, which later frames extend rather than replace.
+     */
+    static Track restore(HeadSnapshot head, HeadSnapshot swath, Instant now) {
+        Map<String, Object> payload = head.payload();
+        Geometry current = head.geometry() instanceof GeometryCollection gc && gc.getNumGeometries() > 0
+                ? gc.getGeometryN(0) : head.geometry();
+        Point c = current.getCentroid();
+        Instant at = head.observedAt() == null ? now : head.observedAt();
+        List<double[]> history = new ArrayList<>();
+        if (payload.get(VOLATILE_HISTORY) instanceof List<?> list) {
+            for (Object o : list) {
+                if (o instanceof Map<?, ?> m && m.get("lon") instanceof Number lon && m.get("lat") instanceof Number lat) {
+                    Instant t = parseInstant(m.get("time"));
+                    if (t != null) {
+                        history.add(new double[] {t.toEpochMilli(), lon.doubleValue(), lat.doubleValue()});
+                    }
+                }
+            }
+        }
+        Instant firstSeen = history.isEmpty() ? at : Instant.ofEpochMilli((long) history.get(0)[0]);
+        if (swath != null && swath.observedAt() != null && swath.payload().get("durationMin") instanceof Number d) {
+            Instant fromSwath = swath.observedAt().minus(Duration.ofMinutes(d.longValue()));
+            if (fromSwath.isBefore(firstSeen)) {
+                firstSeen = fromSwath;
+            }
+        }
+        Track track = new Track(head.externalId(), firstSeen, at, c.getX(), c.getY(), current);
+        if (!history.isEmpty()) {
+            track.positions.clear();
+            history.forEach(track.positions::addLast);
+            while (track.positions.size() > HISTORY) {
+                track.positions.removeFirst();
+            }
+            double[] last = track.positions.getLast();
+            if ((long) last[0] < at.toEpochMilli()) {
+                track.add(at, c.getX(), c.getY());
+            }
+        }
+        track.lastSeen = at;
+        if (payload.get("cell") instanceof Map<?, ?> cell) {
+            if (cell.get("maxDbz") instanceof Number n) {
+                track.maxDbz = n.doubleValue();
+                track.lastEmittedMaxDbz = n.doubleValue();
+            }
+            if (cell.get("areaKm2") instanceof Number n) {
+                track.areaKm2 = n.doubleValue();
+            }
+            if (cell.get("meshMaxMm") instanceof Number n) {
+                track.lastMesh = n.doubleValue();
+            }
+            if (cell.get("flashRate") instanceof Number n) {
+                track.flashRate = n.doubleValue();
+            }
+        }
+        if (payload.get("motion") instanceof Map<?, ?> motion) {
+            if (motion.get("speedKmh") instanceof Number n) {
+                track.speedKmh = n.doubleValue();
+            }
+            if (motion.get("bearingDeg") instanceof Number n) {
+                track.bearingDeg = n.doubleValue();
+            }
+            if (motion.get("method") != null) {
+                track.motionMethod = motion.get("method").toString();
+            }
+        }
+        if (payload.get("trend") instanceof Map<?, ?> trend && trend.get("maxDbz") != null) {
+            track.trend = trend.get("maxDbz").toString();
+        }
+        if (payload.get("lightningJump") instanceof Map<?, ?> jump) {
+            Map<String, Object> copy = new LinkedHashMap<>();
+            jump.forEach((k, v) -> copy.put(String.valueOf(k), v));
+            track.lightningJump = copy;
+            Instant jumpAt = parseInstant(jump.get("at"));
+            track.jumpUntil = jumpAt == null ? at.plus(JUMP_LIFETIME) : jumpAt.plus(JUMP_LIFETIME);
+        }
+        track.ended = "ended".equals(payload.get("status"));
+        track.mergedInto = payload.get("mergedInto") == null ? null : payload.get("mergedInto").toString();
+        track.parentTrackId = payload.get("parentTrackId") == null ? null : payload.get("parentTrackId").toString();
+        track.nowcast = head.geometry();
+        track.lastSignificant = significant(payload, head.geometry());
+        if (swath != null) {
+            track.swath = swath.geometry();
+            track.swathAt = swath.observedAt();
+        }
+        return track;
+    }
+
+    private static Instant parseInstant(Object value) {
+        if (value == null) {
+            return null;
+        }
+        try {
+            return Instant.parse(value.toString());
+        } catch (RuntimeException e) {
+            return null;
         }
     }
 
@@ -361,6 +478,7 @@ public class WxStormTracksGenerator implements DerivedGenerator {
                 track.ended = true;
                 seen.add(track.id);
                 emitTrack(ctx, track, validTime);
+                writeSwath(ctx, track, validTime, true);
             }
         }
         for (Track track : tracks.values()) {
@@ -443,7 +561,7 @@ public class WxStormTracksGenerator implements DerivedGenerator {
             p.put("lat", Math.round(positions[i * 3 + 2] * 1e4) / 1e4);
             history.add(p);
         }
-        payload.put("history", history);
+        payload.put(VOLATILE_HISTORY, history);
         if (track.motionMethod != null) {
             Map<String, Object> motion = new LinkedHashMap<>();
             motion.put("speedKmh", WxRound.speedKmh(track.speedKmh));
@@ -478,13 +596,28 @@ public class WxStormTracksGenerator implements DerivedGenerator {
         payload.put("detector", detector);
         payload.put("automated", true);
         payload.put("notAWarning", true);
+        Geometry geometry = nowcastGeometry(track);
+        String significant = significant(payload, geometry);
+        if (significant.equals(track.lastSignificant)) {
+            // Only the history moved: no version (prompt 105: emit on change of quantized fields).
+            return;
+        }
+        track.lastSignificant = significant;
         track.lastEmittedMaxDbz = track.maxDbz;
         ctx.emit(NormalizedRecord.builder(track.id, TRACK_KIND)
                 .observedAt(validTime)
                 .eventTime(track.firstSeen)
-                .geometry(nowcastGeometry(track))
+                .geometry(geometry)
                 .putAll(payload)
                 .build());
+    }
+
+    /** A track's significant content: the payload without {@code history}, plus the geometry's WKT. */
+    static String significant(Map<String, Object> payload, Geometry geometry) {
+        Map<String, Object> copy = new LinkedHashMap<>(payload);
+        copy.remove(VOLATILE_HISTORY);
+        return ai.foresignal.ingest.CanonicalJson.write(copy) + "|"
+                + (geometry == null ? "" : ai.foresignal.ingest.ContentHasher.wkt(geometry));
     }
 
     private void writeSwath(DerivedContext ctx, Track track, Instant validTime, boolean force) {
@@ -500,7 +633,8 @@ public class WxStormTracksGenerator implements DerivedGenerator {
         if (track.lastMesh != null) {
             payload.put("meshMaxMm", WxRound.whole(track.lastMesh));
         }
-        payload.put("durationMin", WxRound.whole(Duration.between(track.firstSeen, validTime).toMinutes()));
+        Instant until = track.ended ? track.lastSeen : validTime;
+        payload.put("durationMin", WxRound.whole(Math.max(0, Duration.between(track.firstSeen, until).toMinutes())));
         payload.put("status", track.ended ? "ended" : "active");
         payload.put("automated", true);
         payload.put("notAWarning", true);
@@ -554,12 +688,13 @@ public class WxStormTracksGenerator implements DerivedGenerator {
 
     /** {@code {speedKmh, bearingDeg, method}}; method 1 for the least-squares fit, 0 for centroid-v1. */
     static double[] motion(Track track) {
-        int n = track.positions.size();
+        List<double[]> window = track.motionWindow();
+        int n = window.size();
         if (n < 2) {
             return null;
         }
         if (n < 3) {
-            return centroid(points(track.positions));
+            return centroid(points(window));
         }
         double[] origin = track.last();
         double cos = Math.cos(Math.toRadians(origin[2]));
@@ -567,7 +702,7 @@ public class WxStormTracksGenerator implements DerivedGenerator {
         double[] x = new double[n];
         double[] y = new double[n];
         int i = 0;
-        for (double[] p : track.positions) {
+        for (double[] p : window) {
             t[i] = (p[0] - origin[0]) / 1000.0;
             x[i] = (p[1] - origin[1]) * 111.32 * cos;
             y[i] = (p[2] - origin[2]) * 110.57;
@@ -585,14 +720,14 @@ public class WxStormTracksGenerator implements DerivedGenerator {
             sty += (t[k] - tm) * (y[k] - ym);
         }
         if (stt <= 0) {
-            return centroid(points(track.positions));
+            return centroid(points(window));
         }
         double speed = Math.hypot(stx / stt * 3600, sty / stt * 3600);
         double bearing = (Math.toDegrees(Math.atan2(stx / stt, sty / stt)) + 360) % 360;
         return new double[] {speed, bearing, 1};
     }
 
-    private static double[][] points(ArrayDeque<double[]> positions) {
+    private static double[][] points(java.util.Collection<double[]> positions) {
         double[][] out = new double[positions.size()][];
         int i = 0;
         for (double[] p : positions) {

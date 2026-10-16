@@ -40,7 +40,12 @@ import org.springframework.beans.factory.ObjectProvider;
  *
  * <p>The clusterer runs here only while {@code goes-glm} is unavailable (failing, disabled or idle), so
  * {@code lightning-cluster} records keep flowing from local flashes when the internet feed is down, and
- * the two never mint clusters at the same time.
+ * the two never mint clusters at the same time. When {@code goes-glm} recovers, every open local cluster
+ * is ended (tombstoned) on the next run.
+ *
+ * <p>Files are read in modification-time order behind a watermark. A file is read only once it has
+ * been unmodified for {@value #SETTLE_SECONDS} s; a young file that fails to parse stops the run and is
+ * retried, so a partially written file is never skipped past.
  *
  * <p>Health: the newest input is recorded only while the station's {@code ground-station} state is
  * {@code locked} or {@code receiving}, so {@link ai.foresignal.collect.InputAgeHealthRule} degrades when
@@ -62,6 +67,9 @@ public class GlmLocalAdapter implements PollingAdapter {
 
     /** The gap after which health degrades during a pass. */
     static final long MAX_GAP_MINUTES = 5;
+
+    /** The flash origin tag, and the archive directory local flashes are written to. */
+    public static final String ORIGIN = "local";
 
     /** The state keys. */
     static final String LAST_MTIME = "lastMtime";
@@ -114,6 +122,7 @@ public class GlmLocalAdapter implements PollingAdapter {
             throw new AdapterException(sourceId + ": cannot list " + dir + ": " + e.getMessage(), e);
         }
         files.sort(Comparator.comparing(InboxAccess.FileStat::modified));
+        Instant now = ctx.now();
         Instant lastMtime = ctx.state().get(LAST_MTIME).map(Instant::parse).orElse(null);
         FlashSink flashes = ctx.rasters().flashes();
         LightningClusterer clusterer = new LightningClusterer();
@@ -121,12 +130,17 @@ public class GlmLocalAdapter implements PollingAdapter {
         Map<String, NormalizedRecord> out = new LinkedHashMap<>();
         Instant newest = lastMtime;
         int processed = 0;
+        boolean internetDown = internetUnavailable();
         for (InboxAccess.FileStat file : files) {
             if (processed >= MAX_FILES_PER_RUN) {
                 break;
             }
             if (lastMtime != null && !file.modified().isAfter(lastMtime)) {
                 continue;
+            }
+            if (!settled(file, now)) {
+                // Possibly still being written: stop here so the watermark does not pass it.
+                break;
             }
             if (file.size() > MAX_FILE_BYTES) {
                 ctx.log().warn("{}: skipping {} ({} bytes over the cap)", sourceId, file.path().getFileName(),
@@ -136,42 +150,46 @@ public class GlmLocalAdapter implements PollingAdapter {
             }
             Path staged = stage(ctx, file);
             if (staged == null) {
+                break;
+            }
+            GlmParser.Result parsed;
+            try {
+                parsed = GlmParser.parse(decoder, staged, sourceId);
+            } catch (Exception e) {
+                GzipInputs.deleteQuietly(staged);
+                if (retryable(file, now)) {
+                    // A young file that does not parse is most likely still being written: retry next run.
+                    ctx.log().debug("{}: {} not readable yet: {}", sourceId, file.path().getFileName(), e.getMessage());
+                    break;
+                }
+                ctx.log().warn("{}: {} skipped: {}", sourceId, file.path().getFileName(), e.getMessage());
+                newest = file.modified();
                 continue;
             }
             try {
-                GlmParser.Result parsed = GlmParser.parse(decoder, staged, sourceId);
-                FlashBatch deduped = FlashDedup.dedup(flashes, parsed.flashes());
-                flashes.append("local", "local", deduped, parsed.productTime());
-                if (internetUnavailable()) {
+                // The store de-duplicates against the internet copy in both directions (prompt 107).
+                flashes.append(ORIGIN, ORIGIN, parsed.flashes(), parsed.productTime());
+                if (internetDown) {
                     long deltaMs = lastMtime == null ? 0 : Duration.between(lastMtime, file.modified()).toMillis();
                     FlashBatch window = flashes.between(parsed.productTime().minus(LightningClusterer.WINDOW),
                             parsed.productTime());
-                    for (LightningClusterer.Change change : clusterer.step(window, parsed.productTime().toEpochMilli(),
-                            deltaMs)) {
-                        NormalizedRecord record = change.record();
-                        if (record.tombstone() && !change.wasEmitted()) {
-                            out.remove(record.externalId());
-                        } else {
-                            out.put(record.externalId(), record);
-                        }
-                    }
+                    collect(out, clusterer.step(window, parsed.productTime().toEpochMilli(), deltaMs));
                 }
                 newest = file.modified();
                 processed++;
-                ctx.log().debug("{}: {} of {} flashes kept (local)", sourceId, deduped.size(), parsed.total());
-            } catch (Exception e) {
-                ctx.log().warn("{}: {} skipped: {}", sourceId, file.path().getFileName(), e.getMessage());
-                newest = file.modified();
+                ctx.log().debug("{}: {} flashes appended (local)", sourceId, parsed.total());
             } finally {
                 GzipInputs.deleteQuietly(staged);
             }
         }
-        if (processed > 0) {
-            clusterer.markEmitted(out.values().stream().filter(r -> !r.tombstone())
-                    .map(NormalizedRecord::externalId).toList());
-            if (newest != null) {
-                ctx.state().put(LAST_MTIME, newest.toString());
-            }
+        if (!internetDown && !clusterer.tracked().isEmpty()) {
+            // goes-glm is back and mints the clusters again: end every local cluster now, so none is left open.
+            collect(out, clusterer.step(FlashBatch.EMPTY, now.toEpochMilli(), LightningClusterer.QUIET_MS));
+        }
+        clusterer.markEmitted(out.values().stream().filter(r -> !r.tombstone())
+                .map(NormalizedRecord::externalId).toList());
+        if (newest != null && !newest.equals(lastMtime)) {
+            ctx.state().put(LAST_MTIME, newest.toString());
         }
         ctx.state().put(CLUSTERS, clusterer.serialize());
         if (newest != null && stationState()) {
@@ -181,6 +199,34 @@ public class GlmLocalAdapter implements PollingAdapter {
             ctx.state().remove(ai.foresignal.source.spi.AdapterStateStore.MAX_INPUT_GAP_KEY);
         }
         return FetchResult.of(new ArrayList<>(out.values()));
+    }
+
+    /** A file is settled once its modification time is at least {@value #SETTLE_SECONDS} s old. */
+    static final long SETTLE_SECONDS = 10;
+
+    /** A file that fails to parse is retried while it is younger than this, seconds. */
+    static final long RETRY_SECONDS = 120;
+
+    /** True when {@code file} has not been modified for {@value #SETTLE_SECONDS} s, so it is complete. */
+    static boolean settled(InboxAccess.FileStat file, Instant now) {
+        return !file.modified().isAfter(now.minusSeconds(SETTLE_SECONDS));
+    }
+
+    /** True when a parse failure of {@code file} should be retried (it is younger than {@value #RETRY_SECONDS} s). */
+    static boolean retryable(InboxAccess.FileStat file, Instant now) {
+        return file.modified().isAfter(now.minusSeconds(RETRY_SECONDS));
+    }
+
+    /** Folds clusterer changes into {@code out}: a tombstone of a never-emitted cluster cancels its record. */
+    private static void collect(Map<String, NormalizedRecord> out, List<LightningClusterer.Change> changes) {
+        for (LightningClusterer.Change change : changes) {
+            NormalizedRecord record = change.record();
+            if (record.tombstone() && !change.wasEmitted()) {
+                out.remove(record.externalId());
+            } else {
+                out.put(record.externalId(), record);
+            }
+        }
     }
 
     private Path stage(FetchContext ctx, InboxAccess.FileStat file) {

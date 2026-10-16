@@ -79,6 +79,12 @@ public class GfsWaveAdapter implements PollingAdapter, DecoderDependent {
     /** The products. */
     public static final List<String> DEFAULT_PRODUCTS = List.of(WAVE, PERIOD, DIRECTION);
 
+    /** The products on by default on the small profile: none (GFS-Wave is a large-profile product). */
+    public static final List<String> LIGHT_DEFAULT = List.of();
+
+    /** The products on by default on the large profile: all (prompt 106 task 1). */
+    public static final List<String> LARGE_DEFAULT = DEFAULT_PRODUCTS;
+
     /** The model. */
     public static final ModelDefinition MODEL = new ModelDefinition(ID, "GFS-Wave", BUCKET, DEFAULT_TEMPLATE,
             DEFAULT_STEPS, RUN_EVERY, AVAILABILITY_LAG, List.of(
@@ -95,11 +101,19 @@ public class GfsWaveAdapter implements PollingAdapter, DecoderDependent {
 
     private final ModelRunIngest ingest;
     private final String baseUrl;
+    private final String profile;
+
+    /** Creates the adapter for the small profile (tests). */
+    public GfsWaveAdapter(ModelRunIngest ingest, String baseUrlOverride) {
+        this(ingest, baseUrlOverride, "small");
+    }
 
     /** Creates the adapter. */
     @Autowired
-    public GfsWaveAdapter(ModelRunIngest ingest, @Value("${" + BASE_URL_PROPERTY + ":}") String baseUrlOverride) {
+    public GfsWaveAdapter(ModelRunIngest ingest, @Value("${" + BASE_URL_PROPERTY + ":}") String baseUrlOverride,
+            @Value("${foresignal.profile:small}") String profile) {
         this.ingest = ingest;
+        this.profile = profile;
         String chosen = baseUrlOverride == null ? "" : baseUrlOverride.trim();
         this.baseUrl = chosen.endsWith("/") ? chosen.substring(0, chosen.length() - 1) : chosen;
         ingest.registerDefault(ID, RUN_EVERY);
@@ -126,9 +140,12 @@ public class GfsWaveAdapter implements PollingAdapter, DecoderDependent {
     public FetchResult fetch(FetchContext ctx) throws AdapterException {
         ModelDefinition model = MODEL;
         if (!ctx.rasters().probing()) {
-            Set<String> enabled = ProductEnablement.enabled(ctx.params(), "small",
-                    MODEL.products().stream().map(ModelDefinition.Product::productId).toList(), DEFAULT_PRODUCTS,
-                    DEFAULT_PRODUCTS);
+            Set<String> enabled = ProductEnablement.enabled(ctx.params(), profile,
+                    MODEL.products().stream().map(ModelDefinition.Product::productId).toList(), LIGHT_DEFAULT,
+                    LARGE_DEFAULT);
+            if (enabled.isEmpty()) {
+                return FetchResult.of(List.of());
+            }
             if (enabled.size() != MODEL.products().size()) {
                 List<ModelDefinition.Product> products = MODEL.products().stream()
                         .filter(p -> enabled.contains(p.productId()) || p.productId().equals(MODEL.probeProduct()))
@@ -183,7 +200,7 @@ public class GfsWaveAdapter implements PollingAdapter, DecoderDependent {
                 .param(ParamSpec.optional(ModelRunIngest.AVAILABILITY_LAG, ParamType.DURATION,
                         "How long after its reference time a run starts to appear", "240m"))
                 .param(ParamSpec.optional(ProductEnablement.PRODUCTS_PARAM, ParamType.STRING_LIST,
-                        "Which products to ingest (default all)", DEFAULT_PRODUCTS))
+                        "Which products to ingest (default none on small, all on large)", null))
                 .product(wave)
                 .product(period)
                 .product(direction)

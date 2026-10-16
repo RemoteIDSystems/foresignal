@@ -443,7 +443,9 @@ public class SampleService implements RasterReader, ai.foresignal.ingest.IngestS
     /**
      * The model-disagreement block of a sample (prompt 105): when two or more model products (gust, 24-hour
      * precipitation or 2 m temperature) are sampled together, their spread over the fields that disagree.
-     * Null when fewer than two models or none disagree.
+     * Null when fewer than two models or none disagree. Every model's {@code -gust} and {@code -t2m} product
+     * joins, so AIFS ({@code aifs-t2m}, prompt 106) is an extra model when it is enabled and sampled; run-total
+     * precipitation ({@code gfs-apcp}, {@code aifs-tp}) is not a 24-hour amount at one time and stays out.
      */
     static Map<String, Object> disagreement(List<Map<String, Object>> values) {
         Map<String, Map<String, Double>> fields = new LinkedHashMap<>();

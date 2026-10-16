@@ -3730,8 +3730,15 @@ derived place weather below, "Weather alerts".
 ranges from each step's JSON `.index`, and costs about **0.5–1 GB/day** (20/min, 3,000/day, 1,200 MB/day; one
 20-minute check, 00z and 12z, steps 0–144 by 3). Products: `ifs` (10 m wind), `ifs-gust`, `ifs-t2m`, `ifs-mslp`,
 `ifs-precip-3h` and `ifs-precip-24h`. The whole real-time catalogue is CC BY 4.0: **every derived output carries the
-"Contains modified Copernicus/ECMWF data … changes made" attribution**. The 00z/12z run appears about 7 h after its
-reference time.
+"Contains modified Copernicus/ECMWF data … changes made" attribution** (the `forecast-area` payload and the
+place-weather `forecast.ifs` section carry it as `attribution`). The 00z/12z run appears about 7 h after its
+reference time. A step is marked fetched only when every product that has it was committed; a step whose products
+did not all commit (a missing reference message, a missing field) is retried on the next checks, at most 3 times.
+
+**Run staleness is per model.** A derived weather section (place weather, forecast areas) calls a model's newest run
+`stale` only once its successor should already be ingested: run cadence + availability lag + an ingest allowance.
+Defaults: GFS 11.5 h, GFS-Wave 12 h, HRRR 7 h 50 min (the 6-hourly small-profile cadence), NBM 9 h, AIFS 16 h,
+IFS 22 h. A slower cadence set by the operator makes sections go stale early, never late.
 
 **`wx-forecast-areas`** (`forecast-area` records) thresholds a model field over the places AOI on each completed run:
 the polygon where it is forecast to cross the threshold within the `thresholds` horizon (default 120 h, at most 120).
@@ -3739,16 +3746,24 @@ Defaults cover gust ≥ 20 and ≥ 25 m/s, 24-hour precipitation ≥ 50 mm and 2
 ≤ 263.15 K (−10 °C) for GFS, HRRR and IFS where the product exists. `validFrom` is the first exceeding valid time and
 `validUntil` the last exceeding valid time plus the step, so a `forecast-area` rule can use `forecastHorizon`. A
 typical recipe: "IFS gust ≥ 25 m/s within 48 h at home" is `kind=forecast-area`, `near{home}`, `forecastHorizon 48h`,
-`enter`.
+`enter`. A version is written only when the quantized payload changes or the polygon changes by more than 10%
+(symmetric difference over union); `run` alone is volatile, so a newer run forecasting the same area writes nothing.
+When a newer run drops the exceedance the area is **tombstoned** (an `exit`). The peak of a `<=` threshold is the
+minimum.
 
 **`wx-storm-tracks`** (`storm-track`, `storm-swath`) tracks MRMS storm cells with TITAN-lite: advected-polygon IoU
 with a Hungarian assignment, merges and splits. Limits: it runs on the 2-minute MRMS frames inside the places AOI
 (`scope=conus` on the large profile only), the nowcast is a straight **linear advection** of +15/+30/+60 min, and the
 GLM lightning-jump flag (`2sigma-glm-v1`) is **advisory** — GLM's footprint over Texas is about 8–10 km and its
-detection efficiency is below 100%. `storm-swath` is the union of the cells along the track. Automated, not a warning.
+detection efficiency is below 100%. `storm-swath` is the union of the cells along the track, written every 10 min and
+when the track ends (by a merge or by two missed frames); a restart extends the stored swath. A track keeps a
+12-position `history` (volatile: a frame that only moves the history writes no version); its motion is the least
+squares over the newest five positions. In a merge the largest track continues. Automated, not a warning.
 
-**Annotators.** `outage-weather` adds `context.weather` (NWS warnings, radar ≥ 50 dBZ areas and storm tracks within
-±3 h and 25 km) to `infrastructure-disruption` and `weather-impact` events as **context members** — background, never
+**Annotators.** `outage-weather` adds `context.weather` (NWS warnings, radar ≥ 50 dBZ areas and storm tracks, and
+gusts ≥ 25 m/s from `forecast-area` gust areas or METAR observations, within ±3 h and 25 km; read from the stored
+versions in that window, so weather that has since ended still counts) to `infrastructure-disruption` and
+`weather-impact` events as **context members** — background, never
 supporting evidence, so they never raise confidence — and adds the alternative "weather-related damage". The
 weather-impact recipes `dry-lightning-ignition`, `airport-weather` and `smoke-aq` create events from weather
 co-occurrences.
@@ -3756,22 +3771,28 @@ co-occurrences.
 ## Extended weather products (prompt 106)
 
 **Per-product enablement.** Every extended source has a `products` string-list parameter; a product not
-listed is not fetched or stored. The defaults follow the memory profile (`FORESIGNAL_PROFILE`):
-`gfs-wave` and `aifs` are on for the `large` profile only, and the other extended products follow the
-same pattern. Set the parameter with `PUT /v1/sources/{id}/params` (or the source settings API).
+listed is not fetched or stored. Left unset (it has no descriptor default), the memory profile
+(`FORESIGNAL_PROFILE`) decides: the **small** profile turns on GOES-East C13/C08/C09, `rtma-ru`, `nbm`,
+the OVATION aurora raster, TAF, HRRR smoke (surface and column), `wpc-heatrisk` and `epa-uv`; the **large**
+profile also turns on C02, `goes-west-abi`, `gfs-wave`, the MRMS extras (lightning probability, VIL, echo
+top), `sst-geopolar` and `aifs`. The mesoscale sectors are opt-in on both (list them in `goes-east-abi`'s
+`products`), and `nexrad-l3` is opt-in like every source. Set the parameter with
+`PUT /v1/sources/{id}/params` (or the source settings API).
 
 **New sources.** `goes-west-abi` mirrors the East clean IR on GOES-18; `goes-east-abi` adds the C08/C09
 water-vapour channels, the C02 visible (daytime only, cropped to the AOI + 300 km) and the 1-minute
-mesoscale sectors (AOI-gated, every second frame). `rtma-ru` is the hourly 2.5 km CONUS analysis
-(observation); `nbm` is the National Blend of Models core; `gfs-wave` (HTSGW/PERPW/DIRPW) feeds the
+mesoscale sectors (AOI-gated, every second frame). `rtma-ru` is the 15-minute RTMA Rapid Update 2.5 km
+CONUS analysis (observation; about 3.4 GB/day for all five products — set `analysisEvery` to `30m` or `60m`
+to thin it); `nbm` is the National Blend of Models core; `gfs-wave` (HTSGW/PERPW/DIRPW) feeds the
 place-weather `marine` section for places tagged `coastal`; `aifs` is the ECMWF AIFS machine-learning
 forecast (CC BY 4.0). The `mrms` source gains lightning probability, VIL and echo top; the `hrrr` source
 gains `hrrr-smoke-column` (COLMD); `swpc-aurora` gains the global `aurora-probability` raster; `sst-geopolar`
 adds the daily Geo-Polar SST over an ocean bbox; `wpc-heatrisk` adds the **experimental** NWS HeatRisk
 days 1–7 (place-weather `heat`); `epa-uv` adds the hourly UV index per place — set a place's `zip`
-attribute (`PUT /v1/places/{id}` `{"attributes":{"zip":"78701"}}`) for it to be fetched. **`nexrad-l3`**
-is opt-in and has a **documented gap**: this build's NetCDF-Java has no NIDS reader, so it lists the
-nearest WSR-88D sites and probes but ingests no frames.
+attribute (`PUT /v1/places/{id}` `{"attributes":{"zip":"78701"}}`) for it to be fetched; places without
+one are named in the source's health note. **`nexrad-l3`** (opt-in) ingests N0B reflectivity and N0G
+velocity for the nearest WSR-88D sites (`sites`, or `siteCount` nearest the home), decoded with
+NetCDF-Java's NIDS reader and resampled to 0.005° within 230 km.
 
 **Products with a byte budget** set `mbPerDay`; when the projected day's download, at the rate seen so
 far, exceeds **120%** of it, the source degrades with a `projected download … exceeds …` reason
@@ -4307,11 +4328,18 @@ decommissioned in 2025.
 
 **DCS.** Enable `parse_dcs` in SatDump (GOES-R HRIT pipeline) and, at the source, set `tracked_addresses` to
 cut volume. Then set `dcsEnabled` on the `satdump-{station}` source and a `dcsBbox` (or configure places, whose
-AOI is the default): **DCS cannot be enabled without an effective bbox**. Put a `dcp_locations.csv`
+AOI is the default; the built-in default box in force without places does not count): **DCS cannot be enabled
+without an effective bbox**, and if places are later removed, no DCS message is processed and health says
+so. Put a `dcp_locations.csv`
 (`address,lat,lon,name,agency`) at `${FORESIGNAL_INBOX_DIR}/dcs/dcp_locations.csv`; it is re-read on change.
 Messages with no location, outside the bbox or not allowlisted are dropped and counted. Over `dcsMaxPerScan`
 (500) the newest per address are kept and health degrades with "DCS volume over cap" — tighten `dcsBbox` or
 `dcsAddresses`. DCS is hemisphere-wide from a GOES antenna; expect high volume without a filter.
+
+DCS and EMWIN files are read **as they settle**, on every inbox scan, wherever `dcsGlob`/`emwinGlob` match
+below `inboxPath` (not only in finished pass folders), so continuous HRIT reception delivers warnings within
+about two scan intervals. A file is read once it is unchanged since the previous scan, and once per size and
+modification time; `IMAGES` trees are not searched.
 
 **EMWIN.** Enable `emwinEnabled`; products in `emwinProducts` (AWIPS categories) become `emwin-product`
 records and P-VTEC warnings with a polygon become `emwin-warning`, filtered to the places AOI. While
@@ -4325,11 +4353,18 @@ records and P-VTEC warnings with a polygon become `emwin-warning`, filtered to t
 
 EMWIN is never more authoritative than NWS; messages render "Received via GOES HRIT EMWIN".
 
+Products are applied in issue-time order (the WMO heading's time), and an older product never overrides a
+newer one of the same warning, so a late copy of a `NEW` cannot revive a canceled warning. An
+`emwin-product` id is `{wmoHeading}:{awipsId}:{issue time}` and its `observedAt` is the issue time.
+
 **Local GLM (GRB).** A GOES GRB station (1686.6 MHz; a larger dish than HRIT) writes L2 LCFA NetCDF files;
 set `FORESIGNAL_GLM_LOCAL_STATIONS` to the station names (use the same names as `FORESIGNAL_SATDUMP_STATIONS`)
 and point `inboxPath` at the GLM output. Local flashes join the shared AOI ring and de-duplicate against the
-internet `goes-glm`; `lightning-cluster` records keep flowing from local flashes while the internet feed is
-down. Health degrades if no file arrives for 5 minutes during a pass.
+internet `goes-glm` in both directions (whichever copy of a flash arrives second is dropped, within 1 s and
+0.05°, inside the ring's scope); `lightning-cluster` records keep flowing from local flashes while the
+internet feed is down, and the local clusters end as soon as it recovers. A GLM file is read once it has
+been unmodified for 10 s; a young file that does not parse is retried. Health degrades if no file arrives for
+5 minutes during a pass.
 
 **Elements feed (TLE).** For SatDump, Gpredict and Look4Sat, point the TLE update at Foresignal:
 `/compat/celestrak/NORAD/elements/{group}.txt` (groups `weather`, `noaa`, `goes`, `resource`, `amateur`,
@@ -4341,7 +4376,9 @@ prefix `/compat/celestrak/`), or enable `openReads`.
 **SatDump 2.0 hook.** If the station runs SatDump 2.0 (alpha only as of 2026-10; 1.2.2 is stable), set
 `satdumpVersion` to `2.0` and install `contrib/satdump/foresignal_hook.as` (MIT, separate, experimental). It
 writes equirectangular composites and a `foresignal-manifest.json` that Foresignal recognises
-version-agnostically; an unknown manifest schema is rejected with a health reason.
+version-agnostically: listed GeoTIFFs go through the overlay pipeline, and listed PNGs through the image
+guard, georeferenced from the product's `bounds [w,s,e,n]` (`projection: equirec`). An unknown manifest
+schema, or a PNG without valid bounds, is rejected with a health reason.
 
 ## Space sources (prompt 064)
 

@@ -81,6 +81,12 @@ public class HrrrAdapter implements PollingAdapter, DecoderDependent {
     /** Column-integrated smoke (prompt 106). */
     public static final String SMOKE_COLUMN = "hrrr-smoke-column";
 
+    /** The column-smoke code scale, µg/m² (1 mg/m²; prompt 106 post-review: 0 … 65.5 g/m² in i16). */
+    static final double SMOKE_COLUMN_SCALE = 1_000.0;
+
+    /** The column-smoke code offset, µg/m²: code −32767 is 0 µg/m². */
+    static final double SMOKE_COLUMN_OFFSET = 32_767_000.0;
+
     /** The products enabled by default on both profiles. */
     public static final java.util.List<String> DEFAULT_PRODUCTS =
             List.of(WIND, REFC, GUST, SMOKE, SMOKE_COLUMN);
@@ -233,7 +239,11 @@ public class HrrrAdapter implements PollingAdapter, DecoderDependent {
         ProductSpec smoke = scalar(SMOKE, "HRRR near-surface smoke", "ug/m3", 0.1, 0.0, "smoke@1",
                 ProductSpec.RESAMPLE_BILINEAR, temporal, spatial, ladder, attribution, meaning,
                 "Smoke mass density 8 m above ground, µg/m³ (HRRR-Smoke)");
-        ProductSpec smokeColumn = scalar(SMOKE_COLUMN, "HRRR column smoke", "ug/m2", 10.0, 0.0, "smoke@2",
+        // i16 codes −32767..32767 at 1 mg/m² from 32.767 g/m² cover 0 … 65.5 g/m². A quiet 2026-10-15 f01 field
+        // already reached 71 mg/m² and a dense plume reaches several g/m² (aerosol optical depth above 10); the
+        // first version's 10 µg/m² from 0 saturated at 0.33 g/m².
+        ProductSpec smokeColumn = scalar(SMOKE_COLUMN, "HRRR column smoke", "ug/m2", SMOKE_COLUMN_SCALE,
+                SMOKE_COLUMN_OFFSET, "smoke@2",
                 ProductSpec.RESAMPLE_BILINEAR, temporal, spatial, ladder, attribution, meaning,
                 "Column-integrated smoke mass density, µg/m² (HRRR-Smoke COLMD)");
         return SourceDescriptor.builder(ID)
@@ -266,7 +276,7 @@ public class HrrrAdapter implements PollingAdapter, DecoderDependent {
                 .param(ParamSpec.optional(ModelRunIngest.AVAILABILITY_LAG, ParamType.DURATION,
                         "How long after its reference time a run starts to appear", "50m"))
                 .param(ParamSpec.optional(ai.foresignal.raster.ProductEnablement.PRODUCTS_PARAM, ParamType.STRING_LIST,
-                        "Which products to ingest (default all)", DEFAULT_PRODUCTS))
+                        "Which products to ingest (default all on both profiles)", null))
                 .product(wind)
                 .product(refc)
                 .product(gust)

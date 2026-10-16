@@ -34,8 +34,8 @@ import org.springframework.stereotype.Service;
 @Service
 public class ForecastSeriesService {
 
-    /** The providers this service serves (prompt 105 adds {@code ifs}). */
-    public static final List<String> PROVIDERS = List.of("gfs", "hrrr", "ifs", "nws");
+    /** The providers this service serves (prompt 105 adds {@code ifs}; prompt 106 adds {@code aifs}). */
+    public static final List<String> PROVIDERS = List.of("gfs", "hrrr", "ifs", "aifs", "nws");
 
     /** The source behind the {@code nws} provider. */
     public static final String NWS_SOURCE = "nws-gridpoints";
@@ -73,6 +73,7 @@ public class ForecastSeriesService {
             case "gfs" -> new String[] {"gfs", "gfs-gust", "gfs-t2m", "gfs-apcp", null};
             case "hrrr" -> new String[] {"hrrr", "hrrr-gust", null, null, "hrrr-smoke"};
             case "ifs" -> new String[] {"ifs", "ifs-gust", "ifs-t2m", null, null};
+            case "aifs" -> new String[] {"aifs", null, "aifs-t2m", "aifs-tp", null};
             default -> throw new IllegalArgumentException("Unknown forecast provider " + provider);
         };
     }
@@ -105,7 +106,10 @@ public class ForecastSeriesService {
         return out;
     }
 
-    /** The owning source of a provider (prompt 105: {@code ifs} is owned by {@code ecmwf-ifs}). */
+    /**
+     * The owning source of a provider (prompt 105: {@code ifs} is owned by {@code ecmwf-ifs}; the {@code aifs}
+     * provider is the {@code aifs} source).
+     */
     public static String sourceOf(String provider) {
         return switch (provider) {
             case "nws" -> NWS_SOURCE;

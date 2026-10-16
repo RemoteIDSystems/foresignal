@@ -21,7 +21,8 @@ import org.locationtech.jts.geom.util.AffineTransformation;
  *   <li>the assignment is solved with {@link Hungarian} when both sides are at most
  *       {@value #MAX_HUNGARIAN}, else greedily;
  *   <li>a current cell that overlaps two or more advected tracks (IoU ≥ {@value #MERGE_IOU} each)
- *       merges them: the largest-area track continues, the others end with {@code mergedInto};
+ *       merges them: the largest-area track continues (even when the solver had paired the cell with a
+ *       smaller one), the others end with {@code mergedInto};
  *   <li>an advected track that overlaps two or more current cells (IoU ≥ {@value #SPLIT_IOU} each)
  *       splits: the largest cell continues the track, the others start with {@code parentTrackId}.
  * </ol>
@@ -182,37 +183,43 @@ public final class TitanLiteTracker {
                 prevAssigned[i] = true;
             }
         }
-        // Merges: a cell overlapping two or more advected tracks; the assigned (or largest) continues.
+        // Merges: a cell overlapping two or more advected tracks (IoU >= MERGE_IOU each). The largest-area
+        // track among those still free for this cell continues; the others end with mergedInto. A track the
+        // solver already gave to a different cell keeps that cell and takes no part in this merge.
         for (int j = 0; j < c; j++) {
             List<Integer> overlapping = new ArrayList<>();
             for (int i = 0; i < p; i++) {
-                if (iou[i][j] >= MERGE_IOU) {
+                if (iou[i][j] >= MERGE_IOU && (!prevAssigned[i] || rowToCol[i] == j)) {
                     overlapping.add(i);
                 }
             }
             if (overlapping.size() < 2) {
                 continue;
             }
-            int winner = overlapping.get(0);
-            for (int i : overlapping) {
-                if (!prevAssigned[i]) {
-                    continue;
+            int winner = largest(overlapping, advected);
+            if (!(prevAssigned[winner] && rowToCol[winner] == j)) {
+                List<Assignment> removed = new ArrayList<>();
+                for (Assignment a : assignments) {
+                    if (a.cell() == j) {
+                        removed.add(a);
+                        if (!overlapping.contains(a.previous())) {
+                            // Paired by distance only: it becomes unmatched (missed) rather than merged.
+                            prevAssigned[a.previous()] = false;
+                            rowToCol[a.previous()] = -1;
+                        }
+                    }
                 }
-                if (cellAssigned[j] && rowToCol[i] == j) {
-                    winner = i;
-                    break;
-                }
-            }
-            if (!prevAssigned[winner]) {
-                winner = largest(overlapping, advected);
+                assignments.removeAll(removed);
                 assignments.add(new Assignment(winner, j, iou[winner][j]));
                 prevAssigned[winner] = true;
+                rowToCol[winner] = j;
                 cellAssigned[j] = true;
             }
             for (int i : overlapping) {
-                if (i != winner && !prevAssigned[i]) {
+                if (i != winner) {
                     merges.add(new Merge(i, winner));
                     prevAssigned[i] = true;
+                    rowToCol[i] = -1;
                 }
             }
         }

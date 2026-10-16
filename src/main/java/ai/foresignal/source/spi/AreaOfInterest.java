@@ -21,6 +21,15 @@ public interface AreaOfInterest {
     long version();
 
     /**
+     * True while there are no places and the envelope is only {@code weather.defaultAoi} (prompt 107:
+     * DCS refuses to treat the default box as an operator-chosen filter). Implementations that cannot
+     * tell answer false.
+     */
+    default boolean isDefault() {
+        return false;
+    }
+
+    /**
      * Registers {@code sourceId} as an AOI consumer, so it gets the health warning while the default
      * AOI is in force.
      */

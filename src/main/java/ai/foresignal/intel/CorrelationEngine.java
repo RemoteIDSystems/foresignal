@@ -835,7 +835,11 @@ public class CorrelationEngine implements ChangeListener, DisposableBean {
         }
     }
 
-    /** Runs every annotator that applies to {@code event}, storing its context and context members. */
+    /**
+     * Runs every annotator that applies to {@code event}, storing its context and context members. It runs on
+     * every recipe hit, so it is idempotent: context sections are replaced, context members are added once,
+     * and an alternative replaces any stored alternative with the same hypothesis.
+     */
     private void applyAnnotators(IntelligenceEventEntity event, Instant now) {
         if (annotators.isEmpty() || derivedRecords == null || event.getGeom() == null || event.getGeom().isEmpty()) {
             return;

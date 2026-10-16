@@ -80,6 +80,12 @@ public class AifsAdapter implements PollingAdapter, DecoderDependent {
     /** The products (all off by default on the small profile). */
     public static final List<String> PRODUCTS = List.of(WIND, T2M, MSLP, TP);
 
+    /** The products on by default on the small profile: none (AIFS is a large-profile product). */
+    public static final List<String> LIGHT_DEFAULT = List.of();
+
+    /** The products on by default on the large profile: all (prompt 106 task 1). */
+    public static final List<String> LARGE_DEFAULT = PRODUCTS;
+
     private static final String CHANGES_MADE =
             "Contains modified Copernicus/ECMWF data: ECMWF AIFS open data, CC BY 4.0."
                     + " Changes made: resampled, quantised, derived fields.";
@@ -140,7 +146,11 @@ public class AifsAdapter implements PollingAdapter, DecoderDependent {
         EcmwfDefinition model = MODEL;
         if (!ctx.rasters().probing()) {
             Set<String> enabled = ProductEnablement.enabled(ctx.params(), profile,
-                    MODEL.products().stream().map(EcmwfDefinition.Product::productId).toList(), List.of(), PRODUCTS);
+                    MODEL.products().stream().map(EcmwfDefinition.Product::productId).toList(), LIGHT_DEFAULT,
+                    LARGE_DEFAULT);
+            if (enabled.isEmpty()) {
+                return FetchResult.of(List.of());
+            }
             if (enabled.size() != MODEL.products().size()) {
                 List<EcmwfDefinition.Product> products = MODEL.products().stream()
                         .filter(p -> enabled.contains(p.productId()) || p.productId().equals(MODEL.probeProduct()))
@@ -216,7 +226,7 @@ public class AifsAdapter implements PollingAdapter, DecoderDependent {
                 .param(ParamSpec.optional(EcmwfRunIngest.RESOLUTION, ParamType.STRING, "The {res} path segment",
                         "0p25"))
                 .param(ParamSpec.optional(ProductEnablement.PRODUCTS_PARAM, ParamType.STRING_LIST,
-                        "Which products to ingest (default none on small, all on large)", PRODUCTS))
+                        "Which products to ingest (default none on small, all on large)", null))
                 .product(wind)
                 .product(t2m)
                 .product(mslp)

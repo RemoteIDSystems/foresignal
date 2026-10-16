@@ -117,6 +117,12 @@ public class PlacesAoiService implements HealthRule, IngestStateReset, AreaOfInt
         return current().version();
     }
 
+    /** True while there are no places and the AOI is the {@code weather.defaultAoi} box (prompt 107). */
+    @Override
+    public boolean isDefault() {
+        return current().isDefault();
+    }
+
     /** Registers {@code sourceId} as an AOI consumer (it gets the default-AOI health warning). */
     public void registerConsumer(String sourceId) {
         consumers.add(sourceId);

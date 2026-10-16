@@ -13,8 +13,8 @@ import org.springframework.stereotype.Component;
 /**
  * GOES-West (GOES-18) ABI band 13 (prompt 106; Weather-Imagery-Design §5.3): the same as
  * {@code goes-east-abi}'s clean IR, on {@code noaa-goes18}, with its own {@code geos} grid read from
- * the file (GOES-West's longitude). Off by default on the small profile? No: the clean IR is light, so
- * it is on for both profiles, but the operator can disable it with the {@code products} param.
+ * the file (GOES-West's longitude). Off by default on the small profile and on by default on the
+ * large profile (prompt 106 task 1); the {@code products} param overrides either.
  */
 @Component
 public class GoesWestAbiAdapter extends GoesAbiAdapter implements PollingAdapter {
@@ -37,11 +37,17 @@ public class GoesWestAbiAdapter extends GoesAbiAdapter implements PollingAdapter
                     "GOES-West clean infrared (ABI band 13)", "Brightness temperature at 10.3 µm, K; cold (bright) is"
                             + " high cloud", Duration.ofHours(24), false, false, 1));
 
+    /** The products on by default for the small profile: none. */
+    public static final List<String> LIGHT_DEFAULT = List.of();
+
+    /** The products on by default for the large profile: GOES-18 C13. */
+    public static final List<String> LARGE_DEFAULT = List.of(IR);
+
     /** Creates the GOES-West adapter. */
     @Autowired
     public GoesWestAbiAdapter(NetcdfDecoder decoder, @Value("${" + BASE_URL_PROPERTY + ":}") String baseUrlOverride,
             @Value("${foresignal.profile:small}") String profile, ObjectProvider<AreaOfInterest> aoi) {
         super(decoder, baseUrlOverride, profile, aoi, ID, BUCKET, "G18", "GOES-West (GOES-18)", CHANNELS,
-                List.of(IR), List.of(IR));
+                LIGHT_DEFAULT, LARGE_DEFAULT);
     }
 }

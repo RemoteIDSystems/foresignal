@@ -48,6 +48,45 @@ class EmwinTextParserTest {
     }
 
     @Test
+    @DisplayName("LAT...LON pairs are latitude first; longitudes are west, and five digits mean 100 degrees or more")
+    void latLonOrder() {
+        var polygon = EmwinTextParser.polygon("LAT...LON 3250 09730 3260 10123\n      3240 10110 3250 09730\n$$");
+        assertThat(polygon).isNotNull();
+        var c = polygon.getCoordinates();
+        assertThat(c[0].x).isEqualTo(-97.30);
+        assertThat(c[0].y).isEqualTo(32.50);
+        assertThat(c[1].x).isEqualTo(-101.23);
+        assertThat(c[1].y).isEqualTo(32.60);
+        assertThat(c[2].x).isEqualTo(-101.10);
+        assertThat(c[2].y).isEqualTo(32.40);
+        assertThat(polygon.getEnvelopeInternal().getMinY()).isGreaterThan(30);
+        assertThat(EmwinTextParser.polygon("LAT...LON 9999 09730 3260 09720 3240 09710")).isNull();
+    }
+
+    @Test
+    @DisplayName("TIME...MOT...LOC is found anywhere in the text")
+    void timeMotLoc() {
+        assertThat(EmwinTextParser.timeMotLoc(TORNADO)).containsExactly(2130, 250, 24);
+        assertThat(EmwinTextParser.timeMotLoc("no motion here")).isNull();
+    }
+
+    @Test
+    @DisplayName("the issue time comes from the WMO heading, resolved against now, BBB suffix allowed")
+    void issuedAt() throws FormatException {
+        Instant now = Instant.parse("2026-10-16T00:10:00Z");
+        assertThat(EmwinTextParser.issuedAt("WUUS54 KFWD 152300", now)).isEqualTo(Instant.parse("2026-10-15T23:00:00Z"));
+        assertThat(EmwinTextParser.issuedAt("WUUS54 KFWD 160005 CCA", now)).isEqualTo(Instant.parse("2026-10-16T00:05:00Z"));
+        // Day 31 read on the 1st belongs to the previous month.
+        assertThat(EmwinTextParser.issuedAt("WUUS54 KFWD 312350", Instant.parse("2026-11-01T00:10:00Z")))
+                .isEqualTo(Instant.parse("2026-10-31T23:50:00Z"));
+        assertThat(EmwinTextParser.issuedAt("not a heading", now)).isNull();
+        assertThat(EmwinTextParser.issuedAt(null, now)).isNull();
+        String corrected = TORNADO.replace("WUUS54 KFWD 152300", "WUUS54 KFWD 152300 CCA");
+        assertThat(EmwinTextParser.parse(corrected.getBytes(StandardCharsets.UTF_8)).wmoHeading())
+                .isEqualTo("WUUS54 KFWD 152300 CCA");
+    }
+
+    @Test
     @DisplayName("a CAN action is a cancellation")
     void cancelled() throws FormatException {
         String can = TORNADO.replace("/O.NEW.", "/O.CAN.");

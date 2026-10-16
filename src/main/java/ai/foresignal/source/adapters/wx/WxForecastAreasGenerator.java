@@ -6,6 +6,7 @@ import ai.foresignal.derive.DerivedInputs;
 import ai.foresignal.derive.HeadSnapshot;
 import ai.foresignal.raster.GridDef;
 import ai.foresignal.raster.RasterFrameRow;
+import ai.foresignal.raster.model.EcmwfDefinition;
 import ai.foresignal.raster.sample.CellAreas;
 import ai.foresignal.raster.sample.FrameView;
 import ai.foresignal.raster.sample.GridWindow;
@@ -50,9 +51,13 @@ import org.springframework.stereotype.Component;
  * <p>On each completed run the steps within the horizon are thresholded, their masks are unioned into
  * one polygon per definition (3×3 opening, run-rectangle union, JTS simplify at 0.02°), and the
  * record carries {@code validFrom} (the first exceeding valid time) and {@code validUntil} (the last
- * exceeding valid time plus the step). It emits only on a change of the quantised payload or of the
- * geometry (symmetric difference over 10%), and is tombstoned when the exceedance disappears in a
- * newer run. {@code reconcile} restores state and tombstones areas whose definition left the config.
+ * exceeding valid time plus the step). It emits only on a change of the quantized payload (the
+ * volatile {@code run} excluded) or of the geometry: a new geometry replaces the stored one only when
+ * their symmetric difference is over 10% of their union. It is tombstoned when the exceedance
+ * disappears in a newer run, and a model's run counts as stale only past its own cadence, lag and
+ * ingest allowance ({@link ModelRunAge}). IFS- and AIFS-derived areas carry the ECMWF CC BY 4.0
+ * "changes made" attribution in {@code attribution}. {@code reconcile} restores state and tombstones
+ * areas whose definition left the config.
  */
 @Component
 public class WxForecastAreasGenerator implements DerivedGenerator {
@@ -81,8 +86,14 @@ public class WxForecastAreasGenerator implements DerivedGenerator {
     /** The symmetric-difference fraction above which the geometry counts as changed. */
     public static final double GEOMETRY_CHANGE = 0.10;
 
-    /** The model's maximum run age before its forecast is not used. */
+    /**
+     * The maximum run age of a model {@link ModelRunAge} does not know; known models use their own cadence,
+     * lag and ingest allowance (prompt 105 post-review).
+     */
     public static final Duration RUN_MAX_AGE = Duration.ofHours(12);
+
+    /** The payload key left out of the significant content (and declared volatile): the run of the forecast. */
+    static final String VOLATILE_RUN = "run";
 
     /** The default thresholds. */
     public static final List<String> DEFAULT_THRESHOLDS = List.of(
@@ -168,6 +179,12 @@ public class WxForecastAreasGenerator implements DerivedGenerator {
         Geometry geometry;
         Instant validFrom;
         Instant validUntil;
+        Instant peakAt;
+        Instant run;
+        /** True while a live (non-tombstoned) record exists for this area. */
+        boolean exists;
+        /** The canonical significant content (payload without {@code run}, plus geometry) last emitted. */
+        String lastSignificant;
 
         AreaState(AreaDef def, WxSection section, Geometry geometry) {
             this.def = def;
@@ -188,7 +205,8 @@ public class WxForecastAreasGenerator implements DerivedGenerator {
                 .description("The polygon where a model field is forecast to cross a threshold inside the places AOI,"
                         + " over a horizon of up to 120 h. Automated, not a warning.")
                 .kind(KIND)
-                .attribution("Derived by Foresignal from NOAA GFS/HRRR and ECMWF IFS (CC BY 4.0)")
+                .attribution("Derived by Foresignal from NOAA GFS/HRRR and ECMWF IFS. IFS-derived areas: "
+                        + EcmwfDefinition.CHANGES_MADE)
                 .licence("derived (see inputs)")
                 .mode(Mode.DERIVED)
                 .defaultBudget(Budget.of(1, 1))
@@ -198,6 +216,7 @@ public class WxForecastAreasGenerator implements DerivedGenerator {
                 .zeroResultsNormal(true)
                 .defaultRetention(Duration.ofDays(7))
                 .kindRetention(KIND, Duration.ofDays(7))
+                .volatileFields(VOLATILE_RUN)
                 .param(ParamSpec.optional(THRESHOLDS_PARAM, ParamType.STRING_LIST,
                         "product:op:value[:horizonHours] items; op >= or <=; horizon at most 120",
                         DEFAULT_THRESHOLDS))
@@ -259,8 +278,12 @@ public class WxForecastAreasGenerator implements DerivedGenerator {
                     : WxSection.restore(sectionOf(head.payload()), head.observedAt()),
                     head == null ? null : head.geometry());
             if (head != null) {
+                state.exists = true;
                 state.validFrom = instant(head.payload().get("firstExceedAt"));
                 state.validUntil = instant(head.payload().get("validUntil"));
+                state.peakAt = instant(head.payload().get("peakAt"));
+                state.run = instant(head.payload().get(VOLATILE_RUN));
+                state.lastSignificant = significant(head.payload(), head.geometry());
             }
             areas.put(def.externalId(), state);
         }
@@ -280,9 +303,10 @@ public class WxForecastAreasGenerator implements DerivedGenerator {
         compute(ctx, now);
     }
 
+    /** The section part of a stored payload: status, asOf and the quantized metrics. */
     private static Map<String, Object> sectionOf(Map<String, Object> payload) {
         Map<String, Object> m = new LinkedHashMap<>();
-        for (String key : List.of("status", "asOf")) {
+        for (String key : List.of("status", "asOf", "peakValue", "areaKm2")) {
             if (payload.containsKey(key)) {
                 m.put(key, payload.get(key));
             }
@@ -309,19 +333,37 @@ public class WxForecastAreasGenerator implements DerivedGenerator {
         for (AreaState area : new ArrayList<>(areas.values())) {
             AreaDef def = area.def;
             if (aoi == null || aoi.isEmpty()) {
-                area.section.notOk(WxSection.UNAVAILABLE);
-                emit(ctx, area, now);
+                notOk(ctx, area, WxSection.UNAVAILABLE, now);
                 continue;
             }
             Optional<Instant> run = runs.computeIfAbsent(def.productId(),
                     p -> ctx.rasters().unavailableReason(p).isPresent() ? Optional.empty()
                             : ctx.rasters().latestCompleteRun(p));
-            if (run.isEmpty() || Duration.between(run.get(), now).compareTo(RUN_MAX_AGE) > 0) {
-                area.section.notOk(run.isEmpty() ? WxSection.UNAVAILABLE : WxSection.STALE);
-                emit(ctx, area, now);
+            if (run.isEmpty() || Duration.between(run.get(), now).compareTo(maxRunAge(def)) > 0) {
+                notOk(ctx, area, run.isEmpty() ? WxSection.UNAVAILABLE : WxSection.STALE, now);
                 continue;
             }
             computeRun(ctx, area, def, run.get(), aoi, views, now);
+        }
+    }
+
+    /**
+     * The maximum run age of an area's model (prompt 105 post-review): the model's cadence, lag and ingest
+     * allowance ({@link ModelRunAge}), so IFS is not called stale for most of every day.
+     */
+    static Duration maxRunAge(AreaDef def) {
+        return ModelRunAge.of(def.productId());
+    }
+
+    /**
+     * Marks an area's input not ok. An area with a live record keeps its last values with the status and
+     * {@code asOf} (unknown is not clear); an area without a record emits nothing, because there is no
+     * exceedance to qualify.
+     */
+    private void notOk(DerivedContext ctx, AreaState area, String status, Instant now) {
+        area.section.notOk(status);
+        if (area.exists) {
+            emit(ctx, area, now);
         }
     }
 
@@ -330,8 +372,7 @@ public class WxForecastAreasGenerator implements DerivedGenerator {
         Instant horizonEnd = run.plus(def.horizon());
         List<RasterFrameRow> frames = ctx.rasters().runFrames(def.productId(), run);
         if (frames.isEmpty()) {
-            area.section.notOk(WxSection.UNAVAILABLE);
-            emit(ctx, area, now);
+            notOk(ctx, area, WxSection.UNAVAILABLE, now);
             return;
         }
         ProductSpec spec = ctx.rasters().product(def.productId()).orElse(null);
@@ -361,7 +402,7 @@ public class WxForecastAreasGenerator implements DerivedGenerator {
             if (mask != null) {
                 union = union == null ? mask : union.union(mask);
             }
-            double stepPeak = peakOf(view, cells);
+            double stepPeak = peakOf(view, cells, def);
             if (Double.isNaN(peak) || def.moreExtreme(stepPeak, peak)) {
                 peak = stepPeak;
                 peakAt = frame.validTime();
@@ -373,31 +414,37 @@ public class WxForecastAreasGenerator implements DerivedGenerator {
                 lastExceed = frame.validTime();
             }
         }
-        if (union == null || firstExceed == null) {
-            area.section.notOk(WxSection.NO_COVERAGE);
-            area.geometry = null;
-            area.validFrom = null;
-            area.validUntil = null;
-            emit(ctx, area, now);
+        if (union == null || union.isEmpty() || firstExceed == null) {
+            // The exceedance is gone in this run: the area ends with a tombstone (prompt 105 §2), never a
+            // record without geometry. A later exceedance starts a fresh record.
+            if (area.exists) {
+                ctx.tombstone(KIND, def.externalId());
+            }
+            areas.put(def.externalId(), new AreaState(def, new WxSection(), null));
             return;
         }
+        // The 10% rule: a new geometry replaces the stored one only when their symmetric difference is over
+        // 10% of their union; otherwise the stored geometry (and its area) are kept, so small run-to-run
+        // wobble writes no version.
+        Geometry kept = geometryChanged(area.geometry, union) ? union : area.geometry;
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("peakValue", WxRound.whole(peak));
-        m.put("areaKm2", WxRound.sig2(CellAreas.geometryAreaKm2(union)));
+        m.put("areaKm2", WxRound.sig2(CellAreas.geometryAreaKm2(kept)));
         area.section.good(m, run);
-        Geometry changed = geometryChanged(area.geometry, union) ? union : area.geometry;
-        area.geometry = changed;
+        area.geometry = kept;
         area.validFrom = firstExceed;
         area.validUntil = lastExceed.plus(step);
-        emit(ctx, area, run, peak, peakAt, union, run);
+        area.peakAt = peakAt;
+        area.run = run;
+        emit(ctx, area, run);
     }
 
+    /**
+     * Emits an area when its significant content changed. The significant content is the payload without
+     * {@code run} (also declared volatile) plus the geometry, so a newer run that forecasts the same area
+     * writes no version.
+     */
     private void emit(DerivedContext ctx, AreaState area, Instant observedAt) {
-        emit(ctx, area, observedAt, null, null, area.geometry, null);
-    }
-
-    private void emit(DerivedContext ctx, AreaState area, Instant observedAt, Double peak, Instant peakAt,
-            Geometry geometry, Instant run) {
         AreaDef def = area.def;
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("model", def.model());
@@ -408,24 +455,31 @@ public class WxForecastAreasGenerator implements DerivedGenerator {
         payload.put("threshold", threshold);
         payload.putAll(area.section.toMap());
         payload.remove("statusText");
-        if (run != null) {
-            payload.put("run", run.toString());
+        if (area.run != null) {
+            payload.put(VOLATILE_RUN, area.run.toString());
         }
-        if (peak != null) {
-            payload.put("peakValue", WxRound.whole(peak));
-        }
-        if (peakAt != null) {
-            payload.put("peakAt", peakAt.toString());
+        if (area.peakAt != null) {
+            payload.put("peakAt", area.peakAt.toString());
         }
         if (area.validFrom != null) {
             payload.put("firstExceedAt", area.validFrom.toString());
-            payload.put("validUntil", area.validUntil == null ? null : area.validUntil.toString());
+            if (area.validUntil != null) {
+                payload.put("validUntil", area.validUntil.toString());
+            }
+        }
+        String attribution = EcmwfDefinition.changesMadeFor(def.model());
+        if (attribution != null) {
+            payload.put("attribution", attribution);
         }
         payload.put("automated", true);
         payload.put("notAWarning", true);
+        String significant = significant(payload, area.geometry);
+        if (significant.equals(area.lastSignificant)) {
+            return;
+        }
         NormalizedRecord.Builder builder = NormalizedRecord.builder(def.externalId(), KIND)
                 .observedAt(observedAt)
-                .geometry(geometry)
+                .geometry(area.geometry)
                 .putAll(payload);
         if (area.validFrom != null) {
             builder.validFrom(area.validFrom);
@@ -434,9 +488,20 @@ public class WxForecastAreasGenerator implements DerivedGenerator {
             builder.validUntil(area.validUntil);
         }
         ctx.emit(builder.build());
+        area.exists = true;
+        area.lastSignificant = significant;
     }
 
-    private static boolean geometryChanged(Geometry previous, Geometry current) {
+    /** The canonical significant content: the payload without {@code run}, plus the geometry's WKT. */
+    static String significant(Map<String, Object> payload, Geometry geometry) {
+        Map<String, Object> copy = new LinkedHashMap<>(payload);
+        copy.remove(VOLATILE_RUN);
+        return ai.foresignal.ingest.CanonicalJson.write(copy) + "|"
+                + (geometry == null ? "" : ai.foresignal.ingest.ContentHasher.wkt(geometry));
+    }
+
+    /** True when the symmetric difference of the two geometries is over 10% of their union. */
+    static boolean geometryChanged(Geometry previous, Geometry current) {
         if (previous == null || current == null || previous.isEmpty() || current.isEmpty()) {
             return previous != current;
         }
@@ -484,12 +549,15 @@ public class WxForecastAreasGenerator implements DerivedGenerator {
         return out;
     }
 
-    /** The most extreme value of the masked cells. */
-    private static double peakOf(FrameView view, int[] cells) {
+    /**
+     * The most extreme value of the masked cells: the maximum for a {@code >=} threshold, the minimum for a
+     * {@code <=} threshold (the coldest point of a freeze area).
+     */
+    static double peakOf(FrameView view, int[] cells, AreaDef def) {
         double peak = Double.NaN;
         for (int cell : cells) {
             double v = view.value(cell, 0);
-            if (Double.isNaN(peak) || v > peak) {
+            if (Double.isNaN(peak) || def.moreExtreme(v, peak)) {
                 peak = v;
             }
         }

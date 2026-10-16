@@ -78,6 +78,16 @@ public final class GeosGrids {
     }
 
     /**
+     * The WGS84 box of the visible part of {@code grid} (prompt 106: the bounds of a GOES frame cropped
+     * in scan-angle space), computed as {@link #box(GeosGrid, int, int, double)} does.
+     *
+     * @throws IllegalArgumentException when no point of the grid is on the Earth
+     */
+    public static double[] boxOf(GeosGrid grid) {
+        return box(grid, grid.nx(), grid.ny(), grid.lon0());
+    }
+
+    /**
      * The WGS84 box of the visible part of a grid. A lattice of up to 129 × 129 points over the cell
      * edges is projected (not only the four sides, which for a full disk lie beyond the limb), and the
      * longitudes are unwrapped around {@code lon0}, so a disc that crosses ±180° gives

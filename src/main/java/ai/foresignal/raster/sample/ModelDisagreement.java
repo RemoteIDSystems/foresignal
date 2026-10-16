@@ -59,25 +59,28 @@ public final class ModelDisagreement {
             double min = Double.POSITIVE_INFINITY;
             double max = Double.NEGATIVE_INFINITY;
             double sum = 0;
-            for (double v : byModel.values()) {
-                if (Double.isNaN(v)) {
+            List<String> present = new ArrayList<>();
+            for (Map.Entry<String, Double> m : byModel.entrySet()) {
+                Double v = m.getValue();
+                if (v == null || Double.isNaN(v)) {
                     continue;
                 }
                 min = Math.min(min, v);
                 max = Math.max(max, v);
                 sum += v;
+                present.add(m.getKey());
             }
-            if (!(max >= min)) {
+            if (present.size() < 2) {
                 continue;
             }
-            double mean = sum / byModel.size();
+            double mean = sum / present.size();
             double s = max - min;
             double threshold = threshold(field, mean);
             boolean flagged = previous.containsKey(field) ? s >= threshold * HYSTERESIS : s >= threshold;
             if (flagged) {
                 fields.add(field);
                 spread.put(field, quantise(s));
-                models.addAll(byModel.keySet());
+                models.addAll(present);
             }
         }
         if (fields.isEmpty()) {
