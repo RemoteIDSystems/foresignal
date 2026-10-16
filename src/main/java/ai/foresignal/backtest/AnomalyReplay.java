@@ -2,6 +2,7 @@ package ai.foresignal.backtest;
 
 import ai.foresignal.trigger.window.AnomalyDetector;
 import ai.foresignal.trigger.window.Baseline;
+import ai.foresignal.trigger.window.WindowEngine;
 import ai.foresignal.trigger.window.WindowSpec;
 import java.time.Duration;
 import java.time.Instant;
@@ -15,6 +16,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.UUID;
 
 /**
  * Replays an anomaly rule (prompt 100) over stored bucket counts, in bucket order, for a backtest
@@ -80,8 +82,22 @@ public final class AnomalyReplay {
     public record Outcome(List<Verdict> verdicts, Map<String, Integer> byClassification, long wouldFire,
             long learningBuckets, long coverageDrops) {
 
-        /** The result map of a rule backtest of an anomaly rule. */
-        public Map<String, Object> toMap(Duration bucket) {
+        /**
+         * The result map of a rule backtest of an anomaly rule, shaped as {@code RuleBacktestResult}.
+         *
+         * <p>A fired bucket is identified the way the live engine identifies the alert it would raise:
+         * source {@value WindowEngine#SOURCE_ID}, external id {@code ruleId:groupKey}. Each sample's
+         * {@code seq} is the watermark the live evaluation of that bucket read up to
+         * ({@code anomaly_observation.watermark_seq}); a fired bucket without a stored watermark is left
+         * out of the samples (never given an invented seq) but still counted everywhere else. Group keys
+         * are not entities, so {@code topEntities[].entityId} is null.
+         *
+         * @param bucket the rule's bucket, for {@code warmupConsumed}
+         * @param ruleId the rule, for the alert identity
+         * @param watermarks stored watermark seqs keyed by {@link #key(String, Instant)}
+         * @return the result map
+         */
+        public Map<String, Object> toMap(Duration bucket, UUID ruleId, Map<String, Long> watermarks) {
             Map<String, Integer> perDay = new TreeMap<>();
             Map<String, Integer> byGroup = new LinkedHashMap<>();
             List<Map<String, Object>> samples = new ArrayList<>();
@@ -91,13 +107,13 @@ public final class AnomalyReplay {
                 }
                 perDay.merge(verdict.bucketStart().atZone(ZoneOffset.UTC).toLocalDate().toString(), 1, Integer::sum);
                 byGroup.merge(verdict.group(), 1, Integer::sum);
-                if (samples.size() < MAX_SAMPLES) {
+                Long seq = watermarks == null ? null : watermarks.get(key(verdict.group(), verdict.bucketStart()));
+                if (samples.size() < MAX_SAMPLES && seq != null) {
                     Map<String, Object> sample = new LinkedHashMap<>();
-                    sample.put("group", verdict.group());
-                    sample.put("bucketStart", verdict.bucketStart().toString());
-                    sample.put("observed", verdict.observed());
-                    sample.put("expected", verdict.expected());
-                    sample.put("classification", verdict.classification());
+                    sample.put("seq", seq);
+                    sample.put("source", WindowEngine.SOURCE_ID);
+                    sample.put("externalId", alertExternalId(ruleId, verdict.group()));
+                    sample.put("observedAt", verdict.bucketStart().toString());
                     sample.put("edge", "window");
                     samples.add(sample);
                 }
@@ -109,7 +125,14 @@ public final class AnomalyReplay {
             out.put("topEntities", byGroup.entrySet().stream()
                     .sorted((a, b) -> Integer.compare(b.getValue(), a.getValue()))
                     .limit(RuleBacktest.MAX_ENTITIES)
-                    .map(e -> Map.<String, Object>of("entity", e.getKey(), "count", e.getValue()))
+                    .map(e -> {
+                        Map<String, Object> entity = new LinkedHashMap<>();
+                        entity.put("sourceId", WindowEngine.SOURCE_ID);
+                        entity.put("externalId", alertExternalId(ruleId, e.getKey()));
+                        entity.put("entityId", null);
+                        entity.put("count", e.getValue());
+                        return entity;
+                    })
                     .toList());
             out.put("samples", samples);
             Map<String, Object> anomaly = new LinkedHashMap<>();
@@ -122,6 +145,29 @@ public final class AnomalyReplay {
             out.put("bucketsEvaluated", verdicts.size());
             return out;
         }
+    }
+
+    /**
+     * The key of a stored watermark: the group and the bucket start.
+     *
+     * @param group the group key
+     * @param bucketStart the bucket start
+     * @return the key used by {@link Outcome#toMap(Duration, UUID, Map)}
+     */
+    public static String key(String group, Instant bucketStart) {
+        return group + '\u0000' + bucketStart.getEpochSecond();
+    }
+
+    /**
+     * The external id of the {@value WindowEngine#SOURCE_ID} record an alert of this rule and group
+     * references (the live engine's {@code ruleId:groupKey}).
+     *
+     * @param ruleId the rule, or null
+     * @param group the group key
+     * @return the external id
+     */
+    public static String alertExternalId(UUID ruleId, String group) {
+        return ruleId + ":" + group;
     }
 
     /**

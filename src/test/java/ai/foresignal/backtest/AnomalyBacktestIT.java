@@ -8,6 +8,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -20,6 +21,8 @@ import org.junit.jupiter.api.Test;
 class AnomalyBacktestIT {
 
     private static final Instant T0 = Instant.parse("2026-01-01T00:00:00Z");
+
+    private static final UUID RULE = UUID.fromString("00000000-0000-0000-0000-000000000103");
 
     private static WindowSpec spec(String sensitivity) {
         return new WindowSpec(Duration.ofHours(1), Duration.ofMinutes(15), "entity", null, 500, null, null,
@@ -79,7 +82,7 @@ class AnomalyBacktestIT {
         // hour-of-day needs 7 samples per slot for one week: the first 7 days of every hour learn.
         assertThat(outcome.learningBuckets()).isEqualTo(7 * 24);
         assertThat(outcome.byClassification()).containsEntry("learning", 7 * 24);
-        Map<String, Object> result = outcome.toMap(Duration.ofHours(1));
+        Map<String, Object> result = outcome.toMap(Duration.ofHours(1), RULE, Map.of());
         assertThat(result).containsEntry("ruleType", "anomaly");
         assertThat((Map<String, Object>) result.get("anomaly")).containsEntry("warmupConsumed", "PT168H")
                 .containsEntry("coverageDrops", 0L).containsKey("byClassification");
@@ -93,5 +96,34 @@ class AnomalyBacktestIT {
         assertThat(patched.sensitivity()).isEqualTo("low");
         assertThat(patched.bucket()).isEqualTo(Duration.ofHours(1));
         assertThat(RuleBacktest.patchWindow(spec("high"), Map.of("name", "same"))).isEqualTo(spec("high"));
+    }
+
+    @Test
+    @DisplayName("samples and topEntities carry the RuleBacktestResult fields, with the stored watermark as seq")
+    @SuppressWarnings("unchecked")
+    void specShapes() {
+        Instant from = T0.plus(Duration.ofDays(10));
+        Instant to = T0.plus(Duration.ofDays(14));
+        List<AnomalyReplay.Sample> spiked = new ArrayList<>(steady(14));
+        AnomalyReplay.Sample last = spiked.removeLast();
+        spiked.add(new AnomalyReplay.Sample("g", last.bucketStart(), 500, 1.0, true, false));
+        AnomalyReplay.Outcome outcome = AnomalyReplay.replay(spiked, spec("medium"), from, to);
+
+        Map<String, Object> withWatermark = outcome.toMap(Duration.ofHours(1), RULE,
+                Map.of(AnomalyReplay.key("g", last.bucketStart()), 4242L));
+        List<Map<String, Object>> samples = (List<Map<String, Object>>) withWatermark.get("samples");
+        assertThat(samples).containsExactly(Map.of("seq", 4242L, "source", "rule-windows",
+                "externalId", RULE + ":g", "observedAt", last.bucketStart().toString(), "edge", "window"));
+        List<Map<String, Object>> top = (List<Map<String, Object>>) withWatermark.get("topEntities");
+        assertThat(top).hasSize(1);
+        assertThat(top.getFirst()).containsOnlyKeys("sourceId", "externalId", "entityId", "count")
+                .containsEntry("sourceId", "rule-windows").containsEntry("externalId", RULE + ":g")
+                .containsEntry("entityId", null).containsEntry("count", 1);
+
+        // Without a stored watermark there is no real seq: the hit is counted but not sampled.
+        Map<String, Object> without = outcome.toMap(Duration.ofHours(1), RULE, Map.of());
+        assertThat(without).containsEntry("wouldFire", 1L);
+        assertThat((List<?>) without.get("samples")).isEmpty();
+        assertThat((List<?>) without.get("topEntities")).hasSize(1);
     }
 }

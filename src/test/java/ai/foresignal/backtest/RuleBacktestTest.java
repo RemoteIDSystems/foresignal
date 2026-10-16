@@ -89,7 +89,7 @@ class RuleBacktestTest {
     void anomalyShape() {
         AnomalyReplay.Outcome outcome = new AnomalyReplay.Outcome(List.of(new AnomalyReplay.Verdict("g", T0, 9, 2.0,
                 "activity-up", true)), Map.of("activity-up", 1, "learning", 3), 1, 3, 0);
-        Map<String, Object> map = outcome.toMap(Duration.ofHours(1));
+        Map<String, Object> map = outcome.toMap(Duration.ofHours(1), java.util.UUID.randomUUID(), Map.of());
         assertThat(map.get("perDay")).isEqualTo(List.of(Map.of("date", "2026-01-01", "count", 1)));
         assertThat((Map<String, Object>) map.get("anomaly")).containsEntry("warmupConsumed", "PT3H")
                 .containsEntry("byClassification", Map.of("activity-up", 1, "learning", 3))
@@ -102,5 +102,38 @@ class RuleBacktestTest {
         assertThat(RecipeBacktest.countsByType(List.of(Map.of("type", "seismic", "count", 2L),
                 Map.of("type", "custom", "count", 1L)))).containsExactly(Map.entry("seismic", 2L),
                 Map.entry("custom", 1L));
+    }
+
+    @Test
+    @DisplayName("a sample carries exactly the RuleBacktestResult sample fields")
+    void sampleShape() {
+        MatchRow enter = new MatchRow(7, null, "s", "e7", "k", 1, (short) 0, T0, null, null, null, false, null, "{}",
+                "enter");
+        assertThat(RuleBacktest.sample(enter)).containsExactly(Map.entry("seq", 7L), Map.entry("source", "s"),
+                Map.entry("externalId", "e7"), Map.entry("observedAt", T0.toString()), Map.entry("edge", "enter"));
+        MatchRow noEdge = new MatchRow(8, null, "s", "e8", "k", 1, (short) 0, T0, null, null, null, false, null, "{}",
+                null);
+        assertThat(RuleBacktest.sample(noEdge)).containsEntry("edge", "match");
+    }
+
+    @Test
+    @DisplayName("topEntities items are {sourceId, externalId, entityId, count}, most hits first, at most 20")
+    void topEntitiesShape() {
+        List<RuleBacktest.EntityHits> hits = new ArrayList<>();
+        for (int i = 0; i < 25; i++) {
+            RuleBacktest.EntityHits h = new RuleBacktest.EntityHits("s", "e" + i);
+            for (int n = 0; n <= i % 3; n++) {
+                h.hit(T0.plusSeconds(n));
+            }
+            hits.add(h);
+        }
+        List<RuleBacktest.EntityHits> top = RuleBacktest.topEntities(hits);
+        assertThat(top).hasSize(RuleBacktest.MAX_ENTITIES);
+        assertThat(top.getFirst().count).isEqualTo(3);
+        assertThat(top.getFirst().lastObservedAt).isEqualTo(T0.plusSeconds(2));
+        assertThat(top.getFirst().toMap("01HZY0000000000000000000AB")).containsExactly(Map.entry("sourceId", "s"),
+                Map.entry("externalId", "e2"), Map.entry("entityId", "01HZY0000000000000000000AB"),
+                Map.entry("count", 3L));
+        assertThat(top.getLast().toMap(null)).containsEntry("entityId", null);
     }
 }

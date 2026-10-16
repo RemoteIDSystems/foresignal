@@ -58,7 +58,9 @@ public final class CaveatGenerator {
         }
         if (inputs.windowApproximate()) {
             out.add(BacktestCaveat.of(BacktestCaveat.WINDOW_APPROXIMATE,
-                    "Windowed rules are replayed from versions only, at keyframe resolution."));
+                    "Windowed rules are replayed from versions only, at keyframe resolution; wouldFire, perDay,"
+                            + " topEntities and samples count the versions matching the rule's filter, not window"
+                            + " transitions, while window reports the replayed step evaluations."));
         }
         if (inputs.sampleSize() < 10) {
             out.add(BacktestCaveat.of(BacktestCaveat.SMALL_SAMPLE, "Fewer than ten samples."));
