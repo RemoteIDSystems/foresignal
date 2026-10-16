@@ -66,7 +66,7 @@ import java.util.Map;
  * @param egressOverridable whether the operator may override {@code egress} in {@code SourceSettings}
  *     (prompt 069: the local receiver families)
  * @param llmNotice a notice shown when the source's records reach a remote LLM, or null
- * @param licenceTerms the resolved licence terms (prompt 109)
+ * @param licenceTerms the resolved license terms (prompt 109)
  * @param reliability the descriptor's Admiralty reliability grade {@code A}–{@code F} (prompt 109)
  * @param derivedFrom a DERIVED source's declared input source ids (prompt 109)
  */

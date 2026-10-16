@@ -130,7 +130,7 @@ public class ChangesController {
             excluded = licencePolicy.withExcluded(excluded, policy);
             String filtered = licencePolicy.filteredHeader(policy);
             if (filtered != null) {
-                // Sources pruned in SQL by the licence policy (prompt 109); set before any body is written.
+                // Sources pruned in SQL by the license policy (prompt 109); set before any body is written.
                 response.setHeader(ai.foresignal.provenance.LicencePolicyService.FILTERED_HEADER, filtered);
             }
         }

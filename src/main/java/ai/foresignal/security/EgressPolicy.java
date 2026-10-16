@@ -57,7 +57,7 @@ import org.springframework.stereotype.Component;
  *       {@code PUBLIC_SHARE} and {@code FEDERATION} never carry a private record.
  * </ul>
  *
- * <p><strong>Licence (prompt 109).</strong> The licence table ({@link LicenceEgressGuard}, an internal delegate
+ * <p><strong>License (prompt 109).</strong> The license table ({@link LicenceEgressGuard}, an internal delegate
  * of this class) is applied on every path, {@code EXPORT} and {@code ARCHIVE} included, to the record's own
  * terms when the caller resolved them, else to {@link #sourceTerms(String)}.
  *
@@ -288,7 +288,7 @@ public class EgressPolicy {
      * JSON is read for {@code posSource}; a row whose payload cannot be read is treated as MLAT when its source
      * declares {@code posSource} (fail closed).
      *
-     * @param recordTerms the row's resolved licence ({@code LicenceResolver}), or null for the source's terms
+     * @param recordTerms the row's resolved license ({@code LicenceResolver}), or null for the source's terms
      */
     public Decision decide(RecordRow row, EgressPath path, LicenceTerms recordTerms, EgressContext context) {
         Objects.requireNonNull(row, "row");
@@ -405,7 +405,7 @@ public class EgressPolicy {
      * @param localTarget true when the destination stays on this operator's network: a SERVE sink bound to
      *     loopback or a private address, or a PUSH target that resolves to a private address (110)
      * @param personalUse the operator exports for personal use (111): {@code LOCAL_ONLY} and {@code FORBIDDEN}
-     *     licences may then leave on {@code EXPORT}
+     *     licenses may then leave on {@code EXPORT}
      */
     public record EgressContext(Viewer viewer, boolean includePrivate, boolean localTarget, boolean personalUse) {
 
@@ -446,8 +446,8 @@ public class EgressPolicy {
      * @param reason why it may not ({@link #REASON_UNREGISTERED}, {@link #REASON_PRIVATE},
      *     {@link #REASON_LOCAL_ONLY}, {@link #REASON_MLAT}, {@link #REASON_LICENCE_FORBIDDEN},
      *     {@link #REASON_LICENCE_LOCAL_ONLY}), null when allowed
-     * @param terms the licence terms the decision used (after the MLAT downgrade); null when the decision was
-     *     made before the licence step or the licence components are not wired
+     * @param terms the license terms the decision used (after the MLAT downgrade); null when the decision was
+     *     made before the license step or the license components are not wired
      */
     public record Decision(boolean allowed, String reason, LicenceTerms terms) {
 
@@ -468,23 +468,23 @@ public class EgressPolicy {
     /** The record's position is MLAT (069) and the path re-serves it. */
     public static final String REASON_MLAT = "mlat";
 
-    /** The record's licence forbids redistribution on this path (109). */
+    /** The record's license forbids redistribution on this path (109). */
     public static final String REASON_LICENCE_FORBIDDEN = "licence-forbidden";
 
-    /** The record's licence is {@code LOCAL_ONLY} (or {@code UNKNOWN}) and the path leaves the instance (109). */
+    /** The record's license is {@code LOCAL_ONLY} (or {@code UNKNOWN}) and the path leaves the instance (109). */
     public static final String REASON_LICENCE_LOCAL_ONLY = "licence-local-only";
 
     /**
      * The single egress decision (prompts 039, 062, 069, 109, 110, 111): may a record of {@code sourceId} leave
      * on {@code path}? Every path that takes records off the instance goes through here, directly or through an
-     * {@code allows} overload; {@link LicenceEgressGuard} is this method's internal licence table and is not an
+     * {@code allows} overload; {@link LicenceEgressGuard} is this method's internal license table and is not an
      * entry point of its own ({@code docs/Conventions.md}: one {@code EgressPolicy}). In order:
      *
      * <ol>
      *   <li><em>Registration:</em> an unregistered source never leaves (fail closed).
      *   <li><em>Private sources (039, 109):</em> a private record is excluded on every path except
      *       {@code API_READ}, {@code TILE}, {@code SSE} and {@code MCP} for a viewer that may see it, and
-     *       {@code ARCHIVE} (operator-owned storage), regardless of licence. Two later prompts make explicit,
+     *       {@code ARCHIVE} (operator-owned storage), regardless of license. Two later prompts make explicit,
      *       conditional exceptions, implemented here and nowhere else:
      *       <ul>
      *         <li>{@code EXPORT} (111: "Private sources need admin plus {@code includePrivate=true}"): an admin
@@ -501,15 +501,15 @@ public class EgressPolicy {
      *   <li><em>Descriptor egress (062, 069):</em> a source whose effective egress is {@code LOCAL_ONLY} leaves only
      *       on {@link #LOCAL_ONLY_PATHS}, or on {@code SINK_SERVE_LAN} to a local target.
      *   <li><em>MLAT (069, 109):</em> a record whose {@code posSource} is {@code mlat} never leaves on
-     *       {@link #NON_LOCAL_PATHS} nor on a non-local {@code SINK_SERVE_LAN}, and its licence is downgraded to
+     *       {@link #NON_LOCAL_PATHS} nor on a non-local {@code SINK_SERVE_LAN}, and its license is downgraded to
      *       {@code LOCAL_ONLY} with its attribution kept ({@link LicenceTerms#downgradedToLocalOnly()}).
-     *   <li><em>Licence (109):</em> the record's terms ({@code recordTerms}, else {@link #sourceTerms(String)},
-     *       which follows {@code derivedFrom}) go through the licence table with
+     *   <li><em>License (109):</em> the record's terms ({@code recordTerms}, else {@link #sourceTerms(String)},
+     *       which follows {@code derivedFrom}) go through the license table with
      *       {@link EgressContext#personalUse()} and {@link EgressContext#localTarget()}, on every path including
-     *       {@code EXPORT} and {@code ARCHIVE} (the table allows {@code ARCHIVE} for every licence, 111).
+     *       {@code EXPORT} and {@code ARCHIVE} (the table allows {@code ARCHIVE} for every license, 111).
      * </ol>
      *
-     * @param recordTerms the record's resolved licence ({@code LicenceResolver}: batch licence or peer origin),
+     * @param recordTerms the record's resolved license ({@code LicenceResolver}: batch license or peer origin),
      *     or null to use the source's terms
      * @param payload the record's payload, or null when unknown (then only the source rules apply)
      * @param context the viewer and path options; null means {@link EgressContext#NONE}
@@ -547,12 +547,12 @@ public class EgressPolicy {
     }
 
     /**
-     * The licence terms a record of {@code sourceId} carries when nothing per record says otherwise
+     * The license terms a record of {@code sourceId} carries when nothing per record says otherwise
      * ({@code SourceLicences}, which follows {@code derivedFrom}). The operator's {@code OPEN} override of an
-     * {@code egressOverridable} source (069) lifts a {@code LOCAL_ONLY} licence default
-     * ({@link LicenceTerms#openedByOperator()}; {@code docs/Conventions.md} "Operator choice": licence egress
+     * {@code egressOverridable} source (069) lifts a {@code LOCAL_ONLY} license default
+     * ({@link LicenceTerms#openedByOperator()}; {@code docs/Conventions.md} "Operator choice": license egress
      * flags are defaults the operator can override per source); {@code FORBIDDEN} terms are never lifted. The
-     * restrictive {@code unknown} terms when the licence components are not wired.
+     * restrictive {@code unknown} terms when the license components are not wired.
      */
     public LicenceTerms sourceTerms(String sourceId) {
         if (sourceLicences == null) {
@@ -587,9 +587,9 @@ public class EgressPolicy {
     private ai.foresignal.provenance.SourceLicences sourceLicences;
 
     /**
-     * Wires the licence table and the source-terms resolver (prompt 109). Required in the application context;
+     * Wires the license table and the source-terms resolver (prompt 109). Required in the application context;
      * the four- and five-argument constructors leave them unset so unit tests of the private and
-     * {@code LOCAL_ONLY} rules need no catalogue (the licence step is then skipped).
+     * {@code LOCAL_ONLY} rules need no catalogue (the license step is then skipped).
      */
     @org.springframework.beans.factory.annotation.Autowired
     public void setLicenceGuard(LicenceEgressGuard licenceGuard, ai.foresignal.provenance.SourceLicences sourceLicences) {

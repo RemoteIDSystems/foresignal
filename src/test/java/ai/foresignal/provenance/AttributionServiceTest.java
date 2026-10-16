@@ -16,7 +16,7 @@ import org.junit.jupiter.api.Test;
 
 /**
  * {@link AttributionService} (prompt 109): the {@code Foresignal-Attribution} value is printable ISO-8859-1 and
- * truncated with {@code "..."}, and a layer's aggregated attribution falls back to the licence's attribution text
+ * truncated with {@code "..."}, and a layer's aggregated attribution falls back to the license's attribution text
  * for a source without an attribution line (the TileJSON aggregate).
  */
 class AttributionServiceTest {

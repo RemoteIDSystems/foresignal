@@ -66,7 +66,7 @@ public class AttributionService {
 
     /**
      * The aggregated attribution of a set of sources (prompt 109: TileJSON {@code attribution} is the aggregate
-     * for the layer's sources): each source's attribution line, or its licence's attribution text when it has
+     * for the layer's sources): each source's attribution line, or its license's attribution text when it has
      * none, distinct, joined with {@code " · "}; null when there is none.
      */
     public String layerText(Collection<SourceDescriptor> sources) {

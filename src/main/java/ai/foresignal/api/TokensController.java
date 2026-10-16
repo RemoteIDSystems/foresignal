@@ -63,7 +63,7 @@ public class TokensController {
         return ApiTokenDto.of(created.entity(), created.principalHandle(), created.plaintext());
     }
 
-    /** {@code updateToken}: replace the token's licence policy floor (prompt 109); the value is never returned. */
+    /** {@code updateToken}: replace the token's license policy floor (prompt 109); the value is never returned. */
     @org.springframework.web.bind.annotation.PatchMapping("/v1/tokens/{tokenId}")
     @Operation(operationId = "updateToken", tags = "Tokens")
     public ApiTokenDto updateToken(@PathVariable String tokenId, @RequestBody JsonNode body) {

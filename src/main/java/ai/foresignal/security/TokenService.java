@@ -341,7 +341,7 @@ public class TokenService {
     }
 
     /**
-     * Replaces token {@code id}'s licence policy floor (prompt 109, {@code updateToken}): the body is
+     * Replaces token {@code id}'s license policy floor (prompt 109, {@code updateToken}): the body is
      * {@code {"licencePolicy": [...] | null}} and nothing else; null or empty clears the floor. Requests made with
      * the token read the new floor from the next request on (tokens are looked up per request).
      *

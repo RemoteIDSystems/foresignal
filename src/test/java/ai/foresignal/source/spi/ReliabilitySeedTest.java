@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 /**
  * {@link ReliabilitySeed} (prompt 109, task 5): official agencies {@code B}, the operator's receivers and other
  * built-in providers {@code C}, community and news-derived feeds {@code D}, custom, peer and DERIVED sources and
- * descriptors with no licence {@code F}; an explicit descriptor grade always wins.
+ * descriptors with no license {@code F}; an explicit descriptor grade always wins.
  */
 class ReliabilitySeedTest {
 

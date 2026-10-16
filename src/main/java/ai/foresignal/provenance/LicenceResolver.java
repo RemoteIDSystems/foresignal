@@ -15,8 +15,8 @@ import org.springframework.stereotype.Component;
 /**
  * Resolves a version's licence (prompt 109; Core-Data-Model §14): the licence snapshotted on the
  * {@code fetch_log} row of its {@code batch_id}, with a fall-back to the source's current descriptor
- * terms, a per-record peer origin licence ({@code _foresignal.originLicence}, 113) and a per-record MLAT
- * downgrade that keeps the licence's attribution. One query per response resolves every seq.
+ * terms, a per-record peer origin license ({@code _foresignal.originLicence}, 113) and a per-record MLAT
+ * downgrade that keeps the license's attribution. One query per response resolves every seq.
  */
 @Component
 public class LicenceResolver {
@@ -41,7 +41,7 @@ public class LicenceResolver {
     /** The volatile payload member a peer source (113) carries its provenance in. */
     public static final String PEER_MEMBER = "_foresignal";
 
-    /** The member of {@link #PEER_MEMBER} naming the origin record's licence id. */
+    /** The member of {@link #PEER_MEMBER} naming the origin record's license id. */
     public static final String ORIGIN_LICENCE = "originLicence";
 
     private static final tools.jackson.databind.json.JsonMapper JSON =
@@ -112,7 +112,7 @@ public class LicenceResolver {
                         resolution.adapterVersion(), resolution.principal());
             }
             if (EgressPolicy.isMlat(payload)) {
-                // The downgrade keeps the licence id and its attribution (an ODbL record must still be credited).
+                // The downgrade keeps the license id and its attribution (an ODbL record must still be credited).
                 resolution = new Resolution(resolution.terms().downgradedToLocalOnly(), BASIS_MLAT,
                         resolution.fetchId(), resolution.adapterVersion(), resolution.principal());
             }
@@ -132,7 +132,7 @@ public class LicenceResolver {
     }
 
     /**
-     * The terms of a snapshotted batch licence id. An id the catalogue does not know (a custom source's own
+     * The terms of a snapshotted batch license id. An id the catalogue does not know (a custom source's own
      * {@code licenceTerms}, 024) resolves to the source's current terms when their ids match, else to
      * {@code unknown}.
      */
@@ -145,7 +145,7 @@ public class LicenceResolver {
     }
 
     /**
-     * The per-record origin licence of a peer record (113): {@code _foresignal.originLicence} as a licence id
+     * The per-record origin license of a peer record (113): {@code _foresignal.originLicence} as a license id
      * string, or an object whose {@code id} names one; null when absent.
      */
     static String originLicence(Map<String, Object> payload) {

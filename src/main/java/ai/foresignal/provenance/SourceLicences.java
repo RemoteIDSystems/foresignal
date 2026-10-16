@@ -17,7 +17,7 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 /**
- * The licence terms of a registered source (prompt 109, task 1): the descriptor's explicit
+ * The license terms of a registered source (prompt 109, task 1): the descriptor's explicit
  * {@code licenceTerms}, else the catalogue entry its free-text {@code licence} resolves to, and for a
  * {@code DERIVED} source the <strong>most restrictive</strong> terms of its inputs
  * ({@link LicenceCatalog#mostRestrictive}). The inputs are the descriptor's {@code derivedFrom} when declared,

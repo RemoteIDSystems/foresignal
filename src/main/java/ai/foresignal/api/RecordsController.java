@@ -927,7 +927,7 @@ public class RecordsController {
     }
 
     /**
-     * The effective licence policy as an entity-tag component (prompt 109): the token floor plus the
+     * The effective license policy as an entity-tag component (prompt 109): the token floor plus the
      * {@code Foresignal-Licence-Policy} header, which the query string alone does not show, so two requests that
      * differ only in that header never share a tag. Empty when no flag applies; an unparseable header leaves the
      * raw value in, and the request itself fails later with its 400.
@@ -943,7 +943,7 @@ public class RecordsController {
 
     /**
      * The cache headers with {@code Foresignal-Licence-Policy} added to {@code Vary} (prompt 109): a response
-     * filtered by a licence policy must not be served from a shared cache to a request without that policy.
+     * filtered by a license policy must not be served from a shared cache to a request without that policy.
      */
     static HttpHeaders varyByLicencePolicy(HttpHeaders headers) {
         headers.set(HttpHeaders.VARY, ETags.VARY + ", " + LICENCE_POLICY_HEADER);

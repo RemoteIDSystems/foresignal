@@ -53,7 +53,7 @@ public class TileJsonMapper {
 
     /**
      * Wires the aggregated attribution (prompt 109: a layer's TileJSON {@code attribution} is the aggregate of its
-     * sources' attribution or licence attribution text); optional so hand-built tests keep the descriptor-only
+     * sources' attribution or license attribution text); optional so hand-built tests keep the descriptor-only
      * text.
      */
     @org.springframework.beans.factory.annotation.Autowired(required = false)

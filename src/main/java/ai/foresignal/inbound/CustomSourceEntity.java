@@ -102,7 +102,7 @@ public class CustomSourceEntity {
     @Column(name = "licence", length = 200)
     private String licence;
 
-    /** The structured licence terms as JSON (prompt 109), or null. */
+    /** The structured license terms as JSON (prompt 109), or null. */
     @Column(name = "licence_terms", columnDefinition = "text")
     private String licenceTerms;
 
@@ -383,12 +383,12 @@ public class CustomSourceEntity {
         this.licence = licence;
     }
 
-    /** The structured licence terms as JSON (prompt 109), or null. */
+    /** The structured license terms as JSON (prompt 109), or null. */
     public String getLicenceTerms() {
         return licenceTerms;
     }
 
-    /** Sets the structured licence terms JSON. */
+    /** Sets the structured license terms JSON. */
     public void setLicenceTerms(String licenceTerms) {
         this.licenceTerms = licenceTerms;
     }

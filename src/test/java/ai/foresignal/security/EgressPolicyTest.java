@@ -384,7 +384,7 @@ class EgressPolicyTest {
     }
 
     /**
-     * Prompt 109 (post-review): the licence table applied inside {@link EgressPolicy#decide} on every path, with
+     * Prompt 109 (post-review): the license table applied inside {@link EgressPolicy#decide} on every path, with
      * the descriptor {@code egress}, the operator's {@code OPEN} override, the MLAT downgrade that keeps
      * attribution, per-record terms, {@code personalUse} and {@code derivedFrom}.
      */

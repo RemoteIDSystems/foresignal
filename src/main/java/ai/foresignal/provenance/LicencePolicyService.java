@@ -15,11 +15,11 @@ import org.springframework.stereotype.Component;
 @Component
 public class LicencePolicyService {
 
-    /** The request header carrying a licence policy (prompt 109). */
+    /** The request header carrying a license policy (prompt 109). */
     public static final String POLICY_HEADER = "Foresignal-Licence-Policy";
 
     /**
-     * The response header of a stream or tile filtered by a licence policy (prompt 109). Those paths prune
+     * The response header of a stream or tile filtered by a license policy (prompt 109). Those paths prune
      * excluded sources in SQL and never read the excluded records, so the value is the number of
      * <em>sources</em> the policy pruned (0 when it pruned none); JSON pages report records in
      * {@code licenceFiltered}.

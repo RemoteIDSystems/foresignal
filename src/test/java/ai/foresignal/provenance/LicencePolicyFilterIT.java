@@ -44,7 +44,7 @@ import org.springframework.test.web.servlet.MvcResult;
  * (non-commercial) and ODbL 1.0 (share-alike). Under {@code no-nc}, {@code no-sa} and {@code redistributable} the
  * records page, the GeoJSON collection, tiles and the SSE change stream leave the excluded records out, count them
  * ({@code licenceFiltered} on pages, {@code Foresignal-Licence-Filtered} on streams and tiles), aggregate
- * {@code attributions} with counts and send one {@code Link rel="license"} per licence. A token's policy is a floor a
+ * {@code attributions} with counts and send one {@code Link rel="license"} per license. A token's policy is a floor a
  * request cannot loosen, and {@code updateToken} replaces it.
  */
 @IntegrationTest
@@ -140,7 +140,7 @@ class LicencePolicyFilterIT {
                 .andExpect(jsonPath("$.licenceFiltered").value(2))
                 .andExpect(jsonPath("$.attributions", hasSize(1)))
                 .andExpect(jsonPath("$.attributions[0].count").value(2));
-        // All three licences allow redistribution, so the flag alone drops nothing.
+        // All three licenses allow redistribution, so the flag alone drops nothing.
         mvc.perform(get("/v1/records").param("kind", KIND).param("licencePolicy", "redistributable"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items", hasSize(4)));

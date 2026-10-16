@@ -36,10 +36,10 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
 /**
- * {@link LicenceResolver} against the real writer (prompt 109, task 2): the batch licence snapshotted on the
+ * {@link LicenceResolver} against the real writer (prompt 109, task 2): the batch license snapshotted on the
  * version's {@code fetch_log} row wins; a version whose fetch row is gone falls back to the descriptor
- * ({@code licenceBasis: descriptor}); an MLAT position is downgraded to {@code LOCAL_ONLY} with its licence id and
- * attribution kept; a peer record's {@code _foresignal.originLicence} is its licence; and a whole page resolves in
+ * ({@code licenceBasis: descriptor}); an MLAT position is downgraded to {@code LOCAL_ONLY} with its license id and
+ * attribution kept; a peer record's {@code _foresignal.originLicence} is its license; and a whole page resolves in
  * one SQL statement.
  */
 @IntegrationTest
@@ -76,7 +76,7 @@ class LicenceResolverIT {
         }
     }
 
-    /** Ingests {@code record} under a fetch row whose snapshotted licence is {@code licence}. */
+    /** Ingests {@code record} under a fetch row whose snapshotted license is {@code licence}. */
     void ingest(String licence, NormalizedRecord record) {
         FetchLogEntry entry = new FetchLogEntry(SOURCE, FetchTrigger.PUSH, FetchStatus.OK, T, T, 200, 0, null, null,
                 null, null, "test-1", licence, "tester", Coverage.none(), null);

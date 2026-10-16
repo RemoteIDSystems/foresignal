@@ -4894,20 +4894,20 @@ enabling it on a LAN-only instance exposes one media path per feed key and is re
 Every source resolves to structured licence terms (`ai.foresignal.provenance.LicenceTerms`, from
 `provenance/licences.json`): `commercialUse`, `shareAlike`, `attributionRequired` and `redistribution`.
 `UNKNOWN` is treated as `FORBIDDEN` (commercial) and `LOCAL_ONLY` (redistribution). Free-text descriptor
-licences resolve through catalog aliases; provider terms that state no licence resolve to `provider-terms`,
+licenses resolve through catalog aliases; provider terms that state no license resolve to `provider-terms`,
 `provider-terms-nc` or `unspecified` (redistribution `UNKNOWN`, so local use only). A DERIVED source takes
 the most restrictive terms of its inputs (`derivedFrom`, else the sources its generator subscribes to). A
 custom PUSH source may declare its own `licenceTerms`; each PUSH batch snapshots their id.
 
-A version's licence is the one snapshotted on its batch's `fetch_log` row, else the source's current terms
-(`licenceBasis: descriptor`). A peer record's `_foresignal.originLicence` overrides the batch licence, and an
-MLAT position is downgraded to `LOCAL_ONLY` while keeping its licence id and attribution. Fetch rows that wrote
+A version's license is the one snapshotted on its batch's `fetch_log` row, else the source's current terms
+(`licenceBasis: descriptor`). A peer record's `_foresignal.originLicence` overrides the batch license, and an
+MLAT position is downgraded to `LOCAL_ONLY` while keeping its license id and attribution. Fetch rows that wrote
 versions are kept for `max(retention.provenance, the largest version window)`. `include=provenance` returns
 `fetchId`, `adapterVersion`, the ingest `principal` (admins only), the Admiralty `reliability` and the
 `credibility` (1–6, computed at read time), composed as a `grade` (e.g. `B2`).
 
 **Reliability.** Unless a descriptor sets its own grade, official agencies (US federal public domain and the
-open government licences) get `B`, your own receivers and other built-in providers `C`, community and
+open government licenses) get `B`, your own receivers and other built-in providers `C`, community and
 news-derived feeds (GDELT, Wikipedia surge) `D`, and custom, peer and DERIVED sources `F`. Override it per
 source with `PUT /v1/sources/{id}` `{"reliability": "A"}`; `null` reverts to the default.
 
@@ -4922,12 +4922,12 @@ number of *sources* the policy pruned (their records are never read, so they can
 TileJSON `attribution` aggregates its sources.
 
 **Egress.** `EgressPolicy` is the one component that decides whether a record may leave, on every path; its
-licence step (`LicenceEgressGuard`) is internal and is applied on every path, `EXPORT` and `ARCHIVE` included.
+license step (`LicenceEgressGuard`) is internal and is applied on every path, `EXPORT` and `ARCHIVE` included.
 In order:
 
 1. An unregistered source never leaves.
 2. A private source is excluded on every path except `API_READ`, `TILE`, `SSE` and `MCP` for callers allowed
-   to see it, and `ARCHIVE` (your own storage), whatever its licence. Two explicit exceptions: an `EXPORT` by
+   to see it, and `ARCHIVE` (your own storage), whatever its license. Two explicit exceptions: an `EXPORT` by
    an admin with `includePrivate=true` (111), and a sink with `filter.includePrivate=true` that is a SERVE sink
    bound to loopback/private or a PUSH sink whose target resolves to a private address (110). Feeds, share
    links and federation never carry private records.
@@ -4936,8 +4936,8 @@ In order:
    on a feed.
 4. An MLAT position never leaves on a sink push, a share, a feed or federation, nor on a LAN sink that is not
    local.
-5. The record's licence goes through the table below. Turning a local receiver's egress to `OPEN` (only the
-   `egressOverridable` families allow it) also lifts its `LOCAL_ONLY` licence default; `FORBIDDEN` terms are
+5. The record's license goes through the table below. Turning a local receiver's egress to `OPEN` (only the
+   `egressOverridable` families allow it) also lifts its `LOCAL_ONLY` license default; `FORBIDDEN` terms are
    never lifted.
 
 Denials are counted as `foresignal.licence.egress.denied{path,licence}`.

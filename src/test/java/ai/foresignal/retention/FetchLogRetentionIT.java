@@ -17,7 +17,7 @@ import org.springframework.context.annotation.Import;
 
 /**
  * Prompt 109, task 2 ("keep the evidence"), extending 019's {@code fetch_log} pruning: a fetch row that wrote
- * versions is kept for {@code max(retention.provenance, the largest version window)}, so the licence snapshotted on
+ * versions is kept for {@code max(retention.provenance, the largest version window)}, so the license snapshotted on
  * it outlives every version it describes; a row that wrote nothing still goes after 7 days.
  */
 @IntegrationTest

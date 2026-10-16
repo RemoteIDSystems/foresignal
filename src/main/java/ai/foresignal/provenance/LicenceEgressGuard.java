@@ -8,7 +8,7 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
 
 /**
- * The licence table of prompt 109 (Weather-Imagery-Design §11): whether a record with {@code terms} may leave
+ * The license table of prompt 109 (Weather-Imagery-Design §11): whether a record with {@code terms} may leave
  * on {@code path}. The {@code UNKNOWN} defaults are applied first ({@link LicenceTerms#effectiveRedistribution()}).
  *
  * <p><strong>Internal delegate of {@link ai.foresignal.security.EgressPolicy}; not an entry point.</strong>

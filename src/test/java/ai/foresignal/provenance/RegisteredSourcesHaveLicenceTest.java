@@ -18,7 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  * Prompt 109, task 1: every registered non-DERIVED source resolves to catalogue terms other than
  * {@code unknown}, and the binding cases hold (OpenSky, ACLED and aisstream {@code FORBIDDEN}; adsb.lol
  * {@code ODbL-1.0}; local receivers {@code LOCAL_ONLY}). Walks {@link SourceRegistry#all()} in the application
- * context, so a new adapter whose free-text licence the catalogue cannot read fails here.
+ * context, so a new adapter whose free-text license the catalogue cannot read fails here.
  */
 @IntegrationTest
 class RegisteredSourcesHaveLicenceTest {

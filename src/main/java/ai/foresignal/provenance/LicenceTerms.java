@@ -74,7 +74,7 @@ public record LicenceTerms(String id, String name, CommercialUse commercialUse, 
 
     /**
      * The per-record MLAT downgrade (prompt 109, task 1): the same terms with redistribution
-     * {@code LOCAL_ONLY}, so an MLAT position never leaves on a re-serving path, while the licence id,
+     * {@code LOCAL_ONLY}, so an MLAT position never leaves on a re-serving path, while the license id,
      * share-alike, attribution requirement, attribution text and terms URL are kept (an ODbL record stays
      * an ODbL record that must be attributed). Terms already {@code LOCAL_ONLY} or {@code FORBIDDEN} are
      * returned unchanged.
