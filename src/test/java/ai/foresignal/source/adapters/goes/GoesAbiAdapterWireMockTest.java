@@ -88,14 +88,17 @@ class GoesAbiAdapterWireMockTest extends WireMockSupport {
                         .withBody(ProductAdapterHarness.listing(BUCKET, "", Map.of(), false))));
     }
 
-    private ProductAdapterHarness.Context context(RecordingSink sink) {
+    private ai.foresignal.source.spi.FetchContext context(RecordingSink sink) {
         CredentialsAccess credentials = mock(CredentialsAccess.class);
         when(credentials.forSource(anyString())).thenReturn(Map.of());
         UpstreamClient client = new UpstreamClient(budgets, new BackoffRegistry(jdbc, clock), usage, install, credentials,
                 sources, jdbc, jsonMapper, properties, clock);
         client.setS3Endpoint(baseUrl());
         SourceDescriptor descriptor = adapter.descriptor();
-        return new ProductAdapterHarness.Context(descriptor, client.forSource(GoesAbiAdapter.ID, descriptor), clock, state, sink);
+        // Prompt 106: pin the C13 product so this 046 test stays about band 13 (the default now also
+        // enables the water-vapour channels).
+        return new ProductAdapterHarness.ParamContext(descriptor, client.forSource(GoesAbiAdapter.ID, descriptor), clock,
+                state, sink, ai.foresignal.source.spi.ValidatedParams.of(Map.of("products", List.of(GoesAbiAdapter.IR))));
     }
 
     private static void stubListing(String prefix, String startAfter, Map<String, Long> objects) {

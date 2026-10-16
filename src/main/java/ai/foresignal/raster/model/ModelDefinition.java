@@ -55,11 +55,36 @@ public record ModelDefinition(String sourceId, String label, String bucket, Stri
      * @param accumulation true for a run-total accumulation ({@code 0-N hour acc})
      * @param request the GRIB2 selector for the decoder
      */
-    public record Component(String variable, String level, boolean accumulation, DecodeRequest request) {
+    public record Component(String variable, String level, boolean accumulation, DecodeRequest request,
+            Boolean probabilistic, int bucketHours) {
+
+        /** A component with no probability requirement (the v1 shape). */
+        public Component(String variable, String level, boolean accumulation, DecodeRequest request) {
+            this(variable, level, accumulation, request, null, 0);
+        }
+
+        /** A component requiring a probability (or not) but no interval bucket (prompt 106). */
+        public Component(String variable, String level, boolean accumulation, DecodeRequest request,
+                Boolean probabilistic) {
+            this(variable, level, accumulation, request, probabilistic, 0);
+        }
+
+        /** An interval bucket of {@code bucketHours} ending at the step (prompt 106: NBM APCP/PoP). */
+        public static Component bucket(String variable, String level, int bucketHours, Boolean probabilistic,
+                DecodeRequest request) {
+            return new Component(variable, level, false, request, probabilistic, bucketHours);
+        }
 
         /** The {@code .idx} selector at {@code step}. */
         public FieldSelector selector(int step) {
-            return accumulation ? FieldSelector.runTotal(variable, level, step) : FieldSelector.of(variable, level);
+            FieldSelector selector;
+            if (bucketHours > 0) {
+                selector = FieldSelector.bucket(variable, level, step - bucketHours, step);
+            } else {
+                selector = accumulation ? FieldSelector.runTotal(variable, level, step)
+                        : FieldSelector.of(variable, level);
+            }
+            return probabilistic == null ? selector : selector.withProbabilistic(probabilistic);
         }
     }
 

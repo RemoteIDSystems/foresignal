@@ -422,6 +422,11 @@
         "version": "1.3.0",
         "date": "2026-10-15",
         "note": "106: extended weather products. New sources gfs-wave and aifs (CC BY 4.0), hrrr-smoke-column, and the velocity-json and png-uv field encodings; /v1/sample gains record= (live position) and POST /v1/sample/track; the uv-forecast kind; per-product enablement (products param) with profile defaults."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-15",
+        "note": "106 (extended): the full product catalogue past v1. New sources goes-west-abi, rtma-ru, nbm, gfs-wave, aifs, nexrad-l3, sst-geopolar, wpc-heatrisk, epa-uv; goes-east-abi adds C08/C09/C02 (daytime, AOI-cropped) and the mesoscale sectors; mrms adds lightning probability, VIL and echo top; hrrr adds the column smoke (COLMD); swpc-aurora gains the global aurora-probability raster; awc-tafs gains the forecast groups. Per-product enablement via the `products` param with small/large profile defaults, and the 120% budget-outlook health warning. The velocity-json and png-uv field encodings, the position sample (getSample record=) and sampleTrack."
       }
     ]
   },

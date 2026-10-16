@@ -48,11 +48,22 @@ public record GribIdx(List<Message> messages) {
      * @param position the line's index in {@link #messages()}
      */
     public record Message(int number, long offset, String date, String variable, String level, String timeRange,
-            int position) {
+            int position, String extra) {
+
+        /** A line without the trailing fields (the v1 shape). */
+        public Message(int number, long offset, String date, String variable, String level, String timeRange,
+                int position) {
+            this(number, offset, date, variable, level, timeRange, position, "");
+        }
 
         /** {@code VAR:LEVEL}, as health reasons name a field. */
         public String label() {
             return variable + ":" + level;
+        }
+
+        /** True when the line is a probability forecast ({@code prob >X}). */
+        public boolean probabilistic() {
+            return extra != null && extra.contains("prob");
         }
     }
 
@@ -84,7 +95,9 @@ public record GribIdx(List<Message> messages) {
                     continue;
                 }
                 String date = parts[2].startsWith("d=") ? parts[2].substring(2) : parts[2];
-                out.add(new Message(number, offset, date, parts[3], parts[4], parts[5], out.size()));
+                String extra = parts.length > 6 ? String.join(":", java.util.Arrays.copyOfRange(parts, 6, parts.length))
+                        : "";
+                out.add(new Message(number, offset, date, parts[3], parts[4], parts[5], out.size(), extra));
             }
         }
         if (out.isEmpty()) {

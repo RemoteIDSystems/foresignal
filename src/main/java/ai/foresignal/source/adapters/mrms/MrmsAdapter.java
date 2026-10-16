@@ -135,6 +135,24 @@ public class MrmsAdapter implements PollingAdapter, DecoderDependent {
     /** FLASH QPE-to-flash-flood-guidance ratio over 1 hour, percent (prompt 053). */
     public static final String FFG_RATIO = "mrms-ffg-ratio-1h";
 
+    /** Lightning probability, next 30 minutes, percent (prompt 106). */
+    public static final String LIGHTNING_PROB = "mrms-lightning-prob";
+
+    /** Vertically integrated liquid, kg/m² (prompt 106). */
+    public static final String VIL = "mrms-vil";
+
+    /** 50 dBZ echo top height, km (prompt 106). */
+    public static final String ECHO_TOP = "mrms-echo-top-50";
+
+    /** The {@code takeEvery} parameter of {@value #LIGHTNING_PROB}. */
+    public static final String LTNG_PROB_TAKE_EVERY = "ltgProbTakeEvery";
+
+    /** The {@code takeEvery} parameter of {@value #VIL}. */
+    public static final String VIL_TAKE_EVERY = "vilTakeEvery";
+
+    /** The {@code takeEvery} parameter of {@value #ECHO_TOP}. */
+    public static final String ECHO_TOP_TAKE_EVERY = "echotopTakeEvery";
+
     /** The {@code takeEvery} parameter of {@value #ROTATION}. */
     public static final String ROTATION_TAKE_EVERY = "rotationTakeEvery";
 
@@ -220,6 +238,13 @@ public class MrmsAdapter implements PollingAdapter, DecoderDependent {
             DecodeRequest.grib2(QPE_24H, "MultiSensor_QPE_24H_Pass2", 209, 6, 41, 102, 0.0, "0 m"));
     static final Upstream FFG_UPSTREAM = new Upstream("FLASH_QPE_FFG01H_00.00",
             DecodeRequest.grib2(FFG_RATIO, "FLASH_QPE_FFG01H", 209, 12, 26, 1, 0.0, "surface"));
+    // Prompt 106; parameters verified on the 2026-10-15 files (disc 209).
+    static final Upstream LIGHTNING_PROB_UPSTREAM = new Upstream("LightningProbabilityNext30minGrid_scale_1",
+            DecodeRequest.grib2(LIGHTNING_PROB, "LightningProbabilityNext30minGrid", 209, 2, 5, 102, 500.0, "500 m"));
+    static final Upstream VIL_UPSTREAM = new Upstream("VIL_00.50",
+            DecodeRequest.grib2(VIL, "VIL", 209, 3, 41, 102, 500.0, "500 m"));
+    static final Upstream ECHO_TOP_UPSTREAM = new Upstream("EchoTop_50_00.50",
+            DecodeRequest.grib2(ECHO_TOP, "EchoTop_50", 209, 3, 46, 102, 500.0, "500 m"));
 
     /**
      * A second-wave product (prompt 053): one file per frame, thinned by a fixed {@code takeEvery}.
@@ -247,7 +272,12 @@ public class MrmsAdapter implements PollingAdapter, DecoderDependent {
             new SecondWave(ROTATION, ROTATION_UPSTREAM, MrmsCodec::rotation, ROTATION_TAKE_EVERY, 1, true),
             new SecondWave(QPE_1H, QPE_1H_UPSTREAM, MrmsCodec::qpe, QPE_1H_TAKE_EVERY, 5, false),
             new SecondWave(QPE_24H, QPE_24H_UPSTREAM, MrmsCodec::qpe, QPE_24H_TAKE_EVERY, 1, false),
-            new SecondWave(FFG_RATIO, FFG_UPSTREAM, MrmsCodec::ffgPercent, FFG_TAKE_EVERY, 5, false));
+            new SecondWave(FFG_RATIO, FFG_UPSTREAM, MrmsCodec::ffgPercent, FFG_TAKE_EVERY, 5, false),
+            // Prompt 106.
+            new SecondWave(LIGHTNING_PROB, LIGHTNING_PROB_UPSTREAM, MrmsCodec::lightningProbability,
+                    LTNG_PROB_TAKE_EVERY, 2, false),
+            new SecondWave(VIL, VIL_UPSTREAM, MrmsCodec::vil, VIL_TAKE_EVERY, 2, false),
+            new SecondWave(ECHO_TOP, ECHO_TOP_UPSTREAM, MrmsCodec::echoTop, ECHO_TOP_TAKE_EVERY, 2, false));
 
     /**
      * One listed frame.
@@ -284,7 +314,8 @@ public class MrmsAdapter implements PollingAdapter, DecoderDependent {
     @Override
     public Map<String, Set<DecoderCapability>> decoderRequirements() {
         Map<String, Set<DecoderCapability>> out = new HashMap<>();
-        for (String product : List.of(REFLECTIVITY, PRECIP_RATE, MESH, ROTATION, QPE_1H, QPE_24H, FFG_RATIO)) {
+        for (String product : List.of(REFLECTIVITY, PRECIP_RATE, MESH, ROTATION, QPE_1H, QPE_24H, FFG_RATIO,
+                LIGHTNING_PROB, VIL, ECHO_TOP)) {
             out.put(product, Set.of(DecoderCapability.GRIB2_PNG));
         }
         return Map.copyOf(out);
@@ -898,6 +929,54 @@ public class MrmsAdapter implements PollingAdapter, DecoderDependent {
                 .legendSummary("FLASH radar QPE over 1 hour as a percentage of the 1-hour flash-flood guidance; 100 % or"
                         + " more means rainfall exceeds it (every 10 minutes by default)")
                 .build();
+        ProductSpec ltngProb = ProductSpec.builder(LIGHTNING_PROB)
+                .title("MRMS lightning probability (next 30 min)")
+                .category("radar")
+                .units("%")
+                .dtype(RasterDtype.U8)
+                .scaleOffset(1.0, 0.0)
+                .nodata((double) MrmsCodec.LTNG_PROB_NO_DATA)
+                .code(MrmsCodec.LTNG_PROB_NO_DATA, "noCoverage")
+                .defaultStyle("ltg-prob@1")
+                .temporal(temporal)
+                .spatial(conus)
+                .retention(ladder)
+                .attribution(attribution)
+                .coverageMeaning("CONUS; transparent where no data, never read as no lightning risk")
+                .legendSummary("Probability of cloud-to-ground lightning in the next 30 minutes, %")
+                .build();
+        ProductSpec vil = ProductSpec.builder(VIL)
+                .title("MRMS vertically integrated liquid")
+                .category("radar")
+                .units("kg/m2")
+                .dtype(RasterDtype.U16)
+                .scaleOffset(0.01, 0.0)
+                .nodata((double) MrmsCodec.U16_MISSING)
+                .code(MrmsCodec.U16_MISSING, "noCoverage")
+                .defaultStyle("vil@1")
+                .temporal(temporal)
+                .spatial(conus)
+                .retention(ladder)
+                .attribution(attribution)
+                .coverageMeaning("CONUS radar coverage; transparent where no radar sees")
+                .legendSummary("Vertically integrated liquid, kg/m²; large values mark severe storms")
+                .build();
+        ProductSpec echoTop = ProductSpec.builder(ECHO_TOP)
+                .title("MRMS 50 dBZ echo top height")
+                .category("radar")
+                .units("km")
+                .dtype(RasterDtype.U16)
+                .scaleOffset(0.1, 0.0)
+                .nodata((double) MrmsCodec.U16_MISSING)
+                .code(MrmsCodec.U16_MISSING, "noCoverage")
+                .defaultStyle("echotop@1")
+                .temporal(temporal)
+                .spatial(conus)
+                .retention(ladder)
+                .attribution(attribution)
+                .coverageMeaning("CONUS radar coverage; transparent where no radar sees")
+                .legendSummary("Height of the 50 dBZ echo top, km; very tall echo marks a strong updraft")
+                .build();
         SourceDescriptor.Builder builder = SourceDescriptor.builder(ID)
                 .name("NOAA MRMS radar mosaics")
                 .description("NOAA Multi-Radar/Multi-Sensor composite reflectivity, precipitation rate with its type"
@@ -911,7 +990,7 @@ public class MrmsAdapter implements PollingAdapter, DecoderDependent {
                 .termsUrl("https://registry.opendata.aws/noaa-mrms-pds/")
                 .mode(Mode.POLLING)
                 .interval(Duration.ofMinutes(2), Duration.ofMinutes(2))
-                .defaultBudget(Budget.of(30, 12_000, 4_000))
+                .defaultBudget(Budget.of(30, 12_000, 4_500))
                 .historyTier(HistoryTier.STANDARD)
                 .observedAtMode(ObservedAtMode.UPSTREAM)
                 .recordTtl(null)
@@ -925,7 +1004,10 @@ public class MrmsAdapter implements PollingAdapter, DecoderDependent {
                 .product(rotation)
                 .product(qpe1h)
                 .product(qpe24h)
-                .product(ffg);
+                .product(ffg)
+                .product(ltngProb)
+                .product(vil)
+                .product(echoTop);
         for (SecondWave product : SECOND_WAVE) {
             builder.param(ParamSpec.optional(product.takeEveryParam(), ParamType.INTEGER,
                     "Commit one " + product.productId() + " file per 2 min x takeEvery (fixed, 1 to " + MAX_TAKE_EVERY

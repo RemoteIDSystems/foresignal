@@ -290,6 +290,60 @@ public final class MrmsCodec {
         return out;
     }
 
+    /** The u8 code of a missing lightning-probability sample (prompt 106): 255. */
+    public static final int LTNG_PROB_NO_DATA = 255;
+
+    /** The u16 VIL code of {@code kgPerM2} (prompt 106): scale 0.01, 65535 = no coverage. */
+    public static int vil(float kgPerM2) {
+        if (Float.isNaN(kgPerM2) || kgPerM2 < 0f) {
+            return U16_MISSING;
+        }
+        return (int) Math.min(PRECIP_MAX_CODE, Math.round((double) kgPerM2 * 100.0));
+    }
+
+    /** {@link #vil} over a band. */
+    public static int[] vil(float[] kgPerM2) {
+        int[] out = new int[kgPerM2.length];
+        for (int i = 0; i < kgPerM2.length; i++) {
+            out[i] = vil(kgPerM2[i]);
+        }
+        return out;
+    }
+
+    /** The u16 echo-top code of {@code km} (prompt 106): scale 0.1, 65535 = no coverage. */
+    public static int echoTop(float km) {
+        if (Float.isNaN(km) || km < 0f) {
+            return U16_MISSING;
+        }
+        return (int) Math.min(PRECIP_MAX_CODE, Math.round((double) km * 10.0));
+    }
+
+    /** {@link #echoTop} over a band. */
+    public static int[] echoTop(float[] km) {
+        int[] out = new int[km.length];
+        for (int i = 0; i < km.length; i++) {
+            out[i] = echoTop(km[i]);
+        }
+        return out;
+    }
+
+    /** The u8 lightning-probability code of {@code percent} (prompt 106): 0..100, 255 = no data. */
+    public static int lightningProbability(float percent) {
+        if (Float.isNaN(percent) || near(percent, MRMS_NO_COVERAGE) || near(percent, MRMS_MISSING) || percent < 0f) {
+            return LTNG_PROB_NO_DATA;
+        }
+        return clamp(Math.round(percent), 0, 254);
+    }
+
+    /** {@link #lightningProbability} over a band. */
+    public static int[] lightningProbability(float[] percent) {
+        int[] out = new int[percent.length];
+        for (int i = 0; i < percent.length; i++) {
+            out[i] = lightningProbability(percent[i]);
+        }
+        return out;
+    }
+
     private static boolean near(float value, float sentinel) {
         return Math.abs(value - sentinel) <= SENTINEL_TOLERANCE;
     }

@@ -3738,10 +3738,18 @@ listed is not fetched or stored. The defaults follow the memory profile (`FORESI
 `gfs-wave` and `aifs` are on for the `large` profile only, and the other extended products follow the
 same pattern. Set the parameter with `PUT /v1/sources/{id}/params` (or the source settings API).
 
-**New models and fields.** `gfs-wave` (HTSGW/PERPW/DIRPW) feeds the place-weather `marine` section for
-places tagged `coastal`. `aifs` is the ECMWF AIFS machine-learning forecast (CC BY 4.0). The `hrrr`
-source gains `hrrr-smoke-column` (COLMD, column-integrated smoke, µg/m²); place-weather `smoke` gains
-`hrrrColumnMax24h`. MRMS lightning probability feeds `lightning.prob30mMaxInRadius`.
+**New sources.** `goes-west-abi` mirrors the East clean IR on GOES-18; `goes-east-abi` adds the C08/C09
+water-vapour channels, the C02 visible (daytime only, cropped to the AOI + 300 km) and the 1-minute
+mesoscale sectors (AOI-gated, every second frame). `rtma-ru` is the hourly 2.5 km CONUS analysis
+(observation); `nbm` is the National Blend of Models core; `gfs-wave` (HTSGW/PERPW/DIRPW) feeds the
+place-weather `marine` section for places tagged `coastal`; `aifs` is the ECMWF AIFS machine-learning
+forecast (CC BY 4.0). The `mrms` source gains lightning probability, VIL and echo top; the `hrrr` source
+gains `hrrr-smoke-column` (COLMD); `swpc-aurora` gains the global `aurora-probability` raster; `sst-geopolar`
+adds the daily Geo-Polar SST over an ocean bbox; `wpc-heatrisk` adds the **experimental** NWS HeatRisk
+days 1–7 (place-weather `heat`); `epa-uv` adds the hourly UV index per place — set a place's `zip`
+attribute (`PUT /v1/places/{id}` `{"attributes":{"zip":"78701"}}`) for it to be fetched. **`nexrad-l3`**
+is opt-in and has a **documented gap**: this build's NetCDF-Java has no NIDS reader, so it lists the
+nearest WSR-88D sites and probes but ingests no frames.
 
 **Products with a byte budget** set `mbPerDay`; when the projected day's download, at the rate seen so
 far, exceeds **120%** of it, the source degrades with a `projected download … exceeds …` reason

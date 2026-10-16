@@ -82,6 +82,8 @@ class FamilyDefaultsTest {
             Map.entry("SystemCanaryAdapter", new Entry(new SystemCanaryAdapter().descriptor(), "system")),
             Map.entry("MrmsAdapter", new Entry(new MrmsAdapter(null, "").descriptor(), "raster")),
             Map.entry("GoesAbiAdapter", new Entry(new GoesAbiAdapter(null, "").descriptor(), "raster")),
+            Map.entry("GoesWestAbiAdapter", new Entry(new ai.foresignal.source.adapters.goes.GoesWestAbiAdapter(null, "",
+                    "small", null).descriptor(), "raster")),
             Map.entry("GfsAdapter", new Entry(new ai.foresignal.source.adapters.gfs.GfsAdapter(
                     new ai.foresignal.raster.model.ModelRunIngest(null, null), "").descriptor(), "raster")),
             Map.entry("HrrrAdapter", new Entry(new ai.foresignal.source.adapters.hrrr.HrrrAdapter(
@@ -94,6 +96,15 @@ class FamilyDefaultsTest {
                     new ai.foresignal.raster.model.ModelRunIngest(null, null), "").descriptor(), "raster")),
             Map.entry("AifsAdapter", new Entry(new ai.foresignal.source.adapters.ecmwf.AifsAdapter(
                     new ai.foresignal.raster.model.EcmwfRunIngest(null, null), "small", "").descriptor(), "raster")),
+            Map.entry("SstAdapter", new Entry(new ai.foresignal.source.adapters.sst.SstAdapter(null, "", "small", null)
+                    .descriptor(), "raster")),
+            Map.entry("HeatRiskAdapter", new Entry(new ai.foresignal.source.adapters.heatrisk.HeatRiskAdapter("", "small")
+                    .descriptor(), "raster")),
+            Map.entry("NexradL3Adapter", new Entry(new ai.foresignal.source.adapters.nexrad.NexradL3Adapter("", null)
+                    .descriptor(), "raster")),
+            Map.entry("EpaUvAdapter", new Entry(new ai.foresignal.source.adapters.env.epauv.EpaUvAdapter(
+                    (java.util.function.Supplier<ai.foresignal.source.spi.PlacePoints>) null, "").descriptor(),
+                    "weather")),
             Map.entry("NwsAlertsAdapter", new Entry(new NwsAlertsAdapter((CountyGeometries) null, "").descriptor(), "event")),
             Map.entry("ProbSevereAdapter", new Entry(new ProbSevereAdapter((AreaOfInterest) null, "").descriptor(), "weather")),
             Map.entry("SpcOutlooksAdapter", new Entry(new SpcOutlooksAdapter("").descriptor(), "weather")),
@@ -546,7 +557,9 @@ class FamilyDefaultsTest {
      * on the {@code state}-class {@code local-gpsd-{n}}.
      */
     static final Map<String, Map<String, Duration>> PROMPT_SHORTER_KINDS = Map.of(
-            "local-gpsd-1", Map.of("gnss-integrity", Duration.ofDays(30)));
+            "local-gpsd-1", Map.of("gnss-integrity", Duration.ofDays(30)),
+            // Prompt 106: swpc-aurora gains a raster-frame raster (24 h), shorter than its 365 d record state.
+            "swpc-aurora", Map.of(ProductSpec.RECORD_KIND, Duration.ofHours(24)));
 
     /** Weather-Imagery-Design §2.4's per-kind record retention, for the {@code weather} class. */
     static final Map<String, Duration> WEATHER_KIND_RETENTION = Map.ofEntries(
@@ -566,6 +579,8 @@ class FamilyDefaultsTest {
             Map.entry("storm-swath", Duration.ofDays(3)),
             Map.entry("storm-report", Duration.ofDays(30)),
             Map.entry("nws-forecast", Duration.ofDays(7)),
+            // Prompt 106: EPA UV hourly forecasts.
+            Map.entry("uv-forecast", Duration.ofDays(7)),
             // Prompt 087: TAFs, kept as long as METARs; not in §2.4 (owner question in the 087 report).
             Map.entry("taf", Duration.ofDays(7)));
 

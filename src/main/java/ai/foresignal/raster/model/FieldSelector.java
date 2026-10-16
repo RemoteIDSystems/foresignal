@@ -16,7 +16,8 @@ import java.util.Objects;
  * @param level the level, for example {@code 10 m above ground}
  * @param accumulationStep the step whose run-total accumulation is wanted, or null for any time range
  */
-public record FieldSelector(String variable, String level, Integer accumulationStep) {
+public record FieldSelector(String variable, String level, Integer accumulationStep, Boolean probabilistic,
+        Integer bucketStart, Integer bucketEnd) {
 
     /** Checks the parts. */
     public FieldSelector {
@@ -27,14 +28,24 @@ public record FieldSelector(String variable, String level, Integer accumulationS
         }
     }
 
-    /** A field at any time range. */
+    /** A field at any time range and any probability. */
     public static FieldSelector of(String variable, String level) {
-        return new FieldSelector(variable, level, null);
+        return new FieldSelector(variable, level, null, null, null, null);
     }
 
     /** The run-total accumulation of {@code variable} at {@code level} for {@code step}. */
     public static FieldSelector runTotal(String variable, String level, int step) {
-        return new FieldSelector(variable, level, step);
+        return new FieldSelector(variable, level, step, null, null, null);
+    }
+
+    /** An interval accumulation {@code start-end hour acc} (prompt 106: NBM 6-hour buckets). */
+    public static FieldSelector bucket(String variable, String level, int start, int end) {
+        return new FieldSelector(variable, level, null, null, start, end);
+    }
+
+    /** The same selector requiring a probability ({@code true}) or a deterministic line ({@code false}) (prompt 106). */
+    public FieldSelector withProbabilistic(Boolean value) {
+        return new FieldSelector(variable, level, accumulationStep, value, bucketStart, bucketEnd);
     }
 
     /** True when {@code message} is this field. */
@@ -42,10 +53,16 @@ public record FieldSelector(String variable, String level, Integer accumulationS
         if (!variable.equals(message.variable()) || !level.equals(message.level())) {
             return false;
         }
+        if (probabilistic != null && message.probabilistic() != probabilistic) {
+            return false;
+        }
+        String range = message.timeRange();
+        if (bucketStart != null) {
+            return startsWithWord(range, bucketStart + "-" + bucketEnd + " hour acc");
+        }
         if (accumulationStep == null) {
             return true;
         }
-        String range = message.timeRange();
         if (startsWithWord(range, "0-" + accumulationStep + " hour acc")) {
             return true;
         }

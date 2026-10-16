@@ -20,7 +20,27 @@ public final class GoesCodec {
     /** Kelvin per code. */
     public static final double SCALE_K = 0.01;
 
+    /** The u8 code of a missing visible sample (prompt 106). */
+    public static final int VIS_NO_DATA = 0;
+
     private GoesCodec() {}
+
+    /** The u8 reflectance code (prompt 106): {@code round(reflectance × 100)}, clamped to 0..255 (0..2.55). */
+    public static int visible(float reflectance) {
+        if (Float.isNaN(reflectance) || Float.isInfinite(reflectance) || reflectance < 0) {
+            return VIS_NO_DATA;
+        }
+        return Math.min(255, Math.round(reflectance * 100));
+    }
+
+    /** {@link #visible} over a band. */
+    public static int[] visible(float[] reflectance) {
+        int[] out = new int[reflectance.length];
+        for (int i = 0; i < reflectance.length; i++) {
+            out[i] = visible(reflectance[i]);
+        }
+        return out;
+    }
 
     /** The u16 code of brightness temperature {@code kelvin}; below 150 K clamps to 0. */
     public static int brightness(float kelvin) {

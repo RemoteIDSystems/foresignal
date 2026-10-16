@@ -125,6 +125,9 @@ public class Grib2Decoder implements RasterDecoder {
         if (r.levelType() != null && pds.getLevelType1() != r.levelType()) {
             return false;
         }
+        if (r.probability() != null && pds.isProbability() != r.probability()) {
+            return false;
+        }
         return r.levelValue() == null || Math.abs(pds.getLevelValue1() - r.levelValue()) <= LEVEL_TOLERANCE;
     }
 

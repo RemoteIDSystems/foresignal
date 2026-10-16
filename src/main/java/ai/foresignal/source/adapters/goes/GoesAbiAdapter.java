@@ -1,5 +1,8 @@
 package ai.foresignal.source.adapters.goes;
 
+import ai.foresignal.raster.GeosGrid;
+import ai.foresignal.raster.GridDef;
+import ai.foresignal.raster.ProductEnablement;
 import ai.foresignal.raster.decode.DecodeRequest;
 import ai.foresignal.raster.decode.DecodedGrid;
 import ai.foresignal.raster.decode.DecoderCapability;
@@ -7,6 +10,7 @@ import ai.foresignal.raster.decode.DecoderDependent;
 import ai.foresignal.raster.decode.GzipInputs;
 import ai.foresignal.raster.decode.NetcdfDecoder;
 import ai.foresignal.source.spi.AdapterException;
+import ai.foresignal.source.spi.AreaOfInterest;
 import ai.foresignal.source.spi.Budget;
 import ai.foresignal.source.spi.DecodedBands;
 import ai.foresignal.source.spi.DownloadResult;
@@ -17,6 +21,8 @@ import ai.foresignal.source.spi.HistoryTier;
 import ai.foresignal.source.spi.Mode;
 import ai.foresignal.source.spi.NormalizedRecord;
 import ai.foresignal.source.spi.ObservedAtMode;
+import ai.foresignal.source.spi.ParamSpec;
+import ai.foresignal.source.spi.ParamType;
 import ai.foresignal.source.spi.PollingAdapter;
 import ai.foresignal.source.spi.ProductSpec;
 import ai.foresignal.source.spi.RasterDtype;
@@ -41,34 +47,24 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
- * GOES-East (GOES-19) ABI band 13, clean longwave IR (prompt 046, Weather-Imagery-Design §5.1):
- * product {@value #IR}, one frame per 5-minute CONUS scan.
- *
- * <p>Objects: bucket {@value #BUCKET}, prefix {@code ABI-L2-CMIPC/{YYYY}/{DOY}/{HH}/}. Keys sort by
- * scan mode and channel before time, so each hour is listed with the prefix
- * {@code …/OR_ABI-L2-CMIPC-M} and {@code start-after} the last committed key (when it is in that
- * hour), and filtered to {@code OR_ABI-L2-CMIPC-M\dC13_G19_s(\d{14})_}: the scan mode is never
- * hard-coded. Each run lists the hours from the last committed key's hour (at most
- * {@value #MAX_HOURS_BACK} hours back) to now, and commits at most {@value #MAX_FRAMES_PER_RUN} new
- * frames, oldest first.
- *
- * <p>Each frame: download the NetCDF4 file into {@code rasters/tmp} (charging its listed size against
- * {@code mbPerDay}), read the {@code goes_imager_projection} grid and coverage times from the header,
- * then commit with a decoder that reads {@code CMI} in enhanced mode, drops samples whose {@code DQF}
- * exceeds 1, and quantizes to u16 ({@link GoesCodec}). {@code frame_id} comes from the key's
- * {@code s} start time; {@code obs_start}/{@code obs_end} from {@code time_coverage_start}/
- * {@code time_coverage_end}; {@code valid_time = obs_start}.
- *
- * <p>Health: a missing {@code CMI} ("variable CMI missing") or projection attribute degrades the source
- * and writes no frame. Probe: the newest C13 object, header only; nothing written.
- *
- * <p>A scan-mode change in the middle of an hour (M6 to M3, say) sorts the new mode's keys before the
- * last committed one; those frames of that hour are skipped, and the next hour lists normally.
+ * GOES-East (GOES-19) ABI Cloud and Moisture Imagery (prompt 046, extended in prompt 106):
+ * <ul>
+ *   <li>{@value #IR} (band 13, clean IR) — the v1 product;</li>
+ *   <li>{@value #WV8} and {@value #WV9} (bands 8/9, water vapour), u16 0.01 K;</li>
+ *   <li>{@value #VIS} (band 2, 0.5 km visible), u8 reflectance, cropped to the places AOI + 300 km,
+ *       and skipped when the solar zenith over the AOI exceeds 85°;</li>
+ *   <li>{@value #MESO1} and {@value #MESO2} (mesoscale sectors 1/2, 1-minute CMIPM band 13), ingested
+ *       only while their footprint intersects the AOI, keeping every 2nd frame ({@code mesoStride}).</li>
+ * </ul>
+ * Objects are listed per hour with {@code start-after} the last committed key and filtered by the
+ * channel's key pattern; the scan mode is never hard-coded. Products are enabled per profile (small:
+ * C13/C08/C09; large adds C02; mesoscale opt-in) and overridable with the {@code products} param.
  */
 @Component
 public class GoesAbiAdapter implements PollingAdapter, DecoderDependent {
@@ -79,13 +75,28 @@ public class GoesAbiAdapter implements PollingAdapter, DecoderDependent {
     /** The GOES-19 bucket. */
     public static final String BUCKET = "noaa-goes19";
 
-    /** The product. */
+    /** The band 13 product. */
     public static final String IR = "goes-east-ir";
+
+    /** The band 8 water-vapour product (prompt 106). */
+    public static final String WV8 = "goes-east-wv8";
+
+    /** The band 9 water-vapour product (prompt 106). */
+    public static final String WV9 = "goes-east-wv9";
+
+    /** The band 2 visible product (prompt 106). */
+    public static final String VIS = "goes-east-vis";
+
+    /** The mesoscale sector 1 product (prompt 106). */
+    public static final String MESO1 = "goes-east-meso1";
+
+    /** The mesoscale sector 2 product (prompt 106). */
+    public static final String MESO2 = "goes-east-meso2";
 
     /** Test-only: a path-style base URL for object downloads ({@code {base}/{bucket}/{key}}). */
     public static final String BASE_URL_PROPERTY = "foresignal.test.adapters.goes.base-url";
 
-    /** New frames committed per run. */
+    /** New frames committed per channel per run. */
     public static final int MAX_FRAMES_PER_RUN = 15;
 
     /** Hours listed back from now at most. */
@@ -94,14 +105,20 @@ public class GoesAbiAdapter implements PollingAdapter, DecoderDependent {
     /** The response cap, and the largest object downloaded. */
     static final int MAX_RESPONSE_BYTES = 8 * 1024 * 1024;
 
-    /** The adapter-state key of the last committed key. */
-    static final String STATE_KEY = "lastKey:" + IR;
+    /** The adapter-state key prefix of the last committed key. */
+    static final String STATE_PREFIX = "lastKey:";
+
+    /** The C02 crop margin around the AOI, km. */
+    static final double VIS_MARGIN_KM = 300;
+
+    /** The solar zenith above which a visible frame is skipped, degrees. */
+    static final double VIS_MAX_SOLAR_ZENITH = 85;
 
     /** The band 13 key pattern of GOES-19; group 1 is the {@code s} start time. */
     static final Pattern KEY = Pattern.compile(
             "^ABI-L2-CMIPC/\\d{4}/\\d{3}/\\d{2}/OR_ABI-L2-CMIPC-M\\dC13_G19_s(\\d{14})_e\\d{14}_c\\d{14}\\.nc$");
 
-    /** What is decoded. */
+    /** What band 13 is decoded with (kept for the 046 tests). */
     static final DecodeRequest REQUEST = DecodeRequest.netcdf(IR, "CMI").withQuality("DQF", 1);
 
     /**
@@ -111,47 +128,183 @@ public class GoesAbiAdapter implements PollingAdapter, DecoderDependent {
      * @param time the {@code s} start time
      * @param size the object size from the listing
      */
-    record Frame(String key, Instant time, long size) {}
+    public record Frame(String key, Instant time, long size) {}
 
-    private static final SourceDescriptor DESCRIPTOR = buildDescriptor();
+    /**
+     * One ABI channel.
+     *
+     * @param productId the product id
+     * @param kind {@code CMIPC} or {@code CMIPM}
+     * @param band the channel number ({@code 13}, {@code 08}, …)
+     * @param sector {@code ""} for CMIPC, {@code 1} or {@code 2} for CMIPM
+     * @param code {@code ir}/{@code wv} for u16 kelvin, {@code vis} for u8 reflectance
+     * @param temporal the temporal spec
+     * @param spatial the spatial spec
+     * @param ladder the retention ladder
+     * @param title product title
+     * @param units units
+     * @param scale code scale
+     * @param offset code offset
+     * @param nodata nodata code
+     * @param styles styles (first is the default)
+     * @param meaning coverage meaning
+     * @param legend legend summary
+     * @param cropAoi true to crop to the AOI + {@value #VIS_MARGIN_KM} km
+     * @param daytimeOnly true to skip a frame whose solar zenith exceeds {@value #VIS_MAX_SOLAR_ZENITH}°
+     * @param aoiGated true to ingest only while the footprint intersects the AOI
+     * @param stride keep every Nth frame (1 = all)
+     */
+    public record Channel(String productId, String kind, String band, String sector, String code,
+            ProductSpec.Temporal temporal, ProductSpec.Spatial spatial, ProductSpec.RetentionLadder ladder,
+            String title, String units, double scale, double offset, Double nodata, List<String> styles,
+            String meaning, String legend, boolean cropAoi, boolean daytimeOnly, boolean aoiGated, int stride) {
+
+        /** The decode request. */
+        DecodeRequest request() {
+            return DecodeRequest.netcdf(productId, "CMI").withQuality("DQF", 1);
+        }
+
+        /** The S3 key pattern for {@code sat}. */
+        Pattern pattern(String sat) {
+            return Pattern.compile("^ABI-L2-" + kind + "/\\d{4}/\\d{3}/\\d{2}/OR_ABI-L2-" + kind + sector
+                    + "-M\\dC" + band + "_" + sat + "_s(\\d{14})_e\\d{14}_c\\d{14}\\.nc$");
+        }
+
+        /** The listing prefix of {@code time}'s hour. */
+        String hourPrefix(Instant time) {
+            LocalDateTime t = LocalDateTime.ofInstant(time, ZoneOffset.UTC);
+            return String.format(Locale.ROOT, "ABI-L2-%s/%04d/%03d/%02d/OR_ABI-L2-%s%s-M", kind, t.getYear(),
+                    t.getDayOfYear(), t.getHour(), kind, sector);
+        }
+
+        /** The state key of the last committed object. */
+        String stateKey() {
+            return STATE_PREFIX + productId;
+        }
+    }
+
+    /** The east channels, in descriptor order. */
+    static final List<Channel> CHANNELS = List.of(
+            channel(IR, "CMIPC", "13", "", "ir", "CONUS", 7, 6, "ir-gray@1", "ir-enhanced@1",
+                    "GOES-East clean infrared (ABI band 13)", "Brightness temperature at 10.3 µm, K; cold (bright) is"
+                            + " high cloud", Duration.ofHours(24), false, false, 1),
+            channel(WV8, "CMIPC", "08", "", "wv", "CONUS", 7, 6, "wv-gray@1", "wv-enhanced@1",
+                    "GOES-East water vapour (ABI band 8)", "Brightness temperature at 6.2 µm, K; mid-level water"
+                            + " vapour", Duration.ofHours(24), false, false, 1),
+            channel(WV9, "CMIPC", "09", "", "wv", "CONUS", 7, 6, "wv-gray@1", "wv-enhanced@1",
+                    "GOES-East water vapour (ABI band 9)", "Brightness temperature at 6.9 µm, K; low/mid water"
+                            + " vapour", Duration.ofHours(24), false, false, 1),
+            channel(VIS, "CMIPC", "02", "", "vis", "CONUS", 8, 7, "vis-gray@1", null,
+                    "GOES-East visible (ABI band 2)", "Reflectance at 0.64 µm (daytime), cropped to the AOI",
+                    Duration.ofHours(6), true, false, 1),
+            channel(MESO1, "CMIPM", "13", "1", "ir", "CONUS", 8, 7, "ir-gray@1", "ir-enhanced@1",
+                    "GOES-East mesoscale sector 1 (ABI band 13)", "Brightness temperature at 10.3 µm, K", Duration.ofHours(24),
+                    false, true, 2),
+            channel(MESO2, "CMIPM", "13", "2", "ir", "CONUS", 8, 7, "ir-gray@1", "ir-enhanced@1",
+                    "GOES-East mesoscale sector 2 (ABI band 13)", "Brightness temperature at 10.3 µm, K", Duration.ofHours(24),
+                    false, true, 2));
+
+    /** The products on by default for the small profile. */
+    static final List<String> LIGHT_DEFAULT = List.of(IR, WV8, WV9);
+
+    /** The products on by default for the large profile. */
+    static final List<String> LARGE_DEFAULT = List.of(IR, WV8, WV9, VIS);
 
     private final NetcdfDecoder decoder;
     private final String baseUrl;
+    private final String profile;
+    private final ObjectProvider<AreaOfInterest> aoi;
+    private final String sourceId;
+    private final String bucket;
+    private final String sat;
+    private final String label;
+    private final List<Channel> channels;
+    private final List<String> lightDefault;
+    private final List<String> largeDefault;
+    private final SourceDescriptor descriptor;
 
-    /**
-     * Creates the adapter.
-     *
-     * @param decoder the NetCDF decoder
-     * @param baseUrlOverride the value of {@value #BASE_URL_PROPERTY}; blank means the real bucket
-     */
+    /** Creates the GOES-East adapter. */
     @Autowired
-    public GoesAbiAdapter(NetcdfDecoder decoder, @Value("${" + BASE_URL_PROPERTY + ":}") String baseUrlOverride) {
+    public GoesAbiAdapter(NetcdfDecoder decoder, @Value("${" + BASE_URL_PROPERTY + ":}") String baseUrlOverride,
+            @Value("${foresignal.profile:small}") String profile, ObjectProvider<AreaOfInterest> aoi) {
+        this(decoder, baseUrlOverride, profile, aoi, ID, BUCKET, "G19", "GOES-East (GOES-19)", CHANNELS,
+                LIGHT_DEFAULT, LARGE_DEFAULT);
+    }
+
+    /** Creates the adapter against a stubbed bucket (tests). */
+    public GoesAbiAdapter(NetcdfDecoder decoder, String baseUrlOverride) {
+        this(decoder, baseUrlOverride, "small", null, ID, BUCKET, "G19", "GOES-East (GOES-19)", CHANNELS,
+                LIGHT_DEFAULT, LARGE_DEFAULT);
+    }
+
+    /** Creates an adapter for a satellite. */
+    protected GoesAbiAdapter(NetcdfDecoder decoder, String baseUrl, String profile, ObjectProvider<AreaOfInterest> aoi,
+            String sourceId, String bucket, String sat, String label, List<Channel> channels, List<String> lightDefault,
+            List<String> largeDefault) {
         this.decoder = decoder;
-        String chosen = baseUrlOverride == null ? "" : baseUrlOverride.trim();
+        String chosen = baseUrl == null ? "" : baseUrl.trim();
         this.baseUrl = chosen.endsWith("/") ? chosen.substring(0, chosen.length() - 1) : chosen;
+        this.profile = profile;
+        this.aoi = aoi;
+        this.sourceId = sourceId;
+        this.bucket = bucket;
+        this.sat = sat;
+        this.label = label;
+        this.channels = List.copyOf(channels);
+        this.lightDefault = List.copyOf(lightDefault);
+        this.largeDefault = List.copyOf(largeDefault);
+        this.descriptor = buildDescriptor(sourceId, bucket, label, channels);
+    }
+
+    /** One channel helper. */
+    static Channel channel(String productId, String kind, String band, String sector, String code,
+            String coverage, int nativeMaxZoom, int maxZoomForAnimation, String style, String altStyle, String title,
+            String legend, Duration maxAge, boolean daytimeOnly, boolean aoiGated, int stride) {
+        ProductSpec.Temporal temporal = ProductSpec.Temporal.observation(
+                "CMIPM".equals(kind) ? Duration.ofMinutes(1) : Duration.ofMinutes(5),
+                "CMIPM".equals(kind) ? Duration.ofMinutes(4) : Duration.ofMinutes(15));
+        List<String> styles = altStyle == null ? List.of(style) : List.of(style, altStyle);
+        boolean vis = "vis".equals(code);
+        RasterDtype dtype = vis ? RasterDtype.U8 : RasterDtype.U16;
+        double scale = vis ? 0.01 : 0.01;
+        double offset = vis ? 0.0 : GoesCodec.OFFSET_K;
+        Double nodata = vis ? (double) GoesCodec.VIS_NO_DATA : (double) GoesCodec.NO_DATA;
+        return new Channel(productId, kind, band, sector, code, temporal,
+                new ProductSpec.Spatial(coverage, nativeMaxZoom, 0, maxZoomForAnimation, null),
+                new ProductSpec.RetentionLadder(List.of(new ProductSpec.RetentionLadder.Rung(maxAge,
+                        Duration.ofMinutes(30))), Duration.ofHours(72), null), title,
+                vis ? "reflectance" : "K", scale, offset, nodata, styles,
+                "The " + label(coverage) + "; transparent outside the scan or where quality is poor", legend,
+                vis, daytimeOnly, aoiGated, stride);
+    }
+
+    private static String label(String coverage) {
+        return "CONUS sector";
     }
 
     @Override
     public SourceDescriptor descriptor() {
-        return DESCRIPTOR;
+        return descriptor;
     }
 
     @Override
     public Map<String, Set<DecoderCapability>> decoderRequirements() {
-        return Map.of(IR, Set.of(DecoderCapability.NETCDF4));
+        java.util.LinkedHashMap<String, Set<DecoderCapability>> out = new java.util.LinkedHashMap<>();
+        for (Channel c : channels) {
+            out.put(c.productId(), Set.of(DecoderCapability.NETCDF4));
+        }
+        return out;
     }
 
     /** The URL of {@code key}. */
     public URI objectUri(String key) {
-        return baseUrl.isEmpty() ? URI.create("https://" + BUCKET + ".s3.amazonaws.com/" + key)
-                : URI.create(baseUrl + "/" + BUCKET + "/" + key);
+        return baseUrl.isEmpty() ? URI.create("https://" + bucket + ".s3.amazonaws.com/" + key)
+                : URI.create(baseUrl + "/" + bucket + "/" + key);
     }
 
-    /** The listing prefix of the hour holding {@code time}. */
-    static String hourPrefix(Instant time) {
-        LocalDateTime t = LocalDateTime.ofInstant(time, ZoneOffset.UTC);
-        return String.format(Locale.ROOT, "ABI-L2-CMIPC/%04d/%03d/%02d/OR_ABI-L2-CMIPC-M", t.getYear(), t.getDayOfYear(),
-                t.getHour());
+    /** The listing prefix of the hour holding {@code time} (band 13, for the 046 tests). */
+    public static String hourPrefix(Instant time) {
+        return CHANNELS.get(0).hourPrefix(time);
     }
 
     @Override
@@ -159,13 +312,27 @@ public class GoesAbiAdapter implements PollingAdapter, DecoderDependent {
         if (ctx.rasters().probing()) {
             return probe(ctx);
         }
-        if (ctx.rasters().disabled(IR)) {
-            return FetchResult.of(List.of());
+        Set<String> enabled = ProductEnablement.enabled(ctx.params(), profile,
+                channels.stream().map(Channel::productId).toList(), lightDefault, largeDefault);
+        List<NormalizedRecord> out = new ArrayList<>();
+        for (Channel channel : channels) {
+            if (!enabled.contains(channel.productId())
+                    || (ctx.rasters().disabled(channel.productId()) && channels.size() == 1)) {
+                continue;
+            }
+            out.addAll(fetchChannel(ctx, channel));
         }
-        String last = ctx.state().get(STATE_KEY).orElse(null);
-        Instant lastTime = last == null ? null : startTime(last).orElse(null);
+        return FetchResult.of(out);
+    }
+
+    private List<NormalizedRecord> fetchChannel(FetchContext ctx, Channel channel) throws AdapterException {
+        if (ctx.rasters().disabled(channel.productId())) {
+            return List.of();
+        }
+        String last = ctx.state().get(channel.stateKey()).orElse(null);
+        Instant lastTime = last == null ? null : startTimeOf(channel, last).orElse(null);
         Instant now = ctx.now();
-        List<Frame> frames = listNew(ctx, last, lastTime, now);
+        List<Frame> frames = listNew(ctx, channel, last, lastTime, now);
         List<NormalizedRecord> out = new ArrayList<>();
         String cursor = last;
         int committed = 0;
@@ -174,62 +341,188 @@ public class GoesAbiAdapter implements PollingAdapter, DecoderDependent {
                 if (committed >= MAX_FRAMES_PER_RUN) {
                     break;
                 }
+                cursor = frame.key();
                 if (frame.size() > MAX_RESPONSE_BYTES) {
-                    ctx.log().warn("GOES {}: skipping {} ({} bytes is over the {}-byte cap)", IR, frame.key(), frame.size(),
-                            MAX_RESPONSE_BYTES);
-                    cursor = frame.key();
+                    ctx.log().warn("GOES {}: skipping {} ({} bytes over the cap)", channel.productId(), frame.key(),
+                            frame.size());
+                    continue;
+                }
+                if (channel.stride() > 1 && (frame.time().getEpochSecond() / 60) % channel.stride() != 0) {
+                    continue;
+                }
+                if (channel.daytimeOnly() && solarZenithOverAoi(ctx, frame.time()) > VIS_MAX_SOLAR_ZENITH) {
                     continue;
                 }
                 try {
-                    NormalizedRecord record = commit(ctx, frame);
+                    NormalizedRecord record = commit(ctx, channel, frame);
                     if (record != null) {
                         out.add(record);
                     }
                 } catch (SilentFormatChangeException e) {
-                    ctx.rasters().reportFormatChange(IR, e.getMessage());
-                    ctx.log().warn("GOES {}: {} ({})", IR, e.getMessage(), frame.key());
+                    ctx.rasters().reportFormatChange(channel.productId(), e.getMessage());
+                    ctx.log().warn("GOES {}: {} ({})", channel.productId(), e.getMessage(), frame.key());
                 }
-                cursor = frame.key();
                 committed++;
             }
         } catch (AdapterException e) {
             if (out.isEmpty()) {
-                saveCursor(ctx, cursor, last);
+                saveCursor(ctx, channel, cursor, last);
                 throw e;
             }
-            ctx.log().warn("GOES {}: committed {} frame(s), then failed: {}", IR, out.size(), e.getMessage());
+            ctx.log().warn("GOES {}: committed {} frame(s), then failed: {}", channel.productId(), out.size(),
+                    e.getMessage());
         }
-        saveCursor(ctx, cursor, last);
-        return FetchResult.of(out);
+        saveCursor(ctx, channel, cursor, last);
+        return out;
     }
 
-    private NormalizedRecord commit(FetchContext ctx, Frame frame) throws AdapterException {
-        Path file = download(ctx, frame);
+    private NormalizedRecord commit(FetchContext ctx, Channel channel, Frame frame) throws AdapterException {
+        Path file = download(ctx, channel, frame);
         try {
-            DecodedGrid header = decoder.decode(file, REQUEST.header());
-            Instant obsStart = instant(header.metadata().get("obsStart")).orElse(frame.time());
-            Instant obsEnd = instant(header.metadata().get("obsEnd")).orElse(null);
-            return ctx.rasters().commit(FrameInput.builder(IR)
+            DecodedGrid header = decoder.decode(file, channel.request().header());
+            if (channel.aoiGated() && !intersectsAoi(header)) {
+                return null;
+            }
+            int[] window = channel.cropAoi() ? cropWindow(header) : null;
+            var grid = window == null ? header.gridDefinition() : croppedGrid(header, window);
+            NormalizedRecord record = ctx.rasters().commit(FrameInput.builder(channel.productId())
                     .validTime(frame.time())
-                    .observationPeriod(obsStart, obsEnd)
-                    .grid(header.gridDefinition())
-                    .file(file, f -> DecodedBands.codes(GoesCodec.brightness(decoder.decode(f, REQUEST).floatData())))
+                    .observationPeriod(instant(header.metadata().get("obsStart")).orElse(frame.time()),
+                            instant(header.metadata().get("obsEnd")).orElse(null))
+                    .grid(grid)
+                    .file(file, f -> {
+                        DecodedGrid g = decoder.decode(f, channel.request());
+                        return DecodedBands.codes(quantize(channel, g, window));
+                    })
                     .upstreamKey(frame.key())
-                    .variable(REQUEST.variable())
+                    .variable(channel.request().variable())
                     .build());
+            return record;
         } finally {
             GzipInputs.deleteQuietly(file);
         }
     }
 
+    /** Quantizes a decoded channel, cropping to {@code window} when one is given. */
+    private int[] quantize(Channel channel, DecodedGrid grid, int[] window) {
+        float[] data = grid.floatData();
+        if (window != null) {
+            data = crop(data, grid.nx(), grid.ny(), window);
+        }
+        return "vis".equals(channel.code()) ? GoesCodec.visible(data) : GoesCodec.brightness(data);
+    }
+
+    /** {@code {col0, row0, cols, rows}} of the AOI + {@value #VIS_MARGIN_KM} km, or null when no AOI. */
+    int[] cropWindow(DecodedGrid header) {
+        if (aoi == null || aoi.getIfAvailable() == null) {
+            return null;
+        }
+        GeosGrid grid = (GeosGrid) GridDef.of(header.gridDefinition());
+        double[] env = aoi.getIfAvailable().envelope();
+        double midLat = (env[1] + env[3]) / 2;
+        double dLat = VIS_MARGIN_KM / 111.32;
+        double dLon = VIS_MARGIN_KM / (111.32 * Math.max(0.2, Math.cos(Math.toRadians(midLat))));
+        double w = env[0] - dLon;
+        double e = env[2] + dLon;
+        double s = env[1] - dLat;
+        double n = env[3] + dLat;
+        double minCol = Double.POSITIVE_INFINITY;
+        double maxCol = Double.NEGATIVE_INFINITY;
+        double minRow = Double.POSITIVE_INFINITY;
+        double maxRow = Double.NEGATIVE_INFINITY;
+        for (double[] lonLat : new double[][] {{w, s}, {w, n}, {e, s}, {e, n}, {(w + e) / 2, (s + n) / 2}}) {
+            double[] ij = grid.lonLatToIndex(lonLat[0], lonLat[1]);
+            if (Double.isNaN(ij[0]) || Double.isNaN(ij[1])) {
+                continue;
+            }
+            minCol = Math.min(minCol, ij[0]);
+            maxCol = Math.max(maxCol, ij[0]);
+            minRow = Math.min(minRow, ij[1]);
+            maxRow = Math.max(maxRow, ij[1]);
+        }
+        if (minCol > maxCol) {
+            return null;
+        }
+        int col0 = Math.max(0, (int) Math.floor(minCol) - 1);
+        int row0 = Math.max(0, (int) Math.floor(minRow) - 1);
+        int col1 = Math.min(header.nx() - 1, (int) Math.ceil(maxCol) + 1);
+        int row1 = Math.min(header.ny() - 1, (int) Math.ceil(maxRow) + 1);
+        return new int[] {col0, row0, col1 - col0 + 1, row1 - row0 + 1};
+    }
+
+    /** The GEOS grid definition of a cropped window. */
+    static ai.foresignal.source.spi.GridDefinition croppedGrid(DecodedGrid header, int[] window) {
+        var def = header.gridDefinition();
+        java.util.Map<String, Object> params = new java.util.LinkedHashMap<>(def.params());
+        double x0 = ((Number) params.get("x0")).doubleValue();
+        double y0 = ((Number) params.get("y0")).doubleValue();
+        double dx = ((Number) params.get("dx")).doubleValue();
+        double dy = ((Number) params.get("dy")).doubleValue();
+        int col0 = window[0];
+        int row0 = window[1];
+        double west = def.west() + col0 * Math.abs(dx);
+        double north = def.north() - row0 * Math.abs(dy);
+        params.put("x0", x0 + col0 * dx);
+        params.put("y0", y0 + row0 * dy);
+        return new ai.foresignal.source.spi.GridDefinition(ai.foresignal.source.spi.GridDefinition.GEOS, window[2],
+                window[3], Math.max(-180, west), def.south(), Math.min(180, west + window[2] * Math.abs(dx)),
+                Math.min(90, north), params);
+    }
+
+    /** Crops a row-major north→south field. */
+    static float[] crop(float[] data, int nx, int ny, int[] window) {
+        int cols = window[2];
+        int rows = window[3];
+        float[] out = new float[cols * rows];
+        for (int r = 0; r < rows; r++) {
+            System.arraycopy(data, (window[1] + r) * nx + window[0], out, r * cols, cols);
+        }
+        return out;
+    }
+
+    /** True when a mesoscale grid's box intersects the AOI envelope. */
+    private boolean intersectsAoi(DecodedGrid header) {
+        if (aoi == null || aoi.getIfAvailable() == null) {
+            return true;
+        }
+        var box = header.gridDefinition();
+        return AreaOfInterest.intersects(aoi.getIfAvailable().envelope(), box.west(), box.south(), box.east(),
+                box.north());
+    }
+
+    /** The solar zenith at the AOI centroid at {@code time}, degrees (NOAA approximate formula). */
+    double solarZenithOverAoi(FetchContext ctx, Instant time) {
+        double lon = -97.0;
+        double lat = 31.0;
+        if (aoi != null && aoi.getIfAvailable() != null) {
+            double[] env = aoi.getIfAvailable().envelope();
+            lon = (env[0] + env[2]) / 2;
+            lat = (env[1] + env[3]) / 2;
+        }
+        double dayOfYear = time.atZone(ZoneOffset.UTC).getDayOfYear();
+        double hour = time.atZone(ZoneOffset.UTC).getHour() + time.atZone(ZoneOffset.UTC).getMinute() / 60.0;
+        double gamma = 2 * Math.PI / 365 * (dayOfYear - 1 + (hour - 12) / 24);
+        double eqTime = 229.18 * (0.000075 + 0.001868 * Math.cos(gamma) - 0.032077 * Math.sin(gamma)
+                - 0.014615 * Math.cos(2 * gamma) - 0.040849 * Math.sin(2 * gamma));
+        double decl = 0.006918 - 0.399912 * Math.cos(gamma) + 0.070257 * Math.sin(gamma)
+                - 0.006758 * Math.cos(2 * gamma) + 0.000907 * Math.sin(2 * gamma)
+                - 0.002697 * Math.cos(3 * gamma) + 0.00148 * Math.sin(3 * gamma);
+        double trueSolarTime = hour * 60 + eqTime + 4 * lon;
+        double hourAngle = Math.toRadians(trueSolarTime / 4 - 180);
+        double latRad = Math.toRadians(lat);
+        double cosZenith = Math.sin(latRad) * Math.sin(decl) + Math.cos(latRad) * Math.cos(decl) * Math.cos(hourAngle);
+        return Math.toDegrees(Math.acos(Math.max(-1, Math.min(1, cosZenith))));
+    }
+
     /** Probes: the newest band 13 scan, header only; writes nothing. */
     FetchResult probe(FetchContext ctx) throws AdapterException {
+        Channel channel = channels.get(0);
         Instant now = ctx.now();
         Frame newest = null;
         for (Instant hour : List.of(now, now.minus(1, ChronoUnit.HOURS))) {
-            S3Listing listing = ctx.http().listS3(BUCKET, hourPrefix(hour), null);
+            S3Listing listing = ctx.http().listS3(bucket, channel.hourPrefix(hour), null);
             for (S3Object object : listing.objects()) {
-                Optional<Frame> frame = frame(object);
+                Optional<Frame> frame = frameOf(channel, object);
                 if (frame.isPresent() && (newest == null || frame.get().time().isAfter(newest.time()))) {
                     newest = frame.get();
                 }
@@ -241,17 +534,17 @@ public class GoesAbiAdapter implements PollingAdapter, DecoderDependent {
         if (newest == null) {
             return FetchResult.of(List.of());
         }
-        Path file = download(ctx, newest);
+        Path file = download(ctx, channel, newest);
         try {
-            DecodedGrid header = decoder.decode(file, REQUEST.header());
-            NormalizedRecord preview = ctx.rasters().commit(FrameInput.builder(IR)
+            DecodedGrid header = decoder.decode(file, channel.request().header());
+            NormalizedRecord preview = ctx.rasters().commit(FrameInput.builder(channel.productId())
                     .validTime(newest.time())
                     .grid(header.gridDefinition())
                     .file(file, f -> {
                         throw new IllegalStateException("A probe never decodes samples");
                     })
                     .upstreamKey(newest.key())
-                    .variable(REQUEST.variable())
+                    .variable(channel.request().variable())
                     .build());
             return FetchResult.of(preview == null ? List.of() : List.of(preview));
         } finally {
@@ -259,48 +552,74 @@ public class GoesAbiAdapter implements PollingAdapter, DecoderDependent {
         }
     }
 
-    /** The new band 13 scans after {@code lastTime}, oldest first. */
+    /** The new band 13 scans after {@code lastTime}, oldest first (kept for the 046 tests). */
     List<Frame> listNew(FetchContext ctx, String last, Instant lastTime, Instant now) throws AdapterException {
+        return listNew(ctx, channels.get(0), last, lastTime, now);
+    }
+
+    /** The new scans of {@code channel} after {@code lastTime}, oldest first. */
+    List<Frame> listNew(FetchContext ctx, Channel channel, String last, Instant lastTime, Instant now)
+            throws AdapterException {
         Instant nowHour = now.truncatedTo(ChronoUnit.HOURS);
         Instant earliest = nowHour.minus(MAX_HOURS_BACK, ChronoUnit.HOURS);
         Instant firstHour = lastTime == null ? nowHour.minus(1, ChronoUnit.HOURS) : lastTime.truncatedTo(ChronoUnit.HOURS);
         if (firstHour.isBefore(earliest)) {
             firstHour = earliest;
         }
+        Pattern pattern = channel.pattern(sat);
         List<Frame> frames = new ArrayList<>();
         for (Instant hour = firstHour; !hour.isAfter(nowHour); hour = hour.plus(1, ChronoUnit.HOURS)) {
-            String prefix = hourPrefix(hour);
+            String prefix = channel.hourPrefix(hour);
             String startAfter = last != null && last.startsWith(prefix) ? last : null;
-            S3Listing listing = ctx.http().listS3(BUCKET, prefix, startAfter);
+            S3Listing listing = ctx.http().listS3(bucket, prefix, startAfter);
             while (true) {
                 for (S3Object object : listing.objects()) {
-                    frame(object).filter(f -> lastTime == null || f.time().isAfter(lastTime)).ifPresent(frames::add);
+                    frame(channel, pattern, object).filter(f -> lastTime == null || f.time().isAfter(lastTime))
+                            .ifPresent(frames::add);
                 }
                 if (!listing.truncated() || listing.nextStartAfter() == null) {
                     break;
                 }
-                listing = ctx.http().listS3(BUCKET, prefix, listing.nextStartAfter());
+                listing = ctx.http().listS3(bucket, prefix, listing.nextStartAfter());
             }
         }
         frames.sort(Comparator.comparing(Frame::time).thenComparing(Frame::key));
         return frames;
     }
 
-    /** The scan of a listed object, when it is a GOES-19 CMIPC band 13 file. */
+    /** The scan of a listed object for band 13 (kept for the 046 tests). */
     static Optional<Frame> frame(S3Object object) {
-        return startTime(object.key()).map(time -> new Frame(object.key(), time, object.size()));
+        return frame(CHANNELS.get(0), KEY, object);
     }
 
-    /** The {@code s} start time of a band 13 key. */
+    /** The scan of a listed object for this satellite's channel. */
+    Optional<Frame> frameOf(Channel channel, S3Object object) {
+        return frame(channel, channel.pattern(sat), object);
+    }
+
+    static Optional<Frame> frame(Channel channel, Pattern pattern, S3Object object) {
+        return startTime(pattern, object.key()).map(time -> new Frame(object.key(), time, object.size()));
+    }
+
+    /** The {@code s} start time of a band 13 key (kept for the 046 tests). */
     static Optional<Instant> startTime(String key) {
-        Matcher m = KEY.matcher(key);
+        return startTime(KEY, key);
+    }
+
+    /** The {@code s} start time of {@code key} for this satellite's channel. */
+    Optional<Instant> startTimeOf(Channel channel, String key) {
+        return startTime(channel.pattern(sat), key);
+    }
+
+    static Optional<Instant> startTime(Pattern pattern, String key) {
+        Matcher m = pattern.matcher(key);
         if (!m.matches()) {
             return Optional.empty();
         }
         return Optional.of(parseStart(m.group(1)));
     }
 
-    /** {@code YYYYDDDHHMMSSt} (year, day of year, time, tenths of a second) as an instant. */
+    /** {@code YYYYDDDHHMMSSt} as an instant (kept for the 046 tests). */
     static Instant parseStart(String s) {
         int year = Integer.parseInt(s.substring(0, 4));
         int doy = Integer.parseInt(s.substring(4, 7));
@@ -312,12 +631,13 @@ public class GoesAbiAdapter implements PollingAdapter, DecoderDependent {
                 .plusMillis(tenths * 100L);
     }
 
-    private Path download(FetchContext ctx, Frame frame) throws AdapterException {
-        String name = IR + "-" + frame.time().toEpochMilli() + "-" + Long.toHexString(System.nanoTime()) + ".nc";
+    private Path download(FetchContext ctx, Channel channel, Frame frame) throws AdapterException {
+        String name = channel.productId() + "-" + frame.time().toEpochMilli() + "-" + Long.toHexString(System.nanoTime())
+                + ".nc";
         DownloadResult result = ctx.http().download(objectUri(frame.key()), Path.of(name), MAX_RESPONSE_BYTES, frame.size());
         if (frame.size() > 0 && result.bytes() != frame.size()) {
             GzipInputs.deleteQuietly(result.file());
-            throw new AdapterException("GOES " + frame.key() + ": downloaded " + result.bytes() + " bytes, the listing said "
+            throw new AdapterException("GOES " + frame.key() + ": downloaded " + result.bytes() + " bytes, listing said "
                     + frame.size());
         }
         return result.file();
@@ -334,40 +654,21 @@ public class GoesAbiAdapter implements PollingAdapter, DecoderDependent {
         }
     }
 
-    private static void saveCursor(FetchContext ctx, String cursor, String last) {
+    private static void saveCursor(FetchContext ctx, Channel channel, String cursor, String last) {
         if (cursor != null && !cursor.equals(last)) {
-            ctx.state().put(STATE_KEY, cursor);
+            ctx.state().put(channel.stateKey(), cursor);
         }
     }
 
-    private static SourceDescriptor buildDescriptor() {
-        ProductSpec ir = ProductSpec.builder(IR)
-                .title("GOES-East clean infrared (ABI band 13)")
-                .category("satellite")
-                .units("K")
-                .dtype(RasterDtype.U16)
-                .scaleOffset(GoesCodec.SCALE_K, GoesCodec.OFFSET_K)
-                .nodata((double) GoesCodec.NO_DATA)
-                .defaultStyle("ir-gray@1")
-                .style("ir-enhanced@1")
-                .temporal(ProductSpec.Temporal.observation(Duration.ofMinutes(5), Duration.ofMinutes(15)))
-                .spatial(new ProductSpec.Spatial("CONUS", 7, 0, 6, null))
-                .retention(new ProductSpec.RetentionLadder(
-                        List.of(new ProductSpec.RetentionLadder.Rung(Duration.ofHours(24), Duration.ofMinutes(30))),
-                        Duration.ofHours(72), null))
-                .attribution(new ProductSpec.Attribution(
-                        "NOAA GOES-19 ABI L2 Cloud and Moisture Imagery, band 13, via NOAA Open Data Dissemination", null,
-                        "https://registry.opendata.aws/noaa-goes/", "US-PD", null, false))
-                .coverageMeaning("The GOES-East CONUS sector; transparent outside the scan or where quality is poor")
-                .legendSummary("Brightness temperature at 10.3 µm, K; cold (bright) is high cloud")
-                .build();
-        return SourceDescriptor.builder(ID)
-                .name("GOES-East ABI imagery")
-                .description("GOES-19 ABI Level 2 Cloud and Moisture Imagery, CONUS sector, band 13 (clean longwave"
-                        + " infrared), every 5-minute scan.")
+    static SourceDescriptor buildDescriptor(String sourceId, String bucket, String label, List<Channel> channels) {
+        SourceDescriptor.Builder builder = SourceDescriptor.builder(sourceId)
+                .name(label + " ABI imagery")
+                .description(label + " ABI Level 2 Cloud and Moisture Imagery, CONUS sector: clean IR (band 13),"
+                        + " water vapour (bands 8/9), visible (band 2, daytime, cropped to the AOI) and the mesoscale"
+                        + " sectors, at the profile's default cadence.")
                 .kind(ProductSpec.RECORD_KIND)
                 .homepage("https://registry.opendata.aws/noaa-goes/")
-                .attribution("NOAA GOES-R Series, GOES-19 (GOES-East)")
+                .attribution("NOAA GOES-R Series, " + label)
                 .licence("US-PD")
                 .termsUrl("https://registry.opendata.aws/noaa-goes/")
                 .mode(Mode.POLLING)
@@ -380,7 +681,36 @@ public class GoesAbiAdapter implements PollingAdapter, DecoderDependent {
                 .kindRetention(ProductSpec.RECORD_KIND, Duration.ofDays(7))
                 .zeroResultsNormal(true)
                 .maxResponseBytes(MAX_RESPONSE_BYTES)
-                .product(ir)
-                .build();
+                .param(ParamSpec.optional(ProductEnablement.PRODUCTS_PARAM, ParamType.STRING_LIST,
+                        "Which ABI products to ingest (profile default)", LIGHT_DEFAULT));
+        for (Channel c : channels) {
+            ProductSpec.Builder p = ProductSpec.builder(c.productId())
+                    .title(c.title())
+                    .category("satellite")
+                    .units(c.units())
+                    .dtype("vis".equals(c.code()) ? RasterDtype.U8 : RasterDtype.U16)
+                    .scaleOffset(c.scale(), c.offset())
+                    .nodata(c.nodata())
+                    .temporal(c.temporal())
+                    .spatial(c.spatial())
+                    .retention(c.ladder())
+                    .attribution(new ProductSpec.Attribution(
+                            "NOAA GOES ABI L2 Cloud and Moisture Imagery, " + c.title() + ", via NOAA Open Data"
+                                    + " Dissemination", null, "https://registry.opendata.aws/noaa-goes/", "US-PD", null,
+                            false))
+                    .coverageMeaning(c.meaning())
+                    .legendSummary(c.legend());
+            boolean first = true;
+            for (String style : c.styles()) {
+                if (first) {
+                    p.defaultStyle(style);
+                    first = false;
+                } else {
+                    p.style(style);
+                }
+            }
+            builder.product(p.build());
+        }
+        return builder.build();
     }
 }

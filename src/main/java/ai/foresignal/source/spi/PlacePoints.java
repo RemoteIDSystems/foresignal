@@ -27,6 +27,19 @@ public interface PlacePoints {
     }
 
     /**
+     * A place's {@code attributes} map (prompt 106: the optional {@code zip} for EPA UV). The default is
+     * empty, for test doubles that resolve single points only.
+     */
+    default java.util.Map<String, Object> attributes(String placeId) {
+        return java.util.Map.of();
+    }
+
+    /** A place's timezone id (prompt 106), or empty when unknown. */
+    default Optional<String> timezone(String placeId) {
+        return Optional.empty();
+    }
+
+    /**
      * One place for an adapter: what a per-place upstream request needs, nothing more.
      *
      * @param id the place id

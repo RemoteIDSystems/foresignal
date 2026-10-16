@@ -28,7 +28,7 @@ import java.util.Objects;
  */
 public record DecodeRequest(String productId, Format format, String label, Integer discipline, Integer category,
         Integer number, Integer levelType, Double levelValue, String levelLabel, String variable,
-        String qualityVariable, Integer maxQuality, boolean headerOnly, boolean gridded) {
+        String qualityVariable, Integer maxQuality, boolean headerOnly, boolean gridded, Boolean probability) {
 
     /** The two input formats. */
     public enum Format {
@@ -66,31 +66,37 @@ public record DecodeRequest(String productId, Format format, String label, Integ
     public static DecodeRequest grib2(String productId, String label, int discipline, int category, int number,
             Integer levelType, Double levelValue, String levelLabel) {
         return new DecodeRequest(productId, Format.GRIB2, label, discipline, category, number, levelType, levelValue,
-                levelLabel, null, null, null, false, true);
+                levelLabel, null, null, null, false, true, null);
     }
 
     /** A gridded NetCDF variable. */
     public static DecodeRequest netcdf(String productId, String variable) {
         return new DecodeRequest(productId, Format.NETCDF, variable, null, null, null, null, null, null, variable, null,
-                null, false, true);
+                null, false, true, null);
+    }
+
+    /** The same request, requiring a probability message ({@code true}) or a deterministic one ({@code false}) (106). */
+    public DecodeRequest withProbability(Boolean value) {
+        return new DecodeRequest(productId, format, label, discipline, category, number, levelType, levelValue,
+                levelLabel, variable, qualityVariable, maxQuality, headerOnly, gridded, value);
     }
 
     /** The same request, marking samples missing where {@code qualityVariable} exceeds {@code maxQuality}. */
     public DecodeRequest withQuality(String qualityVariable, int maxQuality) {
         return new DecodeRequest(productId, format, label, discipline, category, number, levelType, levelValue,
-                levelLabel, variable, qualityVariable, maxQuality, headerOnly, gridded);
+                levelLabel, variable, qualityVariable, maxQuality, headerOnly, gridded, probability);
     }
 
     /** The same request, reading the grid and times only. */
     public DecodeRequest header() {
         return new DecodeRequest(productId, format, label, discipline, category, number, levelType, levelValue,
-                levelLabel, variable, qualityVariable, maxQuality, true, gridded);
+                levelLabel, variable, qualityVariable, maxQuality, true, gridded, probability);
     }
 
     /** The same request for a NetCDF variable with no projected grid (values only). */
     public DecodeRequest valuesOnly() {
         return new DecodeRequest(productId, format, label, discipline, category, number, levelType, levelValue,
-                levelLabel, variable, qualityVariable, maxQuality, headerOnly, false);
+                levelLabel, variable, qualityVariable, maxQuality, headerOnly, false, probability);
     }
 
     /** {@code label}, plus {@code at level <levelLabel>} when a level is selected; for messages. */

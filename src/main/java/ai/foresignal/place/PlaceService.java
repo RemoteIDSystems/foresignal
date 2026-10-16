@@ -305,6 +305,16 @@ public class PlaceService implements PlaceLookup, PlacePoints, IngestStateReset 
                 .toList();
     }
 
+    @Override
+    public java.util.Map<String, Object> attributes(String placeId) {
+        return find(placeId).map(PlaceView::attributes).orElse(java.util.Map.of());
+    }
+
+    @Override
+    public java.util.Optional<String> timezone(String placeId) {
+        return find(placeId).map(PlaceView::timezone).filter(t -> t != null && !t.isBlank());
+    }
+
     // ------------------------------------------------------------------------- writes
 
     /**

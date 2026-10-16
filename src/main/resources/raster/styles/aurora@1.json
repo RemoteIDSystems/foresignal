@@ -1,0 +1,57 @@
+{
+  "id": "aurora",
+  "version": 1,
+  "type": "continuous",
+  "units": "%",
+  "stops": [
+    {
+      "value": 0,
+      "color": "#00000000"
+    },
+    {
+      "value": 10,
+      "color": "#0a3d0a"
+    },
+    {
+      "value": 30,
+      "color": "#1e7d1e"
+    },
+    {
+      "value": 50,
+      "color": "#7dd87d"
+    },
+    {
+      "value": 70,
+      "color": "#ffff66"
+    },
+    {
+      "value": 90,
+      "color": "#ff9900"
+    },
+    {
+      "value": 100,
+      "color": "#ff0000"
+    }
+  ],
+  "categories": [],
+  "specials": [
+    {
+      "kind": "noCoverage",
+      "color": "transparent",
+      "label": "No coverage"
+    },
+    {
+      "kind": "noData",
+      "color": "transparent",
+      "label": "No data"
+    }
+  ],
+  "meaning": [
+    {
+      "min": 50,
+      "max": null,
+      "text": "Visible aurora possible overhead"
+    }
+  ],
+  "notice": "OVATION aurora probability (Foresignal)"
+}

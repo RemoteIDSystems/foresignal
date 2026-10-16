@@ -1,0 +1,43 @@
+{
+  "id": "vis-gray",
+  "version": 1,
+  "type": "continuous",
+  "units": "reflectance",
+  "stops": [
+    {
+      "value": 0,
+      "color": "#000000"
+    },
+    {
+      "value": 0.2,
+      "color": "#404040"
+    },
+    {
+      "value": 0.5,
+      "color": "#909090"
+    },
+    {
+      "value": 0.8,
+      "color": "#e0e0e0"
+    },
+    {
+      "value": 1.0,
+      "color": "#ffffff"
+    }
+  ],
+  "categories": [],
+  "specials": [
+    {
+      "kind": "noCoverage",
+      "color": "transparent",
+      "label": "No coverage"
+    },
+    {
+      "kind": "noData",
+      "color": "transparent",
+      "label": "No data"
+    }
+  ],
+  "meaning": [],
+  "notice": "Visible reflectance, grayscale (Foresignal)"
+}

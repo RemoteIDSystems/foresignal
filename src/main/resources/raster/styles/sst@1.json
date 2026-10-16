@@ -1,0 +1,55 @@
+{
+  "id": "sst",
+  "version": 1,
+  "type": "continuous",
+  "units": "C",
+  "stops": [
+    {
+      "value": -2,
+      "color": "#00007f"
+    },
+    {
+      "value": 0,
+      "color": "#0000ff"
+    },
+    {
+      "value": 5,
+      "color": "#00ffff"
+    },
+    {
+      "value": 10,
+      "color": "#00ff00"
+    },
+    {
+      "value": 15,
+      "color": "#ffff00"
+    },
+    {
+      "value": 20,
+      "color": "#ff9900"
+    },
+    {
+      "value": 25,
+      "color": "#ff0000"
+    },
+    {
+      "value": 32,
+      "color": "#7f0000"
+    }
+  ],
+  "categories": [],
+  "specials": [
+    {
+      "kind": "noCoverage",
+      "color": "transparent",
+      "label": "No coverage"
+    },
+    {
+      "kind": "noData",
+      "color": "transparent",
+      "label": "No data"
+    }
+  ],
+  "meaning": [],
+  "notice": "Sea surface temperature, \u00b0C (Foresignal)"
+}

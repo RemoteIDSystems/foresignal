@@ -1,0 +1,57 @@
+{
+  "id": "wv-enhanced",
+  "version": 1,
+  "type": "continuous",
+  "units": "K",
+  "stops": [
+    {
+      "value": 190,
+      "color": "#0000ff"
+    },
+    {
+      "value": 210,
+      "color": "#00ffff"
+    },
+    {
+      "value": 230,
+      "color": "#00ff00"
+    },
+    {
+      "value": 245,
+      "color": "#ffff00"
+    },
+    {
+      "value": 255,
+      "color": "#ff8000"
+    },
+    {
+      "value": 265,
+      "color": "#ff0000"
+    },
+    {
+      "value": 280,
+      "color": "#800040"
+    }
+  ],
+  "categories": [],
+  "specials": [
+    {
+      "kind": "noCoverage",
+      "color": "transparent",
+      "label": "No coverage"
+    },
+    {
+      "kind": "noData",
+      "color": "transparent",
+      "label": "No data"
+    }
+  ],
+  "meaning": [
+    {
+      "min": null,
+      "max": 210,
+      "text": "Moist / high cloud"
+    }
+  ],
+  "notice": "Water-vapour brightness temperature, enhanced (Foresignal)"
+}

@@ -1,0 +1,43 @@
+{
+  "id": "wv-gray",
+  "version": 1,
+  "type": "continuous",
+  "units": "K",
+  "stops": [
+    {
+      "value": 180,
+      "color": "#ffffff"
+    },
+    {
+      "value": 210,
+      "color": "#d0d0d0"
+    },
+    {
+      "value": 240,
+      "color": "#808080"
+    },
+    {
+      "value": 260,
+      "color": "#404040"
+    },
+    {
+      "value": 300,
+      "color": "#000000"
+    }
+  ],
+  "categories": [],
+  "specials": [
+    {
+      "kind": "noCoverage",
+      "color": "transparent",
+      "label": "No coverage"
+    },
+    {
+      "kind": "noData",
+      "color": "transparent",
+      "label": "No data"
+    }
+  ],
+  "meaning": [],
+  "notice": "Water-vapour brightness temperature, grayscale (Foresignal)"
+}

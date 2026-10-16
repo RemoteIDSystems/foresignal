@@ -1,0 +1,51 @@
+{
+  "id": "velocity",
+  "version": 1,
+  "type": "continuous",
+  "units": "m/s",
+  "stops": [
+    {
+      "value": -50,
+      "color": "#3b0043"
+    },
+    {
+      "value": -25,
+      "color": "#00d0ff"
+    },
+    {
+      "value": -10,
+      "color": "#0000c8"
+    },
+    {
+      "value": 0,
+      "color": "#00b000"
+    },
+    {
+      "value": 10,
+      "color": "#c8c800"
+    },
+    {
+      "value": 25,
+      "color": "#ff5000"
+    },
+    {
+      "value": 50,
+      "color": "#ff0000"
+    }
+  ],
+  "categories": [],
+  "specials": [
+    {
+      "kind": "noCoverage",
+      "color": "transparent",
+      "label": "No coverage"
+    },
+    {
+      "kind": "noData",
+      "color": "transparent",
+      "label": "No data"
+    }
+  ],
+  "meaning": [],
+  "notice": "Radial velocity (NEXRAD N0G), m/s: green toward, red away (Foresignal)"
+}

@@ -127,6 +127,22 @@ public class WxPlacesGenerator implements DerivedGenerator {
     /** MRMS lightning probability (prompt 106). */
     public static final String LIGHTNING_PROB = "mrms-lightning-prob";
 
+    /** The SWPC aurora source (prompt 077/106). */
+    public static final String AURORA = "swpc-aurora";
+
+    /** The aurora record kind. */
+    public static final String AURORA_KIND = "aurora-probability";
+
+    /** The EPA UV source (prompt 106). */
+    public static final String UV = "epa-uv";
+
+    /** The UV record kind. */
+    public static final String UV_KIND = "uv-forecast";
+
+    /** The HeatRisk products, days 1–7 (prompt 106). */
+    public static final List<String> HEAT_PRODUCTS = List.of("heatrisk-day1", "heatrisk-day2", "heatrisk-day3",
+            "heatrisk-day4", "heatrisk-day5", "heatrisk-day6", "heatrisk-day7");
+
     /** The radar-cell source. */
     public static final String CELLS = "wx-cells";
 
@@ -211,10 +227,12 @@ public class WxPlacesGenerator implements DerivedGenerator {
 
     @Override
     public DerivedInputs inputs(ValidatedParams params) {
-        return new DerivedInputs(Set.of(CELLS, NWS), Set.of(WxCellsGenerator.KIND, NWS_KIND),
-                Set.of(REFLECTIVITY, MESH, PRECIP, QPE_1H, QPE_24H, FFG, SMOKE, SMOKE_COLUMN, WAVE, LIGHTNING_PROB,
-                        "gfs", GFS_GUST, GFS_T2M, GFS_APCP, HRRR_GUST, IFS_GUST, IFS_T2M, IFS_PRECIP_24H),
-                TICK, true);
+        java.util.Set<String> products = new java.util.LinkedHashSet<>(List.of(REFLECTIVITY, MESH, PRECIP, QPE_1H,
+                QPE_24H, FFG, SMOKE, SMOKE_COLUMN, WAVE, LIGHTNING_PROB, "gfs", GFS_GUST, GFS_T2M, GFS_APCP, HRRR_GUST,
+                IFS_GUST, IFS_T2M, IFS_PRECIP_24H));
+        products.addAll(HEAT_PRODUCTS);
+        return new DerivedInputs(Set.of(CELLS, NWS, AURORA, UV), Set.of(WxCellsGenerator.KIND, NWS_KIND, AURORA_KIND,
+                UV_KIND), products, TICK, true);
     }
 
     // ------------------------------------------------------------------ hooks
@@ -267,6 +285,9 @@ public class WxPlacesGenerator implements DerivedGenerator {
             case IFS_GUST, IFS_PRECIP_24H -> updateIfs(ctx, now, event.complete());
             case HRRR_GUST, GFS_T2M, IFS_T2M -> updateDisagreement(ctx, now, event.complete());
             default -> {
+                if (HEAT_PRODUCTS.contains(event.productId())) {
+                    updateHeat(ctx, now, event.complete());
+                }
                 // gfs winds and t2m feed the forecast series, not the record.
             }
         }
@@ -278,6 +299,8 @@ public class WxPlacesGenerator implements DerivedGenerator {
         syncPlaces(ctx);
         updateCells(ctx, ctx.now());
         updateNws(ctx, ctx.now());
+        updateAurora(ctx, ctx.now());
+        updateUv(ctx, ctx.now());
         emitAll(ctx, batch.ingestedAt() == null ? ctx.now() : batch.ingestedAt());
     }
 
@@ -366,6 +389,14 @@ public class WxPlacesGenerator implements DerivedGenerator {
         updateIfs(ctx, now, force);
         updateDisagreement(ctx, now, force);
         updateNws(ctx, now);
+        updateAurora(ctx, now);
+        updateMarineHeatUv(ctx, now, force);
+    }
+
+    /** The prompt-106 sections that read their own sources: aurora (077), heat (106) and UV (106). */
+    void updateMarineHeatUv(DerivedContext ctx, Instant now, boolean force) {
+        updateHeat(ctx, now, force);
+        updateUv(ctx, now);
     }
 
     /** The precip part of a prompt 053 product. */
@@ -950,6 +981,117 @@ public class WxPlacesGenerator implements DerivedGenerator {
         List<RasterFrameRow> out = steps.stream()
                 .filter(s -> !s.validTime().isBefore(from) && !s.validTime().isAfter(to)).toList();
         return out.isEmpty() ? steps : out;
+    }
+
+    /** {@code aurora} (prompt 106): the OVATION probability near the place, only at |lat| ≥ 40°. */
+    void updateAurora(DerivedContext ctx, Instant now) {
+        HealthStatus status = ctx.sourceStatus(AURORA);
+        if (status == HealthStatus.DISABLED || status == HealthStatus.FAILING) {
+            places.values().forEach(p -> p.aurora.notOk(WxSection.UNAVAILABLE));
+            return;
+        }
+        Map<String, HeadSnapshot> byId = new HashMap<>();
+        for (HeadSnapshot head : ctx.records().current(List.of(AURORA), List.of(AURORA_KIND), 5_000)) {
+            if (!head.tombstone()) {
+                byId.put(head.externalId(), head);
+            }
+        }
+        for (PlaceWeatherState p : places.values()) {
+            if (Math.abs(p.lat) < 40) {
+                p.aurora.notOk(WxSection.UNAVAILABLE);
+                continue;
+            }
+            HeadSnapshot head = byId.get(p.placeId);
+            if (head == null) {
+                p.aurora.notOk(WxSection.UNAVAILABLE);
+                continue;
+            }
+            Object prob = head.payload().get("maxWithin300Km");
+            if (prob == null) {
+                prob = head.payload().get("probability");
+            }
+            Map<String, Object> m = new LinkedHashMap<>();
+            if (prob instanceof Number n) {
+                m.put("probMaxNearby", WxRound.whole(n.doubleValue()));
+            }
+            p.aurora.good(m, head.observedAt());
+        }
+    }
+
+    /** {@code uv} (prompt 106): the EPA UV forecast's peak for the place. */
+    void updateUv(DerivedContext ctx, Instant now) {
+        HealthStatus status = ctx.sourceStatus(UV);
+        if (status == HealthStatus.DISABLED || status == HealthStatus.FAILING) {
+            places.values().forEach(p -> p.uv.notOk(WxSection.UNAVAILABLE));
+            return;
+        }
+        Map<String, HeadSnapshot> byId = new HashMap<>();
+        for (HeadSnapshot head : ctx.records().current(List.of(UV), List.of(UV_KIND), 5_000)) {
+            if (!head.tombstone()) {
+                byId.put(head.externalId(), head);
+            }
+        }
+        for (PlaceWeatherState p : places.values()) {
+            HeadSnapshot head = byId.get(p.placeId);
+            if (head == null) {
+                p.uv.notOk(WxSection.UNAVAILABLE);
+                continue;
+            }
+            Object maxUv = head.payload().get("maxUv");
+            Map<String, Object> m = new LinkedHashMap<>();
+            if (maxUv instanceof Number n) {
+                m.put("maxToday", WxRound.whole(n.doubleValue()));
+            }
+            p.uv.good(m, head.observedAt());
+        }
+    }
+
+    /** {@code heat} (prompt 106): the place's HeatRisk for day 1 and its worst over days 1–7. */
+    void updateHeat(DerivedContext ctx, Instant now, boolean force) {
+        for (PlaceWeatherState p : places.values()) {
+            Integer day1 = null;
+            int best = -1;
+            int peakDay = 0;
+            Instant at = null;
+            boolean any = false;
+            for (int n = 1; n <= 7; n++) {
+                Optional<RasterFrameRow> frame = ctx.rasters().newestFrame("heatrisk-day" + n);
+                if (frame.isEmpty()) {
+                    continue;
+                }
+                Optional<FrameView> view = ctx.rasters().view(frame.get());
+                if (view.isEmpty()) {
+                    continue;
+                }
+                FrameView.Sample s = view.get().sample(p.lon, p.lat);
+                if (s.kind() != FrameView.Kind.VALUE) {
+                    continue;
+                }
+                int v = (int) Math.round(s.value());
+                any = true;
+                if (at == null) {
+                    at = frame.get().validTime();
+                }
+                if (n == 1) {
+                    day1 = v;
+                }
+                if (v > best) {
+                    best = v;
+                    peakDay = n;
+                }
+            }
+            if (!any) {
+                p.heat.notOk(WxSection.UNAVAILABLE);
+                continue;
+            }
+            Map<String, Object> m = new LinkedHashMap<>();
+            if (day1 != null) {
+                m.put("riskMaxDay1", day1);
+            }
+            m.put("riskMax7d", best);
+            m.put("peakDay", peakDay);
+            p.heat.good(m, at);
+        }
     }
 
     /** Rebuilds each place's rolling radar window from the reflectivity frames of the last 10 minutes. */

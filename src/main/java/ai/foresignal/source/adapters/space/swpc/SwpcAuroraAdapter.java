@@ -4,8 +4,13 @@ import ai.foresignal.source.adapters.space.SpaceSources;
 import ai.foresignal.source.spi.AdapterException;
 import ai.foresignal.source.spi.AdapterStateStore;
 import ai.foresignal.source.spi.Budget;
+import ai.foresignal.source.spi.DecodedBands;
 import ai.foresignal.source.spi.FetchContext;
 import ai.foresignal.source.spi.FetchResult;
+import ai.foresignal.source.spi.FrameInput;
+import ai.foresignal.source.spi.GridDefinition;
+import ai.foresignal.source.spi.ProductSpec;
+import ai.foresignal.source.spi.RasterDtype;
 import ai.foresignal.source.spi.FieldSpec;
 import ai.foresignal.source.spi.FieldType;
 import ai.foresignal.source.spi.HistoryTier;
@@ -195,12 +200,38 @@ public class SwpcAuroraAdapter implements PollingAdapter {
             clearOr(state, warning);
             return FetchResult.of(out);
         }
+        NormalizedRecord frame = ctx.rasters().commit(FrameInput.builder(PRODUCT)
+                .validTime(grid.observationTime())
+                .grid(AURORA_GRID)
+                .bands(DecodedBands.codes(grid.rowMajorNorthSouth()))
+                .upstreamKey("ovation:" + grid.observationTime())
+                .variable("probability")
+                .build());
+        if (frame != null) {
+            out.add(frame);
+        }
         for (PlacePoints.Summary place : chosen) {
             out.add(record(place, grid));
         }
         state.put(PLACES_KEY, fingerprint(chosen));
         clearOr(state, warning);
         return FetchResult.complete(out);
+    }
+
+    /** The global 1° aurora-probability raster product (prompt 106), shared with this source's fetch. */
+    public static final String PRODUCT = "aurora-probability";
+
+    /** The OVATION grid definition: 360 columns (0..359°), 181 rows (90° → −90°), 1° steps. */
+    static final GridDefinition AURORA_GRID = buildAuroraGrid();
+
+    private static GridDefinition buildAuroraGrid() {
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("lo1", 0.0);
+        params.put("la1", 90.0);
+        params.put("dx", 1.0);
+        params.put("dy", 1.0);
+        return new GridDefinition(GridDefinition.LATLON, OvationSampler.LONS, OvationSampler.LATS, -180.0, -90.0, 180.0,
+                90.0, params);
     }
 
     /** The state key of the fingerprint of the last sampled place set. */
@@ -248,6 +279,27 @@ public class SwpcAuroraAdapter implements PollingAdapter {
                         + " probability of visible aurora in the place's one-degree cell and the highest probability"
                         + " within 300 km, with the forecast time. Private: places reveal where the operator is.")
                 .kind(KIND)
+                .kind(ProductSpec.RECORD_KIND)
+                .product(ProductSpec.builder(PRODUCT)
+                        .title("Aurora probability (OVATION)")
+                        .category("satellite")
+                        .units("%")
+                        .dtype(RasterDtype.U8)
+                        .scaleOffset(1.0, 0.0)
+                        .nodata(255.0)
+                        .defaultStyle("aurora@1")
+                        .temporal(ProductSpec.Temporal.observation(Duration.ofMinutes(30), Duration.ofHours(1)))
+                        .spatial(new ProductSpec.Spatial("global", 2, 0, 2, null))
+                        .retention(new ProductSpec.RetentionLadder(
+                                List.of(new ProductSpec.RetentionLadder.Rung(Duration.ofHours(24), Duration.ofMinutes(30))),
+                                Duration.ofHours(24), null))
+                        .attribution(new ProductSpec.Attribution("NOAA Space Weather Prediction Center (OVATION)"
+                                        + " aurora nowcast", null,
+                                "https://www.swpc.noaa.gov/products/aurora-30-minute-forecast", "US-PD", null, false))
+                        .coverageMeaning("Global 1° aurora probability; 0 is a real zero, not no coverage")
+                        .legendSummary("OVATION probability of visible aurora, 0–100 %")
+                        .build())
+                .kindRetention(ProductSpec.RECORD_KIND, Duration.ofHours(24))
                 .homepage("https://www.swpc.noaa.gov/products/aurora-30-minute-forecast")
                 .attribution("NOAA Space Weather Prediction Center")
                 .licence("US-PD")

@@ -1,0 +1,54 @@
+{
+  "id": "heatrisk",
+  "version": 1,
+  "type": "categorical",
+  "units": "index",
+  "stops": [],
+  "categories": [
+    {
+      "code": 0,
+      "color": "#00cc00",
+      "label": "Little/None"
+    },
+    {
+      "code": 1,
+      "color": "#ffff00",
+      "label": "Minor"
+    },
+    {
+      "code": 2,
+      "color": "#ff9900",
+      "label": "Moderate"
+    },
+    {
+      "code": 3,
+      "color": "#ff0000",
+      "label": "Major"
+    },
+    {
+      "code": 4,
+      "color": "#a020f0",
+      "label": "Extreme"
+    }
+  ],
+  "specials": [
+    {
+      "kind": "noCoverage",
+      "color": "transparent",
+      "label": "No coverage"
+    },
+    {
+      "kind": "noData",
+      "color": "transparent",
+      "label": "No data"
+    }
+  ],
+  "meaning": [
+    {
+      "min": 3,
+      "max": null,
+      "text": "Major or extreme heat risk"
+    }
+  ],
+  "notice": "WPC HeatRisk (experimental) (Foresignal)"
+}

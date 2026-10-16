@@ -220,6 +220,11 @@ public final class TafParser {
                     .geometry(Geo.point(lon, lat))
                     .put("stationId", id)
                     .put("raw", AwcHazardParser.raw(raw))
+                    .put("rawText", AwcHazardParser.raw(raw))
+                    .put("issueTime", issued.toString())
+                    .put("validFrom", from.toString())
+                    .put("validTo", to.toString())
+                    .put("forecast", TafGroups.parse(raw))
                     .put("elevationM", elevationM)
                     .put("name", name)
                     .build());

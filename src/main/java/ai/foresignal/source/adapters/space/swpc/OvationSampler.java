@@ -85,6 +85,18 @@ public final class OvationSampler {
         return lon * LATS + (lat + 90);
     }
 
+    /** The 1° grid as u8 codes, rows north to south (lat 90 → −90), columns 0..359° (prompt 106). */
+    public int[] rowMajorNorthSouth() {
+        int[] out = new int[LONS * LATS];
+        for (int row = 0; row < LATS; row++) {
+            int lat = 90 - row;
+            for (int lon = 0; lon < LONS; lon++) {
+                out[row * LONS + lon] = cells[index(lon, lat)];
+            }
+        }
+        return out;
+    }
+
     /** The file's {@code Observation Time}. */
     public Instant observationTime() {
         return observationTime;
