@@ -95,17 +95,16 @@ public class PopulationPackService {
         Path root = properties.dataDir().resolve("packs");
         InboxFiles packs = InboxFiles.rootedAt(root);
         Path file = packs.requireInside(properties.dataDir().resolve(path).normalize());
-        List<PopulationTiffReader.Pixel> pixels;
-        try {
-            pixels = PopulationTiffReader.read(file);
-        } catch (Exception e) {
-            throw new IOException("Could not read population GeoTIFF: " + e.getMessage(), e);
-        }
+        // Pixels are streamed strip by strip straight into the per-cell sums; only the cell maps stay in memory.
         Map<Long, Double> fine = new LinkedHashMap<>();
         Map<Long, Double> coarse = new LinkedHashMap<>();
-        for (PopulationTiffReader.Pixel pixel : pixels) {
-            fine.merge(H3Cells.latLngToCell(pixel.lat(), pixel.lon(), RES_FINE), pixel.value(), Double::sum);
-            coarse.merge(H3Cells.latLngToCell(pixel.lat(), pixel.lon(), RES_COARSE), pixel.value(), Double::sum);
+        try {
+            PopulationTiffReader.read(file, (lon, lat, value) -> {
+                fine.merge(H3Cells.latLngToCell(lat, lon, RES_FINE), value, Double::sum);
+                coarse.merge(H3Cells.latLngToCell(lat, lon, RES_COARSE), value, Double::sum);
+            });
+        } catch (Exception e) {
+            throw new IOException("Could not read population GeoTIFF: " + e.getMessage(), e);
         }
         population.deleteAllInBatch();
         List<PopulationH3Entity> rows = new ArrayList<>(fine.size() + coarse.size());
@@ -201,8 +200,14 @@ public class PopulationPackService {
     }
 
     private static String sha256(Path file) {
-        try {
-            byte[] digest = MessageDigest.getInstance("SHA-256").digest(java.nio.file.Files.readAllBytes(file));
+        try (java.io.InputStream in = java.nio.file.Files.newInputStream(file)) {
+            MessageDigest sha = MessageDigest.getInstance("SHA-256");
+            byte[] buffer = new byte[64 * 1024];
+            int n;
+            while ((n = in.read(buffer)) > 0) {
+                sha.update(buffer, 0, n);
+            }
+            byte[] digest = sha.digest();
             StringBuilder hex = new StringBuilder();
             for (byte b : digest) {
                 hex.append(String.format("%02x", b));

@@ -8,6 +8,7 @@ import static ai.foresignal.mcp.JsonSchemas.string;
 
 import ai.foresignal.intel.IntelEventMapper;
 import ai.foresignal.intel.IntelEventService;
+import ai.foresignal.intel.IntelVisibility;
 import ai.foresignal.mcp.ForesignalMcpTool;
 import ai.foresignal.mcp.JsonSchemas;
 import ai.foresignal.mcp.McpArgs;
@@ -37,10 +38,12 @@ public class ListIntelEventsTool implements ForesignalMcpTool {
 
     private final IntelEventService events;
     private final McpOutputShaper shaper;
+    private final IntelVisibility visibility;
 
     /** Creates the tool. */
-    public ListIntelEventsTool(IntelEventService events, McpOutputShaper shaper) {
+    public ListIntelEventsTool(IntelEventService events, McpOutputShaper shaper, IntelVisibility visibility) {
         this.events = events;
+        this.visibility = visibility;
         this.shaper = shaper;
     }
 
@@ -81,7 +84,8 @@ public class ListIntelEventsTool implements ForesignalMcpTool {
         String confidence = McpArgs.numberText(args, "minConfidence");
         Double min = confidence == null ? null : Double.parseDouble(confidence);
         List<ObjectNode> items = new ArrayList<>();
-        for (var event : events.list(McpArgs.text(args, "type"), McpArgs.text(args, "status"), null, min, limit)) {
+        for (var event : events.list(McpArgs.text(args, "type"), McpArgs.text(args, "status"), null, min, limit,
+                visibility.seesPrivate(context.caller()))) {
             items.add(shaper.objectTree(IntelEventMapper.summary(event)));
         }
         return ToolResult.json(shaper.list(items, items.size(), false, Detail.SHORT, null));

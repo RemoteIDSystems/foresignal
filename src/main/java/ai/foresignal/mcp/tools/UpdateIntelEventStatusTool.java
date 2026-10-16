@@ -7,6 +7,7 @@ import static ai.foresignal.mcp.JsonSchemas.string;
 
 import ai.foresignal.intel.IntelEventMapper;
 import ai.foresignal.intel.IntelEventService;
+import ai.foresignal.intel.IntelVisibility;
 import ai.foresignal.mcp.ForesignalMcpTool;
 import ai.foresignal.mcp.JsonSchemas;
 import ai.foresignal.mcp.McpArgs;
@@ -29,11 +30,13 @@ public class UpdateIntelEventStatusTool implements ForesignalMcpTool {
             "version", integer("The version you last saw, for optimistic locking.", 0, 1_000_000, null)));
 
     private final IntelEventService events;
+    private final IntelVisibility visibility;
     private final JsonMapper json;
 
     /** Creates the tool. */
-    public UpdateIntelEventStatusTool(IntelEventService events, JsonMapper json) {
+    public UpdateIntelEventStatusTool(IntelEventService events, IntelVisibility visibility, JsonMapper json) {
         this.events = events;
+        this.visibility = visibility;
         this.json = json;
     }
 
@@ -76,7 +79,7 @@ public class UpdateIntelEventStatusTool implements ForesignalMcpTool {
     @Override
     public ToolResult call(ToolContext context, JsonNode args) {
         String id = McpArgs.requiredText(args, "id");
-        var event = events.patch(id, args, context.actor());
+        var event = events.patch(id, args, context.actor(), visibility.seesPrivate(context.caller()));
         return ToolResult.json(json.valueToTree(IntelEventMapper.summary(event)));
     }
 }

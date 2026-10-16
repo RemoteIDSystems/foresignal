@@ -99,6 +99,10 @@ public class IntelligenceEventEntity {
     @Column(name = "narrative", columnDefinition = "text")
     private String narrative;
 
+    /** Operator or agent notes (markdown); never LLM output, never labeled speculation. */
+    @Column(name = "operator_notes", columnDefinition = "text")
+    private String notes;
+
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "exposure")
     private Map<String, Object> exposure;
@@ -316,6 +320,16 @@ public class IntelligenceEventEntity {
 
     public void setNarrative(String narrative) {
         this.narrative = narrative;
+    }
+
+    /** Operator or agent notes (markdown), or null. */
+    public String getNotes() {
+        return notes;
+    }
+
+    /** Sets the operator or agent notes. */
+    public void setNotes(String notes) {
+        this.notes = notes;
     }
 
     public Map<String, Object> getExposure() {

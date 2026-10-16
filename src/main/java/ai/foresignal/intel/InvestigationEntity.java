@@ -4,6 +4,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -15,7 +16,8 @@ import org.hibernate.type.SqlTypes;
  * links, so those columns stay open; this prompt keeps identity, status, summary and tags.
  */
 @Entity
-@Table(name = "investigation")
+@Table(name = "investigation",
+        uniqueConstraints = @UniqueConstraint(name = "investigation_display_id_uq", columnNames = "display_id"))
 public class InvestigationEntity {
 
     @Id

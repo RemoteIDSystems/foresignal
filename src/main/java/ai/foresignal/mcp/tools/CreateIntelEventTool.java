@@ -7,6 +7,7 @@ import static ai.foresignal.mcp.JsonSchemas.enumArray;
 
 import ai.foresignal.intel.IntelEventMapper;
 import ai.foresignal.intel.IntelEventService;
+import ai.foresignal.intel.IntelVisibility;
 import ai.foresignal.mcp.ForesignalMcpTool;
 import ai.foresignal.mcp.JsonSchemas;
 import ai.foresignal.mcp.ToolContext;
@@ -28,11 +29,13 @@ public class CreateIntelEventTool implements ForesignalMcpTool {
             "members", string("Members: an array of {memberType, sourceId, externalId, seq}.", 1, 200)));
 
     private final IntelEventService events;
+    private final IntelVisibility visibility;
     private final JsonMapper json;
 
     /** Creates the tool. */
-    public CreateIntelEventTool(IntelEventService events, JsonMapper json) {
+    public CreateIntelEventTool(IntelEventService events, IntelVisibility visibility, JsonMapper json) {
         this.events = events;
+        this.visibility = visibility;
         this.json = json;
     }
 
@@ -69,7 +72,7 @@ public class CreateIntelEventTool implements ForesignalMcpTool {
 
     @Override
     public ToolResult call(ToolContext context, JsonNode args) {
-        var event = events.create(args, context.actor(), "agent");
+        var event = events.create(args, context.actor(), "agent", visibility.seesPrivate(context.caller()));
         return ToolResult.json(json.valueToTree(IntelEventMapper.summary(event)));
     }
 }

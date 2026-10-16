@@ -6,6 +6,7 @@ import static ai.foresignal.mcp.JsonSchemas.props;
 import static ai.foresignal.mcp.JsonSchemas.string;
 
 import ai.foresignal.intel.InvestigationService;
+import ai.foresignal.intel.IntelVisibility;
 import ai.foresignal.mcp.ForesignalMcpTool;
 import ai.foresignal.mcp.JsonSchemas;
 import ai.foresignal.mcp.McpArgs;
@@ -29,11 +30,13 @@ public class AddToInvestigationTool implements ForesignalMcpTool {
             "note", string("An optional note.", 1, 4000)));
 
     private final InvestigationService investigations;
+    private final IntelVisibility visibility;
     private final JsonMapper json;
 
     /** Creates the tool. */
-    public AddToInvestigationTool(InvestigationService investigations, JsonMapper json) {
+    public AddToInvestigationTool(InvestigationService investigations, IntelVisibility visibility, JsonMapper json) {
         this.investigations = investigations;
+        this.visibility = visibility;
         this.json = json;
     }
 
@@ -70,7 +73,7 @@ public class AddToInvestigationTool implements ForesignalMcpTool {
     @Override
     public ToolResult call(ToolContext context, JsonNode args) {
         String id = McpArgs.requiredText(args, "investigationId");
-        var item = investigations.addItem(id, args, context.actor());
+        var item = investigations.addItem(id, args, context.actor(), visibility.seesPrivate(context.caller()));
         return ToolResult.json(json.valueToTree(Map.of("id", item.getId(), "itemType", item.getItemType(),
                 "ref", item.getRef(), "addedAt", item.getAddedAt().toString())));
     }

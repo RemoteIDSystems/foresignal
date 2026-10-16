@@ -6,6 +6,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import java.time.Instant;
 import java.util.Map;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -14,10 +15,13 @@ import org.hibernate.type.SqlTypes;
 /**
  * One pinned piece of evidence of an intelligence event (prompt 101). A member is a specific
  * {@code (source, externalId, seq, version)} of a record, an alert, an anomaly or another event, with
- * the reason it was joined and its signal family.
+ * the reason it was joined and its signal family. A version is pinned at most once per event (unique
+ * {@code (event_id, member_type, source_id, external_id, seq)}).
  */
 @Entity
-@Table(name = "intelligence_event_member")
+@Table(name = "intelligence_event_member", uniqueConstraints = @UniqueConstraint(
+        name = "intelligence_event_member_pin_uq",
+        columnNames = {"event_id", "member_type", "source_id", "external_id", "seq"}))
 public class IntelEventMemberEntity {
 
     @Id

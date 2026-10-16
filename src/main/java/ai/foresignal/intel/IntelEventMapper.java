@@ -49,6 +49,8 @@ public class IntelEventMapper {
         out.put("alternatives", event.getAlternatives());
         out.put("narrative", event.getNarrative());
         out.put("narrativeLabel", event.getNarrative() == null ? null : "speculation: LLM narrative");
+        // Operator or agent notes: authored by a person or agent, never labeled as LLM speculation.
+        out.put("notes", event.getNotes());
 
         // evidence / inference / speculation, separated (prompt 101 §principles).
         Map<String, Object> evidence = new LinkedHashMap<>();

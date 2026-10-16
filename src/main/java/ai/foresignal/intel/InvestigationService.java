@@ -4,6 +4,7 @@ import ai.foresignal.api.error.ErrorCodes;
 import ai.foresignal.api.error.NotFoundException;
 import ai.foresignal.api.error.ValidationException;
 import ai.foresignal.place.PlaceService;
+import ai.foresignal.provenance.AttributionService;
 import ai.foresignal.security.Ulids;
 import ai.foresignal.store.query.RecordQueryService;
 import ai.foresignal.store.query.RecordRow;
@@ -14,9 +15,11 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.Set;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.JsonNode;
@@ -25,6 +28,10 @@ import tools.jackson.databind.json.JsonMapper;
 /**
  * Investigations (prompt 101): operator case files with items that keep a snapshot taken when they
  * were added, so the evidence survives retention, and JSON/Markdown/GeoJSON export.
+ *
+ * <p>An item built from a private source is private (EGR-1): it is added only by, and returned only
+ * to, callers with private access; exports carry only the items the caller may see, and the license
+ * attributions of the sources those items cite.
  */
 @Service
 public class InvestigationService {
@@ -32,25 +39,35 @@ public class InvestigationService {
     /** The banner every export carries. */
     public static final String BANNER = "Automated analysis inputs; verify before acting.";
 
+    /** The advisory-lock key that serializes display-id allocation. */
+    static final long DISPLAY_ID_LOCK = 0x494E5649L;
+
     private final InvestigationRepository investigations;
     private final InvestigationItemRepository items;
     private final RecordQueryService records;
     private final AlertStore alerts;
     private final IntelligenceEventRepository events;
     private final PlaceService places;
+    private final IntelVisibility visibility;
+    private final AttributionService attributions;
+    private final JdbcTemplate jdbc;
     private final JsonMapper json;
     private final Clock clock;
 
     /** Creates the service. */
     public InvestigationService(InvestigationRepository investigations, InvestigationItemRepository items,
             RecordQueryService records, AlertStore alerts, IntelligenceEventRepository events, PlaceService places,
-            JsonMapper json, Clock clock) {
+            IntelVisibility visibility, AttributionService attributions, JdbcTemplate jdbc, JsonMapper json,
+            Clock clock) {
         this.investigations = investigations;
         this.items = items;
         this.records = records;
         this.alerts = alerts;
         this.events = events;
         this.places = places;
+        this.visibility = visibility;
+        this.attributions = attributions;
+        this.jdbc = jdbc;
         this.json = json;
         this.clock = clock;
     }
@@ -66,10 +83,27 @@ public class InvestigationService {
                 () -> new NotFoundException(ErrorCodes.UNKNOWN_INVESTIGATION, "No such investigation: " + id));
     }
 
-    /** The items of an investigation. */
-    public List<InvestigationItemEntity> items(String id) {
+    /**
+     * The items of an investigation the caller may see: a private item (built from a private source,
+     * prompt 039) is left out unless {@code privateAccess}.
+     */
+    public List<InvestigationItemEntity> items(String id, boolean privateAccess) {
         get(id);
-        return items.findByInvestigationIdOrderByIdAsc(id);
+        return visibleItems(items.findByInvestigationIdOrderByIdAsc(id), privateAccess);
+    }
+
+    private static List<InvestigationItemEntity> visibleItems(List<InvestigationItemEntity> rows,
+            boolean privateAccess) {
+        if (privateAccess) {
+            return rows;
+        }
+        List<InvestigationItemEntity> out = new ArrayList<>();
+        for (InvestigationItemEntity item : rows) {
+            if (!item.isPrivateItem()) {
+                out.add(item);
+            }
+        }
+        return out;
     }
 
     /** Creates an investigation. */
@@ -120,9 +154,15 @@ public class InvestigationService {
         investigations.delete(entity);
     }
 
-    /** Adds an item, taking its snapshot now. */
+    /**
+     * Adds an item, taking its snapshot now (capped at {@value SnapshotCaps#ITEM_MAX_BYTES} bytes).
+     *
+     * <p>An item built from a private source (a record of a private source, a private event, an alert on
+     * a private source) is stored private, and only a caller with {@code privateAccess} may add it: for
+     * anyone else it is reported exactly like a reference that does not exist.
+     */
     @Transactional
-    public InvestigationItemEntity addItem(String id, JsonNode body, String actor) {
+    public InvestigationItemEntity addItem(String id, JsonNode body, String actor, boolean privateAccess) {
         InvestigationEntity investigation = get(id);
         String itemType = text(body, "itemType");
         String ref = text(body, "ref");
@@ -137,55 +177,98 @@ public class InvestigationService {
         }
         Long seq = body.hasNonNull("seq") ? body.get("seq").asLong() : null;
         item.setSeq(seq);
-        item.setSnapshot(snapshot(itemType, ref, seq));
+        Snapshot snapshot = snapshot(itemType, ref, seq);
+        if (snapshot.privateSource() && !privateAccess) {
+            throw ValidationException.forField("ref", "no such " + itemType + ": " + ref);
+        }
+        item.setPrivateItem(snapshot.privateSource());
+        item.setSnapshot(SnapshotCaps.cap(snapshot.content(), SnapshotCaps.ITEM_MAX_BYTES, json));
         investigation.setUpdatedAt(now);
         investigations.save(investigation);
         return items.save(item);
     }
 
-    /** Removes an item. */
+    /** Removes an item of this investigation; an item of another investigation (or a hidden one) is 404. */
     @Transactional
-    public void removeItem(String id, long itemId) {
+    public void removeItem(String id, long itemId, boolean privateAccess) {
         get(id);
-        items.deleteById(itemId);
+        InvestigationItemEntity item = items.findById(itemId).orElse(null);
+        if (item == null || !id.equals(item.getInvestigationId()) || (item.isPrivateItem() && !privateAccess)) {
+            throw new NotFoundException(ErrorCodes.UNKNOWN_INVESTIGATION,
+                    "Investigation " + id + " has no item " + itemId + ".");
+        }
+        items.delete(item);
     }
 
-    /** The snapshot of an item, taken now so it survives retention. */
-    Map<String, Object> snapshot(String itemType, String ref, Long seq) {
+    /**
+     * A snapshot and whether it was built from a private source.
+     *
+     * @param content the snapshot
+     * @param privateSource true when the referenced item comes from a private source
+     */
+    record Snapshot(Map<String, Object> content, boolean privateSource) {}
+
+    /**
+     * The snapshot of an item, taken now so it survives retention.
+     *
+     * @throws ValidationException when a record seq, event or alert does not exist
+     */
+    Snapshot snapshot(String itemType, String ref, Long seq) {
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("itemType", itemType);
         out.put("ref", ref);
         out.put("takenAt", clock.instant().toString());
+        boolean privateSource = false;
         switch (itemType) {
             case "record" -> {
                 if (seq != null) {
                     RecordRow row = records.versionsBySeq(List.of(seq)).get(seq);
-                    if (row != null) {
-                        out.put("record", recordSnapshot(row));
+                    if (row == null) {
+                        throw ValidationException.forField("ref", "no such record: " + ref);
                     }
+                    privateSource = visibility.isPrivateSource(row.sourceId());
+                    out.put("record", recordSnapshot(row));
+                } else {
+                    int slash = ref.indexOf('/');
+                    privateSource = slash > 0 && visibility.isPrivateSource(ref.substring(0, slash));
                 }
             }
-            case "event" -> events.findById(ref).ifPresent(event -> out.put("event", IntelEventMapper.summary(event)));
+            case "event" -> {
+                IntelligenceEventEntity event = events.findById(ref)
+                        .orElseThrow(() -> ValidationException.forField("ref", "no such event: " + ref));
+                privateSource = event.isPrivateEvent();
+                out.put("event", IntelEventMapper.summary(event));
+            }
             case "alert" -> {
+                long alertId;
                 try {
-                    Optional<AlertView> alert = alerts.find(Long.parseLong(ref));
-                    alert.ifPresent(view -> out.put("alert", Map.of("id", view.id(), "severity", view.severity(),
-                            "message", view.message(), "sourceId", view.sourceId(), "externalId", view.externalId())));
+                    alertId = Long.parseLong(ref);
                 } catch (NumberFormatException e) {
-                    out.put("alert", Map.of("ref", ref));
+                    throw ValidationException.forField("ref", "no such alert: " + ref);
                 }
+                AlertView view = alerts.find(alertId)
+                        .orElseThrow(() -> ValidationException.forField("ref", "no such alert: " + ref));
+                privateSource = visibility.isPrivateSource(view.sourceId());
+                Map<String, Object> alert = new LinkedHashMap<>();
+                alert.put("id", view.id());
+                alert.put("severity", view.severity());
+                alert.put("message", view.message());
+                alert.put("sourceId", view.sourceId());
+                alert.put("externalId", view.externalId());
+                out.put("alert", alert);
             }
             case "place" -> places.find(ref).ifPresent(place -> out.put("place", Map.of("id", place.id(),
-                    "name", place.name(), "geometry", place.geometry() == null ? null : place.geometry().toString())));
+                    "name", place.name(), "geometry", place.geometry() == null ? "" : place.geometry().toString())));
             default -> out.put("value", ref);
         }
-        return out;
+        return new Snapshot(out, privateSource);
     }
 
-    /** Exports an investigation as json, md or geojson. */
-    public String export(String id, String format) {
+    /** Exports an investigation as json, md or geojson, with only the items the caller may see. */
+    public String export(String id, String format, boolean privateAccess) {
         InvestigationEntity investigation = get(id);
-        List<InvestigationItemEntity> itemRows = items.findByInvestigationIdOrderByIdAsc(id);
+        List<InvestigationItemEntity> itemRows =
+                visibleItems(items.findByInvestigationIdOrderByIdAsc(id), privateAccess);
         return switch (format == null ? "json" : format) {
             case "md" -> markdown(investigation, itemRows);
             case "geojson" -> geoJson(investigation, itemRows);
@@ -211,7 +294,7 @@ public class InvestigationService {
             list.add(itemView(item));
         }
         out.put("items", list);
-        out.put("attributions", List.of("© European Union, GHSL (population)", "Uber H3 (Apache-2.0)"));
+        out.put("attributions", attributionTexts(itemRows));
         return json.writeValueAsString(out);
     }
 
@@ -232,7 +315,14 @@ public class InvestigationService {
                     .append(item.getNote() == null ? "" : " — " + item.getNote()).append(" ").append(citation)
                     .append('\n');
         }
-        sb.append("\n### Attributions\n\n").append("© European Union, GHSL · Uber H3 (Apache-2.0)\n");
+        sb.append("\n### Attributions\n\n");
+        List<String> texts = attributionTexts(itemRows);
+        if (texts.isEmpty()) {
+            sb.append("No source data cited.\n");
+        }
+        for (String text : texts) {
+            sb.append("- ").append(text).append('\n');
+        }
         return sb.toString();
     }
 
@@ -254,8 +344,42 @@ public class InvestigationService {
         out.put("type", "FeatureCollection");
         out.put("name", investigation.getTitle());
         out.put("foresignal:header", BANNER);
+        out.put("foresignal:attributions", attributionTexts(itemRows));
         out.put("features", features);
         return json.writeValueAsString(out);
+    }
+
+    /** The attribution lines of the sources the items cite (prompt 109 licenses), one per source and license. */
+    List<String> attributionTexts(List<InvestigationItemEntity> itemRows) {
+        Set<String> sources = new LinkedHashSet<>();
+        for (InvestigationItemEntity item : itemRows) {
+            Map<String, Object> snapshot = item.getSnapshot();
+            if (snapshot == null) {
+                continue;
+            }
+            for (String section : List.of("record", "alert")) {
+                if (snapshot.get(section) instanceof Map<?, ?> nested && nested.get("sourceId") != null) {
+                    sources.add(String.valueOf(nested.get("sourceId")));
+                }
+            }
+        }
+        List<String> out = new ArrayList<>();
+        for (String source : sources) {
+            try {
+                List<AttributionService.Attribution> found = attributions.scope(source, null);
+                if (found.isEmpty()) {
+                    out.add(source);
+                }
+                for (AttributionService.Attribution attribution : found) {
+                    String text = attribution.text() == null || attribution.text().isBlank() ? source
+                            : attribution.text();
+                    out.add(text + " (" + attribution.licence() + ")");
+                }
+            } catch (RuntimeException e) {
+                out.add(source);
+            }
+        }
+        return out;
     }
 
     private String citation(InvestigationItemEntity item) {
@@ -326,19 +450,20 @@ public class InvestigationService {
         return out;
     }
 
+    /**
+     * The next {@code INV-{yyyy}-{nnnn}} of the year. Allocation is serialized by a transaction-scoped
+     * advisory lock, so concurrent creates never pick the same number; the unique constraint on
+     * {@code display_id} is the backstop. The number is the numeric maximum, so it keeps counting past 9999.
+     */
     private String nextDisplayId(Instant now) {
         int year = now.atZone(ZoneOffset.UTC).getYear();
         String prefix = "INV-" + year + "-";
-        int next = 1;
-        Optional<InvestigationEntity> last =
-                investigations.findTop1ByDisplayIdStartingWithOrderByDisplayIdDesc(prefix).stream().findFirst();
-        if (last.isPresent()) {
-            try {
-                next = Integer.parseInt(last.get().getDisplayId().substring(prefix.length())) + 1;
-            } catch (NumberFormatException e) {
-                next = 1;
-            }
-        }
+        jdbc.queryForObject("SELECT count(*) FROM (SELECT pg_advisory_xact_lock(?)) AS held", Long.class,
+                DISPLAY_ID_LOCK);
+        Integer max = jdbc.queryForObject("SELECT max(CAST(substring(display_id FROM ?) AS integer))"
+                + " FROM investigation WHERE display_id LIKE ? AND substring(display_id FROM ?) ~ '^[0-9]+$'",
+                Integer.class, prefix.length() + 1, prefix + "%", prefix.length() + 1);
+        int next = max == null ? 1 : max + 1;
         return prefix + String.format("%04d", next);
     }
 

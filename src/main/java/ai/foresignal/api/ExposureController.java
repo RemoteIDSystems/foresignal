@@ -4,6 +4,8 @@ import ai.foresignal.api.error.ValidationException;
 import ai.foresignal.intel.ExposureService;
 import ai.foresignal.intel.IntelligenceEventEntity;
 import ai.foresignal.intel.IntelEventService;
+import ai.foresignal.intel.IntelVisibility;
+import jakarta.servlet.http.HttpServletRequest;
 import ai.foresignal.place.PlaceService;
 import ai.foresignal.security.restrict.RestrictedRead;
 import ai.foresignal.source.spi.Geo;
@@ -26,20 +28,23 @@ public class ExposureController {
     private final ExposureService exposure;
     private final PlaceService places;
     private final IntelEventService events;
+    private final IntelVisibility visibility;
 
     /** Creates the controller. */
-    public ExposureController(ExposureService exposure, PlaceService places, IntelEventService events) {
+    public ExposureController(ExposureService exposure, PlaceService places, IntelEventService events,
+            IntelVisibility visibility) {
         this.exposure = exposure;
         this.places = places;
         this.events = events;
+        this.visibility = visibility;
     }
 
-    /** {@code computeExposure}. */
+    /** {@code computeExposure}; an {@code eventId} of a private event is {@code 404} without private access. */
     @PostMapping
     @RestrictedRead
     @Operation(operationId = "computeExposure", tags = "Intelligence")
-    public Map<String, Object> computeExposure(@RequestBody JsonNode body) {
-        Geometry area = area(body);
+    public Map<String, Object> computeExposure(@RequestBody JsonNode body, HttpServletRequest request) {
+        Geometry area = area(body, request);
         if (area == null) {
             throw ValidationException.forField("geometry", "provide geometry, placeId or eventId");
         }
@@ -47,9 +52,10 @@ public class ExposureController {
         return exposure.exposure(area, population);
     }
 
-    private Geometry area(JsonNode body) {
+    private Geometry area(JsonNode body, HttpServletRequest request) {
         if (body.hasNonNull("eventId")) {
-            IntelligenceEventEntity event = events.get(body.get("eventId").asString());
+            IntelligenceEventEntity event = events.visible(body.get("eventId").asString(),
+                    visibility.seesPrivate(request));
             return event.getGeom();
         }
         if (body.hasNonNull("placeId")) {

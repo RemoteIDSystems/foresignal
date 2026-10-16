@@ -43,12 +43,63 @@ class InvestigationIT {
         var investigation = investigations.create(json.readTree("{\"title\":\"Case\"}"), "tester");
         assertThat(investigation.getDisplayId()).startsWith("INV-");
         var item = investigations.addItem(investigation.getId(),
-                json.readTree("{\"itemType\":\"record\",\"ref\":\"test-standard:e1\",\"seq\":" + seq + "}"), "tester");
+                json.readTree("{\"itemType\":\"record\",\"ref\":\"test-standard:e1\",\"seq\":" + seq + "}"), "tester", true);
         assertThat(item.getSnapshot()).containsKey("record");
 
-        String markdown = investigations.export(investigation.getId(), "md");
+        String markdown = investigations.export(investigation.getId(), "md", true);
         assertThat(markdown).contains(InvestigationService.BANNER).contains("[test-standard/e1@v");
-        String geojson = investigations.export(investigation.getId(), "geojson");
+        String geojson = investigations.export(investigation.getId(), "geojson", true);
         assertThat(geojson).contains("FeatureCollection").contains("foresignal:header");
+    }
+
+    @Test
+    @DisplayName("an item keeps its snapshot after the referenced version is purged")
+    void survivesPurge() {
+        clock.setInstant(Instant.parse("2026-03-01T12:00:00Z"));
+        Instant now = clock.instant();
+        records.ingestAt(TestIngestSources.STANDARD, now,
+                NormalizedRecord.builder("p1", "thing").observedAt(now).point(-95.0, 32.0).put("name", "x").build());
+        Long seq = jdbc.queryForObject(
+                "select max(seq) from record_version where source_id = ? and external_id = ?", Long.class,
+                TestIngestSources.STANDARD, "p1");
+        var investigation = investigations.create(json.readTree("{\"title\":\"Purge\"}"), "tester");
+        investigations.addItem(investigation.getId(),
+                json.readTree("{\"itemType\":\"record\",\"ref\":\"test-standard/p1\",\"seq\":" + seq + "}"), "tester",
+                true);
+
+        jdbc.update("delete from record_version where seq = ?", seq);
+
+        String markdown = investigations.export(investigation.getId(), "md", true);
+        assertThat(markdown).contains("[test-standard/p1@v");
+        assertThat(investigations.items(investigation.getId(), true).get(0).getSnapshot()).containsKey("record");
+    }
+
+    @Test
+    @DisplayName("an oversized record snapshot is capped at 64 KB and says so")
+    void snapshotCapped() {
+        clock.setInstant(Instant.parse("2026-03-01T12:00:00Z"));
+        Instant now = clock.instant();
+        records.ingestAt(TestIngestSources.STANDARD, now, NormalizedRecord.builder("big", "thing").observedAt(now)
+                .point(-95.0, 32.0).put("blob", "x".repeat(80 * 1024)).build());
+        Long seq = jdbc.queryForObject(
+                "select max(seq) from record_version where source_id = ? and external_id = ?", Long.class,
+                TestIngestSources.STANDARD, "big");
+        var investigation = investigations.create(json.readTree("{\"title\":\"Big\"}"), "tester");
+        var item = investigations.addItem(investigation.getId(),
+                json.readTree("{\"itemType\":\"record\",\"ref\":\"test-standard/big\",\"seq\":" + seq + "}"), "tester",
+                true);
+
+        assertThat(SnapshotCaps.size(item.getSnapshot(), json)).isLessThanOrEqualTo(SnapshotCaps.ITEM_MAX_BYTES);
+        assertThat(item.getSnapshot()).containsEntry("truncated", true);
+    }
+
+    @Test
+    @DisplayName("display ids are sequential per year and unique")
+    void displayIds() {
+        clock.setInstant(Instant.parse("2026-03-01T12:00:00Z"));
+        var first = investigations.create(json.readTree("{\"title\":\"One\"}"), "tester");
+        var second = investigations.create(json.readTree("{\"title\":\"Two\"}"), "tester");
+        assertThat(first.getDisplayId()).isEqualTo("INV-2026-0001");
+        assertThat(second.getDisplayId()).isEqualTo("INV-2026-0002");
     }
 }

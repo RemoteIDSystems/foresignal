@@ -3,7 +3,8 @@ package ai.foresignal.api;
 import ai.foresignal.analyst.AnalystExecutionService;
 import ai.foresignal.analyst.AnalystProfileEntity;
 import ai.foresignal.analyst.AnalystRunEntity;
-import ai.foresignal.analyst.AnalystRunner;
+import ai.foresignal.analyst.AnalystScheduler;
+import ai.foresignal.intel.IntelVisibility;
 import ai.foresignal.analyst.AnalystService;
 import ai.foresignal.analyst.AnalystViews;
 import ai.foresignal.api.error.ConflictException;
@@ -40,13 +41,16 @@ public class AnalystController {
 
     private final AnalystService service;
     private final AnalystExecutionService execution;
-    private final AnalystRunner runner;
+    private final AnalystScheduler scheduler;
+    private final IntelVisibility visibility;
 
     /** Creates the controller. */
-    public AnalystController(AnalystService service, AnalystExecutionService execution, AnalystRunner runner) {
+    public AnalystController(AnalystService service, AnalystExecutionService execution, AnalystScheduler scheduler,
+            IntelVisibility visibility) {
         this.service = service;
         this.execution = execution;
-        this.runner = runner;
+        this.scheduler = scheduler;
+        this.visibility = visibility;
     }
 
     /** {@code listAnalystProfiles}. */
@@ -95,13 +99,9 @@ public class AnalystController {
     @Operation(operationId = "runAnalystProfile", tags = "Analyst")
     public Map<String, Object> runAnalystProfile(@PathVariable String profileId) {
         AnalystProfileEntity profile = service.getProfile(profileId);
-        if (profile.getRunningSince() != null) {
-            throw new ConflictException(ErrorCodes.ANALYST_RUN_IN_PROGRESS,
-                    "Analyst profile " + profileId + " is already running.");
-        }
-        AnalystRunEntity run = runner.queued(profile);
-        profile.setRunningSince(run.getStartedAt());
-        Thread.ofVirtual().name("analyst-manual-" + profileId).start(() -> runner.executeQueued(profile, run.getId()));
+        // The scheduler's guarded path: an atomic one-run-per-profile claim (409 ANALYST_RUN_IN_PROGRESS),
+        // the global concurrency limit, and the runner's daily run cap.
+        AnalystRunEntity run = scheduler.runNow(profile);
         return AnalystViews.run(run);
     }
 
@@ -129,36 +129,41 @@ public class AnalystController {
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String priority,
             @RequestParam(required = false) String since,
-            @RequestParam(required = false) String limit) {
+            @RequestParam(required = false) String limit,
+            HttpServletRequest request) {
         int size = QueryParams.intInRange("limit", limit, 1, 200, 50);
         Instant from = QueryParams.instant("since", since);
-        return AnalystViews.page(service.listNotes(profileId, status, priority, from, size).stream()
-                .map(AnalystViews::note).toList());
+        return AnalystViews.page(service.listNotes(profileId, status, priority, from, size,
+                visibility.seesPrivate(request)).stream().map(AnalystViews::note).toList());
     }
 
-    /** {@code updateAnalystNote}. */
+    /** {@code updateAnalystNote}; a private note is 404 to a caller without private access. */
     @PatchMapping("/notes/{noteId}")
     @Operation(operationId = "updateAnalystNote", tags = "Analyst")
-    public Map<String, Object> updateAnalystNote(@PathVariable String noteId, @RequestBody JsonNode body) {
-        return AnalystViews.note(service.updateNoteStatus(noteId, body.path("status").asString("read")));
+    public Map<String, Object> updateAnalystNote(@PathVariable String noteId, @RequestBody JsonNode body,
+            HttpServletRequest request) {
+        return AnalystViews.note(service.updateNoteStatus(noteId, body.path("status").asString("read"),
+                visibility.seesPrivate(request)));
     }
 
-    /** {@code analystNoteFeedback}. */
+    /** {@code analystNoteFeedback}; a private note is 404 to a caller without private access. */
     @PostMapping("/notes/{noteId}/feedback")
     @Operation(operationId = "analystNoteFeedback", tags = "Analyst")
     public Map<String, Object> analystNoteFeedback(@PathVariable String noteId, @RequestBody JsonNode body,
             HttpServletRequest request) {
         return AnalystViews.feedback(service.noteFeedback(noteId, body.path("rating").asString(),
-                body.path("comment").isString() ? body.get("comment").asString() : null, actor(request)));
+                body.path("comment").isString() ? body.get("comment").asString() : null, actor(request),
+                visibility.seesPrivate(request)));
     }
 
     /** {@code listAnalystProposals}. */
     @GetMapping("/proposals")
     @Operation(operationId = "listAnalystProposals", tags = "Analyst")
     public Map<String, Object> listAnalystProposals(@RequestParam(required = false) String status,
-            @RequestParam(required = false) String limit) {
+            @RequestParam(required = false) String limit, HttpServletRequest request) {
         int size = QueryParams.intInRange("limit", limit, 1, 200, 50);
-        return AnalystViews.page(service.listProposals(status, size).stream().map(AnalystViews::proposal).toList());
+        return AnalystViews.page(service.listProposals(status, size, visibility.seesPrivate(request)).stream()
+                .map(AnalystViews::proposal).toList());
     }
 
     /** {@code confirmAnalystProposal}. */

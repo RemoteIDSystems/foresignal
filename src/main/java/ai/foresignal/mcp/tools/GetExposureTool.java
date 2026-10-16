@@ -5,6 +5,7 @@ import static ai.foresignal.mcp.JsonSchemas.string;
 
 import ai.foresignal.intel.ExposureService;
 import ai.foresignal.intel.IntelEventService;
+import ai.foresignal.intel.IntelVisibility;
 import ai.foresignal.mcp.ForesignalMcpTool;
 import ai.foresignal.mcp.JsonSchemas;
 import ai.foresignal.mcp.McpArgs;
@@ -32,13 +33,16 @@ public class GetExposureTool implements ForesignalMcpTool {
     private final ExposureService exposure;
     private final PlaceService places;
     private final IntelEventService events;
+    private final IntelVisibility visibility;
     private final JsonMapper json;
 
     /** Creates the tool. */
-    public GetExposureTool(ExposureService exposure, PlaceService places, IntelEventService events, JsonMapper json) {
+    public GetExposureTool(ExposureService exposure, PlaceService places, IntelEventService events,
+            IntelVisibility visibility, JsonMapper json) {
         this.exposure = exposure;
         this.places = places;
         this.events = events;
+        this.visibility = visibility;
         this.json = json;
     }
 
@@ -78,7 +82,7 @@ public class GetExposureTool implements ForesignalMcpTool {
     public ToolResult call(ToolContext context, JsonNode args) {
         Geometry area = null;
         if (McpArgs.text(args, "eventId") != null) {
-            area = events.get(McpArgs.text(args, "eventId")).getGeom();
+            area = events.visible(McpArgs.text(args, "eventId"), visibility.seesPrivate(context.caller())).getGeom();
         } else if (McpArgs.text(args, "placeId") != null) {
             area = places.geometry(McpArgs.text(args, "placeId")).orElse(null);
         } else if (args.hasNonNull("geometry")) {
