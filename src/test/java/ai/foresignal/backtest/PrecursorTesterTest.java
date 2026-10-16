@@ -7,6 +7,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -177,5 +178,20 @@ class PrecursorTesterTest {
         // Reference: Wilson 95% for 5/10 is [0.2366, 0.7634].
         assertThat(mid[0]).isBetween(0.2365, 0.2367);
         assertThat(mid[1]).isBetween(0.7633, 0.7635);
+    }
+
+    @Test
+    @DisplayName("the result maps hitRateCi as {lower, upper, method} and the lags as ISO-8601 durations")
+    void resultShape() {
+        PrecursorTester.Result hits = new PrecursorTester.Result(20, 10, 0.5, new double[] {0.3, 0.7}, 30, 60, 90,
+                120, 1440, 95.5, 0.1, 5, 0.01, "notable", false, false, PrecursorTester.NOTE, 30, null, 1L);
+        assertThat(PrecursorTestService.hitRateCi(hits.hitRateInterval()))
+                .isEqualTo(Map.of("lower", 0.3, "upper", 0.7, "method", "wilson-95"));
+        assertThat(PrecursorTestService.lag(hits)).containsEntry("min", "PT30M").containsEntry("p25", "PT1H")
+                .containsEntry("median", "PT1H30M").containsEntry("p75", "PT2H").containsEntry("max", "PT24H")
+                .containsEntry("mean", "PT1H35M30S");
+        PrecursorTester.Result none = new PrecursorTester.Result(20, 0, 0, new double[] {0, 0.16}, 0, 0, 0, 0, 0, 0,
+                0.1, 0, 1, "no-evidence-of-precedence", false, false, PrecursorTester.NOTE, 30, null, 1L);
+        assertThat(PrecursorTestService.lag(none)).containsEntry("min", null).containsEntry("mean", null);
     }
 }

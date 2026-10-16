@@ -427,6 +427,11 @@ public class BacktestJobService {
                 default -> new LinkedHashMap<>();
             };
             List<Map<String, Object>> caveats = caveats(job, result);
+            if ("precursor".equals(job.getType())) {
+                // PrecursorTestResult carries its caveats too (required by the spec).
+                result = new LinkedHashMap<>(result);
+                result.put("caveats", caveats);
+            }
             finish(id, "done", truncate(result), caveats);
         } catch (JobMonitor.Canceled e) {
             // The cancel already wrote the terminal state.

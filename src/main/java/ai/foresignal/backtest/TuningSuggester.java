@@ -30,18 +30,18 @@ import tools.jackson.databind.json.JsonMapper;
  * Suggestions are reported, never applied automatically; applying one is an ordinary rule update.
  *
  * <ul>
- *   <li><strong>add_cooldown</strong> when the rule produced duplicates.
- *   <li><strong>switch_to_enter</strong> when alerts flapped.
- *   <li><strong>raise_threshold / lower_threshold</strong>: for each numeric condition
+ *   <li><strong>add-cooldown</strong> when the rule produced duplicates.
+ *   <li><strong>switch-to-enter</strong> when alerts flapped.
+ *   <li><strong>raise-threshold / lower-threshold</strong>: for each numeric condition
  *       ({@code > >= < <=}), the candidate values are the labeled alerts' snapshot values at the
  *       condition's path; the suggester picks the stricter value that removes the most negatives
  *       while keeping at least {@value #KEEP_POSITIVES_PERCENT}% of the positives (ties go to the
  *       value closest to the current one). The patch is the rule's <em>whole</em> condition list
  *       with that one value changed, since a rule update replaces the list.
- *   <li><strong>shrink_geofence</strong>: when at least {@value #GEOFENCE_NEGATIVE_PERCENT}% of the
+ *   <li><strong>shrink-geofence</strong>: when at least {@value #GEOFENCE_NEGATIVE_PERCENT}% of the
  *       negatives fall outside the convex hull of the positives buffered by 10% of the hull's
  *       larger extent, the patch is that buffered hull as the new geofence.
- *   <li><strong>lower_anomaly_sensitivity</strong>: an anomaly rule (prompt 100) with low precision.
+ *   <li><strong>lower-anomaly-sensitivity</strong>: an anomaly rule (prompt 100) with low precision.
  * </ul>
  *
  * <p>{@code expectedEffect} is the effect on the labeled alerts for the threshold and geofence
@@ -118,12 +118,12 @@ public class TuningSuggester {
         Double precision = report.get("precision") instanceof Number p ? p.doubleValue() : null;
         if (duplicates > 0) {
             Object window = report.getOrDefault("duplicateWindow", "PT10M");
-            suggestions.add(suggestion("add_cooldown", "add_cooldown",
+            suggestions.add(suggestion("add-cooldown", "add-cooldown",
                     "The rule produced " + duplicates + " duplicate alerts on the same entity within " + window + ".",
                     Map.of("cooldown", String.valueOf(window)), null));
         }
         if (flapping > 0) {
-            suggestions.add(suggestion("switch_to_enter", "switch_to_enter",
+            suggestions.add(suggestion("switch-to-enter", "switch-to-enter",
                     flapping + " alerts resolved within 10 minutes (flapping); a single enter alert replaces each"
                             + " fire/clear pair.",
                     Map.of("mode", "enter", "autoResolve", Map.of("onInverseEdge", true)), null));
@@ -147,7 +147,7 @@ public class TuningSuggester {
             if (lower != null) {
                 Map<String, Object> window = new LinkedHashMap<>(inputs.window());
                 window.put("sensitivity", lower);
-                suggestions.add(suggestion("lower_anomaly_sensitivity", "lower_anomaly_sensitivity",
+                suggestions.add(suggestion("lower-anomaly-sensitivity", "lower-anomaly-sensitivity",
                         "Precision is " + Math.round(precision * 100) + "% on labeled alerts; sensitivity " + current
                                 + " → " + lower + ".",
                         Map.of("window", window), null));
@@ -254,7 +254,7 @@ public class TuningSuggester {
             entry.put("value", i == index ? plain(best) : c.value());
             patched.add(entry);
         }
-        String kind = above ? "raise_threshold" : "lower_threshold";
+        String kind = above ? "raise-threshold" : "lower-threshold";
         Map<String, Object> effect = new LinkedHashMap<>();
         effect.put("removedNegatives", bestRemoved);
         effect.put("negatives", negatives);
@@ -318,7 +318,7 @@ public class TuningSuggester {
         effect.put("keptPositives", positives.size());
         effect.put("positives", positives.size());
         effect.put("basis", "labeled alerts");
-        return suggestion("shrink_geofence", "shrink_geofence",
+        return suggestion("shrink-geofence", "shrink-geofence",
                 outside + " of " + negatives.size() + " negative alerts fall outside the area of the positives"
                         + " (convex hull buffered by 10%).",
                 Map.of("geofence", new GeoJsonWriter().write(buffered)), effect);
@@ -368,8 +368,11 @@ public class TuningSuggester {
         out.put("rationale", rationale);
         out.put("patch", patch);
         out.put("expectedEffect", expectedEffect);
-        out.put("caveats", List.of("Deterministic suggestion (tuning " + VERSION + "); not applied automatically."
-                + " Backtest the patch before applying it."));
+        Map<String, Object> caveat = new LinkedHashMap<>();
+        caveat.put("code", BacktestCaveat.NOT_GROUND_TRUTH);
+        caveat.put("text", "Deterministic suggestion (tuning " + VERSION + ") from labeled alerts; not applied"
+                + " automatically. Backtest the patch before applying it.");
+        out.put("caveats", List.of(caveat));
         return out;
     }
 

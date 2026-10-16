@@ -119,7 +119,7 @@ public class RuleBacktest {
         }
         Set<Long> actualSeqs = actualAlertSeqs(ruleId, fromSeq, toSeq);
         long actual = actualSeqs.size();
-        result.put("actual", actual);
+        result.put("actual", actual(actual, alertsBefore(ruleId, fromSeq, toSeq, entity.getUpdatedAt())));
         if (base.firedSeqs != null) {
             long both = 0;
             for (Long seq : actualSeqs) {
@@ -140,7 +140,7 @@ public class RuleBacktest {
                 Map<String, Object> variant = chosen.get(i);
                 RuleSpec patched = patch(rule, variant);
                 Map<String, Object> entry = evaluate(patched, fromSeq, toSeq, monitor, i + 1, passes, false).toMap();
-                entry.put("name", String.valueOf(variant.getOrDefault("name", "variant")));
+                identify(entry, i, variant);
                 variantResults.add(entry);
             }
             result.put("variants", variantResults);
@@ -254,6 +254,60 @@ public class RuleBacktest {
         return out;
     }
 
+    /** The non-suppressed alerts of the rule in the seq range that fired before {@code updatedAt}. */
+    private long alertsBefore(UUID ruleId, long fromSeq, long toSeq, Instant updatedAt) {
+        if (updatedAt == null) {
+            return 0;
+        }
+        return reads.read(BacktestCoverage.STATEMENT_TIMEOUT, t -> {
+            Long n = t.getJdbcTemplate().queryForObject("SELECT count(*) FROM alert WHERE rule_id = ? AND seq > ?"
+                    + " AND seq <= ? AND suppressed = false AND fired_at < ?",
+                    Long.class, ruleId, fromSeq, toSeq, Timestamp.from(updatedAt));
+            return n == null ? 0L : n;
+        });
+    }
+
+    /**
+     * The {@code actual} block of {@code RuleBacktestResult}: the alerts the rule really fired in range,
+     * and whether they are comparable with the backtest. Alerts carry no rule version, so they are
+     * comparable when the rule is unchanged since every one of them fired.
+     *
+     * @param alerts the alerts (or anomaly observations) the rule really produced in range
+     * @param firedBeforeLastUpdate how many of them predate the rule's last update
+     * @return {@code {alerts, comparable}}
+     */
+    static Map<String, Object> actual(long alerts, long firedBeforeLastUpdate) {
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("alerts", alerts);
+        out.put("comparable", firedBeforeLastUpdate == 0);
+        return out;
+    }
+
+    /**
+     * The {@code perDay} array of {@code RuleBacktestResult}: one {@code {date, count}} per UTC day, in
+     * date order.
+     *
+     * @param byDay counts keyed by ISO date
+     * @return the array
+     */
+    static List<Map<String, Object>> perDay(Map<String, Integer> byDay) {
+        List<Map<String, Object>> out = new ArrayList<>();
+        new TreeMap<>(byDay).forEach((date, count) -> {
+            Map<String, Object> day = new LinkedHashMap<>();
+            day.put("date", date);
+            day.put("count", count);
+            out.add(day);
+        });
+        return out;
+    }
+
+    /** Marks a variant result with its position, the patch it ran and its name. */
+    private static void identify(Map<String, Object> entry, int index, Map<String, Object> variant) {
+        entry.put("index", index);
+        entry.put("patch", variant);
+        entry.put("name", String.valueOf(variant.getOrDefault("name", "variant")));
+    }
+
     private Set<Long> actualAlertSeqs(UUID ruleId, long fromSeq, long toSeq) {
         List<Long> seqs = reads.read(BacktestCoverage.STATEMENT_TIMEOUT, t -> t.getJdbcTemplate().queryForList(
                 "SELECT seq FROM alert WHERE rule_id = ? AND seq > ? AND seq <= ? AND suppressed = false",
@@ -291,7 +345,16 @@ public class RuleBacktest {
                     Long.class, entity.getId(), Timestamp.from(rangeFrom), Timestamp.from(rangeTo));
             return n == null ? 0L : n;
         });
-        result.put("actual", actual);
+        Instant updatedAt = entity.getUpdatedAt();
+        long before = updatedAt == null ? 0 : reads.read(BacktestCoverage.STATEMENT_TIMEOUT, t -> {
+            Long n = t.getJdbcTemplate().queryForObject("SELECT count(*) FROM anomaly_observation WHERE rule_id = ?"
+                    + " AND bucket_start >= ? AND bucket_start < ? AND bucket_start < ?"
+                    + " AND classification IN ('activity-up','activity-down')",
+                    Long.class, entity.getId(), Timestamp.from(rangeFrom), Timestamp.from(rangeTo),
+                    Timestamp.from(updatedAt));
+            return n == null ? 0L : n;
+        });
+        result.put("actual", actual(actual, before));
         if (!variants.isEmpty()) {
             List<Map<String, Object>> variantResults = new ArrayList<>();
             for (int i = 0; i < variants.size(); i++) {
@@ -299,7 +362,7 @@ public class RuleBacktest {
                 Map<String, Object> variant = variants.get(i);
                 Map<String, Object> entry = AnomalyReplay.replay(samples, patchWindow(spec, variant), rangeFrom,
                         rangeTo).toMap(spec.bucket());
-                entry.put("name", String.valueOf(variant.getOrDefault("name", "variant")));
+                identify(entry, i, variant);
                 variantResults.add(entry);
             }
             result.put("variants", variantResults);
@@ -371,7 +434,7 @@ public class RuleBacktest {
             Map<String, Object> out = new LinkedHashMap<>();
             out.put("wouldFire", fired);
             out.put("wouldSuppress", suppressed);
-            out.put("perDay", byDay);
+            out.put("perDay", perDay(byDay));
             out.put("topEntities", topEntities);
             out.put("samples", samples);
             return out;

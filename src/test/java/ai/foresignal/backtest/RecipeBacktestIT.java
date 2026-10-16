@@ -60,5 +60,7 @@ class RecipeBacktestIT {
 
         Map<String, Object> every = backtest.run(null, T0, T0.plus(Duration.ofDays(1)), JobMonitor.NONE);
         assertThat(every).containsEntry("eventCount", 2L);
+        assertThat(every.get("countsByType")).as("an object of type to count, per RecipeBacktestResult")
+                .isEqualTo(Map.of("seismic", 2L));
     }
 }

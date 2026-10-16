@@ -316,16 +316,16 @@ public class PrecursorTestService {
         out.put("nConsequent", result.nConsequent());
         out.put("hits", result.hits());
         out.put("hitRate", result.hitRate());
-        out.put("hitRateInterval", List.of(result.hitRateInterval()[0], result.hitRateInterval()[1]));
-        out.put("lag", Map.of("min", result.lagMin(), "p25", result.lagP25(), "median", result.lagMedian(),
-                "p75", result.lagP75(), "max", result.lagMax(), "meanMinutes", result.lagMeanMinutes()));
+        out.put("hitRateCi", hitRateCi(result.hitRateInterval()));
+        out.put("lag", lag(result));
         out.put("baseRate", result.baseRate());
         out.put("lift", finite(result.lift()));
         out.put("pValue", result.pValue());
         out.put("permutations", PrecursorTester.SHIFTS);
         out.put("seed", Long.toHexString(result.seed()));
         out.put("verdict", result.verdict());
-        out.put("coOccurrence", result.coOccurrence());
+        out.put("coOccurrenceNotPrecedence", result.coOccurrence());
+        out.put("statement", PrecursorTester.NOTE);
         PrecursorTester.Direction reverse = result.reverse();
         Map<String, Object> reverseMap = new LinkedHashMap<>();
         reverseMap.put("nAntecedent", reverse.nAntecedent());
@@ -338,6 +338,39 @@ public class PrecursorTestService {
         out.put("note", result.note());
         out.put("multipleTesting", Map.of("testsLast30d", testsLast30d,
                 "bonferroniPValue", Math.min(1.0, result.pValue() * hypotheses)));
+        return out;
+    }
+
+    /**
+     * The {@code hitRateCi} object of {@code PrecursorTestResult}.
+     *
+     * @param interval the Wilson 95% interval {@code [lower, upper]}
+     * @return {@code {lower, upper, method: "wilson-95"}}
+     */
+    static Map<String, Object> hitRateCi(double[] interval) {
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("lower", interval[0]);
+        out.put("upper", interval[1]);
+        out.put("method", "wilson-95");
+        return out;
+    }
+
+    /**
+     * The {@code lag} object of {@code PrecursorTestResult}: the lag distribution of the hits as ISO-8601
+     * durations, each null when there are no hits.
+     *
+     * @param result the test result (lags in minutes)
+     * @return {@code {min, p25, median, p75, max, mean}}
+     */
+    static Map<String, Object> lag(PrecursorTester.Result result) {
+        boolean none = result.hits() == 0;
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("min", none ? null : Duration.ofMinutes(result.lagMin()).toString());
+        out.put("p25", none ? null : Duration.ofMinutes(result.lagP25()).toString());
+        out.put("median", none ? null : Duration.ofMinutes(result.lagMedian()).toString());
+        out.put("p75", none ? null : Duration.ofMinutes(result.lagP75()).toString());
+        out.put("max", none ? null : Duration.ofMinutes(result.lagMax()).toString());
+        out.put("mean", none ? null : Duration.ofSeconds(Math.round(result.lagMeanMinutes() * 60)).toString());
         return out;
     }
 

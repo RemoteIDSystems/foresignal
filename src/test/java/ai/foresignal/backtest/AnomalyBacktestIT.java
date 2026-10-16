@@ -73,13 +73,16 @@ class AnomalyBacktestIT {
 
     @Test
     @DisplayName("the warm-up consumed is reported while the baseline learns")
+    @SuppressWarnings("unchecked")
     void warmUp() {
         AnomalyReplay.Outcome outcome = AnomalyReplay.replay(steady(10), spec("medium"), T0, T0.plus(Duration.ofDays(10)));
         // hour-of-day needs 7 samples per slot for one week: the first 7 days of every hour learn.
         assertThat(outcome.learningBuckets()).isEqualTo(7 * 24);
         assertThat(outcome.byClassification()).containsEntry("learning", 7 * 24);
         Map<String, Object> result = outcome.toMap(Duration.ofHours(1));
-        assertThat(result).containsEntry("ruleType", "anomaly").containsKey("warmUp").containsKey("coverageDrop");
+        assertThat(result).containsEntry("ruleType", "anomaly");
+        assertThat((Map<String, Object>) result.get("anomaly")).containsEntry("warmupConsumed", "PT168H")
+                .containsEntry("coverageDrops", 0L).containsKey("byClassification");
     }
 
     @Test

@@ -85,12 +85,27 @@ public class RecipeBacktest {
         out.put("recipeId", recipeId);
         out.put("replay", REPLAY);
         out.put("eventCount", total);
-        out.put("countsByType", counts);
+        out.put("countsByType", countsByType(counts));
         out.put("events", events);
         out.put("from", from.toString());
         out.put("to", to.toString());
         out.put("note", "Stored intelligence events that started in the range; the correlation engine has no dry-run"
                 + " replay, so these are the events Foresignal formed, not a re-run of the recipe.");
+        return out;
+    }
+
+    /**
+     * The {@code countsByType} object of {@code RecipeBacktestResult}: event type to count, in the
+     * order of the rows.
+     *
+     * @param rows {@code {type, count}} rows
+     * @return the object
+     */
+    static Map<String, Long> countsByType(List<Map<String, Object>> rows) {
+        Map<String, Long> out = new LinkedHashMap<>();
+        for (Map<String, Object> row : rows) {
+            out.merge(String.valueOf(row.get("type")), ((Number) row.get("count")).longValue(), Long::sum);
+        }
         return out;
     }
 

@@ -106,7 +106,10 @@ class RuleBacktestIT {
         assertThat(done.getStatus()).isEqualTo("done");
         List<Map<String, Object>> variants = (List<Map<String, Object>>) done.getResult().get("variants");
         assertThat(variants).hasSize(1);
-        assertThat(variants.get(0)).containsEntry("name", "size>=8").containsEntry("wouldFire", 2);
+        assertThat(variants.get(0)).containsEntry("name", "size>=8").containsEntry("wouldFire", 2)
+                .containsEntry("index", 0).containsKey("patch");
+        assertThat((Map<String, Object>) done.getResult().get("actual")).containsEntry("alerts", 0)
+                .containsEntry("comparable", true);
     }
 
     @Test

@@ -105,17 +105,20 @@ public final class AnomalyReplay {
             Map<String, Object> out = new LinkedHashMap<>();
             out.put("ruleType", "anomaly");
             out.put("wouldFire", wouldFire);
-            out.put("perDay", perDay);
+            out.put("perDay", RuleBacktest.perDay(perDay));
             out.put("topEntities", byGroup.entrySet().stream()
                     .sorted((a, b) -> Integer.compare(b.getValue(), a.getValue()))
                     .limit(RuleBacktest.MAX_ENTITIES)
                     .map(e -> Map.<String, Object>of("entity", e.getKey(), "count", e.getValue()))
                     .toList());
             out.put("samples", samples);
-            out.put("anomaliesByClassification", byClassification);
-            out.put("warmUp", Map.of("buckets", learningBuckets,
-                    "duration", bucket == null ? null : bucket.multipliedBy(learningBuckets).toString()));
-            out.put("coverageDrop", coverageDrops);
+            Map<String, Object> anomaly = new LinkedHashMap<>();
+            anomaly.put("warmupConsumed", (bucket == null ? Duration.ZERO : bucket.multipliedBy(learningBuckets))
+                    .toString());
+            anomaly.put("warmupBuckets", learningBuckets);
+            anomaly.put("byClassification", byClassification);
+            anomaly.put("coverageDrops", coverageDrops);
+            out.put("anomaly", anomaly);
             out.put("bucketsEvaluated", verdicts.size());
             return out;
         }
