@@ -18,6 +18,7 @@ import ai.foresignal.source.spi.SourceDescriptor;
 import ai.foresignal.source.spi.TtlAnchor;
 import ai.foresignal.source.spi.UpstreamFormatException;
 import ai.foresignal.source.spi.UpstreamResponse;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;
@@ -25,6 +26,8 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Supplier;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -62,12 +65,25 @@ public final class UnhcrPopulationAdapter implements PollingAdapter {
 
     private final URI baseUrl;
     private final CountryCentroids countries;
+    private final Supplier<MeterRegistry> meters;
     private final SourceDescriptor descriptor;
 
-    /** Creates the adapter. */
+    /** Creates the adapter without a meter registry (tests). */
+    public UnhcrPopulationAdapter(String baseUrlOverride, CountryCentroids countries) {
+        this(baseUrlOverride, countries, null);
+    }
+
+    /**
+     * Creates the adapter.
+     *
+     * @param baseUrlOverride test-only base URL, blank for the real one
+     * @param countries 040's gazetteer
+     * @param meters the registry of the unresolved-country counter, resolved lazily; may be null
+     */
     @Autowired
     public UnhcrPopulationAdapter(@Value("${" + BASE_URL_PROPERTY + ":}") String baseUrlOverride,
-            CountryCentroids countries) {
+            CountryCentroids countries, ObjectProvider<MeterRegistry> meters) {
+        this.meters = UnresolvedCountries.lazy(meters);
         this.baseUrl = URI.create(baseUrlOverride == null || baseUrlOverride.isBlank()
                 ? DEFAULT_BASE_URL : baseUrlOverride.strip());
         this.countries = countries;
@@ -82,18 +98,20 @@ public final class UnhcrPopulationAdapter implements PollingAdapter {
     @Override
     public FetchResult fetch(FetchContext ctx) throws AdapterException {
         int yearsBack = ctx.params().integer("yearsBack", 2);
-        int year = LocalDate.now(ZoneOffset.UTC).getYear();
+        int year = LocalDate.ofInstant(ctx.now(), ZoneOffset.UTC).getYear();
         List<NormalizedRecord> records = new ArrayList<>();
+        UnresolvedCountries unresolved = new UnresolvedCountries();
         for (int offset = 1; offset <= yearsBack; offset++) {
             int y = year - offset;
-            records.addAll(fetch(ctx, y, "coo", "coo_iso"));
-            records.addAll(fetch(ctx, y, "coa", "coa_iso"));
+            records.addAll(fetch(ctx, y, "coo", "coo_iso", unresolved));
+            records.addAll(fetch(ctx, y, "coa", "coa_iso", unresolved));
         }
+        unresolved.report(ctx, meters);
         return FetchResult.of(records);
     }
 
-    private List<NormalizedRecord> fetch(FetchContext ctx, int year, String grouping, String isoField)
-            throws AdapterException {
+    private List<NormalizedRecord> fetch(FetchContext ctx, int year, String grouping, String isoField,
+            UnresolvedCountries unresolved) throws AdapterException {
         List<NormalizedRecord> records = new ArrayList<>();
         int page = 0;
         int maxPages = 1;
@@ -107,7 +125,12 @@ public final class UnhcrPopulationAdapter implements PollingAdapter {
             JsonNode root = JSON.readTree(response.body());
             maxPages = Math.max(1, root.path("maxPages").asInt(1));
             for (JsonNode item : root.path("items")) {
-                records.add(record(item, year, grouping, isoField));
+                // record(...) is null for a '-' or blank country code; FetchResult copies with List.copyOf,
+                // which refuses nulls, so a null must never reach the list
+                NormalizedRecord record = record(item, year, grouping, isoField, unresolved);
+                if (record != null) {
+                    records.add(record);
+                }
             }
         } while (page < maxPages);
         return records;
@@ -115,9 +138,15 @@ public final class UnhcrPopulationAdapter implements PollingAdapter {
 
     /** The records of a UNHCR population body for one year and grouping ({@code coo} or {@code coa}). */
     public List<NormalizedRecord> parse(byte[] body, int year, String grouping, String isoField) {
+        return parse(body, year, grouping, isoField, new UnresolvedCountries());
+    }
+
+    /** As {@link #parse(byte[], int, String, String)}, counting country codes the gazetteer lacks. */
+    List<NormalizedRecord> parse(byte[] body, int year, String grouping, String isoField,
+            UnresolvedCountries unresolved) {
         List<NormalizedRecord> out = new ArrayList<>();
         for (JsonNode item : JSON.readTree(body).path("items")) {
-            NormalizedRecord record = record(item, year, grouping, isoField);
+            NormalizedRecord record = record(item, year, grouping, isoField, unresolved);
             if (record != null) {
                 out.add(record);
             }
@@ -125,7 +154,8 @@ public final class UnhcrPopulationAdapter implements PollingAdapter {
         return out;
     }
 
-    private NormalizedRecord record(JsonNode item, int year, String grouping, String isoField) {
+    private NormalizedRecord record(JsonNode item, int year, String grouping, String isoField,
+            UnresolvedCountries unresolved) {
         String iso3 = text(item, isoField);
         if (iso3 == null || iso3.isBlank() || "-".equals(iso3)) {
             return null;
@@ -133,10 +163,10 @@ public final class UnhcrPopulationAdapter implements PollingAdapter {
         String externalId = grouping + ":" + iso3 + ":" + year;
         NormalizedRecord.Builder b = NormalizedRecord.builder(externalId, KIND)
                 .eventTime(LocalDate.of(year, 1, 1).atStartOfDay(ZoneOffset.UTC).toInstant());
-        countries.byIso3(iso3).ifPresent(ref -> {
+        countries.byIso3(iso3).ifPresentOrElse(ref -> {
             b.point(ref.labelLon(), ref.labelLat());
             b.put("geometryApproximate", true);
-        });
+        }, unresolved::miss);
         b.put("year", year);
         for (String key : NUMBERS) {
             b.put(key, number(item.get(key)));

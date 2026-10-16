@@ -1,6 +1,8 @@
 package ai.foresignal.source.adapters.humanitarian;
 
 import ai.foresignal.source.formats.geojson.GeoJsonReader;
+import ai.foresignal.collect.UpstreamHttpException;
+import ai.foresignal.collect.UpstreamIOException;
 import ai.foresignal.source.spi.AdapterException;
 import ai.foresignal.source.spi.FetchContext;
 import ai.foresignal.source.spi.FetchResult;
@@ -87,8 +89,16 @@ public final class UsgsHansVolcanoAdapter implements PollingAdapter {
         if (at != null && at.plus(COORDS_TTL).isAfter(ctx.now())) {
             return readCoords(ctx.state().get(COORDS_KEY).orElse(null));
         }
-        UpstreamResponse response = ctx.http().get(URI.create(
-                baseUrl + "/hans-public/api/volcano/getUSVolcanoes"));
+        UpstreamResponse response;
+        try {
+            response = ctx.http().get(URI.create(baseUrl + "/hans-public/api/volcano/getUSVolcanoes"));
+        } catch (UpstreamHttpException | UpstreamIOException e) {
+            // The shared client throws for 4xx/5xx and transport failures; the weekly coordinate refresh
+            // is best effort, so the cached coordinates (possibly stale, possibly none) are used instead.
+            ctx.log().debug("{}: coordinate refresh failed ({}); using cached coordinates", ctx.sourceId(),
+                    e.getMessage());
+            return readCoords(ctx.state().get(COORDS_KEY).orElse(null));
+        }
         if (response.status() != 200) {
             return readCoords(ctx.state().get(COORDS_KEY).orElse(null));
         }

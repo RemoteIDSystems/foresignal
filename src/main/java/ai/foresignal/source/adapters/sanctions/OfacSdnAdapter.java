@@ -1,6 +1,7 @@
 package ai.foresignal.source.adapters.sanctions;
 
 import ai.foresignal.source.spi.AdapterException;
+import ai.foresignal.source.spi.DownloadResult;
 import ai.foresignal.source.spi.FetchContext;
 import ai.foresignal.source.spi.FetchResult;
 import ai.foresignal.source.spi.HistoryTier;
@@ -25,13 +26,12 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -39,10 +39,15 @@ import org.springframework.stereotype.Component;
  * {@code ofac-sdn} (prompt 091): the US Treasury OFAC SDN and Consolidated (Non-SDN) lists.
  *
  * <p>The legacy {@code SDN.XML}/{@code CONS_PRIM.XML} schema is used rather than {@code SDN_ADVANCED.XML}:
- * it carries the same entries with a far simpler structure. The export URL answers 302 to a pre-signed S3
- * object; the publication path is compared (query stripped) so an unchanged publication costs one request,
- * and the pre-signed query is never logged. Downloads are capped at {@value #MAX_BYTES} bytes and parsed from
- * disk with secure StAX.
+ * it carries the same entries with a far simpler structure. The Consolidated (Non-SDN) list in that schema is
+ * {@code CONSOLIDATED.XML} (verified 2026-10-16: {@code CONS_PRIM.XML} answers 200 with an empty body). The
+ * export URL answers 302 to a pre-signed S3 object; the publication path is compared (query stripped) so an
+ * unchanged publication costs one request, and a downloaded file whose SHA-256 matches the last one is not
+ * re-ingested. The pre-signed query is masked wherever a URL is stored or logged ({@code UrlRedactor}).
+ * Downloads are capped at {@value #MAX_BYTES} bytes, parsed from disk with secure StAX and then deleted.
+ *
+ * <p>A run whose every list is unchanged returns {@link FetchResult#unchanged()}. Delistings go through
+ * {@link ListReconciler} (tombstones, the shrink guard and its {@code allowShrink} override).
  */
 @Component
 public final class OfacSdnAdapter implements PollingAdapter {
@@ -68,17 +73,45 @@ public final class OfacSdnAdapter implements PollingAdapter {
     static final Duration RETENTION = Duration.ofDays(1825);
     static final DateTimeFormatter SDN_DATE = DateTimeFormatter.ofPattern("MM/dd/yyyy");
 
-    /** Hosts a redirect may land on (the pre-signed S3 object). */
-    static final List<String> REDIRECT_HOSTS = List.of("s3.us-gov-west-1.amazonaws.com", "s3.amazonaws.com");
+    /**
+     * The host a redirect may land on: the pre-signed S3 object in {@code us-gov-west-1} (verified 2026-10-16:
+     * {@code wc2h-sls-prod-public-published.s3.us-gov-west-1.amazonaws.com}), or a subdomain of it.
+     */
+    static final String REDIRECT_HOST = "s3.us-gov-west-1.amazonaws.com";
+
+    /** The adapter-state key prefix of a list's last publication path. */
+    static final String PATH_KEY_PREFIX = "ofac:path:";
+
+    /** The adapter-state key prefix of a list's last downloaded SHA-256. */
+    static final String SHA_KEY_PREFIX = "ofac:sha:";
+
+    /** The adapter-state key prefix of a list's previous id set. */
+    static final String IDS_KEY_PREFIX = "ofac:ids:";
+
+    /** The registration id form of an aircraft name observed in SDN.XML ({@code EP-GOL}). */
+    static final java.util.regex.Pattern REGISTRATION = java.util.regex.Pattern.compile("^[A-Z0-9]{1,2}-[A-Z0-9]{2,5}$");
 
     private final URI baseUrl;
+    private final ListReconciler reconciler;
     private final SourceDescriptor descriptor;
 
-    /** Creates the adapter. */
+    /** Creates the adapter without a notification publisher (tests). */
+    public OfacSdnAdapter(String baseUrlOverride) {
+        this(baseUrlOverride, null);
+    }
+
+    /**
+     * Creates the adapter.
+     *
+     * @param baseUrlOverride test-only base URL, blank for the real one
+     * @param events publishes the shrink-guard system notification; may be null
+     */
     @Autowired
-    public OfacSdnAdapter(@Value("${" + BASE_URL_PROPERTY + ":}") String baseUrlOverride) {
+    public OfacSdnAdapter(@Value("${" + BASE_URL_PROPERTY + ":}") String baseUrlOverride,
+            ApplicationEventPublisher events) {
         this.baseUrl = URI.create(baseUrlOverride == null || baseUrlOverride.isBlank()
                 ? DEFAULT_BASE_URL : baseUrlOverride.strip());
+        this.reconciler = new ListReconciler(events);
         this.descriptor = buildDescriptor();
     }
 
@@ -104,17 +137,36 @@ public final class OfacSdnAdapter implements PollingAdapter {
         if (lists.isEmpty()) {
             lists = List.of("sdn");
         }
-        List<NormalizedRecord> records = new ArrayList<>();
+        List<ListReconciler.Outcome> outcomes = new ArrayList<>();
         for (String list : lists) {
-            records.addAll(fetchList(ctx, list));
+            ListReconciler.Outcome outcome = fetchList(ctx, list);
+            if (outcome != null) {
+                outcomes.add(outcome);
+            }
         }
+        if (outcomes.isEmpty()) {
+            // Every list's publication is the one already ingested: not modified, not "zero records".
+            return FetchResult.unchanged();
+        }
+        ListReconciler.applyHealth(ctx.state(), outcomes);
+        List<NormalizedRecord> records = new ArrayList<>();
+        outcomes.forEach(outcome -> records.addAll(outcome.records()));
         return FetchResult.complete(records);
     }
 
-    private List<NormalizedRecord> fetchList(FetchContext ctx, String list) throws AdapterException {
+    /** The export file name of a {@code lists} value. */
+    static String exportName(String list) {
+        return "consolidated".equals(list) ? "CONSOLIDATED.XML" : "SDN.XML";
+    }
+
+    /**
+     * Fetches one list, or returns null when its publication is unchanged: the redirect's publication path
+     * (query stripped) equals the stored one, or the downloaded bytes hash to the stored SHA-256 (the
+     * consolidated export moves to a new publication path whenever any list is republished).
+     */
+    private ListReconciler.Outcome fetchList(FetchContext ctx, String list) throws AdapterException {
         String listId = "consolidated".equals(list) ? CONSOLIDATED : SDN;
-        URI export = URI.create(baseUrl + "/api/PublicationPreview/exports/"
-                + ("consolidated".equals(list) ? "CONS_PRIM.XML" : "SDN.XML"));
+        URI export = URI.create(baseUrl + "/api/PublicationPreview/exports/" + exportName(list));
         UpstreamResponse response = ctx.http().getNoFollow(export);
         URI target = export;
         if (response.status() >= 300 && response.status() < 400) {
@@ -126,10 +178,11 @@ public final class OfacSdnAdapter implements PollingAdapter {
             URI redirect = URI.create(location);
             requireAllowedRedirect(redirect);
             String path = pathOf(redirect);
-            String stateKey = "ofac:path:" + listId;
+            String stateKey = PATH_KEY_PREFIX + listId;
             if (path.equals(ctx.state().get(stateKey).orElse(null))) {
-                return List.of();
+                return null;
             }
+            // Committed with the rest of the run's state only when the fetch succeeds (framework rule).
             ctx.state().put(stateKey, path);
             target = redirect;
         } else if (response.status() != 200) {
@@ -138,55 +191,39 @@ public final class OfacSdnAdapter implements PollingAdapter {
         Path file = Path.of("ofac-" + listId + "-" + System.nanoTime() + ".xml");
         // The download is charged against the byte budget; a relative name is resolved under the
         // raster temp directory, so parse the file the download reports, not the requested name.
-        ai.foresignal.source.spi.DownloadResult downloaded = ctx.http().download(target, file, MAX_BYTES);
-        List<NormalizedRecord> records;
+        DownloadResult downloaded = ctx.http().download(target, file, MAX_BYTES);
         try {
-            records = parse(downloaded.file(), listId);
-        } catch (IOException | XMLStreamException e) {
-            throw new UpstreamFormatException("The OFAC " + listId + " export is not valid XML", "", e);
+            String shaKey = SHA_KEY_PREFIX + listId;
+            if (downloaded.sha256() != null && downloaded.sha256().equals(ctx.state().get(shaKey).orElse(null))) {
+                return null;
+            }
+            List<NormalizedRecord> records;
+            try {
+                records = parse(downloaded.file(), listId);
+            } catch (IOException | XMLStreamException e) {
+                throw new UpstreamFormatException("The OFAC " + listId + " export is not valid XML", "", e);
+            }
+            if (downloaded.sha256() != null) {
+                ctx.state().put(shaKey, downloaded.sha256());
+            }
+            return reconciler.reconcile(ctx, IDS_KEY_PREFIX + listId, listId, records);
+        } finally {
+            Sanctions.deleteQuietly(downloaded.file());
         }
-        return guard(ctx, listId, records, Instant.now());
     }
 
     private void requireAllowedRedirect(URI redirect) throws AdapterException {
         String host = redirect.getHost() == null ? "" : redirect.getHost();
         // A same-host redirect (the configured base, or a test rebasing) is always allowed; otherwise
-        // the redirect must land on the reviewed pre-signed S3 host.
-        if (host.equals(baseUrl.getHost())) {
+        // the redirect must land on the reviewed pre-signed S3 host in us-gov-west-1.
+        if (host.equals(baseUrl.getHost()) || host.equals(REDIRECT_HOST) || host.endsWith("." + REDIRECT_HOST)) {
             return;
-        }
-        for (String allowed : REDIRECT_HOSTS) {
-            if (host.equals(allowed) || host.endsWith("." + allowed)) {
-                return;
-            }
         }
         throw new AdapterException("The OFAC export redirected to an unapproved host");
     }
 
     private static String pathOf(URI uri) {
         return uri.getScheme() + "://" + uri.getAuthority() + uri.getPath();
-    }
-
-    private List<NormalizedRecord> guard(FetchContext ctx, String listId, List<NormalizedRecord> records,
-            Instant observedAt) {
-        String stateKey = "ofac:ids:" + listId;
-        Set<String> previous = new LinkedHashSet<>();
-        ctx.state().get(stateKey).orElse("").lines().filter(s -> !s.isBlank()).forEach(previous::add);
-        Set<String> current = new LinkedHashSet<>();
-        for (NormalizedRecord record : records) {
-            current.add(record.externalId());
-        }
-        List<NormalizedRecord> out = new ArrayList<>(records);
-        if (DelistingGuard.implausible(previous.size(), current.size())) {
-            ctx.state().degrade(DelistingGuard.SHRINK_REASON);
-        } else {
-            for (String id : DelistingGuard.gone(previous, current)) {
-                out.add(NormalizedRecord.tombstone(id, Sanctions.KIND, observedAt));
-            }
-            ctx.state().clearDegraded();
-        }
-        ctx.state().put(stateKey, String.join("\n", DelistingGuard.sorted(current)));
-        return out;
     }
 
     /** The records of one exported list file. */
@@ -246,8 +283,9 @@ public final class OfacSdnAdapter implements PollingAdapter {
                     imo = Sanctions.digits(value);
                 } else if (upper.contains("MMSI") && Sanctions.isMmsi(value)) {
                     mmsi = Sanctions.digits(value);
-                } else if (upper.contains("AIRCRAFT") && upper.contains("TAIL")) {
-                    aircraftTail = value;
+                } else if ("AIRCRAFT TAIL NUMBER".equals(upper.strip()) && value != null && !value.isBlank()) {
+                    // the current tail; "Previous Aircraft Tail Number" is history, not a key
+                    aircraftTail = value.strip();
                 }
             }
         }
@@ -266,6 +304,14 @@ public final class OfacSdnAdapter implements PollingAdapter {
                 addresses.add(place);
             }
         }
+        String partyType = Sanctions.partyType(entry.childText("sdnType"));
+        String lastName = entry.childText("lastName");
+        if (aircraftTail == null && "aircraft".equals(partyType) && lastName != null
+                && REGISTRATION.matcher(lastName.strip()).matches()) {
+            // Most aircraft entries without an "Aircraft Tail Number" id are named by their registration
+            // (178 of 342 in the 2026-10-15 export, for example EP-GOL)
+            aircraftTail = lastName.strip();
+        }
         String dateOfBirth = entry.path("dateOfBirthList", "dateOfBirthItem", "dateOfBirth");
         Xml.Node vessel = entry.first("vesselInfo");
         String callSign = vessel == null ? null : vessel.childText("callSign");
@@ -275,7 +321,7 @@ public final class OfacSdnAdapter implements PollingAdapter {
                 .observedAt(publish);
         b.put("list", listId);
         b.put("name", name);
-        b.put("partyType", Sanctions.partyType(entry.childText("sdnType")));
+        b.put("partyType", partyType);
         b.put("programs", programs(entry));
         b.put("aliases", Sanctions.cap(aliases, Sanctions.MAX_ALIASES, Sanctions.MAX_ALIAS_CHARS));
         b.put("nationalities", Sanctions.cap(nationalities, Sanctions.MAX_IDENTIFIERS, Sanctions.MAX_ALIAS_CHARS));

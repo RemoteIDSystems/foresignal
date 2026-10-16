@@ -283,6 +283,8 @@ public class FetchExecutor {
         }
         RunChunks chunks = new RunChunks(descriptor, trigger, startedAt, timeout, allowShrink);
         ctx.chunkSink(chunks::emitChunk);
+        // Adapters with their own shrink guard (the 091 sanctions lists) read the same override.
+        ctx.allowShrink(allowShrink);
 
         FetchOutcome outcome;
         FetchResult result;

@@ -6,6 +6,7 @@ import ai.foresignal.reference.BundledCountryPolygons;
 import ai.foresignal.reference.CountryCentroids;
 import ai.foresignal.source.spi.NormalizedRecord;
 import ai.foresignal.testsupport.adapters.AdapterFixtures;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -40,5 +41,15 @@ class UsTravelAdvisoryParserTest {
         NormalizedRecord level2 = records.stream().filter(r -> r.externalId().equals("us:AU")).findFirst()
                 .orElseThrow();
         assertThat(level2.payload()).containsEntry("level", 2);
+    }
+
+    @Test
+    @DisplayName("a Category code that resolves to no country is dropped and counted")
+    void unresolvedCounted() {
+        UnresolvedCountries unresolved = new UnresolvedCountries();
+        List<NormalizedRecord> records = ADAPTER.parse(("[{\"Title\":\"Nowhere - Level 1: Exercise Normal "
+                + "Precautions\",\"Category\":[\"QQ\"],\"id\":\"x\"}]").getBytes(StandardCharsets.UTF_8), unresolved);
+        assertThat(records).isEmpty();
+        assertThat(unresolved.count()).isEqualTo(1);
     }
 }

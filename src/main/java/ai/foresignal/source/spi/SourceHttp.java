@@ -26,6 +26,13 @@ public interface SourceHttp {
     String LAST_MODIFIED_STATE_PREFIX = "lastmod:";
 
     /**
+     * The credential whose value, when a descriptor declares a credential of this name, is appended to the
+     * User-Agent as {@code ; contact=<value>} (prompt 091: the SEC requires contact details), taking precedence
+     * over the descriptor's {@code userAgentContact}. Operators set it like any other credential.
+     */
+    String USER_AGENT_CONTACT_CREDENTIAL = "contactEmail";
+
+    /**
      * Forgets the validators {@link #getConditional} stored under {@code stateKey}, so the next request
      * is unconditional (prompt 047). An adapter calls it when a 200 body it was given could not be used
      * (truncated or unparseable) but the fetch still succeeds: the validators are recorded as soon as the

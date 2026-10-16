@@ -6,6 +6,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import ai.foresignal.ingest.PersistReason;
+import ai.foresignal.mcp.McpOutputShaper;
 import ai.foresignal.source.SourceRegistry;
 import ai.foresignal.testsupport.adapters.AdapterFixtures;
 import ai.foresignal.testsupport.weather.WeatherIngestSupport;
@@ -27,6 +28,7 @@ class HumanitarianIngestIT extends WeatherIngestSupport {
     static final JsonMapper JSON = JsonMapper.builder().build();
 
     @Autowired SourceRegistry registry;
+    @Autowired McpOutputShaper shaper;
 
     @Test
     @DisplayName("OpenFEMA records ingest and the descriptor carries the eligibility notice")
@@ -40,6 +42,11 @@ class HumanitarianIngestIT extends WeatherIngestSupport {
         assertThat(versions("openfema-declarations", (PersistReason) null)).isGreaterThan(0);
         assertThat(registry.get("openfema-declarations").descriptor().llmNotice())
                 .contains("DisasterAssistance.gov");
+        // the registered notice is what every LLM-context path attaches (McpOutputShaper; AskLlmNoticeIT
+        // proves the Ask tool result end to end with a test source)
+        ObjectNode hit = JSON.createObjectNode();
+        shaper.searchHitNotice(Map.of("docType", "record", "docId", "openfema-declarations:x"), hit);
+        assertThat(hit.path("llmNotice").asString()).isEqualTo(OpenFemaDeclarationsAdapter.LLM_NOTICE);
     }
 
     @Test

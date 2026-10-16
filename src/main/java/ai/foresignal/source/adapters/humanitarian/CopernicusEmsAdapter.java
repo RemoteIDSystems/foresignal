@@ -111,10 +111,9 @@ public final class CopernicusEmsAdapter implements PollingAdapter {
                     reached = true;
                     break;
                 }
+                // The stored watermark stays fixed for the whole run; the new one (the newest lastUpdate seen)
+                // is written only after the loop, so every item newer than the previous run is kept.
                 records.add(record(ctx, item));
-                if (lastUpdate != null) {
-                    watermark = lastUpdate;
-                }
             }
             offset += results.size();
             if (reached || lastPage || root.get("next") == null || root.get("next").isNull()) {

@@ -4597,4 +4597,79 @@
       </Individual>
     </IndividualDetails>
   </Designation>
+  <Designation>
+    <LastUpdated>18/12/2021</LastUpdated>
+    <DateDesignated>03/10/2017</DateDesignated>
+    <UniqueID>DPR0075</UniqueID>
+    <Names>
+      <Name>
+        <Name6>Petrel 8</Name6>
+        <NameType>Primary name</NameType>
+      </Name>
+      <Name>
+        <Name6>Jal Vahini</Name6>
+        <NameType>Alias</NameType>
+      </Name>
+      <Name>
+        <Name6>Jal_Vahini</Name6>
+        <NameType>Alias</NameType>
+      </Name>
+      <Name>
+        <Name6>Tian Tai 36</Name6>
+        <NameType>Alias</NameType>
+      </Name>
+    </Names>
+    <RegimeName>The Democratic People's Republic of Korea (Sanctions) (EU Exit) Regulations 2019</RegimeName>
+    <IndividualEntityShip>Ship</IndividualEntityShip>
+    <DesignationSource>UN</DesignationSource>
+    <SanctionsImposed>Prohibition of port entry</SanctionsImposed>
+    <SanctionsImposedIndicators>
+      <AssetFreeze>false</AssetFreeze>
+      <ArmsEmbargo>false</ArmsEmbargo>
+      <TargetedArmsEmbargo>false</TargetedArmsEmbargo>
+      <CharteringOfShips>false</CharteringOfShips>
+      <ClosureOfRepresentativeOffices>false</ClosureOfRepresentativeOffices>
+      <CrewServicingOfShipsAndAircraft>false</CrewServicingOfShipsAndAircraft>
+      <Deflag>false</Deflag>
+      <PreventionOfBusinessArrangements>false</PreventionOfBusinessArrangements>
+      <ProhibitionOfPortEntry>true</ProhibitionOfPortEntry>
+      <TravelBan>false</TravelBan>
+      <PreventionOfCharteringOfShips>false</PreventionOfCharteringOfShips>
+      <PreventionOfCharteringOfShipsAndAircraft>false</PreventionOfCharteringOfShipsAndAircraft>
+      <TechnicalAssistanceRelatedToAircraft>false</TechnicalAssistanceRelatedToAircraft>
+      <TrustServicesSanctions>false</TrustServicesSanctions>
+      <DirectorDisqualificationSanction>false</DirectorDisqualificationSanction>
+    </SanctionsImposedIndicators>
+    <OtherInformation>Pursuant to paragraph 6 of Security Council Resolution 2371 (2017) and paragraph 6 of Security Council Resolution 2375 (2017)</OtherInformation>
+    <UKStatementofReasons>
+</UKStatementofReasons>
+    <ShipDetails>
+      <Ship>
+        <IMONumbers>
+          <IMONumber>IMO9562233</IMONumber>
+        </IMONumbers>
+        <CurrentOwnerOperators>
+          <CurrentOwnerOperator>Global United Shipping India </CurrentOwnerOperator>
+        </CurrentOwnerOperators>
+        <CurrentBelievedFlagOfShips>
+          <CurrentBelievedFlagOfShip>Comoros</CurrentBelievedFlagOfShip>
+        </CurrentBelievedFlagOfShips>
+        <PreviousFlags>
+          <PreviousFlag>India</PreviousFlag>
+        </PreviousFlags>
+        <TypeOfShipDetails>
+          <TypeOfShip>Bulk Carrier</TypeOfShip>
+        </TypeOfShipDetails>
+        <TonnageOfShipDetails>
+          <TonnageOfShip>7078</TonnageOfShip>
+        </TonnageOfShipDetails>
+        <LengthOfShipDetails>
+          <LengthOfShip>134.5</LengthOfShip>
+        </LengthOfShipDetails>
+        <YearsBuilt>
+          <YearBuilt>2011</YearBuilt>
+        </YearsBuilt>
+      </Ship>
+    </ShipDetails>
+  </Designation>
 </Designations>

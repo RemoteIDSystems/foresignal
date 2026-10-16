@@ -1,0 +1,975 @@
+<?xml version="1.0" standalone="yes"?>
+<sdnList xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="https://sanctionslistservice.ofac.treas.gov/api/PublicationPreview/exports/XML">
+  <publshInformation>
+    <Publish_Date>09/14/2026</Publish_Date>
+    <Record_Count>481</Record_Count>
+  </publshInformation>
+  <sdnEntry>
+    <uid>9640</uid>
+    <firstName>Mohammed</firstName>
+    <lastName>ABU TEIR</lastName>
+    <sdnType>Individual</sdnType>
+    <programList>
+      <program>NS-PLC</program>
+    </programList>
+    <akaList>
+      <aka>
+        <uid>9152</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>ABU TAIR</lastName>
+        <firstName>Mohammed Mahmud</firstName>
+      </aka>
+      <aka>
+        <uid>9153</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>ABOU TAYR</lastName>
+        <firstName>Mohammad Mahmoud</firstName>
+      </aka>
+    </akaList>
+    <dateOfBirthList>
+      <dateOfBirthItem>
+        <uid>4698</uid>
+        <dateOfBirth>1951</dateOfBirth>
+        <mainEntry>true</mainEntry>
+      </dateOfBirthItem>
+    </dateOfBirthList>
+    <placeOfBirthList>
+      <placeOfBirthItem>
+        <uid>4699</uid>
+        <placeOfBirth>Umm Tuba</placeOfBirth>
+        <mainEntry>true</mainEntry>
+      </placeOfBirthItem>
+    </placeOfBirthList>
+  </sdnEntry>
+  <sdnEntry>
+    <uid>9641</uid>
+    <firstName>Jamileh Abdullah</firstName>
+    <lastName>AL-SHANTI</lastName>
+    <sdnType>Individual</sdnType>
+    <programList>
+      <program>NS-PLC</program>
+    </programList>
+    <akaList>
+      <aka>
+        <uid>9154</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>EL-SHANTI</lastName>
+        <firstName>Jameela Abdallah</firstName>
+      </aka>
+      <aka>
+        <uid>9155</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>AL SHANTEE</lastName>
+        <firstName>Jamila Abed Allah</firstName>
+      </aka>
+    </akaList>
+    <addressList>
+      <address>
+        <uid>12128</uid>
+        <stateOrProvince>Gaza</stateOrProvince>
+        <country>Palestinian</country>
+      </address>
+    </addressList>
+    <dateOfBirthList>
+      <dateOfBirthItem>
+        <uid>4700</uid>
+        <dateOfBirth>1955</dateOfBirth>
+        <mainEntry>true</mainEntry>
+      </dateOfBirthItem>
+    </dateOfBirthList>
+    <placeOfBirthList>
+      <placeOfBirthItem>
+        <uid>4701</uid>
+        <placeOfBirth>Jabalia Camp</placeOfBirth>
+        <mainEntry>true</mainEntry>
+      </placeOfBirthItem>
+    </placeOfBirthList>
+  </sdnEntry>
+  <sdnEntry>
+    <uid>9642</uid>
+    <firstName>Mohammed Jamal</firstName>
+    <lastName>NU'MAN ALAEDDIN</lastName>
+    <sdnType>Individual</sdnType>
+    <programList>
+      <program>NS-PLC</program>
+    </programList>
+    <akaList>
+      <aka>
+        <uid>9156</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>ALA AL DIN</lastName>
+        <firstName>Mohamad Nouman</firstName>
+      </aka>
+      <aka>
+        <uid>9157</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>AL NATSHEH</lastName>
+        <firstName>Mohammed</firstName>
+      </aka>
+    </akaList>
+    <addressList>
+      <address>
+        <uid>12129</uid>
+        <city>Hebron</city>
+        <stateOrProvince>West Bank</stateOrProvince>
+        <country>Palestinian</country>
+      </address>
+    </addressList>
+    <dateOfBirthList>
+      <dateOfBirthItem>
+        <uid>4702</uid>
+        <dateOfBirth>1959</dateOfBirth>
+        <mainEntry>true</mainEntry>
+      </dateOfBirthItem>
+    </dateOfBirthList>
+  </sdnEntry>
+  <sdnEntry>
+    <uid>9643</uid>
+    <firstName>Yasser Daoud</firstName>
+    <lastName>MANSOUR</lastName>
+    <sdnType>Individual</sdnType>
+    <programList>
+      <program>NS-PLC</program>
+    </programList>
+    <dateOfBirthList>
+      <dateOfBirthItem>
+        <uid>4703</uid>
+        <dateOfBirth>1967</dateOfBirth>
+        <mainEntry>true</mainEntry>
+      </dateOfBirthItem>
+    </dateOfBirthList>
+    <placeOfBirthList>
+      <placeOfBirthItem>
+        <uid>4704</uid>
+        <placeOfBirth>Nablus, West Bank</placeOfBirth>
+        <mainEntry>true</mainEntry>
+      </placeOfBirthItem>
+    </placeOfBirthList>
+  </sdnEntry>
+  <sdnEntry>
+    <uid>9644</uid>
+    <firstName>Khalil Musa</firstName>
+    <lastName>RABAI</lastName>
+    <sdnType>Individual</sdnType>
+    <programList>
+      <program>NS-PLC</program>
+    </programList>
+    <akaList>
+      <aka>
+        <uid>9158</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>RABBAI</lastName>
+        <firstName>Khalil Mussa</firstName>
+      </aka>
+    </akaList>
+    <dateOfBirthList>
+      <dateOfBirthItem>
+        <uid>4705</uid>
+        <dateOfBirth>1959</dateOfBirth>
+        <mainEntry>true</mainEntry>
+      </dateOfBirthItem>
+    </dateOfBirthList>
+  </sdnEntry>
+  <sdnEntry>
+    <uid>9645</uid>
+    <firstName>Huda Naim</firstName>
+    <lastName>AL-QREINAWI</lastName>
+    <sdnType>Individual</sdnType>
+    <programList>
+      <program>NS-PLC</program>
+    </programList>
+    <akaList>
+      <aka>
+        <uid>9159</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>AL QRENAWI</lastName>
+        <firstName>Houda Naim</firstName>
+      </aka>
+    </akaList>
+    <addressList>
+      <address>
+        <uid>12130</uid>
+        <stateOrProvince>Gaza</stateOrProvince>
+        <country>Palestinian</country>
+      </address>
+    </addressList>
+    <dateOfBirthList>
+      <dateOfBirthItem>
+        <uid>4706</uid>
+        <dateOfBirth>1969</dateOfBirth>
+        <mainEntry>true</mainEntry>
+      </dateOfBirthItem>
+    </dateOfBirthList>
+  </sdnEntry>
+  <sdnEntry>
+    <uid>9646</uid>
+    <firstName>Mahmoud Ahmad</firstName>
+    <lastName>AL-RAMAHI</lastName>
+    <sdnType>Individual</sdnType>
+    <programList>
+      <program>NS-PLC</program>
+    </programList>
+    <addressList>
+      <address>
+        <uid>12131</uid>
+        <city>Ramallah</city>
+        <stateOrProvince>West Bank</stateOrProvince>
+        <country>Palestinian</country>
+      </address>
+    </addressList>
+    <dateOfBirthList>
+      <dateOfBirthItem>
+        <uid>4707</uid>
+        <dateOfBirth>1963</dateOfBirth>
+        <mainEntry>true</mainEntry>
+      </dateOfBirthItem>
+    </dateOfBirthList>
+  </sdnEntry>
+  <sdnEntry>
+    <uid>9647</uid>
+    <firstName>Mahmoud Khaled</firstName>
+    <lastName>ZAHHAR</lastName>
+    <sdnType>Individual</sdnType>
+    <remarks>(Linked To: HAMAS)</remarks>
+    <programList>
+      <program>NS-PLC</program>
+      <program>SDGT</program>
+    </programList>
+    <idList>
+      <id>
+        <uid>166816</uid>
+        <idType>Gender</idType>
+        <idNumber>Male</idNumber>
+      </id>
+      <id>
+        <uid>166818</uid>
+        <idType>Secondary sanctions risk:</idType>
+        <idNumber>section 1(b) of Executive Order 13224, as amended by Executive Order 13886</idNumber>
+      </id>
+    </idList>
+    <akaList>
+      <aka>
+        <uid>9160</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>AL ZAHAR</lastName>
+        <firstName>Mahmoud Khaled</firstName>
+      </aka>
+      <aka>
+        <uid>71276</uid>
+        <type>a.k.a.</type>
+        <category>weak</category>
+        <lastName>ZAHAR, Mahmoud</lastName>
+      </aka>
+      <aka>
+        <uid>71277</uid>
+        <type>a.k.a.</type>
+        <category>weak</category>
+        <lastName>AL-ZAHAR, Mahmoud</lastName>
+      </aka>
+    </akaList>
+    <addressList>
+      <address>
+        <uid>68713</uid>
+        <country>Region: Gaza</country>
+      </address>
+    </addressList>
+    <nationalityList>
+      <nationality>
+        <uid>66817</uid>
+        <country>Palestinian</country>
+        <mainEntry>true</mainEntry>
+      </nationality>
+    </nationalityList>
+    <dateOfBirthList>
+      <dateOfBirthItem>
+        <uid>4708</uid>
+        <dateOfBirth>1945</dateOfBirth>
+        <mainEntry>true</mainEntry>
+      </dateOfBirthItem>
+    </dateOfBirthList>
+    <placeOfBirthList>
+      <placeOfBirthItem>
+        <uid>66815</uid>
+        <placeOfBirth>Gaza Strip</placeOfBirth>
+        <mainEntry>true</mainEntry>
+      </placeOfBirthItem>
+    </placeOfBirthList>
+  </sdnEntry>
+  <sdnEntry>
+    <uid>9648</uid>
+    <firstName>Abdul Fattah</firstName>
+    <lastName>HASAN DUKHAN</lastName>
+    <sdnType>Individual</sdnType>
+    <programList>
+      <program>NS-PLC</program>
+    </programList>
+    <akaList>
+      <aka>
+        <uid>9161</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>HASAN DOUKHAN</lastName>
+        <firstName>Abdul Fattah</firstName>
+      </aka>
+    </akaList>
+    <dateOfBirthList>
+      <dateOfBirthItem>
+        <uid>4709</uid>
+        <dateOfBirth>1936</dateOfBirth>
+        <mainEntry>true</mainEntry>
+      </dateOfBirthItem>
+    </dateOfBirthList>
+  </sdnEntry>
+  <sdnEntry>
+    <uid>9649</uid>
+    <firstName>Ibrahim Mohammed</firstName>
+    <lastName>DAHBOUR</lastName>
+    <sdnType>Individual</sdnType>
+    <programList>
+      <program>NS-PLC</program>
+    </programList>
+    <addressList>
+      <address>
+        <uid>12132</uid>
+        <city>Jenin</city>
+        <stateOrProvince>West Bank</stateOrProvince>
+        <country>Palestinian</country>
+      </address>
+    </addressList>
+    <dateOfBirthList>
+      <dateOfBirthItem>
+        <uid>4710</uid>
+        <dateOfBirth>1968</dateOfBirth>
+        <mainEntry>true</mainEntry>
+      </dateOfBirthItem>
+    </dateOfBirthList>
+  </sdnEntry>
+  <sdnEntry>
+    <uid>9650</uid>
+    <firstName>Mariam Mahmoud</firstName>
+    <lastName>SALEH</lastName>
+    <sdnType>Individual</sdnType>
+    <programList>
+      <program>NS-PLC</program>
+    </programList>
+    <addressList>
+      <address>
+        <uid>12133</uid>
+        <city>Ramallah</city>
+        <stateOrProvince>West Bank</stateOrProvince>
+        <country>Palestinian</country>
+      </address>
+    </addressList>
+    <dateOfBirthList>
+      <dateOfBirthItem>
+        <uid>4711</uid>
+        <dateOfBirth>1952</dateOfBirth>
+        <mainEntry>true</mainEntry>
+      </dateOfBirthItem>
+    </dateOfBirthList>
+  </sdnEntry>
+  <sdnEntry>
+    <uid>9651</uid>
+    <firstName>Fathi Mohammed</firstName>
+    <lastName>QAR'AWI</lastName>
+    <sdnType>Individual</sdnType>
+    <programList>
+      <program>NS-PLC</program>
+    </programList>
+    <akaList>
+      <aka>
+        <uid>9162</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>QARAWI</lastName>
+        <firstName>Mohammed Fathi</firstName>
+      </aka>
+    </akaList>
+    <addressList>
+      <address>
+        <uid>12134</uid>
+        <city>Tulkarim</city>
+        <stateOrProvince>West Bank</stateOrProvince>
+        <country>Palestinian</country>
+      </address>
+    </addressList>
+    <dateOfBirthList>
+      <dateOfBirthItem>
+        <uid>4712</uid>
+        <dateOfBirth>1958</dateOfBirth>
+        <mainEntry>true</mainEntry>
+      </dateOfBirthItem>
+    </dateOfBirthList>
+    <placeOfBirthList>
+      <placeOfBirthItem>
+        <uid>4713</uid>
+        <placeOfBirth>Ramin, West Bank</placeOfBirth>
+        <mainEntry>true</mainEntry>
+      </placeOfBirthItem>
+    </placeOfBirthList>
+  </sdnEntry>
+  <sdnEntry>
+    <uid>9652</uid>
+    <firstName>Anwar Mohammed</firstName>
+    <lastName>ZBOUN</lastName>
+    <sdnType>Individual</sdnType>
+    <programList>
+      <program>NS-PLC</program>
+    </programList>
+    <akaList>
+      <aka>
+        <uid>9163</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>AL-ZBOUN</lastName>
+        <firstName>Anwar Muhammad</firstName>
+      </aka>
+    </akaList>
+    <addressList>
+      <address>
+        <uid>12135</uid>
+        <city>Bethlehem</city>
+        <stateOrProvince>West Bank</stateOrProvince>
+        <country>Palestinian</country>
+      </address>
+    </addressList>
+    <dateOfBirthList>
+      <dateOfBirthItem>
+        <uid>4714</uid>
+        <dateOfBirth>1968</dateOfBirth>
+        <mainEntry>true</mainEntry>
+      </dateOfBirthItem>
+    </dateOfBirthList>
+    <placeOfBirthList>
+      <placeOfBirthItem>
+        <uid>4715</uid>
+        <placeOfBirth>Ilar</placeOfBirth>
+        <mainEntry>true</mainEntry>
+      </placeOfBirthItem>
+    </placeOfBirthList>
+  </sdnEntry>
+  <sdnEntry>
+    <uid>9653</uid>
+    <firstName>Imad Mahmoud</firstName>
+    <lastName>NOFAL</lastName>
+    <sdnType>Individual</sdnType>
+    <programList>
+      <program>NS-PLC</program>
+    </programList>
+    <akaList>
+      <aka>
+        <uid>9164</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>NAWFAL</lastName>
+        <firstName>Imad Mahmoud</firstName>
+      </aka>
+    </akaList>
+    <addressList>
+      <address>
+        <uid>12136</uid>
+        <city>Qalqilya</city>
+        <stateOrProvince>West Bank</stateOrProvince>
+        <country>Palestinian</country>
+      </address>
+    </addressList>
+    <dateOfBirthList>
+      <dateOfBirthItem>
+        <uid>4716</uid>
+        <dateOfBirth>1970</dateOfBirth>
+        <mainEntry>true</mainEntry>
+      </dateOfBirthItem>
+    </dateOfBirthList>
+  </sdnEntry>
+  <sdnEntry>
+    <uid>9654</uid>
+    <firstName>Omar Mahmoud</firstName>
+    <lastName>MATAR</lastName>
+    <sdnType>Individual</sdnType>
+    <programList>
+      <program>NS-PLC</program>
+    </programList>
+    <addressList>
+      <address>
+        <uid>12137</uid>
+        <city>Salfit</city>
+        <stateOrProvince>West Bank</stateOrProvince>
+        <country>Palestinian</country>
+      </address>
+    </addressList>
+    <dateOfBirthList>
+      <dateOfBirthItem>
+        <uid>4717</uid>
+        <dateOfBirth>1958</dateOfBirth>
+        <mainEntry>true</mainEntry>
+      </dateOfBirthItem>
+    </dateOfBirthList>
+  </sdnEntry>
+  <sdnEntry>
+    <uid>9655</uid>
+    <firstName>Muna Salim Saleh</firstName>
+    <lastName>MANSOUR</lastName>
+    <sdnType>Individual</sdnType>
+    <programList>
+      <program>NS-PLC</program>
+    </programList>
+    <akaList>
+      <aka>
+        <uid>9165</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>MANSOUR</lastName>
+        <firstName>Muna Salem</firstName>
+      </aka>
+    </akaList>
+    <addressList>
+      <address>
+        <uid>12138</uid>
+        <city>Nablus</city>
+        <stateOrProvince>West Bank</stateOrProvince>
+        <country>Palestinian</country>
+      </address>
+    </addressList>
+    <dateOfBirthList>
+      <dateOfBirthItem>
+        <uid>4718</uid>
+        <dateOfBirth>1961</dateOfBirth>
+        <mainEntry>true</mainEntry>
+      </dateOfBirthItem>
+    </dateOfBirthList>
+  </sdnEntry>
+  <sdnEntry>
+    <uid>9656</uid>
+    <firstName>Yahia Abdul Aziz</firstName>
+    <lastName>AL-ABADSAH</lastName>
+    <sdnType>Individual</sdnType>
+    <programList>
+      <program>NS-PLC</program>
+    </programList>
+    <akaList>
+      <aka>
+        <uid>9166</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>EL ABADSA</lastName>
+        <firstName>Yehia Abdul Aziz</firstName>
+      </aka>
+    </akaList>
+    <addressList>
+      <address>
+        <uid>12139</uid>
+        <city>Khan Younis</city>
+        <stateOrProvince>West Bank</stateOrProvince>
+        <country>Palestinian</country>
+      </address>
+    </addressList>
+    <dateOfBirthList>
+      <dateOfBirthItem>
+        <uid>4719</uid>
+        <dateOfBirth>1958</dateOfBirth>
+        <mainEntry>true</mainEntry>
+      </dateOfBirthItem>
+    </dateOfBirthList>
+  </sdnEntry>
+  <sdnEntry>
+    <uid>9657</uid>
+    <firstName>Mohammed Maher Yousef</firstName>
+    <lastName>BADER</lastName>
+    <sdnType>Individual</sdnType>
+    <programList>
+      <program>NS-PLC</program>
+    </programList>
+    <addressList>
+      <address>
+        <uid>12140</uid>
+        <city>Hebron</city>
+        <stateOrProvince>West Bank</stateOrProvince>
+        <country>Palestinian</country>
+      </address>
+    </addressList>
+    <dateOfBirthList>
+      <dateOfBirthItem>
+        <uid>4720</uid>
+        <dateOfBirth>1956</dateOfBirth>
+        <mainEntry>true</mainEntry>
+      </dateOfBirthItem>
+    </dateOfBirthList>
+  </sdnEntry>
+  <sdnEntry>
+    <uid>9658</uid>
+    <firstName>Ayman Hussein</firstName>
+    <lastName>DARAGHMEH</lastName>
+    <sdnType>Individual</sdnType>
+    <programList>
+      <program>NS-PLC</program>
+    </programList>
+    <addressList>
+      <address>
+        <uid>12141</uid>
+        <city>Tubas</city>
+        <stateOrProvince>West Bank</stateOrProvince>
+        <country>Palestinian</country>
+      </address>
+    </addressList>
+    <dateOfBirthList>
+      <dateOfBirthItem>
+        <uid>4721</uid>
+        <dateOfBirth>1963</dateOfBirth>
+        <mainEntry>true</mainEntry>
+      </dateOfBirthItem>
+    </dateOfBirthList>
+  </sdnEntry>
+  <sdnEntry>
+    <uid>9659</uid>
+    <firstName>Fathi Ahmad Mohammad</firstName>
+    <lastName>HAMMAD</lastName>
+    <sdnType>Individual</sdnType>
+    <programList>
+      <program>NS-PLC</program>
+      <program>SDGT</program>
+    </programList>
+    <idList>
+      <id>
+        <uid>186277</uid>
+        <idType>Secondary sanctions risk:</idType>
+        <idNumber>section 1(b) of Executive Order 13224, as amended by Executive Order 13886</idNumber>
+      </id>
+    </idList>
+    <akaList>
+      <aka>
+        <uid>32437</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>HAMMAD</lastName>
+        <firstName>Fathi Ahmad</firstName>
+      </aka>
+      <aka>
+        <uid>32438</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>HAMAD</lastName>
+        <firstName>Fathy Ahmed</firstName>
+      </aka>
+      <aka>
+        <uid>32439</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>HAMAD</lastName>
+        <firstName>Fathi</firstName>
+      </aka>
+    </akaList>
+    <addressList>
+      <address>
+        <uid>31130</uid>
+        <city>Jabaliya</city>
+        <country>Region: Gaza</country>
+      </address>
+    </addressList>
+    <dateOfBirthList>
+      <dateOfBirthItem>
+        <uid>4722</uid>
+        <dateOfBirth>1961</dateOfBirth>
+        <mainEntry>true</mainEntry>
+      </dateOfBirthItem>
+    </dateOfBirthList>
+    <placeOfBirthList>
+      <placeOfBirthItem>
+        <uid>21061</uid>
+        <placeOfBirth>Jabaliya, Gaza Strip</placeOfBirth>
+        <mainEntry>true</mainEntry>
+      </placeOfBirthItem>
+    </placeOfBirthList>
+  </sdnEntry>
+  <sdnEntry>
+    <uid>9660</uid>
+    <firstName>Mariam Mohammed</firstName>
+    <lastName>FARHAT</lastName>
+    <sdnType>Individual</sdnType>
+    <programList>
+      <program>NS-PLC</program>
+    </programList>
+    <addressList>
+      <address>
+        <uid>12142</uid>
+        <stateOrProvince>Gaza</stateOrProvince>
+        <country>Palestinian</country>
+      </address>
+    </addressList>
+    <dateOfBirthList>
+      <dateOfBirthItem>
+        <uid>4723</uid>
+        <dateOfBirth>1949</dateOfBirth>
+        <mainEntry>true</mainEntry>
+      </dateOfBirthItem>
+    </dateOfBirthList>
+  </sdnEntry>
+  <sdnEntry>
+    <uid>9661</uid>
+    <firstName>Sayyed Salem</firstName>
+    <lastName>ABU MSAMEH</lastName>
+    <sdnType>Individual</sdnType>
+    <programList>
+      <program>NS-PLC</program>
+    </programList>
+    <akaList>
+      <aka>
+        <uid>9167</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>ABU MUSAMEH</lastName>
+        <firstName>Sayed Salem</firstName>
+      </aka>
+    </akaList>
+    <addressList>
+      <address>
+        <uid>12143</uid>
+        <city>Rafah</city>
+        <stateOrProvince>West Bank</stateOrProvince>
+        <country>Palestinian</country>
+      </address>
+    </addressList>
+    <dateOfBirthList>
+      <dateOfBirthItem>
+        <uid>4724</uid>
+        <dateOfBirth>1948</dateOfBirth>
+        <mainEntry>true</mainEntry>
+      </dateOfBirthItem>
+    </dateOfBirthList>
+  </sdnEntry>
+  <sdnEntry>
+    <uid>9662</uid>
+    <firstName>Marwan Mohammed</firstName>
+    <lastName>ABU RAS</lastName>
+    <sdnType>Individual</sdnType>
+    <programList>
+      <program>NS-PLC</program>
+    </programList>
+    <akaList>
+      <aka>
+        <uid>9168</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>ABOU RAAS</lastName>
+        <firstName>Merwan Muhammed</firstName>
+      </aka>
+    </akaList>
+    <addressList>
+      <address>
+        <uid>12144</uid>
+        <city>Gaza City</city>
+        <stateOrProvince>Gaza</stateOrProvince>
+        <country>Palestinian</country>
+      </address>
+    </addressList>
+    <dateOfBirthList>
+      <dateOfBirthItem>
+        <uid>4725</uid>
+        <dateOfBirth>1958</dateOfBirth>
+        <mainEntry>true</mainEntry>
+      </dateOfBirthItem>
+    </dateOfBirthList>
+  </sdnEntry>
+  <sdnEntry>
+    <uid>9663</uid>
+    <firstName>Samira Abdullah</firstName>
+    <lastName>HALAYQAH</lastName>
+    <sdnType>Individual</sdnType>
+    <programList>
+      <program>NS-PLC</program>
+    </programList>
+    <akaList>
+      <aka>
+        <uid>9169</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>HALAYQA</lastName>
+        <firstName>Sameera Abed Allah</firstName>
+      </aka>
+    </akaList>
+    <addressList>
+      <address>
+        <uid>12145</uid>
+        <city>Hebron</city>
+        <stateOrProvince>West Bank</stateOrProvince>
+        <country>Palestinian</country>
+      </address>
+    </addressList>
+    <dateOfBirthList>
+      <dateOfBirthItem>
+        <uid>4726</uid>
+        <dateOfBirth>1964</dateOfBirth>
+        <mainEntry>true</mainEntry>
+      </dateOfBirthItem>
+    </dateOfBirthList>
+  </sdnEntry>
+  <sdnEntry>
+    <uid>9664</uid>
+    <firstName>Jamal Ismail</firstName>
+    <lastName>ISKEIK</lastName>
+    <sdnType>Individual</sdnType>
+    <programList>
+      <program>NS-PLC</program>
+    </programList>
+    <addressList>
+      <address>
+        <uid>12146</uid>
+        <stateOrProvince>Gaza</stateOrProvince>
+        <country>Palestinian</country>
+      </address>
+    </addressList>
+    <dateOfBirthList>
+      <dateOfBirthItem>
+        <uid>4727</uid>
+        <dateOfBirth>1964</dateOfBirth>
+        <mainEntry>true</mainEntry>
+      </dateOfBirthItem>
+    </dateOfBirthList>
+  </sdnEntry>
+  <sdnEntry>
+    <uid>9665</uid>
+    <firstName>Ali Salim</firstName>
+    <lastName>ROUMANIN</lastName>
+    <sdnType>Individual</sdnType>
+    <programList>
+      <program>NS-PLC</program>
+    </programList>
+    <addressList>
+      <address>
+        <uid>12147</uid>
+        <city>Oja</city>
+        <stateOrProvince>West Bank</stateOrProvince>
+        <country>Palestinian</country>
+      </address>
+    </addressList>
+    <dateOfBirthList>
+      <dateOfBirthItem>
+        <uid>4728</uid>
+        <dateOfBirth>1971</dateOfBirth>
+        <mainEntry>true</mainEntry>
+      </dateOfBirthItem>
+    </dateOfBirthList>
+  </sdnEntry>
+  <sdnEntry>
+    <uid>9666</uid>
+    <firstName>Ahmad Yousef</firstName>
+    <lastName>ABU HALABIYYE</lastName>
+    <sdnType>Individual</sdnType>
+    <programList>
+      <program>NS-PLC</program>
+    </programList>
+    <addressList>
+      <address>
+        <uid>12148</uid>
+        <city>Gaza City</city>
+        <stateOrProvince>Gaza</stateOrProvince>
+        <country>Palestinian</country>
+      </address>
+    </addressList>
+    <dateOfBirthList>
+      <dateOfBirthItem>
+        <uid>4729</uid>
+        <dateOfBirth>1952</dateOfBirth>
+        <mainEntry>true</mainEntry>
+      </dateOfBirthItem>
+    </dateOfBirthList>
+  </sdnEntry>
+  <sdnEntry>
+    <uid>9667</uid>
+    <firstName>Abdul Jaber Mustafa</firstName>
+    <lastName>FUQAHA</lastName>
+    <sdnType>Individual</sdnType>
+    <programList>
+      <program>NS-PLC</program>
+    </programList>
+    <addressList>
+      <address>
+        <uid>12149</uid>
+        <city>Ramallah</city>
+        <stateOrProvince>West Bank</stateOrProvince>
+        <country>Palestinian</country>
+      </address>
+    </addressList>
+    <dateOfBirthList>
+      <dateOfBirthItem>
+        <uid>4730</uid>
+        <dateOfBirth>1966</dateOfBirth>
+        <mainEntry>true</mainEntry>
+      </dateOfBirthItem>
+    </dateOfBirthList>
+  </sdnEntry>
+  <sdnEntry>
+    <uid>9668</uid>
+    <firstName>Aziz</firstName>
+    <lastName>DWEIK</lastName>
+    <sdnType>Individual</sdnType>
+    <remarks>HAMAS - Hebron</remarks>
+    <programList>
+      <program>NS-PLC</program>
+    </programList>
+    <akaList>
+      <aka>
+        <uid>9170</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>DWAIK</lastName>
+        <firstName>Aziz Salem Mustada</firstName>
+      </aka>
+    </akaList>
+    <dateOfBirthList>
+      <dateOfBirthItem>
+        <uid>4731</uid>
+        <dateOfBirth>1948</dateOfBirth>
+        <mainEntry>true</mainEntry>
+      </dateOfBirthItem>
+    </dateOfBirthList>
+    <placeOfBirthList>
+      <placeOfBirthItem>
+        <uid>4732</uid>
+        <placeOfBirth>Al-Khalil, Hebron</placeOfBirth>
+        <mainEntry>true</mainEntry>
+      </placeOfBirthItem>
+    </placeOfBirthList>
+  </sdnEntry>
+  <sdnEntry>
+    <uid>9669</uid>
+    <firstName>Azzam</firstName>
+    <lastName>SALHAB</lastName>
+    <sdnType>Individual</sdnType>
+    <remarks>HAMAS - Hebron</remarks>
+    <programList>
+      <program>NS-PLC</program>
+    </programList>
+    <akaList>
+      <aka>
+        <uid>9171</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>SALHAB</lastName>
+        <firstName>Azzam Numan Rahman</firstName>
+      </aka>
+      <aka>
+        <uid>9172</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>SALHAB TAMIMI</lastName>
+        <firstName>Azzam No'man Abdel Rahman</firstName>
+      </aka>
+    </akaList>
+    <dateOfBirthList>
+      <dateOfBirthItem>
+        <uid>4733</uid>
+        <dateOfBirth>1956</dateOfBirth>
+        <mainEntry>true</mainEntry>
+      </dateOfBirthItem>
+    </dateOfBirthList>
+  </sdnEntry>
+</sdnList>

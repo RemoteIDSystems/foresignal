@@ -14,7 +14,9 @@ import ai.foresignal.source.spi.SourceDescriptor;
 import ai.foresignal.source.spi.TtlAnchor;
 import ai.foresignal.source.spi.UpstreamFormatException;
 import ai.foresignal.source.spi.UpstreamResponse;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -23,21 +25,22 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
  * {@code uk-sanctions-list} (prompt 091): the FCDO UK Sanctions List, which replaced the OFSI Consolidated
- * List (closed 28 January 2026). The list is 22 MB with {@code ETag}/{@code Last-Modified}, so it is
- * change-checked with a conditional GET, downloaded with a cap and parsed from disk.
+ * List (closed 28 January 2026). The list is 22 MB with {@code ETag}/{@code Last-Modified}, so it is fetched
+ * with one conditional GET (capped at the descriptor's {@code maxResponseBytes}) and stream-parsed from the
+ * response body; an unchanged list costs one 304.
  *
  * <p>{@code NameType = Primary Name} is the record name; the rest are aliases. {@code UNReferenceNumber}
  * becomes the {@code unReference} entity key so an entity links to the UN list.
@@ -60,13 +63,26 @@ public final class UkSanctionsAdapter implements PollingAdapter {
     static final DateTimeFormatter UK_DATE = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     private final URI baseUrl;
+    private final ListReconciler reconciler;
     private final SourceDescriptor descriptor;
 
-    /** Creates the adapter. */
+    /** Creates the adapter without a notification publisher (tests). */
+    public UkSanctionsAdapter(String baseUrlOverride) {
+        this(baseUrlOverride, null);
+    }
+
+    /**
+     * Creates the adapter.
+     *
+     * @param baseUrlOverride test-only base URL, blank for the real one
+     * @param events publishes the shrink-guard system notification; may be null
+     */
     @Autowired
-    public UkSanctionsAdapter(@Value("${" + BASE_URL_PROPERTY + ":}") String baseUrlOverride) {
+    public UkSanctionsAdapter(@Value("${" + BASE_URL_PROPERTY + ":}") String baseUrlOverride,
+            ApplicationEventPublisher events) {
         this.baseUrl = URI.create(baseUrlOverride == null || baseUrlOverride.isBlank()
                 ? DEFAULT_BASE_URL : baseUrlOverride.strip());
+        this.reconciler = new ListReconciler(events);
         this.descriptor = buildDescriptor();
     }
 
@@ -77,6 +93,8 @@ public final class UkSanctionsAdapter implements PollingAdapter {
 
     @Override
     public FetchResult fetch(FetchContext ctx) throws AdapterException {
+        // One request: a conditional GET (the list is about 22 MB with ETag/Last-Modified). Its validators are
+        // committed with the run's state only when the fetch succeeds (framework rule).
         UpstreamResponse response = ctx.http().getConditional(
                 URI.create(baseUrl + "/docs/UK-Sanctions-List.xml"), STATE_KEY);
         if (response.notModified()) {
@@ -85,39 +103,30 @@ public final class UkSanctionsAdapter implements PollingAdapter {
         if (response.status() != 200) {
             throw new UpstreamFormatException("The UK Sanctions List answered HTTP " + response.status(), "");
         }
-        Path file = Path.of("uk-sanctions-" + System.nanoTime() + ".xml");
-        // A relative name resolves under the raster temp directory; parse the reported file.
-        ai.foresignal.source.spi.DownloadResult downloaded =
-                ctx.http().download(URI.create(baseUrl + "/docs/UK-Sanctions-List.xml"), file, 100 * 1024 * 1024);
         List<NormalizedRecord> records;
         try {
-            records = parse(downloaded.file());
+            records = parse(new ByteArrayInputStream(response.body()));
         } catch (IOException | XMLStreamException e) {
             throw new UpstreamFormatException("The UK Sanctions List is not valid XML", "", e);
         }
-        Set<String> previous = new LinkedHashSet<>();
-        ctx.state().get(IDS_KEY).orElse("").lines().filter(s -> !s.isBlank()).forEach(previous::add);
-        Set<String> current = new LinkedHashSet<>();
-        records.forEach(r -> current.add(r.externalId()));
-        List<NormalizedRecord> out = new ArrayList<>(records);
-        if (DelistingGuard.implausible(previous.size(), current.size())) {
-            ctx.state().degrade(DelistingGuard.SHRINK_REASON);
-        } else {
-            for (String id : DelistingGuard.gone(previous, current)) {
-                out.add(NormalizedRecord.tombstone(id, Sanctions.KIND, ctx.now()));
-            }
-            ctx.state().clearDegraded();
-        }
-        ctx.state().put(IDS_KEY, String.join("\n", DelistingGuard.sorted(current)));
-        return FetchResult.complete(out);
+        ListReconciler.Outcome outcome = reconciler.reconcile(ctx, IDS_KEY, "UK", records);
+        ListReconciler.applyHealth(ctx.state(), List.of(outcome));
+        return FetchResult.complete(outcome.records());
     }
 
     /** The records of the UK Sanctions List file. */
     public List<NormalizedRecord> parse(Path file) throws IOException, XMLStreamException {
+        try (InputStream in = java.nio.file.Files.newInputStream(file)) {
+            return parse(in);
+        }
+    }
+
+    /** The records of a UK Sanctions List document, stream-parsed. */
+    public List<NormalizedRecord> parse(InputStream in) throws IOException, XMLStreamException {
         List<NormalizedRecord> out = new ArrayList<>();
         Instant generated = null;
-        try (var in = java.nio.file.Files.newInputStream(file)) {
-            XMLStreamReader reader = Xml.open(in);
+        XMLStreamReader reader = Xml.open(in);
+        try {
             while (reader.hasNext()) {
                 reader.next();
                 if (Xml.at(reader, "DateGenerated")) {
@@ -129,6 +138,8 @@ public final class UkSanctionsAdapter implements PollingAdapter {
                     }
                 }
             }
+        } finally {
+            reader.close();
         }
         return out;
     }
@@ -146,6 +157,7 @@ public final class UkSanctionsAdapter implements PollingAdapter {
                 if (value == null) {
                     continue;
                 }
+                // "Primary Name" for people and entities, "Primary name" for ships (2026-10-16 capture)
                 if ("Primary Name".equalsIgnoreCase(nameNode.childText("NameType")) && name == null) {
                     name = value;
                 } else {
@@ -156,36 +168,77 @@ public final class UkSanctionsAdapter implements PollingAdapter {
         List<String> nationalities = designation.leafTexts("Nationality");
         String unReference = designation.childText("UNReferenceNumber");
         String imo = null;
-        for (String candidate : designation.leafTexts("ShipIMO")) {
-            if (Sanctions.isImo(candidate)) {
+        List<Map<String, Object>> identifiers = new ArrayList<>();
+        for (String candidate : designation.leafTexts("IMONumber")) {
+            identifiers.add(Sanctions.identifier("IMO", candidate, null));
+            if (imo == null && Sanctions.isImo(candidate)) {
                 imo = Sanctions.digits(candidate);
             }
         }
-        if (imo == null) {
-            for (String candidate : designation.leafTexts("IMO")) {
-                if (Sanctions.isImo(candidate)) {
-                    imo = Sanctions.digits(candidate);
-                }
+        for (String passport : designation.leafTexts("PassportNumber")) {
+            identifiers.add(Sanctions.identifier("Passport", passport, null));
+        }
+        for (String national : designation.leafTexts("NationalIdentifierNumber")) {
+            identifiers.add(Sanctions.identifier("National Identifier", national, null));
+        }
+        for (String registration : designation.leafTexts("BusinessRegistrationNumber")) {
+            identifiers.add(Sanctions.identifier("Business Registration Number", registration, null));
+        }
+        List<Map<String, Object>> addresses = new ArrayList<>();
+        for (Xml.Node address : designation.descendants("Address")) {
+            Map<String, Object> place = new LinkedHashMap<>();
+            // AddressLine5 holds the town when present; otherwise AddressLine6 holds the town or the
+            // province (2026-10-16 capture). The schema has no dedicated city element.
+            String city = address.childText("AddressLine5");
+            Sanctions.putIfPresent(place, "city", city != null ? city : address.childText("AddressLine6"));
+            Sanctions.putIfPresent(place, "country", address.childText("AddressCountry"));
+            if (!place.isEmpty()) {
+                addresses.add(place);
             }
         }
+        List<String> dobs = designation.leafTexts("DOB");
+        List<String> flags = designation.leafTexts("CurrentBelievedFlagOfShip");
+        Instant designated = date(designation.childText("DateDesignated"));
 
         NormalizedRecord.Builder b = NormalizedRecord.builder("uk:" + uniqueId, Sanctions.KIND)
                 .observedAt(generated)
-                .eventTime(date(designation.childText("DateDesignated")));
+                .eventTime(designated);
         b.put("list", "UK");
         b.put("name", name != null ? name : (aliases.isEmpty() ? null : aliases.get(0)));
         b.put("partyType", Sanctions.partyType(designation.childText("IndividualEntityShip")));
         b.put("programs", single(designation.childText("RegimeName")));
         b.put("aliases", Sanctions.cap(aliases, Sanctions.MAX_ALIASES, Sanctions.MAX_ALIAS_CHARS));
         b.put("nationalities", Sanctions.cap(nationalities, Sanctions.MAX_IDENTIFIERS, Sanctions.MAX_ALIAS_CHARS));
+        b.put("dateOfBirth", dobs.isEmpty() ? null : dobs.get(0));
+        b.put("identifiers", identifiers.size() > Sanctions.MAX_IDENTIFIERS
+                ? identifiers.subList(0, Sanctions.MAX_IDENTIFIERS) : identifiers);
+        b.put("addresses", addresses.size() > Sanctions.MAX_ADDRESSES
+                ? addresses.subList(0, Sanctions.MAX_ADDRESSES) : addresses);
         b.put("remarks", Sanctions.truncate(designation.childText("OtherInformation"), Sanctions.MAX_REMARKS));
+        b.put("designationSource", split(designation.childText("DesignationSource")));
+        b.put("sanctionsImposed", split(designation.childText("SanctionsImposed")));
+        b.put("listedOn", designated == null ? null : LocalDate.ofInstant(designated, ZoneOffset.UTC).toString());
         b.put("lastUpdated", designation.childText("LastUpdated"));
         b.put("imo", imo);
+        b.put("vesselFlag", flags.isEmpty() ? null : flags.get(0));
         if (unReference != null && !unReference.isBlank()) {
             b.put("unReference", unReference.strip());
             b.put("crossRefs", List.of(unReference.strip()));
         }
         return b.build();
+    }
+
+    /** A {@code |}-separated value (SanctionsImposed, DesignationSource) as a list; empty for none. */
+    private static List<String> split(String value) {
+        List<String> out = new ArrayList<>();
+        if (value != null) {
+            for (String part : value.split("\\|")) {
+                if (!part.isBlank()) {
+                    out.add(Sanctions.truncate(part, Sanctions.MAX_ALIAS_CHARS));
+                }
+            }
+        }
+        return out;
     }
 
     private static List<String> single(String value) {

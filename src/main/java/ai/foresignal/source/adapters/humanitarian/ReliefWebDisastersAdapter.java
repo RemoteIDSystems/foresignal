@@ -89,7 +89,8 @@ public final class ReliefWebDisastersAdapter implements PollingAdapter {
             // The client throws for any 4xx/5xx; a 403 naming the appname is a terminal credential
             // rejection, not a retryable error.
             response = ctx.http().post(
-                    URI.create(baseUrl + "/v2/disasters?appname=" + appname), "application/json",
+                    URI.create(baseUrl + "/v2/disasters?appname="
+                            + java.net.URLEncoder.encode(appname.strip(), StandardCharsets.UTF_8)), "application/json",
                     query().getBytes(StandardCharsets.UTF_8), Map.of());
         } catch (UpstreamHttpException e) {
             if (e.getStatus() == 403 && e.getBodySnippet().toLowerCase(java.util.Locale.ROOT).contains("appname")) {
@@ -153,6 +154,8 @@ public final class ReliefWebDisastersAdapter implements PollingAdapter {
         JsonNode location = node(fields, "primary_country", "location");
         if (location != null && location.get("lon") != null && location.get("lat") != null) {
             b.point(location.get("lon").asDouble(), location.get("lat").asDouble());
+            // primary_country.location is the country's point, not the event's: approximate (Adapter Guide, 040)
+            b.put("geometryApproximate", true);
         }
         b.put("name", truncate(text(fields, "name"), 4 * 1024));
         b.put("status", text(fields, "status"));

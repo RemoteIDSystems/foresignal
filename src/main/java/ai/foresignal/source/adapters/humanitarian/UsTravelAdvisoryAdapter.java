@@ -18,6 +18,7 @@ import ai.foresignal.source.spi.SourceDescriptor;
 import ai.foresignal.source.spi.TtlAnchor;
 import ai.foresignal.source.spi.UpstreamFormatException;
 import ai.foresignal.source.spi.UpstreamResponse;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;
@@ -26,9 +27,11 @@ import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.locationtech.jts.geom.Geometry;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -70,12 +73,27 @@ public final class UsTravelAdvisoryAdapter implements PollingAdapter {
     private final URI baseUrl;
     private final CountryCentroids countries;
     private final BundledCountryPolygons polygons;
+    private final Supplier<MeterRegistry> meters;
     private final SourceDescriptor descriptor;
 
-    /** Creates the adapter. */
+    /** Creates the adapter without a meter registry (tests). */
+    public UsTravelAdvisoryAdapter(String baseUrlOverride, CountryCentroids countries,
+            BundledCountryPolygons polygons) {
+        this(baseUrlOverride, countries, polygons, null);
+    }
+
+    /**
+     * Creates the adapter.
+     *
+     * @param baseUrlOverride test-only base URL, blank for the real one
+     * @param countries 040's gazetteer
+     * @param polygons 040's country polygons
+     * @param meters the registry of the unresolved-country counter, resolved lazily; may be null
+     */
     @Autowired
     public UsTravelAdvisoryAdapter(@Value("${" + BASE_URL_PROPERTY + ":}") String baseUrlOverride,
-            CountryCentroids countries, BundledCountryPolygons polygons) {
+            CountryCentroids countries, BundledCountryPolygons polygons, ObjectProvider<MeterRegistry> meters) {
+        this.meters = UnresolvedCountries.lazy(meters);
         this.baseUrl = URI.create(baseUrlOverride == null || baseUrlOverride.isBlank()
                 ? DEFAULT_BASE_URL : baseUrlOverride.strip());
         this.countries = countries;
@@ -98,16 +116,24 @@ public final class UsTravelAdvisoryAdapter implements PollingAdapter {
         if (response.status() != 200) {
             throw new UpstreamFormatException("The State Department advisories answered HTTP " + response.status(), "");
         }
-        return FetchResult.of(parse(response.body()));
+        UnresolvedCountries unresolved = new UnresolvedCountries();
+        List<NormalizedRecord> records = parse(response.body(), unresolved);
+        unresolved.report(ctx, meters);
+        return FetchResult.of(records);
     }
 
     /** The records of a State Department advisories body. */
     public List<NormalizedRecord> parse(byte[] body) {
+        return parse(body, new UnresolvedCountries());
+    }
+
+    /** As {@link #parse(byte[])}, counting {@code Category} codes that resolve to no country (dropped). */
+    List<NormalizedRecord> parse(byte[] body, UnresolvedCountries unresolved) {
         JsonNode root = JSON.readTree(body);
         JsonNode array = root.isArray() ? root : root.path("value");
         List<NormalizedRecord> out = new ArrayList<>();
         for (JsonNode advisory : array) {
-            NormalizedRecord record = record(advisory);
+            NormalizedRecord record = record(advisory, unresolved);
             if (record != null) {
                 out.add(record);
             }
@@ -115,9 +141,10 @@ public final class UsTravelAdvisoryAdapter implements PollingAdapter {
         return out;
     }
 
-    private NormalizedRecord record(JsonNode advisory) {
+    private NormalizedRecord record(JsonNode advisory, UnresolvedCountries unresolved) {
         Optional<CountryRef> country = TravelAdvisoryCodes.resolve(countries, fips(advisory.get("Category")));
         if (country.isEmpty()) {
+            unresolved.miss();
             return null;
         }
         CountryRef ref = country.get();

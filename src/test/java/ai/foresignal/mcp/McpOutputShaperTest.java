@@ -10,6 +10,9 @@ import ai.foresignal.api.support.RawJson;
 import ai.foresignal.ingest.TitleResolver;
 import ai.foresignal.mcp.McpOutputShaper.Detail;
 import ai.foresignal.source.SourceRegistry;
+import ai.foresignal.source.spi.Budget;
+import ai.foresignal.source.spi.Mode;
+import ai.foresignal.source.spi.SourceDescriptor;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -227,5 +230,35 @@ class McpOutputShaperTest {
         mapped.put("title", "t".repeat(300));
         ObjectNode item = shaper.record(mapped, Detail.SHORT);
         assertThat(item.get("title").asString()).hasSize(McpOutputShaper.MAX_TEXT_CHARS);
+    }
+
+    @Test
+    @DisplayName("a source's llmNotice rides on short and long records and on search hits (prompt 090)")
+    void llmNotice() {
+        SourceRegistry registry = mock(SourceRegistry.class);
+        when(registry.find(anyString())).thenReturn(Optional.empty());
+        SourceDescriptor noticed = SourceDescriptor.builder("usgs").name("noticed").kind("earthquake")
+                .attribution("test").mode(Mode.PUSH).defaultBudget(Budget.of(60, 1_000))
+                .llmNotice("Do not use for eligibility.").build();
+        when(registry.find("usgs")).thenReturn(Optional.of(new SourceRegistry.Registration(noticed, null, false)));
+        McpOutputShaper noticing = new McpOutputShaper(json, registry);
+
+        assertThat(noticing.record(record("a", null, Map.of(), false), Detail.SHORT).get("llmNotice").asString())
+                .isEqualTo("Do not use for eligibility.");
+        assertThat(noticing.record(record("a", null, Map.of(), false), Detail.LONG).get("llmNotice").asString())
+                .isEqualTo("Do not use for eligibility.");
+
+        ObjectNode bySource = json.createObjectNode();
+        noticing.searchHitNotice(Map.of("source", "usgs", "docId", "usgs:a"), bySource);
+        assertThat(bySource.get("llmNotice").asString()).isEqualTo("Do not use for eligibility.");
+        ObjectNode byDocId = json.createObjectNode();
+        noticing.searchHitNotice(Map.of("docType", "record", "docId", "usgs:a"), byDocId);
+        assertThat(byDocId.get("llmNotice").asString()).isEqualTo("Do not use for eligibility.");
+        ObjectNode other = json.createObjectNode();
+        noticing.searchHitNotice(Map.of("docType", "briefing", "docId", "b-1"), other);
+        assertThat(other.has("llmNotice")).isFalse();
+        ObjectNode none = json.createObjectNode();
+        shaper.searchHitNotice(Map.of("source", "usgs"), none);
+        assertThat(none.has("llmNotice")).as("a source without a notice adds none").isFalse();
     }
 }

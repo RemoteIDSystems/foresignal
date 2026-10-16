@@ -16,6 +16,10 @@ import java.util.TreeSet;
  * query value, path segment, or header — rather than trying to guess which parameter names are
  * sensitive. Guessing by name fails the moment an upstream calls its key {@code token} or
  * {@code u}.
+ *
+ * <p>The one exception to "values, not names" is a pre-signed URL (prompt 091): its signature is a temporary
+ * credential minted by the upstream, never stored, so the whole query of a URL carrying an AWS or Azure
+ * signature parameter is masked instead.
  */
 public final class UrlRedactor {
 
@@ -60,12 +64,18 @@ public final class UrlRedactor {
         return uri == null ? "" : redact(uri.toString());
     }
 
-    /** {@code text} with every occurrence of a credential value replaced. */
+    /**
+     * {@code text} with every occurrence of a credential value replaced, and the query string of every
+     * pre-signed URL in it masked ({@link #maskPresignedQueries}).
+     */
     public String redact(String text) {
-        if (text == null || text.isEmpty() || secrets.isEmpty()) {
+        if (text == null || text.isEmpty()) {
             return text;
         }
-        String result = text;
+        String result = maskPresignedQueries(text);
+        if (secrets.isEmpty()) {
+            return result;
+        }
         for (String secret : secrets) {
             result = result.replace(secret, MASK);
         }
@@ -83,6 +93,44 @@ public final class UrlRedactor {
             return MASK;
         }
         return redact(value);
+    }
+
+    /** A URL with a query string: scheme, everything up to {@code ?}, then the query. */
+    private static final java.util.regex.Pattern URL_WITH_QUERY =
+            java.util.regex.Pattern.compile("(https?://[^\\s\"'<>?]+)\\?([^\\s\"'<>#]*)");
+
+    /**
+     * A query that carries a pre-signed signature: an AWS SigV4 pre-signed URL ({@code X-Amz-Signature},
+     * {@code X-Amz-Credential}, {@code X-Amz-Security-Token}) or an Azure Blob SAS ({@code sig}).
+     */
+    private static final java.util.regex.Pattern PRESIGNED_PARAM = java.util.regex.Pattern.compile(
+            "(?i)(?:^|&)(?:x-amz-signature|x-amz-credential|x-amz-security-token|sig)=");
+
+    /**
+     * {@code text} with the whole query string of every pre-signed URL replaced by {@value #MASK} (prompt 091:
+     * OFAC's S3 redirect and the UN list's Azure SAS redirect carry a temporary credential in the query, which is
+     * not a stored credential value, so the value-based masking cannot know it). Other URLs are unchanged.
+     */
+    public static String maskPresignedQueries(String text) {
+        if (text == null || text.indexOf('?') < 0) {
+            return text;
+        }
+        java.util.regex.Matcher matcher = URL_WITH_QUERY.matcher(text);
+        StringBuilder out = null;
+        while (matcher.find()) {
+            if (!PRESIGNED_PARAM.matcher(matcher.group(2)).find()) {
+                continue;
+            }
+            if (out == null) {
+                out = new StringBuilder(text.length());
+            }
+            matcher.appendReplacement(out, java.util.regex.Matcher.quoteReplacement(matcher.group(1) + "?" + MASK));
+        }
+        if (out == null) {
+            return text;
+        }
+        matcher.appendTail(out);
+        return out.toString();
     }
 
     /** The JSON members of an OAuth token response whose string values are masked in recorded bodies. */

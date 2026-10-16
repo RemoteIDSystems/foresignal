@@ -48,6 +48,7 @@ public class DefaultFetchContext implements FetchContext {
     private Supplier<MediaSink> mediaSink;
     private Supplier<InboxAccess> inboxSupplier;
     private Consumer<java.util.List<ai.foresignal.source.spi.NormalizedRecord>> chunkSink;
+    private boolean allowShrink;
     private MediaSink media;
     private SourceHttp http;
     private RasterSink rasters;
@@ -258,6 +259,22 @@ public class DefaultFetchContext implements FetchContext {
     /** The fetch's staged adapter state, when the executor runs it (F1 of the 2026-10 review), else empty. */
     public Optional<StagedAdapterStateStore> stagedState() {
         return state instanceof StagedAdapterStateStore staged ? Optional.of(staged) : Optional.empty();
+    }
+
+    /**
+     * Records the operator's one-off shrink-guard release for this run (prompt 094); the executor sets it from
+     * {@code POST /v1/sources/{id}/fetch?allowShrink=true} before calling {@code fetch}.
+     *
+     * @param allowShrink true to release the guard for this run
+     */
+    public void allowShrink(boolean allowShrink) {
+        this.allowShrink = allowShrink;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public boolean allowShrink() {
+        return allowShrink;
     }
 
     /** The probe recorder, or null. */

@@ -15,28 +15,32 @@ import ai.foresignal.source.spi.SourceDescriptor;
 import ai.foresignal.source.spi.TtlAnchor;
 import ai.foresignal.source.spi.UpstreamFormatException;
 import ai.foresignal.source.spi.UpstreamResponse;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
  * {@code un-sanctions} (prompt 091): the UN Security Council consolidated sanctions list.
  *
- * <p>The XML URL answers 302 to an Azure Blob SAS URL; the blob host is allowlisted and the SAS query is
- * never logged. Downloads are capped and parsed from disk. A delisting is a tombstone, guarded against an
- * implausible shrink.
+ * <p>The XML URL answers 302 to an Azure Blob SAS URL whose path is fixed and whose SAS query changes on
+ * every request; the blob account is allowlisted, the blob is fetched with a conditional GET on its ETag (an
+ * unchanged list costs the redirect and one 304), and the SAS query is masked wherever a URL is stored or
+ * logged ({@code UrlRedactor}). The list (about 2.2 MB) is stream-parsed from the response body. A delisting
+ * is a tombstone, guarded against an implausible shrink ({@link ListReconciler}).
  */
 @Component
 public final class UnSanctionsAdapter implements PollingAdapter {
@@ -50,21 +54,35 @@ public final class UnSanctionsAdapter implements PollingAdapter {
     /** Test-only base override. */
     public static final String BASE_URL_PROPERTY = "foresignal.test.adapters.un-sanctions.base-url";
 
-    static final String PATH_KEY = "un:path";
+    /** The adapter-state key of the blob's conditional-GET validators. */
+    static final String BLOB_KEY = "un:blob";
     static final String IDS_KEY = "un:ids";
     static final Duration RETENTION = Duration.ofDays(1825);
 
-    /** The blob host a redirect may land on. */
-    static final String REDIRECT_HOST = "blob.core.windows.net";
+    /** The Azure Blob account a redirect may land on (the prompt's verified host). */
+    static final String REDIRECT_HOST = "unsolprodfiles.blob.core.windows.net";
 
     private final URI baseUrl;
+    private final ListReconciler reconciler;
     private final SourceDescriptor descriptor;
 
-    /** Creates the adapter. */
+    /** Creates the adapter without a notification publisher (tests). */
+    public UnSanctionsAdapter(String baseUrlOverride) {
+        this(baseUrlOverride, null);
+    }
+
+    /**
+     * Creates the adapter.
+     *
+     * @param baseUrlOverride test-only base URL, blank for the real one
+     * @param events publishes the shrink-guard system notification; may be null
+     */
     @Autowired
-    public UnSanctionsAdapter(@Value("${" + BASE_URL_PROPERTY + ":}") String baseUrlOverride) {
+    public UnSanctionsAdapter(@Value("${" + BASE_URL_PROPERTY + ":}") String baseUrlOverride,
+            ApplicationEventPublisher events) {
         this.baseUrl = URI.create(baseUrlOverride == null || baseUrlOverride.isBlank()
                 ? DEFAULT_BASE_URL : baseUrlOverride.strip());
+        this.reconciler = new ListReconciler(events);
         this.descriptor = buildDescriptor();
     }
 
@@ -77,7 +95,7 @@ public final class UnSanctionsAdapter implements PollingAdapter {
     public FetchResult fetch(FetchContext ctx) throws AdapterException {
         URI url = URI.create(baseUrl + "/resources/xml/en/consolidated.xml");
         UpstreamResponse response = ctx.http().getNoFollow(url);
-        URI target = url;
+        byte[] body;
         if (response.status() >= 300 && response.status() < 400) {
             String location = response.header("location");
             if (location == null || location.isBlank()) {
@@ -87,52 +105,50 @@ public final class UnSanctionsAdapter implements PollingAdapter {
             URI redirect = URI.create(location);
             String host = redirect.getHost() == null ? "" : redirect.getHost();
             // A same-host redirect (the configured base, or a test rebasing) is allowed; otherwise the
-            // redirect must land on the reviewed Azure Blob host.
-            String baseHost = baseUrl.getHost();
-            if (!(host.equals(baseHost) || host.equals(REDIRECT_HOST) || host.endsWith("." + REDIRECT_HOST))) {
+            // redirect must land on the reviewed Azure Blob account.
+            if (!(host.equals(baseUrl.getHost()) || host.equals(REDIRECT_HOST))) {
                 throw new AdapterException("The UN list redirected to an unapproved host");
             }
-            String path = redirect.getScheme() + "://" + redirect.getAuthority() + redirect.getPath();
-            if (path.equals(ctx.state().get(PATH_KEY).orElse(null))) {
+            // The blob path is fixed and only the SAS query changes, so the path says nothing about the
+            // content. The blob's ETag does (verified 2026-10-16: a conditional GET answers 304), and the
+            // validators are committed with the run's state only when the fetch succeeds (framework rule).
+            UpstreamResponse blob = ctx.http().getConditional(redirect, BLOB_KEY);
+            if (blob.notModified()) {
                 return FetchResult.unchanged();
             }
-            ctx.state().put(PATH_KEY, path);
-            target = redirect;
-        } else if (response.status() != 200) {
+            if (blob.status() != 200) {
+                throw new UpstreamFormatException("The UN list blob answered HTTP " + blob.status(), "");
+            }
+            body = blob.body();
+        } else if (response.status() == 200) {
+            body = response.body();
+        } else {
             throw new UpstreamFormatException("The UN list answered HTTP " + response.status(), "");
         }
-        Path file = Path.of("un-sanctions-" + System.nanoTime() + ".xml");
-        // A relative name resolves under the raster temp directory; parse the reported file.
-        ai.foresignal.source.spi.DownloadResult downloaded = ctx.http().download(target, file, 64 * 1024 * 1024);
         List<NormalizedRecord> records;
         try {
-            records = parse(downloaded.file());
+            records = parse(new ByteArrayInputStream(body));
         } catch (IOException | XMLStreamException e) {
             throw new UpstreamFormatException("The UN consolidated list is not valid XML", "", e);
         }
-        Set<String> previous = new LinkedHashSet<>();
-        ctx.state().get(IDS_KEY).orElse("").lines().filter(s -> !s.isBlank()).forEach(previous::add);
-        Set<String> current = new LinkedHashSet<>();
-        records.forEach(r -> current.add(r.externalId()));
-        List<NormalizedRecord> out = new ArrayList<>(records);
-        if (DelistingGuard.implausible(previous.size(), current.size())) {
-            ctx.state().degrade(DelistingGuard.SHRINK_REASON);
-        } else {
-            for (String id : DelistingGuard.gone(previous, current)) {
-                out.add(NormalizedRecord.tombstone(id, Sanctions.KIND, ctx.now()));
-            }
-            ctx.state().clearDegraded();
-        }
-        ctx.state().put(IDS_KEY, String.join("\n", DelistingGuard.sorted(current)));
-        return FetchResult.complete(out);
+        ListReconciler.Outcome outcome = reconciler.reconcile(ctx, IDS_KEY, "UN", records);
+        ListReconciler.applyHealth(ctx.state(), List.of(outcome));
+        return FetchResult.complete(outcome.records());
     }
 
     /** The records of the UN consolidated list file. */
     public List<NormalizedRecord> parse(Path file) throws IOException, XMLStreamException {
+        try (InputStream in = java.nio.file.Files.newInputStream(file)) {
+            return parse(in);
+        }
+    }
+
+    /** The records of a UN consolidated list document, stream-parsed. */
+    public List<NormalizedRecord> parse(InputStream in) throws IOException, XMLStreamException {
         List<NormalizedRecord> out = new ArrayList<>();
         Instant generated = null;
-        try (var in = java.nio.file.Files.newInputStream(file)) {
-            XMLStreamReader reader = Xml.open(in);
+        XMLStreamReader reader = Xml.open(in);
+        try {
             while (reader.hasNext()) {
                 reader.next();
                 if (Xml.at(reader, "CONSOLIDATED_LIST")) {
@@ -144,6 +160,8 @@ public final class UnSanctionsAdapter implements PollingAdapter {
                     }
                 }
             }
+        } finally {
+            reader.close();
         }
         return out;
     }
@@ -163,42 +181,90 @@ public final class UnSanctionsAdapter implements PollingAdapter {
         }
         List<String> nationalities = new ArrayList<>();
         for (Xml.Node node : entry.descendants("NATIONALITY")) {
-            String value = node.childText("VALUE");
-            if (value == null) {
-                value = node.text();
+            List<String> values = node.leafTexts("VALUE");
+            if (values.isEmpty() && node.text() != null) {
+                values = List.of(node.text());
             }
-            if (value != null && !value.isBlank()) {
-                nationalities.add(value.strip());
+            for (String value : values) {
+                if (!value.isBlank()) {
+                    nationalities.add(value.strip());
+                }
             }
         }
-        List<String> lastUpdated = new ArrayList<>();
+        // LAST_DAY_UPDATED holds one VALUE per amendment (up to three in the 2026-10-13 capture); the
+        // latest ISO date is the one that says when the entry last changed.
+        String lastUpdated = null;
         for (Xml.Node node : entry.descendants("LAST_DAY_UPDATED")) {
-            String value = node.childText("VALUE");
-            if (value != null) {
-                lastUpdated.add(value.strip());
+            for (String value : node.leafTexts("VALUE")) {
+                String day = value.strip();
+                if (!day.isEmpty() && (lastUpdated == null || day.compareTo(lastUpdated) > 0)) {
+                    lastUpdated = day;
+                }
             }
         }
         List<Map<String, Object>> documents = new ArrayList<>();
         for (Xml.Node document : entry.descendants("INDIVIDUAL_DOCUMENT")) {
+            if (document.childText("NUMBER") == null && document.childText("TYPE_OF_DOCUMENT") == null) {
+                continue;
+            }
             documents.add(Sanctions.identifier(document.childText("TYPE_OF_DOCUMENT"),
                     document.childText("NUMBER"), document.childText("ISSUING_COUNTRY")));
         }
+        List<Map<String, Object>> addresses = new ArrayList<>();
+        for (String element : List.of("INDIVIDUAL_ADDRESS", "ENTITY_ADDRESS")) {
+            for (Xml.Node address : entry.descendants(element)) {
+                Map<String, Object> place = new LinkedHashMap<>();
+                Sanctions.putIfPresent(place, "city", address.childText("CITY"));
+                Sanctions.putIfPresent(place, "country", address.childText("COUNTRY"));
+                if (!place.isEmpty()) {
+                    addresses.add(place);
+                }
+            }
+        }
+        String listedOn = entry.childText("LISTED_ON");
 
         NormalizedRecord.Builder b = NormalizedRecord.builder("un:" + reference, Sanctions.KIND)
                 .observedAt(generated)
-                .eventTime(Instants.parse(entry.childText("LISTED_ON")));
+                .eventTime(Instants.parse(listedOn));
         b.put("list", "UN");
         b.put("name", name);
         b.put("partyType", entry.name().equals("ENTITY") ? "entity" : "individual");
         b.put("programs", single(entry.childText("UN_LIST_TYPE")));
         b.put("aliases", Sanctions.cap(aliases, Sanctions.MAX_ALIASES, Sanctions.MAX_ALIAS_CHARS));
         b.put("nationalities", Sanctions.cap(nationalities, Sanctions.MAX_IDENTIFIERS, Sanctions.MAX_ALIAS_CHARS));
+        b.put("dateOfBirth", dateOfBirth(entry));
         b.put("identifiers", documents.size() > Sanctions.MAX_IDENTIFIERS
                 ? documents.subList(0, Sanctions.MAX_IDENTIFIERS) : documents);
+        b.put("addresses", addresses.size() > Sanctions.MAX_ADDRESSES
+                ? addresses.subList(0, Sanctions.MAX_ADDRESSES) : addresses);
         b.put("remarks", Sanctions.truncate(entry.childText("COMMENTS1"), Sanctions.MAX_REMARKS));
-        b.put("lastUpdated", lastUpdated.isEmpty() ? null : lastUpdated.get(lastUpdated.size() - 1));
+        b.put("listedOn", listedOn == null || listedOn.isBlank() ? null : listedOn.strip());
+        b.put("lastUpdated", lastUpdated);
         b.put("unReference", reference);
         return b.build();
+    }
+
+    /**
+     * The first {@code INDIVIDUAL_DATE_OF_BIRTH} as published: its {@code DATE}, else its {@code YEAR}, else
+     * {@code FROM_YEAR-TO_YEAR}; null when none carries a value.
+     */
+    static String dateOfBirth(Xml.Node entry) {
+        for (Xml.Node dob : entry.descendants("INDIVIDUAL_DATE_OF_BIRTH")) {
+            String date = dob.childText("DATE");
+            if (date != null) {
+                return date;
+            }
+            String year = dob.childText("YEAR");
+            if (year != null) {
+                return year;
+            }
+            String from = dob.childText("FROM_YEAR");
+            String to = dob.childText("TO_YEAR");
+            if (from != null || to != null) {
+                return (from == null ? "" : from) + "-" + (to == null ? "" : to);
+            }
+        }
+        return null;
     }
 
     private static List<String> single(String value) {
@@ -222,8 +288,8 @@ public final class UnSanctionsAdapter implements PollingAdapter {
         return SourceDescriptor.builder(ID)
                 .name("UN Security Council sanctions list")
                 .description("The UN Security Council consolidated sanctions list (individuals and entities). "
-                        + "The XML URL redirects to an Azure Blob SAS URL; the host is allowlisted and the SAS "
-                        + "query is never logged.")
+                        + "The XML URL redirects to an Azure Blob SAS URL; the host is allowlisted, the blob is "
+                        + "change-checked by its ETag and the SAS query is masked in logs.")
                 .kind(Sanctions.KIND)
                 .mode(Mode.POLLING)
                 .homepage("https://main.un.org/securitycouncil/en/content/un-sc-consolidated-list")

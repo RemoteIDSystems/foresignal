@@ -1,6 +1,7 @@
 package ai.foresignal.source.adapters.humanitarian;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -9,7 +10,8 @@ import java.time.format.DateTimeParseException;
 
 /**
  * Tolerant timestamp parsing for the prompt 090 humanitarian sources: an ISO offset, a zoned instant, an
- * offset-less ISO date-time (read as UTC), or a space-separated {@code yyyy-MM-dd HH:mm:ss} (HANS) read as UTC.
+ * offset-less ISO date-time (read as UTC), a space-separated {@code yyyy-MM-dd HH:mm:ss} (HANS) read as UTC, or a
+ * bare ISO date such as the UN list's {@code LISTED_ON} {@code 2012-12-31} (read as UTC midnight, prompt 091).
  */
 public final class Instants {
 
@@ -40,6 +42,11 @@ public final class Instants {
         }
         try {
             return LocalDateTime.parse(text, SPACE).toInstant(ZoneOffset.UTC);
+        } catch (DateTimeParseException ignored) {
+            // try the next form
+        }
+        try {
+            return LocalDate.parse(text).atStartOfDay(ZoneOffset.UTC).toInstant();
         } catch (DateTimeParseException ignored) {
             return null;
         }
