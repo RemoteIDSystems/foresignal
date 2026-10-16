@@ -75,6 +75,9 @@ public final class SatDumpDescriptor {
     /** {@code polarGlob}: which files of a ready pass folder are read as polar GeoTIFF overlays (054). */
     public static final String POLAR_GLOB = "polarGlob";
 
+    /** {@code satdumpVersion}: the installed SatDump version, {@code 1.2} or {@code 2.0} (prompt 107). */
+    public static final String SATDUMP_VERSION = "satdumpVersion";
+
     /** The default {@code polarGlob}. */
     public static final String DEFAULT_POLAR_GLOB = "**/*.tif";
 
@@ -120,7 +123,8 @@ public final class SatDumpDescriptor {
                         + " composites and thumbnails from SatDump's output directory, and GOES/Elektro xRIT"
                         + " geostationary frames, plus polar GeoTIFF overlays with real footprints (or an approximate"
                         + " swath). Foresignal talks to SatDump only through HTTP and files.")
-                .kinds(GroundStationRecords.KIND, PassBook.KIND, ProductSpec.RECORD_KIND)
+                .kinds(GroundStationRecords.KIND, PassBook.KIND, ProductSpec.RECORD_KIND, SatDumpExtras.DCP_KIND,
+                        SatDumpExtras.EMWIN_PRODUCT_KIND, SatDumpExtras.EMWIN_WARNING_KIND)
                 .homepage("https://github.com/SatDump/SatDump")
                 .attribution("Operator-owned SatDump ground station")
                 .licence(LICENSE)
@@ -136,6 +140,18 @@ public final class SatDumpDescriptor {
                 .kindRetention(GroundStationRecords.KIND, Duration.ofDays(30))
                 .kindRetention(PassBook.KIND, Duration.ofDays(365))
                 .kindRetention(ProductSpec.RECORD_KIND, SourceDescriptor.RASTER_FRAME_RETENTION)
+                .kindRetention(SatDumpExtras.DCP_KIND, Duration.ofDays(3))
+                .kindRetention(SatDumpExtras.EMWIN_PRODUCT_KIND, Duration.ofDays(3))
+                .kindRetention(SatDumpExtras.EMWIN_WARNING_KIND, Duration.ofDays(3))
+                .significantFields("address", "data")
+                .volatileFields("signalDbm", "freqOffsetHz")
+                .embedFields("text")
+                .kindDisplay(SatDumpExtras.DCP_KIND, new ai.foresignal.source.spi.KindDisplay("DCP {address}", "water",
+                        "#1098AD", null, null, null, null))
+                .kindDisplay(SatDumpExtras.EMWIN_PRODUCT_KIND, new ai.foresignal.source.spi.KindDisplay("{awipsId}",
+                        "satellite-dish", "#0C8599", null, null, null, null))
+                .kindDisplay(SatDumpExtras.EMWIN_WARNING_KIND, new ai.foresignal.source.spi.KindDisplay("{phenomena}",
+                        "triangle-exclamation", "#E8590C", null, null, null, null))
                 .tileProperties("state", "status", "satellite")
                 .searchFields("title", "satellite", "currentTarget")
                 .param(ParamSpec.optional(API_URL, ParamType.LAN_URL,
@@ -162,6 +178,33 @@ public final class SatDumpDescriptor {
                                 + " 064) as status predicted; empty turns predictions off.", DEFAULT_PREDICT_NORAD))
                 .param(ParamSpec.optional(PREDICT_MIN_ELEVATION, ParamType.NUMBER,
                         "The elevation a predicted pass must rise above, degrees.", DEFAULT_PREDICT_MIN_ELEVATION))
+                .param(ParamSpec.enumerated(SATDUMP_VERSION,
+                        "The installed SatDump version. 2.0 enables the foresignal-manifest.json hook"
+                                + " (contrib/satdump/foresignal_hook.as); 1.2 is the latest stable.",
+                        "1.2", List.of("1.2", "2.0")))
+                .param(ParamSpec.optional(SatDumpExtras.DCS_ENABLED, ParamType.BOOLEAN,
+                        "Ingest SatDump parse_dcs JSON (DCS environmental platforms). Requires an effective bbox"
+                                + " (dcsBbox, else the places AOI).", false))
+                .param(ParamSpec.optional(SatDumpExtras.DCS_GLOB, ParamType.STRING,
+                        "Which files of a ready pass folder hold DCS JSON.", SatDumpExtras.DEFAULT_DCS_GLOB))
+                .param(ParamSpec.optional(SatDumpExtras.DCS_BBOX, ParamType.BBOX,
+                        "The DCS bounding box minLon,minLat,maxLon,maxLat; defaults to the places AOI.", null))
+                .param(ParamSpec.optional(SatDumpExtras.DCS_ADDRESSES, ParamType.STRING_LIST,
+                        "Only DCP addresses in this list are kept.", null))
+                .param(ParamSpec.optional(SatDumpExtras.DCS_AGENCIES, ParamType.STRING_LIST,
+                        "Only DCP agencies in this list are kept.", null))
+                .param(ParamSpec.optional(SatDumpExtras.DCS_MAX_PER_SCAN, ParamType.INTEGER,
+                        "The most DCS messages kept per scan; over the cap, health degrades.",
+                        SatDumpExtras.DEFAULT_DCS_MAX_PER_SCAN))
+                .param(ParamSpec.optional(SatDumpExtras.EMWIN_ENABLED, ParamType.BOOLEAN,
+                        "Ingest EMWIN products and warnings from the GOES HRIT reception.", false))
+                .param(ParamSpec.optional(SatDumpExtras.EMWIN_GLOB, ParamType.STRING,
+                        "Which files of a ready pass folder hold EMWIN products.", SatDumpExtras.DEFAULT_EMWIN_GLOB))
+                .param(ParamSpec.optional(SatDumpExtras.EMWIN_PRODUCTS, ParamType.STRING_LIST,
+                        "The AWIPS product categories to keep (the first three letters of the AWIPS id).",
+                        SatDumpExtras.DEFAULT_EMWIN_PRODUCTS))
+                .param(ParamSpec.optional(SatDumpExtras.EMWIN_FALLBACK, ParamType.BOOLEAN,
+                        "When nws-alerts is healthy, mark EMWIN warnings as duplicates of it.", true))
                 .credential(CredentialField.optional(INGEST_KEY,
                         "Optional. A key you choose (eik_ followed by at least 32 random characters) that a remote"
                                 + " station sends, like an ingest key, to POST /v1/ingest/" + sourceId(station)
@@ -221,6 +264,25 @@ public final class SatDumpDescriptor {
             } catch (IllegalArgumentException e) {
                 problems.put(SAT_NAMES, e.getMessage());
             }
+        }
+        return problems;
+    }
+
+    /**
+     * The rules of the DCS and EMWIN parameters (prompt 107): enabling DCS without an effective bbox
+     * (a {@code dcsBbox} or a configured places AOI) is refused, and {@code dcsMaxPerScan} must be >= 1.
+     *
+     * @param hasAoi true when the places AOI is available as the default bbox
+     */
+    public static Map<String, String> checkExtras(ValidatedParams params, boolean hasAoi) {
+        Map<String, String> problems = new LinkedHashMap<>();
+        if (params.bool(SatDumpExtras.DCS_ENABLED, false) && !params.has(SatDumpExtras.DCS_BBOX) && !hasAoi) {
+            problems.put(SatDumpExtras.DCS_BBOX,
+                    "DCS cannot be enabled without an effective bbox: set dcsBbox or configure the places AOI");
+        }
+        Integer cap = params.integer(SatDumpExtras.DCS_MAX_PER_SCAN);
+        if (cap != null && cap < 1) {
+            problems.put(SatDumpExtras.DCS_MAX_PER_SCAN, "must be at least 1, but was " + cap);
         }
         return problems;
     }

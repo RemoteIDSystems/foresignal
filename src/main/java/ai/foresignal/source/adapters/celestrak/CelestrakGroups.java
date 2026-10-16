@@ -25,14 +25,14 @@ public final class CelestrakGroups {
     /** The allowlist, sorted. */
     public static final List<String> ALLOWED = List.of("active", "amateur", "analyst", "argos", "beidou",
             "cosmos-2251-debris", "cubesat", "dmc", "education", "engineering", "eutelsat", "fengyun-1c-debris",
-            "galileo", "geo", "geodetic", "globalstar", "glo-ops", "gnss", "gps-ops", "hulianwang", "intelsat",
-            "iridium-33-debris", "kuiper", "last-30-days", "military", "oneweb", "orbcomm", "other-comm", "planet",
-            "qianfan", "radar", "resource", "sar", "sarsat", "satnogs", "sbas", "science", "ses", "spire",
+            "galileo", "geo", "geodetic", "globalstar", "glo-ops", "gnss", "goes", "gps-ops", "hulianwang", "intelsat",
+            "iridium-33-debris", "kuiper", "last-30-days", "military", "noaa", "oneweb", "orbcomm", "other-comm",
+            "planet", "qianfan", "radar", "resource", "sar", "sarsat", "satnogs", "sbas", "science", "ses", "spire",
             "starlink", "stations", "tdrss", "telesat", "visual", "weather", "x-comm");
 
-    /** The member groups fetched by default, each about once a day. */
-    public static final List<String> DEFAULT_MEMBERS = List.of("stations", "visual", "weather", "amateur", "gnss",
-            "geo", "science", "cubesat", "last-30-days");
+    /** The member groups fetched by default, each about once a day (prompt 107 adds noaa and goes). */
+    public static final List<String> DEFAULT_MEMBERS = List.of("stations", "visual", "weather", "noaa", "goes",
+            "amateur", "gnss", "geo", "science", "cubesat", "last-30-days");
 
     private CelestrakGroups() {}
 

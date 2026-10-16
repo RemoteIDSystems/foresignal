@@ -44,6 +44,18 @@ public interface FlashSink {
     void append(String satellite, FlashBatch flashes, Instant fileTime);
 
     /**
+     * Appends flashes tagged with their origin (prompt 107): {@code internet} for the NODD
+     * {@code goes-glm} source, {@code local} for a {@code glm-local-{station}} GRB station. The default
+     * delegates to {@link #append(String, FlashBatch, Instant)}; the ring is shared, so the origin is
+     * informational (for metrics) while de-duplication happens before the call.
+     *
+     * @param origin {@code internet} or {@code local}
+     */
+    default void append(String satellite, String origin, FlashBatch flashes, Instant fileTime) {
+        append(satellite, flashes, fileTime);
+    }
+
+    /**
      * The ring flashes with {@code from <= time <= to}, oldest bucket first.
      *
      * @param from the earliest flash time, inclusive

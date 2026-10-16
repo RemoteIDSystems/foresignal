@@ -84,6 +84,9 @@ class FamilyDefaultsTest {
             Map.entry("GoesAbiAdapter", new Entry(new GoesAbiAdapter(null, "").descriptor(), "raster")),
             Map.entry("GoesWestAbiAdapter", new Entry(new ai.foresignal.source.adapters.goes.GoesWestAbiAdapter(null, "",
                     "small", null).descriptor(), "raster")),
+            // Prompt 107: the local GRB GLM station feeds the shared ring and emits lightning-cluster.
+            Map.entry("GlmLocalAdapter", new Entry(new ai.foresignal.source.adapters.goes.GlmLocalAdapter("home", null,
+                    null, null).descriptor(), "weather")),
             Map.entry("GfsAdapter", new Entry(new ai.foresignal.source.adapters.gfs.GfsAdapter(
                     new ai.foresignal.raster.model.ModelRunIngest(null, null), "").descriptor(), "raster")),
             Map.entry("HrrrAdapter", new Entry(new ai.foresignal.source.adapters.hrrr.HrrrAdapter(
@@ -588,7 +591,11 @@ class FamilyDefaultsTest {
     static final Map<String, Duration> STATION_KIND_RETENTION = Map.of(
             "ground-station", Duration.ofDays(30),
             "satellite-pass", Duration.ofDays(365),
-            ProductSpec.RECORD_KIND, Duration.ofDays(7));
+            ProductSpec.RECORD_KIND, Duration.ofDays(7),
+            // Prompt 107: DCS and EMWIN kinds from the station (3 d).
+            "dcp-observation", Duration.ofDays(3),
+            "emwin-product", Duration.ofDays(3),
+            "emwin-warning", Duration.ofDays(3));
 
     /** The design's raster-frame record retention (Weather-Imagery-Design §2.4). */
     static final Duration RASTER_FRAME_RETENTION = Duration.ofDays(7);

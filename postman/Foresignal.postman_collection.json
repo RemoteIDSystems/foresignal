@@ -45484,7 +45484,7 @@
           }
         },
         {
-          "name": "TLE group file (CelesTrak path alias)",
+          "name": "Per-group TLE text (CelesTrak-compatible)",
           "event": [
             {
               "listen": "test",
@@ -45516,9 +45516,16 @@
                 "elements",
                 "{{group}}.txt"
               ],
-              "query": []
+              "query": [
+                {
+                  "key": "key",
+                  "value": "",
+                  "description": "A feed key (fsf_\u2026) for clients that cannot send headers.",
+                  "disabled": true
+                }
+              ]
             },
-            "description": "TLE (3-line) for a group, served only from the `celestrak-gp` cache; never fetches upstream on request. Groups include weather, noaa, goes, resource, amateur, cubesat, active, stations. Tools that cannot send headers use a feed key (`/v1/k/{key}/compat/celestrak/...`, 035) or openReads.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getCelestrakGroupTle`",
+            "description": "The two-line element sets of a CelesTrak group as plain TLE text, for SatDump, Gpredict and Look4Sat. Served from the celestrak-gp cache only; never fetched upstream.\n\noperationId: `getCelestrakGroupTle`",
             "auth": {
               "type": "noauth"
             }

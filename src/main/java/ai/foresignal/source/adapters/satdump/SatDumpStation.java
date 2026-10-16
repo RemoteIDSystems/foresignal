@@ -119,6 +119,7 @@ public final class SatDumpStation implements StreamHandle, RemoteMediaReceiver {
     private RfSession session;
     private int apiFailures;
     private final OrbitalElements elements;
+    private final SatDumpExtras extras;
     private final List<String> predictNorad;
     private final double predictMinElevation;
     private Instant lastPrediction;
@@ -172,6 +173,25 @@ public final class SatDumpStation implements StreamHandle, RemoteMediaReceiver {
      */
     public SatDumpStation(String station, StreamContext ctx, RecordSink sink, PlacePoints places,
             LiveImageHolder liveImages, RemoteMediaReceivers receivers, OrbitalElements elements) {
+        this(station, ctx, sink, places, liveImages, receivers, elements, null);
+    }
+
+    /**
+     * Creates the station (prompt 107).
+     *
+     * @param station the station name
+     * @param ctx the stream context
+     * @param sink where records go
+     * @param places resolves place-id locations, or null when places are unavailable
+     * @param liveImages holds the polar plot, or null to skip it
+     * @param receivers where the station registers for pushed images while it runs, or null
+     * @param elements the current element sets for predicted passes, or null for none
+     * @param extras the DCS/EMWIN/manifest processor ({@link SatDumpExtras}), or null
+     */
+    public SatDumpStation(String station, StreamContext ctx, RecordSink sink, PlacePoints places,
+            LiveImageHolder liveImages, RemoteMediaReceivers receivers, OrbitalElements elements,
+            SatDumpExtras extras) {
+        this.extras = extras;
         this.elements = elements;
         this.station = station;
         this.receivers = receivers;
@@ -627,6 +647,19 @@ public final class SatDumpStation implements StreamHandle, RemoteMediaReceiver {
             book.geometry(pass, result.geometry(), result.geometrySource());
         } catch (RuntimeException e) {
             log.warn("{}: polar overlays of {}{} failed: {}", sourceId, prefix, folder.relative(), e.toString());
+        }
+        if (extras != null) {
+            try {
+                SatDumpExtras.Result extra = extras.process(folder, access, ctx.params(), now);
+                out.addAll(extra.records());
+                if (extra.reasons().isEmpty()) {
+                    reasons.remove("extras");
+                } else {
+                    reasons.put("extras", String.join(" ", extra.reasons()));
+                }
+            } catch (RuntimeException e) {
+                log.warn("{}: extras of {}{} failed: {}", sourceId, prefix, folder.relative(), e.toString());
+            }
         }
         out.add(book.decoded(pass, prefix + folder.relative(), contents.instruments(), products, contents.tle(), now,
                 point()));

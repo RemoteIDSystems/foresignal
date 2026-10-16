@@ -65,6 +65,9 @@ public class CelestrakCompatController {
     /** CelesTrak's historical path. */
     public static final String ALIAS = "/compat/celestrak/NORAD/elements/gp.php";
 
+    /** The per-group TLE path used by SatDump, Gpredict and Look4Sat (prompt 107). */
+    public static final String GROUP_TXT = "/compat/celestrak/NORAD/elements/{group}.txt";
+
     /** The body of an empty result, as at CelesTrak. */
     public static final String NO_DATA = "No GP data found";
 
@@ -113,6 +116,26 @@ public class CelestrakCompatController {
             @RequestHeader(value = HttpHeaders.IF_NONE_MATCH, required = false) String ifNoneMatch,
             HttpServletRequest request) {
         return serve(query, ifNoneMatch, request);
+    }
+
+    /** {@code getCelestrakGroupTle}: {@code /compat/celestrak/NORAD/elements/{group}.txt} (prompt 107). */
+    @GetMapping(GROUP_TXT)
+    @Operation(operationId = "getCelestrakGroupTle", tags = "Space")
+    @RestrictedRead("element sets are celestrak-gp records; a restriction hiding the source, the kind or limiting the area yields none")
+    public ResponseEntity<String> getCelestrakGroupTle(
+            @org.springframework.web.bind.annotation.PathVariable String group,
+            @RequestParam Map<String, String> query,
+            @RequestHeader(value = HttpHeaders.IF_NONE_MATCH, required = false) String ifNoneMatch,
+            HttpServletRequest request) {
+        Map<String, String> q = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        query.forEach((k, v) -> {
+            if (!"key".equals(k)) {
+                q.put(k, v);
+            }
+        });
+        q.put("GROUP", group);
+        q.putIfAbsent("FORMAT", "TLE");
+        return serve(q, ifNoneMatch, request);
     }
 
     /** The output formats. */

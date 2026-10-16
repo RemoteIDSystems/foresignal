@@ -4281,6 +4281,46 @@ decommissioned in 2025.
 | Clients outside the LAN | Tile keys and the `web` profile as documented; nothing SatDump-specific |
 | Home location and places | `location` names a place when one exists, otherwise coordinates |
 
+### SatDump extras (prompt 107)
+
+**DCS.** Enable `parse_dcs` in SatDump (GOES-R HRIT pipeline) and, at the source, set `tracked_addresses` to
+cut volume. Then set `dcsEnabled` on the `satdump-{station}` source and a `dcsBbox` (or configure places, whose
+AOI is the default): **DCS cannot be enabled without an effective bbox**. Put a `dcp_locations.csv`
+(`address,lat,lon,name,agency`) at `${FORESIGNAL_INBOX_DIR}/dcs/dcp_locations.csv`; it is re-read on change.
+Messages with no location, outside the bbox or not allowlisted are dropped and counted. Over `dcsMaxPerScan`
+(500) the newest per address are kept and health degrades with "DCS volume over cap" — tighten `dcsBbox` or
+`dcsAddresses`. DCS is hemisphere-wide from a GOES antenna; expect high volume without a filter.
+
+**EMWIN.** Enable `emwinEnabled`; products in `emwinProducts` (AWIPS categories) become `emwin-product`
+records and P-VTEC warnings with a polygon become `emwin-warning`, filtered to the places AOI. While
+`nws-alerts` is healthy the warnings carry `duplicateOf`; when it is failing they do not, and this rule fires:
+
+```json
+{"name": "Warnings via satellite (internet down)", "source": "satdump-home", "kind": "emwin-warning",
+ "conditions": [{"path": "duplicateOf", "op": "exists", "value": false}],
+ "near": {"placeId": "home", "radiusKm": 100}, "mode": "enter", "severity": "warning"}
+```
+
+EMWIN is never more authoritative than NWS; messages render "Received via GOES HRIT EMWIN".
+
+**Local GLM (GRB).** A GOES GRB station (1686.6 MHz; a larger dish than HRIT) writes L2 LCFA NetCDF files;
+set `FORESIGNAL_GLM_LOCAL_STATIONS` to the station names (use the same names as `FORESIGNAL_SATDUMP_STATIONS`)
+and point `inboxPath` at the GLM output. Local flashes join the shared AOI ring and de-duplicate against the
+internet `goes-glm`; `lightning-cluster` records keep flowing from local flashes while the internet feed is
+down. Health degrades if no file arrives for 5 minutes during a pass.
+
+**Elements feed (TLE).** For SatDump, Gpredict and Look4Sat, point the TLE update at Foresignal:
+`/compat/celestrak/NORAD/elements/{group}.txt` (groups `weather`, `noaa`, `goes`, `resource`, `amateur`,
+`cubesat`, `active`, `stations`, …) or `/compat/celestrak/gp.php?GROUP=…&FORMAT=tle`. It is **served from the
+cache only** (never fetched on request); `X-Foresignal-Elements-Age` gives the age and a `Warning` appears
+past 3 days. Clients that cannot send headers use a feed key as `?key=fsf_…` (`POST /v1/tile-keys` with the
+prefix `/compat/celestrak/`), or enable `openReads`.
+
+**SatDump 2.0 hook.** If the station runs SatDump 2.0 (alpha only as of 2026-10; 1.2.2 is stable), set
+`satdumpVersion` to `2.0` and install `contrib/satdump/foresignal_hook.as` (MIT, separate, experimental). It
+writes equirectangular composites and a `foresignal-manifest.json` that Foresignal recognises
+version-agnostically; an unknown manifest schema is rejected with a health reason.
+
 ## Space sources (prompt 064)
 
 All five start disabled. Enable them with `PUT /v1/sources/{id}`.

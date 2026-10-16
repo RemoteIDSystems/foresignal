@@ -31,6 +31,7 @@ public class SatDumpAdapter implements StreamingAdapter {
     private final Supplier<LiveImageHolder> liveImages;
     private final Supplier<RemoteMediaReceivers> receivers;
     private final Supplier<OrbitalElements> elements;
+    private final Supplier<SatDumpExtras> extras;
 
     /**
      * Creates the adapter.
@@ -67,7 +68,23 @@ public class SatDumpAdapter implements StreamingAdapter {
      */
     public SatDumpAdapter(String station, Supplier<PlacePoints> places, Supplier<LiveImageHolder> liveImages,
             Supplier<RemoteMediaReceivers> receivers, Supplier<OrbitalElements> elements) {
+        this(station, places, liveImages, receivers, elements, null);
+    }
+
+    /**
+     * Creates the adapter (prompt 107).
+     *
+     * @param station the station name
+     * @param places resolves place-id locations; may supply null
+     * @param liveImages holds the polar plot; may supply null
+     * @param receivers where a running station registers for pushed images; may be or supply null
+     * @param elements the current element sets for predicted passes; may be or supply null
+     * @param extras the DCS/EMWIN/manifest processor; may be or supply null
+     */
+    public SatDumpAdapter(String station, Supplier<PlacePoints> places, Supplier<LiveImageHolder> liveImages,
+            Supplier<RemoteMediaReceivers> receivers, Supplier<OrbitalElements> elements, Supplier<SatDumpExtras> extras) {
         this.elements = elements == null ? () -> null : elements;
+        this.extras = extras == null ? () -> null : extras;
         this.station = station;
         this.receivers = receivers == null ? () -> null : receivers;
         this.descriptor = SatDumpDescriptor.build(station);
@@ -87,7 +104,11 @@ public class SatDumpAdapter implements StreamingAdapter {
 
     @Override
     public Map<String, String> checkParams(ValidatedParams params) {
-        return SatDumpDescriptor.check(params);
+        java.util.Map<String, String> problems = new java.util.LinkedHashMap<>(SatDumpDescriptor.check(params));
+        ai.foresignal.source.spi.PlacePoints points = places.get();
+        boolean hasAoi = points != null && !points.summaries().isEmpty();
+        problems.putAll(SatDumpDescriptor.checkExtras(params, hasAoi));
+        return problems;
     }
 
     /**
@@ -110,7 +131,7 @@ public class SatDumpAdapter implements StreamingAdapter {
     public SatDumpStation newStation(StreamContext ctx, RecordSink sink) throws AdapterException {
         try {
             return new SatDumpStation(station, ctx, sink, places.get(), liveImages.get(), receivers.get(),
-                    elements.get());
+                    elements.get(), extras.get());
         } catch (IllegalArgumentException e) {
             throw new AdapterException(descriptor.id() + ": " + e.getMessage(), e);
         }

@@ -427,6 +427,11 @@
         "version": "1.3.0",
         "date": "2026-10-15",
         "note": "106 (extended): the full product catalogue past v1. New sources goes-west-abi, rtma-ru, nbm, gfs-wave, aifs, nexrad-l3, sst-geopolar, wpc-heatrisk, epa-uv; goes-east-abi adds C08/C09/C02 (daytime, AOI-cropped) and the mesoscale sectors; mrms adds lightning probability, VIL and echo top; hrrr adds the column smoke (COLMD); swpc-aurora gains the global aurora-probability raster; awc-tafs gains the forecast groups. Per-product enablement via the `products` param with small/large profile defaults, and the 120% budget-outlook health warning. The velocity-json and png-uv field encodings, the position sample (getSample record=) and sampleTrack."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-15",
+        "note": "107: SatDump extras. satdump-{station} gains filtered DCS (dcp-observation) and EMWIN products and warnings (emwin-product, emwin-warning) with the EMWIN warnings fallback; new glm-local-{station} source feeding the shared GLM ring with dedup; the CelesTrak per-group TLE alias /compat/celestrak/NORAD/elements/{group}.txt; the SatDump 2.0 foresignal-manifest.json reader and the MIT contrib/satdump hook."
       }
     ]
   },
@@ -41213,23 +41218,31 @@
     },
     "/compat/celestrak/NORAD/elements/{group}.txt": {
       "get": {
+        "operationId": "getCelestrakGroupTle",
         "tags": [
           "Space"
         ],
-        "operationId": "getCelestrakGroupTle",
-        "summary": "TLE group file (CelesTrak path alias)",
-        "description": "TLE (3-line) for a group, served only from the `celestrak-gp` cache; never fetches upstream on request. Groups include weather, noaa, goes, resource, amateur, cubesat, active, stations. Tools that cannot send headers use a feed key (`/v1/k/{key}/compat/celestrak/...`, 035) or openReads.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "summary": "Per-group TLE text (CelesTrak-compatible)",
+        "description": "The two-line element sets of a CelesTrak group as plain TLE text, for SatDump, Gpredict and Look4Sat. Served from the celestrak-gp cache only; never fetched upstream.",
         "parameters": [
           {
             "name": "group",
             "in": "path",
             "required": true,
-            "description": "CelesTrak group name",
             "schema": {
               "type": "string",
-              "pattern": "^[a-z0-9-]+$",
-              "example": "weather"
-            }
+              "pattern": "[A-Za-z0-9-]{1,64}"
+            },
+            "description": "weather, noaa, goes, resource, amateur, cubesat, active, stations, …"
+          },
+          {
+            "name": "key",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "A feed key (fsf_…) for clients that cannot send headers."
           }
         ],
         "responses": {
@@ -41241,76 +41254,18 @@
                   "type": "string"
                 }
               }
-            },
-            "headers": {
-              "X-Foresignal-Elements-Age": {
-                "description": "Age of the cached elements in seconds",
-                "schema": {
-                  "type": "integer"
-                }
-              },
-              "Warning": {
-                "description": "Present when the elements are older than 3 days",
-                "schema": {
-                  "type": "string"
-                }
-              },
-              "ETag": {
-                "description": "Hash of source max seq and query",
-                "schema": {
-                  "type": "string"
-                }
-              },
-              "Cache-Control": {
-                "description": "max-age=3600",
-                "schema": {
-                  "type": "string"
-                }
-              }
             }
           },
-          "404": {
-            "description": "Unknown group",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
+          "304": {
+            "description": "Not modified"
           },
-          "401": {
-            "description": "Missing or invalid token",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Rate limited (RATE_LIMITED); honour Retry-After",
-            "headers": {
-              "Retry-After": {
-                "description": "Seconds to wait before retrying",
-                "schema": {
-                  "type": "integer"
-                }
-              }
-            },
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
+          "400": {
+            "description": "Invalid group"
           }
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "107",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -91893,6 +91848,53 @@
               ]
             },
             "note": "externalId = place:{placeId}; the hourly UV index forecast for a US ZIP (the place's attributes.zip), in the place's timezone. hours = [{time, uv}] for the next hours; maxUv/maxAt are the peak. Missing when the place has no zip."
+          },
+          "dcp-observation": {
+            "x-foresignal-prompt": "107",
+            "payloadFields": {
+              "satdump-{station}": [
+                "address",
+                "name",
+                "agency",
+                "channel",
+                "signalDbm",
+                "freqOffsetHz",
+                "dataAscii",
+                "dataHex",
+                "failureCode"
+              ]
+            },
+            "note": "externalId = the DCP address. A DCS (Data Collection Platform) message from SatDump's parse_dcs JSON, resolved to a location through the dcp_location table; messages without a location, outside dcsBbox or not allowlisted are dropped. Emit on change; 3 d retention."
+          },
+          "emwin-product": {
+            "x-foresignal-prompt": "107",
+            "payloadFields": {
+              "satdump-{station}": [
+                "heading",
+                "awipsId",
+                "office",
+                "category",
+                "text"
+              ]
+            },
+            "note": "externalId = {wmoHeading}:{awipsId}:{issue}. An EMWIN product from the owner's GOES HRIT reception, filtered to the allowed AWIPS categories. text <= 16 KB, untrusted, embedded for search. 3 d retention."
+          },
+          "emwin-warning": {
+            "x-foresignal-prompt": "107",
+            "payloadFields": {
+              "satdump-{station}": [
+                "action",
+                "phenomena",
+                "significance",
+                "office",
+                "etn",
+                "headline",
+                "fallback",
+                "authoritativeSource",
+                "duplicateOf"
+              ]
+            },
+            "note": "externalId = {office}.{phen}.{sig}.{etn}, so an update to the same warning versions the same record; CAN/EXP tombstone. A P-VTEC warning with a LAT...LON polygon intersecting the places AOI. fallback:true; authoritativeSource nws-alerts. duplicateOf is present only while nws-alerts is healthy and holds the same VTEC."
           }
         }
       },

@@ -44,7 +44,7 @@ public class SatDumpFamily implements SourceAdapterFamily {
      */
     public SatDumpFamily(@Value("${" + STATIONS_PROPERTY + ":}") String stations, ObjectProvider<PlacePoints> places,
             ObjectProvider<LiveImageHolder> liveImages, ObjectProvider<RemoteMediaReceivers> receivers) {
-        this(stations, places, liveImages, receivers, null);
+        this(stations, places, liveImages, receivers, null, null);
     }
 
     /**
@@ -59,7 +59,7 @@ public class SatDumpFamily implements SourceAdapterFamily {
     @org.springframework.beans.factory.annotation.Autowired
     public SatDumpFamily(@Value("${" + STATIONS_PROPERTY + ":}") String stations, ObjectProvider<PlacePoints> places,
             ObjectProvider<LiveImageHolder> liveImages, ObjectProvider<RemoteMediaReceivers> receivers,
-            ObjectProvider<OrbitalElements> elements) {
+            ObjectProvider<OrbitalElements> elements, ObjectProvider<SatDumpExtras> extras) {
         List<SourceAdapter> built = new ArrayList<>();
         java.util.function.Supplier<PlacePoints> placeSupplier = places == null ? () -> null : places::getIfAvailable;
         java.util.function.Supplier<LiveImageHolder> imageSupplier =
@@ -68,8 +68,11 @@ public class SatDumpFamily implements SourceAdapterFamily {
                 receivers == null ? () -> null : receivers::getIfAvailable;
         java.util.function.Supplier<OrbitalElements> elementSupplier =
                 elements == null ? () -> null : elements::getIfAvailable;
+        java.util.function.Supplier<SatDumpExtras> extrasSupplier =
+                extras == null ? () -> null : extras::getIfAvailable;
         for (String station : names(stations)) {
-            built.add(new SatDumpAdapter(station, placeSupplier, imageSupplier, receiverSupplier, elementSupplier));
+            built.add(new SatDumpAdapter(station, placeSupplier, imageSupplier, receiverSupplier, elementSupplier,
+                    extrasSupplier));
         }
         this.adapters = List.copyOf(built);
         if (!adapters.isEmpty()) {
